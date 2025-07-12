@@ -1,6 +1,8 @@
 using System;
 using src.Domain.Entities.WorkspaceEntity.Relationships;
 
+using src.Domain.Enums;
+
 namespace src.Domain.Entities.WorkspaceEntity;
 
 public class Workspace : Agregate<Guid>
@@ -11,30 +13,34 @@ public class Workspace : Agregate<Guid>
     public string Icon { get; private set; } = string.Empty;
     public bool IsPrivate { get; private set; }
 
-    public ICollection<Space>? Spaces { get; set; } = new List<Space>();
-    public ICollection<UserWorkspace>? Members { get; set; } = new List<UserWorkspace>();
+    public ICollection<Space> Spaces { get; set; } = new List<Space>();
+    public ICollection<UserWorkspace> Members { get; set; } = new List<UserWorkspace>();
 
     public Guid CreatorId { get; private set; }
-    public string CreatorName { get; private set; } = string.Empty;
-
 
     private Workspace() { }
-    private Workspace(Guid id, string name, string description, string color, string icon, Guid creatorId, string creatorName, bool isPrivate) : base(id)
+    private Workspace(Guid id, string name, string description, string color, string icon, Guid creatorId, bool isPrivate) : base(id)
     {
         Name = name;
         Description = description;
         Color = color;
         Icon = icon;
         CreatorId = creatorId;
-        CreatorName = creatorName;
         IsPrivate = isPrivate;
     }
 
-    public static Workspace Create(string name, string description, string color, string icon, Guid creatorId, string creatorName, bool isPrivate)
+    public static Workspace Create(string name, string description, string color, string icon, Guid creatorId, bool isPrivate)
     {
-        var id = Guid.NewGuid();
-        return new Workspace(id, name, description, color, icon, creatorId, creatorName, isPrivate);
+        var workspace = new Workspace(Guid.NewGuid(), name, description, color, icon, creatorId, isPrivate);
+        var ownerMembership = new UserWorkspace(creatorId, workspace.Id, Role.Owner);
+        workspace.Members.Add(ownerMembership);
+
+        return workspace;
+    }
+
+    public void CreateSpace(Space space)
+    {
+        Spaces.Add(space);
     }
 
 }
-

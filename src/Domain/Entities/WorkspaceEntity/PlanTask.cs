@@ -20,8 +20,7 @@ public class PlanTask : Entity<Guid>
     public bool IsArchived { get; set; }
     public bool IsPrivate { get; set; }
 
-    public ICollection<UserTask>? Asignees { get; set; } = new List<UserTask>();
+    public ICollection<UserTask> Asignees { get; set; } = new List<UserTask>();
     public Guid CreatorId { get; set; }
-    public string CreatorName { get; set; } = string.Empty;
 
 }

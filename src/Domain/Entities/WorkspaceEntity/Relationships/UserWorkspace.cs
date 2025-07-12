@@ -7,8 +7,15 @@ namespace src.Domain.Entities.WorkspaceEntity.Relationships;
 public class UserWorkspace
 {
     public Guid UserId { get; set; }
-    public required User User { get; set; }
     public Guid WorkspaceId { get; set; }
-    public required Workspace Workspace { get; set; }
     public Role Role { get; set; }
+
+    public UserWorkspace() { }
+    public UserWorkspace(Guid userId, Guid workspaceId, Role role)
+    {
+        UserId = userId;
+        WorkspaceId = workspaceId;
+        Role = role;
+    }
+    
 }

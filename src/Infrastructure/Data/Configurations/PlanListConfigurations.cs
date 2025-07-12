@@ -21,7 +21,6 @@ public class PlanListConfigurations : IEntityTypeConfiguration<PlanList>
         builder.Property(l => l.OrderIndex);
         builder.Property(l => l.CreatorId)
             .IsRequired();
-        builder.Property(l => l.CreatorName);
 
         builder.HasIndex(l => l.WorkspaceId);
         builder.HasIndex(l => l.SpaceId);
@@ -34,7 +33,7 @@ public class PlanListConfigurations : IEntityTypeConfiguration<PlanList>
             .HasForeignKey(t => t.ListId)
             .OnDelete(DeleteBehavior.Cascade);
         builder.HasMany(l => l.Members)
-            .WithOne(ul => ul.List)
+            .WithOne()
             .HasForeignKey(ul => ul.ListId)
             .OnDelete(DeleteBehavior.Cascade);
 

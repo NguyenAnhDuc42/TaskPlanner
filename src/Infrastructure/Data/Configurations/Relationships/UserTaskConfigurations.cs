@@ -1,6 +1,8 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using src.Domain.Entities.UserEntity;
+using src.Domain.Entities.WorkspaceEntity;
 using src.Domain.Entities.WorkspaceEntity.Relationships;
 
 namespace src.Infrastructure.Data.Configurations.Relationships;
@@ -11,10 +13,10 @@ public class UserTaskConfigurations : IEntityTypeConfiguration<UserTask>
     {
         builder.ToTable("UserTasks");
         builder.HasKey(uw => new { uw.UserId, uw.TaskId });
-        builder.HasOne(uw => uw.User)
+        builder.HasOne<User>()
             .WithMany(u => u.Tasks)
             .HasForeignKey(uw => uw.UserId);
-        builder.HasOne(uw => uw.Task)
+        builder.HasOne<PlanTask>()
             .WithMany(t => t.Asignees)
             .HasForeignKey(uw => uw.TaskId);
 

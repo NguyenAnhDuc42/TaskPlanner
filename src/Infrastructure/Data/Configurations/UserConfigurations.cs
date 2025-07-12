@@ -29,23 +29,23 @@ public class UserConfigurations : IEntityTypeConfiguration<User>
             .HasForeignKey(s => s.UserId)
             .OnDelete(DeleteBehavior.Cascade);
         builder.HasMany(u => u.Workspaces)
-            .WithOne(uw => uw.User)
+            .WithOne()
             .HasForeignKey(uw => uw.UserId)
             .OnDelete(DeleteBehavior.Cascade);
         builder.HasMany(u => u.Spaces)
-            .WithOne(uw => uw.User)
+            .WithOne()
             .HasForeignKey(uw => uw.UserId)
             .OnDelete(DeleteBehavior.Cascade);
         builder.HasMany(u => u.Folders)
-            .WithOne(uw => uw.User)
+            .WithOne()
             .HasForeignKey(uw => uw.UserId)
             .OnDelete(DeleteBehavior.Cascade);
         builder.HasMany(u => u.Lists)
-            .WithOne(uw => uw.User)
+            .WithOne()
             .HasForeignKey(uw => uw.UserId)
             .OnDelete(DeleteBehavior.Cascade);
         builder.HasMany(u => u.Tasks)
-            .WithOne(uw => uw.User)
+            .WithOne()
             .HasForeignKey(uw => uw.UserId)
             .OnDelete(DeleteBehavior.Cascade);
         

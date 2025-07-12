@@ -21,7 +21,6 @@ public class SpaceConfigurations : IEntityTypeConfiguration<Space>
         builder.Property(s => s.IsArchived);
         builder.Property(s => s.CreatorId)
             .IsRequired();
-        builder.Property(s => s.CreatorName);
 
         //index
         builder.HasIndex(s => s.Name);
@@ -38,7 +37,7 @@ public class SpaceConfigurations : IEntityTypeConfiguration<Space>
             .HasForeignKey(f => f.SpaceId)
             .OnDelete(DeleteBehavior.Cascade);
         builder.HasMany(s => s.Members)
-            .WithOne(us => us.Space)
+            .WithOne()
             .HasForeignKey(us => us.SpaceId)
             .OnDelete(DeleteBehavior.Cascade);
 

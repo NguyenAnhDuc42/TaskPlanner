@@ -1,5 +1,7 @@
 using System;
+using System.Data;
 using Microsoft.EntityFrameworkCore;
+using Npgsql;
 using src.Infrastructure.Abstractions.IRepositories;
 using src.Infrastructure.Abstractions.IServices;
 using src.Infrastructure.Data;
@@ -13,7 +15,10 @@ public static class ServiceCollectionExtension
 
     public static IServiceCollection ServiceCollection(this IServiceCollection services, IConfiguration config)
     {
-        services.AddDbContext<PlannerDbContext>(opt => opt.UseNpgsql(config.GetConnectionString("DefaultConnection") ?? throw new ArgumentException("DefaultConnection is not set in configuration")));
+        var connectionString = config.GetConnectionString("DefaultConnection") ?? throw new ArgumentException("DefaultConnection is not set in configuration");
+
+        services.AddDbContext<PlannerDbContext>(opt => opt.UseNpgsql(connectionString));
+        services.AddScoped<IDbConnection>(opt => new NpgsqlConnection(connectionString));
 
         // Repositories
         services.AddScoped<IUserRepository, UserRepository>();

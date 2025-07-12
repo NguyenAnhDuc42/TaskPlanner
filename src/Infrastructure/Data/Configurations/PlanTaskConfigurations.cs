@@ -30,7 +30,6 @@ public class PlanTaskConfigurations : IEntityTypeConfiguration<PlanTask>
         builder.Property(t => t.IsArchived);
         builder.Property(t => t.IsPrivate);
         builder.Property(t => t.CreatorId).IsRequired();
-        builder.Property(t => t.CreatorName);
 
         builder.HasIndex(t => t.WorkspaceId);
         builder.HasIndex(t => t.SpaceId);
@@ -39,7 +38,7 @@ public class PlanTaskConfigurations : IEntityTypeConfiguration<PlanTask>
         builder.HasIndex(t => t.CreatorId);
 
         builder.HasMany(t => t.Asignees)
-        .WithOne(ut => ut.Task)
+        .WithOne()
         .HasForeignKey(ut => ut.TaskId)
         .OnDelete(DeleteBehavior.Cascade);
     }

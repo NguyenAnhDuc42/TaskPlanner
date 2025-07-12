@@ -1,11 +1,9 @@
 "use client"
 
 import type * as React from "react"
-import { BookOpen, Bot, Command, Frame, LifeBuoy, Map, PieChart, Send, Settings2, SquareTerminal } from "lucide-react"
+import { Command } from "lucide-react"
 
-import { NavMain } from "@/components/sidebar/nav-main"
-import { NavProjects } from "@/components/sidebar/nav-projects"
-import { NavSecondary } from "@/components/sidebar/nav-secondary"
+import { NavWorkspaces } from "@/components/sidebar/nav-workspaces"
 import { NavUser } from "@/components/sidebar/nav-user"
 import {
   Sidebar,
@@ -16,122 +14,6 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
-
-const data = {
-  user: {
-    name: "Sarah Chen",
-    email: "sarah@designteam.com",
-    avatar: "/avatars/sarah.jpg",
-  },
-  navMain: [
-    {
-      title: "Home",
-      url: "#",
-      icon: SquareTerminal,
-      isActive: true,
-    },
-    {
-      title: "My Work",
-      url: "#",
-      icon: Bot,
-      items: [
-        {
-          title: "My Tasks (12)",
-          url: "#",
-        },
-        {
-          title: "Assigned to me (8)",
-          url: "#",
-        },
-        {
-          title: "Following (24)",
-          url: "#",
-        },
-        {
-          title: "Created by me (15)",
-          url: "#",
-        },
-      ],
-    },
-    {
-      title: "Inbox",
-      url: "#",
-      icon: BookOpen,
-      items: [
-        {
-          title: "Activity (3)",
-          url: "#",
-        },
-        {
-          title: "Messages (1)",
-          url: "#",
-        },
-        {
-          title: "Mentions",
-          url: "#",
-        },
-      ],
-    },
-    {
-      title: "Goals",
-      url: "#",
-      icon: Settings2,
-      items: [
-        {
-          title: "Q1 Objectives",
-          url: "#",
-        },
-        {
-          title: "Team Goals",
-          url: "#",
-        },
-        {
-          title: "Personal Goals",
-          url: "#",
-        },
-      ],
-    },
-  ],
-  navSecondary: [
-    {
-      title: "Portfolios",
-      url: "#",
-      icon: LifeBuoy,
-    },
-    {
-      title: "Reporting",
-      url: "#",
-      icon: Send,
-    },
-  ],
-  projects: [
-    {
-      name: "🎨 Design System 2.0",
-      url: "#",
-      icon: Frame,
-    },
-    {
-      name: "📱 Mobile App Redesign",
-      url: "#",
-      icon: PieChart,
-    },
-    {
-      name: "🚀 Product Launch",
-      url: "#",
-      icon: Map,
-    },
-    {
-      name: "📊 Analytics Dashboard",
-      url: "#",
-      icon: BookOpen,
-    },
-    {
-      name: "🔧 API Integration",
-      url: "#",
-      icon: Bot,
-    },
-  ],
-}
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   return (
@@ -154,9 +36,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         </SidebarMenu>
       </SidebarHeader>
       <SidebarContent className="overflow-y-auto overflow-x-hidden custom-scrollbar">
-        <NavMain items={data.navMain} />
-        <NavProjects projects={data.projects} />
-        <NavSecondary items={data.navSecondary} className="mt-auto" />
+        <NavWorkspaces />
       </SidebarContent>
       <SidebarFooter>
         <NavUser/>

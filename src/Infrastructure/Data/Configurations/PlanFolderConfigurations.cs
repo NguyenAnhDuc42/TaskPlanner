@@ -18,7 +18,6 @@ public class PlanFolderConfigurations : IEntityTypeConfiguration<PlanFolder>
         builder.Property(f => f.IsPrivate);
         builder.Property(f => f.IsArchived);
         builder.Property(f => f.CreatorId).IsRequired();
-        builder.Property(f => f.CreatorName);
 
         builder.HasIndex(f => f.WorkspaceId);
         builder.HasIndex(f => f.SpaceId);
@@ -29,7 +28,7 @@ public class PlanFolderConfigurations : IEntityTypeConfiguration<PlanFolder>
             .HasForeignKey(l => l.FolderId)
             .OnDelete(DeleteBehavior.Cascade);
         builder.HasMany(f => f.Members)
-            .WithOne(uf => uf.Folder)
+            .WithOne()
             .HasForeignKey(uf => uf.FolderId)
             .OnDelete(DeleteBehavior.Cascade);
 

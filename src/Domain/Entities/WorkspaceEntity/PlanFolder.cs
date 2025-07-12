@@ -10,10 +10,9 @@ public class PlanFolder : Agregate<Guid>
     public string Name { get; private set; } = string.Empty;
     public bool IsPrivate { get; private set; }
     public bool IsArchived { get; private set; }
-    public ICollection<PlanList>? Lists { get; set; } = new List<PlanList>();
-    public ICollection<UserFolder>? Members { get; set; } = new List<UserFolder>();
+    public ICollection<PlanList> Lists { get; set; } = new List<PlanList>();
+    public ICollection<UserFolder> Members { get; set; } = new List<UserFolder>();
 
 
     public Guid CreatorId { get; private set; }
-    public string CreatorName { get; private set; } = string.Empty;
 }

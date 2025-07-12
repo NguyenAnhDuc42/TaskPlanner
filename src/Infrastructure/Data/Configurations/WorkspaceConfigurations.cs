@@ -22,7 +22,6 @@ public class WorkspaceConfigurations : IEntityTypeConfiguration<Workspace>
         builder.Property(w => w.IsPrivate);
         builder.Property(w => w.CreatorId)
             .IsRequired();
-        builder.Property(w => w.CreatorName);
 
         //index
         builder.HasIndex(w => w.Name);
@@ -33,7 +32,7 @@ public class WorkspaceConfigurations : IEntityTypeConfiguration<Workspace>
             .WithOne().HasForeignKey(s => s.WorkSpaceId)
             .OnDelete(DeleteBehavior.Cascade);
         builder.HasMany(w => w.Members)
-            .WithOne(uw => uw.Workspace)
+            .WithOne()
             .HasForeignKey(uw => uw.WorkspaceId)
             .OnDelete(DeleteBehavior.Cascade);
 

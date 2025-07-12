@@ -1,6 +1,6 @@
 "use client"
 
-import { BadgeCheck, Bell, ChevronsUpDown, CreditCard, Loader2, LogOut, Sparkles } from "lucide-react"
+import { BadgeCheck, Bell, ChevronsUpDown, LogOut, } from "lucide-react"
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import {
@@ -23,18 +23,21 @@ export function NavUser() {
   const { user, isLoading } = useUserContext()
   const logout = useLogout()
 
-  if (isLoading) {
+  if (isLoading || !user) {
     return (
       <SidebarMenu>
         <SidebarMenuItem>
-          <div className="flex items-center justify-center h-10 w-full">
-            <Loader2 className="animate-spin" />
+          <div className="flex h-10 items-center gap-2 px-2">
+            <Skeleton className="size-6 rounded" />
+            <div className="flex-1 space-y-1.5">
+              <Skeleton className="h-3 w-20" />
+              <Skeleton className="h-2 w-28" />
+            </div>
           </div>
         </SidebarMenuItem>
       </SidebarMenu>
     )
   }
-  if (!user) return <Skeleton/>
 
   return (
     <SidebarMenu>
@@ -74,22 +77,10 @@ export function NavUser() {
                 </div>
               </div>
             </DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            <DropdownMenuGroup>
-              <DropdownMenuItem>
-                <Sparkles />
-                Upgrade to Pro
-              </DropdownMenuItem>
-            </DropdownMenuGroup>
-            <DropdownMenuSeparator />
             <DropdownMenuGroup>
               <DropdownMenuItem>
                 <BadgeCheck />
                 Account
-              </DropdownMenuItem>
-              <DropdownMenuItem>
-                <CreditCard />
-                Billing
               </DropdownMenuItem>
               <DropdownMenuItem>
                 <Bell />
