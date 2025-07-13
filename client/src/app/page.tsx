@@ -1,6 +1,5 @@
-import { AppSidebar } from "@/components/sidebar/app-sidebar"
+
 import { ThemeToggle } from "@/components/theme-toggle"
-import { PlanningWorkspace } from "@/components/workspace/planning-workspace"
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -11,6 +10,9 @@ import {
 } from "@/components/ui/breadcrumb"
 import { Separator } from "@/components/ui/separator"
 import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar"
+import { AppSidebar } from "@/components/sidebar/app-sidebar"
+import { PlanningWorkspace } from "@/components/workspace/planning-workspace"
+
 
 export default function Page() {
   return (
