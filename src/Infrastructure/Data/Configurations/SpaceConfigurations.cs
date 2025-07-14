@@ -12,7 +12,7 @@ public class SpaceConfigurations : IEntityTypeConfiguration<Space>
         builder.ToTable("Spaces");
         builder.HasKey(s => s.Id);
         builder.Property(s => s.Id).IsRequired();
-        builder.Property(s => s.WorkSpaceId).IsRequired();
+        builder.Property(s => s.WorkspaceId).IsRequired();
         builder.Property(s => s.Name)
             .IsRequired()
             .HasMaxLength(100);
@@ -24,7 +24,7 @@ public class SpaceConfigurations : IEntityTypeConfiguration<Space>
 
         //index
         builder.HasIndex(s => s.Name);
-        builder.HasIndex(s => s.WorkSpaceId);
+        builder.HasIndex(s => s.WorkspaceId);
         builder.HasIndex(s => s.CreatorId);
 
         //relationships

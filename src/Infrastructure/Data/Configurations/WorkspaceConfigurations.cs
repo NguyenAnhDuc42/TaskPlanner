@@ -29,7 +29,7 @@ public class WorkspaceConfigurations : IEntityTypeConfiguration<Workspace>
 
         //relationships
         builder.HasMany(w => w.Spaces)
-            .WithOne().HasForeignKey(s => s.WorkSpaceId)
+            .WithOne().HasForeignKey(s => s.WorkspaceId)
             .OnDelete(DeleteBehavior.Cascade);
         builder.HasMany(w => w.Members)
             .WithOne()

@@ -8,7 +8,7 @@ using src.Helper.Results;
 
 namespace src.Feature.Workspace.SidebarWorkspaces;
 
-public class SidebarWorkspacesHandler : IRequestHandler<SidebarWorkspacesRequest, Result<SidebarWorkspacesResponse, ErrorResponse>>
+public class SidebarWorkspacesHandler : IRequestHandler<SidebarWorkspacesRequest, Result<Workspaces, ErrorResponse>>
 {
     private readonly IHttpContextAccessor _httpContextAccessor;
     private readonly IDbConnection _dbConnection;
@@ -17,12 +17,12 @@ public class SidebarWorkspacesHandler : IRequestHandler<SidebarWorkspacesRequest
         _httpContextAccessor = httpContextAccessor ?? throw new ArgumentNullException(nameof(httpContextAccessor));
         _dbConnection = dbConnection ?? throw new ArgumentNullException(nameof(dbConnection));
     }
-    public async Task<Result<SidebarWorkspacesResponse, ErrorResponse>> Handle(SidebarWorkspacesRequest request, CancellationToken cancellationToken)
+    public async Task<Result<Workspaces, ErrorResponse>> Handle(SidebarWorkspacesRequest request, CancellationToken cancellationToken)
     {
         var userIdClaim = _httpContextAccessor.HttpContext?.User.FindFirst(ClaimTypes.NameIdentifier);
         if (userIdClaim == null || !Guid.TryParse(userIdClaim.Value, out var userId))
         {
-            return Result<SidebarWorkspacesResponse, ErrorResponse>.Failure(ErrorResponse.Unauthorized("Unauthorized", "User not found."));
+            return Result<Workspaces, ErrorResponse>.Failure(ErrorResponse.Unauthorized("Unauthorized", "User not found."));
         }
 
         var sql = @"SELECT w.""Id"", w.""Name"", w.""Icon""
@@ -32,16 +32,16 @@ public class SidebarWorkspacesHandler : IRequestHandler<SidebarWorkspacesRequest
         try
         {
             // Dapper will map the selected columns directly to the SidebarWorkspace record
-            var sidebarWorkspaces = await _dbConnection.QueryAsync<SidebarWorkspace>(
+            var sidebarWorkspaces = await _dbConnection.QueryAsync<Workspace>(
                 sql,
                 new { UserId = userId }
             );
 
-            return Result<SidebarWorkspacesResponse, ErrorResponse>.Success(new SidebarWorkspacesResponse(sidebarWorkspaces.ToList()));
+            return Result<Workspaces, ErrorResponse>.Success(new Workspaces(sidebarWorkspaces.ToList()));
         }
         catch (Exception ex)
         {
-            return Result<SidebarWorkspacesResponse, ErrorResponse>.Failure(ErrorResponse.Internal(ex.Message));
+            return Result<Workspaces, ErrorResponse>.Failure(ErrorResponse.Internal(ex.Message));
         }
 
     }

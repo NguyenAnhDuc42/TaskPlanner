@@ -1,12 +1,15 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { CreateWorkspace, SidebarWorkspaces } from "./workspace-api";
+import { CreateWorkspace, GetHierarchy, SidebarWorkspaces } from "./workspace-api";
 
 import { ErrorResponse } from "@/types/responses/error-response";
+import { Hierarchy } from "./workspacetype";
 
 
 export const WORKSPACE_KEYS = {
   all: ["workspaces"] as const,
   sidebar: () => [...WORKSPACE_KEYS.all, "sidebar"] as const,
+  hierarchy: (workspaceId: string) => [...WORKSPACE_KEYS.all, "hierarchy", workspaceId] as const,
+
 } as const
 
 export function useCreateWorkspace() {
@@ -29,6 +32,21 @@ export function useSidebarWorkspaces() {
     return useQuery({
         queryKey: WORKSPACE_KEYS.sidebar(),
         queryFn: SidebarWorkspaces,
-        staleTime : 5 * 60 * 1000
     })
+}
+
+export function useHierarchy(workspaceId: string | undefined) {
+  return useQuery<Hierarchy, ErrorResponse>({
+    queryKey: workspaceId 
+      ? WORKSPACE_KEYS.hierarchy(workspaceId) 
+      : ["disabled-hierarchy-query"],
+    queryFn: async () => {
+      if (!workspaceId) {
+        throw new Error('Workspace ID is required');
+      }
+      return GetHierarchy({ id: workspaceId });
+    },
+    enabled: !!workspaceId,
+    staleTime: 5 * 60 * 1000, 
+  });
 }

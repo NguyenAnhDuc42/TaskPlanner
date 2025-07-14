@@ -1,5 +1,5 @@
 import apiClient from "@/lib/api-client";
-import { CreateWorkspaceRequest, CreateWorkspaceResponse, SidebarWorkspacesResponse } from "./workspacetype";
+import { CreateWorkspaceRequest, CreateWorkspaceResponse, GetHierarchyRequest, Hierarchy, Workspaces,  } from "./workspacetype";
  
 export const CreateWorkspace = async (data: CreateWorkspaceRequest) : Promise<CreateWorkspaceResponse> => {
     try {
@@ -9,9 +9,17 @@ export const CreateWorkspace = async (data: CreateWorkspaceRequest) : Promise<Cr
         throw error;
     }
 }
-export const SidebarWorkspaces = async () : Promise<SidebarWorkspacesResponse> => {
+export const SidebarWorkspaces = async () : Promise<Workspaces> => {
     try {
-        const rep = await apiClient.get<SidebarWorkspacesResponse>("/workspace/sidebar");
+        const rep = await apiClient.get<Workspaces>("/workspace/sidebar");
+        return rep.data;
+    } catch (error) {
+        throw error;
+    }
+}
+export const GetHierarchy = async (data : GetHierarchyRequest) : Promise<Hierarchy> => {
+    try {
+        const rep = await apiClient.get<Hierarchy>(`/workspace/${data.id}/hierarchy`);
         return rep.data;
     } catch (error) {
         throw error;

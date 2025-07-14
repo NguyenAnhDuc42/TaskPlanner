@@ -1,3 +1,4 @@
+// auth-hooks.ts
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Register, Me, Login, Logout, RefreshToken } from "./api";
 import { ErrorResponse } from "@/types/responses/error-response";
@@ -5,6 +6,7 @@ import { LoginResponse, LogoutResponse, RegisterResponse } from "./type";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { authSessionManager } from "./auth-session-manager";
+import { WORKSPACE_KEYS } from "../workspace/workspace-hooks";
 
 export const AUTH_KEYS = {
   me: ["auth", "me"] as const,
@@ -12,7 +14,6 @@ export const AUTH_KEYS = {
 
 export function useRegister() {
   const router = useRouter();
-
   return useMutation({
     mutationFn: Register,
     onSuccess: (data: RegisterResponse) => {
@@ -26,23 +27,17 @@ export function useRegister() {
         error.detail || error.title || "Registration failed unexpectedly."
       );
       console.error("Register Mutation Error:", error);
-      console.log(error);
     },
   });
 }
+
 export function useLogin() {
   const router = useRouter();
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: Login,
     onSuccess: async (data: LoginResponse) => {
-      console.log("useLogin onSuccess called. Data:", data);
       if (data.accessTokenExpiresAt && data.refreshTokenExpiresAt) {
-        console.log(
-          "Calling setTokenExpiries with:",
-          data.accessTokenExpiresAt,
-          data.refreshTokenExpiresAt
-        );
         authSessionManager.setTokenExpiries(
           data.accessTokenExpiresAt,
           data.refreshTokenExpiresAt
@@ -53,25 +48,23 @@ export function useLogin() {
         queryKey: AUTH_KEYS.me,
         queryFn: Me,
       });
-
       if (user) {
         toast.success(data.message || `Welcome back, ${user.name || "User"}!`);
         router.replace("/");
       } else {
         toast.error(
-          "Login successful, but failed to retrieve user data. Please try trying again later."
+          "Login successful, but failed to retrieve user data. Please try again later."
         );
         router.replace("/");
       }
     },
     onError: (error: ErrorResponse) => {
-      authSessionManager.clearSession(); // Clear session manager state on login failure
+      authSessionManager.clearSession();
       toast.error(
         error.detail ||
           error.title ||
           "Login failed. Please check your credentials."
       );
-      console.error("Login Mutation Error:", JSON.stringify(error, null, 2));
     },
   });
 }
@@ -81,23 +74,34 @@ export function useLogout() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: Logout,
-    onSuccess: (data: LogoutResponse) => {
+    onMutate: () => {
+      // Optimistically clear session and queries
       authSessionManager.clearSession();
       queryClient.removeQueries({ queryKey: AUTH_KEYS.me });
+      queryClient.removeQueries({ queryKey: WORKSPACE_KEYS.sidebar() });
+      
+      // Cancel all ongoing queries
+      return () => queryClient.cancelQueries();
+    },
+    onSuccess: (data: LogoutResponse) => {
       toast.success(data.message || "You have been successfully logged out.");
       router.push("/authenthication");
     },
-    onError: (error: ErrorResponse) => {
-      authSessionManager.clearSession(); // Clear session manager state
-      queryClient.removeQueries({ queryKey: AUTH_KEYS.me });
+    onError: (error: ErrorResponse, _, rollback) => {
+      // Rollback optimistic update if needed
+      if (rollback) rollback();
+      
       toast.error(
         error.detail ||
           error.title ||
           "Logout failed on server, but you have been logged out locally."
       );
-      router.replace("/authenthication");
-      console.error("Logout Mutation Error:", error);
+      router.push("/authenthication");
     },
+    onSettled: () => {
+      // Ensure all queries are reset
+      queryClient.removeQueries();
+    }
   });
 }
 
@@ -118,6 +122,7 @@ export function useRefresh() {
     },
   });
 }
+
 export function useUser() {
   // Use the useQuery hook as before, but without the direct 'onError' option
   const queryResult = useQuery({
@@ -130,8 +135,5 @@ export function useUser() {
     refetchOnReconnect: true,
     // Removed: onError: ...
   });
-
-  // Add a useEffect to watch for errors and perform logout/redirection
-
   return queryResult;
 }

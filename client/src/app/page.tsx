@@ -1,4 +1,5 @@
 
+import { AppSidebar } from "@/components/sidebar/app-sidebar"
 import { ThemeToggle } from "@/components/theme-toggle"
 import {
   Breadcrumb,
@@ -10,8 +11,7 @@ import {
 } from "@/components/ui/breadcrumb"
 import { Separator } from "@/components/ui/separator"
 import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar"
-import { AppSidebar } from "@/components/sidebar/app-sidebar"
-import { PlanningWorkspace } from "@/components/workspace/planning-workspace"
+
 
 
 export default function Page() {
@@ -51,10 +51,7 @@ export default function Page() {
             </div>
           </header>
 
-          {/* Main content area */}
-          <div className="relative z-10 flex flex-1 overflow-hidden">
-            <PlanningWorkspace />
-          </div>
+       
         </div>
       </SidebarInset>
     </SidebarProvider>

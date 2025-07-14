@@ -7,7 +7,7 @@ namespace src.Domain.Entities.WorkspaceEntity;
 
 public class Space : Agregate<Guid>
 {
-    public Guid WorkSpaceId { get; set; }
+    public Guid WorkspaceId { get; set; }
     public string Name { get; private set; } = string.Empty;
     public string Icon { get; private set; } = string.Empty;
 
