@@ -46,11 +46,8 @@ function CreateFolderOrListForm({ spaceId, onSuccess }: CreateFolderOrListFormPr
         }
       });
     } else {
-      createList({
-        workspaceId: selectedWorkspaceId!,
-        spaceId: spaceId,
-        name
-      }, {
+      createList({workspaceId: selectedWorkspaceId!, spaceId: spaceId, name}, 
+        {
         onSuccess: () => {
           setName("");
           onSuccess();
