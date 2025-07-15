@@ -16,6 +16,6 @@ export interface Workspace { id: string; name: string; icon: string;}
 export interface GetHierarchyRequest{id : string}
 
 export interface Hierarchy {spaces : SpaceNode[]}
-export interface SpaceNode {id : string ,name : string, lists : ListNode[] | null,folders : FolderNode[] | null }
+export interface SpaceNode {id : string ,name : string, directLists : ListNode[] | null,folders : FolderNode[] | null }
 export interface FolderNode {id : string ,name : string,lists : ListNode[]}
 export interface ListNode{id : string ,name : string}

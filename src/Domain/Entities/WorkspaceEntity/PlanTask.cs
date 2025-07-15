@@ -23,4 +23,30 @@ public class PlanTask : Entity<Guid>
     public ICollection<UserTask> Asignees { get; set; } = new List<UserTask>();
     public Guid CreatorId { get; set; }
 
+    private PlanTask() { }
+    private PlanTask(Guid id, string name, string description, int priority, DateTime? startDate, DateTime? dueDate, long? timeEstimate, long? timeSpent, int orderIndex, bool isArchived, bool isPrivate, Guid workspaceId, Guid spaceId, Guid? folderId, Guid listId, Guid creatorId) : base(id)
+    {
+        Name = name;
+        WorkspaceId = workspaceId;
+        SpaceId = spaceId;
+        FolderId = folderId;
+        ListId = listId;
+        CreatorId = creatorId;
+        Description = description;
+        Priority = priority;
+        StartDate = startDate;
+        DueDate = dueDate;
+        TimeEstimate = timeEstimate;
+        TimeSpent = timeSpent;
+        OrderIndex = orderIndex;
+        IsArchived = isArchived;
+        IsPrivate = isPrivate;
+    }
+
+    public static PlanTask Create(string name, string description, int priority, DateTime? startDate, DateTime? dueDate, long? timeEstimate, long? timeSpent, int orderIndex, bool isArchived, bool isPrivate,  Guid workspaceId, Guid spaceId, Guid? folderId, Guid listId, Guid creatorId)
+    {
+        var task = new PlanTask(Guid.NewGuid(), name,description,priority,startDate,dueDate,timeEstimate,timeSpent,orderIndex,isArchived,isPrivate, workspaceId, spaceId, folderId, listId, creatorId);
+        return task;
+    }
+
 }

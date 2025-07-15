@@ -16,9 +16,26 @@ public class Space : Agregate<Guid>
     public ICollection<PlanList> Lists { get; set; } = new List<PlanList>();
     public ICollection<PlanFolder> Folders { get; set; } = new List<PlanFolder>();
     public ICollection<UserSpace> Members { get; set; } = new List<UserSpace>();
- 
+
 
     public Guid CreatorId { get; private set; }
+
+    private Space() { }
+    private Space(Guid id, string name, string icon, Guid workspaceId, Guid creatorId) : base(id)
+    {
+        Name = name;
+        Icon = icon;
+        WorkspaceId = workspaceId;
+        CreatorId = creatorId;
+    }
+
+    public static Space Create(string name, string icon, Guid workspaceId,Guid creatorId)
+    {
+       var space = new Space(Guid.NewGuid(), name, icon, workspaceId,creatorId);
+       var list = PlanList.Create("List",workspaceId,space.Id,null,creatorId);
+        space.Lists.Add(list);
+       return space;
+    }
 
 
 }

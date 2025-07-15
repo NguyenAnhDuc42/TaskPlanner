@@ -17,17 +17,22 @@ import {
 import {
   useSidebarWorkspaces,
 } from "@/features/workspace/workspace-hooks";
-import { useRouter } from "next/navigation";import { WorkspaceList } from "./workspace-list";
-;
+import { useRouter } from "next/navigation";
+import { WorkspaceList } from "./workspace-list";
+import { useWorkspaceStore } from "@/utils/workspace-store";
 
 
 export function WorkspaceSwitcher() {
   const router = useRouter();
   const { isMobile } = useSidebar();
   const { data, isLoading } = useSidebarWorkspaces();
+  const { selectedWorkspaceId, setSelectedWorkspaceId } = useWorkspaceStore();
   const workspaces = data?.workspaces || [];
 
+  const selectedWorkspace = workspaces.find(w => w.id === selectedWorkspaceId);
+
   const handleWorkspaceSelect = (workspaceId: string) => {
+    setSelectedWorkspaceId(workspaceId);
     router.push(`/workspace/${workspaceId}`);
   };
 
@@ -41,7 +46,9 @@ export function WorkspaceSwitcher() {
               className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
             >
               <div className="bg-sidebar-primary text-sidebar-primary-foreground flex aspect-square size-8 items-center justify-center rounded-lg">
-                {workspaces.length > 0 ? (
+                {selectedWorkspace?.icon ? (
+                  <img src={selectedWorkspace.icon} alt={selectedWorkspace.name} className="size-4" />
+                ) : workspaces.length > 0 ? (
                   <ChevronsUpDown className="size-4" />
                 ) : (
                   <Plus className="size-4" />
@@ -49,9 +56,9 @@ export function WorkspaceSwitcher() {
               </div>
               <div className="grid flex-1 text-left text-sm leading-tight">
                 <span className="truncate font-medium">
-                  {workspaces.length > 0 
+                  {selectedWorkspace?.name || (workspaces.length > 0 
                     ? "Select workspace" 
-                    : "Add workspace"}
+                    : "Add workspace")}
                 </span>
               </div>
               <ChevronsUpDown className="ml-auto" />

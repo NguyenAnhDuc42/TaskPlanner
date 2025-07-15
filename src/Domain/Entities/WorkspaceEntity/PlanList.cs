@@ -16,6 +16,20 @@ public class PlanList : Agregate<Guid>
     public ICollection<UserList> Members { get; set; } = new List<UserList>();
 
 
-
     public Guid CreatorId { get; private set; }
+    private PlanList() { }
+    private PlanList(Guid id, string name, Guid workspaceId, Guid spaceId, Guid? folderId, Guid creatorId) : base(id)
+    {
+        Name = name;
+        WorkspaceId = workspaceId;
+        SpaceId = spaceId;
+        FolderId = folderId;
+        CreatorId = creatorId;
+    }
+
+    public static PlanList Create(string name, Guid workspaceId,Guid spaceId, Guid? folderId,Guid creatorId)
+    {
+        var list = new PlanList(Guid.NewGuid(), name, workspaceId,spaceId, folderId,creatorId);
+        return list;
+    }
 }

@@ -72,7 +72,7 @@ public class GetHierarchyHandler : IRequestHandler<GetHierarchyRequest, Result<H
 
         var sql = $@"
             SELECT ""Id"", ""Name"", ""SpaceId"", ""FolderId""
-            FROM Lists 
+            FROM ""Lists"" 
             WHERE {string.Join(" OR ", conditions)}
             ORDER BY ""Name""";
 
