@@ -29,6 +29,8 @@ public static class ServiceCollectionExtension
         // Services
         services.AddScoped<IPasswordService, PasswordService>();
         services.AddScoped<ICurrentUserService, CurrentUserService>();
+        services.AddScoped<IHierarchyRepository, HierarchyRepository>();
+     
 
  
 

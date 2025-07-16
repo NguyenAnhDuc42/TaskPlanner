@@ -19,7 +19,7 @@ export function useCreateSpace() {
             queryClient.invalidateQueries({
                 queryKey: WORKSPACE_KEYS.hierarchy(variables.workspaceId)
             });
-        },
+        },  
         onError: (error: ErrorResponse) => {
             toast.error(error.detail || error.title || "Failed to create space.");
         }

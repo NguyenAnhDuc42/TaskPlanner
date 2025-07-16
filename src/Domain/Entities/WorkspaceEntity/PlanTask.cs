@@ -43,9 +43,9 @@ public class PlanTask : Entity<Guid>
         IsPrivate = isPrivate;
     }
 
-    public static PlanTask Create(string name, string description, int priority, DateTime? startDate, DateTime? dueDate, long? timeEstimate, long? timeSpent, int orderIndex, bool isArchived, bool isPrivate,  Guid workspaceId, Guid spaceId, Guid? folderId, Guid listId, Guid creatorId)
+    public static PlanTask Create(string name, string description, int priority, DateTime? startDate, DateTime? dueDate, bool isPrivate,  Guid workspaceId, Guid spaceId, Guid? folderId, Guid listId, Guid creatorId)
     {
-        var task = new PlanTask(Guid.NewGuid(), name,description,priority,startDate,dueDate,timeEstimate,timeSpent,orderIndex,isArchived,isPrivate, workspaceId, spaceId, folderId, listId, creatorId);
+        var task = new PlanTask(Guid.NewGuid(), name, description, priority, startDate, dueDate, null, null, 0, false, isPrivate, workspaceId, spaceId, folderId, listId, creatorId);
         return task;
     }
 
