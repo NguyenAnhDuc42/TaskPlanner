@@ -1,13 +1,16 @@
+import type React from "react"
 
-
-export default function layout({
+export default function AuthenticationLayout({
   children,
 }: Readonly<{
-  children: React.ReactNode;
+  children: React.ReactNode
 }>) {
   return (
-    <body>
+    // This layout will simply render its children.
+    // The specific styling for your authentication pages should be defined
+    // directly within your page.tsx components (e.g., app/Authentication/page.tsx).
+    <>
       {children}
-    </body>
-  );
+    </>
+  )
 }

@@ -6,7 +6,7 @@ namespace src.Feature.TaskManager.UpdateTask;
 
 public record class UpdateTaskRequest(
     Guid Id,
-    string? Name,
+    string Name,
     string? Description,
     int? Priority,
     PlanTaskStatus? Status,

@@ -6,12 +6,10 @@ import {
   Filter,
   Search,
   Settings,
-  Plus,
   CheckCircle,
   Calendar,
   Flag,
   MessageSquare,
-  MoreHorizontal,
   CircleDot,
   Circle,
 } from "lucide-react"
@@ -19,15 +17,17 @@ import {
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import type { PlanTaskStatus } from "@/types/task"
-import { useParams } from "next/navigation"
 import { useListTasks } from "@/features/list/list-hooks"
 import { CreateTaskForm } from "@/components/task/create-task-form"
+import Link from "next/link"
 
 
-export default function Page() {
-  const params = useParams()
+export default function Page( { params }: { params: { listId: string , workspaceId: string} }) {
   const listId = params.listId as string | undefined
+  const workspaceId = params.workspaceId as string
   const { data: tasks, isLoading, isError } = useListTasks(listId)
+  console.log(workspaceId)
+
 
   const [collapsedGroups, setCollapsedGroups] = useState<Record<PlanTaskStatus, boolean>>({
     ToDo: false,
@@ -93,7 +93,6 @@ export default function Page() {
 
   return (
     <div className="min-h-screen flex flex-col bg-[#1a1a1a] text-gray-100">
-      {/* Header - Now Sticky */}
       <header className="sticky top-0 z-10 flex items-center justify-between py-3 px-4 border-b border-gray-800 bg-[#1a1a1a] shrink-0">
         <div className="flex items-center space-x-2">
           {/* <Button variant="ghost" className="text-gray-300 hover:bg-gray-800 px-3 py-1 rounded-md">
@@ -147,10 +146,6 @@ export default function Page() {
                   {status.toUpperCase()}
                 </Badge>
                 <span className="text-gray-400 text-sm">{tasks.tasks[status]?.length || 0}</span>
-                <Button variant="ghost" size="icon" className="text-gray-400 hover:bg-gray-700">
-                  <MoreHorizontal className="w-4 h-4" />
-                </Button>
-                {/* Removed "Add Task" button from status group header */}
               </div>
             </div>
 
@@ -163,9 +158,6 @@ export default function Page() {
                   <div className="col-span-1">Priority</div>
                   <div className="col-span-1">Status</div>
                   <div className="col-span-1">Comments</div>
-                  <div className="col-span-1 flex justify-end">
-                    <Plus className="w-4 h-4" />
-                  </div>
                 </div>
                 {/* Task Rows */}
                 {!tasks.tasks[status] || tasks.tasks[status]?.length === 0 ? (
@@ -181,7 +173,9 @@ export default function Page() {
                           <Circle className="w-3 h-3" />
                         </Button>
                       </div>
+                      <Link href={`/ws/${workspaceId}/t/${task.id}`}>
                       <div className="font-medium text-gray-200">{task.name}</div>
+                      </Link>
                       <div className="flex items-center space-x-1 text-gray-400">
                         <Button variant="ghost" size="icon" className="w-6 h-6 text-gray-400 hover:bg-gray-700">
                           <Calendar className="w-3 h-3" />
@@ -205,11 +199,6 @@ export default function Page() {
                       <div className="flex items-center space-x-1 text-gray-400">
                         <Button variant="ghost" size="icon" className="w-6 h-6 text-gray-400 hover:bg-gray-700">
                           <MessageSquare className="w-3 h-3" />
-                        </Button>
-                      </div>
-                      <div className="flex justify-end">
-                        <Button variant="ghost" size="icon" className="w-6 h-6 text-gray-400 hover:bg-gray-700">
-                          <MoreHorizontal className="w-3 h-3" />
                         </Button>
                       </div>
                     </div>

@@ -53,7 +53,7 @@ public class PlanTask : Entity<Guid>
         return task;
     }
 
-    public void Update(string name, string description, int priority, PlanTaskStatus status, DateTime? startDate, DateTime? dueDate, bool isPrivate)
+    public void Update(string? name, string? description, int priority, PlanTaskStatus status, DateTime? startDate, DateTime? dueDate, bool isPrivate)
     {
         Name = name;
         Description = description;

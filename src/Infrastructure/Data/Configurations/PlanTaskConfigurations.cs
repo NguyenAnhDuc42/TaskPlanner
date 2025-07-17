@@ -25,10 +25,10 @@ public class PlanTaskConfigurations : IEntityTypeConfiguration<PlanTask>
          builder.Property(t => t.Status)
                 .HasColumnName("Status")
                 .IsRequired();
-        builder.Property(t => t.DueDate);
-        builder.Property(t => t.StartDate);
-        builder.Property(t => t.TimeEstimate);
-        builder.Property(t => t.TimeSpent);
+        builder.Property(t => t.DueDate).IsRequired(false);
+        builder.Property(t => t.StartDate).IsRequired(false);
+        builder.Property(t => t.TimeEstimate).IsRequired(false);
+        builder.Property(t => t.TimeSpent).IsRequired(false);
         builder.Property(t => t.OrderIndex);
         builder.Property(t => t.IsArchived);
         builder.Property(t => t.IsPrivate);
