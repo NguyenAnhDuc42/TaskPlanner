@@ -43,10 +43,10 @@ export function useUpdateTask() {
     onSuccess: (data) => {
       toast.success(data.message || "Task updated successfully!");
       queryClient.invalidateQueries({
-        queryKey: TASK_KEYS.detail(data.task.id),
-      });
-      queryClient.invalidateQueries({
         queryKey: LIST_KEYS.tasks(data.task.listId),
+      });
+          queryClient.invalidateQueries({
+        queryKey: TASK_KEYS.detail(data.task.id),
       });
     },
     onError: (error: ErrorResponse) => {

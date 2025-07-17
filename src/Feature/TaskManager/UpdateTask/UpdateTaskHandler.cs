@@ -23,8 +23,12 @@ public class UpdateTaskHandler : IRequestHandler<UpdateTaskRequest, Result<Updat
     {
         var task = await _hierarchyRepository.GetPlanTaskByIdAsync(request.Id, cancellationToken);
         if (task == null) return Result<UpdateTaskResponse, ErrorResponse>.Failure(ErrorResponse.NotFound("Task not found"));
-
-        task.Update(request.Name, request.Description, request.Priority ?? 0,request.Status ?? PlanTaskStatus.ToDo,request.StartDate, request.DueDate, request.IsPrivate ?? false);
+        if (!string.IsNullOrEmpty(request.Name))
+        {
+            task.Update(request.Name, request.Description, request.Priority ?? 0, request.Status ?? PlanTaskStatus.ToDo, request.StartDate, request.DueDate, request.IsPrivate ?? false);
+        } else {
+            task.Update(task.Name, request.Description, request.Priority ?? 0, request.Status ?? PlanTaskStatus.ToDo, request.StartDate, request.DueDate, request.IsPrivate ?? false);
+        }
 
         try
         {

@@ -9,7 +9,7 @@ export const CreateTask  = async (data : CreateTaskRequest) : Promise<CreateTask
 
 
 
-export const UpdateTask = async ({id,...data}: {id : string, data : UpdateTaskBodyRequest}) : Promise<UpdateTaskResponse> => {
+export const UpdateTask = async ({id,data}: {id : string, data : UpdateTaskBodyRequest}) : Promise<UpdateTaskResponse> => {
     const rep = await apiClient.put<UpdateTaskResponse>(`/task/${id}`, data);
     return rep.data;
 }

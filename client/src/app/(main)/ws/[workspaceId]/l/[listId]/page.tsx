@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { use, useState } from "react"
 import {
   ChevronDown,
   Filter,
@@ -22,9 +22,10 @@ import { CreateTaskForm } from "@/components/task/create-task-form"
 import Link from "next/link"
 
 
-export default function Page( { params }: { params: { listId: string , workspaceId: string} }) {
-  const listId = params.listId as string | undefined
-  const workspaceId = params.workspaceId as string
+export default function Page( { params }: { params: Promise<{ workspaceId: string; listId: string }> }) {
+  const resolvedParams = use(params);
+  const listId = resolvedParams.listId as string | undefined
+  const workspaceId = resolvedParams.workspaceId as string
   const { data: tasks, isLoading, isError } = useListTasks(listId)
   console.log(workspaceId)
 
