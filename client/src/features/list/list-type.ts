@@ -1,3 +1,4 @@
+import { PlanTaskStatus } from "@/types/task";
 
 
 export interface CreateListRequest {
@@ -15,4 +16,28 @@ export interface CreateListResponse {
 
 export interface GetListTasksRequest {
   listId: string;
+}
+
+export interface CreateTaskInListRequest {
+  name: string
+  description?: string 
+  priority: number
+  status: PlanTaskStatus
+  startDate?: string | null
+  dueDate?: string | null
+  isPrivate: boolean
+  listId: string
+}
+
+
+export interface TaskLineList {
+  tasks: Record<PlanTaskStatus, TaskLineItem[]>;
+}
+export interface TaskLineItem {
+  id: string;
+  name: string;
+  priority: number;
+  status: PlanTaskStatus;
+  startDate?: string | null;
+  dueDate?: string | null;
 }

@@ -18,7 +18,6 @@ public class WorkspaceConfigurations : IEntityTypeConfiguration<Workspace>
             .IsRequired(false)
             .HasMaxLength(1000);
         builder.Property(w => w.Color);
-        builder.Property(w => w.Icon);
         builder.Property(w => w.IsPrivate);
         builder.Property(w => w.CreatorId)
             .IsRequired();

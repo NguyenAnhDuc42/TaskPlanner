@@ -26,7 +26,7 @@ public class CreateWorkspaceHandler : IRequestHandler<CreateWorkspaceRequest, Re
             return Result<CreateWorkspaceResponse, ErrorResponse>.Failure(ErrorResponse.Unauthorized("Unauthorized", "User not found."));
         }
 
-        var workspace = Domain.Entities.WorkspaceEntity.Workspace.Create(request.Name, request.Description, request.Color, request.Icon, userId, request.IsPrivate);
+        var workspace = Domain.Entities.WorkspaceEntity.Workspace.Create(request.Name, request.Description, request.Color, userId, request.IsPrivate);
 
         try
         {

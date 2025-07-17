@@ -1,5 +1,7 @@
+using src.Domain.Entities.WorkspaceEntity.SupportEntiy;
+
 namespace src.Feature.ListManager.GetListInfo;
 
-public record class TaskList(List<Task> tasks);
+public record class TaskLineList(Dictionary<PlanTaskStatus, List<TaskLineItem>> tasks);
 
-public record class Task(Guid id,string name,int priority,DateTime? startDate,DateTime? dueDate);
+public record class TaskLineItem(Guid id,string name,int priority,PlanTaskStatus status,DateTime? startDate,DateTime? dueDate);

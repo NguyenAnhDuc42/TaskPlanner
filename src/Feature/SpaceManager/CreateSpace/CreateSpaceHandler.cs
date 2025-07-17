@@ -20,7 +20,7 @@ public async Task<Result<CreateSpaceResponse, ErrorResponse>> Handle(CreateSpace
     {
         var userId = _currentUserService.CurrentUserId();
 
-        var space = Space.Create(request.name, request.icon, request.workspaceId,userId);
+        var space = Space.Create(request.name, request.workspaceId,userId);
         try
         {
             await _context.Spaces.AddAsync(space);

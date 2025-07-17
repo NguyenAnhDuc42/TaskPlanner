@@ -23,10 +23,10 @@ export function useCreateTask() {
 
   return useMutation({
     mutationFn: CreateTask,
-    onSuccess: (data) => {
+    onSuccess: (data,variables) => {
       toast.success(data.message || "Task created successfully!");
       queryClient.invalidateQueries({
-        queryKey: LIST_KEYS.tasks(data.id),
+        queryKey: LIST_KEYS.tasks(variables.listId),
       });
     },
     onError: (error: ErrorResponse) => {

@@ -1,10 +1,14 @@
+using System.Text.Json.Serialization    ;
 using src.Helper.Extensions;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddHttpContextAccessor();
-builder.Services.AddControllers();
+builder.Services.AddControllers().AddJsonOptions(options => // <-- ADD THIS TO USE NEWTONSOFT.JSON
+    {
+        options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
+    });
 
 builder.Services.AddSwaggerGen();
 
@@ -16,7 +20,7 @@ builder.Services.AddCors(opt =>
 {
     opt.AddPolicy("AllowClient", policy =>
     {
-        policy.WithOrigins("http://localhost:3000").AllowAnyHeader().AllowAnyMethod().AllowCredentials();
+        policy.WithOrigins("http://localhost:3000","http://localhost:3001").AllowAnyHeader().AllowAnyMethod().AllowCredentials();
     });
 });
 

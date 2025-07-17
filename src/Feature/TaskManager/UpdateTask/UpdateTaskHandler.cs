@@ -1,5 +1,7 @@
 using System;
 using MediatR;
+using src.Domain.Entities.WorkspaceEntity;
+using src.Domain.Entities.WorkspaceEntity.SupportEntiy;
 using src.Helper.Results;
 using src.Infrastructure.Abstractions.IRepositories;
 using src.Infrastructure.Data;
@@ -22,17 +24,7 @@ public class UpdateTaskHandler : IRequestHandler<UpdateTaskRequest, Result<Updat
         var task = await _hierarchyRepository.GetPlanTaskByIdAsync(request.Id, cancellationToken);
         if (task == null) return Result<UpdateTaskResponse, ErrorResponse>.Failure(ErrorResponse.NotFound("Task not found"));
 
-        task.Name = request.Name ?? task.Name;
-        task.Description = request.Description ?? task.Description;
-        task.Priority = request.Priority ?? task.Priority;
-        task.StartDate = request.StartDate ?? task.StartDate;
-        task.DueDate = request.DueDate ?? task.DueDate;
-        task.TimeEstimate = request.TimeEstimate ?? task.TimeEstimate;
-        task.TimeSpent = request.TimeSpent ?? task.TimeSpent;
-        task.OrderIndex = request.OrderIndex ?? task.OrderIndex;
-        task.IsArchived = request.IsArchived ?? task.IsArchived;
-        task.IsPrivate = request.IsPrivate ?? task.IsPrivate;
-        task.ListId = request.ListId ?? task.ListId;
+        task.Update(request.Name, request.Description, request.Priority ?? 0,request.Status ?? PlanTaskStatus.ToDo,request.StartDate, request.DueDate, request.IsPrivate ?? false);
 
         try
         {
@@ -42,6 +34,7 @@ public class UpdateTaskHandler : IRequestHandler<UpdateTaskRequest, Result<Updat
                 task.Name,
                 task.Description,
                 task.Priority,
+                task.Status,
                 task.DueDate,
                 task.StartDate,
                 task.TimeEstimate,

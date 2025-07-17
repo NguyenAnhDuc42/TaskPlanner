@@ -10,7 +10,6 @@ public class Workspace : Agregate<Guid>
     public string Name { get; private set; } = string.Empty;
     public string Description { get; private set; } = string.Empty;
     public string Color { get; private set; } = string.Empty;
-    public string Icon { get; private set; } = string.Empty;
     public bool IsPrivate { get; private set; }
 
     public ICollection<Space> Spaces { get; set; } = new List<Space>();
@@ -19,19 +18,18 @@ public class Workspace : Agregate<Guid>
     public Guid CreatorId { get; private set; }
 
     private Workspace() { }
-    private Workspace(Guid id, string name, string description, string color, string icon, Guid creatorId, bool isPrivate) : base(id)
+    private Workspace(Guid id, string name, string description, string color, Guid creatorId, bool isPrivate) : base(id)
     {
         Name = name;
         Description = description;
         Color = color;
-        Icon = icon;
         CreatorId = creatorId;
         IsPrivate = isPrivate;
     }
 
-    public static Workspace Create(string name, string description, string color, string icon, Guid creatorId, bool isPrivate)
+    public static Workspace Create(string name, string description, string color, Guid creatorId, bool isPrivate)
     {
-        var workspace = new Workspace(Guid.NewGuid(), name, description, color, icon, creatorId, isPrivate);
+        var workspace = new Workspace(Guid.NewGuid(), name, description, color, creatorId, isPrivate);
         var ownerMembership = new UserWorkspace(creatorId, workspace.Id, Role.Owner);
         workspace.Members.Add(ownerMembership);
 

@@ -25,7 +25,7 @@ public class SidebarWorkspacesHandler : IRequestHandler<SidebarWorkspacesRequest
             return Result<Workspaces, ErrorResponse>.Failure(ErrorResponse.Unauthorized("Unauthorized", "User not found."));
         }
 
-        var sql = @"SELECT w.""Id"", w.""Name"", w.""Icon""
+        var sql = @"SELECT w.""Id"", w.""Name""
                     FROM  ""UserWorkspaces"" uw
                     JOIN ""Workspaces"" w on uw.""WorkspaceId"" = w.""Id""
                     WHERE uw.""UserId"" = @UserId";

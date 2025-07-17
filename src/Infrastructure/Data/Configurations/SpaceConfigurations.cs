@@ -16,7 +16,6 @@ public class SpaceConfigurations : IEntityTypeConfiguration<Space>
         builder.Property(s => s.Name)
             .IsRequired()
             .HasMaxLength(100);
-        builder.Property(s => s.Icon);
         builder.Property(s => s.IsPrivate);
         builder.Property(s => s.IsArchived);
         builder.Property(s => s.CreatorId)

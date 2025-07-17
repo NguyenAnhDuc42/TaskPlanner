@@ -1,9 +1,9 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { createList, getListTasks } from "./list-api";
+import { createList, CreateTaskInList, getListTasks } from "./list-api";
 import { WORKSPACE_KEYS } from "../workspace/workspace-hooks";
 import { toast } from "sonner";
 import { ErrorResponse } from "@/types/responses/error-response";
-import { TaskList } from "../space/space-type";
+import { TaskLineList } from "./list-type";
 
 export const LIST_KEYS = {
     all: ["lists"] as const,
@@ -25,9 +25,25 @@ export function useCreateList() {
         }
     });
 }
+export function useCreateTaskInList() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: CreateTaskInList,
+    onSuccess: (data,variables) => {
+      toast.success(data.message || "Task created successfully!");
+      queryClient.invalidateQueries({
+        queryKey: LIST_KEYS.tasks(variables.listId),
+      });
+    },
+    onError: (error: ErrorResponse) => {
+      toast.error(error.detail || error.title || "Failed to create task.");
+    },
+  });
+}
 
 export function useListTasks(listId: string | undefined) {
-    return useQuery<TaskList, ErrorResponse>({
+    return useQuery<TaskLineList, ErrorResponse>({
         queryKey: listId ? LIST_KEYS.tasks(listId) : ["disabled-list-tasks-query"],
         queryFn: () => {
             if (!listId) throw new Error("List ID is required to fetch tasks.");

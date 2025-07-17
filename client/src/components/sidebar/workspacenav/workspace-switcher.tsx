@@ -33,7 +33,7 @@ export function WorkspaceSwitcher() {
 
   const handleWorkspaceSelect = (workspaceId: string) => {
     setSelectedWorkspaceId(workspaceId);
-    router.push(`/workspace/${workspaceId}`);
+    router.push(`/ws/${workspaceId}`);
   };
 
   return (

@@ -11,20 +11,6 @@ public class Status : Entity<Guid>
     public int Order { get; private set; }
     public StatusType Type { get; private set; } // Open, InProgress, Closed
     public HierarchyLevel Level { get; private set; }
-
-
-    public static Status CreateForSpace(Guid spaceId, string name, string color, StatusType type, int? order = null)
-    {
-        return new Status
-        {
-            SpaceId = spaceId,
-            Name = name,
-            Color = color,
-            Order = order ?? 0,
-            Type = type,
-            Level = HierarchyLevel.Space
-        };
-    }
      public static Status CreateForList(Guid spaceId, string name, string color, StatusType type, int? order = null)
     {
         return new Status
@@ -52,6 +38,14 @@ public enum HierarchyLevel
     Space = 0,
     Folder = 1,
     List = 2
+}
+
+public enum PlanTaskStatus //temp
+{
+    ToDo = 0,
+    InProgress = 1 ,
+    InReview = 2,
+    Done = 3
 }
 
 

@@ -15,16 +15,15 @@ namespace src.Feature.TaskManager
                 id,
                 body.Name,
                 body.Description,
-                
                 body.Priority,
+                body.Status,
                 body.StartDate,
                 body.DueDate,
                 body.TimeEstimate,
                 body.TimeSpent,
                 body.OrderIndex,
                 body.IsArchived,
-                body.IsPrivate,
-                body.ListId
+                body.IsPrivate
             );
             var result = await _mediator.Send(request);
             return result.ToApiResult();

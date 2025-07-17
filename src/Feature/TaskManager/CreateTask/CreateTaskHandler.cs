@@ -1,6 +1,7 @@
 using System;
 using MediatR;
 using src.Domain.Entities.WorkspaceEntity;
+using src.Domain.Entities.WorkspaceEntity.SupportEntiy;
 using src.Helper.Results;
 using src.Infrastructure.Abstractions.IServices;
 using src.Infrastructure.Data;
@@ -19,8 +20,9 @@ public class CreateTaskHandler : IRequestHandler<CreateTaskRequest, Result<Creat
     public async Task<Result<CreateTaskResponse, ErrorResponse>> Handle(CreateTaskRequest request, CancellationToken cancellationToken)
     {
         var userId = _currentUserService.CurrentUserId();
+        var status = request.status ?? PlanTaskStatus.ToDo;
 
-        var task = PlanTask.Create(request.name, request.description, request.priority, request.startDate, request.dueDate, request.isPrivate, request.workspaceId, request.spaceId, request.folderId, request.listId, userId);
+        var task = PlanTask.Create(request.name, request.description, request.priority,status, request.startDate, request.dueDate, request.isPrivate, request.workspaceId, request.spaceId, request.folderId, request.listId, userId);
 
         try
         {

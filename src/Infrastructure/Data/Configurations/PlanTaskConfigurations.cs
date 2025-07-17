@@ -22,6 +22,9 @@ public class PlanTaskConfigurations : IEntityTypeConfiguration<PlanTask>
             .IsRequired(false)
             .HasMaxLength(2000);
         builder.Property(t => t.Priority);
+         builder.Property(t => t.Status)
+                .HasColumnName("Status")
+                .IsRequired();
         builder.Property(t => t.DueDate);
         builder.Property(t => t.StartDate);
         builder.Property(t => t.TimeEstimate);
