@@ -29,20 +29,10 @@ public class SidebarWorkspacesHandler : IRequestHandler<SidebarWorkspacesRequest
                     FROM  ""UserWorkspaces"" uw
                     JOIN ""Workspaces"" w on uw.""WorkspaceId"" = w.""Id""
                     WHERE uw.""UserId"" = @UserId";
-        try
-        {
-            // Dapper will map the selected columns directly to the SidebarWorkspace record
-            var sidebarWorkspaces = await _dbConnection.QueryAsync<Workspace>(
-                sql,
-                new { UserId = userId }
-            );
 
-            return Result<Workspaces, ErrorResponse>.Success(new Workspaces(sidebarWorkspaces.ToList()));
-        }
-        catch (Exception ex)
-        {
-            return Result<Workspaces, ErrorResponse>.Failure(ErrorResponse.Internal(ex.Message));
-        }
+        var sidebarWorkspaces = await _dbConnection.QueryAsync<Workspace>(sql,new { UserId = userId });
+        return Result<Workspaces, ErrorResponse>.Success(new Workspaces(sidebarWorkspaces.ToList()));
+
 
     }
 }

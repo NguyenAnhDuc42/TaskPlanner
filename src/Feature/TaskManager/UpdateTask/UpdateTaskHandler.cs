@@ -26,34 +26,30 @@ public class UpdateTaskHandler : IRequestHandler<UpdateTaskRequest, Result<Updat
         if (!string.IsNullOrEmpty(request.Name))
         {
             task.Update(request.Name, request.Description, request.Priority ?? 0, request.Status ?? PlanTaskStatus.ToDo, request.StartDate, request.DueDate, request.IsPrivate ?? false);
-        } else {
+        }
+        else
+        {
             task.Update(task.Name, request.Description, request.Priority ?? 0, request.Status ?? PlanTaskStatus.ToDo, request.StartDate, request.DueDate, request.IsPrivate ?? false);
         }
 
-        try
-        {
-            await _context.SaveChangesAsync(cancellationToken);
-            var response = new Task(
-                task.Id,
-                task.Name,
-                task.Description,
-                task.Priority,
-                task.Status,
-                task.DueDate,
-                task.StartDate,
-                task.TimeEstimate,
-                task.TimeSpent,
-                task.OrderIndex,
-                task.IsArchived,
-                task.IsPrivate,
-                task.ListId,
-                task.CreatorId
-            );
-            return Result<UpdateTaskResponse, ErrorResponse>.Success(new UpdateTaskResponse(response, "Task updated successfully"));
-        }
-        catch (Exception ex)
-        {
-            return Result<UpdateTaskResponse, ErrorResponse>.Failure(ErrorResponse.Internal(ex.Message));
-        }
+        await _context.SaveChangesAsync(cancellationToken);
+        var response = new Task(
+            task.Id,
+            task.Name,
+            task.Description,
+            task.Priority,
+            task.Status,
+            task.DueDate,
+            task.StartDate,
+            task.TimeEstimate,
+            task.TimeSpent,
+            task.OrderIndex,
+            task.IsArchived,
+            task.IsPrivate,
+            task.ListId,
+            task.CreatorId
+        );
+        return Result<UpdateTaskResponse, ErrorResponse>.Success(new UpdateTaskResponse(response, "Task updated successfully"));
+
     }
 }

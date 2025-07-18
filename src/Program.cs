@@ -69,20 +69,21 @@ if (app.Environment.IsDevelopment())
     // Use the Swagger UI to provide an interactive API documentation page
     app.UseSwaggerUI();
 }
-
-app.UseHttpsRedirection();
-app.UseCors("AllowClient");
-app.UseGlobalExceptionHandler();
-app.UseAuthentication();
-app.UsePermissionSystem(); // This adds the WorkspaceClaimsMiddleware to the pipeline
-app.UseAuthorization();
-
-
 app.MapGet("/", context =>
 {
     context.Response.Redirect("/swagger");
     return Task.CompletedTask;
 });
+
+
+app.UseHttpsRedirection();
+app.UseCors("AllowClient");
+app.UseGlobalExceptionHandler();
+app.UseAuthentication();
+app.UsePermissionSystem(); 
+app.UseAuthorization();
+
+
 
 app.MapControllers();
 

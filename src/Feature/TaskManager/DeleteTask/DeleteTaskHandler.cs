@@ -18,17 +18,12 @@ public class DeleteTaskHandler : IRequestHandler<DeleteTaskRequest, Result<Delet
     }
     public async Task<Result<DeleteTaskResponse, ErrorResponse>> Handle(DeleteTaskRequest request, CancellationToken cancellationToken)
     {
-        var task = await _hierarchyRepository.GetPlanTaskByIdAsync(request.id,cancellationToken);
+        var task = await _hierarchyRepository.GetPlanTaskByIdAsync(request.id, cancellationToken);
         if (task == null) return Result<DeleteTaskResponse, ErrorResponse>.Failure(ErrorResponse.NotFound("Task not found"));
-        try
-        {
-            _context.Remove(task);
-            await _context.SaveChangesAsync(cancellationToken);
-            return Result<DeleteTaskResponse, ErrorResponse>.Success(new DeleteTaskResponse("Task deleted successfully"));
-        }
-        catch (Exception ex)
-        {
-            return Result<DeleteTaskResponse, ErrorResponse>.Failure(ErrorResponse.Internal(ex.Message));
-        }
+
+        _context.Remove(task);
+        await _context.SaveChangesAsync(cancellationToken);
+        return Result<DeleteTaskResponse, ErrorResponse>.Success(new DeleteTaskResponse("Task deleted successfully"));
+
     }
 }

@@ -22,17 +22,10 @@ public class CreateTaskHandler : IRequestHandler<CreateTaskRequest, Result<Creat
         var userId = _currentUserService.CurrentUserId();
         var status = request.status ?? PlanTaskStatus.ToDo;
 
-        var task = PlanTask.Create(request.name, request.description, request.priority,status, request.startDate, request.dueDate, request.isPrivate, request.workspaceId, request.spaceId, request.folderId, request.listId, userId);
+        var task = PlanTask.Create(request.name, request.description, request.priority, status, request.startDate, request.dueDate, request.isPrivate, request.workspaceId, request.spaceId, request.folderId, request.listId, userId);
 
-        try
-        {
-            await _context.AddAsync(task);
-            await _context.SaveChangesAsync();
-            return Result<CreateTaskResponse, ErrorResponse>.Success(new CreateTaskResponse(task.Id, "Task created successfully"));
-        }
-        catch (Exception ex)
-        {
-            return Result<CreateTaskResponse, ErrorResponse>.Failure(ErrorResponse.Internal(ex.Message));
-        }
+        await _context.AddAsync(task);
+        await _context.SaveChangesAsync();
+        return Result<CreateTaskResponse, ErrorResponse>.Success(new CreateTaskResponse(task.Id, "Task created successfully"));
     }
 }

@@ -18,22 +18,17 @@ public class RefreshTokenRequestHandler : IRequestHandler<RefreshTokenRequest, R
     }
     public async Task<Result<RefreshTokenResponse, ErrorResponse>> Handle(RefreshTokenRequest request, CancellationToken cancellationToken)
     {
-        try
-        {
-            var httpContext = _httpContextAccessor.HttpContext;
-            if (httpContext is null) return Result<RefreshTokenResponse, ErrorResponse>.Failure(ErrorResponse.Internal("An unexpected error occurred."));
 
-            var refreshToken = _cookieService.GetRefreshTokenFromCookies(httpContext);
-            if (string.IsNullOrEmpty(refreshToken)) return Result<RefreshTokenResponse, ErrorResponse>.Failure(ErrorResponse.Unauthorized("Unauthorized", "Refresh token is not found in cookies."));
+        var httpContext = _httpContextAccessor.HttpContext;
+        if (httpContext is null) return Result<RefreshTokenResponse, ErrorResponse>.Failure(ErrorResponse.Internal("An unexpected error occurred."));
 
-            var tokens = await _tokenService.RefreshAccessTokenAsync(refreshToken, cancellationToken);
-            if (tokens is null) return Result<RefreshTokenResponse, ErrorResponse>.Failure(ErrorResponse.Unauthorized("Unauthorized", "Refresh token is not found in cookies."));
-            _cookieService.SetAuthCookies(httpContext, tokens);
-            return Result<RefreshTokenResponse, ErrorResponse>.Success(new RefreshTokenResponse(tokens.ExpirationAccessToken, tokens.ExpirationRefreshToken));
-        }
-        catch (Exception ex)
-        {
-            return Result<RefreshTokenResponse,ErrorResponse>.Failure(ErrorResponse.Internal(ex.Message));
-        }
+        var refreshToken = _cookieService.GetRefreshTokenFromCookies(httpContext);
+        if (string.IsNullOrEmpty(refreshToken)) return Result<RefreshTokenResponse, ErrorResponse>.Failure(ErrorResponse.Unauthorized("Unauthorized", "Refresh token is not found in cookies."));
+
+        var tokens = await _tokenService.RefreshAccessTokenAsync(refreshToken, cancellationToken);
+        if (tokens is null) return Result<RefreshTokenResponse, ErrorResponse>.Failure(ErrorResponse.Unauthorized("Unauthorized", "Refresh token is not found in cookies."));
+        _cookieService.SetAuthCookies(httpContext, tokens);
+        return Result<RefreshTokenResponse, ErrorResponse>.Success(new RefreshTokenResponse(tokens.ExpirationAccessToken, tokens.ExpirationRefreshToken));
+
     }
 }

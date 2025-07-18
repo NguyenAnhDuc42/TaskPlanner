@@ -25,39 +25,33 @@ public class LoginRequestHandler : IRequestHandler<LoginRequest, Result<LoginRes
         _httpContextAccessor = httpContextAccessor ?? throw new ArgumentNullException(nameof(httpContextAccessor));
         _passwordService = passwordService ?? throw new ArgumentNullException(nameof(passwordService));
     }
-    public async Task<Result<LoginResponse, ErrorResponse>> Handle(LoginRequest request ,CancellationToken cancellationToken)
+    public async Task<Result<LoginResponse, ErrorResponse>> Handle(LoginRequest request, CancellationToken cancellationToken)
     {
-        try
-        {
-            var httpContext = _httpContextAccessor.HttpContext;
-            if (httpContext is null)
-            {
-                _logger.LogError("Unable to get HttpContext from IHttpContextAccessor.");
-                return Result<LoginResponse, ErrorResponse>.Failure(ErrorResponse.Internal("An unexpected error occurred."));
-            }
-            var email = new Email(request.email);
-            var user = await _userRepository.GetUserByEmailAsync(email, cancellationToken).ConfigureAwait(false);
-            if (user is null)
-            {
-                return Result<LoginResponse, ErrorResponse>.Failure(ErrorResponse.NotFound("User not found", $"Wrong credentials"));
-            }
-            if (_passwordService.VerifyPassword(request.password, user.PasswordHash) is false)
-            {
-                return Result<LoginResponse, ErrorResponse>.Failure(ErrorResponse.Unauthorized("Unauthorized", "Wrong credentials"));
-            }
-            var userAgent = httpContext.Request.Headers["User-Agent"].ToString();
-            var ipAddress = httpContext.Connection.RemoteIpAddress?.ToString() ?? "Unknown IP";
-            var tokens = await _tokenService.GenerateTokensAsync(user, userAgent, ipAddress,cancellationToken).ConfigureAwait(false);
-            
-            _cookieService.SetAuthCookies(httpContext, tokens);
 
-            var rep = new LoginResponse(tokens.ExpirationAccessToken, tokens.ExpirationRefreshToken);
-            return Result<LoginResponse, ErrorResponse>.Success(rep);
-        }
-        catch (Exception ex)
+        var httpContext = _httpContextAccessor.HttpContext;
+        if (httpContext is null)
         {
-            _logger.LogError(ex, "An error occurred while processing the login request for email: {Email}", request.email);
-            return Result<LoginResponse, ErrorResponse>.Failure(ErrorResponse.Internal(ex.Message));
+            _logger.LogError("Unable to get HttpContext from IHttpContextAccessor.");
+            return Result<LoginResponse, ErrorResponse>.Failure(ErrorResponse.Internal("An unexpected error occurred."));
         }
+        var email = new Email(request.email);
+        var user = await _userRepository.GetUserByEmailAsync(email, cancellationToken).ConfigureAwait(false);
+        if (user is null)
+        {
+            return Result<LoginResponse, ErrorResponse>.Failure(ErrorResponse.NotFound("User not found", $"Wrong credentials"));
+        }
+        if (_passwordService.VerifyPassword(request.password, user.PasswordHash) is false)
+        {
+            return Result<LoginResponse, ErrorResponse>.Failure(ErrorResponse.Unauthorized("Unauthorized", "Wrong credentials"));
+        }
+        var userAgent = httpContext.Request.Headers["User-Agent"].ToString();
+        var ipAddress = httpContext.Connection.RemoteIpAddress?.ToString() ?? "Unknown IP";
+        var tokens = await _tokenService.GenerateTokensAsync(user, userAgent, ipAddress, cancellationToken).ConfigureAwait(false);
+
+        _cookieService.SetAuthCookies(httpContext, tokens);
+
+        var rep = new LoginResponse(tokens.ExpirationAccessToken, tokens.ExpirationRefreshToken);
+        return Result<LoginResponse, ErrorResponse>.Success(rep);
+
     }
 }

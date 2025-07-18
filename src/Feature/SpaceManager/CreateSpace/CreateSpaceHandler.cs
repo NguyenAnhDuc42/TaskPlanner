@@ -16,21 +16,15 @@ public class CreateSpaceHandler : IRequestHandler<CreateSpaceRequest, Result<Cre
         _context = context ?? throw new ArgumentNullException(nameof(context));
         _currentUserService = currentUserService ?? throw new ArgumentNullException(nameof(currentUserService));
     }
-public async Task<Result<CreateSpaceResponse, ErrorResponse>> Handle(CreateSpaceRequest request, CancellationToken cancellationToken)
+    public async Task<Result<CreateSpaceResponse, ErrorResponse>> Handle(CreateSpaceRequest request, CancellationToken cancellationToken)
     {
         var userId = _currentUserService.CurrentUserId();
 
-        var space = Space.Create(request.name, request.workspaceId,userId);
-        try
-        {
-            await _context.Spaces.AddAsync(space);
-            await _context.SaveChangesAsync();
-            return Result<CreateSpaceResponse, ErrorResponse>.Success(new CreateSpaceResponse(space.Id, "Space created successfully"));
+        var space = Space.Create(request.name, request.workspaceId, userId);
 
-        }
-        catch (Exception ex)
-        {
-            return Result<CreateSpaceResponse, ErrorResponse>.Failure(ErrorResponse.Internal(ex.Message));
-        }
+
+        await _context.Spaces.AddAsync(space);
+        await _context.SaveChangesAsync();
+        return Result<CreateSpaceResponse, ErrorResponse>.Success(new CreateSpaceResponse(space.Id, "Space created successfully"));
     }
 }

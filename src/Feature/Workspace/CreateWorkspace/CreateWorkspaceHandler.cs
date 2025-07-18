@@ -28,21 +28,15 @@ public class CreateWorkspaceHandler : IRequestHandler<CreateWorkspaceRequest, Re
 
         var workspace = Domain.Entities.WorkspaceEntity.Workspace.Create(request.Name, request.Description, request.Color, userId, request.IsPrivate);
 
-        try
-        {
-            _context.Workspaces.Add(workspace);
-            var saved = await _context.SaveChangesAsync(cancellationToken) > 0;
+        _context.Workspaces.Add(workspace);
+        var saved = await _context.SaveChangesAsync(cancellationToken) > 0;
 
-            if (saved)
-            {
-                return Result<CreateWorkspaceResponse, ErrorResponse>.Success(new CreateWorkspaceResponse(workspace.Id, "Workspace created successfully."));
-            }
-
-            return Result<CreateWorkspaceResponse, ErrorResponse>.Failure(ErrorResponse.Internal("Failed to save workspace to the database."));
-        }
-        catch (Exception ex)
+        if (saved)
         {
-            return Result<CreateWorkspaceResponse, ErrorResponse>.Failure(ErrorResponse.Internal(ex.Message));
+            return Result<CreateWorkspaceResponse, ErrorResponse>.Success(new CreateWorkspaceResponse(workspace.Id, "Workspace created successfully."));
         }
+
+        return Result<CreateWorkspaceResponse, ErrorResponse>.Failure(ErrorResponse.Internal("Failed to save workspace to the database."));
+
     }
 }
