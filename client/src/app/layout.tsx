@@ -3,6 +3,7 @@ import type { Metadata } from "next"
 import "./globals.css"
 
 import { TanStackQueryProvider } from "@/components/providers/tanstack-query-provider"
+import WorkspaceUrlSync from "@/components/providers/workspace-url-sync"
 
 
 export const metadata: Metadata = {
@@ -19,8 +20,8 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <body>
         <TanStackQueryProvider>
-          {/* <WorkspaceUrlSync />
-          <ThemeProvider attribute="class" defaultTheme="dark" enableSystem disableTransitionOnChange>
+          <WorkspaceUrlSync />
+          {/* <ThemeProvider attribute="class" defaultTheme="dark" enableSystem disableTransitionOnChange>
             <SidebarProvider>
               <AppSidebar />
               <SidebarInset className="flex flex-col h-screen bg-background p-2">

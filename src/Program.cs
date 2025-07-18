@@ -1,5 +1,6 @@
 using System.Text.Json.Serialization    ;
 using src.Helper.Extensions;
+using Microsoft.OpenApi.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -9,8 +10,44 @@ builder.Services.AddControllers().AddJsonOptions(options => // <-- ADD THIS TO U
     {
         options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
     });
+builder.Services.AddPermissionSystem();
+builder.Services.AddSwaggerGen(options =>
+{
+    options.SwaggerDoc("v1", new OpenApiInfo { Title = "TaskPlanner API", Version = "v1" });
 
-builder.Services.AddSwaggerGen();
+    // Define the Bearer token security scheme for JWT
+    options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+    {
+        In = ParameterLocation.Header,
+        Description = "Please enter a valid token",
+        Name = "Authorization",
+        Type = SecuritySchemeType.Http,
+        BearerFormat = "JWT",
+        Scheme = "Bearer"
+    });
+
+    // Define the Workspace ID header
+    options.AddSecurityDefinition("WorkspaceId", new OpenApiSecurityScheme
+    {
+        In = ParameterLocation.Header,
+        Description = "Please enter the Workspace ID",
+        Name = "X-Workspace-Id",
+        Type = SecuritySchemeType.ApiKey
+    });
+
+    // Make sure Swagger UI requires these headers
+    options.AddSecurityRequirement(new OpenApiSecurityRequirement
+    {
+        {
+            new OpenApiSecurityScheme { Reference = new OpenApiReference { Type = ReferenceType.SecurityScheme, Id = "Bearer" } },
+            Array.Empty<string>()
+        },
+        {
+            new OpenApiSecurityScheme { Reference = new OpenApiReference { Type = ReferenceType.SecurityScheme, Id = "WorkspaceId" } },
+            Array.Empty<string>()
+        }
+    });
+});
 
 builder.Services.ServiceCollection(builder.Configuration)
                 .SupportExtensions(builder.Configuration)
@@ -36,6 +73,7 @@ if (app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 app.UseCors("AllowClient");
 app.UseAuthentication();
+app.UsePermissionSystem(); // This adds the WorkspaceClaimsMiddleware to the pipeline
 app.UseAuthorization();
 
 

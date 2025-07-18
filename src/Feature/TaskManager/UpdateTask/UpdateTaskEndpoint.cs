@@ -1,14 +1,15 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using src.Feature.TaskManager.UpdateTask;
 using src.Helper.Results;
-using System;
-using System.Threading.Tasks;
+
 
 namespace src.Feature.TaskManager
 {
     public partial class TaskController
     {
         [HttpPut("{id}")]
+        [Authorize(Policy = "EditTask")]
         public async Task<IActionResult> Update(Guid id, [FromBody] UpdateTaskBodyRequest body)
         {
             var request = new UpdateTaskRequest(

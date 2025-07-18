@@ -30,6 +30,8 @@ public static class ServiceCollectionExtension
         services.AddScoped<IPasswordService, PasswordService>();
         services.AddScoped<ICurrentUserService, CurrentUserService>();
         services.AddScoped<IHierarchyRepository, HierarchyRepository>();
+        services.AddScoped<IPermissionService, PermissionService>();
+
      
 
  

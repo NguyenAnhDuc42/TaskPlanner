@@ -1,7 +1,8 @@
-import { RefreshToken } from "@/features/auth/api";
 import { ErrorResponse } from "@/types/responses/error-response";
 import { AxiosError, AxiosResponse, InternalAxiosRequestConfig } from "axios";
 import axios from "axios";
+import { useWorkspaceStore } from "@/utils/workspace-store";
+import type { RefreshTokenResponse } from "@/features/auth/type";
 
 interface CustomAxiosRequestConfig extends InternalAxiosRequestConfig {
   _retry?: boolean;
@@ -33,6 +34,13 @@ const apiClient = axios.create({
     "Content-Type": "application/json",
   },
 });
+apiClient.interceptors.request.use((config) => {
+  const workspaceId = useWorkspaceStore.getState().selectedWorkspaceId;
+  if (workspaceId) {
+    config.headers['X-Workspace-Id'] = workspaceId;
+  }
+  return config;
+});
 
 apiClient.interceptors.response.use(
   (response: AxiosResponse) => response,
@@ -45,8 +53,14 @@ apiClient.interceptors.response.use(
         isRefreshing = true;
         console.log("Axios Interceptor: Access token expired, attempting reactive refresh.");
         try {
-          const refreshResponse = await RefreshToken();
+          // Direct axios call to prevent circular dependency with auth/api.ts
+          const { data: refreshResponse } = await axios.post<RefreshTokenResponse>(
+            `${apiClient.defaults.baseURL}/auth/refresh`,
+            {},
+            { withCredentials: true }
+          );
           console.log("Axios Interceptor: Reactive token refresh successful.");
+
           if (refreshResponse?.accessTokenExpiresAt && refreshResponse?.refreshTokenExpiresAt) {
             const { authSessionManager } = await import("@/features/auth/auth-session-manager");
             authSessionManager.setTokenExpiries(
@@ -54,8 +68,10 @@ apiClient.interceptors.response.use(
               refreshResponse.refreshTokenExpiresAt
             );
           }
+
           isRefreshing = false;
           processQueue(null); 
+          // Retry the original request, which will now use the new auth cookie
           return apiClient(originalRequest);
         } catch (refreshError: unknown) {
           isRefreshing = false;
@@ -65,6 +81,13 @@ apiClient.interceptors.response.use(
             processQueue(new Error("Unknown refresh error occurred."));
           }
           console.error("Axios Interceptor: Reactive token refresh failed (RFT likely expired or invalid).", refreshError);
+          
+          // If refresh fails, clear session and redirect to login
+          const { authSessionManager } = await import("@/features/auth/auth-session-manager");
+          authSessionManager.clearSession();
+          if (typeof window !== 'undefined') {
+            window.location.href = '/authenthication';
+          }
         }
       } else {
         return new Promise<AxiosResponse<unknown>>((resolve, reject) => {
@@ -75,20 +98,9 @@ apiClient.interceptors.response.use(
       }
     }
 
-    const apiError = error.response?.data;
-
-    if (apiError && typeof apiError.status === 'number') {
-        throw apiError;
-    } else {
-        throw {
-            type: 'about:blank',
-            title: 'Network Error',
-            status: error.response?.status || 500,
-            detail: error.message,
-            instance: undefined,
-            errors: {}
-        } as ErrorResponse;
-    }
+    // For all other errors, it's best to propagate the original AxiosError.
+    // This preserves the full error context (status, headers, config) for the caller (e.g., TanStack Query's onError).
+    return Promise.reject(error);
   }
 );
 

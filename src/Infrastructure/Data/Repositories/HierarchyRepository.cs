@@ -1,4 +1,5 @@
 using System;
+using Microsoft.EntityFrameworkCore;
 using src.Domain.Entities.WorkspaceEntity;
 using src.Infrastructure.Abstractions.IRepositories;
 
@@ -15,5 +16,10 @@ public class HierarchyRepository : IHierarchyRepository
     public async Task<PlanTask?> GetPlanTaskByIdAsync(Guid id, CancellationToken cancellationToken = default)
     {
         return await _context.Tasks.FindAsync(id,cancellationToken);
+    }
+
+    public async Task<bool> IsOwnedByUser(Guid id, Guid userId, CancellationToken cancellationToken = default)
+    {
+        return await _context.Tasks.AnyAsync(task => task.Id == id && task.CreatorId == userId, cancellationToken);
     }
 }
