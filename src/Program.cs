@@ -72,6 +72,7 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 app.UseCors("AllowClient");
+app.UseGlobalExceptionHandler();
 app.UseAuthentication();
 app.UsePermissionSystem(); // This adds the WorkspaceClaimsMiddleware to the pipeline
 app.UseAuthorization();

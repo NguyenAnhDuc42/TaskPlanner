@@ -53,16 +53,16 @@ public class PlanTask : Entity<Guid>
         return task;
     }
 
-    public void Update(string? name, string? description, int priority, PlanTaskStatus status, DateTime? startDate, DateTime? dueDate, bool isPrivate)
+    public void Update(string? name, string? description, int? priority, PlanTaskStatus? status, DateTime? startDate, DateTime? dueDate, bool? isPrivate)
     {
-        Name = name;
-        Description = description;
-        Priority = priority;
-        Status = status;
-        StartDate = startDate;
-        DueDate = dueDate;
-        IsPrivate = isPrivate;
-
+        if (name is not null) Name = name;
+        if (description is not null) Description = description;
+        if (priority.HasValue) Priority = priority.Value;
+        if (status.HasValue) Status = status.Value;
+        if (startDate.HasValue) StartDate = startDate;
+        if (dueDate.HasValue) DueDate = dueDate;
+        if (isPrivate.HasValue) IsPrivate = isPrivate.Value;
+        UpdateTimestamp();
     }
 
 }
