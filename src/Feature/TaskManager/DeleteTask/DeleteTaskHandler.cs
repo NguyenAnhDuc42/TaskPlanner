@@ -21,7 +21,7 @@ public class DeleteTaskHandler : IRequestHandler<DeleteTaskRequest, Result<Delet
         var task = await _hierarchyRepository.GetPlanTaskByIdAsync(request.id, cancellationToken);
         if (task == null) return Result<DeleteTaskResponse, ErrorResponse>.Failure(ErrorResponse.NotFound("Task not found"));
 
-        _context.Remove(task);
+        _context.Tasks.Remove(task);
         await _context.SaveChangesAsync(cancellationToken);
         return Result<DeleteTaskResponse, ErrorResponse>.Success(new DeleteTaskResponse("Task deleted successfully"));
 

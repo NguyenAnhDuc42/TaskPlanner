@@ -3,6 +3,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using MediatR;
 using src.Domain.Entities.WorkspaceEntity;
+using Microsoft.EntityFrameworkCore;
 using src.Helper.Results;
 using src.Infrastructure.Abstractions.IServices;
 using src.Infrastructure.Data;
@@ -23,6 +24,14 @@ public class CreateListHandler : IRequestHandler<CreateListRequest, Result<Creat
     public async Task<Result<CreateListResponse, ErrorResponse>> Handle(CreateListRequest request, CancellationToken cancellationToken)
     {
         var userId = _currentUserService.CurrentUserId();
+
+        // Command: First, verify that the parent space exists to ensure data integrity.
+        var spaceExists = await _context.Spaces.AnyAsync(s => s.Id == request.spaceId && s.WorkspaceId == request.workspaceId, cancellationToken);
+        if (!spaceExists)
+        {
+            return Result<CreateListResponse, ErrorResponse>.Failure(ErrorResponse.NotFound("Parent space not found in the specified workspace."));
+        }
+
         var list = PlanList.Create(request.name, request.workspaceId, request.spaceId, request.folderId, userId);
         await _context.Lists.AddAsync(list, cancellationToken);
         await _context.SaveChangesAsync(cancellationToken);

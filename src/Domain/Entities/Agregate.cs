@@ -3,7 +3,7 @@ using src.Domain.Event;
 
 namespace src.Domain.Entities;
 
-public abstract class Agregate<TId> : Entity<TId> where TId : struct
+public abstract class Agregate<TId> : Entity<TId> where TId : notnull
 {
      private readonly List<DomainEvent> _domainEvents = new List<DomainEvent>();
     public IReadOnlyCollection<DomainEvent> DomainEvents => _domainEvents.AsReadOnly();

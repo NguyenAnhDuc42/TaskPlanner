@@ -54,7 +54,7 @@ public class PlanTask : Entity<Guid>
 
     public void Update(string? name, string? description, int? priority, PlanTaskStatus? status, DateTime? startDate, DateTime? dueDate, bool? isPrivate)
     {
-        if (name is not null) Name = name;
+        if (!string.IsNullOrWhiteSpace(name)) Name = name;
         if (description is not null) Description = description;
         if (priority.HasValue) Priority = priority.Value;
         if (status.HasValue) Status = status.Value;

@@ -1,6 +1,7 @@
 using System;
 using MediatR;
 using src.Domain.Entities.WorkspaceEntity;
+using Microsoft.EntityFrameworkCore;
 using src.Domain.Entities.WorkspaceEntity.SupportEntiy;
 using src.Helper.Results;
 using src.Infrastructure.Abstractions.IServices;
@@ -22,10 +23,21 @@ public class CreateTaskHandler : IRequestHandler<CreateTaskRequest, Result<Creat
         var userId = _currentUserService.CurrentUserId();
         var status = request.status ?? PlanTaskStatus.ToDo;
 
+        // First, verify that the parent list exists and belongs to the correct hierarchy.
+        var listExists = await _context.Lists.AnyAsync(l => 
+            l.Id == request.listId && 
+            l.SpaceId == request.spaceId && 
+            l.WorkspaceId == request.workspaceId, cancellationToken);
+
+        if (!listExists)
+        {
+            return Result<CreateTaskResponse, ErrorResponse>.Failure(ErrorResponse.NotFound("Parent list not found or does not belong to the specified hierarchy."));
+        }
+
         var task = PlanTask.Create(request.name, request.description, request.priority, status, request.startDate, request.dueDate, request.isPrivate, request.workspaceId, request.spaceId, request.folderId, request.listId, userId);
 
-        await _context.AddAsync(task);
-        await _context.SaveChangesAsync();
+        await _context.Tasks.AddAsync(task,cancellationToken);
+        await _context.SaveChangesAsync(cancellationToken);
         return Result<CreateTaskResponse, ErrorResponse>.Success(new CreateTaskResponse(task.Id, "Task created successfully"));
     }
 }

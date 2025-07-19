@@ -13,20 +13,20 @@ public class PlannerDbContext : DbContext
 {
     public PlannerDbContext(DbContextOptions<PlannerDbContext> options) : base(options) { }
 
-    public DbSet<User> Users { get; set; }
-    public DbSet<Session> Sessions { get; set; }
-    public DbSet<Workspace> Workspaces { get; set; }
-    public DbSet<Space> Spaces { get; set; }
-    public DbSet<PlanList> Lists { get; set; }
-    public DbSet<PlanFolder> Folders { get; set; }
-    public DbSet<PlanTask> Tasks { get; set; }
+    public virtual DbSet<User> Users { get; set; }
+    public virtual DbSet<Session> Sessions { get; set; }
+    public virtual DbSet<Workspace> Workspaces { get; set; }
+    public virtual DbSet<Space> Spaces { get; set; }
+    public virtual DbSet<PlanList> Lists { get; set; }
+    public virtual DbSet<PlanFolder> Folders { get; set; }
+    public virtual DbSet<PlanTask> Tasks { get; set; }
 
 
-    public DbSet<UserWorkspace> UserWorkspaces { get; set; }
-    public DbSet<UserSpace> UserSpaces { get; set; }
-    public DbSet<UserList> UserLists { get; set; }
-    public DbSet<UserFolder> UserFolders { get; set; }
-    public DbSet<UserTask> UserTasks { get; set; }
+    public virtual DbSet<UserWorkspace> UserWorkspaces { get; set; }
+    public virtual DbSet<UserSpace> UserSpaces { get; set; }
+    public virtual DbSet<UserList> UserLists { get; set; }
+    public virtual DbSet<UserFolder> UserFolders { get; set; }
+    public virtual DbSet<UserTask> UserTasks { get; set; }
 
 
 

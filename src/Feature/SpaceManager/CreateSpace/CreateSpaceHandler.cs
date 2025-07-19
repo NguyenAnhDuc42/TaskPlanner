@@ -1,6 +1,7 @@
 using System;
 using MediatR;
 using src.Domain.Entities.WorkspaceEntity;
+using Microsoft.EntityFrameworkCore;
 using src.Helper.Results;
 using src.Infrastructure.Abstractions.IServices;
 using src.Infrastructure.Data;
@@ -19,12 +20,17 @@ public class CreateSpaceHandler : IRequestHandler<CreateSpaceRequest, Result<Cre
     public async Task<Result<CreateSpaceResponse, ErrorResponse>> Handle(CreateSpaceRequest request, CancellationToken cancellationToken)
     {
         var userId = _currentUserService.CurrentUserId();
+        var workspaceExists = await _context.Workspaces.AnyAsync(w => w.Id == request.workspaceId, cancellationToken);
+        if (!workspaceExists)
+        {
+            return Result<CreateSpaceResponse, ErrorResponse>.Failure(ErrorResponse.NotFound("Workspace not found."));
+        }
 
         var space = Space.Create(request.name, request.workspaceId, userId);
 
 
-        await _context.Spaces.AddAsync(space);
-        await _context.SaveChangesAsync();
+        await _context.Spaces.AddAsync(space, cancellationToken);
+        await _context.SaveChangesAsync(cancellationToken);
         return Result<CreateSpaceResponse, ErrorResponse>.Success(new CreateSpaceResponse(space.Id, "Space created successfully"));
     }
 }

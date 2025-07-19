@@ -1,4 +1,4 @@
-public abstract class Entity<TId> where TId : struct
+public abstract class Entity<TId> where TId : notnull
 {
     public TId Id { get; protected set; }
     public DateTimeOffset CreatedAt { get; private set; } = DateTimeOffset.UtcNow;

@@ -8,7 +8,7 @@ namespace src.Domain.Entities.UserEntity;
 public class User : Agregate<Guid>
 {
     public string Name { get; private set; } = string.Empty;
-    public string Email { get; private set; }
+    public string Email { get; private set; } = string.Empty;   
     public string PasswordHash { get; private set; } = string.Empty;
 
 

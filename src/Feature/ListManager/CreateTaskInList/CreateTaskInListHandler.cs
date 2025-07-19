@@ -45,7 +45,7 @@ public class CreateTaskInListHandler : IRequestHandler<CreateTaskInListRequest, 
             userId
         );
 
-        _context.Tasks.Add(task);
+        await _context.Tasks.AddAsync(task,cancellationToken);
         await _context.SaveChangesAsync(cancellationToken);
 
         return Result<CreateTaskResponse, ErrorResponse>.Success(new CreateTaskResponse(task.Id, "Task created successfully in list"));

@@ -2,6 +2,7 @@ using System;
 using MediatR;
 using src.Domain.Entities.WorkspaceEntity;
 using src.Helper.Results;
+using Microsoft.EntityFrameworkCore;
 using src.Infrastructure.Abstractions.IServices;
 using src.Infrastructure.Data;
 
@@ -21,6 +22,14 @@ public class CreateFolderHandler : IRequestHandler<CreateFolderRequest, Result<C
     public async Task<Result<CreateFolderResponse, ErrorResponse>> Handle(CreateFolderRequest request, CancellationToken cancellationToken)
     {
         var userId = _currentUserService.CurrentUserId();
+
+        // First, verify that the parent space exists within the specified workspace to ensure data integrity.
+        var spaceExists = await _context.Spaces.AnyAsync(s => s.Id == request.spaceId && s.WorkspaceId == request.workspaceId, cancellationToken);
+        if (!spaceExists)
+        {
+            return Result<CreateFolderResponse, ErrorResponse>.Failure(ErrorResponse.NotFound("Parent space not found in the specified workspace."));
+        }
+
         var folder = PlanFolder.Create(request.name, request.workspaceId, request.spaceId, userId);
 
         await _context.Folders.AddAsync(folder, cancellationToken);
