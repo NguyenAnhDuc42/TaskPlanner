@@ -12,49 +12,28 @@ namespace src.Feature.User.Auth.Me;
 public class MeRequestHandler : IRequestHandler<MeRequest, Result<MeResponse, ErrorResponse>>
 {
     private readonly IUserRepository _userRepository;
-    private readonly ITokenService _tokenService;
-    private readonly IHttpContextAccessor _httpContextAccessor;
+    private readonly ICurrentUserService _currentUserService;
     private readonly ILogger<MeRequestHandler> _logger;
 
     public MeRequestHandler(
         IUserRepository userRepository,
-        ITokenService tokenService,
-        IHttpContextAccessor httpContextAccessor,
+        ICurrentUserService currentUserService,
         ILogger<MeRequestHandler> logger)
     {
         _userRepository = userRepository ?? throw new ArgumentNullException(nameof(userRepository));
-        _tokenService = tokenService ?? throw new ArgumentNullException(nameof(tokenService));
-        _httpContextAccessor = httpContextAccessor ?? throw new ArgumentNullException(nameof(httpContextAccessor));
+        _currentUserService = currentUserService ?? throw new ArgumentNullException(nameof(currentUserService));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
     public async Task<Result<MeResponse, ErrorResponse>> Handle(MeRequest request, CancellationToken cancellationToken)
     {
-
-        var httpContext = _httpContextAccessor.HttpContext;
-        if (httpContext is null)
+        var userId = _currentUserService.CurrentUserId();
+        if (userId == Guid.Empty)
         {
-            _logger.LogError("Unable to get HttpContext from IHttpContextAccessor.");
-            return Result<MeResponse, ErrorResponse>.Failure(ErrorResponse.Internal("An unexpected error occurred."));
+            _logger.LogWarning("Could not retrieve current user ID. User may not be authenticated.");
+            return Result<MeResponse, ErrorResponse>.Failure(ErrorResponse.Unauthorized("Unauthorized", "User is not authenticated or token is invalid."));
         }
 
-        // Get user from JWT token
-        var user = httpContext.User;
-        if (!user.Identity?.IsAuthenticated ?? true)
-        {
-            return Result<MeResponse, ErrorResponse>.Failure(ErrorResponse.Unauthorized("Unauthorized", "User is not authenticated"));
-        }
-
-        var userIdClaim = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-        if (string.IsNullOrEmpty(userIdClaim))
-        {
-            return Result<MeResponse, ErrorResponse>.Failure(ErrorResponse.Unauthorized("Unauthorized", "Invalid token"));
-        }
-
-        if (!Guid.TryParse(userIdClaim, out var userId))
-        {
-            return Result<MeResponse, ErrorResponse>.Failure(ErrorResponse.Unauthorized("Unauthorized", "Invalid user ID in token"));
-        }
         var userEntity = await _userRepository.GetUserByIdAsync(userId, cancellationToken).ConfigureAwait(false);
         if (userEntity is null)
         {
@@ -64,7 +43,7 @@ public class MeRequestHandler : IRequestHandler<MeRequest, Result<MeResponse, Er
         var response = new MeResponse(
             userEntity.Id.ToString(),
             userEntity.Name,
-            userEntity.Email.Value,
+            userEntity.Email,
             "avatar"
         );
         return Result<MeResponse, ErrorResponse>.Success(response);

@@ -31,7 +31,7 @@ public class RegisterCommandHandler : IRequestHandler<RegisterCommand, Result<Re
             var user = Domain.Entities.UserEntity.User.Create(request.username, email, passwordhash);
             _context.Users.Add(user);
             await _context.SaveChangesAsync(cancellationToken);
-            return Result<RegisterResponse, ErrorResponse>.Success(new RegisterResponse(user.Email.Value));
+            return Result<RegisterResponse, ErrorResponse>.Success(new RegisterResponse(user.Email));
 
     }
 }

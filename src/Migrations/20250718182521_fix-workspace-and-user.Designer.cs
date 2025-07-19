@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using src.Infrastructure.Data;
@@ -11,9 +12,11 @@ using src.Infrastructure.Data;
 namespace src.Migrations
 {
     [DbContext(typeof(PlannerDbContext))]
-    partial class PlannerDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250718182521_fix-workspace-and-user")]
+    partial class fixworkspaceanduser
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -141,7 +144,7 @@ namespace src.Migrations
 
                     b.HasIndex("WorkspaceId");
 
-                    b.ToTable("Folders", (string)null);
+                    b.ToTable("Folders");
                 });
 
             modelBuilder.Entity("src.Domain.Entities.WorkspaceEntity.PlanList", b =>
@@ -192,7 +195,7 @@ namespace src.Migrations
 
                     b.HasIndex("WorkspaceId");
 
-                    b.ToTable("Lists", (string)null);
+                    b.ToTable("Lists");
                 });
 
             modelBuilder.Entity("src.Domain.Entities.WorkspaceEntity.PlanTask", b =>
@@ -274,7 +277,7 @@ namespace src.Migrations
 
                     b.HasIndex("WorkspaceId");
 
-                    b.ToTable("Tasks", (string)null);
+                    b.ToTable("Tasks");
                 });
 
             modelBuilder.Entity("src.Domain.Entities.WorkspaceEntity.Relationships.UserFolder", b =>

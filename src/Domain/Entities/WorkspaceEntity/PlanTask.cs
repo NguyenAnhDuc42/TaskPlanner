@@ -14,7 +14,6 @@ public class PlanTask : Entity<Guid>
     public string Description { get; private set; } = string.Empty;
     public int Priority { get; private set; }
     public PlanTaskStatus Status { get; private set; }
-    public Guid MyProperty { get; private set; }
     public DateTime? DueDate { get; private set; }
     public DateTime? StartDate { get; private set; }
     public long? TimeEstimate { get; private set; }

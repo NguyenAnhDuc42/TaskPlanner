@@ -8,7 +8,7 @@ namespace src.Domain.Entities.UserEntity;
 public class User : Agregate<Guid>
 {
     public string Name { get; private set; } = string.Empty;
-    public Email Email { get; private set; }
+    public string Email { get; private set; }
     public string PasswordHash { get; private set; } = string.Empty;
 
 
@@ -23,16 +23,16 @@ public class User : Agregate<Guid>
 
 
     private User() { }
-    public User(Guid userId, string name, Email email, string passwordHash) : base(userId)
+    public User(Guid userId, string name, string email, string passwordHash) : base(userId)
     {
         Name = name;
         Email = email;
         PasswordHash = passwordHash;
     }
 
-    public static User Create(string name, Email email, string passwordHash)
+    public static User Create(string name, string email, string passwordHash)
     {
-        return new User(Guid.NewGuid(), name, new Email(email), passwordHash);
+        return new User(Guid.NewGuid(), name, email, passwordHash);
     }
     
     public void AddSession(Session session)

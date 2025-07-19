@@ -13,11 +13,8 @@ public class UserConfigurations : IEntityTypeConfiguration<User>
         builder.ToTable("Users");
         builder.HasKey(u => u.Id);
         builder.Property(u => u.Name);
-        builder.Property(u => u.Email)
-            .HasConversion(vl => vl.Value, vl => new Email(vl))
-            .IsRequired();
-        builder.Property(u => u.PasswordHash)
-            .IsRequired();
+        builder.Property(u => u.Email).IsRequired();
+        builder.Property(u => u.PasswordHash).IsRequired();
 
 
         //index

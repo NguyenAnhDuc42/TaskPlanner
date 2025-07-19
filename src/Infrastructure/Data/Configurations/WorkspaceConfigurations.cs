@@ -17,6 +17,7 @@ public class WorkspaceConfigurations : IEntityTypeConfiguration<Workspace>
         builder.Property(w => w.Description)
             .IsRequired(false)
             .HasMaxLength(1000);
+        builder.Property(w => w.JoinCode);
         builder.Property(w => w.Color);
         builder.Property(w => w.IsPrivate);
         builder.Property(w => w.CreatorId)
@@ -25,6 +26,8 @@ public class WorkspaceConfigurations : IEntityTypeConfiguration<Workspace>
         //index
         builder.HasIndex(w => w.Name);
         builder.HasIndex(w => w.CreatorId);
+        builder.HasIndex(w => w.JoinCode).IsUnique();
+
 
         //relationships
         builder.HasMany(w => w.Spaces)

@@ -4,6 +4,7 @@ using MediatR;
 using Microsoft.AspNetCore.Http;
 using src.Domain.Entities.WorkspaceEntity;
 using src.Helper.Results;
+using src.Infrastructure.Abstractions.IServices;
 using src.Infrastructure.Data;
 
 namespace src.Feature.Workspace.CreateWorkspace;
@@ -11,17 +12,17 @@ namespace src.Feature.Workspace.CreateWorkspace;
 public class CreateWorkspaceHandler : IRequestHandler<CreateWorkspaceRequest, Result<CreateWorkspaceResponse, ErrorResponse>>
 {
     private readonly PlannerDbContext _context;
-    private readonly IHttpContextAccessor _httpContextAccessor;
-    public CreateWorkspaceHandler(PlannerDbContext context, IHttpContextAccessor httpContextAccessor)
+    private readonly ICurrentUserService _currentUserService;
+    public CreateWorkspaceHandler(PlannerDbContext context, ICurrentUserService currentUserService)
     {
         _context = context ?? throw new ArgumentNullException(nameof(context));
-        _httpContextAccessor = httpContextAccessor ?? throw new ArgumentNullException(nameof(httpContextAccessor));
+        _currentUserService = currentUserService ?? throw new ArgumentNullException(nameof(currentUserService));
     }
 
     public async Task<Result<CreateWorkspaceResponse, ErrorResponse>> Handle(CreateWorkspaceRequest request, CancellationToken cancellationToken)
     {
-        var userIdClaim = _httpContextAccessor.HttpContext?.User.FindFirst(ClaimTypes.NameIdentifier);
-        if (userIdClaim == null || !Guid.TryParse(userIdClaim.Value, out var userId))
+        var userId = _currentUserService.CurrentUserId();
+        if (userId == Guid.Empty)
         {
             return Result<CreateWorkspaceResponse, ErrorResponse>.Failure(ErrorResponse.Unauthorized("Unauthorized", "User not found."));
         }
