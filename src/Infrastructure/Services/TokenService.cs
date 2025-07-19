@@ -22,7 +22,7 @@ public record JwtSettings
     public int Expiration { get; init; } = 15;
     public int RefreshExpiration { get; init; } = 30;
 }
-public record JwtTokens(string AccessToken, string RefreshToken, DateTimeOffset ExpirationAccessToken, DateTimeOffset ExpirationRefreshToken);
+public record   JwtTokens(string AccessToken, string RefreshToken, DateTimeOffset ExpirationAccessToken, DateTimeOffset ExpirationRefreshToken);
 
 public class TokenService : ITokenService
 {

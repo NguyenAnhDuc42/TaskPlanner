@@ -98,8 +98,6 @@ namespace test.TaskTest
             _mockTaskDbSet = new Mock<DbSet<PlanTask>>();
             _mockListDbSet = new Mock<DbSet<PlanList>>();
 
-            _mockContext.Setup(c => c.Tasks).Returns(_mockTaskDbSet.Object);
-            _mockContext.Setup(c => c.Lists).Returns(_mockListDbSet.Object);
         }
 
         [Fact]
@@ -116,7 +114,7 @@ namespace test.TaskTest
                 PlanList.Create("Test List", testWorkspaceId, testSpaceId, null, testUserId)
             };
             // Use reflection to set the protected Id property for the test
-            var idProperty = typeof(Entity<Guid>).GetProperty("Id");
+            var idProperty = typeof(Entity<Guid>).GetProperty(nameof(Entity<Guid>.Id));
             idProperty.SetValue(lists[0], testListId);
 
             // Setup the mock DbSet to use our in-memory list and async helpers
@@ -125,6 +123,10 @@ namespace test.TaskTest
             _mockListDbSet.As<IQueryable<PlanList>>().Setup(m => m.Expression).Returns(mockableLists.Expression);
             _mockListDbSet.As<IQueryable<PlanList>>().Setup(m => m.ElementType).Returns(mockableLists.ElementType);
             _mockListDbSet.As<IAsyncEnumerable<PlanList>>().Setup(m => m.GetAsyncEnumerator(It.IsAny<CancellationToken>())).Returns(new TestAsyncEnumerator<PlanList>(mockableLists.GetEnumerator()));
+            // Move the DbContext setup here, after the DbSet mock is fully configured.
+            _mockContext.Setup(c => c.Lists).Returns(_mockListDbSet.Object);
+            _mockContext.Setup(c => c.Tasks).Returns(_mockTaskDbSet.Object);
+
 
             _mockTaskDbSet.Setup(d => d.AddAsync(It.IsAny<PlanTask>(), It.IsAny<CancellationToken>()))
                 .Callback<PlanTask, CancellationToken>((t, c) => { });
@@ -163,12 +165,16 @@ namespace test.TaskTest
             var testListId = Guid.NewGuid();
             var mockList = PlanList.Create("Test List", Guid.NewGuid(), Guid.NewGuid(), null, testUserId);
             // Use reflection to set the protected Id property for the test
-            var idProperty = typeof(Entity<Guid>).GetProperty("Id");
+            var idProperty = typeof(Entity<Guid>).GetProperty(nameof(Entity<Guid>.Id));
             idProperty.SetValue(mockList, testListId);
 
             // Setup FindAsync to work with the mock
             _mockListDbSet.Setup(m => m.FindAsync(new object[] { testListId }, It.IsAny<CancellationToken>()))
-                          .ReturnsAsync(mockList);
+                          .Returns(new ValueTask<PlanList>(mockList));
+
+            _mockContext.Setup(c => c.Lists).Returns(_mockListDbSet.Object);
+            _mockContext.Setup(c => c.Tasks).Returns(_mockTaskDbSet.Object);
+
 
             _mockUserService.Setup(s => s.CurrentUserId()).Returns(testUserId);
             var handler = new CreateTaskInListHandler(_mockContext.Object, _mockUserService.Object);
