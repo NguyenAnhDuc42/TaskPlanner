@@ -14,7 +14,7 @@ public class UserRepository : IUserRepository
         _context = context ?? throw new ArgumentNullException(nameof(context));
     }
 
-    public async Task<User?> GetUserByEmailAsync(Email email, CancellationToken cancellationToken = default)
+    public async Task<User?> GetUserByEmailAsync(string email, CancellationToken cancellationToken = default)
     {
          return await _context.Users.FirstOrDefaultAsync(u => u.Email == email, cancellationToken).ConfigureAwait(false);
     }
@@ -24,7 +24,7 @@ public class UserRepository : IUserRepository
         return await _context.Users.FirstOrDefaultAsync(u => u.Id == userUd, cancellationToken).ConfigureAwait(false);
     }
 
-    public async Task<bool> IsEmailExistsAsync(Email email, CancellationToken cancellationToken = default)
+    public async Task<bool> IsEmailExistsAsync(string email, CancellationToken cancellationToken = default)
     {
         return await _context.Users.AsNoTracking().AnyAsync(u => u.Email == email, cancellationToken).ConfigureAwait(false);
     }

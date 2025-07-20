@@ -44,6 +44,17 @@ public class Workspace : Agregate<Guid>
     {
         Spaces.Add(space);
     }
+    public void AddMember(Guid userId, Role role)
+    {
+        if (Members.Any(m => m.UserId == userId))
+        {
+            throw new InvalidOperationException("User is already a member of this workspace.");
+        }
+
+        var userWorkspace = new UserWorkspace(userId, Id, role);
+        Members.Add(userWorkspace);
+    }
+    
     private static string GenerateRandomCode(int length = 6)
     {
         const string chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";

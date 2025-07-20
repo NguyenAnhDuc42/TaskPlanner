@@ -1,8 +1,45 @@
 using System;
+using MediatR;
+using src.Helper.Results;
+using src.Infrastructure.Abstractions.IRepositories;
 
 namespace src.Feature.Workspace.AddMembers;
 
-public class AddMembersHandler
+public class AddMembersHandler : IRequestHandler<AddMembersRequest, Result<AddMembersResponse, ErrorResponse>>
 {
-
+    private readonly IHierarchyRepository _hierarchyRepository;
+    private readonly IUserRepository _userRepository;
+    public AddMembersHandler(IHierarchyRepository hierarchyRepository, IUserRepository userRepository)
+    {
+        _hierarchyRepository = hierarchyRepository ?? throw new ArgumentNullException(nameof(hierarchyRepository));
+        _userRepository = userRepository ?? throw new ArgumentNullException(nameof(userRepository));
+    }
+    public async Task<Result<AddMembersResponse, ErrorResponse>> Handle(AddMembersRequest request, CancellationToken cancellationToken)
+    {
+        var workspace = await _hierarchyRepository.GetWorkspaceByIdAsync(request.workspaceId, cancellationToken);
+        if (workspace == null)
+        {
+            return Result<AddMembersResponse, ErrorResponse>.Failure(ErrorResponse.NotFound("Workspace not found."));
+        }
+        var emails = request.emails;
+        if (emails == null || emails.Count == 0)
+        {
+            return Result<AddMembersResponse, ErrorResponse>.Failure(ErrorResponse.BadRequest("Email list cannot be empty.", "Please provide at least one email address."));
+        }
+        var addedEmails = new List<string>();
+        foreach (var email in emails)
+        {
+            var user = await _userRepository.GetUserByEmailAsync(email, cancellationToken);
+            if (user != null)
+            {
+                workspace.AddMember(user.Id, request.role);
+                addedEmails.Add(email);
+            }
+        }
+        if (addedEmails.Count == 0)
+        {
+            return Result<AddMembersResponse, ErrorResponse>.Failure(ErrorResponse.NotFound("No valid users found.", "None of the provided emails correspond to existing users."));
+        }
+        return Result<AddMembersResponse, ErrorResponse>.Success(new AddMembersResponse(addedEmails, "Members added successfully."));
+    }   
 }

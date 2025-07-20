@@ -13,9 +13,39 @@ public class HierarchyRepository : IHierarchyRepository
         _context = context ?? throw new ArgumentNullException(nameof(context));
     }
 
+    public async Task<PlanFolder?> GetPlanFolderByIdAsync(Guid id, CancellationToken cancellationToken = default)
+    {
+        return await _context.Folders.FirstOrDefaultAsync(folder => folder.Id == id, cancellationToken);
+    }
+
+    public async Task<PlanList?> GetPlanListByIdAsync(Guid id, CancellationToken cancellationToken = default)
+    {
+       return await _context.Lists.FirstOrDefaultAsync(list => list.Id == id, cancellationToken);
+    }
+
     public async Task<PlanTask?> GetPlanTaskByIdAsync(Guid id, CancellationToken cancellationToken = default)
     {
         return await _context.Tasks.FindAsync(id,cancellationToken);
+    }
+
+    public async Task<PlanTask?> GetPlanTaskByIdAsync(Guid id, Guid userId, CancellationToken cancellationToken = default)
+    {
+        return await _context.Tasks.FirstOrDefaultAsync(task => task.Id == id && task.CreatorId == userId, cancellationToken);
+    }
+
+    public async Task<Space?> GetSpaceByIdAsync(Guid id, CancellationToken cancellationToken = default)
+    {
+        return await _context.Spaces.FirstOrDefaultAsync(space => space.Id == id, cancellationToken);
+    }
+
+    public async Task<Workspace?> GetWorkspaceByIdAsync(Guid id, CancellationToken cancellationToken = default)
+    {
+        return await _context.Workspaces.FirstOrDefaultAsync(workspace => workspace.Id == id, cancellationToken);
+    }
+
+    public async Task<Workspace?> GetWorkspaceByJoinCodeAsync(string joinCode, CancellationToken cancellationToken = default)
+    {
+        return await _context.Workspaces.FirstOrDefaultAsync(workspace => workspace.JoinCode == joinCode, cancellationToken);
     }
 
     public async Task<bool> IsOwnedByUser(Guid id, Guid userId, CancellationToken cancellationToken = default)

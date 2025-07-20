@@ -23,12 +23,10 @@ public class RegisterCommandHandler : IRequestHandler<RegisterCommand, Result<Re
     }
     public async Task<Result<RegisterResponse, ErrorResponse>> Handle(RegisterCommand request, CancellationToken cancellationToken)
     {
- 
-            var email = new Email(request.email);
-            if (await _userRepository.IsEmailExistsAsync(email, cancellationToken))
+            if (await _userRepository.IsEmailExistsAsync(request.email, cancellationToken))
                 return Result<RegisterResponse, ErrorResponse>.Failure(ErrorResponse.Conflict("Email already exists", $"Email {request.email} already exists. Please try another email."));
             var passwordhash = _passwordService.HashPassword(request.password);
-            var user = Domain.Entities.UserEntity.User.Create(request.username, email, passwordhash);
+            var user = Domain.Entities.UserEntity.User.Create(request.username, request.email, passwordhash);
             _context.Users.Add(user);
             await _context.SaveChangesAsync(cancellationToken);
             return Result<RegisterResponse, ErrorResponse>.Success(new RegisterResponse(user.Email));

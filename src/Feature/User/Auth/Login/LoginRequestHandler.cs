@@ -34,8 +34,7 @@ public class LoginRequestHandler : IRequestHandler<LoginRequest, Result<LoginRes
             _logger.LogError("Unable to get HttpContext from IHttpContextAccessor.");
             return Result<LoginResponse, ErrorResponse>.Failure(ErrorResponse.Internal("An unexpected error occurred."));
         }
-        var email = new Email(request.email);
-        var user = await _userRepository.GetUserByEmailAsync(email, cancellationToken).ConfigureAwait(false);
+        var user = await _userRepository.GetUserByEmailAsync(request.email, cancellationToken).ConfigureAwait(false);
         if (user is null)
         {
             return Result<LoginResponse, ErrorResponse>.Failure(ErrorResponse.NotFound("User not found", $"Wrong credentials"));
