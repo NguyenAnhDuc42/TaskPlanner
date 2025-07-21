@@ -25,11 +25,6 @@
 
   <ItemGroup>
     <Folder Include="Domain\Event\UserEvents\" />
-    <Folder Include="Feature\Workspace\DashboardWorkspace\" />
-    <Folder Include="Feature\Workspace\DashboardWorkspace\GetFolders\" />
-    <Folder Include="Feature\Workspace\DashboardWorkspace\GetLists\" />
-    <Folder Include="Feature\Workspace\DashboardWorkspace\GetTasks\" />
-    <Folder Include="Feature\Workspace\DashboardWorkspace\GetWorkLoadByStatus\" />
     <Folder Include="Feature\Workspace\MyWork\" />
     <Folder Include="Helper\Exceptions\" />
   </ItemGroup>
