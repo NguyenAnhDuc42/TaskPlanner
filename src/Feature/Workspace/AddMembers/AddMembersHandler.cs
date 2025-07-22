@@ -30,6 +30,10 @@ public class AddMembersHandler : IRequestHandler<AddMembersRequest, Result<AddMe
         foreach (var email in emails)
         {
             var user = await _userRepository.GetUserByEmailAsync(email, cancellationToken);
+            if (user == null)
+            {
+                continue;
+            }
             if (user != null)
             {
                 workspace.AddMember(user.Id, request.role);

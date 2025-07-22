@@ -9,6 +9,13 @@ export interface CreateWorkspaceResponse {
   workspaceId: string;
   message: string;
 }
+
+
+export interface AddMembersResponse{
+  emails: string[];
+  message: string;
+}
+
 export interface Workspaces {workspaces: Workspace[];}
 export interface Workspace { id: string; name: string; icon: string;}
 

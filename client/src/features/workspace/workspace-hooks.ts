@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { CreateWorkspace, GetHierarchy, SidebarWorkspaces } from "./workspace-api";
+import { AddMembers, CreateWorkspace, GetHierarchy, GetMembers, SidebarWorkspaces } from "./workspace-api";
 
 import { ErrorResponse } from "@/types/responses/error-response";
 import { Hierarchy } from "./workspacetype";
@@ -9,6 +9,7 @@ export const WORKSPACE_KEYS = {
   all: ["workspaces"] as const,
   sidebar: () => [...WORKSPACE_KEYS.all, "sidebar"] as const,
   hierarchy: (workspaceId: string) => [...WORKSPACE_KEYS.all, "hierarchy", workspaceId] as const,
+  members: (workspaceId: string) => [...WORKSPACE_KEYS.all, "members", workspaceId] as const,
 
 } as const
 
@@ -48,5 +49,38 @@ export function useHierarchy(workspaceId: string | undefined) {
     },
     enabled: !!workspaceId,
     staleTime: 5 * 60 * 1000, 
+  });
+}
+
+export function useGetMembers(workspaceId: string | undefined){
+  return useQuery({
+    queryKey: workspaceId ? WORKSPACE_KEYS.members(workspaceId) : ["disabled-members-query"],
+    queryFn: async () => {
+      if (!workspaceId) {
+        throw new Error('Workspace ID is required');
+      }
+      return GetMembers(workspaceId);
+    },
+    enabled: !!workspaceId,
+    staleTime: 5 * 60 * 1000, 
+  });
+}
+export function useAddMembers(workspaceId: string | undefined) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (emails: string[]) => {
+      if (!workspaceId) {
+        throw new Error('Workspace ID is required');
+      }
+      return AddMembers(workspaceId, emails);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: WORKSPACE_KEYS.members(workspaceId || ""),
+      });
+    },
+    onError: (error: ErrorResponse) => {
+      console.error("Add Members Mutation Error:", error);
+    },
   });
 }

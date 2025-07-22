@@ -30,7 +30,7 @@ public class JoinWorkspaceHandler : IRequestHandler<JoinWorkspaceRequest, Result
         workspace.AddMember(userId, Role.Guest);
         _context.Workspaces.Update(workspace);
         await _context.SaveChangesAsync(cancellationToken);
-        return Result<JoinWorkspaceRespose, ErrorResponse>.Success(new JoinWorkspaceRespose());
+        return Result<JoinWorkspaceRespose, ErrorResponse>.Success(new JoinWorkspaceRespose(workspace.Id, "You have successfully joined the workspace."));
         
     }
 }

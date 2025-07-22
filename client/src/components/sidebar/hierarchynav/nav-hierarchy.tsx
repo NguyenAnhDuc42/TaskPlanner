@@ -1,96 +1,95 @@
 "use client"
 
 import * as React from "react"
-import { Plus } from "lucide-react"
+import { FolderTree, ChevronDown, MoreHorizontal } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { SpaceNode } from "@/features/workspace/workspacetype"
+import type { SpaceNode } from "@/features/workspace/workspacetype"
 import { SpaceItem } from "./space-item"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
-import { useCreateSpace } from "@/features/space/space-hooks"
-import { Loader2 } from "lucide-react"
-import { useWorkspaceStore } from "@/utils/workspace-store"
+import { useSidebar } from "@/components/ui/sidebar"
+import { cn } from "@/lib/utils"
+import { CreateSpaceButton } from "../forms/create-space-form"
+
 
 export function SpaceHierarchyDisplay({ spaces }: { spaces: SpaceNode[] }) {
-  const [isCreateSpaceModalOpen, setIsCreateSpaceModalOpen] = React.useState(false);
-  
-  return (
-    <div className="px-2 space-y-1">
-      {spaces.map((space) => (
-        <SpaceItem key={space.id} space={space} context={{ spaceId: space.id }} />
-      ))}
-      
-      <Dialog open={isCreateSpaceModalOpen} onOpenChange={setIsCreateSpaceModalOpen}>
-        <DialogTrigger asChild>
-          <Button 
-            variant="ghost" 
-            className="w-full justify-start mt-4 text-neutral-400 hover:bg-neutral-800 hover:text-neutral-200 py-1 px-2"
-          >
-            <div className="w-6 flex-shrink-0 flex items-center justify-center">
-              <Plus className="h-4 w-4" />
-            </div>
-            <span className="flex-1 text-sm font-medium">New Space</span>
-          </Button>
-        </DialogTrigger>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Create New Space</DialogTitle>
-          </DialogHeader>
-          <CreateSpaceForm onSuccess={() => setIsCreateSpaceModalOpen(false)} />
-        </DialogContent>
-      </Dialog>
-    </div>
-  )
-}
+  const [isCreateSpaceModalOpen, setIsCreateSpaceModalOpen] = React.useState(false)
+  const [isExpanded, setIsExpanded] = React.useState(true)
+  const { state } = useSidebar()
+  const isCollapsed = state === "collapsed"
 
-interface CreateSpaceFormProps {
-  onSuccess: () => void;
-}
-
-function CreateSpaceForm({ onSuccess }: CreateSpaceFormProps) {
-  const { mutate, isPending, isError, error } = useCreateSpace();
-  const [name, setName] = React.useState("");
-  const [icon, setIcon] = React.useState("");
-  const { selectedWorkspaceId } = useWorkspaceStore();
-
-  function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    
-    if (!selectedWorkspaceId) {
-      console.error("Workspace ID is missing");
-      return;
-    }
-    
-    mutate( {  workspaceId: selectedWorkspaceId,  name, icon: icon || undefined },
-      {
-        onSuccess: () => {
-          setName("");
-          setIcon("");
-          onSuccess();
-        },
-      }
-    );
+  // When collapsed, show only a single icon representing the entire hierarchy
+  if (isCollapsed) {
+    return (
+      <div className="flex justify-center py-2">
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-9 w-9 p-0 text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground border border-transparent hover:border-sidebar-border transition-all duration-200"
+          title="Workspace Navigation"
+        >
+          <FolderTree className="h-4 w-4" />
+        </Button>
+      </div>
+    )
   }
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col gap-3">
-      <input className="border rounded px-3 py-2" placeholder="Space name"
-        value={name}  onChange={(e) => setName(e.target.value)} required />
+    <div className="flex flex-col h-full">
+      {/* Fixed Spaces Header */}
+      <div className="flex-shrink-0 border-b border-sidebar-border/30">
+        <div className="group flex items-center gap-2 px-2 py-1.5 cursor-pointer border border-transparent hover:bg-sidebar-accent hover:border-sidebar-border transition-all duration-200">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-5 w-5 p-0 text-sidebar-foreground/60 hover:bg-transparent"
+            onClick={() => setIsExpanded(!isExpanded)}
+          >
+            <ChevronDown className={cn("h-3 w-3 transition-transform duration-200", !isExpanded && "-rotate-90")} />
+          </Button>
 
-      <input className="border rounded px-3 py-2" placeholder="Icon URL (optional)"
-        value={icon} onChange={(e) => setIcon(e.target.value)} />
-      <Button type="submit" disabled={isPending} className="mt-2">
-        {isPending ? (
-          <>
-            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            Creating...
-          </>
-        ) : "Create Space"}
-      </Button>
-      {isError && (
-        <div className="text-destructive text-sm mt-2">
-          {error?.detail || "Failed to create space. Please try again."}
+          <span className="flex-1 text-sm font-medium text-sidebar-foreground/80">Spaces</span>
+
+          <div
+            className={cn(
+              "flex items-center gap-1 transition-all duration-200",
+              "opacity-0 group-hover:opacity-100 translate-x-2 group-hover:translate-x-0",
+            )}
+          >
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-5 w-5 p-0 text-sidebar-foreground/50 hover:bg-sidebar-accent hover:text-sidebar-foreground transition-all duration-200"
+            >
+              <MoreHorizontal className="h-3 w-3" />
+            </Button>
+
+            <CreateSpaceButton
+              isOpen={isCreateSpaceModalOpen}
+              onOpenChange={setIsCreateSpaceModalOpen}
+              variant="header"
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* Scrollable Spaces Content */}
+      {isExpanded && (
+        <div className="flex-1 overflow-hidden flex flex-col">
+          <div className="flex-1 overflow-y-auto modern-scrollbar px-2 py-1">
+            <div className="space-y-0.5">
+              {spaces.map((space) => (
+                <SpaceItem key={space.id} space={space} context={{ spaceId: space.id }} />
+              ))}
+               <div className="flex-shrink-0 border-t border-sidebar-border/20">
+                  <CreateSpaceButton
+                  isOpen={isCreateSpaceModalOpen}
+                  onOpenChange={setIsCreateSpaceModalOpen}
+                  variant="footer"
+                  />
+               </div>
+          </div>
+          </div>
         </div>
       )}
-    </form>
-  );
+    </div>
+  )
 }

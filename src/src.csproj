@@ -25,7 +25,6 @@
 
   <ItemGroup>
     <Folder Include="Domain\Event\UserEvents\" />
-    <Folder Include="Feature\Workspace\MyWork\" />
     <Folder Include="Helper\Exceptions\" />
   </ItemGroup>
 
