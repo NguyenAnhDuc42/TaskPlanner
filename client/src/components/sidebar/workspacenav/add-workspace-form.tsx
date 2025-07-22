@@ -1,6 +1,8 @@
 import * as React from "react";
 import { Button } from "@/components/ui/button";
 import { useCreateWorkspace } from "@/features/workspace/workspace-hooks";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Plus } from "lucide-react";
 
 interface AddWorkspaceFormProps {
   onSuccess: () => void;
@@ -82,5 +84,38 @@ export function AddWorkspaceForm({ onSuccess }: AddWorkspaceFormProps) {
         </div>
       )}
     </form>
+  );
+}
+
+export function AddWorkspaceButton({ 
+  afterAdd
+}: {
+  afterAdd?: () => void;
+}) {
+  const [isOpen, setIsOpen] = React.useState(false);
+  
+  return (
+    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+      <DialogTrigger asChild>
+        <Button 
+          variant="outline" 
+          className="w-full justify-start mt-2"
+        >
+          <Plus className="mr-2 size-4" />
+          Add workspace
+        </Button>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Add Workspace</DialogTitle>
+        </DialogHeader>
+        <AddWorkspaceForm 
+          onSuccess={() => {
+            setIsOpen(false);
+            if (afterAdd) afterAdd();
+          }} 
+        />
+      </DialogContent>
+    </Dialog>
   );
 }
