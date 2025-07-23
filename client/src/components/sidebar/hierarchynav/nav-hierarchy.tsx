@@ -79,14 +79,14 @@ export function SpaceHierarchyDisplay({ spaces }: { spaces: SpaceNode[] }) {
               {spaces.map((space) => (
                 <SpaceItem key={space.id} space={space} context={{ spaceId: space.id }} />
               ))}
-               <div className="flex-shrink-0 border-t border-sidebar-border/20">
+          </div>
+           <div className="flex-shrink-0 border wf border-sidebar-border/20">
                   <CreateSpaceButton
                   isOpen={isCreateSpaceModalOpen}
                   onOpenChange={setIsCreateSpaceModalOpen}
                   variant="footer"
                   />
                </div>
-          </div>
           </div>
         </div>
       )}

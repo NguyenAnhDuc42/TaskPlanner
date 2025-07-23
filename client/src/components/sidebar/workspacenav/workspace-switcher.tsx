@@ -55,9 +55,7 @@ export function WorkspaceSwitcher() {
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
             {showSkeleton ? (
-              <div
-                className={cn("flex items-center w-full", state === "collapsed" ? "justify-center p-2" : "px-3 py-2")}
-              >
+              <div className={cn("flex items-center w-full", state === "collapsed" ? "justify-center p-2" : "px-3 py-2")}>
                 <Skeleton className={cn(state === "collapsed" ? "size-6 rounded-lg" : "size-10 rounded-none")} />
                 {state !== "collapsed" && (
                   <>
@@ -69,22 +67,15 @@ export function WorkspaceSwitcher() {
                 )}
               </div>
             ) : (
-              <Button
-                variant="ghost"
-                className={cn(
-                  "data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground",
-                  "hover:bg-sidebar-accent/80 transition-all duration-200 m-0",
-                  state === "collapsed"
-                    ? "rounded-lg size-8 p-0 justify-center"
-                    : "w-full justify-start h-14 px-3 rounded-none",
-                )}
-              >
-                <div
-                  className={cn(
-                    "bg-sidebar-primary text-sidebar-primary-foreground flex items-center justify-center rounded-lg",
-                    state === "collapsed" ? "size-6 rounded-sm" : "aspect-square size-10 rounded-none",
-                  )}
-                >
+              <Button variant="ghost" 
+              className={cn("data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground",
+                            "hover:bg-sidebar-accent/80 transition-all duration-200 m-0",
+                            state === "collapsed"  ? "rounded-lg size-8 p-0 my-3 justify-center"
+                                                   : "w-full justify-start h-14 px-3 rounded-none",)}>
+
+                <div className={cn("bg-sidebar-primary text-sidebar-primary-foreground flex items-center justify-center rounded-lg",
+                    state === "collapsed" ? "size-6 rounded-sm" : "aspect-square size-10 rounded-md",)}>
+
                   {selectedWorkspace?.icon ? (
                     <Image
                       src={selectedWorkspace.icon || "/placeholder.svg"}

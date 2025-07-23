@@ -66,21 +66,14 @@ export function NavUser() {
       <SidebarMenuItem className="rounded-none m-0 p-0">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <SidebarMenuButton
-              size="lg"
-              className={cn(
-                "data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground",
-                "hover:bg-sidebar-accent/80 transition-all duration-200 m-0",
-                state === "collapsed" ? "rounded-lg size-8 p-0 justify-center" : "rounded-none",
-              )}
-            >
-              <div
-                className={cn(
-                  "flex items-center justify-center bg-sidebar-primary text-sidebar-primary-foreground",
-                  state === "collapsed" ? "size-6 rounded-sm" : "size-8 rounded-none",
-                )}
-              >
-                <Avatar className={cn(state === "collapsed" ? "h-6 w-6 rounded-sm" : "h-8 w-8 rounded-none")}>
+            <SidebarMenuButton size="lg"className={cn("data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground",
+                "hover:bg-sidebar-accent/80 transition-all duration-200 m-0 ",
+                state === "collapsed" ? "rounded-lg size-8 my-3 justify-center" : "rounded-none",)}>
+
+              <div className={cn("flex items-center justify-center bg-sidebar-primary text-sidebar-primary-foreground ",
+                  state === "collapsed" ? "size-6 rounded-sm" : "size-8 rounded-md",)}>
+                    
+                <Avatar className={cn(state === "collapsed" ? "h-6 w-6 rounded-sm" : "h-8 w-8 rounded-md")}>
                   <AvatarImage src={user.avatar ?? ""} alt={user.name ?? ""} />
                   <AvatarFallback className={cn(state === "collapsed" ? "rounded-sm text-xs" : "rounded-none")}>
                     {getInitials(user.name)}
