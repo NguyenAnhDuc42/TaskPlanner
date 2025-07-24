@@ -27,7 +27,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   return (
     <Sidebar collapsible="icon" {...props}>
       <div className="flex flex-col h-full">
-      <SidebarHeader className="p-0 mb-3">
+      <SidebarHeader className="p-0 m-0">
         <WorkspaceSwitcher />
       </SidebarHeader>
 
@@ -36,7 +36,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             <SidebarMenu className={cn("m-0 p-0", state === "collapsed" ? "px-2 gap-0" : "gap-0")}>
               <SidebarNavButton href={`/ws/${selectedWorkspaceId}`} icon={LayoutDashboard} label="Dashboard" />
               <SidebarNavButton href={`/ws/${selectedWorkspaceId}/mywork`} icon={Briefcase} label="My Work" />
-              <SidebarNavButton href="/members" icon={Users} label="Members" />
+              <SidebarNavButton href={`/ws/${selectedWorkspaceId}/members`} icon={Users} label="Members" />
             </SidebarMenu>
           </div>
 

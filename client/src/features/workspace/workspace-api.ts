@@ -1,6 +1,7 @@
 import apiClient from "@/lib/api-client";
 import { AddMembersResponse, CreateWorkspaceRequest, CreateWorkspaceResponse, GetHierarchyRequest, Hierarchy, Workspaces,  } from "./workspacetype";
-import { Members } from "@/types/user";
+import { Member, Members } from "@/types/user";
+import { mapRoleFromApi } from "@/utils/role-utils";
  
 export const CreateWorkspace = async (data: CreateWorkspaceRequest) : Promise<CreateWorkspaceResponse> => {
     try {
@@ -29,8 +30,13 @@ export const GetHierarchy = async (data : GetHierarchyRequest) : Promise<Hierarc
 
 export const GetMembers = async (workspaceId: string) : Promise<Members> => {
     try {
-        const rep = await apiClient.get<Members>(`/workspace/${workspaceId}/members`);
-        return rep.data;
+        const response = await apiClient.get<{ members: (Omit<Member, 'role'> & { role: number })[] }>(`/workspace/${workspaceId}/members`);
+        const mappedMembers = response.data.members.map(member => ({
+            ...member,
+            role: mapRoleFromApi(member.role)
+        }));
+
+        return { members: mappedMembers };
     } catch (error) {
         throw error; 
     }

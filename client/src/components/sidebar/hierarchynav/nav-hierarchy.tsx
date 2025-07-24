@@ -36,11 +36,11 @@ export function SpaceHierarchyDisplay({ spaces }: { spaces: SpaceNode[] }) {
     <div className="flex flex-col h-full">
       {/* Fixed Spaces Header */}
       <div className="flex-shrink-0 border-b border-sidebar-border/30">
-        <div className="group flex items-center gap-2 px-2 py-1.5 cursor-pointer border border-transparent hover:bg-sidebar-accent hover:border-sidebar-border transition-all duration-200">
+        <div className="group flex items-center gap-2 px-3 py-4 cursor-pointer border border-transparent hover:bg-sidebar-accent hover:border-sidebar-border transition-all duration-200">
           <Button
             variant="ghost"
             size="sm"
-            className="h-5 w-5 p-0 text-sidebar-foreground/60 hover:bg-transparent"
+            className="h-5 w-5 text-sidebar-foreground/60 hover:bg-transparent"
             onClick={() => setIsExpanded(!isExpanded)}
           >
             <ChevronDown className={cn("h-3 w-3 transition-transform duration-200", !isExpanded && "-rotate-90")} />
@@ -73,14 +73,14 @@ export function SpaceHierarchyDisplay({ spaces }: { spaces: SpaceNode[] }) {
 
       {/* Scrollable Spaces Content */}
       {isExpanded && (
-        <div className="flex-1 overflow-hidden flex flex-col">
+        <div className="flex-1 overflow-hidden flex flex-col border-b border-sidebar-border/20">
           <div className="flex-1 overflow-y-auto modern-scrollbar px-2 py-1">
             <div className="space-y-0.5">
               {spaces.map((space) => (
                 <SpaceItem key={space.id} space={space} context={{ spaceId: space.id }} />
               ))}
           </div>
-           <div className="flex-shrink-0 border wf border-sidebar-border/20">
+           <div className="flex-shrink-0 border border-sidebar-border/20 ">
                   <CreateSpaceButton
                   isOpen={isCreateSpaceModalOpen}
                   onOpenChange={setIsCreateSpaceModalOpen}

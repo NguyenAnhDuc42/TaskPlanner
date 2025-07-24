@@ -1,13 +1,11 @@
+import { Role } from "@/utils/role-utils";
+
 export interface User {
     id: string;
     name: string;
     email: string;
     avatar?: string;
 }
-export type Role = "owner" | "admin" | "member";
-
-
-
 
 export interface Members{
     members: Member[];

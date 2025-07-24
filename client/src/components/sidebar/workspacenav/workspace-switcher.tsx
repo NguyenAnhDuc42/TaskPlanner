@@ -19,9 +19,10 @@ export function WorkspaceSwitcher() {
   const { data, isLoading } = useSidebarWorkspaces()
   const { selectedWorkspaceId, setSelectedWorkspaceId } = useWorkspaceStore()
   const { state } = useSidebar()
-  const workspaces = data?.workspaces || []
   const [isDialogOpen, setIsDialogOpen] = React.useState(false)
   const [showSkeleton, setShowSkeleton] = React.useState(true)
+  const workspaces = data?.workspaces || []
+
   const pathname = usePathname()
 
   const selectedWorkspace = selectedWorkspaceId ? workspaces.find((w) => w.id === selectedWorkspaceId) : null
@@ -70,7 +71,7 @@ export function WorkspaceSwitcher() {
               <Button variant="ghost" 
               className={cn("data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground",
                             "hover:bg-sidebar-accent/80 transition-all duration-200 m-0",
-                            state === "collapsed"  ? "rounded-lg size-8 p-0 my-3 justify-center"
+                            state === "collapsed"  ? "rounded-lg size-8 p-0 m-0 justify-center"
                                                    : "w-full justify-start h-14 px-3 rounded-none",)}>
 
                 <div className={cn("bg-sidebar-primary text-sidebar-primary-foreground flex items-center justify-center rounded-lg",
@@ -109,7 +110,7 @@ export function WorkspaceSwitcher() {
             </DialogHeader>
 
             {isLoading ? (
-              <div className="space-y-3 py-2">
+              <div className="space-y-3 py-4">
                 {[...Array(3)].map((_, i) => (
                   <div key={i} className="flex items-center gap-3 p-3">
                     <Skeleton className={cn("size-8", "rounded-none")} />
@@ -118,7 +119,7 @@ export function WorkspaceSwitcher() {
                 ))}
               </div>
             ) : (
-              <div className="py-2">
+              <div className="py-4">
                 <div className="max-h-96 overflow-y-auto space-y-1">
                   {workspaces.length === 0 ? (
                     <p className="text-muted-foreground text-center py-4">No workspaces found</p>
