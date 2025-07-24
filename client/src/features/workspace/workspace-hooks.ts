@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AddMembers, CreateWorkspace, GetHierarchy, GetMembers, SidebarWorkspaces } from "./workspace-api";
 
 import { ErrorResponse } from "@/types/responses/error-response";
-import { Hierarchy } from "./workspacetype";
+import { AddMembersBody, Hierarchy } from "./workspacetype";
 
 
 export const WORKSPACE_KEYS = {
@@ -68,11 +68,11 @@ export function useGetMembers(workspaceId: string | undefined){
 export function useAddMembers(workspaceId: string | undefined) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (emails: string[]) => {
+    mutationFn: (datas: AddMembersBody) => {
       if (!workspaceId) {
         throw new Error('Workspace ID is required');
       }
-      return AddMembers(workspaceId, emails);
+      return AddMembers(workspaceId, datas);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({

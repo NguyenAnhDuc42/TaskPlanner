@@ -2,15 +2,18 @@ using System;
 using MediatR;
 using src.Helper.Results;
 using src.Infrastructure.Abstractions.IRepositories;
+using src.Infrastructure.Data;
 
 namespace src.Feature.Workspace.AddMembers;
 
 public class AddMembersHandler : IRequestHandler<AddMembersRequest, Result<AddMembersResponse, ErrorResponse>>
 {
+    private readonly PlannerDbContext _context;
     private readonly IHierarchyRepository _hierarchyRepository;
     private readonly IUserRepository _userRepository;
-    public AddMembersHandler(IHierarchyRepository hierarchyRepository, IUserRepository userRepository)
+    public AddMembersHandler(PlannerDbContext context,IHierarchyRepository hierarchyRepository, IUserRepository userRepository)
     {
+        _context = context ?? throw new ArgumentNullException(nameof(context));
         _hierarchyRepository = hierarchyRepository ?? throw new ArgumentNullException(nameof(hierarchyRepository));
         _userRepository = userRepository ?? throw new ArgumentNullException(nameof(userRepository));
     }
@@ -43,6 +46,13 @@ public class AddMembersHandler : IRequestHandler<AddMembersRequest, Result<AddMe
         if (addedEmails.Count == 0)
         {
             return Result<AddMembersResponse, ErrorResponse>.Failure(ErrorResponse.NotFound("No valid users found.", "None of the provided emails correspond to existing users."));
+        }
+
+        _context.Workspaces.Update(workspace);
+        var saveResult = await _context.SaveChangesAsync(cancellationToken);
+        if (saveResult <= 0)
+        {
+            return Result<AddMembersResponse, ErrorResponse>.Failure(ErrorResponse.Internal("An error occurred while saving changes to the database."));
         }
         return Result<AddMembersResponse, ErrorResponse>.Success(new AddMembersResponse(addedEmails, "Members added successfully."));
     }   

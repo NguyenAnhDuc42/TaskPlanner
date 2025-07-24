@@ -2,7 +2,7 @@ import type { Member } from "@/types/user" // Import Member from types/user
 import { MemberRow } from "./member-row"
 
 interface MembersTableProps {
-  members: Member[] // Uses the Member type with role as Role (string)
+  members: Member[] 
 }
 
 export function MembersTable({ members }: MembersTableProps) {

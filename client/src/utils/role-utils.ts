@@ -18,18 +18,22 @@ export function getRoleProperties(role: Role) {
   const properties = {
     guest: {
       label: "Guest",
+      description: "Guests can only view projects and tasks they are invited to.",
       color: "bg-gray-500 text-white",
     },
     member: {
       label: "Member",
+      description: "Members can create and manage tasks within their projects.",
       color: "bg-green-600 text-white",
     },
     admin: {
       label: "Admin",
+      description: "Admins can manage members and workspace settings.",
       color: "bg-purple-600 text-white",
     },
     owner: {
       label: "Owner",
+      description: "Owners have full access and can manage billing.",
       color: "bg-blue-600 text-white",
     },
   }

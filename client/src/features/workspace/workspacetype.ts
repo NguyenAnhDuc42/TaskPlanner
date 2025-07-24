@@ -1,3 +1,5 @@
+import { Role } from "@/utils/role-utils";
+
 export interface CreateWorkspaceRequest {
   name: string;
   description: string;
@@ -11,10 +13,20 @@ export interface CreateWorkspaceResponse {
 }
 
 
+
+export interface AddMembersBody {
+   emails: string[];
+   role : Role
+   
+}
+
+
 export interface AddMembersResponse{
   emails: string[];
   message: string;
 }
+
+
 
 export interface Workspaces {workspaces: Workspace[];}
 export interface Workspace { id: string; name: string; icon: string;}

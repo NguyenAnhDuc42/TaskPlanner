@@ -1,5 +1,5 @@
 import apiClient from "@/lib/api-client";
-import { AddMembersResponse, CreateWorkspaceRequest, CreateWorkspaceResponse, GetHierarchyRequest, Hierarchy, Workspaces,  } from "./workspacetype";
+import { AddMembersBody, AddMembersResponse, CreateWorkspaceRequest, CreateWorkspaceResponse, GetHierarchyRequest, Hierarchy, Workspaces,  } from "./workspacetype";
 import { Member, Members } from "@/types/user";
 import { mapRoleFromApi } from "@/utils/role-utils";
  
@@ -42,9 +42,9 @@ export const GetMembers = async (workspaceId: string) : Promise<Members> => {
     }
 }
 
-export const AddMembers = async (workspaceId: string, emails: string[]) : Promise<AddMembersResponse> => {
+export const AddMembers = async (workspaceId: string, body:AddMembersBody) : Promise<AddMembersResponse> => {
     try {
-        const rep = await apiClient.post<AddMembersResponse>(`/workspace/${workspaceId}/members`, { emails });
+        const rep = await apiClient.post<AddMembersResponse>(`/workspace/${workspaceId}/members`, body);
         return rep.data;
     } catch (error) {
         throw error;

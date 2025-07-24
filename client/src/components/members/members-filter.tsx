@@ -11,7 +11,7 @@ interface MembersFilterProps {
   onInviteClick: () => void
 }
 
-export function MembersFilter({ totalCount, selectedFilter, onFilterChange, onInviteClick }: MembersFilterProps) {
+export function MembersFilter({ totalCount, onFilterChange, onInviteClick }: MembersFilterProps) {
   return (
     <div className="flex items-center justify-between py-4">
       <DropdownMenu>

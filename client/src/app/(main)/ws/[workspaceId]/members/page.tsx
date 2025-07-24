@@ -6,8 +6,9 @@ import { MembersHeader } from "@/components/members/members-header"
 import { MembersFilter } from "@/components/members/members-filter"
 import { MembersTable } from "@/components/members/members-table"
 import { InviteMembersDialog } from "@/components/members/invite-members-dialog"
-import type { Member } from "@/types/user" // Import Member from types/user
+import type { Member } from "@/types/user" // Import Member, AddMembersBody, Role
 import { useAddMembers, useGetMembers } from "@/features/workspace/workspace-hooks"
+import { AddMembersBody } from "@/features/workspace/workspacetype"
 
 export default function MembersPage({ params }: { params: Promise<{ workspaceId: string }> }) {
   const resolvedParams = use(params)
@@ -29,17 +30,16 @@ export default function MembersPage({ params }: { params: Promise<{ workspaceId:
       member.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       member.email.toLowerCase().includes(searchQuery.toLowerCase())
 
-    // Filter directly by the string role
     const matchesFilter = selectedFilter === "all" || member.role === selectedFilter
     return matchesSearch && matchesFilter
   })
 
-  const handleInviteMembers = async (emails: string[]) => {
+  const handleInviteMembers = async (data: AddMembersBody) => {
     try {
-      await addMembersMutation.mutateAsync(emails)
-      setInviteDialogOpen(false)
+      await addMembersMutation.mutateAsync(data)
     } catch (error) {
       console.error("Failed to invite members:", error)
+      throw error
     }
   }
 
