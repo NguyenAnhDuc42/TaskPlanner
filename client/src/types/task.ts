@@ -16,3 +16,21 @@ export interface Task {
   listId: string;
   creatorId: string;
 }
+
+export interface Assignee {
+    id: string;
+    name: string;
+    email: string;
+}
+export interface TaskItem {
+    id: string;
+    name: string;
+    dueDate: string | null;
+    status: PlanTaskStatus;
+    priority: number;
+    assignees: Assignee[];
+}
+
+export interface TaskItems {
+    tasks: TaskItem[];
+}

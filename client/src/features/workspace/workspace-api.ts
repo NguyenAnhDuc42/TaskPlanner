@@ -2,6 +2,9 @@ import apiClient from "@/lib/api-client";
 import { AddMembersBody, AddMembersResponse, CreateWorkspaceRequest, CreateWorkspaceResponse, GetHierarchyRequest, Hierarchy, Workspaces,  } from "./workspacetype";
 import { Member, Members } from "@/types/user";
 import { mapRoleFromApi } from "@/utils/role-utils";
+import { FolderItems } from "@/types/folder";
+import { ListItems } from "@/types/list";
+import { TaskItems } from "@/types/task";
  
 export const CreateWorkspace = async (data: CreateWorkspaceRequest) : Promise<CreateWorkspaceResponse> => {
     try {
@@ -50,3 +53,30 @@ export const AddMembers = async (workspaceId: string, body:AddMembersBody) : Pro
         throw error;
     }
 }
+
+export const GetDashboardFolders = async (workspaceId: string): Promise<FolderItems> => {
+    try {
+        const response = await apiClient.get<FolderItems>(`/workspace/${workspaceId}/dashboard/folders`);
+        return response.data;
+    } catch (error) {
+        throw error;
+    }
+};
+
+export const GetDashboardLists = async (workspaceId: string): Promise<ListItems> => {
+    try {
+        const response = await apiClient.get<ListItems>(`/workspace/${workspaceId}/dashboard/lists`);
+        return response.data;
+    } catch (error) {
+        throw error;
+    }
+};
+
+export const GetDashboardTasks = async (workspaceId: string): Promise<TaskItems> => {
+    try {
+        const response = await apiClient.get<TaskItems>(`/workspace/${workspaceId}/dashboard/tasks`);
+        return response.data;
+    } catch (error) {
+        throw error;
+    }
+};

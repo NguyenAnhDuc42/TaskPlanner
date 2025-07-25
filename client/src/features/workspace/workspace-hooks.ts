@@ -1,16 +1,30 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { AddMembers, CreateWorkspace, GetHierarchy, GetMembers, SidebarWorkspaces } from "./workspace-api";
+import {
+  AddMembers,
+  CreateWorkspace,
+  GetDashboardFolders,
+  GetDashboardLists,
+  GetDashboardTasks,
+  GetHierarchy,
+  GetMembers,
+  SidebarWorkspaces,
+} from "./workspace-api";
 
 import { ErrorResponse } from "@/types/responses/error-response";
 import { AddMembersBody, Hierarchy } from "./workspacetype";
-
+import { FolderItems } from "@/types/folder";
+import { ListItems } from "@/types/list";
+import { TaskItems } from "@/types/task";
 
 export const WORKSPACE_KEYS = {
   all: ["workspaces"] as const,
   sidebar: () => [...WORKSPACE_KEYS.all, "sidebar"] as const,
   hierarchy: (workspaceId: string) => [...WORKSPACE_KEYS.all, "hierarchy", workspaceId] as const,
   members: (workspaceId: string) => [...WORKSPACE_KEYS.all, "members", workspaceId] as const,
-
+  dashboard: (workspaceId: string) => [...WORKSPACE_KEYS.all, "dashboard", workspaceId] as const,
+  dashboardFolders: (workspaceId: string) => [...WORKSPACE_KEYS.dashboard(workspaceId), "folders"] as const,
+  dashboardLists: (workspaceId: string) => [...WORKSPACE_KEYS.dashboard(workspaceId), "lists"] as const,
+  dashboardTasks: (workspaceId: string) => [...WORKSPACE_KEYS.dashboard(workspaceId), "tasks"] as const,
 } as const
 
 export function useCreateWorkspace() {
@@ -26,6 +40,54 @@ export function useCreateWorkspace() {
       console.error("Register Mutation Error:", error);
       console.log(error);
     },
+  });
+}
+
+export function useGetDashboardFolders(workspaceId: string | undefined) {
+  return useQuery<FolderItems, ErrorResponse>({
+    queryKey: workspaceId
+      ? WORKSPACE_KEYS.dashboardFolders(workspaceId)
+      : ["disabled-dashboard-folders-query"],
+    queryFn: async () => {
+      if (!workspaceId) {
+        throw new Error("Workspace ID is required");
+      }
+      return GetDashboardFolders(workspaceId);
+    },
+    enabled: !!workspaceId,
+    staleTime: 5 * 60 * 1000,
+  });
+}
+
+export function useGetDashboardLists(workspaceId: string | undefined) {
+  return useQuery<ListItems, ErrorResponse>({
+    queryKey: workspaceId
+      ? WORKSPACE_KEYS.dashboardLists(workspaceId)
+      : ["disabled-dashboard-lists-query"],
+    queryFn: async () => {
+      if (!workspaceId) {
+        throw new Error("Workspace ID is required");
+      }
+      return GetDashboardLists(workspaceId);
+    },
+    enabled: !!workspaceId,
+    staleTime: 5 * 60 * 1000,
+  });
+}
+
+export function useGetDashboardTasks(workspaceId: string | undefined) {
+  return useQuery<TaskItems, ErrorResponse>({
+    queryKey: workspaceId
+      ? WORKSPACE_KEYS.dashboardTasks(workspaceId)
+      : ["disabled-dashboard-tasks-query"],
+    queryFn: async () => {
+      if (!workspaceId) {
+        throw new Error("Workspace ID is required");
+      }
+      return GetDashboardTasks(workspaceId);
+    },
+    enabled: !!workspaceId,
+    staleTime: 5 * 60 * 1000,
   });
 }
 
