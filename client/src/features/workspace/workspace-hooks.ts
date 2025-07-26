@@ -45,9 +45,7 @@ export function useCreateWorkspace() {
 
 export function useGetDashboardFolders(workspaceId: string | undefined) {
   return useQuery<FolderItems, ErrorResponse>({
-    queryKey: workspaceId
-      ? WORKSPACE_KEYS.dashboardFolders(workspaceId)
-      : ["disabled-dashboard-folders-query"],
+    queryKey: workspaceId ? WORKSPACE_KEYS.dashboardFolders(workspaceId) : ["disabled-dashboard-folders-query"],
     queryFn: async () => {
       if (!workspaceId) {
         throw new Error("Workspace ID is required");
@@ -61,9 +59,7 @@ export function useGetDashboardFolders(workspaceId: string | undefined) {
 
 export function useGetDashboardLists(workspaceId: string | undefined) {
   return useQuery<ListItems, ErrorResponse>({
-    queryKey: workspaceId
-      ? WORKSPACE_KEYS.dashboardLists(workspaceId)
-      : ["disabled-dashboard-lists-query"],
+    queryKey: workspaceId ? WORKSPACE_KEYS.dashboardLists(workspaceId) : ["disabled-dashboard-lists-query"],
     queryFn: async () => {
       if (!workspaceId) {
         throw new Error("Workspace ID is required");
@@ -77,9 +73,7 @@ export function useGetDashboardLists(workspaceId: string | undefined) {
 
 export function useGetDashboardTasks(workspaceId: string | undefined) {
   return useQuery<TaskItems, ErrorResponse>({
-    queryKey: workspaceId
-      ? WORKSPACE_KEYS.dashboardTasks(workspaceId)
-      : ["disabled-dashboard-tasks-query"],
+    queryKey: workspaceId ? WORKSPACE_KEYS.dashboardTasks(workspaceId) : ["disabled-dashboard-tasks-query"],
     queryFn: async () => {
       if (!workspaceId) {
         throw new Error("Workspace ID is required");
@@ -100,9 +94,7 @@ export function useSidebarWorkspaces() {
 
 export function useHierarchy(workspaceId: string | undefined) {
   return useQuery<Hierarchy, ErrorResponse>({
-    queryKey: workspaceId 
-      ? WORKSPACE_KEYS.hierarchy(workspaceId) 
-      : ["disabled-hierarchy-query"],
+    queryKey: workspaceId ? WORKSPACE_KEYS.hierarchy(workspaceId) : ["disabled-hierarchy-query"],
     queryFn: async () => {
       if (!workspaceId) {
         throw new Error('Workspace ID is required');

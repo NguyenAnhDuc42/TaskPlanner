@@ -10,7 +10,6 @@ public class Status : Entity<Guid>
     public string Color { get; private set; } = string.Empty;
     public int Order { get; private set; }
     public StatusType Type { get; private set; } // Open, InProgress, Closed
-    public HierarchyLevel Level { get; private set; }
      public static Status CreateForList(Guid spaceId, string name, string color, StatusType type, int? order = null)
     {
         return new Status
@@ -20,7 +19,6 @@ public class Status : Entity<Guid>
             Color = color,
             Order = order ?? 0,
             Type = type,
-            Level = HierarchyLevel.List
         };
     }
 
@@ -28,9 +26,10 @@ public class Status : Entity<Guid>
 
 public enum StatusType
 {
-    Open = 0,
-    InProgress = 1,
-    Closed = 2
+    NotStarted = 0,
+    Active = 1,
+    Done = 2,
+    Closed = 3
 }
 
 public enum HierarchyLevel
