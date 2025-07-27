@@ -1,9 +1,6 @@
 namespace src.Contract;
 
-public record class FolderResponse
-{
-
-}
+public record class FolderSummary(Guid Id,string Name);
 
 
 

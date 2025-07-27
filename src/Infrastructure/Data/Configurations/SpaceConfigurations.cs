@@ -39,6 +39,10 @@ public class SpaceConfigurations : IEntityTypeConfiguration<Space>
             .WithOne()
             .HasForeignKey(us => us.SpaceId)
             .OnDelete(DeleteBehavior.Cascade);
+        builder.HasMany(s => s.Statuses)
+            .WithOne()
+            .HasForeignKey(st => st.SpaceId)
+            .OnDelete(DeleteBehavior.Cascade);
 
 
         //ignore

@@ -27,7 +27,7 @@
     <Folder Include="Domain\Event\UserEvents\" />
     <Folder Include="Domain\Valueobject\" />
     <Folder Include="Feature\Workspace\DeleteMembers\" />
-    <Folder Include="Feature\Workspace\UpdateMemberRoles\" />
+    <Folder Include="Feature\Workspace\UpdateMembers\" />
     <Folder Include="Helper\Exceptions\" />
   </ItemGroup>
 

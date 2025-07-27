@@ -2,12 +2,13 @@ using System;
 using System.Data;
 using Dapper;
 using MediatR;
+using src.Contract;
 using src.Helper.Results;
 using src.Infrastructure.Abstractions.IRepositories;
 
 namespace src.Feature.Workspace.DashboardWorkspace.GetLists;
 
-public class GetListsHandler : IRequestHandler<GetListsRequest, Result<ListItems, ErrorResponse>>
+public class GetListsHandler : IRequestHandler<GetListsRequest, Result<List<ListSumary>, ErrorResponse>>
 {
     private readonly IDbConnection _dbConnection;
     private readonly IHierarchyRepository _hierarchyRepository;
@@ -16,18 +17,18 @@ public class GetListsHandler : IRequestHandler<GetListsRequest, Result<ListItems
         _dbConnection = dbConnection ?? throw new ArgumentNullException(nameof(dbConnection));
         _hierarchyRepository = hierarchyRepository ?? throw new ArgumentNullException(nameof(hierarchyRepository));
     }
-    public async Task<Result<ListItems, ErrorResponse>> Handle(GetListsRequest request, CancellationToken cancellationToken)
+    public async Task<Result<List<ListSumary>, ErrorResponse>> Handle(GetListsRequest request, CancellationToken cancellationToken)
     {
         var workspace = await _hierarchyRepository.GetWorkspaceByIdAsync(request.workspaceId, cancellationToken);
         if (workspace == null)
         {
-            return Result<ListItems, ErrorResponse>.Failure(ErrorResponse.NotFound("Workspace not found"));
+            return Result<List<ListSumary>, ErrorResponse>.Failure(ErrorResponse.NotFound("Workspace not found"));
         }
         var sql = @"SELECT ""Id"",
                            ""Name""
                     FRROM ""Lists""
                     WHERE ""WorkspaceId"" = @WorkspaceId";
-        var lists = await _dbConnection.QueryAsync<ListItem>(sql , new { WorkspaceId = request.workspaceId });
-        return Result<ListItems, ErrorResponse>.Success(new ListItems(lists.ToList()));
+        var lists = await _dbConnection.QueryAsync<ListSumary>(sql , new { WorkspaceId = request.workspaceId });
+        return Result<List<ListSumary>, ErrorResponse>.Success(lists.ToList());
     }
 }

@@ -33,12 +33,14 @@ public class PlanTaskConfigurations : IEntityTypeConfiguration<PlanTask>
         builder.Property(t => t.IsArchived);
         builder.Property(t => t.IsPrivate);
         builder.Property(t => t.CreatorId).IsRequired();
+        builder.Property(t => t.StatusId);
 
         builder.HasIndex(t => t.WorkspaceId);
         builder.HasIndex(t => t.SpaceId);
         builder.HasIndex(t => t.FolderId);
         builder.HasIndex(t => t.ListId);
         builder.HasIndex(t => t.CreatorId);
+        builder.HasIndex(t => t.StatusId);
 
         builder.HasMany(t => t.Asignees)
         .WithOne()

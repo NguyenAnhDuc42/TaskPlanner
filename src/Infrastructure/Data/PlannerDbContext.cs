@@ -5,6 +5,7 @@ using src.Domain.Entities.SessionEntity;
 using src.Domain.Entities.UserEntity;
 using src.Domain.Entities.WorkspaceEntity;
 using src.Domain.Entities.WorkspaceEntity.Relationships;
+using src.Domain.Entities.WorkspaceEntity.SupportEntiy;
 using src.Domain.Enums;
 
 namespace src.Infrastructure.Data;
@@ -27,6 +28,8 @@ public class PlannerDbContext : DbContext
     public virtual DbSet<UserList> UserLists { get; set; }
     public virtual DbSet<UserFolder> UserFolders { get; set; }
     public virtual DbSet<UserTask> UserTasks { get; set; }
+
+    public virtual DbSet<Status> Statuses { get; set; }
 
 
 

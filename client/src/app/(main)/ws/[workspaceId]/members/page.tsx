@@ -6,7 +6,6 @@ import { MembersHeader } from "@/components/members/members-header"
 import { MembersFilter } from "@/components/members/members-filter"
 import { MembersTable } from "@/components/members/members-table"
 import { InviteMembersDialog } from "@/components/members/invite-members-dialog"
-import type { Member } from "@/types/user" // Import Member, AddMembersBody, Role
 import { useAddMembers, useGetMembers } from "@/features/workspace/workspace-hooks"
 import { AddMembersBody } from "@/features/workspace/workspacetype"
 

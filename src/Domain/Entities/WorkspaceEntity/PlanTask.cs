@@ -9,6 +9,7 @@ public class PlanTask : Entity<Guid>
     public Guid SpaceId { get; private set; } // Team level - for team reporting
     public Guid? FolderId { get; private set; }
     public Guid ListId { get; private set; } // Direct parent - task container
+    public Guid? StatusId { get; private set; } // Optional status for task
 
     public string Name { get; private set; } = string.Empty;
     public string Description { get; private set; } = string.Empty;

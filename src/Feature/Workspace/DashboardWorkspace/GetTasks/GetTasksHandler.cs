@@ -6,12 +6,13 @@ using System.Threading;
 using System.Threading.Tasks;
 using Dapper;
 using MediatR;
+using src.Contract;
 using src.Helper.Results;
 using src.Infrastructure.Abstractions.IRepositories;
 
 namespace src.Feature.Workspace.DashboardWorkspace.GetTasks;
 
-public class GetTasksHandler : IRequestHandler<GetTasksRequest, Result<TaskItems, ErrorResponse>>
+public class GetTasksHandler : IRequestHandler<GetTasksRequest, Result<List<TaskSummary>, ErrorResponse>>
 {
     private readonly IDbConnection _dbConnection;
     private readonly IHierarchyRepository _hierarchyRepository;
@@ -20,12 +21,12 @@ public class GetTasksHandler : IRequestHandler<GetTasksRequest, Result<TaskItems
         _hierarchyRepository = hierarchyRepository;
         _dbConnection = dbConnection;
     }
-    public async Task<Result<TaskItems, ErrorResponse>> Handle(GetTasksRequest request, CancellationToken cancellationToken)
+    public async Task<Result<List<TaskSummary>, ErrorResponse>> Handle(GetTasksRequest request, CancellationToken cancellationToken)
     {
         var workspace = await _hierarchyRepository.GetWorkspaceByIdAsync(request.workspaceId, cancellationToken);
         if (workspace == null)
         {
-            return Result<TaskItems, ErrorResponse>.Failure(ErrorResponse.NotFound("Workspace not found"));
+            return Result<List<TaskSummary>, ErrorResponse>.Failure(ErrorResponse.NotFound("Workspace not found"));
         }
         const string sql = @"SELECT t.""Id"", t.""Name"", t.""DueDate"", t.""Status"", t.""Priority"",
                                     u.""Id"", u.""Name"", u.""Email""
@@ -35,21 +36,21 @@ public class GetTasksHandler : IRequestHandler<GetTasksRequest, Result<TaskItems
                             WHERE t.""WorkspaceId"" = @WorkspaceId
                             ORDER BY t.""CreatedAt"" DESC, t.""Id"";";
 
-        var taskDictionary = new Dictionary<Guid, TaskItem>();
+        var taskDictionary = new Dictionary<Guid, TaskSummary>();
 
-        await _dbConnection.QueryAsync<TaskItem, Assignee, TaskItem>(
+        await _dbConnection.QueryAsync<TaskSummary, UserSummary, TaskSummary>(
             sql,
             (task, assignee) =>
             {
-                if (!taskDictionary.TryGetValue(task.id, out var taskEntry))
+                if (!taskDictionary.TryGetValue(task.Id, out var taskEntry))
                 {
-                    taskEntry = task with { assignees = new List<Assignee>() };
-                    taskDictionary.Add(taskEntry.id, taskEntry);
+                    taskEntry = task with { assignees = new List<UserSummary>() };
+                    taskDictionary.Add(taskEntry.Id, taskEntry);
                 }
 
-                if (assignee != null && assignee.id != Guid.Empty)
+                if (assignee != null && assignee.Id != Guid.Empty)
                 {
-                    if (!taskEntry.assignees.Any(a => a.id == assignee.id))
+                    if (!taskEntry.assignees.Any(a => a.Id == assignee.Id))
                     {
                         taskEntry.assignees.Add(assignee);
                     }
@@ -59,6 +60,6 @@ public class GetTasksHandler : IRequestHandler<GetTasksRequest, Result<TaskItems
             new { WorkspaceId = request.workspaceId },
             splitOn: "Id");
 
-        return Result<TaskItems, ErrorResponse>.Success(new TaskItems(taskDictionary.Values.ToList()));
+        return Result<List<TaskSummary>, ErrorResponse>.Success(taskDictionary.Values.ToList());
     }
 }

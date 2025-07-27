@@ -1,6 +1,7 @@
 using System;
 using src.Domain.Entities.UserEntity;
 using src.Domain.Entities.WorkspaceEntity.Relationships;
+using src.Domain.Entities.WorkspaceEntity.SupportEntiy;
 
 
 namespace src.Domain.Entities.WorkspaceEntity;
@@ -15,6 +16,7 @@ public class Space : Agregate<Guid>
     public ICollection<PlanList> Lists { get; set; } = new List<PlanList>();
     public ICollection<PlanFolder> Folders { get; set; } = new List<PlanFolder>();
     public ICollection<UserSpace> Members { get; set; } = new List<UserSpace>();
+    public ICollection<Status> Statuses { get; set; } = new List<Status>();
 
 
     public Guid CreatorId { get; private set; }
