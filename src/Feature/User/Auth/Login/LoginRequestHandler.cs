@@ -1,6 +1,5 @@
 using System;
 using MediatR;
-using src.Domain.Valueobject;
 using src.Helper.Results;
 using src.Infrastructure.Abstractions.IRepositories;
 using src.Infrastructure.Abstractions.IServices;

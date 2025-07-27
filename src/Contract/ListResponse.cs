@@ -1,6 +1,7 @@
 namespace src.Contract;
 
-public record class ListResponse
-{
+public record ListSumary(Guid Id,string Name);
 
-}
+// Represents a node in hierarchical data structure
+public record ListNode(Guid Nd, string Name);
+internal record ListDto(Guid Id, string Name, Guid? SpaceId, Guid? FolderId);

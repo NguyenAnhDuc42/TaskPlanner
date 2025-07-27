@@ -1,7 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using src.Domain.Entities.UserEntity;
-using src.Domain.Valueobject;
 using System;
 
 namespace Infastructure.DBContext.Configurations;

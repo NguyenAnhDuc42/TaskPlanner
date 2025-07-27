@@ -7,12 +7,11 @@ export interface User {
     avatar?: string;
 }
 
-export interface Members{
-    members: Member[];
-}
-export interface Member{
+export interface UserSummary {
     id: string;
     name: string;
     email: string;
     role: Role;
 }
+
+

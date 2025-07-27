@@ -15,6 +15,7 @@ import { AddMembersBody, Hierarchy } from "./workspacetype";
 import { FolderItems } from "@/types/folder";
 import { ListItems } from "@/types/list";
 import { TaskItems } from "@/types/task";
+import { UserSummary } from "@/types/user";
 
 export const WORKSPACE_KEYS = {
   all: ["workspaces"] as const,
@@ -106,8 +107,8 @@ export function useHierarchy(workspaceId: string | undefined) {
   });
 }
 
-export function useGetMembers(workspaceId: string | undefined){
-  return useQuery({
+export function useGetMembers(workspaceId: string | undefined) {
+  return useQuery<UserSummary[], ErrorResponse>({
     queryKey: workspaceId ? WORKSPACE_KEYS.members(workspaceId) : ["disabled-members-query"],
     queryFn: async () => {
       if (!workspaceId) {

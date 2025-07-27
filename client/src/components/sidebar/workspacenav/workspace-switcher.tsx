@@ -9,7 +9,6 @@ import { useWorkspaceStore } from "@/utils/workspace-store"
 
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { AddWorkspaceButton } from "./add-workspace-form"
-import Image from "next/image"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
@@ -21,7 +20,7 @@ export function WorkspaceSwitcher() {
   const { state } = useSidebar()
   const [isDialogOpen, setIsDialogOpen] = React.useState(false)
   const [showSkeleton, setShowSkeleton] = React.useState(true)
-  const workspaces = data?.workspaces || []
+  const workspaces = data || []
 
   const pathname = usePathname()
 
@@ -74,17 +73,11 @@ export function WorkspaceSwitcher() {
                             state === "collapsed"  ? "rounded-lg size-8 p-0 m-0 justify-center"
                                                    : "w-full justify-start h-14 px-3 rounded-none",)}>
 
-                <div className={cn("bg-sidebar-primary text-sidebar-primary-foreground flex items-center justify-center rounded-lg",
+                <div className={cn("bg-sidebar-primary text-sidebar-primary-foreground flex items-center justify-center font-medium",
                     state === "collapsed" ? "size-6 rounded-sm" : "aspect-square size-10 rounded-md",)}>
 
-                  {selectedWorkspace?.icon ? (
-                    <Image
-                      src={selectedWorkspace.icon || "/placeholder.svg"}
-                      alt={selectedWorkspace.name}
-                      width={state === "collapsed" ? 12 : 16}
-                      height={state === "collapsed" ? 12 : 16}
-                      className={state === "collapsed" ? "size-3" : "size-4"}
-                    />
+                  {selectedWorkspace ? (
+                    <span className={cn(state === "collapsed" ? "text-xs" : "text-base")}>{selectedWorkspace.name.charAt(0).toUpperCase()}</span>
                   ) : workspaces.length > 0 ? (
                     <ChevronsUpDown className={state === "collapsed" ? "size-3" : "size-4"} />
                   ) : (
@@ -134,19 +127,9 @@ export function WorkspaceSwitcher() {
                         )}
                         onClick={() => handleWorkspaceSelect(workspace.id)}
                       >
-                        {workspace.icon ? (
-                          <Image
-                            src={workspace.icon || "/placeholder.svg"}
-                            alt={workspace.name}
-                            width={32}
-                            height={32}
-                            className="size-8"
-                          />
-                        ) : (
-                          <div className="bg-muted flex size-8 items-center justify-center font-medium rounded-none">
-                            {workspace.name.charAt(0)}
-                          </div>
-                        )}
+                        <div className="bg-muted flex size-8 items-center justify-center font-medium rounded-none">
+                          {workspace.name.charAt(0).toUpperCase()}
+                        </div>
                         <span className="font-medium truncate text-left text-base ml-3">{workspace.name}</span>
                       </Button>
                     ))

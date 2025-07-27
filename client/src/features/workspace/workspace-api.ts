@@ -1,10 +1,11 @@
 import apiClient from "@/lib/api-client";
-import { AddMembersBody, AddMembersResponse, CreateWorkspaceRequest, CreateWorkspaceResponse, GetHierarchyRequest, Hierarchy, Workspaces,  } from "./workspacetype";
-import { Member, Members } from "@/types/user";
+import { AddMembersBody, AddMembersResponse, CreateWorkspaceRequest, CreateWorkspaceResponse, GetHierarchyRequest, Hierarchy,  } from "./workspacetype";
 import { mapRoleFromApi } from "@/utils/role-utils";
 import { FolderItems } from "@/types/folder";
 import { ListItems } from "@/types/list";
 import { TaskItems } from "@/types/task";
+import { WorkspaceSummary } from "@/types/workspace";
+import { UserSummary } from "@/types/user";
  
 export const CreateWorkspace = async (data: CreateWorkspaceRequest) : Promise<CreateWorkspaceResponse> => {
     try {
@@ -14,9 +15,9 @@ export const CreateWorkspace = async (data: CreateWorkspaceRequest) : Promise<Cr
         throw error;
     }
 }
-export const SidebarWorkspaces = async () : Promise<Workspaces> => {
+export const SidebarWorkspaces = async () : Promise<WorkspaceSummary[]> => {
     try {
-        const rep = await apiClient.get<Workspaces>("/workspace/sidebar");
+        const rep = await apiClient.get<WorkspaceSummary[]>("/workspace/sidebar");
         return rep.data;
     } catch (error) {
         throw error;
@@ -31,17 +32,27 @@ export const GetHierarchy = async (data : GetHierarchyRequest) : Promise<Hierarc
     }
 }
 
-export const GetMembers = async (workspaceId: string) : Promise<Members> => {
+export const GetMembers = async (workspaceId: string) : Promise<UserSummary[]> => {
     try {
-        const response = await apiClient.get<{ members: (Omit<Member, 'role'> & { role: number })[] }>(`/workspace/${workspaceId}/members`);
+        console.log('Fetching members for workspace:', workspaceId);
+        const response = await apiClient.get<{ members: (Omit<UserSummary, 'role'> & { role: number })[] }>(`/workspace/${workspaceId}/members`);
+        console.log('Raw API response:', response.data);
+        
+        if (!response.data.members) {
+            console.error('No members array in response');
+            return [];
+        }
+        
         const mappedMembers = response.data.members.map(member => ({
             ...member,
-            role: mapRoleFromApi(member.role)
+            role: mapRoleFromApi(member.role ?? 0)
         }));
-
-        return { members: mappedMembers };
+        
+        console.log('Mapped members:', mappedMembers);
+        return mappedMembers;
     } catch (error) {
-        throw error; 
+        console.error('Error in GetMembers:', error);
+        throw error;
     }
 }
 

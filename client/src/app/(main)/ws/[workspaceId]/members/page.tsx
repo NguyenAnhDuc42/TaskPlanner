@@ -23,7 +23,7 @@ export default function MembersPage({ params }: { params: Promise<{ workspaceId:
   const addMembersMutation = useAddMembers(workspaceId)
 
   // Use members from the hook, default to an empty array if not loaded yet
-  const members: Member[] = membersData?.members || []
+  const members = membersData || []
 
   const filteredMembers = members.filter((member) => {
     const matchesSearch =

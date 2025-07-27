@@ -1,7 +1,6 @@
 using System;
 using src.Domain.Entities.SessionEntity;
 using src.Domain.Entities.WorkspaceEntity.Relationships;
-using src.Domain.Valueobject;
 
 namespace src.Domain.Entities.UserEntity;
 

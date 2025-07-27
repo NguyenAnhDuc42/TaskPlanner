@@ -1,7 +1,6 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using src.Domain.Entities.UserEntity;
-using src.Domain.Valueobject;
 using src.Infrastructure.Abstractions.IRepositories;
 
 namespace src.Infrastructure.Data.Repositories;

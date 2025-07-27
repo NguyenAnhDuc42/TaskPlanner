@@ -2,11 +2,11 @@
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 
-import type { Member } from "@/types/user" // Import Member from types/user
 import { RoleBadge } from "../custom/role-badge"
+import { UserSummary } from "@/types/user"
 
 interface MemberRowProps {
-  member: Member // Uses the Member type with role as Role (string)
+  member: UserSummary // Uses the Member type with role as Role (string)
 }
 
 export function MemberRow({ member }: MemberRowProps) {
