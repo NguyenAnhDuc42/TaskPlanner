@@ -38,6 +38,12 @@ public class HierarchyRepository : IHierarchyRepository
         return await _context.Spaces.FirstOrDefaultAsync(space => space.Id == id, cancellationToken);
     }
 
+    public async Task<Guid?> GetUserWorkspaceAsync(Guid userId, Guid workspaceId, CancellationToken cancellationToken = default)
+    {
+        return await _context.UserWorkspaces.Where(uw => uw.UserId == userId && uw.WorkspaceId == workspaceId).
+            Select(uw => uw.UserId).FirstOrDefaultAsync(cancellationToken);
+    }
+
     public async Task<Workspace?> GetWorkspaceByIdAsync(Guid id, CancellationToken cancellationToken = default)
     {
         return await _context.Workspaces.FirstOrDefaultAsync(workspace => workspace.Id == id, cancellationToken);
@@ -46,6 +52,13 @@ public class HierarchyRepository : IHierarchyRepository
     public async Task<Workspace?> GetWorkspaceByJoinCodeAsync(string joinCode, CancellationToken cancellationToken = default)
     {
         return await _context.Workspaces.FirstOrDefaultAsync(workspace => workspace.JoinCode == joinCode, cancellationToken);
+    }
+
+    public async Task<Workspace?> GetWorkspaceWithMembersByIdAsync(Guid id, CancellationToken cancellationToken = default)
+    {
+        return await _context.Workspaces
+            .Include(w => w.Members)
+            .FirstOrDefaultAsync(w => w.Id == id, cancellationToken);
     }
 
     public async Task<bool> IsOwnedByUser(Guid id, Guid userId, CancellationToken cancellationToken = default)

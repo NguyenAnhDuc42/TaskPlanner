@@ -33,7 +33,7 @@ public class Workspace : Agregate<Guid>
     public static Workspace Create(string name, string description, string color, Guid creatorId, bool isPrivate)
     {
         var joinCode = GenerateRandomCode();
-        var workspace = new Workspace(Guid.NewGuid(), name, description,joinCode, color, creatorId, isPrivate);
+        var workspace = new Workspace(Guid.NewGuid(), name, description, joinCode, color, creatorId, isPrivate);
         var ownerMembership = new UserWorkspace(creatorId, workspace.Id, Role.Owner);
         workspace.Members.Add(ownerMembership);
 
@@ -43,7 +43,11 @@ public class Workspace : Agregate<Guid>
     public void AddSpace(Space space)
     {
         Spaces.Add(space);
+        this.UpdateTimestamp();
+
     }
+
+
     public void AddMember(Guid userId, Role role)
     {
         if (Members.Any(m => m.UserId == userId))
@@ -54,7 +58,29 @@ public class Workspace : Agregate<Guid>
         var userWorkspace = new UserWorkspace(userId, Id, role);
         Members.Add(userWorkspace);
     }
-    
+    public bool HasMember(Guid userId)
+    {
+        return Members.Any(m => m.UserId == userId);
+    }
+    public void RemoveMembers(IEnumerable<Guid> memberIds)
+    {
+        var memberIdsSet = memberIds.ToHashSet();
+
+        foreach (var memberId in memberIdsSet)
+        {
+            if (CreatorId == memberId)
+                throw new Exception("Cannot delete workspace creator");
+
+            if (!Members.Any(m => m.UserId == memberId))
+                throw new Exception($"User {memberId} not found in workspace");
+        }
+        var membersToRemove = Members.Where(m => memberIdsSet.Contains(m.UserId)).ToList();
+        foreach (var member in membersToRemove)
+        {
+            Members.Remove(member);
+        }
+    }
+
     public static string GenerateRandomCode(int length = 6)
     {
         const string chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
