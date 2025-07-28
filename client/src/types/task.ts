@@ -1,6 +1,6 @@
 export type PlanTaskStatus  = "ToDo" | "InProgress" | "InReview" | "Done"
 
-export interface Task {
+export interface TaskDetail {
   id: string;
   name: string;
   description: string;
@@ -15,6 +15,14 @@ export interface Task {
   isPrivate: boolean;
   listId: string;
   creatorId: string;
+}
+
+export interface TaskSumary {
+  id: string;
+  name: string;
+  priority: string;
+  startDate: string | null;
+  dueDate: string | null;
 }
 
 export interface Assignee {

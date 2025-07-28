@@ -5,22 +5,30 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 namespace src.Migrations
 {
-    /// <inheritdoc />
     public partial class status : Migration
     {
-        /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
+            // 1) Remove the old placeholder column
             migrationBuilder.DropColumn(
                 name: "MyProperty",
                 table: "Tasks");
 
+            // 2) Add JoinCode as nullable (no default)
+            migrationBuilder.AddColumn<string>(
+                name: "JoinCode",
+                table: "Workspaces",
+                type: "text",
+                nullable: true);
+
+            // 3) Add StatusId (unchanged)
             migrationBuilder.AddColumn<Guid>(
                 name: "StatusId",
                 table: "Tasks",
                 type: "uuid",
                 nullable: true);
 
+            // 4) Create Statuses table (unchanged)
             migrationBuilder.CreateTable(
                 name: "Statuses",
                 columns: table => new
@@ -44,12 +52,48 @@ namespace src.Migrations
                         onDelete: ReferentialAction.Cascade);
                 });
 
+                            // 5) Back‑fill unique JoinCode values
+                migrationBuilder.Sql(@"
+                DO $$
+                DECLARE
+                    rec RECORD;
+                    charset TEXT := 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+                    code TEXT;
+                BEGIN
+                    FOR rec IN SELECT ""Id"" FROM ""Workspaces"" LOOP
+                        code := (
+                            SELECT string_agg(
+                                    substr(charset, floor(random()*length(charset)+1)::int, 1),
+                                    ''
+                                )
+                            FROM generate_series(1,6)
+                        );
+                        UPDATE ""Workspaces""
+                        SET ""JoinCode"" = code
+                        WHERE ""Id"" = rec.""Id"";
+                    END LOOP;
+                END;
+                $$;
+                ");
+
+            // 6) Alter JoinCode to be NOT NULL
+            migrationBuilder.AlterColumn<string>(
+                name: "JoinCode",
+                table: "Workspaces",
+                type: "text",
+                nullable: false,
+                oldClrType: typeof(string),
+                oldType: "text",
+                oldNullable: true);
+
+            // 7) Create the unique index on JoinCode
             migrationBuilder.CreateIndex(
                 name: "IX_Workspaces_JoinCode",
                 table: "Workspaces",
                 column: "JoinCode",
                 unique: true);
 
+            // 8) Create other indexes and FKs for Statuses
             migrationBuilder.CreateIndex(
                 name: "IX_Tasks_StatusId",
                 table: "Tasks",
@@ -68,9 +112,9 @@ namespace src.Migrations
                 principalColumn: "Id");
         }
 
-        /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
+            // Drop FKs and tables
             migrationBuilder.DropForeignKey(
                 name: "FK_Tasks_Statuses_StatusId",
                 table: "Tasks");
@@ -78,10 +122,16 @@ namespace src.Migrations
             migrationBuilder.DropTable(
                 name: "Statuses");
 
+            // Drop the unique index and column
             migrationBuilder.DropIndex(
                 name: "IX_Workspaces_JoinCode",
                 table: "Workspaces");
 
+            migrationBuilder.DropColumn(
+                name: "JoinCode",
+                table: "Workspaces");
+
+            // Drop StatusId and restore Tasks.MyProperty
             migrationBuilder.DropIndex(
                 name: "IX_Tasks_StatusId",
                 table: "Tasks");
@@ -95,7 +145,7 @@ namespace src.Migrations
                 table: "Tasks",
                 type: "uuid",
                 nullable: false,
-                defaultValue: new Guid("00000000-0000-0000-0000-000000000000"));
+                defaultValue: Guid.Empty);
         }
     }
 }

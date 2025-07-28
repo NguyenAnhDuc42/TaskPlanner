@@ -1,13 +1,14 @@
 using System;
 using MediatR;
+using src.Contract;
 using src.Helper.Results;
 using src.Infrastructure.Abstractions.IRepositories;
-using System.Threading;
-using System.Threading.Tasks;
+
+
 
 namespace src.Feature.TaskManager.GetInfoTask;
 
-public class GetTaskInfoHandler : IRequestHandler<GetTaskInfoRequest, Result<Task, ErrorResponse>>
+public class GetTaskInfoHandler : IRequestHandler<GetTaskInfoRequest, Result<TaskDetail, ErrorResponse>>
 {
     private readonly IHierarchyRepository _hierarchyRepository;
 
@@ -16,13 +17,13 @@ public class GetTaskInfoHandler : IRequestHandler<GetTaskInfoRequest, Result<Tas
         _hierarchyRepository = hierarchyRepository ?? throw new ArgumentNullException(nameof(hierarchyRepository));
     }
 
-    public async Task<Result<Task, ErrorResponse>> Handle(GetTaskInfoRequest request, CancellationToken cancellationToken)
+    public async Task<Result<TaskDetail, ErrorResponse>> Handle(GetTaskInfoRequest request, CancellationToken cancellationToken)
     {
         var task = await _hierarchyRepository.GetPlanTaskByIdAsync(request.Id, cancellationToken);
 
-        if (task is null) return Result<Task, ErrorResponse>.Failure(ErrorResponse.NotFound("Task not found"));
+        if (task is null) return Result<TaskDetail, ErrorResponse>.Failure(ErrorResponse.NotFound("Task not found"));
 
-        var response = new Task(
+        var response = new TaskDetail(
             task.Id,
             task.Name,
             task.Description,
@@ -38,6 +39,6 @@ public class GetTaskInfoHandler : IRequestHandler<GetTaskInfoRequest, Result<Tas
             task.ListId,
             task.CreatorId
         );
-        return Result<Task, ErrorResponse>.Success(response);
+        return Result<TaskDetail, ErrorResponse>.Success(response);
     }
 }

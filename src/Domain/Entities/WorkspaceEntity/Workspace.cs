@@ -40,7 +40,7 @@ public class Workspace : Agregate<Guid>
         return workspace;
     }
 
-    public void CreateSpace(Space space)
+    public void AddSpace(Space space)
     {
         Spaces.Add(space);
     }
@@ -55,7 +55,7 @@ public class Workspace : Agregate<Guid>
         Members.Add(userWorkspace);
     }
     
-    private static string GenerateRandomCode(int length = 6)
+    public static string GenerateRandomCode(int length = 6)
     {
         const string chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
         return new string(Enumerable.Range(0, length).Select(_ => chars[Random.Shared.Next(chars.Length)]).ToArray());

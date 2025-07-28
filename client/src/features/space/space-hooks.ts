@@ -3,7 +3,7 @@ import { createSpace, getSpaceTasks } from "./space-api";
 import { WORKSPACE_KEYS } from "../workspace/workspace-hooks";
 import { toast } from "sonner";
 import { ErrorResponse } from "@/types/responses/error-response";
-import { TaskList } from "./space-type";
+import { TaskSumary } from "@/types/task";
 
 export const SPACE_KEYS = {
     all: ["spaces"] as const,
@@ -27,7 +27,7 @@ export function useCreateSpace() {
 }
 
 export function useSpaceTasks(spaceId: string | undefined) {
-    return useQuery<TaskList, ErrorResponse>({
+    return useQuery<TaskSumary[], ErrorResponse>({
         queryKey: spaceId ? SPACE_KEYS.tasks(spaceId) : ["disabled-space-tasks-query"],
         queryFn: () => {
             if (!spaceId) throw new Error("Space ID is required to fetch tasks.");

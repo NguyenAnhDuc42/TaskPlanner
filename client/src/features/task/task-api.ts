@@ -1,6 +1,6 @@
 import apiClient from "@/lib/api-client";
 import {  CreateTaskRequest, CreateTaskResponse, DeleteTaskResponse, UpdateTaskBodyRequest, UpdateTaskResponse } from "./task-type";
-import { Task } from "@/types/task";
+import { TaskDetail } from "@/types/task";
 
 export const CreateTask  = async (data : CreateTaskRequest) : Promise<CreateTaskResponse> =>{
     const response = await apiClient.post<CreateTaskResponse>("/task", data);
@@ -19,7 +19,7 @@ export const DeleteTask = async (id : string) : Promise<DeleteTaskResponse> => {
     return rep.data;
 }
 
-export const GetTask = async (id : string) : Promise<Task> => {
-    const rep = await apiClient.get<Task>(`/task/${id}`);
+export const GetTask = async (id : string) : Promise<TaskDetail> => {
+    const rep = await apiClient.get<TaskDetail>(`/task/${id}`);
     return rep.data;
 }

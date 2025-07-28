@@ -1,4 +1,4 @@
-import type { PlanTaskStatus, Task } from "@/types/task"
+import type { PlanTaskStatus, TaskDetail } from "@/types/task"
 
 export interface CreateTaskRequest {
   name: string
@@ -34,7 +34,7 @@ export interface UpdateTaskBodyRequest {
   listId?: string
 }
 export interface UpdateTaskResponse {
-  task: Task
+  task: TaskDetail
   message: string
 }
 

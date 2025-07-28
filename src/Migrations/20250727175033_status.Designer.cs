@@ -12,8 +12,8 @@ using src.Infrastructure.Data;
 namespace src.Migrations
 {
     [DbContext(typeof(PlannerDbContext))]
-    [Migration("20250718182521_fix-workspace-and-user")]
-    partial class fixworkspaceanduser
+    [Migration("20250727175033_status")]
+    partial class status
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -229,9 +229,6 @@ namespace src.Migrations
                     b.Property<Guid>("ListId")
                         .HasColumnType("uuid");
 
-                    b.Property<Guid>("MyProperty")
-                        .HasColumnType("uuid");
-
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(200)
@@ -252,6 +249,9 @@ namespace src.Migrations
                     b.Property<int>("Status")
                         .HasColumnType("integer")
                         .HasColumnName("Status");
+
+                    b.Property<Guid?>("StatusId")
+                        .HasColumnType("uuid");
 
                     b.Property<long?>("TimeEstimate")
                         .HasColumnType("bigint");
@@ -274,6 +274,8 @@ namespace src.Migrations
                     b.HasIndex("ListId");
 
                     b.HasIndex("SpaceId");
+
+                    b.HasIndex("StatusId");
 
                     b.HasIndex("WorkspaceId");
 
@@ -409,6 +411,41 @@ namespace src.Migrations
                     b.ToTable("Spaces", (string)null);
                 });
 
+            modelBuilder.Entity("src.Domain.Entities.WorkspaceEntity.SupportEntiy.Status", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Color")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<Guid>("SpaceId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("Type")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SpaceId");
+
+                    b.ToTable("Statuses");
+                });
+
             modelBuilder.Entity("src.Domain.Entities.WorkspaceEntity.Workspace", b =>
                 {
                     b.Property<Guid>("Id")
@@ -447,6 +484,9 @@ namespace src.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("CreatorId");
+
+                    b.HasIndex("JoinCode")
+                        .IsUnique();
 
                     b.HasIndex("Name");
 
@@ -492,6 +532,10 @@ namespace src.Migrations
                         .HasForeignKey("ListId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+
+                    b.HasOne("src.Domain.Entities.WorkspaceEntity.SupportEntiy.Status", null)
+                        .WithMany("Tasks")
+                        .HasForeignKey("StatusId");
                 });
 
             modelBuilder.Entity("src.Domain.Entities.WorkspaceEntity.Relationships.UserFolder", b =>
@@ -578,6 +622,15 @@ namespace src.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("src.Domain.Entities.WorkspaceEntity.SupportEntiy.Status", b =>
+                {
+                    b.HasOne("src.Domain.Entities.WorkspaceEntity.Space", null)
+                        .WithMany("Statuses")
+                        .HasForeignKey("SpaceId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("src.Domain.Entities.UserEntity.User", b =>
                 {
                     b.Navigation("Folders");
@@ -619,6 +672,13 @@ namespace src.Migrations
                     b.Navigation("Lists");
 
                     b.Navigation("Members");
+
+                    b.Navigation("Statuses");
+                });
+
+            modelBuilder.Entity("src.Domain.Entities.WorkspaceEntity.SupportEntiy.Status", b =>
+                {
+                    b.Navigation("Tasks");
                 });
 
             modelBuilder.Entity("src.Domain.Entities.WorkspaceEntity.Workspace", b =>

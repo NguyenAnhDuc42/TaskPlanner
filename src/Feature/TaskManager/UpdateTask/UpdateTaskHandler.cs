@@ -1,5 +1,6 @@
 using System;
 using MediatR;
+using src.Contract;
 using src.Domain.Entities.WorkspaceEntity;
 using src.Domain.Entities.WorkspaceEntity.SupportEntiy;
 using src.Helper.Results;
@@ -26,7 +27,7 @@ public class UpdateTaskHandler : IRequestHandler<UpdateTaskRequest, Result<Updat
         
         task.Update(request.Name, request.Description, request.Priority, request.Status, request.StartDate, request.DueDate, request.IsPrivate);
         await _context.SaveChangesAsync(cancellationToken);
-        var response = new Task(
+        var response = new TaskDetail(
             task.Id,
             task.Name,
             task.Description,
