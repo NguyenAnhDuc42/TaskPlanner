@@ -2,12 +2,14 @@
 
 import { useState } from "react"
 import { use } from "react"
-import { MembersHeader } from "@/components/members/members-header"
-import { MembersFilter } from "@/components/members/members-filter"
-import { MembersTable } from "@/components/members/members-table"
-import { InviteMembersDialog } from "@/components/members/invite-members-dialog"
-import { useAddMembers, useGetMembers } from "@/features/workspace/workspace-hooks"
-import { AddMembersBody } from "@/features/workspace/workspacetype"
+import { MembersHeader } from "@/app/(main)/ws/[workspaceId]/members/component/members-header"
+import { MembersFilter } from "@/app/(main)/ws/[workspaceId]/members/component/members-filter"
+import { MembersTable } from "@/app/(main)/ws/[workspaceId]/members/component/members-table"
+import { InviteMembersDialog } from "@/app/(main)/ws/[workspaceId]/members/component/invite-members-dialog"
+import { useAddMembers, useGetMembers, useUpdateMembers } from "@/features/workspace/workspace-hooks"
+import type { AddMembersBody, UpdateMembersBody } from "@/features/workspace/workspacetype"
+import type { Role } from "@/utils/role-utils"
+import { UpdateRolesDialog } from "./component/update-roles-dialog"
 
 export default function MembersPage({ params }: { params: Promise<{ workspaceId: string }> }) {
   const resolvedParams = use(params)
@@ -16,12 +18,14 @@ export default function MembersPage({ params }: { params: Promise<{ workspaceId:
   const [searchQuery, setSearchQuery] = useState("")
   const [selectedFilter, setSelectedFilter] = useState("all")
   const [inviteDialogOpen, setInviteDialogOpen] = useState(false)
+  const [updateRolesDialogOpen, setUpdateRolesDialogOpen] = useState(false)
+  const [selectedMemberIds, setSelectedMemberIds] = useState<string[]>([])
 
-  // Use your provided hook directly
+  // Use your provided hooks
   const { data: membersData, isLoading } = useGetMembers(workspaceId)
   const addMembersMutation = useAddMembers(workspaceId)
+  const updateMembersMutation = useUpdateMembers(workspaceId)
 
-  // Use members from the hook, default to an empty array if not loaded yet
   const members = membersData || []
 
   const filteredMembers = members.filter((member) => {
@@ -33,6 +37,35 @@ export default function MembersPage({ params }: { params: Promise<{ workspaceId:
     return matchesSearch && matchesFilter
   })
 
+  const selectedMembers = members.filter((member) => selectedMemberIds.includes(member.id))
+
+  const handleMemberSelection = (memberId: string, selected: boolean) => {
+    setSelectedMemberIds((prev) => (selected ? [...prev, memberId] : prev.filter((id) => id !== memberId)))
+  }
+
+  const handleSelectAll = (selected: boolean) => {
+    setSelectedMemberIds(selected ? filteredMembers.map((member) => member.id) : [])
+  }
+
+  const handleUpdateRoles = () => {
+    setUpdateRolesDialogOpen(true)
+  }
+
+  const handleRoleUpdate = async (newRole: Role) => {
+    const updateData: UpdateMembersBody = {
+      memberIds: selectedMemberIds,
+      role: newRole,
+    }
+
+    try {
+      await updateMembersMutation.mutateAsync(updateData)
+      setSelectedMemberIds([]) // Clear selection after successful update
+    } catch (error) {
+      console.error("Failed to update member roles:", error)
+      throw error
+    }
+  }
+
   const handleInviteMembers = async (data: AddMembersBody) => {
     try {
       await addMembersMutation.mutateAsync(data)
@@ -43,7 +76,6 @@ export default function MembersPage({ params }: { params: Promise<{ workspaceId:
   }
 
   const handleExport = () => {
-    // Implement export logic
     console.log("Exporting members data")
   }
 
@@ -68,13 +100,31 @@ export default function MembersPage({ params }: { params: Promise<{ workspaceId:
           onInviteClick={() => setInviteDialogOpen(true)}
         />
 
-        {isLoading ? <div className="text-white">Loading members...</div> : <MembersTable members={filteredMembers} />}
+        {isLoading ? (
+          <div className="text-white">Loading members...</div>
+        ) : (
+          <MembersTable
+            members={filteredMembers}
+            selectedMembers={selectedMemberIds}
+            onSelectionChange={handleMemberSelection}
+            onSelectAll={handleSelectAll}
+            onUpdateRoles={handleUpdateRoles}
+          />
+        )}
 
         <InviteMembersDialog
           open={inviteDialogOpen}
           onOpenChange={setInviteDialogOpen}
           onInvite={handleInviteMembers}
           isLoading={addMembersMutation.isPending}
+        />
+
+        <UpdateRolesDialog
+          open={updateRolesDialogOpen}
+          onOpenChange={setUpdateRolesDialogOpen}
+          selectedMembers={selectedMembers}
+          onUpdateRoles={handleRoleUpdate}
+          isLoading={updateMembersMutation.isPending}
         />
       </div>
     </div>

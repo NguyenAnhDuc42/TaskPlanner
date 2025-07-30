@@ -84,9 +84,10 @@ export function SpaceItem({ space, context }: SpaceItemProps) {
         <CollapsibleContent>
           <div className="relative pl-6 ml-3 before:absolute before:left-[12px] before:top-0 before:bottom-0 before:w-px before:bg-sidebar-border">
             <div className="space-y-0.5 pt-1">
+              {/* Map folders with keys */}
               {space.folders?.map((folder) => (
                 <FolderItem
-                  key={folder.id}
+                  key={`folder-${folder.id}`}
                   folder={folder}
                   context={{
                     spaceId: context.spaceId,
@@ -94,9 +95,10 @@ export function SpaceItem({ space, context }: SpaceItemProps) {
                   }}
                 />
               ))}
+              {/* Map direct lists with keys */}
               {space.directLists?.map((list) => (
                 <ListItem
-                  key={list.id}
+                  key={`list-${list.id}`}
                   list={list}
                   context={{
                     spaceId: context.spaceId,

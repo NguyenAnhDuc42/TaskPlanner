@@ -8,10 +8,11 @@ import {
   GetHierarchy,
   GetMembers,
   SidebarWorkspaces,
+  UpdateMembers,
 } from "./workspace-api";
 
 import { ErrorResponse } from "@/types/responses/error-response";
-import { AddMembersBody, Hierarchy } from "./workspacetype";
+import { AddMembersBody, Hierarchy, UpdateMembersBody } from "./workspacetype";
 import { FolderItems } from "@/types/folder";
 import { ListItems } from "@/types/list";
 import { TaskItems } from "@/types/task";
@@ -136,6 +137,28 @@ export function useAddMembers(workspaceId: string | undefined) {
     },
     onError: (error: ErrorResponse) => {
       console.error("Add Members Mutation Error:", error);
+    },
+  });
+}
+export function useUpdateMembers(workspaceId: string | undefined) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (datas: UpdateMembersBody) => {
+      if (!workspaceId) {
+        throw new Error('Workspace ID is required');
+      }
+      console.log('Updating members with data:', datas);
+      return UpdateMembers(workspaceId, datas);
+    },
+    onSuccess: (data) => {
+      console.log('Update members success:', data);
+      queryClient.invalidateQueries({
+        queryKey: WORKSPACE_KEYS.members(workspaceId || ""),
+      });
+    },
+    onError: (error: ErrorResponse) => {
+      console.error("Update Members Mutation Error:", error);
+      throw error; // Re-throw to let the component handle it
     },
   });
 }

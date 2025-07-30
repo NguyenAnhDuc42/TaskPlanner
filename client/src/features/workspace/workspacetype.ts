@@ -12,15 +12,15 @@ export interface CreateWorkspaceResponse {
   message: string;
 }
 
-
-
 export interface AddMembersBody {
    emails: string[];
    role : Role
    
 }
-
-
+export interface UpdateMembersBody{
+    memberIds: string[];
+    role: Role;
+}
 export interface AddMembersResponse{
   emails: string[];
   message: string;

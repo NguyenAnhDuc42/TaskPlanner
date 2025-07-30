@@ -79,9 +79,12 @@ export function SpaceHierarchyDisplay({ spaces }: { spaces: SpaceNode[] }) {
               {spaces.map((space) => (
                 <SpaceItem key={space.id} space={space} context={{ spaceId: space.id }} />
               ))}
+              {/* Add empty div when no spaces to maintain spacing */}
+              {spaces.length === 0 && <div key="empty-space" className="h-4" />}
           </div>
            <div className="flex-shrink-0 border border-sidebar-border/20 ">
                   <CreateSpaceButton
+                  key="create-space-footer"
                   isOpen={isCreateSpaceModalOpen}
                   onOpenChange={setIsCreateSpaceModalOpen}
                   variant="footer"

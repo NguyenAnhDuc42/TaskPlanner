@@ -24,36 +24,23 @@ public class AddMembersHandler : IRequestHandler<AddMembersRequest, Result<AddMe
         {
             return Result<AddMembersResponse, ErrorResponse>.Failure(ErrorResponse.NotFound("Workspace not found."));
         }
-        var emails = request.emails;
-        if (emails == null || emails.Count == 0)
-        {
-            return Result<AddMembersResponse, ErrorResponse>.Failure(ErrorResponse.BadRequest("Email list cannot be empty.", "Please provide at least one email address."));
-        }
+
+        if (request.emails is null || !request.emails.Any())
+            return Result<AddMembersResponse, ErrorResponse>.Failure(ErrorResponse.BadRequest("Email list cannot be empty","please provide at least one email."));
+
+        var users = await _userRepository.GetUsersByEmailsAsync(request.emails, cancellationToken); 
         var addedEmails = new List<string>();
-        foreach (var email in emails)
+        foreach (var user in users)
         {
-            var user = await _userRepository.GetUserByEmailAsync(email, cancellationToken);
-            if (user == null)
-            {
-                continue;
-            }
-            if (user != null)
-            {
-                workspace.AddMember(user.Id, request.role);
-                addedEmails.Add(email);
-            }
-        }
-        if (addedEmails.Count == 0)
-        {
-            return Result<AddMembersResponse, ErrorResponse>.Failure(ErrorResponse.NotFound("No valid users found.", "None of the provided emails correspond to existing users."));
+            workspace.AddMember(user.Id, request.role);
+            addedEmails.Add(user.Email);
         }
 
-        _context.Workspaces.Update(workspace);
-        var saveResult = await _context.SaveChangesAsync(cancellationToken);
-        if (saveResult <= 0)
-        {
-            return Result<AddMembersResponse, ErrorResponse>.Failure(ErrorResponse.Internal("An error occurred while saving changes to the database."));
-        }
-        return Result<AddMembersResponse, ErrorResponse>.Success(new AddMembersResponse(addedEmails, "Members added successfully."));
+        if (!addedEmails.Any())
+            return Result<AddMembersResponse, ErrorResponse>.Failure(ErrorResponse.NotFound("No valid users found"));
+
+        await _context.SaveChangesAsync(cancellationToken);
+        return Result<AddMembersResponse, ErrorResponse>.Success(new AddMembersResponse(addedEmails, "Members added successfully"));
+       
     }   
 }

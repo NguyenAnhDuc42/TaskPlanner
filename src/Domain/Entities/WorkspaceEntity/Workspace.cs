@@ -80,6 +80,17 @@ public class Workspace : Agregate<Guid>
             Members.Remove(member);
         }
     }
+    public void UpdateMembersRole(IEnumerable<Guid> memberIds, Role newRole)
+    {
+        foreach (var memberId in memberIds)
+        {
+            if (CreatorId == memberId && newRole != Role.Owner)
+                throw new Exception("Workspace creator must remain Owner");
+
+            var member = Members.First(m => m.UserId == memberId); 
+            member.Role = newRole;
+        }
+    }
 
     public static string GenerateRandomCode(int length = 6)
     {

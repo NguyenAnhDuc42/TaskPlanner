@@ -23,6 +23,14 @@ public class UserRepository : IUserRepository
         return await _context.Users.FirstOrDefaultAsync(u => u.Id == userUd, cancellationToken).ConfigureAwait(false);
     }
 
+    public async Task<IEnumerable<User>> GetUsersByEmailsAsync(IEnumerable<string> emails, CancellationToken cancellationToken = default)
+    {
+        return await _context.Users
+            .Where(u => emails.Contains(u.Email))
+            .ToListAsync(cancellationToken)
+            .ConfigureAwait(false);
+    }
+
     public async Task<bool> IsEmailExistsAsync(string email, CancellationToken cancellationToken = default)
     {
         return await _context.Users.AsNoTracking().AnyAsync(u => u.Email == email, cancellationToken).ConfigureAwait(false);
