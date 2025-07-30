@@ -87,7 +87,7 @@ export function SpaceItem({ space, context }: SpaceItemProps) {
               {/* Map folders with keys */}
               {space.folders?.map((folder) => (
                 <FolderItem
-                  key={`folder-${folder.id}`}
+                  key={`${folder.id}`}
                   folder={folder}
                   context={{
                     spaceId: context.spaceId,
@@ -98,7 +98,7 @@ export function SpaceItem({ space, context }: SpaceItemProps) {
               {/* Map direct lists with keys */}
               {space.directLists?.map((list) => (
                 <ListItem
-                  key={`list-${list.id}`}
+                  key={`${list.id}`}
                   list={list}
                   context={{
                     spaceId: context.spaceId,

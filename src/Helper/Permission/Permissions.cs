@@ -12,7 +12,7 @@ public enum Permission
 }
 public static class CustomClaims
 {
-    public const string UserId = "userId"; // Represents a GUID now
+    public const string UserId = "userId"; // Represents a GUID 
     public const string WorkspaceId = "workspaceId";
     public const string WorkspaceRole = "workspaceRole";
 }
