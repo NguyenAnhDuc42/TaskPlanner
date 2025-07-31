@@ -13,10 +13,6 @@ public class PlanTaskRepository : BaseRepository<PlanTask>, IPlanTaskRepository
          _context = context;
     }
 
-    public async Task<PlanTask?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
-    {
-        return await DbSet.FindAsync(id, cancellationToken);
-    }
 
     public async Task<PlanTask?> GetByIdAndUserAsync(Guid id, Guid userId, CancellationToken cancellationToken = default)
     {

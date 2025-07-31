@@ -13,10 +13,6 @@ public class WorkspaceRepository : BaseRepository<Workspace>, IWorkspaceReposito
         _context = context;
     }
 
-    public async Task<Workspace?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
-    {
-        return await DbSet.FindAsync(id, cancellationToken);
-    }
 
     public async Task<Workspace?> GetWithMembersByIdAsync(Guid id, CancellationToken cancellationToken = default)
     {

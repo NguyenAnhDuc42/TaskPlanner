@@ -7,12 +7,11 @@ namespace src.Infrastructure.Data.Repositories;
 
 public class PlanListRepository : BaseRepository<PlanList>, IPlanListRepository
 {
+    private readonly PlannerDbContext _context;
     public PlanListRepository(PlannerDbContext context) : base(context)
     {
+        _context = context;
     }
 
-    public async Task<PlanList?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
-    {
-        return await DbSet.FindAsync(id, cancellationToken);
-    }
+
 }
