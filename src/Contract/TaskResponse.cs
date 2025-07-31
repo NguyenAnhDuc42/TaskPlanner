@@ -8,7 +8,7 @@ public record class TaskDetail(
     string Name,
     string Description,
     int Priority,
-    PlanTaskStatus Status,
+    Task Status,
     DateTime? DueDate,
     DateTime? StartDate,
     long? TimeEstimate,
@@ -19,4 +19,6 @@ public record class TaskDetail(
     Guid ListId,
     Guid CreatorId
 );
+
 public record class TaskSummary(Guid Id, string Name, DateTime? DueDate, int Priority, List<UserSummary> assignees);
+

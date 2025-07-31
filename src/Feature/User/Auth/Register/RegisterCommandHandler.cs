@@ -1,6 +1,7 @@
 using System;
 using MediatR;
 using src.Domain.Entities.UserEntity;
+using src.Domain.Entities.WorkspaceEntity;
 using src.Helper.Results;
 using src.Infrastructure.Abstractions.IRepositories;
 using src.Infrastructure.Abstractions.IServices;
@@ -26,6 +27,8 @@ public class RegisterCommandHandler : IRequestHandler<RegisterCommand, Result<Re
                 return Result<RegisterResponse, ErrorResponse>.Failure(ErrorResponse.Conflict("Email already exists", $"Email {request.email} already exists. Please try another email."));
             var passwordhash = _passwordService.HashPassword(request.password);
             var user = Domain.Entities.UserEntity.User.Create(request.username, request.email, passwordhash);
+            var workspace = Workspace.CreateSampleWorkspace(user.Id);
+            user.CreateWorkspace(workspace);
             _context.Users.Add(user);
             await _context.SaveChangesAsync(cancellationToken);
             return Result<RegisterResponse, ErrorResponse>.Success(new RegisterResponse(user.Email));

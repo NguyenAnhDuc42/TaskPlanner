@@ -8,7 +8,7 @@ using src.Infrastructure.Abstractions.IRepositories;
 
 namespace src.Feature.WorkspaceManager.DashboardWorkspace.GetLists;
 
-public class GetListsHandler : IRequestHandler<GetListsRequest, Result<List<ListSumary>, ErrorResponse>>
+public class GetListsHandler : IRequestHandler<GetListsRequest, Result<List<ListSummary>, ErrorResponse>>
 {
     private readonly IDbConnection _dbConnection;
     private readonly IHierarchyRepository _hierarchyRepository;
@@ -17,18 +17,18 @@ public class GetListsHandler : IRequestHandler<GetListsRequest, Result<List<List
         _dbConnection = dbConnection ?? throw new ArgumentNullException(nameof(dbConnection));
         _hierarchyRepository = hierarchyRepository ?? throw new ArgumentNullException(nameof(hierarchyRepository));
     }
-    public async Task<Result<List<ListSumary>, ErrorResponse>> Handle(GetListsRequest request, CancellationToken cancellationToken)
+    public async Task<Result<List<ListSummary>, ErrorResponse>> Handle(GetListsRequest request, CancellationToken cancellationToken)
     {
         var workspace = await _hierarchyRepository.GetWorkspaceByIdAsync(request.workspaceId, cancellationToken);
         if (workspace == null)
         {
-            return Result<List<ListSumary>, ErrorResponse>.Failure(ErrorResponse.NotFound("Workspace not found"));
+            return Result<List<ListSummary>, ErrorResponse>.Failure(ErrorResponse.NotFound("Workspace not found"));
         }
         var sql = @"SELECT ""Id"",
                            ""Name""
                     FRROM ""Lists""
                     WHERE ""WorkspaceId"" = @WorkspaceId";
-        var lists = await _dbConnection.QueryAsync<ListSumary>(sql , new { WorkspaceId = request.workspaceId });
-        return Result<List<ListSumary>, ErrorResponse>.Success(lists.ToList());
+        var lists = await _dbConnection.QueryAsync<ListSummary>(sql , new { WorkspaceId = request.workspaceId });
+        return Result<List<ListSummary>, ErrorResponse>.Success(lists.ToList());
     }
 }

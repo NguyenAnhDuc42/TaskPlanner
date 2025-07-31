@@ -14,7 +14,6 @@ public class PlanTask : Entity<Guid>
     public string Name { get; private set; } = string.Empty;
     public string Description { get; private set; } = string.Empty;
     public int Priority { get; private set; }
-    public PlanTaskStatus Status { get; private set; }
     public DateTime? DueDate { get; private set; }
     public DateTime? StartDate { get; private set; }
     public long? TimeEstimate { get; private set; }
@@ -26,8 +25,9 @@ public class PlanTask : Entity<Guid>
     public ICollection<UserTask> Asignees { get; set; } = new List<UserTask>();
     public Guid CreatorId { get; private set; }
 
+
     private PlanTask() { }
-    private PlanTask(Guid id, string name, string description, int priority, PlanTaskStatus status, DateTime? startDate, DateTime? dueDate, long? timeEstimate, long? timeSpent, int orderIndex, bool isArchived, bool isPrivate, Guid workspaceId, Guid spaceId, Guid? folderId, Guid listId, Guid creatorId) : base(id)
+    private PlanTask(Guid id, string name, string description, int priority, DateTime? startDate, DateTime? dueDate, long? timeEstimate, long? timeSpent, int orderIndex, bool isArchived, bool isPrivate, Guid workspaceId, Guid spaceId, Guid? folderId, Guid listId, Guid creatorId) : base(id)
     {
         Name = name;
         WorkspaceId = workspaceId;
@@ -37,7 +37,6 @@ public class PlanTask : Entity<Guid>
         CreatorId = creatorId;
         Description = description;
         Priority = priority;
-        Status = status;
         StartDate = startDate;
         DueDate = dueDate;
         TimeEstimate = timeEstimate;
@@ -47,18 +46,17 @@ public class PlanTask : Entity<Guid>
         IsPrivate = isPrivate;
     }
 
-    public static PlanTask Create(string name, string description, int priority,PlanTaskStatus status, DateTime? startDate, DateTime? dueDate, bool isPrivate, Guid workspaceId, Guid spaceId, Guid? folderId, Guid listId, Guid creatorId)
+    public static PlanTask Create(string name, string description, int priority, DateTime? startDate, DateTime? dueDate, bool isPrivate, Guid workspaceId, Guid spaceId, Guid? folderId, Guid listId, Guid creatorId)
     {
-        var task = new PlanTask(Guid.NewGuid(), name, description, priority, status, startDate, dueDate, null, null, 0, false, isPrivate, workspaceId, spaceId, folderId, listId, creatorId);
+        var task = new PlanTask(Guid.NewGuid(), name, description, priority, startDate, dueDate, null, null, 0, false, isPrivate, workspaceId, spaceId, folderId, listId, creatorId);
         return task;
     }
 
-    public void Update(string? name, string? description, int? priority, PlanTaskStatus? status, DateTime? startDate, DateTime? dueDate, bool? isPrivate)
+    public void Update(string? name, string? description, int? priority, DateTime? startDate, DateTime? dueDate, bool? isPrivate)
     {
         if (!string.IsNullOrWhiteSpace(name)) Name = name;
         if (description is not null) Description = description;
         if (priority.HasValue) Priority = priority.Value;
-        if (status.HasValue) Status = status.Value;
         if (startDate.HasValue) StartDate = startDate;
         if (dueDate.HasValue) DueDate = dueDate;
         if (isPrivate.HasValue) IsPrivate = isPrivate.Value;

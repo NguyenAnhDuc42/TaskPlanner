@@ -9,7 +9,6 @@ public record class UpdateTaskRequest(
     string? Name, // Make Name nullable
     string? Description,
     int? Priority,
-    PlanTaskStatus? Status,
     DateTime? StartDate,
     DateTime? DueDate,
     long? TimeEstimate,
@@ -22,7 +21,6 @@ public record class UpdateTaskBodyRequest(
     string? Name,
     string? Description,
     int? Priority,
-    PlanTaskStatus? Status,
     DateTime? StartDate,
     DateTime? DueDate,
 

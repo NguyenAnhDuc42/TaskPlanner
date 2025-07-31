@@ -5,6 +5,6 @@ using src.Helper.Results;
 
 namespace src.Feature.ListManager.CreateTaskInList;
 
-public record class CreateTaskInListRequest(string name, string description, int priority,PlanTaskStatus? status, DateTime? startDate, DateTime? dueDate, bool isPrivate,Guid listId) : IRequest<Result<CreateTaskResponse, ErrorResponse>>;
+public record class CreateTaskInListRequest(string name, string description, int priority, DateTime? startDate, DateTime? dueDate, bool isPrivate,Guid listId) : IRequest<Result<CreateTaskResponse, ErrorResponse>>;
 
 

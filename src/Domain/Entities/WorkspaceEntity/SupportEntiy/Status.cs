@@ -18,15 +18,9 @@ public class Status : Entity<Guid>
         Type = type;
         SpaceId = spaceId;
     }
-    public static Status Create(string name, string color, StatusType? type, Guid spaceId)
+    public static Status Create(string name, string? color, StatusType? type, Guid spaceId)
     {
-        return new Status
-        {
-            Name = name,
-            Color = color,
-            Type = type ?? StatusType.NotStarted,
-            SpaceId = spaceId
-        };
+        return new Status(Guid.NewGuid(), name, color ?? string.Empty, type ?? StatusType.NotStarted, spaceId);
     }
 
 }
@@ -39,14 +33,5 @@ public enum StatusType
     Closed = 3
 }
 
-
-
-public enum PlanTaskStatus //temp
-{
-    ToDo = 0,
-    InProgress = 1,
-    InReview = 2,
-    Done = 3
-}
 
 

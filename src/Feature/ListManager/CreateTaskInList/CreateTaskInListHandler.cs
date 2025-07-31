@@ -21,7 +21,7 @@ public class CreateTaskInListHandler : IRequestHandler<CreateTaskInListRequest, 
     public async Task<Result<CreateTaskResponse, ErrorResponse>> Handle(CreateTaskInListRequest request, CancellationToken cancellationToken)
     {
         var userId = _currentUserService.CurrentUserId();
-        var status = request.status ?? PlanTaskStatus.ToDo;
+
 
         // Fetch the list to get associated workspace, space, and folder IDs
         var list = await _context.Lists.FindAsync(request.listId, cancellationToken);
@@ -34,7 +34,6 @@ public class CreateTaskInListHandler : IRequestHandler<CreateTaskInListRequest, 
             request.name,
             request.description,
             request.priority,
-            status,
             request.startDate,
             request.dueDate,
             request.isPrivate,

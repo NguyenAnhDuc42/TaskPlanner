@@ -1,6 +1,8 @@
 using System;
 using src.Domain.Entities.SessionEntity;
+using src.Domain.Entities.WorkspaceEntity;
 using src.Domain.Entities.WorkspaceEntity.Relationships;
+using src.Domain.Enums;
 
 namespace src.Domain.Entities.UserEntity;
 
@@ -32,6 +34,24 @@ public class User : Agregate<Guid>
     public static User Create(string name, string email, string passwordHash)
     {
         return new User(Guid.NewGuid(), name, email, passwordHash);
+    }
+    public void JoinWorkspace(Guid workspaceId)
+    {
+        if (Workspaces.Any(w => w.WorkspaceId == workspaceId))
+        {
+            throw new InvalidOperationException("User is already a member of this workspace.");
+        }
+        var userWorkspace = new UserWorkspace(Id, workspaceId, Role.Member);
+    }
+    public void CreateWorkspace(Workspace workspace)
+    {
+        if (workspace == null) throw new ArgumentNullException(nameof(workspace));
+        if (Workspaces.Any(w => w.WorkspaceId == workspace.Id))
+        {
+            throw new InvalidOperationException("User is already a member of this workspace.");
+        }
+        var userWorkspace = new UserWorkspace(Id, workspace.Id, Role.Owner);
+        Workspaces.Add(userWorkspace);
     }
     
     public void AddSession(Session session)

@@ -34,9 +34,13 @@ public class Workspace : Agregate<Guid>
     {
         var joinCode = GenerateRandomCode();
         var workspace = new Workspace(Guid.NewGuid(), name, description, joinCode, color, creatorId, isPrivate);
-        var ownerMembership = new UserWorkspace(creatorId, workspace.Id, Role.Owner);
-        workspace.Members.Add(ownerMembership);
 
+        return workspace;
+    }
+    public static Workspace CreateSampleWorkspace(Guid creatorId)
+    {
+        var joinCode = GenerateRandomCode();
+        var workspace = new Workspace(Guid.NewGuid(), "Sample Workspace", "This is a sample workspace", joinCode, "", creatorId, isPrivate : false);
         return workspace;
     }
 
@@ -46,7 +50,6 @@ public class Workspace : Agregate<Guid>
         this.UpdateTimestamp();
 
     }
-
 
     public void AddMember(Guid userId, Role role)
     {
