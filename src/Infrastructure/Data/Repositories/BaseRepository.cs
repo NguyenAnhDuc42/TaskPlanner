@@ -1,9 +1,10 @@
 using System;
 using Microsoft.EntityFrameworkCore;
+using src.Infrastructure.Abstractions.IRepositories;
 
 namespace src.Infrastructure.Data.Repositories;
 
-public abstract class BaseRepository<TEntity> where TEntity : class
+public abstract class BaseRepository<TEntity> : IBaseRepository<TEntity> where TEntity : class
 {
     protected readonly PlannerDbContext Context;
     protected readonly DbSet<TEntity> DbSet;
@@ -40,4 +41,8 @@ public abstract class BaseRepository<TEntity> where TEntity : class
         return await DbSet.FindAsync(id, cancellationToken) != null;
     }
 
+    public virtual void Add(TEntity entity)
+    {
+        DbSet.Add(entity);
+    }
 }

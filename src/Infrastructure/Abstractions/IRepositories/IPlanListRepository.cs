@@ -3,8 +3,6 @@ using src.Domain.Entities.WorkspaceEntity;
 
 namespace src.Infrastructure.Abstractions.IRepositories;
 
-public interface IPlanListRepository
+public interface IPlanListRepository : IBaseRepository<PlanList>
 {
-    Task<PlanList?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default);
-
 }

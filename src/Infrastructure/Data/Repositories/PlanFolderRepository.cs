@@ -13,5 +13,4 @@ public class PlanFolderRepository : BaseRepository<PlanFolder>, IPlanFolderRepos
         _context = context;
     }
 
-
 }

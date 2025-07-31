@@ -4,7 +4,7 @@ using src.Domain.Entities.UserEntity;
 
 namespace src.Infrastructure.Abstractions.IRepositories;
 
-public interface IUserRepository
+public interface IUserRepository : IBaseRepository<User>
 {
     Task<bool> IsEmailExistsAsync(string email, CancellationToken cancellationToken = default);
     Task<User?> GetUserByEmailAsync(string email, CancellationToken cancellationToken = default);

@@ -3,9 +3,8 @@ using src.Domain.Entities.WorkspaceEntity;
 
 namespace src.Infrastructure.Abstractions.IRepositories;
 
-public interface IPlanTaskRepository
+public interface IPlanTaskRepository : IBaseRepository<PlanTask>
 {
-    Task<PlanTask?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default);
     Task<PlanTask?> GetByIdAndUserAsync(Guid id, Guid userId, CancellationToken cancellationToken = default);
     Task<bool> IsOwnedByUser(Guid id, Guid userId, CancellationToken cancellationToken = default);
 }

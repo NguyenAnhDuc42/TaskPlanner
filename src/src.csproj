@@ -26,7 +26,6 @@
   <ItemGroup>
     <Folder Include="Domain\Event\UserEvents\" />
     <Folder Include="Domain\Valueobject\" />
-    <Folder Include="Feature\User\CreateWorkspace\" />
     <Folder Include="Helper\Exceptions\" />
   </ItemGroup>
 

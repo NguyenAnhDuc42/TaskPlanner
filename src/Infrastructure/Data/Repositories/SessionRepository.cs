@@ -5,10 +5,10 @@ using src.Infrastructure.Abstractions.IRepositories;
 
 namespace src.Infrastructure.Data.Repositories;
 
-public class SessionRepository : ISessionRepository
+public class SessionRepository :BaseRepository<Session>, ISessionRepository
 {
     private readonly PlannerDbContext _context;
-    public SessionRepository(PlannerDbContext context)
+    public SessionRepository(PlannerDbContext context) : base(context)
     {
         _context = context ?? throw new ArgumentNullException(nameof(context));
     }

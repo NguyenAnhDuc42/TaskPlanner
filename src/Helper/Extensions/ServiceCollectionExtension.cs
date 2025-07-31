@@ -23,6 +23,13 @@ public static class ServiceCollectionExtension
         // Repositories
         services.AddScoped<IUserRepository, UserRepository>();
         services.AddScoped<ISessionRepository, SessionRepository>();
+        services.AddScoped<IPlanListRepository, PlanListRepository>();
+        services.AddScoped<IPlanTaskRepository, PlanTaskRepository>();
+        services.AddScoped<IPlanFolderRepository, PlanFolderRepository>();
+        services.AddScoped<ISpaceRepository, SpaceRepository>();
+        services.AddScoped<IWorkspaceRepository, WorkspaceRepository>();
+        services.AddScoped<IUnitOfWork, UnitOfWork>();
+    
 
 
 

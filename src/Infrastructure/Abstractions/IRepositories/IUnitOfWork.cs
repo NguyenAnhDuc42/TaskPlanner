@@ -7,6 +7,13 @@ public interface IUnitOfWork : IDisposable
 {
     IUserRepository Users { get; }
     ISessionRepository Sessions { get; }
+    IWorkspaceRepository Workspaces { get; }
+    public ISpaceRepository Spaces { get; }
+    public IPlanFolderRepository Folders { get; }
+    public IPlanListRepository Lists { get; }
+    public IPlanTaskRepository Tasks { get; }
+
+
 
     //transaction management
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);

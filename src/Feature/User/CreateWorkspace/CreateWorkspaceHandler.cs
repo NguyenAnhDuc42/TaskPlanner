@@ -1,20 +1,48 @@
 using System;
 using MediatR;
+using src.Domain.Entities.WorkspaceEntity;
 using src.Helper.Results;
+using src.Infrastructure.Abstractions.IRepositories;
+using src.Infrastructure.Abstractions.IServices;
 
 namespace src.Feature.User.CreateWorkspace;
 
-public class CreateWorkspaceHandler : IRequestHandler<CreateWorkspaceRequest,Result<string, ErrorResponse>>
+public class CreateWorkspaceHandler : IRequestHandler<CreateWorkspaceRequest, Result<string, ErrorResponse>>
 {
-    public Task<Result<string, ErrorResponse>> Handle(CreateWorkspaceRequest request, CancellationToken cancellationToken)
+    private readonly IUnitOfWork _unitOfWork;
+    private readonly ICurrentUserService _currentUserService;
+
+    public CreateWorkspaceHandler(IUnitOfWork unitOfWork, ICurrentUserService currentUserService)
     {
-        // Implementation of the workspace creation logic goes here.
-        // This is a placeholder for the actual logic that would create a workspace
-        // and return the result.
-
-        throw new NotImplementedException("Workspace creation logic is not implemented yet.");
+        _unitOfWork = unitOfWork;
+        _currentUserService = currentUserService;
     }
-}
-{
 
+    public async Task<Result<string, ErrorResponse>> Handle(CreateWorkspaceRequest request, CancellationToken cancellationToken)
+    {
+        var userId = _currentUserService.CurrentUserId();
+        if (userId == Guid.Empty)
+        {
+            return Result<string, ErrorResponse>.Failure(
+                ErrorResponse.Unauthorized("Unauthorized", "User not found."));
+        }
+
+        var workspace = Workspace.Create(
+            request.Name,
+            request.Description,
+            request.Color,
+            userId,
+            request.IsPrivate);
+
+         await _unitOfWork.Workspaces.AddAsync(workspace);
+        var result = await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+        if (result <= 0)
+        {
+            return Result<string, ErrorResponse>.Failure(
+                ErrorResponse.Internal("Failed to save workspace"));
+        }
+
+        return Result<string, ErrorResponse>.Success("Workspace created successfully");
+    }
 }

@@ -5,10 +5,10 @@ using src.Infrastructure.Abstractions.IRepositories;
 
 namespace src.Infrastructure.Data.Repositories;
 
-public class UserRepository : IUserRepository
+public class UserRepository : BaseRepository<User> ,IUserRepository
 {
     private readonly PlannerDbContext _context;
-    public UserRepository(PlannerDbContext context)
+    public UserRepository(PlannerDbContext context) : base(context)
     {
         _context = context ?? throw new ArgumentNullException(nameof(context));
     }

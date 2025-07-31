@@ -3,8 +3,7 @@ using src.Domain.Entities.WorkspaceEntity;
 
 namespace src.Infrastructure.Abstractions.IRepositories;
 
-public interface IPlanFolderRepository
+public interface IPlanFolderRepository : IBaseRepository<PlanFolder>
 {
-    Task<PlanFolder?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default);
 
 }

@@ -15,15 +15,26 @@ public class UnitOfWork : IUnitOfWork
 
     private IUserRepository? _users;
     private ISessionRepository? _sessions;
+    private IWorkspaceRepository? _workspaces;
+    private ISpaceRepository? _spaces;
+    private IPlanFolderRepository? _folders;
+    private IPlanListRepository? _lists;
+    private IPlanTaskRepository? _tasks;
+
+
 
     public UnitOfWork(PlannerDbContext context)
     {
         _context = context ?? throw new ArgumentNullException(nameof(context));
     }
     public IUserRepository Users => _users ??= new UserRepository(_context);
-
     public ISessionRepository Sessions => _sessions ??= new SessionRepository(_context);
-
+    public IWorkspaceRepository Workspaces => _workspaces ??= new WorkspaceRepository(_context);
+    public ISpaceRepository Spaces => _spaces ??= new SpaceRepository(_context);
+    public IPlanFolderRepository Folders => _folders ??= new PlanFolderRepository(_context);
+    public IPlanListRepository Lists => _lists ??= new PlanListRepository(_context);
+    public IPlanTaskRepository Tasks => _tasks ??= new PlanTaskRepository(_context);
+    
     public bool HasActiveTransaction => _currentTransaction != null;
 
     public async Task<IDbContextTransaction> BeginTransactionAsync(CancellationToken cancellationToken = default)
