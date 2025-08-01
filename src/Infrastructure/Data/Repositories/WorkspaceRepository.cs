@@ -7,11 +7,8 @@ namespace src.Infrastructure.Data.Repositories;
 
 public class WorkspaceRepository : BaseRepository<Workspace>, IWorkspaceRepository
 {
-    private readonly PlannerDbContext _context;
-    public WorkspaceRepository(PlannerDbContext context) : base(context)
-    {
-        _context = context;
-    }
+
+    public WorkspaceRepository(PlannerDbContext context) : base(context){}
 
 
     public async Task<Workspace?> GetWithMembersByIdAsync(Guid id, CancellationToken cancellationToken = default)
@@ -26,11 +23,9 @@ public class WorkspaceRepository : BaseRepository<Workspace>, IWorkspaceReposito
         return await DbSet.FirstOrDefaultAsync(w => w.JoinCode == joinCode, cancellationToken);
     }
 
-    public async Task<Guid?> GetUserWorkspaceAsync(Guid userId, Guid workspaceId, CancellationToken cancellationToken = default)
+    public async Task<bool> IsUserMemberAsync(Guid userId, Guid workspaceId, CancellationToken cancellationToken = default)
     {
-        var workspaceMember = await Context.UserWorkspaces
-            .FirstOrDefaultAsync(wm => wm.UserId == userId && wm.WorkspaceId == workspaceId, cancellationToken);
-
-        return workspaceMember?.WorkspaceId;
+        return await Context.UserWorkspaces.AsNoTracking()
+            .AnyAsync(wm => wm.UserId == userId && wm.WorkspaceId == workspaceId, cancellationToken);
     }
 }

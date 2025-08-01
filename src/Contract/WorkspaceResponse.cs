@@ -1,6 +1,20 @@
+using src.Domain.Enums;
+
 namespace src.Contract;
 
-public record Workspace(Guid Id, string Name, string Description, string JoinCode, string Color, bool IsPrivate, UserSummary Creator);
+public record WorkspaceDetail(
+     Guid Id,
+    string Name,
+    string Description,
+    string Color,
+    Role YourRole, 
+    UserSummary Owner,
+    int MemberCount,
+    DateTime CreatedAtUtc,
+    string? JoinCode, 
+    List<UserSummary>? Members, 
+    List<SpaceSummary>? Spaces 
+);
 public record WorkspaceSummary(Guid Id, string Name);
 
 // Represents a node in hierarchical data structure

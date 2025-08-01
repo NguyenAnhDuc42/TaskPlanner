@@ -9,7 +9,7 @@ namespace src.Domain.Entities.UserEntity;
 public class User : Agregate<Guid>
 {
     public string Name { get; private set; } = string.Empty;
-    public string Email { get; private set; } = string.Empty;   
+    public string Email { get; private set; } = string.Empty;
     public string PasswordHash { get; private set; } = string.Empty;
 
 
@@ -35,14 +35,6 @@ public class User : Agregate<Guid>
     {
         return new User(Guid.NewGuid(), name, email, passwordHash);
     }
-    public void JoinWorkspace(Guid workspaceId)
-    {
-        if (Workspaces.Any(w => w.WorkspaceId == workspaceId))
-        {
-            throw new InvalidOperationException("User is already a member of this workspace.");
-        }
-        var userWorkspace = new UserWorkspace(Id, workspaceId, Role.Member);
-    }
     public void CreateWorkspace(Workspace workspace)
     {
         if (workspace == null) throw new ArgumentNullException(nameof(workspace));
@@ -53,7 +45,7 @@ public class User : Agregate<Guid>
         var userWorkspace = new UserWorkspace(Id, workspace.Id, Role.Owner);
         Workspaces.Add(userWorkspace);
     }
-    
+
     public void AddSession(Session session)
     {
         if (session == null) throw new ArgumentNullException(nameof(session));

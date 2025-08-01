@@ -61,6 +61,19 @@ public class Workspace : Agregate<Guid>
         var userWorkspace = new UserWorkspace(userId, Id, role);
         Members.Add(userWorkspace);
     }
+    public void RemoveMember(Guid userId)
+    { 
+        if (!Members.Any(m => m.UserId == userId))
+        {
+            throw new InvalidOperationException("User is not a member of this workspace.");
+        }
+        if (CreatorId == userId)
+        {
+            throw new InvalidOperationException("Cannot remove workspace creator");
+        }
+        var memberToRemove = Members.First(m => m.UserId == userId);
+        Members.Remove(memberToRemove);
+    }
     public bool HasMember(Guid userId)
     {
         return Members.Any(m => m.UserId == userId);
@@ -72,10 +85,10 @@ public class Workspace : Agregate<Guid>
         foreach (var memberId in memberIdsSet)
         {
             if (CreatorId == memberId)
-                throw new Exception("Cannot delete workspace creator");
+                throw new InvalidOperationException("Cannot delete workspace creator");
 
             if (!Members.Any(m => m.UserId == memberId))
-                throw new Exception($"User {memberId} not found in workspace");
+                throw new InvalidOperationException($"User {memberId} not found in workspace");
         }
         var membersToRemove = Members.Where(m => memberIdsSet.Contains(m.UserId)).ToList();
         foreach (var member in membersToRemove)
@@ -88,7 +101,7 @@ public class Workspace : Agregate<Guid>
         foreach (var memberId in memberIds)
         {
             if (CreatorId == memberId && newRole != Role.Owner)
-                throw new Exception("Workspace creator must remain Owner");
+                throw new InvalidOperationException("Workspace creator must remain Owner");
 
             var member = Members.First(m => m.UserId == memberId); 
             member.Role = newRole;

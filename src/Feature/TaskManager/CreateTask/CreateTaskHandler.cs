@@ -33,7 +33,7 @@ public class CreateTaskHandler : IRequestHandler<CreateTaskRequest, Result<Creat
             return Result<CreateTaskResponse, ErrorResponse>.Failure(ErrorResponse.NotFound("Parent list not found or does not belong to the specified hierarchy."));
         }
 
-        var task = PlanTask.Create(request.name, request.description, request.priority,s request.startDate, request.dueDate, request.isPrivate, request.workspaceId, request.spaceId, request.folderId, request.listId, userId);
+        var task = PlanTask.Create(request.name, request.description, request.priority,request.startDate, request.dueDate, request.isPrivate, request.workspaceId, request.spaceId, request.folderId, request.listId, userId);
 
         await _context.Tasks.AddAsync(task,cancellationToken);
         await _context.SaveChangesAsync(cancellationToken);

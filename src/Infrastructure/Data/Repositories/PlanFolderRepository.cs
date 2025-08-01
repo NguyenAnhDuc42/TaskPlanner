@@ -7,10 +7,6 @@ namespace src.Infrastructure.Data.Repositories;
 
 public class PlanFolderRepository : BaseRepository<PlanFolder>, IPlanFolderRepository
 {
-    private readonly PlannerDbContext _context;
-    public PlanFolderRepository(PlannerDbContext context) : base(context)
-    {
-        _context = context;
-    }
+    public PlanFolderRepository(PlannerDbContext context) : base(context) {}
 
 }

@@ -7,12 +7,7 @@ namespace src.Infrastructure.Data.Repositories;
 
 public class PlanTaskRepository : BaseRepository<PlanTask>, IPlanTaskRepository
 {
-    private readonly PlannerDbContext _context;
-    public PlanTaskRepository(PlannerDbContext context) : base(context)
-    {
-         _context = context;
-    }
-
+    public PlanTaskRepository(PlannerDbContext context) : base(context){}
 
     public async Task<PlanTask?> GetByIdAndUserAsync(Guid id, Guid userId, CancellationToken cancellationToken = default)
     {
