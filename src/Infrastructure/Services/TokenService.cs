@@ -3,14 +3,12 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
-using Microsoft.CodeAnalysis.Options;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using src.Domain.Entities.SessionEntity;
 using src.Domain.Entities.UserEntity;
 using src.Infrastructure.Abstractions.IRepositories;
 using src.Infrastructure.Abstractions.IServices;
-using src.Infrastructure.Data;
 
 namespace src.Infrastructure.Services;
 
@@ -22,21 +20,20 @@ public record JwtSettings
     public int Expiration { get; init; } = 15;
     public int RefreshExpiration { get; init; } = 30;
 }
+
 public record JwtTokens(string AccessToken, string RefreshToken, DateTimeOffset ExpirationAccessToken, DateTimeOffset ExpirationRefreshToken);
 
 public class TokenService : ITokenService
 {
-    private readonly PlannerDbContext _context;
-    private readonly ISessionRepository _sessionRepository;
-    private readonly IUserRepository _userRepository;
+    private readonly IUnitOfWork _unitOfWork;
     private readonly JwtSettings _settings;
-    public TokenService(IOptions<JwtSettings> settings, PlannerDbContext context, ISessionRepository sessionRepository, IUserRepository userRepository)
+
+    public TokenService(IOptions<JwtSettings> settings, IUnitOfWork unitOfWork)
     {
         _settings = settings.Value;
-        _context = context ?? throw new ArgumentNullException(nameof(context));
-        _sessionRepository = sessionRepository ?? throw new ArgumentNullException(nameof(sessionRepository));
-        _userRepository = userRepository ?? throw new ArgumentException(nameof(userRepository));
+        _unitOfWork = unitOfWork ?? throw new ArgumentNullException(nameof(unitOfWork));
     }
+
     public async Task<JwtTokens> GenerateTokensAsync(User user, string userAgent, string ipAddress, CancellationToken cancellationToken = default)
     {
         var now = DateTimeOffset.UtcNow;
@@ -47,20 +44,18 @@ public class TokenService : ITokenService
         var refreshToken = GenerateRefreshToken();
 
         var session = Session.Create(user.Id, refreshToken, expirationRefresh, userAgent, ipAddress);
-        _context.Sessions.Add(session);
-        await _context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+        _unitOfWork.Sessions.Add(session);
+        await _unitOfWork.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
         return new JwtTokens(accessToken, refreshToken, expirationAccess, expirationRefresh);
-
     }
 
     public async Task<JwtTokens?> RefreshAccessTokenAsync(string refreshToken, CancellationToken cancellationToken)
     {
-        var session = await _sessionRepository.GetSessionByRefreshTokenAsync(refreshToken, cancellationToken).ConfigureAwait(false);
+        var session = await _unitOfWork.Sessions.GetSessionByRefreshTokenAsync(refreshToken, cancellationToken).ConfigureAwait(false);
         if (session == null) return null; //exception and logg in future
         if (session.RevokedAt.HasValue || session.ExspireAt < DateTimeOffset.UtcNow) return null; //exception and logg in future
-        var user = await _userRepository.GetUserByIdAsync(session.UserId, cancellationToken).ConfigureAwait(false);
+        var user = await _unitOfWork.Users.GetUserByIdAsync(session.UserId, cancellationToken).ConfigureAwait(false);
         if (user == null) return null;
-
 
         var newExpiration = DateTimeOffset.UtcNow.AddMinutes(_settings.Expiration);
         var newAccessToken = GenerateAccessToken(user, newExpiration);
@@ -69,12 +64,12 @@ public class TokenService : ITokenService
 
     public async Task RevokeTokenAsync(string refreshToken, CancellationToken cancellationToken)
     {
-        var session = await _sessionRepository.GetSessionByRefreshTokenAsync(refreshToken, cancellationToken);
+        var session = await _unitOfWork.Sessions.GetSessionByRefreshTokenAsync(refreshToken, cancellationToken);
         if (session != null)
         {
             session.Revoke();
-            _context.Sessions.Update(session);
-            await _context.SaveChangesAsync(cancellationToken);
+            _unitOfWork.Sessions.Update(session);
+            await _unitOfWork.SaveChangesAsync(cancellationToken);
         }
     }
 
@@ -94,6 +89,7 @@ public class TokenService : ITokenService
             return null;
         }
     }
+
     private string GenerateAccessToken(User user, DateTimeOffset time)
     {
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_settings.SecretKey));
@@ -114,6 +110,7 @@ public class TokenService : ITokenService
         );
         return new JwtSecurityTokenHandler().WriteToken(token);
     }
+
     public static string GenerateRefreshToken()
     {
         var randomNumber = new byte[32];
@@ -121,6 +118,7 @@ public class TokenService : ITokenService
         rng.GetBytes(randomNumber);
         return Convert.ToBase64String(randomNumber);
     }
+
     private TokenValidationParameters GetValidationParameters()
     {
         return new TokenValidationParameters
@@ -135,7 +133,4 @@ public class TokenService : ITokenService
             ClockSkew = TimeSpan.Zero
         };
     }
-
 }
-
-

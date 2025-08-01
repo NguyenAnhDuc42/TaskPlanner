@@ -11,16 +11,16 @@ namespace src.Feature.User.Auth.Me;
 
 public class MeRequestHandler : IRequestHandler<MeRequest, Result<MeResponse, ErrorResponse>>
 {
-    private readonly IUserRepository _userRepository;
+    private readonly IUnitOfWork _unitOfWork;
     private readonly ICurrentUserService _currentUserService;
     private readonly ILogger<MeRequestHandler> _logger;
 
     public MeRequestHandler(
-        IUserRepository userRepository,
+        IUnitOfWork unitOfWork,
         ICurrentUserService currentUserService,
         ILogger<MeRequestHandler> logger)
     {
-        _userRepository = userRepository ?? throw new ArgumentNullException(nameof(userRepository));
+        _unitOfWork = unitOfWork ?? throw new ArgumentNullException(nameof(unitOfWork));
         _currentUserService = currentUserService ?? throw new ArgumentNullException(nameof(currentUserService));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
@@ -34,7 +34,7 @@ public class MeRequestHandler : IRequestHandler<MeRequest, Result<MeResponse, Er
             return Result<MeResponse, ErrorResponse>.Failure(ErrorResponse.Unauthorized("Unauthorized", "User is not authenticated or token is invalid."));
         }
 
-        var userEntity = await _userRepository.GetUserByIdAsync(userId, cancellationToken).ConfigureAwait(false);
+        var userEntity = await _unitOfWork.Users.GetUserByIdAsync(userId, cancellationToken).ConfigureAwait(false);
         if (userEntity is null)
         {
             return Result<MeResponse, ErrorResponse>.Failure(ErrorResponse.NotFound("User not found", "User does not exist"));

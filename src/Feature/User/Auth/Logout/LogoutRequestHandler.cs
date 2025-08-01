@@ -3,44 +3,48 @@ using MediatR;
 using src.Helper.Results;
 using src.Infrastructure.Abstractions.IRepositories;
 using src.Infrastructure.Abstractions.IServices;
-using src.Infrastructure.Data;
 
 namespace src.Feature.User.Auth.Logout;
 
 public class LogoutRequestHandler : IRequestHandler<LogoutRequest, Result<LogoutResponse, ErrorResponse>>
 {
-    private readonly PlannerDbContext _context;
+    private readonly IUnitOfWork _unitOfWork;
     private readonly ICookieService _cookieService;
-    private readonly ISessionRepository _sessionRepository;
     private readonly IHttpContextAccessor _httpContextAccessor;
-    public LogoutRequestHandler(ICookieService cookieService, ISessionRepository sessionRepository,IHttpContextAccessor httpContextAccessor,PlannerDbContext context)
+
+    public LogoutRequestHandler(IUnitOfWork unitOfWork, ICookieService cookieService, IHttpContextAccessor httpContextAccessor)
     {
-        _context = context ?? throw new ArgumentNullException(nameof(context));
+        _unitOfWork = unitOfWork ?? throw new ArgumentNullException(nameof(unitOfWork));
+        _cookieService = cookieService ?? throw new ArgumentNullException(nameof(cookieService));
         _httpContextAccessor = httpContextAccessor ?? throw new ArgumentNullException(nameof(httpContextAccessor));
-        _cookieService = cookieService ?? throw new ArgumentException(nameof(cookieService));
-        _sessionRepository = sessionRepository ?? throw new ArgumentException(nameof(sessionRepository));
     }
+
     public async Task<Result<LogoutResponse, ErrorResponse>> Handle(LogoutRequest request, CancellationToken cancellationToken)
     {
         var httpContext = _httpContextAccessor.HttpContext;
-        if (httpContext is null) return Result<LogoutResponse, ErrorResponse>.Failure(ErrorResponse.Internal("An unexpected error occurred."));
+        if (httpContext is null)
+        {
+            return Result<LogoutResponse, ErrorResponse>.Failure(ErrorResponse.Internal("An unexpected error occurred."));
+        }
+
         var refreshToken = _cookieService.GetRefreshTokenFromCookies(httpContext);
         if (string.IsNullOrEmpty(refreshToken))
         {
             _cookieService.ClearAuthCookies(httpContext);
-            return Result<LogoutResponse, ErrorResponse>.Failure(ErrorResponse.Unauthorized("Unauthorized", "Refresh token is not found in cookies."));
+            return Result<LogoutResponse, ErrorResponse>.Failure(ErrorResponse.Unauthorized("Refresh token is not found in cookies."));
         }
-        var session = await _sessionRepository.GetSessionByRefreshTokenAsync(refreshToken, cancellationToken);
+
+        var session = await _unitOfWork.Sessions.GetSessionByRefreshTokenAsync(refreshToken, cancellationToken);
         if (session is null)
         {
             _cookieService.ClearAuthCookies(httpContext);
-            return Result<LogoutResponse, ErrorResponse>.Failure(ErrorResponse.Unauthorized("Unauthorized", "Session not found for the provided refresh token."));
+            return Result<LogoutResponse, ErrorResponse>.Failure(ErrorResponse.Unauthorized("Session not found for the provided refresh token."));
         }
+
         session.Revoke();
-        await _context.SaveChangesAsync(cancellationToken);
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
+
         _cookieService.ClearAuthCookies(httpContext);
         return Result<LogoutResponse, ErrorResponse>.Success(new LogoutResponse("You have been logged out successfully."));
-        
-
     }
 }

@@ -9,16 +9,16 @@ namespace src.Feature.User.Auth.Login;
 
 public class LoginRequestHandler : IRequestHandler<LoginRequest, Result<LoginResponse, ErrorResponse>>
 {
-    private readonly IUserRepository _userRepository;
+    private readonly IUnitOfWork _unitOfWork;
     private readonly IPasswordService _passwordService;
     private readonly ITokenService _tokenService;
     private readonly ICookieService _cookieService;
     private readonly IHttpContextAccessor _httpContextAccessor;
     private readonly ILogger<LoginRequestHandler> _logger;
-    public LoginRequestHandler(IUserRepository userRepository, IPasswordService passwordService, ILogger<LoginRequestHandler> logger, ITokenService tokenService, ICookieService cookieService, IHttpContextAccessor httpContextAccessor)
+    public LoginRequestHandler(IUnitOfWork unitOfWork, IPasswordService passwordService, ILogger<LoginRequestHandler> logger, ITokenService tokenService, ICookieService cookieService, IHttpContextAccessor httpContextAccessor)
     {
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-        _userRepository = userRepository ?? throw new ArgumentNullException(nameof(userRepository));
+        _unitOfWork = unitOfWork ?? throw new ArgumentNullException(nameof(unitOfWork));
         _tokenService = tokenService ?? throw new ArgumentNullException(nameof(tokenService));
         _cookieService = cookieService ?? throw new ArgumentNullException(nameof(cookieService));
         _httpContextAccessor = httpContextAccessor ?? throw new ArgumentNullException(nameof(httpContextAccessor));
@@ -33,14 +33,14 @@ public class LoginRequestHandler : IRequestHandler<LoginRequest, Result<LoginRes
             _logger.LogError("Unable to get HttpContext from IHttpContextAccessor.");
             return Result<LoginResponse, ErrorResponse>.Failure(ErrorResponse.Internal("An unexpected error occurred."));
         }
-        var user = await _userRepository.GetUserByEmailAsync(request.email, cancellationToken).ConfigureAwait(false);
+        var user = await _unitOfWork.Users.GetUserByEmailAsync(request.email, cancellationToken).ConfigureAwait(false);
         if (user is null)
         {
             return Result<LoginResponse, ErrorResponse>.Failure(ErrorResponse.NotFound("User not found", $"Wrong credentials"));
         }
         if (_passwordService.VerifyPassword(request.password, user.PasswordHash) is false)
         {
-            return Result<LoginResponse, ErrorResponse>.Failure(ErrorResponse.Unauthorized("Unauthorized", "Wrong credentials"));
+            return Result<LoginResponse, ErrorResponse>.Failure(ErrorResponse.Unauthorized());
         }
         var userAgent = httpContext.Request.Headers["User-Agent"].ToString();
         var ipAddress = httpContext.Connection.RemoteIpAddress?.ToString() ?? "Unknown IP";
