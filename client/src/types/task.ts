@@ -1,3 +1,5 @@
+import { UserSummary } from "./user";
+
 export type PlanTaskStatus  = "ToDo" | "InProgress" | "InReview" | "Done"
 
 export interface TaskDetail {
@@ -17,12 +19,12 @@ export interface TaskDetail {
   creatorId: string;
 }
 
-export interface TaskSumary {
+export interface TaskSummary {
   id: string;
   name: string;
-  priority: string;
-  startDate: string | null;
+  priority: number;
   dueDate: string | null;
+  assignees: UserSummary[];
 }
 
 export interface Assignee {

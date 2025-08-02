@@ -35,17 +35,14 @@ export const GetHierarchy = async (data : GetHierarchyRequest) : Promise<Hierarc
 
 export const GetMembers = async (workspaceId: string) : Promise<UserSummary[]> => {
     try {
-        console.log('Fetching members for workspace:', workspaceId);
-        const response = await apiClient.get<(Omit<UserSummary, 'role'> & { role: number })[]>(`/workspace/${workspaceId}/members`);
-        console.log('Raw API response:', response.data);
-        
-        const mappedMembers = response.data.map(member => ({
+        const response = await apiClient.get<{ members: Array<Omit<UserSummary, 'role'> & { role: number }> }>(
+            `/workspace/${workspaceId}/members`
+        );
+    
+        return response.data.members.map(member => ({
             ...member,
-            role: mapRoleFromApi(member.role ?? 0)
+            role: mapRoleFromApi(member.role)
         }));
-        
-        console.log('Mapped members:', mappedMembers);
-        return mappedMembers;
     } catch (error) {
         console.error('Error in GetMembers:', error);
         throw error;
@@ -60,12 +57,11 @@ export const AddMembers = async (workspaceId: string, body:AddMembersBody) : Pro
         throw error;
     }
 }
+
 export const UpdateMembers = async (workspaceId:string, body: UpdateMembersBody) : Promise<string> => {
     try {
-        console.log('Making update members request:', { workspaceId, body });
-        const rep = await apiClient.put<string>(`/workspace/${workspaceId}/members`, body);
-        console.log('Update members response:', rep.data);
-        return rep.data;
+        const response = await apiClient.put<string>(`/workspace/${workspaceId}/members`, body);
+        return response.data;
     } catch (error) {
         console.error('Update members error:', error);
         throw error;

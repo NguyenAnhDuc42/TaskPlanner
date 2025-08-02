@@ -20,5 +20,6 @@ public record class TaskDetail(
     Guid CreatorId
 );
 
+
 public record class TaskSummary(Guid Id, string Name, DateTime? DueDate, int Priority, List<UserSummary> assignees);
 

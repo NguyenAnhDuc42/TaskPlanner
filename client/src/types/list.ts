@@ -1,8 +1,8 @@
-export interface ListItem {
+export interface ListSummary {
     id: string;
     name: string;
 }
 
 export interface ListItems {
-    items: ListItem[];
+    items: ListSummary[];
 }

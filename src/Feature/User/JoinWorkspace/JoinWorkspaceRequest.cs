@@ -3,5 +3,5 @@ using src.Helper.Results;
 
 namespace src.Feature.User.JoinWorkspace;
 
-public record class JoinWorkspaceRequest(string joinCode) : IRequest<Result<JoinWorkspaceRespose, ErrorResponse>>;
+public record class JoinWorkspaceRequest(string joinCode) : IRequest<Result<JoinWorkspaceResponse, ErrorResponse>>;
 

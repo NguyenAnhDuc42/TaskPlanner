@@ -24,7 +24,7 @@ public class CreateWorkspaceHandler : IRequestHandler<CreateWorkspaceRequest, Re
         if (userId == Guid.Empty)
         {
             return Result<string, ErrorResponse>.Failure(
-                ErrorResponse.Unauthorized("Unauthorized", "User not found."));
+                ErrorResponse.Unauthorized("Unauthorized"));
         }
 
         var workspace = Workspace.Create(

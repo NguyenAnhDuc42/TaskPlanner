@@ -1,8 +1,8 @@
-export interface FolderItem {
+export interface FolderSummary {
     id: string;
     name: string;
 }
 
 export interface FolderItems {
-    folders: FolderItem[];
+    folders: FolderSummary[];
 }
