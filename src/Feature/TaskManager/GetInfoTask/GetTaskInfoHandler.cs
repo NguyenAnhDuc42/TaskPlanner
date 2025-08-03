@@ -28,7 +28,7 @@ public class GetTaskInfoHandler : IRequestHandler<GetTaskInfoRequest, Result<Tas
             task.Name,
             task.Description,
             task.Priority,
-            task.Status,
+            null,
             task.DueDate,
             task.StartDate,
             task.TimeEstimate,

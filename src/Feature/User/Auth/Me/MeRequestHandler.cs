@@ -31,7 +31,7 @@ public class MeRequestHandler : IRequestHandler<MeRequest, Result<MeResponse, Er
         if (userId == Guid.Empty)
         {
             _logger.LogWarning("Could not retrieve current user ID. User may not be authenticated.");
-            return Result<MeResponse, ErrorResponse>.Failure(ErrorResponse.Unauthorized("Unauthorized", "User is not authenticated or token is invalid."));
+            return Result<MeResponse, ErrorResponse>.Failure(ErrorResponse.Unauthorized());
         }
 
         var userEntity = await _unitOfWork.Users.GetUserByIdAsync(userId, cancellationToken).ConfigureAwait(false);

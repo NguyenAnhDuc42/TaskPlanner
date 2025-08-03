@@ -24,8 +24,8 @@ public class CreateFolderHandler : IRequestHandler<CreateFolderRequest, Result<C
         var userId = _currentUserService.CurrentUserId();
 
         // First, verify that the parent space exists within the specified workspace to ensure data integrity.
-        var spaceExists = await _unitOfWork.Spaces.GetById(request.spaceId).AnyAsync(s => s.Id == request.spaceId && s.WorkspaceId == request.workspaceId, cancellationToken);
-        if (!spaceExists)
+        var spaceExists = await _unitOfWork.Spaces.GetByIdAsync(request.spaceId);
+        if (spaceExists is null)
         {
             return Result<CreateFolderResponse, ErrorResponse>.Failure(ErrorResponse.NotFound("Parent space not found in the specified workspace."));
         }

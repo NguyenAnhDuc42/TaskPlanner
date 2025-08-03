@@ -22,7 +22,7 @@ public class SidebarWorkspacesHandler : IRequestHandler<SidebarWorkspacesRequest
         var userIdClaim = _httpContextAccessor.HttpContext?.User.FindFirst(ClaimTypes.NameIdentifier);
         if (userIdClaim == null || !Guid.TryParse(userIdClaim.Value, out var userId))
         {
-            return Result<List<WorkspaceSummary>, ErrorResponse>.Failure(ErrorResponse.Unauthorized("Unauthorized", "User not found."));
+            return Result<List<WorkspaceSummary>, ErrorResponse>.Failure(ErrorResponse.Unauthorized("Unauthorized"));
         }
 
         var sql = @"SELECT w.""Id"", w.""Name""

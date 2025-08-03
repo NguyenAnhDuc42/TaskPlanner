@@ -17,7 +17,6 @@ namespace src.Feature.TaskManager
                 body.Name,
                 body.Description,
                 body.Priority,
-                body.Status,
                 body.StartDate,
                 body.DueDate,
                 body.TimeEstimate,

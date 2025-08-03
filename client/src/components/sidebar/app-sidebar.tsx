@@ -15,7 +15,7 @@ import {
 import { SpaceHierarchyDisplay } from "./hierarchynav/nav-hierarchy"
 import { useHierarchy } from "@/features/workspace/workspace-hooks"
 import { useWorkspaceStore } from "@/utils/workspace-store"
-import { LayoutDashboard, Briefcase, Users } from "lucide-react"
+import { LayoutDashboard, Users } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { SidebarNavButton } from "./navigationsbutton/sidebar-nav-button"
 
@@ -35,7 +35,6 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           <div className="flex-shrink-0">
             <SidebarMenu className={cn("m-0 p-0", state === "collapsed" ? "px-2 gap-0" : "gap-0")}>
               <SidebarNavButton href={`/ws/${selectedWorkspaceId}`} icon={LayoutDashboard} label="Dashboard" />
-              <SidebarNavButton href={`/ws/${selectedWorkspaceId}/mywork`} icon={Briefcase} label="My Work" />
               <SidebarNavButton href={`/ws/${selectedWorkspaceId}/members`} icon={Users} label="Members" />
             </SidebarMenu>
           </div>

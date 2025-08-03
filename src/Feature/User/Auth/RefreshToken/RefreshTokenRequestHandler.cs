@@ -23,10 +23,10 @@ public class RefreshTokenRequestHandler : IRequestHandler<RefreshTokenRequest, R
         if (httpContext is null) return Result<RefreshTokenResponse, ErrorResponse>.Failure(ErrorResponse.Internal("An unexpected error occurred."));
 
         var refreshToken = _cookieService.GetRefreshTokenFromCookies(httpContext);
-        if (string.IsNullOrEmpty(refreshToken)) return Result<RefreshTokenResponse, ErrorResponse>.Failure(ErrorResponse.Unauthorized("Unauthorized", "Refresh token is not found in cookies."));
+        if (string.IsNullOrEmpty(refreshToken)) return Result<RefreshTokenResponse, ErrorResponse>.Failure(ErrorResponse.Unauthorized("Unauthorized"));
 
         var tokens = await _tokenService.RefreshAccessTokenAsync(refreshToken, cancellationToken);
-        if (tokens is null) return Result<RefreshTokenResponse, ErrorResponse>.Failure(ErrorResponse.Unauthorized("Unauthorized", "Refresh token is not found in cookies."));
+        if (tokens is null) return Result<RefreshTokenResponse, ErrorResponse>.Failure(ErrorResponse.Unauthorized("Unauthorized"));
         _cookieService.SetAuthCookies(httpContext, tokens);
         return Result<RefreshTokenResponse, ErrorResponse>.Success(new RefreshTokenResponse(tokens.ExpirationAccessToken, tokens.ExpirationRefreshToken));
 

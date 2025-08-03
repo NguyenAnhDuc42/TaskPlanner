@@ -43,6 +43,8 @@ export const GetMembers = async (workspaceId: string) : Promise<UserSummary[]> =
             ...member,
             role: mapRoleFromApi(member.role)
         }));
+
+
     } catch (error) {
         console.error('Error in GetMembers:', error);
         throw error;
@@ -63,7 +65,14 @@ export const UpdateMembers = async (workspaceId:string, body: UpdateMembersBody)
         const response = await apiClient.put<string>(`/workspace/${workspaceId}/members`, body);
         return response.data;
     } catch (error) {
-        console.error('Update members error:', error);
+        throw error;
+    }
+}
+export const DeleteMembers = async (workspaceId: string, memberIds: string[]) : Promise<string> =>{
+    try {
+        const rep = await apiClient.post<string>(`/workspace/${workspaceId}/delete-members`, memberIds);
+        return rep.data;
+    } catch (error) {
         throw error;
     }
 }
