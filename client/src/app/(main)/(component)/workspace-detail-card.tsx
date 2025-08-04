@@ -4,7 +4,7 @@ import { WorkspaceDetail } from "@/types/workspace";
 import { UserSummaryType } from "@/components/custom/user-summary-type";
 import { UserIconBar } from "@/components/custom/user-icon-bar";
 import { RoleBadge } from "@/components/custom/role-badge";
-
+import Link from "next/link";
 
 interface WorkspaceCardProps {
   workspace: WorkspaceDetail;
@@ -21,55 +21,68 @@ export function WorkspaceDetailCard({ workspace }: WorkspaceCardProps) {
   };
 
   return (
-    <Card className="w-80 min-h-80 flex flex-col overflow-hidden rounded-xl shadow-lg hover:shadow-2xl transition-all duration-300 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 group">
+    <Link href={`/ws/${workspace.id}`}>
+    <Card className="w-72 min-h-80 flex flex-col overflow-hidden hover:shadow-xl transition-all duration-300 bg-card border-border group hover:border-primary">
+      {/* Color accent bar */}
       <div 
-        className="h-2 w-full"
-        style={{ backgroundColor: workspace.color || '#6366f1' }}
+        className="h-1 w-full transition-all duration-300 group-hover:h-2"
+        style={{ backgroundColor: workspace.color || 'hsl(var(--primary))' }}
       />
       
-      <CardHeader className="flex-shrink-0 pt-4 pb-2 px-6">
+      <CardHeader className="flex-shrink-0 pb-0 px-6">
         <div className="space-y-2">
           <div className="flex items-center justify-between">
-            <h3 className="font-bold text-xl line-clamp-2 leading-tight text-gray-900 dark:text-white">{workspace.name}</h3>
-            <EllipsisVertical/>
+            <h3 className="line-clamp-2 leading-tight text-card-foreground">{workspace.name}</h3>
+            <EllipsisVertical className="text-muted-foreground"/>
           </div>
-          <RoleBadge role={workspace.yourRole}/>
+          <RoleBadge 
+            role={workspace.yourRole} 
+            className="w-fit capitalize border-primary text-primary hover:bg-primary hover:text-primary-foreground transition-colors" 
+          />
         </div>
       </CardHeader>
 
-      <CardContent className="flex-grow flex flex-col pt-2 px-6 pb-6">
+      <CardContent className="flex flex-col pt-3 px-6 pb-6">
+        {/* Description */}
         <div className="mb-4 h-16 flex items-start">
-          <p className="text-gray-600 dark:text-gray-400 leading-relaxed line-clamp-3">
+          <p className="text-muted-foreground leading-relaxed line-clamp-3">
             {workspace.description}
           </p>
         </div>
 
-        <div className="space-y-4">
-            <UserSummaryType userSummary={workspace.owner} styleDisplay="card" />
-
-            {(workspace.members && workspace.members.length > 0) && (
-              <div>
-                <div className="flex items-center gap-2 mb-2">
-                  <Users className="h-4 w-4 text-gray-500 dark:text-gray-400" />
-                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{workspace.memberCount} members</span>
-                </div>
-                <div className="pl-1">
-                    <UserIconBar users={workspace.members} maxIcons={7} />
-                </div>
-              </div>
-            )}
+        {/* Owner info */}
+        <div className="flex items-center gap-3 pb-4 mb-4 border-b border-border">
+          <UserSummaryType 
+            userSummary={workspace.owner} 
+            styleDisplay="card"
+            className="flex-1 min-w-0" 
+          />
         </div>
 
-        <div className="flex-grow" />
+        {/* Members section */}
+        {(workspace.members && workspace.members.length > 0) && (
+          <div className="mb-4">
+            <div className="flex items-center gap-2 mb-3">
+              <Users className="h-4 w-4 text-muted-foreground" />
+              <span className="text-card-foreground">{workspace.memberCount} members</span>
+            </div>
+            
+            <UserIconBar 
+              users={workspace.members} 
+              maxIcons={5} 
+            />
+          </div>
+        )}
 
-        <div className="pt-4 mt-4 border-t border-gray-200 dark:border-gray-800">
-          <div className="flex items-center gap-2 text-gray-500 dark:text-gray-400">
+        {/* Creation date */}
+        <div className="pt-4 mt-auto border-t border-border">
+          <div className="flex items-center gap-2 text-muted-foreground">
             <Calendar className="h-4 w-4" />
             <span className="text-sm">Created {formatDate(workspace.createdAtUtc)}</span>
           </div>
         </div>
       </CardContent>
     </Card>
+    </Link>
   );
 }
-

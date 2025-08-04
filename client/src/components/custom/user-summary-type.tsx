@@ -1,13 +1,14 @@
-import { UserSummary } from "@/types/user";
-
-import { Avatar, AvatarFallback } from "../ui/avatar";
-import { RoleBadge } from "./role-badge";
-import { mapRoleToAvatarStyle } from "@/utils/role-utils";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "../ui/tooltip";
+import { UserSummary } from "@/types/user"
+import { Avatar, AvatarFallback } from "../ui/avatar"
+import { RoleBadge } from "./role-badge"
+import { mapRoleToAvatarStyle } from "@/utils/role-utils"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "../ui/tooltip"
+import { cn } from "@/lib/utils"
 
 interface UserSummaryTypeProps {
-    userSummary: UserSummary;
-    styleDisplay?: "card" | "icon";
+    userSummary: UserSummary
+    styleDisplay?: "card" | "icon"
+    className?: string
 }
 
 const getInitials = (name: string) => {
@@ -16,19 +17,19 @@ const getInitials = (name: string) => {
         .map(word => word.charAt(0))
         .join('')
         .toUpperCase()
-        .slice(0, 2);
-};
+        .slice(0, 2)
+}
 
-export function UserSummaryType({ userSummary, styleDisplay = "card" }: UserSummaryTypeProps) {
-    const avatarClasses = mapRoleToAvatarStyle(userSummary.role);
+export function UserSummaryType({ userSummary, styleDisplay = "card", className }: UserSummaryTypeProps) {
+    const avatarClasses = mapRoleToAvatarStyle(userSummary.role)
 
     if (styleDisplay === "icon") {
         return (
             <TooltipProvider>
                 <Tooltip>
                     <TooltipTrigger asChild>
-                        <Avatar className="h-8 w-8 border-2 border-white dark:border-gray-800">
-                            <AvatarFallback className={`text-xs font-bold ${avatarClasses}`}>
+                        <Avatar className={cn("h-8 w-8 border-2 border-white dark:border-gray-800", className)}>
+                            <AvatarFallback className={cn("text-xs font-bold", avatarClasses)}>
                                 {getInitials(userSummary.name)}
                             </AvatarFallback>
                         </Avatar>
@@ -38,14 +39,14 @@ export function UserSummaryType({ userSummary, styleDisplay = "card" }: UserSumm
                     </TooltipContent>
                 </Tooltip>
             </TooltipProvider>
-        );
+        )
     }
 
     if (styleDisplay === "card") {
         return (
-            <div className="flex items-center gap-3 py-2">
+            <div className={cn("flex items-center gap-3 py-2", className)}>
                 <Avatar className="h-10 w-10">
-                    <AvatarFallback className={`text-sm font-bold ${avatarClasses}`}>
+                    <AvatarFallback className={cn("text-sm font-bold", avatarClasses)}>
                         {getInitials(userSummary.name)}
                     </AvatarFallback>
                 </Avatar>
@@ -56,8 +57,8 @@ export function UserSummaryType({ userSummary, styleDisplay = "card" }: UserSumm
                     </div>
                 </div>
             </div>
-        );
+        )
     }
 
-    return null;
+    return null
 }

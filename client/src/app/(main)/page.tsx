@@ -58,11 +58,8 @@ export default function MainPage() {
   };
 
   return (
-    <div className="bg-black min-h-screen text-white">
-      <MainPageNavbar
-        currentUser={user}
-        onAddWorkspace={handleAddWorkspace}
-      />
+    <div className="bg-background min-h-screen text-white">
+      <MainPageNavbar currentUser={user} onAddWorkspace={handleAddWorkspace} />
       <main className="max-w-7xl mx-auto px-8 py-8">
         {areWorkspacesLoading ? (
          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8 place-items-center">
