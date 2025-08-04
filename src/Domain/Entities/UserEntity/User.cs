@@ -20,9 +20,6 @@ public class User : Agregate<Guid>
     public ICollection<UserFolder> Folders { get; set; } = new List<UserFolder>();
     public ICollection<UserTask> Tasks { get; set; } = new List<UserTask>();
 
-
-
-
     private User() { }
     public User(Guid userId, string name, string email, string passwordHash) : base(userId)
     {

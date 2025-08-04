@@ -1,5 +1,6 @@
 using System;
 using System.Data;
+using System.Linq;
 using Dapper;
 using MediatR;
 using src.Contract;
@@ -19,15 +20,26 @@ public class GetUserWorkspaceHandler : IRequestHandler<GetUserWorkspaceRequest, 
         string Name,
         string Description,
         string Color,
-        DateTime CreatedAtUtc,
+        DateTime CreatedAt,
         Role YourRole,
         Guid OwnerId,
         string OwnerFullName,
         string OwnerEmail,
-        Role OwnerRole,
-        int MemberCount,
+        long MemberCount,
         string? JoinCode
     );
+
+    // Fixed: Use int for RoleValue and convert explicitly
+    private record MemberQueryResult
+    {
+        public Guid WorkspaceId { get; init; }
+        public Guid Id { get; init; }
+        public string Name { get; init; } = string.Empty;
+        public string Email { get; init; } = string.Empty;
+        public int RoleValue { get; init; }
+        
+        public UserSummary ToUserSummary() => new(Id, Name, Email, (Role)RoleValue);
+    }
 
     public GetUserWorkspaceHandler(ICurrentUserService currentUserService, IDbConnection dbConnection)
     {
@@ -38,19 +50,19 @@ public class GetUserWorkspaceHandler : IRequestHandler<GetUserWorkspaceRequest, 
     public async Task<Result<List<WorkspaceDetail>, ErrorResponse>> Handle(GetUserWorkspaceRequest request, CancellationToken cancellationToken)
     {
         var currentUserId = _currentUserService.CurrentUserId();
-        const string query =
+        
+        const string workspaceQuery =
         """ 
             SELECT
-                w."Id",
+                w."Id", 
                 w."Name",
                 w."Description",
                 w."Color",
-                w."CreatedAtUtc",
+                w."CreatedAt",
                 uw."Role" AS "YourRole",
                 owner."Id" AS "OwnerId",
-                owner."FullName" AS "OwnerFullName",
+                owner."Name" AS "OwnerFullName",
                 owner."Email" AS "OwnerEmail",
-                owner."Role" AS "OwnerRole",
                 (SELECT COUNT(*) FROM "UserWorkspaces" WHERE "WorkspaceId" = w."Id") AS "MemberCount",
                 CASE 
                     WHEN uw."Role" = 0 THEN w."JoinCode"
@@ -63,12 +75,44 @@ public class GetUserWorkspaceHandler : IRequestHandler<GetUserWorkspaceRequest, 
             ORDER BY w."Name";
         """;
 
-        var queryResults = await _dbConnection.QueryAsync<WorkspaceQueryResult>(
-            query, 
+        var workspaceResults = (await _dbConnection.QueryAsync<WorkspaceQueryResult>(
+            workspaceQuery, 
             new { CurrentUserId = currentUserId }
+        )).ToList();
+
+        if (!workspaceResults.Any())
+        {
+            return Result<List<WorkspaceDetail>, ErrorResponse>.Success(new List<WorkspaceDetail>());
+        }
+
+        var workspaceIds = workspaceResults.Select(w => w.Id).ToList();
+
+        // Fixed: Use RoleValue alias and explicit int mapping
+        const string membersQuery = 
+        """
+            SELECT
+                uw."WorkspaceId",
+                u."Id",
+                u."Name",
+                u."Email",
+                uw."Role" as "RoleValue"
+            FROM "UserWorkspaces" uw
+            JOIN "Users" u ON uw."UserId" = u."Id"
+            WHERE uw."WorkspaceId" = ANY(@WorkspaceIds)
+            ORDER BY uw."Role", u."Name";
+        """;
+
+        var memberDtos = await _dbConnection.QueryAsync<MemberQueryResult>(
+            membersQuery,
+            new { WorkspaceIds = workspaceIds }
         );
 
-        var workspaces = queryResults.Select(item => new WorkspaceDetail(
+        // Fixed: Use the ToUserSummary() method for explicit conversion
+        var membersByWorkspaceId = memberDtos
+            .GroupBy(m => m.WorkspaceId)
+            .ToDictionary(g => g.Key, g => g.Select(m => m.ToUserSummary()).ToList());
+
+        var workspaces = workspaceResults.Select(item => new WorkspaceDetail(
             item.Id,
             item.Name,
             item.Description,
@@ -78,13 +122,13 @@ public class GetUserWorkspaceHandler : IRequestHandler<GetUserWorkspaceRequest, 
                 item.OwnerId,
                 item.OwnerFullName,
                 item.OwnerEmail,
-                item.OwnerRole
+                Role.Owner
             ),
-            item.MemberCount,
-            item.CreatedAtUtc,
+            (int)item.MemberCount,
+            item.CreatedAt,
             item.JoinCode,
-            null, // Members list is null for the dashboard view
-            null  // Spaces list is null for the dashboard view
+            membersByWorkspaceId.GetValueOrDefault(item.Id, new List<UserSummary>()),
+            null
         )).ToList();
 
         return Result<List<WorkspaceDetail>, ErrorResponse>.Success(workspaces);

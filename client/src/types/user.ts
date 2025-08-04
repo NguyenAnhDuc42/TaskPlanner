@@ -1,10 +1,10 @@
 import { Role } from "@/utils/role-utils";
 
-export interface User {
+export interface UserDetail {
     id: string;
     name: string;
     email: string;
-    avatar?: string;
+
 }
 
 export interface UserSummary {

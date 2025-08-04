@@ -1,5 +1,6 @@
 import apiClient from "@/lib/api-client";
-import { LoginRequest, RegisterCommand, RegisterResponse, LoginResponse, MeResponse, RefreshTokenResponse, LogoutResponse } from "./type";
+import { LoginRequest, RegisterCommand, RegisterResponse, LoginResponse, RefreshTokenResponse, LogoutResponse } from "./type";
+import { UserDetail } from "@/types/user";
 
 
 export const Register = async ( data: RegisterCommand) : Promise<RegisterResponse> => {
@@ -29,9 +30,9 @@ export const Logout = async () : Promise<LogoutResponse> => {
         throw error
     }
 }
-export const Me = async () : Promise<MeResponse> => {
+export const Me = async () : Promise<UserDetail> => {
     try {
-        const rep = await apiClient.get<MeResponse>("/auth/me")
+        const rep = await apiClient.get<UserDetail>("/auth/me")
         return rep.data
     } catch (error) {
         console.error("Error fetching user:", error)

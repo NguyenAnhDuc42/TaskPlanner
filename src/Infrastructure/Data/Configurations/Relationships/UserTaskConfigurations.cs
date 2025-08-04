@@ -13,10 +13,10 @@ public class UserTaskConfigurations : IEntityTypeConfiguration<UserTask>
     {
         builder.ToTable("UserTasks");
         builder.HasKey(uw => new { uw.UserId, uw.TaskId });
-        builder.HasOne<User>()
+        builder.HasOne(ut => ut.User)
             .WithMany(u => u.Tasks)
             .HasForeignKey(uw => uw.UserId);
-        builder.HasOne<PlanTask>()
+        builder.HasOne(ut => ut.Task)
             .WithMany(t => t.Asignees)
             .HasForeignKey(uw => uw.TaskId);
 

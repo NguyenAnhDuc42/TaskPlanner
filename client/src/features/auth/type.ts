@@ -1,4 +1,4 @@
-import { User } from "@/types/user";
+
 import z from "zod";
 
 export const RegisterSchema = z.object({
@@ -60,4 +60,3 @@ export interface RefreshTokenResponse {
   message: string;
 }
 
-export type MeResponse = User;

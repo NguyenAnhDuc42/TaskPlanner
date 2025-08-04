@@ -3,7 +3,7 @@ using src.Domain.Enums;
 namespace src.Contract;
 
 public record WorkspaceDetail(
-     Guid Id,
+    Guid Id,
     string Name,
     string Description,
     string Color,
