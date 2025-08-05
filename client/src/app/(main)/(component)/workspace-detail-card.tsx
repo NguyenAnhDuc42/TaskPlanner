@@ -23,7 +23,7 @@ export function WorkspaceDetailCard({ workspace }: WorkspaceCardProps) {
 
   return (
     <Link href={`/ws/${workspace.id}`}>
-      <Card className="w-72 min-h-80 p-0 flex flex-col overflow-hidden transform hover:scale-[1.01] transition-all duration-300 bg-background border-border group hover:border-primary">
+      <Card className="w-72 min-h-80 p-0 flex flex-col overflow-hidden transform hover:scale-[1.01] transition-all duration-300 bg-background border-border group hover:border-primary origin-top">
         {/* Color accent bar */}
         <div 
           className="h-3 w-full transition-all duration-300 group-hover:h-5"

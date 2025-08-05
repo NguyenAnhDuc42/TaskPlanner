@@ -1,46 +1,26 @@
 import WorkspaceUrlSync from "@/components/providers/workspace-url-sync";
-import { AppSidebar } from "@/components/sidebar/app-sidebar";
-import { ThemeProvider } from "@/components/theme-provider";
-import { ThemeToggle } from "@/components/theme-toggle";
-import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import type React from "react";
 import { Toaster } from "sonner";
+import { AppSidebar } from "./(component)/sidebar/sidebar";
 
-export default function MainLayout({
-  children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+export default function WorkspaceLayout({ children,}: Readonly<{ children: React.ReactNode;}>) {
   return (
     <>
       <WorkspaceUrlSync />
-      <ThemeProvider
-        attribute="class"
-        defaultTheme="dark"
-        enableSystem
-        disableTransitionOnChange
-      >
-        <SidebarProvider>
-          <AppSidebar />
-          <SidebarInset className="flex flex-col h-screen bg-background p-2">
-            {/* Header bar with rounded top corners */}
-            <header className="flex items-center justify-between h-12 px-4 bg-card border border-border rounded-t-xl shadow-sm">
-              <div className="flex items-center gap-2">
-                <SidebarTrigger className="h-6 w-6" />
-                <div className="h-4 w-px bg-border" />
-                <span className="text-sm font-medium text-muted-foreground">
-                  TaskPlanner
-                </span>
-              </div>
-              <ThemeToggle />
-            </header>
-            <main className="flex-1 bg-card border-x border-b border-border rounded-b-xl shadow-sm overflow-hidden max-h-full">
-              <div className="h-full overflow-y-auto">{children}</div>
-            </main>
+           <SidebarProvider>
+              <AppSidebar />
+              <SidebarInset className="relative">
+                  <div className="min-h-screen w-full">
+                    <div className="absolute top-6 left-6 right-6 bottom-6">
+                      <div className="bg-card border border-border rounded-2xl shadow-lg h-full p-8 overflow-auto">
+                        {children}
+                      </div>
+                    </div>
+                  </div>
           </SidebarInset>
         </SidebarProvider>
         <Toaster richColors />
-      </ThemeProvider>
     </>
   );
 }

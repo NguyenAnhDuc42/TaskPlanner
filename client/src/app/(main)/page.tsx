@@ -52,17 +52,13 @@ export default function MainPage() {
     );
   }
 
-  const handleAddWorkspace = () => {
-    // TODO: Implement modal logic to add a new workspace
-    console.log("Add new workspace clicked");
-  };
 
   return (
     <div className="bg-background min-h-screen text-white">
-      <MainPageNavbar currentUser={user} onAddWorkspace={handleAddWorkspace} />
+      <MainPageNavbar currentUser={user} />
       <main className="max-w-7xl mx-auto px-8 py-8">
         {areWorkspacesLoading ? (
-         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8 place-items-center">
+         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8 items-start justify-items-center">
             {[...Array(8)].map((_, i) => (
             <Skeleton key={i} className="w-full max-w-[320px] h-[420px] rounded-lg bg-gray-800" />
             ))}
@@ -70,11 +66,11 @@ export default function MainPage() {
         ) : workspacesError ? (
          <p className="text-red-500">Error: Could not load workspaces.</p>
         ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8 place-items-center">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8 items-start justify-items-center">
             {workspaces?.map((workspace : WorkspaceDetail) => (
             <WorkspaceDetailCard key={workspace.id} workspace={workspace} />
             ))}
-            <AddWorkspaceCard onClick={handleAddWorkspace} />
+            <AddWorkspaceCard />
         </div>
         )}
       </main>

@@ -2,11 +2,10 @@ import { CreateWorkspaceDialog } from "@/components/custom-form/buttons/create-w
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 
-export function AddWorkspaceCard({ onClick }: { onClick: () => void }) {
+export function AddWorkspaceCard() {
   return (
     <CreateWorkspaceDialog>
       <Button
-        onClick={onClick}
         className="w-full max-w-[320px] min-h-[475px] rounded-xl flex items-center justify-center 
                  border-2 border-dashed border-border
                  bg-card/50

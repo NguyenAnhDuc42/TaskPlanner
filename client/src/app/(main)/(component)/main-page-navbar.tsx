@@ -7,12 +7,10 @@ import { JoinWorkspaceInput } from "./join-workspace-input";
 
 interface NavbarProps {
   currentUser: UserDetail;
-  onAddWorkspace: () => void;
 }
 
 export function MainPageNavbar({ 
   currentUser,
-  onAddWorkspace
 }: NavbarProps) {
   return (
     <nav className="bg-black border-b border-gray-800 sticky top-0 z-50">
@@ -39,7 +37,7 @@ export function MainPageNavbar({
           <div className="flex items-center gap-4 h-full">
             {/* Add Workspace Button */}
             <CreateWorkspaceDialog>
-              <Button onClick={onAddWorkspace} className="bg-white text-black hover:bg-gray-200 flex items-center gap-2">
+              <Button className="bg-white text-black hover:bg-gray-200 flex items-center gap-2">
                 <Plus className="h-4 w-4" />
                 Add Workspace
               </Button>
