@@ -126,10 +126,8 @@ export function AppSidebar() {
         </SidebarGroup>
       </SidebarContent>
       
-        <SidebarFooter className="border-t border-sidebar-border p-0">
-        <SidebarMenuButton onClick={handleMenuItemClick} className="h-13 rounded-none">
-             <UserMenuBar currentUser={user} isCollapsed={state === 'collapsed'} />
-        </SidebarMenuButton>
+      <SidebarFooter className="border-t border-sidebar-border p-0 items-start">
+        <UserMenuBar currentUser={user} isCollapsed={state === 'collapsed'} className="h-14 rounded-none " />
       </SidebarFooter>
       <SidebarRail />
     </Sidebar>

@@ -38,8 +38,8 @@ export function UserMenuBar({ currentUser, isCollapsed, onProfileSettings, onNot
           )}
         >
           <div className="flex items-center gap-3">
-            <Avatar className="h-8 w-8 ring-1 ring-gray-700">
-              <AvatarFallback className="bg-white text-black text-sm">
+            <Avatar className="h-8 w-8 rounded-lg">
+              <AvatarFallback className="bg-white text-black text-sm rounded-lg ">
                 {getInitials(currentUser.name)}
               </AvatarFallback>
             </Avatar>
