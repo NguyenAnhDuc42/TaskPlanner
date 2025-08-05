@@ -21,12 +21,12 @@ public class CreateWorkspaceHandler : IRequestHandler<CreateWorkspaceRequest, Re
     public async Task<Result<string, ErrorResponse>> Handle(CreateWorkspaceRequest request, CancellationToken cancellationToken)
     {
         var userId = _currentUserService.CurrentUserId();
-        if (userId == Guid.Empty)
+        var user = await _unitOfWork.Users.GetByIdAsync(userId);
+        if (user == null)
         {
             return Result<string, ErrorResponse>.Failure(
-                ErrorResponse.Unauthorized("Unauthorized"));
+                ErrorResponse.Unauthorized("User not found"));
         }
-
         var workspace = Workspace.Create(
             request.Name,
             request.Description,
@@ -34,7 +34,8 @@ public class CreateWorkspaceHandler : IRequestHandler<CreateWorkspaceRequest, Re
             userId,
             request.IsPrivate);
 
-         await _unitOfWork.Workspaces.AddAsync(workspace);
+        user.CreateWorkspace(workspace);
+        await _unitOfWork.Workspaces.AddAsync(workspace);
         var result = await _unitOfWork.SaveChangesAsync(cancellationToken);
 
         if (result <= 0)
@@ -43,6 +44,6 @@ public class CreateWorkspaceHandler : IRequestHandler<CreateWorkspaceRequest, Re
                 ErrorResponse.Internal("Failed to save workspace"));
         }
 
-        return Result<string, ErrorResponse>.Success("Workspace created successfully");
+        return Result<string, ErrorResponse>.Success(workspace.Id.ToString());
     }
 }

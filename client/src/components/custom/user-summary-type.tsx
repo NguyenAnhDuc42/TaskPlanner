@@ -50,10 +50,10 @@ export function UserSummaryType({ userSummary, styleDisplay = "card", className 
                         {getInitials(userSummary.name)}
                     </AvatarFallback>
                 </Avatar>
-                <div className="flex-1 min-w-0">
+                <div className="flex-1 min-w-0 flex flex-col justify-center mt-[-0.50rem]">
                     <p className="truncate font-semibold text-gray-900 dark:text-white">{userSummary.name}</p>
                     <div className="truncate text-sm text-gray-500 dark:text-gray-400">
-                        <RoleBadge role={userSummary.role} size="sm" />
+                        <RoleBadge role={userSummary.role} size="xs" />
                     </div>
                 </div>
             </div>

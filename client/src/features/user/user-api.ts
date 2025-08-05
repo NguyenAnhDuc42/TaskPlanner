@@ -5,7 +5,7 @@ import { WorkspaceDetail } from "@/types/workspace";
 
 export const joinWorkspace = async (joinCode: string): Promise<JoinWorkspaceResponse> => {
     try {
-        const rep = await apiClient.post<JoinWorkspaceResponse>(`/user/join-workspace`, { joinCode });
+        const rep = await apiClient.post<JoinWorkspaceResponse>(`/user/join-workspace`, joinCode);
         return rep.data;
     } catch (error) {
         throw error;

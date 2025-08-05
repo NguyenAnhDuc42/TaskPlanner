@@ -3,6 +3,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
 import { Button } from "../ui/button";
 import { Avatar, AvatarFallback } from "../ui/avatar";
 import { ChevronDown } from "lucide-react";
+import { cn } from "@/lib/utils";
 
   
   interface UserMenuProps {
@@ -11,14 +12,16 @@ import { ChevronDown } from "lucide-react";
     onNotifications?: () => void;
     onBilling?: () => void;
     onSignOut?: () => void;
+    className?: string;
   }
   
-  export function UserMenuBar({ 
-    currentUser, 
+  export function UserMenuBar({
+    currentUser,
     onProfileSettings,
     onNotifications,
     onBilling,
-    onSignOut 
+    onSignOut,
+    className
   }: UserMenuProps) {
     const getInitials = (name: string) => {
       return name
@@ -32,7 +35,7 @@ import { ChevronDown } from "lucide-react";
     return (
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button variant="ghost" className="flex items-center gap-3 text-white hover:bg-gray-900 p-2">
+          <Button variant="ghost" className={cn("flex items-center gap-3 text-white hover:bg-gray-900 h-full", className)}>
             <Avatar className="h-8 w-8 ring-1 ring-gray-700">
               <AvatarFallback className="bg-white text-black text-sm">
                 {getInitials(currentUser.name)}
