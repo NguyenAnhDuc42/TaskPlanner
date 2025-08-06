@@ -33,11 +33,11 @@ export function UserMenuBar({ currentUser, isCollapsed, onProfileSettings, onNot
           variant="ghost"
           className={cn(
             "flex items-center h-full w-full text-white hover:bg-gray-900",
-            isCollapsed ? "justify-center" : "justify-between",
+            isCollapsed ? "justify-start p-0 " : "justify-between",
             className
           )}
         >
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 ">
             <Avatar className="h-8 w-8 rounded-lg">
               <AvatarFallback className="bg-white text-black text-sm rounded-lg ">
                 {getInitials(currentUser.name)}

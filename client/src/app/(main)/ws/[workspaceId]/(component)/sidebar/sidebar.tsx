@@ -126,8 +126,8 @@ export function AppSidebar() {
         </SidebarGroup>
       </SidebarContent>
       
-      <SidebarFooter className="border-t border-sidebar-border p-0 items-start">
-        <UserMenuBar currentUser={user} isCollapsed={state === 'collapsed'} className="h-14 rounded-none " />
+      <SidebarFooter className="">
+        <UserMenuBar currentUser={user} isCollapsed={state === 'collapsed'} className="" />
       </SidebarFooter>
       <SidebarRail />
     </Sidebar>
