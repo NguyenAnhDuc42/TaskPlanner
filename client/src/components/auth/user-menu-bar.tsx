@@ -28,29 +28,33 @@ export function UserMenuBar({ currentUser, isCollapsed, onProfileSettings, onNot
 
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger asChild>
+        <DropdownMenuTrigger asChild>
         <Button
           variant="ghost"
           className={cn(
-            "flex items-center h-full w-full text-white hover:bg-gray-900",
-            isCollapsed ? "justify-start p-0 " : "justify-between",
+            "flex items-center w-full min-h-[40px] px-2", // Added consistent height and padding
+            "hover:bg-gray-900 transition-colors",
+            isCollapsed ? "justify-start" : "justify-between",
             className
           )}
         >
-          <div className="flex items-center gap-3 ">
-            <Avatar className="h-8 w-8 rounded-lg">
-              <AvatarFallback className="bg-white text-black text-sm rounded-lg ">
+          <div className={cn(
+            "flex items-center gap-3",
+            isCollapsed && "justify-center w-full"
+          )}>
+            <Avatar className="h-8 w-8 rounded-lg shrink-0">
+              <AvatarFallback className="bg-white text-black text-sm rounded-lg">
                 {getInitials(currentUser.name)}
               </AvatarFallback>
             </Avatar>
             {!isCollapsed && (
-              <div className="hidden md:block text-left">
+              <div className="text-left">
                 <p className="text-sm text-white truncate max-w-32">{currentUser.name}</p>
                 <p className="text-xs text-gray-400 truncate max-w-32">{currentUser.email}</p>
               </div>
             )}
           </div>
-          {!isCollapsed && <ChevronDown className="h-4 w-4 text-gray-400" />}
+          {!isCollapsed && <ChevronDown className="h-4 w-4 text-gray-400 shrink-0" />}
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-56 bg-gray-900 border-gray-700">

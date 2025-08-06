@@ -126,8 +126,12 @@ export function AppSidebar() {
         </SidebarGroup>
       </SidebarContent>
       
-      <SidebarFooter className="">
-        <UserMenuBar currentUser={user} isCollapsed={state === 'collapsed'} className="" />
+      <SidebarFooter className="pt-0"> 
+        <UserMenuBar 
+          currentUser={user} 
+          isCollapsed={state === 'collapsed'} 
+          className="" // Removed extra padding
+        />
       </SidebarFooter>
       <SidebarRail />
     </Sidebar>
