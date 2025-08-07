@@ -32,25 +32,26 @@ export function UserMenuBar({ currentUser, isCollapsed, onProfileSettings, onNot
         <Button
           variant="ghost"
           className={cn(
-            "flex items-center w-full min-h-[40px] px-2", // Added consistent height and padding
+            "flex items-center w-full min-h-[40px]",
             "hover:bg-gray-900 transition-colors",
-            isCollapsed ? "justify-start" : "justify-between",
+            "p-0",
+            isCollapsed ? "justify-start" : "justify-between", 
             className
           )}
         >
           <div className={cn(
             "flex items-center gap-3",
-            isCollapsed && "justify-center w-full"
+            isCollapsed && "justify-center"
           )}>
-            <Avatar className="h-8 w-8 rounded-lg shrink-0">
+            <Avatar className="h-8 w-8 shrink-0 rounded-lg">
               <AvatarFallback className="bg-white text-black text-sm rounded-lg">
                 {getInitials(currentUser.name)}
               </AvatarFallback>
             </Avatar>
             {!isCollapsed && (
               <div className="text-left">
-                <p className="text-sm text-white truncate max-w-32">{currentUser.name}</p>
-                <p className="text-xs text-gray-400 truncate max-w-32">{currentUser.email}</p>
+                <p className="text-sm text-white truncate max-w-[160px]">{currentUser.name}</p>
+                <p className="text-xs text-gray-400 truncate max-w-[160px]">{currentUser.email}</p>
               </div>
             )}
           </div>
