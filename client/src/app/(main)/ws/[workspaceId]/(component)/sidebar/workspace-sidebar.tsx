@@ -9,7 +9,7 @@ import {
   SidebarHeader,
   SidebarMenu,
   SidebarRail,
-  useSidebar, // Import useSidebar hook
+  useSidebar, 
 } from "@/components/ui/sidebar";
 import { Home, Users, FolderOpen, Plus, GripVertical } from "lucide-react";
 import { Button } from "@/components/ui/button"; // Import Button component
@@ -17,7 +17,7 @@ import { SidebarHeaderBrand } from "./sidebar-header-brand";
 import { SidebarNavItem } from "./sidebar-nav-item";
 import { SidebarUserMenu } from "./sidebar-user-menu";
 import { useUser } from "@/features/auth/hooks";
-import { SidebarAvatarSkeleton } from "./sidebar-skeletion";
+import { SidebarSkeleton } from "./sidebar-skeletion";
 
 const navigationItems = [
   {
@@ -43,7 +43,7 @@ export function WorkspaceSidebar() {
   const { data: user, error: userError, isLoading: isUserLoading } = useUser();
   
   if (isUserLoading) {
-    return <SidebarAvatarSkeleton/>
+    return <SidebarSkeleton/>
   }
   
   if (userError || !user) {
@@ -90,7 +90,7 @@ export function WorkspaceSidebar() {
           e.stopPropagation();
           toggleSidebar();
         }}
-        className="h-10 w-5 absolute top-1/2 -right-2.5 z-50 bg-background/80 backdrop-blur-sm border border-border hover:bg-accent transition-all duration-200"
+        className="h-12 w-4 absolute top-1/2 -right-2 z-50 rounded-sm bg-background/80 backdrop-blur-sm border border-border hover:bg-accent transition-all duration-200"
         title="Collapse sidebar"
       >
         <GripVertical className="size-4" />
