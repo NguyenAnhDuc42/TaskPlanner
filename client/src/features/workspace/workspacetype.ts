@@ -1,3 +1,4 @@
+import { WorkspaceSummary } from "@/types/workspace";
 import { Role } from "@/utils/role-utils";
 
 export interface CreateWorkspaceRequest {
@@ -26,6 +27,10 @@ export interface AddMembersResponse{
   message: string;
 }
 
+export interface GroupWorkspace {
+  currentWorkspace: WorkspaceSummary;
+  otherWorkspaces: WorkspaceSummary[];
+}
 
 
 export interface Workspaces {workspaces: Workspace[];}

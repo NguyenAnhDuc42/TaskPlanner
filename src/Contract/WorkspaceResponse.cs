@@ -1,7 +1,6 @@
 using src.Domain.Enums;
 
 namespace src.Contract;
-
 public record WorkspaceDetail(
     Guid Id,
     string Name,
@@ -15,6 +14,7 @@ public record WorkspaceDetail(
     List<UserSummary>? Members, 
     List<SpaceSummary>? Spaces 
 );
+
 public record WorkspaceSummary(Guid Id, string Name);
 
 // Represents a node in hierarchical data structure

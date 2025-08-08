@@ -20,7 +20,7 @@ export function SidebarNavItem({ title, icon: Icon, href = "#", isActive, onClic
         isActive={isActive}
         tooltip={title}
         className={cn(
-          "h-12 w-full justify-start transition-all duration-200",
+          "h-10 w-full justify-start transition-all duration-200",
           "group-data-[collapsible=icon]:!p-2 group-data-[collapsible=icon]:w-[var(--sidebar-width-icon)]" // Fix padding and width for collapsed icon centering
         )}
         onClick={onClick}

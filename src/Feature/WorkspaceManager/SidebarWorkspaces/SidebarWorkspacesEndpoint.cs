@@ -7,10 +7,10 @@ namespace src.Feature.WorkspaceManager;
 
 public partial class WorkspaceController
 {
-    [HttpGet("sidebar")]
-    public async Task<IActionResult> SidebarWorkspaces(CancellationToken cancellationToken)
+    [HttpGet("{workspaceId}/sidebar")]
+    public async Task<IActionResult> SidebarWorkspaces([FromRoute]Guid workspaceId ,CancellationToken cancellationToken)
     {
-        var request = new SidebarWorkspacesRequest();
+        var request = new SidebarWorkspacesRequest(workspaceId);
         var result = await _mediator.Send(request, cancellationToken);
         return result.ToApiResult();
     }

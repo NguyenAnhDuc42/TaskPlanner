@@ -87,10 +87,11 @@ export function useGetDashboardTasks(workspaceId: string | undefined) {
   });
 }
 
-export function useSidebarWorkspaces() {
+export function useSidebarWorkspaces(workspaceId : string) {
     return useQuery({
-        queryKey: WORKSPACE_KEYS.sidebar(),
-        queryFn: SidebarWorkspaces,
+        queryKey: [...WORKSPACE_KEYS.sidebar(), workspaceId],
+        queryFn: () => SidebarWorkspaces(workspaceId),
+        enabled: !!workspaceId,
     })
 }
 
@@ -162,3 +163,4 @@ export function useUpdateMembers(workspaceId: string | undefined) {
     },
   });
 }
+

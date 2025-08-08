@@ -50,11 +50,11 @@ export function SidebarUserMenu({
           className={cn(
             "w-full hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-all duration-200",
             isCollapsed
-              ? "h-8 w-8 p-0 justify-start mx-0.75" // Collapsed: button shrinks to avatar size, no padding, centers content
-              : "h-12 justify-start px-0.75" // Expanded: full height, NO left padding for max left shift, left align content
+              ? "h-8 w-8 p-0 justify-start mx-0.75"
+              : "h-12 justify-start px-0.75"
           )}
         >
-          <div className="flex items-center gap-2 min-w-0">
+          <div className="flex items-center gap-2 w-full">
             <Avatar className="h-8 w-8 shrink-0 rounded-lg">
               <AvatarFallback className="bg-sidebar-primary text-sidebar-primary-foreground text-sm rounded-lg">
                 {getInitials(user.name)}
@@ -63,8 +63,8 @@ export function SidebarUserMenu({
             {!isCollapsed && (
               <>
                 <div className="flex flex-col items-start min-w-0 flex-1">
-                  <span className="text-sm font-medium truncate w-full">{user.name}</span>
-                  <span className="text-xs text-sidebar-foreground/70 truncate w-full">{user.email}</span>
+                  <span className="text-sm font-medium truncate w-full text-left">{user.name}</span>
+                  <span className="text-xs text-sidebar-foreground/70 truncate w-full text-left">{user.email}</span>
                 </div>
                 <ChevronDown className="h-4 w-4 shrink-0 ml-auto" />
               </>

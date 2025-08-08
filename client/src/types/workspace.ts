@@ -16,6 +16,7 @@ export interface WorkspaceDetail {
     spaces: SpaceSummary[] | null;
 }
 
+
 export interface WorkspaceSummary {
     id: string;
     name: string;
