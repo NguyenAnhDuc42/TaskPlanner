@@ -9,4 +9,4 @@ public record WorkloadSummaryResponse(int TotalTaskCount, List<StatusWorkloadSum
 public record StatusWorkloadSummary(Guid StatusId, string Name, string Color, int TaskCount, double Percentage);
 
 
-public record class StatusDto(Guid StatusId, string Name, string Color, StatusType Type);
+

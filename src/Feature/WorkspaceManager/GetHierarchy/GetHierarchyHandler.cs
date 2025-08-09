@@ -31,7 +31,7 @@ public class GetHierarchyHandler : IRequestHandler<GetHierarchyRequest, Result<H
     private async Task<List<SpaceDto>> GetSpacesAsync(Guid workspaceId)
     {
         var sql = @"
-            SELECT ""Id"", ""Name""
+            SELECT ""Id"", ""Name"" ,""Icon"", ""Color""
             FROM ""Spaces"" 
             WHERE ""WorkspaceId"" = @WorkspaceId
             ORDER BY ""CreatedAt""";
@@ -100,6 +100,8 @@ public class GetHierarchyHandler : IRequestHandler<GetHierarchyRequest, Result<H
         var spaceNodes = spaces.Select(space => new SpaceNode(
             space.Id,
             space.Name,
+            space.Icon,
+            space.Color,
             // Build folders for this space
             foldersBySpace.GetValueOrDefault(space.Id, new List<FolderDto>())
                 .Select(folder => new FolderNode(

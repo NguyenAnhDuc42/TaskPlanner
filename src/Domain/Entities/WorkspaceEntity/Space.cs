@@ -10,7 +10,8 @@ public class Space : Agregate<Guid>
 {
     public Guid WorkspaceId { get; set; }
     public string Name { get; private set; } = string.Empty;
-
+    public string Icon { get; private set; } = string.Empty;
+    public string Color { get; private set; } = string.Empty;
     public bool IsPrivate { get; private set; }
     public bool IsArchived { get; private set; }
     public ICollection<PlanList> Lists { get; set; } = new List<PlanList>();
@@ -22,16 +23,18 @@ public class Space : Agregate<Guid>
     public Guid CreatorId { get; private set; }
 
     private Space() { }
-    private Space(Guid id, string name, Guid workspaceId, Guid creatorId) : base(id)
+    private Space(Guid id, string name,string icon, string color, Guid workspaceId, Guid creatorId) : base(id)
     {
         Name = name;
+        Icon = icon;
+        Color = color;
         WorkspaceId = workspaceId;
         CreatorId = creatorId;
     }
 
-    public static Space Create(string name, Guid workspaceId,Guid creatorId)
+    public static Space Create(string name,string icon, string color, Guid workspaceId,Guid creatorId)
     {
-       var space = new Space(Guid.NewGuid(), name, workspaceId,creatorId);
+       var space = new Space(Guid.NewGuid(), name,icon, color, workspaceId,creatorId);
        var list = PlanList.Create("List",workspaceId,space.Id,null,creatorId);
         space.Lists.Add(list);
        return space;

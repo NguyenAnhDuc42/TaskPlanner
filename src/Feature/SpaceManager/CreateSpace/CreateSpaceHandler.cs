@@ -26,9 +26,7 @@ public class CreateSpaceHandler : IRequestHandler<CreateSpaceRequest, Result<Cre
             return Result<CreateSpaceResponse, ErrorResponse>.Failure(ErrorResponse.NotFound("Workspace not found."));
         }
 
-        var space = Space.Create(request.name, request.workspaceId, userId);
-
-
+        var space = Space.Create(request.name,request.icon,request.color, request.workspaceId, userId);
         await _context.Spaces.AddAsync(space, cancellationToken);
         await _context.SaveChangesAsync(cancellationToken);
         return Result<CreateSpaceResponse, ErrorResponse>.Success(new CreateSpaceResponse(space.Id, "Space created successfully"));

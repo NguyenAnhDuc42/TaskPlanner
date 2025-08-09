@@ -1,4 +1,5 @@
 using System;
+using System.Text.Json.Serialization;
 
 namespace src.Domain.Entities.WorkspaceEntity.SupportEntiy;
 
@@ -7,7 +8,7 @@ public class Status : Entity<Guid>
     public Guid SpaceId { get; set; }
     public string Name { get; private set; } = string.Empty;
     public string Color { get; private set; } = string.Empty;
-    public StatusType Type { get; private set; } // Open, InProgress, Closed
+    public StatusType Type { get; private set; }
 
     public ICollection<PlanTask> Tasks { get; set; } = new List<PlanTask>();
     private Status() { }
@@ -24,13 +25,13 @@ public class Status : Entity<Guid>
     }
 
 }
-
+[JsonConverter(typeof(JsonStringEnumConverter))]
 public enum StatusType
 {
-    NotStarted = 0,
-    Active = 1,
-    Done = 2,
-    Closed = 3
+    NotStarted ,
+    Active ,
+    Done ,
+    Closed 
 }
 
 

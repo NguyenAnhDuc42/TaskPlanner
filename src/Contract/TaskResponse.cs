@@ -1,4 +1,5 @@
 using src.Domain.Entities.WorkspaceEntity.SupportEntiy;
+using src.Domain.Enums;
 
 namespace src.Contract;
 
@@ -7,8 +8,8 @@ public record class TaskDetail(
     Guid Id,
     string Name,
     string Description,
-    int Priority,
-    Task Status,
+    Priority Priority,
+    Status Status,
     DateTime? DueDate,
     DateTime? StartDate,
     long? TimeEstimate,
@@ -21,5 +22,5 @@ public record class TaskDetail(
 );
 
 
-public record class TaskSummary(Guid Id, string Name, DateTime? DueDate, int Priority, List<UserSummary> assignees);
+public record class TaskSummary(Guid Id, string Name, DateTime? DueDate, Priority Priority, List<UserSummary> assignees);
 

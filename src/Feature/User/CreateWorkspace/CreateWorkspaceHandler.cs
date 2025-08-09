@@ -31,6 +31,7 @@ public class CreateWorkspaceHandler : IRequestHandler<CreateWorkspaceRequest, Re
             request.Name,
             request.Description,
             request.Color,
+            request.Icon,
             userId,
             request.IsPrivate);
 

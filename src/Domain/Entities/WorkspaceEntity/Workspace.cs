@@ -12,6 +12,7 @@ public class Workspace : Agregate<Guid>
     public string Description { get; private set; } = string.Empty;
     public string JoinCode { get; private set; } = string.Empty;
     public string Color { get; private set; } = string.Empty;
+    public string Icon { get; private set; } = string.Empty;
     public bool IsPrivate { get; private set; }
 
     public ICollection<Space> Spaces { get; set; } = new List<Space>();
@@ -20,27 +21,28 @@ public class Workspace : Agregate<Guid>
     public Guid CreatorId { get; private set; }
 
     private Workspace() { }
-    private Workspace(Guid id, string name, string description, string joinCode, string color, Guid creatorId, bool isPrivate) : base(id)
+    private Workspace(Guid id, string name, string description, string joinCode, string color,string icon, Guid creatorId, bool isPrivate) : base(id)
     {
         Name = name;
         Description = description;
         JoinCode = joinCode;
         Color = color;
+        Icon = icon;
         CreatorId = creatorId;
         IsPrivate = isPrivate;
     }
 
-    public static Workspace Create(string name, string description, string color, Guid creatorId, bool isPrivate)
+    public static Workspace Create(string name, string description, string color,string icon, Guid creatorId, bool isPrivate)
     {
         var joinCode = GenerateRandomCode();
-        var workspace = new Workspace(Guid.NewGuid(), name, description, joinCode, color, creatorId, isPrivate);
+        var workspace = new Workspace(Guid.NewGuid(), name, description, joinCode, color,icon, creatorId, isPrivate);
 
         return workspace;
     }
     public static Workspace CreateSampleWorkspace(Guid creatorId)
     {
         var joinCode = GenerateRandomCode();
-        var workspace = new Workspace(Guid.NewGuid(), "Sample Workspace", "This is a sample workspace", joinCode, "", creatorId, isPrivate : false);
+        var workspace = new Workspace(Guid.NewGuid(), "Sample Workspace", "This is a sample workspace", joinCode, "","", creatorId, isPrivate : false);
         return workspace;
     }
 

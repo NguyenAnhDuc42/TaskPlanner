@@ -32,7 +32,7 @@ export function UserMenuBar({ currentUser, isCollapsed, onProfileSettings, onNot
         <Button
           variant="ghost"
           className={cn(
-            "flex items-center w-full min-h-[40px]",
+            "flex items-center min-h-[40px]",
             "hover:bg-gray-900 transition-colors",
             "p-0",
             isCollapsed ? "justify-start" : "justify-between", 
