@@ -1,31 +1,47 @@
 import { useState } from "react";
 import { Plus, ChevronRight, ChevronDown, Layers3 } from "lucide-react";
-
+import { Button } from "@/components/ui/button";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { SpaceNode as SpaceNodeComponent } from "./space-node";
 import type { SpaceNode } from "@/features/workspace/workspacetype";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { Button } from "@/components/ui/button";
 
 interface StructureProps {
   spaces: SpaceNode[];
   onAddNewSpace?: () => void;
+  isSidebarCollapsed?: boolean; // New prop
 }
 
-export function Structure({ spaces, onAddNewSpace }: StructureProps) {
+export function Structure({ spaces, onAddNewSpace, isSidebarCollapsed }: StructureProps) { // Added new prop
   const [isSpacesExpanded, setIsSpacesExpanded] = useState(true);
 
+  // Conditionally render based on isSidebarCollapsed
+  if (isSidebarCollapsed) {
+    return (
+      <div className="flex justify-start py-2">
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-8 w-8 p-0 text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground border border-transparent hover:border-sidebar-border transition-all duration-200"
+          title="Spaces"
+        >
+          <Layers3 className="h-4 w-4" />
+        </Button>
+      </div>
+    );
+  }
+
   return (
-    <div className={`${isSpacesExpanded ? 'border border-sidebar-border rounded-lg overflow-hidden' : ''}`}>
+    <div className={`${isSpacesExpanded ? 'border border-sidebar-border rounded-sm overflow-hidden' : ''}`}>
       {/* Collapsible Spaces Header */}
       <Collapsible open={isSpacesExpanded} onOpenChange={setIsSpacesExpanded}>
         <CollapsibleTrigger asChild>
           <Button
             variant="ghost"
-            className={`w-full justify-between h-8 px-3 py-1 text-xs font-medium text-sidebar-foreground hover:text-sidebar-foreground hover:bg-sidebar-accent/50 border-0 focus-visible:ring-0 focus-visible:ring-offset-0 group ${isSpacesExpanded ? 'rounded-t-lg rounded-b-none' : 'rounded-lg'}`}
+            className={`w-full justify-between h-8 px-2 py-1 text-xs font-medium text-sidebar-foreground hover:rounded-sm hover:text-sidebar-foreground hover:bg-sidebar-accent/50 border-0 focus-visible:ring-0 focus-visible:ring-offset-0 group ${isSpacesExpanded ? 'rounded-sm border-b' : 'rounded-sm'}`}
           >
             <div className="flex items-center gap-2">
               <Layers3 className="size-3.5" />
-              <span>SPACES</span>
+              <span>Spaces</span>
               <div className="opacity-0 group-hover:opacity-100">
                 {isSpacesExpanded ? 
                   <ChevronDown className="size-3" /> : 
@@ -40,7 +56,7 @@ export function Structure({ spaces, onAddNewSpace }: StructureProps) {
         </CollapsibleTrigger>
         
         <CollapsibleContent>
-          <div className="space-y-0.5 p-1 border-t border-sidebar-border rounded-t-md">
+          <div className="space-y-0.5 p-1 border-sidebar-border rounded-t-md">
             {/* Existing spaces */}
             {spaces.map((space) => (
               <SpaceNodeComponent

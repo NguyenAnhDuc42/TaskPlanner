@@ -1,14 +1,17 @@
 import { useState } from "react";
-import { ChevronRight, ChevronDown, MoreHorizontal, Plus } from "lucide-react";
-
-
+import { ChevronRight, ChevronDown, MoreHorizontal, Plus  } from "lucide-react";
+import { Button } from "@/components/ui/button"; // Original import path
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"; // Original import path
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"; // Original import path
 import type { SpaceNode as SpaceNodeType } from "@/features/workspace/workspacetype";
 import { FolderNode } from "./folder-node";
 import { ListNode } from "./list-node";
 import React from "react";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { Button } from "@/components/ui/button";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
 export type SpaceContext = {
   spaceId: string;
@@ -51,7 +54,7 @@ export function SpaceNode({ space, onClick }: SpaceNodeProps) {
                           className="size-4 rounded text-xs flex items-center justify-center text-white font-medium"
                           style={{ backgroundColor: space.color }}
                         >
-                          {space.icon}
+                          {space.icon }
                         </div>
                       </div>
                       <div className="hidden group-hover/item:block">

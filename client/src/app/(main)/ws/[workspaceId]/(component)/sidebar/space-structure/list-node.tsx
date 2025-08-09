@@ -1,18 +1,11 @@
+import { List, MoreHorizontal, Plus } from "lucide-react";
 
-import { List, MoreHorizontal } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import type { ListNode as ListNodeType } from "@/features/workspace/workspacetype";
 import Link from "next/link";
 import { useWorkspaceStore } from "@/utils/workspace-store";
-import { CreateTaskButton } from "@/components/sidebar/forms/create-task-form";
 import React from "react";
-import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
 export type ListContext = {
   spaceId: string;
@@ -23,13 +16,11 @@ export type ListContext = {
 interface ListNodeProps {
   list: ListNodeType;
   context: ListContext;
-  isUnderFolder?: boolean;
   onClick?: () => void;
 }
 
-export function ListNode({ list, context, isUnderFolder = false, onClick }: ListNodeProps) {
+export function ListNode({ list, context, onClick }: ListNodeProps) {
   const { selectedWorkspaceId } = useWorkspaceStore();
-  const [showCreateTaskModal, setShowCreateTaskModal] = React.useState(false);
 
   const listUrl = selectedWorkspaceId
     ? `/ws/${selectedWorkspaceId}/l/${context.listId}`
@@ -37,8 +28,7 @@ export function ListNode({ list, context, isUnderFolder = false, onClick }: List
 
   return (
     <div className="relative">
-      {/* Horizontal connecting line to parent */}
-      <div className={cn(`absolute top-3.5 w-3 h-px bg-sidebar-border/30`, isUnderFolder ? 'left-[-0.5rem]' : 'left-[-0.5rem]')} />
+
       
       <div className="flex items-center group/list hover:bg-sidebar-accent/50 rounded">
         <Button
@@ -72,15 +62,16 @@ export function ListNode({ list, context, isUnderFolder = false, onClick }: List
             </DropdownMenuContent>
           </DropdownMenu>
           
-          <CreateTaskButton
-            listContext={context}
-            listName={list.name}
-            isOpen={showCreateTaskModal}
-            onOpenChange={setShowCreateTaskModal}
-          />
+          <Button
+            variant="ghost"
+            size="icon"
+            className="size-5 hover:bg-sidebar-accent mr-1 rounded focus-visible:ring-0 focus-visible:ring-offset-0"
+            title="Add task to list"
+          >
+            <Plus className="size-3" />
+          </Button>
         </div>
       </div>
     </div>
   );
 }
-  

@@ -28,8 +28,6 @@ export function FolderNode({ folder, context, onClick }: FolderNodeProps) {
     <div className="space-y-0">
       <Collapsible open={isOpen} onOpenChange={setIsOpen}>
         <div className="relative">
-          {/* Horizontal connecting line to parent */}
-          <div className="absolute left-[-0.5rem] top-3.5 w-3 h-px bg-sidebar-border/30" />
           
           <div className="flex items-center group/folder hover:bg-sidebar-accent/50 rounded">
             <CollapsibleTrigger asChild>
@@ -100,7 +98,7 @@ export function FolderNode({ folder, context, onClick }: FolderNodeProps) {
           <CollapsibleContent className="space-y-0">
             <div className="relative">
               {/* Vertical connecting line for folder children */}
-              <div className="absolute left-1.5 top-0 bottom-0 w-px bg-sidebar-border/30" />
+              <div className="absolute left-3.25 top-0 bottom-0 w-px bg-sidebar-border/30" />
               
               <div className="ml-4 pl-2 space-y-0">
                 {folder.lists.map(list => (
@@ -108,7 +106,6 @@ export function FolderNode({ folder, context, onClick }: FolderNodeProps) {
                     key={list.id}
                     list={list}
                     context={{ ...folderContext, listId: list.id }}
-                    isUnderFolder={true}
                   />
                 ))}
               </div>

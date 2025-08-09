@@ -18,8 +18,9 @@ import { SidebarNavItem } from "./sidebar-nav-item";
 import { SidebarUserMenu } from "./sidebar-user-menu";
 import { useLogout, useUser } from "@/features/auth/hooks";
 import { WorkspaceSwitcher } from "./workspace-switcher";
-import { useSidebarWorkspaces } from "@/features/workspace/workspace-hooks";
+import { useHierarchy, useSidebarWorkspaces } from "@/features/workspace/workspace-hooks";
 import { useWorkspaceId } from "../../../../../../utils/currrent-layer-id";
+import { Structure } from "./space-structure/structure-holder";
 
 const navigationItems = [
   {
@@ -50,6 +51,7 @@ export function WorkspaceSidebar() {
   const { toggleSidebar, state } = useSidebar();
   const { data: user, error: userError, isLoading: isUserLoading } = useUser();
   const {data : workspace ,error : workspaceError, isLoading : isWorkspaceLoading} = useSidebarWorkspaces(workspaceId);
+  const { data: hierarchy, error: hierarchyError, isLoading: isHierarchyLoading } = useHierarchy(workspaceId);
   const { mutate: logout } = useLogout();
   
   const handleSidebarClick = (e: React.MouseEvent) => {
@@ -68,7 +70,7 @@ export function WorkspaceSidebar() {
     }
   };
 
-  if (!isClient || isUserLoading || isWorkspaceLoading) {
+  if (!isClient || isUserLoading || isWorkspaceLoading || isHierarchyLoading) {
     return <div className="w-72 h-screen bg-background border-r animate-pulse" />;
   }
 
@@ -79,13 +81,14 @@ export function WorkspaceSidebar() {
       </div>
     );
   }
-  if (workspaceError || !workspace) {
+  if (workspaceError || !workspace || hierarchyError || !hierarchy) {
     return (
       <div className="p-4 text-red-500">
         <p>Error: Could not load workspace data.</p>
       </div>
     )
   }
+  
  
   return (
     <Sidebar
@@ -99,7 +102,7 @@ export function WorkspaceSidebar() {
           e.stopPropagation();
           toggleSidebar();
         }}
-        className="h-12 w-4 absolute top-1/2 -right-2 z-50 rounded-sm bg-background/80 backdrop-blur-sm border border-border hover:bg-accent transition-all duration-200"
+        className="h-12 w-3 absolute top-1/2 -right-[6.50px] z-50 rounded-sm bg-background/80 backdrop-blur-sm border border-border hover:bg-accent transition-all duration-200"
         title="Collapse sidebar" >
         <GripVertical className="size-4" />
       </Button>
@@ -123,6 +126,7 @@ export function WorkspaceSidebar() {
                 />
               ))}
             </SidebarMenu>
+            <Structure spaces={hierarchy.spaces} isSidebarCollapsed={state === "collapsed"} />
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
