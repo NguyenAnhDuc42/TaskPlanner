@@ -13,7 +13,7 @@ export default function WorkspaceLayout({ children,}: Readonly<{ children: React
               <SidebarInset className="relative">
                   <div className="min-h-screen w-full">
                     <div className="absolute top-6 left-6 right-6 bottom-6">
-                      <div className="bg-card border border-border rounded-2xl shadow-lg h-full p-8 overflow-auto">
+                      <div className="bg-card border border-border rounded-2xl shadow-lg h-full overflow-auto">
                         {children}
                       </div>
                     </div>

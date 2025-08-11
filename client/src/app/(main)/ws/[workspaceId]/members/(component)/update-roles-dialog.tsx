@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/dialog"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Label } from "@/components/ui/label"
-import { getRoleProperties, type Role } from "@/utils/role-utils"
+import { Role, mapRoleToBadge } from "@/utils/role-utils"
 import type { UserSummary } from "@/types/user"
 
 interface UpdateRolesDialogProps {
@@ -30,7 +30,7 @@ export function UpdateRolesDialog({
   onUpdateRoles,
   isLoading,
 }: UpdateRolesDialogProps) {
-  const [selectedRole, setSelectedRole] = useState<Role>("member")
+  const [selectedRole, setSelectedRole] = useState<Role>(Role.Member)
 
   const handleUpdateRoles = async () => {
     try {
@@ -41,7 +41,7 @@ export function UpdateRolesDialog({
     }
   }
 
-  const allRoles: Role[] = ["owner", "admin", "member", "guest"]
+  const allRoles = Object.values(Role) // ['Owner', 'Admin', 'Member', 'Guest']
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -49,7 +49,8 @@ export function UpdateRolesDialog({
         <DialogHeader>
           <DialogTitle>Update Member Roles</DialogTitle>
           <DialogDescription className="text-gray-400">
-            Update the role for {selectedMembers.length} selected member{selectedMembers.length !== 1 ? "s" : ""}.
+            Update the role for {selectedMembers.length} selected member
+            {selectedMembers.length !== 1 ? "s" : ""}.
           </DialogDescription>
         </DialogHeader>
 
@@ -61,7 +62,7 @@ export function UpdateRolesDialog({
               {selectedMembers.map((member) => (
                 <div key={member.id} className="flex items-center justify-between py-1">
                   <span className="text-sm text-gray-300">{member.name}</span>
-                  <span className="text-xs text-gray-500 capitalize">{member.role}</span>
+                  <span className="text-xs text-gray-500">{member.role}</span>
                 </div>
               ))}
             </div>
@@ -76,18 +77,28 @@ export function UpdateRolesDialog({
               className="space-y-3"
             >
               {allRoles.map((role) => {
-                const { label, description, color } = getRoleProperties(role)
+                const { roleName, badgeClasses } = mapRoleToBadge(role)
                 return (
                   <div key={role} className="flex items-start space-x-3">
-                    <RadioGroupItem value={role} id={`role-${role}`} className="mt-1 border-gray-600 text-white" />
+                    <RadioGroupItem
+                      value={role}
+                      id={`role-${role}`}
+                      className="mt-1 border-gray-600 text-white"
+                    />
                     <div className="flex-1 space-y-1">
                       <div className="flex items-center gap-2">
                         <Label htmlFor={`role-${role}`} className="text-white cursor-pointer">
-                          {label}
+                          {roleName}
                         </Label>
-                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${color}`}>{label}</span>
+                        <span
+                          className={`px-2 py-1 rounded-full text-xs font-medium ${badgeClasses}`}
+                        >
+                          {roleName}
+                        </span>
                       </div>
-                      <p className="text-sm text-gray-400">{description}</p>
+                      <p className="text-sm text-gray-400">
+                        {`Grant ${roleName.toLowerCase()} permissions to selected members.`}
+                      </p>
                     </div>
                   </div>
                 )
@@ -104,7 +115,11 @@ export function UpdateRolesDialog({
           >
             Cancel
           </Button>
-          <Button onClick={handleUpdateRoles} disabled={isLoading} className="bg-blue-600 hover:bg-blue-700 text-white">
+          <Button
+            onClick={handleUpdateRoles}
+            disabled={isLoading}
+            className="bg-blue-600 hover:bg-blue-700 text-white"
+          >
             {isLoading ? "Updating..." : "Update Roles"}
           </Button>
         </DialogFooter>

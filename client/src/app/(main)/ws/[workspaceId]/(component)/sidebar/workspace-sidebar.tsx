@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { usePathname } from "next/navigation";
 import {
   Sidebar,
   SidebarContent,
@@ -12,7 +13,7 @@ import {
   SidebarRail,
   useSidebar,
 } from "@/components/ui/sidebar";
-import { Home, Users, FolderOpen, GripVertical } from "lucide-react";
+import { Home, Users, GripVertical } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SidebarNavItem } from "./sidebar-nav-item";
 import { SidebarUserMenu } from "./sidebar-user-menu";
@@ -21,25 +22,7 @@ import { WorkspaceSwitcher } from "./workspace-switcher";
 import { useHierarchy, useSidebarWorkspaces } from "@/features/workspace/workspace-hooks";
 import { useWorkspaceId } from "../../../../../../utils/currrent-layer-id";
 import { Structure } from "./space-structure/structure-holder";
-
-const navigationItems = [
-  {
-    title: "Dashboard",
-    icon: Home,
-    href: "#",
-    isActive: true,
-  },
-  {
-    title: "Members",
-    icon: Users,
-    href: "#",
-  },
-  {
-    title: "Spaces",
-    icon: FolderOpen,
-    href: "#",
-  },
-];
+import { WorkspaceSidebarSkeleton } from "./workspace-sidebar-skeleton";
 
 export function WorkspaceSidebar() {
   const [isClient, setIsClient] = useState(false);
@@ -48,6 +31,7 @@ export function WorkspaceSidebar() {
   }, []);
 
   const workspaceId = useWorkspaceId();
+  const pathname = usePathname();
   const { toggleSidebar, state } = useSidebar();
   const { data: user, error: userError, isLoading: isUserLoading } = useUser();
   const {data : workspace ,error : workspaceError, isLoading : isWorkspaceLoading} = useSidebarWorkspaces(workspaceId);
@@ -71,7 +55,7 @@ export function WorkspaceSidebar() {
   };
 
   if (!isClient || isUserLoading || isWorkspaceLoading || isHierarchyLoading) {
-    return <div className="w-72 h-screen bg-background border-r animate-pulse" />;
+    return <WorkspaceSidebarSkeleton />;
   }
 
   if (userError || !user) {
@@ -114,17 +98,21 @@ export function WorkspaceSidebar() {
       <SidebarContent className="bg-background">
         <SidebarGroup>
           <SidebarGroupContent>
-            <SidebarMenu>
-              {navigationItems.map((item) => (
-                <SidebarNavItem
-                  key={item.title}
-                  title={item.title}
-                  icon={item.icon}
-                  href={item.href}
-                  isActive={item.isActive}
-                  onClick={handleMenuItemClick}
-                />
-              ))}
+            <SidebarMenu className="mb-1">
+              <SidebarNavItem
+                title="Dashboard"
+                icon={Home}
+                href={`/ws/${workspaceId}`}
+                isActive={pathname === `/ws/${workspaceId}`}
+                onClick={handleMenuItemClick}
+              />
+              <SidebarNavItem
+                title="Members"
+                icon={Users}
+                href={`/ws/${workspaceId}/members`}
+                isActive={pathname === `/ws/${workspaceId}/members`}
+                onClick={handleMenuItemClick}
+              />
             </SidebarMenu>
             <Structure spaces={hierarchy.spaces} isSidebarCollapsed={state === "collapsed"} />
           </SidebarGroupContent>

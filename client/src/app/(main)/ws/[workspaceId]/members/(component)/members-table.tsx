@@ -11,6 +11,7 @@ interface MembersTableProps {
   onSelectionChange: (memberId: string, selected: boolean) => void
   onSelectAll: (selected: boolean) => void
   onUpdateRoles: () => void
+  onDeleteMembers: () => void
 }
 
 export function MembersTable({
@@ -19,6 +20,7 @@ export function MembersTable({
   onSelectionChange,
   onSelectAll,
   onUpdateRoles,
+  onDeleteMembers,
 }: MembersTableProps) {
   const allSelected = members.length > 0 && selectedMembers.length === members.length
   const someSelected = selectedMembers.length > 0 && selectedMembers.length < members.length
@@ -34,9 +36,14 @@ export function MembersTable({
               {selectedMembers.length} member{selectedMembers.length !== 1 ? "s" : ""} selected
             </span>
           </div>
-          <Button onClick={onUpdateRoles} className="bg-blue-600 hover:bg-blue-700 text-white">
-            Update Roles
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button onClick={onUpdateRoles} variant="outline">
+              Update Roles
+            </Button>
+            <Button onClick={onDeleteMembers} variant="destructive">
+              Kick
+            </Button>
+          </div>
         </div>
       )}
 

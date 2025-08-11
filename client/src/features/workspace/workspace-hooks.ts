@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   AddMembers,
   CreateWorkspace,
+  DeleteMembers,
   GetDashboardFolders,
   GetDashboardLists,
   GetDashboardTasks,
@@ -160,6 +161,26 @@ export function useUpdateMembers(workspaceId: string | undefined) {
     onError: (error: ErrorResponse) => {
       console.error("Update Members Mutation Error:", error);
       throw error; // Re-throw to let the component handle it
+    },
+  });
+}
+
+export function useDeleteMembers(workspaceId: string | undefined) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (datas: string[]) => {
+      if (!workspaceId) {
+        throw new Error('Workspace ID is required');
+      }
+      return DeleteMembers(workspaceId, datas);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: WORKSPACE_KEYS.members(workspaceId || ""),
+      });
+    },
+    onError: (error: ErrorResponse) => {
+      console.error("Add Members Mutation Error:", error);
     },
   });
 }

@@ -37,7 +37,7 @@ export function Structure({ spaces, onAddNewSpace, isSidebarCollapsed }: Structu
         <CollapsibleTrigger asChild>
           <Button
             variant="ghost"
-            className={`w-full justify-between h-8 px-2 py-1 text-xs font-medium text-sidebar-foreground hover:rounded-sm hover:text-sidebar-foreground hover:bg-sidebar-accent/50 border-0 focus-visible:ring-0 focus-visible:ring-offset-0 group ${isSpacesExpanded ? 'rounded-sm border-b' : 'rounded-sm'}`}
+            className={`w-full justify-between h-8 px-2 py-1 text-sm font-medium text-sidebar-foreground hover:rounded-sm hover:text-sidebar-foreground hover:bg-sidebar-accent/50 border-0 focus-visible:ring-0 focus-visible:ring-offset-0 group ${isSpacesExpanded ? 'rounded-sm border-b' : 'rounded-sm'}`}
           >
             <div className="flex items-center gap-2">
               <Layers3 className="size-3.5" />
