@@ -53,6 +53,13 @@ public class Workspace : Agregate<Guid>
 
     }
 
+    public Space CreateAndAddSpace(string name, string icon, string color, Guid creatorId)
+    {
+        var space = Space.Create(name, icon, color, this.Id, creatorId);
+        this.AddSpace(space);
+        return space;
+    }
+
     public void AddMember(Guid userId, Role role)
     {
         if (Members.Any(m => m.UserId == userId))

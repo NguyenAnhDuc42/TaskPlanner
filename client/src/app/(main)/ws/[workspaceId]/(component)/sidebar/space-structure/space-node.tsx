@@ -52,11 +52,10 @@ export function SpaceNode({ space, onClick }: SpaceNodeProps) {
   }, [space.name]); // Re-check if the name changes
 
   const TriggerButton = (
-    <CollapsibleTrigger asChild>
+    <CollapsibleTrigger asChild >
       <Button
         variant="ghost"
-        className="flex-1 justify-start h-7 px-2 py-1 text-sm hover:bg-transparent group-hover/item:bg-transparent rounded focus-visible:ring-0 focus-visible:ring-offset-0"
-        onClick={() => {
+        className="flex-1 justify-start h-7 px-2 py-1 text-sm rounded focus-visible:ring-0 focus-visible:ring-offset-0 hover:!bg-transparent"        onClick={() => {
           setIsOpen(!isOpen);
           onClick?.();
         }}
@@ -75,11 +74,11 @@ export function SpaceNode({ space, onClick }: SpaceNodeProps) {
                     {space.icon}
                   </div>
                 </div>
-                <div className="hidden hover:bg-accent group-hover/item:block">
+                <div className="hidden hover:bg-accent rounded-sm group-hover/item:block">
                   {isOpen ? (
-                    <ChevronDown className="size-3 text-sidebar-foreground/60" />
+                    <ChevronDown className="size-3 m-1 text-sidebar-foreground/60" />
                   ) : (
-                    <ChevronRight className="size-3 text-sidebar-foreground/60" />
+                    <ChevronRight className="size-3 m-1 text-sidebar-foreground/60" />
                   )}
                 </div>
               </div>

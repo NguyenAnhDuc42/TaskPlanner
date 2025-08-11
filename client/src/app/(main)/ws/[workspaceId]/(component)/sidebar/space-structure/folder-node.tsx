@@ -48,8 +48,7 @@ export function FolderNode({ folder, context, onClick }: FolderNodeProps) {
     <CollapsibleTrigger asChild>
       <Button
         variant="ghost"
-        className="flex-1 justify-start h-7 px-2 py-1 text-sm rounded focus-visible:ring-0 focus-visible:ring-offset-0"
-        onClick={() => {
+        className="flex-1 justify-start h-7 px-2 py-1 text-sm rounded focus-visible:ring-0 focus-visible:ring-offset-0 hover:!bg-transparent"        onClick={() => {
           setIsOpen(!isOpen);
           onClick?.();
         }}
@@ -61,11 +60,11 @@ export function FolderNode({ folder, context, onClick }: FolderNodeProps) {
                 <div className="group-hover/folder:hidden">
                   <Folder className="size-3 text-sidebar-foreground/60" />
                 </div>
-                <div className="hidden hover:bg-accent group-hover/folder:block">
+                <div className="hidden hover:bg-accent rounded-sm group-hover/folder:block">
                   {isOpen ? (
-                    <ChevronDown className="size-3 text-sidebar-foreground/60" />
+                    <ChevronDown className="size-3 m-1 text-sidebar-foreground/60" />
                   ) : (
-                    <ChevronRight className="size-3 text-sidebar-foreground/60" />
+                    <ChevronRight className="size-3 m-1 text-sidebar-foreground/60" />
                   )}
                 </div>
               </div>
@@ -93,7 +92,7 @@ export function FolderNode({ folder, context, onClick }: FolderNodeProps) {
     <div className="space-y-0">
       <Collapsible open={isOpen} onOpenChange={setIsOpen}>
         <div className="relative">
-          <div className="flex items-center group/folder rounded">
+          <div className="flex items-center group/folder hover:bg-sidebar-accent/50 rounded">
             {isOverflowing ? (
               <Tooltip>
                 <TooltipTrigger asChild>{TriggerButton}</TooltipTrigger>
