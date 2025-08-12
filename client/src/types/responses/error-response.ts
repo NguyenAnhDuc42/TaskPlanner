@@ -1,8 +1,6 @@
-export interface ErrorResponse{
-    type:string
-    title:string
-    status:number
-    detail?:string
-    instance?:string
-    extensions?:Record<string,string[]>  
+import { ProblemDetails } from "./problem-details";
+
+export interface ErrorResponse extends ProblemDetails {
+    // No additional properties needed if it's a direct mapping of ProblemDetails
+    // If there were specific error response properties not covered by ProblemDetails, they would go here.
 }

@@ -16,6 +16,7 @@ import { cn } from "@/lib/utils";
 import { useWorkspaceId } from "@/utils/currrent-layer-id";
 import Link from "next/link";
 import React from "react";
+import { IconDisplayer } from "@/components/custom/icon-displayer";
 
 export type SpaceContext = {
   spaceId: string;
@@ -67,12 +68,7 @@ export function SpaceNode({ space, onClick }: SpaceNodeProps) {
               <div className="size-4 flex items-center justify-center">
                 {/* Show arrow on hover, icon by default */}
                 <div className="group-hover/item:hidden">
-                  <div
-                    className="size-4 rounded text-xs flex items-center justify-center text-white font-medium"
-                    style={{ backgroundColor: space.color }}
-                  >
-                    {space.icon}
-                  </div>
+                   <IconDisplayer iconName={space.icon} backgroundColor={space.color} />
                 </div>
                 <div className="hidden hover:bg-accent rounded-sm group-hover/item:block">
                   {isOpen ? (

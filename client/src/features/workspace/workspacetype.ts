@@ -13,34 +13,17 @@ export interface CreateWorkspaceResponse {
   message: string;
 }
 
-export interface AddMembersBody {
-   emails: string[];
-   role : Role
-   
-}
-export interface UpdateMembersBody{
-    memberIds: string[];
-    role: Role;
-}
-export interface AddMembersResponse{
-  emails: string[];
-  message: string;
-}
 
-export interface GroupWorkspace {
-  currentWorkspace: WorkspaceSummary;
-  otherWorkspaces: WorkspaceSummary[];
-}
+//members
+export interface AddMembersBody { emails: string[]; role : Role }
+export interface UpdateMembersBody{ memberIds: string[];  role: Role; }
+export interface AddMembersResponse{ emails: string[];  message: string; }
 
-
-export interface Workspaces {workspaces: Workspace[];}
-export interface Workspace { id: string; name: string; icon: string;}
-
-
-export interface GetHierarchyRequest{id : string}
-
+//sidebar
+export interface GroupWorkspace { currentWorkspace: WorkspaceSummary;  otherWorkspaces: WorkspaceSummary[];}
 
 export interface Hierarchy {spaces : SpaceNode[]}
 export interface SpaceNode {id : string ,name : string,icon : string,color : string, directLists : ListNode[] | null,folders : FolderNode[] | null }
 export interface FolderNode {id : string ,name : string,lists : ListNode[]}
 export interface ListNode{id : string ,name : string}
+

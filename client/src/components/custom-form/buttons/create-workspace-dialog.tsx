@@ -28,7 +28,11 @@ export function CreateWorkspaceDialog({ children }: CreateWorkspaceDialogProps) 
           }
         })}
       </DialogTrigger>
-      <DialogContent className="max-w-md bg-black border-gray-800 text-white">
+      <DialogContent 
+          className="max-w-md bg-black border-gray-800 text-white"
+          onClick={(e) => e.stopPropagation()}
+          onKeyDown={(e) => e.stopPropagation()}
+          onFocus={(e) => e.stopPropagation()}>
         <DialogHeader>
           <DialogTitle className="text-white">Create New Workspace</DialogTitle>
           <DialogDescription className="text-gray-400">

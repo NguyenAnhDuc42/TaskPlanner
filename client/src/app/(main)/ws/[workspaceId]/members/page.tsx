@@ -151,7 +151,7 @@ export default function MembersPage() {
   }
 
   return (
-    <div className="p-6 h-full flex flex-col max-w-7xl mx-auto w-full">
+    <div className="p-6 h-full bg-background flex flex-col max-w mx-auto w-full">
       {/* Non-scrolling Header and Filter Section */}
       <div className="shrink-0 space-y-3">
         <MembersHeader searchQuery={searchQuery} onSearchChange={setSearchQuery} onInviteClick={() => setInviteDialogOpen(true)} onExportClick={handleExport} />

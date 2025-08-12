@@ -1,14 +1,3 @@
-export interface CreateSpaceRequest {
-  workspaceId: string;
-  name: string;
-  icon?: string;
-}
+//spaces
+export interface CreateSpaceBody{ name : string;  icon : string ;  color : string }
 
-export interface CreateSpaceResponse {
-  id: string;
-  message: string;
-}
-
-export interface GetSpaceTasksRequest {
-  spaceId: string;
-}

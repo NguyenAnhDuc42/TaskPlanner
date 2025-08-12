@@ -3,9 +3,6 @@ import {
   AddMembers,
   CreateWorkspace,
   DeleteMembers,
-  GetDashboardFolders,
-  GetDashboardLists,
-  GetDashboardTasks,
   GetHierarchy,
   GetMembers,
   SidebarWorkspaces,
@@ -14,9 +11,7 @@ import {
 
 import { ErrorResponse } from "@/types/responses/error-response";
 import { AddMembersBody, Hierarchy, UpdateMembersBody } from "./workspacetype";
-import { FolderItems } from "@/types/folder";
-import { ListItems } from "@/types/list";
-import { TaskItems } from "@/types/task";
+
 import { UserSummary } from "@/types/user";
 
 export const WORKSPACE_KEYS = {
@@ -46,47 +41,6 @@ export function useCreateWorkspace() {
   });
 }
 
-export function useGetDashboardFolders(workspaceId: string | undefined) {
-  return useQuery<FolderItems, ErrorResponse>({
-    queryKey: workspaceId ? WORKSPACE_KEYS.dashboardFolders(workspaceId) : ["disabled-dashboard-folders-query"],
-    queryFn: async () => {
-      if (!workspaceId) {
-        throw new Error("Workspace ID is required");
-      }
-      return GetDashboardFolders(workspaceId);
-    },
-    enabled: !!workspaceId,
-    staleTime: 5 * 60 * 1000,
-  });
-}
-
-export function useGetDashboardLists(workspaceId: string | undefined) {
-  return useQuery<ListItems, ErrorResponse>({
-    queryKey: workspaceId ? WORKSPACE_KEYS.dashboardLists(workspaceId) : ["disabled-dashboard-lists-query"],
-    queryFn: async () => {
-      if (!workspaceId) {
-        throw new Error("Workspace ID is required");
-      }
-      return GetDashboardLists(workspaceId);
-    },
-    enabled: !!workspaceId,
-    staleTime: 5 * 60 * 1000,
-  });
-}
-
-export function useGetDashboardTasks(workspaceId: string | undefined) {
-  return useQuery<TaskItems, ErrorResponse>({
-    queryKey: workspaceId ? WORKSPACE_KEYS.dashboardTasks(workspaceId) : ["disabled-dashboard-tasks-query"],
-    queryFn: async () => {
-      if (!workspaceId) {
-        throw new Error("Workspace ID is required");
-      }
-      return GetDashboardTasks(workspaceId);
-    },
-    enabled: !!workspaceId,
-    staleTime: 5 * 60 * 1000,
-  });
-}
 
 export function useSidebarWorkspaces(workspaceId : string) {
     return useQuery({
@@ -103,7 +57,7 @@ export function useHierarchy(workspaceId: string | undefined) {
       if (!workspaceId) {
         throw new Error('Workspace ID is required');
       }
-      return GetHierarchy({ id: workspaceId });
+      return GetHierarchy(workspaceId);
     },
     enabled: !!workspaceId,
     staleTime: 5 * 60 * 1000, 

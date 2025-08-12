@@ -26,7 +26,9 @@
   <ItemGroup>
     <Folder Include="Domain\Event\UserEvents\" />
     <Folder Include="Domain\Valueobject\" />
-    <Folder Include="Feature\WorkspaceManager\SpaceRelated\DeleteSpaces\" />
+    <Folder Include="Feature\SpaceManager\DeleteSpaces\" />
+    <Folder Include="Feature\SpaceManager\UpdateSpace\" />
+    <Folder Include="Feature\WorkspaceManager\Dashboard\" />
     <Folder Include="Helper\Exceptions\" />
   </ItemGroup>
 

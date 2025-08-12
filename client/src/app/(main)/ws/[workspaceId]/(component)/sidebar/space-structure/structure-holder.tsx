@@ -4,6 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { SpaceNode as SpaceNodeComponent } from "./space-node";
 import type { SpaceNode } from "@/features/workspace/workspacetype";
+import { CreateSpaceDialog } from "@/components/custom-form/buttons/create-spcace-dialog";
+import { useWorkspaceId } from "@/utils/currrent-layer-id";
 
 interface StructureProps {
   spaces: SpaceNode[];
@@ -12,6 +14,7 @@ interface StructureProps {
 }
 
 export function Structure({ spaces, onAddNewSpace, isSidebarCollapsed }: StructureProps) { // Added new prop
+  const workspaceId = useWorkspaceId();
   const [isSpacesExpanded, setIsSpacesExpanded] = useState(true);
 
   // Conditionally render based on isSidebarCollapsed
@@ -31,13 +34,12 @@ export function Structure({ spaces, onAddNewSpace, isSidebarCollapsed }: Structu
   }
 
   return (
-    <div className={`${isSpacesExpanded ? 'border border-sidebar-border rounded-sm overflow-hidden' : ''}`}>
+    <div className={`${isSpacesExpanded ? 'border border-sidebar-border rounded-sm overflow-hidden' : 'border border-transparent rounded-sm'}`}>
       {/* Collapsible Spaces Header */}
       <Collapsible open={isSpacesExpanded} onOpenChange={setIsSpacesExpanded}>
         <CollapsibleTrigger asChild>
           <Button
-            variant="ghost"
-            className={`w-full justify-between h-8 px-2 py-1 text-sm font-medium text-sidebar-foreground hover:rounded-sm hover:text-sidebar-foreground hover:bg-sidebar-accent/50 border-0 focus-visible:ring-0 focus-visible:ring-offset-0 group ${isSpacesExpanded ? 'rounded-sm border-b' : 'rounded-sm'}`}
+            className={`w-full justify-between h-8 px-2 py-1 text-sm font-medium text-sidebar-foreground bg-transparent hover:rounded-sm hover:text-sidebar-foreground  hover:bg-sidebar-accent  border-0 focus-visible:ring-0 focus-visible:ring-offset-0 group ${isSpacesExpanded ? 'rounded-sm border-b' : 'rounded-sm'}`}
           >
             <div className="flex items-center gap-2">
               <Layers3 className="size-3.5" />
@@ -50,7 +52,16 @@ export function Structure({ spaces, onAddNewSpace, isSidebarCollapsed }: Structu
               </div>
             </div>
             <div className="opacity-0 group-hover:opacity-100">
-              <Plus className="size-3" />
+              <CreateSpaceDialog workspaceId={workspaceId}>
+                <div
+                  role="button"
+                  tabIndex={0}
+                  aria-label="Create space"
+                  className="inline-flex items-center justify-center size-6 hover:bg-sidebar-accent mr-1 rounded cursor-pointer focus:outline-none focus-visible:ring-2"
+                >
+                  <Plus className="size-3" />
+                </div>
+              </CreateSpaceDialog>
             </div>
           </Button>
         </CollapsibleTrigger>
@@ -66,6 +77,7 @@ export function Structure({ spaces, onAddNewSpace, isSidebarCollapsed }: Structu
             ))}
             
             {/* Add new space button */}
+            <CreateSpaceDialog workspaceId={workspaceId}>
             <Button
               variant="ghost"
               className="w-full justify-start h-7 px-2 py-1 text-xs hover:bg-sidebar-accent text-sidebar-foreground/60 hover:text-sidebar-foreground rounded focus-visible:ring-0 focus-visible:ring-offset-0"
@@ -76,6 +88,7 @@ export function Structure({ spaces, onAddNewSpace, isSidebarCollapsed }: Structu
                 <span>Add new space</span>
               </div>
             </Button>
+            </CreateSpaceDialog>
           </div>
         </CollapsibleContent>
       </Collapsible>

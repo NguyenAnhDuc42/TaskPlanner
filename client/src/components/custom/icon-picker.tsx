@@ -1,5 +1,5 @@
 import { useState } from "react";
-
+import React from "react"; // Import React for React.memo
 import {
   Building2,
   Users,
@@ -112,7 +112,7 @@ interface IconPickerProps {
   onChange: (iconName: string) => void;
 }
 
-export function IconPicker({ value, onChange }: IconPickerProps) {
+export const IconPicker = React.memo(function IconPicker({ value, onChange }: IconPickerProps) {
   const [open, setOpen] = useState(false);
   
   const selectedIcon = availableIcons.find(icon => icon.name === value);
@@ -121,15 +121,19 @@ export function IconPicker({ value, onChange }: IconPickerProps) {
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
-        <Button
-          variant="outline"
-          className="w-full justify-start gap-2 bg-gray-900 border-gray-700 text-white hover:bg-gray-800 hover:border-white"
+        <div
+          role="button"
+          tabIndex={0}
+          aria-haspopup="dialog"
+          className="w-full cursor-pointer flex items-center justify-start gap-2 bg-background border-border text-foreground hover:bg-accent hover:text-accent-foreground p-2 rounded"
+          onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setOpen(o => !o); } }}
+          onClick={() => setOpen(o => !o)}
         >
           <SelectedIconComponent className="h-4 w-4" />
           <span>{selectedIcon?.name || "Select Icon"}</span>
-        </Button>
+        </div>
       </PopoverTrigger>
-      <PopoverContent className="w-80 p-0 bg-gray-900 border-gray-700" align="start">
+      <PopoverContent className="w-80 p-0 bg-popover border-border" align="start">
         <ScrollArea className="h-64">
           <div className="grid grid-cols-6 gap-2 p-4">
             {availableIcons.map((iconItem) => {
@@ -139,8 +143,8 @@ export function IconPicker({ value, onChange }: IconPickerProps) {
                   key={iconItem.name}
                   variant="ghost"
                   size="sm"
-                  className={`h-10 w-10 p-0 hover:bg-gray-800 ${
-                    value === iconItem.name ? "bg-white text-black" : "text-white"
+                  className={`h-10 w-10 p-0 hover:bg-accent hover:text-accent-foreground ${
+                    value === iconItem.name ? "bg-primary text-primary-foreground" : "text-foreground"
                   }`}
                   onClick={() => {
                     onChange(iconItem.name);
@@ -156,4 +160,4 @@ export function IconPicker({ value, onChange }: IconPickerProps) {
       </PopoverContent>
     </Popover>
   );
-}
+});

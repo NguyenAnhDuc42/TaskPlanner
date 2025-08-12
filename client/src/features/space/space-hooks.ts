@@ -1,38 +1,29 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { createSpace, getSpaceTasks } from "./space-api";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+
 import { WORKSPACE_KEYS } from "../workspace/workspace-hooks";
 import { toast } from "sonner";
-import { ErrorResponse } from "@/types/responses/error-response";
-import { TaskSumary } from "@/types/task";
+import { CreateSpace } from "./space-api";
+import { CreateSpaceBody } from "./space-type";
+import { ProblemDetails } from "@/types/responses/problem-details";
+
 
 export const SPACE_KEYS = {
     all: ["spaces"] as const,
-    tasks: (spaceId: string) => [...SPACE_KEYS.all, spaceId, "tasks"] as const,
 } as const;
 
 export function useCreateSpace() {
     const queryClient = useQueryClient();
     return useMutation({
-        mutationFn: createSpace,
+        mutationFn: ({ workspaceId, body }: { workspaceId: string; body: CreateSpaceBody }) => CreateSpace(workspaceId, body),
         onSuccess: (data, variables) => {
-            toast.success(data.message || "Space created successfully!");
+            toast.success(`Space created successfully with ID: ${data}`); 
             queryClient.invalidateQueries({
                 queryKey: WORKSPACE_KEYS.hierarchy(variables.workspaceId)
             });
+            // TODO: Consider direct cache update for immediate UI feedback or navigation to the new space
         },  
-        onError: (error: ErrorResponse) => {
+        onError: (error: ProblemDetails) => {
             toast.error(error.detail || error.title || "Failed to create space.");
         }
-    });
-}
-
-export function useSpaceTasks(spaceId: string | undefined) {
-    return useQuery<TaskSumary[], ErrorResponse>({
-        queryKey: spaceId ? SPACE_KEYS.tasks(spaceId) : ["disabled-space-tasks-query"],
-        queryFn: () => {
-            if (!spaceId) throw new Error("Space ID is required to fetch tasks.");
-            return getSpaceTasks({ spaceId });
-        },
-        enabled: !!spaceId,
     });
 }

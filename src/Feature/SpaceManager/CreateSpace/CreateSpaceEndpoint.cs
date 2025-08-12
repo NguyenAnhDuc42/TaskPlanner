@@ -1,17 +1,16 @@
-using System;
+
 using Microsoft.AspNetCore.Mvc;
 using src.Feature.SpaceManager.CreateSpace;
-using src.Helper.Results;
 
-namespace src.Feature.SpaceManager;
+namespace src.Feature.WorkspaceManager;
 
-public partial class SpaceController
+public partial class WorkspaceController
 {
-    [HttpPost]
-    public async Task<IActionResult> Create(CreateSpaceRequest request)
+    [HttpPost("{workspaceId}/spaces")]
+    public async Task<IActionResult> CreateSpace([FromRoute]Guid workspaceId,[FromBody] CreateSpaceBody body)
     {
-        var result = await _mediator.Send(request);
-        return result.ToApiResult();
+        var request = new CreateSpaceRequest(workspaceId, body);
+        var spaceId = await _mediator.Send(request);
+        return Created($"/api/workspaces/{workspaceId}/spaces/{spaceId}", spaceId);
     }
-
 }

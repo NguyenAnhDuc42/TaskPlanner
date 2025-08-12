@@ -1,10 +1,11 @@
 using System;
-using System.Net;
-using System.Text.Json;
+using System.Net; 
+using System.Text.Json; 
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
-using src.Helper.Results;
+using FluentValidation; 
 
 namespace src.Helper.Middleware;
 
@@ -29,13 +30,38 @@ public class GlobalExceptionHandlingMiddleware
         {
             _logger.LogError(ex, "An unhandled exception has occurred: {Message}", ex.Message);
 
-            context.Response.StatusCode = (int)HttpStatusCode.InternalServerError;
             context.Response.ContentType = "application/problem+json";
+            
+            var problemDetails = new ProblemDetails
+            {
+                Instance = context.Request.Path 
+            };
+            switch (ex)
+            {
+                case UnauthorizedAccessException unauthorizedAccessException:
+                    problemDetails.Status = (int)HttpStatusCode.Unauthorized;
+                    problemDetails.Title = "Unauthorized";
+                    problemDetails.Detail = unauthorizedAccessException.Message;
+                    break;
+                case ValidationException validationException:
+                    problemDetails.Status = (int)HttpStatusCode.BadRequest;
+                    problemDetails.Title = "Validation Error";
+                    problemDetails.Extensions["errors"] = validationException.Errors
+                        .GroupBy(e => e.PropertyName)
+                        .ToDictionary(
+                            g => g.Key,
+                            g => g.Select(e => e.ErrorMessage).ToArray()
+                        );
+                    break;
+                default:
+                    problemDetails.Status = (int)HttpStatusCode.InternalServerError;
+                    problemDetails.Title = "Internal Server Error";
+                    problemDetails.Detail = "An unexpected error occurred.";
+                    break;
+            }
 
-            var errorResponse = ErrorResponse.Internal("An unexpected error occurred on the server. Please try again later.");
-
-            var jsonResponse = JsonSerializer.Serialize(errorResponse);
-            await context.Response.WriteAsync(jsonResponse);
+            context.Response.StatusCode = problemDetails.Status.Value;
+            await context.Response.WriteAsJsonAsync(problemDetails, problemDetails.GetType()); 
         }
     }
 }
