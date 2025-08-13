@@ -28,7 +28,6 @@
     <Folder Include="Domain\Valueobject\" />
     <Folder Include="Feature\SpaceManager\DeleteSpaces\" />
     <Folder Include="Feature\SpaceManager\UpdateSpace\" />
-    <Folder Include="Feature\WorkspaceManager\Dashboard\" />
     <Folder Include="Helper\Exceptions\" />
   </ItemGroup>
 

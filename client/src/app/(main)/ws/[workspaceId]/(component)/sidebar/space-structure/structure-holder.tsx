@@ -5,7 +5,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { SpaceNode as SpaceNodeComponent } from "./space-node";
 import type { SpaceNode } from "@/features/workspace/workspacetype";
 import { CreateSpaceDialog } from "@/components/custom-form/buttons/create-spcace-dialog";
-import { useWorkspaceId } from "@/utils/currrent-layer-id";
+import { useWorkspaceId } from "@/utils/current-layer-id";
 
 interface StructureProps {
   spaces: SpaceNode[];

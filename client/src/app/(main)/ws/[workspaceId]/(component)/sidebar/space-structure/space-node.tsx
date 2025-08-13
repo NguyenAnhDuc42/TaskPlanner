@@ -13,7 +13,7 @@ import type { SpaceNode as SpaceNodeType } from "@/features/workspace/workspacet
 import { FolderNode } from "./folder-node";
 import { ListNode } from "./list-node";
 import { cn } from "@/lib/utils";
-import { useWorkspaceId } from "@/utils/currrent-layer-id";
+import { useWorkspaceId } from "@/utils/current-layer-id";
 import Link from "next/link";
 import React from "react";
 import { IconDisplayer } from "@/components/custom/icon-displayer";

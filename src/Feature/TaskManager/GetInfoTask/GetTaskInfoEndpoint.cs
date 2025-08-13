@@ -7,7 +7,7 @@ using src.Helper.Results;
 
 namespace src.Feature.TaskManager
 {
-    public partial class TaskController
+    public partial class TasksController
     {
         [HttpGet("{id}")]
         [Authorize(Policy = "ViewTask")]

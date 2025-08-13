@@ -20,7 +20,7 @@ import { SidebarUserMenu } from "./sidebar-user-menu";
 import { useLogout, useUser } from "@/features/auth/hooks";
 import { WorkspaceSwitcher } from "./workspace-switcher";
 import { useHierarchy, useSidebarWorkspaces } from "@/features/workspace/workspace-hooks";
-import { useWorkspaceId } from "../../../../../../utils/currrent-layer-id";
+import { useWorkspaceId } from "../../../../../../utils/current-layer-id";
 import { Structure } from "./space-structure/structure-holder";
 import { WorkspaceSidebarSkeleton } from "./workspace-sidebar-skeleton";
 

@@ -9,7 +9,7 @@ import { InviteMembersDialog } from "@/app/(main)/ws/[workspaceId]/members/(comp
 import { useAddMembers, useDeleteMembers, useGetMembers, useUpdateMembers } from "@/features/workspace/workspace-hooks"
 import type { Role } from "@/utils/role-utils"
 import { UpdateRolesDialog } from "./(component)/update-roles-dialog"
-import { useWorkspaceId } from "@/utils/currrent-layer-id"
+import { useWorkspaceId } from "@/utils/current-layer-id"
 import { MembersTableSkeleton } from "./(component)/members-table-skeleton"
 import { MembersEmptyState } from "./(component)/members-empty-state"
 import { DeleteMembersDialog } from "./(component)/delete-members-dialog"

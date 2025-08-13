@@ -6,7 +6,7 @@ using src.Helper.Results;
 
 namespace src.Feature.TaskManager;
 
-public partial class TaskController
+public partial class TasksController
 {
     [HttpPost]
     [Authorize(Policy = "CreateTask")]

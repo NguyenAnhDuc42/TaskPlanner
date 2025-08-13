@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
-import { useWorkspaceId } from "@/utils/currrent-layer-id";
+import { useWorkspaceId } from "@/utils/current-layer-id";
 import Link from "next/link";
 
 export type FolderContext = {

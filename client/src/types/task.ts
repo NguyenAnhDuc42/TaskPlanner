@@ -33,25 +33,8 @@ export enum StatusType {
 export interface TaskSummary {
   id: string;
   name: string;
-  priority: number;
+  priority: Priority;
   dueDate: string | null;
   assignees: UserSummary[];
 }
 
-export interface Assignee {
-  id: string;
-  name: string;
-  email: string;
-}
-export interface TaskItem {
-  id: string;
-  name: string;
-  dueDate: string | null;
-  status: Status;
-  priority: number;
-  assignees: Assignee[];
-}
-
-export interface TaskItems {
-  tasks: TaskItem[];
-}

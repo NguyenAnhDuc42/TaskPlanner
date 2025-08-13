@@ -21,6 +21,7 @@ public record class TaskDetail(
     Guid CreatorId
 );
 
-
+public record class TasksSummary(List<TaskSummary> tasks);
+public record TasksMetadata( int TotalEstimatedHours, int OverdueCount, Dictionary<Priority, int> PriorityBreakdown);
 public record class TaskSummary(Guid Id, string Name, DateTime? DueDate, Priority Priority, List<UserSummary> assignees);
 
