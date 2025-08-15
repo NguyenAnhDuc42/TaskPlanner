@@ -1,6 +1,8 @@
 import apiClient from "@/lib/api-client";
-import {  CreateTaskRequest, CreateTaskResponse, DeleteTaskResponse, UpdateTaskBodyRequest, UpdateTaskResponse } from "./task-type";
-import { TaskDetail } from "@/types/task";
+import {  CreateTaskRequest, CreateTaskResponse} from "./task-type";
+import { TasksSummary } from "@/types/task";
+import { TaskQuery } from "@/types/query/taskquery";
+import { PagedResult } from "@/types/pagedresult";
 
 export const CreateTask  = async (data : CreateTaskRequest) : Promise<CreateTaskResponse> =>{
     const response = await apiClient.post<CreateTaskResponse>("/task", data);
@@ -8,18 +10,9 @@ export const CreateTask  = async (data : CreateTaskRequest) : Promise<CreateTask
 }
 
 
-
-export const UpdateTask = async ({id,data}: {id : string, data : UpdateTaskBodyRequest}) : Promise<UpdateTaskResponse> => {
-    const rep = await apiClient.put<UpdateTaskResponse>(`/task/${id}`, data);
-    return rep.data;
-}
-
-export const DeleteTask = async (id : string) : Promise<DeleteTaskResponse> => {
-    const rep = await apiClient.delete<DeleteTaskResponse>(`/task/${id}`);
-    return rep.data;
-}
-
-export const GetTask = async (id : string) : Promise<TaskDetail> => {
-    const rep = await apiClient.get<TaskDetail>(`/task/${id}`);
-    return rep.data;
-}
+export const GetTasks = async (query: TaskQuery): Promise<PagedResult<TasksSummary>> => {
+  const response = await apiClient.get<PagedResult<TasksSummary>>('/tasks', {
+    params: query,
+  });
+  return response.data;
+};

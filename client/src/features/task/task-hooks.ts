@@ -1,8 +1,9 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useInfiniteQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { ErrorResponse } from "@/types/responses/error-response";   
-import { CreateTask, DeleteTask, GetTask, UpdateTask } from "./task-api";
+import { ErrorResponse } from "@/types/responses/error-response";
+import { CreateTask, GetTasks } from "./task-api";
 import { LIST_KEYS } from "../list/list-hooks";
+import { TaskQuery } from "@/types/query/taskquery";
 
 export const TASK_KEYS = {
   all: ["tasks"] as const,
@@ -10,20 +11,12 @@ export const TASK_KEYS = {
   detail: (id: string) => [...TASK_KEYS.details(), id] as const,
 } as const;
 
-export function useGetTask(taskId?: string) {
-  return useQuery({
-    queryKey: TASK_KEYS.detail(taskId!),
-    queryFn: () => GetTask(taskId!),
-    enabled: !!taskId,
-  });
-}
-
 export function useCreateTask() {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: CreateTask,
-    onSuccess: (data,variables) => {
+    onSuccess: (data, variables) => {
       toast.success(data.message || "Task created successfully!");
       queryClient.invalidateQueries({
         queryKey: LIST_KEYS.tasks(variables.listId),
@@ -35,38 +28,24 @@ export function useCreateTask() {
   });
 }
 
-export function useUpdateTask() {
-  const queryClient = useQueryClient();
+export const useInfiniteTasks = (query: TaskQuery) => {
+  // The call to useInfiniteQuery is safely inside our custom hook.
+  // This follows the Rules of Hooks.
+  const queryResult = useInfiniteQuery({
+    // The queryKey uniquely identifies this query based on its filters.
+    queryKey: ['tasks', query],
 
-  return useMutation({
-    mutationFn: UpdateTask,
-    onSuccess: (data) => {
-      toast.success(data.message || "Task updated successfully!");
-      queryClient.invalidateQueries({
-        queryKey: LIST_KEYS.tasks(data.task.listId),
-      });
-          queryClient.invalidateQueries({
-        queryKey: TASK_KEYS.detail(data.task.id),
-      });
+    // The queryFn calls our API function, passing the cursor.
+    queryFn: ({ pageParam = null}) => GetTasks({ ...query, cursor: pageParam}),
+
+    // This function tells the hook how to get the cursor for the next page.
+    getNextPageParam: (lastPage) => {
+      return lastPage.hasNextPage ? lastPage.nextCursor : undefined;
     },
-    onError: (error: ErrorResponse) => {
-      toast.error(error.detail || error.title || "Failed to update task.");
-    },
+
+    // The first page has no cursor.
+    initialPageParam: null as string | null,
   });
-}
 
-export function useDeleteTask() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: DeleteTask,
-    onSuccess: (data, deletedTaskId) => {
-      toast.success(data.message || "Task deleted.");
-      queryClient.invalidateQueries({ queryKey: LIST_KEYS.all });
-      queryClient.removeQueries({ queryKey: TASK_KEYS.detail(deletedTaskId) });
-    },
-    onError: (error: ErrorResponse) => {
-      toast.error(error.detail || error.title || "Failed to delete task.");
-    },
-  });
-}
+  return queryResult;
+};
