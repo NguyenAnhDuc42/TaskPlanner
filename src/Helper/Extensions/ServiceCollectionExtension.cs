@@ -7,6 +7,7 @@ using src.Infrastructure.Abstractions.IServices;
 using src.Infrastructure.Data;
 using src.Infrastructure.Data.Repositories;
 using src.Infrastructure.Services;
+using src.Infrastructure.Services.Query;
 
 namespace src.Helper.Extensions;
 
@@ -38,6 +39,10 @@ public static class ServiceCollectionExtension
         services.AddScoped<ICurrentUserService, CurrentUserService>();
         services.AddScoped<IHierarchyRepository, HierarchyRepository>();
         services.AddScoped<IPermissionService, PermissionService>();
+
+        // Query Services
+        services.AddScoped<TasksQueryService, TasksQueryService>();
+
 
      
 
