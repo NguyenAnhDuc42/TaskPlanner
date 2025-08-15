@@ -4,14 +4,20 @@ import { useState, useMemo, useEffect } from "react"
 import { useParams } from "next/navigation"
 import { useInView } from "react-intersection-observer"
 import { useInfiniteTasks } from "@/features/task/task-hooks"
-import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Settings, Maximize2, MoreHorizontal, User, Loader2 } from "lucide-react"
 import { Priority, mapPriorityToBadge } from "@/utils/priority-utils"
-import { formatDate } from "@/utils/format-date"
+import { PriorityBadge } from "@/components/custom/priority-badge"
 
-
+const formatDate = (dueDate: string | null) => {
+  if (!dueDate) return ""
+  return new Date(dueDate).toLocaleDateString("en-US", {
+    month: "numeric",
+    day: "numeric",
+    year: "numeric",
+  })
+}
 
 export function PriorityTaskList() {
   const params = useParams()
@@ -97,42 +103,55 @@ export function PriorityTaskList() {
                   </div>
                 ) : status === "error" ? (
                   <div className="text-center py-8 text-red-500">Error: {error.message}</div>
-                ) : tasks.length === 0 ? (
-                  <div className="text-center py-8 text-gray-500">
-                    {showAssignedToMe
-                      ? `No ${priority.toLowerCase()} priority tasks assigned to you`
-                      : `No ${priority.toLowerCase()} priority tasks`}
-                  </div>
                 ) : (
-                  <div className="space-y-1">
-                    {tasks.map((task, index) => {
-                      const { badgeClasses, priorityName } = mapPriorityToBadge(task.priority)
-                      const dueDate = formatDate(task.dueDate)
-                      const isOverdue = task.dueDate && new Date(task.dueDate) < new Date()
+                  <div>
+                    {/* Table Header */}
+                    <div className="grid grid-cols-[1fr_120px_120px] gap-4 px-4 py-2 border-b border-gray-700 text-xs text-gray-400 font-medium">
+                      <div className="col-start-1">Task Name</div>
+                      <div className="text-center">Priority</div>
+                      <div className="text-right">Due Date</div>
+                    </div>
 
-                      const isLastElement = index === tasks.length - 1
-                      const itemRef = isLastElement ? ref : null
+                    {/* Task List */}
+                    {tasks.length === 0 ? (
+                      <div className="text-center py-8 text-gray-500">
+                        {showAssignedToMe
+                          ? `No ${priority.toLowerCase()} priority tasks assigned to you`
+                          : `No ${priority.toLowerCase()} priority tasks`}
+                      </div>
+                    ) : (
+                      <div className="space-y-1 mt-2">
+                        {tasks.map((task, index) => {
+                          const dueDate = formatDate(task.dueDate)
+                          const isOverdue = task.dueDate && new Date(task.dueDate) < new Date()
 
-                      return (
-                        <div ref={itemRef} key={task.id} className="flex items-center py-2 px-2 hover:bg-gray-800 rounded group">
-                          <div className="w-4 h-4 rounded-full border border-gray-600 mr-3 flex-shrink-0"></div>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2 mb-1">
-                              <span className="text-white font-medium truncate">{task.name}</span>
+                          const isLastElement = index === tasks.length - 1
+                          const itemRef = isLastElement ? ref : null
+
+                          return (
+                            <div
+                              ref={itemRef}
+                              key={task.id}
+                              className="grid grid-cols-[1fr_120px_120px] gap-4 items-center py-2 px-4 hover:bg-gray-800 rounded group"
+                            >
+                              <div className="flex items-center gap-3 min-w-0">
+                                <div className="w-4 h-4 rounded-full border border-gray-600 flex-shrink-0"></div>
+                                <span className="text-white font-medium truncate">{task.name}</span>
+                              </div>
+                              <div className="flex justify-center">
+                                <PriorityBadge priority={task.priority} size="sm" />
+                              </div>
+                              <div className={`text-right text-xs ${isOverdue ? "text-red-400" : "text-gray-400"}`}>
+                                {dueDate}
+                              </div>
                             </div>
+                          )
+                        })}
+                        {isFetchingNextPage && (
+                          <div className="flex justify-center items-center py-4">
+                            <Loader2 className="h-6 w-6 animate-spin text-gray-500" />
                           </div>
-                          <div className="flex items-center gap-4 text-xs">
-                            <Badge variant="outline" className={badgeClasses}>
-                              {priorityName}
-                            </Badge>
-                            {dueDate && <span className={isOverdue ? "text-red-400" : "text-gray-400"}>{dueDate}</span>}
-                          </div>
-                        </div>
-                      )
-                    })}
-                    {isFetchingNextPage && (
-                      <div className="flex justify-center items-center py-4">
-                        <Loader2 className="h-6 w-6 animate-spin text-gray-500" />
+                        )}
                       </div>
                     )}
                   </div>
