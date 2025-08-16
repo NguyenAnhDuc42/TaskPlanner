@@ -48,11 +48,8 @@ export function ListNode({ list, context, onClick }: ListNodeProps) {
 
       
       <div className="flex items-center group/list hover:bg-sidebar-accent/50 rounded">
-        <Link
-          href={listUrl}
+        <div
           className="flex-1 hover:underline flex items-center gap-2 w-full justify-start h-7 px-2 py-1 text-sm rounded focus-visible:ring-0 focus-visible:ring-offset-0"
-          onClick={onClick}
-          passHref
         >
           <List className="size-3 text-sidebar-foreground/60" />
           {isOverflowing ? (
@@ -68,10 +65,12 @@ export function ListNode({ list, context, onClick }: ListNodeProps) {
             </Tooltip>
           ) : (
             <span ref={textRef} className="block whitespace-nowrap overflow-hidden font-normal text-sidebar-foreground/80 max-w-[80px]">
+              <Link href={listUrl}>
               {list.name}
+              </Link>
             </span>
           )}
-        </Link>
+        </div>
         
         {/* Actions */}
         <div className="flex items-center opacity-0 group-hover/list:opacity-100">

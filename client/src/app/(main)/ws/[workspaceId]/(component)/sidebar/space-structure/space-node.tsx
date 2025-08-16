@@ -65,7 +65,7 @@ export function SpaceNode({ space, onClick }: SpaceNodeProps) {
           <div className="flex items-center">
             {/* Icon that transforms to arrow on hover when has children */}
             {hasChildren ? (
-              <div className="size-4 flex items-center justify-center">
+              <div className="size-5 flex items-center justify-center">
                 {/* Show arrow on hover, icon by default */}
                 <div className="group-hover/item:hidden">
                    <IconDisplayer iconName={space.icon} backgroundColor={space.color} />

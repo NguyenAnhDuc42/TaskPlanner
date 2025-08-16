@@ -271,16 +271,18 @@ public class TasksQueryService
     private async Task<Dictionary<Guid, List<UserSummary>>> GetAssigneesForTasks(Guid[] taskIds, IDbConnection connection)
     {
         const string sql = @"
-            SELECT 
+            SELECT DISTINCT
                 ut.""TaskId"", 
                 u.""Id"", 
                 u.""Name"", 
-                u.""Email"", 
+                u.""Email"",
                 uw.""Role""
             FROM ""UserTasks"" ut
             INNER JOIN ""Users"" u ON ut.""UserId"" = u.""Id""
-            LEFT JOIN ""UserWorkspaces"" uw ON u.""Id"" = uw.""UserId""
-            WHERE ut.""TaskId"" = ANY(@TaskIds)";
+            INNER JOIN ""Tasks"" t ON ut.""TaskId"" = t.""Id""
+            INNER JOIN ""UserWorkspaces"" uw ON u.""Id"" = uw.""UserId"" AND t.""WorkspaceId"" = uw.""WorkspaceId""
+            WHERE ut.""TaskId"" = ANY(@TaskIds)
+            ORDER BY ut.""TaskId"", u.""Name""";
 
         var assigneeData = await connection.QueryAsync<AssigneeDto>(sql, new { TaskIds = taskIds });
 

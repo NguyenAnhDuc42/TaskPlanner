@@ -1,4 +1,3 @@
-import { Badge } from "@/components/ui/badge"
 import { Priority } from "@/utils/priority-utils"
 import { cn } from "@/lib/utils"
 import { Flag } from "lucide-react"
@@ -20,44 +19,49 @@ export function PriorityBadge({ priority, size = "md", className }: PriorityBadg
   const priorityConfig = {
     [Priority.Urgent]: {
       text: "Urgent",
-      classes: "bg-red-500 text-white border-red-500",
-      iconColor: "text-white",
+      flagColor: "text-red-500",
+      bgColor: "bg-transparent",
+      textColor: "text-red-500",
     },
     [Priority.High]: {
       text: "High",
-      classes: "bg-yellow-500 text-black border-yellow-500",
-      iconColor: "text-black",
+      flagColor: "text-yellow-500",
+      bgColor: "bg-transparent",
+      textColor: "text-yellow-500",
     },
     [Priority.Medium]: {
       text: "Normal",
-      classes: "bg-blue-500 text-white border-blue-500",
-      iconColor: "text-white",
+      flagColor: "text-blue-500",
+      bgColor: "bg-transparent",
+      textColor: "text-blue-500",
     },
     [Priority.Low]: {
       text: "Low",
-      classes: "bg-gray-600 text-white border-gray-600",
-      iconColor: "text-white",
+      flagColor: "text-gray-500",
+      bgColor: "bg-transparent",
+      textColor: "text-gray-500",
     },
     [Priority.Clear]: {
       text: "",
-      classes: "bg-transparent text-gray-400 border-gray-400 border-dashed",
-      iconColor: "text-gray-400",
+      flagColor: "text-gray-400",
+      bgColor: "bg-transparent",
+      textColor: "text-gray-400",
     },
   }
 
   const config = priority ? priorityConfig[priority] : priorityConfig[Priority.Clear]
 
   return (
-    <Badge
+    <div
       className={cn(
-        config.classes,
+        "flex items-center gap-1.5 font-medium transition-colors min-w-16 justify-start",
+        config.bgColor,
         sizeClasses[size],
-        "font-medium transition-colors flex items-center gap-1.5",
         className,
       )}
     >
-      <Flag className={cn("h-3 w-3", config.iconColor)} />
-      {config.text && <span>{config.text}</span>}
-    </Badge>
+      <Flag className={cn("h-3 w-3 fill-current", config.flagColor)} />
+      {config.text && <span className={config.textColor}>{config.text}</span>}
+    </div>
   )
 }

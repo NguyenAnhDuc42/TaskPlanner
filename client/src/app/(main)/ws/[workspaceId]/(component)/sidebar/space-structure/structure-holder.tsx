@@ -15,7 +15,7 @@ interface StructureProps {
 
 export function Structure({ spaces, onAddNewSpace, isSidebarCollapsed }: StructureProps) { // Added new prop
   const workspaceId = useWorkspaceId();
-  const [isSpacesExpanded, setIsSpacesExpanded] = useState(true);
+  const [isSpacesExpanded, setIsSpacesExpanded] = useState(false);
 
   // Conditionally render based on isSidebarCollapsed
   if (isSidebarCollapsed) {
@@ -39,7 +39,7 @@ export function Structure({ spaces, onAddNewSpace, isSidebarCollapsed }: Structu
       <Collapsible open={isSpacesExpanded} onOpenChange={setIsSpacesExpanded}>
         <CollapsibleTrigger asChild>
           <Button
-            className={`w-full justify-between h-8 px-2 py-1 text-sm font-medium text-sidebar-foreground bg-transparent hover:rounded-sm hover:text-sidebar-foreground  hover:bg-sidebar-accent  border-0 focus-visible:ring-0 focus-visible:ring-offset-0 group ${isSpacesExpanded ? 'rounded-sm border-b' : 'rounded-sm'}`}
+            className={`w-full justify-between h-8 px-2 py-1 text-sm font-medium text-sidebar-foreground bg-transparent hover:rounded-sm hover:text-sidebar-foreground  hover:bg-sidebar-accent  border-0 focus-visible:ring-0 focus-visible:ring-offset-0 group ${isSpacesExpanded ? 'rounded-b-sm rounded-t-none border-b  ' : 'rounded-sm'}`}
           >
             <div className="flex items-center gap-2">
               <Layers3 className="size-3.5" />
