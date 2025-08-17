@@ -3,12 +3,9 @@ using src.Domain.Enums;
 
 namespace src.Domain.DTO;
 
-public class TaskDto
-{
-    public Guid Id { get; set; }
-    public string Name { get; set; } = string.Empty;
-    public DateTime? DueDate { get; set; }
-    public Priority Priority { get; set; }
-    public DateTime CreatedAt { get; set; }
-    public DateTime UpdatedAt { get; set; }
-}
+public record TaskDto(Guid Id,string Name,DateTime? DueDate,Priority Priority,DateTime CreatedAt,DateTime UpdatedAt);
+
+
+
+public record TasksMetadataDto (long OverdueCount, string PriorityBreakdownJson);
+

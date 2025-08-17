@@ -154,7 +154,7 @@ export function SpaceNode({ space, onClick }: SpaceNodeProps) {
           <CollapsibleContent className="space-y-0">
             <div className="relative">
               {/* Vertical connecting line - positioned to align with center of space icon */}
-              <div className="absolute left-3.75 top-0 bottom-0 w-px bg-sidebar-border/30" />
+              <div className="absolute left-[17.4px] top-0 bottom-0 w-px bg-sidebar-border/30" />
               
               <div className="ml-6 pl-2 space-y-0">
                 {/* Folders */}

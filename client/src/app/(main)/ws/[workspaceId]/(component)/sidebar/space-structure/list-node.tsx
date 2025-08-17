@@ -18,10 +18,9 @@ export type ListContext = {
 interface ListNodeProps {
   list: ListNodeType;
   context: ListContext;
-  onClick?: () => void;
 }
 
-export function ListNode({ list, context, onClick }: ListNodeProps) {
+export function ListNode({ list, context, }: ListNodeProps) {
   const { selectedWorkspaceId } = useWorkspaceStore();
   const textRef = useRef<HTMLSpanElement>(null);
   const [isOverflowing, setIsOverflowing] = useState(false);

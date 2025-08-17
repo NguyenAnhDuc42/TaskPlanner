@@ -1,9 +1,11 @@
 using System;
 using System.Data;
 using System.Text;
+using System.Text.Json;
 using Dapper;
 using src.Contract;
 using src.Domain.DTO;
+using src.Domain.Enums;
 using src.Helper;
 using src.Helper.Filters;
 using src.Helper.Results;
@@ -61,6 +63,31 @@ public class TasksQueryService
         );
     }
 
+    public async Task<TasksMetadata> GetTasksMetadataAsync(TaskQuery query, Guid currentUserId, CancellationToken cancellationToken = default)
+    {
+        var (sql, parameters) = BuildTasksMetadataQuery(query, currentUserId);
+        var result = await _dbConnection.QuerySingleOrDefaultAsync<TasksMetadataDto>(sql, parameters);
+        
+        var priorityBreakDown = new Dictionary<Priority, int>();
+        if (result?.PriorityBreakdownJson != null)
+        {
+            var deserializedBreakdown = JsonSerializer.Deserialize<Dictionary<string, int>>(result.PriorityBreakdownJson);
+            if (deserializedBreakdown != null)
+            {
+                foreach (var kvp in deserializedBreakdown)
+                {
+                    if (Enum.TryParse<Priority>(kvp.Key, true, out var priorityEnum))
+                    {
+                        priorityBreakDown[priorityEnum] = kvp.Value;
+                    }
+                }
+            }
+        }
+        var overdueCount = Convert.ToInt32(result?.OverdueCount ?? 0);
+        
+        return new TasksMetadata(overdueCount, priorityBreakDown);
+    }
+
 
     private (string sql, DynamicParameters parameters) BuildTaskQuery(TaskQuery query, Guid currentUserId)
     {
@@ -105,6 +132,41 @@ public class TasksQueryService
 
         return (sql.ToString(), parameters);
     }
+   private (string sql, DynamicParameters parameters) BuildTasksMetadataQuery(TaskQuery query, Guid currentUserId)
+    {
+        var parameters = new DynamicParameters();
+        var whereConditions = new List<string>();
+        var joins = new List<string>();
+
+        BuildJoins(query, joins);
+        BuildWhereConditions(query, whereConditions, parameters, currentUserId);
+
+        var whereClause = whereConditions.Any() ? $"WHERE {string.Join(" AND ", whereConditions)}" : "";
+
+        var sql = new StringBuilder($@"
+        WITH FilteredTasks AS (
+            SELECT t.*
+            FROM ""Tasks"" t 
+            {string.Join("\n",joins)}
+            {whereClause}
+        )
+        SELECT 
+            COUNT(*) FILTER (WHERE ft.""DueDate"" < NOW() AND ft.""DueDate"" IS NOT NULL) AS ""OverdueCount"",
+            (
+                SELECT jsonb_object_agg(p.""Priority"", p.count)
+                FROM (
+                    SELECT ""Priority"", COUNT(*) as count
+                    FROM FilteredTasks
+                    GROUP BY ""Priority""
+                ) p
+            ) AS ""PriorityBreakdownJson""
+        FROM FilteredTasks ft
+        ");
+
+        return (sql.ToString(), parameters);
+    }
+
+
     private static void BuildJoins(TaskQuery query, List<string> joins)
     {
         // Only add joins when actually filtering or including assignee data

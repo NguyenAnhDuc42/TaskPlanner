@@ -14,3 +14,8 @@ export interface TaskSummary {
 export interface TasksSummary {
   tasks: TaskSummary[];
 }
+
+export interface TasksMetadata {
+  overdueCount: number;
+  priorityBreakdown: Map<Priority, number>;
+}

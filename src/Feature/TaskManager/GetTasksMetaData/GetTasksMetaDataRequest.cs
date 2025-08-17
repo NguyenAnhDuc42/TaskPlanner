@@ -6,5 +6,5 @@ using src.Helper.Results;
 
 namespace src.Feature.TaskManager.GetTasksMetaData;
 
-public record class GetTasksMetaDataRequest(TaskQuery query) : IRequest<PagedResult<TasksSummary>>;
+public record class GetTasksMetaDataRequest(TaskQuery query) : IRequest<TasksMetadata>;
 

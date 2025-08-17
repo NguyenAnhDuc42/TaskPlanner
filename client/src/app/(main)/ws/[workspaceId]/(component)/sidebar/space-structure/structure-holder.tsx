@@ -39,7 +39,7 @@ export function Structure({ spaces, onAddNewSpace, isSidebarCollapsed }: Structu
       <Collapsible open={isSpacesExpanded} onOpenChange={setIsSpacesExpanded}>
         <CollapsibleTrigger asChild>
           <Button
-            className={`w-full justify-between h-8 px-2 py-1 text-sm font-medium text-sidebar-foreground bg-transparent hover:rounded-sm hover:text-sidebar-foreground  hover:bg-sidebar-accent  border-0 focus-visible:ring-0 focus-visible:ring-offset-0 group ${isSpacesExpanded ? 'rounded-b-sm rounded-t-none border-b  ' : 'rounded-sm'}`}
+            className={`w-full justify-between h-8 px-2 py-1 text-sm font-medium text-sidebar-foreground bg-transparent hover:rounded-sm hover:text-sidebar-foreground   hover:bg-sidebar-accent  border-0 focus-visible:ring-0 focus-visible:ring-offset-0 group ${isSpacesExpanded ? 'rounded-b-sm rounded-t-none border-b  ' : 'rounded-sm'}`}
           >
             <div className="flex items-center gap-2">
               <Layers3 className="size-3.5" />
@@ -78,16 +78,16 @@ export function Structure({ spaces, onAddNewSpace, isSidebarCollapsed }: Structu
             
             {/* Add new space button */}
             <CreateSpaceDialog workspaceId={workspaceId}>
-            <Button
-              variant="ghost"
-              className="w-full justify-start h-7 px-2 py-1 text-xs hover:bg-sidebar-accent text-sidebar-foreground/60 hover:text-sidebar-foreground rounded focus-visible:ring-0 focus-visible:ring-offset-0"
-              onClick={onAddNewSpace}
-            >
-              <div className="flex items-center gap-2">
-                <Plus className="size-3" />
-                <span>Add new space</span>
-              </div>
-            </Button>
+              <Button
+                variant="ghost"
+                className="w-full justify-start h-7 px-2 py-1 text-xs hover:bg-sidebar-accent text-sidebar-foreground/60 hover:text-sidebar-foreground rounded focus-visible:ring-0 focus-visible:ring-offset-0"
+                onClick={onAddNewSpace}
+              >
+                <div className="flex items-center gap-2">
+                  <Plus className="size-3" />
+                  <span>Add new space</span>
+                </div>
+              </Button>
             </CreateSpaceDialog>
           </div>
         </CollapsibleContent>
