@@ -1,5 +1,5 @@
 using MediatR;
-using src.Contract;
+using src.Application.Common.DTOs;
 using src.Domain.Enums;
 using src.Helper.Filters;
 using src.Helper.Results;

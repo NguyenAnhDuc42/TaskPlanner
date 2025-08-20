@@ -32,7 +32,7 @@ public class CreateFolderHandler : IRequestHandler<CreateFolderRequest, Result<C
 
         var folder = PlanFolder.Create(request.name, request.workspaceId, request.spaceId, userId);
 
-        _unitOfWork.Folders.Add(folder);
+        await _unitOfWork.Folders.AddAsync(folder, cancellationToken);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
         
         return Result<CreateFolderResponse, ErrorResponse>.Success(new CreateFolderResponse(folder.Id, "Folder created successfully"));

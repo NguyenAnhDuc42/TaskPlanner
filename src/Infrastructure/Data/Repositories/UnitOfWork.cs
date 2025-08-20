@@ -7,7 +7,7 @@ using src.Infrastructure.Abstractions.IRepositories;
 
 namespace src.Infrastructure.Data.Repositories;
 
-public class UnitOfWork : IUnitOfWork
+public class UnitOfWork : IUnitOfWork, IAsyncDisposable
 {
     private readonly PlannerDbContext _context;
     private IDbContextTransaction? _currentTransaction;
@@ -101,17 +101,34 @@ public class UnitOfWork : IUnitOfWork
 
     protected virtual void Dispose(bool disposing)
     {
-        if (!_disposed && disposing)
-        {
-            _currentTransaction?.Dispose();
-            _context?.Dispose();
-        }
+        // Resource disposal logic specific to synchronous disposal if any unmanaged resources existed.
+        // All managed async disposables (DbContext, DbContextTransaction) are handled in DisposeAsyncCore.
+        // For simplicity (as there are no explicit unmanaged resources here), this can remain empty or handle simple field cleanup.
+        if (_disposed) return;
         _disposed = true;
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (!_disposed)
+        {
+            if (_currentTransaction != null)
+            {
+                await _currentTransaction.DisposeAsync().ConfigureAwait(false);
+                _currentTransaction = null;
+            }
+            if (_context != null)
+            {
+                await _context.DisposeAsync().ConfigureAwait(false);
+            }
+            _disposed = true;
+        }
     }
 
     public void Dispose()
     {
-        Dispose(true);
+        DisposeAsync().AsTask().GetAwaiter().GetResult(); // Blocks until async dispose is complete.
+        Dispose(true); // Call the protected Dispose with true. This is the new standard pattern for sync-over-async cleanup.
         GC.SuppressFinalize(this);
     }
 

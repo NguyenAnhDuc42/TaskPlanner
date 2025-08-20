@@ -1,10 +1,11 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using src.Infrastructure.Abstractions.IRepositories;
+using System.Linq;
 
 namespace src.Infrastructure.Data.Repositories;
 
-public abstract class BaseRepository<TEntity> : IBaseRepository<TEntity> where TEntity : class
+public abstract class BaseRepository<TEntity> : IBaseRepository<TEntity> where TEntity : Entity<Guid>
 {
     protected readonly PlannerDbContext Context;
     protected readonly DbSet<TEntity> DbSet;
@@ -38,11 +39,7 @@ public abstract class BaseRepository<TEntity> : IBaseRepository<TEntity> where T
 
     public virtual async Task<bool> ExistsAsync(Guid id, CancellationToken cancellationToken = default)
     {
-        return await DbSet.FindAsync(id, cancellationToken) != null;
+        return await DbSet.AnyAsync(e => ((Entity<Guid>)e).Id.Equals(id), cancellationToken);
     }
 
-    public virtual void Add(TEntity entity)
-    {
-        DbSet.Add(entity);
-    }
 }

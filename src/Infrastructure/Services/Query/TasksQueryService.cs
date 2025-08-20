@@ -3,7 +3,7 @@ using System.Data;
 using System.Text;
 using System.Text.Json;
 using Dapper;
-using src.Contract;
+using src.Application.Common.DTOs;
 using src.Domain.DTO;
 using src.Domain.Enums;
 using src.Helper;

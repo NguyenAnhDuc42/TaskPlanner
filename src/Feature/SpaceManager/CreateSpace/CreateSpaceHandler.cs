@@ -32,7 +32,7 @@ public class CreateSpaceHandler : IRequestHandler<CreateSpaceRequest, Guid>
         }
         
         var newSpace = workspace.CreateAndAddSpace(request.body.name, request.body.icon, request.body.color, currentUserId);
-        _unitOfWork.Spaces.Add(newSpace);
+        await _unitOfWork.Spaces.AddAsync(newSpace, cancellationToken);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
         return newSpace.Id;
     }

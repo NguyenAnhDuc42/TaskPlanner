@@ -6,7 +6,7 @@ using src.Domain.Enums;
 
 namespace src.Domain.Entities.UserEntity;
 
-public class User : Agregate<Guid>
+public class User : Aggregate<Guid>
 {
     public string Name { get; private set; } = string.Empty;
     public string Email { get; private set; } = string.Empty;

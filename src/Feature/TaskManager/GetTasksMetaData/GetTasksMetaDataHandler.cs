@@ -1,6 +1,6 @@
 using System;
 using MediatR;
-using src.Contract;
+using src.Application.Common.DTOs;
 using src.Helper.Results;
 using src.Infrastructure.Abstractions.IServices;
 using src.Infrastructure.Services.Query;

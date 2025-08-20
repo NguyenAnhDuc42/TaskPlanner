@@ -3,7 +3,7 @@ using System.Data;
 using System.Linq;
 using Dapper;
 using MediatR;
-using src.Contract;
+using src.Application.Common.DTOs;
 using src.Domain.Enums;
 using src.Helper.Results;
 using src.Infrastructure.Abstractions.IServices;

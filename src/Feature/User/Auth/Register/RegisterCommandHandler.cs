@@ -31,7 +31,7 @@ public class RegisterCommandHandler : IRequestHandler<RegisterCommand, Result<Re
         var workspace = Workspace.CreateSampleWorkspace(user.Id);
         user.CreateWorkspace(workspace);
 
-        _unitOfWork.Users.Add(user);
+        await _unitOfWork.Users.AddAsync(user, cancellationToken);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
         return Result<RegisterResponse, ErrorResponse>.Success(new RegisterResponse(user.Email));

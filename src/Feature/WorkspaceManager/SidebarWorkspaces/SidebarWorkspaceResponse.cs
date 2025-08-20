@@ -1,4 +1,4 @@
-using src.Contract;
+using src.Application.Common.DTOs;
 
 namespace src.Feature.WorkspaceManager.SidebarWorkspaces;
 

@@ -4,6 +4,7 @@ using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
 using Microsoft.Extensions.Options;
+using Microsoft.Extensions.Logging;
 using Microsoft.IdentityModel.Tokens;
 using src.Domain.Entities.SessionEntity;
 using src.Domain.Entities.UserEntity;
@@ -27,11 +28,13 @@ public class TokenService : ITokenService
 {
     private readonly IUnitOfWork _unitOfWork;
     private readonly JwtSettings _settings;
+    private readonly ILogger<TokenService> _logger;
 
-    public TokenService(IOptions<JwtSettings> settings, IUnitOfWork unitOfWork)
+    public TokenService(IOptions<JwtSettings> settings, IUnitOfWork unitOfWork, ILogger<TokenService> logger)
     {
         _settings = settings.Value;
         _unitOfWork = unitOfWork ?? throw new ArgumentNullException(nameof(unitOfWork));
+        _logger = logger;
     }
 
     public async Task<JwtTokens> GenerateTokensAsync(User user, string userAgent, string ipAddress, CancellationToken cancellationToken = default)
@@ -44,7 +47,7 @@ public class TokenService : ITokenService
         var refreshToken = GenerateRefreshToken();
 
         var session = Session.Create(user.Id, refreshToken, expirationRefresh, userAgent, ipAddress);
-        _unitOfWork.Sessions.Add(session);
+        await _unitOfWork.Sessions.AddAsync(session, cancellationToken);
         await _unitOfWork.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
         return new JwtTokens(accessToken, refreshToken, expirationAccess, expirationRefresh);
     }
@@ -52,10 +55,11 @@ public class TokenService : ITokenService
     public async Task<JwtTokens?> RefreshAccessTokenAsync(string refreshToken, CancellationToken cancellationToken)
     {
         var session = await _unitOfWork.Sessions.GetSessionByRefreshTokenAsync(refreshToken, cancellationToken).ConfigureAwait(false);
-        if (session == null) return null; //exception and logg in future
-        if (session.RevokedAt.HasValue || session.ExspireAt < DateTimeOffset.UtcNow) return null; //exception and logg in future
+        if (session == null) { _logger.LogWarning("Refresh token not found."); throw new SecurityTokenException("Invalid refresh token."); }
+        if (session.RevokedAt.HasValue) { _logger.LogWarning("Refresh token revoked."); throw new SecurityTokenException("Invalid refresh token."); }
+        if (session.ExspireAt < DateTimeOffset.UtcNow) { _logger.LogWarning("Refresh token expired."); throw new SecurityTokenExpiredException("Refresh token expired."); }
         var user = await _unitOfWork.Users.GetUserByIdAsync(session.UserId, cancellationToken).ConfigureAwait(false);
-        if (user == null) return null;
+        if (user == null) { _logger.LogError("User associated with refresh token not found."); throw new InvalidOperationException("User not found for session."); }
 
         var newExpiration = DateTimeOffset.UtcNow.AddMinutes(_settings.Expiration);
         var newAccessToken = GenerateAccessToken(user, newExpiration);
@@ -83,10 +87,10 @@ public class TokenService : ITokenService
             var princibal = tokenHanlder.ValidateToken(token, validationParameters, out var _);
             return princibal;
         }
-        catch (Exception)
+        catch (Exception ex)
         {
-            // exception and logg
-            return null;
+            _logger.LogError(ex, "Token validation failed.");
+            throw;
         }
     }
 

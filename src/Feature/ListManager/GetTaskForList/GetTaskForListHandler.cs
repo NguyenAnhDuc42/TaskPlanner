@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 using Dapper;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
-using src.Contract;
+using src.Application.Common.DTOs;
 using src.Domain.Entities.WorkspaceEntity.SupportEntiy;
 using src.Helper.Results;
 using src.Infrastructure.Data;

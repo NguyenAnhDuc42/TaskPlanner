@@ -2,7 +2,7 @@ using System;
 using System.Security.Claims;
 using MediatR;
 using Microsoft.AspNetCore.Http;
-using src.Contract;
+using src.Application.Common.DTOs;
 using src.Domain.Entities.UserEntity;
 using src.Helper.Results;
 using src.Infrastructure.Abstractions.IRepositories;

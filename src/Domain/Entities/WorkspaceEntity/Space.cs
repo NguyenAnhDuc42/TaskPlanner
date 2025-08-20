@@ -6,7 +6,7 @@ using src.Domain.Entities.WorkspaceEntity.SupportEntiy;
 
 namespace src.Domain.Entities.WorkspaceEntity;
 
-public class Space : Agregate<Guid>
+public class Space : Aggregate<Guid>
 {
     public Guid WorkspaceId { get; set; }
     public string Name { get; private set; } = string.Empty;

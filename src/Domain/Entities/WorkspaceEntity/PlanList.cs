@@ -3,7 +3,7 @@ using src.Domain.Entities.WorkspaceEntity.Relationships;
 
 namespace src.Domain.Entities.WorkspaceEntity;
 
-public class PlanList : Agregate<Guid>
+public class PlanList : Aggregate<Guid>
 {
     public Guid WorkspaceId { get; private set; }
     public Guid SpaceId { get; private set; }

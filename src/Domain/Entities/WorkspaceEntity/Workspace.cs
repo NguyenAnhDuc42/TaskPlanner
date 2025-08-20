@@ -5,7 +5,7 @@ using src.Domain.Enums;
 
 namespace src.Domain.Entities.WorkspaceEntity;
 
-public class Workspace : Agregate<Guid>
+public class Workspace : Aggregate<Guid>
 {
 
     public string Name { get; private set; } = string.Empty;

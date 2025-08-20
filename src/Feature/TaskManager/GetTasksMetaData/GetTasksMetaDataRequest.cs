@@ -1,6 +1,6 @@
 using MediatR;
 using Microsoft.AspNetCore.Mvc.RazorPages;
-using src.Contract;
+using src.Application.Common.DTOs;
 using src.Helper.Filters;
 using src.Helper.Results;
 

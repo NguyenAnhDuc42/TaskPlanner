@@ -6,7 +6,7 @@ using MediatR;
 using Dapper;
 using src.Helper.Results;
 using src.Infrastructure.Abstractions.IRepositories;
-using src.Contract;
+using src.Application.Common.DTOs;
 
 namespace src.Feature.WorkspaceManager.ShowMembers;
 

@@ -1,5 +1,5 @@
 using MediatR;
-using src.Contract;
+using src.Application.Common.DTOs;
 using src.Helper.Results;
 
 namespace src.Feature.SpaceManager.GetSpaceInfo;
