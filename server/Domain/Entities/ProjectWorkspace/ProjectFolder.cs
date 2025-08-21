@@ -19,8 +19,7 @@ public class ProjectFolder : Aggregate
     public Guid CreatorId { get; private set; }
 
     // Navigation Properties
-    private readonly List<ProjectList> _lists = new();
-    public IReadOnlyCollection<ProjectList> Lists => _lists.AsReadOnly();
+    
 
     private readonly List<UserProjectFolder> _members = new();
     public IReadOnlyCollection<UserProjectFolder> Members => _members.AsReadOnly();
@@ -46,12 +45,9 @@ public class ProjectFolder : Aggregate
             throw new ArgumentException("Folder name cannot be empty.", nameof(name));
 
         var folder = new ProjectFolder(Guid.NewGuid(), name, projectWorkspaceId, projectSpaceId, creatorId);
-        // No direct event for folder creation, as it's part of Space aggregate
+        folder.AddDomainEvent(new FolderCreatedEvent(folder.Id, folder.Name, folder.ProjectSpaceId, folder.CreatorId));
 
-        // Automatically create a default list
-        var defaultList = ProjectList.Create("List", projectWorkspaceId, projectSpaceId, folder.Id, creatorId);
-        folder._lists.Add(defaultList);
-        // No direct event for list creation from folder, handled by Space aggregate
+        
 
         return folder;
     }
@@ -64,14 +60,20 @@ public class ProjectFolder : Aggregate
         if (Name == newName) return;
 
         Name = newName;
-        // No direct event for folder name update, handled by Space aggregate
+        AddDomainEvent(new FolderNameUpdatedEvent(Id, newName));
     }
 
-    public ProjectList AddList(string name, Guid creatorId)
+    public void AddList(Guid listId, string name)
     {
-        var list = ProjectList.Create(name, ProjectWorkspaceId, ProjectSpaceId, Id, creatorId);
-        _lists.Add(list);
-        // No direct event for list creation from folder, handled by Space aggregate
-        return list;
+        AddDomainEvent(new ListAddedToFolderEvent(Id, listId, name));
+    }
+
+    public void AddMember(Guid userId)
+    {
+        if (_members.Any(m => m.UserId == userId))
+            throw new InvalidOperationException("User is already a member of this folder.");
+
+        _members.Add(UserProjectFolder.Create(userId, Id));
+        AddDomainEvent(new MemberAddedToFolderEvent(Id, userId));
     }
 }

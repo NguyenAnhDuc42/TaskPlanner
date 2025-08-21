@@ -53,7 +53,7 @@ public class ProjectList : Aggregate
             throw new ArgumentException("List name cannot be empty.", nameof(name));
 
         var list = new ProjectList(Guid.NewGuid(), name, projectWorkspaceId, projectSpaceId, projectFolderId, creatorId);
-        // No direct event for list creation, as it's part of Space/Folder aggregate
+        list.AddDomainEvent(new ListCreatedEvent(list.Id, list.Name, list.ProjectSpaceId, list.ProjectFolderId, list.CreatorId));
         return list;
     }
 
@@ -65,15 +65,37 @@ public class ProjectList : Aggregate
         if (Name == newName) return;
 
         Name = newName;
-        // No direct event for list name update, handled by Space/Folder aggregate
+        AddDomainEvent(new ListNameUpdatedEvent(Id, newName));
     }
 
     public void AddTask(Guid taskId)
     {
+        if (IsArchived) // New: Cannot add tasks to an archived list
+            throw new InvalidOperationException("Cannot add tasks to an archived list.");
+
         if (_taskIds.Contains(taskId))
             throw new InvalidOperationException("Task already exists in this list.");
 
         _taskIds.Add(taskId);
-        // No direct event for task added to list, handled by Task aggregate or higher level
+        AddDomainEvent(new TaskAddedToListEvent(Id, taskId));
+    }
+
+    public void UpdateOrderIndex(int newOrderIndex)
+    {
+        if (newOrderIndex < 0)
+            throw new ArgumentOutOfRangeException(nameof(newOrderIndex), "Order index cannot be negative.");
+        if (OrderIndex == newOrderIndex) return;
+
+        OrderIndex = newOrderIndex;
+        AddDomainEvent(new ListOrderIndexUpdatedEvent(Id, newOrderIndex));
+    }
+
+    public void AddMember(Guid userId)
+    {
+        if (_members.Any(m => m.UserId == userId))
+            throw new InvalidOperationException("User is already a member of this list.");
+
+        _members.Add(UserProjectList.Create(userId, Id));
+        AddDomainEvent(new MemberAddedToListEvent(Id, userId));
     }
 }

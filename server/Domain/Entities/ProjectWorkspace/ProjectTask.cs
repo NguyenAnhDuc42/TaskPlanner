@@ -193,7 +193,7 @@ public class ProjectTask : Aggregate
     {
         if (_assignees.Any(a => a.UserId == userId)) return; // Already assigned
 
-        _assignees.Add(new UserProjectTask { UserId = userId, ProjectTaskId = Id });
+        _assignees.Add(UserProjectTask.Create(userId, Id));
         AddDomainEvent(new UserAssignedToTaskEvent(Id, userId));
     }
 
@@ -201,7 +201,7 @@ public class ProjectTask : Aggregate
     {
         if (_watchers.Any(w => w.UserId == userId)) return; // Already watching
 
-        _watchers.Add(new ProjectTaskWatcher { UserId = userId, ProjectTaskId = Id });
+        _watchers.Add(ProjectTaskWatcher.Create(Id, userId));
         AddDomainEvent(new WatcherAddedToTaskEvent(Id, userId));
     }
 }

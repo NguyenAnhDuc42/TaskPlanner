@@ -1,0 +1,12 @@
+c:\Users\Duc\Desktop\TaskPlanner\server\Background\bin\Debug\net9.0\Background.deps.json
+c:\Users\Duc\Desktop\TaskPlanner\server\Background\bin\Debug\net9.0\Background.dll
+c:\Users\Duc\Desktop\TaskPlanner\server\Background\bin\Debug\net9.0\Background.pdb
+c:\Users\Duc\Desktop\TaskPlanner\server\Background\obj\Debug\net9.0\Background.GeneratedMSBuildEditorConfig.editorconfig
+c:\Users\Duc\Desktop\TaskPlanner\server\Background\obj\Debug\net9.0\Background.AssemblyInfoInputs.cache
+c:\Users\Duc\Desktop\TaskPlanner\server\Background\obj\Debug\net9.0\Background.AssemblyInfo.cs
+c:\Users\Duc\Desktop\TaskPlanner\server\Background\obj\Debug\net9.0\Background.csproj.CoreCompileInputs.cache
+c:\Users\Duc\Desktop\TaskPlanner\server\Background\obj\Debug\net9.0\Background.sourcelink.json
+c:\Users\Duc\Desktop\TaskPlanner\server\Background\obj\Debug\net9.0\Background.dll
+c:\Users\Duc\Desktop\TaskPlanner\server\Background\obj\Debug\net9.0\refint\Background.dll
+c:\Users\Duc\Desktop\TaskPlanner\server\Background\obj\Debug\net9.0\Background.pdb
+c:\Users\Duc\Desktop\TaskPlanner\server\Background\obj\Debug\net9.0\ref\Background.dll

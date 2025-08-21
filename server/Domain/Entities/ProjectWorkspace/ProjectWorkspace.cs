@@ -21,9 +21,7 @@ public class ProjectWorkspace : Aggregate
     public bool IsPrivate { get; private set; }
     public Guid CreatorId { get; private set; }
 
-    // Navigation Properties
-    private readonly List<ProjectSpace> _spaces = new();
-    public IReadOnlyCollection<ProjectSpace> Spaces => _spaces.AsReadOnly();
+    
 
     private readonly List<UserProjectWorkspace> _members = new();
     public IReadOnlyCollection<UserProjectWorkspace> Members => _members.AsReadOnly();
@@ -77,12 +75,9 @@ public class ProjectWorkspace : Aggregate
         AddDomainEvent(new WorkspaceDescriptionUpdatedEvent(Id, newDescription));
     }
 
-    public ProjectSpace AddSpace(string name, string icon, string color, Guid creatorId)
+    public void AddSpace(Guid spaceId, string name)
     {
-        var space = ProjectSpace.Create(name, icon, color, Id, creatorId);
-        _spaces.Add(space);
-        AddDomainEvent(new SpaceAddedToWorkspaceEvent(Id, space.Id, space.Name));
-        return space;
+        AddDomainEvent(new SpaceAddedToWorkspaceEvent(Id, spaceId, name));
     }
 
     public void AddMember(Guid userId, Role role)
@@ -90,7 +85,7 @@ public class ProjectWorkspace : Aggregate
         if (_members.Any(m => m.UserId == userId))
             throw new InvalidOperationException("User is already a member of this workspace.");
 
-        _members.Add(new UserProjectWorkspace { UserId = userId, ProjectWorkspaceId = Id, Role = role });
+        _members.Add(UserProjectWorkspace.Create(userId, Id, role));
         AddDomainEvent(new MemberAddedToWorkspaceEvent(Id, userId, role));
     }
 
@@ -98,6 +93,14 @@ public class ProjectWorkspace : Aggregate
     {
         if (string.IsNullOrWhiteSpace(name))
             throw new ArgumentException("Status name cannot be empty.", nameof(name));
+
+        // New: Prevent duplicate status names
+        if (_defaultStatuses.Any(s => s.Name.Equals(name, StringComparison.OrdinalIgnoreCase)))
+            throw new InvalidOperationException($"A default status with the name '{name}' already exists in this workspace.");
+
+        // New: Basic color format validation (e.g., simple check for non-empty)
+        if (string.IsNullOrWhiteSpace(color))
+            throw new ArgumentException("Status color cannot be empty.", nameof(color));
 
         var status = Status.Create(name, color, _defaultStatuses.Count, Id, isDoneStatus);
         _defaultStatuses.Add(status);

@@ -22,11 +22,7 @@ public class ProjectSpace : Aggregate
     public SpaceFeatures EnabledFeatures { get; private set; }
 
     // Navigation Properties
-    private readonly List<ProjectList> _lists = new();
-    public IReadOnlyCollection<ProjectList> Lists => _lists.AsReadOnly();
-
-    private readonly List<ProjectFolder> _folders = new();
-    public IReadOnlyCollection<ProjectFolder> Folders => _folders.AsReadOnly();
+    
 
     private readonly List<UserProjectSpace> _members = new();
     public IReadOnlyCollection<UserProjectSpace> Members => _members.AsReadOnly();
@@ -53,15 +49,15 @@ public class ProjectSpace : Aggregate
     {
         if (string.IsNullOrWhiteSpace(name))
             throw new ArgumentException("Space name cannot be empty.", nameof(name));
+        
+        // New: Validation for icon and color
+        if (string.IsNullOrWhiteSpace(icon))
+            throw new ArgumentException("Space icon cannot be empty.", nameof(icon));
+        if (string.IsNullOrWhiteSpace(color))
+            throw new ArgumentException("Space color cannot be empty.", nameof(color));
 
         var space = new ProjectSpace(Guid.NewGuid(), name, icon, color, projectWorkspaceId, creatorId);
         space.AddDomainEvent(new SpaceCreatedEvent(space.Id, space.Name, space.ProjectWorkspaceId, space.CreatorId));
-        
-        // Automatically create a default list
-        var defaultList = ProjectList.Create("List", projectWorkspaceId, space.Id, null, creatorId);
-        space._lists.Add(defaultList);
-        space.AddDomainEvent(new ListAddedToSpaceEvent(space.Id, defaultList.Id, defaultList.Name));
-
         return space;
     }
 
@@ -76,20 +72,14 @@ public class ProjectSpace : Aggregate
         AddDomainEvent(new SpaceNameUpdatedEvent(Id, newName));
     }
 
-    public ProjectFolder AddFolder(string name, Guid creatorId)
+    public void AddFolder(Guid folderId, string name)
     {
-        var folder = ProjectFolder.Create(name, ProjectWorkspaceId, Id, creatorId);
-        _folders.Add(folder);
-        AddDomainEvent(new FolderAddedToSpaceEvent(Id, folder.Id, folder.Name));
-        return folder;
+        AddDomainEvent(new FolderAddedToSpaceEvent(Id, folderId, name));
     }
 
-    public ProjectList AddList(string name, Guid creatorId, Guid? projectFolderId = null)
+    public void AddList(Guid listId, string name, Guid? projectFolderId = null)
     {
-        var list = ProjectList.Create(name, ProjectWorkspaceId, Id, projectFolderId, creatorId);
-        _lists.Add(list);
-        AddDomainEvent(new ListAddedToSpaceEvent(Id, list.Id, list.Name));
-        return list;
+        AddDomainEvent(new ListAddedToSpaceEvent(Id, listId, name));
     }
 
     public void AddMember(Guid userId)
@@ -97,7 +87,7 @@ public class ProjectSpace : Aggregate
         if (_members.Any(m => m.UserId == userId))
             throw new InvalidOperationException("User is already a member of this space.");
 
-        _members.Add(new UserProjectSpace { UserId = userId, ProjectSpaceId = Id });
+        _members.Add(UserProjectSpace.Create(userId, Id));
         AddDomainEvent(new MemberAddedToSpaceEvent(Id, userId));
     }
 }

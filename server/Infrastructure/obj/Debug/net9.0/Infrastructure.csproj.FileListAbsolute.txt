@@ -1,0 +1,12 @@
+c:\Users\Duc\Desktop\TaskPlanner\server\Infrastructure\bin\Debug\net9.0\Infrastructure.deps.json
+c:\Users\Duc\Desktop\TaskPlanner\server\Infrastructure\bin\Debug\net9.0\Infrastructure.dll
+c:\Users\Duc\Desktop\TaskPlanner\server\Infrastructure\bin\Debug\net9.0\Infrastructure.pdb
+c:\Users\Duc\Desktop\TaskPlanner\server\Infrastructure\obj\Debug\net9.0\Infrastructure.GeneratedMSBuildEditorConfig.editorconfig
+c:\Users\Duc\Desktop\TaskPlanner\server\Infrastructure\obj\Debug\net9.0\Infrastructure.AssemblyInfoInputs.cache
+c:\Users\Duc\Desktop\TaskPlanner\server\Infrastructure\obj\Debug\net9.0\Infrastructure.AssemblyInfo.cs
+c:\Users\Duc\Desktop\TaskPlanner\server\Infrastructure\obj\Debug\net9.0\Infrastructure.csproj.CoreCompileInputs.cache
+c:\Users\Duc\Desktop\TaskPlanner\server\Infrastructure\obj\Debug\net9.0\Infrastructure.sourcelink.json
+c:\Users\Duc\Desktop\TaskPlanner\server\Infrastructure\obj\Debug\net9.0\Infrastructure.dll
+c:\Users\Duc\Desktop\TaskPlanner\server\Infrastructure\obj\Debug\net9.0\refint\Infrastructure.dll
+c:\Users\Duc\Desktop\TaskPlanner\server\Infrastructure\obj\Debug\net9.0\Infrastructure.pdb
+c:\Users\Duc\Desktop\TaskPlanner\server\Infrastructure\obj\Debug\net9.0\ref\Infrastructure.dll
