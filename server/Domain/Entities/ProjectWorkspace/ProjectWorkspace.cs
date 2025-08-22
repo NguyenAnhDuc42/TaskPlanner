@@ -19,9 +19,8 @@ public class ProjectWorkspace : Aggregate
     public string Icon { get; private set; } = null!;
     
     public bool IsPrivate { get; private set; }
+    public bool IsArchived { get; private set; } // New Property
     public Guid CreatorId { get; private set; }
-
-    
 
     private readonly List<UserProjectWorkspace> _members = new();
     public IReadOnlyCollection<UserProjectWorkspace> Members => _members.AsReadOnly();
@@ -42,6 +41,7 @@ public class ProjectWorkspace : Aggregate
         Icon = icon;
         CreatorId = creatorId;
         IsPrivate = isPrivate;
+        IsArchived = false; // Default
     }
 
     // Static Factory Methods
@@ -89,16 +89,53 @@ public class ProjectWorkspace : Aggregate
         AddDomainEvent(new MemberAddedToWorkspaceEvent(Id, userId, role));
     }
 
+    public void RemoveMember(Guid userId)
+    {
+        var member = _members.FirstOrDefault(m => m.UserId == userId);
+        if (member is null) return;
+
+        _members.Remove(member);
+        AddDomainEvent(new MemberRemovedFromWorkspaceEvent(Id, userId));
+    }
+
+    public void ChangeMemberRole(Guid userId, Role newRole)
+    {
+        var member = _members.FirstOrDefault(m => m.UserId == userId);
+        if (member is null)
+            throw new InvalidOperationException("Member not found in this workspace.");
+
+        member.UpdateRole(newRole);
+        AddDomainEvent(new WorkspaceMemberRoleChangedEvent(Id, userId, newRole));
+    }
+
+    public void Archive()
+    {
+        if (IsArchived) return;
+        IsArchived = true;
+        AddDomainEvent(new WorkspaceArchivedEvent(Id));
+    }
+
+    public void Unarchive()
+    {
+        if (!IsArchived) return;
+        IsArchived = false;
+        AddDomainEvent(new WorkspaceUnarchivedEvent(Id));
+    }
+
+    public void GenerateNewJoinCode()
+    {
+        JoinCode = GenerateRandomCode();
+        AddDomainEvent(new WorkspaceJoinCodeChangedEvent(Id, JoinCode));
+    }
+
     public Status AddDefaultStatus(string name, string color, bool isDoneStatus)
     {
         if (string.IsNullOrWhiteSpace(name))
             throw new ArgumentException("Status name cannot be empty.", nameof(name));
 
-        // New: Prevent duplicate status names
         if (_defaultStatuses.Any(s => s.Name.Equals(name, StringComparison.OrdinalIgnoreCase)))
             throw new InvalidOperationException($"A default status with the name '{name}' already exists in this workspace.");
 
-        // New: Basic color format validation (e.g., simple check for non-empty)
         if (string.IsNullOrWhiteSpace(color))
             throw new ArgumentException("Status color cannot be empty.", nameof(color));
 

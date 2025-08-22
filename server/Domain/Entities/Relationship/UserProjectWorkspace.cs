@@ -31,4 +31,10 @@ public class UserProjectWorkspace
     {
         return new UserProjectWorkspace(userId, projectWorkspaceId, role, DateTime.UtcNow);
     }
+
+    public void UpdateRole(Role newRole)
+    {
+        if (Role == newRole) return;
+        Role = newRole;
+    }
 }

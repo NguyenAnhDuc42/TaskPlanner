@@ -69,3 +69,57 @@ public record WatcherAddedToTaskEvent(Guid TaskId, Guid UserId) : IDomainEvent
     public Guid EventId { get; init; } = Guid.NewGuid();
     public DateTimeOffset OccurredAt { get; init; } = DateTimeOffset.UtcNow;
 }
+
+public record UserUnassignedFromTaskEvent(Guid TaskId, Guid UserId) : IDomainEvent
+{
+    public Guid EventId { get; init; } = Guid.NewGuid();
+    public DateTimeOffset OccurredAt { get; init; } = DateTimeOffset.UtcNow;
+}
+
+public record WatcherRemovedFromTaskEvent(Guid TaskId, Guid UserId) : IDomainEvent
+{
+    public Guid EventId { get; init; } = Guid.NewGuid();
+    public DateTimeOffset OccurredAt { get; init; } = DateTimeOffset.UtcNow;
+}
+
+public record TagAddedToTaskEvent(Guid TaskId, Guid TagId, string TagName) : IDomainEvent
+{
+    public Guid EventId { get; init; } = Guid.NewGuid();
+    public DateTimeOffset OccurredAt { get; init; } = DateTimeOffset.UtcNow;
+}
+
+public record TagRemovedFromTaskEvent(Guid TaskId, Guid TagId) : IDomainEvent
+{
+    public Guid EventId { get; init; } = Guid.NewGuid();
+    public DateTimeOffset OccurredAt { get; init; } = DateTimeOffset.UtcNow;
+}
+
+public record TaskArchivedEvent(Guid TaskId) : IDomainEvent
+{
+    public Guid EventId { get; init; } = Guid.NewGuid();
+    public DateTimeOffset OccurredAt { get; init; } = DateTimeOffset.UtcNow;
+}
+
+public record TaskUnarchivedEvent(Guid TaskId) : IDomainEvent
+{
+    public Guid EventId { get; init; } = Guid.NewGuid();
+    public DateTimeOffset OccurredAt { get; init; } = DateTimeOffset.UtcNow;
+}
+
+public record TaskMovedEvent(Guid TaskId, Guid OldListId, Guid NewListId) : IDomainEvent
+{
+    public Guid EventId { get; init; } = Guid.NewGuid();
+    public DateTimeOffset OccurredAt { get; init; } = DateTimeOffset.UtcNow;
+}
+
+public record TaskStoryPointsUpdatedEvent(Guid TaskId, int? NewStoryPoints) : IDomainEvent
+{
+    public Guid EventId { get; init; } = Guid.NewGuid();
+    public DateTimeOffset OccurredAt { get; init; } = DateTimeOffset.UtcNow;
+}
+
+public record TaskTimeEstimateUpdatedEvent(Guid TaskId, long? NewTimeEstimate) : IDomainEvent
+{
+    public Guid EventId { get; init; } = Guid.NewGuid();
+    public DateTimeOffset OccurredAt { get; init; } = DateTimeOffset.UtcNow;
+}

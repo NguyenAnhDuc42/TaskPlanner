@@ -28,4 +28,15 @@ public class Comment : Entity
 
         return new Comment(Guid.NewGuid(), content, authorId, projectTaskId, parentCommentId);
     }
+
+    public void UpdateContent(string newContent)
+    {
+        if (string.IsNullOrWhiteSpace(newContent))
+            throw new ArgumentException("Comment content cannot be empty.", nameof(newContent));
+        
+        if (Content == newContent) return;
+
+        Content = newContent;
+        // Note: You might want to add a domain event here, e.g., CommentUpdatedEvent
+    }
 }

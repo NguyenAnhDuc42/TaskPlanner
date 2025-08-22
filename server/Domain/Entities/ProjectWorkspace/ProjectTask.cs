@@ -186,22 +186,97 @@ public class ProjectTask : Aggregate
         return timeLog;
     }
 
-    // Note: Assignees and Watchers are relationship entities.
-    // Their management might involve other aggregates or services,
-    // but we can add methods here for direct association.
     public void AssignUser(Guid userId)
     {
         if (_assignees.Any(a => a.UserId == userId)) return; // Already assigned
-
         _assignees.Add(UserProjectTask.Create(userId, Id));
         AddDomainEvent(new UserAssignedToTaskEvent(Id, userId));
+    }
+
+    public void RemoveAssignee(Guid userId)
+    {
+        var assignee = _assignees.FirstOrDefault(a => a.UserId == userId);
+        if (assignee is null) return;
+        _assignees.Remove(assignee);
+        AddDomainEvent(new UserUnassignedFromTaskEvent(Id, userId));
     }
 
     public void AddWatcher(Guid userId)
     {
         if (_watchers.Any(w => w.UserId == userId)) return; // Already watching
-
         _watchers.Add(ProjectTaskWatcher.Create(Id, userId));
         AddDomainEvent(new WatcherAddedToTaskEvent(Id, userId));
+    }
+
+    public void RemoveWatcher(Guid userId)
+    {
+        var watcher = _watchers.FirstOrDefault(w => w.UserId == userId);
+        if (watcher is null) return;
+        _watchers.Remove(watcher);
+        AddDomainEvent(new WatcherRemovedFromTaskEvent(Id, userId));
+    }
+
+    public void AddTag(string name, string color)
+    {
+        if (string.IsNullOrWhiteSpace(name))
+            throw new ArgumentException("Tag name cannot be empty.", nameof(name));
+        if (_tags.Any(t => t.Name.Equals(name, StringComparison.OrdinalIgnoreCase))) return;
+
+        var tag = Tag.Create(name, color, ProjectWorkspaceId);
+        _tags.Add(tag);
+        AddDomainEvent(new TagAddedToTaskEvent(Id, tag.Id, name));
+    }
+
+    public void RemoveTag(Guid tagId)
+    {
+        var tag = _tags.FirstOrDefault(t => t.Id == tagId);
+        if (tag is null) return;
+        _tags.Remove(tag);
+        AddDomainEvent(new TagRemovedFromTaskEvent(Id, tagId));
+    }
+
+    public void Archive()
+    {
+        if (IsArchived) return;
+        IsArchived = true;
+        AddDomainEvent(new TaskArchivedEvent(Id));
+    }
+
+    public void Unarchive()
+    {
+        if (!IsArchived) return;
+        IsArchived = false;
+        AddDomainEvent(new TaskUnarchivedEvent(Id));
+    }
+
+    public void MoveTo(Guid newListId, Guid? newFolderId, Guid newSpaceId)
+    {
+        if (ProjectListId == newListId) return;
+
+        var oldListId = ProjectListId;
+        ProjectListId = newListId;
+        ProjectFolderId = newFolderId;
+        ProjectSpaceId = newSpaceId;
+        AddDomainEvent(new TaskMovedEvent(Id, oldListId, newListId));
+    }
+
+    public void SetStoryPoints(int? points)
+    {
+        if (points.HasValue && points < 0)
+            throw new ArgumentOutOfRangeException(nameof(points), "Story points cannot be negative.");
+        if (StoryPoints == points) return;
+
+        StoryPoints = points;
+        AddDomainEvent(new TaskStoryPointsUpdatedEvent(Id, points));
+    }
+
+    public void SetTimeEstimate(long? estimateInSeconds)
+    {
+        if (estimateInSeconds.HasValue && estimateInSeconds < 0)
+            throw new ArgumentOutOfRangeException(nameof(estimateInSeconds), "Time estimate cannot be negative.");
+        if (TimeEstimate == estimateInSeconds) return;
+
+        TimeEstimate = estimateInSeconds;
+        AddDomainEvent(new TaskTimeEstimateUpdatedEvent(Id, estimateInSeconds));
     }
 }

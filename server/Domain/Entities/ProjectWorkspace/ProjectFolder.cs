@@ -1,6 +1,6 @@
 using Domain.Common;
 using Domain.Entities.Relationship;
-using Domain.Events.WorkspaceEvents;
+using Domain.Events.FolderEvents;
 using System;
 using System.Collections.Generic;
 using System.Linq;

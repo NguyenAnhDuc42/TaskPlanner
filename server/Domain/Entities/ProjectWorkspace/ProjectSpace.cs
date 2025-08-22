@@ -1,7 +1,7 @@
 using Domain.Common;
 using Domain.Entities.Relationship;
 using Domain.Enums;
-using Domain.Events.WorkspaceEvents;
+using Domain.Events.SpaceEvents;
 using System;
 using System.Collections.Generic;
 using System.Linq;
