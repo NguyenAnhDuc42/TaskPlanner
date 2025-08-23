@@ -1,5 +1,6 @@
 using System;
 using System.Data;
+using System.Linq;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
 using Application.Common.Interfaces.Repositories; // Assuming these interfaces are in this namespace
@@ -8,14 +9,42 @@ namespace Infrastructure.Data.Repositories;
 
 public class UnitOfWork : IUnitOfWork, IAsyncDisposable
 {
-    private readonly PlannerDbContext _context;
+    private readonly TaskPlanDbContext _context;
     private IDbContextTransaction? _currentTransaction;
     private bool _disposed;
 
-    public UnitOfWork(PlannerDbContext context)
+    private IProjectFolderRepository? _projectFolders;
+    private IProjectListRepository? _projectLists;
+    private IProjectSpaceRepository? _projectSpaces;
+    private IProjectTaskRepository? _projectTasks;
+    private IProjectWorkspaceRepository? _projectWorkspaces;
+    private IAttachmentRepository? _attachments;
+    private IChecklistRepository? _checklists;
+    private ICommentRepository? _comments;
+    private INotificationRepository? _notifications;
+    private ISessionRepository? _sessions;
+    private IStatusRepository? _statuses;
+    private ITimeLogRepository? _timeLogs;
+    private IUserRepository? _users;
+
+    public UnitOfWork(TaskPlanDbContext context)
     {
         _context = context ?? throw new ArgumentNullException(nameof(context));
     }
+
+    public IProjectFolderRepository ProjectFolders => _projectFolders ??= new ProjectFolderRepository(_context);
+    public IProjectListRepository ProjectLists => _projectLists ??= new ProjectListRepository(_context);
+    public IProjectSpaceRepository ProjectSpaces => _projectSpaces ??= new ProjectSpaceRepository(_context);
+    public IProjectTaskRepository ProjectTasks => _projectTasks ??= new ProjectTaskRepository(_context);
+    public IProjectWorkspaceRepository ProjectWorkspaces => _projectWorkspaces ??= new ProjectWorkspaceRepository(_context);
+    public IAttachmentRepository Attachments => _attachments ??= new AttachmentRepository(_context);
+    public IChecklistRepository Checklists => _checklists ??= new ChecklistRepository(_context);
+    public ICommentRepository Comments => _comments ??= new CommentRepository(_context);
+    public INotificationRepository Notifications => _notifications ??= new NotificationRepository(_context);
+    public ISessionRepository Sessions => _sessions ??= new SessionRepository(_context);
+    public IStatusRepository Statuses => _statuses ??= new StatusRepository(_context);
+    public ITimeLogRepository TimeLogs => _timeLogs ??= new TimeLogRepository(_context);
+    public IUserRepository Users => _users ??= new UserRepository(_context);
 
     public bool HasActiveTransaction => _currentTransaction != null;
 

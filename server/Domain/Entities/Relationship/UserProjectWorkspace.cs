@@ -5,7 +5,7 @@ using Domain.Entities.ProjectEntities;
 
 namespace Domain.Entities.Relationship;
 
-public class UserProjectWorkspace
+public class UserProjectWorkspace 
 {
     public Guid UserId { get; set; }
     public Guid ProjectWorkspaceId { get; set; }

@@ -10,3 +10,4 @@ c:\Users\Duc\Desktop\TaskPlanner\server\Infrastructure\obj\Debug\net9.0\Infrastr
 c:\Users\Duc\Desktop\TaskPlanner\server\Infrastructure\obj\Debug\net9.0\refint\Infrastructure.dll
 c:\Users\Duc\Desktop\TaskPlanner\server\Infrastructure\obj\Debug\net9.0\Infrastructure.pdb
 c:\Users\Duc\Desktop\TaskPlanner\server\Infrastructure\obj\Debug\net9.0\ref\Infrastructure.dll
+C:\Users\Duc\Desktop\TaskPlanner\server\infrastructure\obj\Debug\net9.0\Infrastructure.csproj.AssemblyReference.cache

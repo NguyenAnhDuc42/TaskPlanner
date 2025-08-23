@@ -38,8 +38,8 @@ public class ProjectTask : Aggregate
     private readonly List<ProjectTaskWatcher> _watchers = new();
     public IReadOnlyCollection<ProjectTaskWatcher> Watchers => _watchers.AsReadOnly();
 
-    private readonly List<Tag> _tags = new();
-    public IReadOnlyCollection<Tag> Tags => _tags.AsReadOnly();
+    private readonly List<ProjectTaskTag> _projectTaskTags = new();
+    public IReadOnlyCollection<ProjectTaskTag> ProjectTaskTags => _projectTaskTags.AsReadOnly();
 
     private readonly List<Attachment> _attachments = new();
     public IReadOnlyCollection<Attachment> Attachments => _attachments.AsReadOnly();
@@ -216,22 +216,19 @@ public class ProjectTask : Aggregate
         AddDomainEvent(new WatcherRemovedFromTaskEvent(Id, userId));
     }
 
-    public void AddTag(string name, string color)
+    public void AddTag(Guid tagId)
     {
-        if (string.IsNullOrWhiteSpace(name))
-            throw new ArgumentException("Tag name cannot be empty.", nameof(name));
-        if (_tags.Any(t => t.Name.Equals(name, StringComparison.OrdinalIgnoreCase))) return;
+        if (_projectTaskTags.Any(ptt => ptt.TagId == tagId)) return; // Already tagged
 
-        var tag = Tag.Create(name, color, ProjectWorkspaceId);
-        _tags.Add(tag);
-        AddDomainEvent(new TagAddedToTaskEvent(Id, tag.Id, name));
+        _projectTaskTags.Add(new ProjectTaskTag(Id, tagId));
+        AddDomainEvent(new TagAddedToTaskEvent(Id, tagId, "")); // Name is not available here, might need adjustment
     }
 
     public void RemoveTag(Guid tagId)
     {
-        var tag = _tags.FirstOrDefault(t => t.Id == tagId);
-        if (tag is null) return;
-        _tags.Remove(tag);
+        var projectTaskTag = _projectTaskTags.FirstOrDefault(ptt => ptt.TagId == tagId);
+        if (projectTaskTag is null) return;
+        _projectTaskTags.Remove(projectTaskTag);
         AddDomainEvent(new TagRemovedFromTaskEvent(Id, tagId));
     }
 
