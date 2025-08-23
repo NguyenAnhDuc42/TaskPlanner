@@ -1,6 +1,6 @@
 using System;
 using Domain.Entities;
-using Domain.Entities.ProjectWorkspace;
+using Domain.Entities.ProjectEntities;
 
 namespace Domain.Entities.Relationship;
 

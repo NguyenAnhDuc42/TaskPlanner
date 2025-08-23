@@ -10,4 +10,5 @@ public interface IBaseRepository<TEntity> where TEntity : Entity
     void Update(TEntity entity);
     void Remove(TEntity entity);
     Task<bool> ExistsAsync(Guid id, CancellationToken cancellationToken = default);
+    
 }

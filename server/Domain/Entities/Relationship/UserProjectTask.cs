@@ -1,4 +1,4 @@
-using Domain.Entities.ProjectWorkspace;
+using Domain.Entities.ProjectEntities;
 using System;
 using Domain.Entities;
 

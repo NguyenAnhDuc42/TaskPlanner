@@ -6,7 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace Domain.Entities.ProjectWorkspace;
+namespace Domain.Entities.ProjectEntities;
 
 public class ProjectSpace : Aggregate
 {

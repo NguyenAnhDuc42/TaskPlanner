@@ -1,7 +1,7 @@
 using Domain.Enums;
 using System;
 using Domain.Entities;
-using Domain.Entities.ProjectWorkspace;
+using Domain.Entities.ProjectEntities;
 
 namespace Domain.Entities.Relationship;
 
@@ -14,7 +14,7 @@ public class UserProjectWorkspace
 
     // Navigation Properties
     public User User { get; private set; } = null!;
-    public ProjectWorkspace.ProjectWorkspace ProjectWorkspace { get; private set; } = null!;
+    public ProjectWorkspace ProjectWorkspace { get; private set; } = null!;
 
     private UserProjectWorkspace() { } // For EF Core
 

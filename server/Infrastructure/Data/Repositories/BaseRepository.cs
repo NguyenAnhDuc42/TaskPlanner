@@ -41,4 +41,5 @@ public abstract class BaseRepository<TEntity> : IBaseRepository<TEntity> where T
     {
         return await DbSet.AnyAsync(e => e.Id.Equals(id), cancellationToken);
     }
+    protected IQueryable<TEntity> Query => DbSet.AsQueryable();
 }

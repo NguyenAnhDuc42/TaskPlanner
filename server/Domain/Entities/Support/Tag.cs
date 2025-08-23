@@ -1,5 +1,5 @@
 using Domain.Common;
-using Domain.Entities.ProjectWorkspace;
+using Domain.Entities.ProjectEntities;
 using System;
 using System.Collections.Generic;
 
