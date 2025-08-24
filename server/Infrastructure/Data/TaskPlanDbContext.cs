@@ -48,27 +48,6 @@ public class TaskPlanDbContext : DbContext // Corrected name
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-        // Configure composite keys for relationship entities
-        modelBuilder.Entity<UserProjectWorkspace>().HasKey(upw => new { upw.UserId, upw.ProjectWorkspaceId });
-                modelBuilder.Entity<UserProjectSpace>().HasKey(ups => new { ups.UserId, ups.ProjectSpaceId });
-        modelBuilder.Entity<UserProjectFolder>().HasKey(upf => new { upf.UserId, upf.ProjectFolderId });
-        modelBuilder.Entity<UserProjectList>().HasKey(upl => new { upl.UserId, upl.ProjectListId });
-        modelBuilder.Entity<UserProjectTask>().HasKey(upt => new { upt.UserId, upt.ProjectTaskId });
-        modelBuilder.Entity<ProjectTaskWatcher>().HasKey(ptw => new { ptw.ProjectTaskId, ptw.UserId });
-
-        // Configure ProjectTaskTag as a join entity for many-to-many relationship
-        modelBuilder.Entity<ProjectTaskTag>()
-            .HasKey(ptt => new { ptt.ProjectTaskId, ptt.TagId });
-
-        modelBuilder.Entity<ProjectTaskTag>()
-            .HasOne(ptt => ptt.ProjectTask)
-            .WithMany() // No direct collection on ProjectTask for ProjectTaskTag
-            .HasForeignKey(ptt => ptt.ProjectTaskId);
-
-        modelBuilder.Entity<ProjectTaskTag>()
-            .HasOne(ptt => ptt.Tag)
-            .WithMany() // No direct collection on Tag for ProjectTaskTag
-            .HasForeignKey(ptt => ptt.TagId);
 
         // Apply configurations from the assembly where this DbContext resides
         // This will pick up all IEntityTypeConfiguration implementations in the same assembly

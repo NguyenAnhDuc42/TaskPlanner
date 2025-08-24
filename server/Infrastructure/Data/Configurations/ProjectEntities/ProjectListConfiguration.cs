@@ -1,7 +1,6 @@
+using Domain.Entities.ProjectEntities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
-using Domain.Entities.ProjectEntities;
-using Domain.Entities.Relationship; // For UserProjectList
 
 namespace Infrastructure.Data.Configurations.ProjectEntities;
 
@@ -11,65 +10,54 @@ public class ProjectListConfiguration : IEntityTypeConfiguration<ProjectList>
     {
         builder.ToTable("ProjectLists");
 
-        builder.HasKey(pl => pl.Id);
+        builder.HasKey(l => l.Id);
 
-        builder.Property(pl => pl.Name)
+        builder.Property(l => l.Name)
             .IsRequired()
-            .HasMaxLength(256);
+            .HasMaxLength(100);
 
-        builder.Property(pl => pl.ProjectWorkspaceId)
+        builder.Property(l => l.Description)
+            .HasMaxLength(500);
+
+        builder.Property(l => l.Color)
+            .IsRequired()
+            .HasMaxLength(7);
+
+        builder.Property(l => l.Visibility)
             .IsRequired();
-
-        builder.Property(pl => pl.ProjectSpaceId)
+            
+        builder.Property(l => l.CreatorId)
             .IsRequired();
+            
+        builder.Property(l => l.IsArchived)
+            .IsRequired()
+            .HasDefaultValue(false);
 
-        // ProjectFolderId is nullable
-        builder.Property(pl => pl.ProjectFolderId)
-            .IsRequired(false);
+        // Relationships
+        builder.HasOne<ProjectSpace>()
+            .WithMany(s => s.Lists)
+            .HasForeignKey(l => l.ProjectSpaceId)
+            .OnDelete(DeleteBehavior.Cascade);
 
-        builder.Property(pl => pl.CreatorId)
-            .IsRequired();
+        // A list can optionally belong to a folder. The relationship from Folder to List
+        // is already configured with DeleteBehavior.Restrict.
+        builder.HasOne<ProjectFolder>()
+            .WithMany(f => f.Lists)
+            .HasForeignKey(l => l.ProjectFolderId)
+            .IsRequired(false) // This makes the FK nullable
+            .OnDelete(DeleteBehavior.ClientSetNull); // If folder is deleted, set FK to null
 
-        // DefaultAssigneeId is nullable
-        builder.Property(pl => pl.DefaultAssigneeId)
-            .IsRequired(false);
-
-        builder.Property(pl => pl.IsPrivate)
-            .IsRequired();
-
-        builder.Property(pl => pl.IsArchived)
-            .IsRequired();
-
-        builder.Property(pl => pl.OrderIndex)
-            .IsRequired();
-
-        // StartDate and DueDate are nullable
-        builder.Property(pl => pl.StartDate)
-            .IsRequired(false);
-
-        builder.Property(pl => pl.DueDate)
-            .IsRequired(false);
-
-        // Configure relationships
-        // TaskIds is a collection of Guids, typically stored as a JSON column or a separate join table
-        // For simplicity, let's assume it's stored as a JSON string or similar if EF Core supports it directly.
-        // If not, it would require a separate entity for TaskList (ListId, TaskId)
-        // For now, I'll ignore it as a direct collection of Guids is not directly mapped by EF Core.
-        // A common pattern is to have a navigation property to ProjectTask and let EF manage the relationship.
-        // Given it's a List<Guid>, it implies a many-to-many or one-to-many where ProjectList "owns" task IDs.
-        // If ProjectTask is an aggregate root, ProjectList should only store its ID.
-        // This might need a custom value converter or a join entity if persisted directly.
-        // For now, I'll ignore it as it's a private List<Guid> and not a navigation property.
-        builder.Ignore(pl => pl.TaskIds);
-
-
-        builder.HasMany(pl => pl.Members)
+        builder.HasMany(l => l.Tasks)
             .WithOne()
-            .HasForeignKey(upl => upl.ProjectListId)
-            .IsRequired()
-            .OnDelete(DeleteBehavior.Cascade); // Assuming members are deleted with list
+            .HasForeignKey(t => t.ProjectListId)
+            .OnDelete(DeleteBehavior.Cascade); // Tasks are deleted with their list
 
-        // Configure common Entity properties
+        builder.HasMany(l => l.Members)
+            .WithOne(m => m.ProjectList)
+            .HasForeignKey(m => m.ProjectListId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        // Common properties from Aggregate
         builder.Property(e => e.Version)
             .IsRowVersion();
 
@@ -79,7 +67,7 @@ public class ProjectListConfiguration : IEntityTypeConfiguration<ProjectList>
         builder.Property(e => e.UpdatedAt)
             .IsRequired();
 
-        // Ignore domain events collection as it's not persisted
-        builder.Ignore(e => e.DomainEvents);
+        // Ignore DomainEvents
+        builder.Ignore(l => l.DomainEvents);
     }
 }

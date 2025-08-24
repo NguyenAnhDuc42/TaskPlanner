@@ -1,8 +1,6 @@
+using Domain.Entities.ProjectEntities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
-using Domain.Entities.ProjectEntities;
-using Domain.Entities.Relationship; // For UserProjectSpace
-using Domain.Enums; // For SpaceFeatures
 
 namespace Infrastructure.Data.Configurations.ProjectEntities;
 
@@ -12,47 +10,51 @@ public class ProjectSpaceConfiguration : IEntityTypeConfiguration<ProjectSpace>
     {
         builder.ToTable("ProjectSpaces");
 
-        builder.HasKey(ps => ps.Id);
+        builder.HasKey(s => s.Id);
 
-        builder.Property(ps => ps.Name)
+        builder.Property(s => s.Name)
             .IsRequired()
-            .HasMaxLength(256);
+            .HasMaxLength(200);
 
-        builder.Property(ps => ps.Icon)
+        builder.Property(s => s.Description)
+            .HasMaxLength(1000);
+
+        builder.Property(s => s.Icon)
             .IsRequired()
             .HasMaxLength(50);
 
-        builder.Property(ps => ps.Color)
+        builder.Property(s => s.Color)
             .IsRequired()
-            .HasMaxLength(50);
+            .HasMaxLength(7);
 
-        builder.Property(ps => ps.ProjectWorkspaceId)
+        builder.Property(s => s.Visibility)
             .IsRequired();
 
-        builder.Property(ps => ps.CreatorId)
+        builder.Property(s => s.CreatorId)
             .IsRequired();
 
-        builder.Property(ps => ps.IsPrivate)
-            .IsRequired();
+        // Relationships
+        builder.HasOne<ProjectWorkspace>() // Define the relationship to the parent workspace
+            .WithMany(w => w.Spaces)
+            .HasForeignKey(s => s.ProjectWorkspaceId)
+            .OnDelete(DeleteBehavior.Cascade);
 
-        builder.Property(ps => ps.IsPublic)
-            .IsRequired();
+        builder.HasMany(s => s.Folders)
+            .WithOne() // A folder belongs to one space
+            .HasForeignKey(f => f.ProjectSpaceId)
+            .OnDelete(DeleteBehavior.Cascade);
 
-        builder.Property(ps => ps.IsArchived)
-            .IsRequired();
+        builder.HasMany(s => s.Lists)
+            .WithOne() // A list belongs to one space
+            .HasForeignKey(l => l.ProjectSpaceId)
+            .OnDelete(DeleteBehavior.Cascade);
+            
+        builder.HasMany(s => s.Members)
+            .WithOne(m => m.ProjectSpace)
+            .HasForeignKey(m => m.ProjectSpaceId)
+            .OnDelete(DeleteBehavior.Cascade);
 
-        builder.Property(ps => ps.EnabledFeatures)
-            .IsRequired()
-            .HasConversion<string>(); // Store enum as string
-
-        // Configure relationships
-        builder.HasMany(ps => ps.Members)
-            .WithOne()
-            .HasForeignKey(ups => ups.ProjectSpaceId)
-            .IsRequired()
-            .OnDelete(DeleteBehavior.Cascade); // Assuming members are deleted with space
-
-        // Configure common Entity properties
+        // Common properties from Aggregate
         builder.Property(e => e.Version)
             .IsRowVersion();
 
@@ -62,7 +64,7 @@ public class ProjectSpaceConfiguration : IEntityTypeConfiguration<ProjectSpace>
         builder.Property(e => e.UpdatedAt)
             .IsRequired();
 
-        // Ignore domain events collection as it's not persisted
-        builder.Ignore(e => e.DomainEvents);
+        // Ignore DomainEvents
+        builder.Ignore(s => s.DomainEvents);
     }
 }

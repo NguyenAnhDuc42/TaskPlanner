@@ -4,7 +4,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore.Storage;
 
-namespace Application.Common.Interfaces.Repositories
+namespace Application.Interfaces.Repositories
 {
     public interface IUnitOfWork
     {

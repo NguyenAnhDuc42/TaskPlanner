@@ -1,6 +1,6 @@
 using Domain.Entities.ProjectEntities;
 
-namespace Application.Common.Interfaces.Repositories
+namespace Application.Interfaces.Repositories
 {
     public interface IProjectListRepository : IBaseRepository<ProjectList>
     {

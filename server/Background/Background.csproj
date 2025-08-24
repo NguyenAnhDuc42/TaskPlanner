@@ -11,4 +11,12 @@
     <ProjectReference Include="..\Domain\Domain.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="Consumers\" />
+    <Folder Include="Jobs\" />
+    <Folder Include="Scheduling\" />
+    <Folder Include="Services\" />
+    <Folder Include="Workers\" />
+  </ItemGroup>
+
 </Project>

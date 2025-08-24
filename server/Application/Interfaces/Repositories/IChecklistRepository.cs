@@ -1,7 +1,7 @@
-using Application.Common.Interfaces.Repositories;
+
 using Domain.Entities.Support;
 
-namespace Application.Common.Interfaces.Repositories
+namespace Application.Interfaces.Repositories
 {
     public interface IChecklistRepository : IBaseRepository<Checklist>
     {

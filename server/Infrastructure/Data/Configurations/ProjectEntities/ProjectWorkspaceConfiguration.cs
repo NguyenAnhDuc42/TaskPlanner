@@ -1,8 +1,6 @@
+using Domain.Entities.ProjectEntities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
-using Domain.Entities.Relationship; // For UserProjectWorkspace
-using Domain.Entities.Support;
-using Domain.Entities.ProjectEntities; // For Status
 
 namespace Infrastructure.Data.Configurations.ProjectEntities;
 
@@ -12,49 +10,57 @@ public class ProjectWorkspaceConfiguration : IEntityTypeConfiguration<ProjectWor
     {
         builder.ToTable("ProjectWorkspaces");
 
-        builder.HasKey(pw => pw.Id);
+        builder.HasKey(w => w.Id);
 
-        builder.Property(pw => pw.Name)
+        builder.Property(w => w.Name)
             .IsRequired()
-            .HasMaxLength(256);
+            .HasMaxLength(200);
 
-        builder.Property(pw => pw.Description)
-            .HasMaxLength(1024);
+        builder.Property(w => w.Description)
+            .HasMaxLength(1000);
 
-        builder.Property(pw => pw.JoinCode)
+        builder.Property(w => w.JoinCode)
             .IsRequired()
-            .HasMaxLength(10)
-            .IsUnicode(false);
+            .HasMaxLength(10);
 
-        builder.Property(pw => pw.Color)
+        builder.HasIndex(w => w.JoinCode)
+            .IsUnique();
+
+        builder.Property(w => w.Color)
+            .IsRequired()
+            .HasMaxLength(7);
+
+        builder.Property(w => w.Icon)
+            .IsRequired()
             .HasMaxLength(50);
 
-        builder.Property(pw => pw.Icon)
-            .HasMaxLength(50);
-
-        builder.Property(pw => pw.CreatorId)
+        builder.Property(w => w.Visibility)
             .IsRequired();
 
-        builder.Property(pw => pw.IsPrivate)
-            .IsRequired();
-
-        builder.Property(pw => pw.IsArchived)
-            .IsRequired();
-
-        // Configure relationships
-        builder.HasMany(pw => pw.Members)
-            .WithOne()
-            .HasForeignKey(upw => upw.ProjectWorkspaceId)
+        builder.Property(w => w.IsArchived)
             .IsRequired()
-            .OnDelete(DeleteBehavior.Cascade); // Assuming members are deleted with workspace
+            .HasDefaultValue(false);
 
-        builder.HasMany(pw => pw.DefaultStatuses)
+        builder.Property(w => w.CreatorId)
+            .IsRequired();
+
+        // Relationships
+        builder.HasMany(w => w.Spaces)
             .WithOne()
             .HasForeignKey(s => s.ProjectWorkspaceId)
-            .IsRequired()
-            .OnDelete(DeleteBehavior.Cascade); // Assuming statuses are deleted with workspace
+            .OnDelete(DeleteBehavior.Cascade);
 
-        // Configure common Entity properties
+        builder.HasMany(w => w.Members)
+            .WithOne(m => m.ProjectWorkspace)
+            .HasForeignKey(m => m.ProjectWorkspaceId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.HasMany(w => w.Statuses)
+            .WithOne()
+            .HasForeignKey(s => s.ProjectWorkspaceId)
+            .OnDelete(DeleteBehavior.Cascade);
+            
+        // Common properties from Aggregate
         builder.Property(e => e.Version)
             .IsRowVersion();
 
@@ -64,7 +70,7 @@ public class ProjectWorkspaceConfiguration : IEntityTypeConfiguration<ProjectWor
         builder.Property(e => e.UpdatedAt)
             .IsRequired();
 
-        // Ignore domain events collection as it's not persisted
-        builder.Ignore(e => e.DomainEvents);
+        // Ignore DomainEvents
+        builder.Ignore(w => w.DomainEvents);
     }
 }

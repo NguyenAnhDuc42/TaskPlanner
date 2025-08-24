@@ -3,7 +3,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Application.Common.Interfaces.Repositories
+namespace Application.Interfaces.Repositories
 {
     public interface IBaseRepository<TEntity> where TEntity : Domain.Common.Entity
     {

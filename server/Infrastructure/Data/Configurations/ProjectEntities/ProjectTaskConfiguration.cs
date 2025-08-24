@@ -1,9 +1,6 @@
+using Domain.Entities.ProjectEntities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
-using Domain.Entities.ProjectEntities;
-using Domain.Entities.Relationship; // For UserProjectTask, ProjectTaskWatcher
-using Domain.Entities.Support; // For Tag, Attachment, Comment, TimeLog, Checklist
-using Domain.Enums; // For Priority
 
 namespace Infrastructure.Data.Configurations.ProjectEntities;
 
@@ -11,111 +8,91 @@ public class ProjectTaskConfiguration : IEntityTypeConfiguration<ProjectTask>
 {
     public void Configure(EntityTypeBuilder<ProjectTask> builder)
     {
-        builder.ToTable("ProjectTasks");
+        builder.ToTable("Tasks");
 
-        builder.HasKey(pt => pt.Id);
+        builder.HasKey(t => t.Id);
 
-        builder.Property(pt => pt.Name)
+        // Add indexes for frequently queried columns
+        builder.HasIndex(t => t.ProjectListId);
+        builder.HasIndex(t => t.StatusId);
+        builder.HasIndex(t => t.DueDate);
+
+        // Properties
+        builder.Property(t => t.Name)
             .IsRequired()
-            .HasMaxLength(256);
+            .HasMaxLength(200);
 
-        builder.Property(pt => pt.Description)
-            .HasMaxLength(2048); // Increased length for description
+        builder.Property(t => t.Description)
+            .HasMaxLength(1000);
 
-        builder.Property(pt => pt.Priority)
+        builder.Property(t => t.CreatorId)
+            .IsRequired();
+
+        builder.Property(t => t.IsCompleted)
             .IsRequired()
-            .HasConversion<string>(); // Store enum as string
+            .HasDefaultValue(false);
 
-        builder.Property(pt => pt.DueDate)
-            .IsRequired(false);
-
-        builder.Property(pt => pt.StartDate)
-            .IsRequired(false);
-
-        builder.Property(pt => pt.TimeEstimate)
-            .IsRequired(false);
-
-        builder.Property(pt => pt.TimeSpent)
-            .IsRequired(false);
-
-        builder.Property(pt => pt.StoryPoints)
-            .IsRequired(false);
-
-        builder.Property(pt => pt.OrderIndex)
-            .IsRequired();
-
-        builder.Property(pt => pt.IsArchived)
-            .IsRequired();
-
-        builder.Property(pt => pt.IsPrivate)
-            .IsRequired();
-
-        builder.Property(pt => pt.CreatorId)
-            .IsRequired();
-
-        builder.Property(pt => pt.ProjectWorkspaceId)
-            .IsRequired();
-
-        builder.Property(pt => pt.ProjectSpaceId)
-            .IsRequired();
-
-        builder.Property(pt => pt.ProjectListId)
-            .IsRequired();
-
-        builder.Property(pt => pt.ProjectFolderId)
-            .IsRequired(false); // Nullable
-
-        builder.Property(pt => pt.StatusId)
-            .IsRequired(false); // Nullable
-
-        builder.Property(pt => pt.ParentTaskId)
-            .IsRequired(false); // Nullable
-
-        // Configure relationships
-        builder.HasMany(pt => pt.Assignees)
-            .WithOne()
-            .HasForeignKey(upa => upa.ProjectTaskId)
+        builder.Property(t => t.IsArchived)
             .IsRequired()
+            .HasDefaultValue(false);
+
+        builder.Property(t => t.Priority)
+            .IsRequired();
+
+        builder.Property(t => t.Visibility)
+            .IsRequired();
+
+        // Relationships
+        builder.HasOne<ProjectList>()
+            .WithMany(l => l.Tasks)
+            .HasForeignKey(t => t.ProjectListId)
             .OnDelete(DeleteBehavior.Cascade);
 
-        builder.HasMany(pt => pt.Watchers)
-            .WithOne()
-            .HasForeignKey(ptw => ptw.ProjectTaskId)
-            .IsRequired()
-            .OnDelete(DeleteBehavior.Cascade);
-
-        // ProjectTask uses ProjectTaskTags relationship table
-        builder.HasMany(pt => pt.ProjectTaskTags)
-            .WithOne()
-            .HasForeignKey(t => t.ProjectTaskId)
+        // Self-referencing relationship for subtasks
+        builder.HasOne<ProjectTask>()
+            .WithMany(t => t.Subtasks)
+            .HasForeignKey(t => t.ParentTaskId)
             .IsRequired(false)
-            .OnDelete(DeleteBehavior.Cascade);
+            .OnDelete(DeleteBehavior.Restrict); // Prevent parent task deletion if subtasks exist
 
-        builder.HasMany(pt => pt.Attachments)
-            .WithOne()
+        // Relationships to join tables
+        builder.HasMany(t => t.Assignees)
+            .WithOne(a => a.ProjectTask)
             .HasForeignKey(a => a.ProjectTaskId)
-            .IsRequired()
             .OnDelete(DeleteBehavior.Cascade);
 
-        builder.HasMany(pt => pt.Comments)
+        builder.HasMany(t => t.Watchers)
+            .WithOne(w => w.ProjectTask)
+            .HasForeignKey(w => w.ProjectTaskId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.HasMany(t => t.Tags)
+            .WithOne(t => t.ProjectTask)
+            .HasForeignKey(t => t.ProjectTaskId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        // Relationships to owned support entities
+        builder.HasMany(t => t.Comments)
             .WithOne()
             .HasForeignKey(c => c.ProjectTaskId)
-            .IsRequired()
             .OnDelete(DeleteBehavior.Cascade);
 
-        builder.HasMany(pt => pt.TimeLogs)
+        builder.HasMany(t => t.Attachments)
+            .WithOne()
+            .HasForeignKey(a => a.ProjectTaskId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.HasMany(t => t.TimeLogs)
             .WithOne()
             .HasForeignKey(tl => tl.ProjectTaskId)
-            .IsRequired()
             .OnDelete(DeleteBehavior.Cascade);
 
-        builder.HasMany(pt => pt.Checklists)
+        builder.HasMany(t => t.Checklists)
             .WithOne()
             .HasForeignKey(cl => cl.ProjectTaskId)
-            .IsRequired()
             .OnDelete(DeleteBehavior.Cascade);
 
-        // Configure common Entity properties
+        // Common properties from Aggregate
         builder.Property(e => e.Version)
             .IsRowVersion();
 
@@ -125,7 +102,7 @@ public class ProjectTaskConfiguration : IEntityTypeConfiguration<ProjectTask>
         builder.Property(e => e.UpdatedAt)
             .IsRequired();
 
-    // Ignore domain events collection as it's an in-memory concern on Aggregate
-    builder.Ignore(e => e.DomainEvents);
+        // Ignore DomainEvents
+        builder.Ignore(t => t.DomainEvents);
     }
 }

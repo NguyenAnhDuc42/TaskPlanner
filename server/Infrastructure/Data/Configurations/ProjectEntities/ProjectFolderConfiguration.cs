@@ -1,7 +1,6 @@
+using Domain.Entities.ProjectEntities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
-using Domain.Entities.ProjectEntities;
-using Domain.Entities.Relationship; // For UserProjectFolder
 
 namespace Infrastructure.Data.Configurations.ProjectEntities;
 
@@ -11,35 +10,42 @@ public class ProjectFolderConfiguration : IEntityTypeConfiguration<ProjectFolder
     {
         builder.ToTable("ProjectFolders");
 
-        builder.HasKey(pf => pf.Id);
+        builder.HasKey(f => f.Id);
 
-        builder.Property(pf => pf.Name)
+        builder.Property(f => f.Name)
             .IsRequired()
-            .HasMaxLength(256);
+            .HasMaxLength(100);
 
-        builder.Property(pf => pf.ProjectWorkspaceId)
-            .IsRequired();
+        builder.Property(f => f.Description)
+            .HasMaxLength(500);
 
-        builder.Property(pf => pf.ProjectSpaceId)
-            .IsRequired();
-
-        builder.Property(pf => pf.CreatorId)
-            .IsRequired();
-
-        builder.Property(pf => pf.IsPrivate)
-            .IsRequired();
-
-        builder.Property(pf => pf.IsArchived)
-            .IsRequired();
-
-        // Configure relationships
-        builder.HasMany(pf => pf.Members)
-            .WithOne()
-            .HasForeignKey(upf => upf.ProjectFolderId)
+        builder.Property(f => f.Color)
             .IsRequired()
-            .OnDelete(DeleteBehavior.Cascade); // Assuming members are deleted with folder
+            .HasMaxLength(7);
 
-        // Configure common Entity properties
+        builder.Property(f => f.Visibility)
+            .IsRequired();
+            
+        builder.Property(f => f.CreatorId)
+            .IsRequired();
+
+        // Relationships
+        builder.HasOne<ProjectSpace>()
+            .WithMany(s => s.Folders)
+            .HasForeignKey(f => f.ProjectSpaceId)
+            .OnDelete(DeleteBehavior.Cascade); // Folders are deleted with their space
+
+        builder.HasMany(f => f.Lists)
+            .WithOne() // A list can belong to one folder
+            .HasForeignKey(l => l.ProjectFolderId)
+            .OnDelete(DeleteBehavior.Restrict); // Prevent folder deletion if it still contains lists
+
+        builder.HasMany(f => f.Members)
+            .WithOne(m => m.ProjectFolder)
+            .HasForeignKey(m => m.ProjectFolderId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        // Common properties from Aggregate
         builder.Property(e => e.Version)
             .IsRowVersion();
 
@@ -49,7 +55,7 @@ public class ProjectFolderConfiguration : IEntityTypeConfiguration<ProjectFolder
         builder.Property(e => e.UpdatedAt)
             .IsRequired();
 
-        // Ignore domain events collection as it's not persisted
-        builder.Ignore(e => e.DomainEvents);
+        // Ignore DomainEvents
+        builder.Ignore(f => f.DomainEvents);
     }
 }
