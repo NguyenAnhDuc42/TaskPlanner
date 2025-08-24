@@ -32,7 +32,6 @@ public class CommentConfiguration : IEntityTypeConfiguration<Comment>
         builder.Property(e => e.UpdatedAt)
             .IsRequired();
 
-        // Ignore domain events collection as it's not persisted
-        builder.Ignore(e => e.DomainEvents);
+    // Comment inherits Entity which contains Version/CreatedAt/UpdatedAt - no DomainEvents on Entity
     }
 }

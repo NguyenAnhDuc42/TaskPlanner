@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Domain.Entities.Relationship;
+using Domain.Entities.ProjectEntities; // Add this using statement for ProjectSpace
 
 namespace Infrastructure.Data.Configurations.Relationship;
 
@@ -19,19 +20,11 @@ public class UserProjectSpaceConfiguration : IEntityTypeConfiguration<UserProjec
             .HasForeignKey(ups => ups.UserId)
             .OnDelete(DeleteBehavior.Cascade);
 
-        builder.HasOne<Domain.Entities.ProjectWorkspace.ProjectSpace>(ups => ups.ProjectSpace)
+        builder.HasOne<ProjectSpace>(ups => ups.ProjectSpace) // Corrected namespace
             .WithMany(ps => ps.Members)
             .HasForeignKey(ups => ups.ProjectSpaceId)
             .OnDelete(DeleteBehavior.Cascade);
 
-        // Configure common Entity properties
-        builder.Property(e => e.Version)
-            .IsRowVersion();
-
-        builder.Property(e => e.CreatedAt)
-            .IsRequired();
-
-        builder.Property(e => e.UpdatedAt)
-            .IsRequired();
+    // UserProjectSpace is a relationship POCO and does not have Version/CreatedAt/UpdatedAt
     }
 }

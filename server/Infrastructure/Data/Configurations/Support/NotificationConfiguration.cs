@@ -12,7 +12,8 @@ public class NotificationConfiguration : IEntityTypeConfiguration<Notification>
 
         builder.HasKey(n => n.Id);
 
-        builder.Property(n => n.UserId)
+        // Match domain model property names
+        builder.Property(n => n.RecipientId)
             .IsRequired();
 
         builder.Property(n => n.Message)
@@ -22,11 +23,11 @@ public class NotificationConfiguration : IEntityTypeConfiguration<Notification>
         builder.Property(n => n.IsRead)
             .IsRequired();
 
-        builder.Property(n => n.RelatedEntityId)
-            .IsRequired(false); // Nullable
+        builder.Property(n => n.TriggeredByUserId)
+            .IsRequired();
 
-        builder.Property(n => n.RelatedEntityType)
-            .HasMaxLength(100); // Store type name as string
+        builder.Property(n => n.RelatedEntityId)
+            .IsRequired();
 
         // Configure common Entity properties
         builder.Property(e => e.Version)
@@ -38,7 +39,6 @@ public class NotificationConfiguration : IEntityTypeConfiguration<Notification>
         builder.Property(e => e.UpdatedAt)
             .IsRequired();
 
-        // Ignore domain events collection as it's not persisted
-        builder.Ignore(e => e.DomainEvents);
+    // Notification is an Entity but domain events are stored on Aggregate only; nothing to ignore here
     }
 }

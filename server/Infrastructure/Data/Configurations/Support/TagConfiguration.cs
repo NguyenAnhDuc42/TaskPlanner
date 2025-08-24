@@ -19,20 +19,10 @@ public class TagConfiguration : IEntityTypeConfiguration<Tag>
         builder.Property(t => t.Color)
             .HasMaxLength(50);
 
-        builder.Property(t => t.ProjectWorkspaceId)
-            .IsRequired();
-
-        // Configure common Entity properties
-        builder.Property(e => e.Version)
-            .IsRowVersion();
-
-        builder.Property(e => e.CreatedAt)
-            .IsRequired();
-
-        builder.Property(e => e.UpdatedAt)
-            .IsRequired();
-
-        // Ignore domain events collection as it's not persisted
-        builder.Ignore(e => e.DomainEvents);
+        // Removed: builder.Property(t => t.ProjectWorkspaceId).IsRequired();
+        // Removed: builder.Property(e => e.Version).IsRowVersion();
+        // Removed: builder.Property(e => e.CreatedAt).IsRequired();
+        // Removed: builder.Property(e => e.UpdatedAt).IsRequired();
+        // Removed: builder.Ignore(e => e.DomainEvents);
     }
 }

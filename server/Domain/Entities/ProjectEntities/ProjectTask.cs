@@ -11,52 +11,63 @@ namespace Domain.Entities.ProjectEntities;
 
 public class ProjectTask : Aggregate
 {
-    // Public Properties
+    // Hierarchy for quick queries - "show all tasks in workspace X"
     public Guid ProjectWorkspaceId { get; private set; }
     public Guid ProjectSpaceId { get; private set; }
     public Guid? ProjectFolderId { get; private set; }
-    public Guid ProjectListId { get; private set; }
-    public Guid? StatusId { get; private set; }
-    public Guid? ParentTaskId { get; private set; }
+    public Guid ProjectListId { get; private set; } // Direct parent
+    
+    // Task identity
     public string Name { get; private set; } = null!;
-    public string Description { get; private set; } = null!;
+    public string? Description { get; private set; }
+    public Guid CreatorId { get; private set; } // Who created this task
+    
+    // Workflow state - links to workspace's defined statuses
+    public Guid? StatusId { get; private set; }
+    public bool IsCompleted { get; private set; } // Derived from status
+    
+    // Task properties
     public Priority Priority { get; private set; }
-    public DateTime? DueDate { get; private set; }
     public DateTime? StartDate { get; private set; }
-    public long? TimeEstimate { get; private set; }
-    public long? TimeSpent { get; private set; }
+    public DateTime? DueDate { get; private set; }
     public int? StoryPoints { get; private set; }
+    public TimeSpan? TimeEstimate { get; private set; }
     public int OrderIndex { get; private set; }
-    public bool IsArchived { get; private set; }
-    public bool IsPrivate { get; private set; }
-    public Guid CreatorId { get; private set; }
-
-    // Navigation Properties (Encapsulated Collections)
+    public Visibility Visibility { get; private set; }
+    
+    // Task hierarchy (subtasks)
+    public Guid? ParentTaskId { get; private set; }
+    private readonly List<ProjectTask> _subtasks = new();
+    public IReadOnlyCollection<ProjectTask> Subtasks => _subtasks.AsReadOnly();
+    
+    // Task assignments and watchers
     private readonly List<UserProjectTask> _assignees = new();
     public IReadOnlyCollection<UserProjectTask> Assignees => _assignees.AsReadOnly();
-
+    
     private readonly List<ProjectTaskWatcher> _watchers = new();
     public IReadOnlyCollection<ProjectTaskWatcher> Watchers => _watchers.AsReadOnly();
-
-    private readonly List<ProjectTaskTag> _projectTaskTags = new();
-    public IReadOnlyCollection<ProjectTaskTag> ProjectTaskTags => _projectTaskTags.AsReadOnly();
-
-    private readonly List<Attachment> _attachments = new();
-    public IReadOnlyCollection<Attachment> Attachments => _attachments.AsReadOnly();
-
+    
+    // Task tags
+    private readonly List<ProjectTaskTag> _tags = new();
+    public IReadOnlyCollection<ProjectTaskTag> Tags => _tags.AsReadOnly();
+    
+    // Support entities that belong TO this task
     private readonly List<Comment> _comments = new();
     public IReadOnlyCollection<Comment> Comments => _comments.AsReadOnly();
-
+    
+    private readonly List<Attachment> _attachments = new();
+    public IReadOnlyCollection<Attachment> Attachments => _attachments.AsReadOnly();
+    
     private readonly List<TimeLog> _timeLogs = new();
     public IReadOnlyCollection<TimeLog> TimeLogs => _timeLogs.AsReadOnly();
-
+    
     private readonly List<Checklist> _checklists = new();
     public IReadOnlyCollection<Checklist> Checklists => _checklists.AsReadOnly();
 
     // Constructors
     private ProjectTask() { } // For EF Core
 
-    private ProjectTask(Guid id, string name, string description, Priority priority, DateTime? startDate, DateTime? dueDate, bool isPrivate, Guid projectWorkspaceId, Guid projectSpaceId, Guid? projectFolderId, Guid projectListId, Guid creatorId)
+    private ProjectTask(Guid id, string name, string? description, Priority priority, DateTime? startDate, DateTime? dueDate, Visibility visibility, Guid projectWorkspaceId, Guid projectSpaceId, Guid? projectFolderId, Guid projectListId, Guid creatorId)
     {
         Id = id;
         Name = name;
@@ -64,27 +75,28 @@ public class ProjectTask : Aggregate
         Priority = priority;
         StartDate = startDate;
         DueDate = dueDate;
-        IsPrivate = isPrivate;
+        Visibility = visibility;
         ProjectWorkspaceId = projectWorkspaceId;
         ProjectSpaceId = projectSpaceId;
         ProjectFolderId = projectFolderId;
         ProjectListId = projectListId;
         CreatorId = creatorId;
-        OrderIndex = 0; // Default order index
-        IsArchived = false; // Default not archived
-        TimeEstimate = null;
-        TimeSpent = null;
+
+        // Initialize other declared properties with default values
+        OrderIndex = 0;
+        IsCompleted = false;
+        StatusId = null;
         StoryPoints = null;
-        StatusId = null; // Initial status can be set later
+        TimeEstimate = null;
     }
 
     // Static Factory Method
-    public static ProjectTask Create(string name, string description, Priority priority, DateTime? startDate, DateTime? dueDate, bool isPrivate, Guid projectWorkspaceId, Guid projectSpaceId, Guid? projectFolderId, Guid projectListId, Guid creatorId)
+    public static ProjectTask Create(string name, string? description, Priority priority, DateTime? startDate, DateTime? dueDate, Visibility visibility, Guid projectWorkspaceId, Guid projectSpaceId, Guid? projectFolderId, Guid projectListId, Guid creatorId)
     {
         if (string.IsNullOrWhiteSpace(name))
             throw new ArgumentException("Task name cannot be empty.", nameof(name));
 
-        var task = new ProjectTask(Guid.NewGuid(), name, description, priority, startDate, dueDate, isPrivate, projectWorkspaceId, projectSpaceId, projectFolderId, projectListId, creatorId);
+        var task = new ProjectTask(Guid.NewGuid(), name, description, priority, startDate, dueDate, visibility, projectWorkspaceId, projectSpaceId, projectFolderId, projectListId, creatorId);
         task.AddDomainEvent(new TaskCreatedEvent(task.Id, task.Name, task.CreatorId, task.ProjectListId));
         return task;
     }

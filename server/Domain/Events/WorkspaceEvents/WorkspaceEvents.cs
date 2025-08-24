@@ -54,7 +54,7 @@ public record WorkspaceUnarchivedEvent(Guid WorkspaceId) : IDomainEvent
     public Guid EventId { get; init; } = Guid.NewGuid();
     public DateTimeOffset OccurredAt { get; init; } = DateTimeOffset.UtcNow;
 }
-public record WorkspaceJoinCodeChangedEvent(Guid WorkspaceId, string NewJoinCode) : IDomainEvent
+public record WorkspaceJoinCodeChangedEvent(Guid WorkspaceId, string NewJoinCode,string OldJoinCode) : IDomainEvent
 {
     public Guid EventId { get; init; } = Guid.NewGuid();
     public DateTimeOffset OccurredAt { get; init; } = DateTimeOffset.UtcNow;

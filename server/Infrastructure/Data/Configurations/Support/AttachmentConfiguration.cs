@@ -39,7 +39,6 @@ public class AttachmentConfiguration : IEntityTypeConfiguration<Attachment>
         builder.Property(e => e.UpdatedAt)
             .IsRequired();
 
-        // Ignore domain events collection as it's not persisted
-        builder.Ignore(e => e.DomainEvents);
+    // Attachment inherits Entity which contains Version/CreatedAt/UpdatedAt - no DomainEvents on Entity
     }
 }

@@ -7,8 +7,10 @@ namespace Domain.Entities.Support;
 
 public class Checklist : Entity
 {
-    public string Title { get; private set; } = null!;
     public Guid ProjectTaskId { get; private set; }
+    public string Title { get; private set; } = null!;
+    public int OrderIndex { get; private set; }
+    
     private readonly List<ChecklistItem> _items = new();
     public IReadOnlyCollection<ChecklistItem> Items => _items.AsReadOnly();
 
@@ -19,6 +21,7 @@ public class Checklist : Entity
         Id = id;
         Title = title;
         ProjectTaskId = projectTaskId;
+        OrderIndex = 0; // Initialize OrderIndex
     }
 
     public static Checklist Create(string title, Guid projectTaskId)

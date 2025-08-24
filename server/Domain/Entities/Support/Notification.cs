@@ -13,16 +13,18 @@ public class Notification : Entity
 
     private Notification() { }
 
+    private Notification(Guid id, string message, Guid recipientId, Guid triggeredByUserId, Guid relatedEntityId)
+    {
+        Id = id;
+        Message = message;
+        RecipientId = recipientId;
+        TriggeredByUserId = triggeredByUserId;
+        RelatedEntityId = relatedEntityId;
+        IsRead = false; // Default value
+    }
+
     public static Notification Create(string message, Guid recipientId, Guid triggeredByUserId, Guid relatedEntityId)
     {
-        var notification = new Notification
-        {
-            Message = message,
-            IsRead = false,
-            RecipientId = recipientId,
-            TriggeredByUserId = triggeredByUserId,
-            RelatedEntityId = relatedEntityId
-        };
-        return notification;
+        return new Notification(Guid.NewGuid(), message, recipientId, triggeredByUserId, relatedEntityId);
     }
 }

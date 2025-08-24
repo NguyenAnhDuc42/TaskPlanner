@@ -39,7 +39,5 @@ public class StatusConfiguration : IEntityTypeConfiguration<Status>
         builder.Property(e => e.UpdatedAt)
             .IsRequired();
 
-        // Ignore domain events collection as it's not persisted
-        builder.Ignore(e => e.DomainEvents);
     }
 }

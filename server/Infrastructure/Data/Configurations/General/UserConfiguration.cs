@@ -13,6 +13,11 @@ public class UserConfiguration : IEntityTypeConfiguration<User>
 
         builder.HasKey(u => u.Id);
 
+        // Match domain User properties
+        builder.Property(u => u.Name)
+            .IsRequired()
+            .HasMaxLength(200);
+
         builder.Property(u => u.Email)
             .IsRequired()
             .HasMaxLength(256);
@@ -24,25 +29,6 @@ public class UserConfiguration : IEntityTypeConfiguration<User>
             .IsRequired()
             .HasMaxLength(256);
 
-        builder.Property(u => u.FirstName)
-            .HasMaxLength(100);
-
-        builder.Property(u => u.LastName)
-            .HasMaxLength(100);
-
-        builder.Property(u => u.Role)
-            .IsRequired()
-            .HasConversion<string>(); // Store enum as string
-
-        builder.Property(u => u.ProfilePictureUrl)
-            .HasMaxLength(2048);
-
-        builder.Property(u => u.LastLogin)
-            .IsRequired(false); // Nullable
-
-        builder.Property(u => u.IsActive)
-            .IsRequired();
-
         // Configure common Entity properties
         builder.Property(e => e.Version)
             .IsRowVersion();
@@ -53,7 +39,7 @@ public class UserConfiguration : IEntityTypeConfiguration<User>
         builder.Property(e => e.UpdatedAt)
             .IsRequired();
 
-        // Ignore domain events collection as it's not persisted
-        builder.Ignore(e => e.DomainEvents);
+    // Ignore domain events collection as it's an in-memory concern on Aggregate
+    builder.Ignore(u => u.DomainEvents);
     }
 }

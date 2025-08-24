@@ -1,5 +1,6 @@
 using Domain.Common;
 using Domain.Entities.Relationship;
+using Domain.Enums;
 using Domain.Events.FolderEvents;
 using System;
 using System.Collections.Generic;
@@ -9,20 +10,22 @@ namespace Domain.Entities.ProjectEntities;
 
 public class ProjectFolder : Aggregate
 {
-    // Public Properties
-    public Guid ProjectWorkspaceId { get; private set; }
-    public Guid ProjectSpaceId { get; private set; }
+     public Guid ProjectWorkspaceId { get; private set; } // For quick queries
+    public Guid ProjectSpaceId { get; private set; } // Parent reference
     public string Name { get; private set; } = null!;
-    
-    public bool IsPrivate { get; private set; }
-    public bool IsArchived { get; private set; }
+    public string? Description { get; private set; }
+    public string Color { get; private set; } = null!;
+    public int OrderIndex { get; private set; } 
+    public Visibility Visibility { get; private set; }
     public Guid CreatorId { get; private set; }
-
-    // Navigation Properties
     
-
+    // Members (for private/restricted folders)
     private readonly List<UserProjectFolder> _members = new();
     public IReadOnlyCollection<UserProjectFolder> Members => _members.AsReadOnly();
+    
+    // Child entities
+    private readonly List<ProjectList> _lists = new();
+    public IReadOnlyCollection<ProjectList> Lists => _lists.AsReadOnly();
 
     // Constructors
     private ProjectFolder() { } // For EF Core
@@ -34,8 +37,12 @@ public class ProjectFolder : Aggregate
         ProjectWorkspaceId = projectWorkspaceId;
         ProjectSpaceId = projectSpaceId;
         CreatorId = creatorId;
-        IsPrivate = false; // Default
-        IsArchived = false; // Default
+
+        // Initialize other declared properties with default values
+        Description = null;
+        Color = "#FFFFFF"; // Default color
+        OrderIndex = 0;
+        Visibility = Visibility.Public; // Default visibility
     }
 
     // Static Factory Methods

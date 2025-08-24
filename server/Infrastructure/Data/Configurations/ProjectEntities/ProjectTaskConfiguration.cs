@@ -84,11 +84,12 @@ public class ProjectTaskConfiguration : IEntityTypeConfiguration<ProjectTask>
             .IsRequired()
             .OnDelete(DeleteBehavior.Cascade);
 
-        builder.HasMany(pt => pt.Tags)
+        // ProjectTask uses ProjectTaskTags relationship table
+        builder.HasMany(pt => pt.ProjectTaskTags)
             .WithOne()
-            .HasForeignKey(t => t.ProjectTaskId) // Assuming Tag has ProjectTaskId
-            .IsRequired(false) // Tags might exist independently or be associated
-            .OnDelete(DeleteBehavior.SetNull); // If task is deleted, tags might remain
+            .HasForeignKey(t => t.ProjectTaskId)
+            .IsRequired(false)
+            .OnDelete(DeleteBehavior.Cascade);
 
         builder.HasMany(pt => pt.Attachments)
             .WithOne()
@@ -124,7 +125,7 @@ public class ProjectTaskConfiguration : IEntityTypeConfiguration<ProjectTask>
         builder.Property(e => e.UpdatedAt)
             .IsRequired();
 
-        // Ignore domain events collection as it's not persisted
-        builder.Ignore(e => e.DomainEvents);
+    // Ignore domain events collection as it's an in-memory concern on Aggregate
+    builder.Ignore(e => e.DomainEvents);
     }
 }

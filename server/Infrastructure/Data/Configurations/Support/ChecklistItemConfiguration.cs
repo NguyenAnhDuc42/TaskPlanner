@@ -12,24 +12,18 @@ public class ChecklistItemConfiguration : IEntityTypeConfiguration<ChecklistItem
 
         builder.HasKey(cli => cli.Id);
 
-        builder.Property(cli => cli.Description)
+        // Match domain model: ChecklistItem has Text, IsCompleted, AssigneeId, OrderIndex
+        builder.Property(cli => cli.Text)
             .IsRequired()
             .HasMaxLength(512);
 
         builder.Property(cli => cli.IsCompleted)
             .IsRequired();
 
-        builder.Property(cli => cli.ChecklistId)
-            .IsRequired();
+        builder.Property(cli => cli.AssigneeId)
+            .IsRequired(false);
 
-        // Configure common Entity properties
-        builder.Property(e => e.Version)
-            .IsRowVersion();
-
-        builder.Property(e => e.CreatedAt)
-            .IsRequired();
-
-        builder.Property(e => e.UpdatedAt)
+        builder.Property(cli => cli.OrderIndex)
             .IsRequired();
     }
 }

@@ -22,7 +22,7 @@ public class ChecklistConfiguration : IEntityTypeConfiguration<Checklist>
         // Configure relationships
         builder.HasMany(cl => cl.Items)
             .WithOne()
-            .HasForeignKey(cli => cli.ChecklistId)
+            .HasForeignKey("ChecklistId") // Use shadow FK; ChecklistItem class does not expose ChecklistId property directly
             .IsRequired()
             .OnDelete(DeleteBehavior.Cascade); // Checklist items are deleted with checklist
 
@@ -36,7 +36,6 @@ public class ChecklistConfiguration : IEntityTypeConfiguration<Checklist>
         builder.Property(e => e.UpdatedAt)
             .IsRequired();
 
-        // Ignore domain events collection as it's not persisted
-        builder.Ignore(e => e.DomainEvents);
+    // Checklist inherits Entity which contains Version/CreatedAt/UpdatedAt - no DomainEvents on Entity
     }
 }

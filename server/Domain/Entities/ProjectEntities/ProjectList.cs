@@ -1,5 +1,6 @@
 using Domain.Common;
 using Domain.Entities.Relationship;
+using Domain.Enums;
 using Domain.Events.ListEvents;
 using System;
 using System.Collections.Generic;
@@ -9,26 +10,27 @@ namespace Domain.Entities.ProjectEntities;
 
 public class ProjectList : Aggregate
 {
-    // Public Properties
-    public Guid ProjectWorkspaceId { get; private set; }
-    public Guid ProjectSpaceId { get; private set; }
-    public Guid? ProjectFolderId { get; private set; }
+   public Guid ProjectWorkspaceId { get; private set; } // For quick queries
+    public Guid ProjectSpaceId { get; private set; } // Parent reference
+    public Guid? ProjectFolderId { get; private set; } // Optional parent
     public string Name { get; private set; } = null!;
-    
-    public bool IsPrivate { get; private set; }
-    public bool IsArchived { get; private set; }
+    public string? Description { get; private set; }
+    public string Color { get; private set; } = null!;
     public int OrderIndex { get; private set; }
+    public Visibility Visibility { get; private set; }
     public Guid CreatorId { get; private set; }
-    public Guid? DefaultAssigneeId { get; private set; }
+    
+    // List-specific properties
     public DateTime? StartDate { get; private set; }
     public DateTime? DueDate { get; private set; }
-
-    // Navigation Properties
-    private readonly List<Guid> _taskIds = new(); // Store Task IDs as Task is an aggregate root
-    public IReadOnlyCollection<Guid> TaskIds => _taskIds.AsReadOnly();
-
+    
+    // Members (for private/restricted lists)
     private readonly List<UserProjectList> _members = new();
     public IReadOnlyCollection<UserProjectList> Members => _members.AsReadOnly();
+    
+    // Child entities
+    private readonly List<ProjectTask> _tasks = new();
+    public IReadOnlyCollection<ProjectTask> Tasks => _tasks.AsReadOnly();
 
     // Constructors
     private ProjectList() { } // For EF Core
@@ -41,9 +43,14 @@ public class ProjectList : Aggregate
         ProjectSpaceId = projectSpaceId;
         ProjectFolderId = projectFolderId;
         CreatorId = creatorId;
-        IsPrivate = false; // Default
-        IsArchived = false; // Default
-        OrderIndex = 0; // Default
+
+        // Initialize other declared properties with default values
+        Description = null;
+        Color = "#FFFFFF"; // Default color
+        OrderIndex = 0; // Already set, but explicitly here for clarity
+        Visibility = Visibility.Public; // Default visibility
+        StartDate = null;
+        DueDate = null;
     }
 
     // Static Factory Methods

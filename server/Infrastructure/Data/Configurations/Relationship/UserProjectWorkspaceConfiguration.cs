@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Domain.Entities.Relationship;
 using Domain.Enums; // For Role
+using Domain.Entities.ProjectEntities; // Add this using statement for ProjectWorkspace
 
 namespace Infrastructure.Data.Configurations.Relationship;
 
@@ -25,20 +26,11 @@ public class UserProjectWorkspaceConfiguration : IEntityTypeConfiguration<UserPr
             .HasForeignKey(upw => upw.UserId)
             .OnDelete(DeleteBehavior.Cascade);
 
-        builder.HasOne<Domain.Entities.ProjectWorkspace.ProjectWorkspace>(upw => upw.ProjectWorkspace) // Assuming ProjectWorkspace is a navigation property
+        builder.HasOne<ProjectWorkspace>(upw => upw.ProjectWorkspace) // Corrected namespace
             .WithMany(pw => pw.Members) // Assuming ProjectWorkspace has a Members collection
             .HasForeignKey(upw => upw.ProjectWorkspaceId)
             .OnDelete(DeleteBehavior.Cascade);
 
-        // Configure common Entity properties (inherited from Entity, but not Aggregate)
-        // UserProjectWorkspace is an Entity, not an Aggregate, so it doesn't have DomainEvents
-        builder.Property(e => e.Version)
-            .IsRowVersion();
-
-        builder.Property(e => e.CreatedAt)
-            .IsRequired();
-
-        builder.Property(e => e.UpdatedAt)
-            .IsRequired();
+    // UserProjectWorkspace is a relationship entity (POCO) and does not expose Version/CreatedAt/UpdatedAt
     }
 }

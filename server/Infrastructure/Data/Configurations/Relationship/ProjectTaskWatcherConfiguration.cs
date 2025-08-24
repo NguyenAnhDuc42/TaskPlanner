@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Domain.Entities.Relationship;
+using Domain.Entities.ProjectEntities; // Add this using statement for ProjectTask
 
 namespace Infrastructure.Data.Configurations.Relationship;
 
@@ -14,8 +15,8 @@ public class ProjectTaskWatcherConfiguration : IEntityTypeConfiguration<ProjectT
         builder.HasKey(ptw => new { ptw.ProjectTaskId, ptw.UserId });
 
         // Configure relationships
-        builder.HasOne<Domain.Entities.ProjectWorkspace.ProjectTask>(ptw => ptw.ProjectTask)
-            .WithMany(pt => pt.Watchers) // Assuming ProjectTask has a Watchers collection
+        builder.HasOne<ProjectTask>(ptw => ptw.ProjectTask)
+            .WithMany(pt => pt.Watchers)
             .HasForeignKey(ptw => ptw.ProjectTaskId)
             .OnDelete(DeleteBehavior.Cascade);
 
@@ -24,14 +25,6 @@ public class ProjectTaskWatcherConfiguration : IEntityTypeConfiguration<ProjectT
             .HasForeignKey(ptw => ptw.UserId)
             .OnDelete(DeleteBehavior.Cascade);
 
-        // Configure common Entity properties
-        builder.Property(e => e.Version)
-            .IsRowVersion();
-
-        builder.Property(e => e.CreatedAt)
-            .IsRequired();
-
-        builder.Property(e => e.UpdatedAt)
-            .IsRequired();
+    // ProjectTaskWatcher is a relationship/POCO and does not have Version/CreatedAt/UpdatedAt properties
     }
 }

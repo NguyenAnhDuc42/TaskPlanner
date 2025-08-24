@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Domain.Entities.Relationship;
+using Domain.Entities.ProjectEntities; // Add this using statement for ProjectTask
 
 namespace Infrastructure.Data.Configurations.Relationship;
 
@@ -19,19 +20,11 @@ public class UserProjectTaskConfiguration : IEntityTypeConfiguration<UserProject
             .HasForeignKey(upt => upt.UserId)
             .OnDelete(DeleteBehavior.Cascade);
 
-        builder.HasOne<Domain.Entities.ProjectWorkspace.ProjectTask>(upt => upt.ProjectTask)
+        builder.HasOne<ProjectTask>(upt => upt.ProjectTask) // Corrected namespace
             .WithMany(pt => pt.Assignees) // Assuming ProjectTask has an Assignees collection
             .HasForeignKey(upt => upt.ProjectTaskId)
             .OnDelete(DeleteBehavior.Cascade);
 
-        // Configure common Entity properties
-        builder.Property(e => e.Version)
-            .IsRowVersion();
-
-        builder.Property(e => e.CreatedAt)
-            .IsRequired();
-
-        builder.Property(e => e.UpdatedAt)
-            .IsRequired();
+    // UserProjectTask is a relationship POCO and does not have Version/CreatedAt/UpdatedAt
     }
 }

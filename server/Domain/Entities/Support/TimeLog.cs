@@ -5,27 +5,29 @@ namespace Domain.Entities.Support;
 
 public class TimeLog : Entity
 {
-    public TimeSpan TimeSpent { get; private set; }
-    public DateTimeOffset LogDate { get; private set; }
-    public Guid UserId { get; private set; }
     public Guid ProjectTaskId { get; private set; }
+    public Guid UserId { get; private set; }
+    public TimeSpan Duration { get; private set; }
+    public string? Description { get; private set; }
+    public DateTime LoggedAt { get; private set; }
 
     private TimeLog() { } // For EF Core
 
-    private TimeLog(Guid id, TimeSpan timeSpent, Guid userId, Guid projectTaskId)
+    private TimeLog(Guid id, TimeSpan duration, Guid userId, Guid projectTaskId)
     {
         Id = id;
-        TimeSpent = timeSpent;
-        LogDate = DateTimeOffset.UtcNow;
+        Duration = duration; // Assign to the existing Duration property
         UserId = userId;
         ProjectTaskId = projectTaskId;
+        Description = null; // Initialize Description
+        LoggedAt = DateTime.UtcNow; // Initialize LoggedAt
     }
 
-    public static TimeLog Create(TimeSpan timeSpent, Guid userId, Guid projectTaskId)
+    public static TimeLog Create(TimeSpan duration, Guid userId, Guid projectTaskId)
     {
-        if (timeSpent <= TimeSpan.Zero)
-            throw new ArgumentException("Time spent must be greater than zero.", nameof(timeSpent));
+        if (duration <= TimeSpan.Zero)
+            throw new ArgumentException("Duration must be greater than zero.", nameof(duration));
 
-        return new TimeLog(Guid.NewGuid(), timeSpent, userId, projectTaskId);
+        return new TimeLog(Guid.NewGuid(), duration, userId, projectTaskId);
     }
 }

@@ -1,25 +1,33 @@
 using System;
+using Domain.Common;
 
 namespace Domain.Entities.Support;
 
-public class ChecklistItem
+public class ChecklistItem : Entity
 {
-    public Guid Id { get; private set; }
+    public Guid TaskChecklistId { get; private set; }
     public string Text { get; private set; } = null!;
     public bool IsCompleted { get; private set; }
-    public Guid? AssigneeId { get; private set; }
     public int OrderIndex { get; private set; }
 
     // Private constructor for EF Core
     private ChecklistItem() { }
 
-    public ChecklistItem(string text, Guid? assigneeId, int orderIndex)
+    private ChecklistItem(Guid id, string text, int orderIndex)
     {
-        Id = Guid.NewGuid();
+        Id = id;
         Text = text;
         IsCompleted = false; // Default to not completed
-        AssigneeId = assigneeId;
         OrderIndex = orderIndex;
+        TaskChecklistId = Guid.Empty; // Initialize TaskChecklistId
+    }
+
+    public static ChecklistItem Create(string text, int orderIndex)
+    {
+        if (string.IsNullOrWhiteSpace(text))
+            throw new ArgumentException("Checklist item text cannot be empty.", nameof(text));
+
+        return new ChecklistItem(Guid.NewGuid(), text, orderIndex);
     }
 
     public void Toggle()
@@ -41,8 +49,4 @@ public class ChecklistItem
         OrderIndex = newOrder;
     }
 
-    public void Assign(Guid? assigneeId)
-    {
-        AssigneeId = assigneeId;
-    }
 }
