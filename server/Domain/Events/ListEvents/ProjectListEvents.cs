@@ -1,124 +1,126 @@
+
 using Domain.Common.Interfaces;
 using Domain.Enums;
 using System;
+using System.Collections.Generic;
 
-namespace Domain.Events.TaskEvents;
+namespace Domain.Events.ListEvents;
 
-public record TaskCreatedEvent(Guid TaskId, string TaskName, Guid CreatorId, Guid ProjectListId) : IDomainEvent
-{
-    public Guid EventId { get; init; } = Guid.NewGuid();
-    public DateTimeOffset OccurredAt { get; init; } = DateTimeOffset.UtcNow;
-}
-public record TaskNameUpdatedEvent(Guid TaskId, string NewName) : IDomainEvent
-{
-    public Guid EventId { get; init; } = Guid.NewGuid();
-    public DateTimeOffset OccurredAt { get; init; } = DateTimeOffset.UtcNow;
-}
-public record TaskDescriptionUpdatedEvent(Guid TaskId, string NewDescription) : IDomainEvent
-{
-    public Guid EventId { get; init; } = Guid.NewGuid();
-    public DateTimeOffset OccurredAt { get; init; } = DateTimeOffset.UtcNow;
-}
-public record TaskPriorityChangedEvent(Guid TaskId, Priority NewPriority) : IDomainEvent
-{
-    public Guid EventId { get; init; } = Guid.NewGuid();
-    public DateTimeOffset OccurredAt { get; init; } = DateTimeOffset.UtcNow;
-}
-public record TaskDueDateSetEvent(Guid TaskId, DateTime? NewDueDate) : IDomainEvent
-{
-    public Guid EventId { get; init; } = Guid.NewGuid();
-    public DateTimeOffset OccurredAt { get; init; } = DateTimeOffset.UtcNow;
-}
-public record TaskStatusUpdatedEvent(Guid TaskId, Guid NewStatusId) : IDomainEvent
-{
-    public Guid EventId { get; init; } = Guid.NewGuid();
-    public DateTimeOffset OccurredAt { get; init; } = DateTimeOffset.UtcNow;
-}
-public record TaskCompletedEvent(Guid TaskId) : IDomainEvent
-{
-    public Guid EventId { get; init; } = Guid.NewGuid();
-    public DateTimeOffset OccurredAt { get; init; } = DateTimeOffset.UtcNow;
-}
-public record CommentAddedToTaskEvent(Guid TaskId, Guid CommentId, Guid AuthorId, string Content) : IDomainEvent
-{
-    public Guid EventId { get; init; } = Guid.NewGuid();
-    public DateTimeOffset OccurredAt { get; init; } = DateTimeOffset.UtcNow;
-}
-public record AttachmentAddedToTaskEvent(Guid TaskId, Guid AttachmentId, string FileName, string FileUrl) : IDomainEvent
-{
-    public Guid EventId { get; init; } = Guid.NewGuid();
-    public DateTimeOffset OccurredAt { get; init; } = DateTimeOffset.UtcNow;
-}
-public record ChecklistAddedToTaskEvent(Guid TaskId, Guid ChecklistId, string Title) : IDomainEvent
-{
-    public Guid EventId { get; init; } = Guid.NewGuid();
-    public DateTimeOffset OccurredAt { get; init; } = DateTimeOffset.UtcNow;
-}
-public record TimeLogAddedToTaskEvent(Guid TaskId, Guid TimeLogId, TimeSpan TimeSpent, Guid UserId) : IDomainEvent
-{
-    public Guid EventId { get; init; } = Guid.NewGuid();
-    public DateTimeOffset OccurredAt { get; init; } = DateTimeOffset.UtcNow;
-}
-public record UserAssignedToTaskEvent(Guid TaskId, Guid UserId) : IDomainEvent
-{
-    public Guid EventId { get; init; } = Guid.NewGuid();
-    public DateTimeOffset OccurredAt { get; init; } = DateTimeOffset.UtcNow;
-}
-public record WatcherAddedToTaskEvent(Guid TaskId, Guid UserId) : IDomainEvent
+public record ListCreatedEvent(Guid ListId, string ListName, Guid ProjectSpaceId, Guid? ProjectFolderId, Guid CreatorId) : IDomainEvent
 {
     public Guid EventId { get; init; } = Guid.NewGuid();
     public DateTimeOffset OccurredAt { get; init; } = DateTimeOffset.UtcNow;
 }
 
-public record UserUnassignedFromTaskEvent(Guid TaskId, Guid UserId) : IDomainEvent
+public record ListBasicInfoUpdatedEvent(Guid ListId, string OldName, string NewName, string? OldDescription, string? NewDescription) : IDomainEvent
 {
     public Guid EventId { get; init; } = Guid.NewGuid();
     public DateTimeOffset OccurredAt { get; init; } = DateTimeOffset.UtcNow;
 }
 
-public record WatcherRemovedFromTaskEvent(Guid TaskId, Guid UserId) : IDomainEvent
+public record ListVisualSettingsUpdatedEvent(Guid ListId, string OldColor, string NewColor) : IDomainEvent
 {
     public Guid EventId { get; init; } = Guid.NewGuid();
     public DateTimeOffset OccurredAt { get; init; } = DateTimeOffset.UtcNow;
 }
 
-public record TagAddedToTaskEvent(Guid TaskId, Guid TagId, string TagName) : IDomainEvent
+public record ListVisibilityChangedEvent(Guid ListId, Visibility OldVisibility, Visibility NewVisibility) : IDomainEvent
 {
     public Guid EventId { get; init; } = Guid.NewGuid();
     public DateTimeOffset OccurredAt { get; init; } = DateTimeOffset.UtcNow;
 }
 
-public record TagRemovedFromTaskEvent(Guid TaskId, Guid TagId) : IDomainEvent
+public record ListDateRangeUpdatedEvent(Guid ListId, DateTime? OldStartDate, DateTime? NewStartDate, DateTime? OldDueDate, DateTime? NewDueDate) : IDomainEvent
 {
     public Guid EventId { get; init; } = Guid.NewGuid();
     public DateTimeOffset OccurredAt { get; init; } = DateTimeOffset.UtcNow;
 }
 
-public record TaskArchivedEvent(Guid TaskId) : IDomainEvent
+public record ListArchivedEvent(Guid ListId) : IDomainEvent
 {
     public Guid EventId { get; init; } = Guid.NewGuid();
     public DateTimeOffset OccurredAt { get; init; } = DateTimeOffset.UtcNow;
 }
 
-public record TaskUnarchivedEvent(Guid TaskId) : IDomainEvent
+public record ListUnarchivedEvent(Guid ListId) : IDomainEvent
 {
     public Guid EventId { get; init; } = Guid.NewGuid();
     public DateTimeOffset OccurredAt { get; init; } = DateTimeOffset.UtcNow;
 }
 
-public record TaskMovedEvent(Guid TaskId, Guid OldListId, Guid NewListId) : IDomainEvent
+public record ListMovedToFolderEvent(Guid ListId, Guid? OldFolderId, Guid? NewFolderId) : IDomainEvent
 {
     public Guid EventId { get; init; } = Guid.NewGuid();
     public DateTimeOffset OccurredAt { get; init; } = DateTimeOffset.UtcNow;
 }
 
-public record TaskStoryPointsUpdatedEvent(Guid TaskId, int? NewStoryPoints) : IDomainEvent
+public record MemberAddedToListEvent(Guid ListId, Guid UserId) : IDomainEvent
 {
     public Guid EventId { get; init; } = Guid.NewGuid();
     public DateTimeOffset OccurredAt { get; init; } = DateTimeOffset.UtcNow;
 }
 
-public record TaskTimeEstimateUpdatedEvent(Guid TaskId, long? NewTimeEstimate) : IDomainEvent
+public record MemberRemovedFromListEvent(Guid ListId, Guid UserId) : IDomainEvent
+{
+    public Guid EventId { get; init; } = Guid.NewGuid();
+    public DateTimeOffset OccurredAt { get; init; } = DateTimeOffset.UtcNow;
+}
+
+public record TaskCreatedInListEvent(Guid ListId, Guid TaskId, string TaskName, Guid CreatorId) : IDomainEvent
+{
+    public Guid EventId { get; init; } = Guid.NewGuid();
+    public DateTimeOffset OccurredAt { get; init; } = DateTimeOffset.UtcNow;
+}
+
+public record TaskRemovedFromListEvent(Guid ListId, Guid TaskId, string TaskName) : IDomainEvent
+{
+    public Guid EventId { get; init; } = Guid.NewGuid();
+    public DateTimeOffset OccurredAt { get; init; } = DateTimeOffset.UtcNow;
+}
+
+public record TasksReorderedInListEvent(Guid ListId, List<Guid> TaskIds) : IDomainEvent
+{
+    public Guid EventId { get; init; } = Guid.NewGuid();
+    public DateTimeOffset OccurredAt { get; init; } = DateTimeOffset.UtcNow;
+}
+
+public record TaskMovedFromListEvent(Guid ListId, Guid TaskId, Guid TargetListId) : IDomainEvent
+{
+    public Guid EventId { get; init; } = Guid.NewGuid();
+    public DateTimeOffset OccurredAt { get; init; } = DateTimeOffset.UtcNow;
+}
+
+public record TaskMovedToListEvent(Guid ListId, Guid TaskId, Guid SourceListId) : IDomainEvent
+{
+    public Guid EventId { get; init; } = Guid.NewGuid();
+    public DateTimeOffset OccurredAt { get; init; } = DateTimeOffset.UtcNow;
+}
+
+public record AllTasksArchivedInListEvent(Guid ListId) : IDomainEvent
+{
+    public Guid EventId { get; init; } = Guid.NewGuid();
+    public DateTimeOffset OccurredAt { get; init; } = DateTimeOffset.UtcNow;
+}
+
+public record AllTasksUnarchivedInListEvent(Guid ListId) : IDomainEvent
+{
+    public Guid EventId { get; init; } = Guid.NewGuid();
+        public DateTimeOffset OccurredAt { get; init; } = DateTimeOffset.UtcNow;
+}
+
+public record AllTasksCompletedInListEvent(Guid ListId) : IDomainEvent
+{
+    public Guid EventId { get; init; } = Guid.NewGuid();
+    public DateTimeOffset OccurredAt { get; init; } = DateTimeOffset.UtcNow;
+}
+
+public record AllTasksAssignedToUserInListEvent(Guid ListId, Guid UserId) : IDomainEvent
+{
+    public Guid EventId { get; init; } = Guid.NewGuid();
+    public DateTimeOffset OccurredAt { get; init; } = DateTimeOffset.UtcNow;
+}
+
+public record AllTasksPriorityUpdatedInListEvent(Guid ListId, Priority NewPriority) : IDomainEvent
 {
     public Guid EventId { get; init; } = Guid.NewGuid();
     public DateTimeOffset OccurredAt { get; init; } = DateTimeOffset.UtcNow;

@@ -1,60 +1,66 @@
 using Domain.Common.Interfaces;
 using Domain.Enums;
 using System;
+using System.Collections.Generic;
 
-namespace Domain.Events.WorkspaceEvents;
+namespace Domain.Events.SpaceEvents;
 
-public record WorkspaceCreatedEvent(Guid WorkspaceId, string WorkspaceName, Guid CreatorId) : IDomainEvent
+public record SpaceCreatedEvent(Guid SpaceId, string SpaceName, Guid ProjectWorkspaceId, Guid CreatorId) : IDomainEvent
 {
     public Guid EventId { get; init; } = Guid.NewGuid();
     public DateTimeOffset OccurredAt { get; init; } = DateTimeOffset.UtcNow;
 }
-public record WorkspaceNameUpdatedEvent(Guid WorkspaceId, string NewName) : IDomainEvent
+public record SpaceBasicInfoUpdatedEvent(Guid SpaceId, string NewName, string? NewDescription) : IDomainEvent
 {
     public Guid EventId { get; init; } = Guid.NewGuid();
     public DateTimeOffset OccurredAt { get; init; } = DateTimeOffset.UtcNow;
 }
-public record WorkspaceDescriptionUpdatedEvent(Guid WorkspaceId, string NewDescription) : IDomainEvent
+public record SpaceVisualSettingsUpdatedEvent(Guid SpaceId, string NewIcon, string NewColor) : IDomainEvent
 {
     public Guid EventId { get; init; } = Guid.NewGuid();
     public DateTimeOffset OccurredAt { get; init; } = DateTimeOffset.UtcNow;
 }
-public record SpaceAddedToWorkspaceEvent(Guid WorkspaceId, Guid SpaceId, string SpaceName) : IDomainEvent
+public record SpaceVisibilityChangedEvent(Guid SpaceId, Visibility NewVisibility) : IDomainEvent
 {
     public Guid EventId { get; init; } = Guid.NewGuid();
     public DateTimeOffset OccurredAt { get; init; } = DateTimeOffset.UtcNow;
 }
-public record MemberAddedToWorkspaceEvent(Guid WorkspaceId, Guid UserId, Role Role) : IDomainEvent
+public record MemberAddedToSpaceEvent(Guid SpaceId, Guid UserId) : IDomainEvent
 {
     public Guid EventId { get; init; } = Guid.NewGuid();
     public DateTimeOffset OccurredAt { get; init; } = DateTimeOffset.UtcNow;
 }
-public record DefaultStatusAddedToWorkspaceEvent(Guid WorkspaceId, Guid StatusId, string StatusName) : IDomainEvent
+public record MemberRemovedFromSpaceEvent(Guid SpaceId, Guid UserId) : IDomainEvent
 {
     public Guid EventId { get; init; } = Guid.NewGuid();
     public DateTimeOffset OccurredAt { get; init; } = DateTimeOffset.UtcNow;
 }
-public record MemberRemovedFromWorkspaceEvent(Guid WorkspaceId, Guid UserId) : IDomainEvent
+public record FolderCreatedInSpaceEvent(Guid SpaceId, Guid FolderId, string FolderName, Guid CreatorId) : IDomainEvent
 {
     public Guid EventId { get; init; } = Guid.NewGuid();
     public DateTimeOffset OccurredAt { get; init; } = DateTimeOffset.UtcNow;
 }
-public record WorkspaceMemberRoleChangedEvent(Guid WorkspaceId, Guid UserId, Role NewRole) : IDomainEvent
+public record FolderRemovedFromSpaceEvent(Guid SpaceId, Guid FolderId, string FolderName) : IDomainEvent
 {
     public Guid EventId { get; init; } = Guid.NewGuid();
     public DateTimeOffset OccurredAt { get; init; } = DateTimeOffset.UtcNow;
 }
-public record WorkspaceArchivedEvent(Guid WorkspaceId) : IDomainEvent
+public record FoldersReorderedInSpaceEvent(Guid SpaceId, List<Guid> OrderedFolderIds) : IDomainEvent
 {
     public Guid EventId { get; init; } = Guid.NewGuid();
     public DateTimeOffset OccurredAt { get; init; } = DateTimeOffset.UtcNow;
 }
-public record WorkspaceUnarchivedEvent(Guid WorkspaceId) : IDomainEvent
+public record ListCreatedInSpaceEvent(Guid SpaceId, Guid ListId, string ListName, Guid? FolderId, Guid CreatorId) : IDomainEvent
 {
     public Guid EventId { get; init; } = Guid.NewGuid();
     public DateTimeOffset OccurredAt { get; init; } = DateTimeOffset.UtcNow;
 }
-public record WorkspaceJoinCodeChangedEvent(Guid WorkspaceId, string NewJoinCode,string OldJoinCode) : IDomainEvent
+public record ListRemovedFromSpaceEvent(Guid SpaceId, Guid ListId, string ListName) : IDomainEvent
+{
+    public Guid EventId { get; init; } = Guid.NewGuid();
+    public DateTimeOffset OccurredAt { get; init; } = DateTimeOffset.UtcNow;
+}
+public record ListMovedToFolderEvent(Guid SpaceId, Guid ListId, Guid? OldFolderId, Guid? NewFolderId) : IDomainEvent
 {
     public Guid EventId { get; init; } = Guid.NewGuid();
     public DateTimeOffset OccurredAt { get; init; } = DateTimeOffset.UtcNow;

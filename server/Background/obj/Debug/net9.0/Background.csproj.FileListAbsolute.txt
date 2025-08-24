@@ -10,3 +10,9 @@ c:\Users\Duc\Desktop\TaskPlanner\server\Background\obj\Debug\net9.0\Background.d
 c:\Users\Duc\Desktop\TaskPlanner\server\Background\obj\Debug\net9.0\refint\Background.dll
 c:\Users\Duc\Desktop\TaskPlanner\server\Background\obj\Debug\net9.0\Background.pdb
 c:\Users\Duc\Desktop\TaskPlanner\server\Background\obj\Debug\net9.0\ref\Background.dll
+c:\Users\Duc\Desktop\TaskPlanner\server\Background\bin\Debug\net9.0\Application.dll
+c:\Users\Duc\Desktop\TaskPlanner\server\Background\bin\Debug\net9.0\Domain.dll
+c:\Users\Duc\Desktop\TaskPlanner\server\Background\bin\Debug\net9.0\Application.pdb
+c:\Users\Duc\Desktop\TaskPlanner\server\Background\bin\Debug\net9.0\Domain.pdb
+c:\Users\Duc\Desktop\TaskPlanner\server\Background\obj\Debug\net9.0\Background.csproj.AssemblyReference.cache
+c:\Users\Duc\Desktop\TaskPlanner\server\Background\obj\Debug\net9.0\Background.csproj.Up2Date

@@ -32,12 +32,12 @@ public class Checklist : Entity
         return new Checklist(Guid.NewGuid(), title, projectTaskId);
     }
 
-    public ChecklistItem AddItem(string text, Guid? assigneeId = null)
+    public ChecklistItem AddItem(string text)
     {
         if (string.IsNullOrWhiteSpace(text))
             throw new ArgumentException("Checklist item text cannot be empty.", nameof(text));
 
-        var item = new ChecklistItem(text, assigneeId, _items.Count);
+        var item = ChecklistItem.Create(text, _items.Count);
         _items.Add(item);
         return item;
     }

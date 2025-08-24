@@ -1,24 +1,27 @@
 using Domain.Common.Interfaces;
 using System;
 
-namespace Domain.Events.FolderEvents;
+namespace Domain.Events.UserEvents;
 
-public record FolderCreatedEvent(Guid FolderId, string FolderName, Guid ProjectSpaceId, Guid CreatorId) : IDomainEvent
+public record UserCreatedEvent(Guid UserId, string Name, string Email) : IDomainEvent
 {
     public Guid EventId { get; init; } = Guid.NewGuid();
     public DateTimeOffset OccurredAt { get; init; } = DateTimeOffset.UtcNow;
 }
-public record FolderNameUpdatedEvent(Guid FolderId, string NewName) : IDomainEvent
+
+public record UserEmailUpdatedEvent(Guid UserId, string NewEmail) : IDomainEvent
 {
     public Guid EventId { get; init; } = Guid.NewGuid();
     public DateTimeOffset OccurredAt { get; init; } = DateTimeOffset.UtcNow;
 }
-public record ListAddedToFolderEvent(Guid FolderId, Guid ListId, string ListName) : IDomainEvent
+
+public record UserNameUpdatedEvent(Guid UserId, string NewName) : IDomainEvent
 {
     public Guid EventId { get; init; } = Guid.NewGuid();
     public DateTimeOffset OccurredAt { get; init; } = DateTimeOffset.UtcNow;
 }
-public record MemberAddedToFolderEvent(Guid FolderId, Guid UserId) : IDomainEvent
+
+public record UserPasswordChangedEvent(Guid UserId) : IDomainEvent
 {
     public Guid EventId { get; init; } = Guid.NewGuid();
     public DateTimeOffset OccurredAt { get; init; } = DateTimeOffset.UtcNow;
