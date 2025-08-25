@@ -1,16 +1,9 @@
-
 using Domain.Common.Interfaces;
 using Domain.Enums;
 using System;
 using System.Collections.Generic;
 
 namespace Domain.Events.FolderEvents;
-
-public record FolderCreatedEvent(Guid FolderId, string FolderName, Guid ProjectSpaceId, Guid CreatorId) : IDomainEvent
-{
-    public Guid EventId { get; init; } = Guid.NewGuid();
-    public DateTimeOffset OccurredAt { get; init; } = DateTimeOffset.UtcNow;
-}
 
 public record FolderBasicInfoUpdatedEvent(Guid FolderId, string OldName, string NewName, string? OldDescription, string? NewDescription) : IDomainEvent
 {
@@ -37,6 +30,18 @@ public record MemberAddedToFolderEvent(Guid FolderId, Guid UserId) : IDomainEven
 }
 
 public record MemberRemovedFromFolderEvent(Guid FolderId, Guid UserId) : IDomainEvent
+{
+    public Guid EventId { get; init; } = Guid.NewGuid();
+    public DateTimeOffset OccurredAt { get; init; } = DateTimeOffset.UtcNow;
+}
+
+public record FolderArchivedEvent(Guid FolderId) : IDomainEvent
+{
+    public Guid EventId { get; init; } = Guid.NewGuid();
+    public DateTimeOffset OccurredAt { get; init; } = DateTimeOffset.UtcNow;
+}
+
+public record FolderUnarchivedEvent(Guid FolderId) : IDomainEvent
 {
     public Guid EventId { get; init; } = Guid.NewGuid();
     public DateTimeOffset OccurredAt { get; init; } = DateTimeOffset.UtcNow;

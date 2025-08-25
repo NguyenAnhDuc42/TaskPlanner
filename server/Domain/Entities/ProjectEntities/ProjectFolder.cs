@@ -14,9 +14,10 @@ public class ProjectFolder : Aggregate
     public Guid ProjectSpaceId { get; private set; }
     public string Name { get; private set; } = null!;
     public string? Description { get; private set; }
-    public string Color { get; private set; } = null!;
     public int? OrderIndex { get; private set; }
     public Visibility Visibility { get; private set; }
+    public bool IsArchived { get; private set; }
+
     public Guid CreatorId { get; private set; }
 
     // Members (for private/restricted folders)
@@ -32,14 +33,13 @@ public class ProjectFolder : Aggregate
 
     // Internal constructor - only called by parent ProjectSpace
     internal ProjectFolder(Guid id, Guid projectWorkspaceId, Guid projectSpaceId, string name, 
-        string? description, string color, Visibility visibility, int orderIndex, Guid creatorId)
+        string? description, Visibility visibility, int orderIndex, Guid creatorId)
     {
         Id = id;
         ProjectWorkspaceId = projectWorkspaceId;
         ProjectSpaceId = projectSpaceId;
         Name = name;
         Description = description;
-        Color = color;
         Visibility = visibility;
         OrderIndex = orderIndex;
         CreatorId = creatorId;
@@ -76,23 +76,6 @@ public class ProjectFolder : Aggregate
         Description = description;
         UpdateTimestamp();
         AddDomainEvent(new FolderBasicInfoUpdatedEvent(Id, oldName, name, oldDescription, description));
-    }
-
-    public void UpdateColor(string color)
-    {
-        // Normalize input first
-        color = color?.Trim() ?? string.Empty;
-        
-        // Check for changes first
-        if (Color == color) return;
-        
-        // Then validate
-        ValidateColor(color);
-
-        var oldColor = Color;
-        Color = color;
-        UpdateTimestamp();
-        AddDomainEvent(new FolderColorUpdatedEvent(Id, oldColor, color));
     }
 
     public void ChangeVisibility(Visibility newVisibility)
@@ -155,6 +138,29 @@ public class ProjectFolder : Aggregate
         // CASCADE: Remove member from all child lists
         CascadeMembershipToLists(userId, isAdding: false);
     }
+    public void Archive()
+    {
+        if (IsArchived) return;
+
+        IsArchived = true;
+        UpdateTimestamp();
+        AddDomainEvent(new FolderArchivedEvent(Id));
+
+        // CASCADE: Archive all child tasks
+        ArchiveAllLists();
+    }
+
+    public void Unarchive()
+    {
+        if (!IsArchived) return;
+
+        IsArchived = false;
+        UpdateTimestamp();
+        AddDomainEvent(new FolderUnarchivedEvent(Id));
+
+        // CASCADE: Unarchive all child tasks
+        UnarchiveAllLists();
+    }
 
     // === CHILD ENTITY MANAGEMENT ===
 
@@ -164,7 +170,7 @@ public class ProjectFolder : Aggregate
         name = name?.Trim() ?? string.Empty;
         description = string.IsNullOrWhiteSpace(description?.Trim()) ? null : description.Trim();
         color = color?.Trim() ?? string.Empty;
-        
+
         // Validate
         if (string.IsNullOrWhiteSpace(name))
             throw new ArgumentException("List name cannot be empty.", nameof(name));
@@ -174,10 +180,10 @@ public class ProjectFolder : Aggregate
             throw new InvalidOperationException($"A list with the name '{name}' already exists in this folder.");
 
         var orderIndex = _lists.Count;
-        var list = new ProjectList(Guid.NewGuid(), ProjectWorkspaceId, ProjectSpaceId, Id, 
-            name, description, color, visibility, orderIndex, CreatorId);
+        var list = new ProjectList(Guid.NewGuid(), ProjectWorkspaceId, ProjectSpaceId, Id,
+            name, description, visibility, orderIndex, CreatorId);
         _lists.Add(list);
-        
+
         UpdateTimestamp();
         AddDomainEvent(new ListCreatedInFolderEvent(Id, list.Id, name, CreatorId));
         return list;
@@ -241,24 +247,6 @@ public class ProjectFolder : Aggregate
         
         UpdateTimestamp();
         AddDomainEvent(new AllListsUnarchivedInFolderEvent(Id));
-    }
-    
-    public void UpdateAllListsColor(string newColor)
-    {
-        // Normalize and validate
-        newColor = newColor?.Trim() ?? string.Empty;
-        ValidateColor(newColor);
-        
-        var listsToUpdate = _lists.Where(l => l.Color != newColor).ToList();
-        if (!listsToUpdate.Any()) return; // Nothing to update
-        
-        foreach (var list in listsToUpdate)
-        {
-            list.UpdateVisualSettings(newColor);
-        }
-        
-        UpdateTimestamp();
-        AddDomainEvent(new AllListsColorUpdatedInFolderEvent(Id, newColor));
     }
 
     // === LIST ATTACHMENT/DETACHMENT (for moving between containers) ===

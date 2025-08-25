@@ -15,7 +15,6 @@ public class ProjectList : Aggregate
     public Guid? ProjectFolderId { get; private set; }
     public string Name { get; private set; } = null!;
     public string? Description { get; private set; }
-    public string Color { get; private set; } = null!;
     public int? OrderIndex { get; private set; } // Nullable for proper ordering
     public Visibility Visibility { get; private set; }
     public Guid CreatorId { get; private set; }
@@ -38,7 +37,7 @@ public class ProjectList : Aggregate
 
     // Internal constructor - only called by parent space
     internal ProjectList(Guid id, Guid projectWorkspaceId, Guid projectSpaceId, Guid? projectFolderId,
-        string name, string? description, string color, Visibility visibility, int orderIndex, Guid creatorId)
+        string name, string? description, Visibility visibility, int orderIndex, Guid creatorId)
     {
         Id = id;
         ProjectWorkspaceId = projectWorkspaceId;
@@ -46,7 +45,6 @@ public class ProjectList : Aggregate
         ProjectFolderId = projectFolderId;
         Name = name;
         Description = description;
-        Color = color;
         Visibility = visibility;
         OrderIndex = orderIndex;
         CreatorId = creatorId;
@@ -75,22 +73,6 @@ public class ProjectList : Aggregate
         AddDomainEvent(new ListBasicInfoUpdatedEvent(Id, oldName, name, oldDescription, description));
     }
 
-    public void UpdateVisualSettings(string color)
-    {
-        // Normalize input first
-        color = color?.Trim() ?? string.Empty;
-
-        // Check for changes first
-        if (Color == color) return;
-
-        // Then validate
-        ValidateColor(color);
-
-        var oldColor = Color;
-        Color = color;
-        UpdateTimestamp();
-        AddDomainEvent(new ListVisualSettingsUpdatedEvent(Id, oldColor, color));
-    }
 
     public void ChangeVisibility(Visibility newVisibility)
     {
@@ -163,6 +145,15 @@ public class ProjectList : Aggregate
         ProjectFolderId = newFolderId;
         UpdateTimestamp();
         AddDomainEvent(new ListMovedToFolderEvent(Id, oldFolderId, newFolderId));
+    }
+    internal void MoveToSpace(Guid newSpaceId)
+    {
+        if (ProjectSpaceId == newSpaceId) return;
+
+        var oldSpaceId = ProjectSpaceId;
+        ProjectSpaceId = newSpaceId;
+        UpdateTimestamp();
+        AddDomainEvent(new ListMovedToFolderEvent(Id, oldSpaceId, newSpaceId));
     }
 
     // === MEMBERSHIP MANAGEMENT ===

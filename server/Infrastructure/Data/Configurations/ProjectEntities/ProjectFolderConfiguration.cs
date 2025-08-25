@@ -19,13 +19,16 @@ public class ProjectFolderConfiguration : IEntityTypeConfiguration<ProjectFolder
         builder.Property(f => f.Description)
             .HasMaxLength(500);
 
-        builder.Property(f => f.Color)
-            .IsRequired()
-            .HasMaxLength(7);
 
         builder.Property(f => f.Visibility)
             .IsRequired();
             
+        builder.Property(f => f.IsArchived) // Added
+            .IsRequired()
+            .HasDefaultValue(false);
+
+        builder.Property(f => f.OrderIndex); // Added
+
         builder.Property(f => f.CreatorId)
             .IsRequired();
 
@@ -38,7 +41,7 @@ public class ProjectFolderConfiguration : IEntityTypeConfiguration<ProjectFolder
         builder.HasMany(f => f.Lists)
             .WithOne() // A list can belong to one folder
             .HasForeignKey(l => l.ProjectFolderId)
-            .OnDelete(DeleteBehavior.Restrict); // Prevent folder deletion if it still contains lists
+            .OnDelete(DeleteBehavior.SetNull); // Corrected from Restrict to SetNull
 
         builder.HasMany(f => f.Members)
             .WithOne(m => m.ProjectFolder)

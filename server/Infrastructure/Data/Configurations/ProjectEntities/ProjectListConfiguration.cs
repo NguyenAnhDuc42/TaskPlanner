@@ -19,10 +19,6 @@ public class ProjectListConfiguration : IEntityTypeConfiguration<ProjectList>
         builder.Property(l => l.Description)
             .HasMaxLength(500);
 
-        builder.Property(l => l.Color)
-            .IsRequired()
-            .HasMaxLength(7);
-
         builder.Property(l => l.Visibility)
             .IsRequired();
             
@@ -32,6 +28,10 @@ public class ProjectListConfiguration : IEntityTypeConfiguration<ProjectList>
         builder.Property(l => l.IsArchived)
             .IsRequired()
             .HasDefaultValue(false);
+
+        builder.Property(l => l.StartDate); // Added
+        builder.Property(l => l.DueDate); // Added
+        builder.Property(l => l.OrderIndex); // Added
 
         // Relationships
         builder.HasOne<ProjectSpace>()

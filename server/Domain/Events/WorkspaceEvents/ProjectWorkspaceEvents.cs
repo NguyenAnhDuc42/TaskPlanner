@@ -1,3 +1,4 @@
+
 using Domain.Common.Interfaces;
 using Domain.Enums;
 using System;
@@ -10,12 +11,7 @@ public record WorkspaceCreatedEvent(Guid WorkspaceId, string WorkspaceName, Guid
     public Guid EventId { get; init; } = Guid.NewGuid();
     public DateTimeOffset OccurredAt { get; init; } = DateTimeOffset.UtcNow;
 }
-public record WorkspaceNameUpdatedEvent(Guid WorkspaceId, string NewName) : IDomainEvent
-{
-    public Guid EventId { get; init; } = Guid.NewGuid();
-    public DateTimeOffset OccurredAt { get; init; } = DateTimeOffset.UtcNow;
-}
-public record WorkspaceDescriptionUpdatedEvent(Guid WorkspaceId, string? NewDescription) : IDomainEvent
+public record WorkspaceBasicInfoUpdatedEvent(Guid WorkspaceId, string OldName, string NewName, string? OldDescription, string? NewDescription) : IDomainEvent
 {
     public Guid EventId { get; init; } = Guid.NewGuid();
     public DateTimeOffset OccurredAt { get; init; } = DateTimeOffset.UtcNow;
@@ -96,6 +92,16 @@ public record SpaceRemovedFromWorkspaceEvent(Guid WorkspaceId, Guid SpaceId, str
     public DateTimeOffset OccurredAt { get; init; } = DateTimeOffset.UtcNow;
 }
 public record SpacesReorderedInWorkspaceEvent(Guid WorkspaceId, List<Guid> OrderedSpaceIds) : IDomainEvent
+{
+    public Guid EventId { get; init; } = Guid.NewGuid();
+    public DateTimeOffset OccurredAt { get; init; } = DateTimeOffset.UtcNow;
+}
+public record AllSpacesArchivedInWorkspaceEvent(Guid WorkspaceId) : IDomainEvent
+{
+    public Guid EventId { get; init; } = Guid.NewGuid();
+    public DateTimeOffset OccurredAt { get; init; } = DateTimeOffset.UtcNow;
+}
+public record AllSpacesUnarchivedInWorkspaceEvent(Guid WorkspaceId) : IDomainEvent
 {
     public Guid EventId { get; init; } = Guid.NewGuid();
     public DateTimeOffset OccurredAt { get; init; } = DateTimeOffset.UtcNow;

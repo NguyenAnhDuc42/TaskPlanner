@@ -14,10 +14,10 @@ public class ProjectSpaceConfiguration : IEntityTypeConfiguration<ProjectSpace>
 
         builder.Property(s => s.Name)
             .IsRequired()
-            .HasMaxLength(200);
+            .HasMaxLength(100); // Corrected from 200
 
         builder.Property(s => s.Description)
-            .HasMaxLength(1000);
+            .HasMaxLength(500); // Corrected from 1000
 
         builder.Property(s => s.Icon)
             .IsRequired()
@@ -29,6 +29,12 @@ public class ProjectSpaceConfiguration : IEntityTypeConfiguration<ProjectSpace>
 
         builder.Property(s => s.Visibility)
             .IsRequired();
+
+        builder.Property(s => s.IsArchived) // Added
+            .IsRequired()
+            .HasDefaultValue(false);
+
+        builder.Property(s => s.OrderIndex); // Added
 
         builder.Property(s => s.CreatorId)
             .IsRequired();

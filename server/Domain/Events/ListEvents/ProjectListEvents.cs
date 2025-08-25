@@ -1,16 +1,9 @@
-
 using Domain.Common.Interfaces;
 using Domain.Enums;
 using System;
 using System.Collections.Generic;
 
 namespace Domain.Events.ListEvents;
-
-public record ListCreatedEvent(Guid ListId, string ListName, Guid ProjectSpaceId, Guid? ProjectFolderId, Guid CreatorId) : IDomainEvent
-{
-    public Guid EventId { get; init; } = Guid.NewGuid();
-    public DateTimeOffset OccurredAt { get; init; } = DateTimeOffset.UtcNow;
-}
 
 public record ListBasicInfoUpdatedEvent(Guid ListId, string OldName, string NewName, string? OldDescription, string? NewDescription) : IDomainEvent
 {
@@ -105,7 +98,7 @@ public record AllTasksArchivedInListEvent(Guid ListId) : IDomainEvent
 public record AllTasksUnarchivedInListEvent(Guid ListId) : IDomainEvent
 {
     public Guid EventId { get; init; } = Guid.NewGuid();
-        public DateTimeOffset OccurredAt { get; init; } = DateTimeOffset.UtcNow;
+    public DateTimeOffset OccurredAt { get; init; } = DateTimeOffset.UtcNow;
 }
 
 public record AllTasksCompletedInListEvent(Guid ListId) : IDomainEvent

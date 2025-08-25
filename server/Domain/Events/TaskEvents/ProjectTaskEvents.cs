@@ -1,15 +1,8 @@
-
 using Domain.Common.Interfaces;
 using Domain.Enums;
 using System;
 
 namespace Domain.Events.TaskEvents;
-
-public record TaskCreatedEvent(Guid TaskId, string TaskName, Guid CreatorId, Guid ProjectListId) : IDomainEvent
-{
-    public Guid EventId { get; init; } = Guid.NewGuid();
-    public DateTimeOffset OccurredAt { get; init; } = DateTimeOffset.UtcNow;
-}
 
 public record TaskBasicInfoUpdatedEvent(Guid TaskId, string OldName, string NewName, string? OldDescription, string? NewDescription) : IDomainEvent
 {
