@@ -32,7 +32,6 @@ public class TaskPlanDbContext : DbContext // Corrected name
     public DbSet<UserProjectFolder> UserProjectFolders { get; set; }
     public DbSet<UserProjectList> UserProjectLists { get; set; }
     public DbSet<UserProjectTask> UserProjectTasks { get; set; }
-    public DbSet<ProjectTaskWatcher> ProjectTaskWatchers { get; set; }
 
     // Support Entities
     public DbSet<Attachment> Attachments { get; set; }

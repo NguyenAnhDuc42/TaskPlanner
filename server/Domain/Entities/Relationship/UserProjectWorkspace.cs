@@ -1,40 +1,33 @@
-using Domain.Enums;
-using System;
-using Domain.Entities;
-using Domain.Entities.ProjectEntities;
-
 namespace Domain.Entities.Relationship;
 
-public class UserProjectWorkspace 
+using System;
+using Domain.Entities.ProjectEntities;
+using Domain.Enums;
+
+public class UserProjectWorkspace
 {
-    public Guid UserId { get; set; }
-    public Guid ProjectWorkspaceId { get; set; }
-    public Role Role { get; set; }
-    public DateTime JoinTime { get; private set; }
+    public Guid UserId { get; private set; }
+    public User User { get; set; } = null!;
+    public Guid ProjectWorkspaceId { get; private set; }
+    public ProjectWorkspace ProjectWorkspace { get; set; } = null!;
+    public Role Role { get; private set; } // Only here
+    public DateTime CreatedAt { get; private set; }
 
-    // Navigation Properties
-    public User User { get; private set; } = null!;
-    public ProjectWorkspace ProjectWorkspace { get; private set; } = null!;
+    private UserProjectWorkspace() { } // EF
 
-    private UserProjectWorkspace() { } // For EF Core
-
-    private UserProjectWorkspace(Guid userId, Guid projectWorkspaceId, Role role, DateTime joinTime)
+    private UserProjectWorkspace(Guid userId, Guid workspaceId, Role role)
     {
+        if (userId == Guid.Empty) throw new ArgumentException(nameof(userId));
+        if (workspaceId == Guid.Empty) throw new ArgumentException(nameof(workspaceId));
+
         UserId = userId;
-        ProjectWorkspaceId = projectWorkspaceId;
+        ProjectWorkspaceId = workspaceId;
         Role = role;
-        JoinTime = joinTime;
+        CreatedAt = DateTime.UtcNow;
     }
 
-    // Static Factory Method
-    public static UserProjectWorkspace Create(Guid userId, Guid projectWorkspaceId, Role role)
-    {
-        return new UserProjectWorkspace(userId, projectWorkspaceId, role, DateTime.UtcNow);
-    }
+    public static UserProjectWorkspace Create(Guid userId, Guid workspaceId, Role role)
+        => new(userId, workspaceId, role);
 
-    public void UpdateRole(Role newRole)
-    {
-        if (Role == newRole) return;
-        Role = newRole;
-    }
+    public void UpdateRole(Role newRole) => Role = newRole;
 }

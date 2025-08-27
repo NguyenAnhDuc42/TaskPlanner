@@ -1,31 +1,29 @@
+namespace Domain.Entities.Relationship;
+
 using System;
-using Domain.Entities;
 using Domain.Entities.ProjectEntities;
 
-namespace Domain.Entities.Relationship;
 
 public class UserProjectFolder
 {
-    public Guid UserId { get; set; }
-    public Guid ProjectFolderId { get; set; }
-    public DateTime JoinTime { get; private set; }
+    public Guid UserId { get; private set; }
+    public User User { get; set; } = null!;
+    public Guid ProjectFolderId { get; private set; }
+    public ProjectFolder ProjectFolder { get; set; } = null!;
+    public DateTime CreatedAt { get; private set; }
 
-    // Navigation Properties
-    public User User { get; private set; } = null!;
-    public ProjectFolder ProjectFolder { get; private set; } = null!;
+    private UserProjectFolder() { } // EF
 
-    private UserProjectFolder() { } // For EF Core
-
-    private UserProjectFolder(Guid userId, Guid projectFolderId, DateTime joinTime)
+    private UserProjectFolder(Guid userId, Guid folderId)
     {
+        if (userId == Guid.Empty) throw new ArgumentException(nameof(userId));
+        if (folderId == Guid.Empty) throw new ArgumentException(nameof(folderId));
+
         UserId = userId;
-        ProjectFolderId = projectFolderId;
-        JoinTime = joinTime;
+        ProjectFolderId = folderId;
+        CreatedAt = DateTime.UtcNow;
     }
 
-    // Static Factory Method
-    public static UserProjectFolder Create(Guid userId, Guid projectFolderId)
-    {
-        return new UserProjectFolder(userId, projectFolderId, DateTime.UtcNow);
-    }
+    public static UserProjectFolder Create(Guid userId, Guid folderId)
+        => new(userId, folderId);
 }

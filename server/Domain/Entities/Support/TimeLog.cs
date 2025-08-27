@@ -1,5 +1,5 @@
-using Domain.Common;
 using System;
+using Domain.Common;
 
 namespace Domain.Entities.Support;
 
@@ -11,23 +11,28 @@ public class TimeLog : Entity
     public string? Description { get; private set; }
     public DateTime LoggedAt { get; private set; }
 
-    private TimeLog() { } // For EF Core
+    private TimeLog() { } // EF Core
 
-    private TimeLog(Guid id, TimeSpan duration, Guid userId, Guid projectTaskId)
+    private TimeLog(Guid id, TimeSpan duration, Guid userId, Guid projectTaskId, string? description)
+        : base(id)
     {
-        Id = id;
-        Duration = duration; // Assign to the existing Duration property
+        if (duration <= TimeSpan.Zero) throw new ArgumentException("Duration must be greater than zero.", nameof(duration));
+        if (userId == Guid.Empty) throw new ArgumentException("UserId cannot be empty.", nameof(userId));
+        if (projectTaskId == Guid.Empty) throw new ArgumentException("ProjectTaskId cannot be empty.", nameof(projectTaskId));
+
+        Duration = duration;
         UserId = userId;
         ProjectTaskId = projectTaskId;
-        Description = null; // Initialize Description
-        LoggedAt = DateTime.UtcNow; // Initialize LoggedAt
+        Description = string.IsNullOrWhiteSpace(description) ? null : description.Trim();
+        LoggedAt = CreatedAt;
     }
 
-    public static TimeLog Create(TimeSpan duration, Guid userId, Guid projectTaskId)
-    {
-        if (duration <= TimeSpan.Zero)
-            throw new ArgumentException("Duration must be greater than zero.", nameof(duration));
+    public static TimeLog Create(TimeSpan duration, Guid userId, Guid projectTaskId, string? description = null)
+        => new TimeLog(Guid.NewGuid(), duration, userId, projectTaskId, description);
 
-        return new TimeLog(Guid.NewGuid(), duration, userId, projectTaskId);
+    public void UpdateDescription(string? description)
+    {
+        Description = string.IsNullOrWhiteSpace(description) ? null : description.Trim();
+        UpdateTimestamp();
     }
 }

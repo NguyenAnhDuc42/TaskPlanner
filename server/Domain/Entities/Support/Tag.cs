@@ -1,31 +1,36 @@
-using Domain.Entities.ProjectEntities;
 using System;
-using System.Collections.Generic;
+using Domain.Common;
 
 namespace Domain.Entities.Support;
 
-public class Tag
+public class Tag : Entity
 {
-    public Guid Id { get; private set; }
     public string Name { get; private set; } = null!;
-    public string Color { get; private set; } = null!;
+    public string? Color { get; private set; }
+    public Guid ProjectWorkspaceId { get; private set; }
 
-    // No direct ICollection<ProjectTask> Tasks here, will use join entity
+    private Tag() { } // EF Core
 
-    private Tag() { } // For EF Core
-
-    private Tag(Guid id, string name, string color)
+    private Tag(Guid id, string name, string? color, Guid projectWorkspaceId)
+        : base(id)
     {
-        Id = id;
-        Name = name;
-        Color = color;
+        if (string.IsNullOrWhiteSpace(name)) throw new ArgumentException("Tag name cannot be empty.", nameof(name));
+        if (projectWorkspaceId == Guid.Empty) throw new ArgumentException("ProjectWorkspaceId cannot be empty.", nameof(projectWorkspaceId));
+
+        Name = name.Trim();
+        Color = string.IsNullOrWhiteSpace(color) ? null : color.Trim();
+        ProjectWorkspaceId = projectWorkspaceId;
     }
 
-    public static Tag Create(string name, string color)
-    {
-        if (string.IsNullOrWhiteSpace(name))
-            throw new ArgumentException("Tag name cannot be empty.", nameof(name));
+    public static Tag Create(string name, string? color, Guid projectWorkspaceId)
+        => new Tag(Guid.NewGuid(), name, color, projectWorkspaceId);
 
-        return new Tag(Guid.NewGuid(), name, color);
+    public void Update(string name, string? color)
+    {
+        if (string.IsNullOrWhiteSpace(name)) throw new ArgumentException("Tag name cannot be empty.", nameof(name));
+
+        Name = name.Trim();
+        Color = string.IsNullOrWhiteSpace(color) ? null : color.Trim();
+        UpdateTimestamp();
     }
 }

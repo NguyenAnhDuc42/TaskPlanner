@@ -1,5 +1,5 @@
-using Domain.Common;
 using System;
+using Domain.Common;
 
 namespace Domain.Entities.Support;
 
@@ -12,26 +12,38 @@ public class Attachment : Entity
     public long FileSize { get; private set; }
     public Guid UploadedById { get; private set; }
 
-    private Attachment() { } // For EF Core
+    private Attachment() { } // EF Core
 
-    private Attachment(Guid id, string fileName, string fileUrl, string fileType, Guid uploadedById, Guid projectTaskId)
+    private Attachment(Guid id, string fileName, string fileUrl, string? fileType, long fileSize, Guid uploadedById, Guid projectTaskId)
+        : base(id)
     {
-        Id = id;
-        FileName = fileName;
-        FileUrl = fileUrl;
-        FileType = fileType;
-        UploadedById = uploadedById; // Assign to the existing UploadedById property
+        if (string.IsNullOrWhiteSpace(fileName)) throw new ArgumentException("File name cannot be empty.", nameof(fileName));
+        if (string.IsNullOrWhiteSpace(fileUrl)) throw new ArgumentException("File URL cannot be empty.", nameof(fileUrl));
+        if (uploadedById == Guid.Empty) throw new ArgumentException("UploadedById cannot be empty.", nameof(uploadedById));
+        if (projectTaskId == Guid.Empty) throw new ArgumentException("ProjectTaskId cannot be empty.", nameof(projectTaskId));
+        if (fileSize < 0) throw new ArgumentOutOfRangeException(nameof(fileSize), "FileSize cannot be negative.");
+
+        FileName = fileName.Trim();
+        FileUrl = fileUrl.Trim();
+        FileType = string.IsNullOrWhiteSpace(fileType) ? null : fileType.Trim();
+        FileSize = fileSize;
+        UploadedById = uploadedById;
         ProjectTaskId = projectTaskId;
-        FileSize = 0; // Initialize FileSize
     }
 
-    public static Attachment Create(string fileName, string fileUrl, string fileType, Guid uploadedById, Guid projectTaskId)
+    public static Attachment Create(string fileName, string fileUrl, string? fileType, Guid uploadedById, Guid projectTaskId, long fileSize = 0)
     {
-        if (string.IsNullOrWhiteSpace(fileName))
-            throw new ArgumentException("File name cannot be empty.", nameof(fileName));
-        if (string.IsNullOrWhiteSpace(fileUrl))
-            throw new ArgumentException("File URL cannot be empty.", nameof(fileUrl));
+        return new Attachment(Guid.NewGuid(), fileName, fileUrl, fileType, fileSize, uploadedById, projectTaskId);
+    }
 
-        return new Attachment(Guid.NewGuid(), fileName, fileUrl, fileType, uploadedById, projectTaskId);
+    public void UpdateFileMetadata(string? fileType, long? fileSize = null)
+    {
+        FileType = string.IsNullOrWhiteSpace(fileType) ? null : fileType?.Trim();
+        if (fileSize.HasValue)
+        {
+            if (fileSize.Value < 0) throw new ArgumentOutOfRangeException(nameof(fileSize));
+            FileSize = fileSize.Value;
+        }
+        UpdateTimestamp();
     }
 }

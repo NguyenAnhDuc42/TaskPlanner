@@ -8,19 +8,7 @@ namespace Application.Interfaces.Repositories
 {
     public interface IUnitOfWork
     {
-        IProjectFolderRepository ProjectFolders { get; }
-        IProjectListRepository ProjectLists { get; }
-        IProjectSpaceRepository ProjectSpaces { get; }
-        IProjectTaskRepository ProjectTasks { get; }
-        IProjectWorkspaceRepository ProjectWorkspaces { get; }
-        IAttachmentRepository Attachments { get; }
-        IChecklistRepository Checklists { get; }
-        ICommentRepository Comments { get; }
-        INotificationRepository Notifications { get; }
-        ISessionRepository Sessions { get; }
-        IStatusRepository Statuses { get; }
-        ITimeLogRepository TimeLogs { get; }
-        IUserRepository Users { get; }
+    
         bool HasActiveTransaction { get; }
         Task<IDbContextTransaction> BeginTransactionAsync(CancellationToken cancellationToken = default);
         Task CommitTransactionAsync(CancellationToken cancellationToken = default);

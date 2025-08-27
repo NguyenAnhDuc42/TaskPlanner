@@ -1,31 +1,29 @@
+namespace Domain.Entities.Relationship;
+
 using System;
-using Domain.Entities;
 using Domain.Entities.ProjectEntities;
 
-namespace Domain.Entities.Relationship;
 
 public class UserProjectSpace
 {
-    public Guid UserId { get; set; }
-    public Guid ProjectSpaceId { get; set; }
-    public DateTime JoinTime { get; private set; }
+    public Guid UserId { get; private set; }
+    public User User { get; set; } = null!;
+    public Guid ProjectSpaceId { get; private set; }
+    public ProjectSpace ProjectSpace { get; set; } = null!;
+    public DateTime CreatedAt { get; private set; }
 
-    // Navigation Properties
-    public User User { get; private set; } = null!;
-    public ProjectSpace ProjectSpace { get; private set; } = null!;
+    private UserProjectSpace() { } // EF
 
-    private UserProjectSpace() { } // For EF Core
-
-    private UserProjectSpace(Guid userId, Guid projectSpaceId, DateTime joinTime)
+    private UserProjectSpace(Guid userId, Guid spaceId)
     {
+        if (userId == Guid.Empty) throw new ArgumentException(nameof(userId));
+        if (spaceId == Guid.Empty) throw new ArgumentException(nameof(spaceId));
+
         UserId = userId;
-        ProjectSpaceId = projectSpaceId;
-        JoinTime = joinTime;
+        ProjectSpaceId = spaceId;
+        CreatedAt = DateTime.UtcNow;
     }
 
-    // Static Factory Method
-    public static UserProjectSpace Create(Guid userId, Guid projectSpaceId)
-    {
-        return new UserProjectSpace(userId, projectSpaceId, DateTime.UtcNow);
-    }
+    public static UserProjectSpace Create(Guid userId, Guid spaceId)
+        => new(userId, spaceId);
 }

@@ -3,6 +3,7 @@ using Domain.Entities.Relationship;
 using Domain.Entities.Support;
 using Domain.Enums;
 using Domain.Events.SpaceEvents;
+using Domain.Services.UsageChecker;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -11,7 +12,8 @@ namespace Domain.Entities.ProjectEntities
 {
     public class ProjectSpace : Aggregate
     {
-        // Basic properties (match Workspace style)
+        private const int MAX_BATCH_SIZE = 1000; // Safety limit for BATCH_RULE operations
+
         public Guid ProjectWorkspaceId { get; private set; }
         public string Name { get; private set; } = null!;
         public string? Description { get; private set; }
@@ -19,20 +21,18 @@ namespace Domain.Entities.ProjectEntities
         public string Color { get; private set; } = null!;
         public Visibility Visibility { get; private set; }
         public bool IsArchived { get; private set; }
-        public int? OrderIndex { get; private set; } // Nullable for proper ordering
+        public int? OrderIndex { get; private set; }
         public Guid CreatorId { get; private set; }
 
-        // Members (for private/restricted spaces) - no roles, just access
         private readonly List<UserProjectSpace> _members = new();
         public IReadOnlyCollection<UserProjectSpace> Members => _members.AsReadOnly();
 
-        // Child entities
         private readonly List<ProjectFolder> _folders = new();
         public IReadOnlyCollection<ProjectFolder> Folders => _folders.AsReadOnly();
 
         private readonly List<ProjectList> _lists = new();
         public IReadOnlyCollection<ProjectList> Lists => _lists.AsReadOnly();
-        // Constructors
+
         private ProjectSpace() { } // For EF Core
 
         internal ProjectSpace(Guid id, Guid workspaceId, string name, string? description,
@@ -86,7 +86,6 @@ namespace Domain.Entities.ProjectEntities
         {
             if (Visibility == newVisibility) return;
 
-
             Visibility = newVisibility;
             UpdateTimestamp();
             AddDomainEvent(new SpaceVisibilityChangedEvent(Id, newVisibility));
@@ -133,8 +132,12 @@ namespace Domain.Entities.ProjectEntities
             UpdateTimestamp();
             AddDomainEvent(new MemberAddedToSpaceEvent(Id, userId));
 
-            // Cascade membership to private child folders (best-effort)
-            CascadeMembershipToChildren(userId, isAdding: true);
+            // Cascade membership to private child folders (pre-check to avoid exceptions)
+            foreach (var f in _folders.Where(f => f.Visibility == Visibility.Private))
+            {
+                if (!f.Members.Any(m => m.UserId == userId))
+                    f.AddMember(userId);
+            }
         }
 
         public void RemoveMember(Guid userId)
@@ -150,14 +153,17 @@ namespace Domain.Entities.ProjectEntities
             UpdateTimestamp();
             AddDomainEvent(new MemberRemovedFromSpaceEvent(Id, userId));
 
-            // Cascade remove to private child folders (best-effort)
-            CascadeMembershipToChildren(userId, isAdding: false);
+            foreach (var f in _folders.Where(f => f.Visibility == Visibility.Private))
+            {
+                var exists = f.Members.Any(m => m.UserId == userId);
+                if (exists)
+                    f.RemoveMember(userId);
+            }
         }
-
 
         // === CHILD ENTITY MANAGEMENT (Folders & Lists) ===
 
-        public ProjectFolder CreateFolder(string name, string? description,Guid creatorId)
+        public ProjectFolder CreateFolder(string name, string? description, Guid creatorId)
         {
             if (IsArchived)
                 throw new InvalidOperationException("Cannot create folders in an archived space.");
@@ -179,19 +185,31 @@ namespace Domain.Entities.ProjectEntities
             return folder;
         }
 
+        /// <summary>
+        /// RemoveFolder requires an IFolderUsageChecker to ensure it's safe to delete.
+        /// </summary>
         public void RemoveFolder(Guid folderId)
         {
+            throw new InvalidOperationException("This operation requires a domain-service check. Use RemoveFolder(Guid folderId, IFolderUsageChecker usageChecker).");
+        }
+
+        public async Task RemoveFolder(Guid folderId, IFolderUsageChecker usageChecker)
+        {
+            if (usageChecker == null) throw new ArgumentNullException(nameof(usageChecker));
+
             var folder = _folders.FirstOrDefault(f => f.Id == folderId);
             if (folder == null)
                 throw new InvalidOperationException("Folder not found in this space.");
 
-            // TODO: repository/domain-service check if folder contains lists/tasks that prevent removal
+            if ( await usageChecker.IsInUseAsync(folderId))
+                throw new InvalidOperationException("Cannot remove folder because it contains lists/tasks according to the provided checker.");
+
             _folders.Remove(folder);
             UpdateTimestamp();
             AddDomainEvent(new FolderRemovedFromSpaceEvent(Id, folderId, folder.Name));
         }
 
-        public ProjectList CreateList(string name, string? description, string color,Guid creatorId ,Guid? folderId = null)
+        public ProjectList CreateList(string name, string? description, string color, Guid creatorId, Guid? folderId = null)
         {
             if (IsArchived)
                 throw new InvalidOperationException("Cannot create lists in an archived space.");
@@ -210,17 +228,29 @@ namespace Domain.Entities.ProjectEntities
             _lists.Add(list);
 
             UpdateTimestamp();
-            AddDomainEvent(new ListCreatedInSpaceEvent(Id, list.Id, name,null, creatorId));
+            AddDomainEvent(new ListCreatedInSpaceEvent(Id, list.Id, name, null, creatorId));
             return list;
         }
 
+        /// <summary>
+        /// RemoveList requires an IListUsageChecker to ensure it's safe to delete.
+        /// </summary>
         public void RemoveList(Guid listId)
         {
+            throw new InvalidOperationException("This operation requires a domain-service check. Use RemoveList(Guid listId, IListUsageChecker usageChecker).");
+        }
+
+        public async Task RemoveList(Guid listId, IListUsageChecker usageChecker)
+        {
+            if (usageChecker == null) throw new ArgumentNullException(nameof(usageChecker));
+
             var list = _lists.FirstOrDefault(l => l.Id == listId);
             if (list == null)
                 throw new InvalidOperationException("List not found in this space.");
 
-            // TODO: repository/domain-service check if list contains tasks that prevent removal
+            if (await usageChecker.IsInUseAsync(listId))
+                throw new InvalidOperationException("Cannot remove list because it contains tasks according to the provided checker.");
+
             _lists.Remove(list);
             UpdateTimestamp();
             AddDomainEvent(new ListRemovedFromSpaceEvent(Id, listId, list.Name));
@@ -249,7 +279,6 @@ namespace Domain.Entities.ProjectEntities
             AddDomainEvent(new ListMovedToFolderEvent(Id, listId, oldFolderId, newFolderId));
         }
 
-        // Internal helpers for cross-space attach/detach operations
         internal ProjectList DetachList(Guid listId)
         {
             var list = _lists.FirstOrDefault(l => l.Id == listId);
@@ -267,8 +296,7 @@ namespace Domain.Entities.ProjectEntities
             if (_lists.Any(l => l.Name.Equals(list.Name, StringComparison.OrdinalIgnoreCase) && l.ProjectFolderId == folderId))
                 throw new InvalidOperationException($"A list with the name '{list.Name}' already exists in this container.");
 
-            // update list's space/folder context
-            list.MoveToSpace(Id); // requires ProjectList to expose internal MoveToSpace
+            list.MoveToSpace(Id);
             _lists.Add(list);
 
             UpdateTimestamp();
@@ -313,12 +341,16 @@ namespace Domain.Entities.ProjectEntities
             AddDomainEvent(new ListsReorderedInSpaceEvent(Id, listIds));
         }
 
-        // === BULK OPERATIONS / HIERARCHICAL METHODS ===
+        // === BULK OPERATIONS (BATCH_RULE with safety) ===
 
         private void ArchiveAllChildren()
         {
             var foldersToArchive = _folders.Where(f => !f.IsArchived).ToList();
             var listsToArchive = _lists.Where(l => !l.IsArchived).ToList();
+
+            var total = foldersToArchive.Count + listsToArchive.Count;
+            if (total > MAX_BATCH_SIZE)
+                throw new InvalidOperationException($"Batch too large. Reduce size below {MAX_BATCH_SIZE} or run as smaller batches.");
 
             foreach (var f in foldersToArchive) f.Archive();
             foreach (var l in listsToArchive) l.Archive();
@@ -332,13 +364,16 @@ namespace Domain.Entities.ProjectEntities
             var foldersToUnarchive = _folders.Where(f => f.IsArchived).ToList();
             var listsToUnarchive = _lists.Where(l => l.IsArchived).ToList();
 
+            var total = foldersToUnarchive.Count + listsToUnarchive.Count;
+            if (total > MAX_BATCH_SIZE)
+                throw new InvalidOperationException($"Batch too large. Reduce size below {MAX_BATCH_SIZE} or run as smaller batches.");
+
             foreach (var f in foldersToUnarchive) f.Unarchive();
             foreach (var l in listsToUnarchive) l.Unarchive();
 
             UpdateTimestamp();
             AddDomainEvent(new AllChildrenUnarchivedInSpaceEvent(Id));
         }
-
 
         // === PRIVATE CASCADE METHODS ===
 
@@ -353,23 +388,7 @@ namespace Domain.Entities.ProjectEntities
             }
         }
 
-        private void CascadeMembershipToChildren(Guid userId, bool isAdding)
-        {
-            foreach (var f in _folders.Where(f => f.Visibility == Visibility.Private))
-            {
-                try
-                {
-                    if (isAdding) f.AddMember(userId);
-                    else f.RemoveMember(userId);
-                }
-                catch (InvalidOperationException)
-                {
-                    // best-effort: ignore existing/non-existing membership conflicts
-                }
-            }
-        }
-
-        // === VALIDATION HELPER METHODS ===
+        // === VALIDATION HELPERS ===
 
         private static void ValidateBasicInfo(string name, string? description)
         {
@@ -383,53 +402,31 @@ namespace Domain.Entities.ProjectEntities
 
         private static void ValidateVisualSettings(string color, string icon)
         {
-            ValidateColor(color);
             if (string.IsNullOrWhiteSpace(icon))
                 throw new ArgumentException("Space icon cannot be empty.", nameof(icon));
+            if (string.IsNullOrWhiteSpace(color))
+                throw new ArgumentException("Space color cannot be empty.", nameof(color));
         }
 
         private static void ValidateFolderCreation(string name)
         {
             if (string.IsNullOrWhiteSpace(name))
                 throw new ArgumentException("Folder name cannot be empty.", nameof(name));
+            if (name.Length > 100)
+                throw new ArgumentException("Folder name cannot exceed 100 characters.", nameof(name));
         }
 
         private static void ValidateListCreation(string name)
         {
             if (string.IsNullOrWhiteSpace(name))
                 throw new ArgumentException("List name cannot be empty.", nameof(name));
+            if (name.Length > 100)
+                throw new ArgumentException("List name cannot exceed 100 characters.", nameof(name));
         }
 
-        private static void ValidateColor(string color)
+        private static void ValidateGuid(Guid id, string paramName)
         {
-            if (string.IsNullOrWhiteSpace(color))
-                throw new ArgumentException("Color cannot be empty.", nameof(color));
-            if (!IsValidColorCode(color))
-                throw new ArgumentException("Invalid color format.", nameof(color));
+            if (id == Guid.Empty) throw new ArgumentException("Guid cannot be empty.", paramName);
         }
-
-        private static void ValidateGuid(Guid guid, string parameterName)
-        {
-            if (guid == Guid.Empty)
-                throw new ArgumentException($"{parameterName} cannot be empty.", parameterName);
-        }
-
-        private static bool IsValidColorCode(string color) =>
-            !string.IsNullOrWhiteSpace(color) &&
-            (color.StartsWith("#") && (color.Length == 7 || color.Length == 4));
-
-        // === QUERY HELPER METHODS ===
-
-        public bool HasMember(Guid userId) => _members.Any(m => m.UserId == userId);
-
-        public int GetFolderCount() => _folders.Count;
-
-        // Total lists includes lists in the space plus those inside folders
-        public int GetTotalListCount() =>
-            _lists.Count + _folders.Sum(f => f.GetListCount());
-
-        // Total task count aggregates lists in space and in folders
-        public int GetTotalTaskCount() =>
-            _lists.Sum(l => l.GetTaskCount()) + _folders.Sum(f => f.GetTotalTaskCount());
     }
 }

@@ -1,5 +1,5 @@
-using Domain.Common;
 using System;
+using Domain.Common;
 
 namespace Domain.Entities.Support;
 
@@ -12,35 +12,33 @@ public class Comment : Entity
     public bool IsEdited { get; private set; }
     public Guid? ParentCommentId { get; private set; }
 
-    private Comment() { } // For EF Core
+    private Comment() { } // EF Core
 
     private Comment(Guid id, string content, Guid authorId, Guid projectTaskId, Guid? parentCommentId = null)
+        : base(id)
     {
-        Id = id;
-        Content = content;
+        if (string.IsNullOrWhiteSpace(content)) throw new ArgumentException("Comment content cannot be empty.", nameof(content));
+        if (authorId == Guid.Empty) throw new ArgumentException("AuthorId cannot be empty.", nameof(authorId));
+        if (projectTaskId == Guid.Empty) throw new ArgumentException("ProjectTaskId cannot be empty.", nameof(projectTaskId));
+
+        Content = content.Trim();
         AuthorId = authorId;
         ProjectTaskId = projectTaskId;
         ParentCommentId = parentCommentId;
-        PostedAt = DateTime.UtcNow; // Initialize PostedAt
-        IsEdited = false; // Initialize IsEdited
+        PostedAt = CreatedAt;
+        IsEdited = false;
     }
 
     public static Comment Create(string content, Guid authorId, Guid projectTaskId, Guid? parentCommentId = null)
-    {
-        if (string.IsNullOrWhiteSpace(content))
-            throw new ArgumentException("Comment content cannot be empty.", nameof(content));
-
-        return new Comment(Guid.NewGuid(), content, authorId, projectTaskId, parentCommentId);
-    }
+        => new Comment(Guid.NewGuid(), content, authorId, projectTaskId, parentCommentId);
 
     public void UpdateContent(string newContent)
     {
-        if (string.IsNullOrWhiteSpace(newContent))
-            throw new ArgumentException("Comment content cannot be empty.", nameof(newContent));
-        
-        if (Content == newContent) return;
+        if (string.IsNullOrWhiteSpace(newContent)) throw new ArgumentException("Comment content cannot be empty.", nameof(newContent));
+        if (Content == newContent.Trim()) return;
 
-        Content = newContent;
-        // Note: You might want to add a domain event here, e.g., CommentUpdatedEvent
+        Content = newContent.Trim();
+        IsEdited = true;
+        UpdateTimestamp();
     }
 }

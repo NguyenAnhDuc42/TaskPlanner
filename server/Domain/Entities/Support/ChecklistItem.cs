@@ -10,43 +10,45 @@ public class ChecklistItem : Entity
     public bool IsCompleted { get; private set; }
     public int OrderIndex { get; private set; }
 
-    // Private constructor for EF Core
-    private ChecklistItem() { }
+    private ChecklistItem() { } // EF Core
 
-    private ChecklistItem(Guid id, string text, int orderIndex)
+    private ChecklistItem(Guid id, string text, int orderIndex, Guid taskChecklistId)
+        : base(id)
     {
-        Id = id;
-        Text = text;
-        IsCompleted = false; // Default to not completed
+        if (string.IsNullOrWhiteSpace(text)) throw new ArgumentException("Checklist item text cannot be empty.", nameof(text));
+        if (taskChecklistId == Guid.Empty) throw new ArgumentException("TaskChecklistId cannot be empty.", nameof(taskChecklistId));
+        if (orderIndex < 0) throw new ArgumentOutOfRangeException(nameof(orderIndex));
+
+        Text = text.Trim();
         OrderIndex = orderIndex;
-        TaskChecklistId = Guid.Empty; // Initialize TaskChecklistId
+        TaskChecklistId = taskChecklistId;
+        IsCompleted = false;
     }
 
-    public static ChecklistItem Create(string text, int orderIndex)
-    {
-        if (string.IsNullOrWhiteSpace(text))
-            throw new ArgumentException("Checklist item text cannot be empty.", nameof(text));
-
-        return new ChecklistItem(Guid.NewGuid(), text, orderIndex);
-    }
+    public static ChecklistItem Create(string text, int orderIndex, Guid taskChecklistId)
+        => new ChecklistItem(Guid.NewGuid(), text, orderIndex, taskChecklistId);
 
     public void Toggle()
     {
         IsCompleted = !IsCompleted;
+        UpdateTimestamp();
     }
 
     public void UpdateText(string newText)
     {
-        if (string.IsNullOrWhiteSpace(newText))
-            throw new ArgumentException("Checklist item text cannot be empty.", nameof(newText));
-        Text = newText;
+        if (string.IsNullOrWhiteSpace(newText)) throw new ArgumentException("Checklist item text cannot be empty.", nameof(newText));
+        if (Text == newText.Trim()) return;
+
+        Text = newText.Trim();
+        UpdateTimestamp();
     }
 
     public void UpdateOrder(int newOrder)
     {
-        if (newOrder < 0) 
-            throw new ArgumentOutOfRangeException(nameof(newOrder), "Order index cannot be negative.");
-        OrderIndex = newOrder;
-    }
+        if (newOrder < 0) throw new ArgumentOutOfRangeException(nameof(newOrder));
+        if (OrderIndex == newOrder) return;
 
+        OrderIndex = newOrder;
+        UpdateTimestamp();
+    }
 }

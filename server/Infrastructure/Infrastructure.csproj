@@ -17,11 +17,11 @@
     <Folder Include="Data\Configurations\ProjectEntities\" />
     <Folder Include="Data\Configurations\Relationship\" />
     <Folder Include="Data\Configurations\Support\" />
+    <Folder Include="Data\Repositories\" />
     <Folder Include="FileStorage\" />
     <Folder Include="Identity\" />
     <Folder Include="Logging\" />
     <Folder Include="MessageBus\" />
-    <Folder Include="Services\" />
   </ItemGroup>
 
   <PropertyGroup>

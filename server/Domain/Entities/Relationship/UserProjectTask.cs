@@ -1,30 +1,29 @@
-using Domain.Entities.ProjectEntities;
-using System;
-using Domain.Entities;
-
 namespace Domain.Entities.Relationship;
+
+using System;
+using Domain.Entities.ProjectEntities;
+
 
 public class UserProjectTask
 {
-    public Guid UserId { get; set; }
-    public User User { get; private set; } = null!;
-    public Guid ProjectTaskId { get; set; }
-    public ProjectTask ProjectTask { get; private set; } = null!;
+    public Guid UserId { get; private set; }
+    public User User { get; set; } = null!;
+    public Guid ProjectTaskId { get; private set; }
+    public ProjectTask ProjectTask { get; set; } = null!;
+    public DateTime CreatedAt { get; private set; }
 
-    public DateTime JoinTime { get; private set; }
+    private UserProjectTask() { } // EF
 
-    private UserProjectTask() { } // For EF Core
-
-    private UserProjectTask(Guid userId, Guid projectTaskId, DateTime joinTime)
+    private UserProjectTask(Guid userId, Guid taskId)
     {
+        if (userId == Guid.Empty) throw new ArgumentException(nameof(userId));
+        if (taskId == Guid.Empty) throw new ArgumentException(nameof(taskId));
+
         UserId = userId;
-        ProjectTaskId = projectTaskId;
-        JoinTime = joinTime;
+        ProjectTaskId = taskId;
+        CreatedAt = DateTime.UtcNow;
     }
 
-    // Static Factory Method
-    public static UserProjectTask Create(Guid userId, Guid projectTaskId)
-    {
-        return new UserProjectTask(userId, projectTaskId, DateTime.UtcNow);
-    }
+    public static UserProjectTask Create(Guid userId, Guid taskId)
+        => new(userId, taskId);
 }

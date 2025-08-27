@@ -3,6 +3,8 @@ using Domain.Entities.Relationship;
 using Domain.Entities.Support;
 using Domain.Enums;
 using Domain.Events.WorkspaceEvents;
+using Domain.Services.UsageChecker;
+using static Domain.Common.ColorValidator;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -11,6 +13,8 @@ namespace Domain.Entities.ProjectEntities;
 
 public class ProjectWorkspace : Aggregate
 {
+    private const int MAX_BATCH_SIZE = 1000; // Safety limit for BATCH_RULE operations
+
     public string Name { get; private set; } = null!;
     public string? Description { get; private set; }
     public string JoinCode { get; private set; } = null!;
@@ -19,20 +23,16 @@ public class ProjectWorkspace : Aggregate
     public Visibility Visibility { get; private set; }
     public bool IsArchived { get; private set; }
     public Guid CreatorId { get; private set; }
-    
-    // Workflow: Each workspace defines its task statuses
+
     private readonly List<Status> _statuses = new();
     public IReadOnlyCollection<Status> Statuses => _statuses.AsReadOnly();
-    
-    // Members with roles
+
     private readonly List<UserProjectWorkspace> _members = new();
     public IReadOnlyCollection<UserProjectWorkspace> Members => _members.AsReadOnly();
-    
-    // Child entities
+
     private readonly List<ProjectSpace> _spaces = new();
     public IReadOnlyCollection<ProjectSpace> Spaces => _spaces.AsReadOnly();
 
-    // Constructors
     private ProjectWorkspace() { } // For EF Core
 
     private ProjectWorkspace(Guid id, string name, string? description, string joinCode, string color, string icon, Guid creatorId, Visibility visibility)
@@ -48,7 +48,6 @@ public class ProjectWorkspace : Aggregate
         IsArchived = false;
     }
 
-    // Static Factory Method
     public static ProjectWorkspace Create(string name, string? description, string color, string icon, Guid creatorId, Visibility visibility)
     {
         // Normalize inputs first
@@ -56,37 +55,33 @@ public class ProjectWorkspace : Aggregate
         description = string.IsNullOrWhiteSpace(description?.Trim()) ? null : description.Trim();
         color = color?.Trim() ?? string.Empty;
         icon = icon?.Trim() ?? string.Empty;
-        
-        // Validate
+
         ValidateBasicInfo(name, description);
         ValidateVisualSettings(color, icon);
         ValidateGuid(creatorId, nameof(creatorId));
 
         var joinCode = GenerateRandomCode();
         var workspace = new ProjectWorkspace(Guid.NewGuid(), name, description, joinCode, color, icon, creatorId, visibility);
-        
+
         // Creator becomes member with admin role
         workspace._members.Add(UserProjectWorkspace.Create(creatorId, workspace.Id, Role.Admin));
-        
+
         // Add default statuses
         workspace.CreateDefaultStatuses();
-        
+
         workspace.AddDomainEvent(new WorkspaceCreatedEvent(workspace.Id, workspace.Name, workspace.CreatorId));
         return workspace;
     }
 
-    // === SELF MANAGEMENT METHODS ===
-    
+    // === SELF MANAGEMENT ===
+
     public void UpdateBasicInfo(string name, string? description)
     {
-        // Normalize inputs first
         name = name?.Trim() ?? string.Empty;
         description = string.IsNullOrWhiteSpace(description?.Trim()) ? null : description.Trim();
-        
-        // Check for changes first
+
         if (Name == name && Description == description) return;
-        
-        // Then validate
+
         ValidateBasicInfo(name, description);
 
         var oldName = Name;
@@ -99,14 +94,11 @@ public class ProjectWorkspace : Aggregate
 
     public void UpdateVisualSettings(string color, string icon)
     {
-        // Normalize inputs first
         color = color?.Trim() ?? string.Empty;
         icon = icon?.Trim() ?? string.Empty;
-        
-        // Check for changes first
+
         if (Color == color && Icon == icon) return;
-        
-        // Then validate
+
         ValidateVisualSettings(color, icon);
         Color = color;
         Icon = icon;
@@ -116,12 +108,11 @@ public class ProjectWorkspace : Aggregate
 
     public void ChangeVisibility(Visibility newVisibility)
     {
-        // Check for changes first
         if (Visibility == newVisibility) return;
         Visibility = newVisibility;
         UpdateTimestamp();
         AddDomainEvent(new WorkspaceVisibilityChangedEvent(Id, newVisibility));
-        
+
         // CASCADE: Update all child spaces to match workspace visibility if they were public
         CascadeVisibilityToSpaces(newVisibility);
     }
@@ -129,24 +120,24 @@ public class ProjectWorkspace : Aggregate
     public void Archive()
     {
         if (IsArchived) return;
-        
+
         IsArchived = true;
         UpdateTimestamp();
         AddDomainEvent(new WorkspaceArchivedEvent(Id));
-        
-        // CASCADE: Archive all child spaces
+
+        // BATCH_RULE: archive immediate children (spaces). Safety limit enforced.
         ArchiveAllSpaces();
     }
 
     public void Unarchive()
     {
         if (!IsArchived) return;
-        
+
         IsArchived = false;
         UpdateTimestamp();
         AddDomainEvent(new WorkspaceUnarchivedEvent(Id));
-        
-        // CASCADE: Unarchive all child spaces
+
+        // BATCH_RULE: unarchive children
         UnarchiveAllSpaces();
     }
 
@@ -159,11 +150,11 @@ public class ProjectWorkspace : Aggregate
     }
 
     // === MEMBERSHIP MANAGEMENT ===
-    
+
     public void AddMember(Guid userId, Role role)
     {
         ValidateGuid(userId, nameof(userId));
-        
+
         if (_members.Any(m => m.UserId == userId))
             throw new InvalidOperationException("User is already a member of this workspace.");
 
@@ -171,16 +162,21 @@ public class ProjectWorkspace : Aggregate
         _members.Add(member);
         UpdateTimestamp();
         AddDomainEvent(new MemberAddedToWorkspaceEvent(Id, userId, role));
-        
-        // CASCADE: Add member to all private child spaces
-        CascadeMembershipToSpaces(userId, isAdding: true);
+
+        // CASCADE: Add member to all private child spaces (best-effort via pre-checks)
+        foreach (var space in _spaces.Where(s => s.Visibility == Visibility.Private))
+        {
+            // Only call when not present to avoid exceptions
+            if (!space.Members.Any(m => m.UserId == userId))
+                space.AddMember(userId);
+        }
     }
 
     public void RemoveMember(Guid userId)
     {
         if (userId == CreatorId)
             throw new InvalidOperationException("Cannot remove workspace creator.");
-            
+
         var member = _members.FirstOrDefault(m => m.UserId == userId);
         if (member == null)
             throw new InvalidOperationException("User is not a member of this workspace.");
@@ -188,23 +184,27 @@ public class ProjectWorkspace : Aggregate
         _members.Remove(member);
         UpdateTimestamp();
         AddDomainEvent(new MemberRemovedFromWorkspaceEvent(Id, userId));
-        
-        // CASCADE: Remove member from all child spaces
-        CascadeMembershipToSpaces(userId, isAdding: false);
+
+        // Cascade: Remove member from all child spaces
+        foreach (var space in _spaces.Where(s => s.Visibility == Visibility.Private))
+        {
+            var exists = space.Members.Any(m => m.UserId == userId);
+            if (exists)
+                space.RemoveMember(userId);
+        }
     }
 
     public void ChangeMemberRole(Guid userId, Role newRole)
     {
         if (userId == CreatorId && newRole != Role.Admin)
             throw new InvalidOperationException("Workspace creator must remain admin.");
-            
+
         var member = _members.FirstOrDefault(m => m.UserId == userId);
         if (member == null)
             throw new InvalidOperationException("User is not a member of this workspace.");
 
-        // Check for changes first
         if (member.Role == newRole) return;
-        
+
         member.UpdateRole(newRole);
         UpdateTimestamp();
         AddDomainEvent(new WorkspaceMemberRoleChangedEvent(Id, userId, newRole));
@@ -218,30 +218,27 @@ public class ProjectWorkspace : Aggregate
 
         var oldOwnerId = CreatorId;
         CreatorId = newOwnerId;
-        
-        // Ensure new owner has admin role
+
         if (newOwner.Role != Role.Owner)
             newOwner.UpdateRole(Role.Owner);
-        
+
         UpdateTimestamp();
         AddDomainEvent(new WorkspaceOwnershipTransferredEvent(Id, oldOwnerId, newOwnerId));
     }
 
     // === WORKFLOW STATUS MANAGEMENT ===
-    
+
     public Status CreateStatus(string name, string color, bool isDefaultStatus = false)
     {
-        // Normalize inputs
         name = name?.Trim() ?? string.Empty;
         color = color?.Trim() ?? string.Empty;
-        
-        // Validate
+
         ValidateStatusCreation(name, color, isDefaultStatus);
 
         var orderIndex = _statuses.Count;
         var status = Status.Create(name, color, orderIndex, Id);
         _statuses.Add(status);
-        
+
         UpdateTimestamp();
         AddDomainEvent(new StatusCreatedInWorkspaceEvent(Id, status.Id, name));
         return status;
@@ -253,26 +250,37 @@ public class ProjectWorkspace : Aggregate
         if (status == null)
             throw new InvalidOperationException("Status not found in this workspace.");
 
-        // Normalize inputs
         name = name?.Trim() ?? string.Empty;
         color = color?.Trim() ?? string.Empty;
-        
-        // Check for changes first
+
         if (status.Name == name && status.Color == color) return;
-        
-        // Then validate
+
         ValidateStatusUpdate(statusId, name, color);
 
         var oldName = status.Name;
         var oldColor = status.Color;
         status.UpdateDetails(name, color);
-        
+
         UpdateTimestamp();
         AddDomainEvent(new StatusUpdatedInWorkspaceEvent(Id, statusId, oldName, name, oldColor, color));
     }
 
+    /// <summary>
+    /// Delete a status. This operation must ensure the status is not in use by tasks.
+    /// Prefer calling the overload that accepts IStatusUsageChecker.
+    /// </summary>
     public void DeleteStatus(Guid statusId)
     {
+        throw new InvalidOperationException("This operation requires a domain-service check. Use DeleteStatus(Guid statusId, IStatusUsageChecker usageChecker).");
+    }
+
+    /// <summary>
+    /// Delete a status. Caller must provide an IStatusUsageChecker to verify the status is not in use.
+    /// </summary>
+    public async Task DeleteStatus(Guid statusId, IStatusUsageCheker usageChecker)
+    {
+        if (usageChecker == null) throw new ArgumentNullException(nameof(usageChecker));
+
         var status = _statuses.FirstOrDefault(s => s.Id == statusId);
         if (status == null)
             throw new InvalidOperationException("Status not found in this workspace.");
@@ -280,8 +288,8 @@ public class ProjectWorkspace : Aggregate
         if (status.IsDefaultStatus)
             throw new InvalidOperationException("Cannot delete the default status.");
 
-        // TODO: Check if status is being used by any tasks
-        // This would typically involve a domain service or repository check
+        if ( await usageChecker.IsInUseAsync(statusId))
+            throw new InvalidOperationException("Cannot delete a status that is currently in use by tasks.");
 
         _statuses.Remove(status);
         UpdateTimestamp();
@@ -308,19 +316,17 @@ public class ProjectWorkspace : Aggregate
     }
 
     // === CHILD ENTITY MANAGEMENT (SPACES) ===
-    
+
     public ProjectSpace CreateSpace(string name, string? description, string icon, string color, Visibility visibility)
     {
         if (IsArchived)
             throw new InvalidOperationException("Cannot create spaces in an archived workspace.");
 
-        // Normalize inputs
         name = name?.Trim() ?? string.Empty;
         description = string.IsNullOrWhiteSpace(description?.Trim()) ? null : description.Trim();
         icon = icon?.Trim() ?? string.Empty;
         color = color?.Trim() ?? string.Empty;
-        
-        // Validate
+
         ValidateSpaceCreation(name, icon, color);
 
         if (_spaces.Any(s => s.Name.Equals(name, StringComparison.OrdinalIgnoreCase)))
@@ -329,20 +335,33 @@ public class ProjectWorkspace : Aggregate
         var orderIndex = _spaces.Count;
         var space = new ProjectSpace(Guid.NewGuid(), Id, name, description, icon, color, visibility, orderIndex, CreatorId);
         _spaces.Add(space);
-        
+
         UpdateTimestamp();
         AddDomainEvent(new SpaceCreatedInWorkspaceEvent(Id, space.Id, name, CreatorId));
         return space;
     }
 
+    /// <summary>
+    /// Remove a space. This overload requires a domain service to check if the space has children that prevent removal.
+    /// </summary>
     public void RemoveSpace(Guid spaceId)
     {
+        throw new InvalidOperationException("This operation requires a domain-service check. Use RemoveSpace(Guid spaceId, ISpaceUsageChecker usageChecker).");
+    }
+
+    /// <summary>
+    /// Remove a space. Caller must provide ISpaceUsageChecker to verify space is safe to remove.
+    /// </summary>
+    public async Task RemoveSpace(Guid spaceId, ISpaceUsageChecker usageChecker)
+    {
+        if (usageChecker == null) throw new ArgumentNullException(nameof(usageChecker));
+
         var space = _spaces.FirstOrDefault(s => s.Id == spaceId);
         if (space == null)
             throw new InvalidOperationException("Space not found in this workspace.");
 
-        // TODO: Check if space has folders/lists/tasks
-        // This might require a domain service or repository check
+        if ( await usageChecker.IsInUseAsync(spaceId))
+            throw new InvalidOperationException("Cannot remove space because it contains folders/lists/tasks according to the provided checker.");
 
         _spaces.Remove(space);
         UpdateTimestamp();
@@ -368,42 +387,46 @@ public class ProjectWorkspace : Aggregate
         AddDomainEvent(new SpacesReorderedInWorkspaceEvent(Id, spaceIds));
     }
 
-    // === BULK OPERATIONS (MISSING HIERARCHICAL METHODS) ===
-    
-    public void ArchiveAllSpaces()
+    // === BULK OPERATIONS (BATCH_RULE with safety) ===
+
+    private void ArchiveAllSpaces()
     {
         var spacesToArchive = _spaces.Where(s => !s.IsArchived).ToList();
         if (!spacesToArchive.Any()) return;
-        
+
+        if (spacesToArchive.Count > MAX_BATCH_SIZE)
+            throw new InvalidOperationException($"Batch too large. Reduce size below {MAX_BATCH_SIZE} or run as smaller batches.");
+
         foreach (var space in spacesToArchive)
         {
             space.Archive();
         }
-        
+
         UpdateTimestamp();
         AddDomainEvent(new AllSpacesArchivedInWorkspaceEvent(Id));
     }
-    
-    public void UnarchiveAllSpaces()
+
+    private void UnarchiveAllSpaces()
     {
         var spacesToUnarchive = _spaces.Where(s => s.IsArchived).ToList();
         if (!spacesToUnarchive.Any()) return;
-        
+
+        if (spacesToUnarchive.Count > MAX_BATCH_SIZE)
+            throw new InvalidOperationException($"Batch too large. Reduce size below {MAX_BATCH_SIZE} or run as smaller batches.");
+
         foreach (var space in spacesToUnarchive)
         {
             space.Unarchive();
         }
-        
+
         UpdateTimestamp();
         AddDomainEvent(new AllSpacesUnarchivedInWorkspaceEvent(Id));
     }
-    
 
     // === PRIVATE CASCADE METHODS ===
-    
+
     private void CascadeVisibilityToSpaces(Visibility newVisibility)
     {
-        // Only cascade if making more restrictive (Public -> Private)
         if (newVisibility == Visibility.Private)
         {
             foreach (var space in _spaces.Where(s => s.Visibility == Visibility.Public))
@@ -412,30 +435,11 @@ public class ProjectWorkspace : Aggregate
             }
         }
     }
-    
-    private void CascadeMembershipToSpaces(Guid userId, bool isAdding)
-    {
-        foreach (var space in _spaces.Where(s => s.Visibility == Visibility.Private))
-        {
-            try
-            {
-                if (isAdding)
-                    space.AddMember(userId);
-                else
-                    space.RemoveMember(userId);
-            }
-            catch (InvalidOperationException)
-            {
-                // Member might already exist or not exist - ignore
-            }
-        }
-    }
 
-    // === PRIVATE HELPER METHODS ===
-    
+    // === PRIVATE HELPERS ===
+
     private void CreateDefaultStatuses()
     {
-        // Create standard workflow statuses
         var todoStatus = CreateStatus("To Do", "#6B7280", true); // Default status
         CreateStatus("In Progress", "#3B82F6");
         CreateStatus("Review", "#F59E0B");
@@ -448,8 +452,8 @@ public class ProjectWorkspace : Aggregate
         return new string(Enumerable.Range(0, length).Select(_ => chars[Random.Shared.Next(chars.Length)]).ToArray());
     }
 
-    // === VALIDATION HELPER METHODS ===
-    
+    // === VALIDATION HELPERS ===
+
     private static void ValidateBasicInfo(string name, string? description)
     {
         if (string.IsNullOrWhiteSpace(name))
@@ -459,14 +463,14 @@ public class ProjectWorkspace : Aggregate
         if (description?.Length > 500)
             throw new ArgumentException("Workspace description cannot exceed 500 characters.", nameof(description));
     }
-    
+
     private static void ValidateVisualSettings(string color, string icon)
     {
         ValidateColor(color);
         if (string.IsNullOrWhiteSpace(icon))
             throw new ArgumentException("Workspace icon cannot be empty.", nameof(icon));
     }
-    
+
     private static void ValidateColor(string color)
     {
         if (string.IsNullOrWhiteSpace(color))
@@ -474,33 +478,25 @@ public class ProjectWorkspace : Aggregate
         if (!IsValidColorCode(color))
             throw new ArgumentException("Invalid color format.", nameof(color));
     }
-    
+
     private void ValidateStatusCreation(string name, string color, bool isDefaultStatus)
     {
         if (string.IsNullOrWhiteSpace(name))
             throw new ArgumentException("Status name cannot be empty.", nameof(name));
         if (string.IsNullOrWhiteSpace(color))
             throw new ArgumentException("Status color cannot be empty.", nameof(color));
-
-        if (_statuses.Any(s => s.Name.Equals(name, StringComparison.OrdinalIgnoreCase)))
-            throw new InvalidOperationException($"A status with the name '{name}' already exists.");
-
         if (isDefaultStatus && _statuses.Any(s => s.IsDefaultStatus))
-            throw new InvalidOperationException("Only one default status is allowed per workspace.");
+            throw new InvalidOperationException("A default status already exists in this workspace.");
     }
-    
-    private void ValidateStatusUpdate(Guid statusId, string name, string color)
-    {
-        if (string.IsNullOrWhiteSpace(name))
-            throw new ArgumentException("Status name cannot be empty.", nameof(name));
-        if (string.IsNullOrWhiteSpace(color))
-            throw new ArgumentException("Status color cannot be empty.", nameof(color));
 
-        // Check for name conflicts (excluding current status)
-        if (_statuses.Any(s => s.Id != statusId && s.Name.Equals(name, StringComparison.OrdinalIgnoreCase)))
-            throw new InvalidOperationException($"A status with the name '{name}' already exists.");
+    private void ValidateStatusUpdate(Guid statusId, string newName, string newColor)
+    {
+        if (string.IsNullOrWhiteSpace(newName))
+            throw new ArgumentException("Status name cannot be empty.", nameof(newName));
+        if (string.IsNullOrWhiteSpace(newColor))
+            throw new ArgumentException("Status color cannot be empty.", nameof(newColor));
     }
-    
+
     private static void ValidateSpaceCreation(string name, string icon, string color)
     {
         if (string.IsNullOrWhiteSpace(name))
@@ -509,37 +505,10 @@ public class ProjectWorkspace : Aggregate
             throw new ArgumentException("Space icon cannot be empty.", nameof(icon));
         ValidateColor(color);
     }
-    
-    private static void ValidateGuid(Guid guid, string parameterName)
-    {
-        if (guid == Guid.Empty)
-            throw new ArgumentException($"{parameterName} cannot be empty.", parameterName);
-    }
-    
-    private static bool IsValidColorCode(string color) =>
-        !string.IsNullOrWhiteSpace(color) && 
-        (color.StartsWith("#") && (color.Length == 7 || color.Length == 4));
 
-    // === QUERY HELPER METHODS ===
-    
-    public bool HasMember(Guid userId) => _members.Any(m => m.UserId == userId);
-    
-    public Role? GetMemberRole(Guid userId) => _members.FirstOrDefault(m => m.UserId == userId)?.Role;
-    
-    public Status? GetDefaultStatus() => _statuses.FirstOrDefault(s => s.IsDefaultStatus);
-    
-    
-    public bool CanUserManage(Guid userId) => 
-        userId == CreatorId || GetMemberRole(userId) == Role.Admin;
-        
-    public bool CanUserEdit(Guid userId) => 
-        CanUserManage(userId) || GetMemberRole(userId) == Role.Member;
-        
-    public int GetTotalSpaceCount() => _spaces.Count;
-    
-    public int GetTotalFolderCount() => _spaces.Sum(s => s.GetFolderCount());
-    
-    public int GetTotalListCount() => _spaces.Sum(s => s.GetTotalListCount());
-    
-    public int GetTotalTaskCount() => _spaces.Sum(s => s.GetTotalTaskCount());
+    // Reuse base helper
+    private static void ValidateGuid(Guid id, string paramName)
+    {
+        if (id == Guid.Empty) throw new ArgumentException("Guid cannot be empty.", paramName);
+    }
 }

@@ -166,7 +166,7 @@ public record TagRemovedFromTaskEvent(Guid TaskId, Guid TagId) : IDomainEvent
     public DateTimeOffset OccurredAt { get; init; } = DateTimeOffset.UtcNow;
 }
 
-public record TaskMovedEvent(Guid TaskId, Guid OldListId, Guid NewListId, Guid? OldFolderId, Guid? NewFolderId, Guid OldSpaceId, Guid NewSpaceId) : IDomainEvent
+public record TaskMovedEvent(Guid TaskId, Guid OldListId, Guid NewListId, Guid? OldFolderId, Guid? NewFolderId, Guid OldSpaceId, Guid? NewSpaceId) : IDomainEvent
 {
     public Guid EventId { get; init; } = Guid.NewGuid();
     public DateTimeOffset OccurredAt { get; init; } = DateTimeOffset.UtcNow;

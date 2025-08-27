@@ -2,21 +2,33 @@ using System;
 using Domain.Entities.ProjectEntities;
 using Domain.Entities.Support;
 
-namespace Domain.Entities.Relationship;
-
-public class ProjectTaskTag
+namespace Domain.Entities.Relationship
 {
-    public Guid ProjectTaskId { get; set; }
-    public ProjectTask ProjectTask { get; set; } = null!;
-
-    public Guid TagId { get; set; }
-    public Tag Tag { get; set; } = null!;
-
-    private ProjectTaskTag() { } // For EF Core
-
-    public ProjectTaskTag(Guid projectTaskId, Guid tagId)
+    /// <summary>
+    /// Many-to-many join between ProjectTask and Tag.
+    /// Composite key: (ProjectTaskId, TagId). Configure in EF Core.
+    /// </summary>
+    public class ProjectTaskTag
     {
-        ProjectTaskId = projectTaskId;
-        TagId = tagId;
+        public Guid ProjectTaskId { get; private set; }
+        public ProjectTask ProjectTask { get; private set; } = null!;
+        public Guid TagId { get; private set; }
+        public Tag Tag { get; private set; } = null!;
+
+        public DateTime CreatedAt { get; private set; }
+
+        private ProjectTaskTag() { } // EF Core
+        private ProjectTaskTag(Guid projectTaskId, Guid tagId)
+        {
+            if (projectTaskId == Guid.Empty) throw new ArgumentException("Value cannot be empty.", nameof(projectTaskId));
+            if (tagId == Guid.Empty) throw new ArgumentException("Value cannot be empty.", nameof(tagId));
+
+            ProjectTaskId = projectTaskId;
+            TagId = tagId;
+            CreatedAt = DateTime.UtcNow;
+        }
+
+        public static ProjectTaskTag Create(Guid projectTaskId, Guid tagId) =>
+            new ProjectTaskTag(projectTaskId, tagId);
     }
 }

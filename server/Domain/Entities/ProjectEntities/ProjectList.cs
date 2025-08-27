@@ -2,6 +2,7 @@ using Domain.Common;
 using Domain.Entities.Relationship;
 using Domain.Enums;
 using Domain.Events.ListEvents;
+using static Domain.Common.ColorValidator;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -10,32 +11,29 @@ namespace Domain.Entities.ProjectEntities;
 
 public class ProjectList : Aggregate
 {
+    private const int MAX_BATCH_SIZE = 500; // Safety limit for list-level batch ops
+
     public Guid ProjectWorkspaceId { get; private set; }
     public Guid ProjectSpaceId { get; private set; }
     public Guid? ProjectFolderId { get; private set; }
     public string Name { get; private set; } = null!;
     public string? Description { get; private set; }
-    public int? OrderIndex { get; private set; } // Nullable for proper ordering
+    public int? OrderIndex { get; private set; }
     public Visibility Visibility { get; private set; }
     public Guid CreatorId { get; private set; }
     public bool IsArchived { get; private set; }
 
-    // Date constraints for the list
     public DateTime? StartDate { get; private set; }
     public DateTime? DueDate { get; private set; }
 
-    // Members (for private/restricted lists) - no roles, just access
     private readonly List<UserProjectList> _members = new();
     public IReadOnlyCollection<UserProjectList> Members => _members.AsReadOnly();
 
-    // Child entities - actual tasks, not just IDs
     private readonly List<ProjectTask> _tasks = new();
     public IReadOnlyCollection<ProjectTask> Tasks => _tasks.AsReadOnly();
 
-    // Constructors
     private ProjectList() { } // For EF Core
 
-    // Internal constructor - only called by parent space
     internal ProjectList(Guid id, Guid projectWorkspaceId, Guid projectSpaceId, Guid? projectFolderId,
         string name, string? description, Visibility visibility, int orderIndex, Guid creatorId)
     {
@@ -51,18 +49,15 @@ public class ProjectList : Aggregate
         IsArchived = false;
     }
 
-    // === SELF MANAGEMENT METHODS ===
+    // === SELF MANAGEMENT ===
 
     public void UpdateBasicInfo(string name, string? description)
     {
-        // Normalize inputs first
         name = name?.Trim() ?? string.Empty;
         description = string.IsNullOrWhiteSpace(description?.Trim()) ? null : description.Trim();
 
-        // Check for changes first
         if (Name == name && Description == description) return;
 
-        // Then validate
         ValidateBasicInfo(name, description);
 
         var oldName = Name;
@@ -73,10 +68,8 @@ public class ProjectList : Aggregate
         AddDomainEvent(new ListBasicInfoUpdatedEvent(Id, oldName, name, oldDescription, description));
     }
 
-
     public void ChangeVisibility(Visibility newVisibility)
     {
-        // Check for changes first
         if (Visibility == newVisibility) return;
 
         var oldVisibility = Visibility;
@@ -84,17 +77,14 @@ public class ProjectList : Aggregate
         UpdateTimestamp();
         AddDomainEvent(new ListVisibilityChangedEvent(Id, oldVisibility, newVisibility));
 
-        // CASCADE: Update all child tasks to match list visibility if they were public
         CascadeVisibilityToTasks(newVisibility);
     }
 
     public void SetDateRange(DateTime? startDate, DateTime? dueDate)
     {
-        // Validate first
         if (startDate.HasValue && dueDate.HasValue && startDate > dueDate)
             throw new ArgumentException("Start date cannot be later than due date.", nameof(startDate));
 
-        // Check for changes
         if (StartDate == startDate && DueDate == dueDate) return;
 
         var oldStartDate = StartDate;
@@ -113,7 +103,6 @@ public class ProjectList : Aggregate
         UpdateTimestamp();
         AddDomainEvent(new ListArchivedEvent(Id));
 
-        // CASCADE: Archive all child tasks
         ArchiveAllTasks();
     }
 
@@ -125,7 +114,6 @@ public class ProjectList : Aggregate
         UpdateTimestamp();
         AddDomainEvent(new ListUnarchivedEvent(Id));
 
-        // CASCADE: Unarchive all child tasks
         UnarchiveAllTasks();
     }
 
@@ -156,7 +144,7 @@ public class ProjectList : Aggregate
         AddDomainEvent(new ListMovedToFolderEvent(Id, oldSpaceId, newSpaceId));
     }
 
-    // === MEMBERSHIP MANAGEMENT ===
+    // === MEMBERSHIP ===
 
     public void AddMember(Guid userId)
     {
@@ -185,7 +173,7 @@ public class ProjectList : Aggregate
         AddDomainEvent(new MemberRemovedFromListEvent(Id, userId));
     }
 
-    // === CHILD ENTITY MANAGEMENT (TASKS) ===
+    // === TASK MANAGEMENT ===
 
     public ProjectTask CreateTask(string name, string? description, Priority priority = Priority.Medium,
         DateTime? startDate = null, DateTime? dueDate = null, Visibility visibility = Visibility.Public)
@@ -193,11 +181,9 @@ public class ProjectList : Aggregate
         if (IsArchived)
             throw new InvalidOperationException("Cannot create tasks in an archived list.");
 
-        // Normalize inputs
         name = name?.Trim() ?? string.Empty;
         description = string.IsNullOrWhiteSpace(description?.Trim()) ? null : description.Trim();
 
-        // Validate
         ValidateTaskCreation(name, startDate, dueDate);
 
         var orderIndex = _tasks.Count;
@@ -246,11 +232,7 @@ public class ProjectList : Aggregate
         if (task == null)
             throw new InvalidOperationException("Task not found in this list.");
 
-        // Remove from this list
         _tasks.Remove(task);
-
-        // The target list will handle adding the task
-        // This is typically coordinated by an application service
 
         UpdateTimestamp();
         AddDomainEvent(new TaskMovedFromListEvent(Id, taskId, targetListId));
@@ -264,26 +246,26 @@ public class ProjectList : Aggregate
         if (IsArchived)
             throw new InvalidOperationException("Cannot move tasks to an archived list.");
 
-        // Update task's list reference
         task.MoveToList(Id);
 
-        // Set new order index
         var newOrderIndex = _tasks.Count;
         task.UpdateOrderIndex(newOrderIndex);
 
-        // Add to this list
         _tasks.Add(task);
 
         UpdateTimestamp();
         AddDomainEvent(new TaskMovedToListEvent(Id, task.Id, sourceListId));
     }
 
-    // === BULK OPERATIONS (MISSING HIERARCHICAL METHODS) ===
+    // === BULK OPERATIONS ===
 
     public void ArchiveAllTasks()
     {
         var tasksToArchive = _tasks.Where(t => !t.IsArchived).ToList();
         if (!tasksToArchive.Any()) return;
+
+        if (tasksToArchive.Count > MAX_BATCH_SIZE)
+            throw new InvalidOperationException($"Batch too large. Reduce size below {MAX_BATCH_SIZE} or run as smaller batches.");
 
         foreach (var task in tasksToArchive)
         {
@@ -299,6 +281,9 @@ public class ProjectList : Aggregate
         var tasksToUnarchive = _tasks.Where(t => t.IsArchived).ToList();
         if (!tasksToUnarchive.Any()) return;
 
+        if (tasksToUnarchive.Count > MAX_BATCH_SIZE)
+            throw new InvalidOperationException($"Batch too large. Reduce size below {MAX_BATCH_SIZE} or run as smaller batches.");
+
         foreach (var task in tasksToUnarchive)
         {
             task.Unarchive();
@@ -308,19 +293,14 @@ public class ProjectList : Aggregate
         AddDomainEvent(new AllTasksUnarchivedInListEvent(Id));
     }
 
+    /// <summary>
+    /// Completing all tasks needs workspace-level default "completed" status resolution.
+    /// This is orchestration requiring external domain service. Moved to application handler.
+    /// </summary>
     public void CompleteAllTasks()
     {
-        var tasksToComplete = _tasks.Where(t => !t.IsCompleted && !t.IsArchived).ToList();
-        if (!tasksToComplete.Any()) return;
-
-        foreach (var task in tasksToComplete)
-        {
-            // This would need a default "completed" status from the workspace
-            // task.UpdateStatus(completedStatusId, true);
-        }
-
-        UpdateTimestamp();
-        AddDomainEvent(new AllTasksCompletedInListEvent(Id));
+        // TODO: MOVE_TO_HANDLER: Completing all tasks requires workspace-level default completed status.
+        throw new InvalidOperationException("This method was moved to application handler. See TODO: MOVE_TO_HANDLER: CompleteAllTasks");
     }
 
     public void AssignAllTasksToUser(Guid userId)
@@ -330,16 +310,12 @@ public class ProjectList : Aggregate
         var tasksToAssign = _tasks.Where(t => !t.IsAssignedTo(userId) && !t.IsArchived).ToList();
         if (!tasksToAssign.Any()) return;
 
+        if (tasksToAssign.Count > MAX_BATCH_SIZE)
+            throw new InvalidOperationException($"Batch too large. Reduce size below {MAX_BATCH_SIZE} or run in smaller batches.");
+
         foreach (var task in tasksToAssign)
         {
-            try
-            {
-                task.AssignUser(userId);
-            }
-            catch (InvalidOperationException)
-            {
-                // Task might already be assigned - ignore
-            }
+            task.AssignUser(userId);
         }
 
         UpdateTimestamp();
@@ -351,6 +327,9 @@ public class ProjectList : Aggregate
         var tasksToUpdate = _tasks.Where(t => t.Priority != newPriority && !t.IsArchived).ToList();
         if (!tasksToUpdate.Any()) return;
 
+        if (tasksToUpdate.Count > MAX_BATCH_SIZE)
+            throw new InvalidOperationException($"Batch too large. Reduce size below {MAX_BATCH_SIZE} or run in smaller batches.");
+
         foreach (var task in tasksToUpdate)
         {
             task.ChangePriority(newPriority);
@@ -360,11 +339,10 @@ public class ProjectList : Aggregate
         AddDomainEvent(new AllTasksPriorityUpdatedInListEvent(Id, newPriority));
     }
 
-    // === PRIVATE CASCADE METHODS ===
+    // === PRIVATE CASCADE ===
 
     private void CascadeVisibilityToTasks(Visibility newVisibility)
     {
-        // Only cascade if making more restrictive (Public -> Private)
         if (newVisibility == Visibility.Private)
         {
             foreach (var task in _tasks.Where(t => t.Visibility == Visibility.Public))
@@ -374,7 +352,7 @@ public class ProjectList : Aggregate
         }
     }
 
-    // === VALIDATION HELPER METHODS ===
+    // === VALIDATION HELPERS ===
 
     private static void ValidateBasicInfo(string name, string? description)
     {
@@ -386,14 +364,6 @@ public class ProjectList : Aggregate
             throw new ArgumentException("List description cannot exceed 500 characters.", nameof(description));
     }
 
-    private static void ValidateColor(string color)
-    {
-        if (string.IsNullOrWhiteSpace(color))
-            throw new ArgumentException("List color cannot be empty.", nameof(color));
-        if (!IsValidColorCode(color))
-            throw new ArgumentException("Invalid color format.", nameof(color));
-    }
-
     private void ValidateTaskCreation(string name, DateTime? startDate, DateTime? dueDate)
     {
         if (string.IsNullOrWhiteSpace(name))
@@ -401,52 +371,10 @@ public class ProjectList : Aggregate
 
         if (startDate.HasValue && dueDate.HasValue && startDate > dueDate)
             throw new ArgumentException("Task start date cannot be later than due date.", nameof(startDate));
-
-        // Validate task dates are within list date range if set
-        if (StartDate.HasValue && startDate.HasValue && startDate < StartDate)
-            throw new ArgumentException("Task start date cannot be before list start date.", nameof(startDate));
-        if (DueDate.HasValue && dueDate.HasValue && dueDate > DueDate)
-            throw new ArgumentException("Task due date cannot be after list due date.", nameof(dueDate));
     }
 
-    private static void ValidateGuid(Guid guid, string parameterName)
+    private static void ValidateGuid(Guid id, string paramName)
     {
-        if (guid == Guid.Empty)
-            throw new ArgumentException($"{parameterName} cannot be empty.", parameterName);
+        if (id == Guid.Empty) throw new ArgumentException("Guid cannot be empty.", paramName);
     }
-
-    private static bool IsValidColorCode(string color) =>
-        !string.IsNullOrWhiteSpace(color) &&
-        (color.StartsWith("#") && (color.Length == 7 || color.Length == 4));
-
-    // === QUERY HELPER METHODS ===
-
-    public bool HasMember(Guid userId) => _members.Any(m => m.UserId == userId);
-
-    public bool CanUserAccess(Guid userId) =>
-        Visibility == Visibility.Public ||
-        userId == CreatorId ||
-        HasMember(userId);
-
-         
-    public bool CanUserManage(Guid userId) => userId == CreatorId;
-    
-    public IEnumerable<ProjectTask> GetOrderedTasks() => 
-        _tasks.OrderBy(t => t.OrderIndex ?? int.MaxValue).ThenBy(t => t.CreatedAt);
-        
-    public IEnumerable<ProjectTask> GetTasksByStatus(Guid statusId) => 
-        _tasks.Where(t => t.StatusId == statusId);
-        
-    public IEnumerable<ProjectTask> GetOverdueTasks() => 
-        _tasks.Where(t => t.DueDate.HasValue && t.DueDate < DateTime.UtcNow && !t.IsCompleted);
-        
-    public IEnumerable<ProjectTask> GetCompletedTasks() => 
-        _tasks.Where(t => t.IsCompleted);
-        
-    public int GetTaskCount() => _tasks.Count;
-    
-    public int GetCompletedTaskCount() => _tasks.Count(t => t.IsCompleted);
-    
-    public double GetCompletionPercentage() => 
-        _tasks.Count == 0 ? 0 : (double)GetCompletedTaskCount() / _tasks.Count * 100;
 }

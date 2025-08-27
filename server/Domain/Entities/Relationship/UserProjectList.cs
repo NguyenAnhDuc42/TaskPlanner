@@ -1,31 +1,29 @@
+namespace Domain.Entities.Relationship;
+
 using System;
-using Domain.Entities;
 using Domain.Entities.ProjectEntities;
 
-namespace Domain.Entities.Relationship;
 
 public class UserProjectList
 {
-    public Guid UserId { get; set; }
-    public Guid ProjectListId { get; set; }
-    public DateTime JoinTime { get; private set; }
+    public Guid UserId { get; private set; }
+    public User User { get; set; } = null!;
+    public Guid ProjectListId { get; private set; }
+    public ProjectList ProjectList { get; set; } = null!;
+    public DateTime CreatedAt { get; private set; }
 
-    // Navigation Properties
-    public User User { get; private set; } = null!;
-    public ProjectList ProjectList { get; private set; } = null!;
+    private UserProjectList() { } // EF
 
-    private UserProjectList() { } // For EF Core
-
-    private UserProjectList(Guid userId, Guid projectListId, DateTime joinTime)
+    private UserProjectList(Guid userId, Guid listId)
     {
+        if (userId == Guid.Empty) throw new ArgumentException(nameof(userId));
+        if (listId == Guid.Empty) throw new ArgumentException(nameof(listId));
+
         UserId = userId;
-        ProjectListId = projectListId;
-        JoinTime = joinTime;
+        ProjectListId = listId;
+        CreatedAt = DateTime.UtcNow;
     }
 
-    // Static Factory Method
-    public static UserProjectList Create(Guid userId, Guid projectListId)
-    {
-        return new UserProjectList(userId, projectListId, DateTime.UtcNow);
-    }
+    public static UserProjectList Create(Guid userId, Guid listId)
+        => new(userId, listId);
 }

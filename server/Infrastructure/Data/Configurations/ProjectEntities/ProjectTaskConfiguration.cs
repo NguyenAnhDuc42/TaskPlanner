@@ -68,10 +68,6 @@ public class ProjectTaskConfiguration : IEntityTypeConfiguration<ProjectTask>
             .HasForeignKey(a => a.ProjectTaskId)
             .OnDelete(DeleteBehavior.Cascade);
 
-        builder.HasMany(t => t.Watchers)
-            .WithOne(w => w.ProjectTask)
-            .HasForeignKey(w => w.ProjectTaskId)
-            .OnDelete(DeleteBehavior.Cascade);
 
         builder.HasMany(t => t.Tags)
             .WithOne(t => t.ProjectTask)
