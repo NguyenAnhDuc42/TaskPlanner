@@ -1,0 +1,92 @@
+using Application.Interfaces.Repositories;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage;
+
+namespace Infrastructure.Data
+{
+    public class UnitOfWork : IUnitOfWork
+    {
+        private readonly TaskPlanDbContext _context;
+        private IDbContextTransaction? _currentTransaction;
+
+        public UnitOfWork(TaskPlanDbContext context)
+        {
+            _context = context;
+        }
+
+        public bool HasActiveTransaction => _currentTransaction != null;
+
+        public async Task<IDbContextTransaction> BeginTransactionAsync(CancellationToken cancellationToken = default)
+        {
+            if (_currentTransaction != null) return _currentTransaction;
+            _currentTransaction = await _context.Database.BeginTransactionAsync(cancellationToken);
+            return _currentTransaction;
+        }
+
+        public async Task CommitTransactionAsync(CancellationToken cancellationToken = default)
+        {
+            if (_currentTransaction == null) return;
+
+            try
+            {
+                await _context.SaveChangesAsync(cancellationToken);
+                await _currentTransaction.CommitAsync(cancellationToken);
+            }
+            catch
+            {
+                await RollbackTransactionAsync(cancellationToken);
+                throw;
+            }
+            finally
+            {
+                await _currentTransaction.DisposeAsync();
+                _currentTransaction = null;
+            }
+        }
+
+        public async Task RollbackTransactionAsync(CancellationToken cancellationToken = default)
+        {
+            if (_currentTransaction == null) return;
+
+            try
+            {
+                await _currentTransaction.RollbackAsync(cancellationToken);
+            }
+            finally
+            {
+                await _currentTransaction.DisposeAsync();
+                _currentTransaction = null;
+            }
+        }
+
+        public async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
+        {
+            return await _context.SaveChangesAsync(cancellationToken);
+        }
+
+        public void DetachAllEntities()
+        {
+            var changedEntriesCopy = _context.ChangeTracker.Entries().ToList();
+            foreach (var entry in changedEntriesCopy)
+                entry.State = EntityState.Detached;
+        }
+
+        public async Task<int> ExecuteInTransactionAsync(Func<Task<int>> operation, CancellationToken cancellationToken = default)
+        {
+            if (HasActiveTransaction) return await operation();
+
+            await using var transaction = await BeginTransactionAsync(cancellationToken);
+            try
+            {
+                var result = await operation();
+                await CommitTransactionAsync(cancellationToken);
+                return result;
+            }
+            catch
+            {
+                await RollbackTransactionAsync(cancellationToken);
+                throw;
+            }
+        }
+    }
+}

@@ -7,6 +7,7 @@ using Domain.Entities;
 using Domain.Entities.Relationship;
 using Domain.Entities.Support;
 using Domain.Entities.ProjectEntities;
+using Domain.Common;
 
 namespace Infrastructure.Data;
 
@@ -51,6 +52,19 @@ public class TaskPlanDbContext : DbContext
         // Apply configurations from the assembly where this DbContext resides
         // This will pick up all IEntityTypeConfiguration implementations in the same assembly
         modelBuilder.ApplyConfigurationsFromAssembly(Assembly.GetExecutingAssembly());
+
+         foreach (var entityType in modelBuilder.Model.GetEntityTypes())
+    {
+        if (typeof(Entity).IsAssignableFrom(entityType.ClrType))
+        {
+            modelBuilder.Entity(entityType.ClrType).Property<byte[]>("Version")
+                .IsRowVersion()
+                .IsConcurrencyToken();
+
+            modelBuilder.Entity(entityType.ClrType).Property<DateTime>("CreatedAt").IsRequired();
+            modelBuilder.Entity(entityType.ClrType).Property<DateTime>("UpdatedAt").IsRequired();
+        }
+    }
         base.OnModelCreating(modelBuilder);
     }
 }

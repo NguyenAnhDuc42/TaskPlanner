@@ -64,15 +64,7 @@ public class ProjectSpaceConfiguration : IEntityTypeConfiguration<ProjectSpace>
             .HasForeignKey(m => m.ProjectSpaceId)
             .OnDelete(DeleteBehavior.Cascade);
 
-        // Common properties from Aggregate
-        builder.Property(e => e.Version)
-            .IsRowVersion();
-
-        builder.Property(e => e.CreatedAt)
-            .IsRequired();
-
-        builder.Property(e => e.UpdatedAt)
-            .IsRequired();
+   
 
         // Ignore DomainEvents
         builder.Ignore(s => s.DomainEvents);

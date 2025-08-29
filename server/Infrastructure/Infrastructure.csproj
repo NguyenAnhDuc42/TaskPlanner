@@ -17,6 +17,7 @@
     <PackageReference Include="Microsoft.Extensions.Caching.StackExchangeRedis" Version="9.0.8" />
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="9.0.4" />
     <PackageReference Include="Polly.Extensions.Http" Version="3.0.0" />
+    <PackageReference Include="Scrutor" Version="6.1.0" />
     <PackageReference Include="SendGrid" Version="9.29.3" />
     <PackageReference Include="Serilog.AspNetCore" Version="9.0.0" />
     <PackageReference Include="Serilog.Sinks.Console" Version="6.0.0" />
@@ -26,7 +27,6 @@
   <ItemGroup>
     <Folder Include="Caching\" />
     <Folder Include="Data\Configurations\ProjectEntities\" />
-    <Folder Include="Data\Repositories\" />
     <Folder Include="FileStorage\" />
     <Folder Include="Identity\" />
     <Folder Include="Logging\" />

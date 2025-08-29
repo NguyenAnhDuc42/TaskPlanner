@@ -25,16 +25,6 @@ public class SessionConfiguration : IEntityTypeConfiguration<Session>
         builder.Property(s => s.IsActive)
             .IsRequired();
 
-        // Configure common Entity properties
-        builder.Property(e => e.Version)
-            .IsRowVersion();
-
-        builder.Property(e => e.CreatedAt)
-            .IsRequired();
-
-        builder.Property(e => e.UpdatedAt)
-            .IsRequired();
-
         // Ignore domain events collection as it's not persisted
         builder.Ignore(e => e.DomainEvents);
     }

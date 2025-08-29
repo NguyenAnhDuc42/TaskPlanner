@@ -48,15 +48,6 @@ public class ProjectFolderConfiguration : IEntityTypeConfiguration<ProjectFolder
             .HasForeignKey(m => m.ProjectFolderId)
             .OnDelete(DeleteBehavior.Cascade);
 
-        // Common properties from Aggregate
-        builder.Property(e => e.Version)
-            .IsRowVersion();
-
-        builder.Property(e => e.CreatedAt)
-            .IsRequired();
-
-        builder.Property(e => e.UpdatedAt)
-            .IsRequired();
 
         // Ignore DomainEvents
         builder.Ignore(f => f.DomainEvents);

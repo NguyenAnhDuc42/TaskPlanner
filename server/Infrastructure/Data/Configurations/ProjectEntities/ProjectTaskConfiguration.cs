@@ -95,16 +95,7 @@ public class ProjectTaskConfiguration : IEntityTypeConfiguration<ProjectTask>
             .HasForeignKey(cl => cl.ProjectTaskId)
             .OnDelete(DeleteBehavior.Cascade);
 
-        // Common properties from Aggregate
-        builder.Property(e => e.Version)
-            .IsRowVersion();
-
-        builder.Property(e => e.CreatedAt)
-            .IsRequired();
-
-        builder.Property(e => e.UpdatedAt)
-            .IsRequired();
-
+       
         // Ignore DomainEvents
         builder.Ignore(t => t.DomainEvents);
     }
