@@ -26,7 +26,9 @@ public class ProjectWorkspace : Aggregate
 
     private readonly List<Status> _statuses = new();
     public IReadOnlyCollection<Status> Statuses => _statuses.AsReadOnly();
-
+    private readonly List<Tag> _tags = new();
+    public IReadOnlyCollection<Tag> Tags => _tags.AsReadOnly();
+    
     private readonly List<UserProjectWorkspace> _members = new();
     public IReadOnlyCollection<UserProjectWorkspace> Members => _members.AsReadOnly();
 

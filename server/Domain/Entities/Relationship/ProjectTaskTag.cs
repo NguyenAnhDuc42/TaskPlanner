@@ -4,10 +4,7 @@ using Domain.Entities.Support;
 
 namespace Domain.Entities.Relationship
 {
-    /// <summary>
-    /// Many-to-many join between ProjectTask and Tag.
-    /// Composite key: (ProjectTaskId, TagId). Configure in EF Core.
-    /// </summary>
+    
     public class ProjectTaskTag
     {
         public Guid ProjectTaskId { get; private set; }

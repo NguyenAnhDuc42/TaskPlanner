@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
 using Domain.Enums;
+using Domain.Entities.Support;
 
 namespace Domain.Entities;
 
@@ -18,6 +19,9 @@ public class User : Aggregate
     // === Owned Entities ===
     private readonly List<Session> _sessions = new();
     public IReadOnlyCollection<Session> Sessions => _sessions.AsReadOnly();
+
+     private readonly List<Notification> _notifications = new();
+    public IReadOnlyCollection<Notification> Notifications => _notifications.AsReadOnly();
 
     // === Relationship Entities ===
     private readonly List<UserProjectWorkspace> _workspaces = new();
@@ -82,7 +86,7 @@ public class User : Aggregate
     }
 
     // === Relationship Management ===
-    public void JoinWorkspace(Guid workspaceId, Role role)
+    public void JoinWorkspace(Guid workspaceId, Role     role)
     {
         if (_workspaces.Any(w => w.ProjectWorkspaceId == workspaceId)) return;
 

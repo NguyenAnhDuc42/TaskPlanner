@@ -59,7 +59,11 @@ public class ProjectWorkspaceConfiguration : IEntityTypeConfiguration<ProjectWor
             .WithOne()
             .HasForeignKey(s => s.ProjectWorkspaceId)
             .OnDelete(DeleteBehavior.Cascade);
-            
+        builder.HasMany(w => w.Tags)
+            .WithOne()
+            .HasForeignKey(s => s.ProjectWorkspaceId)
+            .OnDelete(DeleteBehavior.Cascade);
+
         // Common properties from Aggregate
         builder.Property(e => e.Version)
             .IsRowVersion();

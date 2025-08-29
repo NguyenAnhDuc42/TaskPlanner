@@ -5,23 +5,23 @@ namespace Domain.Entities.Support;
 
 public class ChecklistItem : Entity
 {
-    public Guid TaskChecklistId { get; private set; }
+    public Guid ChecklistId { get; private set; }
     public string Text { get; private set; } = null!;
     public bool IsCompleted { get; private set; }
     public int OrderIndex { get; private set; }
 
     private ChecklistItem() { } // EF Core
 
-    private ChecklistItem(Guid id, string text, int orderIndex, Guid taskChecklistId)
+    private ChecklistItem(Guid id, string text, int orderIndex, Guid checklistId)
         : base(id)
     {
         if (string.IsNullOrWhiteSpace(text)) throw new ArgumentException("Checklist item text cannot be empty.", nameof(text));
-        if (taskChecklistId == Guid.Empty) throw new ArgumentException("TaskChecklistId cannot be empty.", nameof(taskChecklistId));
+        if (checklistId == Guid.Empty) throw new ArgumentException("TaskChecklistId cannot be empty.", nameof(checklistId));
         if (orderIndex < 0) throw new ArgumentOutOfRangeException(nameof(orderIndex));
 
         Text = text.Trim();
         OrderIndex = orderIndex;
-        TaskChecklistId = taskChecklistId;
+        ChecklistId = checklistId;
         IsCompleted = false;
     }
 

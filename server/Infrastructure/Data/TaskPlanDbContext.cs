@@ -10,9 +10,9 @@ using Domain.Entities.ProjectEntities;
 
 namespace Infrastructure.Data;
 
-public class TaskPlanDbContext : DbContext // Corrected name
+public class TaskPlanDbContext : DbContext 
 {
-    public TaskPlanDbContext(DbContextOptions<TaskPlanDbContext> options) : base(options) // Corrected name
+    public TaskPlanDbContext(DbContextOptions<TaskPlanDbContext> options) : base(options) 
     {
     }
 

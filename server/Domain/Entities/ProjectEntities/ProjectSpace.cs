@@ -24,6 +24,9 @@ namespace Domain.Entities.ProjectEntities
         public int? OrderIndex { get; private set; }
         public Guid CreatorId { get; private set; }
 
+        private readonly List<Status> _statuses = new();
+        public IReadOnlyCollection<Status> Statuses => _statuses.AsReadOnly();
+
         private readonly List<UserProjectSpace> _members = new();
         public IReadOnlyCollection<UserProjectSpace> Members => _members.AsReadOnly();
 
@@ -201,7 +204,7 @@ namespace Domain.Entities.ProjectEntities
             if (folder == null)
                 throw new InvalidOperationException("Folder not found in this space.");
 
-            if ( await usageChecker.IsInUseAsync(folderId))
+            if (await usageChecker.IsInUseAsync(folderId))
                 throw new InvalidOperationException("Cannot remove folder because it contains lists/tasks according to the provided checker.");
 
             _folders.Remove(folder);

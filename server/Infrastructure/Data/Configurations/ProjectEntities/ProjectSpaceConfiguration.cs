@@ -39,6 +39,10 @@ public class ProjectSpaceConfiguration : IEntityTypeConfiguration<ProjectSpace>
         builder.Property(s => s.CreatorId)
             .IsRequired();
 
+        builder.HasMany(w => w.Statuses)
+           .WithOne()
+           .HasForeignKey(s => s.ProjectSpaceId);
+
         // Relationships
         builder.HasOne<ProjectWorkspace>() // Define the relationship to the parent workspace
             .WithMany(w => w.Spaces)
@@ -54,7 +58,7 @@ public class ProjectSpaceConfiguration : IEntityTypeConfiguration<ProjectSpace>
             .WithOne() // A list belongs to one space
             .HasForeignKey(l => l.ProjectSpaceId)
             .OnDelete(DeleteBehavior.Cascade);
-            
+
         builder.HasMany(s => s.Members)
             .WithOne(m => m.ProjectSpace)
             .HasForeignKey(m => m.ProjectSpaceId)
