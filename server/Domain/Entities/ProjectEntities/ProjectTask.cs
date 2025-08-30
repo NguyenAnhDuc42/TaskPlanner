@@ -27,8 +27,8 @@ public class ProjectTask : Aggregate
     public bool IsArchived { get; private set; }
 
     public Priority Priority { get; private set; }
-    public DateTime? StartDate { get; private set; }
-    public DateTime? DueDate { get; private set; }
+    public DateTimeOffset? StartDate { get; private set; }
+    public DateTimeOffset? DueDate { get; private set; }
     public int? StoryPoints { get; private set; }
     public long? TimeEstimateSeconds { get; private set; }
     public int? OrderIndex { get; private set; }
@@ -60,7 +60,7 @@ public class ProjectTask : Aggregate
 
     internal ProjectTask(Guid id, Guid projectWorkspaceId, Guid projectSpaceId,
         Guid? projectFolderId, Guid projectListId, string name, string? description,
-        Priority priority, DateTime? startDate, DateTime? dueDate, Visibility visibility,
+        Priority priority, DateTimeOffset? startDate, DateTimeOffset? dueDate, Visibility visibility,
         int orderIndex, Guid creatorId, Guid? parentTaskId = null)
     {
         Id = id;
@@ -104,7 +104,7 @@ public class ProjectTask : Aggregate
         AddDomainEvent(new TaskBasicInfoUpdatedEvent(Id, oldName, name, oldDescription, description));
     }
 
-    public void UpdateSchedule(DateTime? startDate, DateTime? dueDate)
+    public void UpdateSchedule(DateTimeOffset? startDate, DateTimeOffset? dueDate)
     {
         if (StartDate == startDate && DueDate == dueDate) return;
 
@@ -483,7 +483,7 @@ public class ProjectTask : Aggregate
             throw new ArgumentException("Task description cannot exceed 2000 characters.", nameof(description));
     }
 
-    private static void ValidateSchedule(DateTime? startDate, DateTime? dueDate)
+    private static void ValidateSchedule(DateTimeOffset? startDate, DateTimeOffset? dueDate)
     {
         if (startDate.HasValue && dueDate.HasValue && startDate > dueDate)
             throw new ArgumentException("Start date cannot be later than due date.", nameof(startDate));

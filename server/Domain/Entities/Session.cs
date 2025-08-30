@@ -8,16 +8,16 @@ public class Session : Entity
 {
     public string RefreshToken { get; private set; } = string.Empty;
     public Guid UserId { get; private set; }
-    public DateTime ExpiresAt { get; private set; }
-    public DateTime? RevokedAt { get; private set; }
+    public DateTimeOffset ExpiresAt { get; private set; }
+    public DateTimeOffset? RevokedAt { get; private set; }
     public string UserAgent { get; private set; } = string.Empty;
     public string IpAddress { get; private set; } = string.Empty;
 
-    public bool IsActive => !RevokedAt.HasValue && ExpiresAt > DateTime.UtcNow;
+    public bool IsActive => !RevokedAt.HasValue && ExpiresAt > DateTimeOffset.UtcNow;
 
     private Session() { } // EF Core
 
-    private Session(Guid userId, string refreshToken, DateTime expiresAt, string userAgent, string ipAddress)
+    private Session(Guid userId, string refreshToken, DateTimeOffset expiresAt, string userAgent, string ipAddress)
     {
         UserId = userId;
         RefreshToken = refreshToken;
@@ -26,7 +26,7 @@ public class Session : Entity
         IpAddress = ipAddress;
     }
 
-    public static Session Create(Guid userId, string refreshToken, DateTime expiresAt, string userAgent, string ipAddress)
+    public static Session Create(Guid userId, string refreshToken, DateTimeOffset expiresAt, string userAgent, string ipAddress)
     {
         var session = new Session(userId, refreshToken, expiresAt, userAgent, ipAddress);
         session.AddDomainEvent(new SessionCreatedEvent(session.Id, session.UserId, session.ExpiresAt));
@@ -36,16 +36,16 @@ public class Session : Entity
     public void Revoke()
     {
         if (RevokedAt.HasValue) throw new InvalidOperationException("Session is already revoked.");
-        if (ExpiresAt <= DateTime.UtcNow) throw new InvalidOperationException("Cannot revoke an expired session.");
+        if (ExpiresAt <= DateTimeOffset.UtcNow) throw new InvalidOperationException("Cannot revoke an expired session.");
 
-        RevokedAt = DateTime.UtcNow;
+        RevokedAt = DateTimeOffset.UtcNow;
         AddDomainEvent(new SessionRevokedEvent(Id, UserId));
     }
 
     public void ExtendExpiration(TimeSpan duration)
     {
         if (RevokedAt.HasValue) throw new InvalidOperationException("Cannot extend an already revoked session.");
-        if (ExpiresAt <= DateTime.UtcNow) throw new InvalidOperationException("Cannot extend an already expired session.");
+        if (ExpiresAt <= DateTimeOffset.UtcNow) throw new InvalidOperationException("Cannot extend an already expired session.");
         if (duration <= TimeSpan.Zero) throw new ArgumentOutOfRangeException(nameof(duration), "Duration must be positive.");
 
         ExpiresAt = ExpiresAt.Add(duration);

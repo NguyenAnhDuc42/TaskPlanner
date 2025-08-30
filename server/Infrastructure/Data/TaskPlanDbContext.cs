@@ -61,8 +61,8 @@ public class TaskPlanDbContext : DbContext
                 .IsRowVersion()
                 .IsConcurrencyToken();
 
-            modelBuilder.Entity(entityType.ClrType).Property<DateTime>("CreatedAt").IsRequired();
-            modelBuilder.Entity(entityType.ClrType).Property<DateTime>("UpdatedAt").IsRequired();
+            modelBuilder.Entity(entityType.ClrType).Property<DateTimeOffset>("CreatedAt").IsRequired();
+            modelBuilder.Entity(entityType.ClrType).Property<DateTimeOffset>("UpdatedAt").IsRequired();
         }
     }
         base.OnModelCreating(modelBuilder);

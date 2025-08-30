@@ -1,4 +1,5 @@
 using Application.Interfaces.Repositories;
+using Infrastructure.Data.Repositories;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
 
@@ -9,11 +10,17 @@ namespace Infrastructure.Data
         private readonly TaskPlanDbContext _context;
         private IDbContextTransaction? _currentTransaction;
 
-        public UnitOfWork(TaskPlanDbContext context)
+        private IUserRepository? _users;
+        private ISessionRepository? _sessions;
+
+        public UnitOfWork(TaskPlanDbContext context, IUserRepository users, ISessionRepository sessions)
         {
             _context = context;
         }
+        public IUserRepository Users => _users ??= new UserRepository(_context);
+        public ISessionRepository Sessions => _sessions ??= new SessionRepository(_context);
 
+        
         public bool HasActiveTransaction => _currentTransaction != null;
 
         public async Task<IDbContextTransaction> BeginTransactionAsync(CancellationToken cancellationToken = default)

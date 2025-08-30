@@ -45,7 +45,7 @@ public class ProjectWorkspaceConfiguration : IEntityTypeConfiguration<ProjectWor
             .IsRequired();
 
         // Relationships
-        builder.HasMany(w => w.Spaces)
+        builder.HasMany<ProjectSpace>()
             .WithOne()
             .HasForeignKey(s => s.ProjectWorkspaceId)
             .OnDelete(DeleteBehavior.Cascade);

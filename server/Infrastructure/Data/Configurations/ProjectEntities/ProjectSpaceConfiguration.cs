@@ -1,4 +1,5 @@
 using Domain.Entities.ProjectEntities;
+using Microsoft.CodeAnalysis;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -45,16 +46,16 @@ public class ProjectSpaceConfiguration : IEntityTypeConfiguration<ProjectSpace>
 
         // Relationships
         builder.HasOne<ProjectWorkspace>() // Define the relationship to the parent workspace
-            .WithMany(w => w.Spaces)
+            .WithMany()
             .HasForeignKey(s => s.ProjectWorkspaceId)
             .OnDelete(DeleteBehavior.Cascade);
 
-        builder.HasMany(s => s.Folders)
+        builder.HasMany<ProjectFolder>()
             .WithOne() // A folder belongs to one space
             .HasForeignKey(f => f.ProjectSpaceId)
             .OnDelete(DeleteBehavior.Cascade);
 
-        builder.HasMany(s => s.Lists)
+        builder.HasMany<ProjectList>()
             .WithOne() // A list belongs to one space
             .HasForeignKey(l => l.ProjectSpaceId)
             .OnDelete(DeleteBehavior.Cascade);

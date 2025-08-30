@@ -34,11 +34,11 @@ public class ProjectFolderConfiguration : IEntityTypeConfiguration<ProjectFolder
 
         // Relationships
         builder.HasOne<ProjectSpace>()
-            .WithMany(s => s.Folders)
+            .WithMany()
             .HasForeignKey(f => f.ProjectSpaceId)
             .OnDelete(DeleteBehavior.Cascade); // Folders are deleted with their space
 
-        builder.HasMany(f => f.Lists)
+        builder.HasMany<ProjectList>()
             .WithOne() // A list can belong to one folder
             .HasForeignKey(l => l.ProjectFolderId)
             .OnDelete(DeleteBehavior.SetNull); // Corrected from Restrict to SetNull

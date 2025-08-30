@@ -51,7 +51,7 @@ public class ProjectTaskConfiguration : IEntityTypeConfiguration<ProjectTask>
 
         // Relationships
         builder.HasOne<ProjectList>()
-            .WithMany(l => l.Tasks)
+            .WithMany()
             .HasForeignKey(t => t.ProjectListId)
             .OnDelete(DeleteBehavior.Cascade);
 

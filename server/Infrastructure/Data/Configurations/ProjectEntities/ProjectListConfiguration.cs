@@ -35,19 +35,19 @@ public class ProjectListConfiguration : IEntityTypeConfiguration<ProjectList>
 
         // Relationships
         builder.HasOne<ProjectSpace>()
-            .WithMany(s => s.Lists)
+            .WithMany()
             .HasForeignKey(l => l.ProjectSpaceId)
             .OnDelete(DeleteBehavior.Cascade);
 
         // A list can optionally belong to a folder. The relationship from Folder to List
         // is already configured with DeleteBehavior.Restrict.
         builder.HasOne<ProjectFolder>()
-            .WithMany(f => f.Lists)
+            .WithMany()
             .HasForeignKey(l => l.ProjectFolderId)
             .IsRequired(false) // This makes the FK nullable
             .OnDelete(DeleteBehavior.ClientSetNull); // If folder is deleted, set FK to null
 
-        builder.HasMany(l => l.Tasks)
+        builder.HasMany<ProjectTask>()
             .WithOne()
             .HasForeignKey(t => t.ProjectListId)
             .OnDelete(DeleteBehavior.Cascade); // Tasks are deleted with their list

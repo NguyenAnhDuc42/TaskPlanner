@@ -13,8 +13,8 @@ public abstract class Entity
     [Timestamp] // EF Core optimistic concurrency
     public byte[] Version { get; private set; } = Array.Empty<byte>();
 
-    public DateTime CreatedAt { get; private set; } = DateTime.UtcNow;
-    public DateTime UpdatedAt { get; private set; } = DateTime.UtcNow;
+    public DateTimeOffset CreatedAt { get; private set; } = DateTimeOffset.UtcNow;
+    public DateTimeOffset UpdatedAt { get; private set; } = DateTime.UtcNow;
 
     // === Domain Events ===
     private readonly ConcurrentQueue<IDomainEvent> _domainEvents = new();
@@ -36,7 +36,7 @@ public abstract class Entity
     protected Entity() { }
     protected Entity(Guid id) => Id = id;
 
-    protected void UpdateTimestamp() => UpdatedAt = DateTime.UtcNow;
+    protected void UpdateTimestamp() => UpdatedAt = DateTimeOffset.UtcNow;
 
     public override bool Equals(object? obj) => obj is Entity other && Id.Equals(other.Id);
     public override int GetHashCode() => Id.GetHashCode();

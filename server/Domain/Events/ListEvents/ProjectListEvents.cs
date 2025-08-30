@@ -23,7 +23,7 @@ public record ListVisibilityChangedEvent(Guid ListId, Visibility OldVisibility, 
     public DateTimeOffset OccurredAt { get; init; } = DateTimeOffset.UtcNow;
 }
 
-public record ListDateRangeUpdatedEvent(Guid ListId, DateTime? OldStartDate, DateTime? NewStartDate, DateTime? OldDueDate, DateTime? NewDueDate) : IDomainEvent
+public record ListDateRangeUpdatedEvent(Guid ListId, DateTimeOffset? OldStartDate, DateTimeOffset? NewStartDate, DateTimeOffset? OldDueDate, DateTimeOffset? NewDueDate) : IDomainEvent
 {
     public Guid EventId { get; init; } = Guid.NewGuid();
     public DateTimeOffset OccurredAt { get; init; } = DateTimeOffset.UtcNow;

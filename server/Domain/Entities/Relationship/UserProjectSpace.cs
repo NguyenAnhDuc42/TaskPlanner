@@ -10,7 +10,7 @@ public class UserProjectSpace
     public User User { get; set; } = null!;
     public Guid ProjectSpaceId { get; private set; }
     public ProjectSpace ProjectSpace { get; set; } = null!;
-    public DateTime CreatedAt { get; private set; }
+    public DateTimeOffset CreatedAt { get; private set; }
 
     private UserProjectSpace() { } // EF
 
@@ -21,7 +21,7 @@ public class UserProjectSpace
 
         UserId = userId;
         ProjectSpaceId = spaceId;
-        CreatedAt = DateTime.UtcNow;
+        CreatedAt = DateTimeOffset.UtcNow;
     }
 
     public static UserProjectSpace Create(Guid userId, Guid spaceId)

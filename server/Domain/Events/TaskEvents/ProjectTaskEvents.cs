@@ -10,7 +10,7 @@ public record TaskBasicInfoUpdatedEvent(Guid TaskId, string OldName, string NewN
     public DateTimeOffset OccurredAt { get; init; } = DateTimeOffset.UtcNow;
 }
 
-public record TaskScheduleUpdatedEvent(Guid TaskId, DateTime? OldStartDate, DateTime? NewStartDate, DateTime? OldDueDate, DateTime? NewDueDate) : IDomainEvent
+public record TaskScheduleUpdatedEvent(Guid TaskId, DateTimeOffset? OldStartDate, DateTimeOffset? NewStartDate, DateTimeOffset? OldDueDate, DateTimeOffset? NewDueDate) : IDomainEvent
 {
     public Guid EventId { get; init; } = Guid.NewGuid();
     public DateTimeOffset OccurredAt { get; init; } = DateTimeOffset.UtcNow;

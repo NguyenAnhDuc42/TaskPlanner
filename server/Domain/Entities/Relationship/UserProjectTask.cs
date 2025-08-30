@@ -10,7 +10,7 @@ public class UserProjectTask
     public User User { get; set; } = null!;
     public Guid ProjectTaskId { get; private set; }
     public ProjectTask ProjectTask { get; set; } = null!;
-    public DateTime CreatedAt { get; private set; }
+    public DateTimeOffset CreatedAt { get; private set; }
 
     private UserProjectTask() { } // EF
 
@@ -21,7 +21,7 @@ public class UserProjectTask
 
         UserId = userId;
         ProjectTaskId = taskId;
-        CreatedAt = DateTime.UtcNow;
+        CreatedAt = DateTimeOffset.UtcNow;
     }
 
     public static UserProjectTask Create(Guid userId, Guid taskId)

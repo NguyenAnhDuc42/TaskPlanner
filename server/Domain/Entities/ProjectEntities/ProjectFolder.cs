@@ -2,7 +2,6 @@ using Domain.Common;
 using Domain.Entities.Relationship;
 using Domain.Enums;
 using Domain.Events.FolderEvents;
-using Domain.Services.UsageChecker;
 using static Domain.Common.ColorValidator;
 using System;
 using System.Collections.Generic;
@@ -12,8 +11,6 @@ namespace Domain.Entities.ProjectEntities;
 
 public class ProjectFolder : Aggregate
 {
-    private const int MAX_BATCH_SIZE = 500; // Safety limit for folder-level batch ops
-
     public Guid ProjectWorkspaceId { get; private set; }
     public Guid ProjectSpaceId { get; private set; }
     public string Name { get; private set; } = null!;
@@ -25,9 +22,6 @@ public class ProjectFolder : Aggregate
 
     private readonly List<UserProjectFolder> _members = new();
     public IReadOnlyCollection<UserProjectFolder> Members => _members.AsReadOnly();
-
-    private readonly List<ProjectList> _lists = new();
-    public IReadOnlyCollection<ProjectList> Lists => _lists.AsReadOnly();
 
     private ProjectFolder() { } // For EF Core
 
@@ -45,7 +39,6 @@ public class ProjectFolder : Aggregate
     }
 
     // === VALIDATION METHOD ===
-
     public static void ValidateForCreation(string name, string? description, string color,
         Guid projectWorkspaceId, Guid projectSpaceId, Guid creatorId)
     {
@@ -57,7 +50,6 @@ public class ProjectFolder : Aggregate
     }
 
     // === SELF MANAGEMENT METHODS ===
-
     public void UpdateBasicInfo(string name, string? description)
     {
         name = name?.Trim() ?? string.Empty;
@@ -83,9 +75,6 @@ public class ProjectFolder : Aggregate
         Visibility = newVisibility;
         UpdateTimestamp();
         AddDomainEvent(new FolderVisibilityChangedEvent(Id, oldVisibility, newVisibility));
-
-        // CASCADE: Update child lists where applicable
-        CascadeVisibilityToLists(newVisibility);
     }
 
     internal void UpdateOrderIndex(int newOrderIndex)
@@ -100,7 +89,6 @@ public class ProjectFolder : Aggregate
     }
 
     // === MEMBERSHIP MANAGEMENT ===
-
     public void AddMember(Guid userId)
     {
         ValidateGuid(userId, nameof(userId));
@@ -112,13 +100,6 @@ public class ProjectFolder : Aggregate
         _members.Add(member);
         UpdateTimestamp();
         AddDomainEvent(new MemberAddedToFolderEvent(Id, userId));
-
-        // Cascade membership to child lists pre-check to avoid exceptions
-        foreach (var list in _lists.Where(l => l.Visibility == Visibility.Private))
-        {
-            if (!list.Members.Any(m => m.UserId == userId))
-                list.AddMember(userId);
-        }
     }
 
     public void RemoveMember(Guid userId)
@@ -133,14 +114,6 @@ public class ProjectFolder : Aggregate
         _members.Remove(member);
         UpdateTimestamp();
         AddDomainEvent(new MemberRemovedFromFolderEvent(Id, userId));
-
-        // Cascade removal to child lists
-        foreach (var list in _lists.Where(l => l.Visibility == Visibility.Private))
-        {
-            var exists = list.Members.Any(m => m.UserId == userId);
-            if (exists)
-                list.RemoveMember(userId);
-        }
     }
 
     public void Archive()
@@ -150,9 +123,6 @@ public class ProjectFolder : Aggregate
         IsArchived = true;
         UpdateTimestamp();
         AddDomainEvent(new FolderArchivedEvent(Id));
-
-        // BATCH_RULE: archive child lists (safety enforced)
-        ArchiveAllLists();
     }
 
     public void Unarchive()
@@ -162,156 +132,9 @@ public class ProjectFolder : Aggregate
         IsArchived = false;
         UpdateTimestamp();
         AddDomainEvent(new FolderUnarchivedEvent(Id));
-
-        UnarchiveAllLists();
-    }
-
-    // === CHILD ENTITY MANAGEMENT ===
-
-    public ProjectList CreateList(string name, string? description, string color, Visibility visibility)
-    {
-        name = name?.Trim() ?? string.Empty;
-        description = string.IsNullOrWhiteSpace(description?.Trim()) ? null : description.Trim();
-        color = color?.Trim() ?? string.Empty;
-
-        if (string.IsNullOrWhiteSpace(name))
-            throw new ArgumentException("List name cannot be empty.", nameof(name));
-        ValidateColor(color);
-
-        if (_lists.Any(l => l.Name.Equals(name, StringComparison.OrdinalIgnoreCase)))
-            throw new InvalidOperationException($"A list with the name '{name}' already exists in this folder.");
-
-        var orderIndex = _lists.Count;
-        var list = new ProjectList(Guid.NewGuid(), ProjectWorkspaceId, ProjectSpaceId, Id,
-            name, description, visibility, orderIndex, CreatorId);
-        _lists.Add(list);
-
-        UpdateTimestamp();
-        AddDomainEvent(new ListCreatedInFolderEvent(Id, list.Id, name, CreatorId));
-        return list;
-    }
-
-    /// <summary>
-    /// RemoveList requires an IListUsageChecker to ensure it has no tasks preventing removal.
-    /// </summary>
-    public void RemoveList(Guid listId)
-    {
-        throw new InvalidOperationException("This operation requires a domain-service check. Use RemoveList(Guid listId, IListUsageChecker usageChecker).");
-    }
-
-    public async Task RemoveList(Guid listId, IListUsageChecker usageChecker)
-    {
-        if (usageChecker == null) throw new ArgumentNullException(nameof(usageChecker));
-
-        var list = _lists.FirstOrDefault(l => l.Id == listId);
-        if (list == null)
-            throw new InvalidOperationException("List not found in this folder.");
-
-        if (await usageChecker.IsInUseAsync(listId))
-            throw new InvalidOperationException("Cannot remove list because it contains tasks according to the provided checker.");
-
-        _lists.Remove(list);
-        UpdateTimestamp();
-        AddDomainEvent(new ListRemovedFromFolderEvent(Id, listId, list.Name));
-    }
-
-    public void ReorderLists(List<Guid> listIds)
-    {
-        if (listIds.Count != _lists.Count)
-            throw new ArgumentException("Must provide all list IDs for reordering.", nameof(listIds));
-
-        var allListsExist = listIds.All(id => _lists.Any(l => l.Id == id));
-        if (!allListsExist)
-            throw new ArgumentException("One or more list IDs are invalid.", nameof(listIds));
-
-        for (int i = 0; i < listIds.Count; i++)
-        {
-            var list = _lists.First(l => l.Id == listIds[i]);
-            list.UpdateOrderIndex(i);
-        }
-
-        UpdateTimestamp();
-        AddDomainEvent(new ListsReorderedInFolderEvent(Id, listIds));
-    }
-
-    // === BULK OPERATIONS (BATCH_RULE) ===
-
-    public void ArchiveAllLists()
-    {
-        var toArchive = _lists.Where(l => !l.IsArchived).ToList();
-        if (!toArchive.Any()) return;
-
-        if (toArchive.Count > MAX_BATCH_SIZE)
-            throw new InvalidOperationException($"Batch too large. Reduce size below {MAX_BATCH_SIZE} or run in smaller batches.");
-
-        foreach (var list in toArchive)
-        {
-            list.Archive();
-        }
-
-        UpdateTimestamp();
-        AddDomainEvent(new AllListsArchivedInFolderEvent(Id));
-    }
-
-    public void UnarchiveAllLists()
-    {
-        var toUnarchive = _lists.Where(l => l.IsArchived).ToList();
-        if (!toUnarchive.Any()) return;
-
-        if (toUnarchive.Count > MAX_BATCH_SIZE)
-            throw new InvalidOperationException($"Batch too large. Reduce size below {MAX_BATCH_SIZE} or run in smaller batches.");
-
-        foreach (var list in toUnarchive)
-        {
-            list.Unarchive();
-        }
-
-        UpdateTimestamp();
-        AddDomainEvent(new AllListsUnarchivedInFolderEvent(Id));
-    }
-
-    // === ATTACH/DETACH ===
-
-    internal void AttachList(ProjectList list)
-    {
-        if (list == null)
-            throw new ArgumentNullException(nameof(list));
-        if (list.ProjectWorkspaceId != ProjectWorkspaceId || list.ProjectSpaceId != ProjectSpaceId)
-            throw new InvalidOperationException("List belongs to different workspace or space.");
-        if (_lists.Any(l => l.Id == list.Id))
-            return;
-
-        if (_lists.Any(l => l.Name.Equals(list.Name, StringComparison.OrdinalIgnoreCase)))
-            throw new InvalidOperationException($"A list with the name '{list.Name}' already exists in this folder.");
-
-        _lists.Add(list);
-        UpdateTimestamp();
-    }
-
-    internal void DetachList(Guid listId)
-    {
-        var list = _lists.FirstOrDefault(l => l.Id == listId);
-        if (list == null) return;
-
-        _lists.Remove(list);
-        UpdateTimestamp();
-    }
-
-    // === PRIVATE CASCADE METHODS ===
-
-    private void CascadeVisibilityToLists(Visibility newVisibility)
-    {
-        if (newVisibility == Visibility.Private)
-        {
-            foreach (var list in _lists.Where(l => l.Visibility == Visibility.Public))
-            {
-                list.ChangeVisibility(Visibility.Private);
-            }
-        }
     }
 
     // === VALIDATION HELPERS ===
-
     private static void ValidateBasicInfo(string name, string? description)
     {
         if (string.IsNullOrWhiteSpace(name))

@@ -8,6 +8,8 @@ namespace Application.Interfaces.Repositories
 {
     public interface IUnitOfWork
     {
+        IUserRepository Users { get; }
+        ISessionRepository Sessions { get; }
     
         bool HasActiveTransaction { get; }
         Task<IDbContextTransaction> BeginTransactionAsync(CancellationToken cancellationToken = default);

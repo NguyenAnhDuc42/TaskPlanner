@@ -9,7 +9,6 @@ public class TimeLog : Entity
     public Guid UserId { get; private set; }
     public TimeSpan Duration { get; private set; }
     public string? Description { get; private set; }
-    public DateTime LoggedAt { get; private set; }
 
     private TimeLog() { } // EF Core
 
@@ -24,7 +23,6 @@ public class TimeLog : Entity
         UserId = userId;
         ProjectTaskId = projectTaskId;
         Description = string.IsNullOrWhiteSpace(description) ? null : description.Trim();
-        LoggedAt = CreatedAt;
     }
 
     public static TimeLog Create(TimeSpan duration, Guid userId, Guid projectTaskId, string? description = null)

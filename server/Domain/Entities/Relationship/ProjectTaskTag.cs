@@ -12,7 +12,7 @@ namespace Domain.Entities.Relationship
         public Guid TagId { get; private set; }
         public Tag Tag { get; private set; } = null!;
 
-        public DateTime CreatedAt { get; private set; }
+        public DateTimeOffset CreatedAt { get; private set; }
 
         private ProjectTaskTag() { } // EF Core
         private ProjectTaskTag(Guid projectTaskId, Guid tagId)
@@ -22,7 +22,7 @@ namespace Domain.Entities.Relationship
 
             ProjectTaskId = projectTaskId;
             TagId = tagId;
-            CreatedAt = DateTime.UtcNow;
+            CreatedAt = DateTimeOffset.UtcNow;
         }
 
         public static ProjectTaskTag Create(Guid projectTaskId, Guid tagId) =>

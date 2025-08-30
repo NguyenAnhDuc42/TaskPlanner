@@ -10,7 +10,7 @@ public class UserProjectFolder
     public User User { get; set; } = null!;
     public Guid ProjectFolderId { get; private set; }
     public ProjectFolder ProjectFolder { get; set; } = null!;
-    public DateTime CreatedAt { get; private set; }
+    public DateTimeOffset CreatedAt { get; private set; }
 
     private UserProjectFolder() { } // EF
 
@@ -21,7 +21,7 @@ public class UserProjectFolder
 
         UserId = userId;
         ProjectFolderId = folderId;
-        CreatedAt = DateTime.UtcNow;
+        CreatedAt = DateTimeOffset.UtcNow;
     }
 
     public static UserProjectFolder Create(Guid userId, Guid folderId)
