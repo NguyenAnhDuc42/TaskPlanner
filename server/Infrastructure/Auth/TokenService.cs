@@ -9,6 +9,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.IdentityModel.Tokens;
 using server.Application.Interfaces;
 using System.Security.Cryptography;
+using Microsoft.Extensions.Options;
 
 namespace Infrastructure.Auth;
 
@@ -18,9 +19,9 @@ public class TokenService : ITokenService
     private readonly ILogger<TokenService> _logger;
     private readonly IUnitOfWork _unitOfWork;
 
-    public TokenService(JwtSettings jwtSettings, IUnitOfWork unitOfWork, ILogger<TokenService> logger)
+    public TokenService(IOptions<JwtSettings> jwtSettings, IUnitOfWork unitOfWork, ILogger<TokenService> logger)
     {
-        _jwtSettings = jwtSettings ?? throw new ArgumentNullException(nameof(jwtSettings));
+        _jwtSettings = jwtSettings.Value;
         _unitOfWork = unitOfWork ?? throw new ArgumentNullException(nameof(unitOfWork));
         _logger = logger;
     }

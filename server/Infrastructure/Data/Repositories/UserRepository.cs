@@ -10,8 +10,8 @@ public class UserRepository : BaseRepository<User>, IUserRepository
 {   
     public UserRepository(TaskPlanDbContext context) : base(context) { }
 
-    public async Task<User?> GetUsersByEmail(string email)
-    {
-        return await _context.Users.FirstOrDefaultAsync(u => u.Email == email);
+    public async Task<User?> GetUsersByEmail(string email,CancellationToken cancellationToken = default)
+    { 
+        return await _context.Users.FirstOrDefaultAsync(u => u.Email == email, cancellationToken);
     }
 }
