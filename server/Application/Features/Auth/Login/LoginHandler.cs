@@ -1,5 +1,5 @@
 using System;
-using Application.Features.Auth.Common;
+
 using Application.Interfaces.Repositories;
 using MediatR;
 using Microsoft.AspNetCore.Http;

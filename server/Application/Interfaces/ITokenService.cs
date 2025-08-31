@@ -1,5 +1,6 @@
 using System.Security.Claims;
-using Application.Features.Auth.Common;
+using Application.Features.Auth.DTOs;
+
 using Domain.Entities;
 
 namespace server.Application.Interfaces

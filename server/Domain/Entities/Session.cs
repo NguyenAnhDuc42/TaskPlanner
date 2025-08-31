@@ -33,13 +33,13 @@ public class Session : Entity
         return session;
     }
 
-    public void Revoke()
+    public void Revoke(string? reason = null, DateTimeOffset? revokedAt = null)
     {
         if (RevokedAt.HasValue) throw new InvalidOperationException("Session is already revoked.");
         if (ExpiresAt <= DateTimeOffset.UtcNow) throw new InvalidOperationException("Cannot revoke an expired session.");
 
         RevokedAt = DateTimeOffset.UtcNow;
-        AddDomainEvent(new SessionRevokedEvent(Id, UserId));
+        AddDomainEvent(new SessionRevokedEvent(Id, UserId, reason ?? "unspecified", RevokedAt.Value));
     }
 
     public void ExtendExpiration(TimeSpan duration)

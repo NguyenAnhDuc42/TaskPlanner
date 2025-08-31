@@ -2,7 +2,7 @@ using System;
 using System.Security.Claims;
 using System.Text;
 using System.IdentityModel.Tokens.Jwt;
-using Application.Features.Auth.Common;
+
 using Application.Interfaces.Repositories;
 using Domain.Entities;
 using Microsoft.Extensions.Logging;
@@ -10,6 +10,7 @@ using Microsoft.IdentityModel.Tokens;
 using server.Application.Interfaces;
 using System.Security.Cryptography;
 using Microsoft.Extensions.Options;
+using Application.Features.Auth.DTOs;
 
 namespace Infrastructure.Auth;
 

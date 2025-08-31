@@ -1,4 +1,5 @@
-using Application.Features.Auth.Common;
+
+using Application.Features.Auth.DTOs;
 using Microsoft.AspNetCore.Http;
 
 namespace server.Application.Interfaces
@@ -11,4 +12,4 @@ namespace server.Application.Interfaces
         void ClearAuthCookies(HttpContext context);
     }
 }
-}
+

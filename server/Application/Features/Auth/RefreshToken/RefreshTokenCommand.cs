@@ -1,8 +1,6 @@
 using System;
+using MediatR;
 
 namespace Application.Features.Auth.RefreshToken;
 
-public class RefreshTokenCommand
-{
-
-}
+public record class RefreshTokenCommand() : IRequest<RefreshTokenResponse>;

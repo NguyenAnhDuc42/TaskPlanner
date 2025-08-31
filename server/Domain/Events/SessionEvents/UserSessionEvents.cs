@@ -9,7 +9,7 @@ public record SessionCreatedEvent(Guid SessionId, Guid UserId, DateTimeOffset Ex
     public DateTimeOffset OccurredAt { get; init; } = DateTimeOffset.UtcNow;
 }
 
-public record SessionRevokedEvent(Guid SessionId, Guid UserId) : IDomainEvent
+public record SessionRevokedEvent(Guid SessionId, Guid UserId,string Reason, DateTimeOffset RevokedAt) : IDomainEvent
 {
     public Guid EventId { get; init; } = Guid.NewGuid();
     public DateTimeOffset OccurredAt { get; init; } = DateTimeOffset.UtcNow;
