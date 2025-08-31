@@ -16,6 +16,7 @@
   <ItemGroup>
     <Folder Include="Common\" />
     <Folder Include="Common\Mapping\" />
+    <Folder Include="Features\WorkspaceFeatures\" />
     <Folder Include="Interfaces\Services\" />
   </ItemGroup>
 
