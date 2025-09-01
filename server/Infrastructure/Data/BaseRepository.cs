@@ -32,6 +32,14 @@ namespace Infrastructure.Data.Repositories
 
         public void Remove(TEntity entity) => _dbSet.Remove(entity);
 
+        //Bulk
+        public async Task<int> RemoveRangeAsync(IEnumerable<Guid> ids, CancellationToken cancellationToken = default)
+        {
+            return await _dbSet
+                .Where(e => ids.Contains(e.Id))
+                .ExecuteDeleteAsync(cancellationToken);
+        }
+
         public async Task<bool> ExistsAsync(Guid id, CancellationToken cancellationToken = default)
         {
             return await _dbSet.AnyAsync(e => e.Id == id, cancellationToken);

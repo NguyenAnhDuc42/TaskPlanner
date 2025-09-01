@@ -1,4 +1,4 @@
-using Domain.Common; 
+using Domain.Common;
 using Domain.Entities.Relationship;
 using Domain.Entities.Support;
 using Domain.Enums;
@@ -28,7 +28,7 @@ public class ProjectWorkspace : Aggregate
 
     private readonly List<Tag> _tags = new();
     public IReadOnlyCollection<Tag> Tags => _tags.AsReadOnly();
-    
+
     private readonly List<UserProjectWorkspace> _members = new();
     public IReadOnlyCollection<UserProjectWorkspace> Members => _members.AsReadOnly();
 
@@ -73,6 +73,58 @@ public class ProjectWorkspace : Aggregate
     }
 
     // === SELF MANAGEMENT ===
+    public void Update(string? name, string? description, string? color, string? icon, Visibility? visibility, bool? isArchived, bool regenerateJoinCode = false)
+    {
+        bool changed = false;
+        string? newJoinCode = null;
+        ValidateBasicInfo(name ?? Name, description ?? Description);
+        ValidateVisualSettings(color ?? Color, icon ?? Icon);
+
+        if (name != null && Name != name)
+        {
+            Name = name;
+            changed = true;
+        }
+
+        if (description != null && Description != description)
+        {
+            Description = description;
+            changed = true;
+        }
+
+        if (color != null && Color != color)
+        {
+            Color = color;
+            changed = true;
+        }
+
+        if (icon != null && Icon != icon)
+        {
+            Icon = icon;
+            changed = true;
+        }
+
+        if (visibility.HasValue && Visibility != visibility.Value)
+        {
+            if (visibility.Value != Visibility) { Visibility = visibility.Value; changed = true; }
+        }
+
+        if (isArchived.HasValue && IsArchived != isArchived.Value)
+        {
+            if (isArchived.Value != IsArchived) { IsArchived = isArchived.Value; changed = true; }
+        }
+        if (regenerateJoinCode)
+        {
+            newJoinCode = GenerateRandomCode();
+            if (newJoinCode != JoinCode) { JoinCode = newJoinCode; changed = true; }
+        }
+
+        if (changed)
+        {
+            UpdateTimestamp();
+            AddDomainEvent(new WorkspaceUpdatedEvent(Id, name, description, color, icon, visibility, isArchived));
+        }
+    }
 
     public void UpdateBasicInfo(string name, string? description)
     {
@@ -140,48 +192,67 @@ public class ProjectWorkspace : Aggregate
     }
 
     // === MEMBERSHIP MANAGEMENT ===
-
-    public void AddMember(Guid userId, Role role)
+    public void AddMembers(IEnumerable<Guid> userIds, Role role)
     {
-        ValidateGuid(userId, nameof(userId));
+        if (userIds == null || !userIds.Any()) return;
 
-        if (_members.Any(m => m.UserId == userId))
-            throw new InvalidOperationException("User is already a member of this workspace.");
+        var addedMembers = new List<UserProjectWorkspace>();
 
-        var member = UserProjectWorkspace.Create(userId, Id, role);
-        _members.Add(member);
-        UpdateTimestamp();
-        AddDomainEvent(new MemberAddedToWorkspaceEvent(Id, userId, role));
+        foreach (var userId in userIds)
+        {
+            if (_members.Any(m => m.UserId == userId)) continue; // skip duplicates
+
+            var member = UserProjectWorkspace.Create(userId, Id, role);
+            _members.Add(member);
+            addedMembers.Add(member);
+        }
+
+        if (addedMembers.Any())
+        {
+            // AddDomainEvent(new WorkspaceMembersAddedEvent(Id,addedMembers.Select(m => (m.UserId, m.Role)).ToList()));
+        }
     }
 
-    public void RemoveMember(Guid userId)
+    public void RemoveMembers(IEnumerable<Guid> userIds)
     {
-        if (userId == CreatorId)
-            throw new InvalidOperationException("Cannot remove workspace creator.");
+        if (userIds == null || !userIds.Any()) return;
 
-        var member = _members.FirstOrDefault(m => m.UserId == userId);
-        if (member == null)
-            throw new InvalidOperationException("User is not a member of this workspace.");
+        var removedMembers = new List<UserProjectWorkspace>();
 
-        _members.Remove(member);
-        UpdateTimestamp();
-        AddDomainEvent(new MemberRemovedFromWorkspaceEvent(Id, userId));
+        foreach (var userId in userIds)
+        {
+            var member = _members.FirstOrDefault(m => m.UserId == userId);
+            if (member == null) continue; // skip non-members
+
+            _members.Remove(member);
+            removedMembers.Add(member);
+        }
+
+        if (removedMembers.Any())
+        {
+            // AddDomainEvent(new WorkspaceMembersRemovedEvent(Id, removedMembers.Select(m => m.UserId).ToList()));
+        }
     }
 
-    public void ChangeMemberRole(Guid userId, Role newRole)
+    public void ChangeMemberRoles(IEnumerable<Guid> userIds, Role newRole)
     {
-        if (userId == CreatorId && newRole != Role.Admin)
-            throw new InvalidOperationException("Workspace creator must remain admin.");
+        if (userIds == null || !userIds.Any()) return;
 
-        var member = _members.FirstOrDefault(m => m.UserId == userId);
-        if (member == null)
-            throw new InvalidOperationException("User is not a member of this workspace.");
+        var updatedMembers = new List<UserProjectWorkspace>();
 
-        if (member.Role == newRole) return;
+        foreach (var userId in userIds)
+        {
+            var member = _members.FirstOrDefault(m => m.UserId == userId);
+            if (member == null || member.Role == newRole) continue; // skip non-members or no-op
 
-        member.UpdateRole(newRole);
-        UpdateTimestamp();
-        AddDomainEvent(new WorkspaceMemberRoleChangedEvent(Id, userId, newRole));
+            member.UpdateRole(newRole);
+            updatedMembers.Add(member);
+        }
+
+        if (updatedMembers.Any())
+        {
+            // AddDomainEvent(new WorkspaceMembersRolesChangedEvent(Id, updatedMembers.Select(m => (m.UserId, m.Role)).ToList()));
+        }
     }
 
     public void TransferOwnership(Guid newOwnerId)

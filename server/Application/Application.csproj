@@ -14,10 +14,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="Common\" />
     <Folder Include="Common\Mapping\" />
-    <Folder Include="Features\WorkspaceFeatures\" />
-    <Folder Include="Interfaces\Services\" />
+    <Folder Include="Features\WorkspaceFeatures\DeleteWorkspaces\" />
+    <Folder Include="Features\WorkspaceFeatures\UpdateWorkspace\" />
   </ItemGroup>
 
   <PropertyGroup>

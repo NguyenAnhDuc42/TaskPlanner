@@ -12,13 +12,20 @@ namespace Infrastructure.Data
 
         private IUserRepository? _users;
         private ISessionRepository? _sessions;
+        private IProjectWorkspaceRepository? _projectWorkspaces;
+        private IProjectSpaceRepository? _projectSpaces;
+        private IProjectFolderRepository? _projectFolders;
+        private IProjectListRepository? _projectLists;
+        private IProjectTaskRepository? _projectTasks;
 
-        public UnitOfWork(TaskPlanDbContext context, IUserRepository users, ISessionRepository sessions)
-        {
-            _context = context;
-        }
+        public UnitOfWork(TaskPlanDbContext context, IUserRepository users, ISessionRepository sessions) {   _context = context;     }
         public IUserRepository Users => _users ??= new UserRepository(_context);
         public ISessionRepository Sessions => _sessions ??= new SessionRepository(_context);
+        public IProjectWorkspaceRepository ProjectWorkspaces => _projectWorkspaces ??= new ProjectWorkspaceRepository(_context);
+        public IProjectSpaceRepository ProjectSpaces => _projectSpaces ??= new ProjectSpaceRepository(_context);
+        public IProjectFolderRepository ProjectFolders => _projectFolders ??= new ProjectFolderRepository(_context);
+        public IProjectListRepository ProjectLists => _projectLists ??= new ProjectListRepository(_context);
+        public IProjectTaskRepository ProjectTasks => _projectTasks ??= new ProjectTaskRepository(_context);
 
         
         public bool HasActiveTransaction => _currentTransaction != null;

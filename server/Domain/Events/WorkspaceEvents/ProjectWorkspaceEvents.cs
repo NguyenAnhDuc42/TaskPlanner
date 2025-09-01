@@ -11,6 +11,11 @@ public record WorkspaceCreatedEvent(Guid WorkspaceId, string WorkspaceName, Guid
     public Guid EventId { get; init; } = Guid.NewGuid();
     public DateTimeOffset OccurredAt { get; init; } = DateTimeOffset.UtcNow;
 }
+public record WorkspaceUpdatedEvent(Guid WorkspaceId, string? Name, string? Description, string? Color, string? Icon, Visibility? Visibility, bool? IsArchived) : IDomainEvent
+{
+    public Guid EventId { get; init; } = Guid.NewGuid();
+    public DateTimeOffset OccurredAt { get; init; } = DateTimeOffset.UtcNow;
+}
 public record WorkspaceBasicInfoUpdatedEvent(Guid WorkspaceId, string OldName, string NewName, string? OldDescription, string? NewDescription) : IDomainEvent
 {
     public Guid EventId { get; init; } = Guid.NewGuid();

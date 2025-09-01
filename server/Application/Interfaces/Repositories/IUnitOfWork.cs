@@ -10,6 +10,11 @@ namespace Application.Interfaces.Repositories
     {
         IUserRepository Users { get; }
         ISessionRepository Sessions { get; }
+        IProjectWorkspaceRepository ProjectWorkspaces { get; }
+        IProjectSpaceRepository ProjectSpaces { get; }
+        IProjectFolderRepository ProjectFolders { get; }
+        IProjectListRepository ProjectLists { get; }
+        IProjectTaskRepository ProjectTasks { get; }
     
         bool HasActiveTransaction { get; }
         Task<IDbContextTransaction> BeginTransactionAsync(CancellationToken cancellationToken = default);

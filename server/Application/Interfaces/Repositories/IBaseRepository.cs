@@ -11,6 +11,7 @@ namespace Application.Interfaces.Repositories
         Task<TEntity> AddAsync(TEntity entity, CancellationToken cancellationToken = default);
         void Update(TEntity entity);
         void Remove(TEntity entity);
+        Task<int> RemoveRangeAsync(IEnumerable<Guid> ids, CancellationToken cancellationToken = default);
         Task<bool> ExistsAsync(Guid id, CancellationToken cancellationToken = default);
         IQueryable<TEntity> Query { get; }
     }
