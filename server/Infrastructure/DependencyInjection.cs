@@ -4,6 +4,8 @@ using Application.Interfaces.Repositories;
 using Infrastructure.Auth;
 using Infrastructure.Data;
 using Infrastructure.Data.Repositories;
+using Infrastructure.Helper;
+using Infrastructure.Helper.Configurations;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
@@ -19,7 +21,7 @@ public static class DependencyInjection
 {
     public static IServiceCollection AddInfrastructure(this IServiceCollection services, string connectionString, IConfiguration config)
     {
-         var jwtSettings = config.GetSection("JwtSettings").Get<JwtSettings>()  ?? throw new ArgumentException("JwtSettings is not set in configuration");
+        var jwtSettings = config.GetSection("JwtSettings").Get<JwtSettings>() ?? throw new ArgumentException("JwtSettings is not set in configuration");
         // Register DbContext
         services.AddDbContext<TaskPlanDbContext>(options =>
             options.UseNpgsql(connectionString));
@@ -49,7 +51,7 @@ public static class DependencyInjection
                     .WithScopedLifetime()
         );
 
-        
+
         services.Configure<JwtSettings>(config.GetSection("JwtSettings"));
 
         services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
@@ -82,12 +84,10 @@ public static class DependencyInjection
                     }
                 };
             });
-        // services.AddScoped<IUnitOfWork, UnitOfWork>();
 
-        // services.AddScoped<ICookieService, CookieService>();
-        // services.AddScoped<ITokenService, TokenService>();
-        // services.AddScoped<IPasswordService, PasswordService>();
-        // services.AddScoped<ICurrentUserService, CurrentUserService>();
+
+        services.Configure<CursorEncryptionOptions>(config.GetSection(CursorEncryptionOptions.SectionName));
+        services.AddSingleton<CursorHelper>();
 
 
 
