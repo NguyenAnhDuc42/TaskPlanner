@@ -9,11 +9,13 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Domain.Common.Interfaces;
 
 namespace Domain.Entities.ProjectEntities;
 
-public class ProjectWorkspace : Aggregate
+public class ProjectWorkspace : Aggregate, IHasWorkspaceId
 {
+    public Guid ProjectWorkspaceId => Id;
     public string Name { get; private set; } = null!;
     public string? Description { get; private set; }
     public string JoinCode { get; private set; } = null!;
@@ -22,6 +24,7 @@ public class ProjectWorkspace : Aggregate
     public Visibility Visibility { get; private set; }
     public bool IsArchived { get; private set; }
     public Guid CreatorId { get; private set; }
+
 
     private readonly List<Status> _statuses = new();
     public IReadOnlyCollection<Status> Statuses => _statuses.AsReadOnly();
@@ -46,6 +49,7 @@ public class ProjectWorkspace : Aggregate
         Visibility = visibility;
         IsArchived = false;
     }
+
 
     public static ProjectWorkspace Create(string name, string? description, string color, string icon, Guid creatorId, Visibility visibility)
     {

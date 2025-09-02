@@ -1,4 +1,5 @@
 using Domain.Common;
+using Domain.Common.Interfaces;
 using Domain.Entities.Relationship;
 using Domain.Entities.Support;
 using Domain.Enums;
@@ -9,7 +10,7 @@ using System.Linq;
 
 namespace Domain.Entities.ProjectEntities
 {
-    public class ProjectSpace : Aggregate
+    public class ProjectSpace : Aggregate, IHasWorkspaceId
     {
         public Guid ProjectWorkspaceId { get; private set; }
         public string Name { get; private set; } = null!;
@@ -20,6 +21,7 @@ namespace Domain.Entities.ProjectEntities
         public bool IsArchived { get; private set; }
         public int? OrderIndex { get; private set; }
         public Guid CreatorId { get; private set; }
+        public Guid WorkspaceId => ProjectWorkspaceId;
 
         // === Collections ===
         private readonly List<Status> _statuses = new();

@@ -1,6 +1,8 @@
 using System;
 using Application.Interfaces.Repositories;
 using Application.Interfaces.Services;
+using Domain.Common.Interfaces;
+using Domain.Entities.Relationship;
 using Domain.Enums;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Hybrid;
@@ -23,61 +25,121 @@ public class PermissionService : IPermissionService
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
-    public async Task<T> GetEntityWithPermissionAsync<T>(Guid entityId, Guid userId, Permission requiredPermission, Func<IQueryable<T>, IQueryable<T>>? includeFunc = null, CancellationToken ct = default) where T : class
+    public async Task<T> GetEntityWithPermissionAsync<T>(Guid entityId, Guid userId, Permission requiredPermission, Func<IQueryable<T>, IQueryable<T>>? includeFunc = null, CancellationToken ct = default) where T : class, IHasWorkspaceId
     {
         var query = _unitOfWork.Set<T>().AsQueryable();
-        
+
         if (includeFunc != null) query = includeFunc(query);
         var entity = await query.FirstOrDefaultAsync(e => EF.Property<Guid>(e, "Id") == entityId, ct)
             ?? throw new NotFoundException($"{typeof(T).Name} {entityId} not found");
-        await EnsurePermissionAsync(userId, GetWorkspaceId(entity), requiredPermission, ct);
+
+
+        await EnsurePermissionAsync(userId, entity.ProjectWorkspaceId, requiredPermission, ct);
 
         return entity;
 
     }
-    public Task EnsurePermissionAsync(Guid userId, Guid workspaceId, Permission permission, CancellationToken ct = default)
+    public async Task EnsurePermissionAsync(Guid userId, Guid workspaceId, Permission permission, CancellationToken ct = default)
     {
-        throw new NotImplementedException();
+        if (!await HasPermissionAsync(userId, workspaceId, permission, ct))
+        {
+            _logger.LogWarning("User {UserId} denied access to workspace {WorkspaceId} for permission {Permission}",
+                userId, workspaceId, permission);
+            throw new UnauthorizedAccessException($"User does not have {permission} permission for this workspace");
+        }
     }
 
-    public Task EnsurePermissionAsync(Guid userId, Guid workspaceId, Permission[] permissions, CancellationToken ct = default)
+    public async Task EnsurePermissionAsync(Guid userId, Guid workspaceId, Permission[] permissions, CancellationToken ct = default)
     {
-        throw new NotImplementedException();
+        if (!await HasPermissionAsync(userId, workspaceId, permissions, ct))
+        {
+            _logger.LogWarning("User {UserId} denied access to workspace {WorkspaceId} for permissions {Permissions}",
+                userId, workspaceId, string.Join(", ", permissions));
+            throw new UnauthorizedAccessException($"User does not have required permissions for this workspace");
+        }
     }
 
-    public Task<IEnumerable<Guid>> GetUserAccessibleWorkspacesAsync(Guid userId, Permission permission, CancellationToken ct = default)
+    public async Task<bool> HasPermissionAsync(Guid userId, Guid workspaceId, Permission permission, CancellationToken ct = default)
     {
-        throw new NotImplementedException();
+        var userPermissions = await GetUserPermissionsAsync(userId, workspaceId, ct);
+        return (userPermissions & permission) == permission;
     }
 
-    public Task<Permission> GetUserPermissionsAsync(Guid userId, Guid workspaceId, CancellationToken ct = default)
+    public async Task<bool> HasPermissionAsync(Guid userId, Guid workspaceId, Permission[] permissions, CancellationToken ct = default)
     {
-        throw new NotImplementedException();
+        var userPermissions = await GetUserPermissionsAsync(userId, workspaceId, ct);
+        return permissions.All(p => (userPermissions & p) == p);
     }
 
-    public Task<Role?> GetUserRoleAsync(Guid userId, Guid workspaceId, CancellationToken ct = default)
+    // --- Permissions retrieval with caching ---
+    public async Task<Permission> GetUserPermissionsAsync(Guid userId, Guid workspaceId, CancellationToken ct = default)
     {
-        throw new NotImplementedException();
+        var cacheKey = $"user_permissions_{userId}_{workspaceId}";
+
+        // Try get or create in one step
+        return await _cache.GetOrCreateAsync(cacheKey, async token =>
+        {
+            var membership = await _unitOfWork.Set<UserProjectWorkspace>().AsQueryable()
+                .AsNoTracking()
+                .Include(m => m.ProjectWorkspace)
+                .FirstOrDefaultAsync(m => m.UserId == userId && m.ProjectWorkspaceId == workspaceId, token);
+
+            Permission permissions;
+            if (membership == null)
+                permissions = Permission.None;
+            else if (membership.ProjectWorkspace.CreatorId == userId)
+                permissions = Permission.All;
+            else
+                permissions = GetRolePermissions(membership.Role);
+
+            return permissions;
+
+        }, new HybridCacheEntryOptions { Expiration = CacheDuration });
     }
 
-    public Task<bool> HasPermissionAsync(Guid userId, Guid workspaceId, Permission permission, CancellationToken ct = default)
+    public async Task<IEnumerable<Guid>> GetUserAccessibleWorkspacesAsync(Guid userId, Permission permission, CancellationToken ct = default)
     {
-        throw new NotImplementedException();
+        var memberships = await _unitOfWork.Set<UserProjectWorkspace>()
+            .AsQueryable()
+            .AsNoTracking()
+            .Include(m => m.ProjectWorkspace)
+            .Where(m => m.UserId == userId)
+            .ToListAsync(ct);
+
+        return memberships
+            .Where(m => (m.ProjectWorkspace.CreatorId == userId ? Permission.All : GetRolePermissions(m.Role) & permission) == permission)
+            .Select(m => m.ProjectWorkspaceId)
+            .ToList();
     }
 
-    public Task<bool> HasPermissionAsync(Guid userId, Guid workspaceId, Permission[] permissions, CancellationToken ct = default)
+    public async Task<bool> IsWorkspaceOwnerAsync(Guid userId, Guid workspaceId, CancellationToken ct = default)
     {
-        throw new NotImplementedException();
+        var membership = await _unitOfWork.Set<UserProjectWorkspace>()
+            .AsQueryable()
+            .AsNoTracking()
+            .FirstOrDefaultAsync(m => m.UserId == userId && m.ProjectWorkspaceId == workspaceId, ct);
+
+        return membership?.Role == Domain.Enums.Role.Owner;
     }
 
-    public Task<bool> IsWorkspaceCreatorAsync(Guid userId, Guid workspaceId, CancellationToken ct = default)
+    public async Task<bool> IsWorkspaceCreatorAsync(Guid userId, Guid workspaceId, CancellationToken ct = default)
     {
-        throw new NotImplementedException();
+        var workspace = await _unitOfWork.ProjectWorkspaces
+            .Query
+            .AsNoTracking()
+            .FirstOrDefaultAsync(w => w.Id == workspaceId, ct);
+
+        return workspace?.CreatorId == userId;
     }
 
-    public Task<bool> IsWorkspaceOwnerAsync(Guid userId, Guid workspaceId, CancellationToken ct = default)
+    public async Task<Role?> GetUserRoleAsync(Guid userId, Guid workspaceId, CancellationToken ct = default)
     {
-        throw new NotImplementedException();
+        var membership = await _unitOfWork.Set<UserProjectWorkspace>()
+            .AsQueryable()
+            .AsNoTracking()
+            .FirstOrDefaultAsync(m => m.UserId == userId && m.ProjectWorkspaceId == workspaceId, ct);
+
+        return membership?.Role;
     }
 
     private static Permission GetRolePermissions(Role role) => role switch

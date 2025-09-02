@@ -6,10 +6,11 @@ using static Domain.Common.ColorValidator;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Domain.Common.Interfaces;
 
 namespace Domain.Entities.ProjectEntities;
 
-public class ProjectList : Aggregate
+public class ProjectList : Aggregate , IHasWorkspaceId
 {
     public Guid ProjectWorkspaceId { get; private set; }
     public Guid ProjectSpaceId { get; private set; }
@@ -23,6 +24,8 @@ public class ProjectList : Aggregate
 
     public DateTimeOffset? StartDate { get; private set; }
     public DateTimeOffset? DueDate { get; private set; }
+
+    public Guid WorkspaceId => ProjectWorkspaceId;
 
     private readonly List<UserProjectList> _members = new();
     public IReadOnlyCollection<UserProjectList> Members => _members.AsReadOnly();

@@ -1,4 +1,5 @@
 using Domain.Common;
+using Domain.Common.Interfaces;
 using Domain.Entities.Relationship;
 using Domain.Entities.Support;
 using Domain.Enums;
@@ -9,7 +10,7 @@ using System.Linq;
 
 namespace Domain.Entities.ProjectEntities;
 
-public class ProjectTask : Aggregate
+public class ProjectTask : Aggregate , IHasWorkspaceId
 {
     private const int MAX_BATCH_SIZE = 200; // Safety limit for subtask batch ops
 
@@ -33,6 +34,8 @@ public class ProjectTask : Aggregate
     public long? TimeEstimateSeconds { get; private set; }
     public int? OrderIndex { get; private set; }
     public Visibility Visibility { get; private set; }
+
+    public Guid WorkspaceId => ProjectWorkspaceId;
 
     public Guid? ParentTaskId { get; private set; }
     private readonly List<ProjectTask> _subtasks = new();
