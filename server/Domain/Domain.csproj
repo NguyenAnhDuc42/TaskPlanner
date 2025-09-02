@@ -9,7 +9,6 @@
   <ItemGroup>
     <Folder Include="Entities\" />
     <Folder Include="Entities\Relationship\" />
-    <Folder Include="Enums\" />
     <Folder Include="Events\" />
     <Folder Include="Exceptions\" />
   </ItemGroup>

@@ -8,6 +8,7 @@ namespace Infrastructure.Data
     public class UnitOfWork : IUnitOfWork
     {
         private readonly TaskPlanDbContext _context;
+
         private IDbContextTransaction? _currentTransaction;
 
         private IUserRepository? _users;
@@ -26,8 +27,8 @@ namespace Infrastructure.Data
         public IProjectFolderRepository ProjectFolders => _projectFolders ??= new ProjectFolderRepository(_context);
         public IProjectListRepository ProjectLists => _projectLists ??= new ProjectListRepository(_context);
         public IProjectTaskRepository ProjectTasks => _projectTasks ??= new ProjectTaskRepository(_context);
-
-        
+        public DbSet<T> Set<T>() where T : class=> _context.Set<T>();
+       
         public bool HasActiveTransaction => _currentTransaction != null;
 
         public async Task<IDbContextTransaction> BeginTransactionAsync(CancellationToken cancellationToken = default)

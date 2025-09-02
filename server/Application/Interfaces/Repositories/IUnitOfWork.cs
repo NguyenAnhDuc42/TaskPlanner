@@ -2,6 +2,7 @@ using System;
 using System.Data;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
 
 namespace Application.Interfaces.Repositories
@@ -15,7 +16,7 @@ namespace Application.Interfaces.Repositories
         IProjectFolderRepository ProjectFolders { get; }
         IProjectListRepository ProjectLists { get; }
         IProjectTaskRepository ProjectTasks { get; }
-    
+        DbSet<T> Set<T>() where T : class;
         bool HasActiveTransaction { get; }
         Task<IDbContextTransaction> BeginTransactionAsync(CancellationToken cancellationToken = default);
         Task CommitTransactionAsync(CancellationToken cancellationToken = default);
