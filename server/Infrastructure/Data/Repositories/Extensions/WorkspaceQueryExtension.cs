@@ -1,12 +1,17 @@
 using System;
 using Application.Common.Filters;
 using Domain.Entities.ProjectEntities;
+using Domain.Entities.Relationship;
 using Infrastructure.Helper;
 
 namespace Infrastructure.Data.Repositories.Extensions;
 
 public static class WorkspaceQueryExtension
 {
+    public static IQueryable<ProjectWorkspace> ForUser( this IQueryable<ProjectWorkspace> query, Guid currentUserId)
+    {
+        return query.Where(w => w.Members.Any(m => m.UserId == currentUserId));
+    }
     public static IQueryable<ProjectWorkspace> ApplyFilter(this IQueryable<ProjectWorkspace> query, WorkspaceFilter filter, Guid currentUserId)
     {
         if (!string.IsNullOrWhiteSpace(filter.Name))

@@ -34,6 +34,7 @@ public class Status : Entity
 
     public void UpdateDetails(string newName, string newColor)
     {
+        
         if (string.IsNullOrWhiteSpace(newName)) throw new ArgumentException("Status name cannot be empty.", nameof(newName));
         if (string.IsNullOrWhiteSpace(newColor)) throw new ArgumentException("Status color cannot be empty.", nameof(newColor));
         if (Name == newName.Trim() && Color == newColor.Trim()) return;

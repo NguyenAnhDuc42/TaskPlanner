@@ -14,5 +14,6 @@ namespace Application.Interfaces.Repositories
         Task<int> RemoveRangeAsync(IEnumerable<Guid> ids, CancellationToken cancellationToken = default);
         Task<bool> ExistsAsync(Guid id, CancellationToken cancellationToken = default);
         IQueryable<TEntity> AsQueryable();
+        IQueryable<TEntity> Query { get; }
     }
 }

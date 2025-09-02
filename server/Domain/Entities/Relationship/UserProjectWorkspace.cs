@@ -11,6 +11,7 @@ public class UserProjectWorkspace
     public Guid ProjectWorkspaceId { get; private set; }
     public ProjectWorkspace ProjectWorkspace { get; set; } = null!;
     public Role Role { get; private set; } // Only here
+    public bool IsPending { get; private set; }
     public DateTimeOffset CreatedAt { get; private set; }
 
     private UserProjectWorkspace() { } // EF
@@ -26,7 +27,7 @@ public class UserProjectWorkspace
         CreatedAt = DateTimeOffset.UtcNow;
     }
 
-    public static UserProjectWorkspace Create(Guid userId, Guid workspaceId, Role role)
+    public static UserProjectWorkspace Create(Guid userId, Guid workspaceId, Role role ,bool isPending = false)
         => new(userId, workspaceId, role);
 
     public void UpdateRole(Role newRole) => Role = newRole;

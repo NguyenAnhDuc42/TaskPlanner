@@ -20,6 +20,7 @@ public class UserProjectWorkspaceConfiguration : IEntityTypeConfiguration<UserPr
         builder.HasOne(x => x.ProjectWorkspace)
                .WithMany()
                .HasForeignKey(x => x.ProjectWorkspaceId);
+        builder.Property(x => x.IsPending);
 
         builder.Property(x => x.CreatedAt);
 

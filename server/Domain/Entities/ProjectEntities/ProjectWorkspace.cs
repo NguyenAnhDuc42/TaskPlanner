@@ -192,6 +192,40 @@ public class ProjectWorkspace : Aggregate
     }
 
     // === MEMBERSHIP MANAGEMENT ===
+    public void AddMember(Guid userId, Role role)
+    {
+        if (Members.Any(m => m.UserId == userId))
+        {
+            throw new InvalidOperationException("User is already a member of this workspace.");
+        }
+
+        var userWorkspace = UserProjectWorkspace.Create(userId, Id, role);
+        _members.Add(userWorkspace);
+    }
+    public void RemoveMember(Guid userId)
+    {
+        if (!Members.Any(m => m.UserId == userId))
+        {
+            throw new InvalidOperationException("User is not a member of this workspace.");
+        }
+        if (CreatorId == userId)
+        {
+            throw new InvalidOperationException("Cannot remove workspace creator");
+        }
+        var memberToRemove = Members.First(m => m.UserId == userId);
+        _members.Remove(memberToRemove);
+    }
+    public void AddPendingMember(Guid userId)
+    {
+        if (Members.Any(m => m.UserId == userId))
+        {
+            throw new InvalidOperationException("User is already a member of this workspace.");
+        }
+
+        var userWorkspace = UserProjectWorkspace.Create(userId, Id, Role.Member, isPending: true);
+        _members.Add(userWorkspace);
+        // AddDomainEvent(new WorkspaceRequestToJoinEvent(Id, userId));
+    }
     public void AddMembers(IEnumerable<Guid> userIds, Role role)
     {
         if (userIds == null || !userIds.Any()) return;
@@ -289,7 +323,7 @@ public class ProjectWorkspace : Aggregate
         return status;
     }
 
-    public void UpdateStatus(Guid statusId, string name, string color)
+    public void UpdateStatus(Guid statusId, string name, string color, bool? isDefaultStatus = null)
     {
         var status = _statuses.FirstOrDefault(s => s.Id == statusId);
         if (status == null)
@@ -304,7 +338,15 @@ public class ProjectWorkspace : Aggregate
 
         var oldName = status.Name;
         var oldColor = status.Color;
+        if (isDefaultStatus.HasValue && isDefaultStatus.Value != status.IsDefaultStatus)
+        {
+            if (isDefaultStatus.Value)
+            {
+                status.SetDefault(isDefaultStatus.Value);
+            }
+        }
         status.UpdateDetails(name, color);
+
 
         UpdateTimestamp();
         AddDomainEvent(new StatusUpdatedInWorkspaceEvent(Id, statusId, oldName, name, oldColor, color));

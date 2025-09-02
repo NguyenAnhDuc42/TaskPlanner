@@ -16,6 +16,7 @@
   <ItemGroup>
     <Folder Include="Common\Mapping\" />
     <Folder Include="Features\WorkspaceFeatures\DeleteWorkspaces\" />
+    <Folder Include="Features\WorkspaceFeatures\GetMembers\" />
     <Folder Include="Features\WorkspaceFeatures\UpdateWorkspace\" />
   </ItemGroup>
 

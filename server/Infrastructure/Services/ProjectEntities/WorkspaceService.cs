@@ -125,7 +125,8 @@ namespace Infrastructure.Services.ProjectEntities
 
             var currentUserId = _currentUserService.CurrentUserId();
             var query = _unitOfWork.ProjectWorkspaces
-            .AsQueryable()
+            .AsQueryable().AsNoTracking()
+            .ForUser(currentUserId)
             .ApplyFilter(filter, currentUserId)
             .ApplySorting(pagination.SortBy, pagination.Direction)
             .ApplyCursor(pagination, _cursorHelper);
@@ -144,5 +145,82 @@ namespace Infrastructure.Services.ProjectEntities
             );
 
         }
+
+        public async Task<ProjectWorkspace> GetWorkspaceByIdAsync(Guid id, CancellationToken ct)
+        {
+            var currentUserId = _currentUserService.CurrentUserId();
+            var workspace = await _unitOfWork.ProjectWorkspaces
+                .AsQueryable()
+                .AsNoTracking()
+                .ForUser(currentUserId)
+                .FirstOrDefaultAsync(w => w.Id == id, ct);
+            return workspace ?? throw new NotFoundException($"Workspace {id} not found or you do not have access.");
+        }
+
+        public async Task<ProjectWorkspace> GetWorkspaceByJoinCodeAsync(string joinCode, CancellationToken ct)
+        {
+            var workspace = await _unitOfWork.ProjectWorkspaces.Query.FirstOrDefaultAsync(w => w.JoinCode == joinCode, ct);
+            if (workspace == null)
+                throw new NotFoundException($"Workspace with join code {joinCode} not found.");
+            switch (workspace.Visibility)
+            {
+                case Visibility.Private:
+                    throw new UnauthorizedAccessException("Cannot join a private workspace via join code.");
+                case Visibility.Public:
+                    return workspace;
+                case Visibility.Restricted:
+                    return workspace;
+                default:
+                    throw new InvalidOperationException("Invalid workspace visibility.");
+            }
+
+        }
+
+        public async Task AddMembersAsync(IEnumerable<Guid> userIds, Guid workspaceId, Role role, CancellationToken ct = default)
+        {
+            if (userIds == null || !userIds.Any()) throw new ArgumentException("No members provided", nameof(userIds));
+            var workspace = await _unitOfWork.ProjectWorkspaces.GetByIdAsync(workspaceId, ct) ?? throw new NotFoundException($"Workspace {workspaceId} not found");
+            workspace.AddMembers(userIds, role);
+            _unitOfWork.ProjectWorkspaces.Update(workspace);
+        }
+        public async Task RemoveMembersAsync(IEnumerable<Guid> userIds, Guid workspaceId, CancellationToken ct = default)
+        {
+            if (userIds == null || !userIds.Any()) throw new ArgumentException("No user IDs provided", nameof(userIds));
+            var workspace = await _unitOfWork.ProjectWorkspaces.GetByIdAsync(workspaceId, ct) ?? throw new NotFoundException($"Workspace {workspaceId} not found");
+            workspace.RemoveMembers(userIds);
+            _unitOfWork.ProjectWorkspaces.Update(workspace);
+        }
+
+        public async Task ChangeMemberRolesAsync(IEnumerable<Guid> userIds, Guid workspaceId, Role newRole, CancellationToken ct = default)
+        {
+            if (userIds == null || !userIds.Any()) throw new ArgumentException("No user IDs provided", nameof(userIds));
+            var workspace = await _unitOfWork.ProjectWorkspaces.GetByIdAsync(workspaceId, ct) ?? throw new NotFoundException($"Workspace {workspaceId} not found");
+            workspace.ChangeMemberRoles(userIds, newRole);
+            _unitOfWork.ProjectWorkspaces.Update(workspace);
+        }
+        public async Task TransferOwnershipAsync(Guid workspaceId, Guid newOwnerId, CancellationToken ct = default)
+        {
+            var workspace = await _unitOfWork.ProjectWorkspaces.GetByIdAsync(workspaceId, ct) ?? throw new NotFoundException($"Workspace {workspaceId} not found");
+            workspace.TransferOwnership(newOwnerId);
+            _unitOfWork.ProjectWorkspaces.Update(workspace);
+        }
+
+        public async Task CreateStatusAsync(Guid workspaceId, string name, string color, bool isDefaultStatus, CancellationToken ct = default)
+        {
+            var workspace = await _unitOfWork.ProjectWorkspaces.GetByIdAsync(workspaceId, ct) ?? throw new NotFoundException($"Workspace {workspaceId} not found");
+            workspace.CreateStatus(name, color, isDefaultStatus);
+            _unitOfWork.ProjectWorkspaces.Update(workspace);
+        }
+        public async Task UpdateStatusAsync(Guid workspaceId, Guid statusId, string? name, string? color, bool? isDefaultStatus = null, CancellationToken ct = default)
+        {
+            var workspace = await _unitOfWork.ProjectWorkspaces.GetByIdAsync(workspaceId, ct) ?? throw new NotFoundException($"Workspace {workspaceId} not found");
+            workspace.UpdateStatus(statusId, name, color, isDefaultStatus);
+            _unitOfWork.ProjectWorkspaces.Update(workspace);
+        }
+        public async Task UpdateStatusOrderAsync()
+        {
+
+        }
+
     }
 }

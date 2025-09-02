@@ -16,6 +16,7 @@ namespace Infrastructure.Data.Repositories
         }
 
         public IQueryable<TEntity> AsQueryable() => _dbSet.AsQueryable();
+        public IQueryable<TEntity> Query => _dbSet;
 
         public async Task<TEntity?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
         {
