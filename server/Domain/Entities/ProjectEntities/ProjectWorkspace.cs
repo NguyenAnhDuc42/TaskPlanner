@@ -1,14 +1,9 @@
-using Domain.Common;
+
 using Domain.Entities.Relationship;
 using Domain.Entities.Support;
 using Domain.Enums;
-using Domain.Events.WorkspaceEvents;
 using Domain.Services.UsageChecker;
 using static Domain.Common.ColorValidator;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 using Domain.Common.Interfaces;
 
 namespace Domain.Entities.ProjectEntities;
@@ -72,7 +67,6 @@ public class ProjectWorkspace : Aggregate, IHasWorkspaceId
         // Add default statuses
         workspace.CreateDefaultStatuses();
 
-        workspace.AddDomainEvent(new WorkspaceCreatedEvent(workspace.Id, workspace.Name, workspace.CreatorId));
         return workspace;
     }
 
@@ -126,7 +120,6 @@ public class ProjectWorkspace : Aggregate, IHasWorkspaceId
         if (changed)
         {
             UpdateTimestamp();
-            AddDomainEvent(new WorkspaceUpdatedEvent(Id, name, description, color, icon, visibility, isArchived));
         }
     }
 
@@ -144,7 +137,6 @@ public class ProjectWorkspace : Aggregate, IHasWorkspaceId
         Name = name;
         Description = description;
         UpdateTimestamp();
-        AddDomainEvent(new WorkspaceBasicInfoUpdatedEvent(Id, oldName, name, oldDescription, description));
     }
 
     public void UpdateVisualSettings(string color, string icon)
@@ -158,7 +150,6 @@ public class ProjectWorkspace : Aggregate, IHasWorkspaceId
         Color = color;
         Icon = icon;
         UpdateTimestamp();
-        AddDomainEvent(new WorkspaceVisualSettingsUpdatedEvent(Id, color, icon));
     }
 
     public void ChangeVisibility(Visibility newVisibility)
@@ -166,7 +157,6 @@ public class ProjectWorkspace : Aggregate, IHasWorkspaceId
         if (Visibility == newVisibility) return;
         Visibility = newVisibility;
         UpdateTimestamp();
-        AddDomainEvent(new WorkspaceVisibilityChangedEvent(Id, newVisibility));
     }
 
     public void Archive()
@@ -175,7 +165,6 @@ public class ProjectWorkspace : Aggregate, IHasWorkspaceId
 
         IsArchived = true;
         UpdateTimestamp();
-        AddDomainEvent(new WorkspaceArchivedEvent(Id));
     }
 
     public void Unarchive()
@@ -184,7 +173,6 @@ public class ProjectWorkspace : Aggregate, IHasWorkspaceId
 
         IsArchived = false;
         UpdateTimestamp();
-        AddDomainEvent(new WorkspaceUnarchivedEvent(Id));
     }
 
     public void RegenerateJoinCode()
@@ -192,7 +180,6 @@ public class ProjectWorkspace : Aggregate, IHasWorkspaceId
         var oldJoinCode = JoinCode;
         JoinCode = GenerateRandomCode();
         UpdateTimestamp();
-        AddDomainEvent(new WorkspaceJoinCodeChangedEvent(Id, oldJoinCode, JoinCode));
     }
 
     // === MEMBERSHIP MANAGEMENT ===
@@ -228,7 +215,6 @@ public class ProjectWorkspace : Aggregate, IHasWorkspaceId
 
         var userWorkspace = UserProjectWorkspace.Create(userId, Id, Role.Member, isPending: true);
         _members.Add(userWorkspace);
-        // AddDomainEvent(new WorkspaceRequestToJoinEvent(Id, userId));
     }
     public void AddMembers(IEnumerable<Guid> userIds, Role role)
     {
@@ -247,7 +233,6 @@ public class ProjectWorkspace : Aggregate, IHasWorkspaceId
 
         if (addedMembers.Any())
         {
-            // AddDomainEvent(new WorkspaceMembersAddedEvent(Id,addedMembers.Select(m => (m.UserId, m.Role)).ToList()));
         }
     }
 
@@ -268,7 +253,6 @@ public class ProjectWorkspace : Aggregate, IHasWorkspaceId
 
         if (removedMembers.Any())
         {
-            // AddDomainEvent(new WorkspaceMembersRemovedEvent(Id, removedMembers.Select(m => m.UserId).ToList()));
         }
     }
 
@@ -289,7 +273,6 @@ public class ProjectWorkspace : Aggregate, IHasWorkspaceId
 
         if (updatedMembers.Any())
         {
-            // AddDomainEvent(new WorkspaceMembersRolesChangedEvent(Id, updatedMembers.Select(m => (m.UserId, m.Role)).ToList()));
         }
     }
 
@@ -306,7 +289,6 @@ public class ProjectWorkspace : Aggregate, IHasWorkspaceId
             newOwner.UpdateRole(Role.Owner);
 
         UpdateTimestamp();
-        AddDomainEvent(new WorkspaceOwnershipTransferredEvent(Id, oldOwnerId, newOwnerId));
     }
 
     // === WORKFLOW STATUS MANAGEMENT ===
@@ -323,7 +305,6 @@ public class ProjectWorkspace : Aggregate, IHasWorkspaceId
         _statuses.Add(status);
 
         UpdateTimestamp();
-        AddDomainEvent(new StatusCreatedInWorkspaceEvent(Id, status.Id, name));
         return status;
     }
 
@@ -353,7 +334,6 @@ public class ProjectWorkspace : Aggregate, IHasWorkspaceId
 
 
         UpdateTimestamp();
-        AddDomainEvent(new StatusUpdatedInWorkspaceEvent(Id, statusId, oldName, name, oldColor, color));
     }
 
     public void DeleteStatus(Guid statusId)
@@ -377,7 +357,6 @@ public class ProjectWorkspace : Aggregate, IHasWorkspaceId
 
         _statuses.Remove(status);
         UpdateTimestamp();
-        AddDomainEvent(new StatusDeletedFromWorkspaceEvent(Id, statusId, status.Name));
     }
 
     public void ReorderStatuses(List<Guid> statusIds)
@@ -396,7 +375,6 @@ public class ProjectWorkspace : Aggregate, IHasWorkspaceId
         }
 
         UpdateTimestamp();
-        AddDomainEvent(new StatusesReorderedInWorkspaceEvent(Id, statusIds));
     }
 
     // === PRIVATE HELPERS ===

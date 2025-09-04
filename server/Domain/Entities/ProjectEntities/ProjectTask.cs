@@ -1,12 +1,8 @@
-using Domain.Common;
+
 using Domain.Common.Interfaces;
 using Domain.Entities.Relationship;
 using Domain.Entities.Support;
 using Domain.Enums;
-using Domain.Events.TaskEvents;
-using System;
-using System.Collections.Generic;
-using System.Linq;
 
 namespace Domain.Entities.ProjectEntities;
 
@@ -104,7 +100,6 @@ public class ProjectTask : Aggregate , IHasWorkspaceId
         Name = name;
         Description = description;
         UpdateTimestamp();
-        AddDomainEvent(new TaskBasicInfoUpdatedEvent(Id, oldName, name, oldDescription, description));
     }
 
     public void UpdateSchedule(DateTimeOffset? startDate, DateTimeOffset? dueDate)
@@ -118,7 +113,6 @@ public class ProjectTask : Aggregate , IHasWorkspaceId
         StartDate = startDate;
         DueDate = dueDate;
         UpdateTimestamp();
-        AddDomainEvent(new TaskScheduleUpdatedEvent(Id, oldStartDate, startDate, oldDueDate, dueDate));
     }
 
     public void ChangePriority(Priority newPriority)
@@ -128,7 +122,6 @@ public class ProjectTask : Aggregate , IHasWorkspaceId
         var oldPriority = Priority;
         Priority = newPriority;
         UpdateTimestamp();
-        AddDomainEvent(new TaskPriorityChangedEvent(Id, oldPriority, newPriority));
     }
 
     public void ChangeVisibility(Visibility newVisibility)
@@ -138,7 +131,6 @@ public class ProjectTask : Aggregate , IHasWorkspaceId
         var oldVisibility = Visibility;
         Visibility = newVisibility;
         UpdateTimestamp();
-        AddDomainEvent(new TaskVisibilityChangedEvent(Id, oldVisibility, newVisibility));
 
         CascadeVisibilityToSubtasks(newVisibility);
     }
@@ -154,12 +146,7 @@ public class ProjectTask : Aggregate , IHasWorkspaceId
         IsCompleted = isCompletedStatus;
 
         UpdateTimestamp();
-        AddDomainEvent(new TaskStatusUpdatedEvent(Id, oldStatusId, statusId, isCompletedStatus));
 
-        if (!wasCompleted && isCompletedStatus)
-            AddDomainEvent(new TaskCompletedEvent(Id, DateTime.UtcNow));
-        else if (wasCompleted && !isCompletedStatus)
-            AddDomainEvent(new TaskReopenedEvent(Id, DateTime.UtcNow));
     }
 
     public void SetEstimation(int? storyPoints, long? timeEstimateSeconds)
@@ -173,7 +160,6 @@ public class ProjectTask : Aggregate , IHasWorkspaceId
         StoryPoints = storyPoints;
         TimeEstimateSeconds = timeEstimateSeconds;
         UpdateTimestamp();
-        AddDomainEvent(new TaskEstimationUpdatedEvent(Id, oldStoryPoints, storyPoints, oldTimeEstimate, timeEstimateSeconds));
     }
 
     internal void UpdateOrderIndex(int newOrderIndex)
@@ -190,7 +176,6 @@ public class ProjectTask : Aggregate , IHasWorkspaceId
 
         IsArchived = true;
         UpdateTimestamp();
-        AddDomainEvent(new TaskArchivedEvent(Id));
 
         ArchiveAllSubtasks();
     }
@@ -201,7 +186,6 @@ public class ProjectTask : Aggregate , IHasWorkspaceId
 
         IsArchived = false;
         UpdateTimestamp();
-        AddDomainEvent(new TaskUnarchivedEvent(Id));
 
         UnarchiveAllSubtasks();
     }
@@ -225,7 +209,6 @@ public class ProjectTask : Aggregate , IHasWorkspaceId
 
         _subtasks.Add(subtask);
         UpdateTimestamp();
-        AddDomainEvent(new SubtaskCreatedEvent(Id, subtask.Id, name, CreatorId));
         return subtask;
     }
 
@@ -237,7 +220,6 @@ public class ProjectTask : Aggregate , IHasWorkspaceId
 
         _subtasks.Remove(subtask);
         UpdateTimestamp();
-        AddDomainEvent(new SubtaskRemovedEvent(Id, subtaskId, subtask.Name));
     }
 
     // === SUBTASK BULK ===
@@ -256,7 +238,6 @@ public class ProjectTask : Aggregate , IHasWorkspaceId
         }
 
         UpdateTimestamp();
-        AddDomainEvent(new AllSubtasksArchivedEvent(Id));
     }
 
     public void UnarchiveAllSubtasks()
@@ -273,7 +254,6 @@ public class ProjectTask : Aggregate , IHasWorkspaceId
         }
 
         UpdateTimestamp();
-        AddDomainEvent(new AllSubtasksUnarchivedEvent(Id));
     }
 
     public void CompleteAllSubtasks()
@@ -298,7 +278,6 @@ public class ProjectTask : Aggregate , IHasWorkspaceId
         }
 
         UpdateTimestamp();
-        AddDomainEvent(new AllSubtasksAssignedToUserEvent(Id, userId));
     }
 
     public void UpdateAllSubtasksPriority(Priority newPriority)
@@ -315,7 +294,6 @@ public class ProjectTask : Aggregate , IHasWorkspaceId
         }
 
         UpdateTimestamp();
-        AddDomainEvent(new AllSubtasksPriorityUpdatedEvent(Id, newPriority));
     }
 
     // === ASSIGNMENT ===
@@ -330,7 +308,6 @@ public class ProjectTask : Aggregate , IHasWorkspaceId
         var assignment = UserProjectTask.Create(userId, Id);
         _assignees.Add(assignment);
         UpdateTimestamp();
-        AddDomainEvent(new UserAssignedToTaskEvent(Id, userId));
     }
 
     public void UnassignUser(Guid userId)
@@ -340,7 +317,6 @@ public class ProjectTask : Aggregate , IHasWorkspaceId
 
         _assignees.Remove(assignment);
         UpdateTimestamp();
-        AddDomainEvent(new UserUnassignedFromTaskEvent(Id, userId));
     }
 
     public bool IsAssignedTo(Guid userId)
@@ -362,7 +338,6 @@ public class ProjectTask : Aggregate , IHasWorkspaceId
         var comment = Comment.Create(content, authorId, Id);
         _comments.Add(comment);
         UpdateTimestamp();
-        AddDomainEvent(new CommentAddedToTaskEvent(Id, comment.Id, authorId, content));
         return comment;
     }
 
@@ -381,7 +356,6 @@ public class ProjectTask : Aggregate , IHasWorkspaceId
         var attachment = Attachment.Create(fileName, fileUrl, fileType, uploaderId, Id);
         _attachments.Add(attachment);
         UpdateTimestamp();
-        AddDomainEvent(new AttachmentAddedToTaskEvent(Id, attachment.Id, fileName, fileUrl));
         return attachment;
     }
 
@@ -396,7 +370,6 @@ public class ProjectTask : Aggregate , IHasWorkspaceId
         var timeLog = TimeLog.Create(duration, userId, Id);
         _timeLogs.Add(timeLog);
         UpdateTimestamp();
-        AddDomainEvent(new TimeLogAddedToTaskEvent(Id, timeLog.Id, duration, userId));
         return timeLog;
     }
 
@@ -410,7 +383,6 @@ public class ProjectTask : Aggregate , IHasWorkspaceId
         var checklist = Checklist.Create(title, Id);
         _checklists.Add(checklist);
         UpdateTimestamp();
-        AddDomainEvent(new ChecklistAddedToTaskEvent(Id, checklist.Id, title));
         return checklist;
     }
 
@@ -429,7 +401,6 @@ public class ProjectTask : Aggregate , IHasWorkspaceId
         var tag = ProjectTaskTag.Create(Id, tagId);
         _tags.Add(tag);
         UpdateTimestamp();
-        AddDomainEvent(new TagAddedToTaskEvent(Id, tagId));
     }
 
     public void RemoveTag(Guid tagId)
@@ -439,7 +410,6 @@ public class ProjectTask : Aggregate , IHasWorkspaceId
 
         _tags.Remove(tag);
         UpdateTimestamp();
-        AddDomainEvent(new TagRemovedFromTaskEvent(Id, tagId));
     }
     // === MOVEMENT ===
 
@@ -460,7 +430,6 @@ public class ProjectTask : Aggregate , IHasWorkspaceId
         ProjectSpaceId = newSpaceId.Value;
 
         UpdateTimestamp();
-        AddDomainEvent(new TaskMovedEvent(Id, oldListId, newListId, oldFolderId, newFolderId, oldSpaceId, newSpaceId));
     }
 
     // === PRIVATE CASCADE HELPERS ===

@@ -1,5 +1,4 @@
 using Domain.Common;
-using Domain.Events.SessionEvents;
 using System;
 
 namespace Domain.Entities;
@@ -29,7 +28,6 @@ public class Session : Entity
     public static Session Create(Guid userId, string refreshToken, DateTimeOffset expiresAt, string userAgent, string ipAddress)
     {
         var session = new Session(userId, refreshToken, expiresAt, userAgent, ipAddress);
-        session.AddDomainEvent(new SessionCreatedEvent(session.Id, session.UserId, session.ExpiresAt));
         return session;
     }
 
@@ -39,7 +37,6 @@ public class Session : Entity
         if (ExpiresAt <= DateTimeOffset.UtcNow) throw new InvalidOperationException("Cannot revoke an expired session.");
 
         RevokedAt = DateTimeOffset.UtcNow;
-        AddDomainEvent(new SessionRevokedEvent(Id, UserId, reason ?? "unspecified", RevokedAt.Value));
     }
 
     public void ExtendExpiration(TimeSpan duration)
@@ -49,6 +46,5 @@ public class Session : Entity
         if (duration <= TimeSpan.Zero) throw new ArgumentOutOfRangeException(nameof(duration), "Duration must be positive.");
 
         ExpiresAt = ExpiresAt.Add(duration);
-        AddDomainEvent(new SessionExpirationExtendedEvent(Id, UserId, ExpiresAt));
     }
 }

@@ -1,11 +1,7 @@
 using Domain.Common;
 using Domain.Entities.Relationship;
 using Domain.Enums;
-using Domain.Events.FolderEvents;
 using static Domain.Common.ColorValidator;
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using Domain.Common.Interfaces;
 
 namespace Domain.Entities.ProjectEntities;
@@ -66,7 +62,6 @@ public class ProjectFolder : Aggregate, IHasWorkspaceId
         Name = name;
         Description = description;
         UpdateTimestamp();
-        AddDomainEvent(new FolderBasicInfoUpdatedEvent(Id, oldName, name, oldDescription, description));
     }
 
     public void ChangeVisibility(Visibility newVisibility)
@@ -76,7 +71,6 @@ public class ProjectFolder : Aggregate, IHasWorkspaceId
         var oldVisibility = Visibility;
         Visibility = newVisibility;
         UpdateTimestamp();
-        AddDomainEvent(new FolderVisibilityChangedEvent(Id, oldVisibility, newVisibility));
     }
 
     internal void UpdateOrderIndex(int newOrderIndex)
@@ -101,7 +95,6 @@ public class ProjectFolder : Aggregate, IHasWorkspaceId
         var member = UserProjectFolder.Create(userId, Id);
         _members.Add(member);
         UpdateTimestamp();
-        AddDomainEvent(new MemberAddedToFolderEvent(Id, userId));
     }
 
     public void RemoveMember(Guid userId)
@@ -115,7 +108,6 @@ public class ProjectFolder : Aggregate, IHasWorkspaceId
 
         _members.Remove(member);
         UpdateTimestamp();
-        AddDomainEvent(new MemberRemovedFromFolderEvent(Id, userId));
     }
 
     public void Archive()
@@ -124,7 +116,6 @@ public class ProjectFolder : Aggregate, IHasWorkspaceId
 
         IsArchived = true;
         UpdateTimestamp();
-        AddDomainEvent(new FolderArchivedEvent(Id));
     }
 
     public void Unarchive()
@@ -133,7 +124,6 @@ public class ProjectFolder : Aggregate, IHasWorkspaceId
 
         IsArchived = false;
         UpdateTimestamp();
-        AddDomainEvent(new FolderUnarchivedEvent(Id));
     }
 
     // === VALIDATION HELPERS ===

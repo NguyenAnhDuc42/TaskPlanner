@@ -16,23 +16,7 @@ public abstract class Entity
     public DateTimeOffset CreatedAt { get; private set; } = DateTimeOffset.UtcNow;
     public DateTimeOffset UpdatedAt { get; private set; } = DateTime.UtcNow;
 
-    // === Domain Events ===
-    private readonly ConcurrentQueue<IDomainEvent> _domainEvents = new();
-    public IReadOnlyCollection<IDomainEvent> DomainEvents => _domainEvents.ToArray();
-    public bool HasDomainEvents => !_domainEvents.IsEmpty;
-
-    protected void AddDomainEvent(IDomainEvent domainEvent)
-    {
-        ArgumentNullException.ThrowIfNull(domainEvent);
-        _domainEvents.Enqueue(domainEvent);
-        UpdateTimestamp();
-    }
-
-    public void ClearDomainEvents()
-    {
-        while (_domainEvents.TryDequeue(out _)) { }
-    }
-
+  
     protected Entity() { }
     protected Entity(Guid id) => Id = id;
 

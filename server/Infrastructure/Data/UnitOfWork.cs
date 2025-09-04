@@ -2,12 +2,16 @@ using Application.Interfaces.Repositories;
 using Infrastructure.Data.Repositories;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
+using Infrastructure.Data.Extensions;
+using Domain.Common.Interfaces;
+
 
 namespace Infrastructure.Data
 {
     public class UnitOfWork : IUnitOfWork
     {
         private readonly TaskPlanDbContext _context;
+        private readonly IDomainEventDispatcher _domainDispatcher;
 
         private IDbContextTransaction? _currentTransaction;
 
@@ -19,7 +23,12 @@ namespace Infrastructure.Data
         private IProjectListRepository? _projectLists;
         private IProjectTaskRepository? _projectTasks;
 
-        public UnitOfWork(TaskPlanDbContext context, IUserRepository users, ISessionRepository sessions) {   _context = context;     }
+        public UnitOfWork(TaskPlanDbContext context, IDomainEventDispatcher domainDispatcher)
+        {
+            _context = context;
+            _domainDispatcher = domainDispatcher;
+        }
+        #region Repositories
         public IUserRepository Users => _users ??= new UserRepository(_context);
         public ISessionRepository Sessions => _sessions ??= new SessionRepository(_context);
         public IProjectWorkspaceRepository ProjectWorkspaces => _projectWorkspaces ??= new ProjectWorkspaceRepository(_context);
@@ -27,8 +36,9 @@ namespace Infrastructure.Data
         public IProjectFolderRepository ProjectFolders => _projectFolders ??= new ProjectFolderRepository(_context);
         public IProjectListRepository ProjectLists => _projectLists ??= new ProjectListRepository(_context);
         public IProjectTaskRepository ProjectTasks => _projectTasks ??= new ProjectTaskRepository(_context);
-        public DbSet<T> Set<T>() where T : class=> _context.Set<T>();
-       
+        #endregion
+        public DbSet<T> Set<T>() where T : class => _context.Set<T>();
+
         public bool HasActiveTransaction => _currentTransaction != null;
 
         public async Task<IDbContextTransaction> BeginTransactionAsync(CancellationToken cancellationToken = default)
@@ -76,7 +86,18 @@ namespace Infrastructure.Data
 
         public async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
         {
-            return await _context.SaveChangesAsync(cancellationToken);
+            var result = await _context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+
+            var snapshots = _context.ChangeTracker.CollectAggregateDomainEvents();
+            var domainEvents = snapshots.FlattenEvents();
+
+            if (domainEvents.Count > 0)
+            {
+                await _domainDispatcher.DispatchAsync(domainEvents, cancellationToken).ConfigureAwait(false);
+                snapshots.ClearDomainEventsFromSnapshot();
+            }
+
+            return result;
         }
 
         public void DetachAllEntities()

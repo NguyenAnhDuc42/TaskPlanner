@@ -1,7 +1,6 @@
 using Domain.Common;
 using Domain.Entities.Relationship;
 using Domain.Enums;
-using Domain.Events.ListEvents;
 using static Domain.Common.ColorValidator;
 using System;
 using System.Collections.Generic;
@@ -63,7 +62,6 @@ public class ProjectList : Aggregate , IHasWorkspaceId
         Name = name;
         Description = description;
         UpdateTimestamp();
-        AddDomainEvent(new ListBasicInfoUpdatedEvent(Id, oldName, name, oldDescription, description));
     }
 
     public void ChangeVisibility(Visibility newVisibility)
@@ -73,7 +71,6 @@ public class ProjectList : Aggregate , IHasWorkspaceId
         var oldVisibility = Visibility;
         Visibility = newVisibility;
         UpdateTimestamp();
-        AddDomainEvent(new ListVisibilityChangedEvent(Id, oldVisibility, newVisibility));
     }
 
     public void SetDateRange(DateTimeOffset? startDate, DateTimeOffset? dueDate)
@@ -88,7 +85,6 @@ public class ProjectList : Aggregate , IHasWorkspaceId
         StartDate = startDate;
         DueDate = dueDate;
         UpdateTimestamp();
-        AddDomainEvent(new ListDateRangeUpdatedEvent(Id, oldStartDate, startDate, oldDueDate, dueDate));
     }
 
     public void Archive()
@@ -97,7 +93,6 @@ public class ProjectList : Aggregate , IHasWorkspaceId
 
         IsArchived = true;
         UpdateTimestamp();
-        AddDomainEvent(new ListArchivedEvent(Id));
     }
 
     public void Unarchive()
@@ -106,7 +101,6 @@ public class ProjectList : Aggregate , IHasWorkspaceId
 
         IsArchived = false;
         UpdateTimestamp();
-        AddDomainEvent(new ListUnarchivedEvent(Id));
     }
 
     internal void UpdateOrderIndex(int newOrderIndex)
@@ -124,7 +118,6 @@ public class ProjectList : Aggregate , IHasWorkspaceId
         var oldFolderId = ProjectFolderId;
         ProjectFolderId = newFolderId;
         UpdateTimestamp();
-        AddDomainEvent(new ListMovedToFolderEvent(Id, oldFolderId, newFolderId));
     }
 
     internal void MoveToSpace(Guid newSpaceId)
@@ -134,7 +127,6 @@ public class ProjectList : Aggregate , IHasWorkspaceId
         var oldSpaceId = ProjectSpaceId;
         ProjectSpaceId = newSpaceId;
         UpdateTimestamp();
-        AddDomainEvent(new ListMovedToFolderEvent(Id, oldSpaceId, newSpaceId));
     }
 
     // === MEMBERSHIP ===
@@ -149,7 +141,6 @@ public class ProjectList : Aggregate , IHasWorkspaceId
         var member = UserProjectList.Create(userId, Id);
         _members.Add(member);
         UpdateTimestamp();
-        AddDomainEvent(new MemberAddedToListEvent(Id, userId));
     }
 
     public void RemoveMember(Guid userId)
@@ -163,7 +154,6 @@ public class ProjectList : Aggregate , IHasWorkspaceId
 
         _members.Remove(member);
         UpdateTimestamp();
-        AddDomainEvent(new MemberRemovedFromListEvent(Id, userId));
     }
 
     // === VALIDATION HELPERS ===

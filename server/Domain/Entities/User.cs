@@ -1,5 +1,4 @@
 using Domain.Common;
-using Domain.Events.UserEvents;
 using Domain.Entities.Relationship;
 using System;
 using System.Collections.Generic;
@@ -59,7 +58,6 @@ public class User : Aggregate
             throw new ArgumentException("Invalid email format.", nameof(email));
 
         var user = new User(Guid.NewGuid(), name, email, passwordHash);
-        user.AddDomainEvent(new UserCreatedEvent(user.Id, user.Name, user.Email));
         return user;
     }
 
@@ -145,7 +143,6 @@ public class User : Aggregate
         if (Name == newName) return;
 
         Name = newName;
-        AddDomainEvent(new UserNameUpdatedEvent(Id, newName));
     }
 
     public void UpdateEmail(string newEmail)
@@ -157,7 +154,6 @@ public class User : Aggregate
         if (Email == newEmail) return;
 
         Email = newEmail;
-        AddDomainEvent(new UserEmailUpdatedEvent(Id, newEmail));
     }
 
     public void ChangePassword(string newPasswordHash)
@@ -167,7 +163,6 @@ public class User : Aggregate
         if (PasswordHash == newPasswordHash) return;
 
         PasswordHash = newPasswordHash;
-        AddDomainEvent(new UserPasswordChangedEvent(Id));
     }
 
     private static bool IsValidEmail(string email) =>

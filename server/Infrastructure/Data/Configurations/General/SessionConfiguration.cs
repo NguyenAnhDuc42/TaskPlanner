@@ -25,7 +25,5 @@ public class SessionConfiguration : IEntityTypeConfiguration<Session>
         builder.Property(s => s.IsActive)
             .IsRequired();
 
-        // Ignore domain events collection as it's not persisted
-        builder.Ignore(e => e.DomainEvents);
     }
 }

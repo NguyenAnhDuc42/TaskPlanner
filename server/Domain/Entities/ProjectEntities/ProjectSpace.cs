@@ -1,12 +1,9 @@
-using Domain.Common;
+
 using Domain.Common.Interfaces;
 using Domain.Entities.Relationship;
 using Domain.Entities.Support;
 using Domain.Enums;
-using Domain.Events.SpaceEvents;
-using System;
-using System.Collections.Generic;
-using System.Linq;
+
 
 namespace Domain.Entities.ProjectEntities
 {
@@ -61,7 +58,6 @@ namespace Domain.Entities.ProjectEntities
             Name = name;
             Description = description;
             UpdateTimestamp();
-            AddDomainEvent(new SpaceBasicInfoUpdatedEvent(Id, name, description));
         }
 
         public void UpdateVisualSettings(string color, string icon)
@@ -76,7 +72,6 @@ namespace Domain.Entities.ProjectEntities
             Color = color;
             Icon = icon;
             UpdateTimestamp();
-            AddDomainEvent(new SpaceVisualSettingsUpdatedEvent(Id, color, icon));
         }
 
         public void ChangeVisibility(Visibility newVisibility)
@@ -85,7 +80,6 @@ namespace Domain.Entities.ProjectEntities
 
             Visibility = newVisibility;
             UpdateTimestamp();
-            AddDomainEvent(new SpaceVisibilityChangedEvent(Id, newVisibility));
         }
 
         public void Archive()
@@ -94,7 +88,6 @@ namespace Domain.Entities.ProjectEntities
 
             IsArchived = true;
             UpdateTimestamp();
-            AddDomainEvent(new SpaceArchivedEvent(Id));
         }
 
         public void Unarchive()
@@ -103,7 +96,6 @@ namespace Domain.Entities.ProjectEntities
 
             IsArchived = false;
             UpdateTimestamp();
-            AddDomainEvent(new SpaceUnarchivedEvent(Id));
         }
 
         public void UpdateOrderIndex(int newIndex) => OrderIndex = newIndex;
@@ -120,7 +112,6 @@ namespace Domain.Entities.ProjectEntities
             var member = UserProjectSpace.Create(userId, Id);
             _members.Add(member);
             UpdateTimestamp();
-            AddDomainEvent(new MemberAddedToSpaceEvent(Id, userId));
         }
 
         public void RemoveMember(Guid userId)
@@ -134,7 +125,6 @@ namespace Domain.Entities.ProjectEntities
 
             _members.Remove(member);
             UpdateTimestamp();
-            AddDomainEvent(new MemberRemovedFromSpaceEvent(Id, userId));
         }
 
         // === VALIDATION HELPERS ===

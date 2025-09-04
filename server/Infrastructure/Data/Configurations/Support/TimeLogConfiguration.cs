@@ -21,9 +21,6 @@ public class TimeLogConfiguration : IEntityTypeConfiguration<TimeLog>
         builder.Property(x => x.Description)
                .HasMaxLength(500);
 
-        builder.Property(x => x.LoggedAt)
-               .IsRequired();
-
         builder.HasOne<ProjectTask>()
                .WithMany(t => t.TimeLogs)
                .HasForeignKey(x => x.ProjectTaskId);

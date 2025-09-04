@@ -1,4 +1,4 @@
-using Application.Features.Auth.Common;
+
 using MediatR;
 
 namespace Application.Features.Auth.Login;
