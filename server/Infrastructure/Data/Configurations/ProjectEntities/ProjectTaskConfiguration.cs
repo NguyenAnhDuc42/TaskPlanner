@@ -46,7 +46,7 @@ public class ProjectTaskConfiguration : IEntityTypeConfiguration<ProjectTask>
         builder.Property(t => t.DueDate); // Added
         builder.Property(t => t.StoryPoints); // Added
         builder.Property(t => t.TimeEstimateSeconds); // Added
-        builder.Property(t => t.OrderIndex); // Added
+        builder.Property(t => t.OrderKey); // Added
         builder.Property(t => t.StatusId); // Added
 
         // Relationships

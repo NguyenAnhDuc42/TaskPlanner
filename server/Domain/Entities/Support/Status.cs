@@ -9,12 +9,12 @@ public class Status : Entity
     public Guid? ProjectSpaceId { get; private set; }
     public string Name { get; private set; } = null!;
     public string Color { get; private set; } = null!;
-    public int OrderIndex { get; private set; }
+    public long OrderKey { get; private set; }
     public bool IsDefaultStatus { get; private set; }
 
     private Status() { } // EF Core
 
-    private Status(Guid id, string name, string color, int orderIndex, Guid projectWorkspaceId)
+    private Status(Guid id, string name, string color, long orderKey, Guid projectWorkspaceId)
         : base(id)
     {
         if (string.IsNullOrWhiteSpace(name)) throw new ArgumentException("Status name cannot be empty.", nameof(name));
@@ -23,14 +23,14 @@ public class Status : Entity
 
         Name = name.Trim();
         Color = color.Trim();
-        OrderIndex = orderIndex;
+        OrderKey = orderKey;
         ProjectWorkspaceId = projectWorkspaceId;
         ProjectSpaceId = null;
         IsDefaultStatus = false;
     }
 
-    public static Status Create(string name, string color, int orderIndex, Guid projectWorkspaceId)
-        => new Status(Guid.NewGuid(), name, color, orderIndex, projectWorkspaceId);
+    public static Status Create(string name, string color, long orderKey, Guid projectWorkspaceId)
+        => new Status(Guid.NewGuid(), name, color, orderKey, projectWorkspaceId);
 
     public void UpdateDetails(string newName, string newColor)
     {
@@ -44,12 +44,12 @@ public class Status : Entity
         UpdateTimestamp();
     }
 
-    public void UpdateOrderIndex(int newIndex)
+    public void UpdateOrderKey(long newKey)
     {
-        if (newIndex < 0) throw new ArgumentOutOfRangeException(nameof(newIndex));
-        if (OrderIndex == newIndex) return;
+        if (newKey < 0) throw new ArgumentOutOfRangeException(nameof(newKey));
+        if (OrderKey == newKey) return;
 
-        OrderIndex = newIndex;
+        OrderKey = newKey;
         UpdateTimestamp();
     }
 

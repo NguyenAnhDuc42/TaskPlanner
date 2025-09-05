@@ -1,4 +1,3 @@
-
 using Domain.Common.Interfaces;
 using Domain.Entities.Relationship;
 using Domain.Entities.Support;
@@ -16,7 +15,7 @@ namespace Domain.Entities.ProjectEntities
         public string Color { get; private set; } = null!;
         public Visibility Visibility { get; private set; }
         public bool IsArchived { get; private set; }
-        public int? OrderIndex { get; private set; }
+        public long? OrderKey { get; private set; }
         public Guid CreatorId { get; private set; }
         public Guid WorkspaceId => ProjectWorkspaceId;
 
@@ -30,7 +29,7 @@ namespace Domain.Entities.ProjectEntities
         private ProjectSpace() { } // For EF Core
 
         internal ProjectSpace(Guid id, Guid workspaceId, string name, string? description,
-            string icon, string color, Visibility visibility, int orderIndex, Guid creatorId)
+            string icon, string color, Visibility visibility, long orderKey, Guid creatorId)
         {
             Id = id;
             ProjectWorkspaceId = workspaceId;
@@ -39,7 +38,7 @@ namespace Domain.Entities.ProjectEntities
             Icon = icon;
             Color = color;
             Visibility = visibility;
-            OrderIndex = orderIndex;
+            OrderKey = orderKey;
             CreatorId = creatorId;
             IsArchived = false;
         }
@@ -98,7 +97,7 @@ namespace Domain.Entities.ProjectEntities
             UpdateTimestamp();
         }
 
-        public void UpdateOrderIndex(int newIndex) => OrderIndex = newIndex;
+        public void UpdateOrderKey(long newKey) => OrderKey = newKey;
 
         // === MEMBERSHIP MANAGEMENT ===
 

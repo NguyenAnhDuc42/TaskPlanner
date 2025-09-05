@@ -246,6 +246,7 @@ public class ProjectWorkspace : Aggregate, IHasWorkspaceId
         {
             var member = _members.FirstOrDefault(m => m.UserId == userId);
             if (member == null) continue; // skip non-members
+            if (member.Role == Role.Owner) continue; // skip owner
 
             _members.Remove(member);
             removedMembers.Add(member);
@@ -266,6 +267,7 @@ public class ProjectWorkspace : Aggregate, IHasWorkspaceId
         {
             var member = _members.FirstOrDefault(m => m.UserId == userId);
             if (member == null || member.Role == newRole) continue; // skip non-members or no-op
+            if (member.Role == Role.Owner) continue; // skip owner
 
             member.UpdateRole(newRole);
             updatedMembers.Add(member);
@@ -293,22 +295,21 @@ public class ProjectWorkspace : Aggregate, IHasWorkspaceId
 
     // === WORKFLOW STATUS MANAGEMENT ===
 
-    public Status CreateStatus(string name, string color, bool isDefaultStatus = false)
+    public Status CreateStatus(string name, string color, long orderKey, bool isDefaultStatus = false)
     {
         name = name?.Trim() ?? string.Empty;
         color = color?.Trim() ?? string.Empty;
 
         ValidateStatusCreation(name, color, isDefaultStatus);
 
-        var orderIndex = _statuses.Count;
-        var status = Status.Create(name, color, orderIndex, Id);
+        var status = Status.Create(name, color, orderKey, Id);
         _statuses.Add(status);
 
         UpdateTimestamp();
         return status;
     }
 
-    public void UpdateStatus(Guid statusId, string name, string color, bool? isDefaultStatus = null)
+    public void UpdateStatus(Guid statusId, string name, string color, long? orderKey = null, bool? isDefaultStatus = null)
     {
         var status = _statuses.FirstOrDefault(s => s.Id == statusId);
         if (status == null)
@@ -317,74 +318,42 @@ public class ProjectWorkspace : Aggregate, IHasWorkspaceId
         name = name?.Trim() ?? string.Empty;
         color = color?.Trim() ?? string.Empty;
 
-        if (status.Name == name && status.Color == color) return;
-
         ValidateStatusUpdate(statusId, name, color);
 
-        var oldName = status.Name;
-        var oldColor = status.Color;
         if (isDefaultStatus.HasValue && isDefaultStatus.Value != status.IsDefaultStatus)
         {
-            if (isDefaultStatus.Value)
-            {
-                status.SetDefault(isDefaultStatus.Value);
-            }
+            status.SetDefault(isDefaultStatus.Value);
         }
+
+        if (orderKey.HasValue)
+        {
+            status.UpdateOrderKey(orderKey.Value);
+        }
+
         status.UpdateDetails(name, color);
-
-
         UpdateTimestamp();
     }
 
-    public void DeleteStatus(Guid statusId)
+    public void RemoveStatus(Guid statusId)
     {
-        throw new InvalidOperationException("This operation requires a domain-service check. Use DeleteStatus(Guid statusId, IStatusUsageChecker usageChecker).");
-    }
-
-    public async Task DeleteStatus(Guid statusId, IStatusUsageCheker usageChecker)
-    {
-        if (usageChecker == null) throw new ArgumentNullException(nameof(usageChecker));
-
         var status = _statuses.FirstOrDefault(s => s.Id == statusId);
         if (status == null)
             throw new InvalidOperationException("Status not found in this workspace.");
 
         if (status.IsDefaultStatus)
-            throw new InvalidOperationException("Cannot delete the default status.");
-
-        if (await usageChecker.IsInUseAsync(statusId))
-            throw new InvalidOperationException("Cannot delete a status that is currently in use by tasks.");
+            throw new InvalidOperationException("Default status cannot be removed.");
 
         _statuses.Remove(status);
         UpdateTimestamp();
     }
-
-    public void ReorderStatuses(List<Guid> statusIds)
-    {
-        if (statusIds.Count != _statuses.Count)
-            throw new ArgumentException("Must provide all status IDs for reordering.", nameof(statusIds));
-
-        var allStatusesExist = statusIds.All(id => _statuses.Any(s => s.Id == id));
-        if (!allStatusesExist)
-            throw new ArgumentException("One or more status IDs are invalid.", nameof(statusIds));
-
-        for (int i = 0; i < statusIds.Count; i++)
-        {
-            var status = _statuses.First(s => s.Id == statusIds[i]);
-            status.UpdateOrderIndex(i);
-        }
-
-        UpdateTimestamp();
-    }
-
     // === PRIVATE HELPERS ===
 
     private void CreateDefaultStatuses()
     {
-        CreateStatus("To Do", "#6B7280", true);
-        CreateStatus("In Progress", "#3B82F6");
-        CreateStatus("Review", "#F59E0B");
-        CreateStatus("Done", "#10B981");
+        CreateStatus("To Do", "#6B7280", 10000, true);
+        CreateStatus("In Progress", "#3B82F6", 20000);
+        CreateStatus("Review", "#F59E0B", 30000);
+        CreateStatus("Done", "#10B981", 40000);
     }
 
     private static string GenerateRandomCode(int length = 6)

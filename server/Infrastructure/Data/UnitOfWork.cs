@@ -2,8 +2,8 @@ using Application.Interfaces.Repositories;
 using Infrastructure.Data.Repositories;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
-using Infrastructure.Data.Extensions;
 using Domain.Common.Interfaces;
+using Infrastructure.Events.Extensions;
 
 
 namespace Infrastructure.Data
@@ -88,13 +88,12 @@ namespace Infrastructure.Data
         {
             var result = await _context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
 
-            var snapshots = _context.ChangeTracker.CollectAggregateDomainEvents();
-            var domainEvents = snapshots.FlattenEvents();
+            var domainEvents = _context.ChangeTracker.CollectDomainEvents();
 
             if (domainEvents.Count > 0)
             {
                 await _domainDispatcher.DispatchAsync(domainEvents, cancellationToken).ConfigureAwait(false);
-                snapshots.ClearDomainEventsFromSnapshot();
+                _context.ChangeTracker.ClearDomainEvents();
             }
 
             return result;

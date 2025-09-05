@@ -27,7 +27,7 @@ public class ProjectFolderConfiguration : IEntityTypeConfiguration<ProjectFolder
             .IsRequired()
             .HasDefaultValue(false);
 
-        builder.Property(f => f.OrderIndex); // Added
+        builder.Property(f => f.OrderKey); // Added
 
         builder.Property(f => f.CreatorId)
             .IsRequired();

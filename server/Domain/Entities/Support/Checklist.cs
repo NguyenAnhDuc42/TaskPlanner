@@ -7,11 +7,11 @@ public class Checklist : Entity
 {
     public Guid ProjectTaskId { get; private set; }
     public string Title { get; private set; } = null!;
-    public int OrderIndex { get; private set; }
+    public long OrderKey { get; private set; }
 
     private Checklist() { } // EF Core
 
-    private Checklist(Guid id, string title, Guid projectTaskId, int orderIndex = 0)
+    private Checklist(Guid id, string title, Guid projectTaskId, long orderKey = 0)
         : base(id)
     {
         if (string.IsNullOrWhiteSpace(title)) 
@@ -21,11 +21,11 @@ public class Checklist : Entity
 
         Title = title.Trim();
         ProjectTaskId = projectTaskId;
-        OrderIndex = orderIndex;
+        OrderKey = orderKey;
     }
 
-    public static Checklist Create(string title, Guid projectTaskId, int orderIndex = 0)
-        => new Checklist(Guid.NewGuid(), title, projectTaskId, orderIndex);
+    public static Checklist Create(string title, Guid projectTaskId, long orderKey = 0)
+        => new Checklist(Guid.NewGuid(), title, projectTaskId, orderKey);
 
     public void UpdateTitle(string newTitle)
     {
@@ -37,12 +37,12 @@ public class Checklist : Entity
         UpdateTimestamp();
     }
 
-    public void UpdateOrder(int newIndex)
+    public void UpdateOrderKey(long newKey)
     {
-        if (newIndex < 0) throw new ArgumentOutOfRangeException(nameof(newIndex));
-        if (OrderIndex == newIndex) return;
+        if (newKey < 0) throw new ArgumentOutOfRangeException(nameof(newKey));
+        if (OrderKey == newKey) return;
 
-        OrderIndex = newIndex;
+        OrderKey = newKey;
         UpdateTimestamp();
     }
 }

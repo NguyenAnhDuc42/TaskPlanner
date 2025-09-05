@@ -9,7 +9,9 @@ using Application.Features.WorkspaceFeatures.CreateWrokspace;
 using Application.Interfaces.Repositories;
 using Application.Interfaces.Services;
 using Domain.Entities.ProjectEntities;
+using Domain.Entities.Support;
 using Domain.Enums;
+using Domain.Services.UsageChecker;
 using Infrastructure.Data.Repositories.Extensions;
 using Infrastructure.Helper;
 using Microsoft.EntityFrameworkCore;
@@ -371,29 +373,121 @@ namespace Infrastructure.Services.ProjectEntities
             var currentUserId = _currentUserService.CurrentUserId();
             await _permissionService.EnsurePermissionAsync(currentUserId, workspaceId, Permission.Workspace_Admin, ct);
 
-            var workspace = await _unitOfWork.ProjectWorkspaces.GetByIdAsync(workspaceId, ct) ?? throw new NotFoundException($"Workspace {workspaceId} not found");
-            workspace.CreateStatus(name, color, isDefaultStatus);
+            var workspace = await _unitOfWork.ProjectWorkspaces.Query.Include(w => w.Statuses).FirstOrDefaultAsync(w => w.Id == workspaceId, ct)
+                ?? throw new NotFoundException($"Workspace {workspaceId} not found");
+
+            // assign new key at the end
+            var maxKey = workspace.Statuses.Any()
+                ? workspace.Statuses.Max(s => s.OrderKey)
+                : 0;
+
+            var nextKey = maxKey + 10000;
+
+            workspace.CreateStatus(name, color, nextKey, isDefaultStatus);
             _unitOfWork.ProjectWorkspaces.Update(workspace);
 
-            _logger.LogInformation("Status created in workspace {WorkspaceId} by {UserId}", workspaceId, currentUserId);
+            _logger.LogInformation("Status created in workspace {WorkspaceId} by {UserId} at orderKey {OrderKey}",
+                workspaceId, currentUserId, nextKey);
+
             await _cache.RemoveAsync($"workspace_{workspaceId}", ct);
         }
 
-        public async Task UpdateStatusAsync(Guid workspaceId, Guid statusId, string? name, string? color, bool? isDefaultStatus = null, CancellationToken ct = default)
+        public async Task UpdateStatusAsync(Guid workspaceId, Guid statusId, string? name, string? color, bool? isDefaultStatus = null, long? orderKey = null, CancellationToken ct = default)
         {
             var currentUserId = _currentUserService.CurrentUserId();
             await _permissionService.EnsurePermissionAsync(currentUserId, workspaceId, Permission.Workspace_Admin, ct);
 
-            var workspace = await _unitOfWork.ProjectWorkspaces.GetByIdAsync(workspaceId, ct) ?? throw new NotFoundException($"Workspace {workspaceId} not found");
-            workspace.UpdateStatus(statusId, name, color, isDefaultStatus);
+            var workspace = await _unitOfWork.ProjectWorkspaces.Query.Include(w => w.Statuses).FirstOrDefaultAsync(w => w.Id == workspaceId, ct)
+                 ?? throw new NotFoundException($"Workspace {workspaceId} not found");
+
+            var updateName = name ?? workspace.Name;
+            var updateColor = color ?? workspace.Color;
+
+            workspace.UpdateStatus(statusId, updateName, updateColor, orderKey, isDefaultStatus);
             _unitOfWork.ProjectWorkspaces.Update(workspace);
 
-            _logger.LogInformation("Status {StatusId} updated in workspace {WorkspaceId} by {UserId}", statusId, workspaceId, currentUserId);
+            _logger.LogInformation("Status {StatusId} updated in workspace {WorkspaceId} by {UserId}",
+                statusId, workspaceId, currentUserId);
+
             await _cache.RemoveAsync($"workspace_{workspaceId}", ct);
         }
 
         // Intentionally left unfinished per request - keep method placeholder
-        public async Task UpdateStatusOrderAsync()
+        public async Task ReorderStatusesAsync(Guid workspaceId, List<Guid> orderedStatusIds, CancellationToken ct)
+        {
+            var currentUserId = _currentUserService.CurrentUserId();
+            await _permissionService.EnsurePermissionAsync(currentUserId, workspaceId, Permission.Workspace_Admin, ct);
+
+            var workspace = await _unitOfWork.ProjectWorkspaces.Query.Include(w => w.Statuses).FirstOrDefaultAsync(w => w.Id == workspaceId, ct)
+                ?? throw new NotFoundException($"Workspace {workspaceId} not found");
+
+            // validate: all ids must belong to workspace
+            var existingIds = workspace.Statuses.Select(s => s.Id).ToHashSet();
+            if (!orderedStatusIds.All(existingIds.Contains))
+                throw new InvalidOperationException("One or more statusIds do not belong to this workspace.");
+
+            // reassign order keys with spacing
+            long step = 10000;
+            for (int i = 0; i < orderedStatusIds.Count; i++)
+            {
+                var status = workspace.Statuses.First(s => s.Id == orderedStatusIds[i]);
+                var newKey = (i + 1) * step;
+                status.UpdateOrderKey(newKey);
+            }
+
+            _unitOfWork.ProjectWorkspaces.Update(workspace);
+
+            _logger.LogInformation("Statuses reordered in workspace {WorkspaceId} by {UserId}",
+                workspaceId, currentUserId);
+
+            await _cache.RemoveAsync($"workspace_{workspaceId}", ct);
+        }
+        public async Task DeleteStatusAsync(Guid workspaceId, Guid statusId, IStatusUsageCheker usageChecker, CancellationToken ct)
+        {
+            var currentUserId = _currentUserService.CurrentUserId();
+            await _permissionService.EnsurePermissionAsync(currentUserId, workspaceId, Permission.Workspace_Admin, ct);
+
+            var workspace = await _unitOfWork.ProjectWorkspaces.Query.Include(w => w.Statuses).FirstOrDefaultAsync(w => w.Id == workspaceId, ct)
+                ?? throw new NotFoundException($"Workspace {workspaceId} not found");
+
+            var status = workspace.Statuses.FirstOrDefault(s => s.Id == statusId);
+            if (status == null)
+                throw new NotFoundException($"Status {statusId} not found in workspace {workspaceId}");
+
+            // check usage
+            var isUsed = await usageChecker.IsStatusInUseAsync(statusId, ct);
+            if (isUsed)
+                throw new InvalidOperationException($"Status {statusId} is in use and cannot be deleted.");
+
+            workspace.RemoveStatus(statusId); // domain method you should expose
+            _unitOfWork.ProjectWorkspaces.Update(workspace);
+
+            _logger.LogInformation("Status {StatusId} deleted in workspace {WorkspaceId} by {UserId}",
+                statusId, workspaceId, currentUserId);
+
+            await _cache.RemoveAsync($"workspace_{workspaceId}", ct);
+        }
+        F
+
+        public async Task<Status?> GetStatusByIdAsync(Guid workspaceId, Guid statusId, CancellationToken ct)
+        {
+
+        }
+
+        public async Task<IEnumerable<Status>> GetAllStatusesAsync(Guid workspaceId, CancellationToken ct)
+        {
+
+        }
+        public async Task AddTagAsync(Guid workspaceId, string tag, CancellationToken ct)
+        {
+
+        }
+        public async Task RemoveTagAsync(Guid workspaceId, string tag, CancellationToken ct)
+        {
+
+        }
+
+        partial async IEnumerable<Tag> GetTagsAsync(Guid workspaceId, CancellationToken ct)
         {
 
         }

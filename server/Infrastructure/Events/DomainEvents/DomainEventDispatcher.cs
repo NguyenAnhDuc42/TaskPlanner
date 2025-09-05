@@ -14,16 +14,26 @@ public class DomainEventDispatcher : IDomainEventDispatcher
 
     public async Task DispatchAsync(IEnumerable<IDomainEvent> domainEvents, CancellationToken cancellationToken = default)
     {
-        if (domainEvents == null || !domainEvents.Any()) return;
+        if (domainEvents is null)
+            throw new ArgumentNullException(nameof(domainEvents));
+        if (!domainEvents.Any()) return;
 
         foreach (var domainEvent in domainEvents)
         {
             var wrapperType = typeof(DomainEventNotification<>).MakeGenericType(domainEvent.GetType());
             var wrapper = Activator.CreateInstance(wrapperType, domainEvent);
-            if (wrapper is INotification wrappedNotification)
+            var tasks = domainEvents
+            .Where(e => e is not null)
+            .Select(e =>
             {
-                await _mediator.Publish(wrappedNotification, cancellationToken).ConfigureAwait(false);
-            }
+                var wrapperType = typeof(DomainEventNotification<>).MakeGenericType(e.GetType());
+                var wrapper = Activator.CreateInstance(wrapperType, e);
+                return wrapper is INotification notification
+                    ? _mediator.Publish(notification, cancellationToken)
+                    : Task.CompletedTask;
+            });
+
+            await Task.WhenAll(tasks).ConfigureAwait(false);
         }
 
     }

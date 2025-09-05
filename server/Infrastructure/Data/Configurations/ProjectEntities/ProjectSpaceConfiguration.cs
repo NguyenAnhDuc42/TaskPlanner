@@ -35,7 +35,7 @@ public class ProjectSpaceConfiguration : IEntityTypeConfiguration<ProjectSpace>
             .IsRequired()
             .HasDefaultValue(false);
 
-        builder.Property(s => s.OrderIndex); // Added
+        builder.Property(s => s.OrderKey); // Added
 
         builder.Property(s => s.CreatorId)
             .IsRequired();

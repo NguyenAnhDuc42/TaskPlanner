@@ -22,7 +22,7 @@ public class StatusConfiguration : IEntityTypeConfiguration<Status>
                .HasMaxLength(50)
                .IsRequired();
 
-        builder.Property(x => x.OrderIndex)
+        builder.Property(x => x.OrderKey)
                .IsRequired();
 
         builder.Property(x => x.IsDefaultStatus)

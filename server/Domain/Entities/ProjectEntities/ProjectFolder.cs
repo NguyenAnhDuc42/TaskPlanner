@@ -12,7 +12,7 @@ public class ProjectFolder : Aggregate, IHasWorkspaceId
     public Guid ProjectSpaceId { get; private set; }
     public string Name { get; private set; } = null!;
     public string? Description { get; private set; }
-    public int? OrderIndex { get; private set; }
+    public long? OrderKey { get; private set; }
     public Visibility Visibility { get; private set; }
     public bool IsArchived { get; private set; }
     public Guid CreatorId { get; private set; }
@@ -24,7 +24,7 @@ public class ProjectFolder : Aggregate, IHasWorkspaceId
     private ProjectFolder() { } // For EF Core
 
     internal ProjectFolder(Guid id, Guid projectWorkspaceId, Guid projectSpaceId, string name,
-        string? description, Visibility visibility, int orderIndex, Guid creatorId)
+        string? description, Visibility visibility, long orderKey, Guid creatorId)
     {
         Id = id;
         ProjectWorkspaceId = projectWorkspaceId;
@@ -32,7 +32,7 @@ public class ProjectFolder : Aggregate, IHasWorkspaceId
         Name = name;
         Description = description;
         Visibility = visibility;
-        OrderIndex = orderIndex;
+        OrderKey = orderKey;
         CreatorId = creatorId;
     }
 
@@ -73,14 +73,14 @@ public class ProjectFolder : Aggregate, IHasWorkspaceId
         UpdateTimestamp();
     }
 
-    internal void UpdateOrderIndex(int newOrderIndex)
+    internal void UpdateOrderKey(long newOrderKey)
     {
-        if (newOrderIndex < 0)
-            throw new ArgumentOutOfRangeException(nameof(newOrderIndex), "Order index cannot be negative.");
+        if (newOrderKey < 0)
+            throw new ArgumentOutOfRangeException(nameof(newOrderKey), "Order key cannot be negative.");
 
-        if (OrderIndex == newOrderIndex) return;
+        if (OrderKey == newOrderKey) return;
 
-        OrderIndex = newOrderIndex;
+        OrderKey = newOrderKey;
         UpdateTimestamp();
     }
 

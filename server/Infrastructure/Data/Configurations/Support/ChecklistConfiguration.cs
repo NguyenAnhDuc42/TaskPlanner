@@ -18,6 +18,9 @@ public class ChecklistConfiguration : IEntityTypeConfiguration<Checklist>
                .HasMaxLength(255)
                .IsRequired();
 
+        builder.Property(x => x.OrderKey)
+               .IsRequired();
+
         builder.HasOne<ProjectTask>()
                .WithMany(t => t.Checklists)
                .HasForeignKey(x => x.ProjectTaskId);

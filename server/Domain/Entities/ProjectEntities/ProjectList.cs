@@ -16,7 +16,7 @@ public class ProjectList : Aggregate , IHasWorkspaceId
     public Guid? ProjectFolderId { get; private set; }
     public string Name { get; private set; } = null!;
     public string? Description { get; private set; }
-    public int? OrderIndex { get; private set; }
+    public long? OrderKey { get; private set; }
     public Visibility Visibility { get; private set; }
     public Guid CreatorId { get; private set; }
     public bool IsArchived { get; private set; }
@@ -32,7 +32,7 @@ public class ProjectList : Aggregate , IHasWorkspaceId
     private ProjectList() { } // For EF Core
 
     internal ProjectList(Guid id, Guid projectWorkspaceId, Guid projectSpaceId, Guid? projectFolderId,
-        string name, string? description, Visibility visibility, int orderIndex, Guid creatorId)
+        string name, string? description, Visibility visibility, long orderKey, Guid creatorId)
     {
         Id = id;
         ProjectWorkspaceId = projectWorkspaceId;
@@ -41,7 +41,7 @@ public class ProjectList : Aggregate , IHasWorkspaceId
         Name = name;
         Description = description;
         Visibility = visibility;
-        OrderIndex = orderIndex;
+        OrderKey = orderKey;
         CreatorId = creatorId;
         IsArchived = false;
     }
@@ -103,11 +103,11 @@ public class ProjectList : Aggregate , IHasWorkspaceId
         UpdateTimestamp();
     }
 
-    internal void UpdateOrderIndex(int newOrderIndex)
+    internal void UpdateOrderKey(long newOrderKey)
     {
-        if (OrderIndex == newOrderIndex) return;
+        if (OrderKey == newOrderKey) return;
 
-        OrderIndex = newOrderIndex;
+        OrderKey = newOrderKey;
         UpdateTimestamp();
     }
 

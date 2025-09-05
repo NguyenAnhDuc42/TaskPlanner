@@ -31,7 +31,7 @@ public class ProjectListConfiguration : IEntityTypeConfiguration<ProjectList>
 
         builder.Property(l => l.StartDate); // Added
         builder.Property(l => l.DueDate); // Added
-        builder.Property(l => l.OrderIndex); // Added
+        builder.Property(l => l.OrderKey); // Added
 
         // Relationships
         builder.HasOne<ProjectSpace>()

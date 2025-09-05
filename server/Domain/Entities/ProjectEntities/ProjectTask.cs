@@ -28,7 +28,7 @@ public class ProjectTask : Aggregate , IHasWorkspaceId
     public DateTimeOffset? DueDate { get; private set; }
     public int? StoryPoints { get; private set; }
     public long? TimeEstimateSeconds { get; private set; }
-    public int? OrderIndex { get; private set; }
+    public long? OrderKey { get; private set; }
     public Visibility Visibility { get; private set; }
 
     public Guid WorkspaceId => ProjectWorkspaceId;
@@ -60,7 +60,7 @@ public class ProjectTask : Aggregate , IHasWorkspaceId
     internal ProjectTask(Guid id, Guid projectWorkspaceId, Guid projectSpaceId,
         Guid? projectFolderId, Guid projectListId, string name, string? description,
         Priority priority, DateTimeOffset? startDate, DateTimeOffset? dueDate, Visibility visibility,
-        int orderIndex, Guid creatorId, Guid? parentTaskId = null)
+        long orderKey, Guid creatorId, Guid? parentTaskId = null)
     {
         Id = id;
         ProjectWorkspaceId = projectWorkspaceId;
@@ -73,7 +73,7 @@ public class ProjectTask : Aggregate , IHasWorkspaceId
         StartDate = startDate;
         DueDate = dueDate;
         Visibility = visibility;
-        OrderIndex = orderIndex;
+        OrderKey = orderKey;
         CreatorId = creatorId;
         ParentTaskId = parentTaskId;
 
@@ -162,11 +162,11 @@ public class ProjectTask : Aggregate , IHasWorkspaceId
         UpdateTimestamp();
     }
 
-    internal void UpdateOrderIndex(int newOrderIndex)
+    internal void UpdateOrderKey(long newOrderKey)
     {
-        if (OrderIndex == newOrderIndex) return;
+        if (OrderKey == newOrderKey) return;
 
-        OrderIndex = newOrderIndex;
+        OrderKey = newOrderKey;
         UpdateTimestamp();
     }
 
@@ -202,10 +202,10 @@ public class ProjectTask : Aggregate , IHasWorkspaceId
 
         ValidateBasicInfo(name, description);
 
-        var orderIndex = _subtasks.Count;
+        long orderKey = _subtasks.Count;
         var subtask = new ProjectTask(Guid.NewGuid(), ProjectWorkspaceId, ProjectSpaceId,
             ProjectFolderId, ProjectListId, name, description, priority,
-            null, null, Visibility, orderIndex, CreatorId, Id);
+            null, null, Visibility, orderKey, CreatorId, Id);
 
         _subtasks.Add(subtask);
         UpdateTimestamp();

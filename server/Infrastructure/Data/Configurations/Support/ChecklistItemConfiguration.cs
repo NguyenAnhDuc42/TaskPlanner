@@ -17,6 +17,9 @@ public class ChecklistItemConfiguration : IEntityTypeConfiguration<ChecklistItem
                .HasMaxLength(500)
                .IsRequired();
 
+        builder.Property(x => x.OrderKey)
+               .IsRequired();
+
         builder.HasOne<Checklist>()
                .WithMany() // no Items navigation anymore
                .HasForeignKey(x => x.ChecklistId);
