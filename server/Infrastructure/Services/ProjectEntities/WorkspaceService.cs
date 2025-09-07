@@ -1,8 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
 using Application.Common.Filters;
 using Application.Common.Results;
 using Application.Features.WorkspaceFeatures.CreateWrokspace;
@@ -11,9 +6,9 @@ using Application.Interfaces.Services;
 using Domain.Entities.ProjectEntities;
 using Domain.Entities.Support;
 using Domain.Enums;
-using Domain.Services.UsageChecker;
 using Infrastructure.Data.Repositories.Extensions;
 using Infrastructure.Helper;
+using Infrastructure.Interfaces.Checkers;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Hybrid;
 using Microsoft.Extensions.Logging;
@@ -442,24 +437,24 @@ namespace Infrastructure.Services.ProjectEntities
 
             await _cache.RemoveAsync($"workspace_{workspaceId}", ct);
         }
-        public async Task DeleteStatusAsync(Guid workspaceId, Guid statusId, IStatusUsageCheker usageChecker, CancellationToken ct)
+        public async Task DeleteStatusAsync(Guid workspaceId, Guid statusId, IStatusUsageChecker usageChecker, CancellationToken ct)
         {
             var currentUserId = _currentUserService.CurrentUserId();
             await _permissionService.EnsurePermissionAsync(currentUserId, workspaceId, Permission.Workspace_Admin, ct);
 
-            var workspace = await _unitOfWork.ProjectWorkspaces.Query.Include(w => w.Statuses).FirstOrDefaultAsync(w => w.Id == workspaceId, ct)
+            var workspace = await _unitOfWork.ProjectWorkspaces.Query
+                .Include(w => w.Statuses)
+                .FirstOrDefaultAsync(w => w.Id == workspaceId, ct)
                 ?? throw new NotFoundException($"Workspace {workspaceId} not found");
 
-            var status = workspace.Statuses.FirstOrDefault(s => s.Id == statusId);
-            if (status == null)
-                throw new NotFoundException($"Status {statusId} not found in workspace {workspaceId}");
+            var status = workspace.Statuses.FirstOrDefault(s => s.Id == statusId)
+                ?? throw new NotFoundException($"Status {statusId} not found in workspace {workspaceId}");
 
             // check usage
-            var isUsed = await usageChecker.IsStatusInUseAsync(statusId, ct);
-            if (isUsed)
+            if (await usageChecker.IsInUseAsync(statusId, ct))
                 throw new InvalidOperationException($"Status {statusId} is in use and cannot be deleted.");
 
-            workspace.RemoveStatus(statusId); // domain method you should expose
+            workspace.RemoveStatus(statusId); // domain method
             _unitOfWork.ProjectWorkspaces.Update(workspace);
 
             _logger.LogInformation("Status {StatusId} deleted in workspace {WorkspaceId} by {UserId}",
@@ -467,29 +462,67 @@ namespace Infrastructure.Services.ProjectEntities
 
             await _cache.RemoveAsync($"workspace_{workspaceId}", ct);
         }
-        F
+
+
 
         public async Task<Status?> GetStatusByIdAsync(Guid workspaceId, Guid statusId, CancellationToken ct)
         {
+            var workspace = await _unitOfWork.ProjectWorkspaces.Query
+                .Include(w => w.Statuses)
+                .FirstOrDefaultAsync(w => w.Id == workspaceId, ct)
+                ?? throw new NotFoundException($"Workspace {workspaceId} not found");
 
+            return workspace.Statuses.FirstOrDefault(s => s.Id == statusId);
         }
 
         public async Task<IEnumerable<Status>> GetAllStatusesAsync(Guid workspaceId, CancellationToken ct)
         {
+            var workspace = await _unitOfWork.ProjectWorkspaces.Query
+                .Include(w => w.Statuses)
+                .FirstOrDefaultAsync(w => w.Id == workspaceId, ct)
+                ?? throw new NotFoundException($"Workspace {workspaceId} not found");
 
+            return workspace.Statuses.OrderBy(s => s.OrderKey).ToList();
         }
-        public async Task AddTagAsync(Guid workspaceId, string tag, CancellationToken ct)
+        public async Task AddTagAsync(Guid workspaceId, string tag,string color, CancellationToken ct)
         {
+            var currentUserId = _currentUserService.CurrentUserId();
+            await _permissionService.EnsurePermissionAsync(currentUserId, workspaceId, Permission.Workspace_Admin, ct);
 
+            var workspace = await _unitOfWork.ProjectWorkspaces.GetByIdAsync(workspaceId, ct)
+                ?? throw new NotFoundException($"Workspace {workspaceId} not found");
+
+            workspace.AddTag(tag,color);
+            _unitOfWork.ProjectWorkspaces.Update(workspace);
+
+            _logger.LogInformation("Tag {Tag} added in workspace {WorkspaceId} by {UserId}", tag, workspaceId, currentUserId);
+            await _cache.RemoveAsync($"workspace_{workspaceId}", ct);
         }
-        public async Task RemoveTagAsync(Guid workspaceId, string tag, CancellationToken ct)
-        {
 
+        public async Task RemoveTagAsync(Guid workspaceId, Guid tagId, CancellationToken ct)
+        {
+            var currentUserId = _currentUserService.CurrentUserId();
+            await _permissionService.EnsurePermissionAsync(currentUserId, workspaceId, Permission.Workspace_Admin, ct);
+
+            var workspace = await _unitOfWork.ProjectWorkspaces.GetByIdAsync(workspaceId, ct)
+                ?? throw new NotFoundException($"Workspace {workspaceId} not found");
+
+            workspace.RemoveTag(tagId);
+            _unitOfWork.ProjectWorkspaces.Update(workspace);
+
+            _logger.LogInformation("Tag {Tag} removed in workspace {WorkspaceId} by {UserId}", tagId, workspaceId, currentUserId);
+            await _cache.RemoveAsync($"workspace_{workspaceId}", ct);
         }
 
-        partial async IEnumerable<Tag> GetTagsAsync(Guid workspaceId, CancellationToken ct)
-        {
 
+        public async Task<IEnumerable<Tag>> GetTagsAsync(Guid workspaceId, CancellationToken ct)
+        {
+            var workspace = await _unitOfWork.ProjectWorkspaces.Query.AsNoTracking()
+                .Include(w => w.Tags) // make sure navigation exists
+                .FirstOrDefaultAsync(w => w.Id == workspaceId, ct)
+                ?? throw new NotFoundException($"Workspace {workspaceId} not found");
+
+            return workspace.Tags.ToList();
         }
     }
 }

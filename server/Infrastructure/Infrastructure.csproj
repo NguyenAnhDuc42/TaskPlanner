@@ -31,8 +31,8 @@
   <ItemGroup>
     <Folder Include="Data\Configurations\ProjectEntities\" />
     <Folder Include="Events\IntergrationsEvents\" />
+    <Folder Include="Helper\Checkers\" />
     <Folder Include="Helper\Exceptions\" />
-    <Folder Include="Interfaces\" />
     <Folder Include="MessageBus\" />
     <Folder Include="Services\FileStorage\" />
     <Folder Include="Services\Logging\" />

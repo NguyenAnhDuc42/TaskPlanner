@@ -1,6 +1,6 @@
 using System;
 
-namespace Domain.Services.UsageChecker;
+namespace Infrastructure.Interfaces.Checkers;
 
 public interface IEntityUsageChecker
 {

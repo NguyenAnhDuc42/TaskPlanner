@@ -2,7 +2,6 @@
 using Domain.Entities.Relationship;
 using Domain.Entities.Support;
 using Domain.Enums;
-using Domain.Services.UsageChecker;
 using static Domain.Common.ColorValidator;
 using Domain.Common.Interfaces;
 
@@ -346,6 +345,38 @@ public class ProjectWorkspace : Aggregate, IHasWorkspaceId
         _statuses.Remove(status);
         UpdateTimestamp();
     }
+
+
+    // === WORKFLOW TAG MANAGEMENT ===
+    public Tag AddTag(string name, string? color)
+    {
+        name = name?.Trim() ?? string.Empty;
+
+        if (string.IsNullOrWhiteSpace(name))
+            throw new ArgumentException("Tag name cannot be empty.", nameof(name));
+
+        // enforce unique name within workspace (case-insensitive)
+        if (_tags.Any(t => string.Equals(t.Name, name, StringComparison.OrdinalIgnoreCase)))
+            throw new InvalidOperationException($"Tag '{name}' already exists in this workspace.");
+
+        var tag = Tag.Create(name, color, Id);
+        _tags.Add(tag);
+
+        UpdateTimestamp();
+        return tag;
+    }
+
+    public void RemoveTag(Guid tagId)
+    {
+        var tag = _tags.FirstOrDefault(t => t.Id == tagId);
+        if (tag == null)
+            throw new InvalidOperationException("Tag not found in this workspace.");
+
+        _tags.Remove(tag);
+        UpdateTimestamp();
+    }
+
+
     // === PRIVATE HELPERS ===
 
     private void CreateDefaultStatuses()
