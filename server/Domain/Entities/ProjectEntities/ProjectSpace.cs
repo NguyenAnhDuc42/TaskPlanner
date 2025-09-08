@@ -28,7 +28,7 @@ namespace Domain.Entities.ProjectEntities
 
         private ProjectSpace() { } // For EF Core
 
-        internal ProjectSpace(Guid id, Guid workspaceId, string name, string? description,
+        private ProjectSpace(Guid id, Guid workspaceId, string name, string? description,
             string icon, string color, Visibility visibility, long orderKey, Guid creatorId)
         {
             Id = id;
@@ -41,6 +41,25 @@ namespace Domain.Entities.ProjectEntities
             OrderKey = orderKey;
             CreatorId = creatorId;
             IsArchived = false;
+        }
+
+        public static ProjectSpace Create(Guid workspaceId, string name, string? description, string color, string icon, Visibility visibility, Guid creatorId, long orderKey)
+        {
+            name = name?.Trim() ?? string.Empty;
+            description = string.IsNullOrWhiteSpace(description?.Trim()) ? null : description.Trim();
+            color = color?.Trim() ?? string.Empty;
+            icon = icon?.Trim() ?? string.Empty;
+
+            ValidateGuid(workspaceId, nameof(workspaceId));
+            ValidateGuid(creatorId, nameof(creatorId));
+            ValidateBasicInfo(name, description);
+            ValidateVisualSettings(color, icon);
+
+            var space = new ProjectSpace(Guid.NewGuid(), workspaceId, name, description, icon, color, visibility, orderKey, creatorId);
+
+            space._members.Add(UserProjectSpace.Create(creatorId, space.Id));
+
+            return space;
         }
 
         // === SELF MANAGEMENT ===

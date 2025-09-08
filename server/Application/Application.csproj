@@ -15,6 +15,17 @@
 
   <ItemGroup>
     <Folder Include="Common\Mapping\" />
+    <Folder Include="Contract\WorkspaceContract\" />
+    <Folder Include="Features\SpaceFeatures\AddSpaceMembers\" />
+    <Folder Include="Features\SpaceFeatures\ChangeSpaceArchive\" />
+    <Folder Include="Features\SpaceFeatures\ChangeSpaceVisibility\" />
+    <Folder Include="Features\SpaceFeatures\DeleteSpaceMembers\" />
+    <Folder Include="Features\SpaceFeatures\DeleteSpace\" />
+    <Folder Include="Features\SpaceFeatures\GetAllSpaces\" />
+    <Folder Include="Features\SpaceFeatures\GetSpaceStatuses\" />
+    <Folder Include="Features\SpaceFeatures\RemoveSpaceStatus\" />
+    <Folder Include="Features\SpaceFeatures\UpdateSpaceStatus\" />
+    <Folder Include="Features\SpaceFeatures\UpdateSpaceVisualSettings\" />
     <Folder Include="Features\WorkspaceFeatures\DeleteWorkspaces\" />
     <Folder Include="Features\WorkspaceFeatures\GetMembers\" />
     <Folder Include="Features\WorkspaceFeatures\UpdateWorkspace\" />
