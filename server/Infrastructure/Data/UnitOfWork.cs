@@ -4,7 +4,9 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
 using Domain.Common.Interfaces;
 using Infrastructure.Events.Extensions;
-
+using System.Data;
+using System.Data.Common;
+using Dapper;
 
 namespace Infrastructure.Data
 {
@@ -12,7 +14,6 @@ namespace Infrastructure.Data
     {
         private readonly TaskPlanDbContext _context;
         private readonly IDomainEventDispatcher _domainDispatcher;
-
         private IDbContextTransaction? _currentTransaction;
 
         private IUserRepository? _users;
@@ -28,6 +29,7 @@ namespace Infrastructure.Data
             _context = context;
             _domainDispatcher = domainDispatcher;
         }
+
         #region Repositories
         public IUserRepository Users => _users ??= new UserRepository(_context);
         public ISessionRepository Sessions => _sessions ??= new SessionRepository(_context);
@@ -37,6 +39,8 @@ namespace Infrastructure.Data
         public IProjectListRepository ProjectLists => _projectLists ??= new ProjectListRepository(_context);
         public IProjectTaskRepository ProjectTasks => _projectTasks ??= new ProjectTaskRepository(_context);
         #endregion
+
+        private IDbConnection Database => _context.Database.GetDbConnection();
         public DbSet<T> Set<T>() where T : class => _context.Set<T>();
 
         public bool HasActiveTransaction => _currentTransaction != null;
@@ -123,5 +127,38 @@ namespace Infrastructure.Data
                 throw;
             }
         }
+
+        #region Dapper Helpers
+
+        private async Task EnsureConnectionOpenAsync(CancellationToken ct)
+        {
+            if (Database.State != ConnectionState.Open)
+            {
+                if (Database is DbConnection dbConn)
+                    await dbConn.OpenAsync(ct);
+                else
+                    Database.Open();
+            }
+        }
+
+        public async Task<IEnumerable<T>> QueryAsync<T>(string sql, object? param = null, CancellationToken ct = default)
+        {
+            await EnsureConnectionOpenAsync(ct);
+            return await Database.QueryAsync<T>(sql, param, _currentTransaction?.GetDbTransaction());
+        }
+
+        public async Task<T?> QuerySingleOrDefaultAsync<T>(string sql, object? param = null, CancellationToken ct = default)
+        {
+            await EnsureConnectionOpenAsync(ct);
+            return await Database.QuerySingleOrDefaultAsync<T>(sql, param, _currentTransaction?.GetDbTransaction());
+        }
+
+        public async Task<int> ExecuteAsync(string sql, object? param = null, CancellationToken ct = default)
+        {
+            await EnsureConnectionOpenAsync(ct);
+            return await Database.ExecuteAsync(sql, param, _currentTransaction?.GetDbTransaction());
+        }
+
+        #endregion
     }
 }

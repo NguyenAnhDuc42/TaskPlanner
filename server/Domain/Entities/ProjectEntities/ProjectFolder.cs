@@ -6,9 +6,8 @@ using Domain.Common.Interfaces;
 
 namespace Domain.Entities.ProjectEntities;
 
-public class ProjectFolder : Aggregate, IHasWorkspaceId
+public class ProjectFolder : Aggregate
 {
-    public Guid ProjectWorkspaceId { get; private set; }
     public Guid ProjectSpaceId { get; private set; }
     public string Name { get; private set; } = null!;
     public string? Description { get; private set; }
@@ -16,18 +15,16 @@ public class ProjectFolder : Aggregate, IHasWorkspaceId
     public Visibility Visibility { get; private set; }
     public bool IsArchived { get; private set; }
     public Guid CreatorId { get; private set; }
-    public Guid WorkspaceId => ProjectWorkspaceId;
 
     private readonly List<UserProjectFolder> _members = new();
     public IReadOnlyCollection<UserProjectFolder> Members => _members.AsReadOnly();
 
     private ProjectFolder() { } // For EF Core
 
-    internal ProjectFolder(Guid id, Guid projectWorkspaceId, Guid projectSpaceId, string name,
+    internal ProjectFolder(Guid id, Guid projectSpaceId, string name,
         string? description, Visibility visibility, long orderKey, Guid creatorId)
     {
         Id = id;
-        ProjectWorkspaceId = projectWorkspaceId;
         ProjectSpaceId = projectSpaceId;
         Name = name;
         Description = description;
@@ -38,11 +35,10 @@ public class ProjectFolder : Aggregate, IHasWorkspaceId
 
     // === VALIDATION METHOD ===
     public static void ValidateForCreation(string name, string? description, string color,
-        Guid projectWorkspaceId, Guid projectSpaceId, Guid creatorId)
+        Guid projectSpaceId, Guid creatorId)
     {
         ValidateBasicInfo(name, description);
         ValidateColor(color);
-        ValidateGuid(projectWorkspaceId, nameof(projectWorkspaceId));
         ValidateGuid(projectSpaceId, nameof(projectSpaceId));
         ValidateGuid(creatorId, nameof(creatorId));
     }

@@ -9,9 +9,8 @@ using Domain.Common.Interfaces;
 
 namespace Domain.Entities.ProjectEntities;
 
-public class ProjectList : Aggregate , IHasWorkspaceId
+public class ProjectList : Aggregate
 {
-    public Guid ProjectWorkspaceId { get; private set; }
     public Guid ProjectSpaceId { get; private set; }
     public Guid? ProjectFolderId { get; private set; }
     public string Name { get; private set; } = null!;
@@ -24,18 +23,15 @@ public class ProjectList : Aggregate , IHasWorkspaceId
     public DateTimeOffset? StartDate { get; private set; }
     public DateTimeOffset? DueDate { get; private set; }
 
-    public Guid WorkspaceId => ProjectWorkspaceId;
-
     private readonly List<UserProjectList> _members = new();
     public IReadOnlyCollection<UserProjectList> Members => _members.AsReadOnly();
 
     private ProjectList() { } // For EF Core
 
-    internal ProjectList(Guid id, Guid projectWorkspaceId, Guid projectSpaceId, Guid? projectFolderId,
+    internal ProjectList(Guid id, Guid projectSpaceId, Guid? projectFolderId,
         string name, string? description, Visibility visibility, long orderKey, Guid creatorId)
     {
         Id = id;
-        ProjectWorkspaceId = projectWorkspaceId;
         ProjectSpaceId = projectSpaceId;
         ProjectFolderId = projectFolderId;
         Name = name;

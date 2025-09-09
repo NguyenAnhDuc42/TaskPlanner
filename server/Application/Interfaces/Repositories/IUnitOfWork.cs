@@ -24,6 +24,10 @@ namespace Application.Interfaces.Repositories
         Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
         void DetachAllEntities();
         Task<int> ExecuteInTransactionAsync(Func<Task<int>> operation, CancellationToken cancellationToken = default);
+
+        Task<IEnumerable<T>> QueryAsync<T>(string sql, object? param = null, CancellationToken cancellationToken = default);
+        Task<T?> QuerySingleOrDefaultAsync<T>(string sql, object? param = null, CancellationToken cancellationToken = default);
+        Task<int> ExecuteAsync(string sql, object? param = null, CancellationToken cancellationToken = default);
     }
 }
 // public interface IUnitOfWork : IDisposable

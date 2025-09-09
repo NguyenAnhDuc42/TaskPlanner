@@ -55,12 +55,7 @@ public class ProjectTaskConfiguration : IEntityTypeConfiguration<ProjectTask>
             .HasForeignKey(t => t.ProjectListId)
             .OnDelete(DeleteBehavior.Cascade);
 
-        // Self-referencing relationship for subtasks
-        builder.HasOne<ProjectTask>()
-            .WithMany(t => t.Subtasks)
-            .HasForeignKey(t => t.ParentTaskId)
-            .IsRequired(false)
-            .OnDelete(DeleteBehavior.Restrict); // Prevent parent task deletion if subtasks exist
+        
 
         // Relationships to join tables
         builder.HasMany(t => t.Assignees)

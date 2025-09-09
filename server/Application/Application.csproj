@@ -20,7 +20,6 @@
     <Folder Include="Features\SpaceFeatures\ChangeSpaceArchive\" />
     <Folder Include="Features\SpaceFeatures\ChangeSpaceVisibility\" />
     <Folder Include="Features\SpaceFeatures\DeleteSpaceMembers\" />
-    <Folder Include="Features\SpaceFeatures\DeleteSpace\" />
     <Folder Include="Features\SpaceFeatures\GetAllSpaces\" />
     <Folder Include="Features\SpaceFeatures\GetSpaceStatuses\" />
     <Folder Include="Features\SpaceFeatures\RemoveSpaceStatus\" />
