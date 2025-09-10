@@ -1,4 +1,8 @@
+using Infrastructure;
+using Infrastructure.Services.RealTime.Hubs;
+
 var builder = WebApplication.CreateBuilder(args);
+
 
 // Add services to the container.
 
@@ -12,6 +16,7 @@ if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
 }
+app.MapHub<WorkspaceHub>("/hubs/workspace");
 
 app.UseHttpsRedirection();
 

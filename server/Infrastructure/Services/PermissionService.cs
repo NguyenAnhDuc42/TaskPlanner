@@ -41,29 +41,18 @@ public class PermissionService : IPermissionService
     /// <returns>The retrieved entity.</returns>
     /// <exception cref="NotFoundException">Thrown if the entity is not found.</exception>
     /// <exception cref="UnauthorizedAccessException">Thrown if the user does not have the required permissions.</exception>
-    public async Task<T> GetEntityWithPermissionAsync<T>(
-        Guid entityId, 
-        Guid userId, 
-        Permission requiredPermission, 
-        Func<IQueryable<T>, IQueryable<T>>? includeFunc = null, 
-        CancellationToken ct = default) where T : class, IHasWorkspaceId
+    public async Task<(T Entity, Guid WorkspaceId)> GetEntityWithPermissionAsync<T>(Guid entityId,Guid userId,Permission requiredPermission,Func<IQueryable<T>, IQueryable<T>>? includeFunc = null,CancellationToken ct = default) where T : class
     {
-        // Get workspace ID through optimized traversal
         var workspaceId = await GetProjectWorkspaceIdForEntityAsync<T>(entityId, ct);
-
-        // Check permissions first - fail fast
         await EnsurePermissionAsync(userId, workspaceId, requiredPermission, ct);
 
-        // Only fetch entity if permissions pass
         var query = _unitOfWork.Set<T>().AsNoTracking();
         if (includeFunc != null) query = includeFunc(query);
-        
+
         var entity = await query.FirstOrDefaultAsync(e => EF.Property<Guid>(e, "Id") == entityId, ct)
             ?? throw new NotFoundException($"{typeof(T).Name} {entityId} not found");
 
-        // Set the workspace ID on the entity for the interface contract
-        entity.ProjectWorkspaceId = workspaceId;
-        return entity;
+        return (entity, workspaceId);
     }
 
     public async Task EnsurePermissionAsync(Guid userId, Guid workspaceId, Permission permission, CancellationToken ct = default)
@@ -102,9 +91,9 @@ public class PermissionService : IPermissionService
     /// Batch permission check for multiple entities - optimized for bulk operations
     /// </summary>
     public async Task<Dictionary<Guid, bool>> HasPermissionBatchAsync(
-        Guid userId, 
-        IEnumerable<(Type entityType, Guid entityId)> entities, 
-        Permission permission, 
+        Guid userId,
+        IEnumerable<(Type entityType, Guid entityId)> entities,
+        Permission permission,
         CancellationToken ct = default)
     {
         var entityList = entities.ToList();
@@ -162,7 +151,7 @@ public class PermissionService : IPermissionService
             AND (pw.CreatorId = @userId OR upw.Role IN @allowedRoles)";
 
         var allowedRoles = GetRolesWithPermission(permission);
-        
+
         return await _unitOfWork.QueryAsync<Guid>(sql, new { userId, allowedRoles }, ct);
     }
 
@@ -193,7 +182,7 @@ public class PermissionService : IPermissionService
     public async Task<Guid> GetProjectWorkspaceIdForEntityAsync<T>(Guid entityId, CancellationToken ct = default)
     {
         var cacheKey = $"workspace_lookup_{typeof(T).Name}_{entityId}";
-        
+
         return await _cache.GetOrCreateAsync(cacheKey, async token =>
         {
             return await ExecuteWorkspaceTraversalQuery<T>(entityId, token);
@@ -219,7 +208,7 @@ public class PermissionService : IPermissionService
     {
         var sql = GetWorkspaceTraversalQuery(typeof(T));
         var workspaceId = await _unitOfWork.QuerySingleOrDefaultAsync<Guid?>(sql, new { entityId }, ct);
-        
+
         return workspaceId ?? throw new NotFoundException($"{typeof(T).Name} with ID {entityId} not found or has no valid workspace");
     }
 
@@ -323,7 +312,7 @@ public class PermissionService : IPermissionService
     private static IEnumerable<Role> GetRolesWithPermission(Permission permission)
     {
         var roles = new List<Role>();
-        
+
         foreach (Role role in Enum.GetValues<Role>())
         {
             if ((GetRolePermissions(role) & permission) == permission)
@@ -331,7 +320,7 @@ public class PermissionService : IPermissionService
                 roles.Add(role);
             }
         }
-        
+
         return roles;
     }
 
@@ -363,7 +352,7 @@ public class PermissionService : IPermissionService
     {
         // This would require more sophisticated cache invalidation patterns
         // For now, implement based on your specific cache invalidation strategy
-        _logger.LogInformation("Hierarchy change detected for {EntityType} {EntityId} - consider implementing pattern-based cache invalidation", 
+        _logger.LogInformation("Hierarchy change detected for {EntityType} {EntityId} - consider implementing pattern-based cache invalidation",
             parentEntityType.Name, parentEntityId);
     }
 }

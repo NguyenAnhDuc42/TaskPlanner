@@ -61,7 +61,7 @@ public class ProjectWorkspace : Aggregate, IHasWorkspaceId
         var workspace = new ProjectWorkspace(Guid.NewGuid(), name, description, joinCode, color, icon, creatorId, visibility);
 
         // Creator becomes member with admin role
-        workspace._members.Add(UserProjectWorkspace.Create(creatorId, workspace.Id, Role.Admin));
+        workspace._members.Add(UserProjectWorkspace.Create(creatorId, workspace.Id, Role.Owner));
 
         // Add default statuses
         workspace.CreateDefaultStatuses();
@@ -122,22 +122,23 @@ public class ProjectWorkspace : Aggregate, IHasWorkspaceId
         }
     }
 
-    public void UpdateBasicInfo(string name, string? description)
+    public void UpdateBasicInfo(string name, string description)
     {
-        name = name?.Trim() ?? string.Empty;
-        description = string.IsNullOrWhiteSpace(description?.Trim()) ? null : description.Trim();
+        name = name.Trim();
+        description = description.Trim();
 
-        if (Name == name && Description == description) return;
+        if (string.IsNullOrWhiteSpace(description))
+            description = string.Empty;
+
+        if (Name == name && Description == description)
+            return;
 
         ValidateBasicInfo(name, description);
 
-        var oldName = Name;
-        var oldDescription = Description;
         Name = name;
         Description = description;
         UpdateTimestamp();
     }
-
     public void UpdateVisualSettings(string color, string icon)
     {
         color = color?.Trim() ?? string.Empty;

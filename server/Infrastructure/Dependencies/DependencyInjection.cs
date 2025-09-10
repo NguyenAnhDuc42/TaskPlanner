@@ -11,12 +11,14 @@ public static class DependencyInjection
         string connectionString,
         IConfiguration config)
     {
+        services.AddSignalR();
         services
             .AddDbContextInfrastructure(connectionString)
             .AddRepositoriesAndServices()
             .AddJwtAuthentication(config)
             .AddDomainEvents()
-            .AddCursorHelper(config);
+            .AddCursorHelper(config)
+            .AddRealtimeServices();
 
         return services;
     }

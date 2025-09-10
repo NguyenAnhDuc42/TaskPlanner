@@ -15,7 +15,10 @@
 
   <ItemGroup>
     <Folder Include="Common\Mapping\" />
-    <Folder Include="Contract\WorkspaceContract\" />
+    <Folder Include="Contract\FolderContract\" />
+    <Folder Include="Contract\ListContract\" />
+    <Folder Include="Contract\TaskContract\" />
+    <Folder Include="Dependencies\Registrations\" />
     <Folder Include="Features\SpaceFeatures\AddSpaceMembers\" />
     <Folder Include="Features\SpaceFeatures\ChangeSpaceArchive\" />
     <Folder Include="Features\SpaceFeatures\ChangeSpaceVisibility\" />
@@ -25,9 +28,23 @@
     <Folder Include="Features\SpaceFeatures\RemoveSpaceStatus\" />
     <Folder Include="Features\SpaceFeatures\UpdateSpaceStatus\" />
     <Folder Include="Features\SpaceFeatures\UpdateSpaceVisualSettings\" />
-    <Folder Include="Features\WorkspaceFeatures\DeleteWorkspaces\" />
-    <Folder Include="Features\WorkspaceFeatures\GetMembers\" />
-    <Folder Include="Features\WorkspaceFeatures\UpdateWorkspace\" />
+    <Folder Include="Features\WorkspaceFeatures\GetHierarchy\" />
+    <Folder Include="Features\WorkspaceFeatures\MemberMange\" />
+    <Folder Include="Features\WorkspaceFeatures\MemberMange\AddMembers\" />
+    <Folder Include="Features\WorkspaceFeatures\MemberMange\GetMembers\" />
+    <Folder Include="Features\WorkspaceFeatures\MemberMange\RemoveMembers\" />
+    <Folder Include="Features\WorkspaceFeatures\MemberMange\UpdateMembersRole\" />
+    <Folder Include="Features\WorkspaceFeatures\ReorderSpace\" />
+    <Folder Include="Features\WorkspaceFeatures\StatusMange\" />
+    <Folder Include="Features\WorkspaceFeatures\StatusMange\CreateSatus\" />
+    <Folder Include="Features\WorkspaceFeatures\StatusMange\DeleteStatus\" />
+    <Folder Include="Features\WorkspaceFeatures\StatusMange\GetStatuses\" />
+    <Folder Include="Features\WorkspaceFeatures\StatusMange\UpdateStatus\" />
+    <Folder Include="Features\WorkspaceFeatures\TagManage\" />
+    <Folder Include="Features\WorkspaceFeatures\TagManage\CreateTag\" />
+    <Folder Include="Features\WorkspaceFeatures\TagManage\DeleteTag\" />
+    <Folder Include="Features\WorkspaceFeatures\TagManage\GetTags\" />
+    <Folder Include="Features\WorkspaceFeatures\TagManage\UpdateTag\" />
   </ItemGroup>
 
   <PropertyGroup>
