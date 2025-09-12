@@ -1,10 +1,13 @@
 using System;
 using System.Collections.Generic;
+using System.Data;
 using System.Linq;
+using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 using Application.Interfaces.Repositories;
 using Application.Interfaces.Services;
+using Dapper;
 using Domain.Common.Interfaces;
 using Domain.Entities.ProjectEntities;
 using Domain.Entities.Relationship;
@@ -14,53 +17,101 @@ using Microsoft.Extensions.Caching.Hybrid;
 using Microsoft.Extensions.Logging;
 using SendGrid.Helpers.Errors.Model;
 
+public interface IWorkspaceOwned
+{
+    Guid ProjectWorkspaceId { get; }
+}
+
 public class PermissionService : IPermissionService
 {
     private readonly IUnitOfWork _unitOfWork;
+    private readonly IDbConnection _dbConnection;
     private readonly HybridCache _cache;
     private readonly ILogger<PermissionService> _logger;
     private static readonly TimeSpan PermissionCacheDuration = TimeSpan.FromMinutes(10);
     private static readonly TimeSpan WorkspaceTraversalCacheDuration = TimeSpan.FromMinutes(30);
 
-    public PermissionService(IUnitOfWork unitOfWork, HybridCache cache, ILogger<PermissionService> logger)
+    // Define which per-entity permissions the creator gets for their own entity (conservative).
+    private static readonly Permission CreatorElevatedPermissions =
+          Permission.Edit_Tasks
+        | Permission.Delete_Tasks
+        | Permission.Edit_Own_Comments
+        | Permission.Delete_Own_Comments
+        | Permission.Upload_Attachments
+        | Permission.Delete_Own_Attachments;
+
+    public PermissionService(IUnitOfWork unitOfWork, IDbConnection dbConnection, HybridCache cache, ILogger<PermissionService> logger)
     {
         _unitOfWork = unitOfWork ?? throw new ArgumentNullException(nameof(unitOfWork));
+        _dbConnection = dbConnection ?? throw new ArgumentNullException(nameof(dbConnection));
         _cache = cache ?? throw new ArgumentNullException(nameof(cache));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
+    // ------------------------------------------------------------
+    // Public API
+    // ------------------------------------------------------------
+
     /// <summary>
-    /// Retrieves an entity with a permission check using optimized single-query traversal.
+    /// Generic method to fetch an entity only if the user has the required permission.
+    /// Applies creator-elevation and visibility semantics via HasPermissionOnEntityAsync.
+    /// Fast-path for IWorkspaceOwned (single EF projection).
     /// </summary>
-    /// <typeparam name="T">The type of the entity that implements IHasWorkspaceId.</typeparam>
-    /// <param name="entityId">The ID of the entity.</param>
-    /// <param name="userId">The ID of the user.</param>
-    /// <param name="requiredPermission">The required permission.</param>
-    /// <param name="includeFunc">Optional include function for eager loading related entities.</param>
-    /// <param name="ct">Cancellation token.</param>
-    /// <returns>The retrieved entity.</returns>
-    /// <exception cref="NotFoundException">Thrown if the entity is not found.</exception>
-    /// <exception cref="UnauthorizedAccessException">Thrown if the user does not have the required permissions.</exception>
-    public async Task<(T Entity, Guid WorkspaceId)> GetEntityWithPermissionAsync<T>(Guid entityId,Guid userId,Permission requiredPermission,Func<IQueryable<T>, IQueryable<T>>? includeFunc = null,CancellationToken ct = default) where T : class
+    public async Task<T> GetEntityWithPermissionAsync<T>(Guid entityId, Guid userId, Permission requiredPermission, Func<IQueryable<T>, IQueryable<T>>? includeFunc = null, CancellationToken ct = default) where T : class
     {
-        var workspaceId = await GetProjectWorkspaceIdForEntityAsync<T>(entityId, ct);
-        await EnsurePermissionAsync(userId, workspaceId, requiredPermission, ct);
+        // Fast-path: T exposes ProjectWorkspaceId
+        if (typeof(IWorkspaceOwned).IsAssignableFrom(typeof(T)))
+        {
+            var query = _unitOfWork.Set<T>().AsNoTracking();
+            if (includeFunc != null) query = includeFunc(query);
 
-        var query = _unitOfWork.Set<T>().AsNoTracking();
-        if (includeFunc != null) query = includeFunc(query);
+            // Project entity + workspace id + creator id (if present) in one query to reduce round-trips
+            var row = await query
+                .Where(e => EF.Property<Guid>(e, "Id") == entityId)
+                .Select(e => new
+                {
+                    Entity = e,
+                    WorkspaceId = EF.Property<Guid>(e, nameof(IWorkspaceOwned.ProjectWorkspaceId)),
+                    CreatorId = EF.Property<Guid?>(e, "CreatorId")
+                })
+                .FirstOrDefaultAsync(ct);
 
-        var entity = await query.FirstOrDefaultAsync(e => EF.Property<Guid>(e, "Id") == entityId, ct)
+            if (row == null) throw new NotFoundException($"{typeof(T).Name} {entityId} not found");
+
+            // Use entity-level semantics (workspace role, creator-elevation, visibility)
+            var allowed = await HasPermissionOnEntityAsync(typeof(T), entityId, userId, requiredPermission, ct);
+            if (!allowed)
+            {
+                _logger.LogWarning("User {UserId} denied access to {EntityType}/{EntityId} for permission {Permission}", userId, typeof(T).Name, entityId, requiredPermission);
+                throw new UnauthorizedAccessException($"User does not have {requiredPermission} permission for this resource");
+            }
+
+            return row.Entity;
+        }
+
+        // Fallback: use generic entity-level check (traversal + checks), then fetch entity
+        var allowedFallback = await HasPermissionOnEntityAsync(typeof(T), entityId, userId, requiredPermission, ct);
+        if (!allowedFallback)
+        {
+            _logger.LogWarning("User {UserId} denied access to {EntityType}/{EntityId} for permission {Permission}", userId, typeof(T).Name, entityId, requiredPermission);
+            throw new UnauthorizedAccessException($"User does not have {requiredPermission} permission for this resource");
+        }
+
+        var fetchQuery = _unitOfWork.Set<T>().AsNoTracking();
+        if (includeFunc != null) fetchQuery = includeFunc(fetchQuery);
+
+        return await fetchQuery.FirstOrDefaultAsync(e => EF.Property<Guid>(e, "Id") == entityId, ct)
             ?? throw new NotFoundException($"{typeof(T).Name} {entityId} not found");
-
-        return (entity, workspaceId);
     }
 
+    /// <summary>
+    /// Workspace-only permission enforcement (role-based). Throws UnauthorizedAccessException if missing.
+    /// </summary>
     public async Task EnsurePermissionAsync(Guid userId, Guid workspaceId, Permission permission, CancellationToken ct = default)
     {
         if (!await HasPermissionAsync(userId, workspaceId, permission, ct))
         {
-            _logger.LogWarning("User {UserId} denied access to workspace {WorkspaceId} for permission {Permission}",
-                userId, workspaceId, permission);
+            _logger.LogWarning("User {UserId} denied access to workspace {WorkspaceId} for permission {Permission}", userId, workspaceId, permission);
             throw new UnauthorizedAccessException($"User does not have {permission} permission for this workspace");
         }
     }
@@ -69,8 +120,7 @@ public class PermissionService : IPermissionService
     {
         if (!await HasPermissionAsync(userId, workspaceId, permissions, ct))
         {
-            _logger.LogWarning("User {UserId} denied access to workspace {WorkspaceId} for permissions {Permissions}",
-                userId, workspaceId, string.Join(", ", permissions));
+            _logger.LogWarning("User {UserId} denied access to workspace {WorkspaceId} for permissions {Permissions}", userId, workspaceId, string.Join(", ", permissions));
             throw new UnauthorizedAccessException($"User does not have required permissions for this workspace");
         }
     }
@@ -88,35 +138,8 @@ public class PermissionService : IPermissionService
     }
 
     /// <summary>
-    /// Batch permission check for multiple entities - optimized for bulk operations
+    /// Returns cached user permissions for a workspace (role-based). Creator of workspace receives owner mask.
     /// </summary>
-    public async Task<Dictionary<Guid, bool>> HasPermissionBatchAsync(
-        Guid userId,
-        IEnumerable<(Type entityType, Guid entityId)> entities,
-        Permission permission,
-        CancellationToken ct = default)
-    {
-        var entityList = entities.ToList();
-        var results = new Dictionary<Guid, bool>();
-
-        // Group by entity type for optimized queries
-        var groupedEntities = entityList.GroupBy(e => e.entityType);
-
-        foreach (var group in groupedEntities)
-        {
-            var entityIds = group.Select(g => g.entityId).ToList();
-            var workspaceIds = await GetProjectWorkspaceIdBatchAsync(group.Key, entityIds, ct);
-
-            foreach (var (entityId, workspaceId) in workspaceIds)
-            {
-                results[entityId] = await HasPermissionAsync(userId, workspaceId, permission, ct);
-            }
-        }
-
-        return results;
-    }
-
-    // --- Permissions retrieval with caching ---
     public async Task<Permission> GetUserPermissionsAsync(Guid userId, Guid workspaceId, CancellationToken ct = default)
     {
         var cacheKey = $"user_permissions_{userId}_{workspaceId}";
@@ -129,12 +152,22 @@ public class PermissionService : IPermissionService
                 .FirstOrDefaultAsync(m => m.UserId == userId && m.ProjectWorkspaceId == workspaceId, token);
 
             if (membership == null)
+            {
+                // If no membership, check if user is workspace creator (fallback)
+                var pw = await _unitOfWork.ProjectWorkspaces.Query
+                    .AsNoTracking()
+                    .Select(p => new { p.Id, p.CreatorId })
+                    .FirstOrDefaultAsync(p => p.Id == workspaceId, token);
+
+                if (pw?.CreatorId == userId) return PermissionHelper.GetOwnerPermissions();
                 return Permission.None;
+            }
 
-            // Creator has all permissions regardless of role
-            if (membership.ProjectWorkspace.CreatorId == userId)
-                return Permission.All;
+            // If membership is present and nav loaded: workspace creator -> owner permissions
+            if (membership.ProjectWorkspace != null && membership.ProjectWorkspace.CreatorId == userId)
+                return PermissionHelper.GetOwnerPermissions();
 
+            // Standard mapping from role to permission mask
             return GetRolePermissions(membership.Role);
 
         }, new HybridCacheEntryOptions { Expiration = PermissionCacheDuration });
@@ -142,17 +175,22 @@ public class PermissionService : IPermissionService
 
     public async Task<IEnumerable<Guid>> GetUserAccessibleWorkspacesAsync(Guid userId, Permission permission, CancellationToken ct = default)
     {
-        // Use raw SQL for better performance on large datasets
+        var allowedRoles = GetRolesWithPermission(permission).Cast<int>().ToArray();
+        var allowPublic = PermissionHelper.IsViewPermission(permission); // view-like permissions allowed publicly by default
+        var publicVisibility = (int)Visibility.Public;
+
         var sql = @"
-            SELECT upw.ProjectWorkspaceId
-            FROM UserProjectWorkspaces upw
-            INNER JOIN ProjectWorkspaces pw ON upw.ProjectWorkspaceId = pw.Id
-            WHERE upw.UserId = @userId
-            AND (pw.CreatorId = @userId OR upw.Role IN @allowedRoles)";
+            SELECT pw.""Id""
+            FROM ""ProjectWorkspaces"" pw
+            LEFT JOIN ""UserProjectWorkspaces"" upw
+                ON upw.""ProjectWorkspaceId"" = pw.""Id"" AND upw.""UserId"" = @userId
+            WHERE
+                pw.""CreatorId"" = @userId
+                OR (upw.""Role"" = ANY(@allowedRoles))
+                OR (pw.""Visibility"" = @publicVisibility AND @allowPublic = TRUE)
+        ";
 
-        var allowedRoles = GetRolesWithPermission(permission);
-
-        return await _unitOfWork.QueryAsync<Guid>(sql, new { userId, allowedRoles }, ct);
+        return await _dbConnection.QueryAsync<Guid>(sql, new { userId, allowedRoles, publicVisibility, allowPublic });
     }
 
     public async Task<bool> IsWorkspaceOwnerAsync(Guid userId, Guid workspaceId, CancellationToken ct = default)
@@ -179,6 +217,10 @@ public class PermissionService : IPermissionService
         return membership?.Role;
     }
 
+    // ------------------------------------------------------------
+    // Traversal & batch helpers
+    // ------------------------------------------------------------
+
     public async Task<Guid> GetProjectWorkspaceIdForEntityAsync<T>(Guid entityId, CancellationToken ct = default)
     {
         var cacheKey = $"workspace_lookup_{typeof(T).Name}_{entityId}";
@@ -189,25 +231,32 @@ public class PermissionService : IPermissionService
         }, new HybridCacheEntryOptions { Expiration = WorkspaceTraversalCacheDuration });
     }
 
-    /// <summary>
-    /// Batch version of workspace ID lookup for bulk operations
-    /// </summary>
     public async Task<Dictionary<Guid, Guid>> GetProjectWorkspaceIdBatchAsync(Type entityType, IEnumerable<Guid> entityIds, CancellationToken ct = default)
     {
         var entityIdList = entityIds.ToList();
         if (!entityIdList.Any()) return new Dictionary<Guid, Guid>();
 
-        var sql = GetBatchWorkspaceTraversalQuery(entityType);
-        var parameters = new { entityIds = entityIdList };
+        if (entityType == typeof(ProjectWorkspace))
+        {
+            var sqlExists = @"
+                SELECT pw.""Id"" as EntityId, pw.""Id"" as WorkspaceId
+                FROM ""ProjectWorkspaces"" pw
+                WHERE pw.""Id"" = ANY(@entityIds)";
+            var rows = await _dbConnection.QueryAsync<(Guid EntityId, Guid WorkspaceId)>(sqlExists, new { entityIds = entityIdList.ToArray() });
+            return rows.ToDictionary(r => r.EntityId, r => r.WorkspaceId);
+        }
 
-        var results = await _unitOfWork.QueryAsync<(Guid EntityId, Guid WorkspaceId)>(sql, parameters, ct);
+        var sql = GetBatchWorkspaceTraversalQuery(entityType);
+        var parameters = new { entityIds = entityIdList.ToArray() };
+
+        var results = await _dbConnection.QueryAsync<(Guid EntityId, Guid WorkspaceId)>(sql, parameters);
         return results.ToDictionary(r => r.EntityId, r => r.WorkspaceId);
     }
 
     private async Task<Guid> ExecuteWorkspaceTraversalQuery<T>(Guid entityId, CancellationToken ct)
     {
         var sql = GetWorkspaceTraversalQuery(typeof(T));
-        var workspaceId = await _unitOfWork.QuerySingleOrDefaultAsync<Guid?>(sql, new { entityId }, ct);
+        var workspaceId = await _dbConnection.QuerySingleOrDefaultAsync<Guid?>(sql, new { entityId });
 
         return workspaceId ?? throw new NotFoundException($"{typeof(T).Name} with ID {entityId} not found or has no valid workspace");
     }
@@ -215,37 +264,37 @@ public class PermissionService : IPermissionService
     private static string GetWorkspaceTraversalQuery(Type entityType) => entityType.Name switch
     {
         nameof(ProjectTask) => @"
-            SELECT pw.Id 
-            FROM ProjectTasks pt
-            INNER JOIN ProjectLists pl ON pt.ProjectListId = pl.Id
-            LEFT JOIN ProjectFolders pf ON pl.ProjectFolderId = pf.Id
-            INNER JOIN ProjectSpaces ps ON COALESCE(pf.ProjectSpaceId, pl.ProjectSpaceId) = ps.Id
-            INNER JOIN ProjectWorkspaces pw ON ps.ProjectWorkspaceId = pw.Id
-            WHERE pt.Id = @entityId",
+            SELECT pw.""Id"" 
+            FROM ""ProjectTasks"" pt
+            INNER JOIN ""ProjectLists"" pl ON pt.""ProjectListId"" = pl.""Id""
+            LEFT JOIN ""ProjectFolders"" pf ON pl.""ProjectFolderId"" = pf.""Id""
+            INNER JOIN ""ProjectSpaces"" ps ON COALESCE(pf.""ProjectSpaceId"", pl.""ProjectSpaceId"") = ps.""Id""
+            INNER JOIN ""ProjectWorkspaces"" pw ON ps.""ProjectWorkspaceId"" = pw.""Id""
+            WHERE pt.""Id"" = @entityId",
 
         nameof(ProjectList) => @"
-            SELECT pw.Id
-            FROM ProjectLists pl
-            LEFT JOIN ProjectFolders pf ON pl.ProjectFolderId = pf.Id
-            INNER JOIN ProjectSpaces ps ON COALESCE(pf.ProjectSpaceId, pl.ProjectSpaceId) = ps.Id
-            INNER JOIN ProjectWorkspaces pw ON ps.ProjectWorkspaceId = pw.Id
-            WHERE pl.Id = @entityId",
+            SELECT pw.""Id""
+            FROM ""ProjectLists"" pl
+            LEFT JOIN ""ProjectFolders"" pf ON pl.""ProjectFolderId"" = pf.""Id""
+            INNER JOIN ""ProjectSpaces"" ps ON COALESCE(pf.""ProjectSpaceId"", pl.""ProjectSpaceId"") = ps.""Id""
+            INNER JOIN ""ProjectWorkspaces"" pw ON ps.""ProjectWorkspaceId"" = pw.""Id""
+            WHERE pl.""Id"" = @entityId",
 
         nameof(ProjectFolder) => @"
-            SELECT pw.Id
-            FROM ProjectFolders pf
-            INNER JOIN ProjectSpaces ps ON pf.ProjectSpaceId = ps.Id
-            INNER JOIN ProjectWorkspaces pw ON ps.ProjectWorkspaceId = pw.Id
-            WHERE pf.Id = @entityId",
+            SELECT pw.""Id""
+            FROM ""ProjectFolders"" pf
+            INNER JOIN ""ProjectSpaces"" ps ON pf.""ProjectSpaceId"" = ps.""Id""
+            INNER JOIN ""ProjectWorkspaces"" pw ON ps.""ProjectWorkspaceId"" = pw.""Id""
+            WHERE pf.""Id"" = @entityId",
 
         nameof(ProjectSpace) => @"
-            SELECT pw.Id
-            FROM ProjectSpaces ps
-            INNER JOIN ProjectWorkspaces pw ON ps.ProjectWorkspaceId = pw.Id
-            WHERE ps.Id = @entityId",
+            SELECT pw.""Id""
+            FROM ""ProjectSpaces"" ps
+            INNER JOIN ""ProjectWorkspaces"" pw ON ps.""ProjectWorkspaceId"" = pw.""Id""
+            WHERE ps.""Id"" = @entityId",
 
         nameof(ProjectWorkspace) => @"
-            SELECT Id FROM ProjectWorkspaces WHERE Id = @entityId",
+            SELECT ""Id"" FROM ""ProjectWorkspaces"" WHERE ""Id"" = @entityId",
 
         _ => throw new NotSupportedException($"Workspace traversal not implemented for entity type: {entityType.Name}")
     };
@@ -253,47 +302,239 @@ public class PermissionService : IPermissionService
     private static string GetBatchWorkspaceTraversalQuery(Type entityType) => entityType.Name switch
     {
         nameof(ProjectTask) => @"
-            SELECT pt.Id as EntityId, pw.Id as WorkspaceId
-            FROM ProjectTasks pt
-            INNER JOIN ProjectLists pl ON pt.ProjectListId = pl.Id
-            LEFT JOIN ProjectFolders pf ON pl.ProjectFolderId = pf.Id
-            INNER JOIN ProjectSpaces ps ON COALESCE(pf.ProjectSpaceId, pl.ProjectSpaceId) = ps.Id
-            INNER JOIN ProjectWorkspaces pw ON ps.ProjectWorkspaceId = pw.Id
-            WHERE pt.Id = ANY(@entityIds)",
+            SELECT pt.""Id"" as EntityId, pw.""Id"" as WorkspaceId
+            FROM ""ProjectTasks"" pt
+            INNER JOIN ""ProjectLists"" pl ON pt.""ProjectListId"" = pl.""Id""
+            LEFT JOIN ""ProjectFolders"" pf ON pl.""ProjectFolderId"" = pf.""Id""
+            INNER JOIN ""ProjectSpaces"" ps ON COALESCE(pf.""ProjectSpaceId"", pl.""ProjectSpaceId"") = ps.""Id""
+            INNER JOIN ""ProjectWorkspaces"" pw ON ps.""ProjectWorkspaceId"" = pw.""Id""
+            WHERE pt.""Id"" = ANY(@entityIds)",
 
         nameof(ProjectList) => @"
-            SELECT pl.Id as EntityId, pw.Id as WorkspaceId
-            FROM ProjectLists pl
-            LEFT JOIN ProjectFolders pf ON pl.ProjectFolderId = pf.Id
-            INNER JOIN ProjectSpaces ps ON COALESCE(pf.ProjectSpaceId, pl.ProjectSpaceId) = ps.Id
-            INNER JOIN ProjectWorkspaces pw ON ps.ProjectWorkspaceId = pw.Id
-            WHERE pl.Id = ANY(@entityIds)",
+            SELECT pl.""Id"" as EntityId, pw.""Id"" as WorkspaceId
+            FROM ""ProjectLists"" pl
+            LEFT JOIN ""ProjectFolders"" pf ON pl.""ProjectFolderId"" = pf.""Id""
+            INNER JOIN ""ProjectSpaces"" ps ON COALESCE(pf.""ProjectSpaceId"", pl.""ProjectSpaceId"") = ps.""Id""
+            INNER JOIN ""ProjectWorkspaces"" pw ON ps.""ProjectWorkspaceId"" = pw.""Id""
+            WHERE pl.""Id"" = ANY(@entityIds)",
 
         nameof(ProjectFolder) => @"
-            SELECT pf.Id as EntityId, pw.Id as WorkspaceId
-            FROM ProjectFolders pf
-            INNER JOIN ProjectSpaces ps ON pf.ProjectSpaceId = ps.Id
-            INNER JOIN ProjectWorkspaces pw ON ps.ProjectWorkspaceId = pw.Id
-            WHERE pf.Id = ANY(@entityIds)",
+            SELECT pf.""Id"" as EntityId, pw.""Id"" as WorkspaceId
+            FROM ""ProjectFolders"" pf
+            INNER JOIN ""ProjectSpaces"" ps ON pf.""ProjectSpaceId"" = ps.""Id""
+            INNER JOIN ""ProjectWorkspaces"" pw ON ps.""ProjectWorkspaceId"" = pw.""Id""
+            WHERE pf.""Id"" = ANY(@entityIds)",
 
         nameof(ProjectSpace) => @"
-            SELECT ps.Id as EntityId, pw.Id as WorkspaceId
-            FROM ProjectSpaces ps
-            INNER JOIN ProjectWorkspaces pw ON ps.ProjectWorkspaceId = pw.Id
-            WHERE ps.Id = ANY(@entityIds)",
+            SELECT ps.""Id"" as EntityId, pw.""Id"" as WorkspaceId
+            FROM ""ProjectSpaces"" ps
+            INNER JOIN ""ProjectWorkspaces"" pw ON ps.""ProjectWorkspaceId"" = pw.""Id""
+            WHERE ps.""Id"" = ANY(@entityIds)",
 
         _ => throw new NotSupportedException($"Batch workspace traversal not implemented for entity type: {entityType.Name}")
     };
 
+    // ------------------------------------------------------------
+    // Entity-level authorization & visibility support
+    // ------------------------------------------------------------
+
+    /// <summary>
+    /// Entity-level authorization with precedence:
+    /// 1) workspace creator -> allow
+    /// 2) workspace role permissions -> allow
+    /// 3) entity creator elevated permissions -> allow
+    /// 4) visibility-based view allowance -> allow
+    /// 5) deny
+    /// </summary>
+    public async Task<bool> HasPermissionOnEntityAsync(Type entityType, Guid entityId, Guid userId, Permission permission, CancellationToken ct = default)
+    {
+        // resolve workspace (generic)
+        Guid workspaceId;
+        try
+        {
+            workspaceId = await GetProjectWorkspaceIdForEntityAsyncGeneric(entityType, entityId, ct);
+        }
+        catch (NotFoundException)
+        {
+            return false;
+        }
+
+        // 1) workspace creator
+        if (await IsWorkspaceCreatorAsync(userId, workspaceId, ct)) return true;
+
+        // 2) workspace role permissions
+        if (await HasPermissionAsync(userId, workspaceId, permission, ct)) return true;
+
+        // 3) entity creator elevation
+        var creator = await GetEntityCreatorAsync(entityType, entityId, ct);
+        if (creator.HasValue && creator.Value == userId)
+        {
+            if ((CreatorElevatedPermissions & permission) == permission) return true;
+        }
+
+        // 4) visibility checks for view permissions
+        if (PermissionHelper.IsViewPermission(permission))
+        {
+            var effectiveVisibility = await GetEffectiveVisibilityForEntityAsync(entityType, entityId, ct);
+            return await EvaluateVisibilityAccessAsync(userId, workspaceId, effectiveVisibility, permission, ct);
+        }
+
+        return false;
+    }
+
+    private async Task<Guid> GetProjectWorkspaceIdForEntityAsyncGeneric(Type entityType, Guid entityId, CancellationToken ct = default)
+    {
+        var method = GetType().GetMethod(nameof(GetProjectWorkspaceIdForEntityAsync), BindingFlags.Public | BindingFlags.Instance);
+        if (method == null) throw new InvalidOperationException("Traversal helper not found");
+        var generic = method.MakeGenericMethod(entityType);
+        var task = (Task)generic.Invoke(this, new object[] { entityId, ct })!;
+        await task.ConfigureAwait(false);
+        var resultProperty = task.GetType().GetProperty("Result");
+        return (Guid)resultProperty!.GetValue(task)!;
+    }
+
+    private async Task<bool> EvaluateVisibilityAccessAsync(Guid userId, Guid workspaceId, Visibility visibility, Permission permission, CancellationToken ct = default)
+    {
+        switch (visibility)
+        {
+            case Visibility.Public:
+                // public view allowed
+                return true;
+            case Visibility.Restricted:
+                var role = await GetUserRoleAsync(userId, workspaceId, ct);
+                return role != null || await IsWorkspaceCreatorAsync(userId, workspaceId, ct);
+            case Visibility.Private:
+            default:
+                return false;
+        }
+    }
+
+    private async Task<Guid?> GetEntityCreatorAsync(Type entityType, Guid entityId, CancellationToken ct = default)
+    {
+        switch (entityType.Name)
+        {
+            case nameof(ProjectTask):
+                return await _dbConnection.QuerySingleOrDefaultAsync<Guid?>(@"SELECT ""CreatorId"" FROM ""ProjectTasks"" WHERE ""Id"" = @id", new { id = entityId });
+            case nameof(ProjectList):
+                return await _dbConnection.QuerySingleOrDefaultAsync<Guid?>(@"SELECT ""CreatorId"" FROM ""ProjectLists"" WHERE ""Id"" = @id", new { id = entityId });
+            case nameof(ProjectFolder):
+                return await _dbConnection.QuerySingleOrDefaultAsync<Guid?>(@"SELECT ""CreatorId"" FROM ""ProjectFolders"" WHERE ""Id"" = @id", new { id = entityId });
+            case nameof(ProjectSpace):
+                return await _dbConnection.QuerySingleOrDefaultAsync<Guid?>(@"SELECT ""CreatorId"" FROM ""ProjectSpaces"" WHERE ""Id"" = @id", new { id = entityId });
+            case nameof(ProjectWorkspace):
+                return await _dbConnection.QuerySingleOrDefaultAsync<Guid?>(@"SELECT ""CreatorId"" FROM ""ProjectWorkspaces"" WHERE ""Id"" = @id", new { id = entityId });
+            default:
+                throw new NotSupportedException($"GetEntityCreatorAsync not implemented for {entityType.Name}");
+        }
+    }
+
+    private async Task<Visibility> GetEffectiveVisibilityForEntityAsync(Type entityType, Guid entityId, CancellationToken ct = default)
+    {
+        switch (entityType.Name)
+        {
+            case nameof(ProjectTask):
+                var sqlTask =
+                    @"SELECT COALESCE(pl.""Visibility"", pf.""Visibility"", ps.""Visibility"", pw.""Visibility"") as Visibility
+                    FROM ""ProjectTasks"" pt
+                    INNER JOIN ""ProjectLists"" pl ON pt.""ProjectListId"" = pl.""Id""
+                    LEFT JOIN ""ProjectFolders"" pf ON pl.""ProjectFolderId"" = pf.""Id""
+                    INNER JOIN ""ProjectSpaces"" ps ON COALESCE(pf.""ProjectSpaceId"", pl.""ProjectSpaceId"") = ps.""Id""
+                    INNER JOIN ""ProjectWorkspaces"" pw ON ps.""ProjectWorkspaceId"" = pw.""Id""
+                    WHERE pt.""Id"" = @id";
+                var raw = await _dbConnection.QuerySingleOrDefaultAsync<int?>(sqlTask, new { id = entityId });
+                return raw.HasValue ? (Visibility)raw.Value : Visibility.Private;
+
+            case nameof(ProjectList):
+                var sqlList =
+                    @"SELECT COALESCE(pl.""Visibility"", pf.""Visibility"", ps.""Visibility"", pw.""Visibility"") as Visibility
+                    FROM ""ProjectLists"" pl
+                    LEFT JOIN ""ProjectFolders"" pf ON pl.""ProjectFolderId"" = pf.""Id""
+                    INNER JOIN ""ProjectSpaces"" ps ON COALESCE(pf.""ProjectSpaceId"", pl.""ProjectSpaceId"") = ps.""Id""
+                    INNER JOIN ""ProjectWorkspaces"" pw ON ps.""ProjectWorkspaceId"" = pw.""Id""
+                    WHERE pl.""Id"" = @id";
+                var rv2 = await _dbConnection.QuerySingleOrDefaultAsync<int?>(sqlList, new { id = entityId });
+                return rv2.HasValue ? (Visibility)rv2.Value : Visibility.Private;
+
+            case nameof(ProjectFolder):
+                var sqlFolder =
+                    @"SELECT COALESCE(pf.""Visibility"", ps.""Visibility"", pw.""Visibility"") as Visibility
+                    FROM ""ProjectFolders"" pf
+                    INNER JOIN ""ProjectSpaces"" ps ON pf.""ProjectSpaceId"" = ps.""Id""
+                    INNER JOIN ""ProjectWorkspaces"" pw ON ps.""ProjectWorkspaceId"" = pw.""Id""
+                    WHERE pf.""Id"" = @id";
+                var rv3 = await _dbConnection.QuerySingleOrDefaultAsync<int?>(sqlFolder, new { id = entityId });
+                return rv3.HasValue ? (Visibility)rv3.Value : Visibility.Private;
+
+            case nameof(ProjectSpace):
+                var sqlSpace =
+                    @"SELECT COALESCE(ps.""Visibility"", pw.""Visibility"") as Visibility
+                    FROM ""ProjectSpaces"" ps
+                    INNER JOIN ""ProjectWorkspaces"" pw ON ps.""ProjectWorkspaceId"" = pw.""Id""
+                    WHERE ps.""Id"" = @id";
+                var rv4 = await _dbConnection.QuerySingleOrDefaultAsync<int?>(sqlSpace, new { id = entityId });
+                return rv4.HasValue ? (Visibility)rv4.Value : Visibility.Private;
+
+            case nameof(ProjectWorkspace):
+                var sqlWs = @"SELECT ""Visibility"" FROM ""ProjectWorkspaces"" WHERE ""Id"" = @id";
+                var rv5 = await _dbConnection.QuerySingleOrDefaultAsync<int?>(sqlWs, new { id = entityId });
+                return rv5.HasValue ? (Visibility)rv5.Value : Visibility.Private;
+
+            default:
+                throw new NotSupportedException($"GetEffectiveVisibilityForEntityAsync not implemented for {entityType.Name}");
+        }
+    }
+
+    public async Task ValidateVisibilityAgainstAncestorsAsync(Type entityType, Guid entityId, Visibility candidateVisibility, CancellationToken ct = default)
+    {
+        switch (entityType.Name)
+        {
+            case nameof(ProjectList):
+                var sqlParentVis =
+                @"SELECT COALESCE(pf.""Visibility"", ps.""Visibility"", pw.""Visibility"") as ParentVisibility
+                FROM ""ProjectLists"" pl
+                LEFT JOIN ""ProjectFolders"" pf ON pl.""ProjectFolderId"" = pf.""Id""
+                INNER JOIN ""ProjectSpaces"" ps ON COALESCE(pf.""ProjectSpaceId"", pl.""ProjectSpaceId"") = ps.""Id""
+                INNER JOIN ""ProjectWorkspaces"" pw ON ps.""ProjectWorkspaceId"" = pw.""Id""
+                WHERE pl.""Id"" = @id";
+                var pVis = await _dbConnection.QuerySingleOrDefaultAsync<int?>(sqlParentVis, new { id = entityId });
+                if (pVis.HasValue && candidateVisibility > (Visibility)pVis.Value)
+                    throw new InvalidOperationException("Cannot make child entity more public than its parent workspace/space/folder.");
+                break;
+            // Add other entity cases where write-time enforcement is necessary.
+            default:
+                break;
+        }
+    }
+
+    // ------------------------------------------------------------
+    // Cache invalidation helpers
+    // ------------------------------------------------------------
+
+    public async Task InvalidateUserPermissionCacheAsync(Guid userId, Guid workspaceId)
+    {
+        var cacheKey = $"user_permissions_{userId}_{workspaceId}";
+        await _cache.RemoveAsync(cacheKey);
+    }
+
+    public async Task InvalidateWorkspaceTraversalCacheAsync<T>(Guid entityId)
+    {
+        var cacheKey = $"workspace_lookup_{typeof(T).Name}_{entityId}";
+        await _cache.RemoveAsync(cacheKey);
+    }
+
+    public async Task InvalidateHierarchyTraversalCacheAsync(Guid parentEntityId, Type parentEntityType)
+    {
+        _logger.LogInformation("Hierarchy change detected for {EntityType} {EntityId} - consider implementing pattern-based cache invalidation", parentEntityType.Name, parentEntityId);
+    }
+
+    // ------------------------------------------------------------
+    // Helpers: roles -> permissions mapping
+    // ------------------------------------------------------------
+
     private static Permission GetRolePermissions(Role role) => role switch
     {
-        Role.Owner => Permission.Owner_Permissions,
-
-        Role.Admin => Permission.Workspace_Admin | Permission.Member_Admin | Permission.Content_Admin |
-                        Permission.View_Reports | Permission.Export_Data |
-                        Permission.View_Comments | Permission.Create_Comments | Permission.Edit_All_Comments | Permission.Delete_All_Comments |
-                        Permission.View_Attachments | Permission.Upload_Attachments | Permission.Delete_All_Attachments,
-
+        Role.Owner => PermissionHelper.GetOwnerPermissions(),
+        Role.Admin => PermissionHelper.GetAllPermissions(),
         Role.Member => Permission.View_Workspace | Permission.View_Members | Permission.View_Spaces |
                         Permission.Create_Spaces | Permission.Edit_Spaces | Permission.Archive_Spaces |
                         Permission.View_Lists | Permission.Create_Lists | Permission.Edit_Lists | Permission.Reorder_Lists |
@@ -301,58 +542,31 @@ public class PermissionService : IPermissionService
                         Permission.View_Statuses | Permission.Create_Statuses | Permission.Edit_Statuses |
                         Permission.View_Comments | Permission.Create_Comments | Permission.Edit_Own_Comments | Permission.Delete_Own_Comments |
                         Permission.View_Attachments | Permission.Upload_Attachments | Permission.Delete_Own_Attachments,
-
         Role.Guest => Permission.View_Workspace | Permission.View_Members | Permission.View_Spaces |
                         Permission.View_Lists | Permission.View_Tasks | Permission.View_Statuses |
                         Permission.View_Comments | Permission.View_Attachments,
-
         _ => Permission.None
     };
 
     private static IEnumerable<Role> GetRolesWithPermission(Permission permission)
     {
         var roles = new List<Role>();
-
         foreach (Role role in Enum.GetValues<Role>())
         {
-            if ((GetRolePermissions(role) & permission) == permission)
-            {
-                roles.Add(role);
-            }
+            if ((GetRolePermissions(role) & permission) == permission) roles.Add(role);
         }
-
         return roles;
     }
 
-    /// <summary>
-    /// Invalidates cached permissions for a user in a specific workspace
-    /// Call this when user roles change
-    /// </summary>
-    public async Task InvalidateUserPermissionCacheAsync(Guid userId, Guid workspaceId)
+    private static bool IsPermissionAllowedForPublic(Permission permission)
     {
-        var cacheKey = $"user_permissions_{userId}_{workspaceId}";
-        await _cache.RemoveAsync(cacheKey);
-    }
-
-    /// <summary>
-    /// Invalidates cached workspace traversal for an entity
-    /// Call this when entity hierarchy changes (moves, deletions, etc.)
-    /// </summary>
-    public async Task InvalidateWorkspaceTraversalCacheAsync<T>(Guid entityId)
-    {
-        var cacheKey = $"workspace_lookup_{typeof(T).Name}_{entityId}";
-        await _cache.RemoveAsync(cacheKey);
-    }
-
-    /// <summary>
-    /// Invalidates all cached workspace traversals for entities that may be affected by hierarchy changes
-    /// Call this when moving spaces, folders, or when workspace structure changes
-    /// </summary>
-    public async Task InvalidateHierarchyTraversalCacheAsync(Guid parentEntityId, Type parentEntityType)
-    {
-        // This would require more sophisticated cache invalidation patterns
-        // For now, implement based on your specific cache invalidation strategy
-        _logger.LogInformation("Hierarchy change detected for {EntityType} {EntityId} - consider implementing pattern-based cache invalidation",
-            parentEntityType.Name, parentEntityId);
+        var publicAllowed = Permission.View_Workspace
+                            | Permission.View_Spaces
+                            | Permission.View_Lists
+                            | Permission.View_Tasks
+                            | Permission.View_Statuses
+                            | Permission.View_Comments
+                            | Permission.View_Attachments;
+        return (publicAllowed & permission) == permission;
     }
 }
