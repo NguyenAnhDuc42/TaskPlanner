@@ -7,8 +7,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Folder Include="Entities\" />
-    <Folder Include="Entities\Relationship\" />
     <Folder Include="Exceptions\" />
   </ItemGroup>
 
