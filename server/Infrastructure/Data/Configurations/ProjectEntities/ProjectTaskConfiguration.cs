@@ -4,94 +4,21 @@ using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace Infrastructure.Data.Configurations.ProjectEntities;
 
-public class ProjectTaskConfiguration : IEntityTypeConfiguration<ProjectTask>
+public class ProjectTaskConfiguration : EntityConfiguration<ProjectTask>
 {
-    public void Configure(EntityTypeBuilder<ProjectTask> builder)
+    public override void Configure(EntityTypeBuilder<ProjectTask> builder)
     {
-        builder.ToTable("Tasks");
+        base.Configure(builder);
 
-        builder.HasKey(t => t.Id);
+        builder.Property(x => x.ProjectListId).IsRequired();
 
-        // Add indexes for frequently queried columns
-        builder.HasIndex(t => t.ProjectListId);
-        builder.HasIndex(t => t.StatusId);
-        builder.HasIndex(t => t.DueDate);
-
-        // Properties
-        builder.Property(t => t.Name)
+        builder.Property(x => x.Name)
             .IsRequired()
             .HasMaxLength(200);
 
-        builder.Property(t => t.Description)
-            .HasMaxLength(1000);
+        builder.Property(x => x.Description).HasMaxLength(2000);
+        builder.Property(x => x.CreatorId).IsRequired();
 
-        builder.Property(t => t.CreatorId)
-            .IsRequired();
-
-        builder.Property(t => t.IsCompleted)
-            .IsRequired()
-            .HasDefaultValue(false);
-
-        builder.Property(t => t.IsArchived)
-            .IsRequired()
-            .HasDefaultValue(false);
-
-        builder.Property(t => t.Priority)
-            .IsRequired();
-
-        builder.Property(t => t.Visibility)
-            .IsRequired();
-
-        builder.Property(t => t.StartDate); // Added
-        builder.Property(t => t.DueDate); // Added
-        builder.Property(t => t.StoryPoints); // Added
-        builder.Property(t => t.TimeEstimateSeconds); // Added
-        builder.Property(t => t.OrderKey); // Added
-        builder.Property(t => t.StatusId); // Added
-
-        // Relationships
-        builder.HasOne<ProjectList>()
-            .WithMany()
-            .HasForeignKey(t => t.ProjectListId)
-            .OnDelete(DeleteBehavior.Cascade);
-
-        
-
-        // Relationships to join tables
-        builder.HasMany(t => t.Assignees)
-            .WithOne(a => a.ProjectTask)
-            .HasForeignKey(a => a.ProjectTaskId)
-            .OnDelete(DeleteBehavior.Cascade);
-
-
-        builder.HasMany(t => t.Tags)
-            .WithOne(t => t.ProjectTask)
-            .HasForeignKey(t => t.ProjectTaskId)
-            .OnDelete(DeleteBehavior.Cascade);
-
-        // Relationships to owned support entities
-        builder.HasMany(t => t.Comments)
-            .WithOne()
-            .HasForeignKey(c => c.ProjectTaskId)
-            .OnDelete(DeleteBehavior.Cascade);
-
-        builder.HasMany(t => t.Attachments)
-            .WithOne()
-            .HasForeignKey(a => a.ProjectTaskId)
-            .OnDelete(DeleteBehavior.Cascade);
-
-        builder.HasMany(t => t.TimeLogs)
-            .WithOne()
-            .HasForeignKey(tl => tl.ProjectTaskId)
-            .OnDelete(DeleteBehavior.Cascade);
-
-        builder.HasMany(t => t.Checklists)
-            .WithOne()
-            .HasForeignKey(cl => cl.ProjectTaskId)
-            .OnDelete(DeleteBehavior.Cascade);
-
-       
-        // Ignore DomainEvents
-        builder.Ignore(t => t.DomainEvents);
+        builder.HasIndex(x => new { x.ProjectListId, x.Name });
     }
 }

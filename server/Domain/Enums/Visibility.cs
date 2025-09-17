@@ -6,6 +6,5 @@ namespace Domain.Enums;
 public enum Visibility
 {
     Private,
-    Public,
-    Restricted
+    Public
 }

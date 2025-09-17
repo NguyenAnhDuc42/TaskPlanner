@@ -3,31 +3,26 @@ using Domain.Entities.Relationship;
 using Domain.Enums;
 using static Domain.Common.ColorValidator;
 using Domain.Common.Interfaces;
+using System.ComponentModel.DataAnnotations;
 
 namespace Domain.Entities.ProjectEntities;
 
-public class ProjectFolder : Aggregate
+public class ProjectFolder : Entity
 {
-    public Guid ProjectSpaceId { get; private set; }
-    public string Name { get; private set; } = null!;
-    public string? Description { get; private set; }
+    [Required] public Guid ProjectSpaceId { get; private set; }
+    [Required] public string Name { get; private set; } = null!;
+    public string Color { get; private set; } = "#cdcbcbff";
     public long? OrderKey { get; private set; }
     public Visibility Visibility { get; private set; }
     public bool IsArchived { get; private set; }
-    public Guid CreatorId { get; private set; }
-
-    private readonly List<UserProjectFolder> _members = new();
-    public IReadOnlyCollection<UserProjectFolder> Members => _members.AsReadOnly();
-
+    [Required] public Guid CreatorId { get; private set; }
     private ProjectFolder() { } // For EF Core
 
-    internal ProjectFolder(Guid id, Guid projectSpaceId, string name,
-        string? description, Visibility visibility, long orderKey, Guid creatorId)
+    internal ProjectFolder(Guid id, Guid projectSpaceId, string name, Visibility visibility, long orderKey, Guid creatorId)
     {
         Id = id;
         ProjectSpaceId = projectSpaceId;
         Name = name;
-        Description = description;
         Visibility = visibility;
         OrderKey = orderKey;
         CreatorId = creatorId;
@@ -49,14 +44,13 @@ public class ProjectFolder : Aggregate
         name = name?.Trim() ?? string.Empty;
         description = string.IsNullOrWhiteSpace(description?.Trim()) ? null : description.Trim();
 
-        if (Name == name && Description == description) return;
+        if (Name == name ) return;
 
         ValidateBasicInfo(name, description);
 
         var oldName = Name;
-        var oldDescription = Description;
         Name = name;
-        Description = description;
+     
         UpdateTimestamp();
     }
 
@@ -79,33 +73,6 @@ public class ProjectFolder : Aggregate
         OrderKey = newOrderKey;
         UpdateTimestamp();
     }
-
-    // === MEMBERSHIP MANAGEMENT ===
-    public void AddMember(Guid userId)
-    {
-        ValidateGuid(userId, nameof(userId));
-
-        if (_members.Any(m => m.UserId == userId))
-            throw new InvalidOperationException("User is already a member of this folder.");
-
-        var member = UserProjectFolder.Create(userId, Id);
-        _members.Add(member);
-        UpdateTimestamp();
-    }
-
-    public void RemoveMember(Guid userId)
-    {
-        if (userId == CreatorId)
-            throw new InvalidOperationException("Cannot remove folder creator from folder.");
-
-        var member = _members.FirstOrDefault(m => m.UserId == userId);
-        if (member == null)
-            throw new InvalidOperationException("User is not a member of this folder.");
-
-        _members.Remove(member);
-        UpdateTimestamp();
-    }
-
     public void Archive()
     {
         if (IsArchived) return;

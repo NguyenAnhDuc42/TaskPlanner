@@ -1,27 +1,21 @@
 using System;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using Domain.Common.Interfaces;
 
 namespace Domain.Common;
 
-public abstract class Entity
+public abstract class Composite
 {
-    [Key] public Guid Id { get; protected set; } = Guid.NewGuid();
     [Timestamp] public byte[] Version { get; private set; } = Array.Empty<byte>(); // EF Core optimistic concurrency
     public DateTimeOffset CreatedAt { get; private set; } = DateTimeOffset.UtcNow;
     public DateTimeOffset UpdatedAt { get; private set; } = DateTimeOffset.UtcNow;
     [NotMapped] private readonly List<IDomainEvent> _domainEvents = new();
     [NotMapped] public IReadOnlyCollection<IDomainEvent> DomainEvents => _domainEvents.AsReadOnly();
- 
-    protected Entity() { }
-    protected Entity(Guid id) => Id = id;
+
+    protected Composite() { }
 
     protected void UpdateTimestamp() => UpdatedAt = DateTimeOffset.UtcNow;
-    public override bool Equals(object? obj) => obj is Entity other && Id.Equals(other.Id);
-    public override int GetHashCode() => Id.GetHashCode();
 
     protected void AddDomainEvent(IDomainEvent domainEvent)
     {

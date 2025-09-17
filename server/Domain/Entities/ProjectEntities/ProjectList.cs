@@ -1,41 +1,32 @@
-using Domain.Common;
+
+using System.ComponentModel.DataAnnotations;
 using Domain.Entities.Relationship;
 using Domain.Enums;
-using static Domain.Common.ColorValidator;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using Domain.Common.Interfaces;
 
 namespace Domain.Entities.ProjectEntities;
 
 public class ProjectList : Aggregate
 {
-    public Guid ProjectSpaceId { get; private set; }
+    [Required] public Guid ProjectSpaceId { get; private set; }
     public Guid? ProjectFolderId { get; private set; }
-    public string Name { get; private set; } = null!;
-    public string? Description { get; private set; }
+    [Required] public string Name { get; private set; } = null!;
+    public string Color { get; private set; } = "#cdcbcbff";
+    public string Icon { get; private set; } = null!;
     public long? OrderKey { get; private set; }
     public Visibility Visibility { get; private set; }
-    public Guid CreatorId { get; private set; }
     public bool IsArchived { get; private set; }
-
+    [Required] public Guid CreatorId { get; private set; }
     public DateTimeOffset? StartDate { get; private set; }
     public DateTimeOffset? DueDate { get; private set; }
 
-    private readonly List<UserProjectList> _members = new();
-    public IReadOnlyCollection<UserProjectList> Members => _members.AsReadOnly();
-
     private ProjectList() { } // For EF Core
 
-    internal ProjectList(Guid id, Guid projectSpaceId, Guid? projectFolderId,
-        string name, string? description, Visibility visibility, long orderKey, Guid creatorId)
+    internal ProjectList(Guid id, Guid projectSpaceId, Guid? projectFolderId, string name, Visibility visibility, long orderKey, Guid creatorId)
     {
         Id = id;
         ProjectSpaceId = projectSpaceId;
         ProjectFolderId = projectFolderId;
         Name = name;
-        Description = description;
         Visibility = visibility;
         OrderKey = orderKey;
         CreatorId = creatorId;
@@ -49,14 +40,12 @@ public class ProjectList : Aggregate
         name = name?.Trim() ?? string.Empty;
         description = string.IsNullOrWhiteSpace(description?.Trim()) ? null : description.Trim();
 
-        if (Name == name && Description == description) return;
+        if (Name == name) return;
 
         ValidateBasicInfo(name, description);
 
         var oldName = Name;
-        var oldDescription = Description;
         Name = name;
-        Description = description;
         UpdateTimestamp();
     }
 
@@ -125,32 +114,6 @@ public class ProjectList : Aggregate
         UpdateTimestamp();
     }
 
-    // === MEMBERSHIP ===
-
-    public void AddMember(Guid userId)
-    {
-        ValidateGuid(userId, nameof(userId));
-
-        if (_members.Any(m => m.UserId == userId))
-            throw new InvalidOperationException("User is already a member of this list.");
-
-        var member = UserProjectList.Create(userId, Id);
-        _members.Add(member);
-        UpdateTimestamp();
-    }
-
-    public void RemoveMember(Guid userId)
-    {
-        if (userId == CreatorId)
-            throw new InvalidOperationException("Cannot remove list creator from list.");
-
-        var member = _members.FirstOrDefault(m => m.UserId == userId);
-        if (member == null)
-            throw new InvalidOperationException("User is not a member of this list.");
-
-        _members.Remove(member);
-        UpdateTimestamp();
-    }
 
     // === VALIDATION HELPERS ===
 
@@ -164,8 +127,4 @@ public class ProjectList : Aggregate
             throw new ArgumentException("List description cannot exceed 500 characters.", nameof(description));
     }
 
-    private static void ValidateGuid(Guid id, string paramName)
-    {
-        if (id == Guid.Empty) throw new ArgumentException("Guid cannot be empty.", paramName);
-    }
 }

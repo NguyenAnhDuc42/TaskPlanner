@@ -1,5 +1,6 @@
 namespace Domain.Enums;
 
+
 public enum EntityType
 {
     ProjectWorkspace,

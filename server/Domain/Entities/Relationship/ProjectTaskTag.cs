@@ -1,18 +1,17 @@
 using System;
+using Domain.Common;
 using Domain.Entities.ProjectEntities;
 using Domain.Entities.Support;
 
 namespace Domain.Entities.Relationship
 {
     
-    public class ProjectTaskTag
+    public class ProjectTaskTag : Composite
     {
         public Guid ProjectTaskId { get; private set; }
         public ProjectTask ProjectTask { get; private set; } = null!;
         public Guid TagId { get; private set; }
         public Tag Tag { get; private set; } = null!;
-
-        public DateTimeOffset CreatedAt { get; private set; }
 
         private ProjectTaskTag() { } // EF Core
         private ProjectTaskTag(Guid projectTaskId, Guid tagId)
@@ -22,7 +21,6 @@ namespace Domain.Entities.Relationship
 
             ProjectTaskId = projectTaskId;
             TagId = tagId;
-            CreatedAt = DateTimeOffset.UtcNow;
         }
 
         public static ProjectTaskTag Create(Guid projectTaskId, Guid tagId) =>

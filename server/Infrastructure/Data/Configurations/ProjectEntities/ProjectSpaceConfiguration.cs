@@ -5,69 +5,24 @@ using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace Infrastructure.Data.Configurations.ProjectEntities;
 
-public class ProjectSpaceConfiguration : IEntityTypeConfiguration<ProjectSpace>
+public class ProjectSpaceConfiguration : EntityConfiguration<ProjectSpace>
 {
-    public void Configure(EntityTypeBuilder<ProjectSpace> builder)
+    public override void Configure(EntityTypeBuilder<ProjectSpace> builder)
     {
-        builder.ToTable("ProjectSpaces");
+        base.Configure(builder);
 
-        builder.HasKey(s => s.Id);
+        builder.Property(x => x.ProjectWorkspaceId).IsRequired();
 
-        builder.Property(s => s.Name)
+        builder.Property(x => x.Name)
             .IsRequired()
-            .HasMaxLength(100); // Corrected from 200
+            .HasMaxLength(100);
 
-        builder.Property(s => s.Description)
-            .HasMaxLength(500); // Corrected from 1000
+        builder.Property(x => x.Description).HasMaxLength(500);
+        builder.Property(x => x.Icon).HasMaxLength(50);
+        builder.Property(x => x.Color).HasMaxLength(20);
 
-        builder.Property(s => s.Icon)
-            .IsRequired()
-            .HasMaxLength(50);
+        builder.Property(x => x.CreatorId).IsRequired();
 
-        builder.Property(s => s.Color)
-            .IsRequired()
-            .HasMaxLength(7);
-
-        builder.Property(s => s.Visibility)
-            .IsRequired();
-
-        builder.Property(s => s.IsArchived) // Added
-            .IsRequired()
-            .HasDefaultValue(false);
-
-        builder.Property(s => s.OrderKey); // Added
-
-        builder.Property(s => s.CreatorId)
-            .IsRequired();
-
-        builder.HasMany(w => w.Statuses)
-           .WithOne()
-           .HasForeignKey(s => s.ProjectSpaceId);
-
-        // Relationships
-        builder.HasOne<ProjectWorkspace>() // Define the relationship to the parent workspace
-            .WithMany()
-            .HasForeignKey(s => s.ProjectWorkspaceId)
-            .OnDelete(DeleteBehavior.Cascade);
-
-        builder.HasMany<ProjectFolder>()
-            .WithOne() // A folder belongs to one space
-            .HasForeignKey(f => f.ProjectSpaceId)
-            .OnDelete(DeleteBehavior.Cascade);
-
-        builder.HasMany<ProjectList>()
-            .WithOne() // A list belongs to one space
-            .HasForeignKey(l => l.ProjectSpaceId)
-            .OnDelete(DeleteBehavior.Cascade);
-
-        builder.HasMany(s => s.Members)
-            .WithOne(m => m.ProjectSpace)
-            .HasForeignKey(m => m.ProjectSpaceId)
-            .OnDelete(DeleteBehavior.Cascade);
-
-   
-
-        // Ignore DomainEvents
-        builder.Ignore(s => s.DomainEvents);
+        builder.HasIndex(x => new { x.ProjectWorkspaceId, x.Name });
     }
 }

@@ -4,62 +4,22 @@ using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace Infrastructure.Data.Configurations.ProjectEntities;
 
-public class ProjectListConfiguration : IEntityTypeConfiguration<ProjectList>
+public class ProjectListConfiguration : EntityConfiguration<ProjectList>
 {
-    public void Configure(EntityTypeBuilder<ProjectList> builder)
+    public override void Configure(EntityTypeBuilder<ProjectList> builder)
     {
-        builder.ToTable("ProjectLists");
+        base.Configure(builder);
 
-        builder.HasKey(l => l.Id);
+        builder.Property(x => x.ProjectSpaceId).IsRequired();
 
-        builder.Property(l => l.Name)
+        builder.Property(x => x.Name)
             .IsRequired()
             .HasMaxLength(100);
 
-        builder.Property(l => l.Description)
-            .HasMaxLength(500);
+        builder.Property(x => x.Color).HasMaxLength(20);
+        builder.Property(x => x.Icon).HasMaxLength(50);
+        builder.Property(x => x.CreatorId).IsRequired();
 
-        builder.Property(l => l.Visibility)
-            .IsRequired();
-            
-        builder.Property(l => l.CreatorId)
-            .IsRequired();
-            
-        builder.Property(l => l.IsArchived)
-            .IsRequired()
-            .HasDefaultValue(false);
-
-        builder.Property(l => l.StartDate); // Added
-        builder.Property(l => l.DueDate); // Added
-        builder.Property(l => l.OrderKey); // Added
-
-        // Relationships
-        builder.HasOne<ProjectSpace>()
-            .WithMany()
-            .HasForeignKey(l => l.ProjectSpaceId)
-            .OnDelete(DeleteBehavior.Cascade);
-
-        // A list can optionally belong to a folder. The relationship from Folder to List
-        // is already configured with DeleteBehavior.Restrict.
-        builder.HasOne<ProjectFolder>()
-            .WithMany()
-            .HasForeignKey(l => l.ProjectFolderId)
-            .IsRequired(false) // This makes the FK nullable
-            .OnDelete(DeleteBehavior.ClientSetNull); // If folder is deleted, set FK to null
-
-        builder.HasMany<ProjectTask>()
-            .WithOne()
-            .HasForeignKey(t => t.ProjectListId)
-            .OnDelete(DeleteBehavior.Cascade); // Tasks are deleted with their list
-
-        builder.HasMany(l => l.Members)
-            .WithOne(m => m.ProjectList)
-            .HasForeignKey(m => m.ProjectListId)
-            .OnDelete(DeleteBehavior.Cascade);
-
-      
-
-        // Ignore DomainEvents
-        builder.Ignore(l => l.DomainEvents);
+        builder.HasIndex(x => new { x.ProjectSpaceId, x.ProjectFolderId, x.Name });
     }
 }

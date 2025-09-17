@@ -6,14 +6,15 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using Domain.Enums;
 using Domain.Entities.Support;
+using System.ComponentModel.DataAnnotations;
 
 namespace Domain.Entities;
 
 public class User : Aggregate
 {
-    public string Name { get; private set; } = null!;
-    public string Email { get; private set; } = null!;
-    public string PasswordHash { get; private set; } = null!;
+    [Required] public string Name { get; private set; } = null!;
+    [Required] [EmailAddress] public string Email { get; private set; } = null!;
+    [Required] public string PasswordHash { get; private set; } = null!;
 
     // === Owned Entities ===
     private readonly List<Session> _sessions = new();
@@ -21,22 +22,6 @@ public class User : Aggregate
 
      private readonly List<Notification> _notifications = new();
     public IReadOnlyCollection<Notification> Notifications => _notifications.AsReadOnly();
-
-    // === Relationship Entities ===
-    private readonly List<UserProjectWorkspace> _workspaces = new();
-    public IReadOnlyCollection<UserProjectWorkspace> Workspaces => _workspaces.AsReadOnly();
-
-    private readonly List<UserProjectSpace> _spaces = new();
-    public IReadOnlyCollection<UserProjectSpace> Spaces => _spaces.AsReadOnly();
-
-    private readonly List<UserProjectFolder> _folders = new();
-    public IReadOnlyCollection<UserProjectFolder> Folders => _folders.AsReadOnly();
-
-    private readonly List<UserProjectList> _lists = new();
-    public IReadOnlyCollection<UserProjectList> Lists => _lists.AsReadOnly();
-
-    private readonly List<UserProjectTask> _tasks = new();
-    public IReadOnlyCollection<UserProjectTask> Tasks => _tasks.AsReadOnly();
 
     private User() { } // EF Core
 
@@ -81,58 +66,6 @@ public class User : Aggregate
         var session = _sessions.FirstOrDefault(s => s.Id == sessionId)
                       ?? throw new InvalidOperationException("Session not found.");
         session.ExtendExpiration(duration);
-    }
-
-    // === Relationship Management ===
-    public void JoinWorkspace(Guid workspaceId, Role     role)
-    {
-        if (_workspaces.Any(w => w.ProjectWorkspaceId == workspaceId)) return;
-
-        var membership = UserProjectWorkspace.Create(Id, workspaceId, role);
-        _workspaces.Add(membership);
-        UpdateTimestamp();
-    }
-
-    public void LeaveWorkspace(Guid workspaceId)
-    {
-        var membership = _workspaces.FirstOrDefault(w => w.ProjectWorkspaceId == workspaceId);
-        if (membership != null) _workspaces.Remove(membership);
-    }
-
-    public void JoinSpace(Guid spaceId)
-    {
-        if (_spaces.Any(s => s.ProjectSpaceId == spaceId)) return;
-
-        var membership = UserProjectSpace.Create(Id, spaceId);
-        _spaces.Add(membership);
-        UpdateTimestamp();
-    }
-
-    public void JoinFolder(Guid folderId)
-    {
-        if (_folders.Any(f => f.ProjectFolderId == folderId)) return;
-
-        var membership = UserProjectFolder.Create(Id, folderId);
-        _folders.Add(membership);
-        UpdateTimestamp();
-    }
-
-    public void JoinList(Guid listId)
-    {
-        if (_lists.Any(l => l.ProjectListId == listId)) return;
-
-        var membership = UserProjectList.Create(Id, listId);
-        _lists.Add(membership);
-        UpdateTimestamp();
-    }
-
-    public void AssignToTask(Guid taskId)
-    {
-        if (_tasks.Any(t => t.ProjectTaskId == taskId)) return;
-
-        var assignment = UserProjectTask.Create(Id, taskId);
-        _tasks.Add(assignment);
-        UpdateTimestamp();
     }
 
     // === User Updates ===
