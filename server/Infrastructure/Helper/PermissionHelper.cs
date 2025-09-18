@@ -4,36 +4,95 @@ using Domain.Enums;
 
 public static class PermissionHelper
 {
-    // Returns only single-bit (atomic) flags declared in the enum
-    public static Permission GetAllAtomicPermissions()
+    public static Permission MapAccessLevelToPermissionMask(EntityType entityType, AccessLevel level)
     {
-        var values = Enum.GetValues(typeof(Permission)).Cast<Permission>()
-            .Where(p => p != Permission.None && IsPowerOfTwo((long)p));
-        return values.Aggregate(Permission.None, (acc, v) => acc | v);
+        return entityType switch
+        {
+            EntityType.ProjectSpace => level switch
+            {
+                AccessLevel.Manager => Permission.View_Spaces
+                                      | Permission.Edit_Spaces
+                                      | Permission.Delete_Spaces
+                                      | Permission.Archive_Spaces
+                                      // actions inside the space
+                                      | Permission.Create_Lists
+                                      | Permission.Edit_Lists
+                                      | Permission.Delete_Lists
+                                      | Permission.Create_Tasks
+                                      | Permission.Edit_Tasks
+                                      | Permission.Delete_Tasks,
+                AccessLevel.Editor => Permission.View_Spaces
+                                      | Permission.Edit_Spaces
+                                      | Permission.Create_Lists
+                                      | Permission.Create_Tasks
+                                      | Permission.Edit_Tasks,
+                AccessLevel.Viewer => Permission.View_Spaces,
+                _ => Permission.None
+            },
+
+            EntityType.ProjectFolder => level switch
+            {
+                AccessLevel.Manager => Permission.View_Lists
+                                      | Permission.Create_Lists
+                                      | Permission.Edit_Lists
+                                      | Permission.Delete_Lists
+                                      | Permission.Reorder_Lists
+                                      | Permission.Create_Tasks
+                                      | Permission.Edit_Tasks
+                                      | Permission.Delete_Tasks,
+                AccessLevel.Editor => Permission.View_Lists
+                                      | Permission.Create_Lists
+                                      | Permission.Create_Tasks
+                                      | Permission.Edit_Tasks,
+                AccessLevel.Viewer => Permission.View_Lists,
+                _ => Permission.None
+            },
+
+            EntityType.ProjectList => level switch
+            {
+                AccessLevel.Manager => Permission.View_Lists | Permission.Create_Tasks | Permission.Edit_Lists | Permission.Delete_Lists
+                                      | Permission.Reorder_Lists | Permission.Edit_Tasks | Permission.Delete_Tasks | Permission.Assign_Tasks
+                                      | Permission.Change_Task_Status,
+                AccessLevel.Editor => Permission.View_Lists | Permission.Create_Tasks | Permission.Edit_Tasks,
+                AccessLevel.Viewer => Permission.View_Lists | Permission.View_Tasks,
+                _ => Permission.None
+            },
+
+            EntityType.ProjectTask => level switch
+            {
+                AccessLevel.Manager => Permission.View_Tasks | Permission.Create_Tasks | Permission.Edit_Tasks
+                                      | Permission.Delete_Tasks | Permission.Assign_Tasks | Permission.Change_Task_Status
+                                      | Permission.View_Comments | Permission.Create_Comments,
+                AccessLevel.Editor => Permission.View_Tasks | Permission.Create_Tasks | Permission.Edit_Tasks | Permission.Create_Comments,
+                AccessLevel.Viewer => Permission.View_Tasks | Permission.View_Comments,
+                _ => Permission.None
+            },
+
+            _ => Permission.None
+        };
     }
 
-    private static bool IsPowerOfTwo(long v) => v != 0 && (v & (v - 1)) == 0;
-
-    // Owner permissions = all atomic permissions except Transfer_Ownership (business rule)
-    public static Permission GetOwnerPermissions()
+    // Map a workspace Role to workspace-level permission mask.
+    // These are *global workspace permissions* (create spaces, manage members, settings, etc.).
+    public static Permission MapRoleToPermissionMask(Role role)
     {
-        var all = GetAllAtomicPermissions();
-        return all & ~Permission.Transfer_Ownership;
+        return role switch
+        {
+            Role.Owner => Permission.All,
+            Role.Admin => Permission.Workspace_Admin | Permission.Member_Admin | Permission.Content_Admin,
+            Role.Member => Permission.View_Spaces
+                           | Permission.Create_Lists
+                           | Permission.Create_Tasks
+                           | Permission.View_Lists
+                           | Permission.View_Tasks
+                           | Permission.Create_Comments
+                           | Permission.View_Comments,
+            Role.Guest => Permission.View_Workspace | Permission.View_Spaces | Permission.View_Lists | Permission.View_Tasks,
+            _ => Permission.None
+        };
     }
 
-    // All defined atomic permissions
-    public static Permission GetAllPermissions() => GetAllAtomicPermissions();
-
-    // Convenience: determine if a permission is a "view" type
-    public static bool IsViewPermission(Permission permission)
-    {
-        var viewFlags = Permission.View_Workspace
-                      | Permission.View_Spaces
-                      | Permission.View_Lists
-                      | Permission.View_Tasks
-                      | Permission.View_Statuses
-                      | Permission.View_Comments
-                      | Permission.View_Attachments;
-        return (viewFlags & permission) == permission;
-    }
+    // small utility for checking "does mask include required permission?"
+    public static bool MaskHas(Permission mask, Permission required) => (mask & required) == required;
 }
+

@@ -13,8 +13,6 @@ public class RealtimePublisher : IRealtimePublisher
     {
         _hub = hub ?? throw new ArgumentNullException(nameof(hub));
     }
-
-
     private static string WorkspaceGroup(Guid workspaceId) => $"workspace_{workspaceId}";
 
 

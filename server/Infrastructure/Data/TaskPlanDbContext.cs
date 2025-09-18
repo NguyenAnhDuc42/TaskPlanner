@@ -28,11 +28,9 @@ public class TaskPlanDbContext : DbContext
     public DbSet<ProjectTask> ProjectTasks { get; set; }
 
     // Relationship Entities
-    public DbSet<UserProjectWorkspace> UserProjectWorkspaces { get; set; }
-    public DbSet<UserProjectSpace> UserProjectSpaces { get; set; }
-    public DbSet<UserProjectFolder> UserProjectFolders { get; set; }
-    public DbSet<UserProjectList> UserProjectLists { get; set; }
-    public DbSet<UserProjectTask> UserProjectTasks { get; set; }
+    public DbSet<WorkspaceMember> WorkspaceMembers { get; set; }
+    public DbSet<UserAccessLayer> UserAccessLayers { get; set; }
+    public DbSet<ProjectTaskTag> ProjectTaskTags { get; set; }
 
     // Support Entities
     public DbSet<Attachment> Attachments { get; set; }
@@ -43,7 +41,7 @@ public class TaskPlanDbContext : DbContext
     public DbSet<Status> Statuses { get; set; }
     public DbSet<Tag> Tags { get; set; }
     public DbSet<TimeLog> TimeLogs { get; set; }
-    public DbSet<ProjectTaskTag> ProjectTaskTags { get; set; }
+
 
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)

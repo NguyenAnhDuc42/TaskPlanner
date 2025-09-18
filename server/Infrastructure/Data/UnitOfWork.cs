@@ -1,5 +1,4 @@
 using Application.Interfaces.Repositories;
-using Infrastructure.Data.Repositories;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
 using Domain.Common.Interfaces;
@@ -16,29 +15,11 @@ namespace Infrastructure.Data
         private readonly IDomainEventDispatcher _domainDispatcher;
         private IDbContextTransaction? _currentTransaction;
 
-        private IUserRepository? _users;
-        private ISessionRepository? _sessions;
-        private IProjectWorkspaceRepository? _projectWorkspaces;
-        private IProjectSpaceRepository? _projectSpaces;
-        private IProjectFolderRepository? _projectFolders;
-        private IProjectListRepository? _projectLists;
-        private IProjectTaskRepository? _projectTasks;
-
         public UnitOfWork(TaskPlanDbContext context, IDomainEventDispatcher domainDispatcher)
         {
             _context = context;
             _domainDispatcher = domainDispatcher;
         }
-
-        #region Repositories
-        public IUserRepository Users => _users ??= new UserRepository(_context);
-        public ISessionRepository Sessions => _sessions ??= new SessionRepository(_context);
-        public IProjectWorkspaceRepository ProjectWorkspaces => _projectWorkspaces ??= new ProjectWorkspaceRepository(_context);
-        public IProjectSpaceRepository ProjectSpaces => _projectSpaces ??= new ProjectSpaceRepository(_context);
-        public IProjectFolderRepository ProjectFolders => _projectFolders ??= new ProjectFolderRepository(_context);
-        public IProjectListRepository ProjectLists => _projectLists ??= new ProjectListRepository(_context);
-        public IProjectTaskRepository ProjectTasks => _projectTasks ??= new ProjectTaskRepository(_context);
-        #endregion
 
         private IDbConnection Database => _context.Database.GetDbConnection();
         public DbSet<T> Set<T>() where T : class => _context.Set<T>();
