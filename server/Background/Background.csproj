@@ -16,7 +16,6 @@
     <Folder Include="Jobs\" />
     <Folder Include="Scheduling\" />
     <Folder Include="Services\" />
-    <Folder Include="Workers\" />
   </ItemGroup>
 
   <ItemGroup>

@@ -26,7 +26,7 @@ public class RealtimePublisher : IRealtimePublisher
     public Task PublishCreatedAsync<TPayload>(Guid workspaceId, string entityType, Guid parentId, string? parentType, TPayload dto, Guid actorId, CancellationToken ct = default)
     {
         var eventName = $"{entityType}.Created";
-        var env = new EventEnvelope<TPayload>(workspaceId, eventName, dto, actorId, DateTime.Now, 1, parentType, parentId);
+        var env = new EventEnvelope<TPayload>(workspaceId, eventName, dto, actorId, DateTime.UtcNow, 1, parentType, parentId);
         return PublishAsync(env, ct);
 
     }
@@ -35,7 +35,7 @@ public class RealtimePublisher : IRealtimePublisher
     {
         var eventName = $"{entityType}.Deleted";
         var payload = new { Id = entityId };
-        var env = new EventEnvelope<object>(workspaceId, eventName, payload, actorId, DateTime.Now);
+        var env = new EventEnvelope<object>(workspaceId, eventName, payload, actorId, DateTime.UtcNow);
         return PublishAsync(env, ct);
     }
 
@@ -50,7 +50,7 @@ public class RealtimePublisher : IRealtimePublisher
     public Task PublishUpdatedAsync<TPayload>(Guid workspaceId, string entityType, TPayload dto, Guid actorId, CancellationToken ct = default)
     {
         var eventName = $"{entityType}.Updated";
-        var env = new EventEnvelope<TPayload>(workspaceId, eventName, dto, actorId, DateTime.Now);
+        var env = new EventEnvelope<TPayload>(workspaceId, eventName, dto, actorId, DateTime.UtcNow);
         return PublishAsync(env, ct);
 
     }
