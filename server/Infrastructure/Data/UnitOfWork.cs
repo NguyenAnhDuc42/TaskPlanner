@@ -79,6 +79,7 @@ namespace Infrastructure.Data
             {
                 await _domainDispatcher.DispatchAsync(domainEvents, cancellationToken).ConfigureAwait(false);
                 _context.ChangeTracker.ClearDomainEvents();
+                await _context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
             }
 
             return result;

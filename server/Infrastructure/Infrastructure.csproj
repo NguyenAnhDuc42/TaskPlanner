@@ -30,7 +30,6 @@
 
   <ItemGroup>
     <Folder Include="Data\Configurations\ProjectEntities\" />
-    <Folder Include="Events\IntergrationsEvents\" />
     <Folder Include="Helper\Checkers\" />
     <Folder Include="Helper\Exceptions\" />
     <Folder Include="MessageBus\" />

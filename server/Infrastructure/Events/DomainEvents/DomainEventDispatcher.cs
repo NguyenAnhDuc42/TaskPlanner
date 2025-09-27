@@ -17,24 +17,20 @@ public class DomainEventDispatcher : IDomainEventDispatcher
         if (domainEvents is null)
             throw new ArgumentNullException(nameof(domainEvents));
         if (!domainEvents.Any()) return;
-
-        foreach (var domainEvent in domainEvents)
+        
+        var tasks = domainEvents
+        .Where(e => e is not null)
+        .Select(e =>
         {
-            var wrapperType = typeof(DomainEventNotification<>).MakeGenericType(domainEvent.GetType());
-            var wrapper = Activator.CreateInstance(wrapperType, domainEvent);
-            var tasks = domainEvents
-            .Where(e => e is not null)
-            .Select(e =>
-            {
-                var wrapperType = typeof(DomainEventNotification<>).MakeGenericType(e.GetType());
-                var wrapper = Activator.CreateInstance(wrapperType, e);
-                return wrapper is INotification notification
-                    ? _mediator.Publish(notification, cancellationToken)
-                    : Task.CompletedTask;
-            });
+            var wrapperType = typeof(DomainEventNotification<>).MakeGenericType(e.GetType());
+            var wrapper = Activator.CreateInstance(wrapperType, e);
+            return wrapper is INotification notification
+                ? _mediator.Publish(notification, cancellationToken)
+                : Task.CompletedTask;
+        });
 
-            await Task.WhenAll(tasks).ConfigureAwait(false);
-        }
+        await Task.WhenAll(tasks).ConfigureAwait(false);
+
 
     }
 }

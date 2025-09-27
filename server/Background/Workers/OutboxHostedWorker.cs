@@ -1,5 +1,6 @@
 using System;
 using System.Text.Json;
+using Application.Common.Interfaces;
 using Application.Interfaces;
 using Application.Interfaces.IntergrationEvent;
 using Application.Interfaces.Outbox;
@@ -65,21 +66,34 @@ public class OutboxHostedWorker : BackgroundService
                     {
                         try
                         {
-                            var publisher = scope.ServiceProvider.GetRequiredService<IIntegrationEventPublisher>();
                             var eventType = Type.GetType(msg.Type);
-                            var @event = (IIntegrationEvent)JsonSerializer.Deserialize(msg.Payload, eventType!)!;
-                            await publisher.PublishAsync(@event, stoppingToken);
+                            if (eventType == null)
+                            {
+                                _logger.LogError("Unknown event type: {EventType} for message {MessageId}", msg.Type, msg.Id);
+                                msg.SetError($"Unknown event type: {msg.Type}");
+                                msg.IncrementAttempts(TimeSpan.FromHours(1));
+                                continue;
+                            }
 
+                            var @event = JsonSerializer.Deserialize(msg.Payload, eventType) as IIntegrationEvent;
+                            if (@event == null)
+                            {
+                                _logger.LogError("Failed to deserialize message {MessageId}", msg.Id);
+                                msg.SetError("Deserialization failed");
+                                msg.IncrementAttempts(TimeSpan.FromHours(1));
+                                continue;
+                            }
+
+                            var publisher = scope.ServiceProvider.GetRequiredService<IIntegrationEventPublisher>();
+                            await publisher.PublishAsync(@event, stoppingToken);
                             msg.MarkProcessed();
                         }
                         catch (Exception ex)
                         {
                             _logger.LogError(ex, "Failed to process outbox message {MessageId}", msg.Id);
-
                             var backoff = TimeSpan.FromSeconds(Math.Min(Math.Pow(2, msg.Attempts), 300));
-                            msg.IncrementAttempts(backoff); // Simple backoff strategy
+                            msg.IncrementAttempts(backoff);
                             msg.SetError(ex.Message);
-
                         }
                     }
 
