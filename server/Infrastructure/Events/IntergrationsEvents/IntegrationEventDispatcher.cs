@@ -38,7 +38,8 @@ public class IntegrationEventDispatcher : IIntegrationEventDispatcher
         {
             try
             {
-                var task = (Task<IntegrationEventHandlingResult>)method.Invoke(handler, [@event, cancellationToken])!;
+                var invokeResult = method.Invoke(handler, [@event, cancellationToken])!;
+                var task = (Task<IntegrationEventHandlingResult>)invokeResult;
                 var result = await task;
                 results.Add(result);
 

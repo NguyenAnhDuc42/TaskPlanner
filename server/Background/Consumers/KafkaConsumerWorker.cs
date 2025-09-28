@@ -7,6 +7,7 @@ using Application.Interfaces.IntergrationEvent;
 using Confluent.Kafka;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 namespace Background.Consumers;
 
@@ -16,17 +17,22 @@ public class KafkaConsumerWorker : BackgroundService
     private readonly ILogger<KafkaConsumerWorker> _logger;
     private readonly IIntegrationEventDispatcher _dispatcher;
     private readonly RetryPolicy _retryPolicy;
-    public KafkaConsumerWorker(IConsumer<string, string> consumer, ILogger<KafkaConsumerWorker> logger, IIntegrationEventDispatcher dispatcher, RetryPolicy retryPolicy)
+    private readonly RetryOptions _retryOptions;
+    private readonly IntegrationEventOptions _integrationOptions;
+    public KafkaConsumerWorker(IConsumer<string, string> consumer, ILogger<KafkaConsumerWorker> logger, IIntegrationEventDispatcher dispatcher, RetryPolicy retryPolicy, IOptions<RetryOptions> retryOptions, IOptions<IntegrationEventOptions> integrationOptions)
     {
         _consumer = consumer;
         _logger = logger;
         _dispatcher = dispatcher;
         _retryPolicy = retryPolicy;
+        _retryOptions = retryOptions.Value;
+        _integrationOptions = integrationOptions.Value;
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        _consumer.Subscribe(new[] { "OrderCreatedEvent", "PaymentProcessedEvent" }); // Your topics
+        var topics = _integrationOptions.Topics.Values.ToArray();
+        _consumer.Subscribe(topics);
 
         while (!stoppingToken.IsCancellationRequested)
         {
@@ -71,6 +77,7 @@ public class KafkaConsumerWorker : BackgroundService
                 }
 
                 var @event = (IIntegrationEvent)JsonSerializer.Deserialize(consumeResult.Message.Value, eventType);
+
 
                 var result = await _dispatcher.DispatchAsync(@event, cancellationToken);
                 if (result == IntegrationEventHandlingResult.Success)

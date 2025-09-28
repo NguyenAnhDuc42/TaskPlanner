@@ -1,6 +1,7 @@
 using System;
 using System.Text.Json;
 using Application.Common.Interfaces;
+using Application.EventHandlers;
 using Application.Interfaces;
 using Application.Interfaces.IntergrationEvent;
 using Application.Interfaces.Outbox;
@@ -9,6 +10,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 namespace Background.Workers;
 
@@ -16,15 +18,18 @@ public class OutboxHostedWorker : BackgroundService
 {
     private readonly IServiceProvider _provider;
     private readonly ILogger<OutboxHostedWorker> _logger;
-    private readonly TimeSpan _pollDelay = TimeSpan.FromSeconds(5);
-    private readonly long _advisoryLockKey; // numeric key used for pg_try_advisory_lock
+    private readonly OutboxOptions _outboxOptions;
+    private readonly TimeSpan _pollDelay;
+    private readonly long _advisoryLockKey;
 
 
-    public OutboxHostedWorker(IServiceProvider provider, ILogger<OutboxHostedWorker> logger, IConfiguration config)
+    public OutboxHostedWorker(IServiceProvider provider, ILogger<OutboxHostedWorker> logger, IConfiguration config, IOptions<OutboxOptions> outboxOptions)
     {
         _provider = provider;
         _logger = logger;
-        _advisoryLockKey = config.GetValue<long>("Outbox:AdvisoryLockKey", 1234567890);
+        _outboxOptions = outboxOptions.Value;
+        _pollDelay = TimeSpan.FromSeconds(_outboxOptions.PollDelaySeconds);
+        _advisoryLockKey = _outboxOptions.AdvisoryLockKey;
     }
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
@@ -60,7 +65,7 @@ public class OutboxHostedWorker : BackgroundService
                     var message = await dbContext.OutboxMessages
                         .Where(m => !m.IsProcessed && m.AvailableAt <= DateTimeOffset.Now)
                         .OrderBy(m => m.OccurredOn)
-                        .Take(50)
+                        .Take(_outboxOptions.BatchSize)
                         .ToListAsync(stoppingToken);
                     foreach (var msg in message)
                     {
