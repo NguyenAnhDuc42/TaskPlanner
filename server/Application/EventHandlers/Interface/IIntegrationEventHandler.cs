@@ -1,7 +1,8 @@
 using System;
-using Application.EventHandlers;
+using Application.Common.Interfaces;
 
-namespace Application.Common.Interfaces;
+
+namespace Application.EventHandlers.Interface;
 
 public interface IIntegrationEventHandler<TEvent> where TEvent : IIntegrationEvent
 {

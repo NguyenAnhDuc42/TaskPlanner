@@ -13,6 +13,8 @@ public static class DbContextRegistration
     {
         services.AddDbContext<TaskPlanDbContext>(options =>
             options.UseNpgsql(connectionString));
+        services.AddDbContext<OutboxDbContext>(options =>
+            options.UseNpgsql(connectionString));
 
         return services;
     }

@@ -13,7 +13,7 @@ using Application.Interfaces.Outbox;
 
 namespace Infrastructure.Data;
 
-public class TaskPlanDbContext : DbContext,IOutboxProcessorDbContext
+public class TaskPlanDbContext : DbContext
 {
     public TaskPlanDbContext(DbContextOptions<TaskPlanDbContext> options) : base(options) 
     {
@@ -44,8 +44,7 @@ public class TaskPlanDbContext : DbContext,IOutboxProcessorDbContext
     public DbSet<Tag> Tags { get; set; }
     public DbSet<TimeLog> TimeLogs { get; set; }
 
-    // Outbox
-    public DbSet<OutboxMessage> OutboxMessages { get; set; }
+    
 
 
 

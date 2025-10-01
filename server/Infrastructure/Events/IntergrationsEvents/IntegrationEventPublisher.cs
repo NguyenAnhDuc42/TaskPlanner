@@ -1,8 +1,9 @@
 using System;
 using System.Text;
 using System.Text.Json;
+using Application.Common.Interfaces;
 using Application.EventHandlers;
-using Application.Interfaces.IntergrationEvent;
+using Application.EventHandlers.Interface;
 using Confluent.Kafka;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -46,7 +47,7 @@ public class IntegrationEventPublisher : IIntegrationEventPublisher
             var message = new Message<string, string> { Key = Guid.NewGuid().ToString(), Value = payload, Headers = headers };
             var result = await _producer.ProduceAsync(topic, message, cancellationToken);
             _logger.LogInformation("Published {EventType} to Kafka topic {Topic}, offset {Offset}",
-                @event.GetType().Name, topic, result);
+                @event.GetType().Name, topic, result.TopicPartitionOffset);
         }
         catch (ProduceException<string, string> ex)
         {
@@ -54,6 +55,17 @@ public class IntegrationEventPublisher : IIntegrationEventPublisher
             throw;
         }
     }
+
+    public Task PublishAsync(IIntegrationEvent @event, CancellationToken cancellationToken = default)
+    {
+        throw new NotImplementedException();
+    }
+
+    public Task PublishRawAsync(string eventType, string payloadJson, string? routingKey = null, Headers? headers = null, CancellationToken cancellationToken = default)
+    {
+        throw new NotImplementedException();
+    }
+
     private string GetTopicName(string eventTypeName)
     {
         return _options.Topics.TryGetValue(eventTypeName, out var topicName)

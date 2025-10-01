@@ -4,7 +4,7 @@ using System.Reflection;
 using Application.Common;
 using Application.Common.Interfaces;
 using Application.EventHandlers;
-using Application.Interfaces.IntergrationEvent;
+using Application.EventHandlers.Interface;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
@@ -21,6 +21,30 @@ public class IntegrationEventDispatcher : IIntegrationEventDispatcher
         _logger = logger;
 
     }
+    /// <summary>
+    /// Dispatches event to all registered handlers and returns aggregated result.
+    /// 
+    /// TAKES: IIntegrationEvent (@event), CancellationToken
+    /// DOES:
+    ///   1. Starts Activity span for tracing: "DispatchEvent"
+    ///   2. Resolve all IIntegrationEventHandler<TEvent> from IServiceProvider (DI)
+    ///   3. Create List<IntegrationEventHandlingResult> results
+    ///   4. FOREACH handler:
+    ///      a. Start stopwatch
+    ///      b. result = handler.HandleAsync(@event, ct)
+    ///      c. IMetricsCollector.RecordHandlerDuration(handlerType, elapsed)
+    ///      d. results.Add(result)
+    ///   5. Aggregate results using priority rules:
+    ///      - ANY result == DeadLetter → return DeadLetter (poison message, highest priority)
+    ///      - ANY result == Retry → return Retry (needs backoff)
+    ///      - ALL results == Skip → return Skip (no-op)
+    ///      - OTHERWISE → return Success
+    ///   6. Log aggregated result with handler breakdown (for debugging)
+    /// RETURNS: Task<IntegrationEventHandlingResult> (aggregated decision)
+    /// CONDITION: Called by KafkaConsumerWorker after deserializing message
+    /// LOGIC: Ensures ANY handler requiring retry/DLQ overrides success from others.
+    ///        On retry, ALL handlers re-invoked (idempotency required).
+    /// </summary>
     public async Task<IntegrationEventHandlingResult> DispatchAsync(IIntegrationEvent @event, CancellationToken cancellationToken = default)
     {
         var eventType = @event.GetType();
@@ -38,7 +62,7 @@ public class IntegrationEventDispatcher : IIntegrationEventDispatcher
         {
             try
             {
-                var invokeResult = method.Invoke(handler, [@event, cancellationToken])!;
+                var invokeResult = method.Invoke(handler, new object[] { @event, cancellationToken })!;
                 var task = (Task<IntegrationEventHandlingResult>)invokeResult;
                 var result = await task;
                 results.Add(result);

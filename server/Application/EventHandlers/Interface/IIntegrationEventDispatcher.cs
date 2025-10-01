@@ -1,10 +1,10 @@
-
+using System;
 using Application.Common.Interfaces;
-using Application.EventHandlers;
 
-namespace Application.Interfaces.IntergrationEvent;
+namespace Application.EventHandlers.Interface;
 
 public interface IIntegrationEventDispatcher
 {
     Task<IntegrationEventHandlingResult> DispatchAsync(IIntegrationEvent @event, CancellationToken cancellationToken = default);
 }
+

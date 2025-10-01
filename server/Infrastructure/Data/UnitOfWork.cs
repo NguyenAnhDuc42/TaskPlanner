@@ -72,9 +72,8 @@ namespace Infrastructure.Data
         public async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
         {
             var result = await _context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
-
             var domainEvents = _context.ChangeTracker.CollectDomainEvents();
-
+            
             if (domainEvents.Count > 0)
             {
                 await _domainDispatcher.DispatchAsync(domainEvents, cancellationToken).ConfigureAwait(false);

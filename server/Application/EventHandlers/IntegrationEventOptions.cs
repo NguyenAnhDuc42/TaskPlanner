@@ -9,6 +9,7 @@ public class IntegrationEventOptions
     public Dictionary<string, string> Topics { get; set; } = new();
     public KafkaOptions Kafka { get; set; } = new();
     public RetryOptions Retry { get; set; } = new();
+    public OutboxOptions Outbox { get; set; } = new();
 }
 
 public class KafkaOptions
@@ -28,8 +29,6 @@ public class RetryOptions
 
 public class OutboxOptions
 {
-    public const string SectionName = "Outbox";
-
     public long AdvisoryLockKey { get; set; } = 1234567890;
     public int PollDelaySeconds { get; set; } = 5;
     public int BatchSize { get; set; } = 50;
