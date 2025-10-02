@@ -51,11 +51,10 @@ public class OutboxService : IOutboxService
             return;
         }
 
-        const string sql =
-        @"SELECT deduplication_key 
-          FROM outbox_messages
-          WHERE deduplication_key = ANY(@Keys)
-          AND state = 0;";
+        const string sql = @"SELECT deduplication_key 
+                            FROM outbox_messages
+                            WHERE deduplication_key = ANY(@Keys)
+                            AND state = 0;";
 
         var parameters = new { Keys = deduplicationKeys.ToArray() };
         var duplicateKeys = await _dbConnection.QueryAsync<string>(sql, parameters);

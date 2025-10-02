@@ -60,12 +60,13 @@ namespace Domain.OutBox
         /// <summary>
         /// Increment attempts and set next available time using the supplied backoff.
         /// </summary>
-        public void IncrementAttemptsAndReschedule(TimeSpan backoff)
+        public void IncrementAttemptsAndReschedule(TimeSpan backoff, DateTimeOffset nextAvailableAt)
         {
             if (backoff < TimeSpan.Zero) backoff = TimeSpan.Zero;
-            Attempts++;
-            // schedule next attempt relative to now to avoid drift
-            AvailableAtUtc = DateTimeOffset.UtcNow.Add(backoff);
+            Attempts += 1;
+            AvailableAtUtc = nextAvailableAt;
+            LastError = null; // optional: clear last transient error on reschedule
+            State = OutboxState.Pending;
         }
 
         /// <summary>
