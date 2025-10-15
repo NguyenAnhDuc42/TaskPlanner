@@ -12,16 +12,13 @@ namespace Domain.Entities;
 
 public class User : Aggregate
 {
-    [Required] public string Name { get; private set; } = null!;
-    [Required] [EmailAddress] public string Email { get; private set; } = null!;
-    [Required] public string PasswordHash { get; private set; } = null!;
+    public string Name { get; private set; } = null!;
+    [EmailAddress] public string Email { get; private set; } = null!;
+    public string PasswordHash { get; private set; } = null!;
 
     // === Owned Entities ===
     private readonly List<Session> _sessions = new();
     public IReadOnlyCollection<Session> Sessions => _sessions.AsReadOnly();
-
-     private readonly List<Notification> _notifications = new();
-    public IReadOnlyCollection<Notification> Notifications => _notifications.AsReadOnly();
 
     private User() { } // EF Core
 

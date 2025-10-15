@@ -4,112 +4,76 @@ using Domain.Enums;
 using static Domain.Common.ColorValidator;
 using Domain.Common.Interfaces;
 using System.ComponentModel.DataAnnotations;
+using Domain.Entities.ProjectEntities.ValueObject;
 
 namespace Domain.Entities.ProjectEntities;
 
 public class ProjectFolder : Entity
 {
-    [Required] public Guid ProjectSpaceId { get; private set; }
-    [Required] public string Name { get; private set; } = null!;
-    public string Color { get; private set; } = "#cdcbcbff";
+    public Guid ProjectSpaceId { get; private set; }
+    public string Name { get; private set; } = null!;
+    public Customization Customization { get; private set; } = Customization.CreateDefault();
     public long? OrderKey { get; private set; }
-    public Visibility Visibility { get; private set; }
+    public bool IsPrivate { get; private set; } = true;
     public bool IsArchived { get; private set; }
-    [Required] public Guid CreatorId { get; private set; }
-    private ProjectFolder() { } // For EF Core
+    public Guid CreatorId { get; private set; }
 
-    internal ProjectFolder(Guid id, Guid projectSpaceId, string name, Visibility visibility, long orderKey, Guid creatorId)
+    // EF Core
+    private ProjectFolder() { }
+
+    private ProjectFolder(Guid id, Guid spaceId, string name, Customization customization, bool isPrivate, long? orderKey, Guid creatorId)
     {
         Id = id;
-        ProjectSpaceId = projectSpaceId;
-        Name = name;
-        Visibility = visibility;
+        ProjectSpaceId = spaceId;
+        Name = name ?? throw new ArgumentNullException(nameof(name));
+        Customization = customization ?? Customization.CreateDefault();
+        IsPrivate = isPrivate;
         OrderKey = orderKey;
         CreatorId = creatorId;
-    }
-
-    // === VALIDATION METHOD ===
-    public static void ValidateForCreation(string name, string? description, string color,
-        Guid projectSpaceId, Guid creatorId)
-    {
-        ValidateBasicInfo(name, description);
-        ValidateColor(color);
-        ValidateGuid(projectSpaceId, nameof(projectSpaceId));
-        ValidateGuid(creatorId, nameof(creatorId));
-    }
-
-    // === SELF MANAGEMENT METHODS ===
-    public void UpdateBasicInfo(string name, string? description)
-    {
-        name = name?.Trim() ?? string.Empty;
-        description = string.IsNullOrWhiteSpace(description?.Trim()) ? null : description.Trim();
-
-        if (Name == name ) return;
-
-        ValidateBasicInfo(name, description);
-
-        var oldName = Name;
-        Name = name;
-     
-        UpdateTimestamp();
-    }
-
-    public void ChangeVisibility(Visibility newVisibility)
-    {
-        if (Visibility == newVisibility) return;
-
-        var oldVisibility = Visibility;
-        Visibility = newVisibility;
-        UpdateTimestamp();
-    }
-
-    internal void UpdateOrderKey(long newOrderKey)
-    {
-        if (newOrderKey < 0)
-            throw new ArgumentOutOfRangeException(nameof(newOrderKey), "Order key cannot be negative.");
-
-        if (OrderKey == newOrderKey) return;
-
-        OrderKey = newOrderKey;
-        UpdateTimestamp();
-    }
-    public void Archive()
-    {
-        if (IsArchived) return;
-
-        IsArchived = true;
-        UpdateTimestamp();
-    }
-
-    public void Unarchive()
-    {
-        if (!IsArchived) return;
-
         IsArchived = false;
-        UpdateTimestamp();
     }
 
-    // === VALIDATION HELPERS ===
-    private static void ValidateBasicInfo(string name, string? description)
+    public static ProjectFolder Create(Guid spaceId, string name, Customization? customization, bool isPrivate, Guid creatorId, long? orderKey = null)
+        => new ProjectFolder(Guid.NewGuid(), spaceId, name?.Trim() ?? throw new ArgumentNullException(nameof(name)), customization ?? Customization.CreateDefault(), isPrivate, orderKey, creatorId);
+
+    // Consolidated update: name/visuals/privacy/order/archive
+    public void Update(string? name = null, string? description = null, string? color = null, string? icon = null, bool? isPrivate = null, long? orderKey = null, bool? isArchived = null)
     {
-        if (string.IsNullOrWhiteSpace(name))
-            throw new ArgumentException("Folder name cannot be empty.", nameof(name));
-        if (name.Length > 100)
-            throw new ArgumentException("Folder name cannot exceed 100 characters.", nameof(name));
-        if (description?.Length > 500)
-            throw new ArgumentException("Folder description cannot exceed 500 characters.", nameof(description));
+        var changed = false;
+
+        if (name is not null)
+        {
+            var n = name.Trim();
+            if (string.IsNullOrWhiteSpace(n)) throw new ArgumentException("Name cannot be empty.", nameof(name));
+            if (n != Name) { Name = n; changed = true; }
+        }
+
+        if (color is not null || icon is not null)
+        {
+            var c = color?.Trim() ?? Customization.Color;
+            var i = icon?.Trim() ?? Customization.Icon;
+            var newCustomization = Customization.Create(c, i);
+            if (!newCustomization.Equals(Customization)) { Customization = newCustomization; changed = true; }
+        }
+
+        if (isPrivate.HasValue && isPrivate.Value != IsPrivate) { IsPrivate = isPrivate.Value; changed = true; }
+        if (orderKey.HasValue && orderKey != OrderKey) { if (orderKey < 0) throw new ArgumentOutOfRangeException(nameof(orderKey), "Order key cannot be negative."); OrderKey = orderKey; changed = true; }
+        if (isArchived.HasValue && isArchived.Value != IsArchived) { IsArchived = isArchived.Value; changed = true; }
+
+        if (changed) UpdateTimestamp();
     }
 
-    private static void ValidateColor(string color)
+    public static void ValidateForCreation(string name, string? description, string color, Guid projectSpaceId, Guid creatorId)
     {
-        if (string.IsNullOrWhiteSpace(color))
-            throw new ArgumentException("Folder color cannot be empty.", nameof(color));
-        if (!IsValidColorCode(color))
-            throw new ArgumentException("Invalid color format.", nameof(color));
+        if (string.IsNullOrWhiteSpace(name)) throw new ArgumentException("Name required.", nameof(name));
+        if (name.Length > 100) throw new ArgumentException("Name too long.", nameof(name));
+        if (description?.Length > 500) throw new ArgumentException("Description too long.", nameof(description));
+        if (string.IsNullOrWhiteSpace(color)) throw new ArgumentException("Color required.", nameof(color));
+        if (!IsValidColorCode(color)) throw new ArgumentException("Invalid color.", nameof(color));
+        if (projectSpaceId == Guid.Empty) throw new ArgumentException("projectSpaceId required.", nameof(projectSpaceId));
+        if (creatorId == Guid.Empty) throw new ArgumentException("creatorId required.", nameof(creatorId));
     }
 
-    private static void ValidateGuid(Guid id, string paramName)
-    {
-        if (id == Guid.Empty) throw new ArgumentException("Guid cannot be empty.", paramName);
-    }
+    public void Archive() { if (IsArchived) return; IsArchived = true; UpdateTimestamp(); }
+    public void Unarchive() { if (!IsArchived) return; IsArchived = false; UpdateTimestamp(); }
 }
