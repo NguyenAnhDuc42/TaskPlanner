@@ -6,6 +6,7 @@ using Infrastructure.Events.Extensions;
 using System.Data;
 using System.Data.Common;
 using Dapper;
+using Application.Interfaces;
 
 namespace Infrastructure.Data
 {
@@ -39,18 +40,8 @@ namespace Infrastructure.Data
 
             try
             {
-                // Save initial changes
-                await _context.SaveChangesAsync(cancellationToken);
-
-                // Collect and dispatch domain events in a loop
-                var domainEvents = _context.ChangeTracker.CollectDomainEvents();
-                while (domainEvents.Count > 0)
-                {
-                    await _domainDispatcher.DispatchAsync(domainEvents, cancellationToken);
-                    _context.ChangeTracker.ClearDomainEvents();
-                    await _context.SaveChangesAsync(cancellationToken);
-                    domainEvents = _context.ChangeTracker.CollectDomainEvents();
-                }
+                // Save changes and dispatch events (SaveChangesAsync handles both now)
+                await SaveChangesAsync(cancellationToken);
 
                 // Commit the transaction only after all events are dispatched
                 await _currentTransaction.CommitAsync(cancellationToken);
@@ -83,7 +74,17 @@ namespace Infrastructure.Data
 
         public async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
         {
-            return await _context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+            await _context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+
+            // Collect and dispatch domain events
+            var domainEvents = _context.ChangeTracker.CollectDomainEvents();
+            while (domainEvents.Count > 0)
+            {
+                await _domainDispatcher.DispatchAsync(domainEvents, cancellationToken);
+                _context.ChangeTracker.ClearDomainEvents();
+                domainEvents = _context.ChangeTracker.CollectDomainEvents();
+            }
+            return 0;
         }
 
         public void DetachAllEntities()

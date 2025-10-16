@@ -48,7 +48,6 @@ public class CreateWorkspaceHandler : IRequestHandler<CreateWorkspaceCommand, Wo
             variant: variant,
             strictJoin: request.StrictJoin
         );
-        var owner
 
         await _unitOfWork.Set<ProjectWorkspace>().AddAsync(workspace, cancellationToken);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
