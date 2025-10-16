@@ -1,6 +1,7 @@
 using System;
+using Domain.Common.Interfaces;
 
-namespace Domain.Common.Interfaces;
+namespace Application.Interfaces;
 
 public interface IDomainEventDispatcher
 {

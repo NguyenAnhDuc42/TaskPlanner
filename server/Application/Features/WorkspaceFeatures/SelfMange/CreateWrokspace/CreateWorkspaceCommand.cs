@@ -4,5 +4,13 @@ using MediatR;
 
 namespace Application.Features.WorkspaceFeatures.CreateWrokspace;
 
-public record class CreateWorkspaceCommand(string name, string? description, string color, string icon, Guid creatorId, Visibility visibility) : IRequest<WorkspaceDetail>;
+public record CreateWorkspaceCommand(
+    string Name,
+    string? Description,
+    string Color,
+    string Icon,
+    string Variant,
+    string Theme,
+    bool StrictJoin
+) : IRequest<WorkspaceDetail>;
 

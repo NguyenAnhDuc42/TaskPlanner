@@ -1,5 +1,6 @@
 
 using Application;
+using Application.Interfaces;
 using Domain.Common.Interfaces;
 using Infrastructure.Events.DomainEvents;
 using Microsoft.Extensions.DependencyInjection;

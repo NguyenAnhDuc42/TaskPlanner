@@ -1,8 +1,11 @@
 using System;
+using Application.Common.Utils;
 using Application.Contract.WorkspaceContract;
 using Application.Interfaces.Repositories;
 using Application.Interfaces.Services;
 using Domain.Entities.ProjectEntities;
+using Domain.Entities.ProjectEntities.ValueObject;
+using Domain.Enums.Workspace;
 using Mapster;
 using MediatR;
 using Microsoft.CodeAnalysis;
@@ -22,17 +25,34 @@ public class CreateWorkspaceHandler : IRequestHandler<CreateWorkspaceCommand, Wo
     public async Task<WorkspaceDetail> Handle(CreateWorkspaceCommand request, CancellationToken cancellationToken)
     {
         var currentUserId = _currentUserService.CurrentUserId();
-        if (currentUserId == Guid.Empty) throw new UnauthorizedAccessException("User not authenticated");
+        if (currentUserId == Guid.Empty)
+        {
+            throw new UnauthorizedAccessException("User not authenticated.");
+        }
 
-        var workspace = ProjectWorkspace.Create(request.name, request.description, request.color, request.icon, currentUserId, request.visibility);
-        await _unitOfWork.ProjectWorkspaces.AddAsync(workspace, cancellationToken);
+        // --- Use the EnumParser utility for clean, safe parsing ---
+        var variant = EnumParser.ParseOrThrow<WorkspaceVariant>(request.Variant, nameof(request.Variant));
+        var theme = EnumParser.ParseOrThrow<Theme>(request.Theme, nameof(request.Theme));
+
+        // Create the Customization value object
+        var customization = Customization.Create(request.Color, request.Icon);
+
+        // Use the domain factory method with the parsed enums
+        var workspace = ProjectWorkspace.Create(
+            name: request.Name,
+            description: request.Description,
+            joinCode: null,
+            customization: customization,
+            creatorId: currentUserId,
+            theme: theme,
+            variant: variant,
+            strictJoin: request.StrictJoin
+        );
+        var owner
+
+        await _unitOfWork.Set<ProjectWorkspace>().AddAsync(workspace, cancellationToken);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
-        var detail = workspace.Adapt<WorkspaceDetail>();
-        detail = detail with
-        {
-            CurrentRole = detail.Members.First(m => m.Id == currentUserId)
-        };
-        return detail;
+        return workspace.Adapt<WorkspaceDetail>();
     }
 }

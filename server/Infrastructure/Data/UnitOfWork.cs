@@ -39,7 +39,20 @@ namespace Infrastructure.Data
 
             try
             {
+                // Save initial changes
                 await _context.SaveChangesAsync(cancellationToken);
+
+                // Collect and dispatch domain events in a loop
+                var domainEvents = _context.ChangeTracker.CollectDomainEvents();
+                while (domainEvents.Count > 0)
+                {
+                    await _domainDispatcher.DispatchAsync(domainEvents, cancellationToken);
+                    _context.ChangeTracker.ClearDomainEvents();
+                    await _context.SaveChangesAsync(cancellationToken);
+                    domainEvents = _context.ChangeTracker.CollectDomainEvents();
+                }
+
+                // Commit the transaction only after all events are dispatched
                 await _currentTransaction.CommitAsync(cancellationToken);
             }
             catch
@@ -53,7 +66,6 @@ namespace Infrastructure.Data
                 _currentTransaction = null;
             }
         }
-
         public async Task RollbackTransactionAsync(CancellationToken cancellationToken = default)
         {
             if (_currentTransaction == null) return;
@@ -71,17 +83,7 @@ namespace Infrastructure.Data
 
         public async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
         {
-            var result = await _context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
-            var domainEvents = _context.ChangeTracker.CollectDomainEvents();
-            
-            if (domainEvents.Count > 0)
-            {
-                await _domainDispatcher.DispatchAsync(domainEvents, cancellationToken).ConfigureAwait(false);
-                _context.ChangeTracker.ClearDomainEvents();
-                await _context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
-            }
-
-            return result;
+            return await _context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
         }
 
         public void DetachAllEntities()

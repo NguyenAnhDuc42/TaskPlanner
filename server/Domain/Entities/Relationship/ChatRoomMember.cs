@@ -20,5 +20,7 @@ public class ChatRoomMember : Composite
         UserId = userId;
         Role = role;
     }
+    public static ChatRoomMember AddMember(Guid chatRoomId, Guid userId, ChatRoomRole role = ChatRoomRole.Member) =>
+        new ChatRoomMember(chatRoomId, userId, role);
     
 }

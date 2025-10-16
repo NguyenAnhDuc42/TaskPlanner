@@ -22,7 +22,6 @@
     <Folder Include="Contract\TaskContract\" />
     <Folder Include="Dependencies\Registrations\" />
     <Folder Include="EventHandlers\DomainEventHandlers\" />
-    <Folder Include="EventHandlers\IntergrationEventHandlers\" />
     <Folder Include="Features\SpaceFeatures\AddSpaceMembers\" />
     <Folder Include="Features\SpaceFeatures\ChangeSpaceArchive\" />
     <Folder Include="Features\SpaceFeatures\ChangeSpaceVisibility\" />
