@@ -30,7 +30,7 @@ namespace Infrastructure.Data
         public async Task<IDbContextTransaction> BeginTransactionAsync(CancellationToken cancellationToken = default)
         {
             if (_currentTransaction != null) return _currentTransaction;
-            _currentTransaction = await _context.Database.BeginTransactionAsync(cancellationToken);
+            _currentTransaction = await _context.Database.BeginTransactionAsync(IsolationLevel.ReadCommitted,cancellationToken);
             return _currentTransaction;
         }
 
@@ -40,10 +40,6 @@ namespace Infrastructure.Data
 
             try
             {
-                // Save changes and dispatch events (SaveChangesAsync handles both now)
-                await SaveChangesAsync(cancellationToken);
-
-                // Commit the transaction only after all events are dispatched
                 await _currentTransaction.CommitAsync(cancellationToken);
             }
             catch
@@ -74,7 +70,7 @@ namespace Infrastructure.Data
 
         public async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
         {
-            await _context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+            var result = await _context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
 
             // Collect and dispatch domain events
             var domainEvents = _context.ChangeTracker.CollectDomainEvents();
@@ -84,7 +80,7 @@ namespace Infrastructure.Data
                 _context.ChangeTracker.ClearDomainEvents();
                 domainEvents = _context.ChangeTracker.CollectDomainEvents();
             }
-            return 0;
+            return result;
         }
 
         public void DetachAllEntities()

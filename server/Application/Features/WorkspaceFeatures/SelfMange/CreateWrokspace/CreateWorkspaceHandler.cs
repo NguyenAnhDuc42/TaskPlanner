@@ -1,14 +1,11 @@
-using System;
-using Application.Common.Utils;
+
 using Application.Contract.WorkspaceContract;
 using Application.Interfaces.Repositories;
-using Application.Interfaces.Services;
 using Domain.Entities.ProjectEntities;
 using Domain.Entities.ProjectEntities.ValueObject;
 using Domain.Enums.Workspace;
 using Mapster;
 using MediatR;
-using Microsoft.CodeAnalysis;
 using server.Application.Interfaces;
 
 namespace Application.Features.WorkspaceFeatures.CreateWrokspace;
@@ -17,11 +14,13 @@ public class CreateWorkspaceHandler : IRequestHandler<CreateWorkspaceCommand, Wo
 {
     private readonly IUnitOfWork _unitOfWork;
     private readonly ICurrentUserService _currentUserService;
+
     public CreateWorkspaceHandler(IUnitOfWork unitOfWork, ICurrentUserService currentUserService)
     {
         _unitOfWork = unitOfWork ?? throw new ArgumentNullException(nameof(unitOfWork));
         _currentUserService = currentUserService ?? throw new ArgumentNullException(nameof(currentUserService));
     }
+
     public async Task<WorkspaceDetail> Handle(CreateWorkspaceCommand request, CancellationToken cancellationToken)
     {
         var currentUserId = _currentUserService.CurrentUserId();
@@ -30,18 +29,13 @@ public class CreateWorkspaceHandler : IRequestHandler<CreateWorkspaceCommand, Wo
             throw new UnauthorizedAccessException("User not authenticated.");
         }
 
-        // --- Use the EnumParser utility for clean, safe parsing ---
-        var variant = EnumParser.ParseOrThrow<WorkspaceVariant>(request.Variant, nameof(request.Variant));
-        var theme = EnumParser.ParseOrThrow<Theme>(request.Theme, nameof(request.Theme));
-
-        // Create the Customization value object
+        var variant = request.Variant;
+        var theme = request.Theme;
         var customization = Customization.Create(request.Color, request.Icon);
-
-        // Use the domain factory method with the parsed enums
         var workspace = ProjectWorkspace.Create(
             name: request.Name,
             description: request.Description,
-            joinCode: null,
+            joinCode: null, // Let the entity generate it
             customization: customization,
             creatorId: currentUserId,
             theme: theme,
@@ -53,5 +47,6 @@ public class CreateWorkspaceHandler : IRequestHandler<CreateWorkspaceCommand, Wo
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
         return workspace.Adapt<WorkspaceDetail>();
+
     }
 }
