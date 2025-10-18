@@ -18,6 +18,7 @@ public class ProjectWorkspaceConfiguration : EntityConfiguration<ProjectWorkspac
         builder.Property(x => x.StrictJoin).IsRequired();
         builder.Property(x => x.IsArchived).IsRequired();
         builder.Property(x => x.CreatorId).IsRequired();
+        builder.Property(x => x.NextSpaceOrder).IsRequired();
 
         // enums as strings
         builder.Property(x => x.Theme).HasConversion<string>().HasMaxLength(50).IsRequired();

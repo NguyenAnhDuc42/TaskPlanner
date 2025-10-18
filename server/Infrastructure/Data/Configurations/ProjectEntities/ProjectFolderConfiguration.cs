@@ -18,6 +18,8 @@ public class ProjectFolderConfiguration : EntityConfiguration<ProjectFolder>
         builder.Property(x => x.IsPrivate).IsRequired();
         builder.Property(x => x.IsArchived).IsRequired();
         builder.Property(x => x.CreatorId).IsRequired();
+        builder.Property(x => x.NextListOrder).IsRequired();
+
 
         builder.OwnsOne(x => x.Customization, cb =>
         {

@@ -21,6 +21,9 @@ public class ProjectListConfiguration : EntityConfiguration<ProjectList>
         builder.Property(x => x.CreatorId).IsRequired();
         builder.Property(x => x.StartDate);
         builder.Property(x => x.DueDate);
+        builder.Property(x => x.NextTaskOrder).IsRequired();
+
+
 
         builder.OwnsOne(x => x.Customization, cb =>
         {
