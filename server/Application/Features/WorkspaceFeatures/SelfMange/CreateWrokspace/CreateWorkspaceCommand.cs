@@ -1,3 +1,5 @@
+using System.Windows.Input;
+using Application.Common.Interfaces;
 using Application.Contract.WorkspaceContract;
 using Domain.Enums;
 using Domain.Enums.Workspace;
@@ -5,7 +7,7 @@ using MediatR;
 
 namespace Application.Features.WorkspaceFeatures.CreateWrokspace;
 
-public record CreateWorkspaceCommand : IRequest<WorkspaceDetail>
+public record CreateWorkspaceCommand : ICommand<WorkspaceDetail>
 {
     public string Name { get; init; } = null!;
     public string? Description { get; init; }

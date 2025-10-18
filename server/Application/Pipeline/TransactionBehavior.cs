@@ -1,11 +1,12 @@
 using System;
+using Application.Common.Interfaces;
 using Application.Interfaces.Repositories;
 using MediatR;
 using Microsoft.Extensions.Logging;
 
 namespace Application.Pipeline;
 
-public class TransactionBehavior<TRequest, TResponse> : IPipelineBehavior<TRequest, TResponse> where TRequest : notnull
+public class TransactionBehavior<TRequest, TResponse> : IPipelineBehavior<TRequest, TResponse> where TRequest : ICommand<TResponse>
 {
     private readonly ILogger<TransactionBehavior<TRequest, TResponse>> _logger;
     private readonly IUnitOfWork _unitOfWork;

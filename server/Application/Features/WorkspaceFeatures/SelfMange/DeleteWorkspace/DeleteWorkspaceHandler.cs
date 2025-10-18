@@ -1,6 +1,7 @@
 using System;
 using Application.Interfaces.Repositories;
 using Application.Interfaces.Services;
+using Domain.Entities.ProjectEntities;
 using Domain.Enums;
 using MediatR;
 using server.Application.Interfaces;
@@ -11,26 +12,28 @@ public class DeleteWorkspaceHandler : IRequestHandler<DeleteWorkspaceCommand, Gu
 {
     private readonly IUnitOfWork _unitOfWork;
     private readonly ICurrentUserService _currentUserService;
-    private readonly IPermissionService _permissionService;
-    public DeleteWorkspaceHandler(IUnitOfWork unitOfWork, ICurrentUserService currentUserService, IPermissionService permissionService)
+    public DeleteWorkspaceHandler(IUnitOfWork unitOfWork, ICurrentUserService currentUserService)
     {
         _unitOfWork = unitOfWork ?? throw new ArgumentNullException(nameof(unitOfWork));
         _currentUserService = currentUserService ?? throw new ArgumentNullException(nameof(currentUserService));
-        _permissionService = permissionService ?? throw new ArgumentNullException(nameof(permissionService));
     }
 
     public async Task<Guid> Handle(DeleteWorkspaceCommand request, CancellationToken cancellationToken)
     {
-        var currentUserId = _currentUserService.CurrentUserId();
-        if (currentUserId == Guid.Empty) throw new UnauthorizedAccessException("User not authenticated");
-        var workspace = await _unitOfWork.ProjectWorkspaces.GetByIdAsync(request.workspaceId, cancellationToken);
-        if (workspace == null) throw new InvalidOperationException("Workspace not found");
+        var workspace = await _unitOfWork.Set<ProjectWorkspace>().FindAsync(request.workspaceId);
+        if (workspace == null)
+        {
+            throw new KeyNotFoundException("Workspace not found");
+        }
 
-        await _permissionService.EnsurePermissionAsync(currentUserId, request.workspaceId, Permission.Delete_Workspace, cancellationToken);
-        _unitOfWork.ProjectWorkspaces.Remove(workspace);
-        await _unitOfWork.SaveChangesAsync(cancellationToken);
+        if (workspace.CreatorId != _currentUserService.CurrentUserId())
+        {
+            throw new UnauthorizedAccessException("You are not authorized to delete this workspace");
+        }
 
-        return workspace.Id;
+        _unitOfWork.Set<ProjectWorkspace>().Remove(workspace);
+    
+        return request.workspaceId;
 
     }
 }

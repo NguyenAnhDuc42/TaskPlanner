@@ -3,7 +3,6 @@ using Application.Contract.WorkspaceContract;
 using Application.Interfaces.Repositories;
 using Domain.Entities.ProjectEntities;
 using Domain.Entities.ProjectEntities.ValueObject;
-using Domain.Enums.Workspace;
 using Mapster;
 using MediatR;
 using server.Application.Interfaces;
@@ -44,7 +43,6 @@ public class CreateWorkspaceHandler : IRequestHandler<CreateWorkspaceCommand, Wo
         );
 
         await _unitOfWork.Set<ProjectWorkspace>().AddAsync(workspace, cancellationToken);
-        await _unitOfWork.SaveChangesAsync(cancellationToken);
 
         return workspace.Adapt<WorkspaceDetail>();
 

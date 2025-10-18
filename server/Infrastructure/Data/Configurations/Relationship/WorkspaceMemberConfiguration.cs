@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Domain.Entities.Relationship;
+using Domain.Entities.ProjectEntities;
 
 namespace Infrastructure.Data.Configurations.Relationship;
 
@@ -32,5 +33,7 @@ public class WorkspaceMemberConfiguration : CompositeConfiguration<WorkspaceMemb
         builder.HasIndex(x => x.ProjectWorkspaceId);
         builder.HasIndex(x => x.UserId);
         builder.HasIndex(x => new { x.ProjectWorkspaceId, x.Status });
+
+        builder.HasOne<ProjectWorkspace>().WithMany().HasForeignKey(x => x.ProjectWorkspaceId).OnDelete(DeleteBehavior.Cascade);
     }
 }

@@ -35,8 +35,6 @@ public class UpdateWorkspaceHandler : IRequestHandler<UpdateWorkspaceCommand, Un
         );
 
         _unitOfWork.Set<ProjectWorkspace>().Update(workspace);
-
-        await _unitOfWork.CommitTransactionAsync(cancellationToken);
         return Unit.Value;
     }
 

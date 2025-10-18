@@ -15,10 +15,10 @@ namespace Api.Controllers
             _mediator = mediator;
         }
 
-        // Example helper method
-        protected async Task<IActionResult> SendRequest<TResponse>(IRequest<TResponse> request)
+        // Example helper method - forwards cancellation token to MediatR
+        protected async Task<IActionResult> SendRequest<TResponse>(IRequest<TResponse> request, CancellationToken cancellationToken = default)
         {
-            var response = await _mediator.Send(request);
+            var response = await _mediator.Send(request, cancellationToken);
             return Ok(response);
         }
     }
