@@ -26,7 +26,7 @@ public class AddMembersHandler : IRequestHandler<AddMembersCommand, Unit>
             throw new UnauthorizedAccessException("User not authenticated.");
         }
         var emails = command.members.Select(m => m.email).ToList();
-        var users = await _unitOfWork.Set<User>().Where(u => emails.Contains(u.Email)).AsNoTracking().ToListAsync(cancellationToken);
+        var users = await _unitOfWork.Set<User>().Where(u => emails.Contains(u.Email)).ToListAsync(cancellationToken);
         var memberSpecs = command.members
             .Join(users, m => m.email, u => u.Email, (m, u) => (u.Id, m.role, m.status, m.joinMethod))
             .ToList();
