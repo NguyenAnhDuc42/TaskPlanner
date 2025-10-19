@@ -1,5 +1,10 @@
+using Application.Common.Filters;
+using Application.Common.Results;
+using Application.Contract.WorkspaceContract;
 using Application.Features.WorkspaceFeatures.CreateWrokspace;
+using Application.Features.WorkspaceFeatures.SelfMange.GetWorkspaceList;
 using Application.Features.WorkspaceFeatures.SelfMange.UpdateWorkspace;
+using Domain.Enums.Workspace;
 using MediatR;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.JsonPatch;
@@ -41,6 +46,23 @@ namespace Api.Controllers
             }
             await _mediator.Send(command, cancellationToken);
             return NoContent();
+        }
+        [HttpGet]
+        public async Task<ActionResult<PagedResult<WorkspaceSummary>>> GetWorkspaces(
+            [FromQuery] string? cursor,
+            [FromQuery] string? name,
+            [FromQuery] int pageSize = 10,
+            [FromQuery] bool owned = false,
+            [FromQuery] bool isArchived = false,
+            [FromQuery] WorkspaceVariant? variant = null,
+        CancellationToken cancellationToken = default)
+        {
+            var pagination = new CursorPaginationRequest(cursor, pageSize);
+            var filter = new WorkspaceFilter(name, owned, isArchived, variant);
+            var query = new GetWorksapceListQuery(pagination, filter);
+
+            var result = await _mediator.Send(query, cancellationToken);
+            return Ok(result);
         }
     }
 }

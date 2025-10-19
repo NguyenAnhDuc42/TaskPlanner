@@ -37,6 +37,18 @@ public class WorkspaceMember : Composite
     public static WorkspaceMember AddMember(Guid userId, Guid workspaceId, Role role, MembershipStatus status, Guid createdBy, string? joinMethod)
         => new(userId, workspaceId, role, status, createdBy, joinMethod);
 
+    public static List<WorkspaceMember> AddBulk(List<(Guid UserId, Role Role, MembershipStatus Status, string? JoinMethod)> memberSpecs, Guid projectWorkspaceId, Guid createdBy)
+    {
+        return memberSpecs
+            .Select(spec => new WorkspaceMember(
+                spec.UserId,
+                projectWorkspaceId,
+                spec.Role,
+                spec.Status,
+                createdBy,
+                spec.JoinMethod))
+            .ToList();
+    }
     public void UpdateStatus(MembershipStatus newStatus) => Status = newStatus;
     public void ApproveMembership(Guid approverId)
     {

@@ -24,7 +24,6 @@ public class TransactionBehavior<TRequest, TResponse> : IPipelineBehavior<TReque
         {
             _logger.LogInformation("----- Begin transaction for {RequestType}", typeof(TRequest).Name);
             var response = await next();
-            await _unitOfWork.SaveChangesAsync(cancellationToken);
             await _unitOfWork.CommitTransactionAsync(cancellationToken);
             _logger.LogInformation("----- End transaction for {RequestType}", typeof(TRequest).Name);
             return response;
