@@ -9,28 +9,17 @@ public class UserConfiguration : IEntityTypeConfiguration<User>
 {
     public void Configure(EntityTypeBuilder<User> builder)
     {
-        builder.ToTable("Users");
+        builder.ToTable("users");
 
         builder.HasKey(u => u.Id);
+        builder.Property(u => u.Id).HasColumnName("id");
+        builder.Property(u => u.Name).IsRequired().HasMaxLength(200).HasColumnName("name");
+        builder.Property(u => u.Email).IsRequired().HasMaxLength(256).HasColumnName("email");
+        builder.Property(u => u.PasswordHash).IsRequired().HasMaxLength(256).HasColumnName("password_hash");
 
-        // Match domain User properties
-        builder.Property(u => u.Name)
-            .IsRequired()
-            .HasMaxLength(200);
+        builder.HasIndex(u => u.Email).IsUnique(); // Email should be unique
 
-        builder.Property(u => u.Email)
-            .IsRequired()
-            .HasMaxLength(256);
 
-        builder.HasIndex(u => u.Email)
-            .IsUnique(); // Email should be unique
-
-        builder.Property(u => u.PasswordHash)
-            .IsRequired()
-            .HasMaxLength(256);
-
-     
-    // Ignore domain events collection as it's an in-memory concern on Aggregate
-    builder.Ignore(u => u.DomainEvents);
+        builder.Ignore(u => u.DomainEvents);
     }
 }

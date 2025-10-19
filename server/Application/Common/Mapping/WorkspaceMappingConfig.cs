@@ -14,12 +14,10 @@ public class WorkspaceMappingConfig : IRegister
             .Map(dest => dest.WorkspaceId, src => src.Id)
             .Map(dest => dest.Name, src => src.Name)
             .Map(dest => dest.Description, src => src.Description)
-            .Map(dest => dest.Color, src => src.Color)
-            .Map(dest => dest.Icon, src => src.Icon)
-            .Map(dest => dest.Visibility, src => src.Visibility);
+            .Map(dest => dest.Color, src => src.Customization.Color)
+            .Map(dest => dest.Icon, src => src.Customization.Icon)
+            .Map(dest => dest.Variant, src => src.Variant.ToString());
         config.NewConfig<ProjectWorkspace, WorkspaceDetail>()
-           .Map(dest => dest, src => src.Adapt<WorkspaceSummary>()) // reuse mapping
-           .Map(dest => dest.Members, src => src.Members.Adapt<IEnumerable<Member>>())
-           .Ignore(dest => dest.CurrentRole); // m
+           .Map(dest => dest, src => src.Adapt<WorkspaceSummary>());
     }
 }

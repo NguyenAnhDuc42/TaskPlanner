@@ -17,17 +17,17 @@ public class WorkspaceMemberConfiguration : CompositeConfiguration<WorkspaceMemb
         // Composite PK: Workspace + User (one membership row per user per workspace)
         builder.HasKey(x => new { x.ProjectWorkspaceId, x.UserId });
 
-        builder.Property(x => x.UserId).IsRequired();
-        builder.Property(x => x.ProjectWorkspaceId).IsRequired();
-        builder.Property(x => x.Role).HasConversion<string>().HasMaxLength(50).IsRequired();
-        builder.Property(x => x.Status).HasConversion<string>().HasMaxLength(50).IsRequired();
-        builder.Property(x => x.CreatedBy).IsRequired();
-        builder.Property(x => x.JoinedAt).IsRequired();
-        builder.Property(x => x.ApprovedAt);
-        builder.Property(x => x.ApprovedBy);
-        builder.Property(x => x.SuspendedAt);
-        builder.Property(x => x.SuspendedBy);
-        builder.Property(x => x.JoinMethod).HasMaxLength(64);
+        builder.Property(x => x.UserId).IsRequired().HasColumnName("user_id");
+        builder.Property(x => x.ProjectWorkspaceId).IsRequired().HasColumnName("project_workspace_id");
+        builder.Property(x => x.Role).HasConversion<string>().HasMaxLength(50).HasColumnName("role").IsRequired();
+        builder.Property(x => x.Status).HasConversion<string>().HasMaxLength(50).HasColumnName("status").IsRequired();
+        builder.Property(x => x.CreatedBy).IsRequired().HasColumnName("created_by");
+        builder.Property(x => x.JoinedAt).IsRequired().HasColumnName("joined_at");
+        builder.Property(x => x.ApprovedAt).HasColumnName("approved_at");
+        builder.Property(x => x.ApprovedBy).HasColumnName("approved_by");
+        builder.Property(x => x.SuspendedAt).HasColumnName("suspended_at");
+        builder.Property(x => x.SuspendedBy).HasColumnName("suspended_by");
+        builder.Property(x => x.JoinMethod).HasMaxLength(64).HasColumnName("join_method");
 
         // Indexes for lookups and admin queries
         builder.HasIndex(x => x.ProjectWorkspaceId);

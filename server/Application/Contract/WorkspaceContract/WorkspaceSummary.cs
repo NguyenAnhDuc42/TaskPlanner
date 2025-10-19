@@ -9,5 +9,5 @@ public record class WorkspaceSummary
     public string Description { get; init; } = null!;
     public string Color { get; init; } = null!;
     public string Icon { get; init; } = null!;
-    public Visibility Visibility { get; init; }
+    public string Variant { get; init; } = null!;
 }

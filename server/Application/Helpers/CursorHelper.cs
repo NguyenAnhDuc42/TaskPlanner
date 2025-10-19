@@ -1,10 +1,15 @@
 using System;
 using System.Security.Cryptography;
 using System.Text.Json;
-using Infrastructure.Helper.Configurations;
 using Microsoft.Extensions.Options;
 
-namespace Infrastructure.Helper;
+namespace Application.Helper;
+
+public class CursorEncryptionOptions
+{
+    public const string SectionName = "CursorEncryption";
+    public string Key { get; set; } = string.Empty;
+}
 
 public class CursorHelper
 {

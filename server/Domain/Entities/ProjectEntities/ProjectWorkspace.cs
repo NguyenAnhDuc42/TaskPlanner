@@ -38,8 +38,8 @@ public sealed class ProjectWorkspace : Entity
 
     public long GetNextOrderAndIncrement()
     {
-        var currentOrder = this.NextSpaceOrder;
-        this.NextSpaceOrder += 10_000_000L;
+        var currentOrder = NextSpaceOrder;
+        NextSpaceOrder += 10_000_000L;
         return currentOrder;
     }
 

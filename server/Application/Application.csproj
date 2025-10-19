@@ -20,7 +20,6 @@
     <Folder Include="Contract\FolderContract\" />
     <Folder Include="Contract\ListContract\" />
     <Folder Include="Contract\TaskContract\" />
-    <Folder Include="Dependencies\Registrations\" />
     <Folder Include="Features\SpaceFeatures\AddSpaceMembers\" />
     <Folder Include="Features\SpaceFeatures\ChangeSpaceArchive\" />
     <Folder Include="Features\SpaceFeatures\ChangeSpaceVisibility\" />

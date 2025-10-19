@@ -1,11 +1,11 @@
-using Infrastructure.Helper;
-using Infrastructure.Helper.Configurations;
+using System;
+using Application.Helper;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace Infrastructure.Dependencies.Registrations;
+namespace Application.Dependencies.Registrations;
 
-public static class CursorHelperRegistration
+public static class CursorPaginationRegistration
 {
     public static IServiceCollection AddCursorHelper(
         this IServiceCollection services, IConfiguration config)
