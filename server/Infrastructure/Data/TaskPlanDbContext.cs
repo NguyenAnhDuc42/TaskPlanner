@@ -9,13 +9,12 @@ using Domain.Entities.Support;
 using Domain.Entities.ProjectEntities;
 using Domain.Common;
 using Domain.OutBox;
-using Application.Interfaces.Outbox;
 
 namespace Infrastructure.Data;
 
 public class TaskPlanDbContext : DbContext
 {
-    public TaskPlanDbContext(DbContextOptions<TaskPlanDbContext> options) : base(options) 
+    public TaskPlanDbContext(DbContextOptions<TaskPlanDbContext> options) : base(options)
     {
     }
 
@@ -31,20 +30,14 @@ public class TaskPlanDbContext : DbContext
 
     // Relationship Entities
     public DbSet<WorkspaceMember> WorkspaceMembers { get; set; }
-    public DbSet<UserAccessLayer> UserAccessLayers { get; set; }
-    public DbSet<ProjectTaskTag> ProjectTaskTags { get; set; }
+    public DbSet<EntityMember> EntityMembers { get; set; }
 
     // Support Entities
     public DbSet<Attachment> Attachments { get; set; }
-    public DbSet<Checklist> Checklists { get; set; }
-    public DbSet<ChecklistItem> ChecklistItems { get; set; }
     public DbSet<Comment> Comments { get; set; }
-    public DbSet<Notification> Notifications { get; set; }
     public DbSet<Status> Statuses { get; set; }
-    public DbSet<Tag> Tags { get; set; }
-    public DbSet<TimeLog> TimeLogs { get; set; }
 
-    
+
 
 
 

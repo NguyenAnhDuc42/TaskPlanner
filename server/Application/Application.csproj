@@ -30,6 +30,7 @@
     <Folder Include="Features\SpaceFeatures\UpdateSpaceStatus\" />
     <Folder Include="Features\SpaceFeatures\UpdateSpaceVisualSettings\" />
     <Folder Include="Features\WorkspaceFeatures\GetHierarchy\" />
+    <Folder Include="Features\WorkspaceFeatures\MemberMange\DTOs\" />
     <Folder Include="Features\WorkspaceFeatures\ReorderSpace\" />
     <Folder Include="Features\WorkspaceFeatures\StatusMange\" />
     <Folder Include="Features\WorkspaceFeatures\StatusMange\CreateSatus\" />
