@@ -1,3 +1,5 @@
+using System.Security.Claims;
+using Domain;
 using Infrastructure;
 using Infrastructure.Services.RealTime.Hubs;
 
@@ -21,6 +23,19 @@ app.MapHub<WorkspaceHub>("/hubs/workspace");
 app.UseHttpsRedirection();
 
 app.UseAuthorization();
+app.Use(async (context, next) =>
+{
+    var workspaceIdHeader = context.Request.Headers["X-Workspace-Id"].FirstOrDefault();
+    var userIdClaim = context.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+    if (Guid.TryParse(workspaceIdHeader, out var workspaceId))
+    {
+        var wsContext = context.RequestServices.GetRequiredService<WorkspaceContext>();
+        wsContext.WorkspaceId = workspaceId;
+    }
+
+    await next();
+});
 
 app.MapControllers();
 

@@ -1,9 +1,9 @@
 ﻿using System;
 using Domain.Enums;
 
-namespace Company.ClassLibrary1;
+namespace Application.Interfaces.Services.Permissions;
 
 public interface IPermissionService
 {
-    Task<bool> HasPermissionAsync(Guid userId, Guid workspaceId, Guid? entityId, EntityType entityType, Permission requiredPermission, CancellationToken cancellationToken = default);
+    Task<bool> HasPermissionAsync(Guid userId, Guid? entityId, EntityType entityType, Permission requiredPermission, CancellationToken cancellationToken = default);
 }

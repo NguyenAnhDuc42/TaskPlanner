@@ -1,4 +1,6 @@
 ﻿using System;
+using Application.Interfaces.Services.Permissions;
+using Domain;
 using Domain.Enums;
 using Domain.Enums.RelationShip;
 using Infrastructure.Data;
@@ -6,29 +8,31 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Hybrid;
 using Microsoft.Extensions.Logging;
 
-namespace Company.ClassLibrary1;
+namespace Infrastructure.Services.Permissions;
 
 public class PermissionService : IPermissionService
 {
     private readonly TaskPlanDbContext _context;
     private readonly HybridCache _cache;
+    private readonly WorkspaceContext _workspaceContext;
     private readonly ILogger<PermissionService> _logger;
     private const string EntityMemberPermissionKey = "entity_member_{0}_{1}_{2}";
     private const string WorkspaceMemberKey = "workspace_member_{0}_{1}";
-    public PermissionService(TaskPlanDbContext context, HybridCache cache, ILogger<PermissionService> logger)
+    public PermissionService(TaskPlanDbContext context, HybridCache cache, ILogger<PermissionService> logger, WorkspaceContext workspaceContext)
     {
         _context = context;
         _cache = cache;
         _logger = logger;
-
+        _workspaceContext = workspaceContext;
     }
 
-    public async Task<bool> HasPermissionAsync(Guid userId, Guid workspaceId, Guid? entityId, EntityType entityType, Permission requiredPermission, CancellationToken cancellationToken = default)
+    public async Task<bool> HasPermissionAsync(Guid userId, Guid? entityId, EntityType entityType, Permission requiredPermission, CancellationToken cancellationToken = default)
     {
         var entityName = entityType.ToString();
+        var workspaceId = _workspaceContext.WorkspaceId;
         if (entityType == EntityType.ProjectWorkspace)
         {
-            var rolePermissions = await GetWorkspaceMemberRolePermissionsAsync(userId, workspaceId, cancellationToken);
+            var rolePermissions = await GetWorkspaceMemberRolePermissionsAsync(userId, cancellationToken);
             return (rolePermissions & requiredPermission) == requiredPermission;
         }
         if (entityId.HasValue)
@@ -40,11 +44,12 @@ public class PermissionService : IPermissionService
                 return (entityPermission & requiredPermission) == requiredPermission;
             }
         }
-        var rolePermissionsFromFallback = await GetWorkspaceMemberRolePermissionsAsync(userId, workspaceId, cancellationToken);
+        var rolePermissionsFromFallback = await GetWorkspaceMemberRolePermissionsAsync(userId, cancellationToken);
         return (rolePermissionsFromFallback & requiredPermission) == requiredPermission;
     }
-    private async Task<Permission> GetWorkspaceMemberRolePermissionsAsync(Guid userId, Guid workspaceId, CancellationToken cancellationToken)
+    private async Task<Permission> GetWorkspaceMemberRolePermissionsAsync(Guid userId, CancellationToken cancellationToken)
     {
+        var workspaceId = _workspaceContext.WorkspaceId;
         var cacheKey = string.Format(WorkspaceMemberKey, userId, workspaceId);
 
         return await _cache.GetOrCreateAsync(

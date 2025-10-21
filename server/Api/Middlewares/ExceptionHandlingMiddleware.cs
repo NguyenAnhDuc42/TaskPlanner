@@ -1,4 +1,5 @@
 using System;
+using Application.Common.Exceptions;
 using FluentValidation;
 using Microsoft.AspNetCore.Mvc;
 
@@ -23,6 +24,7 @@ public class ExceptionHandlingMiddleware
         catch (Exception ex)
         {
             _logger.LogError(ex, "Unhandled exception: {Message}", ex.Message);
+            await HandleExceptionAsync(context, ex);
         }
     }
 
@@ -51,6 +53,14 @@ public class ExceptionHandlingMiddleware
                     Detail = "You are not authorized to perform this action.",
                     Status = StatusCodes.Status401Unauthorized
 
+                };
+                break;
+            case ForbiddenAccessException forbiddenEx:
+                problem = new ProblemDetails
+                {
+                    Title = "Forbidden",
+                    Detail = forbiddenEx.Message,
+                    Status = StatusCodes.Status403Forbidden
                 };
                 break;
             default:
