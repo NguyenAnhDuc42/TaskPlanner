@@ -1,19 +1,13 @@
 using Application.Common.Interfaces;
+using Domain.Enums;
 using Domain.Enums.Workspace;
 using MediatR;
 
 namespace Application.Features.WorkspaceFeatures.SelfMange.UpdateWorkspace;
 
-public record class UpdateWorkspaceCommand : ICommand<Unit>
+public record UpdateWorkspaceCommand(Guid Id, string? Name, string? Description, string? Color, string? Icon, Theme? Theme, WorkspaceVariant? Variant, bool? StrictJoin, bool? IsArchived, bool RegenerateJoinCode) : ICommand<Unit>, IRequirePermission
 {
-    public Guid Id { get; init; }
-    public string? Name { get; set; }
-    public string? Description { get; set; }
-    public string? Color { get; set; }
-    public string? Icon { get; set; }
-    public Theme? Theme { get; set; }
-    public WorkspaceVariant? Variant { get; set; }
-    public bool? StrictJoin { get; set; }
-    public bool? IsArchived { get; set; }
-    public bool RegenerateJoinCode { get; set; }
-} 
+    Guid? IRequirePermission.EntityId => Id;
+    EntityType IRequirePermission.EntityType => EntityType.ProjectWorkspace;
+    Permission IRequirePermission.RequiredPermission => Permission.Edit_Workspace;
+}
