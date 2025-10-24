@@ -11,7 +11,7 @@ public enum PermissionAction
     ManageSettings,
     InviteMember,
     RemoveMember,
-    ManageRoles,
+    UpdateMember,
     TransferOwnership,
     Comment,
     UploadAttachment,

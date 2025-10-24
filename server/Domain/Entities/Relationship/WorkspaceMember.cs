@@ -49,7 +49,7 @@ public class WorkspaceMember : Composite
                 spec.JoinMethod))
             .ToList();
     }
-    public void UpdateStatus(MembershipStatus newStatus) => Status = newStatus;
+
     public void ApproveMembership(Guid approverId)
     {
         Status = MembershipStatus.Active;
@@ -62,7 +62,21 @@ public class WorkspaceMember : Composite
         SuspendedAt = DateTimeOffset.UtcNow;
         SuspendedBy = suspenderId;
     }
+    public void UpdateStatus(MembershipStatus newStatus) => Status = newStatus;
     public void UpdateRole(Role newRole) => Role = newRole;
+
+    public void UpdateMembershipDetails(Role? newRole, MembershipStatus? newStatus)
+    {
+        if (newRole.HasValue)
+        {
+            UpdateRole(newRole.Value);
+        }
+
+        if (newStatus.HasValue)
+        {
+            UpdateStatus(newStatus.Value);
+        }
+    }
 
 }
 
