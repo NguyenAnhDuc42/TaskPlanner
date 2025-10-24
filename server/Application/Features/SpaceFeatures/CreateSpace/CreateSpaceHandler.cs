@@ -2,6 +2,7 @@ using System;
 using Application.Contract.SpaceContract;
 using Application.Interfaces.Repositories;
 using Application.Interfaces.Services;
+using Application.Interfaces.Services.Permissions;
 using Domain.Entities.ProjectEntities;
 using Domain.Enums;
 using Mapster;

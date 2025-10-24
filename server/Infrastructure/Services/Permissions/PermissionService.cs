@@ -1,112 +1,115 @@
-﻿using System;
-using Application.Interfaces.Services.Permissions;
-using Domain;
+﻿
 using Domain.Enums;
 using Domain.Enums.RelationShip;
 using Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Hybrid;
 using Microsoft.Extensions.Logging;
+using Application.Interfaces.Services.Permissions;
+using Domain;
 
-namespace Infrastructure.Services.Permissions;
-
-public class PermissionService : IPermissionService
+namespace Infrastructure.Services.Permissions
 {
-    private readonly TaskPlanDbContext _context;
-    private readonly HybridCache _cache;
-    private readonly WorkspaceContext _workspaceContext;
-    private readonly ILogger<PermissionService> _logger;
-    private const string EntityMemberPermissionKey = "entity_member_{0}_{1}_{2}";
-    private const string WorkspaceMemberKey = "workspace_member_{0}_{1}";
-    public PermissionService(TaskPlanDbContext context, HybridCache cache, ILogger<PermissionService> logger, WorkspaceContext workspaceContext)
+    public class PermissionService : IPermissionService
     {
-        _context = context;
-        _cache = cache;
-        _logger = logger;
-        _workspaceContext = workspaceContext;
-    }
+        private readonly TaskPlanDbContext _context;
+        private readonly HybridCache _cache;
+        private readonly WorkspaceContext _workspaceContext;
+        private readonly ILogger<PermissionService> _logger;
 
-    public async Task<bool> HasPermissionAsync(Guid userId, Guid? entityId, EntityType entityType, Permission requiredPermission, CancellationToken cancellationToken = default)
-    {
-        var entityName = entityType.ToString();
-        var workspaceId = _workspaceContext.WorkspaceId;
-        if (entityType == EntityType.ProjectWorkspace)
+        private const string EntityMemberPermissionKey = "entity_member_{0}_{1}_{2}";
+        private const string WorkspaceMemberKey = "workspace_member_{0}_{1}";
+
+        public PermissionService(
+            TaskPlanDbContext context,
+            HybridCache cache,
+            ILogger<PermissionService> logger,
+            WorkspaceContext workspaceContext)
         {
-            var rolePermissions = await GetWorkspaceMemberRolePermissionsAsync(userId, cancellationToken);
-            return (rolePermissions & requiredPermission) == requiredPermission;
+            _context = context;
+            _cache = cache;
+            _logger = logger;
+            _workspaceContext = workspaceContext;
         }
-        if (entityId.HasValue)
-        {
-            var entityPermission = await GetEntityMemberPermissionAsync(userId, entityId.Value, entityName, cancellationToken);
 
-            if (entityPermission != Permission.None)
+        public async Task<bool> HasPermissionAsync(
+            Guid userId,
+            Guid? entityId,
+            EntityType entityType,
+            PermissionAction action,
+            CancellationToken cancellationToken = default)
+        {
+            // --- 1. Workspace-level checks ---
+            var workspaceId = _workspaceContext.WorkspaceId;
+            var workspaceRole = await GetWorkspaceRoleAsync(userId, workspaceId, cancellationToken);
+
+            // Special workspace-level action rules (delete workspace / manage members)
+            if (entityType == EntityType.ProjectWorkspace)
             {
-                return (entityPermission & requiredPermission) == requiredPermission;
+                var ws = await _context.ProjectWorkspaces.AsNoTracking()
+                    .FirstOrDefaultAsync(w => w.Id == workspaceId, cancellationToken);
+
+                if (ws == null) return false;
+
+                // Delete workspace: only owner or creator
+                if (action == PermissionAction.Delete)
+                    return ws.CreatorId == userId || workspaceRole == Role.Owner;
+
+                // Other workspace-scoped actions use matrix
+                return PermissionMatrix.Can(workspaceRole, action);
             }
-        }
-        var rolePermissionsFromFallback = await GetWorkspaceMemberRolePermissionsAsync(userId, cancellationToken);
-        return (rolePermissionsFromFallback & requiredPermission) == requiredPermission;
-    }
-    private async Task<Permission> GetWorkspaceMemberRolePermissionsAsync(Guid userId, CancellationToken cancellationToken)
-    {
-        var workspaceId = _workspaceContext.WorkspaceId;
-        var cacheKey = string.Format(WorkspaceMemberKey, userId, workspaceId);
 
-        return await _cache.GetOrCreateAsync(
-            cacheKey,
-            async factory =>
+            // --- 2. Entity-level override ---
+            if (entityId.HasValue)
             {
-                var workspaceMember = await _context.WorkspaceMembers.FirstOrDefaultAsync(wm => wm.ProjectWorkspaceId == workspaceId && wm.UserId == userId, cancellationToken);
+                var accessLevel = await GetEntityAccessLevelAsync(userId, entityId.Value, entityType, cancellationToken);
+                if (accessLevel.HasValue)
+                {
+                    var isCreator = await IsEntityCreatorAsync(userId, entityId.Value, entityType, cancellationToken);
+                    return PermissionMatrix.Can(accessLevel.Value, action, isCreator);
+                }
+            }
 
-                if (workspaceMember == null)
-                    return Permission.None;
+            // --- 3. Fallback to workspace role ---
+            return PermissionMatrix.Can(workspaceRole, action);
+        }
 
-                return GetRolePermissions(workspaceMember.Role);
-            },
-             options: new HybridCacheEntryOptions { Expiration = TimeSpan.FromMinutes(5) },
-            cancellationToken: cancellationToken);
-    }
-    private async Task<Permission> GetEntityMemberPermissionAsync(Guid userId, Guid entityId, string entityType, CancellationToken cancellationToken = default)
-    {
-        var cacheKey = string.Format(EntityMemberPermissionKey, userId, entityId, entityType);
-
-        return await _cache.GetOrCreateAsync(cacheKey, async factort =>
+        private async Task<Role> GetWorkspaceRoleAsync(Guid userId, Guid workspaceId, CancellationToken ct)
         {
-            var entityMember = await _context.EntityMembers.FirstOrDefaultAsync(em => em.EntityId == entityId && em.EntityType.ToString() == entityType && em.UserId == userId, cancellationToken);
-            if (entityMember == null) return Permission.None;
-            return ConvertAccessLevelToPermission(entityMember.AccessLevel);
-        },
+            var cacheKey = string.Format(WorkspaceMemberKey, userId, workspaceId);
 
-        options: new HybridCacheEntryOptions { Expiration = TimeSpan.FromMinutes(5) },
-        cancellationToken: cancellationToken
-        );
+            return await _cache.GetOrCreateAsync(cacheKey, async factory =>
+            {
+                var wm = await _context.WorkspaceMembers.AsNoTracking()
+                    .FirstOrDefaultAsync(x => x.ProjectWorkspaceId == workspaceId && x.UserId == userId, ct);
+
+                return wm?.Role ?? Role.Guest;
+            }, new HybridCacheEntryOptions { Expiration = TimeSpan.FromMinutes(5) });
+        }
+
+        private async Task<AccessLevel?> GetEntityAccessLevelAsync(Guid userId, Guid entityId, EntityType entityType, CancellationToken ct)
+        {
+            var cacheKey = string.Format(EntityMemberPermissionKey, userId, entityId, entityType);
+
+            return await _cache.GetOrCreateAsync(cacheKey, async factory =>
+            {
+                var em = await _context.EntityMembers.AsNoTracking()
+                    .FirstOrDefaultAsync(x => x.EntityId == entityId && x.EntityType.ToString() == entityType.ToString() && x.UserId == userId, ct);
+
+                return em?.AccessLevel;
+            }, new HybridCacheEntryOptions { Expiration = TimeSpan.FromMinutes(5) });
+        }
+
+        private async Task<bool> IsEntityCreatorAsync(Guid userId, Guid entityId, EntityType entityType, CancellationToken ct)
+        {
+            return entityType switch
+            {
+                EntityType.ProjectSpace => await _context.ProjectSpaces.AsNoTracking().AnyAsync(x => x.Id == entityId && x.CreatorId == userId, ct),
+                EntityType.ProjectFolder => await _context.ProjectFolders.AsNoTracking().AnyAsync(x => x.Id == entityId && x.CreatorId == userId, ct),
+                EntityType.ProjectList => await _context.ProjectLists.AsNoTracking().AnyAsync(x => x.Id == entityId && x.CreatorId == userId, ct),
+                EntityType.ProjectTask => await _context.ProjectTasks.AsNoTracking().AnyAsync(x => x.Id == entityId && x.CreatorId == userId, ct),
+                _ => false
+            };
+        }
     }
-
-    private Permission GetRolePermissions(Role role) => role switch
-    {
-        Role.Owner => Permission.Owner_Permissions,
-        Role.Admin => Permission.Workspace_Admin | Permission.Member_Admin | Permission.Content_Admin | Permission.View_Reports | Permission.Export_Data,
-        Role.Member => Permission.View_Workspace | Permission.View_Members | Permission.View_Spaces | Permission.Create_Spaces | Permission.View_Lists | Permission.Create_Lists | Permission.View_Tasks | Permission.Create_Tasks | Permission.View_Comments | Permission.Create_Comments | Permission.Edit_Own_Comments | Permission.View_Attachments | Permission.Upload_Attachments | Permission.Delete_Own_Attachments,
-        Role.Guest => Permission.View_Workspace | Permission.View_Spaces | Permission.View_Lists | Permission.View_Tasks | Permission.View_Comments | Permission.View_Attachments | Permission.View_Reports,
-        _ => Permission.None
-    };
-
-    private Permission ConvertAccessLevelToPermission(AccessLevel accessLevel) => accessLevel switch
-    {
-        AccessLevel.Viewer => GetReadPermissions(),
-        AccessLevel.Editor => GetReadPermissions() | GetWritePermissions(),
-        AccessLevel.Manager => Permission.All,
-        _ => Permission.None
-    };
-
-    private Permission GetReadPermissions() =>
-        Permission.View_Workspace | Permission.View_Members | Permission.View_Spaces |
-        Permission.View_Lists | Permission.View_Tasks | Permission.View_Comments |
-        Permission.View_Attachments | Permission.View_Statuses | Permission.View_Reports;
-
-    private Permission GetWritePermissions() =>
-        Permission.Edit_Workspace | Permission.Create_Spaces | Permission.Edit_Spaces |
-        Permission.Create_Lists | Permission.Edit_Lists | Permission.Create_Tasks |
-        Permission.Edit_Tasks | Permission.Create_Comments | Permission.Edit_Own_Comments |
-        Permission.Upload_Attachments;
 }

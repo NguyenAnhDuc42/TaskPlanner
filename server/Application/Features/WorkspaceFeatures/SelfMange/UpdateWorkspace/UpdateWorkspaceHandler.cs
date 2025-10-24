@@ -1,26 +1,21 @@
 using System;
 using Application.Interfaces.Repositories;
+using Application.Interfaces.Services.Permissions;
 using Domain.Entities.ProjectEntities;
+using Domain.Enums;
 using MediatR;
+using server.Application.Interfaces;
 
 namespace Application.Features.WorkspaceFeatures.SelfMange.UpdateWorkspace;
 
-public class UpdateWorkspaceHandler : IRequestHandler<UpdateWorkspaceCommand, Unit>
+public class UpdateWorkspaceHandler : BaseCommandHandler, IRequestHandler<UpdateWorkspaceCommand, Unit>
 {
-    private readonly IUnitOfWork _unitOfWork;
-    public UpdateWorkspaceHandler(IUnitOfWork unitOfWork)
-    {
-        _unitOfWork = unitOfWork;
-    }
+    public UpdateWorkspaceHandler(IUnitOfWork unitOfWork, IPermissionService permissionService, ICurrentUserService currentUserService)
+        : base(unitOfWork, permissionService, currentUserService) { }
     public async Task<Unit> Handle(UpdateWorkspaceCommand request, CancellationToken cancellationToken)
     {
-
-        var workspace = await _unitOfWork.Set<ProjectWorkspace>().FindAsync(request.Id, cancellationToken);
-        if (workspace == null)
-        {
-            throw new Exception("Workspace not found");
-        }
-
+        var workspace = await UnitOfWork.Set<ProjectWorkspace>().FindAsync(request.Id, cancellationToken) ?? throw new KeyNotFoundException("Workspace not found");
+        await RequirePermissionAsync(request.Id, Domain.Enums.EntityType.ProjectWorkspace,PermissionAction.Edit, cancellationToken);
 
         workspace.Update(
             name: request.Name,
@@ -34,7 +29,7 @@ public class UpdateWorkspaceHandler : IRequestHandler<UpdateWorkspaceCommand, Un
             regenerateJoinCode: request.RegenerateJoinCode
         );
 
-        _unitOfWork.Set<ProjectWorkspace>().Update(workspace);
+        UnitOfWork.Set<ProjectWorkspace>().Update(workspace);
         return Unit.Value;
     }
 
