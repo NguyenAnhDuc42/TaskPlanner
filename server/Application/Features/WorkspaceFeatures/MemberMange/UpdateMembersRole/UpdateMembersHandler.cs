@@ -28,8 +28,6 @@ public class UpdateMembersHandler : BaseCommandHandler, IRequestHandler<UpdateMe
             {
                 existingMember.UpdateMembershipDetails(member.role, member.status);
             }
-
-
         }
         return Unit.Value;
     }

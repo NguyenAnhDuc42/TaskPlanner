@@ -30,7 +30,6 @@
     <Folder Include="Features\SpaceFeatures\UpdateSpaceStatus\" />
     <Folder Include="Features\SpaceFeatures\UpdateSpaceVisualSettings\" />
     <Folder Include="Features\WorkspaceFeatures\GetHierarchy\" />
-    <Folder Include="Features\WorkspaceFeatures\ReorderSpace\" />
     <Folder Include="Features\WorkspaceFeatures\StatusMange\" />
     <Folder Include="Features\WorkspaceFeatures\StatusMange\CreateSatus\" />
     <Folder Include="Features\WorkspaceFeatures\StatusMange\DeleteStatus\" />
@@ -41,6 +40,10 @@
     <Folder Include="Features\WorkspaceFeatures\TagManage\DeleteTag\" />
     <Folder Include="Features\WorkspaceFeatures\TagManage\GetTags\" />
     <Folder Include="Features\WorkspaceFeatures\TagManage\UpdateTag\" />
+    <Folder Include="Features\WorkspaceFeatures\Widget\" />
+    <Folder Include="Features\WorkspaceFeatures\Widget\CreateWidget\" />
+    <Folder Include="Features\WorkspaceFeatures\Widget\DeleteWidget\" />
+    <Folder Include="Features\WorkspaceFeatures\Widget\EditWidget\" />
   </ItemGroup>
 
   <PropertyGroup>

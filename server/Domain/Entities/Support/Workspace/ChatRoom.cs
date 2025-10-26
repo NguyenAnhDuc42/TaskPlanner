@@ -23,6 +23,7 @@ public class ChatRoom : Entity
         AvatarUrl = avatarUrl;
     }
 
-
+    public static ChatRoom Create(string name, Guid workspaceId, Guid creatorId, string? avatarUrl = null) =>
+        new ChatRoom(name, workspaceId, ChatRoomType.PublicGroup, creatorId, avatarUrl);
 
 }

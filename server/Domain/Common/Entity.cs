@@ -1,21 +1,16 @@
-using System;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations;
-using System.ComponentModel.DataAnnotations.Schema;
 using Domain.Common.Interfaces;
 
 namespace Domain.Common;
 
 public abstract class Entity
 {
-    [Key] public Guid Id { get; protected set; } = Guid.NewGuid();
-    [Timestamp] public byte[] Version { get; private set; } = Array.Empty<byte>(); // EF Core optimistic concurrency
+    public Guid Id { get; protected set; } = Guid.NewGuid();
+    public byte[] Version { get; private set; } = Array.Empty<byte>(); // EF Core optimistic concurrency
     public DateTimeOffset CreatedAt { get; private set; } = DateTimeOffset.UtcNow;
     public DateTimeOffset UpdatedAt { get; private set; } = DateTimeOffset.UtcNow;
-    [NotMapped] private readonly List<IDomainEvent> _domainEvents = new();
-    [NotMapped] public IReadOnlyCollection<IDomainEvent> DomainEvents => _domainEvents.AsReadOnly();
- 
+    private readonly List<IDomainEvent> _domainEvents = new();
+    public IReadOnlyCollection<IDomainEvent> DomainEvents => _domainEvents.AsReadOnly();
+
     protected Entity() { }
     protected Entity(Guid id) => Id = id;
 
