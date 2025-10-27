@@ -25,4 +25,4 @@ public class DeleteWorkspaceHandler : BaseCommandHandler, IRequestHandler<Delete
         return Unit.Value;
 
     }
-}
+}   

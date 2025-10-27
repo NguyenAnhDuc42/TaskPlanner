@@ -29,6 +29,13 @@
     <Folder Include="Features\SpaceFeatures\RemoveSpaceStatus\" />
     <Folder Include="Features\SpaceFeatures\UpdateSpaceStatus\" />
     <Folder Include="Features\SpaceFeatures\UpdateSpaceVisualSettings\" />
+    <Folder Include="Features\WorkspaceFeatures\ChatRoomManage\Chatting\" />
+    <Folder Include="Features\WorkspaceFeatures\ChatRoomManage\Chatting\DeleteMessage\" />
+    <Folder Include="Features\WorkspaceFeatures\ChatRoomManage\Chatting\EditMessage\" />
+    <Folder Include="Features\WorkspaceFeatures\ChatRoomManage\Chatting\GetChatRoomMessages\" />
+    <Folder Include="Features\WorkspaceFeatures\ChatRoomManage\Chatting\ReplyMessage\" />
+    <Folder Include="Features\WorkspaceFeatures\ChatRoomManage\Chatting\SendMessage\" />
+    <Folder Include="Features\WorkspaceFeatures\ChatRoomManage\GetMemberInChatRoom\" />
     <Folder Include="Features\WorkspaceFeatures\GetHierarchy\" />
     <Folder Include="Features\WorkspaceFeatures\StatusMange\" />
     <Folder Include="Features\WorkspaceFeatures\StatusMange\CreateSatus\" />

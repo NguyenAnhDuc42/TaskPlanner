@@ -9,6 +9,7 @@ public enum EntityType
     ProjectTask,
     ProjectFolder,
     Comment,
+    ChatRoom,
     User,
     Unknown
 

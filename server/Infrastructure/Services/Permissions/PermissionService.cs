@@ -16,15 +16,10 @@ namespace Infrastructure.Services.Permissions
         private readonly HybridCache _cache;
         private readonly WorkspaceContext _workspaceContext;
         private readonly ILogger<PermissionService> _logger;
-
         private const string EntityMemberPermissionKey = "entity_member_{0}_{1}_{2}";
         private const string WorkspaceMemberKey = "workspace_member_{0}_{1}";
 
-        public PermissionService(
-            TaskPlanDbContext context,
-            HybridCache cache,
-            ILogger<PermissionService> logger,
-            WorkspaceContext workspaceContext)
+        public PermissionService(TaskPlanDbContext context, HybridCache cache, ILogger<PermissionService> logger, WorkspaceContext workspaceContext)
         {
             _context = context;
             _cache = cache;
@@ -32,12 +27,7 @@ namespace Infrastructure.Services.Permissions
             _workspaceContext = workspaceContext;
         }
 
-        public async Task<bool> HasPermissionAsync(
-            Guid userId,
-            Guid? entityId,
-            EntityType entityType,
-            PermissionAction action,
-            CancellationToken cancellationToken = default)
+        public async Task<bool> HasPermissionAsync(Guid userId, Guid? entityId, EntityType entityType, PermissionAction action, CancellationToken cancellationToken = default)
         {
             // --- 1. Workspace-level checks ---
             var workspaceId = _workspaceContext.WorkspaceId;
@@ -46,15 +36,14 @@ namespace Infrastructure.Services.Permissions
             // Special workspace-level action rules (delete workspace / manage members)
             if (entityType == EntityType.ProjectWorkspace)
             {
-                var ws = await _context.ProjectWorkspaces.AsNoTracking()
-                    .FirstOrDefaultAsync(w => w.Id == workspaceId, cancellationToken);
-
-                if (ws == null) return false;
-
+                var ws = await _context.ProjectWorkspaces.AsNoTracking().FirstOrDefaultAsync(w => w.Id == workspaceId, cancellationToken);
+                if (ws == null)
+                {
+                    _logger.LogWarning("Workspace {WorkspaceId} not found when checking permissions for user {UserId}.", workspaceId, userId);
+                    return false;
+                }
                 // Delete workspace: only owner or creator
-                if (action == PermissionAction.Delete)
-                    return ws.CreatorId == userId || workspaceRole == Role.Owner;
-
+                if (action == PermissionAction.Delete) return ws.CreatorId == userId || workspaceRole == Role.Owner;
                 // Other workspace-scoped actions use matrix
                 return PermissionMatrix.Can(workspaceRole, action);
             }
@@ -80,9 +69,7 @@ namespace Infrastructure.Services.Permissions
 
             return await _cache.GetOrCreateAsync(cacheKey, async factory =>
             {
-                var wm = await _context.WorkspaceMembers.AsNoTracking()
-                    .FirstOrDefaultAsync(x => x.ProjectWorkspaceId == workspaceId && x.UserId == userId, ct);
-
+                var wm = await _context.WorkspaceMembers.AsNoTracking().FirstOrDefaultAsync(x => x.ProjectWorkspaceId == workspaceId && x.UserId == userId, ct);
                 return wm?.Role ?? Role.Guest;
             }, new HybridCacheEntryOptions { Expiration = TimeSpan.FromMinutes(5) });
         }
@@ -93,9 +80,7 @@ namespace Infrastructure.Services.Permissions
 
             return await _cache.GetOrCreateAsync(cacheKey, async factory =>
             {
-                var em = await _context.EntityMembers.AsNoTracking()
-                    .FirstOrDefaultAsync(x => x.EntityId == entityId && x.EntityType.ToString() == entityType.ToString() && x.UserId == userId, ct);
-
+                var em = await _context.EntityMembers.AsNoTracking().FirstOrDefaultAsync(x => x.EntityId == entityId && x.EntityType.ToString() == entityType.ToString() && x.UserId == userId, ct);
                 return em?.AccessLevel;
             }, new HybridCacheEntryOptions { Expiration = TimeSpan.FromMinutes(5) });
         }
