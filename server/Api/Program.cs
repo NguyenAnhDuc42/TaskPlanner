@@ -1,7 +1,5 @@
 using System.Security.Claims;
-using Domain;
-using Infrastructure;
-using Infrastructure.Services.RealTime.Hubs;
+
 
 var builder = WebApplication.CreateBuilder(args);
 

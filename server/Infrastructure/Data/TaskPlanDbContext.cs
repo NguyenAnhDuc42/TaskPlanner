@@ -9,6 +9,7 @@ using Domain.Entities.Support;
 using Domain.Entities.ProjectEntities;
 using Domain.Common;
 using Domain.OutBox;
+using Domain.Entities.Support.Workspace;
 
 namespace Infrastructure.Data;
 
@@ -31,11 +32,14 @@ public class TaskPlanDbContext : DbContext
     // Relationship Entities
     public DbSet<WorkspaceMember> WorkspaceMembers { get; set; }
     public DbSet<EntityMember> EntityMembers { get; set; }
+    public DbSet<ChatRoomMember> ChatRoomMembers { get; set; }
 
     // Support Entities
     public DbSet<Attachment> Attachments { get; set; }
     public DbSet<Comment> Comments { get; set; }
     public DbSet<Status> Statuses { get; set; }
+    public DbSet<ChatRoom> ChatRooms { get; set; }
+    public DbSet<ChatMessage> ChatMessages { get; set; }
 
 
 

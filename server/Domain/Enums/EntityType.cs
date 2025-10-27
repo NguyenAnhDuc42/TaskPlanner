@@ -10,6 +10,7 @@ public enum EntityType
     ProjectFolder,
     Comment,
     ChatRoom,
+    ChatMessage,
     User,
     Unknown
 
