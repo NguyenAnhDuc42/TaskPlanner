@@ -39,9 +39,9 @@ public class PermissionMatrix
         [(EntityType.ChatRoom, PermissionAction.Delete)] = new()
         {
             Evaluate = ctx =>
-                ctx.IsWorkspaceOwner ||                                  // Workspace owner can delete any
-                ctx.IsCreator ||                                         // Creator can delete their own
-                ctx.ChatRoomRole == ChatRoomRole.Owner,                  // Chat room owner
+                ctx.IsWorkspaceOwner ||                                  
+                ctx.IsCreator ||                                         
+                ctx.ChatRoomRole == ChatRoomRole.Owner,                  
             Description = "Must be workspace owner, chat room owner, or creator"
         },
 

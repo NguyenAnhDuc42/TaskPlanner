@@ -66,7 +66,7 @@ public class PermissionContextBuilder
             IsUserBannedFromChatRoom = isBanned,
             IsUserMutedInChatRoom = isMuted,
             IsCreator = isCreator,
-            IsEntityArchived = false,  // Default, can be fetched separately if needed
+            IsEntityArchived = false,  
             IsEntityPrivate = false,   // Default, can be fetched separately if needed
         };
     }

@@ -32,11 +32,7 @@ namespace Infrastructure.Services.Permissions
         public async Task<bool> HasPermissionAsync(Guid userId, Guid? entityId, EntityType entityType, PermissionAction action, CancellationToken cancellationToken = default)
         {
             var workspaceId = _workspaceContext.WorkspaceId;
-
-            // Build permission context - this is what the matrix rules will evaluate
             var context = await _builder.BuildMinimalAsync(userId, workspaceId, entityId, entityType, cancellationToken);
-
-            // Use matrix to check if action is allowed
             var result = PermissionMatrix.CanPerform(entityType, action, context);
 
             if (!result)
