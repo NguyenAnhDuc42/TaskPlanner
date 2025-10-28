@@ -1,6 +1,7 @@
 using System;
 using Application.Interfaces.Repositories;
 using Application.Interfaces.Services.Permissions;
+using Domain.Enums;
 using MediatR;
 using server.Application.Interfaces;
 
@@ -10,8 +11,9 @@ public class DeleteChatRoomHandler : BaseCommandHandler, IRequestHandler<DeleteC
 {
     public DeleteChatRoomHandler(IUnitOfWork unitOfWork, IPermissionService permissionService, ICurrentUserService currentUserService)
     : base(unitOfWork, permissionService, currentUserService) { }
-    public Task<Unit> Handle(DeleteChatRoomCommand request, CancellationToken cancellationToken)
+    public async Task<Unit> Handle(DeleteChatRoomCommand request, CancellationToken cancellationToken)
     {
-        throw new NotImplementedException();
+        await RequirePermissionAsync(request.workspaceId, EntityType.ChatRoom, PermissionAction.Delete, cancellationToken);
+        
     }
 }

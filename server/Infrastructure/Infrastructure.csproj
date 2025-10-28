@@ -30,9 +30,7 @@
 
   <ItemGroup>
     <Folder Include="Data\Configurations\ProjectEntities\" />
-    <Folder Include="Helper\Exceptions\" />
-    <Folder Include="Services\FileStorage\" />
-    <Folder Include="Services\Logging\" />
+    <Folder Include="Helper\" />
   </ItemGroup>
 
   <PropertyGroup>

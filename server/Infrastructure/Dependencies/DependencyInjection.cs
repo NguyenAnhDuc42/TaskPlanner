@@ -14,10 +14,10 @@ public static class DependencyInjection
         services.AddSignalR();
         services
             .AddDbContextInfrastructure(connectionString)
-            .AddRepositoriesAndServices()
+            .AddServices()
+            .AddCache()
             .AddJwtAuthentication(config)
             .AddDomainEvents()
-            .AddCursorHelper(config)
             .AddRealtimeServices();
 
         return services;
