@@ -11,6 +11,8 @@ public enum EntityType
     Comment,
     ChatRoom,
     ChatMessage,
+    WorkspaceMember,
+    ChatRoomMember,
     User,
     Unknown
 

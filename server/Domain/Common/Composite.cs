@@ -1,17 +1,17 @@
-using System;
-using System.ComponentModel.DataAnnotations;
-using System.ComponentModel.DataAnnotations.Schema;
+
 using Domain.Common.Interfaces;
 
 namespace Domain.Common;
 
-public abstract class Composite
+public abstract class Composite : IIdentifiable
 {
-    [Timestamp] public byte[] Version { get; private set; } = Array.Empty<byte>(); // EF Core optimistic concurrency
+    public byte[] Version { get; private set; } = Array.Empty<byte>(); // EF Core optimistic concurrency
     public DateTimeOffset CreatedAt { get; private set; } = DateTimeOffset.UtcNow;
     public DateTimeOffset UpdatedAt { get; private set; } = DateTimeOffset.UtcNow;
-    [NotMapped] private readonly List<IDomainEvent> _domainEvents = new();
-    [NotMapped] public IReadOnlyCollection<IDomainEvent> DomainEvents => _domainEvents.AsReadOnly();
+    private readonly List<IDomainEvent> _domainEvents = new();
+    public IReadOnlyCollection<IDomainEvent> DomainEvents => _domainEvents.AsReadOnly();
+
+     public virtual Guid Id { get; } = Guid.NewGuid();
 
     protected Composite() { }
 

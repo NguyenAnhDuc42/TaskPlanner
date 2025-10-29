@@ -1,5 +1,9 @@
 using System;
 using Application.Common;
+using Domain.Common.Interfaces;
+using Domain.Entities.ProjectEntities;
+using Domain.Entities.Relationship;
+using Domain.Entities.Support.Workspace;
 using Domain.Enums;
 using Domain.Enums.RelationShip;
 using Domain.Enums.Workspace;
@@ -25,27 +29,30 @@ public class PermissionContextBuilder
         _cache = cache;
     }
 
-    public async Task<PermissionContext> BuildMinimalAsync(Guid userId, Guid workspaceId, Guid? entityId, EntityType entityType, CancellationToken ct)
+    /// <summary>
+    /// Builds complete permission context from an entity. Use this for permission checks when you already have the entity.
+    /// </summary>
+    public async Task<PermissionContext> BuildFromEntityAsync<TEntity>(
+        Guid userId,
+        Guid workspaceId,
+        TEntity entity,
+        EntityType entityType,
+        CancellationToken ct) where TEntity : IIdentifiable
     {
+        var entityId = GetEntityId(entity);
         var workspaceRole = await GetWorkspaceRoleAsync(userId, workspaceId, ct);
-        var isWorkspaceOwner = workspaceRole == Role.Owner;
-        var isWorkspaceAdmin = workspaceRole == Role.Admin;
+        var isCreator = ExtractCreator(entity, userId);
+        var (isArchived, isPrivate) = ExtractEntityState(entity);
 
-        var entityAccess = entityId.HasValue
-            ? await GetEntityAccessLevelAsync(userId, entityId.Value, entityType, ct)
+        var chatRoomRole = entityType == EntityType.ChatRoom && entity is ChatRoom chatRoom
+            ? await GetChatRoomRoleAsync(userId, chatRoom.Id, ct)
             : null;
 
-        var chatRoomRole = entityType == EntityType.ChatRoom && entityId.HasValue
-            ? await GetChatRoomRoleAsync(userId, entityId.Value, ct)
-            : null;
-
-        var isCreator = entityId.HasValue
-            ? await IsEntityCreatorAsync(userId, entityId.Value, entityType, ct)
-            : false;
-
-        var (isBanned, isMuted) = entityType == EntityType.ChatRoom && entityId.HasValue
-            ? await GetChatRoomMemberStatusAsync(userId, entityId.Value, ct)
+        var (isBanned, isMuted) = entityType == EntityType.ChatRoom
+            ? await GetChatRoomMemberStatusAsync(userId, entityId, ct)
             : (false, false);
+
+        var entityAccess = await GetEntityAccessLevelAsync(userId, entityId, entityType, ct);
 
         return new PermissionContext
         {
@@ -54,8 +61,8 @@ public class PermissionContextBuilder
             EntityId = entityId,
             EntityType = entityType,
             WorkspaceRole = workspaceRole,
-            IsWorkspaceOwner = isWorkspaceOwner,
-            IsWorkspaceAdmin = isWorkspaceAdmin,
+            IsWorkspaceOwner = workspaceRole == Role.Owner,
+            IsWorkspaceAdmin = workspaceRole == Role.Admin,
             IsUserSuspendedInWorkspace = await IsUserSuspendedInWorkspaceAsync(userId, workspaceId, ct),
             EntityAccess = entityAccess,
             IsEntityManager = entityAccess == AccessLevel.Manager,
@@ -66,142 +73,125 @@ public class PermissionContextBuilder
             IsUserBannedFromChatRoom = isBanned,
             IsUserMutedInChatRoom = isMuted,
             IsCreator = isCreator,
-            IsEntityArchived = false,  
-            IsEntityPrivate = false,   // Default, can be fetched separately if needed
+            IsEntityArchived = isArchived,
+            IsEntityPrivate = isPrivate,
         };
     }
-    public async Task<PermissionContext> WithEntityStateAsync(PermissionContext context, CancellationToken ct)
-    {
-        if (!context.EntityId.HasValue)
-            return context;
 
-        var (isArchived, isPrivate) = await GetEntityStateAsync(context.EntityId.Value, context.EntityType, ct);
-        return context with { IsEntityArchived = isArchived, IsEntityPrivate = isPrivate };
-    }
+    // ============ Entity Extraction Helpers ============
 
+    private static Guid GetEntityId<TEntity>(TEntity entity) where TEntity : IIdentifiable =>
+        entity.Id;
 
+    private static bool ExtractCreator<TEntity>(TEntity entity, Guid userId) where TEntity : IIdentifiable =>
+        entity switch
+        {
+            ChatRoom cr => cr.CreatorId == userId,
+            ChatMessage cm => cm.SenderId == userId,
+            ProjectTask pt => pt.CreatorId == userId,
+            ProjectList pl => pl.CreatorId == userId,
+            ProjectFolder pf => pf.CreatorId == userId,
+            ProjectSpace ps => ps.CreatorId == userId,
+            ProjectWorkspace pw => pw.CreatorId == userId,
+            WorkspaceMember wm => wm.CreatedBy == userId,
+            ChatRoomMember crm => crm.CreatedBy == userId,
+            _ => false
+        };
 
+    private static (bool IsArchived, bool IsPrivate) ExtractEntityState<TEntity>(TEntity entity) where TEntity : IIdentifiable =>
+        entity switch
+        {
+            ChatRoom cr => (cr.IsArchived, cr.IsPrivate),
+            ProjectTask pt => (pt.IsArchived, false),
+            ProjectList pl => (pl.IsArchived, false),
+            ProjectFolder pf => (pf.IsArchived, false),
+            ProjectSpace ps => (ps.IsArchived, ps.IsPrivate),
+            ProjectWorkspace pw => (pw.IsArchived, false),
+            WorkspaceMember _ => (false, false),
+            ChatRoomMember _ => (false, false),
+            _ => (false, false)
+        };
 
+    // ============ Database Fetching Methods ============
 
     private async Task<Role> GetWorkspaceRoleAsync(Guid userId, Guid workspaceId, CancellationToken ct)
     {
         var cacheKey = string.Format(WorkspaceMemberKey, userId, workspaceId);
 
-        return await _cache.GetOrCreateAsync(cacheKey, async factory =>
-        {
-            var wm = await _context.WorkspaceMembers.AsNoTracking().FirstOrDefaultAsync(x => x.ProjectWorkspaceId == workspaceId && x.UserId == userId, ct);
-            return wm?.Role ?? Role.Guest;
-        }, new HybridCacheEntryOptions { Expiration = TimeSpan.FromMinutes(5) });
+        return await _cache.GetOrCreateAsync(
+            cacheKey,
+            async factory =>
+            {
+                var wm = await _context.WorkspaceMembers
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(x =>
+                        x.ProjectWorkspaceId == workspaceId &&
+                        x.UserId == userId, ct);
+                return wm?.Role ?? Role.Guest;
+            },
+            new HybridCacheEntryOptions { Expiration = TimeSpan.FromMinutes(5) });
     }
 
     private async Task<AccessLevel?> GetEntityAccessLevelAsync(Guid userId, Guid entityId, EntityType entityType, CancellationToken ct)
     {
         var cacheKey = string.Format(EntityMemberPermissionKey, userId, entityId, entityType);
 
-        return await _cache.GetOrCreateAsync(cacheKey, async factory =>
-        {
-            var em = await _context.EntityMembers.AsNoTracking().FirstOrDefaultAsync(x => x.EntityId == entityId && x.EntityType.ToString() == entityType.ToString() && x.UserId == userId, ct);
-            return em?.AccessLevel;
-        }, new HybridCacheEntryOptions { Expiration = TimeSpan.FromMinutes(5) });
+        return await _cache.GetOrCreateAsync(
+            cacheKey,
+            async factory =>
+            {
+                var em = await _context.EntityMembers
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(x =>
+                        x.EntityId == entityId &&
+                        x.EntityType.ToString() == entityType.ToString() &&
+                        x.UserId == userId, ct);
+                return em?.AccessLevel;
+            },
+            new HybridCacheEntryOptions { Expiration = TimeSpan.FromMinutes(5) });
     }
+
     private async Task<ChatRoomRole?> GetChatRoomRoleAsync(Guid userId, Guid chatRoomId, CancellationToken ct)
     {
         var cacheKey = string.Format(ChatRoomMemberKey, userId, chatRoomId);
-        return await _cache.GetOrCreateAsync(cacheKey, async factory =>
-        {
-            var crm = await _context.ChatRoomMembers.AsNoTracking().FirstOrDefaultAsync(x => x.ChatRoomId == chatRoomId && x.UserId == userId, ct);
-            return crm?.Role;
-        }, new HybridCacheEntryOptions { Expiration = TimeSpan.FromMinutes(5) });
+
+        return await _cache.GetOrCreateAsync(
+            cacheKey,
+            async factory =>
+            {
+                var crm = await _context.ChatRoomMembers
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(x =>
+                        x.ChatRoomId == chatRoomId &&
+                        x.UserId == userId, ct);
+                return crm?.Role;
+            },
+            new HybridCacheEntryOptions { Expiration = TimeSpan.FromMinutes(5) });
     }
 
     private async Task<bool> IsUserSuspendedInWorkspaceAsync(Guid userId, Guid workspaceId, CancellationToken ct)
     {
         return await _context.WorkspaceMembers
             .AsNoTracking()
-            .AnyAsync(wm => wm.ProjectWorkspaceId == workspaceId && wm.UserId == userId && wm.Status == MembershipStatus.Suspended, ct);
+            .AnyAsync(wm =>
+                wm.ProjectWorkspaceId == workspaceId &&
+                wm.UserId == userId &&
+                wm.Status == MembershipStatus.Suspended, ct);
     }
-    private async Task<(bool IsArchived, bool IsPrivate)> GetEntityStateAsync(
-            Guid entityId,
-            EntityType entityType,
-            CancellationToken ct)
-    {
-        var defaultState = (false, false);
-
-        return entityType switch
-        {
-            EntityType.ProjectTask => await GetTaskStateAsync(),
-            EntityType.ProjectList => await GetListStateAsync(),
-            EntityType.ChatRoom => await GetChatRoomStateAsync(),
-            _ => await Task.FromResult(defaultState)
-        };
-
-        async Task<(bool IsArchived, bool IsPrivate)> GetTaskStateAsync()
-        {
-            var result = await _context.ProjectTasks
-                .AsNoTracking()
-                .Where(t => t.Id == entityId)
-                .Select(t => new { t.IsArchived })
-                .FirstOrDefaultAsync(ct);
-
-            return result != null ? (result.IsArchived, false) : defaultState;
-        }
-
-        async Task<(bool IsArchived, bool IsPrivate)> GetListStateAsync()
-        {
-            var result = await _context.ProjectLists
-                .AsNoTracking()
-                .Where(l => l.Id == entityId)
-                .Select(l => new { l.IsArchived })
-                .FirstOrDefaultAsync(ct);
-
-            return result != null ? (result.IsArchived, false) : defaultState;
-        }
-
-        async Task<(bool IsArchived, bool IsPrivate)> GetChatRoomStateAsync()
-        {
-            var result = await _context.ChatRooms
-                .AsNoTracking()
-                .Where(cr => cr.Id == entityId)
-                .Select(cr => new { cr.IsArchived, cr.IsPrivate })
-                .FirstOrDefaultAsync(ct);
-
-            return result != null ? (result.IsArchived, result.IsPrivate) : defaultState;
-        }
-    }
-
 
     private async Task<(bool IsBanned, bool IsMuted)> GetChatRoomMemberStatusAsync(Guid userId, Guid chatRoomId, CancellationToken ct)
     {
         var member = await _context.ChatRoomMembers
             .AsNoTracking()
-            .FirstOrDefaultAsync(crm => crm.UserId == userId && crm.ChatRoomId == chatRoomId, ct);
+            .FirstOrDefaultAsync(crm =>
+                crm.UserId == userId &&
+                crm.ChatRoomId == chatRoomId, ct);
 
-        if (member == null) return (false, false);
+        if (member == null)
+            return (false, false);
+
         var isBanned = member.IsBanned;
         var isMuted = member.IsMuted && (member.MuteEndTime == null || member.MuteEndTime > DateTimeOffset.UtcNow);
         return (isBanned, isMuted);
     }
-
-    private async Task<bool> IsEntityCreatorAsync(Guid userId, Guid entityId, EntityType entityType, CancellationToken ct)
-    {
-        var cacheKey = string.Format(EntityCreatorKey, userId, entityId, entityType);
-
-        return await _cache.GetOrCreateAsync(
-            cacheKey,
-            async factory =>
-            {
-                return entityType switch
-                {
-                    EntityType.ProjectSpace => await _context.ProjectSpaces.AsNoTracking().AnyAsync(x => x.Id == entityId && x.CreatorId == userId, ct),
-                    EntityType.ProjectFolder => await _context.ProjectFolders.AsNoTracking().AnyAsync(x => x.Id == entityId && x.CreatorId == userId, ct),
-                    EntityType.ProjectList => await _context.ProjectLists.AsNoTracking().AnyAsync(x => x.Id == entityId && x.CreatorId == userId, ct),
-                    EntityType.ProjectTask => await _context.ProjectTasks.AsNoTracking().AnyAsync(x => x.Id == entityId && x.CreatorId == userId, ct),
-                    EntityType.ChatRoom => await _context.ChatRooms.AsNoTracking().AnyAsync(x => x.Id == entityId && x.CreatorId == userId, ct),
-                    EntityType.ChatMessage => await _context.ChatMessages.AsNoTracking().AnyAsync(x => x.Id == entityId && x.SenderId == userId, ct),
-                    _ => false
-                };
-            },
-            new HybridCacheEntryOptions { Expiration = TimeSpan.FromMinutes(5) });
-    }
-
 }
