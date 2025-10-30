@@ -1,5 +1,6 @@
 using System;
 using Application.Common;
+using Domain.Common;
 using Domain.Common.Interfaces;
 using Domain.Entities.ProjectEntities;
 using Domain.Entities.Relationship;
@@ -28,62 +29,98 @@ public class PermissionContextBuilder
         _context = context;
         _cache = cache;
     }
-
-    /// <summary>
-    /// Builds complete permission context from an entity. Use this for permission checks when you already have the entity.
-    /// </summary>
-    public async Task<PermissionContext> BuildFromEntityAsync<TEntity>(
-        Guid userId,
-        Guid workspaceId,
-        TEntity entity,
-        EntityType entityType,
-        CancellationToken ct) where TEntity : IIdentifiable
+    public async Task<PermissionContext> BuildFromEntityAsync<TEntity>(Guid userId, Guid workspaceId, TEntity entity, CancellationToken ct = default) where TEntity : Entity
     {
-        var entityId = GetEntityId(entity);
-        var workspaceRole = await GetWorkspaceRoleAsync(userId, workspaceId, ct);
-        var isCreator = ExtractCreator(entity, userId);
-        var (isArchived, isPrivate) = ExtractEntityState(entity);
-
-        var chatRoomRole = entityType == EntityType.ChatRoom && entity is ChatRoom chatRoom
-            ? await GetChatRoomRoleAsync(userId, chatRoom.Id, ct)
-            : null;
-
-        var (isBanned, isMuted) = entityType == EntityType.ChatRoom
-            ? await GetChatRoomMemberStatusAsync(userId, entityId, ct)
-            : (false, false);
-
-        var entityAccess = await GetEntityAccessLevelAsync(userId, entityId, entityType, ct);
-
-        return new PermissionContext
+        if (entity == null) throw new ArgumentNullException(nameof(entity));
+        ct.ThrowIfCancellationRequested();
+        var context = new PermissionContext
         {
             UserId = userId,
-            WorkspaceId = workspaceId,
-            EntityId = entityId,
-            EntityType = entityType,
-            WorkspaceRole = workspaceRole,
-            IsWorkspaceOwner = workspaceRole == Role.Owner,
-            IsWorkspaceAdmin = workspaceRole == Role.Admin,
-            IsUserSuspendedInWorkspace = await IsUserSuspendedInWorkspaceAsync(userId, workspaceId, ct),
-            EntityAccess = entityAccess,
-            IsEntityManager = entityAccess == AccessLevel.Manager,
-            IsEntityEditor = entityAccess == AccessLevel.Editor,
-            IsEntityViewer = entityAccess == AccessLevel.Viewer,
-            ChatRoomRole = chatRoomRole,
-            IsChatRoomOwner = chatRoomRole == ChatRoomRole.Owner,
-            IsUserBannedFromChatRoom = isBanned,
-            IsUserMutedInChatRoom = isMuted,
-            IsCreator = isCreator,
-            IsEntityArchived = isArchived,
-            IsEntityPrivate = isPrivate,
+            WorkspaceId = workspaceId
         };
+        context.IsUserSuspendedInWorkspace = await IsUserSuspendedInWorkspaceAsync(userId, workspaceId, ct);
+        async Task EnsureWorkspaceRoleFallbackAsync()
+        {
+            if (context.WorkspaceRole == default) // not set yet
+                context.WorkspaceRole = await GetWorkspaceRoleAsync(userId, workspaceId, ct);
+        }
+        switch (entity)
+        {
+            case ProjectWorkspace:
+                context.WorkspaceRole = await GetWorkspaceRoleAsync(userId, entity.Id, ct);
+                break;
+            case ProjectSpace:
+                context.EntityId = entity.Id;
+                context.EntityType = EntityType.ProjectSpace;
+                context.EntityAccess = await GetEntityAccessLevelAsync(userId, entity.Id, EntityType.ProjectSpace, ct);
+                if (context.EntityAccess == null) await EnsureWorkspaceRoleFallbackAsync();
+
+                break;
+            case ProjectFolder:
+                context.EntityId = entity.Id;
+                context.EntityType = EntityType.ProjectFolder;
+                context.EntityAccess = await GetEntityAccessLevelAsync(userId, entity.Id, EntityType.ProjectFolder, ct);
+                if (context.EntityAccess == null) await EnsureWorkspaceRoleFallbackAsync();
+                break;
+            case ProjectList:
+                context.EntityId = entity.Id;
+                context.EntityType = EntityType.ProjectList;
+                context.EntityAccess = await GetEntityAccessLevelAsync(userId, entity.Id, EntityType.ProjectList, ct);
+                if (context.EntityAccess == null) await EnsureWorkspaceRoleFallbackAsync();
+                break;
+            case ChatRoom:
+                context.EntityId = entity.Id;
+                context.EntityType = EntityType.ChatRoom;
+                context.ChatRoomRole = await GetChatRoomRoleAsync(userId, entity.Id, ct);
+                var chatRoomState = await GetChatRoomMemberStatusAsync(userId, entity.Id, ct);
+                context.IsUserBannedFromChatRoom = chatRoomState.IsBanned;
+                context.IsUserMutedInChatRoom = chatRoomState.IsMuted;
+                if (context.ChatRoomRole == null) await EnsureWorkspaceRoleFallbackAsync();
+                break;
+            default:
+                context.WorkspaceRole = await GetWorkspaceRoleAsync(userId, workspaceId, ct);
+                break;
+        }
+        context.IsCreator = ExtractCreator(entity, userId);
+        var state = ExtractEntityState(entity);
+        context.IsEntityArchived = state.IsArchived;
+        context.IsEntityPrivate = state.IsPrivate;
+        return context;
+    }
+
+
+    public async Task<PermissionContext> BuildScopeContextAsync(Guid userId, Guid workspaceId, Guid? entityId, EntityType entityType, CancellationToken ct)
+    {
+        var workspaceRole = await GetWorkspaceRoleAsync(userId, workspaceId, ct);
+        var isWorkspaceOwner = workspaceRole == Role.Owner;
+        var isWorkspaceAdmin = workspaceRole == Role.Admin;
+
+        var context.EntityAccess = entityId.HasValue
+            ? await GetEntityAccessLevelAsync(userId, entityId.Value, entityType, ct)
+            : null;
+
+        var chatRoomRole = entityType == EntityType.ChatRoom && entityId.HasValue
+            ? await GetChatRoomRoleAsync(userId, entityId.Value, ct)
+            : null;
+
     }
 
     // ============ Entity Extraction Helpers ============
-
-    private static Guid GetEntityId<TEntity>(TEntity entity) where TEntity : IIdentifiable =>
-        entity.Id;
-
-    private static bool ExtractCreator<TEntity>(TEntity entity, Guid userId) where TEntity : IIdentifiable =>
+    private static Guid GetEntityId<TEntity>(TEntity entity) where TEntity : class =>
+        entity switch
+        {
+            ChatRoom cr => cr.Id,
+            ChatMessage cm => cm.Id,
+            ProjectTask pt => pt.Id,
+            ProjectList pl => pl.Id,
+            ProjectFolder pf => pf.Id,
+            ProjectSpace ps => ps.Id,
+            ProjectWorkspace pw => pw.Id,
+            WorkspaceMember wm => wm.Id,
+            ChatRoomMember crm => crm.Id,
+            _ => Guid.Empty
+        };
+    private static bool ExtractCreator<TEntity>(TEntity entity, Guid userId) where TEntity : class =>
         entity switch
         {
             ChatRoom cr => cr.CreatorId == userId,
@@ -98,13 +135,13 @@ public class PermissionContextBuilder
             _ => false
         };
 
-    private static (bool IsArchived, bool IsPrivate) ExtractEntityState<TEntity>(TEntity entity) where TEntity : IIdentifiable =>
+    private static (bool IsArchived, bool IsPrivate) ExtractEntityState<TEntity>(TEntity entity) where TEntity : class =>
         entity switch
         {
             ChatRoom cr => (cr.IsArchived, cr.IsPrivate),
             ProjectTask pt => (pt.IsArchived, false),
-            ProjectList pl => (pl.IsArchived, false),
-            ProjectFolder pf => (pf.IsArchived, false),
+            ProjectList pl => (pl.IsArchived, pl.IsPrivate),
+            ProjectFolder pf => (pf.IsArchived, pf.IsPrivate),
             ProjectSpace ps => (ps.IsArchived, ps.IsPrivate),
             ProjectWorkspace pw => (pw.IsArchived, false),
             WorkspaceMember _ => (false, false),

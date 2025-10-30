@@ -2,6 +2,7 @@
 using Application.Common.Exceptions;
 using Application.Interfaces.Repositories;
 using Application.Interfaces.Services.Permissions;
+using Domain.Common.Interfaces;
 using Domain.Enums;
 using server.Application.Interfaces;
 
@@ -21,11 +22,11 @@ public abstract class BaseCommandHandler
         CurrentUserService = currentUserService ?? throw new ArgumentNullException(nameof(currentUserService));
     }
 
-    protected async Task RequirePermissionAsync(Guid? entityId, EntityType entityType, PermissionAction permission, CancellationToken ct)
+    protected async Task RequirePermissionAsync<TEntity>(TEntity entity, PermissionAction permission, CancellationToken ct) where TEntity : IIdentifiable
     {
         if (CurrentUserId == Guid.Empty) throw new UnauthorizedAccessException();
 
-        var hasPermission = await PermissionService.HasPermissionAsync(CurrentUserId, entityId, entityType, permission, ct);
+        var hasPermission = await PermissionService.HasPermissionAsync(CurrentUserId, entity, permission, ct);
 
         if (!hasPermission) throw new ForbiddenAccessException();
     }

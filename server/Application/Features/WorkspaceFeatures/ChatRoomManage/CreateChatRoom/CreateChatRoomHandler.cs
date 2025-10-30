@@ -17,6 +17,7 @@ public class CreateChatRoomHandler : BaseCommandHandler, IRequestHandler<CreateC
     : base(unitOfWork, permissionService, currentUserService) { }
     public async Task<Unit> Handle(CreateChatRoomCommand request, CancellationToken cancellationToken)
     {
+        va
         await RequirePermissionAsync(request.workspaceId, EntityType.ChatRoom, PermissionAction.Create, cancellationToken);
         var chatRoom = ChatRoom.Create(request.name, request.workspaceId, CurrentUserId, request.inviteMembersInWorkspace, request.avatarUrl);
         if (request.memberIds?.Count > 0)

@@ -15,7 +15,7 @@ public class UpdateWorkspaceHandler : BaseCommandHandler, IRequestHandler<Update
     public async Task<Unit> Handle(UpdateWorkspaceCommand request, CancellationToken cancellationToken)
     {
         var workspace = await UnitOfWork.Set<ProjectWorkspace>().FindAsync(request.Id, cancellationToken) ?? throw new KeyNotFoundException("Workspace not found");
-        await RequirePermissionAsync(request.Id, Domain.Enums.EntityType.ProjectWorkspace,PermissionAction.Edit, cancellationToken);
+        await RequirePermissionAsync(workspace, PermissionAction.Edit, cancellationToken);
 
         workspace.Update(
             name: request.Name,

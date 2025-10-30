@@ -6,32 +6,32 @@ namespace Application.Common;
 
 public record class PermissionContext
 {
-    public required Guid UserId { get; init; }
-    public required Guid WorkspaceId { get; init; }
-    public required Guid? EntityId { get; init; }
-    public required EntityType EntityType { get; init; }
+    public Guid UserId { get; set; }
+    public Guid WorkspaceId { get; set; }
+    public Guid? EntityId { get; set; }
+    public EntityType? EntityType { get; set; }
 
     // Workspace
-    public required Role WorkspaceRole { get; init; }
-    public required bool IsWorkspaceOwner { get; init; }
-    public required bool IsWorkspaceAdmin { get; init; }
-    public required bool IsUserSuspendedInWorkspace { get; init; }
+    public Role WorkspaceRole { get; set; }
+    public bool IsWorkspaceOwner  => WorkspaceRole == Role.Owner;
+    public bool IsWorkspaceAdmin  => WorkspaceRole == Role.Owner;
+    public bool IsUserSuspendedInWorkspace { get; set; }
 
     // Entity access
-    public required AccessLevel? EntityAccess { get; init; }
-    public required bool IsEntityManager { get; init; }
-    public required bool IsEntityEditor { get; init; }
-    public required bool IsEntityViewer { get; init; }
+    public AccessLevel? EntityAccess { get; set; }
+    public bool IsEntityManager => EntityAccess == AccessLevel.Manager;
+    public bool IsEntityEditor => EntityAccess == AccessLevel.Editor;
+    public bool IsEntityViewer => EntityAccess == AccessLevel.Viewer;
 
     // Chat room
-    public required ChatRoomRole? ChatRoomRole { get; init; }
-    public required bool IsChatRoomOwner { get; init; }
-    public required bool IsUserBannedFromChatRoom { get; init; }
-    public required bool IsUserMutedInChatRoom { get; init; }
+    public ChatRoomRole? ChatRoomRole { get; set; }
+    public bool IsChatRoomOwner { get; set; }
+    public bool IsUserBannedFromChatRoom { get; set; }
+    public bool IsUserMutedInChatRoom { get; set; }
 
     // Entity state
-    public required bool IsCreator { get; init; }
-    public required bool IsEntityArchived { get; init; }
-    public required bool IsEntityPrivate { get; init; }
+    public bool IsCreator { get; set; }
+    public bool IsEntityArchived { get; set; }
+    public bool IsEntityPrivate { get; set; }
 
 }

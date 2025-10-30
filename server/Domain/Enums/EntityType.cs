@@ -8,6 +8,7 @@ public enum EntityType
     ProjectList,
     ProjectTask,
     ProjectFolder,
+    EntityMember,
     Comment,
     ChatRoom,
     ChatMessage,

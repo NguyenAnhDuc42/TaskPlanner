@@ -3,7 +3,7 @@ using Domain.Common.Interfaces;
 
 namespace Domain.Common;
 
-public abstract class Composite : IIdentifiable
+public abstract class Composite 
 {
     public byte[] Version { get; private set; } = Array.Empty<byte>(); // EF Core optimistic concurrency
     public DateTimeOffset CreatedAt { get; private set; } = DateTimeOffset.UtcNow;

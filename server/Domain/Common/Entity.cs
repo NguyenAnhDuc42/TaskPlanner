@@ -2,7 +2,7 @@ using Domain.Common.Interfaces;
 
 namespace Domain.Common;
 
-public abstract class Entity : IIdentifiable
+public abstract class Entity 
 {
     public Guid Id { get; protected set; } = Guid.NewGuid();
     public byte[] Version { get; private set; } = Array.Empty<byte>(); // EF Core optimistic concurrency
