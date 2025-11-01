@@ -1,84 +1,75 @@
 ﻿using Domain.Common;
 using Domain.Enums;
-using Domain.Enums.RelationShip;
-using Domain.Entities.ProjectEntities;
-using Domain.Entities.Relationship;
-using Domain.Entities.Support.Workspace;
-using Infrastructure.Data;
-using Microsoft.Extensions.Caching.Hybrid;
 using Microsoft.Extensions.Logging;
 using Application.Interfaces.Services.Permissions;
-using Domain.Common.Interfaces;
-using Domain;
+using Application.Common;
+using Domain.Enums.RelationShip;
+using Infrastructure.Data;
 
 namespace Infrastructure.Services.Permissions
 {
     public class PermissionService : IPermissionService
     {
-        private readonly PermissionContextBuilder _builder;
-        private readonly WorkspaceContext _workspaceContext;
+        private readonly TaskPlanDbContext _dbContext;
         private readonly ILogger<PermissionService> _logger;
 
-        public PermissionService(
-            PermissionContextBuilder builder,
-            ILogger<PermissionService> logger,
-            WorkspaceContext workspaceContext)
+        public PermissionService(TaskPlanDbContext dbContext,ILogger<PermissionService> logger)
         {
-            _builder = builder;
+            _dbContext = dbContext;
             _logger = logger;
-            _workspaceContext = workspaceContext;
+
         }
 
-        public async Task<bool> HasPermissionAsync<TEntity>(Guid userId, TEntity entity, PermissionAction action, CancellationToken ct) where TEntity : class
+        public Task<bool> CanPerformAsync<TEntity>(Guid workspaceId, Guid userId, TEntity entity, PermissionAction action, CancellationToken ct) where TEntity : Entity
         {
-            var workspaceId = _workspaceContext.WorkspaceId;
-
-            var context = await _builder.BuildFromEntityAsync(userId, workspaceId, entity, ct);
-
-            var result = PermissionMatrix.CanPerform(entityType, action, context);
-
-            if (!result)
+            if (entity == null) throw new ArgumentNullException(nameof(entity));
+            ct.ThrowIfCancellationRequested();
+            var context = new PermissionContext
             {
-                _logger.LogWarning(
-                    "Permission denied: User {UserId} attempted {Action} on {EntityType} {EntityId}",
-                    userId, action, entityType, entity.Id);
-            }
-
-            return result;
+                UserId = userId,
+                WorkspaceId = workspaceId
+            };
         }
 
-        public Task<bool> CanPerformInScopeAsync(Guid userId, Guid? scopeId, EntityType scopeType, PermissionAction action, CancellationToken cancellationToken = default)
+        public Task<bool> CanPerformAsync<TParent>(Guid workspaceId, Guid userId, TParent parentEntity, EntityType childType, PermissionAction action, CancellationToken ct)
+            where TParent : Entity
         {
-            var workspaceId = _workspaceContext.WorkspaceId;
-            var context = await _builder.BuildScopeContextAsync(userId, workspaceId, entityId, entityType, cancellationToken);
-
-            var result = PermissionMatrix.CanPerform(entityType, action, context);
-
-            if (!result)
+            if (parentEntity == null) throw new ArgumentNullException(nameof(parentEntity));
+            ct.ThrowIfCancellationRequested();
+            var context = new PermissionContext
             {
-                _logger.LogWarning(
-                    "Permission denied: User {UserId} attempted {Action} on {EntityType} {EntityId}",
-                    userId, action, entityType, entityId);
-            }
-
-            return result;
+                UserId = userId,
+                WorkspaceId = workspaceId
+            };
+            throw new NotImplementedException();
         }
 
-        // private static EntityType GetEntityType<TEntity>() where TEntity : class =>
-        //     typeof(TEntity).Name switch
-        //     {
-        //         nameof(ChatRoom) => EntityType.ChatRoom,
-        //         nameof(ChatMessage) => EntityType.ChatMessage,
-        //         nameof(ProjectTask) => EntityType.ProjectTask,
-        //         nameof(ProjectList) => EntityType.ProjectList,
-        //         nameof(ProjectFolder) => EntityType.ProjectFolder,
-        //         nameof(ProjectSpace) => EntityType.ProjectSpace,
-        //         nameof(ProjectWorkspace) => EntityType.ProjectWorkspace,
-        //         nameof(WorkspaceMember) => EntityType.WorkspaceMember,
-        //         nameof(ChatRoomMember) => EntityType.ChatRoomMember,
-        //         _ => throw new InvalidOperationException($"Unknown entity type: {typeof(TEntity).Name}")
-        //     };
+        public Task<bool> CanPerformAsync<TChild, TParent>(Guid workspaceId, Guid userId, TChild childEntity, TParent parentEntity, PermissionAction action, CancellationToken ct)
+            where TChild : Entity
+            where TParent : Entity
+        {
+            if (parentEntity == null) throw new ArgumentNullException(nameof(parentEntity));
+            if (childEntity == null) throw new ArgumentNullException(nameof(childEntity));
+            ct.ThrowIfCancellationRequested();
+            var context = new PermissionContext
+            {
+                UserId = userId,
+                WorkspaceId = workspaceId
+            };
+            throw new NotImplementedException();
+        }
 
+        private async Task<(Role? role, AccessLevel? access)> GetLayeredPermissionsAsync<TEntity>(TEntity entity, CancellationToken ct) where TEntity : Entity
+        {
+            async Task<Role> GetWorkspaceRoleAsync(Guid userId, Guid workspaceId, CancellationToken ct)
+            {
+                var role = await _dbContext.WorkspaceMembers
+            }
+            switch (entity)
+            {
+
+            }
+        }
 
     }
 }
