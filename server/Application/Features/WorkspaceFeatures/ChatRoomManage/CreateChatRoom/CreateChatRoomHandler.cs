@@ -2,6 +2,8 @@ using System;
 using System.ComponentModel.DataAnnotations;
 using Application.Interfaces.Repositories;
 using Application.Interfaces.Services.Permissions;
+using Domain;
+using Domain.Entities.ProjectEntities;
 using Domain.Entities.Relationship;
 using Domain.Entities.Support.Workspace;
 using Domain.Enums;
@@ -13,11 +15,16 @@ namespace Application.Features.WorkspaceFeatures.ChatRoomManage.CreateChatRoom;
 
 public class CreateChatRoomHandler : BaseCommandHandler, IRequestHandler<CreateChatRoomCommand, Unit>
 {
-    public CreateChatRoomHandler(IUnitOfWork unitOfWork, IPermissionService permissionService, ICurrentUserService currentUserService)
-    : base(unitOfWork, permissionService, currentUserService) { }
+    public CreateChatRoomHandler(IUnitOfWork unitOfWork, IPermissionService permissionService, ICurrentUserService currentUserService, WorkspaceContext workspaceContext)
+    : base(unitOfWork, permissionService, currentUserService, workspaceContext) { }
     public async Task<Unit> Handle(CreateChatRoomCommand request, CancellationToken cancellationToken)
     {
-        await RequirePermissionAsync(request.workspaceId, EntityType.ChatRoom, PermissionAction.Create, cancellationToken);
+        var workspace = await UnitOfWork.Set<ProjectWorkspace>()
+            .FirstOrDefaultAsync(wp => wp.Id == request.workspaceId, cancellationToken);
+        if (workspace == null) throw new ValidationException("Workspace does not exist.");
+        cancellationToken.ThrowIfCancellationRequested();
+
+        await RequirePermissionAsync(workspace,EntityType.ChatRoom, PermissionAction.Create, cancellationToken);
         var chatRoom = ChatRoom.Create(request.name, request.workspaceId, CurrentUserId, request.inviteMembersInWorkspace, request.avatarUrl);
         if (request.memberIds?.Count > 0)
         {

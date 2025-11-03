@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using Domain;
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -16,7 +17,7 @@ if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
 }
-app.MapHub<WorkspaceHub>("/hubs/workspace");
+// app.MapHub<WorkspaceHub>("/hubs/workspace");
 
 app.UseHttpsRedirection();
 
