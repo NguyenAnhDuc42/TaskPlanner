@@ -1,5 +1,9 @@
+
 using Domain.Common;
 using Domain.Entities.ProjectEntities.ValueObject;
+using Domain.Entities.Relationship;
+using Domain.Enums;
+using Domain.Enums.RelationShip;
 using Domain.Enums.Workspace;
 
 namespace Domain.Entities.ProjectEntities;
@@ -16,6 +20,9 @@ public sealed class ProjectWorkspace : Entity
     public bool IsArchived { get; private set; }
     public Guid CreatorId { get; private set; }
     public long NextSpaceOrder { get; private set; } = 10_000_000L;
+
+    private readonly List<WorkspaceMember> _members = new();
+    public IReadOnlyCollection<WorkspaceMember> Members => _members.AsReadOnly();
 
     private ProjectWorkspace() { }
 
@@ -34,7 +41,14 @@ public sealed class ProjectWorkspace : Entity
     }
 
     public static ProjectWorkspace Create(string name, string? description, string? joinCode, Customization? customization, Guid creatorId, Theme theme = Theme.System, WorkspaceVariant variant = WorkspaceVariant.Team, bool strictJoin = false)
-        => new ProjectWorkspace(Guid.NewGuid(), name?.Trim() ?? throw new ArgumentNullException(nameof(name)), string.IsNullOrWhiteSpace(description) ? null : description?.Trim(), string.IsNullOrWhiteSpace(joinCode) ? Guid.NewGuid().ToString("N")[..8].ToUpperInvariant() : joinCode.Trim(), customization ?? Customization.CreateDefault(), theme, variant, strictJoin, creatorId);
+    {
+        var workspace = new ProjectWorkspace(Guid.NewGuid(), name?.Trim() ?? throw new ArgumentNullException(nameof(name)),
+        string.IsNullOrWhiteSpace(description) ? null : description?.Trim(),
+        string.IsNullOrWhiteSpace(joinCode) ? Guid.NewGuid().ToString("N")[..8].ToUpperInvariant() : joinCode.Trim(),
+        customization ?? Customization.CreateDefault(), theme, variant, strictJoin, creatorId);
+        workspace.AddMember(creatorId, Role.Owner, MembershipStatus.Active, creatorId, null);
+        return workspace;
+    }
 
     public long GetNextOrderAndIncrement()
     {
@@ -43,6 +57,47 @@ public sealed class ProjectWorkspace : Entity
         return currentOrder;
     }
 
+    public void AddMember(Guid userId, Role role, MembershipStatus status, Guid createdBy, string? joinMethod)
+    {
+        if (_members.Any(m => m.UserId == userId))
+        {
+            throw new InvalidOperationException("User is already a member of this workspace.");
+        }
+        var newMember = WorkspaceMember.AddMember(userId, this.Id, role, status, createdBy, joinMethod);
+        _members.Add(newMember);
+        UpdateTimestamp();
+    }
+
+    public void AddMembers(List<(Guid UserId, Role Role, MembershipStatus Status, string? JoinMethod)> memberSpecs, Guid createdBy)
+    {
+        var newMembers = WorkspaceMember.AddBulk(memberSpecs, this.Id, createdBy);
+
+        var changed = false;
+        foreach (var member in newMembers)
+        {
+            if (!_members.Any(m => m.UserId == member.UserId))
+            {
+                _members.Add(member);
+                changed = true;
+            }
+        }
+
+        if (changed)
+        {
+            UpdateTimestamp();
+        }
+    }
+
+    public void RemoveMembers(IEnumerable<Guid> userIds)
+    {
+        var initialCount = _members.Count;
+        _members.RemoveAll(m => userIds.Contains(m.UserId));
+
+        if (_members.Count < initialCount)
+        {
+            UpdateTimestamp();
+        }
+    }
     public void Update(string? name = null, string? description = null, string? color = null, string? icon = null, Theme? theme = null, WorkspaceVariant? variant = null, bool? strictJoin = null, bool? isArchived = null, bool regenerateJoinCode = false)
     {
         var changed = false;

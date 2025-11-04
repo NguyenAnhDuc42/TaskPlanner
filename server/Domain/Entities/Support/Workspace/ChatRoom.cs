@@ -74,6 +74,14 @@ public class ChatRoom : Entity
         // AddDomainEvent(new MemberRemovedFromChatRoomEvent(Id, userId));
     }
 
+    public void RemoveMembers(List<Guid> userIds)
+    {
+        foreach (var userId in userIds)
+        {
+            RemoveMember(userId);
+        }
+    }
+
     public void AddMessage(ChatMessage message)
     {
         if (message.ChatRoomId != Id)
@@ -102,27 +110,53 @@ public class ChatRoom : Entity
         userRole == ChatRoomRole.Owner ||         // Room owner can delete
         isWorkspaceOwner;                         // Workspace owner can delete any room
 
-    public bool CanUserEdit(Guid userId, ChatRoomRole userRole, bool isWorkspaceOwner) =>
-        userId == CreatorId ||
-        userRole == ChatRoomRole.Owner ||
-        isWorkspaceOwner;
-
-    public void UpdateName(string newName, Guid userId, ChatRoomRole userRole, bool isWorkspaceOwner)
+    public void Update(string? name = null, string? avatarUrl = null, bool? isPrivate = null, bool? isArchived = null)
     {
-        if (!CanUserEdit(userId, userRole, isWorkspaceOwner))
-            throw new UnauthorizedAccessException("User cannot edit this chat room.");
+        var changed = false;
 
-        Name = newName;
-        UpdateTimestamp();
-        // AddDomainEvent(new ChatRoomUpdatedEvent(Id, WorkspaceId, userId));
-    }
+        if (name is not null)
+        {
+            var trimmedName = name.Trim();
+            if (trimmedName == string.Empty)
+            {
+                throw new ArgumentException("Name cannot be empty.", nameof(name));
+            }
+            if (trimmedName != Name)
+            {
+                Name = trimmedName;
+                changed = true;
+            }
+        }
 
-    public void UpdateAvatar(string? avatarUrl, Guid userId, ChatRoomRole userRole, bool isWorkspaceOwner)
-    {
-        if (!CanUserEdit(userId, userRole, isWorkspaceOwner))
-            throw new UnauthorizedAccessException("User cannot edit this chat room.");
+        if (avatarUrl is not null)
+        {
+            var candidateUrl = string.IsNullOrWhiteSpace(avatarUrl.Trim()) ? null : avatarUrl.Trim();
+            if (candidateUrl != AvatarUrl)
+            {
+                AvatarUrl = candidateUrl;
+                changed = true;
+            }
+        }
 
-        AvatarUrl = avatarUrl;
-        UpdateTimestamp();
+        if (isPrivate.HasValue && isPrivate.Value != IsPrivate)
+        {
+            IsPrivate = isPrivate.Value;
+            changed = true;
+        }
+
+        if (isArchived.HasValue && isArchived.Value != IsArchived)
+        {
+            IsArchived = isArchived.Value;
+            changed = true;
+            // domaineventexample
+            // if (isArchived.Value) AddDomainEvent(new ChatRoomArchivedEvent(Id, WorkspaceId));
+            // else AddDomainEvent(new ChatRoomUnarchivedEvent(Id, WorkspaceId));
+        }
+
+        if (changed)
+        {
+            UpdateTimestamp();
+            // AddDomainEvent(new ChatRoomUpdatedEvent(Id, WorkspaceId));
+        }
     }
 }

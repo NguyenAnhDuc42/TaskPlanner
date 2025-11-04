@@ -88,6 +88,11 @@ public class ChatRoomMember : Composite
         Role = ChatRoomRole.Member;
         UpdateTimestamp();
     }
+    public void TurnOffNotifications()
+    {
+        NotificationsEnabled = false;
+        UpdateTimestamp();
+    }
 
     public bool IsActive => !IsBanned && (MuteEndTime == null || MuteEndTime <= DateTimeOffset.UtcNow);
 }

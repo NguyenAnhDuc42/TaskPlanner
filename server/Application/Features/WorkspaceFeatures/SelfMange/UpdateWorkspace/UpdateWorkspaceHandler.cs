@@ -1,6 +1,7 @@
 using System;
 using Application.Interfaces.Repositories;
 using Application.Interfaces.Services.Permissions;
+using Domain;
 using Domain.Entities.ProjectEntities;
 using Domain.Enums;
 using MediatR;
@@ -10,8 +11,8 @@ namespace Application.Features.WorkspaceFeatures.SelfMange.UpdateWorkspace;
 
 public class UpdateWorkspaceHandler : BaseCommandHandler, IRequestHandler<UpdateWorkspaceCommand, Unit>
 {
-    public UpdateWorkspaceHandler(IUnitOfWork unitOfWork, IPermissionService permissionService, ICurrentUserService currentUserService)
-        : base(unitOfWork, permissionService, currentUserService) { }
+    public UpdateWorkspaceHandler(IUnitOfWork unitOfWork, IPermissionService permissionService, ICurrentUserService currentUserService, WorkspaceContext workspaceContext)
+        : base(unitOfWork, permissionService, currentUserService, workspaceContext) { }
     public async Task<Unit> Handle(UpdateWorkspaceCommand request, CancellationToken cancellationToken)
     {
         var workspace = await UnitOfWork.Set<ProjectWorkspace>().FindAsync(request.Id, cancellationToken) ?? throw new KeyNotFoundException("Workspace not found");

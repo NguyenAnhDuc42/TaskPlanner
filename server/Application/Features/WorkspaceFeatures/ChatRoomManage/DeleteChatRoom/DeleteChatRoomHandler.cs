@@ -16,8 +16,7 @@ public class DeleteChatRoomHandler : BaseCommandHandler, IRequestHandler<DeleteC
     : base(unitOfWork, permissionService, currentUserService, workspaceContext) { }
     public async Task<Unit> Handle(DeleteChatRoomCommand request, CancellationToken cancellationToken)
     {
-        var chatRoom = await UnitOfWork.Set<ChatRoom>()
-            .FirstOrDefaultAsync(cr => cr.Id == request.chatRoomId, cancellationToken);
+        var chatRoom = await UnitOfWork.Set<ChatRoom>().FirstOrDefaultAsync(cr => cr.Id == request.chatRoomId, cancellationToken);
         if (chatRoom == null) throw new KeyNotFoundException("Chat room not found.");
         cancellationToken.ThrowIfCancellationRequested();
 

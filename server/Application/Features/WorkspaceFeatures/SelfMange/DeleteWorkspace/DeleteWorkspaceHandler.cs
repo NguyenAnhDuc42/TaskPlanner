@@ -2,6 +2,7 @@ using System;
 using Application.Interfaces.Repositories;
 using Application.Interfaces.Services;
 using Application.Interfaces.Services.Permissions;
+using Domain;
 using Domain.Entities.ProjectEntities;
 using Domain.Enums;
 using MediatR;
@@ -11,8 +12,8 @@ namespace Application.Features.WorkspaceFeatures.SelfMange.DeleteWorkspace;
 
 public class DeleteWorkspaceHandler : BaseCommandHandler, IRequestHandler<DeleteWorkspaceCommand, Unit>
 {
-    public DeleteWorkspaceHandler(IUnitOfWork unitOfWork, ICurrentUserService currentUserService, IPermissionService permissionService)
-        : base(unitOfWork, permissionService, currentUserService) { }
+    public DeleteWorkspaceHandler(IUnitOfWork unitOfWork, ICurrentUserService currentUserService, IPermissionService permissionService, WorkspaceContext workspaceContext)
+        : base(unitOfWork, permissionService, currentUserService, workspaceContext) { }
 
     public async Task<Unit> Handle(DeleteWorkspaceCommand request, CancellationToken cancellationToken)
     {

@@ -1,6 +1,9 @@
-namespace Application.Features.WorkspaceFeatures.ChatRoomManage.InviteMemberToChatRoom;
+using Application.Common.Interfaces;
+using MediatR;
 
-public record class InviteMemberToChatRoomCommand
-{
+namespace Application.Features.WorkspaceFeatures.ChatRoomManage.InviteMembersToChatRoom;
 
-}
+public record class InviteMembersToChatRoomCommand(
+    Guid chatRoomId,
+    List<Guid> memberIds
+) : ICommand<Unit>;

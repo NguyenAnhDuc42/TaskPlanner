@@ -1,6 +1,9 @@
-namespace Application.Features.WorkspaceFeatures.ChatRoomManage.RemoveMemberFromChatRoom;
+using Application.Common.Interfaces;
+using MediatR;
 
-public record class RemoveMemberFromChatRoomCommand
-{
+namespace Application.Features.WorkspaceFeatures.ChatRoomManage.RemoveMembersFromChatRoom;
 
-}
+public record class RemoveMembersFromChatRoomCommand(
+    Guid chatRoomId,
+    List<Guid> memberIds
+) : ICommand<Unit>;
