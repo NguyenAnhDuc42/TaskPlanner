@@ -49,9 +49,21 @@ public class GetWorkspaceListHandler : IRequestHandler<GetWorksapceListQuery, Pa
 
         var dtos = displayItems.Select(w =>
         {
-            var dto = w.Adapt<WorkspaceDetail>();
-            var members = membersByWorkspace.ContainsKey(w.Id) ? membersByWorkspace[w.Id] : new List<Member>();
-            return dto with { Members = members };
+            var dto = w.Adapt<WorkspaceSummary>();
+            var members = membersByWorkspace.ContainsKey(w.Id)
+            ? membersByWorkspace[w.Id]
+            : new List<Member>();
+            var currentRole = members.FirstOrDefault(m => m.Id == currentUserId);
+            return new WorkspaceDetail
+            {
+                WorkspaceId = dto.WorkspaceId,
+                Name = dto.Name,
+                Color = dto.Color,
+                Icon = dto.Icon,
+                Variant = dto.Variant,
+                Members = members,
+                CurrentRole = currentRole!
+            };
         }).ToList();
 
         string? nextCursor = null;
@@ -91,35 +103,6 @@ public class GetWorkspaceListHandler : IRequestHandler<GetWorksapceListQuery, Pa
         return memberDict;
     }
 
-    // EF Core version if have in future decide to add in navprops
-    // private async Task<Dictionary<Guid, List<Member>>> GetMembersByWorkspaces(List<Guid> workspaceIds, CancellationToken cancellationToken)
-    // {
-    //     var members = await _unitOfWork.Set<WorkspaceMember>()
-    //         .Include(wm => wm.User)
-    //         .Where(wm => workspaceIds.Contains(wm.ProjectWorkspaceId))
-    //         .Select(wm => new Member
-    //         {
-    //             Id = wm.UserId,
-    //             Username = wm.User.Username,
-    //             Email = wm.User.Email,
-    //             Role = wm.Role
-    //         })
-    //         .AsNoTracking()
-    //         .ToListAsync(cancellationToken);
-
-    //     return members
-    //         .GroupBy(m => m.ProjectWorkspaceId)
-    //         .ToDictionary(
-    //             g => g.Key,
-    //             g => g.Select(m => new Member
-    //             {
-    //                 Id = m.UserId,
-    //                 Username = m.Username,
-    //                 Email = m.Email,
-    //                 Role = m.Role
-    //             }).ToList()
-    //         );
-    // }
 
 }
 

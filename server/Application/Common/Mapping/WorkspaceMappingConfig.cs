@@ -13,7 +13,6 @@ public class WorkspaceMappingConfig : IRegister
         config.NewConfig<ProjectWorkspace, WorkspaceSummary>()
             .Map(dest => dest.WorkspaceId, src => src.Id)
             .Map(dest => dest.Name, src => src.Name)
-            .Map(dest => dest.Description, src => src.Description)
             .Map(dest => dest.Color, src => src.Customization.Color)
             .Map(dest => dest.Icon, src => src.Customization.Icon)
             .Map(dest => dest.Variant, src => src.Variant.ToString());

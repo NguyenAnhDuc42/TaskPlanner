@@ -34,6 +34,6 @@ public class WorkspaceMemberConfiguration : CompositeConfiguration<WorkspaceMemb
         builder.HasIndex(x => x.UserId);
         builder.HasIndex(x => new { x.ProjectWorkspaceId, x.Status });
 
-        builder.HasOne<ProjectWorkspace>().WithMany().HasForeignKey(x => x.ProjectWorkspaceId).OnDelete(DeleteBehavior.Cascade);
+        builder.HasOne<ProjectWorkspace>().WithMany(pw => pw.Members).HasForeignKey(x => x.ProjectWorkspaceId).OnDelete(DeleteBehavior.Cascade);
     }
 }
