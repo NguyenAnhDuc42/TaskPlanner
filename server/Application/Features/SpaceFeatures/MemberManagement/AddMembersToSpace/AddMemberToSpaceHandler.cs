@@ -12,12 +12,12 @@ using Domain.Enums.RelationShip;
 
 namespace Application.Features.SpaceFeatures.MemberManagement.AddMembersToSpace;
 
-public class AddMemberToSpaceHandler : BaseCommandHandler, IRequestHandler<AddMemberToSpaceCommand, Unit>
+public class AddMembersToSpaceHandler : BaseCommandHandler, IRequestHandler<AddMembersToSpaceCommand, Unit>
 {
-    public AddMemberToSpaceHandler(IUnitOfWork unitOfWork, IPermissionService permissionService, ICurrentUserService currentUserService, WorkspaceContext workspaceContext)
+    public AddMembersToSpaceHandler(IUnitOfWork unitOfWork, IPermissionService permissionService, ICurrentUserService currentUserService, WorkspaceContext workspaceContext)
         : base(unitOfWork, permissionService, currentUserService, workspaceContext) { }
 
-    public async Task<Unit> Handle(AddMemberToSpaceCommand request, CancellationToken cancellationToken)
+    public async Task<Unit> Handle(AddMembersToSpaceCommand request, CancellationToken cancellationToken)
     {
         var space = await UnitOfWork.Set<ProjectSpace>().FindAsync(request.spaceId, cancellationToken) ?? throw new KeyNotFoundException("Space not found");
         await RequirePermissionAsync(space, EntityType.EntityMember, PermissionAction.Create, cancellationToken);

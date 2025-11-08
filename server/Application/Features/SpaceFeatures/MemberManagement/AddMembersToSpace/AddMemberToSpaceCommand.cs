@@ -4,4 +4,4 @@ using MediatR;
 
 namespace Application.Features.SpaceFeatures.MemberManagement.AddMembersToSpace;
 
-public record class AddMemberToSpaceCommand(List<Guid> membersId,AccessLevel accessLevel, Guid spaceId) : ICommand<Unit>;
+public record class AddMembersToSpaceCommand(List<Guid> membersId,AccessLevel accessLevel, Guid spaceId) : ICommand<Unit>;
