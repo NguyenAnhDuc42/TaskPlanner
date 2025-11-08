@@ -7,7 +7,7 @@ using Domain.Enums;
 using MediatR;
 using server.Application.Interfaces;
 
-namespace Application.Features.WorkspaceFeatures.SelfMange.UpdateWorkspace;
+namespace Application.Features.WorkspaceFeatures.UpdateWorkspace;
 
 public class UpdateWorkspaceHandler : BaseCommandHandler, IRequestHandler<UpdateWorkspaceCommand, Unit>
 {

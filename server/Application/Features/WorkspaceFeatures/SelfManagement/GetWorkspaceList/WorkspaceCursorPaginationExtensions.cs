@@ -3,7 +3,7 @@ using Application.Common.Filters;
 using Application.Helper;
 using Domain.Entities.ProjectEntities;
 
-namespace Application.Features.WorkspaceFeatures.SelfMange.GetWorkspaceList;
+namespace Application.Features.WorkspaceFeatures.GetWorkspaceList;
 
 public static class WorkspaceCursorPaginationExtensions
 {

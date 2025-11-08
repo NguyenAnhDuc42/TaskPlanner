@@ -2,7 +2,7 @@ using Application.Common.Interfaces;
 using Domain.Enums.Workspace;
 using MediatR;
 
-namespace Application.Features.WorkspaceFeatures.SelfMange.UpdateWorkspace;
+namespace Application.Features.WorkspaceFeatures.UpdateWorkspace;
 
 public record class UpdateWorkspaceCommand : ICommand<Unit>
 {

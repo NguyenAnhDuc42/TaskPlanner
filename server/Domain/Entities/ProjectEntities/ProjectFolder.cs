@@ -46,8 +46,8 @@ public sealed class ProjectFolder : Entity
 
     public long GetNextListOrderAndIncrement()
     {
-        var currentOrder = this.NextListOrder;
-        this.NextListOrder += 10_000_000L;
+        var currentOrder = NextListOrder;
+        NextListOrder += 10_000_000L;
         return currentOrder;
     }
 

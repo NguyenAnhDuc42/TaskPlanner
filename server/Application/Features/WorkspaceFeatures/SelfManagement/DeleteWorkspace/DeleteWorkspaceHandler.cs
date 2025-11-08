@@ -8,7 +8,7 @@ using Domain.Enums;
 using MediatR;
 using server.Application.Interfaces;
 
-namespace Application.Features.WorkspaceFeatures.SelfMange.DeleteWorkspace;
+namespace Application.Features.WorkspaceFeatures.DeleteWorkspace;
 
 public class DeleteWorkspaceHandler : BaseCommandHandler, IRequestHandler<DeleteWorkspaceCommand, Unit>
 {

@@ -1,7 +1,7 @@
 using FluentValidation;
 using Domain.Enums.Workspace;
 using Domain.Common; // Assuming ColorValidator is here
-namespace Application.Features.WorkspaceFeatures.SelfMange.UpdateWorkspace;
+namespace Application.Features.WorkspaceFeatures.UpdateWorkspace;
 
 public class UpdateWorkspaceValidator : AbstractValidator<UpdateWorkspaceCommand>
 {

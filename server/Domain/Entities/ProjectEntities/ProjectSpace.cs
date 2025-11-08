@@ -1,8 +1,5 @@
 using Domain.Common;
 using Domain.Entities.ProjectEntities.ValueObject;
-using Domain.Enums;
-using Domain.Common.Interfaces;
-using System.ComponentModel.DataAnnotations;
 
 namespace Domain.Entities.ProjectEntities;
 
@@ -39,15 +36,15 @@ public sealed class ProjectSpace : Entity
 
     public long GetNextFolderOrderAndIncrement()
     {
-        var currentOrder = this.NextFolderOrder;
-        this.NextFolderOrder += 10_000_000L;
+        var currentOrder = NextFolderOrder;
+        NextFolderOrder += 10_000_000L;
         return currentOrder;
     }
 
     public long GetNextListOrderAndIncrement()
     {
-        var currentOrder = this.NextListOrder;
-        this.NextListOrder += 10_000_000L;
+        var currentOrder = NextListOrder;
+        NextListOrder += 10_000_000L;
         return currentOrder;
     }
 

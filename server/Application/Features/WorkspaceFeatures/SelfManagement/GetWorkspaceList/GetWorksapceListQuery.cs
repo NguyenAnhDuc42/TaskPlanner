@@ -4,7 +4,7 @@ using Application.Common.Results;
 using Application.Contract.WorkspaceContract;
 using Domain.Enums.Workspace;
 
-namespace Application.Features.WorkspaceFeatures.SelfMange.GetWorkspaceList;
+namespace Application.Features.WorkspaceFeatures.GetWorkspaceList;
 
 public record class GetWorksapceListQuery(CursorPaginationRequest Pagination, WorkspaceFilter filter) : IQuery<PagedResult<WorkspaceDetail>>;
 public record WorkspaceFilter(string? Name = null, bool Owned = false, bool isArchived = false, WorkspaceVariant? Variant = null);

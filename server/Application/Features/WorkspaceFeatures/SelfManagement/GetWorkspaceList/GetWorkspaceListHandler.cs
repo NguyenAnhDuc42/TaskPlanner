@@ -1,19 +1,16 @@
-using System.Linq;
-using Application.Common.Filters;
 using Application.Common.Results;
 using Application.Contract.UserContract;
 using Application.Contract.WorkspaceContract;
 using Application.Helper;
 using Application.Interfaces.Repositories;
 using Domain.Entities.ProjectEntities;
-using Domain.Entities.Relationship;
 using Domain.Enums;
 using Mapster;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using server.Application.Interfaces;
 
-namespace Application.Features.WorkspaceFeatures.SelfMange.GetWorkspaceList;
+namespace Application.Features.WorkspaceFeatures.GetWorkspaceList;
 
 public class GetWorkspaceListHandler : IRequestHandler<GetWorksapceListQuery, PagedResult<WorkspaceDetail>>
 {
