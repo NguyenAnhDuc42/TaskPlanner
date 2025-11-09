@@ -23,7 +23,6 @@
     <Folder Include="Features\FolderFeatures\" />
     <Folder Include="Features\FolderFeatures\SelfManagement\" />
     <Folder Include="Features\ListFeatures\" />
-    <Folder Include="Features\SpaceFeatures\MemberManagement\EditMemberInSpace\" />
     <Folder Include="Features\SpaceFeatures\MemberManagement\GetListOfMembersInSpace\" />
     <Folder Include="Features\SpaceFeatures\SelfManagement\GetSpaces\" />
     <Folder Include="Features\SpaceFeatures\Widget\" />
