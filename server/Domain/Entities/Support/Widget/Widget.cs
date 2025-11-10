@@ -7,11 +7,11 @@ namespace Domain.Entities.Support.Widget;
 
 public class Widget : Entity
 {
-    public ScopeType ScopeType { get; init; }
-    public Guid ScopeId { get; init; }
-    public Guid CreatorId { get; init; }
+    public ScopeType ScopeType { get; private set; }
+    public Guid ScopeId { get; private set; }
+    public Guid CreatorId { get; private set; }
+    public WidgetType WidgetType { get; private set; }
     public WidgetVisibility Visibility { get; private set; }
-    public WidgetType WidgetType { get; init; }
     public string ConfigJson { get; private set; } = "{}";
 
     private Widget() { } // EF
@@ -23,7 +23,7 @@ public class Widget : Entity
         ScopeId = scopeId;
         CreatorId = ownerId;
         WidgetType = widgetType;
-        ConfigJson = configJson ?? "{}";
+        ConfigJson = string.IsNullOrWhiteSpace(configJson) ? "{}" : configJson;
         Visibility = visibility;
     }
 
@@ -38,7 +38,7 @@ public class Widget : Entity
 
     public void UpdateConfig(string configJson)
     {
-        ConfigJson = configJson ?? "{}";
+        ConfigJson = string.IsNullOrWhiteSpace(configJson) ? "{}" : configJson;
         UpdateTimestamp();
     }
 }

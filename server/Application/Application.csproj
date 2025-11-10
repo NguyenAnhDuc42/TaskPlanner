@@ -22,6 +22,8 @@
     <Folder Include="Contract\TaskContract\" />
     <Folder Include="Features\FolderFeatures\" />
     <Folder Include="Features\FolderFeatures\SelfManagement\" />
+    <Folder Include="Features\FolderFeatures\SelfManagement\DeleteFolder\" />
+    <Folder Include="Features\FolderFeatures\SelfManagement\EditFolder\" />
     <Folder Include="Features\ListFeatures\" />
     <Folder Include="Features\SpaceFeatures\MemberManagement\GetListOfMembersInSpace\" />
     <Folder Include="Features\SpaceFeatures\SelfManagement\GetSpaces\" />
