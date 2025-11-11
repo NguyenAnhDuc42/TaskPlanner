@@ -7,7 +7,7 @@ namespace Domain.Entities.Support.Widget;
 
 public class Dashboard : Entity
 {
-    public Guid OwnerId { get; private set; }
+    public Guid CreatorId { get; private set; }
     public string Name { get; private set; } = string.Empty;
     public ScopeType ScopeType { get; private set; }
     public Guid ScopeId { get; private set; }
@@ -19,19 +19,19 @@ public class Dashboard : Entity
 
     private Dashboard() { } // EF
 
-    public Dashboard(Guid id, Guid ownerId, string name, ScopeType scopeType, Guid scopeId, WidgetVisibility visibility)
+    public Dashboard(Guid id, Guid creatorId, string name, ScopeType scopeType, Guid scopeId, WidgetVisibility visibility)
         : base(id)
     {
-        OwnerId = ownerId;
+        CreatorId = creatorId;
         Name = name;
         ScopeType = scopeType;
         ScopeId = scopeId;
         Visibility = visibility;
     }
 
-    public void AddWidget(Guid widgetDefinitionId, string? defaultConfigJson = null, int? order = null)
+    public void AddWidget(Guid widgetId, string? defaultConfigJson = null, int? order = null)
     {
-        var dw = new DashboardWidget(Id, widgetDefinitionId, order ?? _widgets.Count, defaultConfigJson);
+        var dw = new DashboardWidget(Id, widgetId, order ?? _widgets.Count, defaultConfigJson);
         _widgets.Add(dw);
         UpdateTimestamp();
     }

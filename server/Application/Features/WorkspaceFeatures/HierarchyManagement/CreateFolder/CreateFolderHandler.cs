@@ -30,11 +30,11 @@ public class CreateFolderHandler : BaseCommandHandler, IRequestHandler<CreateFol
             await UnitOfWork.Set<EntityMember>().AddAsync(member, cancellationToken);
         }
         var folder = ProjectFolder.Create(
-            spaceId: space.Id,
+            projectSpaceId: space.Id,
             name: request.name,
             color: customization.Color,
             icon: customization.Icon,
-            isPrivate: request.isPrivate,
+            isPrivate: request.isPrivate, // This was ownerId before, but ProjectFolder.Create expects creatorId
             creatorId: CurrentUserId,
             orderKey: orderKey
         );

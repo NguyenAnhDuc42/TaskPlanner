@@ -20,10 +20,10 @@ public sealed class ProjectFolder : Entity
 
     private ProjectFolder() { }
 
-    private ProjectFolder(Guid id, Guid spaceId, string name, Customization customization, bool isPrivate, long orderKey, Guid creatorId)
+    private ProjectFolder(Guid id, Guid projectSpaceId, string name, Customization customization, bool isPrivate, long orderKey, Guid creatorId)
     {
         Id = id;
-        ProjectSpaceId = spaceId;
+        ProjectSpaceId = projectSpaceId;
         Name = name ?? throw new ArgumentNullException(nameof(name));
         if (string.IsNullOrWhiteSpace(name)) throw new ArgumentException("Name cannot be empty.", nameof(name));
         if (name.Length > 100) throw new ArgumentException("Name too long.", nameof(name));
@@ -34,14 +34,14 @@ public sealed class ProjectFolder : Entity
         IsArchived = false;
     }
 
-    public static ProjectFolder Create(Guid spaceId, string name, string color, string icon, bool isPrivate, Guid creatorId, long orderKey)
+    public static ProjectFolder Create(Guid projectSpaceId, string name, string color, string icon, bool isPrivate, Guid creatorId, long orderKey)
     {
         if (string.IsNullOrWhiteSpace(color)) throw new ArgumentException("Color required.", nameof(color));
         if (!IsValidColorCode(color)) throw new ArgumentException("Invalid color.", nameof(color));
-        if (creatorId == Guid.Empty) throw new ArgumentException("creatorId required.", nameof(creatorId));
+        if (creatorId == Guid.Empty) throw new ArgumentException("CreatorId cannot be empty.", nameof(creatorId));
 
         var customization = Customization.Create(color.Trim(), icon.Trim());
-        return new ProjectFolder(Guid.NewGuid(), spaceId, name?.Trim() ?? throw new ArgumentNullException(nameof(name)), customization, isPrivate, orderKey, creatorId);
+        return new ProjectFolder(Guid.NewGuid(), projectSpaceId, name?.Trim() ?? throw new ArgumentNullException(nameof(name)), customization, isPrivate, orderKey, creatorId);
     }
 
     public long GetNextListOrderAndIncrement()

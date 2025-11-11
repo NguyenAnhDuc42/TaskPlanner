@@ -22,11 +22,11 @@ public sealed class ProjectList : Entity
 
     private ProjectList() { }
 
-    private ProjectList(Guid id, Guid spaceId, Guid? folderId, string name, Customization customization, bool isPrivate, long orderKey, Guid creatorId, DateTimeOffset? startDate, DateTimeOffset? dueDate)
+    private ProjectList(Guid id, Guid projectSpaceId, Guid? projectFolderId, string name, Customization customization, bool isPrivate, long orderKey, Guid creatorId, DateTimeOffset? startDate, DateTimeOffset? dueDate)
     {
         Id = id;
-        ProjectSpaceId = spaceId;
-        ProjectFolderId = folderId;
+        ProjectSpaceId = projectSpaceId;
+        ProjectFolderId = projectFolderId;
         Name = name ?? throw new ArgumentNullException(nameof(name));
         Customization = customization ?? Customization.CreateDefault();
         IsPrivate = isPrivate;
@@ -37,14 +37,15 @@ public sealed class ProjectList : Entity
         IsArchived = false;
     }
 
-    public static ProjectList Create(Guid spaceId, Guid? folderId, string name, Customization? customization, bool isPrivate, Guid creatorId, long orderKey, DateTimeOffset? start = null, DateTimeOffset? due = null)
+    public static ProjectList Create(Guid projectSpaceId, Guid? projectFolderId, string name, Customization? customization, bool isPrivate, Guid creatorId, long orderKey, DateTimeOffset? start = null, DateTimeOffset? due = null)
     {
         var candidateName = name?.Trim() ?? throw new ArgumentNullException(nameof(name));
         if (string.IsNullOrWhiteSpace(candidateName)) throw new ArgumentException("List name cannot be empty.", nameof(name));
         if (candidateName.Length > 100) throw new ArgumentException("List name cannot exceed 100 characters.", nameof(name));
         if (start.HasValue && due.HasValue && start > due) throw new ArgumentException("Start date cannot be later than due date.", nameof(start));
+        if (creatorId == Guid.Empty) throw new ArgumentException("CreatorId cannot be empty.", nameof(creatorId));
 
-        return new ProjectList(Guid.NewGuid(), spaceId, folderId, candidateName, customization ?? Customization.CreateDefault(), isPrivate, orderKey, creatorId, start, due);
+        return new ProjectList(Guid.NewGuid(), projectSpaceId, projectFolderId, candidateName, customization ?? Customization.CreateDefault(), isPrivate, orderKey, creatorId, start, due);
     }
 
     public long GetNextTaskOrderAndIncrement()
@@ -54,7 +55,7 @@ public sealed class ProjectList : Entity
         return currentOrder;
     }
 
-    public void Update(string? name = null, string? color = null, string? icon = null, DateTimeOffset? startDate = null, DateTimeOffset? dueDate = null, bool? isPrivate = null, long? orderKey = null, bool? isArchived = null, Guid? folderId = null)
+    public void Update(string? name = null, string? color = null, string? icon = null, DateTimeOffset? startDate = null, DateTimeOffset? dueDate = null, bool? isPrivate = null, long? orderKey = null, bool? isArchived = null, Guid? projectFolderId = null)
     {
         var changed = false;
 
@@ -82,7 +83,7 @@ public sealed class ProjectList : Entity
 
         if (isPrivate.HasValue && isPrivate.Value != IsPrivate) { IsPrivate = isPrivate.Value; changed = true; }
         if (orderKey.HasValue && orderKey != OrderKey) { OrderKey = orderKey.Value; changed = true; }
-        if (folderId is not null && folderId != ProjectFolderId) { ProjectFolderId = folderId; changed = true; }
+        if (projectFolderId is not null && projectFolderId != ProjectFolderId) { ProjectFolderId = projectFolderId; changed = true; }
         if (isArchived.HasValue && isArchived.Value != IsArchived) { IsArchived = isArchived.Value; changed = true; }
 
         if (changed) UpdateTimestamp();

@@ -25,10 +25,10 @@ public class ProjectTask : Entity
     // EF Core
     private ProjectTask() { }
 
-    private ProjectTask(Guid id, Guid listId, string name, string? description, Customization customization, Guid creatorId, Guid? statusId, Priority priority, DateTimeOffset? startDate, DateTimeOffset? dueDate, int? storyPoints, long? timeEstimate)
+    private ProjectTask(Guid id, Guid projectListId, string name, string? description, Customization customization, Guid creatorId, Guid? statusId, Priority priority, DateTimeOffset? startDate, DateTimeOffset? dueDate, int? storyPoints, long? timeEstimate, long orderKey)
     {
         Id = id;
-        ProjectListId = listId;
+        ProjectListId = projectListId;
         Name = name ?? throw new ArgumentNullException(nameof(name));
         Description = string.IsNullOrWhiteSpace(description) ? null : description;
         Customization = customization ?? Customization.CreateDefault();
@@ -38,15 +38,16 @@ public class ProjectTask : Entity
         StartDate = startDate;
         DueDate = dueDate;
         StoryPoints = storyPoints;
+        OrderKey = orderKey;
         TimeEstimate = timeEstimate;
         IsArchived = false;
     }
 
-    public static ProjectTask Create(Guid listId, string name, string? description, Customization? customization, Guid creatorId, Guid? statusId = null, Priority priority = Priority.Low, DateTimeOffset? startDate = null, DateTimeOffset? dueDate = null, int? storyPoints = null, long? timeEstimate = null)
-        => new ProjectTask(Guid.NewGuid(), listId, name?.Trim() ?? throw new ArgumentNullException(nameof(name)), string.IsNullOrWhiteSpace(description) ? null : description?.Trim(), customization ?? Customization.CreateDefault(), creatorId, statusId, priority, startDate, dueDate, storyPoints, timeEstimate);
+    public static ProjectTask Create(Guid projectListId, string name, string? description, Customization? customization, Guid creatorId, Guid? StatusId = null, Priority priority = Priority.Low, DateTimeOffset? startDate = null, DateTimeOffset? dueDate = null, int? storyPoints = null, long? timeEstimate = null, long orderKey = 10_000_000L)
+        => new ProjectTask(Guid.NewGuid(), projectListId, name?.Trim() ?? throw new ArgumentNullException(nameof(name)), string.IsNullOrWhiteSpace(description) ? null : description?.Trim(), customization ?? Customization.CreateDefault(), creatorId, StatusId, priority, startDate, dueDate, storyPoints, timeEstimate, orderKey);
 
     // Consolidated update: single method for name/description/schedule/priority/status/estimation/customization/orderKey
-    public void Update(string? name = null, string? description = null, DateTimeOffset? startDate = null, DateTimeOffset? dueDate = null, Priority? priority = null, Guid? statusId = null, int? storyPoints = null, long? timeEstimateSeconds = null, string? color = null, string? icon = null, long? orderKey = null)
+    public void Update(string? name = null, string? description = null, DateTimeOffset? startDate = null, DateTimeOffset? dueDate = null, Priority? priority = null, Guid? StatusId = null, int? storyPoints = null, long? timeEstimateSeconds = null, string? color = null, string? icon = null, long? orderKey = null)
     {
         var changed = false;
 
@@ -68,7 +69,7 @@ public class ProjectTask : Entity
         }
 
         if (priority.HasValue && priority.Value != Priority) { Priority = priority.Value; changed = true; }
-        if (statusId.HasValue && statusId != StatusId) { StatusId = statusId; changed = true; }
+        if (StatusId.HasValue && StatusId != this.StatusId) { this.StatusId = StatusId; changed = true; }
 
         if (storyPoints != null || timeEstimateSeconds != null)
         {
@@ -83,7 +84,7 @@ public class ProjectTask : Entity
             if (!newCustomization.Equals(Customization)) { Customization = newCustomization; changed = true; }
         }
 
-        if (orderKey.HasValue && orderKey != OrderKey) { OrderKey = orderKey; changed = true; }
+        if (orderKey.HasValue && orderKey != OrderKey) { OrderKey = orderKey.Value; changed = true; }
 
         if (changed) UpdateTimestamp();
     }

@@ -18,10 +18,10 @@ public sealed class ProjectSpace : Entity
 
     private ProjectSpace() { }
 
-    private ProjectSpace(Guid id, Guid workspaceId, string name, string? description, Customization customization, bool isPrivate, long orderKey, Guid creatorId)
+    private ProjectSpace(Guid id, Guid projectWorkspaceId, string name, string? description, Customization customization, bool isPrivate, long orderKey, Guid creatorId)
     {
         Id = id;
-        ProjectWorkspaceId = workspaceId;
+        ProjectWorkspaceId = projectWorkspaceId;
         Name = name ?? throw new ArgumentNullException(nameof(name));
         Description = string.IsNullOrWhiteSpace(description) ? null : description;
         Customization = customization ?? Customization.CreateDefault();
@@ -31,8 +31,11 @@ public sealed class ProjectSpace : Entity
         IsArchived = false;
     }
 
-    public static ProjectSpace Create(Guid workspaceId, string name, string? description, Customization? customization, bool isPrivate, Guid creatorId, long orderKey)
-        => new ProjectSpace(Guid.NewGuid(), workspaceId, name?.Trim() ?? throw new ArgumentNullException(nameof(name)), string.IsNullOrWhiteSpace(description) ? null : description?.Trim(), customization ?? Customization.CreateDefault(), isPrivate, orderKey, creatorId);
+    public static ProjectSpace Create(Guid projectWorkspaceId, string name, string? description, Customization? customization, bool isPrivate, Guid creatorId, long orderKey)
+    {
+        if (creatorId == Guid.Empty) throw new ArgumentException("CreatorId cannot be empty.", nameof(creatorId));
+        return new ProjectSpace(Guid.NewGuid(), projectWorkspaceId, name?.Trim() ?? throw new ArgumentNullException(nameof(name)), string.IsNullOrWhiteSpace(description) ? null : description?.Trim(), customization ?? Customization.CreateDefault(), isPrivate, orderKey, creatorId);
+    }
 
     public long GetNextFolderOrderAndIncrement()
     {

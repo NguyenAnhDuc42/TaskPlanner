@@ -16,19 +16,22 @@ public class Widget : Entity
 
     private Widget() { } // EF
 
-    private Widget(Guid id, ScopeType scopeType, Guid scopeId, Guid ownerId, WidgetType widgetType, string configJson, WidgetVisibility visibility)
+    private Widget(Guid id, ScopeType scopeType, Guid scopeId, Guid creatorId, WidgetType widgetType, string configJson, WidgetVisibility visibility)
         : base(id)
     {
         ScopeType = scopeType;
         ScopeId = scopeId;
-        CreatorId = ownerId;
+        CreatorId = creatorId;
         WidgetType = widgetType;
         ConfigJson = string.IsNullOrWhiteSpace(configJson) ? "{}" : configJson;
         Visibility = visibility;
     }
 
-    public static Widget Create(ScopeType scopeType, Guid scopeId, Guid ownerId, WidgetType widgetType, string configJson, WidgetVisibility visibility = WidgetVisibility.Private)
-        => new(Guid.NewGuid(), scopeType, scopeId, ownerId, widgetType, configJson, visibility);
+    public static Widget Create(ScopeType scopeType, Guid scopeId, Guid creatorId, WidgetType widgetType, string configJson, WidgetVisibility visibility = WidgetVisibility.Private)
+    {
+        if (creatorId == Guid.Empty) throw new ArgumentException("CreatorId cannot be empty.", nameof(creatorId));
+        return new(Guid.NewGuid(), scopeType, scopeId, creatorId, widgetType, configJson, visibility);
+    }
 
     public void SetVisibility(WidgetVisibility visibility)
     {

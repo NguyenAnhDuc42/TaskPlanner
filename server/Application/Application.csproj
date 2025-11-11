@@ -36,6 +36,8 @@
     <Folder Include="Features\WorkspaceFeatures\ChatRoomManage\Chatting\ReplyMessage\" />
     <Folder Include="Features\WorkspaceFeatures\ChatRoomManage\Chatting\SendMessage\" />
     <Folder Include="Features\WorkspaceFeatures\ChatRoomManage\GetMemberInChatRoom\" />
+    <Folder Include="Features\WorkspaceFeatures\Dashboard\RepositionDashboardWidget\" />
+    <Folder Include="Features\WorkspaceFeatures\Dashboard\ResizeDashboardWidget\" />
     <Folder Include="Features\WorkspaceFeatures\HierarchyManagement\ReorderFolder\" />
     <Folder Include="Features\WorkspaceFeatures\HierarchyManagement\ReorderList\" />
     <Folder Include="Features\WorkspaceFeatures\HierarchyManagement\ReOrderSpace\" />
@@ -49,12 +51,6 @@
     <Folder Include="Features\WorkspaceFeatures\TagManage\DeleteTag\" />
     <Folder Include="Features\WorkspaceFeatures\TagManage\GetTags\" />
     <Folder Include="Features\WorkspaceFeatures\TagManage\UpdateTag\" />
-    <Folder Include="Features\WorkspaceFeatures\Widget\" />
-    <Folder Include="Features\WorkspaceFeatures\Widget\CreateWidget\" />
-    <Folder Include="Features\WorkspaceFeatures\Widget\DeleteWidget\" />
-    <Folder Include="Features\WorkspaceFeatures\Widget\EditWidgetLayout\" />
-    <Folder Include="Features\WorkspaceFeatures\Widget\EditWidget\" />
-    <Folder Include="Features\WorkspaceFeatures\Widget\GetWidgets\" />
   </ItemGroup>
 
   <PropertyGroup>

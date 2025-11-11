@@ -17,12 +17,13 @@ public class CreateWorkspaceEventHandler : INotificationHandler<CreatedWorkspace
         _unitOfWork = unitOfWork;
     }
 
-    public Task Handle(CreatedWorkspaceEvent notification, CancellationToken cancellationToken)
+    public async Task Handle(CreatedWorkspaceEvent notification, CancellationToken cancellationToken)
     {
         _logger.LogInformation("Handling CreatedWorkspaceEvent for WorkspaceId: {WorkspaceId}, UserId: {UserId}", notification.workspaceId, notification.userId);
 
         var workspaceMember = WorkspaceMember.CreateOwner(notification.userId, notification.workspaceId, notification.userId);
-        _unitOfWork.Set<WorkspaceMember>().Add(workspaceMember);
-        return Task.CompletedTask;
+        await _unitOfWork.Set<WorkspaceMember>().AddAsync(workspaceMember);
+        // create a dashboard with default layout
+        return;
     }
 }
