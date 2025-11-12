@@ -1,14 +1,15 @@
 using System;
 using Domain.Common;
 using Domain.Enums;
+using Domain.Enums.RelationShip;
 using Domain.Enums.Widget;
 
 namespace Domain.Entities.Support.Widget;
 
 public class Dashboard : Entity
 {
-    public ScopeType Scope { get; private set; }
-    public Guid ScopeId { get; private set; }
+    public EntityLayerType LayerType { get; private set; }
+    public Guid LayerId { get; private set; }
     public Guid CreatorId { get; private set; }
     public string Name { get; private set; } = string.Empty;
     public bool IsShared { get; private set; }
@@ -18,11 +19,11 @@ public class Dashboard : Entity
 
     private Dashboard() { } // EF
 
-    private Dashboard(Guid id, ScopeType scope, Guid scopeId, Guid creatorId, string name, bool isShared)
+    private Dashboard(Guid id, EntityLayerType layerType, Guid layerId, Guid creatorId, string name, bool isShared)
         : base(id)
     {
-        Scope = scope;
-        ScopeId = scopeId;
+        LayerType = layerType;
+        LayerId = layerId;
         CreatorId = creatorId;
         Name = name;
         IsShared = isShared;
@@ -32,15 +33,15 @@ public class Dashboard : Entity
     {
         if (workspaceId == Guid.Empty) throw new ArgumentException("WorkspaceId cannot be empty.", nameof(workspaceId));
         if (creatorId == Guid.Empty) throw new ArgumentException("CreatorId cannot be empty.", nameof(creatorId));
-        return new(id, ScopeType.Workspace, workspaceId, creatorId, name, isShared: true);
+        return new(id, EntityLayerType.ProjectWorkspace, workspaceId, creatorId, name, isShared: true);
     }
 
-    public static Dashboard CreateScopedDashboard(Guid id, ScopeType scope, Guid scopeId, Guid creatorId, string name)
+    public static Dashboard CreateScopedDashboard(Guid id, EntityLayerType layerType, Guid layerId, Guid creatorId, string name)
     {
-        if (scope == ScopeType.Workspace) throw new ArgumentException("Use CreateWorkspaceDashboard for workspace scope.", nameof(scope));
-        if (scopeId == Guid.Empty) throw new ArgumentException("ScopeId cannot be empty.", nameof(scopeId));
+        if (layerType == EntityLayerType.ProjectWorkspace) throw new ArgumentException("Use CreateWorkspaceDashboard for workspace scope.", nameof(layerType));
+        if (layerId == Guid.Empty) throw new ArgumentException("LayerId cannot be empty.", nameof(layerId));
         if (creatorId == Guid.Empty) throw new ArgumentException("CreatorId cannot be empty.", nameof(creatorId));
-        return new(id, scope, scopeId, creatorId, name, isShared: false);
+        return new(id, layerType, layerId, creatorId, name, isShared: false);
     }
 
     public void AddWidget(Guid widgetId, int order = 0, WidgetLayout? layout = null)
