@@ -1,8 +1,10 @@
 using System;
 
 using Application.Interfaces.Repositories;
+using Domain.Entities;
 using MediatR;
 using Microsoft.AspNetCore.Http;
+using Microsoft.EntityFrameworkCore;
 using server.Application.Interfaces;
 
 namespace Application.Features.Auth.Login;
@@ -29,7 +31,7 @@ public class LoginHandler : IRequestHandler<LoginCommand, LoginResponse>
         {
             throw new Exception("Unable to get HttpContext from IHttpContextAccessor.");
         }
-        var user = await _unitOfWork.Users.GetUsersByEmail(request.email, cancellationToken);
+        var user = await _unitOfWork.Set<User>().FirstOrDefaultAsync(u => u.Email == request.email, cancellationToken);
         if (user is null)
         {
             throw new Exception("User not found");

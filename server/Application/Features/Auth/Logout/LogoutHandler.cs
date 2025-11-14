@@ -2,8 +2,10 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 using Application.Interfaces.Repositories;
+using Domain.Entities;
 using MediatR;
 using Microsoft.AspNetCore.Http;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using server.Application.Interfaces;
 
@@ -74,13 +76,13 @@ namespace Application.Features.Auth.Logout
             {
                 await _unitOfWork.BeginTransactionAsync(cancellationToken);
 
-                var session = await _unitOfWork.Sessions.GetByRefreshToken(refreshToken, cancellationToken);
+                var session = await _unitOfWork.Set<Session>().FirstOrDefaultAsync(s => s.RefreshToken == refreshToken, cancellationToken);
 
                 if (session != null)
                 {
                     // Mark revoked (simple, cheap DB update). Delete can be deferred to background job.
                     session.Revoke(reason: "user_logout", revokedAt: DateTime.UtcNow);
-                    _unitOfWork.Sessions.Update(session);
+                    _unitOfWork.Set<Session>().Update(session);
 
                     await _unitOfWork.SaveChangesAsync(cancellationToken);
                     await _unitOfWork.CommitTransactionAsync(cancellationToken);

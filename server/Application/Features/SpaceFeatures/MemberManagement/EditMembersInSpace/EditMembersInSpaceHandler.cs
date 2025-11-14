@@ -22,8 +22,8 @@ public class EditMembersInSpaceHandler : BaseCommandHandler, IRequestHandler<Edi
         var space = await UnitOfWork.Set<ProjectSpace>().FindAsync(request.spaceId, cancellationToken) ?? throw new KeyNotFoundException("Space not found");
         await RequirePermissionAsync(space, EntityType.EntityMember, PermissionAction.Edit, cancellationToken);
         var membersToUpdate = await UnitOfWork.Set<EntityMember>()
-            .Where(em => em.EntityId == space.Id
-                     && em.EntityType == EntityLayerType.ProjectSpace
+            .Where(em => em.LayerId == space.Id
+                     && em.LayerType == EntityLayerType.ProjectSpace
                      && request.membersId.Contains(em.UserId)).ToListAsync(cancellationToken);
 
         if (membersToUpdate.Any())

@@ -56,8 +56,8 @@ public class EditSpaceHandler : BaseCommandHandler, IRequestHandler<EditSpaceCom
     {
         // Fetch only relevant members to minimize DB load
         var members = await UnitOfWork.Set<EntityMember>()
-            .Where(em => em.EntityId == spaceId
-                      && em.EntityType == EntityLayerType.ProjectSpace
+            .Where(em => em.LayerId == spaceId
+                      && em.LayerType == EntityLayerType.ProjectSpace
                       && (em.UserId == creatorId || em.UserId == currentUserId))
             .ToListAsync(cancellationToken);
 

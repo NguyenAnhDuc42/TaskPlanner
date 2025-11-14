@@ -24,14 +24,14 @@ public class RegisterHandler : IRequestHandler<RegisterCommand, string>
     }
     public async Task<string> Handle(RegisterCommand request, CancellationToken cancellationToken)
     {
-        var existedEmail = await _unitOfWork.Users.Query.AnyAsync(u => u.Email == request.email, cancellationToken);
+        var existedEmail = await _unitOfWork.Set<User>().AnyAsync(u => u.Email == request.email, cancellationToken);
         if (existedEmail)
         {
             throw new Exception("Email already exists");
         }
         var passwordhash = _passwordService.HashPassword(request.password);
         var user = User.Create(request.username, request.email, passwordhash);
-        await _unitOfWork.Users.AddAsync(user, cancellationToken);
+        await _unitOfWork.Set<User>().AddAsync(user, cancellationToken);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
         var message = $"User {user.Email} registered successfully";

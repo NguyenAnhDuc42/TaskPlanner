@@ -30,8 +30,8 @@ public class AddMembersToSpaceHandler : BaseCommandHandler, IRequestHandler<AddM
             return Unit.Value;
 
         var existingMemberIds = await UnitOfWork.Set<EntityMember>()
-            .Where(em => em.EntityId == space.Id
-                     && em.EntityType == EntityLayerType.ProjectSpace
+            .Where(em => em.LayerId == space.Id
+                     && em.LayerType == EntityLayerType.ProjectSpace
                      && request.membersId.Contains(em.UserId))
             .Select(em => em.UserId)
             .ToListAsync(cancellationToken);
