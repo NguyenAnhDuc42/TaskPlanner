@@ -22,7 +22,7 @@ public class InviteMembersToChatRoomHandler : BaseCommandHandler, IRequestHandle
         cancellationToken.ThrowIfCancellationRequested();
         await RequirePermissionAsync(chatRoom, EntityType.ChatRoomMember, PermissionAction.Create, cancellationToken);
         var chatRommMembers = UnitOfWork.Set<WorkspaceMember>()
-        .Where(wm => wm.ProjectWorkspaceId == chatRoom.WorkspaceId && request.memberIds.Contains(wm.UserId))
+        .Where(wm => wm.ProjectWorkspaceId == chatRoom.ProjectWorkspaceId && request.memberIds.Contains(wm.UserId))
         .ToList();
         if (chatRommMembers.Count != request.memberIds.Count) throw new ValidationException("Some members are not part of this workspace.");
         var newMembers = ChatRoomMember.AddMembers(chatRoom.Id, chatRommMembers.Select(cm => cm.UserId).ToList());

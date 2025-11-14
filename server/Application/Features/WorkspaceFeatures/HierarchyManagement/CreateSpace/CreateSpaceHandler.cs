@@ -28,7 +28,7 @@ public class CreateSpaceHandler : BaseCommandHandler, IRequestHandler<CreateSpac
             await UnitOfWork.Set<EntityMember>().AddAsync(member, cancellationToken);
         }
         var space = ProjectSpace.Create(
-            workspaceId: workspace.Id,
+            projectWorkspaceId: workspace.Id,
             name: request.name,
             description: request.description,
             customization: customization,

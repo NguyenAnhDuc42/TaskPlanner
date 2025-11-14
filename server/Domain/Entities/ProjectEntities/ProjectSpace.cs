@@ -13,8 +13,7 @@ public sealed class ProjectSpace : Entity
     public bool IsArchived { get; private set; }
     public long OrderKey { get; private set; }
     public Guid CreatorId { get; private set; }
-    public long NextFolderOrder { get; private set; } = 10_000_000L;
-    public long NextListOrder { get; private set; } = 10_000_000L;
+    public long NextEntityOrder { get; private set; } = 10_000_000L;
 
     private ProjectSpace() { }
 
@@ -37,20 +36,12 @@ public sealed class ProjectSpace : Entity
         return new ProjectSpace(Guid.NewGuid(), projectWorkspaceId, name?.Trim() ?? throw new ArgumentNullException(nameof(name)), string.IsNullOrWhiteSpace(description) ? null : description?.Trim(), customization ?? Customization.CreateDefault(), isPrivate, orderKey, creatorId);
     }
 
-    public long GetNextFolderOrderAndIncrement()
+    public long GetNextEntityOrderAndIncrement()
     {
-        var currentOrder = NextFolderOrder;
-        NextFolderOrder += 10_000_000L;
+        var currentOrder = NextEntityOrder;
+        NextEntityOrder += 10_000_000L;
         return currentOrder;
     }
-
-    public long GetNextListOrderAndIncrement()
-    {
-        var currentOrder = NextListOrder;
-        NextListOrder += 10_000_000L;
-        return currentOrder;
-    }
-
     public void Update(string? name = null, string? description = null, string? color = null, string? icon = null, bool? isPrivate = null, long? orderKey = null, bool? isArchived = null)
     {
         var changed = false;

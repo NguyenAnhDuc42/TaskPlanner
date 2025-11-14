@@ -6,25 +6,25 @@ namespace Domain.Entities.Relationship;
 public class EntityMember : Composite
 {
     public Guid UserId { get; private set; }
-    public Guid EntityId { get; private set; }
-    public EntityLayerType EntityType { get; private set; }
+    public Guid LayerId { get; private set; }
+    public EntityLayerType LayerType { get; private set; }
     public AccessLevel AccessLevel { get; private set; } = AccessLevel.Viewer;
     public bool NotificationsEnabled { get; private set; } = true;
-    public Guid CreatedBy { get; private set; }
+    public Guid CreatorId { get; private set; }
 
     private EntityMember() { } // EF
-    private EntityMember(Guid userId, Guid entityId, EntityLayerType entityType, AccessLevel accessLevel, Guid createdBy)
+    private EntityMember(Guid userId, Guid layerId, EntityLayerType layerType, AccessLevel accessLevel, Guid creatorId)
     {
         UserId = userId;
-        EntityId = entityId;
-        EntityType = entityType;
+        LayerId = layerId;
+        LayerType = layerType;
         AccessLevel = accessLevel;
-        CreatedBy = createdBy;
+        CreatorId = creatorId;
     }
 
-    public static EntityMember AddMember(Guid userId, Guid entityId, EntityLayerType entityType, AccessLevel accessLevel, Guid createdBy)
+    public static EntityMember AddMember(Guid userId, Guid layerId, EntityLayerType layerType, AccessLevel accessLevel, Guid creatorId)
     {
-        return new EntityMember(userId, entityId, entityType, accessLevel, createdBy);
+        return new EntityMember(userId, layerId, layerType, accessLevel, creatorId);
     }
 
     public void UpdateAccessLevel(AccessLevel newAccessLevel)

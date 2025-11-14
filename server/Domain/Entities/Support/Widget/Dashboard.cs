@@ -13,13 +13,14 @@ public class Dashboard : Entity
     public Guid CreatorId { get; private set; }
     public string Name { get; private set; } = string.Empty;
     public bool IsShared { get; private set; }
+    public bool IsMain { get; private set; } = false;
 
     private readonly List<DashboardWidget> _widgets = new();
     public IReadOnlyCollection<DashboardWidget> Widgets => _widgets.AsReadOnly();
 
     private Dashboard() { } // EF
 
-    private Dashboard(Guid id, EntityLayerType layerType, Guid layerId, Guid creatorId, string name, bool isShared)
+    private Dashboard(Guid id, EntityLayerType layerType, Guid layerId, Guid creatorId, string name, bool isShared, bool isMain = false)
         : base(id)
     {
         LayerType = layerType;
@@ -27,21 +28,22 @@ public class Dashboard : Entity
         CreatorId = creatorId;
         Name = name;
         IsShared = isShared;
+        IsMain = isMain;
     }
 
-    public static Dashboard CreateWorkspaceDashboard(Guid id, Guid workspaceId, Guid creatorId, string name)
+    public static Dashboard CreateWorkspaceDashboard(Guid id, Guid workspaceId, Guid creatorId, string name, bool isShared = false, bool isMain = false)
     {
         if (workspaceId == Guid.Empty) throw new ArgumentException("WorkspaceId cannot be empty.", nameof(workspaceId));
         if (creatorId == Guid.Empty) throw new ArgumentException("CreatorId cannot be empty.", nameof(creatorId));
-        return new(id, EntityLayerType.ProjectWorkspace, workspaceId, creatorId, name, isShared: true);
+        return new(id, EntityLayerType.ProjectWorkspace, workspaceId, creatorId, name, isShared, isMain);
     }
 
-    public static Dashboard CreateScopedDashboard(Guid id, EntityLayerType layerType, Guid layerId, Guid creatorId, string name)
+    public static Dashboard CreateScopedDashboard(Guid id, EntityLayerType layerType, Guid layerId, Guid creatorId, string name, bool isShared = false, bool isMain = false)
     {
         if (layerType == EntityLayerType.ProjectWorkspace) throw new ArgumentException("Use CreateWorkspaceDashboard for workspace scope.", nameof(layerType));
         if (layerId == Guid.Empty) throw new ArgumentException("LayerId cannot be empty.", nameof(layerId));
         if (creatorId == Guid.Empty) throw new ArgumentException("CreatorId cannot be empty.", nameof(creatorId));
-        return new(id, layerType, layerId, creatorId, name, isShared: false);
+        return new(id, layerType, layerId, creatorId, name, isShared, isMain);
     }
 
     public void AddWidget(Guid widgetId, int order = 0, WidgetLayout? layout = null)
@@ -58,15 +60,6 @@ public class Dashboard : Entity
         if (removed) UpdateTimestamp();
     }
 
-    public void Reorder(Guid dashboardWidgetId, int newOrder)
-    {
-        var target = _widgets.FirstOrDefault(w => w.Id == dashboardWidgetId);
-        if (target == null) return;
-        target.SetOrder(newOrder);
-        _widgets.Sort((a, b) => a.Order.CompareTo(b.Order));
-        UpdateTimestamp();
-    }
-
     public void MoveWidget(Guid dashboardWidgetId, int newCol, int newRow)
     {
         var target = _widgets.FirstOrDefault(w => w.Id == dashboardWidgetId);
@@ -76,12 +69,13 @@ public class Dashboard : Entity
         UpdateTimestamp();
     }
 
-    public void ResizeWidget(Guid dashboardWidgetId, int newWidth, int newHeight)
+    public void UpdateWidgetPosition(Guid dashboardWidgetId, int newCol, int newRow, int newWidth, int newHeight)
     {
-        var target = _widgets.FirstOrDefault(w => w.Id == dashboardWidgetId);
-        if (target == null) return;
-        var updated = target.Layout.WithSize(newWidth, newHeight);
-        target.UpdateLayout(updated);
+        var widget = _widgets.FirstOrDefault(w => w.Id == dashboardWidgetId);
+        if (widget == null) return;
+
+        var newLayout = new WidgetLayout(newCol, newRow, newWidth, newHeight);
+        widget.UpdateLayout(newLayout);
         UpdateTimestamp();
     }
 }

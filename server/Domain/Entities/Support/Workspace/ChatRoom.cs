@@ -7,7 +7,7 @@ namespace Domain.Entities.Support.Workspace;
 public class ChatRoom : Entity
 {
     public string Name { get; private set; } = null!;
-    public Guid WorkspaceId { get; private set; }
+    public Guid ProjectWorkspaceId { get; private set; }
     public ChatRoomType Type { get; private set; } = ChatRoomType.PublicGroup;
     public string? AvatarUrl { get; private set; }
     public Guid CreatorId { get; private set; }
@@ -23,25 +23,24 @@ public class ChatRoom : Entity
 
     private ChatRoom() { }
 
-    private ChatRoom(string name, Guid workspaceId, Guid creatorId, bool isPrivate = false, string? avatarUrl = null)
+    private ChatRoom(string name, Guid projectWorkspaceId, Guid creatorId, bool isPrivate = false, string? avatarUrl = null)
     {
         Name = name;
-        WorkspaceId = workspaceId;
+        ProjectWorkspaceId = projectWorkspaceId;
         CreatorId = creatorId;
         Type = ChatRoomType.PublicGroup;
         IsPrivate = isPrivate;
         AvatarUrl = avatarUrl;
     }
 
-    public static ChatRoom Create(string name, Guid workspaceId, Guid creatorId, bool isPrivate = false, string? avatarUrl = null)
+    public static ChatRoom Create(string name, Guid projectWorkspaceId, Guid creatorId, bool isPrivate = false, string? avatarUrl = null)
     {
-        var chatRoom = new ChatRoom(name, workspaceId, creatorId, isPrivate, avatarUrl);
+        var chatRoom = new ChatRoom(name, projectWorkspaceId, creatorId, isPrivate, avatarUrl);
 
         // Add creator as owner
         var ownerMember = ChatRoomMember.AddOwner(chatRoom.Id, creatorId);
         chatRoom._members.Add(ownerMember);
 
-        // chatRoom.AddDomainEvent(new ChatRoomCreatedEvent(chatRoom.Id, workspaceId, creatorId));
         return chatRoom;
     }
 

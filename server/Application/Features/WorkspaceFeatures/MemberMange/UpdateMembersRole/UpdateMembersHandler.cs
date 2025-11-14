@@ -1,7 +1,10 @@
 using System;
 using Application.Interfaces.Repositories;
 using Application.Interfaces.Services.Permissions;
+using Domain;
+using Domain.Entities.ProjectEntities;
 using Domain.Entities.Relationship;
+using Domain.Enums;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using server.Application.Interfaces;
@@ -10,11 +13,17 @@ namespace Application.Features.WorkspaceFeatures.MemberMange.UpdateMembersRole;
 
 public class UpdateMembersHandler : BaseCommandHandler, IRequestHandler<UpdateMembersCommand, Unit>
 {
-    public UpdateMembersHandler(IUnitOfWork unitOfWork, IPermissionService permissionService, ICurrentUserService currentUserService)
-        : base(unitOfWork, permissionService, currentUserService) { }
+    public UpdateMembersHandler(IUnitOfWork unitOfWork, IPermissionService permissionService, ICurrentUserService currentUserService, WorkspaceContext workspaceContext)
+    : base(unitOfWork, permissionService, currentUserService, workspaceContext) { }
+
     public async Task<Unit> Handle(UpdateMembersCommand request, CancellationToken cancellationToken)
     {
-        await RequirePermissionAsync(request.workspaceId, Domain.Enums.EntityType.ProjectWorkspace, Domain.Enums.PermissionAction.UpdateMember, cancellationToken);
+        var workspace = await UnitOfWork.Set<ProjectWorkspace>()
+            .Where(w => w.Id == request.workspaceId)
+            .FirstAsync(cancellationToken)
+            ?? throw new KeyNotFoundException("Workspace not found.");
+
+        await RequirePermissionAsync(workspace, EntityType.WorkspaceMember, PermissionAction.Edit, cancellationToken);
 
 
         var userIdsToUpdate = request.members.Select(m => m.userId).ToList();

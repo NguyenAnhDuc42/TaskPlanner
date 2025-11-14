@@ -24,27 +24,24 @@ public class CreateListHandler : BaseCommandHandler, IRequestHandler<CreateListC
         ProjectFolder? folder = null;
         if (request.folderId.HasValue)
         {
-            folder = await UnitOfWork.Set<ProjectFolder>()
-                .Where(f => f.Id == request.folderId.Value)
-                .FirstOrDefaultAsync(cancellationToken)
-                ?? throw new NotFoundException($"Folder {request.folderId} not found");
+            folder = await UnitOfWork.Set<ProjectFolder>().FindAsync(request.folderId.Value, cancellationToken) ?? throw new KeyNotFoundException($"Folder {request.folderId} not found");
 
             if (folder.ProjectSpaceId != space.Id)
             {
-                throw new ValidationException("Folder does not belong to space");
+                throw new InvalidOperationException("Folder does not belong to space");
             }
         }
         await RequirePermissionAsync(space, EntityType.ProjectList, PermissionAction.Create, cancellationToken);
 
-        long orderKey = folder?.GetNextListOrderAndIncrement() ?? space.GetNextListOrderAndIncrement();
+        long orderKey = folder?.GetNextListOrderAndIncrement() ?? space.GetNextEntityOrderAndIncrement();
         var customization = Customization.Create(request.color, request.icon);
         var list = ProjectList.Create(
-            spaceId: space.Id, folderId: request.folderId,
+            projectSpaceId: space.Id, projectFolderId: request.folderId,
             name: request.name, customization: customization,
             isPrivate: request.isPrivate,
             creatorId: CurrentUserId,
-            startDate: request.startDate,
-            dueDate: request.dueDate,
+            start: request.startDate,
+            due: request.dueDate,
             orderKey: orderKey);
 
         await UnitOfWork.Set<ProjectList>().AddAsync(list, cancellationToken);
@@ -53,10 +50,10 @@ public class CreateListHandler : BaseCommandHandler, IRequestHandler<CreateListC
         {
             var member = EntityMember.AddMember(
                 userId: CurrentUserId,
-                entityId: list.Id,
-                entityLayer: EntityLayerType.ProjectList,
+                layerId: list.Id,
+                layerType: EntityLayerType.ProjectList,
                 accessLevel: AccessLevel.Manager,
-                addedBy: CurrentUserId
+                creatorId: CurrentUserId
             );
 
             await UnitOfWork.Set<EntityMember>().AddAsync(member, cancellationToken);

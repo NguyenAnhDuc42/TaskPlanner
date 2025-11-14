@@ -10,7 +10,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace Domain.Entities;
 
-public class User : Aggregate
+public class User : Entity
 {
     public string Name { get; private set; } = null!;
     [EmailAddress] public string Email { get; private set; } = null!;

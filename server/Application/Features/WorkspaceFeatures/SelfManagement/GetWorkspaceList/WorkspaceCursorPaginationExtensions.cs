@@ -16,13 +16,15 @@ public static class WorkspaceCursorPaginationExtensions
         return query;
     }
 
-    public static IQueryable<ProjectWorkspace> ApplyCursor(this IQueryable<ProjectWorkspace> query, CursorPaginationRequest pagination,CursorHelper cursorHelper)
+    public static IQueryable<ProjectWorkspace> ApplyCursor(this IQueryable<ProjectWorkspace> query, CursorPaginationRequest pagination, CursorHelper cursorHelper)
     {
         if (string.IsNullOrEmpty(pagination.Cursor)) return query;
         var cursorData = cursorHelper.DecodeCursor(pagination.Cursor);
         if (cursorData?.Values == null || !cursorData.Values.ContainsKey("Timestamp")) return query;
-        if (!DateTime.TryParse(cursorData.Values["Timestamp"].ToString(), out var timestamp)) return query;
-        return pagination.Direction == SortDirection.Ascending ? query.Where(w => w.UpdatedAt > timestamp) : query.Where(w => w.UpdatedAt < timestamp);
+        if (!DateTimeOffset.TryParse(cursorData.Values["Timestamp"].ToString(), out var timestampOffset)) return query;
+        return pagination.Direction == SortDirection.Ascending
+        ? query.Where(w => w.UpdatedAt > timestampOffset)
+        : query.Where(w => w.UpdatedAt < timestampOffset);
     }
     public static IQueryable<ProjectWorkspace> ApplySort(this IQueryable<ProjectWorkspace> query, CursorPaginationRequest pagination)
     {

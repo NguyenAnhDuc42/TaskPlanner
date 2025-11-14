@@ -1,4 +1,6 @@
 using System;
+using Application.Helpers.WidgetTool;
+using Application.Helpers.WidgetTool.WidgetQueryBuilder;
 using Application.Pipeline;
 using FluentValidation;
 using MediatR;
@@ -16,6 +18,10 @@ public static class DependencyInjection
         services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(typeof(ApplicationAssemblyMarker).Assembly));
         services.AddTransient(typeof(IPipelineBehavior<,>), typeof(ValidationBehavior<,>));
         services.AddTransient(typeof(IPipelineBehavior<,>), typeof(TransactionBehavior<,>));
+
+        services.AddScoped<WidgetBuilder>();
+        services.AddSingleton<WidgetFatory>();
+        services.AddSingleton<WidgetGridValidator>();
 
         return services;
     }
