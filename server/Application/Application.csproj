@@ -1,6 +1,12 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
+    <Compile Remove="Helper\**" />
+    <EmbeddedResource Remove="Helper\**" />
+    <None Remove="Helper\**" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\Domain\Domain.csproj" />
   </ItemGroup>
 
@@ -22,13 +28,18 @@
     <Folder Include="Contract\ListContract\" />
     <Folder Include="Contract\TaskContract\" />
     <Folder Include="Features\FolderFeatures\" />
+    <Folder Include="Features\FolderFeatures\DashboardManagement\" />
+    <Folder Include="Features\FolderFeatures\MemberManagement\" />
     <Folder Include="Features\FolderFeatures\SelfManagement\" />
     <Folder Include="Features\FolderFeatures\SelfManagement\DeleteFolder\" />
     <Folder Include="Features\FolderFeatures\SelfManagement\EditFolder\" />
     <Folder Include="Features\ListFeatures\" />
+    <Folder Include="Features\ListFeatures\MemberManagement\" />
+    <Folder Include="Features\ListFeatures\SelfManagement\" />
+    <Folder Include="Features\ListFeatures\TaskManagement\" />
+    <Folder Include="Features\SpaceFeatures\DashboardManagement\" />
     <Folder Include="Features\SpaceFeatures\MemberManagement\GetListOfMembersInSpace\" />
     <Folder Include="Features\SpaceFeatures\SelfManagement\GetSpaces\" />
-    <Folder Include="Features\SpaceFeatures\Widget\" />
     <Folder Include="Features\TaskFeatures\" />
     <Folder Include="Features\WorkspaceFeatures\ChatRoomManage\Chatting\" />
     <Folder Include="Features\WorkspaceFeatures\ChatRoomManage\Chatting\DeleteMessage\" />
@@ -50,7 +61,6 @@
     <Folder Include="Features\WorkspaceFeatures\TagManage\DeleteTag\" />
     <Folder Include="Features\WorkspaceFeatures\TagManage\GetTags\" />
     <Folder Include="Features\WorkspaceFeatures\TagManage\UpdateTag\" />
-    <Folder Include="Helper\" />
   </ItemGroup>
 
   <PropertyGroup>
