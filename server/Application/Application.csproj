@@ -11,15 +11,19 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Confluent.Kafka" Version="2.11.1" />
+    <PackageReference Include="Confluent.Kafka" Version="2.12.0" />
     <PackageReference Include="Dapper" Version="2.1.66" />
     <PackageReference Include="Dapper.SqlBuilder" Version="2.1.66" />
     <PackageReference Include="FluentValidation.AspNetCore" Version="11.3.1" />
-    <PackageReference Include="FluentValidation.DependencyInjectionExtensions" Version="12.0.0" />
-    <PackageReference Include="Mapster" Version="7.4.0" />
-    <PackageReference Include="MediatR" Version="13.0.0" />
-    <PackageReference Include="Microsoft.AspNetCore.Authorization" Version="9.0.8" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="9.0.8" />
+    <PackageReference Include="FluentValidation.DependencyInjectionExtensions" Version="12.1.0" />
+    <PackageReference Include="Mapster" Version="9.0.0-pre01" />
+    <PackageReference Include="MediatR" Version="13.1.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Authorization" Version="10.0.0" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.0" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="10.0.0">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
   </ItemGroup>
 
   <ItemGroup>
@@ -37,7 +41,6 @@
     <Folder Include="Features\ListFeatures\MemberManagement\" />
     <Folder Include="Features\ListFeatures\SelfManagement\" />
     <Folder Include="Features\ListFeatures\TaskManagement\" />
-    <Folder Include="Features\SpaceFeatures\DashboardManagement\" />
     <Folder Include="Features\SpaceFeatures\MemberManagement\GetListOfMembersInSpace\" />
     <Folder Include="Features\SpaceFeatures\SelfManagement\GetSpaces\" />
     <Folder Include="Features\TaskFeatures\" />
@@ -64,7 +67,7 @@
   </ItemGroup>
 
   <PropertyGroup>
-    <TargetFramework>net9.0</TargetFramework>
+    <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
   </PropertyGroup>

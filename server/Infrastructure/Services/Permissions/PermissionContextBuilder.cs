@@ -89,18 +89,18 @@ public class PermissionContextBuilder
     }
 
 
-    public async Task<PermissionContext> BuildScopeContextAsync(Guid userId, Guid workspaceId, Guid? entityId, EntityType entityType, CancellationToken ct)
+    public async Task<PermissionContext> BuildScopeContextAsync(Guid userId, Guid workspaceId, Guid? layerId, EntityType entityType, CancellationToken ct)
     {
         var workspaceRole = await GetWorkspaceRoleAsync(userId, workspaceId, ct);
         var isWorkspaceOwner = workspaceRole == Role.Owner;
         var isWorkspaceAdmin = workspaceRole == Role.Admin;
 
-        var context.EntityAccess = entityId.HasValue
-            ? await GetEntityAccessLevelAsync(userId, entityId.Value, entityType, ct)
+        var context.EntityAccess = layerId.HasValue
+            ? await GetEntityAccessLevelAsync(userId, layerId.Value, entityType, ct)
             : null;
 
-        var chatRoomRole = entityType == EntityType.ChatRoom && entityId.HasValue
-            ? await GetChatRoomRoleAsync(userId, entityId.Value, ct)
+        var chatRoomRole = entityType == EntityType.ChatRoom && layerId.HasValue
+            ? await GetChatRoomRoleAsync(userId, layerId.Value, ct)
             : null;
 
     }
@@ -169,9 +169,9 @@ public class PermissionContextBuilder
             new HybridCacheEntryOptions { Expiration = TimeSpan.FromMinutes(5) });
     }
 
-    private async Task<AccessLevel?> GetEntityAccessLevelAsync(Guid userId, Guid entityId, EntityType entityType, CancellationToken ct)
+    private async Task<AccessLevel?> GetEntityAccessLevelAsync(Guid userId, Guid layerId, EntityType layerType, CancellationToken ct)
     {
-        var cacheKey = string.Format(EntityMemberPermissionKey, userId, entityId, entityType);
+        var cacheKey = string.Format(EntityMemberPermissionKey, userId, layerId, layerType);
 
         return await _cache.GetOrCreateAsync(
             cacheKey,
@@ -180,8 +180,8 @@ public class PermissionContextBuilder
                 var em = await _context.EntityMembers
                     .AsNoTracking()
                     .FirstOrDefaultAsync(x =>
-                        x.EntityId == entityId &&
-                        x.EntityType.ToString() == entityType.ToString() &&
+                        x.LayerId == layerId &&
+                        x.LayerType.ToString() == layerType.ToString() &&
                         x.UserId == userId, ct);
                 return em?.AccessLevel;
             },

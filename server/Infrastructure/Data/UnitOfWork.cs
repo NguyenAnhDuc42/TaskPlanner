@@ -30,7 +30,7 @@ namespace Infrastructure.Data
         public async Task<IDbContextTransaction> BeginTransactionAsync(CancellationToken cancellationToken = default)
         {
             if (_currentTransaction != null) return _currentTransaction;
-            _currentTransaction = await _context.Database.BeginTransactionAsync(IsolationLevel.ReadCommitted,cancellationToken);
+            _currentTransaction = await _context.Database.BeginTransactionAsync(IsolationLevel.ReadCommitted, cancellationToken);
             return _currentTransaction;
         }
 

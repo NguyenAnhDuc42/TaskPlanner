@@ -1,10 +1,10 @@
-using System;
 
 using Application.Interfaces.Repositories;
 using Domain.Entities;
 using MediatR;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
+
 using server.Application.Interfaces;
 
 namespace Application.Features.Auth.Login;

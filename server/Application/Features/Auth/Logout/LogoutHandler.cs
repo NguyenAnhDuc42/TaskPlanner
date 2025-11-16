@@ -5,9 +5,9 @@ using Application.Interfaces.Repositories;
 using Domain.Entities;
 using MediatR;
 using Microsoft.AspNetCore.Http;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using server.Application.Interfaces;
+using Microsoft.EntityFrameworkCore;
 
 namespace Application.Features.Auth.Logout
 {

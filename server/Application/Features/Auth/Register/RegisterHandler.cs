@@ -1,8 +1,5 @@
-using System;
-using Application.Contract.UserContract;
 using Application.Interfaces.Repositories;
 using Domain.Entities;
-using Mapster;
 using MapsterMapper;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
