@@ -7,6 +7,7 @@ using Domain;
 using Domain.Entities.Support.Widget;
 using Domain.Enums;
 using MediatR;
+using Microsoft.EntityFrameworkCore;
 using server.Application.Interfaces;
 
 namespace Application.Features.WorkspaceFeatures.DashboardManage.EditDashboardWidgetGrid;

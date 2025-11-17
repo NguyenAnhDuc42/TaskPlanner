@@ -5,6 +5,7 @@ using Domain;
 using Domain.Entities.Support.Workspace;
 using Domain.Enums;
 using MediatR;
+using Microsoft.EntityFrameworkCore;
 using server.Application.Interfaces;
 
 namespace Application.Features.WorkspaceFeatures.ChatRoomManage.DeleteChatRoom;

@@ -1,11 +1,13 @@
-using System;
-using Application.Common.Filters;
+﻿using Application.Common.Filters;
 using Application.Helper;
 using Domain.Entities.Support.Widget;
+using System;
+using System.Collections.Generic;
+using System.Text;
 
-namespace Application.Features.WorkspaceFeatures.DashboardManage.GetDashboardList;
+namespace Application.Features.DashboardManagement.GetDashboardList;
 
-public  class GetDashboardListCursorPaginationBuilder
+public static class GetDashboardListCursorPagination
 {
     public static IQueryable<Dashboard> ApplyFilter(this IQueryable<Dashboard> query, DashboardFilter filter, Guid currentUserId)
     {
@@ -21,8 +23,8 @@ public  class GetDashboardListCursorPaginationBuilder
         var cursorData = cursorHelper.DecodeCursor(pagination.Cursor);
         if (cursorData?.Values == null || !cursorData.Values.ContainsKey("Timestamp")) return query;
         if (!DateTimeOffset.TryParse(cursorData.Values["Timestamp"].ToString(), out var timestampOffset)) return query;
-        return pagination.Direction == SortDirection.Ascending 
-        ? query.Where(w => w.UpdatedAt > timestampOffset) 
+        return pagination.Direction == SortDirection.Ascending
+        ? query.Where(w => w.UpdatedAt > timestampOffset)
         : query.Where(w => w.UpdatedAt < timestampOffset);
     }
     public static IQueryable<Dashboard> ApplySort(this IQueryable<Dashboard> query, CursorPaginationRequest pagination)

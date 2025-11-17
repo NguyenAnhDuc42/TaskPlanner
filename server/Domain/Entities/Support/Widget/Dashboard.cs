@@ -31,19 +31,18 @@ public class Dashboard : Entity
         IsMain = isMain;
     }
 
-    public static Dashboard CreateWorkspaceDashboard(Guid id, Guid workspaceId, Guid creatorId, string name, bool isShared = false, bool isMain = false)
+    public static Dashboard CreateWorkspaceDashboard(Guid workspaceId, Guid creatorId, string name, bool isShared = false, bool isMain = false)
     {
-        if (workspaceId == Guid.Empty) throw new ArgumentException("WorkspaceId cannot be empty.", nameof(workspaceId));
         if (creatorId == Guid.Empty) throw new ArgumentException("CreatorId cannot be empty.", nameof(creatorId));
-        return new(id, EntityLayerType.ProjectWorkspace, workspaceId, creatorId, name, isShared, isMain);
+        return new(Guid.NewGuid(), EntityLayerType.ProjectWorkspace, workspaceId, creatorId, name, isShared, isMain);
     }
 
-    public static Dashboard CreateScopedDashboard(Guid id, EntityLayerType layerType, Guid layerId, Guid creatorId, string name, bool isShared = false, bool isMain = false)
+    public static Dashboard CreateScopedDashboard(EntityLayerType layerType, Guid layerId, Guid creatorId, string name, bool isShared = false, bool isMain = false)
     {
         if (layerType == EntityLayerType.ProjectWorkspace) throw new ArgumentException("Use CreateWorkspaceDashboard for workspace scope.", nameof(layerType));
         if (layerId == Guid.Empty) throw new ArgumentException("LayerId cannot be empty.", nameof(layerId));
         if (creatorId == Guid.Empty) throw new ArgumentException("CreatorId cannot be empty.", nameof(creatorId));
-        return new(id, layerType, layerId, creatorId, name, isShared, isMain);
+        return new(Guid.NewGuid(), layerType, layerId, creatorId, name, isShared, isMain);
     }
 
     public void AddWidget(Guid widgetId, int order = 0, WidgetLayout? layout = null)
@@ -76,6 +75,11 @@ public class Dashboard : Entity
 
         var newLayout = new WidgetLayout(newCol, newRow, newWidth, newHeight);
         widget.UpdateLayout(newLayout);
+        UpdateTimestamp();
+    }
+    public void UpdateMain(bool isMain)
+    {
+        IsMain = isMain;
         UpdateTimestamp();
     }
 }

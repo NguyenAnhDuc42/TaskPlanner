@@ -1,12 +1,6 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
-    <Compile Remove="Helper\**" />
-    <EmbeddedResource Remove="Helper\**" />
-    <None Remove="Helper\**" />
-  </ItemGroup>
-
-  <ItemGroup>
     <ProjectReference Include="..\Domain\Domain.csproj" />
   </ItemGroup>
 
@@ -41,6 +35,7 @@
     <Folder Include="Features\ListFeatures\MemberManagement\" />
     <Folder Include="Features\ListFeatures\SelfManagement\" />
     <Folder Include="Features\ListFeatures\TaskManagement\" />
+    <Folder Include="Features\EntityMemberManagement\" />
     <Folder Include="Features\SpaceFeatures\MemberManagement\GetListOfMembersInSpace\" />
     <Folder Include="Features\SpaceFeatures\SelfManagement\GetSpaces\" />
     <Folder Include="Features\TaskFeatures\" />

@@ -8,6 +8,7 @@ using Domain.Entities.ProjectEntities;
 using Domain.Entities.Support.Widget;
 using Domain.Enums.RelationShip;
 using MediatR;
+using Microsoft.EntityFrameworkCore;
 
 namespace Application.Features.WorkspaceFeatures.DashboardManage.GetDashboardWidgetList;
 

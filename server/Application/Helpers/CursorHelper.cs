@@ -33,7 +33,7 @@ public class CursorHelper
             var encrypted = Convert.FromBase64String(cursor);
             var json = DecryptString(encrypted, _key);
             var values = JsonSerializer.Deserialize<Dictionary<string, object>>(json);
-            return new CursorData(values);
+            return new CursorData(values!);
         }
         catch
         {
