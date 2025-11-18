@@ -1,24 +1,30 @@
-using System;
 using System.Text.Json;
-using Domain.Entities.Support.Widget;
-using Domain.Enums.RelationShip;
 using Domain.Enums.Widget;
 
 namespace Application.Helpers.WidgetTool;
 
-public class WidgetFatory
+public static class WidgetFactory
 {
-    public Widget CreateWidget(WidgetType type, EntityLayerType layerType, Guid layerId, Guid userId, WidgetFilter? filter = null)
+    public static string CreateWidgetConfig(WidgetType type, WidgetFilter? filter = null)
     {
         return type switch
         {
-            WidgetType.TaskList => CreateTaskListWidget(layerType, layerId, userId, filter),
-
+            WidgetType.TaskList => CreateTaskListWidgetConfig(filter),
             _ => throw new InvalidOperationException($"Unknown widget type: {type}")
         };
     }
 
-    private Widget CreateTaskListWidget(EntityLayerType layerType, Guid layerId, Guid userId, WidgetFilter? filter)
+    public static (int Width, int Height) GetDefaultWidgetDimensions(WidgetType type)
+    {
+        return type switch
+        {
+            WidgetType.TaskList => (4, 3), // Example: TaskList widget is 4 units wide, 3 units high
+            // Add more widget types and their default dimensions here
+            _ => (2, 2) // Default for unknown types
+        };
+    }
+
+    private static string CreateTaskListWidgetConfig(WidgetFilter? filter)
     {
         var defaultFilter = new WidgetFilter { Limit = 10, StatusIds = new() };
         var mergedFilter = filter ?? defaultFilter;
@@ -32,14 +38,6 @@ public class WidgetFatory
             DateTo = mergedFilter.DateTo,
             Limit = mergedFilter.Limit
         };
-        var configJson = JsonSerializer.Serialize(taskListConfig);
-
-        return Widget.Create(
-            layerType: layerType,  // Use passed layer type
-            layerId: layerId,
-            creatorId: userId,
-            widgetType: WidgetType.TaskList,
-            configJson: configJson
-        );
+        return JsonSerializer.Serialize(taskListConfig);
     }
 }

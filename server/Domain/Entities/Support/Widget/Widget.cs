@@ -8,6 +8,9 @@ namespace Domain.Entities.Support.Widget;
 
 public class Widget : Entity
 {
+    public Guid DashboardId { get; private set; }
+    public int Order { get; private set; }
+    public WidgetLayout Layout { get; private set; } = new WidgetLayout(0, 0, 2, 2);
     public EntityLayerType LayerType { get; private set; }
     public Guid LayerId { get; private set; }
     public Guid CreatorId { get; private set; }
@@ -17,21 +20,18 @@ public class Widget : Entity
 
     private Widget() { } // EF
 
-    private Widget(Guid id, EntityLayerType layerType, Guid layerId, Guid creatorId, WidgetType widgetType, string configJson, WidgetVisibility visibility)
+    internal Widget(Guid id, Guid dashboardId, int order, WidgetLayout layout, EntityLayerType layerType, Guid layerId, Guid creatorId, WidgetType widgetType, string configJson, WidgetVisibility visibility)
         : base(id)
     {
+        DashboardId = dashboardId;
+        Order = order;
+        Layout = layout;
         LayerType = layerType;
         LayerId = layerId;
         CreatorId = creatorId;
         WidgetType = widgetType;
         ConfigJson = string.IsNullOrWhiteSpace(configJson) ? "{}" : configJson;
         Visibility = visibility;
-    }
-
-    public static Widget Create(EntityLayerType layerType, Guid layerId, Guid creatorId, WidgetType widgetType, string configJson, WidgetVisibility visibility = WidgetVisibility.Private)
-    {
-        if (creatorId == Guid.Empty) throw new ArgumentException("CreatorId cannot be empty.", nameof(creatorId));
-        return new(Guid.NewGuid(), layerType, layerId, creatorId, widgetType, configJson, visibility);
     }
 
     public void SetVisibility(WidgetVisibility visibility)
@@ -43,6 +43,18 @@ public class Widget : Entity
     public void UpdateConfig(string configJson)
     {
         ConfigJson = string.IsNullOrWhiteSpace(configJson) ? "{}" : configJson;
+        UpdateTimestamp();
+    }
+    
+    public void SetOrder(int order)
+    {
+        Order = order;
+        UpdateTimestamp();
+    }
+
+    public void UpdateLayout(WidgetLayout layout)
+    {
+        Layout = layout;
         UpdateTimestamp();
     }
 }
