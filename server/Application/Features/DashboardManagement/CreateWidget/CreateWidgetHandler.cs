@@ -17,19 +17,46 @@ public class CreateWidgetHandler : BaseCommandHandler, IRequestHandler<CreateWid
 
     public async Task<Unit> Handle(CreateWidgetCommand request, CancellationToken cancellationToken)
     {
-        var dashboard = await UnitOfWork.Set<Dashboard>().FindAsync(request.dashboardId, cancellationToken) ?? throw new KeyNotFoundException("Dashboard not found");
+        // Fetch dashboard aggregate
+        var dashboard = await UnitOfWork.Set<Dashboard>().FindAsync(request.dashboardId, cancellationToken)
+            ?? throw new KeyNotFoundException("Dashboard not found");
+
+        // Permission check
         await RequirePermissionAsync(dashboard, EntityType.Widget, PermissionAction.Create, cancellationToken);
 
+        // Rebuild occupancy tracker from current widgets
+        dashboard.RebuildOccupancyTracker();
+
+        // Get default dimensions for widget type
+        var (width, height) = WidgetFactory.GetDefaultWidgetDimensions(request.widgetType);
+
+        // Create widget config
         var configJson = WidgetFactory.CreateWidgetConfig(request.widgetType, null);
-        
-        dashboard.AddWidget(
-            widgetType: request.widgetType,
-            configJson: configJson,
-            visibility: WidgetVisibility.Public
-        );
-        
+
+        // Execute domain logic - AddWidget handles auto-placement internally
+        try
+        {
+            dashboard.AddWidget(
+                widgetType: request.widgetType,
+                configJson: configJson,
+                visibility: WidgetVisibility.Public,
+                width: width,
+                height: height
+            );
+        }
+        catch (ArgumentException ex)
+        {
+            throw new InvalidOperationException($"Cannot create widget: {ex.Message}", ex);
+        }
+        catch (InvalidOperationException ex)
+        {
+            throw new InvalidOperationException($"Widget creation failed: {ex.Message}", ex);
+        }
+
+        // Update aggregate in repository
         UnitOfWork.Set<Dashboard>().Update(dashboard);
-        
+
+        // Pipeline handles SaveChangesAsync with transaction + domain event dispatch
         return Unit.Value;
     }
 }

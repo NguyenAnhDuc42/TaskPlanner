@@ -9,7 +9,6 @@ namespace Domain.Entities.Support.Widget;
 public class Widget : Entity
 {
     public Guid DashboardId { get; private set; }
-    public int Order { get; private set; }
     public WidgetLayout Layout { get; private set; } = new WidgetLayout(0, 0, 2, 2);
     public EntityLayerType LayerType { get; private set; }
     public Guid LayerId { get; private set; }
@@ -20,11 +19,10 @@ public class Widget : Entity
 
     private Widget() { } // EF
 
-    internal Widget(Guid id, Guid dashboardId, int order, WidgetLayout layout, EntityLayerType layerType, Guid layerId, Guid creatorId, WidgetType widgetType, string configJson, WidgetVisibility visibility)
+    internal Widget(Guid id, Guid dashboardId, WidgetLayout layout, EntityLayerType layerType, Guid layerId, Guid creatorId, WidgetType widgetType, string configJson, WidgetVisibility visibility)
         : base(id)
     {
         DashboardId = dashboardId;
-        Order = order;
         Layout = layout;
         LayerType = layerType;
         LayerId = layerId;
@@ -43,12 +41,6 @@ public class Widget : Entity
     public void UpdateConfig(string configJson)
     {
         ConfigJson = string.IsNullOrWhiteSpace(configJson) ? "{}" : configJson;
-        UpdateTimestamp();
-    }
-    
-    public void SetOrder(int order)
-    {
-        Order = order;
         UpdateTimestamp();
     }
 

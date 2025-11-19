@@ -16,5 +16,6 @@ public enum PermissionAction
     Comment,
     UploadAttachment,
     Assign,        // assign tasks
-    ChangeStatus   // move task state
+    ChangeStatus,   // move task state
+
 }

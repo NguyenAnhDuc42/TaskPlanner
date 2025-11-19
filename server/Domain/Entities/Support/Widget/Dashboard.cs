@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using Domain.Common;
 using Domain.Enums;
 using Domain.Enums.RelationShip;
@@ -8,6 +10,10 @@ namespace Domain.Entities.Support.Widget;
 
 public class Dashboard : Entity
 {
+    private const int MaxGridCols = 12;
+    private const int MaxCanvasHeight = 2000;
+    private const int MaxCascadeDepth = 1000; // Safety limit for cascade chains
+
     public EntityLayerType LayerType { get; private set; }
     public Guid LayerId { get; private set; }
     public Guid CreatorId { get; private set; }
@@ -18,7 +24,9 @@ public class Dashboard : Entity
     private readonly List<Widget> _widgets = new();
     public IReadOnlyCollection<Widget> Widgets => _widgets.AsReadOnly();
 
-    private Dashboard() { } // EF
+    private GridOccupancyTracker _occupancyTracker = new(MaxGridCols, MaxCanvasHeight);
+
+    private Dashboard() { }
 
     private Dashboard(Guid id, EntityLayerType layerType, Guid layerId, Guid creatorId, string name, bool isShared, bool isMain = false)
         : base(id)
@@ -45,41 +53,104 @@ public class Dashboard : Entity
         return new(Guid.NewGuid(), layerType, layerId, creatorId, name, isShared, isMain);
     }
 
-    public void AddWidget(WidgetType widgetType, string configJson, WidgetVisibility visibility, int width, int height, int order = 0)
+    public void RebuildOccupancyTracker()
+    {
+        _occupancyTracker = new GridOccupancyTracker(MaxGridCols, MaxCanvasHeight);
+        foreach (var widget in _widgets)
+        {
+            _occupancyTracker.MarkOccupied(widget.Layout.Col, widget.Layout.Row, widget.Layout.Width, widget.Layout.Height);
+        }
+    }
+
+    public void AddWidget(WidgetType widgetType, string configJson, WidgetVisibility visibility, int width, int height)
     {
         if (CreatorId == Guid.Empty) throw new ArgumentException("CreatorId cannot be empty.", nameof(CreatorId));
+        ValidateWidgetDimensions(width, height);
 
-        // Find the next available position using the provided dimensions
-        var newWidgetLayout = FindNextAvailablePosition(width, height);
+        var newLayout = FindNextAvailablePosition(width, height);
+        var widget = new Widget(Guid.NewGuid(), Id, newLayout, LayerType, LayerId, CreatorId, widgetType, configJson, visibility);
 
-        // 3. Create the widget with the determined layout
-        var widget = new Widget(Guid.NewGuid(), Id, order, newWidgetLayout, LayerType, LayerId, CreatorId, widgetType, configJson, visibility);
         _widgets.Add(widget);
+        _occupancyTracker.MarkOccupied(newLayout.Col, newLayout.Row, width, height);
         UpdateTimestamp();
     }
 
     public void RemoveWidget(Guid widgetId)
     {
-        var removed = _widgets.RemoveAll(w => w.Id == widgetId) > 0;
-        if (removed) UpdateTimestamp();
+        var widget = _widgets.FirstOrDefault(w => w.Id == widgetId);
+        if (widget != null)
+        {
+            _occupancyTracker.UnmarkOccupied(widget.Layout.Col, widget.Layout.Row, widget.Layout.Width, widget.Layout.Height);
+            _widgets.Remove(widget);
+            UpdateTimestamp();
+        }
     }
 
+    /// <summary>
+    /// Move widget to new position. Cascades widgets down in same column if collision.
+    /// O(n * cascade_depth) where n = affected widgets
+    /// </summary>
     public void MoveWidget(Guid widgetId, int newCol, int newRow)
-    {
-        var target = _widgets.FirstOrDefault(w => w.Id == widgetId);
-        if (target == null) return;
-        var updated = target.Layout.WithPosition(newCol, newRow);
-        target.UpdateLayout(updated);
-        UpdateTimestamp();
-    }
-
-    public void UpdateWidgetPosition(Guid widgetId, int newCol, int newRow, int newWidth, int newHeight)
     {
         var widget = _widgets.FirstOrDefault(w => w.Id == widgetId);
         if (widget == null) return;
 
-        var newLayout = new WidgetLayout(newCol, newRow, newWidth, newHeight);
+        ValidatePosition(newCol, newRow);
+
+        // Check for collision at new position BEFORE unmarking
+        var collidingWidgets = FindCollidingWidgetsInColumn(newCol, newRow, widget.Layout.Width, widget.Layout.Height, widgetId);
+
+        // Unmark widget's current position
+        _occupancyTracker.UnmarkOccupied(widget.Layout.Col, widget.Layout.Row, widget.Layout.Width, widget.Layout.Height);
+
+        if (collidingWidgets.Any())
+        {
+            // Cascade colliding widgets down
+            CascadeWidgetsDown(collidingWidgets, widget.Layout.Height);
+        }
+
+        // Place widget at new position
+        widget.UpdateLayout(widget.Layout.WithPosition(newCol, newRow));
+        _occupancyTracker.MarkOccupied(newCol, newRow, widget.Layout.Width, widget.Layout.Height);
+
+        UpdateTimestamp();
+    }
+
+    /// <summary>
+    /// Resize widget. Cascades widgets down if height increases and collision detected.
+    /// O(n * cascade_depth) where n = affected widgets
+    /// </summary>
+    public void ResizeWidget(Guid widgetId, int newWidth, int newHeight)
+    {
+        var widget = _widgets.FirstOrDefault(w => w.Id == widgetId);
+        if (widget == null) return;
+
+        ValidateWidgetDimensions(newWidth, newHeight);
+
+        int oldHeight = widget.Layout.Height;
+        int heightDifference = newHeight - oldHeight;
+
+        // If height increased, check for collision below BEFORE unmarking
+        if (heightDifference > 0)
+        {
+            int checkStartRow = widget.Layout.Row + oldHeight;
+            var collidingWidgets = FindCollidingWidgetsInColumn(widget.Layout.Col, checkStartRow, newWidth, heightDifference, widgetId);
+
+            if (collidingWidgets.Any())
+            {
+                // Cascade colliding widgets down
+                CascadeWidgetsDown(collidingWidgets, heightDifference);
+            }
+        }
+
+        // Unmark old position
+        _occupancyTracker.UnmarkOccupied(widget.Layout.Col, widget.Layout.Row, widget.Layout.Width, widget.Layout.Height);
+
+        // Update widget with new dimensions
+        var newLayout = new WidgetLayout(widget.Layout.Col, widget.Layout.Row, newWidth, newHeight);
         widget.UpdateLayout(newLayout);
+        _occupancyTracker.MarkOccupied(widget.Layout.Col, widget.Layout.Row, newWidth, newHeight);
+
         UpdateTimestamp();
     }
     public void UpdateMain(bool isMain)
@@ -87,38 +158,87 @@ public class Dashboard : Entity
         IsMain = isMain;
         UpdateTimestamp();
     }
-    private WidgetLayout FindNextAvailablePosition(int widgetWidth, int widgetHeight, int maxGridCols = 12)
-    {
-        for (int row = 0; ; row++)
-        {
-            for (int col = 0; col <= maxGridCols - widgetWidth; col++)
-            {
-                bool overlaps = false;
-                foreach (var existingWidget in _widgets)
-                {
-                    if (CheckForOverlap(existingWidget.Layout, col, row, widgetWidth, widgetHeight))
-                    {
-                        overlaps = true;
-                        break;
-                    }
-                }
 
-                if (!overlaps)
+    /// <summary>
+    /// Find widgets in same column that collide with given rectangle
+    /// Excludes the source widget
+    /// </summary>
+    private List<Widget> FindCollidingWidgetsInColumn(int col, int row, int width, int height, Guid excludeWidgetId)
+    {
+        var colliding = new List<Widget>();
+
+        foreach (var widget in _widgets.Where(w => w.Id != excludeWidgetId && w.Layout.Col == col))
+        {
+            // Check if widget overlaps with area
+            if (widget.Layout.Row < row + height && widget.Layout.Row + widget.Layout.Height > row)
+            {
+                colliding.Add(widget);
+            }
+        }
+
+        // Return sorted by row (top to bottom) - no need to sort in caller
+        return colliding.OrderBy(w => w.Layout.Row).ToList();
+    }
+
+    /// <summary>
+    /// Cascade widgets down by pushing them below the obstruction
+    /// Only processes widgets in same column
+    /// </summary>
+    private void CascadeWidgetsDown(List<Widget> widgetsToMove, int pushDistance)
+    {
+        if (widgetsToMove.Count == 0) return;
+        if (widgetsToMove.Count > MaxCascadeDepth)
+            throw new InvalidOperationException($"Cascade depth exceeds limit ({MaxCascadeDepth}). Too many widgets would shift.");
+
+        // Already sorted, no need to re-sort
+        foreach (var widget in widgetsToMove)
+        {
+            _occupancyTracker.UnmarkOccupied(widget.Layout.Col, widget.Layout.Row, widget.Layout.Width, widget.Layout.Height);
+
+            int newRow = widget.Layout.Row + pushDistance;
+
+            // Validate before modifying to prevent partial state on failure
+            if (newRow < 0 || newRow >= MaxCanvasHeight)
+                throw new InvalidOperationException($"Cascade would push widget beyond canvas bounds (max height: {MaxCanvasHeight})");
+
+            widget.UpdateLayout(widget.Layout.WithPosition(widget.Layout.Col, newRow));
+            _occupancyTracker.MarkOccupied(widget.Layout.Col, newRow, widget.Layout.Width, widget.Layout.Height);
+        }
+    }
+    private WidgetLayout FindNextAvailablePosition(int widgetWidth, int widgetHeight)
+    {
+        const int maxScanRows = 1000;
+        int scanLimit = Math.Min(_occupancyTracker.GetMaxScanRow(widgetHeight) + 1, maxScanRows);
+
+        for (int row = 0; row < scanLimit; row++)
+        {
+            for (int col = 0; col <= MaxGridCols - widgetWidth; col++)
+            {
+                if (_occupancyTracker.CanPlaceAt(col, row, widgetWidth, widgetHeight))
                 {
                     return new WidgetLayout(col, row, widgetWidth, widgetHeight);
                 }
             }
         }
+
+        throw new InvalidOperationException("Dashboard grid is full, cannot place widget");
     }
 
-    private bool CheckForOverlap(WidgetLayout existingLayout, int newCol, int newRow, int newWidth, int newHeight)
+    private void ValidateWidgetDimensions(int width, int height)
     {
-        if (newCol >= existingLayout.Col + existingLayout.Width || existingLayout.Col >= newCol + newWidth)
-            return false;
+        if (width <= 0 || height <= 0)
+            throw new ArgumentException("Widget dimensions must be positive");
+        if (width > MaxGridCols)
+            throw new ArgumentException($"Widget width cannot exceed {MaxGridCols}");
+        if (height > MaxCanvasHeight)
+            throw new ArgumentException($"Widget height cannot exceed {MaxCanvasHeight}");
+    }
 
-        if (newRow >= existingLayout.Row + existingLayout.Height || existingLayout.Row >= newRow + newHeight)
-            return false;
-
-        return true;
+    private void ValidatePosition(int col, int row)
+    {
+        if (col < 0 || row < 0)
+            throw new ArgumentException("Position cannot be negative");
+        if (col >= MaxGridCols || row >= MaxCanvasHeight)
+            throw new ArgumentException("Position exceeds canvas bounds");
     }
 }
