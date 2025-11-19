@@ -158,6 +158,19 @@ public class Dashboard : Entity
         IsMain = isMain;
         UpdateTimestamp();
     }
+    public void UpdateName(string name)
+    {
+        if (string.IsNullOrWhiteSpace(name))
+            throw new ArgumentException("Name cannot be empty");
+        Name = name;
+        UpdateTimestamp();
+    }
+
+    public void UpdateShared(bool isShared)
+    {
+        IsShared = isShared;
+        UpdateTimestamp();
+    }
 
     /// <summary>
     /// Find widgets in same column that collide with given rectangle
