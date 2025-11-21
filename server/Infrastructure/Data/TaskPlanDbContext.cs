@@ -8,7 +8,6 @@ using Domain.Entities.Relationship;
 using Domain.Entities.Support;
 using Domain.Entities.ProjectEntities;
 using Domain.Common;
-using Domain.OutBox;
 using Domain.Entities.Support.Workspace;
 
 namespace Infrastructure.Data;

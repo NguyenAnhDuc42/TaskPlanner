@@ -1,9 +1,7 @@
 using Application.Common.Filters;
 using Application.Common.Results;
 using Application.Contract.WorkspaceContract;
-using Application.Features.WorkspaceFeatures.CreateWrokspace;
-using Application.Features.WorkspaceFeatures.SelfMange.GetWorkspaceList;
-using Application.Features.WorkspaceFeatures.SelfMange.UpdateWorkspace;
+using Application.Features.WorkspaceFeatures.CreateWrokspace;   
 using Domain.Enums.Workspace;
 using MediatR;
 using Microsoft.AspNetCore.Http;

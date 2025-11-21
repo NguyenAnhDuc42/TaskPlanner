@@ -161,7 +161,7 @@ namespace Infrastructure.Services.Permissions
         private async Task<AccessLevel?> GetEntityAccessLevelAsync(Guid userId, Guid entityId, EntityType entityType, CancellationToken ct)
         {
             var result = await _dbContext.EntityMembers
-                .Where(em => em.EntityId == entityId && em.UserId == userId && em.EntityType.ToString() == entityType.ToString())
+                .Where(em => em.LayerId == entityId && em.UserId == userId && em.LayerType.ToString() == entityType.ToString())
                 .Select(em => (AccessLevel?)em.AccessLevel) // directly project to nullable AccessLevel
                 .FirstOrDefaultAsync(ct);
 

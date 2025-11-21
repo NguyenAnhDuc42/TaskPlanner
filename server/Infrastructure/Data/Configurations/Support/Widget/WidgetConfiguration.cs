@@ -14,8 +14,8 @@ public class WidgetConfiguration : EntityConfiguration<Widget>
         builder.ToTable("widgets");
 
         // core props
-        builder.Property(x => x.ScopeType).HasConversion<string>().HasMaxLength(50).IsRequired();
-        builder.Property(x => x.ScopeId).IsRequired();
+        builder.Property(x => x.LayerType).HasConversion<string>().HasMaxLength(50).IsRequired();
+        builder.Property(x => x.LayerId).IsRequired();
         builder.Property(x => x.CreatorId).IsRequired();
 
         // enums as strings
@@ -26,12 +26,12 @@ public class WidgetConfiguration : EntityConfiguration<Widget>
         builder.Property(x => x.ConfigJson).HasColumnName("config_json").IsRequired();
 
         // indexes for common lookups
-        builder.HasIndex(x => x.ScopeType);
-        builder.HasIndex(x => x.ScopeId);
-        builder.HasIndex(x => new { x.ScopeType, x.ScopeId });
+        builder.HasIndex(x => x.LayerType);
+        builder.HasIndex(x => x.LayerId);
+        builder.HasIndex(x => new { x.LayerType, x.LayerId });
         builder.HasIndex(x => x.CreatorId);
 
         // optional: if you want canonical widget uniqueness per scope+type you can enable:
-         builder.HasIndex(x => new { x.ScopeType, x.ScopeId, x.WidgetType }).IsUnique(false);
+         builder.HasIndex(x => new { x.LayerType, x.LayerId, x.WidgetType }).IsUnique(false);
     }
 }

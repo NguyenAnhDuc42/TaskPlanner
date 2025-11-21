@@ -81,6 +81,7 @@ public class GetWidgetListHandler : IRequestHandler<GetWidgetListQuery, Dashboar
             {
                 // Log but continue - don't fail entire dashboard if one widget fails
                 // Log.Error($"Failed to build widget {widget.Id}: {ex.Message}");
+                Console.WriteLine($"Failed to build widget {widget.Id}: {ex.Message}");
                 continue;
             }
         }

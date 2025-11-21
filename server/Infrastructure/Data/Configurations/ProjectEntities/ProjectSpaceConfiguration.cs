@@ -19,8 +19,7 @@ public class ProjectSpaceConfiguration : EntityConfiguration<ProjectSpace>
         builder.Property(x => x.IsArchived).IsRequired();
         builder.Property(x => x.OrderKey);
         builder.Property(x => x.CreatorId).IsRequired();
-        builder.Property(x => x.NextFolderOrder).IsRequired();
-        builder.Property(x => x.NextListOrder).IsRequired();
+        builder.Property(x => x.NextEntityOrder).IsRequired();
 
 
         builder.OwnsOne(x => x.Customization, cb =>

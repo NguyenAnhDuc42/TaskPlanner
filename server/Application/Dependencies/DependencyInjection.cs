@@ -20,7 +20,6 @@ public static class DependencyInjection
         services.AddTransient(typeof(IPipelineBehavior<,>), typeof(TransactionBehavior<,>));
 
         services.AddScoped<WidgetBuilder>();
-        services.AddSingleton<WidgetFatory>();
         services.AddSingleton<WidgetGridValidator>();
 
         return services;

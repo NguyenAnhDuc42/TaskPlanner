@@ -1,0 +1,9 @@
+C:\Users\Duc\Desktop\TaskPlanner\server\Api\obj\Debug\net10.0\Api.csproj.AssemblyReference.cache
+C:\Users\Duc\Desktop\TaskPlanner\server\Api\obj\Debug\net10.0\rpswa.dswa.cache.json
+C:\Users\Duc\Desktop\TaskPlanner\server\Api\obj\Debug\net10.0\Api.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\Duc\Desktop\TaskPlanner\server\Api\obj\Debug\net10.0\Api.AssemblyInfoInputs.cache
+C:\Users\Duc\Desktop\TaskPlanner\server\Api\obj\Debug\net10.0\Api.AssemblyInfo.cs
+C:\Users\Duc\Desktop\TaskPlanner\server\Api\obj\Debug\net10.0\Api.csproj.CoreCompileInputs.cache
+C:\Users\Duc\Desktop\TaskPlanner\server\Api\obj\Debug\net10.0\Api.MvcApplicationPartsAssemblyInfo.cs
+C:\Users\Duc\Desktop\TaskPlanner\server\Api\obj\Debug\net10.0\Api.MvcApplicationPartsAssemblyInfo.cache
+C:\Users\Duc\Desktop\TaskPlanner\server\Api\obj\Debug\net10.0\Api.sourcelink.json

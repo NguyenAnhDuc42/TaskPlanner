@@ -91,18 +91,31 @@ public class PermissionContextBuilder
 
     public async Task<PermissionContext> BuildScopeContextAsync(Guid userId, Guid workspaceId, Guid? layerId, EntityType entityType, CancellationToken ct)
     {
-        var workspaceRole = await GetWorkspaceRoleAsync(userId, workspaceId, ct);
-        var isWorkspaceOwner = workspaceRole == Role.Owner;
-        var isWorkspaceAdmin = workspaceRole == Role.Admin;
+        var context = new PermissionContext
+        {
+            UserId = userId,
+            WorkspaceId = workspaceId
+        };
 
-        var context.EntityAccess = layerId.HasValue
-            ? await GetEntityAccessLevelAsync(userId, layerId.Value, entityType, ct)
-            : null;
+        context.IsUserSuspendedInWorkspace = await IsUserSuspendedInWorkspaceAsync(userId, workspaceId, ct);
+        context.WorkspaceRole = await GetWorkspaceRoleAsync(userId, workspaceId, ct);
 
-        var chatRoomRole = entityType == EntityType.ChatRoom && layerId.HasValue
-            ? await GetChatRoomRoleAsync(userId, layerId.Value, ct)
-            : null;
+        if (layerId.HasValue)
+        {
+            context.EntityId = layerId.Value;
+            context.EntityType = entityType;
+            context.EntityAccess = await GetEntityAccessLevelAsync(userId, layerId.Value, entityType, ct);
+            
+            if (entityType == EntityType.ChatRoom)
+            {
+                context.ChatRoomRole = await GetChatRoomRoleAsync(userId, layerId.Value, ct);
+                var chatRoomState = await GetChatRoomMemberStatusAsync(userId, layerId.Value, ct);
+                context.IsUserBannedFromChatRoom = chatRoomState.IsBanned;
+                context.IsUserMutedInChatRoom = chatRoomState.IsMuted;
+            }
+        }
 
+        return context;
     }
 
     // ============ Entity Extraction Helpers ============

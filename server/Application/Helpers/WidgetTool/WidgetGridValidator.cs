@@ -1,5 +1,5 @@
 using System;
-using Application.Features.WorkspaceFeatures.DashboardManage.EditDashboardWidgetGrid;
+
 using Domain.Entities.Support.Widget;
 
 namespace Application.Helpers.WidgetTool;
@@ -123,4 +123,13 @@ public class GridValidationResult
 {
     public bool IsValid { get; set; }
     public List<string> Errors { get; set; } = new();
+}
+
+public class WidgetGridUpdateItem
+{
+    public Guid DashboardWidgetId { get; set; }
+    public int NewCol { get; set; }
+    public int NewRow { get; set; }
+    public int NewWidth { get; set; }
+    public int NewHeight { get; set; }
 }

@@ -32,5 +32,11 @@ public class EntityMember : Composite
         AccessLevel = newAccessLevel;
         UpdateTimestamp();
     }
+
+    public void UpdateNotificationsEnabled(bool enabled)
+    {
+        NotificationsEnabled = enabled;
+        UpdateTimestamp();
+    }
 }
 

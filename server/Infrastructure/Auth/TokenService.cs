@@ -11,6 +11,7 @@ using server.Application.Interfaces;
 using System.Security.Cryptography;
 using Microsoft.Extensions.Options;
 using Application.Features.Auth.DTOs;
+using Microsoft.EntityFrameworkCore;
 
 namespace Infrastructure.Auth;
 
@@ -37,7 +38,7 @@ public class TokenService : ITokenService
         var refreshToken = GenerateRefreshToken();
 
         var session = Session.Create(user.Id, refreshToken, expirationRefresh, userAgent, ipAddress);
-        await _unitOfWork.Sessions.AddAsync(session, cancellationToken);
+        await _unitOfWork.Set<Session>().AddAsync(session, cancellationToken);
         await _unitOfWork.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
 
         return new JwtTokens(accessToken, refreshToken, expirationAccess, expirationRefresh);
@@ -45,12 +46,12 @@ public class TokenService : ITokenService
 
     public async Task<JwtTokens?> RefreshAccessTokenAsync(string refreshToken, CancellationToken cancellationToken)
     {
-        var session = await _unitOfWork.Sessions.GetByRefreshToken(refreshToken, cancellationToken);
+        var session = await _unitOfWork.Set<Session>().FirstOrDefaultAsync(s => s.RefreshToken == refreshToken, cancellationToken);
         if (session == null) { _logger.LogWarning("Refresh token not found."); throw new SecurityTokenException("Invalid refresh token."); }
         if (session.RevokedAt.HasValue) { _logger.LogWarning("Refresh token revoked."); throw new SecurityTokenException("Invalid refresh token."); }
         if (session.ExpiresAt <= DateTimeOffset.UtcNow) { _logger.LogWarning("Refresh token expired."); throw new SecurityTokenExpiredException("Refresh token expired."); }
 
-        var user = await _unitOfWork.Users.GetByIdAsync(session.UserId, cancellationToken);
+        var user = await _unitOfWork.Set<User>().FindAsync(session.UserId, cancellationToken);
         if (user == null) { _logger.LogWarning("User not found for the given refresh token."); throw new SecurityTokenException("Invalid refresh token."); }
 
         var newExpiration = DateTimeOffset.UtcNow.AddMinutes(_jwtSettings.Expiration);
@@ -61,11 +62,10 @@ public class TokenService : ITokenService
 
     public async Task RevokeTokenAsync(string refreshToken, CancellationToken cancellationToken)
     {
-        var session = await _unitOfWork.Sessions.GetByRefreshToken(refreshToken, cancellationToken);
+        var session = await _unitOfWork.Set<Session>().FirstOrDefaultAsync(s => s.RefreshToken == refreshToken, cancellationToken);
         if (session == null) { _logger.LogWarning("Refresh token not found for revocation."); throw new SecurityTokenException("Invalid refresh token."); }
 
         session.Revoke();
-        _unitOfWork.Sessions.Update(session);
         await _unitOfWork.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
     }
 

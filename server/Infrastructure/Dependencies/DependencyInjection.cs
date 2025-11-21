@@ -17,8 +17,7 @@ public static class DependencyInjection
             .AddServices()
             .AddCache()
             .AddJwtAuthentication(config)
-            .AddDomainEvents()
-            .AddRealtimeServices();
+            .AddDomainEvents();
 
         return services;
     }
