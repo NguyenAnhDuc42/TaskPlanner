@@ -32,6 +32,15 @@ public class WidgetConfiguration : EntityConfiguration<Widget>
         builder.HasIndex(x => x.CreatorId);
 
         // optional: if you want canonical widget uniqueness per scope+type you can enable:
+        // optional: if you want canonical widget uniqueness per scope+type you can enable:
          builder.HasIndex(x => new { x.LayerType, x.LayerId, x.WidgetType }).IsUnique(false);
+
+        builder.OwnsOne(x => x.Layout, cb =>
+        {
+            cb.Property(p => p.Col).HasColumnName("layout_col").IsRequired();
+            cb.Property(p => p.Row).HasColumnName("layout_row").IsRequired();
+            cb.Property(p => p.Width).HasColumnName("layout_width").IsRequired();
+            cb.Property(p => p.Height).HasColumnName("layout_height").IsRequired();
+        });
     }
 }
