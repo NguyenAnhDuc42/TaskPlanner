@@ -15,8 +15,8 @@ client/*.tsbuildinfo
 client/next-env.d.ts
 
 # === C#/.NET (backend) ===
-src/bin/
-src/obj/
+**/bin/
+**/obj/
 *.user
 *.suo
 *.userosscache
