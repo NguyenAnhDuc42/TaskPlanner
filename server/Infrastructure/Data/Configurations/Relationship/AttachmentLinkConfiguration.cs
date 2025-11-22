@@ -17,7 +17,7 @@ public class AttachmentLinkConfiguration : CompositeConfiguration<AttachmentLink
 
         builder.Property(x => x.AttachmentId).HasColumnName("attachment_id").IsRequired();
         builder.Property(x => x.ParentEntityId).HasColumnName("parent_entity_id").IsRequired();
-        builder.Property(x => x.ParentEntityType).HasConversion<string>().HasColumnName("parent_entity_type").HasMaxLength(100).IsRequired();
+        builder.Property(x => x.ParentEntityType).HasColumnName("parent_entity_type").HasConversion<string>().HasMaxLength(100).IsRequired();
         builder.Property(x => x.CreatorId).HasColumnName("creator_id").IsRequired();
 
         // Indexes for common queries (list attachments for an owner; find links for garbage collection)

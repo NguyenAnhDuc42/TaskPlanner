@@ -12,17 +12,17 @@ public class ProjectWorkspaceConfiguration : EntityConfiguration<ProjectWorkspac
 
         builder.ToTable("project_workspaces");
 
-        builder.Property(x => x.Name).HasMaxLength(200).IsRequired();
-        builder.Property(x => x.Description).HasMaxLength(2000);
-        builder.Property(x => x.JoinCode).HasMaxLength(32).IsRequired();
-        builder.Property(x => x.StrictJoin).IsRequired();
-        builder.Property(x => x.IsArchived).IsRequired();
-        builder.Property(x => x.CreatorId).IsRequired();
-        builder.Property(x => x.NextSpaceOrder).IsRequired();
+        builder.Property(x => x.Name).HasColumnName("name").HasMaxLength(200).IsRequired();
+        builder.Property(x => x.Description).HasColumnName("description").HasMaxLength(2000);
+        builder.Property(x => x.JoinCode).HasColumnName("join_code").HasMaxLength(32).IsRequired();
+        builder.Property(x => x.StrictJoin).HasColumnName("strict_join").IsRequired();
+        builder.Property(x => x.IsArchived).HasColumnName("is_archived").IsRequired();
+        builder.Property(x => x.CreatorId).HasColumnName("creator_id").IsRequired();
+        builder.Property(x => x.NextSpaceOrder).HasColumnName("next_space_order").IsRequired();
 
         // enums as strings
-        builder.Property(x => x.Theme).HasConversion<string>().HasMaxLength(50).IsRequired();
-        builder.Property(x => x.Variant).HasConversion<string>().HasMaxLength(50).IsRequired();
+        builder.Property(x => x.Theme).HasColumnName("theme").HasConversion<string>().HasMaxLength(50).IsRequired();
+        builder.Property(x => x.Variant).HasColumnName("variant").HasConversion<string>().HasMaxLength(50).IsRequired();
 
         // owned VO
         builder.OwnsOne(x => x.Customization, cb =>

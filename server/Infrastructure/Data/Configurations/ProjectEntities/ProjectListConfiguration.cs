@@ -12,18 +12,16 @@ public class ProjectListConfiguration : EntityConfiguration<ProjectList>
 
         builder.ToTable("project_lists");
 
-        builder.Property(x => x.ProjectSpaceId).IsRequired();
-        builder.Property(x => x.ProjectFolderId);
-        builder.Property(x => x.Name).HasMaxLength(200).IsRequired();
-        builder.Property(x => x.OrderKey);
-        builder.Property(x => x.IsPrivate).IsRequired();
-        builder.Property(x => x.IsArchived).IsRequired();
-        builder.Property(x => x.CreatorId).IsRequired();
-        builder.Property(x => x.StartDate);
-        builder.Property(x => x.DueDate);
-        builder.Property(x => x.NextTaskOrder).IsRequired();
-
-
+        builder.Property(x => x.ProjectSpaceId).HasColumnName("project_space_id").IsRequired();
+        builder.Property(x => x.ProjectFolderId).HasColumnName("project_folder_id");
+        builder.Property(x => x.Name).HasColumnName("name").HasMaxLength(200).IsRequired();
+        builder.Property(x => x.OrderKey).HasColumnName("order_key");
+        builder.Property(x => x.IsPrivate).HasColumnName("is_private").IsRequired();
+        builder.Property(x => x.IsArchived).HasColumnName("is_archived").IsRequired();
+        builder.Property(x => x.CreatorId).HasColumnName("creator_id").IsRequired();
+        builder.Property(x => x.StartDate).HasColumnName("start_date");
+        builder.Property(x => x.DueDate).HasColumnName("due_date");
+        builder.Property(x => x.NextTaskOrder).HasColumnName("next_task_order").IsRequired();
 
         builder.OwnsOne(x => x.Customization, cb =>
         {

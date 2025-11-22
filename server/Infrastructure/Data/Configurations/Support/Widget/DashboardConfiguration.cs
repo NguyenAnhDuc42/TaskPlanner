@@ -2,7 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Domain.Entities.Support.Widget;
 
-namespace Infrastructure.Data.Configurations.Support.Widget;
+namespace Infrastructure.Data.Configurations.Support;
 
 public class DashboardConfiguration : EntityConfiguration<Dashboard>
 {

@@ -12,13 +12,13 @@ public class ProjectFolderConfiguration : EntityConfiguration<ProjectFolder>
 
         builder.ToTable("project_folders");
 
-        builder.Property(x => x.ProjectSpaceId).IsRequired();
-        builder.Property(x => x.Name).HasMaxLength(200).IsRequired();
-        builder.Property(x => x.OrderKey);
-        builder.Property(x => x.IsPrivate).IsRequired();
-        builder.Property(x => x.IsArchived).IsRequired();
-        builder.Property(x => x.CreatorId).IsRequired();
-        builder.Property(x => x.NextListOrder).IsRequired();
+        builder.Property(x => x.ProjectSpaceId).HasColumnName("project_space_id").IsRequired();
+        builder.Property(x => x.Name).HasColumnName("name").HasMaxLength(200).IsRequired();
+        builder.Property(x => x.OrderKey).HasColumnName("order_key");
+        builder.Property(x => x.IsPrivate).HasColumnName("is_private").IsRequired();
+        builder.Property(x => x.IsArchived).HasColumnName("is_archived").IsRequired();
+        builder.Property(x => x.CreatorId).HasColumnName("creator_id").IsRequired();
+        builder.Property(x => x.NextListOrder).HasColumnName("next_list_order").IsRequired();
 
 
         builder.OwnsOne(x => x.Customization, cb =>

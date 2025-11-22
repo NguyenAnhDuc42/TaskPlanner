@@ -15,9 +15,9 @@ public class TaskAssignmentConfiguration : CompositeConfiguration<TaskAssignment
         // Composite PK: TaskId + AssigneeId (a task can have many assignees but avoid dupes)
         builder.HasKey(x => new { x.TaskId, x.AssigneeId });
 
-        builder.Property(x => x.TaskId).IsRequired();
-        builder.Property(x => x.AssigneeId).IsRequired();
-        builder.Property(x => x.AssignedById).IsRequired();
+        builder.Property(x => x.TaskId).HasColumnName("task_id").IsRequired();
+        builder.Property(x => x.AssigneeId).HasColumnName("assignee_id").IsRequired();
+        builder.Property(x => x.AssignedById).HasColumnName("assigned_by_id").IsRequired();
 
         // Indexes
         builder.HasIndex(x => x.TaskId);

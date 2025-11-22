@@ -12,14 +12,14 @@ public class ProjectSpaceConfiguration : EntityConfiguration<ProjectSpace>
 
         builder.ToTable("project_spaces");
 
-        builder.Property(x => x.ProjectWorkspaceId).IsRequired();
-        builder.Property(x => x.Name).HasMaxLength(200).IsRequired();
-        builder.Property(x => x.Description).HasMaxLength(2000);
-        builder.Property(x => x.IsPrivate).IsRequired();
-        builder.Property(x => x.IsArchived).IsRequired();
-        builder.Property(x => x.OrderKey);
-        builder.Property(x => x.CreatorId).IsRequired();
-        builder.Property(x => x.NextEntityOrder).IsRequired();
+        builder.Property(x => x.ProjectWorkspaceId).HasColumnName("project_workspace_id").IsRequired();
+        builder.Property(x => x.Name).HasColumnName("name").HasMaxLength(200).IsRequired();
+        builder.Property(x => x.Description).HasColumnName("description").HasMaxLength(2000);
+        builder.Property(x => x.IsPrivate).HasColumnName("is_private").IsRequired();
+        builder.Property(x => x.IsArchived).HasColumnName("is_archived").IsRequired();
+        builder.Property(x => x.OrderKey).HasColumnName("order_key");
+        builder.Property(x => x.CreatorId).HasColumnName("creator_id").IsRequired();
+        builder.Property(x => x.NextEntityOrder).HasColumnName("next_entity_order").IsRequired();
 
 
         builder.OwnsOne(x => x.Customization, cb =>

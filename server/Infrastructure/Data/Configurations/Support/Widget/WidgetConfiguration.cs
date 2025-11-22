@@ -14,13 +14,13 @@ public class WidgetConfiguration : EntityConfiguration<Widget>
         builder.ToTable("widgets");
 
         // core props
-        builder.Property(x => x.LayerType).HasConversion<string>().HasMaxLength(50).IsRequired();
-        builder.Property(x => x.LayerId).IsRequired();
-        builder.Property(x => x.CreatorId).IsRequired();
+        builder.Property(x => x.LayerType).HasColumnName("layer_type").HasConversion<string>().HasMaxLength(50).IsRequired();
+        builder.Property(x => x.LayerId).HasColumnName("layer_id").IsRequired();
+        builder.Property(x => x.CreatorId).HasColumnName("creator_id").IsRequired();
 
         // enums as strings
-        builder.Property(x => x.Visibility).HasConversion<string>().HasMaxLength(50).IsRequired();
-        builder.Property(x => x.WidgetType).HasConversion<string>().HasMaxLength(100).IsRequired();
+        builder.Property(x => x.Visibility).HasColumnName("visibility").HasConversion<string>().HasMaxLength(50).IsRequired();
+        builder.Property(x => x.WidgetType).HasColumnName("widget_type").HasConversion<string>().HasMaxLength(100).IsRequired();
 
         // config JSON - store as text/jsonb depending on provider; leaving generic as string
         builder.Property(x => x.ConfigJson).HasColumnName("config_json").IsRequired();
@@ -31,7 +31,6 @@ public class WidgetConfiguration : EntityConfiguration<Widget>
         builder.HasIndex(x => new { x.LayerType, x.LayerId });
         builder.HasIndex(x => x.CreatorId);
 
-        // optional: if you want canonical widget uniqueness per scope+type you can enable:
         // optional: if you want canonical widget uniqueness per scope+type you can enable:
          builder.HasIndex(x => new { x.LayerType, x.LayerId, x.WidgetType }).IsUnique(false);
 

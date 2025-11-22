@@ -12,18 +12,18 @@ public class ProjectTaskConfiguration : EntityConfiguration<ProjectTask>
 
         builder.ToTable("project_tasks");
 
-        builder.Property(x => x.ProjectListId).IsRequired();
-        builder.Property(x => x.Name).HasMaxLength(300).IsRequired();
-        builder.Property(x => x.Description).HasMaxLength(4000);
-        builder.Property(x => x.CreatorId).IsRequired();
-        builder.Property(x => x.StatusId);
-        builder.Property(x => x.IsArchived).IsRequired();
-        builder.Property(x => x.Priority).HasConversion<string>().HasMaxLength(32).IsRequired();
-        builder.Property(x => x.StartDate);
-        builder.Property(x => x.DueDate);
-        builder.Property(x => x.StoryPoints);
-        builder.Property(x => x.TimeEstimate);
-        builder.Property(x => x.OrderKey);
+        builder.Property(x => x.ProjectListId).HasColumnName("project_list_id").IsRequired();
+        builder.Property(x => x.Name).HasColumnName("name").HasMaxLength(300).IsRequired();
+        builder.Property(x => x.Description).HasColumnName("description").HasMaxLength(4000);
+        builder.Property(x => x.CreatorId).HasColumnName("creator_id").IsRequired();
+        builder.Property(x => x.StatusId).HasColumnName("status_id");
+        builder.Property(x => x.IsArchived).HasColumnName("is_archived").IsRequired();
+        builder.Property(x => x.Priority).HasColumnName("priority").HasConversion<string>().HasMaxLength(32).IsRequired();
+        builder.Property(x => x.StartDate).HasColumnName("start_date");
+        builder.Property(x => x.DueDate).HasColumnName("due_date");
+        builder.Property(x => x.StoryPoints).HasColumnName("story_points");
+        builder.Property(x => x.TimeEstimate).HasColumnName("time_estimate");
+        builder.Property(x => x.OrderKey).HasColumnName("order_key");
 
         builder.OwnsOne(x => x.Customization, cb =>
         {
