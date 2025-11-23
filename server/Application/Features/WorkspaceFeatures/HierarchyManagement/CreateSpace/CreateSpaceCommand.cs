@@ -3,4 +3,12 @@ using MediatR;
 
 namespace Application.Features.WorkspaceFeatures.HierarchyManagement.CreateSpace;
 
-public record class CreateSpaceCommand(Guid workspaceId,string name,string description,string color,string icon,bool isPrivate) : ICommand<Unit>;
+public record CreateSpaceCommand(
+    Guid workspaceId,
+    string name,
+    string description,
+    string? color,
+    string? icon,
+    bool isPrivate,
+    List<Guid>? memberIdsToInvite
+) : IRequest<Guid>;

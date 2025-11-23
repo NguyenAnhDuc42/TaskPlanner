@@ -77,6 +77,37 @@ public sealed class ProjectFolder : Entity
         if (changed) UpdateTimestamp();
     }
 
+    public void UpdateDetails(string name, string? color = null, string? icon = null)
+    {
+        var changed = false;
+        var n = name.Trim();
+        if (string.IsNullOrWhiteSpace(n)) throw new ArgumentException("Name cannot be empty.", nameof(name));
+        if (n != Name)
+        {
+            Name = n;
+            changed = true;
+        }
+
+        if (color is not null || icon is not null)
+        {
+            var c = color?.Trim() ?? Customization.Color;
+            var i = icon?.Trim() ?? Customization.Icon;
+            var newCustomization = Customization.Create(c, i);
+            if (!newCustomization.Equals(Customization)) { Customization = newCustomization; changed = true; }
+        }
+
+        if (changed) UpdateTimestamp();
+    }
+
+    public void UpdatePrivacy(bool isPrivate)
+    {
+        if (IsPrivate != isPrivate)
+        {
+            IsPrivate = isPrivate;
+            UpdateTimestamp();
+        }
+    }
+
     public void Archive() { if (IsArchived) return; IsArchived = true; UpdateTimestamp(); }
     public void Unarchive() { if (!IsArchived) return; IsArchived = false; UpdateTimestamp(); }
 }

@@ -69,6 +69,37 @@ public sealed class ProjectSpace : Entity
         if (changed) UpdateTimestamp();
     }
 
+    public void UpdateDetails(string name, string? description, string? color = null, string? icon = null)
+    {
+        var candidateName = name.Trim() == string.Empty ? throw new ArgumentException("Name cannot be empty.", nameof(name)) : name.Trim();
+        var candidateDescription = string.IsNullOrWhiteSpace(description) ? null : description.Trim();
+
+        ValidateBasicInfo(candidateName, candidateDescription);
+
+        var changed = false;
+        if (candidateName != Name) { Name = candidateName; changed = true; }
+        if (candidateDescription != Description) { Description = candidateDescription; changed = true; }
+
+        if (color is not null || icon is not null)
+        {
+            var c = color?.Trim() ?? Customization.Color;
+            var i = icon?.Trim() ?? Customization.Icon;
+            var newCustomization = Customization.Create(c, i);
+            if (!newCustomization.Equals(Customization)) { Customization = newCustomization; changed = true; }
+        }
+
+        if (changed) UpdateTimestamp();
+    }
+
+    public void UpdatePrivacy(bool isPrivate)
+    {
+        if (IsPrivate != isPrivate)
+        {
+            IsPrivate = isPrivate;
+            UpdateTimestamp();
+        }
+    }
+
     public void Archive() { if (IsArchived) return; IsArchived = true; UpdateTimestamp(); }
     public void Unarchive() { if (!IsArchived) return; IsArchived = false; UpdateTimestamp(); }
 

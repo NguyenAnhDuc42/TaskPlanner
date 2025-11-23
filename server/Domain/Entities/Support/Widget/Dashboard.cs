@@ -11,7 +11,7 @@ namespace Domain.Entities.Support.Widget;
 public class Dashboard : Entity
 {
     private const int MaxGridCols = 12;
-    private const int MaxCanvasHeight = 2000;
+    private const int MaxGridRows = 2000;
     private const int MaxCascadeDepth = 1000; // Safety limit for cascade chains
 
     public EntityLayerType LayerType { get; private set; }
@@ -24,7 +24,7 @@ public class Dashboard : Entity
     private readonly List<Widget> _widgets = new();
     public IReadOnlyCollection<Widget> Widgets => _widgets.AsReadOnly();
 
-    private GridOccupancyTracker _occupancyTracker = new(MaxGridCols, MaxCanvasHeight);
+    private GridOccupancyTracker _occupancyTracker = new(MaxGridCols, MaxGridRows);
 
     private Dashboard() { }
 
@@ -55,7 +55,7 @@ public class Dashboard : Entity
 
     public void RebuildOccupancyTracker()
     {
-        _occupancyTracker = new GridOccupancyTracker(MaxGridCols, MaxCanvasHeight);
+        _occupancyTracker = new GridOccupancyTracker(MaxGridCols, MaxGridRows);
         foreach (var widget in _widgets)
         {
             _occupancyTracker.MarkOccupied(widget.Layout.Col, widget.Layout.Row, widget.Layout.Width, widget.Layout.Height);
@@ -211,8 +211,8 @@ public class Dashboard : Entity
             int newRow = widget.Layout.Row + pushDistance;
 
             // Validate before modifying to prevent partial state on failure
-            if (newRow < 0 || newRow >= MaxCanvasHeight)
-                throw new InvalidOperationException($"Cascade would push widget beyond canvas bounds (max height: {MaxCanvasHeight})");
+            if (newRow < 0 || newRow >= MaxGridRows)
+                throw new InvalidOperationException($"Cascade would push widget beyond canvas bounds (max rows: {MaxGridRows})");
 
             widget.UpdateLayout(widget.Layout.WithPosition(widget.Layout.Col, newRow));
             _occupancyTracker.MarkOccupied(widget.Layout.Col, newRow, widget.Layout.Width, widget.Layout.Height);
@@ -243,15 +243,15 @@ public class Dashboard : Entity
             throw new ArgumentException("Widget dimensions must be positive");
         if (width > MaxGridCols)
             throw new ArgumentException($"Widget width cannot exceed {MaxGridCols}");
-        if (height > MaxCanvasHeight)
-            throw new ArgumentException($"Widget height cannot exceed {MaxCanvasHeight}");
+        if (height > MaxGridRows)
+            throw new ArgumentException($"Widget height cannot exceed {MaxGridRows}");
     }
 
     private void ValidatePosition(int col, int row)
     {
         if (col < 0 || row < 0)
             throw new ArgumentException("Position cannot be negative");
-        if (col >= MaxGridCols || row >= MaxCanvasHeight)
+        if (col >= MaxGridCols || row >= MaxGridRows)
             throw new ArgumentException("Position exceeds canvas bounds");
     }
 }

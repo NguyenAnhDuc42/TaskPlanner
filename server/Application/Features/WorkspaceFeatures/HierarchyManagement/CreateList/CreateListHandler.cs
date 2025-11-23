@@ -12,19 +12,19 @@ using server.Application.Interfaces;
 
 namespace Application.Features.WorkspaceFeatures.HierarchyManagement.CreateList;
 
-public class CreateListHandler : BaseCommandHandler, IRequestHandler<CreateListCommand, Unit>
+public class CreateListHandler : BaseCommandHandler, IRequestHandler<CreateListCommand, Guid>
 {
     public CreateListHandler(IUnitOfWork unitOfWork, ICurrentUserService currentUserService, IPermissionService permissionService, WorkspaceContext workspaceContext)
        : base(unitOfWork, permissionService, currentUserService, workspaceContext) { }
 
-    public async Task<Unit> Handle(CreateListCommand request, CancellationToken cancellationToken)
+    public async Task<Guid> Handle(CreateListCommand request, CancellationToken cancellationToken)
     {
-        var space = await UnitOfWork.Set<ProjectSpace>().FindAsync(request.spaceId, cancellationToken) ?? throw new KeyNotFoundException("Space not found");
+        var space = await FindOrThrowAsync<ProjectSpace>(request.spaceId);
 
         ProjectFolder? folder = null;
         if (request.folderId.HasValue)
         {
-            folder = await UnitOfWork.Set<ProjectFolder>().FindAsync(request.folderId.Value, cancellationToken) ?? throw new KeyNotFoundException($"Folder {request.folderId} not found");
+            folder = await FindOrThrowAsync<ProjectFolder>(request.folderId.Value);
 
             if (folder.ProjectSpaceId != space.Id)
             {
@@ -36,8 +36,10 @@ public class CreateListHandler : BaseCommandHandler, IRequestHandler<CreateListC
         long orderKey = folder?.GetNextListOrderAndIncrement() ?? space.GetNextEntityOrderAndIncrement();
         var customization = Customization.Create(request.color, request.icon);
         var list = ProjectList.Create(
-            projectSpaceId: space.Id, projectFolderId: request.folderId,
-            name: request.name, customization: customization,
+            projectSpaceId: space.Id, 
+            projectFolderId: request.folderId,
+            name: request.name, 
+            customization: customization,
             isPrivate: request.isPrivate,
             creatorId: CurrentUserId,
             start: request.startDate,
@@ -46,6 +48,7 @@ public class CreateListHandler : BaseCommandHandler, IRequestHandler<CreateListC
 
         await UnitOfWork.Set<ProjectList>().AddAsync(list, cancellationToken);
 
+        // Create EntityMember for owner if private
         if (request.isPrivate)
         {
             var member = EntityMember.AddMember(
@@ -58,6 +61,19 @@ public class CreateListHandler : BaseCommandHandler, IRequestHandler<CreateListC
 
             await UnitOfWork.Set<EntityMember>().AddAsync(member, cancellationToken);
         }
-        return Unit.Value;
+        
+        // Invite additional members if provided
+        if (request.memberIdsToInvite?.Any() == true)
+        {
+            var validMembers = await ValidateWorkspaceMembers(request.memberIdsToInvite, cancellationToken);
+
+            var inviteMembers = validMembers
+                .Where(userId => userId != CurrentUserId)
+                .Select(userId => EntityMember.AddMember(userId, list.Id, EntityLayerType.ProjectList, AccessLevel.Editor, CurrentUserId));
+
+            await UnitOfWork.Set<EntityMember>().AddRangeAsync(inviteMembers, cancellationToken);
+        }
+        
+        return list.Id;
     }
 }

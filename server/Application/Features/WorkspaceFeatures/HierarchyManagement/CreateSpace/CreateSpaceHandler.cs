@@ -12,21 +12,19 @@ using server.Application.Interfaces;
 
 namespace Application.Features.WorkspaceFeatures.HierarchyManagement.CreateSpace;
 
-public class CreateSpaceHandler : BaseCommandHandler, IRequestHandler<CreateSpaceCommand, Unit>
+public class CreateSpaceHandler : BaseCommandHandler, IRequestHandler<CreateSpaceCommand, Guid>
 {
     public CreateSpaceHandler(IUnitOfWork unitOfWork, ICurrentUserService currentUserService, IPermissionService permissionService, WorkspaceContext workspaceContext)
        : base(unitOfWork, permissionService, currentUserService, workspaceContext) { }
-    public async Task<Unit> Handle(CreateSpaceCommand request, CancellationToken cancellationToken)
+       
+    public async Task<Guid> Handle(CreateSpaceCommand request, CancellationToken cancellationToken)
     {
-        var workspace = await UnitOfWork.Set<ProjectWorkspace>().FindAsync(request.workspaceId, cancellationToken) ?? throw new KeyNotFoundException("Workspace not found");
+        var workspace = await FindOrThrowAsync<ProjectWorkspace>(request.workspaceId);
+        
         await RequirePermissionAsync(workspace, EntityType.ProjectSpace, PermissionAction.Create, cancellationToken);
         var customization = Customization.Create(request.color, request.icon);
         var orderKey = workspace.GetNextOrderAndIncrement();
-        if (request.isPrivate)
-        {
-            var member = EntityMember.AddMember(CurrentUserId, workspace.Id, EntityLayerType.ProjectSpace, AccessLevel.Manager, CurrentUserId);
-            await UnitOfWork.Set<EntityMember>().AddAsync(member, cancellationToken);
-        }
+        
         var space = ProjectSpace.Create(
             projectWorkspaceId: workspace.Id,
             name: request.name,
@@ -38,7 +36,26 @@ public class CreateSpaceHandler : BaseCommandHandler, IRequestHandler<CreateSpac
         );
 
         await UnitOfWork.Set<ProjectSpace>().AddAsync(space, cancellationToken);
-        return Unit.Value;
+        
+        // Create EntityMember for owner if private (FIXED: use space.Id instead of workspace.Id)
+        if (request.isPrivate)
+        {
+            var member = EntityMember.AddMember(CurrentUserId, space.Id, EntityLayerType.ProjectSpace, AccessLevel.Manager, CurrentUserId);
+            await UnitOfWork.Set<EntityMember>().AddAsync(member, cancellationToken);
+        }
+        
+        // Invite additional members if provided
+        if (request.memberIdsToInvite?.Any() == true)
+        {
+            var validMembers = await ValidateWorkspaceMembers(request.memberIdsToInvite, cancellationToken);
 
+            var inviteMembers = validMembers
+                .Where(userId => userId != CurrentUserId)
+                .Select(userId => EntityMember.AddMember(userId, space.Id, EntityLayerType.ProjectSpace, AccessLevel.Editor, CurrentUserId));
+
+            await UnitOfWork.Set<EntityMember>().AddRangeAsync(inviteMembers, cancellationToken);
+        }
+        
+        return space.Id;
     }
 }

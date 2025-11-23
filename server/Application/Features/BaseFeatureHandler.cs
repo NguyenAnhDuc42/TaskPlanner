@@ -114,7 +114,7 @@ public abstract class BaseFeatureHandler
         };
     }
 
-    protected async Task<Entity> FindOrThrowAsync<T>(Guid id)
+    protected async Task<T> FindOrThrowAsync<T>(Guid id)
     where T : Entity
     {
         var entity = await UnitOfWork.Set<T>()

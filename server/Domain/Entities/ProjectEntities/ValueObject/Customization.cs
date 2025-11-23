@@ -21,8 +21,12 @@ public record class Customization
         Icon = icon;
     }
 
-    public static Customization Create(string color, string icon)
-       => new Customization(color.Trim(), icon.Trim());
+    public static Customization Create(string? color, string? icon)
+    {
+        var c = string.IsNullOrWhiteSpace(color) ? "#cdcbcbff" : color.Trim();
+        var i = string.IsNullOrWhiteSpace(icon) ? "default_icon" : icon.Trim();
+        return new Customization(c, i);
+    }
 
     public static Customization CreateDefault()
         => new Customization("#cdcbcbff", "default_icon");

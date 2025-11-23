@@ -1,9 +1,10 @@
 using System;
+using Domain.Common;
 using Domain.Enums.Notification;
 
 namespace Domain.Entities.Support.Notification;
 
-public class UserNotification
+public class UserNotification : Composite
 {
     public Guid UserId { get; private set; }
     public Guid NotficationEventId { get; private set; }

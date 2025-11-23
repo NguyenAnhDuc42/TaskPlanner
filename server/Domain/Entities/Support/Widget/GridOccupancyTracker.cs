@@ -7,14 +7,14 @@ namespace Domain.Entities.Support.Widget;
 public class GridOccupancyTracker
 {
     private readonly int _maxGridCols;
-    private readonly int _maxCanvasHeight;
+    private readonly int _maxGridRows;
     private readonly Dictionary<(int row, int col), bool> _occupiedCells = new();
     private int _maxOccupiedRow = -1;
 
-    public GridOccupancyTracker(int maxGridCols = 12, int maxCanvasHeight = 2000)
+    public GridOccupancyTracker(int maxGridCols = 12, int maxGridRows = 2000)
     {
         _maxGridCols = maxGridCols;
-        _maxCanvasHeight = maxCanvasHeight;
+        _maxGridRows = maxGridRows;
     }
 
     public void MarkOccupied(int col, int row, int width, int height)
@@ -45,7 +45,7 @@ public class GridOccupancyTracker
 
     public bool CanPlaceAt(int col, int row, int width, int height)
     {
-        if (col < 0 || col + width > _maxGridCols || row < 0 || row + height > _maxCanvasHeight)
+        if (col < 0 || col + width > _maxGridCols || row < 0 || row + height > _maxGridRows)
             return false;
 
         for (int r = row; r < row + height; r++)

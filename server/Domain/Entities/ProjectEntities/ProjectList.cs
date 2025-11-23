@@ -89,6 +89,48 @@ public sealed class ProjectList : Entity
         if (changed) UpdateTimestamp();
     }
 
+    public void UpdateDetails(string name, string? color = null, string? icon = null)
+    {
+        var changed = false;
+        var candidateName = name.Trim() == string.Empty ? throw new ArgumentException("Name cannot be empty.", nameof(name)) : name.Trim();
+        ValidateBasicInfo(candidateName);
+        if (candidateName != Name)
+        {
+            Name = candidateName;
+            changed = true;
+        }
+
+        if (color is not null || icon is not null)
+        {
+            var c = color?.Trim() ?? Customization.Color;
+            var i = icon?.Trim() ?? Customization.Icon;
+            var newCustomization = Customization.Create(c, i);
+            if (!newCustomization.Equals(Customization)) { Customization = newCustomization; changed = true; }
+        }
+
+        if (changed) UpdateTimestamp();
+    }
+
+    public void UpdateDates(DateTimeOffset? startDate, DateTimeOffset? dueDate)
+    {
+        if (startDate.HasValue && dueDate.HasValue && startDate > dueDate) throw new ArgumentException("Start date cannot be later than due date.", nameof(startDate));
+        
+        var changed = false;
+        if (StartDate != startDate) { StartDate = startDate; changed = true; }
+        if (DueDate != dueDate) { DueDate = dueDate; changed = true; }
+        
+        if (changed) UpdateTimestamp();
+    }
+
+    public void UpdatePrivacy(bool isPrivate)
+    {
+        if (IsPrivate != isPrivate)
+        {
+            IsPrivate = isPrivate;
+            UpdateTimestamp();
+        }
+    }
+
     public void Archive() { if (IsArchived) return; IsArchived = true; UpdateTimestamp(); }
     public void Unarchive() { if (!IsArchived) return; IsArchived = false; UpdateTimestamp(); }
 

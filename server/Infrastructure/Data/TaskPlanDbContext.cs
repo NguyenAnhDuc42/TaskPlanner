@@ -1,14 +1,12 @@
 using Microsoft.EntityFrameworkCore;
-using System.Reflection; // Needed for Assembly.GetExecutingAssembly()
-
-// Import all Domain.Entities namespaces
+using System.Reflection; 
 using Domain.Entities;
-
 using Domain.Entities.Relationship;
 using Domain.Entities.Support;
 using Domain.Entities.ProjectEntities;
 using Domain.Common;
 using Domain.Entities.Support.Workspace;
+using Domain.Entities.Support.Widget;
 
 namespace Infrastructure.Data;
 
@@ -39,6 +37,9 @@ public class TaskPlanDbContext : DbContext
     public DbSet<Status> Statuses { get; set; }
     public DbSet<ChatRoom> ChatRooms { get; set; }
     public DbSet<ChatMessage> ChatMessages { get; set; }
+
+    public DbSet<Widget> Widgets { get; set; }
+    public DbSet<Dashboard> Dashboards { get; set; }
 
 
 

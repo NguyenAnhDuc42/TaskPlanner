@@ -3,4 +3,11 @@ using MediatR;
 
 namespace Application.Features.WorkspaceFeatures.HierarchyManagement.CreateFolder;
 
-public record class CreateFolderCommand(Guid spaceId,string name,string color,string icon,bool isPrivate) : ICommand<Unit>;
+public record CreateFolderCommand(
+    Guid spaceId,
+    string name,
+    string? color,
+    string? icon,
+    bool isPrivate,
+    List<Guid>? memberIdsToInvite  // Invite members immediately on creation
+) : IRequest<Guid>;  // Return folder ID for navigation

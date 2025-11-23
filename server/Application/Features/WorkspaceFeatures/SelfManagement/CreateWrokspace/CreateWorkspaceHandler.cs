@@ -1,4 +1,3 @@
-
 using Application.Contract.WorkspaceContract;
 using Application.Interfaces.Repositories;
 using Domain.Entities.ProjectEntities;
@@ -9,7 +8,7 @@ using server.Application.Interfaces;
 
 namespace Application.Features.WorkspaceFeatures.CreateWrokspace;
 
-public class CreateWorkspaceHandler : IRequestHandler<CreateWorkspaceCommand, WorkspaceDetail>
+public class CreateWorkspaceHandler : IRequestHandler<CreateWorkspaceCommand, Guid>
 {
     private readonly IUnitOfWork _unitOfWork;
     private readonly ICurrentUserService _currentUserService;
@@ -20,7 +19,7 @@ public class CreateWorkspaceHandler : IRequestHandler<CreateWorkspaceCommand, Wo
         _currentUserService = currentUserService ?? throw new ArgumentNullException(nameof(currentUserService));
     }
 
-    public async Task<WorkspaceDetail> Handle(CreateWorkspaceCommand request, CancellationToken cancellationToken)
+    public async Task<Guid> Handle(CreateWorkspaceCommand request, CancellationToken cancellationToken)
     {
         var currentUserId = _currentUserService.CurrentUserId();
         if (currentUserId == Guid.Empty)
@@ -44,7 +43,6 @@ public class CreateWorkspaceHandler : IRequestHandler<CreateWorkspaceCommand, Wo
 
         await _unitOfWork.Set<ProjectWorkspace>().AddAsync(workspace, cancellationToken);
 
-        return workspace.Adapt<WorkspaceDetail>();
-
+        return workspace.Id;
     }
 }

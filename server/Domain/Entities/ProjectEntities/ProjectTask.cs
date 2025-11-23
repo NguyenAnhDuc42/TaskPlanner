@@ -43,8 +43,8 @@ public class ProjectTask : Entity
         IsArchived = false;
     }
 
-    public static ProjectTask Create(Guid projectListId, string name, string? description, Customization? customization, Guid creatorId, Guid? StatusId = null, Priority priority = Priority.Low, DateTimeOffset? startDate = null, DateTimeOffset? dueDate = null, int? storyPoints = null, long? timeEstimate = null, long orderKey = 10_000_000L)
-        => new ProjectTask(Guid.NewGuid(), projectListId, name?.Trim() ?? throw new ArgumentNullException(nameof(name)), string.IsNullOrWhiteSpace(description) ? null : description?.Trim(), customization ?? Customization.CreateDefault(), creatorId, StatusId, priority, startDate, dueDate, storyPoints, timeEstimate, orderKey);
+    public static ProjectTask Create(Guid projectListId, string name, string? description, Customization? customization, Guid creatorId, Guid? statusId = null, Priority priority = Priority.Low, DateTimeOffset? startDate = null, DateTimeOffset? dueDate = null, int? storyPoints = null, long? timeEstimate = null, long orderKey = 10_000_000L)
+        => new ProjectTask(Guid.NewGuid(), projectListId, name?.Trim() ?? throw new ArgumentNullException(nameof(name)), string.IsNullOrWhiteSpace(description) ? null : description?.Trim(), customization ?? Customization.CreateDefault(), creatorId, statusId, priority, startDate, dueDate, storyPoints, timeEstimate, orderKey);
 
     // Consolidated update: single method for name/description/schedule/priority/status/estimation/customization/orderKey
     public void Update(string? name = null, string? description = null, DateTimeOffset? startDate = null, DateTimeOffset? dueDate = null, Priority? priority = null, Guid? StatusId = null, int? storyPoints = null, long? timeEstimateSeconds = null, string? color = null, string? icon = null, long? orderKey = null)
@@ -86,6 +86,56 @@ public class ProjectTask : Entity
 
         if (orderKey.HasValue && orderKey != OrderKey) { OrderKey = orderKey.Value; changed = true; }
 
+        if (changed) UpdateTimestamp();
+    }
+
+    public void UpdateDetails(string name, string? description)
+    {
+        var changed = false;
+        var candidateName = name.Trim() == string.Empty ? throw new ArgumentException("Name cannot be empty.", nameof(name)) : name.Trim();
+        var candidateDescription = string.IsNullOrWhiteSpace(description) ? null : description.Trim();
+
+        ValidateBasicInfo(candidateName, candidateDescription);
+
+        if (candidateName != Name) { Name = candidateName; changed = true; }
+        if (candidateDescription != Description) { Description = candidateDescription; changed = true; }
+
+        if (changed) UpdateTimestamp();
+    }
+
+    public void UpdateStatus(Guid statusId)
+    {
+        if (StatusId != statusId)
+        {
+            StatusId = statusId;
+            UpdateTimestamp();
+        }
+    }
+
+    public void UpdatePriority(Priority priority)
+    {
+        if (Priority != priority)
+        {
+            Priority = priority;
+            UpdateTimestamp();
+        }
+    }
+
+    public void UpdateDates(DateTimeOffset? startDate, DateTimeOffset? dueDate)
+    {
+        ValidateSchedule(startDate, dueDate);
+        var changed = false;
+        if (StartDate != startDate) { StartDate = startDate; changed = true; }
+        if (DueDate != dueDate) { DueDate = dueDate; changed = true; }
+        if (changed) UpdateTimestamp();
+    }
+
+    public void UpdateEstimation(int? storyPoints, long? timeEstimate)
+    {
+        ValidateEstimation(storyPoints, timeEstimate);
+        var changed = false;
+        if (StoryPoints != storyPoints) { StoryPoints = storyPoints; changed = true; }
+        if (TimeEstimate != timeEstimate) { TimeEstimate = timeEstimate; changed = true; }
         if (changed) UpdateTimestamp();
     }
 
