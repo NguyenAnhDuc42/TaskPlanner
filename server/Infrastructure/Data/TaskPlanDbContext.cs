@@ -7,7 +7,6 @@ using Domain.Entities.ProjectEntities;
 using Domain.Common;
 using Domain.Entities.Support.Workspace;
 using Domain.Entities.Support.Widget;
-
 namespace Infrastructure.Data;
 
 public class TaskPlanDbContext : DbContext
