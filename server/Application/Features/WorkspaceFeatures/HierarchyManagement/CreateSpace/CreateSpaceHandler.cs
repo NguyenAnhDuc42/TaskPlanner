@@ -31,6 +31,7 @@ public class CreateSpaceHandler : BaseCommandHandler, IRequestHandler<CreateSpac
             description: request.description,
             customization: customization,
             isPrivate: request.isPrivate,
+            inheritStatus: false,
             creatorId: CurrentUserId,
             orderKey: orderKey
         );

@@ -31,6 +31,7 @@ public class CreateFolderHandler : BaseCommandHandler, IRequestHandler<CreateFol
             color: customization.Color,
             icon: customization.Icon,
             isPrivate: request.isPrivate,
+            inheritStatus: false,
             creatorId: CurrentUserId,
             orderKey: orderKey
         );

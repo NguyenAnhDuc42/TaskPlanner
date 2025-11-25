@@ -15,12 +15,13 @@ public sealed class ProjectFolder : Entity
     public long OrderKey { get; private set; }
     public bool IsPrivate { get; private set; } = true;
     public bool IsArchived { get; private set; }
+    public bool InheritStatus { get; private set; } = false;
     public Guid CreatorId { get; private set; }
     public long NextListOrder { get; private set; } = 10_000_000L;
 
     private ProjectFolder() { }
 
-    private ProjectFolder(Guid id, Guid projectSpaceId, string name, Customization customization, bool isPrivate, long orderKey, Guid creatorId)
+    private ProjectFolder(Guid id, Guid projectSpaceId, string name, Customization customization, bool isPrivate, bool inheritStatus, long orderKey, Guid creatorId)
     {
         Id = id;
         ProjectSpaceId = projectSpaceId;
@@ -29,19 +30,20 @@ public sealed class ProjectFolder : Entity
         if (name.Length > 100) throw new ArgumentException("Name too long.", nameof(name));
         Customization = customization ?? throw new ArgumentNullException(nameof(customization));
         IsPrivate = isPrivate;
+        InheritStatus = inheritStatus;
         OrderKey = orderKey;
         CreatorId = creatorId;
         IsArchived = false;
     }
 
-    public static ProjectFolder Create(Guid projectSpaceId, string name, string color, string icon, bool isPrivate, Guid creatorId, long orderKey)
+    public static ProjectFolder Create(Guid projectSpaceId, string name, string color, string icon, bool isPrivate, bool inheritStatus, Guid creatorId, long orderKey)
     {
         if (string.IsNullOrWhiteSpace(color)) throw new ArgumentException("Color required.", nameof(color));
         if (!IsValidColorCode(color)) throw new ArgumentException("Invalid color.", nameof(color));
         if (creatorId == Guid.Empty) throw new ArgumentException("CreatorId cannot be empty.", nameof(creatorId));
 
         var customization = Customization.Create(color.Trim(), icon.Trim());
-        return new ProjectFolder(Guid.NewGuid(), projectSpaceId, name?.Trim() ?? throw new ArgumentNullException(nameof(name)), customization, isPrivate, orderKey, creatorId);
+        return new ProjectFolder(Guid.NewGuid(), projectSpaceId, name?.Trim() ?? throw new ArgumentNullException(nameof(name)), customization, isPrivate, inheritStatus, orderKey, creatorId);
     }
 
     public long GetNextListOrderAndIncrement()

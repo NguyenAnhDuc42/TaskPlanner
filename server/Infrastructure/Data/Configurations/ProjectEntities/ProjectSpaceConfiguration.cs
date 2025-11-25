@@ -17,9 +17,10 @@ public class ProjectSpaceConfiguration : EntityConfiguration<ProjectSpace>
         builder.Property(x => x.Description).HasColumnName("description").HasMaxLength(2000);
         builder.Property(x => x.IsPrivate).HasColumnName("is_private").IsRequired();
         builder.Property(x => x.IsArchived).HasColumnName("is_archived").IsRequired();
+        builder.Property(x => x.InheritStatus).HasColumnName("inherit_status").IsRequired();
         builder.Property(x => x.OrderKey).HasColumnName("order_key");
         builder.Property(x => x.CreatorId).HasColumnName("creator_id").IsRequired();
-        builder.Property(x => x.NextEntityOrder).HasColumnName("next_entity_order").IsRequired();
+        builder.Property(x => x.NextChildOrder).HasColumnName("next_entity_order").IsRequired();
 
 
         builder.OwnsOne(x => x.Customization, cb =>

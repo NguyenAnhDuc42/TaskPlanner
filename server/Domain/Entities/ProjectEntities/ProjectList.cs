@@ -15,6 +15,7 @@ public sealed class ProjectList : Entity
     public long OrderKey { get; private set; }
     public bool IsPrivate { get; private set; } = true;
     public bool IsArchived { get; private set; }
+    public bool InheritStatus { get; private set; } = false;
     public Guid CreatorId { get; private set; }
     public DateTimeOffset? StartDate { get; private set; }
     public DateTimeOffset? DueDate { get; private set; }
@@ -22,7 +23,7 @@ public sealed class ProjectList : Entity
 
     private ProjectList() { }
 
-    private ProjectList(Guid id, Guid projectSpaceId, Guid? projectFolderId, string name, Customization customization, bool isPrivate, long orderKey, Guid creatorId, DateTimeOffset? startDate, DateTimeOffset? dueDate)
+    private ProjectList(Guid id, Guid projectSpaceId, Guid? projectFolderId, string name, Customization customization, bool isPrivate, bool inheritStatus, long orderKey, Guid creatorId, DateTimeOffset? startDate, DateTimeOffset? dueDate)
     {
         Id = id;
         ProjectSpaceId = projectSpaceId;
@@ -30,6 +31,7 @@ public sealed class ProjectList : Entity
         Name = name ?? throw new ArgumentNullException(nameof(name));
         Customization = customization ?? Customization.CreateDefault();
         IsPrivate = isPrivate;
+        InheritStatus = inheritStatus;
         OrderKey = orderKey;
         CreatorId = creatorId;
         StartDate = startDate;
@@ -37,7 +39,7 @@ public sealed class ProjectList : Entity
         IsArchived = false;
     }
 
-    public static ProjectList Create(Guid projectSpaceId, Guid? projectFolderId, string name, Customization? customization, bool isPrivate, Guid creatorId, long orderKey, DateTimeOffset? start = null, DateTimeOffset? due = null)
+    public static ProjectList Create(Guid projectSpaceId, Guid? projectFolderId, string name, Customization? customization, bool isPrivate, bool inheritStatus, Guid creatorId, long orderKey, DateTimeOffset? start = null, DateTimeOffset? due = null)
     {
         var candidateName = name?.Trim() ?? throw new ArgumentNullException(nameof(name));
         if (string.IsNullOrWhiteSpace(candidateName)) throw new ArgumentException("List name cannot be empty.", nameof(name));
@@ -45,7 +47,7 @@ public sealed class ProjectList : Entity
         if (start.HasValue && due.HasValue && start > due) throw new ArgumentException("Start date cannot be later than due date.", nameof(start));
         if (creatorId == Guid.Empty) throw new ArgumentException("CreatorId cannot be empty.", nameof(creatorId));
 
-        return new ProjectList(Guid.NewGuid(), projectSpaceId, projectFolderId, candidateName, customization ?? Customization.CreateDefault(), isPrivate, orderKey, creatorId, start, due);
+        return new ProjectList(Guid.NewGuid(), projectSpaceId, projectFolderId, candidateName, customization ?? Customization.CreateDefault(), isPrivate, inheritStatus, orderKey, creatorId, start, due);
     }
 
     public long GetNextTaskOrderAndIncrement()

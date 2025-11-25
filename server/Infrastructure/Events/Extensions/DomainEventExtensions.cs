@@ -1,5 +1,6 @@
 using System;
 using Domain.Common.Interfaces;
+using Domain.Common;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
 
 namespace Infrastructure.Events.Extensions;

@@ -18,6 +18,7 @@ public class ProjectListConfiguration : EntityConfiguration<ProjectList>
         builder.Property(x => x.OrderKey).HasColumnName("order_key");
         builder.Property(x => x.IsPrivate).HasColumnName("is_private").IsRequired();
         builder.Property(x => x.IsArchived).HasColumnName("is_archived").IsRequired();
+        builder.Property(x => x.InheritStatus).HasColumnName("inherit_status").IsRequired();
         builder.Property(x => x.CreatorId).HasColumnName("creator_id").IsRequired();
         builder.Property(x => x.StartDate).HasColumnName("start_date");
         builder.Property(x => x.DueDate).HasColumnName("due_date");

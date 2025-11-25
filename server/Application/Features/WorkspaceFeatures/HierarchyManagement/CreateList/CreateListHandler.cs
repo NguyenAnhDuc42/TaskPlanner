@@ -41,10 +41,11 @@ public class CreateListHandler : BaseCommandHandler, IRequestHandler<CreateListC
             name: request.name, 
             customization: customization,
             isPrivate: request.isPrivate,
+            inheritStatus: false,
             creatorId: CurrentUserId,
+            orderKey: orderKey,
             start: request.startDate,
-            due: request.dueDate,
-            orderKey: orderKey);
+            due: request.dueDate);
 
         await UnitOfWork.Set<ProjectList>().AddAsync(list, cancellationToken);
 
