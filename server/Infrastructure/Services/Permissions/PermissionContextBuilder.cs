@@ -159,4 +159,25 @@ public class PermissionContextBuilder
             IsEntityPrivate = isPrivate
         };
     }
+
+    // Cache invalidation methods
+    public async Task InvalidateWorkspaceRoleCacheAsync(Guid userId, Guid workspaceId)
+    {
+        await _dataFetcher.InvalidateWorkspaceRoleCacheAsync(userId, workspaceId);
+    }
+
+    public async Task InvalidateEntityAccessCacheAsync(Guid userId, Guid entityId, EntityType entityType)
+    {
+        await _dataFetcher.InvalidateEntityAccessCacheAsync(userId, entityId, entityType);
+    }
+
+    public async Task InvalidateChatRoomCacheAsync(Guid userId, Guid chatRoomId)
+    {
+        await _dataFetcher.InvalidateChatRoomCacheAsync(userId, chatRoomId);
+    }
+
+    public async Task InvalidateUserCacheAsync(Guid userId, Guid workspaceId)
+    {
+        await _dataFetcher.InvalidateUserCacheAsync(userId, workspaceId);
+    }
 }

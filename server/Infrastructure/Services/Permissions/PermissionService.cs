@@ -1,5 +1,7 @@
 ﻿using Domain.Common;
 using Domain.Enums;
+using Domain.Common;
+using Domain.Enums;
 using Microsoft.Extensions.Logging;
 using Application.Interfaces.Services.Permissions;
 using Application.Common;
@@ -19,7 +21,6 @@ public class PermissionService : IPermissionService
         _logger = logger;
     }
 
-    // Variant 1: Action on entity itself
     public async Task<bool> CanPerformAsync<TEntity>(
         Guid workspaceId,
         Guid userId,
@@ -32,7 +33,6 @@ public class PermissionService : IPermissionService
 
         var entityType = PermissionDataFetcher.GetEntityType<TEntity>();
 
-        // Get rule to check what data it needs
         var rule = PermissionMatrix.GetRule(entityType, action);
         if (rule == null)
         {
@@ -40,11 +40,8 @@ public class PermissionService : IPermissionService
             return false;
         }
 
-        // Build context with selective fetching
-        var context = await _contextBuilder.BuildForEntityAsync(
-            workspaceId, userId, entity, rule.DataNeeds, ct);
+        var context = await _contextBuilder.BuildForEntityAsync(workspaceId, userId, entity, rule.DataNeeds, ct);
 
-        // Evaluate rule
         var result = rule.Evaluate(context);
         if (!result)
         {
@@ -55,7 +52,6 @@ public class PermissionService : IPermissionService
         return result;
     }
 
-    // Variant 2: Create child in parent
     public async Task<bool> CanPerformAsync<TParent>(
         Guid workspaceId,
         Guid userId,
@@ -67,7 +63,6 @@ public class PermissionService : IPermissionService
         if (parentEntity == null) throw new ArgumentNullException(nameof(parentEntity));
         ct.ThrowIfCancellationRequested();
 
-        // Get rule for CHILD type (what we're creating)
         var rule = PermissionMatrix.GetRule(childType, action);
         if (rule == null)
         {
@@ -75,11 +70,9 @@ public class PermissionService : IPermissionService
             return false;
         }
 
-        // Build context from parent with selective fetching
         var context = await _contextBuilder.BuildForParentChildAsync(
             workspaceId, userId, parentEntity, rule.DataNeeds, ct);
 
-        // Evaluate child rule using parent context
         var result = rule.Evaluate(context);
         if (!result)
         {
@@ -91,14 +84,7 @@ public class PermissionService : IPermissionService
         return result;
     }
 
-    // Variant 3: Action on child with parent context
-    public async Task<bool> CanPerformAsync<TChild, TParent>(
-        Guid workspaceId,
-        Guid userId,
-        TChild childEntity,
-        TParent parentEntity,
-        PermissionAction action,
-        CancellationToken ct)
+    public async Task<bool> CanPerformAsync<TChild, TParent>(Guid workspaceId, Guid userId, TChild childEntity, TParent parentEntity, PermissionAction action, CancellationToken ct)
         where TChild : Entity
         where TParent : Entity
     {
@@ -108,7 +94,6 @@ public class PermissionService : IPermissionService
 
         var childType = PermissionDataFetcher.GetEntityType<TChild>();
 
-        // Get rule for child
         var rule = PermissionMatrix.GetRule(childType, action);
         if (rule == null)
         {
@@ -116,18 +101,35 @@ public class PermissionService : IPermissionService
             return false;
         }
 
-        // Build context with selective fetching
         var context = await _contextBuilder.BuildForChildWithParentAsync(
             workspaceId, userId, childEntity, parentEntity, rule.DataNeeds, ct);
 
-        // Evaluate rule
         var result = rule.Evaluate(context);
-        if (!result)
+        if (!result) 
         {
-            _logger.LogWarning("Permission denied: User {UserId} action {Action} on {EntityType} {EntityId}",
-                userId, action, childType, childEntity.Id);
+            _logger.LogWarning("Permission denied: User {UserId} action {Action} on {EntityType} {EntityId}",userId, action, childType, childEntity.Id); 
         }
 
         return result;
+    }
+
+    public async Task InvalidateWorkspaceRoleCacheAsync(Guid userId, Guid workspaceId)
+    {
+        await _contextBuilder.InvalidateWorkspaceRoleCacheAsync(userId, workspaceId);
+    }
+
+    public async Task InvalidateEntityAccessCacheAsync(Guid userId, Guid entityId, EntityType entityType)
+    {
+        await _contextBuilder.InvalidateEntityAccessCacheAsync(userId, entityId, entityType);
+    }
+
+    public async Task InvalidateChatRoomCacheAsync(Guid userId, Guid chatRoomId)
+    {
+        await _contextBuilder.InvalidateChatRoomCacheAsync(userId, chatRoomId);
+    }
+
+    public async Task InvalidateUserCacheAsync(Guid userId, Guid workspaceId)
+    {
+        await _contextBuilder.InvalidateUserCacheAsync(userId, workspaceId);
     }
 }

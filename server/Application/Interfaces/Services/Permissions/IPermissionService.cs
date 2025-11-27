@@ -35,4 +35,10 @@ public interface IPermissionService
         CancellationToken ct)
         where TChild : Entity
         where TParent : Entity;
+
+    // Cache invalidation methods
+    Task InvalidateWorkspaceRoleCacheAsync(Guid userId, Guid workspaceId);
+    Task InvalidateEntityAccessCacheAsync(Guid userId, Guid entityId, EntityType entityType);
+    Task InvalidateChatRoomCacheAsync(Guid userId, Guid chatRoomId);
+    Task InvalidateUserCacheAsync(Guid userId, Guid workspaceId);
 }

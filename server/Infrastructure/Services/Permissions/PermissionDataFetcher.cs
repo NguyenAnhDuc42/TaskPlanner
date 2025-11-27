@@ -5,42 +5,77 @@ using Domain.Enums.Workspace;
 using Domain.Entities.ProjectEntities;
 using Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Hybrid;
 
 namespace Infrastructure.Services.Permissions;
 
 public class PermissionDataFetcher
 {
     private readonly TaskPlanDbContext _dbContext;
+    private readonly HybridCache _cache;
 
-    public PermissionDataFetcher(TaskPlanDbContext dbContext)
+    private const string WorkspaceMemberKey = "perm_ws_{0}_{1}";
+    private const string EntityMemberKey = "perm_entity_{0}_{1}_{2}";
+    private const string ChatRoomMemberKey = "perm_chat_{0}_{1}";
+
+    public PermissionDataFetcher(TaskPlanDbContext dbContext, HybridCache cache)
     {
         _dbContext = dbContext;
+        _cache = cache;
     }
 
     public async Task<Role> GetWorkspaceRoleAsync(Guid userId, Guid workspaceId, CancellationToken ct)
     {
-        var result = await _dbContext.WorkspaceMembers
-            .Where(wm => wm.ProjectWorkspaceId == workspaceId && wm.UserId == userId)
-            .Select(wm => wm.Role)
-            .FirstOrDefaultAsync(ct);
-        return result;
+        var cacheKey = string.Format(WorkspaceMemberKey, userId, workspaceId);
+        return await _cache.GetOrCreateAsync(
+            cacheKey,
+            async cancel =>
+            {
+                var result = await _dbContext.WorkspaceMembers
+                    .AsNoTracking()
+                    .Where(wm => wm.ProjectWorkspaceId == workspaceId && wm.UserId == userId)
+                    .Select(wm => wm.Role)
+                    .FirstOrDefaultAsync(ct);
+                return result;
+            },
+            new HybridCacheEntryOptions { Expiration = TimeSpan.FromMinutes(5) },
+            cancellationToken: ct);
     }
 
     public async Task<AccessLevel?> GetEntityAccessLevelAsync(Guid userId, Guid entityId, EntityType entityType, CancellationToken ct)
     {
-        var result = await _dbContext.EntityMembers
-            .Where(em => em.LayerId == entityId && em.UserId == userId && em.LayerType.ToString() == entityType.ToString())
-            .Select(em => (AccessLevel?)em.AccessLevel)
-            .FirstOrDefaultAsync(ct);
-        return result;
+        var cacheKey = string.Format(EntityMemberKey, userId, entityId, entityType);
+        return await _cache.GetOrCreateAsync(
+            cacheKey,
+            async cancel =>
+            {
+                var result = await _dbContext.EntityMembers
+                    .AsNoTracking()
+                    .Where(em => em.LayerId == entityId && em.UserId == userId && em.LayerType.ToString() == entityType.ToString())
+                    .Select(em => (AccessLevel?)em.AccessLevel)
+                    .FirstOrDefaultAsync(ct);
+                return result;
+            },
+            new HybridCacheEntryOptions { Expiration = TimeSpan.FromMinutes(5) },
+            cancellationToken: ct);
     }
 
     public async Task<ChatRoomRole?> GetChatRoomRoleAsync(Guid userId, Guid chatRoomId, CancellationToken ct)
     {
-        return await _dbContext.ChatRoomMembers
-            .Where(crm => crm.ChatRoomId == chatRoomId && crm.UserId == userId)
-            .Select(crm => (ChatRoomRole?)crm.Role)
-            .FirstOrDefaultAsync(ct);
+        var cacheKey = string.Format(ChatRoomMemberKey, userId, chatRoomId);
+        return await _cache.GetOrCreateAsync(
+            cacheKey,
+            async cancel =>
+            {
+                var result = await _dbContext.ChatRoomMembers
+                    .AsNoTracking()
+                    .Where(crm => crm.ChatRoomId == chatRoomId && crm.UserId == userId)
+                    .Select(crm => (ChatRoomRole?)crm.Role)
+                    .FirstOrDefaultAsync(ct);
+                return result;
+            },
+            new HybridCacheEntryOptions { Expiration = TimeSpan.FromMinutes(5) },
+            cancellationToken: ct);
     }
 
     public async Task<(bool IsBanned, bool IsMuted)> GetChatRoomMemberStatusAsync(Guid userId, Guid chatRoomId, CancellationToken ct)
@@ -119,4 +154,32 @@ public class PermissionDataFetcher
             nameof(ProjectList) => EntityType.ProjectList,
             _ => throw new InvalidOperationException($"Unknown entity type: {typeof(TEntity).Name}")
         };
+
+    // Cache invalidation methods
+    public async Task InvalidateWorkspaceRoleCacheAsync(Guid userId, Guid workspaceId)
+    {
+        var cacheKey = string.Format(WorkspaceMemberKey, userId, workspaceId);
+        await _cache.RemoveAsync(cacheKey);
+    }
+
+    public async Task InvalidateEntityAccessCacheAsync(Guid userId, Guid entityId, EntityType entityType)
+    {
+        var cacheKey = string.Format(EntityMemberKey, userId, entityId, entityType);
+        await _cache.RemoveAsync(cacheKey);
+    }
+
+    public async Task InvalidateChatRoomCacheAsync(Guid userId, Guid chatRoomId)
+    {
+        var cacheKey = string.Format(ChatRoomMemberKey, userId, chatRoomId);
+        await _cache.RemoveAsync(cacheKey);
+    }
+
+    public async Task InvalidateUserCacheAsync(Guid userId, Guid workspaceId)
+    {
+        // Invalidate workspace role
+        await InvalidateWorkspaceRoleCacheAsync(userId, workspaceId);
+        
+        // Note: Can't easily invalidate all entity access caches for a user
+        // Those will expire naturally after 5 minutes
+    }
 }
