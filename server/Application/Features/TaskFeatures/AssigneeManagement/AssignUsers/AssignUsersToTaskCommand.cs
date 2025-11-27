@@ -1,7 +1,7 @@
 using System;
 using MediatR;
 
-namespace Application.Features.TaskManagement.AssigneeManagement.AssignUsers;
+namespace Application.Features.TaskFeatures.AssigneeManagement.AssignUsers;
 
 public record AssignUsersToTaskCommand(
     Guid TaskId,

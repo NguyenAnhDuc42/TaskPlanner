@@ -8,7 +8,7 @@ using MediatR;
 using Microsoft.EntityFrameworkCore;
 using server.Application.Interfaces;
 
-namespace Application.Features.TaskManagement.AssigneeManagement.AssignUsers;
+namespace Application.Features.TaskFeatures.AssigneeManagement.AssignUsers;
 
 public class AssignUsersToTaskHandler : BaseCommandHandler, IRequestHandler<AssignUsersToTaskCommand, Unit>
 {

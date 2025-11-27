@@ -2,7 +2,7 @@ using System;
 using Domain.Enums;
 using MediatR;
 
-namespace Application.Features.TaskManagement.SelfManagement.CreateTask;
+namespace Application.Features.TaskFeatures.SelfManagement.CreateTask;
 
 public record CreateTaskCommand(
     Guid ListId,

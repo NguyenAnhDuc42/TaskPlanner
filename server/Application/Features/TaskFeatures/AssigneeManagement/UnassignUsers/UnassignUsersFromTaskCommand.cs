@@ -1,7 +1,7 @@
 using System;
 using MediatR;
 
-namespace Application.Features.TaskManagement.AssigneeManagement.UnassignUsers;
+namespace Application.Features.TaskFeatures.AssigneeManagement.UnassignUsers;
 
 public record UnassignUsersFromTaskCommand(
     Guid TaskId,

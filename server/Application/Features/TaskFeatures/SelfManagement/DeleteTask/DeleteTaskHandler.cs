@@ -6,7 +6,7 @@ using Domain.Enums;
 using MediatR;
 using server.Application.Interfaces;
 
-namespace Application.Features.TaskManagement.SelfManagement.DeleteTask;
+namespace Application.Features.TaskFeatures.SelfManagement.DeleteTask;
 
 public class DeleteTaskHandler : BaseCommandHandler, IRequestHandler<DeleteTaskCommand, Unit>
 {

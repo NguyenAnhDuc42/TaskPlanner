@@ -16,8 +16,8 @@ public class DeleteStatusHandler : BaseCommandHandler, IRequestHandler<DeleteSta
     {
         var status = await FindOrThrowAsync<Status>(request.StatusId);
 
-        // TODO: Permission check based on status.LayerType and status.LayerId
-        // TODO: Check if status is system status (future: prevent deletion of default statuses)
+        var layerEntity = await GetLayer(status.LayerId!.Value, status.LayerType);
+        await RequirePermissionAsync(layerEntity,status, PermissionAction.Delete, cancellationToken);
         
         UnitOfWork.Set<Status>().Remove(status);
         

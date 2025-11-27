@@ -15,7 +15,9 @@ public class CreateStatusHandler : BaseCommandHandler, IRequestHandler<CreateSta
 
     public async Task<Guid> Handle(CreateStatusCommand request, CancellationToken cancellationToken)
     {
-        // TODO: Permission check based on LayerType and LayerId
+        var layerEntity = await GetLayer(request.LayerId, request.LayerType);
+
+        await RequirePermissionAsync(layerEntity, EntityType.Status, PermissionAction.Create, cancellationToken);
         
         var orderKey = request.OrderKey ?? DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
         

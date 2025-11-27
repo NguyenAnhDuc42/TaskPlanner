@@ -180,6 +180,28 @@ public class PermissionMatrix
             Description = "Only owner can invite, only to public/non-restricted rooms"
         },
 
+        // Status management rules
+        [(EntityType.Status, PermissionAction.Create)] = new()
+        {
+            DataNeeds = PermissionDataNeeds.WorkspaceRole | PermissionDataNeeds.EntityAccess,
+            Evaluate = ctx => ctx.WorkspaceRole == Role.Owner || ctx.WorkspaceRole == Role.Admin || ctx.IsEntityManager,
+            Description = "Admins and managers can create custom statuses for their layers"
+        },
+
+        [(EntityType.Status, PermissionAction.Edit)] = new()
+        {
+            DataNeeds = PermissionDataNeeds.WorkspaceRole | PermissionDataNeeds.EntityAccess,
+            Evaluate = ctx => ctx.WorkspaceRole == Role.Owner || ctx.WorkspaceRole == Role.Admin || ctx.IsEntityManager,
+            Description = "Admins and managers can edit statuses for their layers"
+        },
+
+        [(EntityType.Status, PermissionAction.Delete)] = new()
+        {
+            DataNeeds = PermissionDataNeeds.WorkspaceRole | PermissionDataNeeds.EntityAccess,
+            Evaluate = ctx => ctx.WorkspaceRole == Role.Owner || ctx.WorkspaceRole == Role.Admin || ctx.IsEntityManager,
+            Description = "Admins and managers can delete custom statuses"
+        },
+
     };
 
     public static bool CanPerform(EntityType entityType, PermissionAction action, PermissionContext context)
@@ -199,6 +221,12 @@ public class PermissionMatrix
             // Log rule evaluation errors
             return false;
         }
+    }
+
+    public static PermissionRule? GetRule(EntityType entityType, PermissionAction action)
+    {
+        Rules.TryGetValue((entityType, action), out var rule);
+        return rule;
     }
 
     public static string? GetRuleDescription(EntityType entityType, PermissionAction action)

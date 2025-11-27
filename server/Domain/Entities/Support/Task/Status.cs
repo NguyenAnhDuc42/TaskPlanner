@@ -1,6 +1,7 @@
 using System;
 using Domain.Common;
 using Domain.Enums;
+using Domain.Enums.RelationShip;
 
 namespace Domain.Entities.Support;
 
@@ -22,7 +23,8 @@ public class Status : Entity
         if (string.IsNullOrWhiteSpace(name)) throw new ArgumentException("Status name cannot be empty.", nameof(name));
         if (string.IsNullOrWhiteSpace(color)) throw new ArgumentException("Status color cannot be empty.", nameof(color));
         if (layerId == Guid.Empty) throw new ArgumentException(nameof(layerId));
-        if (layerType == EntityLayerType.None) throw new ArgumentException(nameof(layerType));
+        if (!Enum.IsDefined(typeof(EntityLayerType), layerType)) throw new ArgumentException(nameof(layerType));
+        if (orderKey < 0) throw new ArgumentOutOfRangeException(nameof(orderKey));
 
         Name = name.Trim();
         Color = color.Trim();
@@ -40,12 +42,12 @@ public class Status : Entity
     {
         if (string.IsNullOrWhiteSpace(newName)) throw new ArgumentException("Status name cannot be empty.", nameof(newName));
         if (string.IsNullOrWhiteSpace(newColor)) throw new ArgumentException("Status color cannot be empty.", nameof(newColor));
-        
+
         var changed = false;
         if (Name != newName.Trim()) { Name = newName.Trim(); changed = true; }
         if (Color != newColor.Trim()) { Color = newColor.Trim(); changed = true; }
         if (newCategory.HasValue && Category != newCategory.Value) { Category = newCategory.Value; changed = true; }
-        
+
         if (changed) UpdateTimestamp();
     }
 

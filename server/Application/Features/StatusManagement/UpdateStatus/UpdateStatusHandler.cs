@@ -15,8 +15,8 @@ public class UpdateStatusHandler : BaseCommandHandler, IRequestHandler<UpdateSta
     public async Task<Unit> Handle(UpdateStatusCommand request, CancellationToken cancellationToken)
     {
         var status = await FindOrThrowAsync<Status>(request.StatusId);
-
-        // TODO: Permission check based on status.LayerType and status.LayerId
+        var layerEntity = await GetLayer(status.LayerId!.Value, status.LayerType);
+        await RequirePermissionAsync(layerEntity, EntityType.Status, PermissionAction.Edit, cancellationToken);
         
         if (request.Name != null || request.Color != null || request.Category.HasValue)
         {

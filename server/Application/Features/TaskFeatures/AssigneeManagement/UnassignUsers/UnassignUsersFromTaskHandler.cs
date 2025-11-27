@@ -8,7 +8,7 @@ using MediatR;
 using Microsoft.EntityFrameworkCore;
 using server.Application.Interfaces;
 
-namespace Application.Features.TaskManagement.AssigneeManagement.UnassignUsers;
+namespace Application.Features.TaskFeatures.AssigneeManagement.UnassignUsers;
 
 public class UnassignUsersFromTaskHandler : BaseCommandHandler, IRequestHandler<UnassignUsersFromTaskCommand, Unit>
 {

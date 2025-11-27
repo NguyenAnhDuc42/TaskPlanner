@@ -16,7 +16,11 @@ public class ReorderStatusHandler : BaseCommandHandler, IRequestHandler<ReorderS
     {
         var status = await FindOrThrowAsync<Status>(request.StatusId);
 
-        // TODO: Permission check based on status.LayerType and status.LayerId
+        // Get the layer entity to check permissions
+        var layerEntity = await GetLayer(status.LayerId!.Value, status.LayerType);
+        
+        // Require permission to edit Status on this layer (reordering is an edit operation)
+        await RequirePermissionAsync(layerEntity, EntityType.Status, PermissionAction.Edit, cancellationToken);
         
         status.UpdateOrderKey(request.NewOrderKey);
         

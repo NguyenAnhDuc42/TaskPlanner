@@ -2,7 +2,7 @@ using System;
 using Domain.Enums;
 using MediatR;
 
-namespace Application.Features.TaskManagement.SelfManagement.UpdateTask;
+namespace Application.Features.TaskFeatures.SelfManagement.UpdateTask;
 
 public record UpdateTaskCommand(
     Guid TaskId,

@@ -6,7 +6,7 @@ using Domain.Enums;
 using MediatR;
 using server.Application.Interfaces;
 
-namespace Application.Features.TaskManagement.SelfManagement.UpdateTask;
+namespace Application.Features.TaskFeatures.SelfManagement.UpdateTask;
 
 public class UpdateTaskHandler : BaseCommandHandler, IRequestHandler<UpdateTaskCommand, Unit>
 {

@@ -8,7 +8,7 @@ using MediatR;
 using Microsoft.EntityFrameworkCore;
 using server.Application.Interfaces;
 
-namespace Application.Features.TaskManagement.SelfManagement.CreateTask;
+namespace Application.Features.TaskFeatures.SelfManagement.CreateTask;
 
 public class CreateTaskHandler : BaseCommandHandler, IRequestHandler<CreateTaskCommand, Guid>
 {
