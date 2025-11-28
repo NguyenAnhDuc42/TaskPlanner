@@ -29,8 +29,15 @@ public class EntityMember : Composite
 
     public void UpdateAccessLevel(AccessLevel newAccessLevel)
     {
+        var oldAccess = AccessLevel;
         AccessLevel = newAccessLevel;
         UpdateTimestamp();
+        
+        if (oldAccess != newAccessLevel)
+        {
+            AddDomainEvent(new Events.Membership.EntityMemberAccessChangedEvent(
+                UserId, LayerId, (Domain.Enums.EntityType)Enum.Parse(typeof(Domain.Enums.EntityType), LayerType.ToString()), oldAccess, newAccessLevel));
+        }
     }
 
     public void UpdateNotificationsEnabled(bool enabled)

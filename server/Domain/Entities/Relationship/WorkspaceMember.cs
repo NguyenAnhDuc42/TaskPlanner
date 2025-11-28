@@ -63,7 +63,15 @@ public class WorkspaceMember : Composite
         SuspendedBy = suspenderId;
     }
     public void UpdateStatus(MembershipStatus newStatus) => Status = newStatus;
-    public void UpdateRole(Role newRole) => Role = newRole;
+    public void UpdateRole(Role newRole)
+    {
+        var oldRole = Role;
+        Role = newRole;
+        if (oldRole != newRole)
+        {
+            AddDomainEvent(new Events.Membership.WorkspaceMemberRoleChangedEvent(UserId, ProjectWorkspaceId, oldRole, newRole));
+        }
+    }
 
     public void UpdateMembershipDetails(Role? newRole, MembershipStatus? newStatus)
     {
