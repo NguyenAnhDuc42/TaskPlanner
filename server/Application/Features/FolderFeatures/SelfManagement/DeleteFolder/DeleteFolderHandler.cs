@@ -30,8 +30,7 @@ public class DeleteFolderHandler : BaseCommandHandler, IRequestHandler<DeleteFol
             throw new InvalidOperationException("Cannot delete folder that contains active lists. Archive or move the lists first.");
         }
 
-        // Archive (soft delete)
-        folder.Archive();
+        folder.SoftDelete();
 
         return Unit.Value;
     }

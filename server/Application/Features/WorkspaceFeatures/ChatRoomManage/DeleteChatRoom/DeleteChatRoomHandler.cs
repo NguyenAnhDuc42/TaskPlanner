@@ -21,7 +21,7 @@ public class DeleteChatRoomHandler : BaseCommandHandler, IRequestHandler<DeleteC
         cancellationToken.ThrowIfCancellationRequested();
 
         await RequirePermissionAsync(chatRoom, PermissionAction.Delete, cancellationToken);
-        UnitOfWork.Set<ChatRoom>().Remove(chatRoom);
+        chatRoom.SoftDelete();
         return Unit.Value;
 
     }

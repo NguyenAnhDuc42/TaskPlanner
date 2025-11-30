@@ -19,8 +19,7 @@ public class DeleteStatusHandler : BaseCommandHandler, IRequestHandler<DeleteSta
 
         var layerEntity = await GetLayer(status.LayerId!.Value, status.LayerType);
         await RequirePermissionAsync(layerEntity,status, PermissionAction.Delete, cancellationToken);
-        
-        UnitOfWork.Set<Status>().Remove(status);
+        status.SoftDelete();
         
         return Unit.Value;
     }

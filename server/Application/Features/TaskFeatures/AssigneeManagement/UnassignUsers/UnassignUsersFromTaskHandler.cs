@@ -17,7 +17,7 @@ public class UnassignUsersFromTaskHandler : BaseCommandHandler, IRequestHandler<
 
     public async Task<Unit> Handle(UnassignUsersFromTaskCommand request, CancellationToken cancellationToken)
     {
-        var task = await FindOrThrowAsync<ProjectTask>(request.TaskId) as ProjectTask
+        var task = await FindOrThrowAsync<ProjectTask>(request.TaskId)
             ?? throw new KeyNotFoundException("Task not found");
 
         await RequirePermissionAsync(task, PermissionAction.Edit, cancellationToken);

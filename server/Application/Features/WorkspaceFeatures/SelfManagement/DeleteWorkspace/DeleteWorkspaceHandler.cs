@@ -20,7 +20,7 @@ public class DeleteWorkspaceHandler : BaseCommandHandler, IRequestHandler<Delete
 
         var workspace = await UnitOfWork.Set<ProjectWorkspace>().FindAsync(request.workspaceId, cancellationToken) ?? throw new KeyNotFoundException("Workspace not found");
         await RequirePermissionAsync(workspace, PermissionAction.Delete, cancellationToken);
-        UnitOfWork.Set<ProjectWorkspace>().Remove(workspace);
+        workspace.SoftDelete();
 
         return Unit.Value;
 

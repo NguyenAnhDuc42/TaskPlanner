@@ -20,8 +20,7 @@ public class DeleteTaskHandler : BaseCommandHandler, IRequestHandler<DeleteTaskC
 
         await RequirePermissionAsync(task, PermissionAction.Delete, cancellationToken);
 
-        // Archive (soft delete)
-        task.Archive();
+        task.SoftDelete();
 
         return Unit.Value;
     }

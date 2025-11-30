@@ -29,8 +29,7 @@ public class DeleteListHandler : BaseCommandHandler, IRequestHandler<DeleteListC
             throw new InvalidOperationException("Cannot delete list that contains active tasks. Archive or move the tasks first.");
         }
 
-        // Archive (soft delete)
-        list.Archive();
+        list.SoftDelete();
 
         return Unit.Value;
     }

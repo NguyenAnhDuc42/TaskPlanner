@@ -23,7 +23,7 @@ public class DeleteDashboadHandler : BaseCommandHandler, IRequestHandler<DeleteD
         var dashboard = await UnitOfWork.Set<Dashboard>().FindAsync(request.dashboardId) ?? throw new KeyNotFoundException("No dashboard founded");
         if (dashboard.IsMain == true) throw new InvalidOperationException("Cannot delete the main dashboard. Unset IsMain first or use a force-delete flow.");
 
-        UnitOfWork.Set<Dashboard>().Remove(dashboard);
+        dashboard.SoftDelete();
         return Unit.Value;
 
     }

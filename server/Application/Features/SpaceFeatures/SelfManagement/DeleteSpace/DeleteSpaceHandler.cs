@@ -18,7 +18,7 @@ public class DeleteSpaceHandler : BaseCommandHandler, IRequestHandler<DeleteSpac
     {
         var space = await UnitOfWork.Set<ProjectSpace>().FindAsync(request.spaceId, cancellationToken) ?? throw new KeyNotFoundException("Space not found");
         await RequirePermissionAsync(space, PermissionAction.Delete, cancellationToken);
-        UnitOfWork.Set<ProjectSpace>().Remove(space);
+        space.SoftDelete();
         return Unit.Value;
     }
 }

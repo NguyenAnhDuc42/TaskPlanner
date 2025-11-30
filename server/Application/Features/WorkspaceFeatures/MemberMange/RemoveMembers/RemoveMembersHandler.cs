@@ -21,9 +21,13 @@ public class RemoveMembersHandler : BaseCommandHandler, IRequestHandler<RemoveMe
         var workspace = await UnitOfWork.Set<ProjectWorkspace>().FindAsync(request.workspaceId, cancellationToken) ?? throw new KeyNotFoundException("Workspace not found");
 
         await RequirePermissionAsync(workspace, EntityType.WorkspaceMember, PermissionAction.Delete, cancellationToken);
-        var member = await UnitOfWork.Set<WorkspaceMember>().Where(wm => wm.ProjectWorkspaceId == request.workspaceId && request.memberIds.Contains(wm.UserId)).ToListAsync(cancellationToken);
-        if (member == null) throw new KeyNotFoundException("No members found to remove");
-        UnitOfWork.Set<WorkspaceMember>().RemoveRange(member);
+        var member = await UnitOfWork.Set<WorkspaceMember>()
+        .Where(wm => wm.ProjectWorkspaceId == request.workspaceId && request.memberIds.Contains(wm.UserId))
+        .ExecuteUpdateAsync(updates =>
+            updates.SetProperty(wm => wm.DeletedAt, DateTimeOffset.UtcNow)
+                   .SetProperty(wm => wm.UpdatedAt, DateTimeOffset.UtcNow), // Also update the UpdatedAt timestamp
+            cancellationToken: cancellationToken);
+   
         return Unit.Value;
     }
 }
