@@ -11,19 +11,19 @@ public abstract class EntityConfiguration<TEntity> : IEntityTypeConfiguration<TE
     {
         builder.HasKey(x => x.Id);
 
-        builder.Property(x => x.Id)
-            .ValueGeneratedNever(); // GUIDs generated in domain
+        builder.Property(x => x.Id).ValueGeneratedNever().HasColumnName("id"); // GUIDs generated in domain
 
-        builder.Property(x => x.Version)
-            .IsRowVersion(); // concurrency token
+        builder.Property(x => x.Version).IsRowVersion().IsConcurrencyToken().HasColumnName("version"); // concurrency token
 
-        builder.Property(x => x.CreatedAt)
-            .IsRequired();
+        builder.Property(x => x.CreatedAt).IsRequired().HasColumnName("created_at").HasConversion<DateTimeOffset>();
 
-        builder.Property(x => x.UpdatedAt)
-            .IsRequired();
+        builder.Property(x => x.UpdatedAt).IsRequired().HasColumnName("updated_at").HasConversion<DateTimeOffset>();
 
-        // _domainEvents and DomainEvents are ignored
+        builder.Property(x => x.DeletedAt).HasColumnName("deleted_at").HasConversion<DateTimeOffset>();
+
+        builder.Property(x => x.CreatorId).HasColumnName("creator_id");
+
+        builder.HasIndex(x => x.CreatorId);
         builder.Ignore(x => x.DomainEvents);
     }
 }

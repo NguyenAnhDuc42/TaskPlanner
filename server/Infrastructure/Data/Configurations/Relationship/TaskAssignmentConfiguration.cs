@@ -17,7 +17,6 @@ public class TaskAssignmentConfiguration : CompositeConfiguration<TaskAssignment
 
         builder.Property(x => x.TaskId).HasColumnName("task_id").IsRequired();
         builder.Property(x => x.AssigneeId).HasColumnName("assignee_id").IsRequired();
-        builder.Property(x => x.AssignedById).HasColumnName("assigned_by_id").IsRequired();
 
         // Indexes
         builder.HasIndex(x => x.TaskId);

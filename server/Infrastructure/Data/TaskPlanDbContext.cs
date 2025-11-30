@@ -47,22 +47,8 @@ public class TaskPlanDbContext : DbContext
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
 
-        // Apply configurations from the assembly where this DbContext resides
-        // This will pick up all IEntityTypeConfiguration implementations in the same assembly
         modelBuilder.ApplyConfigurationsFromAssembly(Assembly.GetExecutingAssembly());
 
-        foreach (var entityType in modelBuilder.Model.GetEntityTypes())
-        {
-            if (typeof(Entity).IsAssignableFrom(entityType.ClrType))
-            {
-                modelBuilder.Entity(entityType.ClrType).Property<byte[]>("Version")
-                    .IsRowVersion()
-                    .IsConcurrencyToken();
-
-                modelBuilder.Entity(entityType.ClrType).Property<DateTimeOffset>("CreatedAt").IsRequired();
-                modelBuilder.Entity(entityType.ClrType).Property<DateTimeOffset>("UpdatedAt").IsRequired();
-            }
-        }
         base.OnModelCreating(modelBuilder);
     }
 }

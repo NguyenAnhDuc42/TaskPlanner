@@ -17,7 +17,7 @@ public class Status : Entity
 
     private Status() { } // EF Core
 
-    private Status(Guid id, Guid? layerId, EntityLayerType layerType, string name, string color, StatusCategory category, long orderKey)
+    private Status(Guid id, Guid? layerId, EntityLayerType layerType, string name, string color, StatusCategory category, long orderKey, Guid creatorId)
         : base(id)
     {
         if (string.IsNullOrWhiteSpace(name)) throw new ArgumentException("Status name cannot be empty.", nameof(name));
@@ -33,10 +33,11 @@ public class Status : Entity
         LayerType = layerType;
         OrderKey = orderKey;
         IsDefaultStatus = false;
+        CreatorId = creatorId;
     }
 
-    public static Status Create(Guid layerId, EntityLayerType layerType, string name, string color, StatusCategory category, long orderKey)
-        => new Status(Guid.NewGuid(), layerId, layerType, name, color, category, orderKey);
+    public static Status Create(Guid layerId, EntityLayerType layerType, string name, string color, StatusCategory category, long orderKey, Guid creatorId)
+        => new Status(Guid.NewGuid(), layerId, layerType, name, color, category, orderKey, creatorId);
 
     public void UpdateDetails(string newName, string newColor, StatusCategory? newCategory = null)
     {

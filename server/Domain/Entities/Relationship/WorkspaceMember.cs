@@ -12,7 +12,6 @@ public class WorkspaceMember : Composite
     public Guid ProjectWorkspaceId { get; private set; }
     public Role Role { get; private set; } // Only here
     public MembershipStatus Status { get; private set; } // Pending, Active, Invited, Suspended
-    public Guid CreatedBy { get; private set; } // who invited
     public DateTimeOffset JoinedAt { get; private set; }
     public DateTimeOffset? ApprovedAt { get; private set; }
     public Guid? ApprovedBy { get; private set; }
@@ -21,13 +20,13 @@ public class WorkspaceMember : Composite
     public string? JoinMethod { get; private set; } = string.Empty; // "Invite", "Request", "Code"
     private WorkspaceMember() { } // EF
 
-    public WorkspaceMember(Guid userId, Guid projectWorkspaceId, Role role, MembershipStatus status, Guid createdBy, string? joinMethod)
+    public WorkspaceMember(Guid userId, Guid projectWorkspaceId, Role role, MembershipStatus status, Guid creatorId, string? joinMethod)
     {
         UserId = userId;
         ProjectWorkspaceId = projectWorkspaceId;
         Role = role;
         Status = status;
-        CreatedBy = createdBy;
+        CreatorId = creatorId;
         JoinedAt = DateTimeOffset.UtcNow;
         JoinMethod = joinMethod;
     }

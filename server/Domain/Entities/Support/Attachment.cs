@@ -20,7 +20,6 @@ public class Attachment : Entity
     // Lifecycle & state
     public AttachmentProcessingState ProcessingState { get; private set; }
     public bool IsPublic { get; private set; }
-    public Guid UploadedBy { get; private set; }
     // Operational
     public int LinkCount { get; private set; } = 0;       // gc/ref-count hint (keeps things simple)
     public string CustomMetaJson { get; private set; } = "{}"; // exif, dims, thumbnails pointers
@@ -28,8 +27,7 @@ public class Attachment : Entity
 
     public static Attachment Create(
         string contentId, StorageProvider storageProvider, string storagePath,
-        string fileName, string contentType, long sizeBytes, string checksum,
-        Guid uploadedBy, bool isPublic = false, string? customMetaJson = null)
+        string fileName, string contentType, long sizeBytes, string checksum,bool isPublic = false, string? customMetaJson = null,Guid creatorId)
     {
         if (string.IsNullOrWhiteSpace(contentId)) throw new ArgumentException(nameof(contentId));
         if (sizeBytes < 0) throw new ArgumentOutOfRangeException(nameof(sizeBytes));
@@ -45,10 +43,10 @@ public class Attachment : Entity
             SizeBytes = sizeBytes,
             Checksum = checksum,
             ProcessingState = AttachmentProcessingState.Uploaded,
-            UploadedBy = uploadedBy,
             IsPublic = isPublic,
             CustomMetaJson = customMetaJson ?? "{}",
-            LinkCount = 0
+            LinkCount = 0,
+            CreatorId = creatorId
         };
     }
 

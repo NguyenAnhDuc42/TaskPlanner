@@ -12,7 +12,6 @@ public class Widget : Entity
     public WidgetLayout Layout { get; private set; } = new WidgetLayout(0, 0, 2, 2);
     public EntityLayerType LayerType { get; private set; }
     public Guid LayerId { get; private set; }
-    public Guid CreatorId { get; private set; }
     public WidgetType WidgetType { get; private set; }
     public WidgetVisibility Visibility { get; private set; }
     public string ConfigJson { get; private set; } = "{}";
@@ -26,10 +25,10 @@ public class Widget : Entity
         Layout = layout;
         LayerType = layerType;
         LayerId = layerId;
-        CreatorId = creatorId;
         WidgetType = widgetType;
         ConfigJson = string.IsNullOrWhiteSpace(configJson) ? "{}" : configJson;
         Visibility = visibility;
+        CreatorId = creatorId;
     }
 
     public void SetVisibility(WidgetVisibility visibility)

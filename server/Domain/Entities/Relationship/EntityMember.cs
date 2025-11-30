@@ -10,7 +10,6 @@ public class EntityMember : Composite
     public EntityLayerType LayerType { get; private set; }
     public AccessLevel AccessLevel { get; private set; } = AccessLevel.Viewer;
     public bool NotificationsEnabled { get; private set; } = true;
-    public Guid CreatorId { get; private set; }
 
     private EntityMember() { } // EF
     private EntityMember(Guid userId, Guid layerId, EntityLayerType layerType, AccessLevel accessLevel, Guid creatorId)

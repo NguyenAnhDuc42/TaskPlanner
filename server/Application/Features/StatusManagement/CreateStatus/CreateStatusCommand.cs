@@ -1,5 +1,6 @@
 using System;
 using Domain.Enums;
+using Domain.Enums.RelationShip;
 using MediatR;
 
 namespace Application.Features.StatusManagement.CreateStatus;

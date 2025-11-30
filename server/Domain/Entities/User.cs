@@ -13,7 +13,7 @@ namespace Domain.Entities;
 public class User : Entity
 {
     public string Name { get; private set; } = null!;
-    [EmailAddress] public string Email { get; private set; } = null!;
+    public string Email { get; private set; } = null!;
     public string PasswordHash { get; private set; } = null!;
 
     // === Owned Entities ===

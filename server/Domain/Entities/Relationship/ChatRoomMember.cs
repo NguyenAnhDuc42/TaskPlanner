@@ -15,28 +15,26 @@ public class ChatRoomMember : Composite
     public DateTimeOffset? BannedAt { get; private set; }
     public Guid? BannedBy { get; private set; }
     public bool NotificationsEnabled { get; private set; } = true;
-    public Guid CreatedBy { get; private set; }
-
-    // Navigation properties
     public ChatRoom? ChatRoom { get; private set; }
 
     private ChatRoomMember() { }
 
-    private ChatRoomMember(Guid chatRoomId, Guid userId, ChatRoomRole role = ChatRoomRole.Member)
+    private ChatRoomMember(Guid chatRoomId, Guid userId, ChatRoomRole role = ChatRoomRole.Member, Guid creatorId)
     {
         ChatRoomId = chatRoomId;
         UserId = userId;
         Role = role;
+        CreatorId = creatorId;
     }
 
-    public static ChatRoomMember AddMember(Guid chatRoomId, Guid userId, ChatRoomRole role = ChatRoomRole.Member) =>
-        new ChatRoomMember(chatRoomId, userId, role);
+    public static ChatRoomMember AddMember(Guid chatRoomId, Guid userId, ChatRoomRole role = ChatRoomRole.Member, Guid creatorId) =>
+        new ChatRoomMember(chatRoomId, userId, role, creatorId);
 
-    public static ChatRoomMember AddOwner(Guid chatRoomId, Guid userId) =>
-        new ChatRoomMember(chatRoomId, userId, ChatRoomRole.Owner);
+    public static ChatRoomMember AddOwner(Guid chatRoomId, Guid userId, Guid creatorId) =>
+        new ChatRoomMember(chatRoomId, userId, ChatRoomRole.Owner, creatorId);
 
-    public static List<ChatRoomMember> AddMembers(Guid chatRoomId, List<Guid> userIds, ChatRoomRole role = ChatRoomRole.Member) =>
-        userIds.Select(userId => new ChatRoomMember(chatRoomId, userId, role)).ToList();
+    public static List<ChatRoomMember> AddMembers(Guid chatRoomId, List<Guid> userIds, ChatRoomRole role = ChatRoomRole.Member, Guid creatorId) =>
+        userIds.Select(userId => new ChatRoomMember(chatRoomId, userId, role, creatorId)).ToList();
 
     public void MuteUntil(DateTimeOffset endTime)
     {

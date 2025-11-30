@@ -15,7 +15,6 @@ public class ProjectTaskConfiguration : EntityConfiguration<ProjectTask>
         builder.Property(x => x.ProjectListId).HasColumnName("project_list_id").IsRequired();
         builder.Property(x => x.Name).HasColumnName("name").HasMaxLength(300).IsRequired();
         builder.Property(x => x.Description).HasColumnName("description").HasMaxLength(4000);
-        builder.Property(x => x.CreatorId).HasColumnName("creator_id").IsRequired();
         builder.Property(x => x.StatusId).HasColumnName("status_id");
         builder.Property(x => x.IsArchived).HasColumnName("is_archived").IsRequired();
         builder.Property(x => x.Priority).HasColumnName("priority").HasConversion<string>().HasMaxLength(32).IsRequired();

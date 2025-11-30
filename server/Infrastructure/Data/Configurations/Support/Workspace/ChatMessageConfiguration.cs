@@ -13,7 +13,6 @@ public class ChatMessageConfiguration : EntityConfiguration<ChatMessage>
         builder.ToTable("chat_messages");
 
         builder.Property(x => x.ChatRoomId).HasColumnName("chat_room_id").IsRequired();
-        builder.Property(x => x.SenderId).HasColumnName("sender_id").IsRequired();
         builder.Property(x => x.Content).HasColumnName("content").HasMaxLength(4000).IsRequired();
         builder.Property(x => x.IsEdited).HasColumnName("is_edited").IsRequired();
         builder.Property(x => x.EditedAt).HasColumnName("edited_at");
@@ -29,6 +28,5 @@ public class ChatMessageConfiguration : EntityConfiguration<ChatMessage>
             .OnDelete(DeleteBehavior.Restrict);
 
         builder.HasIndex(x => x.ChatRoomId);
-        builder.HasIndex(x => x.SenderId);
     }
 }

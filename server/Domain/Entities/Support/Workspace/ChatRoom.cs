@@ -10,7 +10,6 @@ public class ChatRoom : Entity
     public Guid ProjectWorkspaceId { get; private set; }
     public ChatRoomType Type { get; private set; } = ChatRoomType.PublicGroup;
     public string? AvatarUrl { get; private set; }
-    public Guid CreatorId { get; private set; }
     public bool IsPrivate { get; private set; } = false;
     public bool IsArchived { get; private set; } = false;
 
@@ -23,19 +22,19 @@ public class ChatRoom : Entity
 
     private ChatRoom() { }
 
-    private ChatRoom(string name, Guid projectWorkspaceId, Guid creatorId, bool isPrivate = false, string? avatarUrl = null)
+    private ChatRoom(string name, Guid projectWorkspaceId, bool isPrivate = false, string? avatarUrl = null, Guid creatorId)
     {
         Name = name;
         ProjectWorkspaceId = projectWorkspaceId;
-        CreatorId = creatorId;
         Type = ChatRoomType.PublicGroup;
         IsPrivate = isPrivate;
         AvatarUrl = avatarUrl;
+        CreatorId = creatorId;
     }
 
     public static ChatRoom Create(string name, Guid projectWorkspaceId, Guid creatorId, bool isPrivate = false, string? avatarUrl = null)
     {
-        var chatRoom = new ChatRoom(name, projectWorkspaceId, creatorId, isPrivate, avatarUrl);
+        var chatRoom = new ChatRoom(name, projectWorkspaceId, isPrivate, avatarUrl, creatorId);
 
         // Add creator as owner
         var ownerMember = ChatRoomMember.AddOwner(chatRoom.Id, creatorId);

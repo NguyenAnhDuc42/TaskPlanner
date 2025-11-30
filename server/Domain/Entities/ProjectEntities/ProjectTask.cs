@@ -12,7 +12,6 @@ public class ProjectTask : Entity
     public string Name { get; private set; } = null!;
     public string? Description { get; private set; }
     public Customization Customization { get; private set; } = Customization.CreateDefault();
-    public Guid CreatorId { get; private set; }
     public Guid? StatusId { get; private set; }
     public bool IsArchived { get; private set; }
     public Priority Priority { get; private set; } = Priority.Low;
@@ -46,7 +45,6 @@ public class ProjectTask : Entity
     public static ProjectTask Create(Guid projectListId, string name, string? description, Customization? customization, Guid creatorId, Guid? statusId = null, Priority priority = Priority.Low, DateTimeOffset? startDate = null, DateTimeOffset? dueDate = null, int? storyPoints = null, long? timeEstimate = null, long orderKey = 10_000_000L)
         => new ProjectTask(Guid.NewGuid(), projectListId, name?.Trim() ?? throw new ArgumentNullException(nameof(name)), string.IsNullOrWhiteSpace(description) ? null : description?.Trim(), customization ?? Customization.CreateDefault(), creatorId, statusId, priority, startDate, dueDate, storyPoints, timeEstimate, orderKey);
 
-    // Consolidated update: single method for name/description/schedule/priority/status/estimation/customization/orderKey
     public void Update(string? name = null, string? description = null, DateTimeOffset? startDate = null, DateTimeOffset? dueDate = null, Priority? priority = null, Guid? StatusId = null, int? storyPoints = null, long? timeEstimateSeconds = null, string? color = null, string? icon = null, long? orderKey = null)
     {
         var changed = false;

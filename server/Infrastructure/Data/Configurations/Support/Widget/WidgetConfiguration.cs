@@ -16,7 +16,6 @@ public class WidgetConfiguration : EntityConfiguration<Widget>
         // core props
         builder.Property(x => x.LayerType).HasColumnName("layer_type").HasConversion<string>().HasMaxLength(50).IsRequired();
         builder.Property(x => x.LayerId).HasColumnName("layer_id").IsRequired();
-        builder.Property(x => x.CreatorId).HasColumnName("creator_id").IsRequired();
 
         // enums as strings
         builder.Property(x => x.Visibility).HasColumnName("visibility").HasConversion<string>().HasMaxLength(50).IsRequired();
@@ -29,7 +28,6 @@ public class WidgetConfiguration : EntityConfiguration<Widget>
         builder.HasIndex(x => x.LayerType);
         builder.HasIndex(x => x.LayerId);
         builder.HasIndex(x => new { x.LayerType, x.LayerId });
-        builder.HasIndex(x => x.CreatorId);
 
         // optional: if you want canonical widget uniqueness per scope+type you can enable:
          builder.HasIndex(x => new { x.LayerType, x.LayerId, x.WidgetType }).IsUnique(false);

@@ -5,7 +5,6 @@ namespace Domain.Entities.Support.Workspace;
 public class ChatMessage : Entity
 {
     public Guid ChatRoomId { get; private set; }
-    public Guid SenderId { get; private set; }
     public string Content { get; private set; } = null!;
     public bool IsEdited { get; private set; } = false;
     public DateTimeOffset? EditedAt { get; private set; }
@@ -20,27 +19,27 @@ public class ChatMessage : Entity
 
     private ChatMessage() { }
 
-    private ChatMessage(Guid chatRoomId, Guid senderId, string content, Guid? replyToMessageId = null)
+    private ChatMessage(Guid chatRoomId, string content, Guid? replyToMessageId, Guid creatorId)
     {
         ChatRoomId = chatRoomId;
-        SenderId = senderId;
         Content = content;
         ReplyToMessageId = replyToMessageId;
+        CreatorId = creatorId;
     }
 
-    public static ChatMessage Create(Guid chatRoomId, Guid senderId, string content, Guid? replyToMessageId = null)
+    public static ChatMessage Create(Guid chatRoomId, Guid creatorId, string content, Guid? replyToMessageId = null)
     {
         if (string.IsNullOrWhiteSpace(content))
             throw new ArgumentException("Message content cannot be empty.", nameof(content));
 
-        var message = new ChatMessage(chatRoomId, senderId, content, replyToMessageId);
-        // message.AddDomainEvent(new ChatMessageCreatedEvent(message.Id, chatRoomId, senderId));
+        var message = new ChatMessage(chatRoomId, content, replyToMessageId, creatorId);
+        // message.AddDomainEvent(new ChatMessageCreatedEvent(message.Id, chatRoomId, creatorId));
         return message;
     }
 
     public void EditContent(string newContent, Guid userId)
     {
-        if (userId != SenderId)
+        if (userId != CreatorId)
             throw new UnauthorizedAccessException("Only the message sender can edit this message.");
 
         if (string.IsNullOrWhiteSpace(newContent))
@@ -85,6 +84,6 @@ public class ChatMessage : Entity
         if (ReactionCount > 0) ReactionCount--;
     }
 
-    public bool CanUserDelete(Guid userId) => userId == SenderId;
-    public bool CanUserEdit(Guid userId) => userId == SenderId;
+    public bool CanUserDelete(Guid userId) => userId == CreatorId;
+    public bool CanUserEdit(Guid userId) => userId == CreatorId;
 }

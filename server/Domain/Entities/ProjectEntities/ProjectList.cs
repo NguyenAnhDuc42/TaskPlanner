@@ -16,14 +16,13 @@ public sealed class ProjectList : Entity
     public bool IsPrivate { get; private set; } = true;
     public bool IsArchived { get; private set; }
     public bool InheritStatus { get; private set; } = false;
-    public Guid CreatorId { get; private set; }
+    public long NextItemOrder { get; private set; }
     public DateTimeOffset? StartDate { get; private set; }
     public DateTimeOffset? DueDate { get; private set; }
-    public long NextTaskOrder { get; private set; } = 10_000_000L;
 
     private ProjectList() { }
 
-    private ProjectList(Guid id, Guid projectSpaceId, Guid? projectFolderId, string name, Customization customization, bool isPrivate, bool inheritStatus, long orderKey, Guid creatorId, DateTimeOffset? startDate, DateTimeOffset? dueDate)
+    private ProjectList(Guid id, Guid projectSpaceId, Guid? projectFolderId, string name, Customization customization, bool isPrivate, bool inheritStatus, long orderKey, Guid creatorId, DateTimeOffset? startDate, DateTimeOffset? dueDate, long nextItemOrder)
     {
         Id = id;
         ProjectSpaceId = projectSpaceId;
@@ -33,6 +32,7 @@ public sealed class ProjectList : Entity
         IsPrivate = isPrivate;
         InheritStatus = inheritStatus;
         OrderKey = orderKey;
+        NextItemOrder = nextItemOrder;
         CreatorId = creatorId;
         StartDate = startDate;
         DueDate = dueDate;
@@ -47,13 +47,13 @@ public sealed class ProjectList : Entity
         if (start.HasValue && due.HasValue && start > due) throw new ArgumentException("Start date cannot be later than due date.", nameof(start));
         if (creatorId == Guid.Empty) throw new ArgumentException("CreatorId cannot be empty.", nameof(creatorId));
 
-        return new ProjectList(Guid.NewGuid(), projectSpaceId, projectFolderId, candidateName, customization ?? Customization.CreateDefault(), isPrivate, inheritStatus, orderKey, creatorId, start, due);
+        return new ProjectList(Guid.NewGuid(), projectSpaceId, projectFolderId, candidateName, customization ?? Customization.CreateDefault(), isPrivate, inheritStatus, orderKey, creatorId, start, due,10_000_000L);
     }
 
-    public long GetNextTaskOrderAndIncrement()
+    public long GetNextItemOrderAndIncrement()
     {
-        var currentOrder = this.NextTaskOrder;
-        this.NextTaskOrder += 10_000_000L;
+        var currentOrder = this.NextItemOrder;
+        this.NextItemOrder += 10_000_000L;
         return currentOrder;
     }
 

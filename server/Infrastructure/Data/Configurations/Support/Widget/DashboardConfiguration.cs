@@ -14,7 +14,6 @@ public class DashboardConfiguration : EntityConfiguration<Dashboard>
 
         builder.Property(x => x.LayerType).HasColumnName("layer_type").HasConversion<string>().HasMaxLength(50).IsRequired();
         builder.Property(x => x.LayerId).HasColumnName("layer_id").IsRequired();
-        builder.Property(x => x.CreatorId).HasColumnName("creator_id").IsRequired();
         builder.Property(x => x.Name).HasColumnName("name").HasMaxLength(200).IsRequired();
         builder.Property(x => x.IsShared).HasColumnName("is_shared").IsRequired();
         builder.Property(x => x.IsMain).HasColumnName("is_main").IsRequired();
@@ -29,7 +28,6 @@ public class DashboardConfiguration : EntityConfiguration<Dashboard>
         builder.Metadata.FindNavigation(nameof(Dashboard.Widgets))?.SetPropertyAccessMode(PropertyAccessMode.Field);
 
         builder.HasIndex(x => x.LayerId);
-        builder.HasIndex(x => x.CreatorId);
         builder.HasIndex(x => new { x.LayerType, x.LayerId });
     }
 }

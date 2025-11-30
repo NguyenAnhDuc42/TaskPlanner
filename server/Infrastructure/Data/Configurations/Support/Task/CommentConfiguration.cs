@@ -14,11 +14,9 @@ public class CommentConfiguration : EntityConfiguration<Comment>
 
         builder.Property(x => x.ProjectTaskId).HasColumnName("project_task_id").IsRequired();
         builder.Property(x => x.Content).HasColumnName("content").HasMaxLength(2000).IsRequired();
-        builder.Property(x => x.AuthorId).HasColumnName("author_id").IsRequired();
         builder.Property(x => x.IsEdited).HasColumnName("is_edited").IsRequired();
         builder.Property(x => x.ParentCommentId).HasColumnName("parent_comment_id");
 
         builder.HasIndex(x => x.ProjectTaskId);
-        builder.HasIndex(x => x.AuthorId);
     }
 }

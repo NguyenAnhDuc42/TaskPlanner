@@ -16,7 +16,6 @@ public class ChatRoomConfiguration : EntityConfiguration<ChatRoom>
         builder.Property(x => x.ProjectWorkspaceId).HasColumnName("project_workspace_id").IsRequired();
         builder.Property(x => x.Type).HasColumnName("type").HasConversion<string>().HasMaxLength(50).IsRequired();
         builder.Property(x => x.AvatarUrl).HasColumnName("avatar_url").HasMaxLength(500);
-        builder.Property(x => x.CreatorId).HasColumnName("creator_id").IsRequired();
         builder.Property(x => x.IsPrivate).HasColumnName("is_private").IsRequired();
         builder.Property(x => x.IsArchived).HasColumnName("is_archived").IsRequired();
 
@@ -36,6 +35,5 @@ public class ChatRoomConfiguration : EntityConfiguration<ChatRoom>
         builder.Metadata.FindNavigation(nameof(ChatRoom.Members))?.SetPropertyAccessMode(PropertyAccessMode.Field);
 
         builder.HasIndex(x => x.ProjectWorkspaceId);
-        builder.HasIndex(x => x.CreatorId);
     }
 }

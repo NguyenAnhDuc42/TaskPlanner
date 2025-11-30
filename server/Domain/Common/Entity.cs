@@ -8,6 +8,8 @@ public abstract class Entity
     public byte[] Version { get; private set; } = Array.Empty<byte>(); // EF Core optimistic concurrency
     public DateTimeOffset CreatedAt { get; private set; } = DateTimeOffset.UtcNow;
     public DateTimeOffset UpdatedAt { get; private set; } = DateTimeOffset.UtcNow;
+    public DateTimeOffset? DeletedAt { get; protected set; }
+    public Guid? CreatorId { get; protected set; }
     private readonly List<IDomainEvent> _domainEvents = new();
     public IReadOnlyCollection<IDomainEvent> DomainEvents => _domainEvents.AsReadOnly();
 
@@ -33,4 +35,6 @@ public abstract class Entity
     }
 
     public void ClearDomainEvents() => _domainEvents.Clear();
+
+    public void SoftDelete() => DeletedAt = DateTimeOffset.UtcNow;
 }

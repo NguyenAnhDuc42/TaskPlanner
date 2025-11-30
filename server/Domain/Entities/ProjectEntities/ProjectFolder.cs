@@ -16,12 +16,11 @@ public sealed class ProjectFolder : Entity
     public bool IsPrivate { get; private set; } = true;
     public bool IsArchived { get; private set; }
     public bool InheritStatus { get; private set; } = false;
-    public Guid CreatorId { get; private set; }
-    public long NextListOrder { get; private set; } = 10_000_000L;
+    public long NextItemOrder { get; private set; }
 
     private ProjectFolder() { }
 
-    private ProjectFolder(Guid id, Guid projectSpaceId, string name, Customization customization, bool isPrivate, bool inheritStatus, long orderKey, Guid creatorId)
+    private ProjectFolder(Guid id, Guid projectSpaceId, string name, Customization customization, bool isPrivate, bool inheritStatus, long orderKey, Guid creatorId, long nextItemOrder)
     {
         Id = id;
         ProjectSpaceId = projectSpaceId;
@@ -34,6 +33,7 @@ public sealed class ProjectFolder : Entity
         OrderKey = orderKey;
         CreatorId = creatorId;
         IsArchived = false;
+        NextItemOrder = nextItemOrder;
     }
 
     public static ProjectFolder Create(Guid projectSpaceId, string name, string color, string icon, bool isPrivate, bool inheritStatus, Guid creatorId, long orderKey)
@@ -43,13 +43,13 @@ public sealed class ProjectFolder : Entity
         if (creatorId == Guid.Empty) throw new ArgumentException("CreatorId cannot be empty.", nameof(creatorId));
 
         var customization = Customization.Create(color.Trim(), icon.Trim());
-        return new ProjectFolder(Guid.NewGuid(), projectSpaceId, name?.Trim() ?? throw new ArgumentNullException(nameof(name)), customization, isPrivate, inheritStatus, orderKey, creatorId);
+        return new ProjectFolder(Guid.NewGuid(), projectSpaceId, name?.Trim() ?? throw new ArgumentNullException(nameof(name)), customization, isPrivate, inheritStatus, orderKey, creatorId,10_000_000L);
     }
 
-    public long GetNextListOrderAndIncrement()
+    public long GetNextItemOrderAndIncrement()
     {
-        var currentOrder = NextListOrder;
-        NextListOrder += 10_000_000L;
+        var currentOrder = NextItemOrder;
+        NextItemOrder += 10_000_000L;
         return currentOrder;
     }
 

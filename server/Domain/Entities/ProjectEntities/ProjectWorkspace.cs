@@ -18,15 +18,14 @@ public sealed class ProjectWorkspace : Entity
     public WorkspaceVariant Variant { get; private set; } = WorkspaceVariant.Team;
     public bool StrictJoin { get; private set; } = false;
     public bool IsArchived { get; private set; }
-    public Guid CreatorId { get; private set; }
-    public long NextSpaceOrder { get; private set; } = 10_000_000L;
+    public long NextItemOrder { get; private set; }
 
     private readonly List<WorkspaceMember> _members = new();
     public IReadOnlyCollection<WorkspaceMember> Members => _members.AsReadOnly();
 
     private ProjectWorkspace() { }
 
-    private ProjectWorkspace(Guid id, string name, string? description, string joinCode, Customization customization, Theme theme, WorkspaceVariant variant, bool strictJoin, Guid creatorId)
+    private ProjectWorkspace(Guid id, string name, string? description, string joinCode, Customization customization, Theme theme, WorkspaceVariant variant, bool strictJoin, Guid creatorId, long nextItemOrder)
     {
         Id = id;
         Name = name ?? throw new ArgumentNullException(nameof(name));
@@ -38,6 +37,7 @@ public sealed class ProjectWorkspace : Entity
         StrictJoin = strictJoin;
         CreatorId = creatorId;
         IsArchived = false;
+        NextItemOrder = nextItemOrder;
     }
 
     public static ProjectWorkspace Create(string name, string? description, string? joinCode, Customization? customization, Guid creatorId, Theme theme = Theme.System, WorkspaceVariant variant = WorkspaceVariant.Team, bool strictJoin = false)
@@ -45,15 +45,15 @@ public sealed class ProjectWorkspace : Entity
         var workspace = new ProjectWorkspace(Guid.NewGuid(), name?.Trim() ?? throw new ArgumentNullException(nameof(name)),
         string.IsNullOrWhiteSpace(description) ? null : description?.Trim(),
         string.IsNullOrWhiteSpace(joinCode) ? Guid.NewGuid().ToString("N")[..8].ToUpperInvariant() : joinCode.Trim(),
-        customization ?? Customization.CreateDefault(), theme, variant, strictJoin, creatorId);
+        customization ?? Customization.CreateDefault(), theme, variant, strictJoin, creatorId, 10_000_000L);
         workspace.AddMember(creatorId, Role.Owner, MembershipStatus.Active, creatorId, null);
         return workspace;
     }
 
-    public long GetNextOrderAndIncrement()
+    public long GetNextItemOrderAndIncrement()
     {
-        var currentOrder = NextSpaceOrder;
-        NextSpaceOrder += 10_000_000L;
+        var currentOrder = NextItemOrder;
+        NextItemOrder += 10_000_000L;
         return currentOrder;
     }
 

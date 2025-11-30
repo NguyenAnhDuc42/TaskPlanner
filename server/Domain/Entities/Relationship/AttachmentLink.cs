@@ -9,7 +9,6 @@ public class AttachmentLink : Composite
     public Guid AttachmentId { get; private set; }
     public Guid ParentEntityId { get; private set; }
     public EntityType ParentEntityType { get; private set; }
-    public Guid CreatorId { get; private set; }
 
     private AttachmentLink() { }
     private AttachmentLink(Guid attachmentId, Guid entityId, EntityType entityType, Guid creatorId)

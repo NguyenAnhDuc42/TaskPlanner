@@ -16,7 +16,6 @@ public class Dashboard : Entity
 
     public EntityLayerType LayerType { get; private set; }
     public Guid LayerId { get; private set; }
-    public Guid CreatorId { get; private set; }
     public string Name { get; private set; } = string.Empty;
     public bool IsShared { get; private set; }
     public bool IsMain { get; private set; } = false;
@@ -28,12 +27,11 @@ public class Dashboard : Entity
 
     private Dashboard() { }
 
-    private Dashboard(Guid id, EntityLayerType layerType, Guid layerId, Guid creatorId, string name, bool isShared, bool isMain = false)
+    private Dashboard(Guid id, EntityLayerType layerType, Guid layerId, string name, bool isShared, bool isMain = false, Guid creatorId)
         : base(id)
     {
         LayerType = layerType;
         LayerId = layerId;
-        CreatorId = creatorId;
         Name = name;
         IsShared = isShared;
         IsMain = isMain;
@@ -42,7 +40,7 @@ public class Dashboard : Entity
     public static Dashboard CreateWorkspaceDashboard(Guid workspaceId, Guid creatorId, string name, bool isShared = false, bool isMain = false)
     {
         if (creatorId == Guid.Empty) throw new ArgumentException("CreatorId cannot be empty.", nameof(creatorId));
-        return new(Guid.NewGuid(), EntityLayerType.ProjectWorkspace, workspaceId, creatorId, name, isShared, isMain);
+        return new(Guid.NewGuid(), EntityLayerType.ProjectWorkspace, workspaceId, name, isShared, isMain, creatorId);
     }
 
     public static Dashboard CreateScopedDashboard(EntityLayerType layerType, Guid layerId, Guid creatorId, string name, bool isShared = false, bool isMain = false)
@@ -50,7 +48,7 @@ public class Dashboard : Entity
         if (layerType == EntityLayerType.ProjectWorkspace) throw new ArgumentException("Use CreateWorkspaceDashboard for workspace scope.", nameof(layerType));
         if (layerId == Guid.Empty) throw new ArgumentException("LayerId cannot be empty.", nameof(layerId));
         if (creatorId == Guid.Empty) throw new ArgumentException("CreatorId cannot be empty.", nameof(creatorId));
-        return new(Guid.NewGuid(), layerType, layerId, creatorId, name, isShared, isMain);
+        return new(Guid.NewGuid(), layerType, layerId, name, isShared, isMain, creatorId);
     }
 
     public void RebuildOccupancyTracker()
@@ -62,13 +60,12 @@ public class Dashboard : Entity
         }
     }
 
-    public void AddWidget(WidgetType widgetType, string configJson, WidgetVisibility visibility, int width, int height)
+    public void AddWidget(WidgetType widgetType, string configJson, WidgetVisibility visibility, int width, int height, Guid creatorId)
     {
-        if (CreatorId == Guid.Empty) throw new ArgumentException("CreatorId cannot be empty.", nameof(CreatorId));
         ValidateWidgetDimensions(width, height);
 
         var newLayout = FindNextAvailablePosition(width, height);
-        var widget = new Widget(Guid.NewGuid(), Id, newLayout, LayerType, LayerId, CreatorId, widgetType, configJson, visibility);
+        var widget = new Widget(Guid.NewGuid(), Id, newLayout, LayerType, LayerId, widgetType, configJson, visibility, creatorId);
 
         _widgets.Add(widget);
         _occupancyTracker.MarkOccupied(newLayout.Col, newLayout.Row, width, height);

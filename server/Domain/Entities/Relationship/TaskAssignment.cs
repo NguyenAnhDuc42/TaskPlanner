@@ -7,16 +7,15 @@ public class TaskAssignment : Composite
 {
     public Guid TaskId { get; private set; }
     public Guid AssigneeId { get; private set; }
-    public Guid AssignedById { get; private set; }
 
     private TaskAssignment() { } // EF
-    private TaskAssignment(Guid taskId, Guid assigneeId, Guid assignedById)
+    private TaskAssignment(Guid taskId, Guid assigneeId, Guid creatorId)
     {
         TaskId = taskId;
         AssigneeId = assigneeId;
-        AssignedById = assignedById;
+        CreatorId = creatorId;
     }
-    public static TaskAssignment Assign(Guid taskId, Guid assigneeId, Guid assignedById) =>
-        new TaskAssignment(taskId, assigneeId, assignedById);
+    public static TaskAssignment Assign(Guid taskId, Guid assigneeId, Guid creatorId) =>
+        new TaskAssignment(taskId, assigneeId, creatorId);
 
 }

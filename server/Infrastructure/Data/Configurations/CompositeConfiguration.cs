@@ -10,16 +10,16 @@ public abstract class CompositeConfiguration<TEntity> : IEntityTypeConfiguration
     public virtual void Configure(EntityTypeBuilder<TEntity> builder)
     {
         // Common Composite configuration
-        builder.Property(x => x.Version)
-            .IsRowVersion(); // concurrency token
+        builder.Property(x => x.Version).IsRowVersion().IsConcurrencyToken().HasColumnName("row_version"); // concurrency token
 
-        builder.Property(x => x.CreatedAt)
-            .IsRequired();
+        builder.Property(x => x.CreatedAt).IsRequired().HasColumnName("created_at").HasConversion<DateTimeOffset>();
 
-        builder.Property(x => x.UpdatedAt)
-            .IsRequired();
+        builder.Property(x => x.UpdatedAt).IsRequired().HasColumnName("updated_at").HasConversion<DateTimeOffset>();
 
-        // _domainEvents and DomainEvents are ignored
+        builder.Property(x => x.DeletedAt).HasColumnName("deleted_at").HasConversion<DateTimeOffset>();
+        builder.Property(x => x.CreatorId).HasColumnName("creator_id");  
+
+        builder.HasIndex(x => x.CreatorId);  
         builder.Ignore(x => x.DomainEvents);
 
 

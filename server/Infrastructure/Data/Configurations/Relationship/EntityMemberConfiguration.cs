@@ -20,11 +20,12 @@ public class EntityMemberConfiguration : CompositeConfiguration<EntityMember>
         builder.Property(x => x.LayerType).HasColumnName("layer_type").HasConversion<string>().HasMaxLength(50).IsRequired();
         builder.Property(x => x.AccessLevel).HasColumnName("access_level").HasConversion<string>().HasMaxLength(50).IsRequired();
         builder.Property(x => x.NotificationsEnabled).HasColumnName("notifications_enabled").IsRequired();
-        builder.Property(x => x.CreatorId).HasColumnName("creator_id").IsRequired();
 
         // Indexes for common queries
         builder.HasIndex(x => x.LayerId);
         builder.HasIndex(x => x.UserId);
         builder.HasIndex(x => new { x.LayerId, x.AccessLevel });
+        builder.HasIndex(x => new { x.LayerId, x.LayerType });
+
     }
 }

@@ -27,13 +27,11 @@ public class AttachmentConfiguration : EntityConfiguration<Attachment>
         // Lifecycle & operational
         builder.Property(x => x.ProcessingState).HasConversion<string>().HasColumnName("processing_state").HasMaxLength(64).IsRequired();
         builder.Property(x => x.IsPublic).HasColumnName("is_public").IsRequired();
-        builder.Property(x => x.UploadedBy).HasColumnName("uploaded_by").IsRequired();
         builder.Property(x => x.LinkCount).HasColumnName("link_count").IsRequired();
         builder.Property(x => x.CustomMetaJson).HasColumnName("custom_meta_json").HasColumnType("jsonb").HasDefaultValueSql("'{}'::jsonb");
 
         // Indexes
         builder.HasIndex(x => x.ContentId).IsUnique();
-        builder.HasIndex(x => x.UploadedBy);
         builder.HasIndex(x => x.ProcessingState);
         builder.HasIndex(x => x.LinkCount);
 
