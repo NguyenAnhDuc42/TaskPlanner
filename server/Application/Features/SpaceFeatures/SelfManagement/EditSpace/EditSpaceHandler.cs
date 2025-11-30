@@ -42,9 +42,9 @@ public class EditSpaceHandler : BaseCommandHandler, IRequestHandler<EditSpaceCom
         UnitOfWork.Set<ProjectSpace>().Update(space);
 
         // Ensure members if private
-        if (request.isPrivate)
+        if (request.isPrivate && space.CreatorId.HasValue)
         {
-            await EnsureSpaceHasMembersAsync(space.Id, space.CreatorId, CurrentUserId, cancellationToken);
+            await EnsureSpaceHasMembersAsync(space.Id, space.CreatorId.Value, CurrentUserId, cancellationToken);
         }
 
         await UnitOfWork.SaveChangesAsync(cancellationToken);

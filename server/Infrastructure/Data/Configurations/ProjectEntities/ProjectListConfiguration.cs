@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Domain.Entities.ProjectEntities;
+using Org.BouncyCastle.Math.EC.Rfc7748;
 
 namespace Infrastructure.Data.Configurations.ProjectEntities;
 
@@ -31,5 +32,15 @@ public class ProjectListConfiguration : EntityConfiguration<ProjectList>
 
         builder.HasIndex(x => x.ProjectSpaceId);
         builder.HasIndex(x => new { x.ProjectSpaceId, x.ProjectFolderId });
+
+        // builder.HasOne<ProjectSpace>()
+        //     .WithMany()
+        //     .HasForeignKey(x => x.ProjectSpaceId)
+        //     .OnDelete(DeleteBehavior.Cascade);
+        //  builder.HasOne<ProjectFolder>()
+        //     .WithMany()
+        //     .HasForeignKey(x => x.ProjectFolderId)
+        //     .OnDelete(DeleteBehavior.Cascade);
+        
     }
 }

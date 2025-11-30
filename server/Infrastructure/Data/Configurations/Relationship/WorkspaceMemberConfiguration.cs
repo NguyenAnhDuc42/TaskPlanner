@@ -14,7 +14,6 @@ public class WorkspaceMemberConfiguration : CompositeConfiguration<WorkspaceMemb
 
         builder.ToTable("workspace_members");
 
-        // Composite PK: Workspace + User (one membership row per user per workspace)
         builder.HasKey(x => new { x.ProjectWorkspaceId, x.UserId });
 
         builder.Property(x => x.UserId).IsRequired().HasColumnName("user_id");

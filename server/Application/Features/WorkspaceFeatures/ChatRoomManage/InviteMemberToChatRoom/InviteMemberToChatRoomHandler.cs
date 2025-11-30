@@ -25,7 +25,7 @@ public class InviteMembersToChatRoomHandler : BaseCommandHandler, IRequestHandle
         .Where(wm => wm.ProjectWorkspaceId == chatRoom.ProjectWorkspaceId && request.memberIds.Contains(wm.UserId))
         .ToList();
         if (chatRommMembers.Count != request.memberIds.Count) throw new ValidationException("Some members are not part of this workspace.");
-        var newMembers = ChatRoomMember.AddMembers(chatRoom.Id, chatRommMembers.Select(cm => cm.UserId).ToList());
+        var newMembers = ChatRoomMember.AddMembers(chatRoom.Id, chatRommMembers.Select(cm => cm.UserId).ToList(), CurrentUserId);
         chatRoom.AddMembers(newMembers);
         return Unit.Value;
     }

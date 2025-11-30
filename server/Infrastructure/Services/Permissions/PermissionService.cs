@@ -1,10 +1,7 @@
 ﻿using Domain.Common;
 using Domain.Enums;
-using Domain.Common;
-using Domain.Enums;
 using Microsoft.Extensions.Logging;
 using Application.Interfaces.Services.Permissions;
-using Application.Common;
 
 namespace Infrastructure.Services.Permissions;
 

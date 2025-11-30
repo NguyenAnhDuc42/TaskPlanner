@@ -27,7 +27,8 @@ public class CreateStatusHandler : BaseCommandHandler, IRequestHandler<CreateSta
             name: request.Name,
             color: request.Color,
             category: request.Category,
-            orderKey: orderKey
+            orderKey: orderKey,
+            creatorId: CurrentUserId
         );
 
         await UnitOfWork.Set<Status>().AddAsync(status, cancellationToken);

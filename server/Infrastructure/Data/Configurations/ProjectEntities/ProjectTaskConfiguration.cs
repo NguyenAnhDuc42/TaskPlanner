@@ -34,5 +34,10 @@ public class ProjectTaskConfiguration : EntityConfiguration<ProjectTask>
         builder.HasIndex(x => new { x.ProjectListId, x.StatusId });
         builder.HasIndex(x => new { x.ProjectListId, x.OrderKey });
         builder.HasIndex(x => x.DueDate);
+
+        // builder.HasOne<ProjectList>()
+        //     .WithMany()
+        //     .HasForeignKey(x => x.ProjectListId)
+        //     .OnDelete(DeleteBehavior.Cascade);
     }
 }

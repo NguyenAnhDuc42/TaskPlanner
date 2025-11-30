@@ -9,12 +9,12 @@ using Microsoft.Extensions.Logging;
 
 namespace Application.EventHandlers.DomainEventHandlers.WorkspaceHandlers;
 
-public class WorkspaceDeletedHandler : INotificationHandler<WorkspaceDeletedEvent>
+public class WorkspaceDeletedEventHandler : INotificationHandler<WorkspaceDeletedEvent>
 {
     private readonly IUnitOfWork _unitOfWork;
-    private readonly ILogger<WorkspaceDeletedHandler> _logger;
+    private readonly ILogger<WorkspaceDeletedEventHandler> _logger;
 
-    public WorkspaceDeletedHandler(IUnitOfWork unitOfWork, ILogger<WorkspaceDeletedHandler> logger)
+    public WorkspaceDeletedEventHandler(IUnitOfWork unitOfWork, ILogger<WorkspaceDeletedEventHandler> logger)
     {
         _unitOfWork = unitOfWork;
         _logger = logger;
@@ -25,39 +25,45 @@ public class WorkspaceDeletedHandler : INotificationHandler<WorkspaceDeletedEven
         var evt = notification;
         _logger.LogInformation("Handling WorkspaceDeletedEvent for WorkspaceId: {WorkspaceId}", evt.WorkspaceId);
 
-        // Cleanup EntityMembers for all entities in this workspace's hierarchy
+
         var spaceIds = await _unitOfWork.Set<ProjectSpace>()
             .Where(s => s.ProjectWorkspaceId == evt.WorkspaceId)
             .Select(s => s.Id)
             .ToListAsync(cancellationToken);
 
         var folderIds = await _unitOfWork.Set<ProjectFolder>()
-            .Where(f => f.ProjectWorkspaceId == evt.WorkspaceId)
+            .Where(f => spaceIds.Contains(f.ProjectSpaceId))
             .Select(f => f.Id)
             .ToListAsync(cancellationToken);
 
         var listIds = await _unitOfWork.Set<ProjectList>()
-            .Where(l => l.ProjectWorkspaceId == evt.WorkspaceId)
+            .Where(l => l.ProjectFolderId != null && folderIds.Contains(l.ProjectFolderId.Value) && spaceIds.Contains(l.ProjectSpaceId))
             .Select(l => l.Id)
             .ToListAsync(cancellationToken);
 
         var allEntityIds = spaceIds.Concat(folderIds).Concat(listIds).ToList();
 
-        // Remove all EntityMembers for these entities
-        var entityMembers = await _unitOfWork.Set<EntityMember>()
-            .Where(em => allEntityIds.Contains(em.LayerId))
-            .ToListAsync(cancellationToken);
+        if (!allEntityIds.Any())
+        {
+            _logger.LogInformation("No nested entities found to clean up for workspace {WorkspaceId}", evt.WorkspaceId);
+            return;
+        }
 
-        _unitOfWork.Set<EntityMember>().RemoveRange(entityMembers);
+        var membersDeletedCount = await _unitOfWork.Set<EntityMember>()
+            .Where(em => allEntityIds.Contains(em.LayerId) && em.DeletedAt == null)
+            .ExecuteUpdateAsync(updates =>
+                updates.SetProperty(e => e.DeletedAt, DateTimeOffset.UtcNow)
+                       .SetProperty(e => e.UpdatedAt, DateTimeOffset.UtcNow), // Also update the UpdatedAt timestamp
+                cancellationToken: cancellationToken);
 
-        // Cleanup Status entities for this workspace's layers
-        var statuses = await _unitOfWork.Set<Status>()
-            .Where(s => allEntityIds.Contains(s.LayerId!.Value))
-            .ToListAsync(cancellationToken);
+        var statusesDeletedCount = await _unitOfWork.Set<Status>()
+            .Where(s => s.LayerId.HasValue && allEntityIds.Contains(s.LayerId.Value) && s.DeletedAt == null)
+            .ExecuteUpdateAsync(updates =>
+                updates.SetProperty(e => e.DeletedAt, DateTimeOffset.UtcNow)
+                       .SetProperty(e => e.UpdatedAt, DateTimeOffset.UtcNow),
+                cancellationToken: cancellationToken);
 
-        _unitOfWork.Set<Status>().RemoveRange(statuses);
-
-        _logger.LogInformation("Cleaned up {EntityMemberCount} EntityMembers and {StatusCount} Statuses for workspace {WorkspaceId}",
-            entityMembers.Count, statuses.Count, evt.WorkspaceId);
+        _logger.LogInformation("Soft-deleted {EntityMemberCount} EntityMembers and {StatusCount} Statuses for workspace {WorkspaceId}",
+            membersDeletedCount, statusesDeletedCount, evt.WorkspaceId);
     }
 }

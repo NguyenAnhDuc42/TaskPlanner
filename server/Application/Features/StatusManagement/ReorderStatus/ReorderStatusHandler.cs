@@ -2,6 +2,7 @@ using Application.Interfaces.Repositories;
 using Application.Interfaces.Services.Permissions;
 using Domain;
 using Domain.Entities.Support;
+using Domain.Enums;
 using MediatR;
 using server.Application.Interfaces;
 

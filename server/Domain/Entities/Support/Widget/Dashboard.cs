@@ -27,7 +27,7 @@ public class Dashboard : Entity
 
     private Dashboard() { }
 
-    private Dashboard(Guid id, EntityLayerType layerType, Guid layerId, string name, bool isShared, bool isMain = false, Guid creatorId)
+    private Dashboard(Guid id, EntityLayerType layerType, Guid layerId, string name, bool isShared, Guid creatorId, bool isMain = false)
         : base(id)
     {
         LayerType = layerType;
@@ -35,12 +35,13 @@ public class Dashboard : Entity
         Name = name;
         IsShared = isShared;
         IsMain = isMain;
+        CreatorId = creatorId;
     }
 
     public static Dashboard CreateWorkspaceDashboard(Guid workspaceId, Guid creatorId, string name, bool isShared = false, bool isMain = false)
     {
         if (creatorId == Guid.Empty) throw new ArgumentException("CreatorId cannot be empty.", nameof(creatorId));
-        return new(Guid.NewGuid(), EntityLayerType.ProjectWorkspace, workspaceId, name, isShared, isMain, creatorId);
+        return new(Guid.NewGuid(), EntityLayerType.ProjectWorkspace, workspaceId, name, isShared, creatorId, isMain);
     }
 
     public static Dashboard CreateScopedDashboard(EntityLayerType layerType, Guid layerId, Guid creatorId, string name, bool isShared = false, bool isMain = false)
@@ -48,7 +49,7 @@ public class Dashboard : Entity
         if (layerType == EntityLayerType.ProjectWorkspace) throw new ArgumentException("Use CreateWorkspaceDashboard for workspace scope.", nameof(layerType));
         if (layerId == Guid.Empty) throw new ArgumentException("LayerId cannot be empty.", nameof(layerId));
         if (creatorId == Guid.Empty) throw new ArgumentException("CreatorId cannot be empty.", nameof(creatorId));
-        return new(Guid.NewGuid(), layerType, layerId, name, isShared, isMain, creatorId);
+        return new(Guid.NewGuid(), layerType, layerId, name, isShared, creatorId, isMain);
     }
 
     public void RebuildOccupancyTracker()
@@ -65,7 +66,7 @@ public class Dashboard : Entity
         ValidateWidgetDimensions(width, height);
 
         var newLayout = FindNextAvailablePosition(width, height);
-        var widget = new Widget(Guid.NewGuid(), Id, newLayout, LayerType, LayerId, widgetType, configJson, visibility, creatorId);
+        var widget = new Widget(Guid.NewGuid(), Id, newLayout, LayerType, LayerId,widgetType, configJson, visibility, creatorId);
 
         _widgets.Add(widget);
         _occupancyTracker.MarkOccupied(newLayout.Col, newLayout.Row, width, height);

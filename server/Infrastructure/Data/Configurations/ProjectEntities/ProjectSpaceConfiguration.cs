@@ -30,5 +30,10 @@ public class ProjectSpaceConfiguration : EntityConfiguration<ProjectSpace>
 
         builder.HasIndex(x => x.ProjectWorkspaceId);
         builder.HasIndex(x => new { x.ProjectWorkspaceId, x.IsPrivate });
+
+        // builder.HasOne<ProjectWorkspace>()
+        //     .WithMany()
+        //     .HasForeignKey(x => x.ProjectWorkspaceId)
+        //     .OnDelete(DeleteBehavior.Cascade);
     }
 }

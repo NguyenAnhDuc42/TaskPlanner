@@ -5,14 +5,14 @@ using Microsoft.Extensions.Logging;
 
 namespace Application.EventHandlers.DomainEventHandlers.MembershipHandlers;
 
-public class EntityMemberAccessChangedHandler : INotificationHandler<EntityMemberAccessChangedEvent>
+public class EntityMemberAccessChangedEventHandler : INotificationHandler<EntityMemberAccessChangedEvent>
 {
     private readonly IPermissionService _permissionService;
-    private readonly ILogger<EntityMemberAccessChangedHandler> _logger;
+    private readonly ILogger<EntityMemberAccessChangedEventHandler> _logger;
 
-    public EntityMemberAccessChangedHandler(
+    public EntityMemberAccessChangedEventHandler(
         IPermissionService permissionService,
-        ILogger<EntityMemberAccessChangedHandler> logger)
+        ILogger<EntityMemberAccessChangedEventHandler> logger)
     {
         _permissionService = permissionService;
         _logger = logger;
@@ -20,10 +20,9 @@ public class EntityMemberAccessChangedHandler : INotificationHandler<EntityMembe
 
     public async Task Handle(EntityMemberAccessChangedEvent notification, CancellationToken cancellationToken)
     {
-        var evt = notification.Event;
         _logger.LogInformation("Invalidating cache for access change: UserId={UserId}, EntityId={EntityId}, EntityType={EntityType}, {OldAccess}->{NewAccess}",
-            evt.UserId, evt.EntityId, evt.EntityType, evt.OldAccess, evt.NewAccess);
+            notification.UserId, notification.EntityId, notification.EntityType, notification.OldAccess, notification.NewAccess);
 
-        await _permissionService.InvalidateEntityAccessCacheAsync(evt.UserId, evt.EntityId, evt.EntityType);
+        await _permissionService.InvalidateEntityAccessCacheAsync(notification.UserId, notification.EntityId, notification.EntityType);
     }
 }

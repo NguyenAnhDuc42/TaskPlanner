@@ -22,7 +22,7 @@ public class ChatRoom : Entity
 
     private ChatRoom() { }
 
-    private ChatRoom(string name, Guid projectWorkspaceId, bool isPrivate = false, string? avatarUrl = null, Guid creatorId)
+    private ChatRoom(string name, Guid projectWorkspaceId, Guid creatorId, bool isPrivate = false, string? avatarUrl = null)
     {
         Name = name;
         ProjectWorkspaceId = projectWorkspaceId;
@@ -34,10 +34,10 @@ public class ChatRoom : Entity
 
     public static ChatRoom Create(string name, Guid projectWorkspaceId, Guid creatorId, bool isPrivate = false, string? avatarUrl = null)
     {
-        var chatRoom = new ChatRoom(name, projectWorkspaceId, isPrivate, avatarUrl, creatorId);
+        var chatRoom = new ChatRoom(name, projectWorkspaceId, creatorId, isPrivate, avatarUrl);
 
         // Add creator as owner
-        var ownerMember = ChatRoomMember.AddOwner(chatRoom.Id, creatorId);
+        var ownerMember = ChatRoomMember.AddOwner(chatRoom.Id, creatorId, creatorId);
         chatRoom._members.Add(ownerMember);
 
         return chatRoom;

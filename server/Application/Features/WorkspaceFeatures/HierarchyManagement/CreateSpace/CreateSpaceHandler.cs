@@ -23,7 +23,7 @@ public class CreateSpaceHandler : BaseCommandHandler, IRequestHandler<CreateSpac
         
         await RequirePermissionAsync(workspace, EntityType.ProjectSpace, PermissionAction.Create, cancellationToken);
         var customization = Customization.Create(request.color, request.icon);
-        var orderKey = workspace.GetNextOrderAndIncrement();
+        var orderKey = workspace.GetNextItemOrderAndIncrement();
         
         var space = ProjectSpace.Create(
             projectWorkspaceId: workspace.Id,

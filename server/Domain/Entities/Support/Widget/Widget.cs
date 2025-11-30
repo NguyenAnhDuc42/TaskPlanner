@@ -18,7 +18,7 @@ public class Widget : Entity
 
     private Widget() { } // EF
 
-    internal Widget(Guid id, Guid dashboardId, WidgetLayout layout, EntityLayerType layerType, Guid layerId, Guid creatorId, WidgetType widgetType, string configJson, WidgetVisibility visibility)
+    internal Widget(Guid id, Guid dashboardId, WidgetLayout layout, EntityLayerType layerType, Guid layerId, WidgetType widgetType, string configJson, WidgetVisibility visibility,Guid creatorId)
         : base(id)
     {
         DashboardId = dashboardId;

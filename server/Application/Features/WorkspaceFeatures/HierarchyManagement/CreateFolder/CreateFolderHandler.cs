@@ -23,7 +23,7 @@ public class CreateFolderHandler : BaseCommandHandler, IRequestHandler<CreateFol
         
         await RequirePermissionAsync(space, EntityType.ProjectFolder, PermissionAction.Create, cancellationToken);
         var customization = Customization.Create(request.color, request.icon);
-        var orderKey = space.GetNextEntityOrderAndIncrement();
+        var orderKey = space.GetNextItemOrderAndIncrement();
         
         var folder = ProjectFolder.Create(
             projectSpaceId: space.Id,

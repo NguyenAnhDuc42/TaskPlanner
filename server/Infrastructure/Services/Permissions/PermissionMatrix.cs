@@ -216,7 +216,7 @@ public class PermissionMatrix
         {
             return rule.Evaluate(context);
         }
-        catch (Exception ex)
+        catch
         {
             // Log rule evaluation errors
             return false;

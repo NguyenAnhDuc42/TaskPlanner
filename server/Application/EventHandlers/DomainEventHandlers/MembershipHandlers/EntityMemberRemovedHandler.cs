@@ -5,14 +5,14 @@ using Microsoft.Extensions.Logging;
 
 namespace Application.EventHandlers.DomainEventHandlers.MembershipHandlers;
 
-public class EntityMemberRemovedHandler : INotificationHandler<EntityMemberRemovedEvent>
+public class EntityMemberRemovedEventHandler : INotificationHandler<EntityMemberRemovedEvent>
 {
     private readonly IPermissionService _permissionService;
-    private readonly ILogger<EntityMemberRemovedHandler> _logger;
+    private readonly ILogger<EntityMemberRemovedEventHandler> _logger;
 
-    public EntityMemberRemovedHandler(
+    public EntityMemberRemovedEventHandler(
         IPermissionService permissionService,
-        ILogger<EntityMemberRemovedHandler> logger)
+        ILogger<EntityMemberRemovedEventHandler> logger)
     {
         _permissionService = permissionService;
         _logger = logger;
@@ -20,10 +20,9 @@ public class EntityMemberRemovedHandler : INotificationHandler<EntityMemberRemov
 
     public async Task Handle(EntityMemberRemovedEvent notification, CancellationToken cancellationToken)
     {
-        var evt = notification;
         _logger.LogInformation("Invalidating cache for member removal: UserId={UserId}, EntityId={EntityId}, EntityType={EntityType}",
-            evt.UserId, evt.EntityId, evt.EntityType);
+            notification.UserId, notification.EntityId, notification.EntityType);
 
-        await _permissionService.InvalidateEntityAccessCacheAsync(evt.UserId, evt.EntityId, evt.EntityType);
+        await _permissionService.InvalidateEntityAccessCacheAsync(notification.UserId, notification.EntityId, notification.EntityType);
     }
 }

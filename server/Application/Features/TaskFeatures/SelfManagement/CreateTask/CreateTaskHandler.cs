@@ -33,7 +33,7 @@ public class CreateTaskHandler : BaseCommandHandler, IRequestHandler<CreateTaskC
             creatorId: CurrentUserId,
             statusId: statusId,
             priority: request.Priority,
-            orderKey: list.GetNextTaskOrderAndIncrement(),
+            orderKey: list.GetNextItemOrderAndIncrement(),
             startDate: request.StartDate,
             dueDate: request.DueDate,
             storyPoints: request.StoryPoints,

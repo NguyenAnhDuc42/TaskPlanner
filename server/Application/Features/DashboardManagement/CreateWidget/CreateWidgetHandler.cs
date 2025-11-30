@@ -41,7 +41,8 @@ public class CreateWidgetHandler : BaseCommandHandler, IRequestHandler<CreateWid
                 configJson: configJson,
                 visibility: WidgetVisibility.Public,
                 width: width,
-                height: height
+                height: height,
+                creatorId: CurrentUserId
             );
         }
         catch (ArgumentException ex)

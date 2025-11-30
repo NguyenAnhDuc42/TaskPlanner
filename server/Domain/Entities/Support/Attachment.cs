@@ -27,7 +27,7 @@ public class Attachment : Entity
 
     public static Attachment Create(
         string contentId, StorageProvider storageProvider, string storagePath,
-        string fileName, string contentType, long sizeBytes, string checksum,bool isPublic = false, string? customMetaJson = null,Guid creatorId)
+        string fileName, string contentType, long sizeBytes, string checksum, Guid creatorId, bool isPublic = false, string? customMetaJson = null)
     {
         if (string.IsNullOrWhiteSpace(contentId)) throw new ArgumentException(nameof(contentId));
         if (sizeBytes < 0) throw new ArgumentOutOfRangeException(nameof(sizeBytes));

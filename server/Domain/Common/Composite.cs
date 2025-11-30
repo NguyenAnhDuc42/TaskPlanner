@@ -16,6 +16,7 @@ public abstract class Composite
      public virtual Guid Id { get; } = Guid.NewGuid();
 
     protected Composite() { }
+    
 
     protected void UpdateTimestamp() => UpdatedAt = DateTimeOffset.UtcNow;
 

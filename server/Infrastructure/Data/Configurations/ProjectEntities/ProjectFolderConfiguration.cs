@@ -29,5 +29,10 @@ public class ProjectFolderConfiguration : EntityConfiguration<ProjectFolder>
 
         builder.HasIndex(x => x.ProjectSpaceId);
         builder.HasIndex(x => new { x.ProjectSpaceId, x.OrderKey });
+
+        // builder.HasOne<ProjectSpace>()
+        //     .WithMany()
+        //     .HasForeignKey(x => x.ProjectSpaceId)
+        //     .OnDelete(DeleteBehavior.Cascade);
     }
 }

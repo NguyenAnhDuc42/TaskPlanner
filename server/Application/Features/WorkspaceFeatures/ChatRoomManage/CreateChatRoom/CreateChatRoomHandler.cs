@@ -35,7 +35,7 @@ public class CreateChatRoomHandler : BaseCommandHandler, IRequestHandler<CreateC
             if (validMemberIds.Count != request.memberIds.Count)
                 throw new ValidationException("Some members are not part of this workspace.");
 
-            var membersToAdd = ChatRoomMember.AddMembers(chatRoom.Id, validMemberIds);
+            var membersToAdd = ChatRoomMember.AddMembers(chatRoom.Id, validMemberIds, CurrentUserId);
             chatRoom.AddMembers(membersToAdd);
         }
 

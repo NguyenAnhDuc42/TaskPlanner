@@ -19,7 +19,7 @@ public class ChatRoomMember : Composite
 
     private ChatRoomMember() { }
 
-    private ChatRoomMember(Guid chatRoomId, Guid userId, ChatRoomRole role = ChatRoomRole.Member, Guid creatorId)
+    private ChatRoomMember(Guid chatRoomId, Guid userId, Guid creatorId, ChatRoomRole role = ChatRoomRole.Member) 
     {
         ChatRoomId = chatRoomId;
         UserId = userId;
@@ -27,14 +27,14 @@ public class ChatRoomMember : Composite
         CreatorId = creatorId;
     }
 
-    public static ChatRoomMember AddMember(Guid chatRoomId, Guid userId, ChatRoomRole role = ChatRoomRole.Member, Guid creatorId) =>
-        new ChatRoomMember(chatRoomId, userId, role, creatorId);
+    public static ChatRoomMember AddMember(Guid chatRoomId, Guid userId, Guid creatorId, ChatRoomRole role = ChatRoomRole.Member) =>
+        new ChatRoomMember(chatRoomId, userId, creatorId, role);
 
     public static ChatRoomMember AddOwner(Guid chatRoomId, Guid userId, Guid creatorId) =>
-        new ChatRoomMember(chatRoomId, userId, ChatRoomRole.Owner, creatorId);
+        new ChatRoomMember(chatRoomId, userId, creatorId, ChatRoomRole.Owner);
 
-    public static List<ChatRoomMember> AddMembers(Guid chatRoomId, List<Guid> userIds, ChatRoomRole role = ChatRoomRole.Member, Guid creatorId) =>
-        userIds.Select(userId => new ChatRoomMember(chatRoomId, userId, role, creatorId)).ToList();
+    public static List<ChatRoomMember> AddMembers(Guid chatRoomId, List<Guid> userIds, Guid creatorId, ChatRoomRole role = ChatRoomRole.Member) =>
+        userIds.Select(userId => new ChatRoomMember(chatRoomId, userId, creatorId, role)).ToList();
 
     public void MuteUntil(DateTimeOffset endTime)
     {

@@ -33,7 +33,7 @@ public class CreateListHandler : BaseCommandHandler, IRequestHandler<CreateListC
         }
         await RequirePermissionAsync(space, EntityType.ProjectList, PermissionAction.Create, cancellationToken);
 
-        long orderKey = folder?.GetNextListOrderAndIncrement() ?? space.GetNextEntityOrderAndIncrement();
+        long orderKey = folder?.GetNextItemOrderAndIncrement() ?? space.GetNextItemOrderAndIncrement();
         var customization = Customization.Create(request.color, request.icon);
         var list = ProjectList.Create(
             projectSpaceId: space.Id, 
