@@ -26,17 +26,12 @@
     <Folder Include="Contract\ListContract\" />
     <Folder Include="Contract\TaskContract\" />
     <Folder Include="Features\FolderFeatures\" />
-    <Folder Include="Features\FolderFeatures\DashboardManagement\" />
-    <Folder Include="Features\FolderFeatures\MemberManagement\" />
     <Folder Include="Features\FolderFeatures\SelfManagement\" />
     <Folder Include="Features\FolderFeatures\SelfManagement\DeleteFolder\" />
     <Folder Include="Features\FolderFeatures\SelfManagement\EditFolder\" />
     <Folder Include="Features\ListFeatures\" />
-    <Folder Include="Features\ListFeatures\MemberManagement\" />
     <Folder Include="Features\ListFeatures\SelfManagement\" />
-    <Folder Include="Features\ListFeatures\TaskManagement\" />
     <Folder Include="Features\EntityMemberManagement\" />
-    <Folder Include="Features\SpaceFeatures\MemberManagement\GetListOfMembersInSpace\" />
     <Folder Include="Features\SpaceFeatures\SelfManagement\GetSpaces\" />
     <Folder Include="Features\TaskFeatures\" />
     <Folder Include="Features\WorkspaceFeatures\ChatRoomManage\Chatting\" />
@@ -49,16 +44,7 @@
     <Folder Include="Features\WorkspaceFeatures\HierarchyManagement\ReorderFolder\" />
     <Folder Include="Features\WorkspaceFeatures\HierarchyManagement\ReorderList\" />
     <Folder Include="Features\WorkspaceFeatures\HierarchyManagement\ReOrderSpace\" />
-    <Folder Include="Features\WorkspaceFeatures\StatusMange\" />
-    <Folder Include="Features\WorkspaceFeatures\StatusMange\CreateSatus\" />
-    <Folder Include="Features\WorkspaceFeatures\StatusMange\DeleteStatus\" />
-    <Folder Include="Features\WorkspaceFeatures\StatusMange\GetStatuses\" />
-    <Folder Include="Features\WorkspaceFeatures\StatusMange\UpdateStatus\" />
-    <Folder Include="Features\WorkspaceFeatures\TagManage\" />
-    <Folder Include="Features\WorkspaceFeatures\TagManage\CreateTag\" />
-    <Folder Include="Features\WorkspaceFeatures\TagManage\DeleteTag\" />
-    <Folder Include="Features\WorkspaceFeatures\TagManage\GetTags\" />
-    <Folder Include="Features\WorkspaceFeatures\TagManage\UpdateTag\" />
+
   </ItemGroup>
 
   <PropertyGroup>
