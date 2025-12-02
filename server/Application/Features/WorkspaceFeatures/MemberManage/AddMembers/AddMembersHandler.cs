@@ -10,7 +10,7 @@ using MediatR;
 using Microsoft.EntityFrameworkCore;
 using server.Application.Interfaces;
 
-namespace Application.Features.WorkspaceFeatures.MemberMange.AddMembers;
+namespace Application.Features.WorkspaceFeatures.MemberManage.AddMembers;
 
 public class AddMembersHandler : BaseCommandHandler, IRequestHandler<AddMembersCommand, Unit>
 {

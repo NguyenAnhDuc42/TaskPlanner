@@ -1,3 +1,6 @@
-namespace Application.Features.WorkspaceFeatures.GetDetailWorkspace;
+using Application.Contract.WorkspaceContract;
+using MediatR;
 
-public record class GetDetailWorkspaceQuery(Guid workspaceId);
+namespace Application.Features.WorkspaceFeatures.SelfManagement.GetDetailWorkspace;
+
+public record class GetDetailWorkspaceQuery(Guid WorkspaceId) : IRequest<WorkspaceDetailDto>;

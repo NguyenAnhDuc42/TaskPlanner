@@ -12,7 +12,7 @@ using server.Application.Interfaces;
 
 namespace Application.Features.WorkspaceFeatures.GetWorkspaceList;
 
-public class GetWorkspaceListHandler : IRequestHandler<GetWorksapceListQuery, PagedResult<WorkspaceDetail>>
+public class GetWorkspaceListHandler : IRequestHandler<GetWorksapceListQuery, PagedResult<WorkspaceSummaryDto>>
 {
     private readonly IUnitOfWork _unitOfWork;
     private readonly ICurrentUserService _currentUserService;
@@ -24,7 +24,7 @@ public class GetWorkspaceListHandler : IRequestHandler<GetWorksapceListQuery, Pa
         _currentUserService = currentUserService;
         _cursorHelper = cursorHelper;
     }
-    public async Task<PagedResult<WorkspaceDetail>> Handle(GetWorksapceListQuery request, CancellationToken cancellationToken)
+    public async Task<PagedResult<WorkspaceSummaryDto>> Handle(GetWorksapceListQuery request, CancellationToken cancellationToken)
     {
         var currentUserId = _currentUserService.CurrentUserId();
         var pageSize = request.Pagination.PageSize;
@@ -46,20 +46,25 @@ public class GetWorkspaceListHandler : IRequestHandler<GetWorksapceListQuery, Pa
 
         var dtos = displayItems.Select(w =>
         {
-            var dto = w.Adapt<WorkspaceSummary>();
             var members = membersByWorkspace.ContainsKey(w.Id)
-            ? membersByWorkspace[w.Id]
-            : new List<Member>();
-            var currentRole = members.FirstOrDefault(m => m.Id == currentUserId);
-            return new WorkspaceDetail
+                ? membersByWorkspace[w.Id].Select(m => new MemberDto 
+                { 
+                    Id = m.Id, 
+                    Username = m.Username, 
+                    Email = m.Email, 
+                    Role = m.Role 
+                }).ToList()
+                : new List<MemberDto>();
+                
+            return new WorkspaceSummaryDto
             {
-                WorkspaceId = dto.WorkspaceId,
-                Name = dto.Name,
-                Color = dto.Color,
-                Icon = dto.Icon,
-                Variant = dto.Variant,
-                Members = members,
-                CurrentRole = currentRole!
+                Id = w.Id,
+                Name = w.Name,
+                Color = w.Customization.Color,
+                Icon = w.Customization.Icon,
+                Variant = w.Variant.ToString(),
+                IsOwned = w.CreatorId == currentUserId,
+                Members = members
             };
         }).ToList();
 
@@ -74,7 +79,7 @@ public class GetWorkspaceListHandler : IRequestHandler<GetWorksapceListQuery, Pa
             }));
         }
 
-        return new PagedResult<WorkspaceDetail>(dtos, nextCursor, hasMore);
+        return new PagedResult<WorkspaceSummaryDto>(dtos, nextCursor, hasMore);
     }
 
     private async Task<Dictionary<Guid, List<Member>>> GetMembersByWorkspaces(IEnumerable<Guid> workspaceIds)

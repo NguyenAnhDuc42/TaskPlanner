@@ -6,7 +6,7 @@ using Mapster;
 using MediatR;
 using server.Application.Interfaces;
 
-namespace Application.Features.WorkspaceFeatures.CreateWrokspace;
+namespace Application.Features.WorkspaceFeatures.SelfManagement.CreateWorkspace;
 
 public class CreateWorkspaceHandler : IRequestHandler<CreateWorkspaceCommand, Guid>
 {

@@ -9,7 +9,7 @@ using MediatR;
 using Microsoft.EntityFrameworkCore;
 using server.Application.Interfaces;
 
-namespace Application.Features.WorkspaceFeatures.MemberMange.UpdateMembersRole;
+namespace Application.Features.WorkspaceFeatures.MemberManage.UpdateMembersRole;
 
 public class UpdateMembersHandler : BaseCommandHandler, IRequestHandler<UpdateMembersCommand, Unit>
 {

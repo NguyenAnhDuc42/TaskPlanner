@@ -3,7 +3,7 @@ using Domain.Enums;
 using Domain.Enums.RelationShip;
 using MediatR;
 
-namespace Application.Features.WorkspaceFeatures.MemberMange.AddMembers;
+namespace Application.Features.WorkspaceFeatures.MemberManage.AddMembers;
 
 public record class AddMembersCommand(Guid workspaceId, List<MemberSpec> members) : ICommand<Unit>;
 

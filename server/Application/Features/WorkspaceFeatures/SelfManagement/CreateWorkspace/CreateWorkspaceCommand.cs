@@ -5,7 +5,7 @@ using Domain.Enums;
 using Domain.Enums.Workspace;
 using MediatR;
 
-namespace Application.Features.WorkspaceFeatures.CreateWrokspace;
+namespace Application.Features.WorkspaceFeatures.SelfManagement.CreateWorkspace;
 
 public record CreateWorkspaceCommand : IRequest<Guid>
 {

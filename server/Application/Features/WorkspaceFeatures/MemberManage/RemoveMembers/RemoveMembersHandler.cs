@@ -9,7 +9,7 @@ using MediatR;
 using Microsoft.EntityFrameworkCore;
 using server.Application.Interfaces;
 
-namespace Application.Features.WorkspaceFeatures.MemberMange.RemoveMembers;
+namespace Application.Features.WorkspaceFeatures.MemberManage.RemoveMembers;
 
 public class RemoveMembersHandler : BaseCommandHandler, IRequestHandler<RemoveMembersCommand, Unit>
 {
