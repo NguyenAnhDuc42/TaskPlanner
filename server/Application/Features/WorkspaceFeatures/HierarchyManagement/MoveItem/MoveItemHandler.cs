@@ -44,10 +44,7 @@ public class MoveItemHandler : BaseCommandHandler, IRequestHandler<MoveItemComma
 
     private async Task MoveSpace(Guid spaceId, long newOrderKey, CancellationToken cancellationToken)
     {
-        var space = await UnitOfWork.Set<ProjectSpace>()
-            .Where(s => s.Id == spaceId)
-            .FirstOrDefaultAsync(cancellationToken)
-            ?? throw new KeyNotFoundException($"Space {spaceId} not found");
+        var space = await FindOrThrowAsync<ProjectSpace>(spaceId);
 
         // Permission check
         await RequirePermissionAsync(space, PermissionAction.Edit, cancellationToken);
@@ -58,10 +55,7 @@ public class MoveItemHandler : BaseCommandHandler, IRequestHandler<MoveItemComma
 
     private async Task MoveFolder(Guid folderId, Guid? newSpaceId, long newOrderKey, CancellationToken cancellationToken)
     {
-        var folder = await UnitOfWork.Set<ProjectFolder>()
-            .Where(f => f.Id == folderId)
-            .FirstOrDefaultAsync(cancellationToken)
-            ?? throw new KeyNotFoundException($"Folder {folderId} not found");
+        var folder = await FindOrThrowAsync<ProjectFolder>(folderId);
 
         // Permission check
         await RequirePermissionAsync(folder, PermissionAction.Edit, cancellationToken);
@@ -69,10 +63,7 @@ public class MoveItemHandler : BaseCommandHandler, IRequestHandler<MoveItemComma
         // If moving to a different space, validate it exists
         if (newSpaceId.HasValue && newSpaceId.Value != folder.ProjectSpaceId)
         {
-            var newSpace = await UnitOfWork.Set<ProjectSpace>()
-                .Where(s => s.Id == newSpaceId.Value)
-                .FirstOrDefaultAsync(cancellationToken)
-                ?? throw new KeyNotFoundException($"Target space {newSpaceId.Value} not found");
+            var newSpace = await FindOrThrowAsync<ProjectSpace>(newSpaceId.Value);
 
             // Permission check on target space
             await RequirePermissionAsync(newSpace, PermissionAction.Edit, cancellationToken);
@@ -95,10 +86,7 @@ public class MoveItemHandler : BaseCommandHandler, IRequestHandler<MoveItemComma
 
     private async Task MoveList(Guid listId, Guid? newParentId, long newOrderKey, CancellationToken cancellationToken)
     {
-        var list = await UnitOfWork.Set<ProjectList>()
-            .Where(l => l.Id == listId)
-            .FirstOrDefaultAsync(cancellationToken)
-            ?? throw new KeyNotFoundException($"List {listId} not found");
+        var list = await FindOrThrowAsync<ProjectList>(listId);
 
         // Permission check
         await RequirePermissionAsync(list, PermissionAction.Edit, cancellationToken);
@@ -121,10 +109,7 @@ public class MoveItemHandler : BaseCommandHandler, IRequestHandler<MoveItemComma
             else
             {
                 // Try to find as space
-                var targetSpace = await UnitOfWork.Set<ProjectSpace>()
-                    .Where(s => s.Id == newParentId.Value)
-                    .FirstOrDefaultAsync(cancellationToken)
-                    ?? throw new KeyNotFoundException($"Target parent {newParentId.Value} not found");
+                var targetSpace = await FindOrThrowAsync<ProjectSpace>(newParentId.Value);
 
                 // Moving directly under a space (no folder)
                 await RequirePermissionAsync(targetSpace, PermissionAction.Edit, cancellationToken);

@@ -1,3 +1,4 @@
+using System.ComponentModel.DataAnnotations;
 using Application.Interfaces.Repositories;
 using Application.Interfaces.Services.Permissions;
 using Domain;
@@ -23,10 +24,7 @@ public class TransferOwnershipHandler : BaseCommandHandler, IRequestHandler<Tran
 
     public async Task<Unit> Handle(TransferOwnershipCommand request, CancellationToken cancellationToken)
     {
-        var workspace = await UnitOfWork.Set<ProjectWorkspace>()
-            .Where(w => w.Id == request.WorkspaceId)
-            .FirstOrDefaultAsync(cancellationToken)
-            ?? throw new KeyNotFoundException($"Workspace {request.WorkspaceId} not found");
+        var workspace = await FindOrThrowAsync<ProjectWorkspace>(request.WorkspaceId);
 
         // Only current owner can transfer ownership
         if (workspace.CreatorId != CurrentUserId)
@@ -37,38 +35,27 @@ public class TransferOwnershipHandler : BaseCommandHandler, IRequestHandler<Tran
         // Cannot transfer to self
         if (request.NewOwnerId == CurrentUserId)
         {
-            throw new InvalidOperationException("Cannot transfer ownership to yourself");
+            throw new ValidationException("Cannot transfer ownership to yourself");
         }
 
-        // Check if new owner is a member
-        var newOwnerMembership = await UnitOfWork.Set<WorkspaceMember>()
-            .Where(wm => wm.ProjectWorkspaceId == request.WorkspaceId 
-                      && wm.UserId == request.NewOwnerId
-                      && wm.DeletedAt == null)
-            .FirstOrDefaultAsync(cancellationToken)
-            ?? throw new InvalidOperationException("New owner must be an existing workspace member");
+        // Perform transfer via domain entity
+        // Note: We need to ensure members are loaded for this to work correctly if they aren't already.
+        // Since FindOrThrowAsync might not include members, we should verify or load them.
+        // However, for now assuming EF Core tracking or explicit loading if needed. 
+        // Ideally FindOrThrowAsync should include members or we load them explicitly.
+        
+        // Let's explicitly load members to be safe as the entity method relies on them
+        await UnitOfWork.Set<WorkspaceMember>()
+            .Where(wm => wm.ProjectWorkspaceId == request.WorkspaceId)
+            .LoadAsync(cancellationToken);
 
-        // Update workspace creator
-        await UnitOfWork.Set<ProjectWorkspace>()
-            .Where(w => w.Id == request.WorkspaceId)
-            .ExecuteUpdateAsync(updates =>
-                updates.SetProperty(w => w.CreatorId, request.NewOwnerId)
-                       .SetProperty(w => w.UpdatedAt, DateTimeOffset.UtcNow),
-                cancellationToken: cancellationToken);
-
-        // Update new owner's role to Owner
-        newOwnerMembership.UpdateMembershipDetails(Role.Owner, newOwnerMembership.Status);
-
-        // Downgrade previous owner to Admin
-        var previousOwnerMembership = await UnitOfWork.Set<WorkspaceMember>()
-            .Where(wm => wm.ProjectWorkspaceId == request.WorkspaceId 
-                      && wm.UserId == CurrentUserId
-                      && wm.DeletedAt == null)
-            .FirstOrDefaultAsync(cancellationToken);
-
-        if (previousOwnerMembership != null)
+        try 
         {
-            previousOwnerMembership.UpdateMembershipDetails(Role.Admin, previousOwnerMembership.Status);
+            workspace.TransferOwnership(request.NewOwnerId);
+        }
+        catch (InvalidOperationException ex)
+        {
+            throw new ValidationException(ex.Message);
         }
 
         return Unit.Value;

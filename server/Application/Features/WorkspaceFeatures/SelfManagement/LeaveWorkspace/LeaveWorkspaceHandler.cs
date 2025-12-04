@@ -1,3 +1,4 @@
+using System.ComponentModel.DataAnnotations;
 using Application.Interfaces.Repositories;
 using Application.Interfaces.Services.Permissions;
 using Domain;
@@ -23,30 +24,27 @@ public class LeaveWorkspaceHandler : BaseCommandHandler, IRequestHandler<LeaveWo
 
     public async Task<Unit> Handle(LeaveWorkspaceCommand request, CancellationToken cancellationToken)
     {
-        var workspace = await UnitOfWork.Set<ProjectWorkspace>()
-            .Where(w => w.Id == request.WorkspaceId)
-            .FirstOrDefaultAsync(cancellationToken)
-            ?? throw new KeyNotFoundException($"Workspace {request.WorkspaceId} not found");
+        var workspace = await FindOrThrowAsync<ProjectWorkspace>(request.WorkspaceId);
 
         // Check if user is a member
-        var membership = await UnitOfWork.Set<WorkspaceMember>()
-            .Where(wm => wm.ProjectWorkspaceId == request.WorkspaceId && wm.UserId == CurrentUserId)
-            .FirstOrDefaultAsync(cancellationToken)
-            ?? throw new InvalidOperationException("You are not a member of this workspace");
+        var isMember = await UnitOfWork.Set<WorkspaceMember>()
+            .AnyAsync(wm => wm.ProjectWorkspaceId == request.WorkspaceId && wm.UserId == CurrentUserId, cancellationToken);
+            
+        if (!isMember)
+            throw new ValidationException("You are not a member of this workspace");
 
         // Owner cannot leave - must transfer ownership first
         if (workspace.CreatorId == CurrentUserId)
         {
-            throw new InvalidOperationException("Workspace owner cannot leave. Transfer ownership first.");
+            throw new ValidationException("Workspace owner cannot leave. Transfer ownership first.");
         }
 
-        // Soft delete the membership
+        // Load members to ensure the entity can process removal
         await UnitOfWork.Set<WorkspaceMember>()
             .Where(wm => wm.ProjectWorkspaceId == request.WorkspaceId && wm.UserId == CurrentUserId)
-            .ExecuteUpdateAsync(updates =>
-                updates.SetProperty(wm => wm.DeletedAt, DateTimeOffset.UtcNow)
-                       .SetProperty(wm => wm.UpdatedAt, DateTimeOffset.UtcNow),
-                cancellationToken: cancellationToken);
+            .LoadAsync(cancellationToken);
+
+        workspace.RemoveMembers(new[] { CurrentUserId });
 
         return Unit.Value;
     }

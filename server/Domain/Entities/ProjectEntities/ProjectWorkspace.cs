@@ -57,6 +57,8 @@ public sealed class ProjectWorkspace : Entity
         return currentOrder;
     }
 
+    #region Member Management
+
     public void AddMember(Guid userId, Role role, MembershipStatus status, Guid createdBy, string? joinMethod)
     {
         if (_members.Any(m => m.UserId == userId))
@@ -98,50 +100,129 @@ public sealed class ProjectWorkspace : Entity
             UpdateTimestamp();
         }
     }
-    public void Update(string? name = null, string? description = null, string? color = null, string? icon = null, Theme? theme = null, WorkspaceVariant? variant = null, bool? strictJoin = null, bool? isArchived = null, bool regenerateJoinCode = false)
-    {
-        var changed = false;
 
-        var candidateName = name is null ? Name : (name.Trim() == string.Empty ? throw new ArgumentException("Name cannot be empty.", nameof(name)) : name.Trim());
-        var candidateDescription = description is null ? Description : (string.IsNullOrWhiteSpace(description.Trim()) ? null : description.Trim());
+    public void TransferOwnership(Guid newOwnerId)
+    {
+        if (CreatorId == newOwnerId) return;
+        if (!CreatorId.HasValue)
+            throw new InvalidOperationException("Workspace has no owner to transfer from.");
+
+        var oldOwnerId = CreatorId.Value;
+        var newOwnerMember = _members.FirstOrDefault(m => m.UserId == newOwnerId);
+        var oldOwnerMember = _members.FirstOrDefault(m => m.UserId == oldOwnerId);
+
+        if (newOwnerMember == null)
+            throw new InvalidOperationException("New owner must be a member of the workspace.");
+
+        CreatorId = newOwnerId;
+        newOwnerMember.UpdateMembershipDetails(Role.Owner, newOwnerMember.Status);
+        oldOwnerMember?.UpdateMembershipDetails(Role.Admin, oldOwnerMember.Status);
+
+        UpdateTimestamp();
+    }
+
+    #endregion
+
+    #region Update Methods
+
+    public void UpdateBasicInfo(string? name, string? description)
+    {
+        var candidateName = name is null 
+            ? Name 
+            : (name.Trim() == string.Empty 
+                ? throw new ArgumentException("Name cannot be empty.", nameof(name)) 
+                : name.Trim());
+                
+        var candidateDescription = description is null 
+            ? Description 
+            : (string.IsNullOrWhiteSpace(description.Trim()) ? null : description.Trim());
 
         ValidateBasicInfo(candidateName, candidateDescription);
 
+        var changed = false;
         if (candidateName != Name) { Name = candidateName; changed = true; }
         if (candidateDescription != Description) { Description = candidateDescription; changed = true; }
-
-        if (color is not null || icon is not null)
-        {
-            var c = color?.Trim() ?? Customization.Color;
-            var i = icon?.Trim() ?? Customization.Icon;
-            var newCustomization = Customization.Create(c, i);
-            if (!newCustomization.Equals(Customization)) { Customization = newCustomization; changed = true; }
-        }
-
-        if (theme.HasValue && theme.Value != Theme) { Theme = theme.Value; changed = true; }
-        if (variant.HasValue && variant.Value != Variant) { Variant = variant.Value; changed = true; }
-        if (strictJoin.HasValue && strictJoin.Value != StrictJoin) { StrictJoin = strictJoin.Value; changed = true; }
-
-        if (isArchived.HasValue && isArchived.Value != IsArchived) { IsArchived = isArchived.Value; changed = true; }
-
-        if (regenerateJoinCode)
-        {
-            var newJoin = GenerateRandomCode();
-            if (newJoin != JoinCode) { JoinCode = newJoin; changed = true; }
-        }
 
         if (changed) UpdateTimestamp();
     }
 
-    public void Archive() { if (IsArchived) return; IsArchived = true; UpdateTimestamp(); }
-    public void Unarchive() { if (!IsArchived) return; IsArchived = false; UpdateTimestamp(); }
-    public void RegenerateJoinCode() { JoinCode = GenerateRandomCode(); UpdateTimestamp(); }
+    public void UpdateCustomization(string? color, string? icon)
+    {
+        if (color is null && icon is null) return;
 
-    private static string GenerateRandomCode(int length = 6) { const string chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"; return new string(Enumerable.Range(0, length).Select(_ => chars[Random.Shared.Next(chars.Length)]).ToArray()); }
+        var newColor = color?.Trim() ?? Customization.Color;
+        var newIcon = icon?.Trim() ?? Customization.Icon;
+        var newCustomization = Customization.Create(newColor, newIcon);
+
+        if (!newCustomization.Equals(Customization))
+        {
+            Customization = newCustomization;
+            UpdateTimestamp();
+        }
+    }
+
+    public void UpdateTheme(Theme theme)
+    {
+        if (Theme == theme) return;
+        Theme = theme;
+        UpdateTimestamp();
+    }
+
+    public void UpdateVariant(WorkspaceVariant variant)
+    {
+        if (Variant == variant) return;
+        Variant = variant;
+        UpdateTimestamp();
+    }
+
+    public void UpdateStrictJoin(bool strictJoin)
+    {
+        if (StrictJoin == strictJoin) return;
+        StrictJoin = strictJoin;
+        UpdateTimestamp();
+    }
+
+    public void Archive()
+    {
+        if (IsArchived) return;
+        IsArchived = true;
+        UpdateTimestamp();
+    }
+
+    public void Unarchive()
+    {
+        if (!IsArchived) return;
+        IsArchived = false;
+        UpdateTimestamp();
+    }
+
+    public void RegenerateJoinCode()
+    {
+        JoinCode = GenerateRandomCode();
+        UpdateTimestamp();
+    }
+
+    #endregion
+
+    #region Private Helpers
+
+    private static string GenerateRandomCode(int length = 6)
+    {
+        const string chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+        return new string(Enumerable.Range(0, length)
+            .Select(_ => chars[Random.Shared.Next(chars.Length)])
+            .ToArray());
+    }
+
     private static void ValidateBasicInfo(string name, string? description)
     {
-        if (string.IsNullOrWhiteSpace(name)) throw new ArgumentException("Workspace name cannot be empty.", nameof(name));
-        if (name.Length > 100) throw new ArgumentException("Workspace name cannot exceed 100 characters.", nameof(name));
-        if (description?.Length > 500) throw new ArgumentException("Workspace description cannot exceed 500 characters.", nameof(description));
+        if (string.IsNullOrWhiteSpace(name))
+            throw new ArgumentException("Workspace name cannot be empty.", nameof(name));
+        if (name.Length > 100)
+            throw new ArgumentException("Workspace name cannot exceed 100 characters.", nameof(name));
+        if (description?.Length > 500)
+            throw new ArgumentException("Workspace description cannot exceed 500 characters.", nameof(description));
     }
+
+    #endregion
 }

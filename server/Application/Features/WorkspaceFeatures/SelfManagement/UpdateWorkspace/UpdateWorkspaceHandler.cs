@@ -18,19 +18,35 @@ public class UpdateWorkspaceHandler : BaseCommandHandler, IRequestHandler<Update
         var workspace = await FindOrThrowAsync<ProjectWorkspace>(request.Id);
         await RequirePermissionAsync(workspace, PermissionAction.Edit, cancellationToken);
 
-        workspace.Update(
-            name: request.Name,
-            description: request.Description,
-            color: request.Color,
-            icon: request.Icon,
-            theme: request.Theme,
-            variant: request.Variant,
-            strictJoin: request.StrictJoin,
-            isArchived: request.IsArchived,
-            regenerateJoinCode: request.RegenerateJoinCode
-        );
+        // Update basic info
+        if (request.Name is not null || request.Description is not null)
+            workspace.UpdateBasicInfo(request.Name, request.Description);
 
-        UnitOfWork.Set<ProjectWorkspace>().Update(workspace);
+        // Update customization
+        if (request.Color is not null || request.Icon is not null)
+            workspace.UpdateCustomization(request.Color, request.Icon);
+
+        // Update settings
+        if (request.Theme.HasValue)
+            workspace.UpdateTheme(request.Theme.Value);
+
+        if (request.Variant.HasValue)
+            workspace.UpdateVariant(request.Variant.Value);
+
+        if (request.StrictJoin.HasValue)
+            workspace.UpdateStrictJoin(request.StrictJoin.Value);
+
+        // Handle archive/unarchive
+        if (request.IsArchived.HasValue)
+        {
+            if (request.IsArchived.Value) workspace.Archive();
+            else workspace.Unarchive();
+        }
+
+        // Regenerate join code if requested
+        if (request.RegenerateJoinCode)
+            workspace.RegenerateJoinCode();
+
         return Unit.Value;
     }
 
