@@ -1,5 +1,7 @@
 using System;
 using System.ComponentModel.DataAnnotations;
+using Application.Common;
+using Application.Interfaces;
 using Application.Interfaces.Repositories;
 using Application.Interfaces.Services.Permissions;
 using Domain;
@@ -8,14 +10,28 @@ using Domain.Entities.ProjectEntities;
 using Domain.Enums;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Hybrid;
 using server.Application.Interfaces;
 
 namespace Application.Features.WorkspaceFeatures.MemberManage.AddMembers;
 
 public class AddMembersHandler : BaseCommandHandler, IRequestHandler<AddMembersCommand, Unit>
 {
-    public AddMembersHandler(IUnitOfWork unitOfWork, ICurrentUserService currentUserService, IPermissionService permissionService, WorkspaceContext workspaceContext)
-        : base(unitOfWork, permissionService, currentUserService, workspaceContext) { }
+    private readonly HybridCache _cache;
+    private readonly IRealtimeService _realtime;
+
+    public AddMembersHandler(
+        IUnitOfWork unitOfWork, 
+        ICurrentUserService currentUserService, 
+        IPermissionService permissionService, 
+        WorkspaceContext workspaceContext,
+        HybridCache cache,
+        IRealtimeService realtime)
+        : base(unitOfWork, permissionService, currentUserService, workspaceContext) 
+    {
+        _cache = cache;
+        _realtime = realtime;
+    }
 
     public async Task<Unit> Handle(AddMembersCommand command, CancellationToken cancellationToken)
     {
@@ -32,6 +48,15 @@ public class AddMembersHandler : BaseCommandHandler, IRequestHandler<AddMembersC
 
         workspace.AddMembers(memberSpecs, CurrentUserId);
 
+        // Invalidate cache
+        await _cache.RemoveAsync(CacheKeys.WorkspaceMembers(command.workspaceId), cancellationToken);
+
+        // Notify workspace viewers (fire-and-forget)
+        _ = _realtime.NotifyWorkspaceAsync(command.workspaceId, "MembersAdded", new
+        {
+            AddedBy = CurrentUserId,
+            MemberIds = memberSpecs.Select(m => m.Id).ToList()
+        }, cancellationToken);
 
         return Unit.Value;
     }

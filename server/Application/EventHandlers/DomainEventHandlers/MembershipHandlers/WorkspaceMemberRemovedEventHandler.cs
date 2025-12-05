@@ -49,17 +49,28 @@ public class WorkspaceMemberRemovedEventHandler : INotificationHandler<Workspace
 
         var allEntityIds = spaceIds.Concat(folderIds).Concat(listIds).ToList();
 
-        // Remove all EntityMembers for this user in this workspace's hierarchy
-        var entityMembers = await _unitOfWork.Set<EntityMember>()
-            .Where(em => em.UserId == evt.UserId && allEntityIds.Contains(em.LayerId))
-            .ToListAsync(cancellationToken);
+        if (allEntityIds.Count == 0)
+        {
+            _logger.LogInformation("No entities found to cleanup for user {UserId} in workspace {WorkspaceId}", 
+                evt.UserId, evt.WorkspaceId);
+            await _permissionService.InvalidateUserCacheAsync(evt.UserId, evt.WorkspaceId);
+            return;
+        }
 
-        _unitOfWork.Set<EntityMember>().RemoveRange(entityMembers);
+        // Bulk soft-delete EntityMembers for this user in this workspace's hierarchy
+        var deletedCount = await _unitOfWork.Set<EntityMember>()
+            .Where(em => em.UserId == evt.UserId && 
+                         allEntityIds.Contains(em.LayerId) && 
+                         em.DeletedAt == null)
+            .ExecuteUpdateAsync(s => s
+                .SetProperty(e => e.DeletedAt, DateTimeOffset.UtcNow)
+                .SetProperty(e => e.UpdatedAt, DateTimeOffset.UtcNow),
+                cancellationToken);
 
         // Invalidate permission cache
         await _permissionService.InvalidateUserCacheAsync(evt.UserId, evt.WorkspaceId);
 
-        _logger.LogInformation("Removed {Count} EntityMembers for user {UserId} in workspace {WorkspaceId}",
-            entityMembers.Count, evt.UserId, evt.WorkspaceId);
+        _logger.LogInformation("Soft-deleted {Count} EntityMembers for user {UserId} in workspace {WorkspaceId}",
+            deletedCount, evt.UserId, evt.WorkspaceId);
     }
 }

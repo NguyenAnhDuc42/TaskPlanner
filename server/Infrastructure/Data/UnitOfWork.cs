@@ -40,7 +40,7 @@ namespace Infrastructure.Data
 
             try
             {
-                await _context.SaveChangesAsync(cancellationToken);
+                await SaveChangesAsync(cancellationToken);
                 await _currentTransaction.CommitAsync(cancellationToken);
             }
             catch

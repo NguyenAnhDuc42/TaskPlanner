@@ -1,8 +1,10 @@
 using System;
+using Application.Interfaces;
 using Application.Interfaces.Repositories;
 using Application.Interfaces.Services.Permissions;
 using Infrastructure.Auth;
 using Infrastructure.Data;
+using Infrastructure.Services;
 using Infrastructure.Services.Permissions;
 using Microsoft.Extensions.DependencyInjection;
 using server.Application.Interfaces;
@@ -20,9 +22,7 @@ public static class ServicesRegistration
         services.AddScoped<ITokenService, TokenService>();
         services.AddScoped<IPermissionService, PermissionService>();
         services.AddScoped<PermissionContextBuilder>();
-
-
-
+        services.AddScoped<IRealtimeService, SignalRRealtimeService>();
 
         services.AddHttpContextAccessor();
 
@@ -33,3 +33,4 @@ public static class ServicesRegistration
         return services;
     }
 }
+

@@ -178,8 +178,52 @@ public class PermissionDataFetcher
     {
         // Invalidate workspace role
         await InvalidateWorkspaceRoleCacheAsync(userId, workspaceId);
-        
-        // Note: Can't easily invalidate all entity access caches for a user
-        // Those will expire naturally after 5 minutes
+
+        // Get entity IDs where user actually has EntityMember records in this workspace
+        var spaceIds = await _dbContext.ProjectSpaces
+            .AsNoTracking()
+            .Where(s => s.ProjectWorkspaceId == workspaceId)
+            .Select(s => s.Id)
+            .ToListAsync();
+
+        // Only get EntityMember records for this user in this workspace's entities
+        var entityMembers = await _dbContext.EntityMembers
+            .AsNoTracking()
+            .Where(em => em.UserId == userId && spaceIds.Contains(em.LayerId))
+            .Select(em => new { em.LayerId, em.LayerType })
+            .ToListAsync();
+
+        // Also check folders and lists
+        var folderIds = await _dbContext.ProjectFolders
+            .AsNoTracking()
+            .Where(f => spaceIds.Contains(f.ProjectSpaceId))
+            .Select(f => f.Id)
+            .ToListAsync();
+
+        var folderMembers = await _dbContext.EntityMembers
+            .AsNoTracking()
+            .Where(em => em.UserId == userId && folderIds.Contains(em.LayerId))
+            .Select(em => new { em.LayerId, em.LayerType })
+            .ToListAsync();
+
+        var listIds = await _dbContext.ProjectLists
+            .AsNoTracking()
+            .Where(l => spaceIds.Contains(l.ProjectSpaceId))
+            .Select(l => l.Id)
+            .ToListAsync();
+
+        var listMembers = await _dbContext.EntityMembers
+            .AsNoTracking()
+            .Where(em => em.UserId == userId && listIds.Contains(em.LayerId))
+            .Select(em => new { em.LayerId, em.LayerType })
+            .ToListAsync();
+
+        // Clear only the caches that actually existed
+        var allMembers = entityMembers.Concat(folderMembers).Concat(listMembers);
+        var tasks = allMembers.Select(em => 
+            _cache.RemoveAsync(string.Format(EntityMemberKey, userId, em.LayerId, em.LayerType)));
+
+        await Task.WhenAll(tasks);
     }
 }
+

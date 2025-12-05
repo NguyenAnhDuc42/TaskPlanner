@@ -1,3 +1,4 @@
+using Application.Common;
 using Application.Contract.UserContract;
 using Application.Helper;
 using Application.Interfaces.Repositories;
@@ -8,20 +9,25 @@ using Domain.Entities.Relationship;
 using Domain.Enums;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Hybrid;
 using server.Application.Interfaces;
 
 namespace Application.Features.WorkspaceFeatures.MemberManage.GetMembers;
 
 public class GetMembersHandler : BaseQueryHandler, IRequestHandler<GetMembersQuery, List<MemberDto>>
 {
+    private readonly HybridCache _cache;
+
     public GetMembersHandler(
         IUnitOfWork unitOfWork,
         IPermissionService permissionService,
         ICurrentUserService currentUserService,
         WorkspaceContext workspaceContext,
-        CursorHelper cursorHelper)
+        CursorHelper cursorHelper,
+        HybridCache cache)
         : base(unitOfWork, permissionService, currentUserService, workspaceContext, cursorHelper)
     {
+        _cache = cache;
     }
 
     public async Task<List<MemberDto>> Handle(GetMembersQuery request, CancellationToken cancellationToken)
@@ -34,16 +40,23 @@ public class GetMembersHandler : BaseQueryHandler, IRequestHandler<GetMembersQue
         // Check access
         await RequirePermissionAsync(workspace, EntityType.WorkspaceMember, PermissionAction.View, cancellationToken);
 
-        // Get all members
-        var members = await QueryNoTracking<WorkspaceMember>()
-            .Where(wm => wm.ProjectWorkspaceId == request.WorkspaceId && wm.DeletedAt == null)
+        // Get from cache or load from DB
+        return await _cache.GetOrCreateAsync(
+            CacheKeys.WorkspaceMembers(request.WorkspaceId),
+            async ct => await LoadMembersFromDb(request.WorkspaceId, ct),
+            cancellationToken: cancellationToken
+        ) ?? new List<MemberDto>();
+    }
+
+    private async Task<List<MemberDto>> LoadMembersFromDb(Guid workspaceId, CancellationToken ct)
+    {
+        return await QueryNoTracking<WorkspaceMember>()
+            .Where(wm => wm.ProjectWorkspaceId == workspaceId && wm.DeletedAt == null)
             .Select(wm => new MemberDto
             {
                 Id = wm.UserId,
                 Role = wm.Role
             })
-            .ToListAsync(cancellationToken);
-
-        return members;
+            .ToListAsync(ct);
     }
 }
