@@ -29,6 +29,7 @@ public class TaskPlanDbContext : DbContext
     public DbSet<WorkspaceMember> WorkspaceMembers { get; set; }
     public DbSet<EntityMember> EntityMembers { get; set; }
     public DbSet<ChatRoomMember> ChatRoomMembers { get; set; }
+    public DbSet<TaskAssignment> TaskAssignments { get; set; } 
 
     // Support Entities
     public DbSet<Attachment> Attachments { get; set; }

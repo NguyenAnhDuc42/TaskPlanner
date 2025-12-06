@@ -221,7 +221,7 @@ public class PermissionDataFetcher
         // Clear only the caches that actually existed
         var allMembers = entityMembers.Concat(folderMembers).Concat(listMembers);
         var tasks = allMembers.Select(em => 
-            _cache.RemoveAsync(string.Format(EntityMemberKey, userId, em.LayerId, em.LayerType)));
+            _cache.RemoveAsync(string.Format(EntityMemberKey, userId, em.LayerId, em.LayerType)).AsTask());
 
         await Task.WhenAll(tasks);
     }
