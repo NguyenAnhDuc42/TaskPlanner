@@ -1,7 +1,6 @@
 using Application.Contract.StatusContract;
 using Application.Interfaces.Repositories;
 using Domain.Entities.Support;
-using Mapster;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 
@@ -24,6 +23,13 @@ public class GetStatusListHandler : IRequestHandler<GetStatusListQuery, List<Sta
             .AsNoTracking()
             .ToListAsync(cancellationToken);
 
-        return statuses.Adapt<List<StatusDto>>();
+        return statuses.Select(s => new StatusDto(
+            s.Id,
+            s.Name,
+            s.Color,
+            s.Category,
+            s.OrderKey,
+            s.IsDefaultStatus
+        )).ToList();
     }
 }

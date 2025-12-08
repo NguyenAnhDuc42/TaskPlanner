@@ -13,7 +13,7 @@ public abstract class EntityConfiguration<TEntity> : IEntityTypeConfiguration<TE
 
         builder.Property(x => x.Id).ValueGeneratedNever().HasColumnName("id"); // GUIDs generated in domain
 
-        builder.Property(x => x.Version).IsRowVersion().IsConcurrencyToken().HasColumnName("version"); // concurrency token
+        builder.Property(x => x.Version).IsRowVersion().IsConcurrencyToken().HasColumnName("version").HasDefaultValueSql("gen_random_bytes(8)"); // concurrency token
 
         builder.Property(x => x.CreatedAt).IsRequired().HasColumnName("created_at").HasConversion<DateTimeOffset>();
 

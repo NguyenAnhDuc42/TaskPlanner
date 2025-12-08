@@ -6,7 +6,7 @@ using FluentValidation;
 using MediatR;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-
+using Application.Helper;
 namespace Application.Dependencies;
 
 public static class DependencyInjection
@@ -19,8 +19,14 @@ public static class DependencyInjection
         services.AddTransient(typeof(IPipelineBehavior<,>), typeof(ValidationBehavior<,>));
         services.AddTransient(typeof(IPipelineBehavior<,>), typeof(TransactionBehavior<,>));
 
+        // Widget Tools
         services.AddScoped<WidgetBuilder>();
         services.AddSingleton<WidgetGridValidator>();
+
+        // Cursor Helper
+        services.Configure<CursorEncryptionOptions>(config.GetSection(CursorEncryptionOptions.SectionName));
+        services.AddSingleton<CursorHelper>();
+
 
         return services;
     }

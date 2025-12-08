@@ -18,7 +18,7 @@ public class UserConfiguration : IEntityTypeConfiguration<User>
         builder.Property(u => u.PasswordHash).IsRequired().HasMaxLength(256).HasColumnName("password_hash");
         builder.Property(u => u.CreatedAt).HasColumnName("created_at").IsRequired();
         builder.Property(u => u.UpdatedAt).HasColumnName("updated_at").IsRequired();
-        builder.Property(u => u.Version).HasColumnName("version").IsRowVersion();
+        builder.Property(u => u.Version).IsRowVersion().IsConcurrencyToken().HasColumnName("version").HasDefaultValueSql("gen_random_bytes(8)");
 
         builder.HasIndex(u => u.Email).IsUnique(); // Email should be unique
 

@@ -1,6 +1,7 @@
 using System;
 using System.Text;
 using Infrastructure.Auth;
+using Infrastructure.Auth.Types;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -18,6 +19,7 @@ public static class AuthenticationRegistration
             ?? throw new ArgumentException("JwtSettings is not set in configuration");
 
         services.Configure<JwtSettings>(config.GetSection("JwtSettings"));
+        services.Configure<CookieSettings>(config.GetSection("CookieSettings"));
 
         services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             .AddJwtBearer(opt =>

@@ -5,4 +5,4 @@ using MediatR;
 namespace Application.Features.WorkspaceFeatures.ChatRoomManage.EditChatRoom;
 
 public record class EditChatRoomCommand
-(Guid chatRoomId, string newName, string? avatarUrl, ChatRoomType chatRoomType, bool isPrivate, bool isArchived, bool turnOffNotifications) : ICommand<Unit>;
+(Guid chatRoomId, string? newName, string? avatarUrl, bool isPrivate, bool isArchived, bool turnOffNotifications) : ICommand<Unit>;

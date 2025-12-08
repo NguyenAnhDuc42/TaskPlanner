@@ -1,6 +1,5 @@
 using Application.Interfaces.Repositories;
 using Domain.Entities;
-using MapsterMapper;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using server.Application.Interfaces;
@@ -11,13 +10,11 @@ public class RegisterHandler : IRequestHandler<RegisterCommand, string>
 {
     private readonly IUnitOfWork _unitOfWork;
     private readonly IPasswordService _passwordService;
-    private readonly IMapper _mapper;
 
-    public RegisterHandler(IUnitOfWork unitOfWork, IPasswordService passwordService, IMapper mapper)
+    public RegisterHandler(IUnitOfWork unitOfWork, IPasswordService passwordService)
     {
         _unitOfWork = unitOfWork ?? throw new ArgumentNullException(nameof(unitOfWork));
         _passwordService = passwordService ?? throw new ArgumentNullException(nameof(passwordService));
-        _mapper = mapper ?? throw new ArgumentNullException(nameof(mapper));
     }
     public async Task<string> Handle(RegisterCommand request, CancellationToken cancellationToken)
     {

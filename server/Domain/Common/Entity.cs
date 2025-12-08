@@ -1,3 +1,5 @@
+using System.ComponentModel.DataAnnotations;
+using System.Security.Cryptography;
 using Domain.Common.Interfaces;
 
 namespace Domain.Common;
@@ -5,7 +7,8 @@ namespace Domain.Common;
 public abstract class Entity 
 {
     public Guid Id { get; protected set; } = Guid.NewGuid();
-    public byte[] Version { get; private set; } = Array.Empty<byte>(); // EF Core optimistic concurrency
+    [Timestamp]
+    public byte[] Version { get; private set; } = RandomNumberGenerator.GetBytes(8); // EF Core optimistic concurrency
     public DateTimeOffset CreatedAt { get; private set; } = DateTimeOffset.UtcNow;
     public DateTimeOffset UpdatedAt { get; private set; } = DateTimeOffset.UtcNow;
     public DateTimeOffset? DeletedAt { get; protected set; }

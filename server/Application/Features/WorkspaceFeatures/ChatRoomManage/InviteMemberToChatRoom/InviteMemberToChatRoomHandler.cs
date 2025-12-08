@@ -17,8 +17,7 @@ public class InviteMembersToChatRoomHandler : BaseCommandHandler, IRequestHandle
         : base(unitOfWork, permissionService, currentUserService, workspaceContext) { }
     public async Task<Unit> Handle(InviteMembersToChatRoomCommand request, CancellationToken cancellationToken)
     {
-        var chatRoom = await UnitOfWork.Set<ChatRoom>().FindAsync(request.chatRoomId, cancellationToken)
-            ?? throw new KeyNotFoundException("Chat room not found.");
+        var chatRoom = await UnitOfWork.Set<ChatRoom>().FindAsync(request.chatRoomId, cancellationToken)?? throw new KeyNotFoundException("Chat room not found.");
         cancellationToken.ThrowIfCancellationRequested();
         await RequirePermissionAsync(chatRoom, EntityType.ChatRoomMember, PermissionAction.Create, cancellationToken);
         var chatRommMembers = UnitOfWork.Set<WorkspaceMember>()

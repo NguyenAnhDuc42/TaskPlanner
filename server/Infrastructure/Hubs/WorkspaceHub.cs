@@ -34,4 +34,22 @@ public class WorkspaceHub : Hub
     {
         await Groups.AddToGroupAsync(Context.ConnectionId, $"user:{userId}");
     }
+
+    /// <summary>
+    /// Client joins a chat room group to receive messages.
+    /// Call this when user opens a chat room.
+    /// </summary>
+    public async Task JoinChatRoom(Guid chatRoomId)
+    {
+        await Groups.AddToGroupAsync(Context.ConnectionId, $"chat:{chatRoomId}");
+    }
+
+    /// <summary>
+    /// Client leaves a chat room group.
+    /// Call this when user closes a chat room.
+    /// </summary>
+    public async Task LeaveChatRoom(Guid chatRoomId)
+    {
+        await Groups.RemoveFromGroupAsync(Context.ConnectionId, $"chat:{chatRoomId}");
+    }
 }

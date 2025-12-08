@@ -5,7 +5,6 @@ using Application.Interfaces.Repositories;
 using Application.Interfaces.Services.Permissions;
 using Domain;
 using Domain.Entities.Support.Widget;
-using Mapster;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using server.Application.Interfaces;
@@ -36,7 +35,7 @@ public class GetDashboardListHandler : BaseQueryHandler, IRequestHandler<GetDash
         var hasMore = dashboards.Count > pageSize;
         var displayItems = dashboards.Take(pageSize).ToList();
 
-        var dtos = displayItems.Adapt<List<DashboardListItemDto>>();
+        var dtos = displayItems.Select(d => new DashboardListItemDto(d.Id, d.Name, d.UpdatedAt)).ToList();
         string? nextCursor = null;
         if (hasMore && displayItems.Count > 0)
         {

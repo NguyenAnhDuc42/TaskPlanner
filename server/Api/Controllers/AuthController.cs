@@ -6,38 +6,51 @@ using Application.Features.Auth.Register;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
 
-namespace server.Api.Controllers
+namespace server.Api.Controllers;
+[Route("api/[controller]")]
+[ApiController]
+public class AuthController : ControllerBase
 {
-    [Route("api/[controller]")]
-    public class AuthController : BaseController
+    private readonly IMediator _mediator;
+
+    public AuthController(IMediator mediator)
     {
-        protected AuthController(IMediator mediator) : base(mediator) { }
+        _mediator = mediator;
+    }
 
+    [HttpPost("login")]
+    public async Task<IActionResult> Login([FromBody] LoginRequest request, CancellationToken cancellationToken)
+    {
+        var command = new LoginCommand(request.Email, request.Password);
+        var result = await _mediator.Send(command, cancellationToken);
+        return Ok(result);
+    }
 
-        [HttpPost("login")]
-        public async Task<IActionResult> Login(string email, string password, CancellationToken cancellationToken)
-        {
-            var commnad = new LoginCommand(email, password);
-            return await SendRequest(commnad);
-        }
-        [HttpPost("logout")]
-        public async Task<IActionResult> Logout(CancellationToken cancellationToken)
-        {
-            var commnad = new LogoutCommand();
-            return await SendRequest(commnad);
-        }
-        [HttpPost("register")]
-        public async Task<IActionResult> Register(string userName, string email, string password, CancellationToken cancellationToken)
-        {
-            var commnad = new RegisterCommand(userName, email, password);
-            return await SendRequest(commnad);
-        }
-        [HttpPost("refresh")]
-        public async Task<IActionResult> Refresh(CancellationToken cancellationToken)
-        {
-            var commnad = new RefreshTokenCommand();
-            return await SendRequest(commnad);
-        }
+    [HttpPost("logout")]
+    public async Task<IActionResult> Logout(CancellationToken cancellationToken)
+    {
+        var command = new LogoutCommand();
+        var result = await _mediator.Send(command, cancellationToken);
+        return Ok(result);
+    }
 
+    [HttpPost("register")]
+    public async Task<IActionResult> Register([FromBody] RegisterRequest request, CancellationToken cancellationToken)
+    {
+        var command = new RegisterCommand(request.UserName, request.Email, request.Password);
+        var result = await _mediator.Send(command, cancellationToken);
+        return Ok(result);
+    }
+
+    [HttpPost("refresh")]
+    public async Task<IActionResult> Refresh(CancellationToken cancellationToken)
+    {
+        var command = new RefreshTokenCommand();
+        var result = await _mediator.Send(command, cancellationToken);
+        return Ok(result);
     }
 }
+
+// Request Models
+public record LoginRequest(string Email, string Password);
+public record RegisterRequest(string UserName, string Email, string Password);

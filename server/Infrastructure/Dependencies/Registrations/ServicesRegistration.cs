@@ -22,6 +22,7 @@ public static class ServicesRegistration
         services.AddScoped<ITokenService, TokenService>();
         services.AddScoped<IPermissionService, PermissionService>();
         services.AddScoped<PermissionContextBuilder>();
+        services.AddScoped<PermissionDataFetcher>();
         services.AddScoped<IRealtimeService, SignalRRealtimeService>();
 
         services.AddHttpContextAccessor();
