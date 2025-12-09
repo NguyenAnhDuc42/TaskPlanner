@@ -19,7 +19,7 @@ public sealed class ProjectList : Entity
     public long NextItemOrder { get; private set; }
     public DateTimeOffset? StartDate { get; private set; }
     public DateTimeOffset? DueDate { get; private set; }
-
+ 
     private ProjectList() { }
 
     private ProjectList(Guid id, Guid projectSpaceId, Guid? projectFolderId, string name, Customization customization, bool isPrivate, bool inheritStatus, long orderKey, Guid creatorId, DateTimeOffset? startDate, DateTimeOffset? dueDate, long nextItemOrder)
