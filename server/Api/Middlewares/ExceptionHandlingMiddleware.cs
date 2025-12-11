@@ -63,6 +63,14 @@ public class ExceptionHandlingMiddleware
                     Status = StatusCodes.Status403Forbidden
                 };
                 break;
+            case DuplicateEmailException duplicateEx:
+                problem = new ProblemDetails
+                {
+                    Title = "Conflict",
+                    Detail = duplicateEx.Message,
+                    Status = StatusCodes.Status409Conflict
+                };
+                break;
             default:
                 problem = new ProblemDetails
                 {

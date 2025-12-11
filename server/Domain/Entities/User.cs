@@ -1,12 +1,8 @@
 using Domain.Common;
-using Domain.Entities.Relationship;
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Text.RegularExpressions;
-using Domain.Enums;
-using Domain.Entities.Support;
-using System.ComponentModel.DataAnnotations;
+
+
+using Domain.Events.UserEvents;
 
 namespace Domain.Entities;
 
@@ -40,28 +36,42 @@ public class User : Entity
             throw new ArgumentException("Invalid email format.", nameof(email));
 
         var user = new User(Guid.NewGuid(), name, email, passwordHash);
+        user.AddDomainEvent(new UserRegisteredEvent(user.Id, user.Email, user.Name, DateTimeOffset.UtcNow));
         return user;
     }
 
-    // === Session Management ===
-    public Session AddSession(string refreshToken, DateTime expiresAt, string userAgent, string ipAddress)
+    public Session Login(string refreshToken, DateTimeOffset expiresAt, string userAgent, string ipAddress)
     {
         var session = Session.Create(Id, refreshToken, expiresAt, userAgent, ipAddress);
         _sessions.Add(session);
         return session;
     }
 
+    public void Logout(string refreshToken, DateTimeOffset? revokedAt = null)
+    {
+        var session = _sessions.FirstOrDefault(s => s.RefreshToken == refreshToken) ?? throw new InvalidOperationException("Session not found.");
+        session.Revoke(revokedAt);
+    }
+
+    public void LogoutAllSessions(DateTimeOffset? revokedAt = null)
+    {
+        foreach (var session in _sessions.Where(s => !s.RevokedAt.HasValue))
+        {
+            session.Revoke(revokedAt);
+        }
+    }
+
+    // === Session Management ===
+
     public void RevokeSession(Guid sessionId)
     {
-        var session = _sessions.FirstOrDefault(s => s.Id == sessionId)
-                      ?? throw new InvalidOperationException("Session not found.");
+        var session = _sessions.FirstOrDefault(s => s.Id == sessionId) ?? throw new InvalidOperationException("Session not found.");
         session.Revoke();
     }
 
-    public void ExtendSession(Guid sessionId, TimeSpan duration)
+    public void ExtendSession(string refreshToken, TimeSpan duration)
     {
-        var session = _sessions.FirstOrDefault(s => s.Id == sessionId)
-                      ?? throw new InvalidOperationException("Session not found.");
+        var session = _sessions.FirstOrDefault(s => s.RefreshToken == refreshToken) ?? throw new InvalidOperationException("Session not found.");
         session.ExtendExpiration(duration);
     }
 

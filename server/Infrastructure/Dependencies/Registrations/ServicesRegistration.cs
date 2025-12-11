@@ -1,6 +1,7 @@
 using System;
 using Application.Interfaces;
 using Application.Interfaces.Repositories;
+using Application.Interfaces.Services;
 using Application.Interfaces.Services.Permissions;
 using Infrastructure.Auth;
 using Infrastructure.Data;
@@ -24,6 +25,7 @@ public static class ServicesRegistration
         services.AddScoped<PermissionContextBuilder>();
         services.AddScoped<PermissionDataFetcher>();
         services.AddScoped<IRealtimeService, SignalRRealtimeService>();
+        services.AddTransient<IEmailService, EmailService>();
 
         services.AddHttpContextAccessor();
 

@@ -31,20 +31,19 @@ public class Session : Entity
         return session;
     }
 
-    public void Revoke(string? reason = null, DateTimeOffset? revokedAt = null)
+    public void Revoke(DateTimeOffset? revokedAt = null)
     {
-        if (RevokedAt.HasValue) throw new InvalidOperationException("Session is already revoked.");
-        if (ExpiresAt <= DateTimeOffset.UtcNow) throw new InvalidOperationException("Cannot revoke an expired session.");
-
-        RevokedAt = DateTimeOffset.UtcNow;
+        if (RevokedAt.HasValue) return; // already revoked -> idempotent
+        RevokedAt = revokedAt ?? DateTimeOffset.UtcNow;
     }
 
     public void ExtendExpiration(TimeSpan duration)
     {
         if (RevokedAt.HasValue) throw new InvalidOperationException("Cannot extend an already revoked session.");
-        if (ExpiresAt <= DateTimeOffset.UtcNow) throw new InvalidOperationException("Cannot extend an already expired session.");
         if (duration <= TimeSpan.Zero) throw new ArgumentOutOfRangeException(nameof(duration), "Duration must be positive.");
+        if (ExpiresAt <= DateTimeOffset.UtcNow) throw new InvalidOperationException("Cannot extend an already expired session.");
 
         ExpiresAt = ExpiresAt.Add(duration);
     }
+
 }

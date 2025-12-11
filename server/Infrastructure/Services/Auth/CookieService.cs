@@ -3,6 +3,7 @@ using System.IdentityModel.Tokens.Jwt;
 using Application.Features.Auth.DTOs;
 using Infrastructure.Auth.Types;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using server.Application.Interfaces;
 
@@ -11,9 +12,11 @@ namespace Infrastructure.Auth;
 public class CookieService : ICookieService
 {
     private readonly CookieSettings _cookieSettings;
-    public CookieService(IOptions<CookieSettings> cookieSettings)
+    private readonly ILogger<CookieService> _logger;
+    public CookieService(IOptions<CookieSettings> cookieSettings, ILogger<CookieService> logger)
     {
         _cookieSettings = cookieSettings.Value;
+        _logger = logger;
     }
 
     public void ClearAuthCookies(HttpContext context)
@@ -35,9 +38,15 @@ public class CookieService : ICookieService
             Expires = DateTimeOffset.UtcNow.AddDays(-30),
             Domain = string.IsNullOrEmpty(_cookieSettings.Domain) ? null : _cookieSettings.Domain
         };
-
-        context.Response.Cookies.Append(_cookieSettings.AccessTokenCookieName, "", accessCookieOpt);
-        context.Response.Cookies.Append(_cookieSettings.RefreshTokenCookieName, "", refreshCookieOpt);
+        try
+        {
+            context.Response.Cookies.Append(_cookieSettings.AccessTokenCookieName, "", accessCookieOpt);
+            context.Response.Cookies.Append(_cookieSettings.RefreshTokenCookieName, "", refreshCookieOpt);
+        }
+        catch (Exception ex) 
+        {
+            _logger.LogError(ex, "Failed to clear auth cookies.");
+        }
     }
 
     public JwtTokens? GetAuthTokensFromCookies(HttpContext context)
@@ -63,12 +72,20 @@ public class CookieService : ICookieService
 
     public string GetRefreshTokenFromCookies(HttpContext context)
     {
-        var refreshTokne = context.Request.Cookies[_cookieSettings.RefreshTokenCookieName];
-        if (string.IsNullOrEmpty(refreshTokne))
+        string? refreshToken = null;
+        try
+        {
+            refreshToken = context.Request.Cookies[_cookieSettings.RefreshTokenCookieName];
+        }
+        catch (Exception)
+        {
+            _logger.LogError("Failed to read refresh token from cookies.");
+        }
+        if (string.IsNullOrEmpty(refreshToken))
         {
             throw new ArgumentException("Refresh token is not found in cookies.");
         }
-        return refreshTokne;
+        return refreshToken;
     }
 
     public void SetAuthCookies(HttpContext context, JwtTokens tokens)

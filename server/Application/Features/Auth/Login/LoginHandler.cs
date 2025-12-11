@@ -27,23 +27,19 @@ public class LoginHandler : IRequestHandler<LoginCommand, LoginResponse>
     public async Task<LoginResponse> Handle(LoginCommand request, CancellationToken cancellationToken)
     {
         var httpContext = _httpContextAccessor.HttpContext;
-        if (httpContext is null)
-        {
-            throw new Exception("Unable to get HttpContext from IHttpContextAccessor.");
-        }
-        var user = await _unitOfWork.Set<User>().FirstOrDefaultAsync(u => u.Email == request.email, cancellationToken);
-        if (user is null)
-        {
-            throw new Exception("User not found");
-        }
-        if (_passwordService.VerifyPassword(request.password, user.PasswordHash) is false)
-        {
-            throw new UnauthorizedAccessException("Wrong credentials");
-        }
+        if (httpContext is null) throw new Exception("Unable to get HttpContext from IHttpContextAccessor.");
+
+        var user = await _unitOfWork.Set<User>().FirstOrDefaultAsync(u => u.Email == request.email, cancellationToken) ?? throw new UnauthorizedAccessException("Wrong credentials");
+        if (!_passwordService.VerifyPassword(request.password, user.PasswordHash)) throw new UnauthorizedAccessException("Wrong credentials");
         var userAgent = httpContext.Request.Headers["User-Agent"].ToString();
         var ipAddress = httpContext.Connection.RemoteIpAddress?.ToString() ?? "Unknown IP";
         var tokens = await _tokenService.GenerateTokensAsync(user, userAgent, ipAddress, cancellationToken);
         _cookieService.SetAuthCookies(httpContext, tokens);
+
+        user.Login(tokens.RefreshToken, tokens.ExpirationRefreshToken, userAgent, ipAddress);
+        _unitOfWork.Set<User>().Update(user);
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
+        
         var rep = new LoginResponse(tokens.ExpirationAccessToken, tokens.ExpirationRefreshToken);
         return rep;
     }

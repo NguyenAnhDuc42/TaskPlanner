@@ -24,6 +24,9 @@
     <Folder Include="Contract\FolderContract\" />
     <Folder Include="Contract\ListContract\" />
     <Folder Include="Contract\TaskContract\" />
+    <Folder Include="Features\Auth\ForgotPassword\" />
+    <Folder Include="Features\Auth\OAuth\" />
+    <Folder Include="Features\Auth\ResetPassword\" />
     <Folder Include="Features\FolderFeatures\" />
     <Folder Include="Features\FolderFeatures\SelfManagement\" />
     <Folder Include="Features\FolderFeatures\SelfManagement\DeleteFolder\" />
