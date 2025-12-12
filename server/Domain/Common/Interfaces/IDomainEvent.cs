@@ -1,8 +1,8 @@
-using System;
+using MediatR;
 
 namespace Domain.Common.Interfaces;
 
-public interface IDomainEvent
+public interface IDomainEvent : INotification
 {
     Guid EventId { get; }
     DateTimeOffset OccurredOn { get; }

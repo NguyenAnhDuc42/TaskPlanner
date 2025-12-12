@@ -71,6 +71,14 @@ public class ExceptionHandlingMiddleware
                     Status = StatusCodes.Status409Conflict
                 };
                 break;
+            case InvalidTokenException invalidTokenEx:
+                problem = new ProblemDetails
+                {
+                    Title = "Invalid request",
+                    Detail = invalidTokenEx.Message,
+                    Status = StatusCodes.Status400BadRequest
+                };
+                break;
             default:
                 problem = new ProblemDetails
                 {

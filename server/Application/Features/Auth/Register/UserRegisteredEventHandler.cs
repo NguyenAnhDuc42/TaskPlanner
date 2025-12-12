@@ -23,7 +23,12 @@ public class UserRegisteredEventHandler : INotificationHandler<UserRegisteredEve
         _logger.LogInformation("Handling UserRegisteredEvent for User {UserId}", notification.UserId);
 
         var subject = $"Welcome to TaskPlanner, {notification.Username}!";
-        var body = $"Hi {notification.Username},\n\nThanks for registering. Please verify your email: {notification.Email}.";
+        var body = $"Hi {notification.Username},\n\nThanks for registering.";
+
+        if (!string.IsNullOrEmpty(notification.EmailVerificationToken))
+        {
+            body += $"\n\nPlease verify your email using this token: {notification.EmailVerificationToken}";
+        }
 
         await _emailService.SendEmailAsync(notification.Email, subject, body);
         

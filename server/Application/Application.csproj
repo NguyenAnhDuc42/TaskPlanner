@@ -5,54 +5,15 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Confluent.Kafka" Version="2.12.0" />
-    <PackageReference Include="Dapper" Version="2.1.66" />
-    <PackageReference Include="Dapper.SqlBuilder" Version="2.1.66" />
-    <PackageReference Include="FluentValidation.AspNetCore" Version="11.3.1" />
-    <PackageReference Include="FluentValidation.DependencyInjectionExtensions" Version="12.1.1" />
-    <PackageReference Include="MediatR" Version="14.0.0" />
-    <PackageReference Include="Microsoft.AspNetCore.Authorization" Version="10.0.0" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.0" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="10.0.0">
-      <PrivateAssets>all</PrivateAssets>
-      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-    </PackageReference>
+    <PackageReference Include="Confluent.Kafka" />
+    <PackageReference Include="Dapper" />
+    <PackageReference Include="Dapper.SqlBuilder" />
+    <PackageReference Include="FluentValidation.AspNetCore" />
+    <PackageReference Include="FluentValidation.DependencyInjectionExtensions" />
+    <PackageReference Include="MediatR" />
+    <PackageReference Include="Microsoft.AspNetCore.Authorization" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Tools"/>
   </ItemGroup>
-
-  <ItemGroup>
-    <Folder Include="Common\Exceptions\" />
-    <Folder Include="Contract\FolderContract\" />
-    <Folder Include="Contract\ListContract\" />
-    <Folder Include="Contract\TaskContract\" />
-    <Folder Include="Features\Auth\ForgotPassword\" />
-    <Folder Include="Features\Auth\OAuth\" />
-    <Folder Include="Features\Auth\ResetPassword\" />
-    <Folder Include="Features\FolderFeatures\" />
-    <Folder Include="Features\FolderFeatures\SelfManagement\" />
-    <Folder Include="Features\FolderFeatures\SelfManagement\DeleteFolder\" />
-    <Folder Include="Features\FolderFeatures\SelfManagement\EditFolder\" />
-    <Folder Include="Features\ListFeatures\" />
-    <Folder Include="Features\ListFeatures\SelfManagement\" />
-    <Folder Include="Features\EntityMemberManagement\" />
-    <Folder Include="Features\SpaceFeatures\SelfManagement\GetSpaces\" />
-    <Folder Include="Features\TaskFeatures\" />
-    <Folder Include="Features\WorkspaceFeatures\ChatRoomManage\Chatting\" />
-    <Folder Include="Features\WorkspaceFeatures\ChatRoomManage\Chatting\DeleteMessage\" />
-    <Folder Include="Features\WorkspaceFeatures\ChatRoomManage\Chatting\EditMessage\" />
-    <Folder Include="Features\WorkspaceFeatures\ChatRoomManage\Chatting\GetChatRoomMessages\" />
-    <Folder Include="Features\WorkspaceFeatures\ChatRoomManage\Chatting\ReplyMessage\" />
-    <Folder Include="Features\WorkspaceFeatures\ChatRoomManage\Chatting\SendMessage\" />
-    <Folder Include="Features\WorkspaceFeatures\ChatRoomManage\GetMemberInChatRoom\" />
-    <Folder Include="Features\WorkspaceFeatures\HierarchyManagement\ReorderFolder\" />
-    <Folder Include="Features\WorkspaceFeatures\HierarchyManagement\ReorderList\" />
-    <Folder Include="Features\WorkspaceFeatures\HierarchyManagement\ReOrderSpace\" />
-
-  </ItemGroup>
-
-  <PropertyGroup>
-    <TargetFramework>net10.0</TargetFramework>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <Nullable>enable</Nullable>
-  </PropertyGroup>
 
 </Project>

@@ -6,7 +6,8 @@ namespace Domain.Events.UserEvents;
 public record UserRegisteredEvent(
     Guid UserId, 
     string Email, 
-    string Username, 
+    string Username,
+    string? EmailVerificationToken,
     DateTimeOffset OccurredOn
 ) : IDomainEvent
 {

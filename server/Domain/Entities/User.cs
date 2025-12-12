@@ -10,7 +10,13 @@ public class User : Entity
 {
     public string Name { get; private set; } = null!;
     public string Email { get; private set; } = null!;
-    public string PasswordHash { get; private set; } = null!;
+    public string? PasswordHash { get; private set; }
+    public string? AuthProvider { get; private set; }
+    public string? ExternalId { get; private set; }
+    public string? PasswordResetToken { get; private set; }
+    public DateTimeOffset? PasswordResetTokenExpiresAt { get; private set; }
+    public string? EmailVerificationToken { get; private set; }
+    public bool IsEmailVerified { get; private set; }
 
     // === Owned Entities ===
     private readonly List<Session> _sessions = new();
@@ -18,7 +24,7 @@ public class User : Entity
 
     private User() { } // EF Core
 
-    private User(Guid id, string name, string email, string passwordHash)
+    private User(Guid id, string name, string email, string? passwordHash)
     {
         Id = id;
         Name = name;
@@ -35,8 +41,32 @@ public class User : Entity
         if (!IsValidEmail(email))
             throw new ArgumentException("Invalid email format.", nameof(email));
 
-        var user = new User(Guid.NewGuid(), name, email, passwordHash);
-        user.AddDomainEvent(new UserRegisteredEvent(user.Id, user.Email, user.Name, DateTimeOffset.UtcNow));
+        var user = new User(Guid.NewGuid(), name, email, passwordHash)
+        {
+            IsEmailVerified = false,
+            EmailVerificationToken = Guid.NewGuid().ToString("N")
+        };
+        // Update event to carry the token? Or just let the handler query the user?
+        // Better to put it in the event for decoupling.
+        user.AddDomainEvent(new UserRegisteredEvent(user.Id, user.Email, user.Name, user.EmailVerificationToken, DateTimeOffset.UtcNow));
+        return user;
+    }
+
+    public static User CreateExternal(string name, string email, string provider, string externalId)
+    {
+        if (string.IsNullOrWhiteSpace(name)) throw new ArgumentException("Name required", nameof(name));
+        if (string.IsNullOrWhiteSpace(email)) throw new ArgumentException("Email required", nameof(email));
+        if (string.IsNullOrWhiteSpace(provider)) throw new ArgumentException("Provider required", nameof(provider));
+        if (string.IsNullOrWhiteSpace(externalId)) throw new ArgumentException("ExternalId required", nameof(externalId));
+
+        var user = new User(Guid.NewGuid(), name, email, null)
+        {
+            AuthProvider = provider,
+            ExternalId = externalId,
+            IsEmailVerified = true // Trusted provider implies verified email
+        };
+        // Emit Registered event? Yes, same as normal registration.
+        user.AddDomainEvent(new UserRegisteredEvent(user.Id, user.Email, user.Name, null, DateTimeOffset.UtcNow));
         return user;
     }
 
@@ -103,6 +133,46 @@ public class User : Entity
         if (PasswordHash == newPasswordHash) return;
 
         PasswordHash = newPasswordHash;
+    }
+
+    public void InitiatePasswordReset(string token, TimeSpan duration)
+    {
+        if (string.IsNullOrWhiteSpace(token)) throw new ArgumentException("Token cannot be empty.", nameof(token));
+        
+        PasswordResetToken = token;
+        PasswordResetTokenExpiresAt = DateTimeOffset.UtcNow.Add(duration);
+    }
+
+    public void CompletePasswordReset(string token, string newPasswordHash)
+    {
+        if (string.IsNullOrWhiteSpace(token)) throw new ArgumentException("Token cannot be empty.", nameof(token));
+        if (string.IsNullOrWhiteSpace(newPasswordHash)) throw new ArgumentException("New password cannot be empty.", nameof(newPasswordHash));
+        
+        if (PasswordResetToken != token) throw new InvalidOperationException("Invalid password reset token.");
+        if (!PasswordResetTokenExpiresAt.HasValue || PasswordResetTokenExpiresAt < DateTimeOffset.UtcNow)
+        {
+            throw new InvalidOperationException("Password reset token has expired.");
+        }
+
+        PasswordHash = newPasswordHash;
+        // Invalidate token
+        PasswordResetToken = null;
+        PasswordResetTokenExpiresAt = null;
+        
+        // Security: Revoke all sessions? Optional but recommended.
+        LogoutAllSessions();
+    }
+
+    public void VerifyEmail(string token)
+    {
+        if (string.IsNullOrWhiteSpace(token)) throw new ArgumentException("Token cannot be empty.", nameof(token));
+        
+        if (IsEmailVerified) return; // Already verified
+
+        if (EmailVerificationToken != token) throw new InvalidOperationException("Invalid email verification token.");
+
+        IsEmailVerified = true;
+        EmailVerificationToken = null;
     }
 
     private static bool IsValidEmail(string email) =>

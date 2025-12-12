@@ -1,0 +1,18 @@
+<Solution>
+  <Configurations>
+    <Platform Name="Any CPU" />
+    <Platform Name="x64" />
+    <Platform Name="x86" />
+  </Configurations>
+  <Folder Name="/server/">
+    <Project Path="server/Api/Api.csproj" />
+    <Project Path="server/Application/Application.csproj" />
+    <Project Path="server/Background/Background.csproj" />
+    <Project Path="server/Domain/Domain.csproj" />
+    <Project Path="server/Infrastructure/Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/solution items/">
+    <File Path="Directory.Build.props" />
+    <File Path="Directory.Packages.props" />
+  </Folder>
+</Solution>
