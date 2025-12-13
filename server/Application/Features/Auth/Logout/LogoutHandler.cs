@@ -18,42 +18,34 @@ namespace Application.Features.Auth.Logout
 
         public LogoutHandler(IUnitOfWork unitOfWork, ICurrentUserService currentUserService, ICookieService cookieService, IHttpContextAccessor httpContextAccessor, ILogger<LogoutHandler> logger)
         {
-            _unitOfWork = unitOfWork ?? throw new ArgumentNullException(nameof(unitOfWork));
-            _currentUserService = currentUserService ?? throw new ArgumentNullException(nameof(currentUserService));
-            _cookieService = cookieService ?? throw new ArgumentNullException(nameof(cookieService));
-            _httpContextAccessor = httpContextAccessor ?? throw new ArgumentNullException(nameof(httpContextAccessor));
-            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+            _unitOfWork = unitOfWork;
+            _currentUserService = currentUserService;
+            _cookieService = cookieService;
+            _httpContextAccessor = httpContextAccessor;
+            _logger = logger;
         }
 
         public async Task<LogoutResponse> Handle(LogoutCommand request, CancellationToken cancellationToken)
         {
-            var ctx = _httpContextAccessor.HttpContext;
-            if (ctx is null)
-            {
-                _logger.LogError("LogoutHandler: HttpContext is null.");
-                throw new InvalidOperationException("HttpContext is unavailable.");
-            }
+        var ctx = _httpContextAccessor.HttpContext 
+            ?? throw new InvalidOperationException("HttpContext unavailable");
 
-            var ip = ctx.Connection.RemoteIpAddress?.ToString() ?? "unknown";
-            var ua = ctx.Request.Headers["User-Agent"].ToString() ?? "unknown";
+        var refreshToken = _cookieService.GetRefreshTokenFromCookies(ctx);
+        _cookieService.ClearAuthCookies(ctx);
 
-            string? refreshToken = null;
-            refreshToken = _cookieService.GetRefreshTokenFromCookies(ctx);
-            _cookieService.ClearAuthCookies(ctx);
-
-            if (string.IsNullOrWhiteSpace(refreshToken))
-            {
-                _logger.LogInformation("Logout invoked with no refresh token. IP:{Ip} UA:{UA}", ip, ua);
-                return new LogoutResponse("Logout successful.");
-            }
-
-            var user = _currentUserService.CurrentUserWithSession();
-            user.Logout(refreshToken, DateTimeOffset.UtcNow);
-
-            _logger.LogInformation("Logout: revoked session {RefreshToken} for user {UserId} from IP {Ip}", refreshToken,user.Id, ip);
-            _unitOfWork.Set<User>().Update(user);
-            await _unitOfWork.SaveChangesAsync(cancellationToken);
-            return new LogoutResponse("Logout successful.");
+        if (string.IsNullOrWhiteSpace(refreshToken))
+        {
+            _logger.LogInformation("Logout with no refresh token");
+            return new LogoutResponse("Logout successful");
         }
-    }
+
+        var user = _currentUserService.CurrentUserWithSession();
+        user.Logout(refreshToken, DateTimeOffset.UtcNow);
+        
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+        _logger.LogInformation("Session revoked for user {UserId}", user.Id);
+        return new LogoutResponse("Logout successful");
+        }
+    }   
 }

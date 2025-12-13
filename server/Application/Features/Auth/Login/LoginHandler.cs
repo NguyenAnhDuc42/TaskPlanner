@@ -33,7 +33,7 @@ public class LoginHandler : IRequestHandler<LoginCommand, LoginResponse>
         if (!_passwordService.VerifyPassword(request.password, user.PasswordHash!)) throw new UnauthorizedAccessException("Wrong credentials");
         var userAgent = httpContext.Request.Headers["User-Agent"].ToString();
         var ipAddress = httpContext.Connection.RemoteIpAddress?.ToString() ?? "Unknown IP";
-        var tokens = await _tokenService.GenerateTokensAsync(user, userAgent, ipAddress, cancellationToken);
+        var tokens = _tokenService.GenerateTokens(user, userAgent, ipAddress);
         _cookieService.SetAuthCookies(httpContext, tokens);
 
         user.Login(tokens.RefreshToken, tokens.ExpirationRefreshToken, userAgent, ipAddress);

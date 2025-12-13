@@ -25,7 +25,7 @@ public class TokenService : ITokenService
         _logger = logger;
     }
 
-    public async Task<JwtTokens> GenerateTokensAsync(User user, string userAgent, string ipAddress, CancellationToken cancellationToken)
+    public JwtTokens GenerateTokens(User user, string userAgent, string ipAddress)
     {
         var now = DateTimeOffset.UtcNow;
         var expirationAccess = now.AddMinutes(_jwtSettings.Expiration);
@@ -38,13 +38,19 @@ public class TokenService : ITokenService
         return new JwtTokens(accessToken, refreshToken, expirationAccess, expirationRefresh);
     }
 
-    public async Task<JwtTokens> RefreshAccessTokenAsync(Session session,User user)
+    public JwtTokens RefreshAccessToken(Session session,User user)
     { 
 
         var newExpiration = DateTimeOffset.UtcNow.AddMinutes(_jwtSettings.Expiration);
         var newAccessToken = GenerateAccessToken(user, newExpiration);
             
         return new JwtTokens(newAccessToken, session.RefreshToken, newExpiration, session.ExpiresAt);
+    }
+
+    public void RemoveAccessToken(string accessToken)
+    {
+        JwtSecurityTokenHandler handler = new JwtSecurityTokenHandler();
+        handler.RemoveToken(accessToken);
     }
 
 

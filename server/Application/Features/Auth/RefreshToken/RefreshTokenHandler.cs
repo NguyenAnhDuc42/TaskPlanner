@@ -35,7 +35,7 @@ public class RefreshTokenHandler : IRequestHandler<RefreshTokenCommand, RefreshT
 
         var session = user.CurrentSession(refreshToken);
 
-        var tokens = await _tokenService.RefreshAccessTokenAsync(session,user);
+        var tokens = _tokenService.RefreshAccessToken(session,user);
 
         user.ExtendSession(refreshToken, tokens.ExpirationRefreshToken - DateTimeOffset.UtcNow);
         _unitOfWork.Set<User>().Update(user);
