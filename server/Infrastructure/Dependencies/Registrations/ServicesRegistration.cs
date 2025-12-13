@@ -25,7 +25,6 @@ public static class ServicesRegistration
         services.AddScoped<PermissionContextBuilder>();
         services.AddScoped<PermissionDataFetcher>();
         services.AddScoped<IRealtimeService, SignalRRealtimeService>();
-        services.AddTransient<IEmailService, EmailService>();
         services.AddTransient<IExternalAuthService, ExternalAuthService>();
 
         services.AddHttpContextAccessor();

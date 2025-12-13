@@ -9,7 +9,6 @@ namespace server.Application.Interfaces
     {
         Task<JwtTokens> GenerateTokensAsync(User user, string userAgent, string ipAddress, CancellationToken cancellationToken);
         Task<JwtTokens?> RefreshAccessTokenAsync(string refreshToken, CancellationToken cancellationToken);
-        Task RevokeTokenAsync(string refreshToken, CancellationToken cancellationToken);
         ClaimsPrincipal? ValidateToken(string token);
     }
 }

@@ -30,7 +30,7 @@ public class LoginHandler : IRequestHandler<LoginCommand, LoginResponse>
         if (httpContext is null) throw new Exception("Unable to get HttpContext from IHttpContextAccessor.");
 
         var user = await _unitOfWork.Set<User>().FirstOrDefaultAsync(u => u.Email == request.email, cancellationToken) ?? throw new UnauthorizedAccessException("Wrong credentials");
-        if (!_passwordService.VerifyPassword(request.password, user.PasswordHash)) throw new UnauthorizedAccessException("Wrong credentials");
+        if (!_passwordService.VerifyPassword(request.password, user.PasswordHash!)) throw new UnauthorizedAccessException("Wrong credentials");
         var userAgent = httpContext.Request.Headers["User-Agent"].ToString();
         var ipAddress = httpContext.Connection.RemoteIpAddress?.ToString() ?? "Unknown IP";
         var tokens = await _tokenService.GenerateTokensAsync(user, userAgent, ipAddress, cancellationToken);

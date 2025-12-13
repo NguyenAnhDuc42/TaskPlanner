@@ -6,7 +6,7 @@ using Application.Features.Auth.Register;
 using Application.Features.Auth.ForgotPassword;
 using Application.Features.Auth.ResetPassword;
 using Application.Features.Auth.OAuth;
-using Application.Features.Auth.VerifyEmail;
+using Application.Features.Auth.ChangePassword;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
 
@@ -58,8 +58,17 @@ public class AuthController : ControllerBase
     public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordRequest request, CancellationToken cancellationToken)
     {
         var command = new ForgotPasswordCommand(request.Email);
-        await _mediator.Send(command, cancellationToken);
-        return Ok(new { message = "If the email exists, a reset link has been sent." });
+        var token = await _mediator.Send(command, cancellationToken);
+        
+        if (token == null)
+        {
+             // Security: Don't reveal user existence, but since this is now dev-mode friendly, 
+             // maybe we just say sent? Or actually since we cant send email, returning OK is fine.
+             return Ok(new { message = "If the email exists, a reset token has been generated (check logs or response if dev mode)." });
+        }
+
+        // Return token directly for convenience since email is disabled
+        return Ok(new { message = "Reset token generated.", token });
     }
 
     [HttpPost("reset-password")]
@@ -78,12 +87,15 @@ public class AuthController : ControllerBase
         return Ok(result);
     }
 
-    [HttpPost("verify-email")]
-    public async Task<IActionResult> VerifyEmail([FromBody] VerifyEmailRequest request, CancellationToken cancellationToken)
+
+
+    [HttpPost("change-password")]
+    [Microsoft.AspNetCore.Authorization.Authorize]
+    public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordRequest request, CancellationToken cancellationToken)
     {
-        var command = new VerifyEmailCommand(request.Token);
+        var command = new ChangePasswordCommand(request.CurrentPassword, request.NewPassword);
         await _mediator.Send(command, cancellationToken);
-        return Ok(new { message = "Email verified successfully." });
+        return Ok(new { message = "Password changed successfully." });
     }
 }
 
@@ -93,4 +105,4 @@ public record RegisterRequest(string UserName, string Email, string Password);
 public record ForgotPasswordRequest(string Email);
 public record ResetPasswordRequest(string Token, string NewPassword);
 public record ExternalLoginRequest(string Provider, string Token);
-public record VerifyEmailRequest(string Token);
+public record ChangePasswordRequest(string CurrentPassword, string NewPassword);

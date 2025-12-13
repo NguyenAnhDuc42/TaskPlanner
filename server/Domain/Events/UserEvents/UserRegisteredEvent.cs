@@ -7,7 +7,6 @@ public record UserRegisteredEvent(
     Guid UserId, 
     string Email, 
     string Username,
-    string? EmailVerificationToken,
     DateTimeOffset OccurredOn
 ) : IDomainEvent
 {

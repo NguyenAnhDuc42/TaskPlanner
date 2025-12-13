@@ -7,27 +7,25 @@ using Microsoft.Extensions.Logging;
 
 namespace Application.Features.Auth.ForgotPassword;
 
-public class ForgotPasswordHandler : IRequestHandler<ForgotPasswordCommand>
+public class ForgotPasswordHandler : IRequestHandler<ForgotPasswordCommand, string?>
 {
     private readonly IUnitOfWork _unitOfWork;
-    private readonly IEmailService _emailService;
     private readonly ILogger<ForgotPasswordHandler> _logger;
 
-    public ForgotPasswordHandler(IUnitOfWork unitOfWork, IEmailService emailService, ILogger<ForgotPasswordHandler> logger)
+    public ForgotPasswordHandler(IUnitOfWork unitOfWork, ILogger<ForgotPasswordHandler> logger)
     {
         _unitOfWork = unitOfWork;
-        _emailService = emailService;
         _logger = logger;
     }
 
-    public async Task Handle(ForgotPasswordCommand request, CancellationToken cancellationToken)
+    public async Task<string?> Handle(ForgotPasswordCommand request, CancellationToken cancellationToken)
     {
         var user = await _unitOfWork.Set<User>().FirstOrDefaultAsync(u => u.Email == request.Email, cancellationToken);
         
         if (user == null)
         {
             _logger.LogWarning("Password reset requested for non-existent email: {Email}", request.Email);
-            return;
+            return null;
         }
 
         var token = Guid.NewGuid().ToString("N");
@@ -37,11 +35,8 @@ public class ForgotPasswordHandler : IRequestHandler<ForgotPasswordCommand>
         _unitOfWork.Set<User>().Update(user);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
-        var subject = "Reset your password";
-        var body = $"You requested a password reset. Use this token: {token}";
-        
-        await _emailService.SendEmailAsync(user.Email, subject, body);
-        
-        _logger.LogInformation("Password reset token sent to {Email}", user.Email);
+        // Instead of sending email, return token directly (Dev/No-Email Mode)
+        _logger.LogInformation("Password reset token generated for {Email}: {Token}", user.Email, token);
+        return token;
     }
 }

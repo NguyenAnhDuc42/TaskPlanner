@@ -15,8 +15,7 @@ public class User : Entity
     public string? ExternalId { get; private set; }
     public string? PasswordResetToken { get; private set; }
     public DateTimeOffset? PasswordResetTokenExpiresAt { get; private set; }
-    public string? EmailVerificationToken { get; private set; }
-    public bool IsEmailVerified { get; private set; }
+
 
     // === Owned Entities ===
     private readonly List<Session> _sessions = new();
@@ -41,14 +40,10 @@ public class User : Entity
         if (!IsValidEmail(email))
             throw new ArgumentException("Invalid email format.", nameof(email));
 
-        var user = new User(Guid.NewGuid(), name, email, passwordHash)
-        {
-            IsEmailVerified = false,
-            EmailVerificationToken = Guid.NewGuid().ToString("N")
-        };
+        var user = new User(Guid.NewGuid(), name, email, passwordHash);
         // Update event to carry the token? Or just let the handler query the user?
         // Better to put it in the event for decoupling.
-        user.AddDomainEvent(new UserRegisteredEvent(user.Id, user.Email, user.Name, user.EmailVerificationToken, DateTimeOffset.UtcNow));
+        user.AddDomainEvent(new UserRegisteredEvent(user.Id, user.Email, user.Name, DateTimeOffset.UtcNow));
         return user;
     }
 
@@ -62,11 +57,10 @@ public class User : Entity
         var user = new User(Guid.NewGuid(), name, email, null)
         {
             AuthProvider = provider,
-            ExternalId = externalId,
-            IsEmailVerified = true // Trusted provider implies verified email
+            ExternalId = externalId
         };
         // Emit Registered event? Yes, same as normal registration.
-        user.AddDomainEvent(new UserRegisteredEvent(user.Id, user.Email, user.Name, null, DateTimeOffset.UtcNow));
+        user.AddDomainEvent(new UserRegisteredEvent(user.Id, user.Email, user.Name, DateTimeOffset.UtcNow));
         return user;
     }
 
@@ -161,18 +155,6 @@ public class User : Entity
         
         // Security: Revoke all sessions? Optional but recommended.
         LogoutAllSessions();
-    }
-
-    public void VerifyEmail(string token)
-    {
-        if (string.IsNullOrWhiteSpace(token)) throw new ArgumentException("Token cannot be empty.", nameof(token));
-        
-        if (IsEmailVerified) return; // Already verified
-
-        if (EmailVerificationToken != token) throw new InvalidOperationException("Invalid email verification token.");
-
-        IsEmailVerified = true;
-        EmailVerificationToken = null;
     }
 
     private static bool IsValidEmail(string email) =>
