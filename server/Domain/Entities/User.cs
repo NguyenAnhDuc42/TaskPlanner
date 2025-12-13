@@ -98,6 +98,13 @@ public class User : Entity
         var session = _sessions.FirstOrDefault(s => s.RefreshToken == refreshToken) ?? throw new InvalidOperationException("Session not found.");
         session.ExtendExpiration(duration);
     }
+    public Session CurrentSession(string refreshToken)
+    {
+        var session = _sessions.FirstOrDefault(s => s.RefreshToken == refreshToken) ?? throw new InvalidOperationException("Session not found.");
+        if (session.RevokedAt.HasValue) throw new InvalidOperationException("Session is revoked.");
+        if (session.ExpiresAt < DateTimeOffset.UtcNow) throw new InvalidOperationException("Session has expired.");
+        return session;
+    }
 
     // === User Updates ===
     public void UpdateName(string newName)

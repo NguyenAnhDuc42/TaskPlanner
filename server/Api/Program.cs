@@ -27,6 +27,7 @@ var connectionString = builder.Configuration.GetConnectionString("DefaultConnect
 builder.Services.AddInfrastructure(connectionString, builder.Configuration);
 builder.Services.AddApplication(builder.Configuration);
 builder.Services.AddBackground(builder.Configuration);
+builder.Services.AddHttpContextAccessor();
 
 var app = builder.Build();
 app.UseMiddleware<ExceptionHandlingMiddleware>();

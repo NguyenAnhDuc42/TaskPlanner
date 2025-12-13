@@ -28,12 +28,14 @@ public class RefreshTokenHandler : IRequestHandler<RefreshTokenCommand, RefreshT
         var httpContext = _httpContextAccessor.HttpContext;
         if (httpContext is null) throw new Exception("Unable to get HttpContext from IHttpContextAccessor.");
         var user = _currentUserService.CurrentUserWithSession();
+        
 
         var refreshToken = _cookieService.GetRefreshTokenFromCookies(httpContext);
         if (string.IsNullOrEmpty(refreshToken)) throw new UnauthorizedAccessException("Unauthorized");
-        
-        var tokens = await _tokenService.RefreshAccessTokenAsync(refreshToken, cancellationToken);
-        if (tokens is null) throw new UnauthorizedAccessException("Unauthorized");
+
+        var session = user.CurrentSession(refreshToken);
+
+        var tokens = await _tokenService.RefreshAccessTokenAsync(session,user);
 
         user.ExtendSession(refreshToken, tokens.ExpirationRefreshToken - DateTimeOffset.UtcNow);
         _unitOfWork.Set<User>().Update(user);

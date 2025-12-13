@@ -38,7 +38,7 @@ public class TokenService : ITokenService
         return new JwtTokens(accessToken, refreshToken, expirationAccess, expirationRefresh);
     }
 
-    public async Task<JwtTokens?> RefreshAccessTokenAsync(Session session,User user, CancellationToken cancellationToken)
+    public async Task<JwtTokens> RefreshAccessTokenAsync(Session session,User user)
     { 
 
         var newExpiration = DateTimeOffset.UtcNow.AddMinutes(_jwtSettings.Expiration);
@@ -46,6 +46,7 @@ public class TokenService : ITokenService
             
         return new JwtTokens(newAccessToken, session.RefreshToken, newExpiration, session.ExpiresAt);
     }
+
 
     public ClaimsPrincipal? ValidateToken(string token)
     {
@@ -64,12 +65,7 @@ public class TokenService : ITokenService
         }
     }
 
-    public string HashToken(string token)
-    {
-        using var sha256 = SHA256.Create();
-        var hash = sha256.ComputeHash(Encoding.UTF8.GetBytes(token));
-        return Convert.ToBase64String(hash);
-    }
+   
 
     private string GenerateAccessToken(User user, DateTimeOffset expiresAt)
     {
@@ -100,6 +96,13 @@ public class TokenService : ITokenService
         using var rng = RandomNumberGenerator.Create();
         rng.GetBytes(randomNumber);
         return Convert.ToBase64String(randomNumber);
+    }
+
+    public string HashToken(string token)
+    {
+        using var sha256 = SHA256.Create();
+        var hash = sha256.ComputeHash(Encoding.UTF8.GetBytes(token));
+        return Convert.ToBase64String(hash);
     }
 
     private TokenValidationParameters GetValidationParameters()
