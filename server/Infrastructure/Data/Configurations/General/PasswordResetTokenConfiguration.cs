@@ -51,5 +51,7 @@ public class PasswordResetTokenConfiguration : IEntityTypeConfiguration<Password
         builder.HasIndex(p => p.UserId);
         builder.HasIndex(p => p.Token).IsUnique();
         builder.HasIndex(p => new { p.UserId, p.IsUsed, p.ExpiresAt });
+
+        builder.Ignore(p => p.CreatorId);
     }
 }

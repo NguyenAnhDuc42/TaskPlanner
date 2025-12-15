@@ -10,5 +10,6 @@ namespace server.Application.Interfaces
         JwtTokens GenerateTokens(User user, string userAgent, string ipAddress);
         JwtTokens RefreshAccessToken(Session session,User user);
         ClaimsPrincipal? ValidateToken(string token);
+        TimeSpan GetRefreshTokenDuration();
     }
 }

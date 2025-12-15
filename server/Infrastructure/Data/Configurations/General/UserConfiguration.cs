@@ -23,6 +23,7 @@ public class UserConfiguration : IEntityTypeConfiguration<User>
         builder.HasIndex(u => u.Email).IsUnique(); // Email should be unique
 
 
+        builder.Ignore(u => u.CreatorId);
         builder.Ignore(u => u.DomainEvents);
     }
 }

@@ -29,6 +29,6 @@ public class SessionConfiguration : IEntityTypeConfiguration<Session>
         builder.HasIndex(s => s.UserId);
         builder.HasIndex(s => new { s.UserId, s.RevokedAt, s.ExpiresAt });
 
-        
+        builder.Ignore(s => s.CreatorId);
     }
 }

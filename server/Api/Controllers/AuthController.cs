@@ -7,6 +7,7 @@ using Application.Features.Auth.ForgotPassword;
 using Application.Features.Auth.ResetPassword;
 using Application.Features.Auth.OAuth;
 using Application.Features.Auth.ChangePassword;
+using Application.Features.Auth.GetCurrentUser;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
 
@@ -96,6 +97,15 @@ public class AuthController : ControllerBase
         var command = new ChangePasswordCommand(request.CurrentPassword, request.NewPassword);
         await _mediator.Send(command, cancellationToken);
         return Ok(new { message = "Password changed successfully." });
+    }
+
+    [HttpGet("me")]
+    [Microsoft.AspNetCore.Authorization.Authorize]
+    public async Task<IActionResult> GetCurrentUser(CancellationToken cancellationToken)
+    {
+        var query = new GetCurrentUserQuery();
+        var result = await _mediator.Send(query, cancellationToken);
+        return Ok(result);
     }
 }
 
