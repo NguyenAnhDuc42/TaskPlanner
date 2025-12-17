@@ -1,12 +1,13 @@
 import { createServerFn } from '@tanstack/react-start'
 import z from 'zod'
+import { API_BASE } from '@/env';
 
 export const signInSchema = z.object({
-  email: z.email('Invalid email address'),
-  password: z.string().min(8, 'Password must be at least 8 characters'),
-})
+  email: z.string().email("Invalid email address"),
+  password: z.string().min(1, "Password is required"),
+});
 
-export const register = createServerFn({ method: 'POST' })
+export const login = createServerFn({ method: 'POST' })
   .inputValidator(
     signInSchema.transform((v) => ({
       email: v.email,
@@ -14,7 +15,7 @@ export const register = createServerFn({ method: 'POST' })
     })),
   )
   .handler(async ({ data }) => {
-    const res = await fetch('http://localhost:5000/api/auth/login', {
+    const res = await fetch(`${API_BASE}/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
@@ -22,6 +23,14 @@ export const register = createServerFn({ method: 'POST' })
     })
 
     if (!res.ok) {
-      throw new Response(await res.text(), { status: res.status })
+      // prefer structured JSON { field?, message? } if backend returns it
+      try {
+        const json = await res.json();
+        const message = json?.message ?? JSON.stringify(json);
+        throw new Response(String(message), { status: res.status, headers: { "Content-Type": "application/json" } });
+      } catch {
+        const text = (await res.text().catch(() => null)) ?? "Login failed";
+        throw new Response(text, { status: res.status });
+      }
     }
   })
