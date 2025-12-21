@@ -3,6 +3,7 @@ using Application.Interfaces.Repositories;
 using Domain.Entities;
 using MediatR;
 using Microsoft.AspNetCore.Http;
+using Microsoft.EntityFrameworkCore;
 using server.Application.Interfaces;
 
 namespace Application.Features.Auth.RefreshToken;
@@ -33,21 +34,27 @@ public class RefreshTokenHandler : IRequestHandler<RefreshTokenCommand, RefreshT
     {
         var httpContext = _httpContextAccessor.HttpContext;
         if (httpContext is null) throw new Exception("Unable to get HttpContext from IHttpContextAccessor.");
-        
-        var user = _currentUserService.CurrentUserWithSession();
+        var user = _currentUserService.CurrentUser();
 
         var refreshToken = _cookieService.GetRefreshTokenFromCookies(httpContext);
         if (string.IsNullOrEmpty(refreshToken)) throw new UnauthorizedAccessException("Unauthorized");
 
-        var session = user.CurrentSession(refreshToken);
+        // Find session by refresh token
+        var session = await _unitOfWork.Set<Session>()
+            .FirstOrDefaultAsync(s => s.UserId == user.Id && s.RefreshToken == refreshToken, cancellationToken)
+            ?? throw new UnauthorizedAccessException("Unauthorized");
+
+        // Validate session is active
+        if (session.RevokedAt.HasValue) throw new UnauthorizedAccessException("Session revoked");
+        if (session.ExpiresAt < DateTimeOffset.UtcNow) throw new UnauthorizedAccessException("Session expired");
 
         var tokens = _tokenService.RefreshAccessToken(session, user);
 
-        // Extend session by configured duration (from TokenService)
+        // Extend session by configured duration
         var refreshDuration = _tokenService.GetRefreshTokenDuration();
-        user.ExtendSession(refreshToken, refreshDuration);
+        session.ExtendExpiration(refreshDuration);
         
-        _unitOfWork.Set<User>().Update(user);
+        _unitOfWork.Set<Session>().Update(session);
         var saveResult = await _unitOfWork.SaveChangesAsync(cancellationToken);
         if (saveResult <= 0) throw new UnauthorizedAccessException("Unauthorized");
 

@@ -6,6 +6,5 @@ namespace server.Application.Interfaces
     {
         Guid CurrentUserId();
         User CurrentUser();
-        User CurrentUserWithSession();
     }
 }

@@ -27,25 +27,31 @@ namespace Application.Features.Auth.Logout
 
         public async Task<LogoutResponse> Handle(LogoutCommand request, CancellationToken cancellationToken)
         {
-        var ctx = _httpContextAccessor.HttpContext 
-            ?? throw new InvalidOperationException("HttpContext unavailable");
+            var ctx = _httpContextAccessor.HttpContext 
+                ?? throw new InvalidOperationException("HttpContext unavailable");
 
-        var refreshToken = _cookieService.GetRefreshTokenFromCookies(ctx);
-        _cookieService.ClearAuthCookies(ctx);
+            var refreshToken = _cookieService.GetRefreshTokenFromCookies(ctx);
+            _cookieService.ClearAuthCookies(ctx);
 
-        if (string.IsNullOrWhiteSpace(refreshToken))
-        {
-            _logger.LogInformation("Logout with no refresh token");
+            if (string.IsNullOrWhiteSpace(refreshToken))
+            {
+                _logger.LogInformation("Logout with no refresh token");
+                return new LogoutResponse("Logout successful");
+            }
+
+            var userId = _currentUserService.CurrentUserId();
+            var session = await _unitOfWork.Set<Session>()
+                .FirstOrDefaultAsync(s => s.UserId == userId && s.RefreshToken == refreshToken, cancellationToken);
+
+            if (session != null)
+            {
+                session.Revoke(DateTimeOffset.UtcNow);
+                _unitOfWork.Set<Session>().Update(session);
+                await _unitOfWork.SaveChangesAsync(cancellationToken);
+                _logger.LogInformation("Session revoked for user {UserId}", userId);
+            }
+
             return new LogoutResponse("Logout successful");
-        }
-
-        var user = _currentUserService.CurrentUserWithSession();
-        user.Logout(refreshToken, DateTimeOffset.UtcNow);
-        
-        await _unitOfWork.SaveChangesAsync(cancellationToken);
-
-        _logger.LogInformation("Session revoked for user {UserId}", user.Id);
-        return new LogoutResponse("Logout successful");
         }
     }   
 }

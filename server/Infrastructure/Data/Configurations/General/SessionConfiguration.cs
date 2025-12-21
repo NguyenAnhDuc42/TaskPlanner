@@ -23,12 +23,13 @@ public class SessionConfiguration : IEntityTypeConfiguration<Session>
 
         builder.Property(s => s.CreatedAt).HasColumnName("created_at").IsRequired();
         builder.Property(s => s.UpdatedAt).HasColumnName("updated_at").IsRequired();
-        builder.Property(s => s.Version).IsRowVersion().IsConcurrencyToken().HasColumnName("version").HasDefaultValueSql("gen_random_bytes(8)");
+        builder.Property(s => s.DeletedAt).HasColumnName("deleted_at");
 
         // Indexes
         builder.HasIndex(s => s.UserId);
         builder.HasIndex(s => new { s.UserId, s.RevokedAt, s.ExpiresAt });
 
         builder.Ignore(s => s.CreatorId);
+        builder.Ignore(s => s.DomainEvents);
     }
 }

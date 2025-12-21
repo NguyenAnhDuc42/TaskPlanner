@@ -15,10 +15,12 @@ public class UserConfiguration : IEntityTypeConfiguration<User>
         builder.Property(u => u.Id).HasColumnName("id");
         builder.Property(u => u.Name).IsRequired().HasMaxLength(200).HasColumnName("name");
         builder.Property(u => u.Email).IsRequired().HasMaxLength(256).HasColumnName("email");
-        builder.Property(u => u.PasswordHash).IsRequired().HasMaxLength(256).HasColumnName("password_hash");
+        builder.Property(u => u.PasswordHash).HasMaxLength(256).HasColumnName("password_hash");
+        builder.Property(u => u.AuthProvider).HasMaxLength(50).HasColumnName("auth_provider");
+        builder.Property(u => u.ExternalId).HasMaxLength(256).HasColumnName("external_id");
         builder.Property(u => u.CreatedAt).HasColumnName("created_at").IsRequired();
         builder.Property(u => u.UpdatedAt).HasColumnName("updated_at").IsRequired();
-        builder.Property(u => u.Version).IsRowVersion().IsConcurrencyToken().HasColumnName("version").HasDefaultValueSql("gen_random_bytes(8)");
+        builder.Property(u => u.DeletedAt).HasColumnName("deleted_at");
 
         builder.HasIndex(u => u.Email).IsUnique(); // Email should be unique
 

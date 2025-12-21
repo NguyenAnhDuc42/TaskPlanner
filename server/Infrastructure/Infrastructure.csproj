@@ -13,7 +13,7 @@
     <PackageReference Include="BCrypt.Net-Next" />
     <PackageReference Include="Confluent.Kafka" />
     <PackageReference Include="Dapper" />
-    <PackageReference Include="FluentValidation.AspNetCore" />
+    <PackageReference Include="FluentValidation" />
     <PackageReference Include="MailKit" />
     <PackageReference Include="MediatR" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" />
@@ -30,7 +30,6 @@
     <PackageReference Include="Microsoft.Extensions.Caching.Hybrid" />
     <PackageReference Include="Microsoft.Extensions.Caching.StackExchangeRedis" />
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
-    <PackageReference Include="Polly.Extensions.Http" />
     <PackageReference Include="Scrutor" />
     <PackageReference Include="SendGrid" />
     <PackageReference Include="Serilog.AspNetCore" />

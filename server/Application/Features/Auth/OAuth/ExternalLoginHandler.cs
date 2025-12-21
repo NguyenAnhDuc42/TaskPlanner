@@ -44,15 +44,17 @@ public class ExternalLoginHandler : IRequestHandler<ExternalLoginCommand, LoginR
             // JIT Provisioning
             user = User.CreateExternal(externalUser.Name, externalUser.Email, externalUser.Provider, externalUser.ExternalId);
             await _unitOfWork.Set<User>().AddAsync(user, cancellationToken);
+            await _unitOfWork.SaveChangesAsync(cancellationToken);
         }
         else if (!user.IsLinkedToProvider(request.Provider))
         {
             // Existing user, link OAuth account
             user.LinkExternalAccount(request.Provider, externalUser.ExternalId);
             _unitOfWork.Set<User>().Update(user);
+            await _unitOfWork.SaveChangesAsync(cancellationToken);
         }
 
-        // 3. Generate Tokens (Login)
+        // 3. Generate Tokens and Create Session
         var httpContext = _httpContextAccessor.HttpContext ?? throw new Exception("No HttpContext");
         var userAgent = httpContext.Request.Headers["User-Agent"].ToString();
         var ipAddress = httpContext.Connection.RemoteIpAddress?.ToString() ?? "Unknown IP";
@@ -60,8 +62,9 @@ public class ExternalLoginHandler : IRequestHandler<ExternalLoginCommand, LoginR
         var tokens = _tokenService.GenerateTokens(user, userAgent, ipAddress);
         _cookieService.SetAuthCookies(httpContext, tokens);
 
-        user.Login(tokens.RefreshToken, tokens.ExpirationRefreshToken, userAgent, ipAddress);
-        _unitOfWork.Set<User>().Update(user);
+        // Create session directly
+        var session = Session.Create(user.Id, tokens.RefreshToken, tokens.ExpirationRefreshToken, userAgent, ipAddress);
+        _unitOfWork.Set<Session>().Add(session);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
         return new LoginResponse(tokens.ExpirationAccessToken, tokens.ExpirationRefreshToken);

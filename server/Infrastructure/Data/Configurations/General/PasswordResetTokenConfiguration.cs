@@ -41,12 +41,6 @@ public class PasswordResetTokenConfiguration : IEntityTypeConfiguration<Password
             .HasColumnName("updated_at")
             .IsRequired();
 
-        builder.Property(p => p.Version)
-            .IsRowVersion()
-            .IsConcurrencyToken()
-            .HasColumnName("version")
-            .HasDefaultValueSql("gen_random_bytes(8)");
-
         // Indexes
         builder.HasIndex(p => p.UserId);
         builder.HasIndex(p => p.Token).IsUnique();

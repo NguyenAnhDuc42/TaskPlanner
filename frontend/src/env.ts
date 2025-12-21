@@ -1,4 +1,5 @@
-export const API_BASE = process.env.API_URL
-if (!API_BASE) {
-  throw new Error('Missing API_URL')
+if (!process.env.API_URL) {
+  throw new Error('API_URL is not defined')
 }
+
+export const API_URL = process.env.API_URL

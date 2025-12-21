@@ -33,11 +33,5 @@ public class CurrentUserService : ICurrentUserService
         return userId;
     }
 
-    public User CurrentUserWithSession()
-    {
-        var user = _dbContext.Users.Include(u => u.Sessions).FirstOrDefault(u => u.Id == CurrentUserId());
-        if (user == null) throw new UnauthorizedAccessException("Unauthorized");
-        return user!;
-    }
 
 }

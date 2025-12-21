@@ -10,8 +10,6 @@ public abstract class CompositeConfiguration<TEntity> : IEntityTypeConfiguration
     public virtual void Configure(EntityTypeBuilder<TEntity> builder)
     {
         // Common Composite configuration
-        builder.Property(x => x.Version).IsRowVersion().IsConcurrencyToken().HasColumnName("version").HasDefaultValueSql("gen_random_bytes(8)"); // concurrency token
-
         builder.Property(x => x.CreatedAt).IsRequired().HasColumnName("created_at").HasConversion<DateTimeOffset>();
 
         builder.Property(x => x.UpdatedAt).IsRequired().HasColumnName("updated_at").HasConversion<DateTimeOffset>();

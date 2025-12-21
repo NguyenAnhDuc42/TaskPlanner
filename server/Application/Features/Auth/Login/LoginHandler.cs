@@ -1,10 +1,8 @@
-
 using Application.Interfaces.Repositories;
 using Domain.Entities;
 using MediatR;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
-
 using server.Application.Interfaces;
 
 namespace Application.Features.Auth.Login;
@@ -16,6 +14,7 @@ public class LoginHandler : IRequestHandler<LoginCommand, LoginResponse>
     private readonly ITokenService _tokenService;
     private readonly ICookieService _cookieService;
     private readonly IHttpContextAccessor _httpContextAccessor;
+
     public LoginHandler(IUnitOfWork unitOfWork, IPasswordService passwordService, ITokenService tokenService, ICookieService cookieService, IHttpContextAccessor httpContextAccessor)
     {
         _unitOfWork = unitOfWork ?? throw new ArgumentNullException(nameof(unitOfWork));
@@ -24,23 +23,29 @@ public class LoginHandler : IRequestHandler<LoginCommand, LoginResponse>
         _passwordService = passwordService ?? throw new ArgumentNullException(nameof(passwordService));
         _httpContextAccessor = httpContextAccessor ?? throw new ArgumentNullException(nameof(httpContextAccessor));
     }
+
     public async Task<LoginResponse> Handle(LoginCommand request, CancellationToken cancellationToken)
     {
         var httpContext = _httpContextAccessor.HttpContext;
         if (httpContext is null) throw new Exception("Unable to get HttpContext from IHttpContextAccessor.");
 
-        var user = await _unitOfWork.Set<User>().FirstOrDefaultAsync(u => u.Email == request.email, cancellationToken) ?? throw new UnauthorizedAccessException("Wrong credentials");
-        if (!_passwordService.VerifyPassword(request.password, user.PasswordHash!)) throw new UnauthorizedAccessException("Wrong credentials");
+        var user = await _unitOfWork.Set<User>().FirstOrDefaultAsync(u => u.Email == request.email, cancellationToken) 
+            ?? throw new UnauthorizedAccessException("Wrong credentials");
+        
+        if (!_passwordService.VerifyPassword(request.password, user.PasswordHash!)) 
+            throw new UnauthorizedAccessException("Wrong credentials");
+        
         var userAgent = httpContext.Request.Headers["User-Agent"].ToString();
         var ipAddress = httpContext.Connection.RemoteIpAddress?.ToString() ?? "Unknown IP";
         var tokens = _tokenService.GenerateTokens(user, userAgent, ipAddress);
         _cookieService.SetAuthCookies(httpContext, tokens);
 
-        user.Login(tokens.RefreshToken, tokens.ExpirationRefreshToken, userAgent, ipAddress);
-        _unitOfWork.Set<User>().Update(user);
+        // Create session directly without domain events
+        var session = Session.Create(user.Id, tokens.RefreshToken, tokens.ExpirationRefreshToken, userAgent, ipAddress);
+        _unitOfWork.Set<Session>().Add(session);
+        
         await _unitOfWork.SaveChangesAsync(cancellationToken);
         
-        var rep = new LoginResponse(tokens.ExpirationAccessToken, tokens.ExpirationRefreshToken);
-        return rep;
+        return new LoginResponse(tokens.ExpirationAccessToken, tokens.ExpirationRefreshToken);
     }
 }

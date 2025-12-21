@@ -2,7 +2,6 @@ using Application.Interfaces.Repositories;
 using Domain.Entities;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
-
 using server.Application.Interfaces;
 using Application.Common.Exceptions;
 
@@ -45,7 +44,15 @@ public class ResetPasswordHandler : IRequestHandler<ResetPasswordCommand>
         _unitOfWork.Set<PasswordResetToken>().Update(resetToken);
         
         // Security: Revoke all sessions after password change
-        user.LogoutAllSessions();
+        var userSessions = await _unitOfWork.Set<Session>()
+            .Where(s => s.UserId == user.Id && !s.RevokedAt.HasValue)
+            .ToListAsync(cancellationToken);
+
+        foreach (var session in userSessions)
+        {
+            session.Revoke(DateTimeOffset.UtcNow);
+            _unitOfWork.Set<Session>().Update(session);
+        }
         
         await _unitOfWork.SaveChangesAsync(cancellationToken);
     }
