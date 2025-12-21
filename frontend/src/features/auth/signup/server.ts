@@ -33,7 +33,7 @@ export const register = createServerFn({ method: 'POST' })
         body: JSON.stringify(data),
         credentials: 'include',
       })
-      const responseText = await res.text()
+      // const responseText = await res.text()
       // console.log('DEBUG: Response status =', res.status)
       // console.log('DEBUG: Response body =', responseText)
     } catch (error: any) {

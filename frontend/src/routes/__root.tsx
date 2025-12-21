@@ -6,13 +6,12 @@ import {
 import { TanStackRouterDevtoolsPanel } from '@tanstack/react-router-devtools'
 import { TanStackDevtools } from '@tanstack/react-devtools'
 
-
 import TanStackQueryDevtools from '../integrations/tanstack-query/devtools'
-
 
 import appCss from '../styles.css?url'
 
 import type { QueryClient } from '@tanstack/react-query'
+import { setupRefreshTimer } from '@/lib/authTimer'
 
 interface MyRouterContext {
   queryClient: QueryClient
@@ -49,8 +48,9 @@ export const Route = createRootRouteWithContext<MyRouterContext>()({
 })
 
 function RootDocument({ children }: { children: React.ReactNode }) {
+  setupAuthTimerListeners()
   return (
-    <html lang="en" className='dark'>
+    <html lang="en" className="dark">
       <head>
         <HeadContent />
       </head>
@@ -72,4 +72,17 @@ function RootDocument({ children }: { children: React.ReactNode }) {
       </body>
     </html>
   )
+}
+
+function setupAuthTimerListeners() {
+  if (typeof window === 'undefined') return
+
+  setupRefreshTimer()
+
+  window.addEventListener('focus', setupRefreshTimer)
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) {
+      setupRefreshTimer()
+    }
+  })
 }

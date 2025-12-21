@@ -1,4 +1,5 @@
-import { createMiddleware, createServerFn } from '@tanstack/react-start'
+import { createMiddleware } from '@tanstack/react-start'
+import { API_URL } from '@/env'
 
 
 
@@ -15,27 +16,32 @@ export const authMiddleware = createMiddleware().server(async ({ next, request }
     const accessToken = getCookie(cookieHeader, 'act')
     const refreshToken = getCookie(cookieHeader, 'rft')
     
-    if (path.startsWith('/auth')) {
-        if (accessToken || refreshToken) {
-        return Response.redirect('/', 302)
-        }
-        return next() 
-    }
-   
-
-
     if (!accessToken && !refreshToken) {
-    return Response.redirect(`/auth/sign-in?redirect=${encodeURIComponent(path)}`, 302)
+      return Response.redirect(
+        `/auth/sign-in?redirect=${encodeURIComponent(path)}`, 
+        302
+      )
     }
-    
-
+    if (!accessToken && refreshToken) {
+    const refreshed = await refreshTokens(cookieHeader)
+      if (!refreshed) {
+        return Response.redirect( `/auth/sign-in?redirect=${encodeURIComponent(path)}`, 302)
+      }
+    }
     return next()
   },
 )
 
-const refrehToken = createServerFn({ method: 'POST' }).handler(async () => {
+async function refreshTokens(cookieHeader: string): Promise<boolean> {
+  const res = await fetch(`${API_URL}/auth/refresh`, {
+    method: 'POST',
+    headers: { cookie: cookieHeader },
+    credentials: 'include',
+  })
 
-})
+  return res.ok
+}
+
 
 function getCookie(cookieHeader: string, name: string): string | null {
   if (!cookieHeader) return null
