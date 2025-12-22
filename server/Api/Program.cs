@@ -42,6 +42,25 @@ builder.Services.AddBackground(builder.Configuration);
 builder.Services.AddHttpContextAccessor();
 
 var app = builder.Build();
+
+app.Use(async (context, next) =>
+{
+    var workspaceIdHeader = context.Request.Headers["X-Workspace-Id"].FirstOrDefault();
+
+    if (string.IsNullOrEmpty(workspaceIdHeader))
+    {
+        workspaceIdHeader = context.Request.Query["workspaceId"].ToString();
+    }
+
+    if (Guid.TryParse(workspaceIdHeader, out var workspaceId))
+    {
+        var wsContext = context.RequestServices.GetRequiredService<WorkspaceContext>();
+        wsContext.WorkspaceId = workspaceId;
+    }
+
+    await next();
+});
+
 app.UseMiddleware<ExceptionHandlingMiddleware>();
 // --- Middleware ---
 if (app.Environment.IsDevelopment())
@@ -67,24 +86,6 @@ if (!app.Environment.IsDevelopment())
 
 app.UseAuthentication();
 app.UseAuthorization();
-
-app.Use(async (context, next) =>
-{
-    var workspaceIdHeader = context.Request.Headers["X-Workspace-Id"].FirstOrDefault();
-
-    if (string.IsNullOrEmpty(workspaceIdHeader))
-    {
-        workspaceIdHeader = context.Request.Query["workspaceId"].ToString();
-    }
-
-    if (Guid.TryParse(workspaceIdHeader, out var workspaceId))
-    {
-        var wsContext = context.RequestServices.GetRequiredService<WorkspaceContext>();
-        wsContext.WorkspaceId = workspaceId;
-    }
-
-    await next();
-});
 
 app.MapGet("/", () => Results.Ok(new { status = "ok", time = DateTime.UtcNow }));
 app.MapHub<WorkspaceHub>("/hubs/workspace");

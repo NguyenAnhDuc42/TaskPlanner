@@ -1,7 +1,7 @@
 import { createServerFn } from '@tanstack/react-start'
 import { z } from 'zod'
-import { API_URL } from '@/env'
 
+const API = process.env.API_URL
 
 export const signUpSchema = z.object({
   name: z
@@ -21,30 +21,28 @@ export const register = createServerFn({ method: 'POST' })
     })),
   )
   .handler(async ({ data }) => {
-
     // console.log('DEBUG: apiUrl =', apiUrl)
     // console.log('DEBUG: data =', JSON.stringify(data))
 
-    let res: Response
-    try {
-      res = await fetch(`${API_URL}/auth/register`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
-        credentials: 'include',
-      })
-      // const responseText = await res.text()
-      // console.log('DEBUG: Response status =', res.status)
-      // console.log('DEBUG: Response body =', responseText)
-    } catch (error: any) {
-      console.error('Registration fetch error:', error)
-      throw new Error(`Connection failed: ${error?.message || 'Unknown error'}`)
-    }
-
+    const res = await fetch(`${API}/auth/register`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+      credentials: 'include',
+    })
+    // const responseText = await res.text()
+    // console.log('DEBUG: Response status =', res.status)
+    // console.log('DEBUG: Response body =', responseText)
     if (!res.ok) {
-      const message =
-        (await res.json().catch(() => null))?.message ?? 'Registration failed'
-
-      throw new Error(message)
+      const problem = await res.json(); // The RFC 7807 payload
+      
+      // CRITICAL: Throw a Response, not a new Error()
+      // This preserves the 400/409 status in the Network tab
+      throw new Response(JSON.stringify(problem), {
+        status: res.status,
+        headers: { 'Content-Type': 'application/problem+json' },
+      });
     }
+
+    return res.json();
   })

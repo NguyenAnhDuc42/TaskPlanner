@@ -1,6 +1,7 @@
 import { useNavigate } from '@tanstack/react-router'
 import { useForm } from '@tanstack/react-form'
 
+import { toast } from 'sonner'
 import { register, signUpSchema } from '../server'
 import {
   Card,
@@ -28,17 +29,35 @@ export function SignUpForm() {
   const navigate = useNavigate()
 
   const form = useForm({
-    defaultValues: {
-      name: '',
-      email: '',
-      password: '',
-    },
+    defaultValues: { name: '', email: '', password: '' },
     validators: {
       onChange: signUpSchema,
       onSubmit: signUpSchema,
     },
-    onSubmit: ({ value }) =>
-      runAction(() => register({data : value}), { successMessage: 'Account created' }),
+    onSubmit: async ({ value }) => {
+      try {
+        await runAction(() => register({ data: value }), {
+          successMessage: 'Account created',
+        })
+        navigate({ to: '/' })
+      } catch (err) {
+        if (err instanceof Response){
+          const problem = await err.json();
+
+          if (problem.errors?.email) {
+            form.setFieldMeta('email', (prev) => ({
+              ...prev,
+              errorMap: { onServer: problem.errors.email[0] },
+            }));
+          }
+
+          // 2. Handle Global Error (Toast)
+          if (problem.detail && !problem.errors) {
+            toast.error(problem.detail); 
+          }
+        }
+      }
+    },
   })
 
   return (
@@ -53,11 +72,11 @@ export function SignUpForm() {
       <CardContent className="space-y-4">
         {/* OAuth buttons */}
         <div className="grid gap-2">
-          <Button variant="outline" type="button" >
+          <Button variant="outline" type="button">
             <Icons.google className="mr-2 h-4 w-4" />
             Continue with Google
           </Button>
-          <Button variant="outline"  type="button">
+          <Button variant="outline" type="button">
             <Icons.gitHub className="mr-2 h-4 w-4 hover:" />
             Continue with GitHub
           </Button>

@@ -29,10 +29,16 @@ public class ExceptionHandlingMiddleware
 
     private static Task HandleExceptionAsync(HttpContext context, Exception ex)
     {
+        var exceptionType = ex.GetType().FullName;
+        var isFluentValidation = ex is ValidationException;
+        Console.WriteLine($"Exception Type: {exceptionType}");
+        Console.WriteLine($"Is FluentValidation.ValidationException: {isFluentValidation}");
+
         ProblemDetails problem = new ProblemDetails();
         switch (ex)
         {
             case ValidationException validationEx:
+                Console.WriteLine("MATCHED ValidationException case");
                 problem = new ProblemDetails
                 {
                     Title = "Validation failed",

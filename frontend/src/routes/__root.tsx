@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import {
   HeadContent,
   Scripts,
@@ -6,6 +7,7 @@ import {
 import { TanStackRouterDevtoolsPanel } from '@tanstack/react-router-devtools'
 import { TanStackDevtools } from '@tanstack/react-devtools'
 
+import { Toaster } from 'sonner'
 import TanStackQueryDevtools from '../integrations/tanstack-query/devtools'
 
 import appCss from '../styles.css?url'
@@ -48,7 +50,10 @@ export const Route = createRootRouteWithContext<MyRouterContext>()({
 })
 
 function RootDocument({ children }: { children: React.ReactNode }) {
-  setupAuthTimerListeners()
+  useEffect(() => {
+    setupAuthTimerListeners()
+  }, [])
+
   return (
     <html lang="en" className="dark">
       <head>
@@ -56,6 +61,7 @@ function RootDocument({ children }: { children: React.ReactNode }) {
       </head>
       <body>
         {children}
+        <Toaster/>
         <TanStackDevtools
           config={{
             position: 'bottom-right',
@@ -75,8 +81,6 @@ function RootDocument({ children }: { children: React.ReactNode }) {
 }
 
 function setupAuthTimerListeners() {
-  if (typeof window === 'undefined') return
-
   setupRefreshTimer()
 
   window.addEventListener('focus', setupRefreshTimer)

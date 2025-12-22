@@ -1,4 +1,5 @@
 import { toast } from 'sonner'
+import type { ProblemDetails } from '@/types/problem-details'
 
 export async function runAction<T>(
   action: () => Promise<T>,
@@ -9,25 +10,24 @@ export async function runAction<T>(
 ) {
   try {
     const result = await action()
-    if (options?.successMessage) {
-      toast.success(options.successMessage)
-    }
+    if (options?.successMessage) toast.success(options.successMessage)
+
     return result
-  }  catch (err) {
+  } catch (err: any) {
     if (err instanceof Response) {
-      // try parse JSON first (structured error), fallback to text
-      try {
-        const json = await err.json();
-        const message = json?.message ?? JSON.stringify(json);
-        toast.error(String(message));
-        return;
-      } catch {
-        const text = (await err.text().catch(() => null)) ?? options?.fallbackError ?? "Something went wrong";
-        toast.error(String(text));
-        return;
+      const pd = await err.json()
+      // Validation errors
+      if (pd.errors && Object.keys(pd.errors).length > 0) {
+        toast.error(pd.title ?? 'Validation failed')
+        throw pd
       }
+      toast.error(pd.title ?? 'Request failed', {
+        description: pd.detail,
+      })
+      throw pd
     }
-    toast.error(options?.fallbackError ?? "Something went wrong");
-    return;
+    toast.error(options?.fallbackError ?? 'Something went wrong')
+    throw err
   }
 }
+

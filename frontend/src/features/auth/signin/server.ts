@@ -1,6 +1,8 @@
 import { createServerFn } from '@tanstack/react-start'
 import z from 'zod'
-import { API_URL } from '@/env'
+
+
+const API = process.env.API_URL
 
 export const signInSchema = z.object({
   email: z.string().email('Invalid email address'),
@@ -17,7 +19,7 @@ export const login = createServerFn({ method: 'POST' })
   .handler(async ({ data }) => {
 
 
-    const res = await fetch(`${API_URL}/auth/login`, {
+    const res = await fetch(`${API}/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),

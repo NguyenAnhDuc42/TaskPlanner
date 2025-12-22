@@ -1,4 +1,5 @@
-import { API_URL } from "@/env"
+
+const API = process.env.API_URL
 
 let refreshTimer: NodeJS.Timeout | null = null
 
@@ -32,7 +33,7 @@ export function setupRefreshTimer() {
 }
 
 async function refreshNow() {
-  const res = await fetch(`${API_URL}/auth/refresh`, {
+  const res = await fetch(`${API}/auth/refresh`, {
     method: 'POST',
     credentials: 'include',
   })
