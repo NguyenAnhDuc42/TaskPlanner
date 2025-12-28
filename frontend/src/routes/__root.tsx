@@ -1,92 +1,14 @@
-import { useEffect } from 'react'
-import {
-  HeadContent,
-  Scripts,
-  createRootRouteWithContext,
-} from '@tanstack/react-router'
-import { TanStackRouterDevtoolsPanel } from '@tanstack/react-router-devtools'
-import { TanStackDevtools } from '@tanstack/react-devtools'
+import { createRootRoute, Outlet, Scripts } from "@tanstack/react-router";
+import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
 
-import { Toaster } from 'sonner'
-import TanStackQueryDevtools from '../integrations/tanstack-query/devtools'
+import "../index.css";
 
-import appCss from '../styles.css?url'
+const RootLayout = () => (
+  <>
+    <Outlet /> {/* Your pages */}
+    <TanStackRouterDevtools position="bottom-right" />
+    <Scripts /> {/* This injects scripts into the REAL body */}
+  </>
+);
 
-import type { QueryClient } from '@tanstack/react-query'
-import { setupRefreshTimer } from '@/lib/authTimer'
-
-interface MyRouterContext {
-  queryClient: QueryClient
-}
-
-export const Route = createRootRouteWithContext<MyRouterContext>()({
-  head: () => ({
-    meta: [
-      {
-        charSet: 'utf-8',
-      },
-      {
-        name: 'viewport',
-        content: 'width=device-width, initial-scale=1',
-      },
-      {
-        title: 'TanStack Start Starter',
-      },
-    ],
-    links: [
-      {
-        rel: 'stylesheet',
-        href: appCss,
-      },
-    ],
-  }),
-
-  shellComponent: RootDocument,
-  notFoundComponent: () => (
-    <div className="flex min-h-screen items-center justify-center">
-      <p className="text-muted-foreground">Page not found</p>
-    </div>
-  ),
-})
-
-function RootDocument({ children }: { children: React.ReactNode }) {
-  useEffect(() => {
-    setupAuthTimerListeners()
-  }, [])
-
-  return (
-    <html lang="en" className="dark">
-      <head>
-        <HeadContent />
-      </head>
-      <body>
-        {children}
-        <Toaster/>
-        <TanStackDevtools
-          config={{
-            position: 'bottom-right',
-          }}
-          plugins={[
-            {
-              name: 'Tanstack Router',
-              render: <TanStackRouterDevtoolsPanel />,
-            },
-            TanStackQueryDevtools,
-          ]}
-        />
-        <Scripts />
-      </body>
-    </html>
-  )
-}
-
-function setupAuthTimerListeners() {
-  setupRefreshTimer()
-
-  window.addEventListener('focus', setupRefreshTimer)
-  document.addEventListener('visibilitychange', () => {
-    if (!document.hidden) {
-      setupRefreshTimer()
-    }
-  })
-}
+export const Route = createRootRoute({ component: RootLayout });
