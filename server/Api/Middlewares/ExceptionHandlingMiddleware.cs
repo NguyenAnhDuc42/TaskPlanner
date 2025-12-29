@@ -51,11 +51,11 @@ public class ExceptionHandlingMiddleware
                     }
                 };
                 break;
-            case UnauthorizedAccessException _:
+            case UnauthorizedAccessException unAuth:
                 problem = new ProblemDetails
                 {
                     Title = "Unauthorized",
-                    Detail = "You are not authorized to perform this action.",
+                    Detail = $"{unAuth.Message}",
                     Status = StatusCodes.Status401Unauthorized
 
                 };

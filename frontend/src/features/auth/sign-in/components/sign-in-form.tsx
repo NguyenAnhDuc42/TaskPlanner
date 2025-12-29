@@ -1,20 +1,47 @@
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { Checkbox } from "@/components/ui/checkbox"
-import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field"
-import { Input } from "@/components/ui/input"
-import { Separator } from "@/components/ui/separator"
-import {  useForm } from "@tanstack/react-form"
-import { useNavigate } from "@tanstack/react-router"
+import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Field,
+  FieldDescription,
+  FieldError,
+  FieldGroup,
+  FieldLabel,
+} from "@/components/ui/field";
+import { Input } from "@/components/ui/input";
+import { Separator } from "@/components/ui/separator";
+import { useForm } from "@tanstack/react-form";
+import { useLogin } from "../api";
+import { useNavigate } from "@tanstack/react-router";
 
 export default function SignInForm() {
-  const navigate = useNavigate()
+  const { mutate: login, isPending } = useLogin();
+  const navigate = useNavigate();
   const form = useForm({
     defaultValues: {
-      email: '',
-      password: '',
+      email: "",
+      password: "",
     },
-  })
+    onSubmit: async ({ value }) => {
+      login(value, {
+        onSuccess: () => {
+          navigate({ to: "/" });
+          toast.success("Sign in successfully");
+        },
+        onError: (err: any) => {
+          toast.error(err.response?.data?.detail || "Failed to sign in");
+        },
+      });
+    },
+  });
 
   return (
     <Card>
@@ -31,7 +58,7 @@ export default function SignInForm() {
             variant="outline"
             type="button"
             onClick={() =>
-              (window.location.href = '/api/auth/external-login/google')
+              (window.location.href = "/api/auth/external-login/google")
             }
           >
             Continue with Google
@@ -40,7 +67,7 @@ export default function SignInForm() {
             variant="outline"
             type="button"
             onClick={() =>
-              (window.location.href = '/api/auth/external-login/github')
+              (window.location.href = "/api/auth/external-login/github")
             }
           >
             Continue with GitHub
@@ -61,8 +88,8 @@ export default function SignInForm() {
         <form
           id="sign-in-form"
           onSubmit={(e) => {
-            e.preventDefault()
-            form.handleSubmit()
+            e.preventDefault();
+            form.handleSubmit();
           }}
           className="space-y-4"
           noValidate
@@ -72,7 +99,7 @@ export default function SignInForm() {
               name="email"
               children={(field) => {
                 const isInvalid =
-                  field.state.meta.isTouched && !field.state.meta.isValid
+                  field.state.meta.isTouched && !field.state.meta.isValid;
                 return (
                   <Field data-invalid={isInvalid}>
                     <FieldLabel htmlFor={field.name}>Email</FieldLabel>
@@ -94,7 +121,7 @@ export default function SignInForm() {
                       <FieldDescription />
                     )}
                   </Field>
-                )
+                );
               }}
             />
 
@@ -102,7 +129,7 @@ export default function SignInForm() {
               name="password"
               children={(field) => {
                 const isInvalid =
-                  field.state.meta.isTouched && !field.state.meta.isValid
+                  field.state.meta.isTouched && !field.state.meta.isValid;
                 return (
                   <Field data-invalid={isInvalid}>
                     <FieldLabel htmlFor={field.name}>Password</FieldLabel>
@@ -123,7 +150,7 @@ export default function SignInForm() {
                       <FieldDescription />
                     )}
                   </Field>
-                )
+                );
               }}
             />
           </FieldGroup>
@@ -142,23 +169,27 @@ export default function SignInForm() {
             </a>
           </div>
 
-          <Button type="submit" form="sign-in-form" className="w-full">
-            Sign in
+          <Button
+            type="submit"
+            form="sign-in-form"
+            className="w-full"
+            disabled={isPending}
+          >
+            {isPending ? "Signing in..." : "Sign in"}
           </Button>
         </div>
       </CardFooter>
       <CardFooter className="flex justify-center">
         <p className="text-sm text-muted-foreground">
-          Dont have an account?{' '}
+          Dont have an account?{" "}
           <button
-            type="button" // TODO: Fix this type error
-            onClick={() => navigate({ to: '/auth/sign-up' })}
+            type="button"
             className="font-medium text-foreground hover:underline"
           >
-            Sign up
+            <a href="/auth/sign-up">Sign up</a>
           </button>
         </p>
       </CardFooter>
     </Card>
-  )
+  );
 }

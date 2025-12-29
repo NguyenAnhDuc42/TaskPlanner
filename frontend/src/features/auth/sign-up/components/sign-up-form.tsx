@@ -1,20 +1,41 @@
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { Checkbox } from "@/components/ui/checkbox"
-import { Field, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field"
-import { Input } from "@/components/ui/input"
-import { Separator } from "@/components/ui/separator"
-import { useNavigate } from "@tanstack/react-router"
-import { useForm } from "@tanstack/react-form"
+import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Field,
+  FieldError,
+  FieldGroup,
+  FieldLabel,
+} from "@/components/ui/field";
+import { Input } from "@/components/ui/input";
+import { Separator } from "@/components/ui/separator";
+import { useForm } from "@tanstack/react-form";
+import { useRegister } from "../api";
 
 export function SignUpForm() {
-  const navigate = useNavigate()
+  const { mutate: register, isPending } = useRegister();
 
   const form = useForm({
-    defaultValues: { name: '', email: '', password: '' },
-
-    
-  })
+    defaultValues: { name: "", email: "", password: "" },
+    onSubmit: async ({ value }) => {
+      register(value, {
+        onError: (err: any) => {
+          toast.error(err.response?.data?.detail || "Registration failed");
+        },
+        onSuccess: () => {
+          toast.success("Account created successfully!");
+        },
+      });
+    },
+  });
 
   return (
     <Card>
@@ -32,7 +53,6 @@ export function SignUpForm() {
             Continue with Google
           </Button>
           <Button variant="outline" type="button">
-
             Continue with GitHub
           </Button>
         </div>
@@ -52,8 +72,8 @@ export function SignUpForm() {
         <form
           id="sign-up-form"
           onSubmit={(e) => {
-            e.preventDefault()
-            form.handleSubmit()
+            e.preventDefault();
+            form.handleSubmit();
           }}
           className="space-y-4"
           noValidate
@@ -63,7 +83,8 @@ export function SignUpForm() {
             <form.Field
               name="name"
               children={(field) => {
-                const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid
+                const isInvalid =
+                  field.state.meta.isTouched && !field.state.meta.isValid;
 
                 return (
                   <Field data-invalid={isInvalid}>
@@ -83,7 +104,7 @@ export function SignUpForm() {
                       <FieldError errors={field.state.meta.errors} />
                     )}
                   </Field>
-                )
+                );
               }}
             />
 
@@ -91,7 +112,8 @@ export function SignUpForm() {
             <form.Field
               name="email"
               children={(field) => {
-               const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid
+                const isInvalid =
+                  field.state.meta.isTouched && !field.state.meta.isValid;
 
                 return (
                   <Field data-invalid={isInvalid}>
@@ -112,14 +134,15 @@ export function SignUpForm() {
                       <FieldError errors={field.state.meta.errors} />
                     )}
                   </Field>
-                )
+                );
               }}
             />
             {/* Password */}
             <form.Field
               name="password"
               children={(field) => {
-                 const isInvalid =  field.state.meta.isTouched && !field.state.meta.isValid
+                const isInvalid =
+                  field.state.meta.isTouched && !field.state.meta.isValid;
                 return (
                   <Field data-invalid={isInvalid}>
                     <FieldLabel htmlFor={field.name}>Password</FieldLabel>
@@ -134,9 +157,11 @@ export function SignUpForm() {
                       aria-invalid={isInvalid}
                       required
                     />
-                    {isInvalid && <FieldError errors={field.state.meta.errors} />}
+                    {isInvalid && (
+                      <FieldError errors={field.state.meta.errors} />
+                    )}
                   </Field>
-                )
+                );
               }}
             />
           </FieldGroup>
@@ -149,24 +174,23 @@ export function SignUpForm() {
             </label>
           </div>
 
-          <Button type="submit" className="w-full">
-            Create account
+          <Button type="submit" className="w-full" disabled={isPending}>
+            {isPending ? "Creating account..." : "Create account"}
           </Button>
         </form>
       </CardContent>
 
       <CardFooter className="flex justify-center">
         <p className="text-sm text-muted-foreground">
-          Already have an account?{' '}
+          Already have an account?{" "}
           <button
             type="button"
-            onClick={() => navigate({ to: '/auth/sign-in'  })}
             className="font-medium text-foreground hover:underline"
           >
-            Sign in
+            <a href="/auth/sign-in">Sign in</a>
           </button>
         </p>
       </CardFooter>
     </Card>
-  )
+  );
 }

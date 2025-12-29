@@ -3,6 +3,7 @@ import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
 import { defineConfig } from "vite";
 import { tanstackRouter } from "@tanstack/router-plugin/vite";
+import basicSsl from "@vitejs/plugin-basic-ssl";
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [
@@ -12,6 +13,7 @@ export default defineConfig({
     }),
     react(),
     tailwindcss(),
+    basicSsl()
   ],
   resolve: {
     alias: {
@@ -20,12 +22,10 @@ export default defineConfig({
   },
   server: {
     proxy: {
-      // This intercepting any call starting with /api
       "/api": {
-        // Change this to https://localhost:5001 if you are using HTTPS in .NET
-        target: "http://localhost:5000",
+        target: "https://localhost:7285",
         changeOrigin: true,
-        secure: false, // Allows self-signed certs in development
+        secure: false,
       },
     },
   },
