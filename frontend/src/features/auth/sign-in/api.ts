@@ -16,7 +16,6 @@ export function useLogin() {
       return data;
     },
     onSuccess: async () => {
-      // Trigger a refetch of the user data and wait for it to finish
       await queryClient.refetchQueries({ queryKey: authKeys.me() });
     },
   });

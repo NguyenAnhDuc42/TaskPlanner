@@ -11,20 +11,17 @@ namespace Application.Features.Auth.RefreshToken;
 public class RefreshTokenHandler : IRequestHandler<RefreshTokenCommand, RefreshTokenResponse>
 {
     private readonly IUnitOfWork _unitOfWork;
-    private readonly ICurrentUserService _currentUserService;
     private readonly ICookieService _cookieService;
     private readonly ITokenService _tokenService;
     private readonly IHttpContextAccessor _httpContextAccessor;
 
     public RefreshTokenHandler(
         IUnitOfWork unitOfWork, 
-        ICurrentUserService currentUserService, 
         ICookieService cookieService, 
         ITokenService tokenService, 
         IHttpContextAccessor httpContextAccessor)
     {
         _unitOfWork = unitOfWork ?? throw new ArgumentNullException(nameof(unitOfWork));
-        _currentUserService = currentUserService ?? throw new ArgumentNullException(nameof(currentUserService));
         _cookieService = cookieService ?? throw new ArgumentNullException(nameof(cookieService));
         _tokenService = tokenService ?? throw new ArgumentNullException(nameof(tokenService));
         _httpContextAccessor = httpContextAccessor ?? throw new ArgumentNullException(nameof(httpContextAccessor));
@@ -34,19 +31,22 @@ public class RefreshTokenHandler : IRequestHandler<RefreshTokenCommand, RefreshT
     {
         var httpContext = _httpContextAccessor.HttpContext;
         if (httpContext is null) throw new Exception("Unable to get HttpContext from IHttpContextAccessor.");
-        var user = _currentUserService.CurrentUser();
 
         var refreshToken = _cookieService.GetRefreshTokenFromCookies(httpContext);
         if (string.IsNullOrEmpty(refreshToken)) throw new UnauthorizedAccessException("Unauthorized");
 
-        // Find session by refresh token
+        // Find session strictly by the Refresh Token cookie
         var session = await _unitOfWork.Set<Session>()
-            .FirstOrDefaultAsync(s => s.UserId == user.Id && s.RefreshToken == refreshToken, cancellationToken)
+            .FirstOrDefaultAsync(s => s.RefreshToken == refreshToken, cancellationToken)
             ?? throw new UnauthorizedAccessException("Unauthorized");
 
         // Validate session is active
-        if (session.RevokedAt.HasValue) throw new UnauthorizedAccessException("Session revoked");
-        if (session.ExpiresAt < DateTimeOffset.UtcNow) throw new UnauthorizedAccessException("Session expired");
+        if (!session.IsActive) throw new UnauthorizedAccessException("Unauthorized");
+
+        // Find the user associated with this session
+        var user = await _unitOfWork.Set<User>()
+            .FirstOrDefaultAsync(u => u.Id == session.UserId, cancellationToken)
+            ?? throw new UnauthorizedAccessException("Unauthorized");
 
         var tokens = _tokenService.RefreshAccessToken(session, user);
 

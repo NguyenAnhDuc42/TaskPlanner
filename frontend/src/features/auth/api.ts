@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api-client";
+import { getCookie } from "@/lib/get-cookie";
 import type { User } from "./types";
 
 export const authKeys = {
@@ -10,11 +11,13 @@ export const authKeys = {
 export const userQueryOptions = {
   queryKey: authKeys.me(),
   queryFn: async () => {
+    if (!getCookie("is_logged_in")) return null;
+
     try {
       const { data } = await api.get<User>("/auth/me");
       return data;
     } catch (error) {
-      return null; // 401/error means not logged in
+      return null;
     }
   },
 };
@@ -23,13 +26,15 @@ export function useUser() {
   return useQuery<User>({
     queryKey: authKeys.me(),
     queryFn: async () => {
+      if (!getCookie("is_logged_in")) return null!;
+
       const { data } = await api.get("/auth/me");
       return data;
     },
     retry: false,
-    staleTime: 5 * 60 * 1000, // 5 min - user data doesn't change often
-    gcTime: 10 * 60 * 1000, // 10 min cache
-    refetchOnWindowFocus: false, // Don't refetch on tab focus
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
+    refetchOnWindowFocus: false,
   });
 }
 

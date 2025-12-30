@@ -17,12 +17,10 @@ public class GetCurrentUserHandler : IRequestHandler<GetCurrentUserQuery, UserDt
     {
         var user = _currentUserService.CurrentUser();
         
-        var userDto = new UserDto(
+        return new UserDto(
             Id: user.Id,
             Name: user.Name,
             Email: user.Email
         );
-
-        return userDto;
     }
 }

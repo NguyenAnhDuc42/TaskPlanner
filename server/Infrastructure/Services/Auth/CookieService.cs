@@ -38,10 +38,21 @@ public class CookieService : ICookieService
             Expires = DateTimeOffset.UtcNow.AddDays(-30),
             Domain = string.IsNullOrEmpty(_cookieSettings.Domain) ? null : _cookieSettings.Domain
         };
+        var nonHttpOnlyOpt = new CookieOptions
+        {
+            HttpOnly = false,
+            Secure = _cookieSettings.UseSecure,
+            SameSite = _cookieSettings.SameSite,
+            Expires = DateTimeOffset.UtcNow.AddDays(-1),
+            Domain = string.IsNullOrEmpty(_cookieSettings.Domain) ? null : _cookieSettings.Domain
+        };
+
         try
         {
             context.Response.Cookies.Append(_cookieSettings.AccessTokenCookieName, "", accessCookieOpt);
             context.Response.Cookies.Append(_cookieSettings.RefreshTokenCookieName, "", refreshCookieOpt);
+            context.Response.Cookies.Append(_cookieSettings.AccessTokenExpireCookieName, "", nonHttpOnlyOpt);
+            context.Response.Cookies.Append(_cookieSettings.SessionPresentCookieName, "", nonHttpOnlyOpt);
         }
         catch (Exception ex) 
         {
@@ -70,22 +81,17 @@ public class CookieService : ICookieService
         }
     }
 
-    public string GetRefreshTokenFromCookies(HttpContext context)
+    public string? GetRefreshTokenFromCookies(HttpContext context)
     {
-        string? refreshToken = null;
         try
         {
-            refreshToken = context.Request.Cookies[_cookieSettings.RefreshTokenCookieName];
+            return context.Request.Cookies[_cookieSettings.RefreshTokenCookieName];
         }
         catch (Exception)
         {
             _logger.LogError("Failed to read refresh token from cookies.");
+            return null;
         }
-        if (string.IsNullOrEmpty(refreshToken))
-        {
-            throw new ArgumentException("Refresh token is not found in cookies.");
-        }
-        return refreshToken;
     }
 
     public void SetAuthCookies(HttpContext context, JwtTokens tokens)
@@ -108,8 +114,31 @@ public class CookieService : ICookieService
             Domain = string.IsNullOrEmpty(_cookieSettings.Domain) ? null : _cookieSettings.Domain
         };
 
+        // Non-HttpOnly cookie for JS to see access token expiry
+        // This is for the "Proactive Refresh" logic
+        var expiryCookieOpt = new CookieOptions
+        {
+            HttpOnly = false,
+            Secure = _cookieSettings.UseSecure,
+            SameSite = _cookieSettings.SameSite,
+            Expires = tokens.ExpirationAccessToken,
+            Domain = string.IsNullOrEmpty(_cookieSettings.Domain) ? null : _cookieSettings.Domain
+        };
+
+        // Non-HttpOnly cookie for JS to see if a session EXISTS
+        // This is the "Gatekeeper" that lasts as long as the Refresh Token
+        var sessionPresentOpt = new CookieOptions
+        {
+            HttpOnly = false,
+            Secure = _cookieSettings.UseSecure,
+            SameSite = _cookieSettings.SameSite,
+            Expires = tokens.ExpirationRefreshToken, // Full session life
+            Domain = string.IsNullOrEmpty(_cookieSettings.Domain) ? null : _cookieSettings.Domain
+        };
+
         context.Response.Cookies.Append(_cookieSettings.AccessTokenCookieName, tokens.AccessToken, accessCookieOpt);
         context.Response.Cookies.Append(_cookieSettings.RefreshTokenCookieName, tokens.RefreshToken, refreshCookieOpt);
-
+        context.Response.Cookies.Append(_cookieSettings.AccessTokenExpireCookieName, tokens.ExpirationAccessToken.ToUnixTimeSeconds().ToString(), expiryCookieOpt);
+        context.Response.Cookies.Append(_cookieSettings.SessionPresentCookieName, "true", sessionPresentOpt);
     }
 }

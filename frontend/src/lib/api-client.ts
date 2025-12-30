@@ -1,4 +1,5 @@
 import axios from "axios";
+import { getCookie } from "./get-cookie";
 
 export const api = axios.create({
   baseURL: "/api",
@@ -28,14 +29,53 @@ const processQueue = (error: any, token: any = null) => {
   failedQueue = [];
 };
 
+// Request Interceptor: Proactive Refresh
+api.interceptors.request.use(async (config) => {
+  const isAuthAction = config.url?.includes("/auth/") && !config.url?.includes("/auth/me");
+
+  if (isAuthAction) return config;
+
+  const atexp = getCookie("atexp");
+  if (atexp) {
+    const expiryTime = Number(atexp) * 1000;
+    const now = Date.now();
+
+    // If within 1 minute of expiring, pause and refresh
+    if (expiryTime - now < 60 * 1000) {
+      if (!isRefreshing) {
+        isRefreshing = true;
+        try {
+          await api.post("/auth/refresh");
+          processQueue(null);
+        } catch (error) {
+          processQueue(error);
+        } finally {
+          isRefreshing = false;
+        }
+      } else {
+        // Just wait for the active refresh
+        await new Promise((resolve, reject) => {
+          failedQueue.push({ resolve, reject });
+        });
+      }
+    }
+  }
+
+  return config;
+});
+
+// Response Interceptor: Reactive Refresh on 401
 api.interceptors.response.use(
   (response) => response,
   async (error: any) => {
     const originalRequest = error.config;
 
-    // Don't intercept /auth/me failures - this endpoint is used to CHECK authentication
-    // A 401 from /auth/me is expected when not logged in
-    if (originalRequest?.url?.includes("/auth/me")) {
+    // Skip refresh for auth guest/action failures
+    const isAuthAction =
+      originalRequest?.url?.includes("/auth/") &&
+      !originalRequest?.url?.includes("/auth/me");
+
+    if (isAuthAction) {
       return Promise.reject(error);
     }
 
@@ -44,12 +84,8 @@ api.interceptors.response.use(
         return new Promise((resolve, reject) => {
           failedQueue.push({ resolve, reject });
         })
-          .then(() => {
-            return api(originalRequest);
-          })
-          .catch((err) => {
-            return Promise.reject(err);
-          });
+          .then(() => api(originalRequest))
+          .catch((err) => Promise.reject(err));
       }
 
       originalRequest._retry = true;
@@ -60,7 +96,7 @@ api.interceptors.response.use(
         processQueue(null);
         return api(originalRequest);
       } catch (refreshError) {
-        processQueue(refreshError, null);
+        processQueue(refreshError);
         return Promise.reject(refreshError);
       } finally {
         isRefreshing = false;

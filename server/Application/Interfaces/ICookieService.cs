@@ -8,7 +8,7 @@ namespace server.Application.Interfaces
     {
         void SetAuthCookies(HttpContext context, JwtTokens tokens);
         JwtTokens? GetAuthTokensFromCookies(HttpContext context);
-        string GetRefreshTokenFromCookies(HttpContext context);
+        string? GetRefreshTokenFromCookies(HttpContext context);
         void ClearAuthCookies(HttpContext context);
     }
 }
