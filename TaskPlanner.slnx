@@ -6,15 +6,16 @@
   </Configurations>
   <Folder Name="/server/">
     <Project Path="server/Api/Api.csproj" />
-    <Project Path="server/AppHost/AppHost.csproj" Id="4f264edc-3d1e-4b51-9115-9e05b8e425a2" />
     <Project Path="server/Application/Application.csproj" />
     <Project Path="server/Background/Background.csproj" />
     <Project Path="server/Domain/Domain.csproj" />
     <Project Path="server/Infrastructure/Infrastructure.csproj" />
-    <Project Path="server/ServiceDefaults/ServiceDefaults.csproj" Id="7b2de704-4407-43ef-8b84-fc14ae06f27d" />
   </Folder>
   <Folder Name="/solution items/">
     <File Path="Directory.Build.props" />
     <File Path="Directory.Packages.props" />
   </Folder>
+  <Project Path="AppHost/AppHost.csproj" Id="986151e5-bc61-4de1-805a-c89491e2f08b" />
+  <Project Path="ServiceDefaults/ServiceDefaults.csproj" Id="86ccfa23-bda8-4ade-9fb4-a209927213d2" />
+  <Project Path="Worker/Worker.csproj" />
 </Solution>

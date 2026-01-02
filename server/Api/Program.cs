@@ -6,9 +6,12 @@ using Domain;
 using Infrastructure;
 using Infrastructure.Hubs;
 using Microsoft.OpenApi;
-
+using Scalar.AspNetCore;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// --- 1. Aspire Defaults ---
+builder.AddServiceDefaults();
 
 builder.Services.AddControllers();
 builder.Services.AddHttpContextAccessor();
@@ -26,22 +29,36 @@ builder.Services.AddCors(options =>
     });
 });
 
-// --- Swagger / OpenAPI ---
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen(c =>
-{
-    c.SwaggerDoc("v1", new OpenApiInfo { Title = "TaskPlanner API", Version = "v1" });
-});
-
+// --- 2. Infrastructure & Data ---
+// Aspire automatically injects the connection string from the AppHost
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
     ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
 
+// Use the Npgsql Aspire component
+builder.AddNpgsqlDbContext<Infrastructure.Data.TaskPlanDbContext>("DefaultConnection");
+
 builder.Services.AddInfrastructure(connectionString, builder.Configuration);
 builder.Services.AddApplication(builder.Configuration);
+
+// NOTE: In the API, we only add the Background CLIENTS. 
+// We do NOT call AddHangfireServer() here (that's the Worker's job).
 builder.Services.AddBackground(builder.Configuration);
-builder.Services.AddHttpContextAccessor();
 
 var app = builder.Build();
+
+// --- 3. Aspire Endpoints & Monitoring ---
+app.MapDefaultEndpoints(); // Standardizes /health and /alive across all containers
+
+if (app.Environment.IsDevelopment())
+{
+    // Scalar API Documentation
+    app.MapOpenApi();
+    app.MapScalarApiReference(options =>
+    {
+        options.WithTitle("TaskPlanner API")
+               .WithTheme(Scalar.AspNetCore.ScalarTheme.Mars);
+    });
+}
 
 app.Use(async (context, next) =>
 {
@@ -62,18 +79,11 @@ app.Use(async (context, next) =>
 });
 
 app.UseMiddleware<ExceptionHandlingMiddleware>();
+
 // --- Middleware ---
 if (app.Environment.IsDevelopment())
 {
-    // app.UseDeveloperExceptionPage();
-
-    // Swagger must be before routing/auth
-    app.UseSwagger();
-    app.UseSwaggerUI(c =>
-    {
-        c.SwaggerEndpoint("/swagger/v1/swagger.json", "TaskPlanner API V1");
-        c.RoutePrefix = "swagger"; // URL: /swagger/index.html
-    });
+    // Scalar documentation is now auto-mapped in MapDefaultEndpoints() from ServiceDefaults
 }
 
 app.UseRouting();

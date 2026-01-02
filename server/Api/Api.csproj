@@ -5,6 +5,7 @@
 		<ProjectReference Include="..\Background\Background.csproj" />
 		<ProjectReference Include="..\Domain\Domain.csproj" />
 		<ProjectReference Include="..\Infrastructure\Infrastructure.csproj" />
+		<ProjectReference Include="..\..\ServiceDefaults\ServiceDefaults.csproj" />
 	</ItemGroup>
 
 	<ItemGroup>
@@ -16,9 +17,9 @@
 		  <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
 		  <PrivateAssets>all</PrivateAssets>
 		</PackageReference>
-		<PackageReference Include="Swashbuckle.AspNetCore.Swagger" />
-		<PackageReference Include="Swashbuckle.AspNetCore.SwaggerGen" />
-		<PackageReference Include="Swashbuckle.AspNetCore.SwaggerUI" />
+		<PackageReference Include="Aspire.Npgsql.EntityFrameworkCore.PostgreSQL" />
+		<PackageReference Include="Aspire.StackExchange.Redis" />
+		<PackageReference Include="Scalar.AspNetCore" />
   </ItemGroup>
 
 </Project>
