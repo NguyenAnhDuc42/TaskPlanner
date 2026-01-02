@@ -1,29 +1,31 @@
 var builder = DistributedApplication.CreateBuilder(args);
 
-// --- 1. Register Resources (Containers) ---
+// --- 1. Register Resources ---
 
-// PostgreSQL
-var postgres = builder.AddPostgres("postgres")
-    .WithPgAdmin(); // Optional: UI for DB management
-var db = postgres.AddDatabase("DefaultConnection");
+// PostgreSQL (Local Instance)
+// We use AddConnectionString so Aspire doesn't spin up a container.
+// It will look for "ConnectionStrings:DefaultConnection" in appsettings.json or User Secrets.
+var postgres = builder.AddConnectionString("DefaultConnection");
 
-// Redis (For Cache & SignalR)
+// Redis (Still container, as it's lightweight and easy)
 var redis = builder.AddRedis("cache");
 
-// MailDev (Fake SMTP for local testing)
-//var maildev = builder.AddContainer("maildev", "maildev/maildev")
-//    .WithHttpEndpoint(port: 1080, targetPort: 1080, name: "http")
-//    .WithEndpoint(port: 1025, targetPort: 1025, name: "smtp");
+// MailDev (Container)
+// var maildev = builder.AddContainer("maildev", "maildev/maildev")
+//     .WithHttpEndpoint(port: 1080, targetPort: 1080, name: "http")
+//     .WithEndpoint(port: 1025, targetPort: 1025, name: "smtp");
 
-// --- 2. Register Services (Your Code) ---
+// --- 2. Register Services ---
 
 // The Background Worker
 var worker = builder.AddProject<Projects.Worker>("worker")
-    .WithReference(db)
+    .WithReference(postgres) // Injects "ConnectionStrings:postgres"
     .WithReference(redis);
 
 // The Main API
 builder.AddProject<Projects.Api>("api")
-    .WithReference(db)
+    .WithReference(postgres)
     .WithReference(redis);
+    // .WithReference(maildev);
+
 builder.Build().Run();

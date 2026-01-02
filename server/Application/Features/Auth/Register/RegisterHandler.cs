@@ -48,6 +48,8 @@ public class RegisterHandler : IRequestHandler<RegisterCommand, RegisterResponse
         var user = User.Create(request.username, request.email, passwordHash);
         
         await _unitOfWork.Set<User>().AddAsync(user, cancellationToken);
+        // Persist User first to satisfy FK constraint for Session
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
 
         // Auto-login: Generate tokens and set cookies
         var httpContext = _httpContextAccessor.HttpContext ?? throw new Exception("No HttpContext");

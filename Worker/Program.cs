@@ -8,7 +8,10 @@ using Scalar.AspNetCore;
 var builder = WebApplication.CreateBuilder(args);
 
 // --- 1. Aspire Defaults ---
+// --- 1. Aspire Defaults ---
 builder.AddServiceDefaults();
+
+builder.Services.AddOpenApi();
 
 // --- 2. Infrastructure ---
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
