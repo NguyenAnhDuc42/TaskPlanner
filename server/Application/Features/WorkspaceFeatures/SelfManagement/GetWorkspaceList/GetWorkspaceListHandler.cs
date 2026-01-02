@@ -4,10 +4,12 @@ using Application.Contract.WorkspaceContract;
 using Application.Helper;
 using Application.Interfaces.Repositories;
 using Domain.Entities.ProjectEntities;
+using Domain.Entities.Relationship;
 using Domain.Enums;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using server.Application.Interfaces;
+using System.Runtime.CompilerServices;
 
 namespace Application.Features.WorkspaceFeatures.GetWorkspaceList;
 
@@ -28,81 +30,55 @@ public class GetWorkspaceListHandler : IRequestHandler<GetWorksapceListQuery, Pa
         var currentUserId = _currentUserService.CurrentUserId();
         var pageSize = request.Pagination.PageSize;
 
-        var items = await _unitOfWork.Set<ProjectWorkspace>()
+        var query = _unitOfWork.Set<ProjectWorkspace>()
+            .Where(w => w.Members.Any(m => m.UserId == currentUserId));
+        var baseQuery = query
             .ApplyFilter(request.filter, currentUserId)
             .ApplyCursor(request.Pagination, _cursorHelper)
-            .ApplySort(request.Pagination)
-            .Take(pageSize + 1) // +1 to check if more exists
+            .ApplySort(request.Pagination);
+
+        var rawItems = await baseQuery
+            .Take(pageSize + 1) // fetch one extra to determine hasMore
+            .Select(w => new
+            {
+                Workspace = w,
+                Role = w.Members.Where(m => m.UserId == currentUserId).Select(m => m.Role).Single(),
+                MemberCount = w.Members.Count()
+            })
             .AsNoTracking()
             .ToListAsync(cancellationToken);
 
-        var hasMore = items.Count > pageSize;
-        var displayItems = items.Take(pageSize).ToList();
+        var hasMore = rawItems.Count > pageSize;
+        if (hasMore) rawItems.RemoveAt(rawItems.Count - 1); // drop the extra
 
-
-        var workspaceIds = displayItems.Select(w => w.Id).ToList();
-        var membersByWorkspace = await GetMembersByWorkspaces(workspaceIds);
-
-        var dtos = displayItems.Select(w =>
+        // Map to DTOs (no UpdatedAt on DTO)
+        var dtos = rawItems.Select(x => new WorkspaceSummaryDto
         {
-            var members = membersByWorkspace.ContainsKey(w.Id)
-                ? membersByWorkspace[w.Id].Select(m => new MemberDto 
-                { 
-                    Id = m.Id, 
-                    Username = m.Username, 
-                    Email = m.Email, 
-                    Role = m.Role 
-                }).ToList()
-                : new List<MemberDto>();
-                
-            return new WorkspaceSummaryDto
-            {
-                Id = w.Id,
-                Name = w.Name,
-                Color = w.Customization.Color,
-                Icon = w.Customization.Icon,
-                Variant = w.Variant.ToString(),
-                IsOwned = w.CreatorId == currentUserId,
-                Members = members
-            };
+            Id = x.Workspace.Id,
+            Name = x.Workspace.Name,
+            Icon = x.Workspace.Customization.Icon,
+            Color = x.Workspace.Customization.Color,
+            Variant = x.Workspace.Variant,
+            Role = x.Role,
+            MemberCount = x.MemberCount
         }).ToList();
 
+        // Build next cursor using the last workspace's UpdatedAt + Id (matches your contract)
         string? nextCursor = null;
-        if (hasMore && displayItems.Count > 0)
+        if (hasMore && rawItems.Count > 0)
         {
-            var lastItem = displayItems.Last();
+            var lastWorkspace = rawItems.Last().Workspace;
             nextCursor = _cursorHelper.EncodeCursor(new CursorData(new Dictionary<string, object>
             {
-                { "Id", lastItem.Id },
-                { "Timestamp", lastItem.UpdatedAt }
+                { "Id", lastWorkspace.Id },
+                { "Timestamp", lastWorkspace.UpdatedAt }
             }));
         }
 
         return new PagedResult<WorkspaceSummaryDto>(dtos, nextCursor, hasMore);
     }
 
-    private async Task<Dictionary<Guid, List<Member>>> GetMembersByWorkspaces(IEnumerable<Guid> workspaceIds)
-    {
-        string sql = @"
-        SELECT wm.project_workspace_id, u.name, u.email, wm.role
-        FROM workspace_members wm 
-        JOIN user u ON wm.user_id = u.id
-        WHERE wm.project_workspace_id IN @WorkspaceIds
-        ";
 
-        var membersByWorkspace = await _unitOfWork.QueryAsync<dynamic>(sql, new { WorkspaceIds = workspaceIds });
-        var memberDict = membersByWorkspace
-            .GroupBy(m => (Guid)m.ProjectWorkspaceId)
-            .ToDictionary(g => g.Key, g => g.Select(m => new Member
-            {
-                Id = m.Id,
-                Username = m.Username,
-                Email = m.Email,
-                Role = (Role)m.Role
-            }).ToList());
-
-        return memberDict;
-    }
 
 
 }
