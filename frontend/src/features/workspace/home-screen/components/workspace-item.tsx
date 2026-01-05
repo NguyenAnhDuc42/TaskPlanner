@@ -7,17 +7,20 @@ import React from "react";
 import type { WorkspaceSummary } from "../type";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { ChevronDown, Settings, Users } from "lucide-react";
+import { ChevronDown, Pin, Settings, Users } from "lucide-react";
 
 type Props = {
-  workspaceSummary: WorkspaceSummary;
-  onOpen?: (id: string) => void;
-};
-export function WorkspaceItem({ workspaceSummary, onOpen }: Props) {
-  const [open, setOpen] = React.useState(false);
+  workspaceSummary: WorkspaceSummary
+  onOpen?: (id: string) => void
+  onPin?: (id: string) => void
+}
+
+export function WorkspaceItem({ workspaceSummary, onOpen, onPin }: Props) {
+  const [open, setOpen] = React.useState(false)
+
   React.useEffect(() => {
-    if (open) onOpen?.(workspaceSummary.id);
-  }, [open, onOpen, workspaceSummary.id]);
+    if (open) onOpen?.(workspaceSummary.id)
+  }, [open, onOpen, workspaceSummary.id])
 
   return (
     <Collapsible open={open} onOpenChange={setOpen}>
@@ -32,22 +35,30 @@ export function WorkspaceItem({ workspaceSummary, onOpen }: Props) {
               {workspaceSummary.icon}
             </div>
 
-            {/* Main content - only name */}
+            {/* Main content - name only in collapsed */}
             <div className="flex-1 min-w-0">
               <h3 className="font-mono font-bold text-sm text-foreground truncate tracking-tight">
                 {workspaceSummary.name}
               </h3>
             </div>
 
-            {workspaceSummary.isPinned && (
-              <div className="text-primary text-sm flex-shrink-0">★</div>
-            )}
+            <Button
+              size="sm"
+              variant="ghost"
+              className="h-6 w-6 p-0 flex-shrink-0 text-muted-foreground hover:text-primary transition-colors"
+              onClick={(e) => {
+                e.stopPropagation()
+                onPin?.(workspaceSummary.id)
+              }}
+            >
+              <Pin className={cn("h-4 w-4", workspaceSummary.isPinned && "fill-primary text-primary")} />
+            </Button>
 
             {/* Chevron */}
             <ChevronDown
               className={cn(
                 "h-4 w-4 text-muted-foreground transition-transform flex-shrink-0 group-hover:text-foreground",
-                open && "rotate-180"
+                open && "rotate-180",
               )}
             />
           </div>
@@ -56,6 +67,23 @@ export function WorkspaceItem({ workspaceSummary, onOpen }: Props) {
 
       <CollapsibleContent>
         <div className="border border-t-0 border-border bg-card/50">
+          <div className="px-4 py-3 border-b border-border/50 text-xs text-muted-foreground font-mono space-y-1">
+            <div>
+              Type: <span className="text-foreground">{workspaceSummary.variant}</span>
+            </div>
+            <div>
+              Role: <span className="text-foreground">{workspaceSummary.role}</span>
+            </div>
+            <div>
+              Members: <span className="text-foreground">{workspaceSummary.memberCount}</span>
+            </div>
+          </div>
+
+          {/* {workspaceSummary.description && (
+            <div className="px-4 py-3 border-b border-border/50 text-xs text-muted-foreground font-mono">
+              {workspaceSummary.description}
+            </div>
+          )} */}
           <div className="px-4 py-3 flex gap-2">
             <Button
               size="sm"
@@ -83,5 +111,5 @@ export function WorkspaceItem({ workspaceSummary, onOpen }: Props) {
         </div>
       </CollapsibleContent>
     </Collapsible>
-  );
+  )
 }

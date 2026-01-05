@@ -1,41 +1,52 @@
-import { Button } from "@/components/ui/button"
-import type { WorkspaceSummary } from "../type"
-import { Plus, Search, X } from "lucide-react"
-import { WorkspaceItem } from "./workspace-item"
-import React from "react"
-
+import type { WorkspaceSummary } from "../type";
+import { Search, X } from "lucide-react";
+import { WorkspaceItem } from "./workspace-item";
+import React from "react";
+import {
+  WorkspaceEmptyState,
+  WorkspaceLoadingState,
+} from "./pending-workspace";
 
 type Props = {
-  workspaces: WorkspaceSummary[]
-  onCreateWorkspace?: () => void
-  onWorkspaceOpen?: (id: string) => void
-}
+  workspaces: WorkspaceSummary[];
+  isLoading?: boolean;
+  onCreateWorkspace?: () => void;
+  onWorkspaceOpen?: (id: string) => void;
+};
 
-export function WorkspaceList({ workspaces, onCreateWorkspace, onWorkspaceOpen }: Props) {
-  const [searchQuery, setSearchQuery] = React.useState("")
+export function WorkspaceList({
+  workspaces,
+  isLoading,
+  onCreateWorkspace,
+  onWorkspaceOpen,
+}: Props) {
+  const [searchQuery, setSearchQuery] = React.useState("");
 
   const filteredWorkspaces = React.useMemo(() => {
-    if (!searchQuery.trim()) return workspaces
-    const query = searchQuery.toLowerCase()
+    if (!searchQuery.trim()) return workspaces;
+    const query = searchQuery.toLowerCase();
     return workspaces.filter(
       (ws) =>
         ws.name.toLowerCase().includes(query) ||
         ws.variant.toLowerCase().includes(query) ||
-        ws.role.toLowerCase().includes(query),
-    )
-  }, [workspaces, searchQuery])
+        ws.role.toLowerCase().includes(query)
+    );
+  }, [workspaces, searchQuery]);
+
+  if (isLoading) {
+    return <WorkspaceLoadingState />;
+  }
 
   return (
     <div className="h-screen bg-background flex flex-col">
       <div className="border-b border-border px-6 py-6">
         <div className="flex items-center gap-4">
-          <Button
+          <button
             onClick={onCreateWorkspace}
-            className="flex items-center gap-2 h-9 px-4 bg-primary hover:bg-primary/90 text-primary-foreground border-0 font-mono text-sm"
+            className="flex items-center gap-2 h-9 px-4 bg-primary hover:bg-primary/90 text-primary-foreground border-0 font-mono text-sm rounded-md"
           >
-            <Plus className="h-4 w-4" />
             Create
-          </Button>
+          </button>
 
           <div className="flex-1" />
 
@@ -65,17 +76,18 @@ export function WorkspaceList({ workspaces, onCreateWorkspace, onWorkspaceOpen }
       <div className="flex-1 overflow-hidden flex flex-col">
         <div className="flex-1 overflow-y-auto">
           {filteredWorkspaces.length === 0 ? (
-            <div className="flex items-center justify-center h-full">
-              <div className="text-center">
-                <p className="text-sm font-mono text-muted-foreground mb-2">No workspaces found</p>
-                <p className="text-xs font-mono text-muted-foreground/60">Try adjusting your search</p>
-              </div>
-            </div>
+            <WorkspaceEmptyState
+              isSearching={!!searchQuery}
+              onCreateWorkspace={onCreateWorkspace}
+            />
           ) : (
             <div className="space-y-0 p-4">
               {filteredWorkspaces.map((workspace) => (
                 <div key={workspace.id} className="mb-2 last:mb-0">
-                  <WorkspaceItem workspaceSummary={workspace} onOpen={onWorkspaceOpen} />
+                  <WorkspaceItem
+                    workspaceSummary={workspace}
+                    onOpen={onWorkspaceOpen}
+                  />
                 </div>
               ))}
             </div>
@@ -83,5 +95,5 @@ export function WorkspaceList({ workspaces, onCreateWorkspace, onWorkspaceOpen }
         </div>
       </div>
     </div>
-  )
+  );
 }

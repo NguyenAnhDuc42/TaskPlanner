@@ -1,6 +1,6 @@
-export type Role = string;
+export type Role = "None" | "Owner" | "Admin" | "Member" | "Guest";
 
-export const ROLE_LABELS: Record<string, string> = {
+export const ROLE_LABELS: Record<Role, string> = {
   None : "None",
   Owner: "Owner",
   Admin: "Admin",
