@@ -13,7 +13,7 @@ export default defineConfig({
     }),
     react(),
     tailwindcss(),
-    basicSsl()
+    basicSsl(),
   ],
   resolve: {
     alias: {
@@ -21,6 +21,8 @@ export default defineConfig({
     },
   },
   server: {
+    port: 5173, // FIXED
+    strictPort: true, // CRITICAL
     proxy: {
       "/api": {
         target: "https://localhost:7285",

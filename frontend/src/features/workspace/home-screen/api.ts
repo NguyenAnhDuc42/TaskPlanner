@@ -11,6 +11,7 @@ import { workspaceKeys } from "../query-keys";
 
 import { toast } from "sonner";
 import { isAxiosError } from "axios";
+import type { PagedResult } from "@/types/paged-result";
 
 type CreateWorkspaceValues = z.infer<typeof createWorkspaceSchema>;
 
@@ -18,7 +19,7 @@ export function useCreateWorkspace() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (values: CreateWorkspaceValues) => {
-      const result = await api.post("/workspace", {
+      const result = await api.post("/workspaces", {
         ...values,
       });
       return result.data;
@@ -44,10 +45,9 @@ export function useWorkspaces() {
   return useQuery({
     queryKey: workspaceKeys.list(),
     queryFn: async () => {
-      const { data } = await api.get<{ items: WorkspaceSummary[] }>(
-        "/workspace"
-      );
-      return data.items;
+      const { data } =
+        await api.get<PagedResult<WorkspaceSummary>>("/workspaces");
+      return data.items ?? [];
     },
     staleTime: 1000 * 60 * 2,
     refetchOnWindowFocus: false,

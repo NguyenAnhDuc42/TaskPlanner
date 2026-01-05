@@ -11,6 +11,7 @@ public class CreateWorkspaceValidator : AbstractValidator<CreateWorkspaceCommand
     {
         RuleFor(x => x.Name)
             .NotEmpty().WithMessage("Workspace name is required.")
+            .MinimumLength(2).WithMessage("Workspace name must be at least 2 characters.")
             .MaximumLength(100).WithMessage("Workspace name must be at most 100 characters.");
 
         RuleFor(x => x.Description)
@@ -25,15 +26,13 @@ public class CreateWorkspaceValidator : AbstractValidator<CreateWorkspaceCommand
             .NotEmpty().WithMessage("Icon is required.")
             .MaximumLength(50).WithMessage("Icon must be at most 50 characters.");
 
-        // Validate that the string is a valid name for the WorkspaceVariant enum
+        // Validate that the value is a valid member of the WorkspaceVariant enum
         RuleFor(x => x.Variant)
-            .NotEmpty().WithMessage("Variant is required.")
             .Must(variant => Enum.IsDefined(typeof(WorkspaceVariant), variant))
             .WithMessage("Invalid workspace variant provided.");
 
-        // Validate that the string is a valid name for the Theme enum
+        // Validate that the value is a valid member of the Theme enum
         RuleFor(x => x.Theme)
-            .NotEmpty().WithMessage("Theme is required.")
             .Must(theme => Enum.IsDefined(typeof(Theme), theme))
             .WithMessage("Invalid theme option provided.");
     }

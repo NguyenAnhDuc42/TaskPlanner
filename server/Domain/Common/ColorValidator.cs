@@ -9,9 +9,9 @@ namespace Domain.Common
     /// </summary>
     public static class ColorValidator
     {
-        // Accepts: #RRGGBB, #RGB, RRGGBB, RGB
+        // Accepts: #RRGGBBAA, #RRGGBB, #RGB, RRGGBBAA, RRGGBB, RGB
         private static readonly Regex HexColorRegex = new Regex(
-            @"^#?(?:[0-9A-Fa-f]{6}|[0-9A-Fa-f]{3})$",
+            @"^#?(?:[0-9A-Fa-f]{8}|[0-9A-Fa-f]{6}|[0-9A-Fa-f]{3})$",
             RegexOptions.Compiled | RegexOptions.CultureInvariant);
 
         public static bool IsValidColorCode(string? color)

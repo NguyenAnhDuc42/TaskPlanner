@@ -1,3 +1,5 @@
+using Aspire.Hosting;
+
 var builder = DistributedApplication.CreateBuilder(args);
 
 // --- 1. Register Resources ---
@@ -23,9 +25,13 @@ var worker = builder.AddProject<Projects.Worker>("worker")
     .WithReference(redis);
 
 // The Main API
-builder.AddProject<Projects.Api>("api")
+var api = builder.AddProject<Projects.Api>("api")
     .WithReference(postgres)
     .WithReference(redis);
-    // .WithReference(maildev);
+// .WithReference(maildev);
+
+var viteApp = builder.AddViteApp("frontend", "../frontend")
+    .WithReference(api);
+
 
 builder.Build().Run();

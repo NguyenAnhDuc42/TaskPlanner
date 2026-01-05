@@ -8,19 +8,20 @@ import type { WorkspaceSummary } from "../type";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { ChevronDown, Pin, Settings, Users } from "lucide-react";
+import { DynamicIcon } from "@/components/dynamic-icon";
 
 type Props = {
-  workspaceSummary: WorkspaceSummary
-  onOpen?: (id: string) => void
-  onPin?: (id: string) => void
-}
+  workspaceSummary: WorkspaceSummary;
+  onOpen?: (id: string) => void;
+  onPin?: (id: string) => void;
+};
 
 export function WorkspaceItem({ workspaceSummary, onOpen, onPin }: Props) {
-  const [open, setOpen] = React.useState(false)
+  const [open, setOpen] = React.useState(false);
 
   React.useEffect(() => {
-    if (open) onOpen?.(workspaceSummary.id)
-  }, [open, onOpen, workspaceSummary.id])
+    if (open) onOpen?.(workspaceSummary.id);
+  }, [open, onOpen, workspaceSummary.id]);
 
   return (
     <Collapsible open={open} onOpenChange={setOpen}>
@@ -30,9 +31,16 @@ export function WorkspaceItem({ workspaceSummary, onOpen, onPin }: Props) {
             {/* Icon with color accent */}
             <div
               className="h-10 w-10 flex items-center justify-center text-sm font-bold flex-shrink-0 border border-border/50"
-              style={{ backgroundColor: workspaceSummary.color }}
+              style={{
+                backgroundColor: `${workspaceSummary.color}20`,
+                borderColor: workspaceSummary.color,
+              }}
             >
-              {workspaceSummary.icon}
+              <DynamicIcon
+                name={workspaceSummary.icon}
+                color={workspaceSummary.color}
+                size={20}
+              />
             </div>
 
             {/* Main content - name only in collapsed */}
@@ -47,18 +55,23 @@ export function WorkspaceItem({ workspaceSummary, onOpen, onPin }: Props) {
               variant="ghost"
               className="h-6 w-6 p-0 flex-shrink-0 text-muted-foreground hover:text-primary transition-colors"
               onClick={(e) => {
-                e.stopPropagation()
-                onPin?.(workspaceSummary.id)
+                e.stopPropagation();
+                onPin?.(workspaceSummary.id);
               }}
             >
-              <Pin className={cn("h-4 w-4", workspaceSummary.isPinned && "fill-primary text-primary")} />
+              <Pin
+                className={cn(
+                  "h-4 w-4",
+                  workspaceSummary.isPinned && "fill-primary text-primary"
+                )}
+              />
             </Button>
 
             {/* Chevron */}
             <ChevronDown
               className={cn(
                 "h-4 w-4 text-muted-foreground transition-transform flex-shrink-0 group-hover:text-foreground",
-                open && "rotate-180",
+                open && "rotate-180"
               )}
             />
           </div>
@@ -69,13 +82,20 @@ export function WorkspaceItem({ workspaceSummary, onOpen, onPin }: Props) {
         <div className="border border-t-0 border-border bg-card/50">
           <div className="px-4 py-3 border-b border-border/50 text-xs text-muted-foreground font-mono space-y-1">
             <div>
-              Type: <span className="text-foreground">{workspaceSummary.variant}</span>
+              Type:{" "}
+              <span className="text-foreground">
+                {workspaceSummary.variant}
+              </span>
             </div>
             <div>
-              Role: <span className="text-foreground">{workspaceSummary.role}</span>
+              Role:{" "}
+              <span className="text-foreground">{workspaceSummary.role}</span>
             </div>
             <div>
-              Members: <span className="text-foreground">{workspaceSummary.memberCount}</span>
+              Members:{" "}
+              <span className="text-foreground">
+                {workspaceSummary.memberCount}
+              </span>
             </div>
           </div>
 
@@ -111,5 +131,5 @@ export function WorkspaceItem({ workspaceSummary, onOpen, onPin }: Props) {
         </div>
       </CollapsibleContent>
     </Collapsible>
-  )
+  );
 }

@@ -27,9 +27,9 @@ export function WorkspaceList({
     const query = searchQuery.toLowerCase();
     return workspaces.filter(
       (ws) =>
-        ws.name.toLowerCase().includes(query) ||
-        ws.variant.toLowerCase().includes(query) ||
-        ws.role.toLowerCase().includes(query)
+        ws.name?.toLowerCase().includes(query) ||
+        String(ws.variant).toLowerCase().includes(query) ||
+        String(ws.role).toLowerCase().includes(query)
     );
   }, [workspaces, searchQuery]);
 
