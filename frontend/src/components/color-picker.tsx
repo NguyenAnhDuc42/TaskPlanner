@@ -69,18 +69,8 @@ export const ColorPicker = ({ value, onChange }: Props) => {
             />
           </div>
           <div className="grid grid-cols-5 gap-1.5">
-            {[
-              "#4f46e5",
-              "#0ea5e9",
-              "#10b981",
-              "#f59e0b",
-              "#ef4444",
-              "#8b5cf6",
-              "#ec4899",
-              "#6366f1",
-              "#14b8a6",
-              "#f43f5e",
-            ].map((c) => (
+            {["#4f46e5", "#0ea5e9", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6"
+              , "#ec4899","#6366f1", "#14b8a6", "#f43f5e"].map((c) => (
               <button
                 key={c}
                 type="button"
