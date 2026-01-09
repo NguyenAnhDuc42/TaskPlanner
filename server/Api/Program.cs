@@ -11,14 +11,12 @@ using Scalar.AspNetCore;
 var builder = WebApplication.CreateBuilder(args);
 
 // --- 1. Aspire Defaults ---
-// --- 1. Aspire Defaults ---
 builder.AddServiceDefaults();
-
 builder.Services.AddOpenApi();
-
 builder.Services.AddControllers();
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<WorkspaceContext>();
+
 const string CorsPolicy = "AllowFrontend";
 
 builder.Services.AddCors(options =>
@@ -34,18 +32,18 @@ builder.Services.AddCors(options =>
 
 // --- 2. Infrastructure & Data ---
 // Aspire automatically injects the connection string from the AppHost
-var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
-    ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
 
 // Use the Npgsql Aspire component
 builder.AddNpgsqlDbContext<Infrastructure.Data.TaskPlanDbContext>("DefaultConnection");
-
 builder.Services.AddInfrastructure(connectionString, builder.Configuration);
 builder.Services.AddApplication(builder.Configuration);
 
 // NOTE: In the API, we only add the Background CLIENTS. 
 // We do NOT call AddHangfireServer() here (that's the Worker's job).
 builder.Services.AddBackground(builder.Configuration);
+
+
 
 var app = builder.Build();
 

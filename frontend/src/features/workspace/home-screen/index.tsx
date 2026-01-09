@@ -7,25 +7,33 @@ import { CreateWorkspaceForm } from "./components/create-workspace-form";
 import React from "react";
 
 export function WorkspaceHomeScreen() {
-  const { data: workspaces, isLoading: isWorkspacesLoading } = useWorkspaces();
+  const { data, isLoading: isWorkspacesLoading, fetchNextPage, hasNextPage, isFetchingNextPage } = useWorkspaces();
+
+  const workspaces = React.useMemo(() => {
+    return data?.pages.flatMap((page) => page.items) ?? [];
+  }, [data]);
+
   const { mutate: create, isPending: isCreating } = useCreateWorkspace();
   const [isCreateModalOpen, setIsCreateModalOpen] = React.useState(false);
 
   return (
     <div className="flex flex-col h-screen overflow-hidden">
       <Head />
-      <div className="flex-1 grid grid-flow-col grid-rows-2 gap-4 p-4">
-        <div className="col-span-3 row-span-2">
+      <div className="flex-1 grid grid-flow-col grid-rows-2 gap-4 p-4 min-h-0">
+        <div className="col-span-3 row-span-2 min-h-0">
           <WorkspaceList
-            workspaces={workspaces ?? []}
+            workspaces={workspaces}
             isLoading={isWorkspacesLoading}
             onCreateWorkspace={() => setIsCreateModalOpen(true)}
+            onFetchNextPage={fetchNextPage}
+            hasNextPage={hasNextPage}
+            isFetchingNextPage={isFetchingNextPage}
           />
         </div>
-        <div className="col-span-1 row-span-1">
+        <div className="col-span-1 row-span-1 outline-2">
           <CalenderTasks />
         </div>
-        <div className="col-span-1 row-span-1">
+        <div className="col-span-1 row-span-1 outline-2">
           <NotificationsList />
         </div>
       </div>

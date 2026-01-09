@@ -1,5 +1,6 @@
 import axios from "axios";
-import { getCookie } from "./get-cookie";
+import { queryClient } from "@/main";
+import { authKeys } from "@/features/auth/api";
 
 export const api = axios.create({
   baseURL: "/api",
@@ -29,40 +30,8 @@ const processQueue = (error: any, token: any = null) => {
   failedQueue = [];
 };
 
-// Request Interceptor: Proactive Refresh
-api.interceptors.request.use(async (config) => {
-  const isAuthAction = config.url?.includes("/auth/") && !config.url?.includes("/auth/me");
-
-  if (isAuthAction) return config;
-
-  const atexp = getCookie("atexp");
-  if (atexp) {
-    const expiryTime = Number(atexp) * 1000;
-    const now = Date.now();
-
-    // If within 1 minute of expiring, pause and refresh
-    if (expiryTime - now < 60 * 1000) {
-      if (!isRefreshing) {
-        isRefreshing = true;
-        try {
-          await api.post("/auth/refresh");
-          processQueue(null);
-        } catch (error) {
-          processQueue(error);
-        } finally {
-          isRefreshing = false;
-        }
-      } else {
-        // Just wait for the active refresh
-        await new Promise((resolve, reject) => {
-          failedQueue.push({ resolve, reject });
-        });
-      }
-    }
-  }
-
-  return config;
-});
+// Request Interceptor: Simply return config
+api.interceptors.request.use((config) => config);
 
 // Response Interceptor: Reactive Refresh on 401
 api.interceptors.response.use(
@@ -80,7 +49,9 @@ api.interceptors.response.use(
     }
 
     if (error.response?.status === 401 && !originalRequest._retry) {
+      console.log("[API] 401 detected on:", originalRequest.url);
       if (isRefreshing) {
+        console.log("[API] Already refreshing, queuing request.");
         return new Promise((resolve, reject) => {
           failedQueue.push({ resolve, reject });
         })
@@ -92,11 +63,18 @@ api.interceptors.response.use(
       isRefreshing = true;
 
       try {
+        console.log("[API] Attempting reactive refresh...");
         await api.post("/auth/refresh");
+        queryClient.invalidateQueries({ queryKey: authKeys.me() });
         processQueue(null);
+        console.log("[API] Refresh successful, retrying original request.");
         return api(originalRequest);
       } catch (refreshError) {
         processQueue(refreshError);
+        console.error("[API] Reactive refresh failed, redirecting to sign-in.");
+        if (!window.location.pathname.includes("/auth/")) {
+          window.location.href = "/auth/sign-in";
+        }
         return Promise.reject(refreshError);
       } finally {
         isRefreshing = false;

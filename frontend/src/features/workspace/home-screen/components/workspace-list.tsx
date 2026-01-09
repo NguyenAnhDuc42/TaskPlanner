@@ -6,21 +6,39 @@ import {
   WorkspaceEmptyState,
   WorkspaceLoadingState,
 } from "./pending-workspace";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 type Props = {
   workspaces: WorkspaceSummary[];
   isLoading?: boolean;
   onCreateWorkspace?: () => void;
   onWorkspaceOpen?: (id: string) => void;
+  onFetchNextPage?: () => void;
+  hasNextPage?: boolean;
+  isFetchingNextPage?: boolean;
 };
 
-export function WorkspaceList({
-  workspaces,
-  isLoading,
-  onCreateWorkspace,
-  onWorkspaceOpen,
-}: Props) {
+export function WorkspaceList({ workspaces,isLoading, onCreateWorkspace, onWorkspaceOpen,
+ onFetchNextPage, hasNextPage, isFetchingNextPage }: Props) {
   const [searchQuery, setSearchQuery] = React.useState("");
+  const observerRef = React.useRef<HTMLDivElement>(null);
+
+  React.useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && hasNextPage && !isFetchingNextPage) {
+          onFetchNextPage?.();
+        }
+      },
+      { threshold: 0.1 }
+    );
+
+    if (observerRef.current) {
+      observer.observe(observerRef.current);
+    }
+
+    return () => observer.disconnect();
+  }, [hasNextPage, isFetchingNextPage, onFetchNextPage]);
 
   const filteredWorkspaces = React.useMemo(() => {
     if (!searchQuery.trim()) return workspaces;
@@ -38,7 +56,7 @@ export function WorkspaceList({
   }
 
   return (
-    <div className="h-screen bg-background flex flex-col">
+    <div className="h-full bg-background flex flex-col outline-2">
       <div className="border-b border-border px-6 py-6">
         <div className="flex items-center gap-4">
           <button
@@ -73,24 +91,35 @@ export function WorkspaceList({
         </div>
       </div>
 
-      <div className="flex-1 overflow-hidden flex flex-col">
-        <div className="flex-1 overflow-y-auto">
-          {filteredWorkspaces.length === 0 ? (
+      <div className="flex-1 overflow-hidden flex flex-col min-h-0">
+        <div className="flex-1 flex flex-col min-h-0">
+          {filteredWorkspaces.length === 0 && !isLoading ? (
             <WorkspaceEmptyState
               isSearching={!!searchQuery}
               onCreateWorkspace={onCreateWorkspace}
             />
           ) : (
-            <div className="space-y-0 p-4">
-              {filteredWorkspaces.map((workspace) => (
-                <div key={workspace.id} className="mb-2 last:mb-0">
-                  <WorkspaceItem
-                    workspaceSummary={workspace}
-                    onOpen={onWorkspaceOpen}
-                  />
-                </div>
-              ))}
-            </div>
+            <ScrollArea className="flex-1 w-full min-h-0">
+              <div className="p-4 space-y-2">
+                {filteredWorkspaces.map((workspace) => (
+                  <div key={workspace.id}>
+                    <WorkspaceItem
+                      workspaceSummary={workspace}
+                      onOpen={onWorkspaceOpen}
+                    />
+                  </div>
+                ))}
+
+                {/* Infinite scroll sentinel */}
+                <div ref={observerRef} className="h-4 w-full" />
+
+                {isFetchingNextPage && (
+                  <div className="py-4 flex justify-center">
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary" />
+                  </div>
+                )}
+              </div>
+            </ScrollArea>
           )}
         </div>
       </div>

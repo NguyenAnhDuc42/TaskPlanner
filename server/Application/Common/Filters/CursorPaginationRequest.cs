@@ -4,7 +4,7 @@ namespace Application.Common.Filters;
 
 public record CursorPaginationRequest(
     string? Cursor = null,
-    int PageSize = 10,
+    int PageSize = 8,
     string SortBy = "UpdatedAt",
     SortDirection Direction = SortDirection.Ascending);
 

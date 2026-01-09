@@ -17,7 +17,12 @@ public class CursorHelper
 
     public CursorHelper(IOptions<CursorEncryptionOptions> options)
     {
+        if (string.IsNullOrEmpty(options.Value.Key)) 
+            throw new ArgumentException("Cursor encryption key is missing in configuration.");
         _key = Convert.FromBase64String(options.Value.Key);
+
+        if (_key.Length != 16 && _key.Length != 24 && _key.Length != 32)
+            throw new ArgumentException($"Invalid Key size ({_key.Length} bytes). AES key must be 16, 24, or 32 bytes.");
     }
     public string EncodeCursor(CursorData data)
     {

@@ -1,6 +1,7 @@
-import { createContext, useContext, type ReactNode } from "react";
+import { createContext, useContext, useEffect, type ReactNode } from "react";
 import type { User } from "./types";
 import { useLogout, useUser } from "./api";
+import { sessionManager } from "./auth-session-manager";
 
 export interface AuthContextType {
   user: User | null | undefined;
@@ -15,11 +16,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const { data: user, status, isFetching } = useUser();
   const logoutMutation = useLogout();
 
-  console.log(user);
+  const isAuthenticated = !!user && status === "success";
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      sessionManager.start();
+    } else {
+      sessionManager.stop();
+    }
+    return () => sessionManager.stop();
+  }, [isAuthenticated]);
 
   // isLoading is true only on the very first load or when refetching without data
   const isLoading = status === "pending" || (isFetching && !user);
-  const isAuthenticated = !!user && status === "success";
 
   const value = {
     user,

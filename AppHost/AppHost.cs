@@ -30,8 +30,8 @@ var api = builder.AddProject<Projects.Api>("api")
     .WithReference(redis);
 // .WithReference(maildev);
 
-var viteApp = builder.AddViteApp("frontend", "../frontend")
-    .WithReference(api);
+// var viteApp = builder.AddViteApp("frontend", "../frontend")
+//     .WithReference(api);
 
 
 builder.Build().Run();

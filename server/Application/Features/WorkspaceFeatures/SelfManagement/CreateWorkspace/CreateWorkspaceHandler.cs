@@ -41,6 +41,7 @@ public class CreateWorkspaceHandler : IRequestHandler<CreateWorkspaceCommand, Gu
         );
 
         await _unitOfWork.Set<ProjectWorkspace>().AddAsync(workspace, cancellationToken);
+        await _unitOfWork.SaveChangesAsync();
 
         return workspace.Id;
     }

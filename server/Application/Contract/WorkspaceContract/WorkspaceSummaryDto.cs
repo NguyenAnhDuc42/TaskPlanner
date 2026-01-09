@@ -11,6 +11,7 @@ public record class WorkspaceSummaryDto
     public string Name { get; init; } = null!;
     public string Icon { get; init; } = null!;
     public string Color { get; init; } = null!;
+    public string Description { get; init; } = null!;
     public WorkspaceVariant Variant { get; init; }
 
     public Role Role { get; init; }

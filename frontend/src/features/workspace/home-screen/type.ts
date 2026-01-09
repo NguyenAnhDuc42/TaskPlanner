@@ -40,6 +40,7 @@ export interface WorkspaceSummary {
   name: string;
   icon: string;
   color: string;
+  description: string;
   variant: WorkspaceVariant;
   role: Role;
   memberCount: number;

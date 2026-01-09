@@ -7,7 +7,7 @@ import React from "react";
 import type { WorkspaceSummary } from "../type";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { ChevronDown, Pin, Settings, Users } from "lucide-react";
+import { ChevronDown, PencilLine, Pin, Settings, Users } from "lucide-react";
 import { DynamicIcon } from "@/components/dynamic-icon";
 
 type Props = {
@@ -26,7 +26,7 @@ export function WorkspaceItem({ workspaceSummary, onOpen, onPin }: Props) {
   return (
     <Collapsible open={open} onOpenChange={setOpen}>
       <CollapsibleTrigger asChild>
-        <button className="w-full text-left border border-border bg-card hover:bg-card/80 transition-colors cursor-pointer group">
+        <div className="w-full border border-border bg-card hover:bg-card/80 transition-colors cursor-pointer group">
           <div className="flex items-center gap-4 p-4">
             {/* Icon with color accent */}
             <div
@@ -66,6 +66,22 @@ export function WorkspaceItem({ workspaceSummary, onOpen, onPin }: Props) {
                 )}
               />
             </Button>
+            <Button
+              size="sm"
+              variant="ghost"
+              className="h-6 w-6 p-0 flex-shrink-0 text-muted-foreground hover:text-primary transition-colors"
+              onClick={(e) => {
+                e.stopPropagation();
+                onPin?.(workspaceSummary.id);
+              }}
+            >
+              <PencilLine
+                className={cn(
+                  "h-4 w-4",
+                  workspaceSummary.isPinned && "fill-primary text-primary"
+                )}
+              />
+            </Button>
 
             {/* Chevron */}
             <ChevronDown
@@ -75,7 +91,7 @@ export function WorkspaceItem({ workspaceSummary, onOpen, onPin }: Props) {
               )}
             />
           </div>
-        </button>
+        </div>
       </CollapsibleTrigger>
 
       <CollapsibleContent>
@@ -99,11 +115,11 @@ export function WorkspaceItem({ workspaceSummary, onOpen, onPin }: Props) {
             </div>
           </div>
 
-          {/* {workspaceSummary.description && (
+          {workspaceSummary.description && (
             <div className="px-4 py-3 border-b border-border/50 text-xs text-muted-foreground font-mono">
               {workspaceSummary.description}
             </div>
-          )} */}
+          )}
           <div className="px-4 py-3 flex gap-2">
             <Button
               size="sm"

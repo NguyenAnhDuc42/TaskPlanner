@@ -3,8 +3,9 @@ import type { createWorkspaceSchema, WorkspaceSummary } from "./type";
 import {
   keepPreviousData,
   useMutation,
-  useQuery,
+  useInfiniteQuery,
   useQueryClient,
+  infiniteQueryOptions,
 } from "@tanstack/react-query";
 import { api } from "@/lib/api-client";
 import { workspaceKeys } from "../query-keys";
@@ -24,8 +25,8 @@ export function useCreateWorkspace() {
       });
       return result.data;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: workspaceKeys.list() });
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: workspaceKeys.list() });
       toast.success("Workspace created successfully");
     },
     onError: (error) => {
@@ -41,14 +42,24 @@ export function useCreateWorkspace() {
   });
 }
 
+export const workspaceInfiniteQueryOptions = infiniteQueryOptions({
+  queryKey: workspaceKeys.list(),
+  queryFn: async ({ pageParam }: { pageParam: string | null }) => {
+    const { data } = await api.get<PagedResult<WorkspaceSummary>>(
+      "/workspaces",
+      {
+        params: { cursor: pageParam },
+      }
+    );
+    return data;
+  },
+  initialPageParam: null as string | null,
+  getNextPageParam: (lastPage) => lastPage.nextCursor || undefined,
+});
+
 export function useWorkspaces() {
-  return useQuery({
-    queryKey: workspaceKeys.list(),
-    queryFn: async () => {
-      const { data } =
-        await api.get<PagedResult<WorkspaceSummary>>("/workspaces");
-      return data.items ?? [];
-    },
+  return useInfiniteQuery({
+    ...workspaceInfiniteQueryOptions,
     staleTime: 1000 * 60 * 2,
     refetchOnWindowFocus: false,
     placeholderData: keepPreviousData,

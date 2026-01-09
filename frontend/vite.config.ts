@@ -3,7 +3,7 @@ import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
 import { defineConfig } from "vite";
 import { tanstackRouter } from "@tanstack/router-plugin/vite";
-import basicSsl from "@vitejs/plugin-basic-ssl";
+import mkcert from 'vite-plugin-mkcert'
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [
@@ -13,7 +13,7 @@ export default defineConfig({
     }),
     react(),
     tailwindcss(),
-    basicSsl(),
+    mkcert(),
   ],
   resolve: {
     alias: {
@@ -21,8 +21,6 @@ export default defineConfig({
     },
   },
   server: {
-    port: 5173, // FIXED
-    strictPort: true, // CRITICAL
     proxy: {
       "/api": {
         target: "https://localhost:7285",

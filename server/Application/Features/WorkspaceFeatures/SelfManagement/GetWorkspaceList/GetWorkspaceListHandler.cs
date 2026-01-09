@@ -58,6 +58,7 @@ public class GetWorkspaceListHandler : IRequestHandler<GetWorksapceListQuery, Pa
             Name = x.Workspace.Name,
             Icon = x.Workspace.Customization.Icon,
             Color = x.Workspace.Customization.Color,
+            Description = x.Workspace.Description,
             Variant = x.Workspace.Variant,
             Role = x.Role,
             MemberCount = x.MemberCount
