@@ -1,11 +1,6 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   ChevronRight,
@@ -39,75 +34,67 @@ export function OuterSidebar() {
     toggleInnerSidebar,
     activeContent,
     setActiveContent,
-    isHovering,
-    setIsHovering,
+    hoveredIcon,
+    setHoveredIcon,
   } = useSidebarContext();
 
   return (
-    <div className="relative h-screen w-16 flex-shrink-0">
-      {/* Outer Sidebar - Floating Design */}
-      <div className="absolute left-2 top-2 bottom-2 w-14 bg-background border rounded-xl shadow-lg flex flex-col items-center py-4 gap-2">
-        <ScrollArea className="flex-1 w-full">
+    // THE FRAME: A fixed width container that holds the sidebar and its associated overlays
+    <div className="relative h-full flex-shrink-0">
+      {/* 1. Visual Sidebar Shape */}
+      <div className="h-full w-full bg-background border rounded-xl shadow-lg flex flex-col items-center py-4 gap-2">
+        <ScrollArea className="flex-1 w-full text-center">
           <div className="flex flex-col items-center gap-2 px-2">
             {navItems.map((item) => {
               const Icon = item.icon;
               const isActive = activeContent === item.id;
 
               return (
-                <Popover
+                <Button
                   key={item.id}
-                  open={
-                    isHovering &&
-                    !isInnerSidebarOpen &&
-                    activeContent === item.id
-                  }
-                  onOpenChange={(open) => setIsHovering(open)}
+                  variant={isActive ? "default" : "ghost"}
+                  size="icon"
+                  className="w-10 h-10 rounded-lg"
+                  onClick={() => setActiveContent(item.id)}
+                  onMouseEnter={() => {
+                    if (!isInnerSidebarOpen) {
+                      setHoveredIcon(item.id);
+                    }
+                  }}
                 >
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant={isActive ? "default" : "ghost"}
-                      size="icon"
-                      className="w-10 h-10 rounded-lg"
-                      onClick={() => setActiveContent(item.id)}
-                      onMouseEnter={() => {
-                        if (!isInnerSidebarOpen && activeContent === item.id) {
-                          setIsHovering(true);
-                        }
-                      }}
-                      onMouseLeave={() => {
-                        // Delay to allow moving to popover
-                        setTimeout(() => setIsHovering(false), 100);
-                      }}
-                    >
-                      <Icon className="h-5 w-5" />
-                      <span className="sr-only">{item.label}</span>
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent
-                    side="right"
-                    align="start"
-                    className="p-0 w-64 ml-2"
-                    onMouseEnter={() => setIsHovering(true)}
-                    onMouseLeave={() => setIsHovering(false)}
-                  >
-                    <ContentSidebar isPopover />
-                  </PopoverContent>
-                </Popover>
+                  <Icon className="h-5 w-5" />
+                  <span className="sr-only">{item.label}</span>
+                </Button>
               );
             })}
           </div>
         </ScrollArea>
       </div>
 
-      {/* Toggle Arrow Button - "Stick Through Hotdog" */}
+      {/* 2. The HOVER SPOT: Aligned perfectly with the top/bottom of the sidebar frame */}
+      {hoveredIcon && !isInnerSidebarOpen && (
+        <div
+          className="absolute top-0 left-[calc(100%+8px)] h-full w-64 z-50 transition-all animate-in fade-in slide-in-from-left-2 duration-200"
+          onMouseEnter={() => setHoveredIcon(hoveredIcon)}
+          onMouseLeave={() => setHoveredIcon(null)}
+        >
+          <div className="h-full w-full bg-background border rounded-xl shadow-lg overflow-hidden">
+            <ContentSidebar isPopover contentPage={hoveredIcon} />
+          </div>
+        </div>
+      )}
+
+      {/* 3. The ARROW BUTTON: "Stick through hotdog" - perfectly centered on the border line */}
       {!isInnerSidebarOpen && (
         <Button
           variant="outline"
           size="icon"
-          className="absolute top-1/2 right-0 -translate-y-1/2 translate-x-1/2 w-6 h-12 rounded-full shadow-md z-50 hover:scale-110 transition-transform"
+          // Using right-[-1px] to put the center exactly on the 1px border line
+          // w-4 is 16px, so translate-x-1/2 puts 8px inside and 8px outside
+          className="absolute top-1/2 right-[1px] -translate-y-1/2 translate-x-1/2 w-5 h-20 rounded-sm shadow-md z-[60] hover:bg-accent transition-colors p-0 bg-background"
           onClick={toggleInnerSidebar}
         >
-          <ChevronRight className="h-4 w-4" />
+          <ChevronRight className="h-2 w-2" />
         </Button>
       )}
     </div>

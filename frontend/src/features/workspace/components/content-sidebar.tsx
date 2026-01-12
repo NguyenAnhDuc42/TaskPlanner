@@ -1,17 +1,20 @@
 "use client";
+
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { ChevronLeft, Home, Folder, FileText } from "lucide-react";
 import { useSidebarContext } from "./sidebar-provider";
 import { cn } from "@/lib/utils";
+import type { ContentPage } from "../type";
 
 interface ContentSidebarProps {
   isPopover?: boolean;
+  contentPage?: ContentPage;
 }
 
 // Mock navigation items - these would be different for each content page
-const getNavigationItems = (contentType: string) => {
+const getNavigationItems = (contentType: ContentPage) => {
   switch (contentType) {
     case "dashboard":
       return [
@@ -31,6 +34,18 @@ const getNavigationItems = (contentType: string) => {
         { id: "teams", icon: Folder, label: "Teams" },
         { id: "roles", icon: FileText, label: "Roles" },
       ];
+    case "calendar":
+      return [
+        { id: "month", icon: Home, label: "Month View" },
+        { id: "week", icon: Folder, label: "Week View" },
+        { id: "day", icon: FileText, label: "Day View" },
+      ];
+    case "settings":
+      return [
+        { id: "general", icon: Home, label: "General" },
+        { id: "account", icon: Folder, label: "Account" },
+        { id: "privacy", icon: FileText, label: "Privacy" },
+      ];
     default:
       return [
         { id: "item-1", icon: Home, label: "Item 1" },
@@ -39,23 +54,27 @@ const getNavigationItems = (contentType: string) => {
   }
 };
 
-export function ContentSidebar({ isPopover = false }: ContentSidebarProps) {
+export function ContentSidebar({
+  isPopover = false,
+  contentPage,
+}: ContentSidebarProps) {
   const { activeContent, toggleInnerSidebar } = useSidebarContext();
-  const navItems = getNavigationItems(activeContent);
+  const displayContent = contentPage || activeContent;
+  const navItems = getNavigationItems(displayContent);
 
   return (
     <div
       className={cn(
         "h-full flex flex-col bg-background",
         !isPopover && "border-r",
-        isPopover && "rounded-lg"
+        isPopover && "rounded-xl border shadow-lg"
       )}
     >
       {/* Header with close button (only shown when not in popover) */}
       {!isPopover && (
         <>
           <div className="flex items-center justify-between p-4">
-            <h2 className="font-semibold capitalize">{activeContent}</h2>
+            <h2 className="font-semibold capitalize">{displayContent}</h2>
             <Button
               variant="ghost"
               size="icon"
@@ -73,7 +92,7 @@ export function ContentSidebar({ isPopover = false }: ContentSidebarProps) {
         <div className="p-3 space-y-1">
           {isPopover && (
             <div className="px-2 py-1.5 text-sm font-semibold capitalize mb-2">
-              {activeContent}
+              {displayContent}
             </div>
           )}
           {navItems.map((item) => {
@@ -84,7 +103,6 @@ export function ContentSidebar({ isPopover = false }: ContentSidebarProps) {
                 variant="ghost"
                 className="w-full justify-start gap-3"
                 onClick={() => {
-                  // Navigate to the content - popover stays open (doesn't close inner sidebar)
                   console.log("Navigate to:", item.id);
                 }}
               >

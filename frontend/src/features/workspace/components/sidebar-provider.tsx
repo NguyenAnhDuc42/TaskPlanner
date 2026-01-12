@@ -25,8 +25,10 @@ export function SidebarProvider({
   defaultOpen = true,
 }: SidebarProviderProps) {
   const [isInnerSidebarOpen, setIsInnerSidebarOpen] = useState(defaultOpen);
-  const [activeContent, setActiveContent] = useState<ContentPage>(defaultContent);
+  const [activeContent, setActiveContent] =
+    useState<ContentPage>(defaultContent);
   const [isHovering, setIsHovering] = useState(false);
+  const [hoveredIcon, setHoveredIcon] = useState<ContentPage | null>(null);
 
   const toggleInnerSidebar = () => {
     setIsInnerSidebarOpen((prev) => !prev);
@@ -42,6 +44,8 @@ export function SidebarProvider({
         setActiveContent,
         isHovering,
         setIsHovering,
+        hoveredIcon,
+        setHoveredIcon,
       }}
     >
       {children}

@@ -13,4 +13,6 @@ export interface SidebarContextType {
   setActiveContent: (content: ContentPage) => void;
   isHovering: boolean;
   setIsHovering: (hovering: boolean) => void;
+  hoveredIcon: ContentPage | null;
+  setHoveredIcon: (icon: ContentPage | null) => void;
 }

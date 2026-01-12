@@ -17,7 +17,7 @@ export function ContentDisplayer() {
         )}
       >
         <div className="w-64 h-full">
-          <ContentSidebar />
+          <ContentSidebar contentPage={activeContent} />
         </div>
       </div>
 
