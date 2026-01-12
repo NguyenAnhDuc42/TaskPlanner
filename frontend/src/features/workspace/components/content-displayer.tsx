@@ -1,52 +1,89 @@
-"use client";
-
+import { Suspense } from "react";
 import { useSidebarContext } from "./sidebar-provider";
-import { ContentSidebar } from "./content-sidebar";
+import { type ContentPage, getNavigationItems } from "../type";
 import { cn } from "@/lib/utils";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Button } from "@/components/ui/button";
+import { ChevronLeft } from "lucide-react";
+import { Separator } from "@/components/ui/separator";
+
+import { Outlet, useLocation } from "@tanstack/react-router";
 
 export function ContentDisplayer() {
-  const { activeContent, isInnerSidebarOpen } = useSidebarContext();
+  const location = useLocation();
+  const { isInnerSidebarOpen, toggleInnerSidebar, sidebarContent } =
+    useSidebarContext();
+
+  // Determine active feature from path segments
+  const segments = location.pathname.split("/");
+  const activeContent = (segments[segments.length - 1] ||
+    "dashboard") as ContentPage;
+
+  const navItems = getNavigationItems(activeContent);
 
   return (
     <div className="flex-1 flex overflow-hidden bg-background border rounded-xl shadow-lg">
-      {/* Inner Sidebar - Collapsible */}
+      {/* SIDEBAR FRAME: Directly managed here in the displayer */}
       <div
         className={cn(
-          "transition-all duration-300 ease-in-out overflow-hidden",
+          "transition-all duration-300 ease-in-out overflow-hidden border-r flex flex-col bg-background",
           isInnerSidebarOpen ? "w-64" : "w-0"
         )}
       >
-        <div className="w-64 h-full">
-          <ContentSidebar contentPage={activeContent} />
+        <div className="w-64 h-full flex flex-col">
+          {/* Header */}
+          <div className="flex items-center justify-between p-4 flex-shrink-0">
+            <h2 className="font-semibold capitalize text-lg">
+              {activeContent}
+            </h2>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8"
+              onClick={toggleInnerSidebar}
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+          </div>
+          <Separator />
+
+          {/* Scrollable list of links */}
+          <ScrollArea className="flex-1 px-3 py-4">
+            {sidebarContent ? (
+              sidebarContent
+            ) : (
+              <div className="space-y-1">
+                {navItems.map((item) => {
+                  const Icon = item.icon;
+                  return (
+                    <Button
+                      key={item.id}
+                      variant="ghost"
+                      className="w-full justify-start gap-3 px-3 py-2 h-10 transition-colors hover:bg-accent/50"
+                    >
+                      <Icon className="h-4 w-4" />
+                      <span className="text-sm font-medium">{item.label}</span>
+                    </Button>
+                  );
+                })}
+              </div>
+            )}
+          </ScrollArea>
         </div>
       </div>
 
-      {/* Main Content Area */}
+      {/* CONTENT FRAME */}
       <div className="flex-1 overflow-auto bg-muted/30">
-        <div className="container mx-auto p-6">
-          <div className="space-y-4">
-            <div>
-              <h1 className="text-3xl font-bold capitalize">{activeContent}</h1>
-              <p className="text-muted-foreground">
-                Content for {activeContent} page goes here
-              </p>
-            </div>
-
-            {/* Placeholder content - replace with actual content components */}
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {[1, 2, 3, 4, 5, 6].map((i) => (
-                <div
-                  key={i}
-                  className="rounded-lg border bg-card p-6 shadow-sm"
-                >
-                  <h3 className="font-semibold">Card {i}</h3>
-                  <p className="text-sm text-muted-foreground mt-2">
-                    This is placeholder content for the {activeContent} section.
-                  </p>
-                </div>
-              ))}
-            </div>
-          </div>
+        <div className="container mx-auto p-6 max-w-5xl">
+          <Suspense
+            fallback={
+              <div className="p-8 text-center text-muted-foreground">
+                Loading...
+              </div>
+            }
+          >
+            <Outlet />
+          </Suspense>
         </div>
       </div>
     </div>
