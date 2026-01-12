@@ -18,8 +18,6 @@ export interface SidebarContextType {
   setHoveredIcon: (icon: ContentPage | null) => void;
   workspaceId: string | null;
   setWorkspaceId: (id: string | null) => void;
-  sidebarContent: React.ReactNode | null;
-  setSidebarContent: (content: React.ReactNode | null) => void;
 }
 
 export interface NavItem {

@@ -1,25 +1,24 @@
 import { Suspense } from "react";
 import { useSidebarContext } from "./sidebar-provider";
-import { type ContentPage, getNavigationItems } from "../type";
+import { type ContentPage } from "../type";
 import { cn } from "@/lib/utils";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 
+import { SidebarRegistry } from "./sidebar-registry";
+
 import { Outlet, useLocation } from "@tanstack/react-router";
 
 export function ContentDisplayer() {
   const location = useLocation();
-  const { isInnerSidebarOpen, toggleInnerSidebar, sidebarContent } =
-    useSidebarContext();
+  const { isInnerSidebarOpen, toggleInnerSidebar } = useSidebarContext();
 
   // Determine active feature from path segments
   const segments = location.pathname.split("/");
   const activeContent = (segments[segments.length - 1] ||
     "dashboard") as ContentPage;
-
-  const navItems = getNavigationItems(activeContent);
 
   return (
     <div className="flex-1 flex overflow-hidden bg-background border rounded-xl shadow-lg">
@@ -47,27 +46,9 @@ export function ContentDisplayer() {
           </div>
           <Separator />
 
-          {/* Scrollable list of links */}
+          {/* Scrollable List from Registry */}
           <ScrollArea className="flex-1 px-3 py-4">
-            {sidebarContent ? (
-              sidebarContent
-            ) : (
-              <div className="space-y-1">
-                {navItems.map((item) => {
-                  const Icon = item.icon;
-                  return (
-                    <Button
-                      key={item.id}
-                      variant="ghost"
-                      className="w-full justify-start gap-3 px-3 py-2 h-10 transition-colors hover:bg-accent/50"
-                    >
-                      <Icon className="h-4 w-4" />
-                      <span className="text-sm font-medium">{item.label}</span>
-                    </Button>
-                  );
-                })}
-              </div>
-            )}
+            <SidebarRegistry page={activeContent} />
           </ScrollArea>
         </div>
       </div>

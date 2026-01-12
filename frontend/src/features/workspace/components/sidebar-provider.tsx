@@ -34,9 +34,6 @@ export function SidebarProvider({
   const [workspaceId, setWorkspaceId] = useState<string | null>(
     initialWorkspaceId || "default-workspace"
   );
-  const [sidebarContent, setSidebarContent] = useState<React.ReactNode | null>(
-    null
-  );
 
   const toggleInnerSidebar = () => {
     setIsInnerSidebarOpen((prev) => !prev);
@@ -56,8 +53,6 @@ export function SidebarProvider({
         setHoveredIcon,
         workspaceId,
         setWorkspaceId,
-        sidebarContent,
-        setSidebarContent,
       }}
     >
       {children}

@@ -12,7 +12,8 @@ import {
 } from "lucide-react";
 import { useNavigate } from "@tanstack/react-router";
 import { useSidebarContext } from "./sidebar-provider";
-import { type ContentPage, getNavigationItems } from "../type";
+import { type ContentPage } from "../type";
+import { SidebarRegistry } from "./sidebar-registry";
 import { Separator } from "@/components/ui/separator";
 
 interface NavItem {
@@ -97,23 +98,9 @@ export function OuterSidebar() {
             </div>
             <Separator />
 
-            {/* Scrollable List */}
+            {/* Scrollable List from Registry */}
             <ScrollArea className="flex-1 px-3 py-4">
-              <div className="space-y-1">
-                {getNavigationItems(hoveredIcon).map((item) => {
-                  const Icon = item.icon;
-                  return (
-                    <Button
-                      key={item.id}
-                      variant="ghost"
-                      className="w-full justify-start gap-3 px-3 py-2 h-10 transition-colors hover:bg-accent/50"
-                    >
-                      <Icon className="h-4 w-4" />
-                      <span className="text-sm font-medium">{item.label}</span>
-                    </Button>
-                  );
-                })}
-              </div>
+              <SidebarRegistry page={hoveredIcon} />
             </ScrollArea>
 
             <Separator />
