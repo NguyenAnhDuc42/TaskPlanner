@@ -16,9 +16,10 @@ export function ContentDisplayer() {
   const { isInnerSidebarOpen, toggleInnerSidebar } = useSidebarContext();
 
   // Determine active feature from path segments
+  // Path format: /workspace/$id/$feature/...
+  // Segments: ["", "workspace", "123", "members"]
   const segments = location.pathname.split("/");
-  const activeContent = (segments[segments.length - 1] ||
-    "dashboard") as ContentPage;
+  const activeContent = (segments[3] || "dashboard") as ContentPage;
 
   return (
     <div className="flex-1 flex overflow-hidden bg-background border rounded-xl shadow-lg">

@@ -1,6 +1,7 @@
 import { type ContentPage, getNavigationItems } from "../type";
 import { Button } from "@/components/ui/button";
 import { MembersSidebar } from "../contents/members/member-components/members-sidebar";
+import { SettingsSidebar } from "../contents/setting/setting-components/settings-sidebar";
 
 // FEATURE SIDEBARS
 
@@ -26,12 +27,13 @@ const DefaultSidebar = ({ page }: { page: ContentPage }) => {
 };
 
 // THE REGISTRY
-export function SidebarRegistry({ page }: { page: ContentPage }) {
+export function SidebarRegistry({ page }: { page: ContentPage}) {
   switch (page) {
     case "members":
       return <MembersSidebar />;
-    // Add more feature sidebars here
+    case "settings":
+      return <SettingsSidebar />;
     default:
-      return <DefaultSidebar page={page} />;
+      return <DefaultSidebar page={page as ContentPage} />;
   }
 }
