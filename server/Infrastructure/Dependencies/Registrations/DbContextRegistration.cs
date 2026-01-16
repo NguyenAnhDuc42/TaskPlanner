@@ -1,4 +1,5 @@
 using System;
+using System.Data;
 using Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -11,14 +12,20 @@ public static class DbContextRegistration
         this IServiceCollection services,
         string connectionString)
     {
-        // If Aspire already registered the DbContext, we don't want to overwrite it
-        if (services.Any(x => x.ServiceType == typeof(TaskPlanDbContext)))
+        if (!services.Any(d =>
+         d.ServiceType == typeof(DbContextOptions<TaskPlanDbContext>) ||
+         d.ServiceType == typeof(TaskPlanDbContext)))
         {
-            return services;
+            services.AddDbContext<TaskPlanDbContext>(options =>
+                options.UseNpgsql(connectionString));
         }
 
-        services.AddDbContext<TaskPlanDbContext>(options =>
-            options.UseNpgsql(connectionString));
+        // 2. Always register IDbConnection (safe for both cases)
+        services.AddScoped<IDbConnection>(sp =>
+        {
+            var db = sp.GetRequiredService<TaskPlanDbContext>();
+            return db.Database.GetDbConnection();
+        });
 
         return services;
     }

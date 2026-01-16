@@ -19,12 +19,21 @@ public static class WorkspaceCursorPaginationExtensions
     public static IQueryable<ProjectWorkspace> ApplyCursor(this IQueryable<ProjectWorkspace> query, CursorPaginationRequest pagination, CursorHelper cursorHelper)
     {
         if (string.IsNullOrEmpty(pagination.Cursor)) return query;
+
         var cursorData = cursorHelper.DecodeCursor(pagination.Cursor);
-        if (cursorData?.Values == null || !cursorData.Values.ContainsKey("Timestamp")) return query;
-        if (!DateTimeOffset.TryParse(cursorData.Values["Timestamp"].ToString(), out var timestampOffset)) return query;
+
+        if (cursorData?.Values == null) return query;
+
+        if (!DateTimeOffset.TryParse(cursorData.Values["Timestamp"]?.ToString(), out var timestampOffset)) return query;
+        if (!Guid.TryParse(cursorData.Values["Id"]?.ToString(), out var id)) return query;
+
         return pagination.Direction == SortDirection.Ascending
-        ? query.Where(w => w.UpdatedAt > timestampOffset)
-        : query.Where(w => w.UpdatedAt < timestampOffset);
+        ? query.Where(w =>
+            w.UpdatedAt > timestampOffset ||
+            (w.UpdatedAt == timestampOffset && w.Id.CompareTo(id) > 0))
+        : query.Where(w =>
+            w.UpdatedAt < timestampOffset ||
+            (w.UpdatedAt == timestampOffset && w.Id.CompareTo(id) < 0));
     }
     public static IQueryable<ProjectWorkspace> ApplySort(this IQueryable<ProjectWorkspace> query, CursorPaginationRequest pagination)
     {

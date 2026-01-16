@@ -44,5 +44,6 @@ export interface WorkspaceSummary {
   variant: WorkspaceVariant;
   role: Role;
   memberCount: number;
+  isArchived: boolean;
   isPinned: boolean;
 }

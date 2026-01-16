@@ -17,5 +17,6 @@ public record class WorkspaceSummaryDto
     public Role Role { get; init; }
 
     public int MemberCount { get; init; }
+    public bool IsArchived { get; init; }
     public bool IsPinned { get; init; }
 }
