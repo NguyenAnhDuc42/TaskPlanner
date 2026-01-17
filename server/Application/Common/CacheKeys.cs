@@ -1,3 +1,6 @@
+using Application.Features.WorkspaceFeatures.GetWorkspaceList;
+using System.Text;
+
 namespace Application.Common;
 
 /// <summary>
@@ -13,6 +16,8 @@ public static class CacheKeys
 
     // User
     public static string UserWorkspaces(Guid userId) => $"user:{userId}:workspaces";
+
+    
 
     // Lists
     public static string ListTasks(Guid listId) => $"list:{listId}:tasks";

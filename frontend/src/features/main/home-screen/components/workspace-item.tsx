@@ -122,7 +122,7 @@ export function WorkspaceItem({ workspaceSummary, onOpen, onPin }: Props) {
             </div>
           )}
           <div className="px-4 py-3 flex gap-2">
-            <Link to={"/workspace/" + workspaceSummary.id} >
+            <Link to={"/workspaces/" + workspaceSummary.id} >
             <Button
               size="sm"
               className="h-8 px-3 text-xs font-mono bg-primary hover:bg-primary/90 text-primary-foreground border-0"

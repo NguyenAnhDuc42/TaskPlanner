@@ -6,6 +6,7 @@ using System.Text.Json.Serialization;
 
 
 
+
 namespace Application.Helper;
 
 public class CursorEncryptionOptions
@@ -103,11 +104,13 @@ public class CursorHelper
     {
         using var aes = Aes.Create();
         aes.Key = key;
-        aes.GenerateIV();
+        
+        // Use a fixed IV for deterministic encryption (same data = same cursor)
+        aes.IV = new byte[aes.BlockSize / 8]; 
 
         using var encryptor = aes.CreateEncryptor(aes.Key, aes.IV);
         using var ms = new MemoryStream();
-        ms.Write(aes.IV, 0, aes.IV.Length); // prepend IV
+        ms.Write(aes.IV, 0, aes.IV.Length); // prepend IV (still good practice)
 
         using (var cs = new CryptoStream(ms, encryptor, CryptoStreamMode.Write))
         using (var sw = new StreamWriter(cs))

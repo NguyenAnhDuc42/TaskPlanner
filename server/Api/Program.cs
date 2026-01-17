@@ -5,7 +5,6 @@ using Background.Dependencies;
 using Domain;
 using Infrastructure;
 using Infrastructure.Hubs;
-using Microsoft.OpenApi;
 using Scalar.AspNetCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -57,29 +56,14 @@ if (app.Environment.IsDevelopment())
     app.MapScalarApiReference(options =>
     {
         options.WithTitle("TaskPlanner API")
-               .WithTheme(Scalar.AspNetCore.ScalarTheme.Mars);
+               .WithTheme(ScalarTheme.BluePlanet);
     });
 }
 
-app.Use(async (context, next) =>
-{
-    var workspaceIdHeader = context.Request.Headers["X-Workspace-Id"].FirstOrDefault();
 
-    if (string.IsNullOrEmpty(workspaceIdHeader))
-    {
-        workspaceIdHeader = context.Request.Query["workspaceId"].ToString();
-    }
-
-    if (Guid.TryParse(workspaceIdHeader, out var workspaceId))
-    {
-        var wsContext = context.RequestServices.GetRequiredService<WorkspaceContext>();
-        wsContext.WorkspaceId = workspaceId;
-    }
-
-    await next();
-});
 
 app.UseMiddleware<ExceptionHandlingMiddleware>();
+app.UseMiddleware<WorkspaceContextMiddleware>();
 
 // --- Middleware ---
 if (app.Environment.IsDevelopment())

@@ -31,6 +31,7 @@ public class PermissionDataFetcher
             cacheKey,
             async cancel =>
             {
+                Console.WriteLine($"[HybridCache] MISS: Fetching workspace role for user {userId} and workspace {workspaceId}");
                 var result = await _dbContext.WorkspaceMembers
                     .AsNoTracking()
                     .Where(wm => wm.ProjectWorkspaceId == workspaceId && wm.UserId == userId)
@@ -49,6 +50,7 @@ public class PermissionDataFetcher
             cacheKey,
             async cancel =>
             {
+                Console.WriteLine($"[HybridCache] MISS: Fetching entity access level for user {userId} and entity {entityId} ({entityType})");
                 var result = await _dbContext.EntityMembers
                     .AsNoTracking()
                     .Where(em => em.LayerId == entityId && em.UserId == userId && em.LayerType.ToString() == entityType.ToString())
@@ -67,6 +69,7 @@ public class PermissionDataFetcher
             cacheKey,
             async cancel =>
             {
+                Console.WriteLine($"[HybridCache] MISS: Fetching chat room role for user {userId} and chat room {chatRoomId}");
                 var result = await _dbContext.ChatRoomMembers
                     .AsNoTracking()
                     .Where(crm => crm.ChatRoomId == chatRoomId && crm.UserId == userId)

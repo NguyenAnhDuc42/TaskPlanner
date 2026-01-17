@@ -7,6 +7,7 @@ using MediatR;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Application.Helper;
+using Application.Helpers;
 namespace Application.Dependencies;
 
 public static class DependencyInjection
@@ -27,6 +28,8 @@ public static class DependencyInjection
         services.Configure<CursorEncryptionOptions>(config.GetSection(CursorEncryptionOptions.SectionName));
         services.AddSingleton<CursorHelper>();
 
+        // Workspace Context
+        services.AddScoped<WorkspaceContext>();
 
         return services;
     }

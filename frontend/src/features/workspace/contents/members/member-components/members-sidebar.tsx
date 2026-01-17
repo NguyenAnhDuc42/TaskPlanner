@@ -3,7 +3,7 @@ import { Link, useParams } from "@tanstack/react-router";
 import { MessageCircle, User } from "lucide-react";
 
 export function MembersSidebar() {
-  const { workspaceId } = useParams({ from: "/workspace/$workspaceId" });
+  const { workspaceId } = useParams({ from: "/workspaces/$workspaceId" });
 
   const settingsItems = [
     { id: "members", icon: User, label: "Members" },

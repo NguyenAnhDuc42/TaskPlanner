@@ -3,7 +3,7 @@ import { SidebarProvider } from "@/features/workspace/components/sidebar-provide
 import { OuterSidebar } from "@/features/workspace/components/outer-sidebar";
 import { ContentDisplayer } from "@/features/workspace/components/content-displayer";
 
-export const Route = createFileRoute("/workspace/$workspaceId")({
+export const Route = createFileRoute("/workspaces/$workspaceId")({
   component: WorkspaceLayout,
 });
 

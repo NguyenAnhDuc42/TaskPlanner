@@ -49,7 +49,7 @@ export function OuterSidebar() {
   const handleNavClick = (id: ContentPage) => {
     setActiveContent(id);
     navigate({
-      to: id === "dashboard" ? "/workspace/$workspaceId" : `/workspace/$workspaceId/${id}`,
+      to: id === "dashboard" ? "/workspaces/$workspaceId" : `/workspaces/$workspaceId/${id}`,
       params: { workspaceId: workspaceId || "default" },
     });
   };
