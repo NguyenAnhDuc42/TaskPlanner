@@ -10,6 +10,7 @@ using MediatR;
 using Microsoft.EntityFrameworkCore;
 using server.Application.Interfaces;
 using System.Data;
+using System.Text.Json;
 
 
 namespace Application.Features.WorkspaceFeatures.GetWorkspaceList;
@@ -82,24 +83,28 @@ public class GetWorkspaceListHandler : IRequestHandler<GetWorksapceListQuery, Pa
         ts = null;
         id = null;
 
-
-        if (string.IsNullOrEmpty(cursor))
-            return;
-
+                 Console.WriteLine($"DEBUG: Raw cursor = {cursor}");
+        if (string.IsNullOrEmpty(cursor)) return;
 
         var data = _cursorHelper.DecodeCursor(cursor);
+        Console.WriteLine($"DEBUG: Decoded data = {JsonSerializer.Serialize(data)}"); 
+
+        if (data?.Values == null)  return;
 
 
-        if (data?.Values == null)
-            return;
-
-
-        if (DateTimeOffset.TryParse(data.Values["Timestamp"]?.ToString(), out var parsedTs))
-            ts = parsedTs;
-
-
-        if (Guid.TryParse(data.Values["Id"]?.ToString(), out var parsedId))
-            id = parsedId;
+        if (data.Values.TryGetValue("Timestamp", out var tsObj))
+        {
+            var tsStr = tsObj is JsonElement tsElement ? tsElement.GetString() : tsObj?.ToString();
+            if (DateTimeOffset.TryParse(tsStr, out var parsedTs))
+                ts = parsedTs;
+        }
+        if (data.Values.TryGetValue("Id", out var idObj))
+        {
+            var idStr = idObj is JsonElement idElement ? idElement.GetString() : idObj?.ToString();
+            if (Guid.TryParse(idStr, out var parsedId))
+                id = parsedId;
+        }
+        Console.WriteLine($"DEBUG: Decoded ts = {ts}, id = {id}"); // ← Add
     }
 
 
@@ -109,6 +114,8 @@ public class GetWorkspaceListHandler : IRequestHandler<GetWorksapceListQuery, Pa
         {
             Id = x.Id,
             Name = x.Name,
+            Icon = x.Icon,
+            Color = x.Color,
             Description = x.Description,
             Variant = x.Variant,
             Role = x.Role,
@@ -119,13 +126,22 @@ public class GetWorkspaceListHandler : IRequestHandler<GetWorksapceListQuery, Pa
 
     private string EncodeNextCursor(WorkspaceRow last)
     {
-        return _cursorHelper.EncodeCursor(new CursorData(new Dictionary<string, object>
+        Console.WriteLine($"DEBUG ENCODE: Timestamp = {last.UpdatedAt}, Id = {last.Id}");
+        
+        var cursorData = new CursorData(new Dictionary<string, object>
         {
-        { "Timestamp", last.UpdatedAt },
-        { "Id", last.Id }
-        }));
+            { "Timestamp", last.UpdatedAt },
+            { "Id", last.Id }
+        });
+        
+        Console.WriteLine($"DEBUG ENCODE: Before encryption = {JsonSerializer.Serialize(cursorData.Values)}");
+        
+        var encoded = _cursorHelper.EncodeCursor(cursorData);
+        
+        Console.WriteLine($"DEBUG ENCODE: After encryption = {encoded}");
+        
+        return encoded;
     }
-
 
     //public async Task<PagedResult<WorkspaceSummaryDto>> Handle(GetWorksapceListQuery request, CancellationToken cancellationToken)
     //{

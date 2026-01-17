@@ -25,6 +25,13 @@ public class CurrentUserService : ICurrentUserService
         return user!;
     }
 
+    public async Task<User> CurrentUserAsync(CancellationToken cancellationToken = default)
+    {
+        var user = await _dbContext.Users.FindAsync(new object[] { CurrentUserId() }, cancellationToken);
+        if (user == null) throw new UnauthorizedAccessException("Unauthorized");
+        return user!;
+    }
+
     public Guid CurrentUserId()
     {
         var userIdClaim = _httpContextAccessor.HttpContext?.User.FindFirst(ClaimTypes.NameIdentifier);

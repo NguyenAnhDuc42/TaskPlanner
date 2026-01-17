@@ -1,5 +1,6 @@
 using System;
 using System.Data;
+using Dapper;
 using Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -12,6 +13,9 @@ public static class DbContextRegistration
         this IServiceCollection services,
         string connectionString)
     {
+        // Enable Dapper to match snake_case database columns to PascalCase C# properties
+        DefaultTypeMap.MatchNamesWithUnderscores = true;
+
         if (!services.Any(d =>
          d.ServiceType == typeof(DbContextOptions<TaskPlanDbContext>) ||
          d.ServiceType == typeof(TaskPlanDbContext)))
@@ -21,11 +25,9 @@ public static class DbContextRegistration
         }
 
         // 2. Always register IDbConnection (safe for both cases)
-        services.AddScoped<IDbConnection>(sp =>
-        {
-            var db = sp.GetRequiredService<TaskPlanDbContext>();
-            return db.Database.GetDbConnection();
-        });
+        // Using a separate connection instance for Dapper to avoid ObjectDisposedException
+        // when sharing the connection with DbContext.
+        services.AddScoped<IDbConnection>(_ => new Npgsql.NpgsqlConnection(connectionString));
 
         return services;
     }

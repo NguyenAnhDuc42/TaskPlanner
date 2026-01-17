@@ -6,5 +6,6 @@ namespace server.Application.Interfaces
     {
         Guid CurrentUserId();
         User CurrentUser();
+        Task<User> CurrentUserAsync(CancellationToken cancellationToken = default);
     }
 }

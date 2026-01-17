@@ -15,7 +15,7 @@ public class GetCurrentUserHandler : IRequestHandler<GetCurrentUserQuery, UserDt
 
     public async Task<UserDto> Handle(GetCurrentUserQuery request, CancellationToken cancellationToken)
     {
-        var user = _currentUserService.CurrentUser();
+        var user = await _currentUserService.CurrentUserAsync(cancellationToken);
         
         return new UserDto(
             Id: user.Id,

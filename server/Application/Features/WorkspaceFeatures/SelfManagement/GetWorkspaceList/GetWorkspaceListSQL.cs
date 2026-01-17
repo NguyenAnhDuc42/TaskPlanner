@@ -9,7 +9,7 @@ namespace Application.Features.WorkspaceFeatures.SelfManagement.GetWorkspaceList
 public class WorkspaceRow
 {
     public Guid Id { get; init; }
-    public DateTime UpdatedAt { get; init; }
+    public DateTimeOffset UpdatedAt { get; init; }
 
     // API fields
     public string Name { get; init; } = null!;
@@ -26,9 +26,10 @@ public static class GetWorkspaceListSQL
     public const string Asc = @"
     SELECT 
         w.id,
+        w.updated_at AS UpdatedAt,
         w.name,
-        w.custom_icon,
-        w.custom_color,
+        w.custom_icon AS Icon,
+        w.custom_color AS Color,
         w.description,
         w.variant,
         w.is_archived,
@@ -54,7 +55,7 @@ public static class GetWorkspaceListSQL
                 )
         )
     GROUP BY
-        w.id, wm.role
+        w.id, wm.role, w.updated_at
     ORDER BY
         w.updated_at ASC, w.id ASC
     LIMIT @PageSizePLusOne;
@@ -63,9 +64,10 @@ public static class GetWorkspaceListSQL
     public const string Desc = @"
     SELECT 
         w.id,
+        w.updated_at AS UpdatedAt,
         w.name,
-        w.custom_icon,
-        w.custom_color,
+        w.custom_icon AS Icon,
+        w.custom_color AS Color,
         w.description,
         w.variant,
         wm.role,
@@ -85,12 +87,12 @@ public static class GetWorkspaceListSQL
         (
             @cursorTimestamp IS NULL OR
                 (
-                    w.updated_at > @cursorTimestamp OR 
-                    (w.updated_at = @cursorTimestamp AND w.id > @cursorId)
+                    w.updated_at < @cursorTimestamp OR 
+                    (w.updated_at = @cursorTimestamp AND w.id < @cursorId)
                 )
         )
     GROUP BY
-        w.id, wm.role
+        w.id, wm.role, w.updated_at
     ORDER BY
         w.updated_at DESC, w.id DESC
     LIMIT @PageSizePLusOne;
