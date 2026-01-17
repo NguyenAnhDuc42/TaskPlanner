@@ -1,10 +1,14 @@
+
+
+using Application.Common.Filters;
+using Application.Common.Interfaces;
+using Application.Common.Results;
 using Application.Contract.UserContract;
 using Domain.Enums;
-using MediatR;
 
 namespace Application.Features.WorkspaceFeatures.MemberManage.GetMembers;
 
-public record class GetMembersQuery(Guid WorkspaceId) : IRequest<List<MemberDto>>;
+public record class GetMembersQuery(CursorPaginationRequest pagination,GetMembersFilter filter) : IQuery<PagedResult<MemberDto>>;
 
 public record class GetMembersFilter(
     Guid WorkspaceId,
@@ -13,4 +17,4 @@ public record class GetMembersFilter(
     Guid? SpaceId,
     Guid? TaskId,
     Role? Role
-) : IRequest<List<MemberDto>>;
+);

@@ -4,6 +4,7 @@ export type ContentPage =
   | "tasks"
   | "calendar"
   | "members"
+  | "communications"
   | "settings";
 
 export interface SidebarContextType {

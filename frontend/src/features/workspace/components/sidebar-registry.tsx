@@ -27,9 +27,10 @@ const DefaultSidebar = ({ page }: { page: ContentPage }) => {
 };
 
 // THE REGISTRY
-export function SidebarRegistry({ page }: { page: ContentPage}) {
+export function SidebarRegistry({ page }: { page: ContentPage }) {
   switch (page) {
     case "members":
+    case "communications":
       return <MembersSidebar />;
     case "settings":
       return <SettingsSidebar />;

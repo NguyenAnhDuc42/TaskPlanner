@@ -3,16 +3,16 @@ import { SidebarProvider } from "@/features/workspace/components/sidebar-provide
 import { OuterSidebar } from "@/features/workspace/components/outer-sidebar";
 import { ContentDisplayer } from "@/features/workspace/components/content-displayer";
 
-export const Route = createFileRoute("/workspace/$id")({
+export const Route = createFileRoute("/workspace/$workspaceId")({
   component: WorkspaceLayout,
 });
 
 function WorkspaceLayout() {
-  const { id } = Route.useParams();
+  const { workspaceId } = Route.useParams();
 
   return (
-    <SidebarProvider initialWorkspaceId={id}>
-      <div className="flex h-screen w-full overflow-hidden bg-background p-2 gap-4">
+    <SidebarProvider initialWorkspaceId={workspaceId}>
+      <div className="flex h-screen w-full overflow-hidden bg-background p-4 gap-4">
         {/* Outer Sidebar - Persistent Visual Frame */}
         <OuterSidebar />
 
