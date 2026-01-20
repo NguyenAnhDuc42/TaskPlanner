@@ -4,46 +4,36 @@ using Application.Common.Filters;
 using Application.Common.Results;
 using Application.Contract.UserContract;
 using Application.Helper;
-using Application.Helpers;
-using Application.Interfaces.Repositories;
-using Application.Interfaces.Services.Permissions;
 using Dapper;
 using MediatR;
 using Microsoft.Extensions.Caching.Hybrid;
-using server.Application.Interfaces;
 
 namespace Application.Features.WorkspaceFeatures.MemberManage.GetMembers;
 
 public class GetMembersHandler : IRequestHandler<GetMembersQuery, PagedResult<MemberDto>>
 {
     private readonly IDbConnection _connection;
-    private readonly IUnitOfWork _unitOfWork;
-    private readonly IPermissionService _permissionService;
-    private readonly ICurrentUserService _currentUserService;
-    private readonly WorkspaceContext _workspaceContext;
     private readonly CursorHelper _cursorHelper;
     private readonly HybridCache _cache;
 
-    public GetMembersHandler(IDbConnection connection, IUnitOfWork unitOfWork, IPermissionService permissionService, ICurrentUserService currentUserService, WorkspaceContext workspaceContext, CursorHelper cursorHelper, HybridCache cache)
+    public GetMembersHandler(IDbConnection connection, CursorHelper cursorHelper, HybridCache cache)
     {
         _connection = connection;
-        _unitOfWork = unitOfWork;
-        _permissionService = permissionService;
-        _currentUserService = currentUserService;
-        _workspaceContext = workspaceContext;
         _cursorHelper = cursorHelper;
         _cache = cache;
     }
 
     public async Task<PagedResult<MemberDto>> Handle(GetMembersQuery request, CancellationToken cancellationToken)
     {
-        var workspaceId = _workspaceContext.workspaceId;
+        var workspaceId = request.WorkspaceId;
         var cacheKey = WorkspaceCacheKeys.MemberList(workspaceId, request);
+        Console.WriteLine($"[HybridCache] DEBUG: CacheKey = {cacheKey}");
 
         return await _cache.GetOrCreateAsync(cacheKey, async token =>
             {
+                Console.WriteLine($"[HybridCache] MISS: Fetching member list from DB for workspace {workspaceId}");
                 var pageSize = request.pagination.PageSize;
-                DecodeCursor(request.pagination.Cursor, out var cursorTimestampm, out var cursorId);
+                DecodeCursor(request.pagination.Cursor, out var cursorTimestamp, out var cursorId);
 
                 var sql = request.pagination.Direction == SortDirection.Ascending
                     ? GetMembersSQL.Asc
@@ -55,7 +45,7 @@ public class GetMembersHandler : IRequestHandler<GetMembersQuery, PagedResult<Me
                     name = request.filter.Name,
                     email = request.filter.Email,
                     role = request.filter.Role?.ToString(),
-                    cursorTimestampm,
+                    cursorTimestamp,
                     cursorId,
                     pageSizePLusOne = pageSize + 1
                 }, commandType: CommandType.Text)).AsList();
@@ -105,7 +95,10 @@ public class GetMembersHandler : IRequestHandler<GetMembersQuery, PagedResult<Me
             Id = x.Id,
             Name = x.Name,
             Email = x.Email,
-            Role = x.Role
+            AvatarUrl = x.AvatarUrl,
+            Role = x.Role,
+            CreatedAt = x.CreatedAt,
+            JoinedAt = x.JoinedAt
         }).ToList();
     }
 
@@ -114,7 +107,7 @@ public class GetMembersHandler : IRequestHandler<GetMembersQuery, PagedResult<Me
     {
         var cursorData = new CursorData(new Dictionary<string, object>
         {
-            { "Timestamp", last.UpdatedAt },
+            { "Timestamp", last.CreatedAt },
             { "Id", last.Id }
         });
         var encoded = _cursorHelper.EncodeCursor(cursorData);

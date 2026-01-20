@@ -1,42 +1,45 @@
 "use client";
 
-import { useSidebarContext } from "../../components/sidebar-provider";
-import { Button } from "@/components/ui/button";
+import { useMembers } from "./members-api";
+import { MemberGridList } from "./member-components/member-grid-list";
+import { useMemo } from "react";
+import { useParams } from "@tanstack/react-router";
 
 export default function MembersIndex() {
-  const { workspaceId } = useSidebarContext();
+  const workspace = useParams({ from: "/workspaces/$workspaceId/members" });
+  const { data, isLoading, fetchNextPage, hasNextPage, isFetchingNextPage } =  useMembers(workspace.workspaceId);
+
+  const members = useMemo(() => {
+    return data?.pages.flatMap((page) => page.items) ?? [];
+  }, [data]);
+
+  if (isLoading && members.length === 0) {
+    return (
+      <div className="flex items-center justify-center p-8 text-muted-foreground animate-pulse">
+        Loading members...
+      </div>
+    );
+  }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Members</h1>
-          <p className="text-muted-foreground">
-            Manage members for workspace:{" "}
-            <span className="font-mono text-primary">{workspaceId}</span>
-          </p>
-        </div>
-      </div>
+    <div className="h-full">
+      <MemberGridList
+        members={members}
+        // Add other handlers here as they are implemented
+      />
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {/* Mocking members list */}
-        {[1, 2, 3].map((i) => (
-          <div key={i} className="rounded-xl border bg-card p-6 shadow-sm">
-            <div className="flex items-center gap-4 mb-4">
-              <div className="h-10 w-10 rounded-full bg-muted" />
-              <div>
-                <p className="font-medium">Team Member {i}</p>
-                <p className="text-sm text-muted-foreground text-xs">
-                  member@example.com
-                </p>
-              </div>
-            </div>
-            <Button variant="secondary" size="sm" className="w-full">
-              Edit Perms
-            </Button>
-          </div>
-        ))}
-      </div>
+      {/* Simple infinite scroll trigger for now */}
+      {hasNextPage && (
+        <div className="flex justify-center p-4">
+          <button
+            onClick={() => fetchNextPage()}
+            disabled={isFetchingNextPage}
+            className="text-sm text-primary hover:underline disabled:opacity-50"
+          >
+            {isFetchingNextPage ? "Loading more..." : "Load more"}
+          </button>
+        </div>
+      )}
     </div>
   );
 }

@@ -1,5 +1,5 @@
 import type { WorkspaceSummary } from "../type";
-import { Search, X } from "lucide-react";
+import { Filter, Search, X } from "lucide-react";
 import { WorkspaceItem } from "./workspace-item";
 import React from "react";
 import {
@@ -7,6 +7,15 @@ import {
   WorkspaceLoadingState,
 } from "./pending-workspace";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import {
+  DropdownMenu,
+  DropdownMenuCheckboxItem,
+  DropdownMenuContent,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Button } from "@/components/ui/button";
 
 type Props = {
   workspaces: WorkspaceSummary[];
@@ -16,44 +25,58 @@ type Props = {
   onFetchNextPage?: () => void;
   hasNextPage?: boolean;
   isFetchingNextPage?: boolean;
+  onSearchChange?: (query: string) => void;
+  filters?: {
+    variant?: string;
+    owned?: boolean;
+    isArchived?: boolean;
+  };
+  onFilterChange?: (filters: Partial<Props["filters"]>) => void;
 };
 
-export function WorkspaceList({ workspaces,isLoading, onCreateWorkspace, onWorkspaceOpen,
- onFetchNextPage, hasNextPage, isFetchingNextPage }: Props) {
+export function WorkspaceList({
+  workspaces,
+  isLoading,
+  onCreateWorkspace,
+  onWorkspaceOpen,
+  onFetchNextPage,
+  hasNextPage,
+  isFetchingNextPage,
+  onSearchChange,
+  filters,
+  onFilterChange,
+}: Props) {
   const [searchQuery, setSearchQuery] = React.useState("");
   const observerRef = React.useRef<HTMLDivElement>(null);
 
   React.useEffect(() => {
+    const timer = setTimeout(() => {
+      onSearchChange?.(searchQuery);
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [searchQuery, onSearchChange]);
+
+  React.useEffect(() => {
     const observer = new IntersectionObserver(
       (entries) => {
-        if (entries[0].isIntersecting && hasNextPage && !isFetchingNextPage) {
+        if (entries[0].isIntersecting && hasNextPage && !isFetchingNextPage)
           onFetchNextPage?.();
-        }
       },
-      { threshold: 0.1 }
+      { threshold: 0.1 },
     );
 
-    if (observerRef.current) {
-      observer.observe(observerRef.current);
-    }
-
+    if (observerRef.current) observer.observe(observerRef.current);
     return () => observer.disconnect();
   }, [hasNextPage, isFetchingNextPage, onFetchNextPage]);
 
-  const filteredWorkspaces = React.useMemo(() => {
-    if (!searchQuery.trim()) return workspaces;
-    const query = searchQuery.toLowerCase();
-    return workspaces.filter(
-      (ws) =>
-        ws.name?.toLowerCase().includes(query) ||
-        String(ws.variant).toLowerCase().includes(query) ||
-        String(ws.role).toLowerCase().includes(query)
-    );
-  }, [workspaces, searchQuery]);
+  const filteredWorkspaces = workspaces;
 
   if (isLoading) {
     return <WorkspaceLoadingState />;
   }
+
+  const hasActiveFilters =
+    filters?.variant || filters?.owned || filters?.isArchived;
 
   return (
     <div className="h-full bg-background flex flex-col outline-2">
@@ -65,6 +88,94 @@ export function WorkspaceList({ workspaces,isLoading, onCreateWorkspace, onWorks
           >
             Create
           </button>
+
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant={hasActiveFilters ? "default" : "outline"}
+                size="sm"
+                className="gap-2 h-9 rounded-md border-border"
+              >
+                <Filter className="h-4 w-4" />
+                Filter
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="w-56">
+              <DropdownMenuLabel>Workspace Type</DropdownMenuLabel>
+              <DropdownMenuCheckboxItem
+                checked={filters?.variant === "Personal"}
+                onCheckedChange={() =>
+                  onFilterChange?.({
+                    variant:
+                      filters?.variant === "Personal" ? undefined : "Personal",
+                  })
+                }
+              >
+                Personal
+              </DropdownMenuCheckboxItem>
+              <DropdownMenuCheckboxItem
+                checked={filters?.variant === "Team"}
+                onCheckedChange={() =>
+                  onFilterChange?.({
+                    variant: filters?.variant === "Team" ? undefined : "Team",
+                  })
+                }
+              >
+                Team
+              </DropdownMenuCheckboxItem>
+              <DropdownMenuCheckboxItem
+                checked={filters?.variant === "Company"}
+                onCheckedChange={() =>
+                  onFilterChange?.({
+                    variant:
+                      filters?.variant === "Company" ? undefined : "Company",
+                  })
+                }
+              >
+                Company
+              </DropdownMenuCheckboxItem>
+
+              <DropdownMenuSeparator />
+              <DropdownMenuLabel>Ownership</DropdownMenuLabel>
+              <DropdownMenuCheckboxItem
+                checked={!!filters?.owned}
+                onCheckedChange={(checked) =>
+                  onFilterChange?.({ owned: checked })
+                }
+              >
+                Owned by me
+              </DropdownMenuCheckboxItem>
+
+              <DropdownMenuSeparator />
+              <DropdownMenuLabel>Status</DropdownMenuLabel>
+              <DropdownMenuCheckboxItem
+                checked={!!filters?.isArchived}
+                onCheckedChange={(checked) =>
+                  onFilterChange?.({ isArchived: checked })
+                }
+              >
+                Show Archived
+              </DropdownMenuCheckboxItem>
+
+              {hasActiveFilters && (
+                <>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuCheckboxItem
+                    className="justify-center text-muted-foreground"
+                    onCheckedChange={() =>
+                      onFilterChange?.({
+                        variant: undefined,
+                        owned: false,
+                        isArchived: false,
+                      })
+                    }
+                  >
+                    Clear All
+                  </DropdownMenuCheckboxItem>
+                </>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
 
           <div className="flex-1" />
 

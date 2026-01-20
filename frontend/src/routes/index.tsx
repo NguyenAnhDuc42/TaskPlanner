@@ -12,7 +12,7 @@ export const Route = createFileRoute("/")({
   },
   loader: async ({ context }) => {
     await context.queryClient.ensureInfiniteQueryData(
-      workspaceInfiniteQueryOptions
+      workspaceInfiniteQueryOptions(),
     );
   },
   component: WorkspaceHomeScreen,

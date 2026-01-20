@@ -12,9 +12,7 @@ public class WorkspaceMember : Composite
     public Guid ProjectWorkspaceId { get; private set; }
     public Role Role { get; private set; } // Only here
     public MembershipStatus Status { get; private set; } // Pending, Active, Invited, Suspended
-    public DateTimeOffset JoinedAt { get; private set; }
-    public DateTimeOffset? ApprovedAt { get; private set; }
-    public Guid? ApprovedBy { get; private set; }
+    public DateTimeOffset? JoinedAt { get; private set; }
     public DateTimeOffset? SuspendedAt { get; private set; }
     public Guid? SuspendedBy { get; private set; }
     public string? JoinMethod { get; private set; } = string.Empty; // "Invite", "Request", "Code"
@@ -27,14 +25,14 @@ public class WorkspaceMember : Composite
         Role = role;
         Status = status;
         CreatorId = creatorId;
-        JoinedAt = DateTimeOffset.UtcNow;
+        JoinedAt = status == MembershipStatus.Active ? DateTimeOffset.UtcNow : null;
         JoinMethod = joinMethod;
     }
-
+    public static WorkspaceMember Create(Guid userId, Guid workspaceId, Role role, MembershipStatus status, Guid createdBy, string? joinMethod)
+      => new(userId, workspaceId, role, status, createdBy, joinMethod);
     public static WorkspaceMember CreateOwner(Guid userId, Guid projectWorkspaceId, Guid createdBy)
         => new(userId, projectWorkspaceId, Role.Owner, MembershipStatus.Active, createdBy, "Created");
-    public static WorkspaceMember AddMember(Guid userId, Guid workspaceId, Role role, MembershipStatus status, Guid createdBy, string? joinMethod)
-        => new(userId, workspaceId, role, status, createdBy, joinMethod);
+  
 
     public static List<WorkspaceMember> AddBulk(List<(Guid UserId, Role Role, MembershipStatus Status, string? JoinMethod)> memberSpecs, Guid projectWorkspaceId, Guid createdBy)
     {
@@ -49,11 +47,10 @@ public class WorkspaceMember : Composite
             .ToList();
     }
 
-    public void ApproveMembership(Guid approverId)
+    public void ApproveMembership()
     {
         Status = MembershipStatus.Active;
-        ApprovedAt = DateTimeOffset.UtcNow;
-        ApprovedBy = approverId;
+        JoinedAt = DateTimeOffset.UtcNow;
     }
     public void SuspendMembership(Guid suspenderId)
     {

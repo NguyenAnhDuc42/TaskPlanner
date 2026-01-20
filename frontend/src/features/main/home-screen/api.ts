@@ -42,24 +42,40 @@ export function useCreateWorkspace() {
   });
 }
 
-export const workspaceInfiniteQueryOptions = infiniteQueryOptions({
-  queryKey: workspaceKeys.list(),
-  queryFn: async ({ pageParam }: { pageParam: string | null }) => {
-    const { data } = await api.get<PagedResult<WorkspaceSummary>>(
-      "/workspaces",
-      {
-        params: { cursor: pageParam },
-      }
-    );
-    return data;
-  },
-  initialPageParam: null as string | null,
-  getNextPageParam: (lastPage) => lastPage.nextCursor || undefined,
-});
+export const workspaceInfiniteQueryOptions = (
+  filters: {
+    name?: string;
+    owned?: boolean;
+    isArchived?: boolean;
+    variant?: string;
+  } = {},
+) =>
+  infiniteQueryOptions({
+    queryKey: [...workspaceKeys.list(), filters],
+    queryFn: async ({ pageParam }: { pageParam: string | null }) => {
+      const { data } = await api.get<PagedResult<WorkspaceSummary>>(
+        "/workspaces",
+        {
+          params: {
+            cursor: pageParam,
+            ...filters,
+          },
+        },
+      );
+      return data;
+    },
+    initialPageParam: null as string | null,
+    getNextPageParam: (lastPage) => lastPage.nextCursor || undefined,
+  });
 
-export function useWorkspaces() {
+export function useWorkspaces(filters?: {
+  name?: string;
+  owned?: boolean;
+  isArchived?: boolean;
+  variant?: string;
+}) {
   return useInfiniteQuery({
-    ...workspaceInfiniteQueryOptions,
+    ...workspaceInfiniteQueryOptions(filters),
     staleTime: 1000 * 60 * 2,
     refetchOnWindowFocus: false,
     placeholderData: keepPreviousData,

@@ -20,9 +20,7 @@ public class WorkspaceMemberConfiguration : CompositeConfiguration<WorkspaceMemb
         builder.Property(x => x.ProjectWorkspaceId).IsRequired().HasColumnName("project_workspace_id");
         builder.Property(x => x.Role).HasConversion<string>().HasMaxLength(50).HasColumnName("role").IsRequired();
         builder.Property(x => x.Status).HasConversion<string>().HasMaxLength(50).HasColumnName("status").IsRequired();
-        builder.Property(x => x.JoinedAt).IsRequired().HasColumnName("joined_at");
-        builder.Property(x => x.ApprovedAt).HasColumnName("approved_at");
-        builder.Property(x => x.ApprovedBy).HasColumnName("approved_by");
+        builder.Property(x => x.JoinedAt).HasColumnName("joined_at");
         builder.Property(x => x.SuspendedAt).HasColumnName("suspended_at");
         builder.Property(x => x.SuspendedBy).HasColumnName("suspended_by");
         builder.Property(x => x.JoinMethod).HasMaxLength(64).HasColumnName("join_method");

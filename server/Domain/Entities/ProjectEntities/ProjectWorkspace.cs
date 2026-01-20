@@ -65,7 +65,7 @@ public sealed class ProjectWorkspace : Entity
         {
             throw new InvalidOperationException("User is already a member of this workspace.");
         }
-        var newMember = WorkspaceMember.AddMember(userId, this.Id, role, status, createdBy, joinMethod);
+        var newMember = WorkspaceMember.Create(userId, this.Id, role, status, createdBy, joinMethod);
         _members.Add(newMember);
         UpdateTimestamp();
     }

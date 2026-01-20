@@ -17,8 +17,7 @@ namespace Application.Features.WorkspaceFeatures.GetWorkspaceList;
 
 public class GetWorkspaceListHandler : IRequestHandler<GetWorksapceListQuery, PagedResult<WorkspaceSummaryDto>>
 {
-    public readonly IDbConnection _connection;
-    private readonly IUnitOfWork _unitOfWork;
+    private readonly IDbConnection _connection;
     private readonly ICurrentUserService _currentUserService;
     private readonly CursorHelper _cursorHelper;
     private readonly HybridCache _cache;
@@ -27,7 +26,6 @@ public class GetWorkspaceListHandler : IRequestHandler<GetWorksapceListQuery, Pa
     public GetWorkspaceListHandler(IDbConnection dbConnection, IUnitOfWork unitOfWork, ICurrentUserService currentUserService, CursorHelper cursorHelper, HybridCache cache)
     {
         _connection = dbConnection;
-        _unitOfWork = unitOfWork;
         _currentUserService = currentUserService;
         _cursorHelper = cursorHelper;
         _cache = cache;

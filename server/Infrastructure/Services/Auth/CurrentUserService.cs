@@ -1,9 +1,8 @@
-using System;
+
 using System.Security.Claims;
 using Domain.Entities;
 using Infrastructure.Data;
 using Microsoft.AspNetCore.Http;
-using Microsoft.EntityFrameworkCore;
 using server.Application.Interfaces;
 
 namespace Infrastructure.Auth;
@@ -38,6 +37,16 @@ public class CurrentUserService : ICurrentUserService
         if (userIdClaim == null || !Guid.TryParse(userIdClaim.Value, out var userId))
         { return Guid.Empty; }
         return userId;
+    }
+
+    public Guid UserId
+    {
+        get
+        {
+            var claim = _httpContextAccessor.HttpContext?.User.FindFirst(ClaimTypes.NameIdentifier);
+            return Guid.TryParse(claim?.Value, out var id) 
+                ? id : Guid.Empty;
+        }
     }
 
 

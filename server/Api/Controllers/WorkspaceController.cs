@@ -8,6 +8,10 @@ using Domain.Enums.Workspace;
 using MediatR;
 using Microsoft.AspNetCore.JsonPatch;
 using Microsoft.AspNetCore.Mvc;
+using Domain.Enums;
+using Application.Contract.UserContract;
+using Application.Features.WorkspaceFeatures.MemberManage.GetMembers;
+using Application.Features.WorkspaceFeatures.MemberManage.AddMembers;
 
 namespace Api.Controllers
 {
@@ -67,6 +71,43 @@ namespace Api.Controllers
             var result = await _mediator.Send(query, cancellationToken);
             return Ok(result);
         }
+
+        [HttpGet("{id:guid}/members")]
+        public async Task<ActionResult<PagedResult<MemberDto>>> GetMembers(
+            Guid id,
+            [FromQuery] string? cursor,
+            [FromQuery] string? name,
+            [FromQuery] string? email,
+            [FromQuery] Guid? spaceId,
+            [FromQuery] Guid? taskId,
+            [FromQuery] Role? role,
+            [FromQuery] int pageSize = 10,
+            CancellationToken cancellationToken = default)
+        {
+            var pagination = new CursorPaginationRequest(cursor, pageSize);
+            var filter = new GetMembersFilter(name, email, spaceId, taskId, role);
+            var query = new GetMembersQuery(pagination,id,filter);
+
+            var result = await _mediator.Send(query, cancellationToken);
+            return Ok(result);
+        }
+        [HttpPost("{id:guid}/members")]
+        public async Task<IActionResult> AddMembers(
+            Guid id,
+            [FromBody] AddMembersRequest request,
+            CancellationToken cancellationToken)
+        {
+            var command = new AddMembersCommand(
+                workspaceId: id,
+                members: request.Members,
+                enableEmail: request.EnableEmail,
+                message: request.Message
+            );
+            var result = await _mediator.Send(command, cancellationToken);
+            return Ok(result);
+        }
     }
+
+    public record AddMembersRequest(List<MemberValue> Members, bool? EnableEmail = false, string? Message = null);
 
 }

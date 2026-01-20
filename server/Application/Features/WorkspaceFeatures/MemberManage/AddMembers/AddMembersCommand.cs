@@ -1,13 +1,9 @@
 using Application.Common.Interfaces;
 using Domain.Enums;
-using Domain.Enums.RelationShip;
-using MediatR;
 
 namespace Application.Features.WorkspaceFeatures.MemberManage.AddMembers;
 
-public record class AddMembersCommand(Guid workspaceId, List<MemberSpec> members) : ICommand<Unit>;
+public record class AddMembersCommand(Guid workspaceId, List<MemberValue> members,bool? enableEmail,string? message) : ICommand<Guid>;
 
-
-
-public record class MemberSpec(string email, Role role, MembershipStatus status, string? joinMethod);
+public record class MemberValue(string email, Role role);
 

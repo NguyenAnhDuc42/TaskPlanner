@@ -7,7 +7,20 @@ import { CreateWorkspaceForm } from "./components/create-workspace-form";
 import React from "react";
 
 export function WorkspaceHomeScreen() {
-  const { data, isLoading: isWorkspacesLoading, fetchNextPage, hasNextPage, isFetchingNextPage } = useWorkspaces();
+  const [filters, setFilters] = React.useState<{
+    name?: string;
+    variant?: string;
+    owned?: boolean;
+    isArchived?: boolean;
+  }>({});
+
+  const {
+    data,
+    isLoading: isWorkspacesLoading,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+  } = useWorkspaces(filters);
 
   const workspaces = React.useMemo(() => {
     return data?.pages.flatMap((page) => page.items) ?? [];
@@ -28,6 +41,11 @@ export function WorkspaceHomeScreen() {
             onFetchNextPage={fetchNextPage}
             hasNextPage={hasNextPage}
             isFetchingNextPage={isFetchingNextPage}
+            onSearchChange={(name) => setFilters((prev) => ({ ...prev, name }))}
+            filters={filters}
+            onFilterChange={(newFilters) =>
+              setFilters((prev) => ({ ...prev, ...newFilters }))
+            }
           />
         </div>
         <div className="col-span-1 row-span-1 outline-2">
