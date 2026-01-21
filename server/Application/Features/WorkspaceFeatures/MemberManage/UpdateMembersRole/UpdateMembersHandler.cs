@@ -25,19 +25,25 @@ public class UpdateMembersHandler : IRequestHandler<UpdateMembersCommand, Unit>
 
     public async Task<Unit> Handle(UpdateMembersCommand request, CancellationToken cancellationToken)
     {
+
+        var updateDict = request.members.ToDictionary(x => x.userId);
+        var userIdsToUpdate = updateDict.Keys.ToList();
+
+
         var workspace = await _unitOfWork.Set<ProjectWorkspace>()
-            .Include(w => w.Members)
             .FirstOrDefaultAsync(w => w.Id == request.workspaceId, cancellationToken)
             ?? throw new KeyNotFoundException("No workspace founded");
-        var updateMember = workspace.Members
-            .Where(m => request.members.Select(rm => rm.userId).Contains(m.UserId))
-            .ToList();
-        foreach (var member in updateMember)
+        var membersToUpdate = await _unitOfWork.Set<WorkspaceMember>()
+           .Where(m => m.ProjectWorkspaceId == request.workspaceId && userIdsToUpdate.Contains(m.UserId))
+           .ToListAsync(cancellationToken);
+
+        if (membersToUpdate.Count == 0) return Unit.Value; 
+        foreach (var member in membersToUpdate)
         {
-
+            if (!updateDict.TryGetValue(member.UserId, out var updateInfo)) continue;
+            if (updateInfo.role.HasValue) member.UpdateRole(updateInfo.role.Value);
+            if (updateInfo.status.HasValue) member.UpdateStatus(updateInfo.status.Value);
         }
-
-
 
         return Unit.Value;
     }

@@ -1,18 +1,14 @@
-using Application.Common;
-using Application.Interfaces;
+
 using Application.Interfaces.Repositories;
-using Application.Interfaces.Services.Permissions;
-using Domain;
 using Domain.Entities;
 using Domain.Entities.ProjectEntities;
+using Domain.Entities.Relationship;
 using Domain.Enums;
 using Domain.Enums.RelationShip;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Caching.Hybrid;
 using server.Application.Interfaces;
 using System;
-using System.ComponentModel.DataAnnotations;
 
 namespace Application.Features.WorkspaceFeatures.MemberManage.AddMembers;
 
@@ -26,35 +22,55 @@ public class AddMembersHandler : IRequestHandler<AddMembersCommand, Guid>
        _currentUserService = currentUserService;
        _unitOfWork = unitOfWork;
     }
+    // future add email notification 
     public async Task<Guid> Handle(AddMembersCommand request, CancellationToken cancellationToken)
     {
-        var normalized = request.members
-            .Select(m => new { Email = m.email.Trim().ToLowerInvariant(), m.role })
-            .Where(x => !string.IsNullOrWhiteSpace(x.Email))
-            .GroupBy(x => x.Email)
-            .Select(g => g.First())
+        var normalizedMembers = request.members
+            .DistinctBy(m => m.email.Trim().ToLowerInvariant())
+            .Where(m => !string.IsNullOrWhiteSpace(m.email))
+            .Select(m => new
+            {
+                NormalizedEmail = m.email.Trim().ToLowerInvariant(),
+                m.role
+            })
             .ToList();
-        var email = normalized.Select(m => m.Email).ToList();
+        if (normalizedMembers.Count == 0) return request.workspaceId;
+
+        var emailsToFind = normalizedMembers
+            .Select(m => m.NormalizedEmail)
+            .ToList();
 
         var users = await _unitOfWork.Set<User>()
-            .Where(u => email.Contains(u.Email.ToLower()))
+            .Where(u => emailsToFind.Contains(u.Email.ToLower()))
+            .AsNoTracking()
             .ToListAsync(cancellationToken);
 
-        var usersByEmail = users.ToDictionary(u => u.Email.Trim().ToLower());
+        var usersByNormalizedEmail = users.ToDictionary(
+                keySelector: u => u.Email.Trim().ToLowerInvariant(),
+                elementSelector: u => u);
 
         var workspace = await _unitOfWork.Set<ProjectWorkspace>()
-            .Include(w => w.Members)
             .FirstOrDefaultAsync(w => w.Id == request.workspaceId) 
             ?? throw new KeyNotFoundException("No Workspace fouded");
 
-        var existingMemberIds = workspace.Members.Select(m => m.UserId).ToHashSet();
+        var userIdsToCheck = users.Select(u => u.Id).ToList();
+
+        var existingMemberIds = await _unitOfWork.Set<WorkspaceMember>()
+            .Where(m => m.ProjectWorkspaceId == request.workspaceId &&
+                        userIdsToCheck.Contains(m.UserId))
+            .AsNoTracking()
+            .Select(m => m.UserId)
+            .ToHashSetAsync(cancellationToken);
 
         var specs = new List<(Guid UserId, Role Role, MembershipStatus Status, string? JoinMethod)>();
 
-        foreach (var member in normalized)
+
+        foreach (var member in normalizedMembers)
         {
-            if (!usersByEmail.TryGetValue(member.Email, out var user)) continue;
+            if(!usersByNormalizedEmail.TryGetValue(member.NormalizedEmail, out var user)) continue;
+
             if (existingMemberIds.Contains(user.Id)) continue;
+
             specs.Add((user.Id, member.role, MembershipStatus.Active, "Invite"));
         }
         if (specs.Count > 0)

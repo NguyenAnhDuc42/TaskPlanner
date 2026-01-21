@@ -106,8 +106,23 @@ namespace Api.Controllers
             var result = await _mediator.Send(command, cancellationToken);
             return Ok(result);
         }
+
+        [HttpPatch("{id:guid}/members")]
+        public async Task<IActionResult> UpdateMembers(
+            Guid id,
+            [FromBody] UpdateMembersRequest request,
+            CancellationToken cancellationToken)
+        {
+            var command = new UpdateMembersCommand(
+                workspaceId: id,
+                members: request.Members
+            );
+            var result = await _mediator.Send(command, cancellationToken);
+            return Ok(result);
+        }
     }
 
     public record AddMembersRequest(List<MemberValue> Members, bool? EnableEmail = false, string? Message = null);
+    public record UpdateMembersRequest(List<MemberValue> Members);
 
 }
