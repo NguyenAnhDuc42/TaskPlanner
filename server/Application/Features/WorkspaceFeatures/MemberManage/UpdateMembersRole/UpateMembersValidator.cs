@@ -20,7 +20,7 @@ public class UpdateMembersValidator : AbstractValidator<UpdateMembersCommand>
             member.RuleFor(m => m.userId)
                 .NotEmpty().WithMessage("UserId is required for each member.");
             member.RuleFor(m => m.role)
-                .IsInEnum().WithMessage("Role must be a valid enum value.")
+                .IsInEnum().WithMessage("Role must be a valid enum value.");
             member.RuleFor(m => m.status)
                 .IsInEnum().WithMessage("Status must be a valid enum value.");
         });

@@ -60,7 +60,6 @@ public class AddMembersHandler : IRequestHandler<AddMembersCommand, Guid>
         if (specs.Count > 0)
         {
             workspace.AddMembers(specs,_currentUserService.UserId);
-            await _unitOfWork.SaveChangesAsync(cancellationToken);
         }
 
         return workspace.Id;

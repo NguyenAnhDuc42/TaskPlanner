@@ -29,10 +29,15 @@ public class UpdateMembersHandler : IRequestHandler<UpdateMembersCommand, Unit>
             .Include(w => w.Members)
             .FirstOrDefaultAsync(w => w.Id == request.workspaceId, cancellationToken)
             ?? throw new KeyNotFoundException("No workspace founded");
-        var existingMemberIds = workspace.Members.Select(m => m.UserId).ToHashSet();
+        var updateMember = workspace.Members
+            .Where(m => request.members.Select(rm => rm.userId).Contains(m.UserId))
+            .ToList();
+        foreach (var member in updateMember)
+        {
 
-        // Invalidate cache
-        await _cache.RemoveAsync(WorkspaceCacheKeys.MemberList(request.workspaceId), cancellationToken);
+        }
+
+
 
         return Unit.Value;
     }

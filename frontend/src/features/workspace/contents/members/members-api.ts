@@ -2,11 +2,16 @@ import {
   infiniteQueryOptions,
   keepPreviousData,
   useInfiniteQuery,
+  useMutation,
+  useQueryClient,
 } from "@tanstack/react-query";
-import type { MemberSummary } from "./members-type";
+import type { addMembersSchema, MemberSummary } from "./members-type";
 import type { PagedResult } from "@/types/paged-result";
 import { api } from "@/lib/api-client";
 import { membersKeys } from "./members-key";
+import type z from "zod";
+import { toast } from "sonner";
+import { isAxiosError } from "axios";
 
 export const membersInfiniteQueryOptions = (
   workspaceId: string,
@@ -17,7 +22,7 @@ export const membersInfiniteQueryOptions = (
   } = {},
 ) =>
   infiniteQueryOptions({
-    queryKey: [...membersKeys.list(), filters],
+    queryKey: [...membersKeys.list(workspaceId), filters],
     queryFn: async ({ pageParam }: { pageParam: string | null }) => {
       const { data } = await api.get<PagedResult<MemberSummary>>(
         `/workspaces/${workspaceId}/members`,
@@ -44,5 +49,32 @@ export function useMembers(workspaceId: string, filters?: {
     staleTime: 1000 * 60 * 2,
     refetchOnWindowFocus: false,
     placeholderData: keepPreviousData,
+  });
+}
+
+type AddMembersValues = z.infer<typeof addMembersSchema>;
+export function useAddMembers(workspaceId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (values: AddMembersValues) => {
+      const result = await api.post(`/workspaces/${workspaceId}/members`, {
+        ...values,
+      });
+      return result.data;
+    },
+    onSuccess: async () => {
+      toast.success("Members added successfully");
+      await queryClient.invalidateQueries({ queryKey: membersKeys.list(workspaceId) });
+    },
+    onError: (error) => {
+      if (isAxiosError(error) && error.response?.data) {
+        const data = error.response.data;
+        const message =
+          data.detail || data.title || "Failed to add members";
+        toast.error(message);
+      } else {
+        toast.error("An unexpected error occurred");
+      }
+    },
   });
 }

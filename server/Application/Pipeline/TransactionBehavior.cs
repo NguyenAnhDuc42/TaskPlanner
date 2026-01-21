@@ -2,6 +2,7 @@ using System;
 using Application.Common.Interfaces;
 using Application.Interfaces.Repositories;
 using MediatR;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
 namespace Application.Pipeline;
@@ -19,20 +20,32 @@ public class TransactionBehavior<TRequest, TResponse> : IPipelineBehavior<TReque
 
     public async Task<TResponse> Handle(TRequest request, RequestHandlerDelegate<TResponse> next, CancellationToken cancellationToken)
     {
-        await _unitOfWork.BeginTransactionAsync(cancellationToken);
-        try
+
+        if (_unitOfWork.HasActiveTransaction)
         {
-            _logger.LogInformation("----- Begin transaction for {RequestType}", typeof(TRequest).Name);
-            var response = await next();
-            await _unitOfWork.CommitTransactionAsync(cancellationToken);
-            _logger.LogInformation("----- End transaction for {RequestType}", typeof(TRequest).Name);
-            return response;
+            return await next();
         }
-        catch (Exception ex)
+
+        var strategy = _unitOfWork.CreateExecutionStrategy();
+
+        return await strategy.ExecuteAsync(async () =>
         {
-            _logger.LogInformation(ex,"----- Rollback transaction for {RequestType}", typeof(TRequest).Name);
-            await _unitOfWork.RollbackTransactionAsync(cancellationToken);
-            throw;
-        }
+            await _unitOfWork.BeginTransactionAsync(cancellationToken);
+            try
+            {
+                _logger.LogInformation("----- Begin transaction for {RequestType}", typeof(TRequest).Name);
+                var response = await next();
+                await _unitOfWork.CommitTransactionAsync(cancellationToken);
+                _logger.LogInformation("----- End transaction for {RequestType}", typeof(TRequest).Name);
+                return response;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogInformation(ex, "----- Rollback transaction for {RequestType}", typeof(TRequest).Name);
+                await _unitOfWork.RollbackTransactionAsync(cancellationToken);
+                throw;
+            }
+        });
+        
     }
 }

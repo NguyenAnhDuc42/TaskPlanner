@@ -1,13 +1,21 @@
 "use client";
 
-import { useMembers } from "./members-api";
+import { useMembers, useAddMembers } from "./members-api";
 import { MemberGridList } from "./member-components/member-grid-list";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useParams } from "@tanstack/react-router";
+import { AddMembersForm } from "./member-components/add-members-form";
 
 export default function MembersIndex() {
-  const workspace = useParams({ from: "/workspaces/$workspaceId/members" });
-  const { data, isLoading, fetchNextPage, hasNextPage, isFetchingNextPage } =  useMembers(workspace.workspaceId);
+  const { workspaceId } = useParams({
+    from: "/workspaces/$workspaceId/members",
+  });
+  const [isAddMemberOpen, setIsAddMemberOpen] = useState(false);
+
+  const { data, isLoading, fetchNextPage, hasNextPage, isFetchingNextPage } =
+    useMembers(workspaceId);
+  const { mutateAsync: addMembers, isPending: isAddingMembers } =
+    useAddMembers(workspaceId);
 
   const members = useMemo(() => {
     return data?.pages.flatMap((page) => page.items) ?? [];
@@ -25,7 +33,14 @@ export default function MembersIndex() {
     <div className="h-full">
       <MemberGridList
         members={members}
-        // Add other handlers here as they are implemented
+        onAddMember={() => setIsAddMemberOpen(true)}
+      />
+
+      <AddMembersForm
+        open={isAddMemberOpen}
+        onOpenChange={setIsAddMemberOpen}
+        onSubmit={addMembers}
+        isLoading={isAddingMembers}
       />
 
       {/* Simple infinite scroll trigger for now */}
