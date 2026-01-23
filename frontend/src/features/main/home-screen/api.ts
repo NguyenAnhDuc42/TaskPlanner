@@ -48,6 +48,7 @@ export const workspaceInfiniteQueryOptions = (
     owned?: boolean;
     isArchived?: boolean;
     variant?: string;
+    direction?: "Ascending" | "Descending";
   } = {},
 ) =>
   infiniteQueryOptions({
@@ -73,6 +74,7 @@ export function useWorkspaces(filters?: {
   owned?: boolean;
   isArchived?: boolean;
   variant?: string;
+  direction?: "Ascending" | "Descending";
 }) {
   return useInfiniteQuery({
     ...workspaceInfiniteQueryOptions(filters),

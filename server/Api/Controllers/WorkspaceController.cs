@@ -12,6 +12,7 @@ using Domain.Enums;
 using Application.Contract.UserContract;
 using Application.Features.WorkspaceFeatures.MemberManage.GetMembers;
 using Application.Features.WorkspaceFeatures.MemberManage.AddMembers;
+using Application.Features.WorkspaceFeatures.MemberManage.UpdateMembers;
 
 namespace Api.Controllers
 {
@@ -59,12 +60,13 @@ namespace Api.Controllers
             [FromQuery] string? cursor,
             [FromQuery] string? name,
             [FromQuery] int pageSize = 10,
-            [FromQuery] bool owned = false,
-            [FromQuery] bool isArchived = false,
+            [FromQuery] bool? owned = null,
+            [FromQuery] bool? isArchived = null,
             [FromQuery] WorkspaceVariant? variant = null,
+            [FromQuery] SortDirection direction = SortDirection.Ascending,
             CancellationToken cancellationToken = default)
         {
-            var pagination = new CursorPaginationRequest(cursor, pageSize);
+            var pagination = new CursorPaginationRequest(cursor, pageSize, Direction: direction);
             var filter = new WorkspaceFilter(name, owned, isArchived, variant);
             var query = new GetWorksapceListQuery(pagination, filter);
 
@@ -120,9 +122,24 @@ namespace Api.Controllers
             var result = await _mediator.Send(command, cancellationToken);
             return Ok(result);
         }
+
+        // [HttpDelete("{id:guid}/members")]
+        // public async Task<IActionResult> RemoveMembers(
+        //     Guid id,
+        //     [FromBody] RemoveMembersRequest request,
+        //     CancellationToken cancellationToken)
+        // {
+        //     var command = new Application.Features.WorkspaceFeatures.MemberManage.RemoveMembers.RemoveMembersCommand(
+        //         workspaceId: id,
+        //         memberIds: request.MemberIds
+        //     );
+        //     var result = await _mediator.Send(command, cancellationToken);
+        //     return Ok(result);
+        // }
     }
 
     public record AddMembersRequest(List<MemberValue> Members, bool? EnableEmail = false, string? Message = null);
-    public record UpdateMembersRequest(List<MemberValue> Members);
+    public record UpdateMembersRequest(List<UpdateMemberValue> Members);
+    // public record RemoveMembersRequest(List<Guid> MemberIds);
 
 }

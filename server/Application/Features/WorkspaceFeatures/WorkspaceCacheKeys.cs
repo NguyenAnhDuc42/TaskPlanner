@@ -20,11 +20,11 @@ public class WorkspaceCacheKeys
         {
             sb.Append($"&name={query.filter.Name}");
         }
-        if (query.filter.Owned)
+        if (query.filter.Owned.HasValue && query.filter.Owned.Value)
         {
             sb.Append("&owned=true");
         }
-        if (query.filter.isArchived)
+        if (query.filter.isArchived.HasValue && query.filter.isArchived.Value)
         {
             sb.Append("&archived=true");
         }

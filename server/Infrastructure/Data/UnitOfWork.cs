@@ -5,6 +5,7 @@ using Infrastructure.Events.Extensions;
 using System.Data;
 using System.Data.Common;
 using Dapper;
+using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Application.Interfaces;
 
 namespace Infrastructure.Data
@@ -25,6 +26,7 @@ namespace Infrastructure.Data
         public DbSet<T> Set<T>() where T : class => _context.Set<T>();
 
         public bool HasActiveTransaction => _currentTransaction != null;
+        public ChangeTracker ChangeTracker => _context.ChangeTracker;
 
         public IExecutionStrategy CreateExecutionStrategy() => _context.Database.CreateExecutionStrategy();
 
@@ -73,8 +75,10 @@ namespace Infrastructure.Data
 
         public async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
         {
+            _context.ChangeTracker.DetectChanges(); 
             var totalChanges = 0;
             totalChanges += await _context.SaveChangesAsync(cancellationToken);
+            
 
             // Collect and dispatch domain events
             var domainEvents = _context.ChangeTracker.CollectDomainEvents();

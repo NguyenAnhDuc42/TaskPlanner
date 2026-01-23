@@ -60,7 +60,9 @@ public class GetMembersHandler : IRequestHandler<GetMembersQuery, PagedResult<Me
 
                 return new PagedResult<MemberDto>(items, nextCursor, hasMore);
             },
-            new HybridCacheEntryOptions { Expiration = TimeSpan.FromMinutes(5) });
+            new HybridCacheEntryOptions { Expiration = TimeSpan.FromMinutes(5) },
+            new[] { $"workspaces:{workspaceId}:members" },
+            cancellationToken);
     }
 
     private void DecodeCursor(string? cursor, out DateTimeOffset? ts, out Guid? id)

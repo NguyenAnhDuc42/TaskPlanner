@@ -12,6 +12,7 @@ export function WorkspaceHomeScreen() {
     variant?: string;
     owned?: boolean;
     isArchived?: boolean;
+    direction?: "Ascending" | "Descending";
   }>({});
 
   const {

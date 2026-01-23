@@ -1,5 +1,8 @@
+using System.Text.Json.Serialization;
+
 namespace Domain.Enums.RelationShip;
 
+[JsonConverter(typeof(JsonStringEnumConverter))]
 public enum MembershipStatus
 {
     Pending,   // User requested to join with a code, waiting for approval

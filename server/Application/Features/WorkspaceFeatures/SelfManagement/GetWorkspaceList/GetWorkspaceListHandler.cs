@@ -74,7 +74,9 @@ public class GetWorkspaceListHandler : IRequestHandler<GetWorksapceListQuery, Pa
 
                 return new PagedResult<WorkspaceSummaryDto>(items, nextCursor, hasMore);
             },
-            new HybridCacheEntryOptions { Expiration = TimeSpan.FromMinutes(5) });
+            new HybridCacheEntryOptions { Expiration = TimeSpan.FromMinutes(5) },
+            new[] { $"user:{currentUserId}:workspaces" },
+            cancellationToken);
     }
 
     private void DecodeCursor(string? cursor, out DateTimeOffset? ts, out Guid? id)

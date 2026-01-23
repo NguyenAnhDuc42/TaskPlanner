@@ -24,3 +24,15 @@ export const addMembersSchema = z.object({
   enableEmail: z.boolean().optional(),
   message: z.string().max(500).optional(),
 });
+
+export const updateMembersSchema = z.object({
+  members: z
+    .array(
+      z.object({
+        userId: z.string().uuid(),
+        role: z.enum(["Admin", "Member", "Guest"]).optional(),
+        status: z.enum(["Suspended"]).optional(),
+      }),
+    )
+    .min(1, "At least one member required"),
+});

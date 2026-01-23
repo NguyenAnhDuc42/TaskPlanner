@@ -10,8 +10,8 @@ public static class WorkspaceCursorPaginationExtensions
     public static IQueryable<ProjectWorkspace> ApplyFilter(this IQueryable<ProjectWorkspace> query, WorkspaceFilter filter, Guid currentUserId)
     {
         if (!string.IsNullOrEmpty(filter.Name)) query = query.Where(w => w.Name.Contains(filter.Name));
-        if (filter.Owned) query = query.Where(w => w.CreatorId == currentUserId);
-        if (filter.isArchived) query = query.Where(w => w.IsArchived == filter.isArchived);
+        if (filter.Owned.HasValue && filter.Owned.Value) query = query.Where(w => w.CreatorId == currentUserId);
+        if (filter.isArchived.HasValue && filter.isArchived.Value) query = query.Where(w => w.IsArchived == filter.isArchived);
         if (filter.Variant != null) query = query.Where(w => w.Variant == filter.Variant);
         return query;
     }

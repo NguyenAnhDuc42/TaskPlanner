@@ -26,7 +26,7 @@ export function MembersSidebar() {
                 className="w-full justify-start gap-3 h-10 px-3 hover:bg-accent/50 group"
                 asChild
               >
-                <Link to={"/"+"workspace"+ "/" + workspaceId + "/" + item.id}>
+                <Link to={"/"+"workspaces"+ "/" + workspaceId + "/" + item.id}>
                   <Icon className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
                   <span className="text-sm font-medium">{item.label}</span>
                 </Link>

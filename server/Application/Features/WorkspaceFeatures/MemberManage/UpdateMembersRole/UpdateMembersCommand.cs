@@ -3,7 +3,7 @@ using Domain.Enums;
 using Domain.Enums.RelationShip;
 using MediatR;
 
-namespace Application.Features.WorkspaceFeatures.MemberManage.UpdateMembersRole;
+namespace Application.Features.WorkspaceFeatures.MemberManage.UpdateMembers;
 
 public record class UpdateMembersCommand(Guid workspaceId, List<UpdateMemberValue> members) : ICommand<Unit>;
 

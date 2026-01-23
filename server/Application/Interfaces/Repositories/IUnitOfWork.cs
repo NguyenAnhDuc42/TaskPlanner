@@ -1,7 +1,7 @@
 
-
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
+using Microsoft.EntityFrameworkCore.ChangeTracking;
 
 
 namespace Application.Interfaces.Repositories
@@ -10,6 +10,7 @@ namespace Application.Interfaces.Repositories
     {
         DbSet<T> Set<T>() where T : class;
         bool HasActiveTransaction { get; }
+        ChangeTracker ChangeTracker { get; }
         IExecutionStrategy CreateExecutionStrategy();
         Task<IDbContextTransaction> BeginTransactionAsync(CancellationToken cancellationToken = default);
         Task CommitTransactionAsync(CancellationToken cancellationToken = default); 

@@ -30,6 +30,7 @@ type Props = {
     variant?: string;
     owned?: boolean;
     isArchived?: boolean;
+    direction?: "Ascending" | "Descending";
   };
   onFilterChange?: (filters: Partial<Props["filters"]>) => void;
 };
@@ -76,7 +77,10 @@ export function WorkspaceList({
   }
 
   const hasActiveFilters =
-    filters?.variant || filters?.owned || filters?.isArchived;
+    filters?.variant ||
+    filters?.owned ||
+    filters?.isArchived ||
+    filters?.direction;
 
   return (
     <div className="h-full bg-background flex flex-col outline-2">
@@ -157,6 +161,25 @@ export function WorkspaceList({
                 Show Archived
               </DropdownMenuCheckboxItem>
 
+              <DropdownMenuSeparator />
+              <DropdownMenuLabel>Sort Order</DropdownMenuLabel>
+              <DropdownMenuCheckboxItem
+                checked={filters?.direction === "Ascending"}
+                onCheckedChange={() =>
+                  onFilterChange?.({ direction: "Ascending" })
+                }
+              >
+                Ascending
+              </DropdownMenuCheckboxItem>
+              <DropdownMenuCheckboxItem
+                checked={filters?.direction === "Descending"}
+                onCheckedChange={() =>
+                  onFilterChange?.({ direction: "Descending" })
+                }
+              >
+                Descending
+              </DropdownMenuCheckboxItem>
+
               {hasActiveFilters && (
                 <>
                   <DropdownMenuSeparator />
@@ -167,6 +190,7 @@ export function WorkspaceList({
                         variant: undefined,
                         owned: false,
                         isArchived: false,
+                        direction: undefined,
                       })
                     }
                   >

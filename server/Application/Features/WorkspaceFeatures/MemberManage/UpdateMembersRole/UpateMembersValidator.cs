@@ -1,7 +1,7 @@
 ﻿using FluentValidation;
 
 
-namespace Application.Features.WorkspaceFeatures.MemberManage.UpdateMembersRole;
+namespace Application.Features.WorkspaceFeatures.MemberManage.UpdateMembers;
 
 public class UpdateMembersValidator : AbstractValidator<UpdateMembersCommand>
 {

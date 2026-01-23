@@ -1,4 +1,3 @@
-
 using Application.Interfaces.Repositories;
 using Domain.Entities;
 using Domain.Entities.ProjectEntities;
@@ -9,6 +8,7 @@ using MediatR;
 using Microsoft.EntityFrameworkCore;
 using server.Application.Interfaces;
 using System;
+using Microsoft.Extensions.Caching.Hybrid;
 
 namespace Application.Features.WorkspaceFeatures.MemberManage.AddMembers;
 
@@ -16,11 +16,13 @@ public class AddMembersHandler : IRequestHandler<AddMembersCommand, Guid>
 {
     private readonly ICurrentUserService _currentUserService;
     private readonly IUnitOfWork _unitOfWork;
+    private readonly HybridCache _cache;
 
-    public AddMembersHandler(ICurrentUserService currentUserService,IUnitOfWork unitOfWork)
+    public AddMembersHandler(ICurrentUserService currentUserService, IUnitOfWork unitOfWork, HybridCache cache)
     {
        _currentUserService = currentUserService;
        _unitOfWork = unitOfWork;
+       _cache = cache;
     }
     // future add email notification 
     public async Task<Guid> Handle(AddMembersCommand request, CancellationToken cancellationToken)
@@ -50,17 +52,9 @@ public class AddMembersHandler : IRequestHandler<AddMembersCommand, Guid>
                 elementSelector: u => u);
 
         var workspace = await _unitOfWork.Set<ProjectWorkspace>()
+            .Include(w => w.Members)
             .FirstOrDefaultAsync(w => w.Id == request.workspaceId) 
             ?? throw new KeyNotFoundException("No Workspace fouded");
-
-        var userIdsToCheck = users.Select(u => u.Id).ToList();
-
-        var existingMemberIds = await _unitOfWork.Set<WorkspaceMember>()
-            .Where(m => m.ProjectWorkspaceId == request.workspaceId &&
-                        userIdsToCheck.Contains(m.UserId))
-            .AsNoTracking()
-            .Select(m => m.UserId)
-            .ToHashSetAsync(cancellationToken);
 
         var specs = new List<(Guid UserId, Role Role, MembershipStatus Status, string? JoinMethod)>();
 
@@ -69,13 +63,20 @@ public class AddMembersHandler : IRequestHandler<AddMembersCommand, Guid>
         {
             if(!usersByNormalizedEmail.TryGetValue(member.NormalizedEmail, out var user)) continue;
 
-            if (existingMemberIds.Contains(user.Id)) continue;
+            if (workspace.Members.Any(m => m.UserId == user.Id)) continue;
 
             specs.Add((user.Id, member.role, MembershipStatus.Active, "Invite"));
         }
         if (specs.Count > 0)
         {
             workspace.AddMembers(specs,_currentUserService.UserId);
+            await _cache.RemoveByTagAsync($"workspaces:{request.workspaceId}:members", cancellationToken);
+        }
+        var entries = _unitOfWork.ChangeTracker.Entries();
+        Console.WriteLine($"Tracked entries: {entries.Count()}");
+        foreach (var entry in entries)
+        {
+            Console.WriteLine($"  Entity: {entry.Entity.GetType().Name}, State: {entry.State}");
         }
 
         return workspace.Id;

@@ -1,10 +1,17 @@
 "use client";
 
-import { useMembers, useAddMembers } from "./members-api";
+import {
+  useMembers,
+  useAddMembers,
+  useUpdateMembers,
+  useRemoveMembers,
+} from "./members-api";
 import { MemberGridList } from "./member-components/member-grid-list";
 import { useMemo, useState } from "react";
 import { useParams } from "@tanstack/react-router";
 import { AddMembersForm } from "./member-components/add-members-form";
+import type { Role } from "@/types/role";
+import type { MembershipStatus } from "@/types/membership-status";
 
 export default function MembersIndex() {
   const { workspaceId } = useParams({
@@ -16,10 +23,30 @@ export default function MembersIndex() {
     useMembers(workspaceId);
   const { mutateAsync: addMembers, isPending: isAddingMembers } =
     useAddMembers(workspaceId);
+  const { mutateAsync: updateMembers } = useUpdateMembers(workspaceId);
+  const { mutateAsync: removeMembers } = useRemoveMembers(workspaceId);
 
   const members = useMemo(() => {
     return data?.pages.flatMap((page) => page.items) ?? [];
   }, [data]);
+
+  const handleBatchUpdate = async (
+    ids: string[],
+    role?: Role,
+    status?: MembershipStatus,
+  ) => {
+    await updateMembers({
+      members: ids.map((id) => ({
+        userId: id,
+        role: role as any,
+        status: status as any,
+      })),
+    });
+  };
+
+  const handleRemoveMembers = async (ids: string[]) => {
+    await removeMembers(ids);
+  };
 
   if (isLoading && members.length === 0) {
     return (
@@ -34,6 +61,10 @@ export default function MembersIndex() {
       <MemberGridList
         members={members}
         onAddMember={() => setIsAddMemberOpen(true)}
+        onEditMember={(id, role) => handleBatchUpdate([id], role as Role)}
+        onDeleteMember={(id) => handleRemoveMembers([id])}
+        onBatchUpdate={handleBatchUpdate}
+        onBatchDelete={handleRemoveMembers}
       />
 
       <AddMembersForm

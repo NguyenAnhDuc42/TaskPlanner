@@ -41,8 +41,8 @@ public static class GetWorkspaceListSQL
         ON wm_all.project_workspace_id = w.id
     WHERE 
         (@name IS NULL OR w.name ILIKE '%' || @name || '%') AND 
-        (@owned IS NULL OR (wm.user_id = @CurrentUserId AND wm.role = 'Owner')) AND
-        (@isArchived IS NULL OR  w.is_archived = @isArchived) AND 
+        (@owned IS NULL OR @owned = false OR wm.role = 'Owner') AND
+        (@isArchived IS NULL OR w.is_archived = @isArchived) AND 
         (@variant IS NULL OR w.variant = @variant) AND 
         (
             @cursorTimestamp IS NULL OR
@@ -52,12 +52,12 @@ public static class GetWorkspaceListSQL
                 )
         )
     GROUP BY
-        w.id, wm.role, w.updated_at
+        w.id, wm.role, w.updated_at, w.is_archived
     ORDER BY
         w.updated_at ASC, w.id ASC
     LIMIT @PageSizePLusOne;
-
     ";
+
     public const string Desc = @"
     SELECT 
         w.id,
@@ -67,6 +67,7 @@ public static class GetWorkspaceListSQL
         w.custom_color AS Color,
         w.description,
         w.variant,
+        w.is_archived,
         wm.role,
         COUNT(wm_all.user_id) as member_count
     FROM 
@@ -78,8 +79,8 @@ public static class GetWorkspaceListSQL
         ON wm_all.project_workspace_id = w.id
     WHERE 
         (@name IS NULL OR w.name ILIKE '%' || @name || '%') AND 
-        (@owned IS NULL OR (wm.user_id = @CurrentUserId AND wm.role = 'Owner')) AND
-        (@isArchived IS NULL OR  w.is_archived = @isArchived) AND 
+        (@owned IS NULL OR @owned = false OR wm.role = 'Owner') AND
+        (@isArchived IS NULL OR w.is_archived = @isArchived) AND 
         (@variant IS NULL OR w.variant = @variant) AND 
         (
             @cursorTimestamp IS NULL OR
@@ -89,10 +90,9 @@ public static class GetWorkspaceListSQL
                 )
         )
     GROUP BY
-        w.id, wm.role, w.updated_at
+        w.id, wm.role, w.updated_at, w.is_archived
     ORDER BY
         w.updated_at DESC, w.id DESC
     LIMIT @PageSizePLusOne;
-
     ";
 }
