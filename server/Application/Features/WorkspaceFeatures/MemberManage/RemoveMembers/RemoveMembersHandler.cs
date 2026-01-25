@@ -13,27 +13,23 @@ using server.Application.Interfaces;
 
 namespace Application.Features.WorkspaceFeatures.MemberManage.RemoveMembers;
 
-public class RemoveMembersHandler : BaseCommandHandler, IRequestHandler<RemoveMembersCommand, Unit>
+public class RemoveMembersHandler : IRequestHandler<RemoveMembersCommand, Guid>
 {
     private readonly HybridCache _cache;
+    private readonly IUnitOfWork _unitOfWork;
 
-    public RemoveMembersHandler(
-        IUnitOfWork unitOfWork, 
-        IPermissionService permissionService, 
-        ICurrentUserService currentUserService, 
-        WorkspaceContext workspaceContext,
-        HybridCache cache)
-        : base(unitOfWork, permissionService, currentUserService, workspaceContext) 
+    public RemoveMembersHandler(HybridCache cache,IUnitOfWork unitOfWork )
     {
         _cache = cache;
+        _unitOfWork = unitOfWork;
     }
-
-    public async Task<Unit> Handle(RemoveMembersCommand request, CancellationToken cancellationToken)
+    public async Task<Guid> Handle(RemoveMembersCommand request, CancellationToken cancellationToken)
     {
-        var workspace = await UnitOfWork.Set<ProjectWorkspace>().FindAsync(request.workspaceId, cancellationToken) ?? throw new KeyNotFoundException("Workspace not found");
+        var workspace = await _unitOfWork.Set<ProjectWorkspace>().AsNoTracking()
+            .FirstOrDefaultAsync(w => w.Id == request.workspaceId, cancellationToken)
+            ?? throw new KeyNotFoundException("No workspace founded");
 
-        await RequirePermissionAsync(workspace, EntityType.WorkspaceMember, PermissionAction.Delete, cancellationToken);
-        await UnitOfWork.Set<WorkspaceMember>()
+        await _unitOfWork.Set<WorkspaceMember>()
             .Where(wm => wm.ProjectWorkspaceId == request.workspaceId && request.memberIds.Contains(wm.UserId))
             .ExecuteUpdateAsync(updates =>
                 updates.SetProperty(wm => wm.DeletedAt, DateTimeOffset.UtcNow)
@@ -41,8 +37,8 @@ public class RemoveMembersHandler : BaseCommandHandler, IRequestHandler<RemoveMe
                 cancellationToken: cancellationToken);
 
         // Invalidate cache
-        await _cache.RemoveAsync(CacheKeys.WorkspaceMembers(request.workspaceId), cancellationToken);
+        await  _cache.RemoveByTagAsync($"workspaces:{request.workspaceId}:members", cancellationToken);
 
-        return Unit.Value;
+        return workspace.Id;
     }
 }

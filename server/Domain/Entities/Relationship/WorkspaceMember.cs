@@ -82,5 +82,12 @@ public class WorkspaceMember : Composite
         }
     }
 
+    public void RestoreMember()
+    {
+        DeletedAt = null;
+        Status = MembershipStatus.Active;
+        JoinedAt = DateTimeOffset.UtcNow;
+    }
+
 }
 

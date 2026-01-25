@@ -21,6 +21,17 @@ import {
 import type { Role } from "@/types/role";
 import type { MembershipStatus } from "@/types/membership-status";
 
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+
 interface Props {
   members?: MemberSummary[];
   onAddMember?: () => void;
@@ -48,6 +59,9 @@ export function MemberGridList({
   const [selectedRole, setSelectedRole] = useState<Role | "">("");
   const [selectedStatus, setSelectedStatus] = useState<MembershipStatus | "">(
     "",
+  );
+  const [pendingDeleteIds, setPendingDeleteIds] = useState<string[] | null>(
+    null,
   );
 
   const uniqueRoles = useMemo(
@@ -97,6 +111,18 @@ export function MemberGridList({
         selectedRole || undefined,
         selectedStatus || undefined,
       );
+    }
+  };
+
+  const handleConfirmDelete = () => {
+    if (pendingDeleteIds) {
+      if (pendingDeleteIds.length === 1) {
+        onDeleteMember?.(pendingDeleteIds[0]);
+      } else {
+        onBatchDelete?.(pendingDeleteIds);
+      }
+      setPendingDeleteIds(null);
+      if (isEditMode) handleExitEditMode();
     }
   };
 
@@ -223,7 +249,7 @@ export function MemberGridList({
                 isEditMode={isEditMode}
                 isSelected={selectedMembers.includes(member.id)}
                 onSelect={() => toggleMemberSelection(member.id)}
-                onDelete={onDeleteMember || (() => {})}
+                onDelete={(id) => setPendingDeleteIds([id])}
               />
             ))}
           </div>
@@ -301,7 +327,7 @@ export function MemberGridList({
                 size="sm"
                 variant="outline"
                 className="h-9 w-9 p-0 rounded-xl bg-background/50 border-border/50 hover:bg-destructive/10 hover:text-destructive hover:border-destructive/30 transition-all border-dashed"
-                onClick={() => onBatchDelete?.(selectedMembers)}
+                onClick={() => setPendingDeleteIds(selectedMembers)}
                 title="Remove selected"
               >
                 <Trash2 className="h-4 w-4 transition-transform hover:scale-110" />
@@ -321,6 +347,39 @@ export function MemberGridList({
           </div>
         </div>
       )}
+
+      {/* Confirmation Dialog */}
+      <AlertDialog
+        open={pendingDeleteIds !== null}
+        onOpenChange={(open) => !open && setPendingDeleteIds(null)}
+      >
+        <AlertDialogContent className="rounded-3xl border-border/50 bg-card/95 backdrop-blur-2xl">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-xl font-bold">
+              {pendingDeleteIds?.length === 1
+                ? "Remove Member"
+                : `Remove ${pendingDeleteIds?.length} Members`}
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-sm text-muted-foreground">
+              Are you sure you want to remove{" "}
+              {pendingDeleteIds?.length === 1 ? "this member" : "these members"}{" "}
+              from the workspace? This action will revoke their access
+              immediately.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="gap-2 sm:gap-0">
+            <AlertDialogCancel className="rounded-xl border-border/50 hover:bg-accent transition-colors">
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleConfirmDelete}
+              className="rounded-xl bg-destructive text-destructive-foreground hover:bg-destructive/90 transition-all"
+            >
+              Remove
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

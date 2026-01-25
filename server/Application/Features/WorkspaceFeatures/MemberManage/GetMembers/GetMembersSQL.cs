@@ -30,6 +30,7 @@ public static class GetMembersSQL
     JOIN workspace_members wm 
         ON wm.user_id = u.id AND wm.project_workspace_id = @WorkspaceId
     WHERE 
+        wm.deleted_at IS NULL AND
         (@name IS NULL OR u.name ILIKE '%' || @name || '%') AND 
         (@email IS NULL OR u.email ILIKE '%' || @email || '%') AND 
         (@role IS NULL OR wm.role = @role) AND
@@ -58,6 +59,7 @@ public static class GetMembersSQL
     JOIN workspace_members wm 
         ON wm.user_id = u.id AND wm.project_workspace_id = @WorkspaceId
     WHERE 
+        wm.deleted_at IS NULL AND
         (@name IS NULL OR u.name ILIKE '%' || @name || '%') AND 
         (@email IS NULL OR u.email ILIKE '%' || @email || '%') AND 
         (@role IS NULL OR wm.role = @role) AND

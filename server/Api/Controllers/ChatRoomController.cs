@@ -55,12 +55,6 @@ public class ChatRoomController : ControllerBase
         return await SendRequest(command, cancellationToken);
     }
 
-    [HttpDelete("chat-rooms/{chatRoomId:guid}/members")]
-    public async Task<IActionResult> RemoveMembers(Guid chatRoomId, [FromBody] RemoveMembersRequest request, CancellationToken cancellationToken)
-    {
-        var command = new RemoveMembersFromChatRoomCommand(chatRoomId, request.MemberIds);
-        return await SendRequest(command, cancellationToken);
-    }
 
     [HttpGet("chat-rooms/{chatRoomId:guid}/messages")]
     public async Task<IActionResult> GetMessages(
@@ -92,5 +86,4 @@ public class ChatRoomController : ControllerBase
 public record CreateChatRoomRequest(string Name, string? AvatarUrl, bool InviteMembersInWorkspace, List<Guid>? MemberIds);
 public record EditChatRoomRequest(string? NewName, string? AvatarUrl, bool IsPrivate, bool IsArchived, bool TurnOffNotifications);
 public record InviteMembersRequest(List<Guid> MemberIds);
-public record RemoveMembersRequest(List<Guid> MemberIds);
 public record SendMessageRequest(string Content, Guid? ReplyToMessageId);

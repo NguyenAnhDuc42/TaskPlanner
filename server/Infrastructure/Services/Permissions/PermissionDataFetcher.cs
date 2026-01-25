@@ -34,7 +34,7 @@ public class PermissionDataFetcher
                 Console.WriteLine($"[HybridCache] MISS: Fetching workspace role for user {userId} and workspace {workspaceId}");
                 var result = await _dbContext.WorkspaceMembers
                     .AsNoTracking()
-                    .Where(wm => wm.ProjectWorkspaceId == workspaceId && wm.UserId == userId)
+                    .Where(wm => wm.ProjectWorkspaceId == workspaceId && wm.UserId == userId && wm.DeletedAt == null)
                     .Select(wm => wm.Role)
                     .FirstOrDefaultAsync(ct);
                 return result;

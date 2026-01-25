@@ -35,11 +35,12 @@ public static class GetWorkspaceListSQL
     FROM 
         project_workspaces w
     JOIN workspace_members wm 
-        ON wm.project_workspace_id = w.id AND wm.user_id = @CurrentUserId
+        ON wm.project_workspace_id = w.id AND wm.user_id = @CurrentUserId AND wm.deleted_at IS NULL
     JOIN
         workspace_members wm_all
-        ON wm_all.project_workspace_id = w.id
+        ON wm_all.project_workspace_id = w.id AND wm_all.deleted_at IS NULL
     WHERE 
+        w.deleted_at IS NULL AND
         (@name IS NULL OR w.name ILIKE '%' || @name || '%') AND 
         (@owned IS NULL OR @owned = false OR wm.role = 'Owner') AND
         (@isArchived IS NULL OR w.is_archived = @isArchived) AND 
@@ -73,11 +74,12 @@ public static class GetWorkspaceListSQL
     FROM 
         project_workspaces w
     JOIN workspace_members wm 
-        ON wm.project_workspace_id = w.id AND wm.user_id = @CurrentUserId
+        ON wm.project_workspace_id = w.id AND wm.user_id = @CurrentUserId AND wm.deleted_at IS NULL
     JOIN
         workspace_members wm_all
-        ON wm_all.project_workspace_id = w.id
+        ON wm_all.project_workspace_id = w.id AND wm_all.deleted_at IS NULL
     WHERE 
+        w.deleted_at IS NULL AND
         (@name IS NULL OR w.name ILIKE '%' || @name || '%') AND 
         (@owned IS NULL OR @owned = false OR wm.role = 'Owner') AND
         (@isArchived IS NULL OR w.is_archived = @isArchived) AND 

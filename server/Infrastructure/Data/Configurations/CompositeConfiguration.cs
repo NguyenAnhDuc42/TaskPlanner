@@ -16,6 +16,8 @@ public abstract class CompositeConfiguration<TEntity> : IEntityTypeConfiguration
 
         builder.Property(x => x.DeletedAt).HasColumnName("deleted_at").HasConversion<DateTimeOffset>();
         builder.Property(x => x.CreatorId).HasColumnName("creator_id");  
+        
+        builder.HasQueryFilter(x => x.DeletedAt == null);
 
         builder.HasIndex(x => x.CreatorId);  
         builder.Ignore(x => x.DomainEvents);

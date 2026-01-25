@@ -51,19 +51,33 @@ public class AddMembersHandler : IRequestHandler<AddMembersCommand, Guid>
                 keySelector: u => u.Email.Trim().ToLowerInvariant(),
                 elementSelector: u => u);
 
+        // Fetch ALL members including soft-deleted ones to check for re-adds
+        var existingMembers = await _unitOfWork.Set<WorkspaceMember>()
+            .IgnoreQueryFilters()
+            .Where(wm => wm.ProjectWorkspaceId == request.workspaceId)
+            .ToListAsync(cancellationToken);
+
         var workspace = await _unitOfWork.Set<ProjectWorkspace>()
-            .Include(w => w.Members)
             .FirstOrDefaultAsync(w => w.Id == request.workspaceId) 
             ?? throw new KeyNotFoundException("No Workspace fouded");
 
         var specs = new List<(Guid UserId, Role Role, MembershipStatus Status, string? JoinMethod)>();
 
-
         foreach (var member in normalizedMembers)
         {
             if(!usersByNormalizedEmail.TryGetValue(member.NormalizedEmail, out var user)) continue;
 
-            if (workspace.Members.Any(m => m.UserId == user.Id)) continue;
+            var existing = existingMembers.FirstOrDefault(m => m.UserId == user.Id);
+            if (existing != null)
+            {
+                if (existing.DeletedAt != null)
+                {
+                    // Restore soft-deleted member
+                    existing.UpdateRole(member.role);
+                    existing.RestoreMember();
+                }
+                continue;
+            }
 
             specs.Add((user.Id, member.role, MembershipStatus.Active, "Invite"));
         }

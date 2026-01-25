@@ -13,6 +13,7 @@ using Application.Contract.UserContract;
 using Application.Features.WorkspaceFeatures.MemberManage.GetMembers;
 using Application.Features.WorkspaceFeatures.MemberManage.AddMembers;
 using Application.Features.WorkspaceFeatures.MemberManage.UpdateMembers;
+using Application.Features.WorkspaceFeatures.MemberManage.RemoveMembers;
 
 namespace Api.Controllers
 {
@@ -123,23 +124,24 @@ namespace Api.Controllers
             return Ok(result);
         }
 
-        // [HttpDelete("{id:guid}/members")]
-        // public async Task<IActionResult> RemoveMembers(
-        //     Guid id,
-        //     [FromBody] RemoveMembersRequest request,
-        //     CancellationToken cancellationToken)
-        // {
-        //     var command = new Application.Features.WorkspaceFeatures.MemberManage.RemoveMembers.RemoveMembersCommand(
-        //         workspaceId: id,
-        //         memberIds: request.MemberIds
-        //     );
-        //     var result = await _mediator.Send(command, cancellationToken);
-        //     return Ok(result);
-        // }
+        [HttpDelete("{id:guid}/members")]
+        public async Task<IActionResult> RemoveMembers(
+            Guid id,
+            [FromBody] RemoveMembersRequest request,
+            CancellationToken cancellationToken)
+        {
+            var command = new Application.Features.WorkspaceFeatures.MemberManage.RemoveMembers.RemoveMembersCommand(
+                workspaceId: id,
+                memberIds: request.MemberIds
+            );
+            var result = await _mediator.Send(command, cancellationToken);
+            return Ok(result);
+        }
     }
 
     public record AddMembersRequest(List<MemberValue> Members, bool? EnableEmail = false, string? Message = null);
     public record UpdateMembersRequest(List<UpdateMemberValue> Members);
-    // public record RemoveMembersRequest(List<Guid> MemberIds);
+    public record RemoveMembersRequest(List<Guid> MemberIds);
+
 
 }
