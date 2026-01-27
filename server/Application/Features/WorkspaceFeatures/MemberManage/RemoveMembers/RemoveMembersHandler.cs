@@ -9,6 +9,7 @@ using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Hybrid;
 using server.Application.Interfaces;
+using Application.Helpers;
 
 namespace Application.Features.WorkspaceFeatures.MemberManage.RemoveMembers;
 

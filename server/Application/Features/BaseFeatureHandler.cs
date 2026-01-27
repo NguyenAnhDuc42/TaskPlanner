@@ -1,7 +1,8 @@
+using Application.Common;
 using Application.Common.Exceptions;
+using Application.Helpers;
 using Application.Interfaces.Repositories;
 using Application.Interfaces.Services.Permissions;
-using Domain;
 using Domain.Common;
 using Domain.Entities.ProjectEntities;
 using Domain.Enums;
@@ -16,7 +17,7 @@ public abstract class BaseFeatureHandler
     protected readonly IPermissionService PermissionService;
     protected readonly ICurrentUserService CurrentUserService;
     protected readonly WorkspaceContext WorkspaceContext;
-    protected Guid WorkspaceId => WorkspaceContext.WorkspaceId;
+    protected Guid WorkspaceId => WorkspaceContext.workspaceId;
     protected Guid CurrentUserId => CurrentUserService.CurrentUserId();
 
     protected BaseFeatureHandler(IUnitOfWork unitOfWork, IPermissionService permissionService, ICurrentUserService currentUserService, WorkspaceContext workspaceContext)
@@ -123,7 +124,7 @@ public abstract class BaseFeatureHandler
         if (CurrentUserId == Guid.Empty)
             throw new UnauthorizedAccessException();
 
-        var entityType = PermissionDataFetcher.GetEntityType<T>();
+        var entityType = EntityTypeMapper.GetEntityType<T>();
 
         // 1. Authorize (ID-based check)
         var hasPermission = await PermissionService.CanPerformAsync(

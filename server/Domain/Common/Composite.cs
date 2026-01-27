@@ -12,7 +12,7 @@ public abstract class Composite
     private readonly List<IDomainEvent> _domainEvents = new();
     public IReadOnlyCollection<IDomainEvent> DomainEvents => _domainEvents.AsReadOnly();
 
-     public virtual Guid Id { get; } = Guid.NewGuid();
+    public virtual Guid Id { get; protected set; } = Guid.NewGuid();
 
     protected Composite() { }
     

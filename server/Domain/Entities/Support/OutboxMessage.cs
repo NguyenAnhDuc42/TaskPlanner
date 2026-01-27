@@ -1,4 +1,3 @@
-using System;
 using Domain.Common;
 using Domain.Enums;
 
@@ -22,21 +21,19 @@ public class OutboxMessage : Composite
         Content = content;
         OccurredOnUtc = occurredOnUtc;
         State = OutboxState.Pending;
-        CreatedAt = DateTimeOffset.UtcNow;
-        UpdatedAt = DateTimeOffset.UtcNow;
     }
 
     public void MarkAsProcessed()
     {
         ProcessedOnUtc = DateTimeOffset.UtcNow;
         State = OutboxState.Sent;
-        UpdatedAt = DateTimeOffset.UtcNow;
+        UpdateTimestamp();
     }
 
     public void MarkAsFailed(string error)
     {
         Error = error;
         State = OutboxState.DeadLetter;
-        UpdatedAt = DateTimeOffset.UtcNow;
+        UpdateTimestamp();
     }
 }

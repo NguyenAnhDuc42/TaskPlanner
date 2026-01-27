@@ -102,8 +102,8 @@ public class PermissionDataFetcher
         var conn = _dbContext.Database.GetDbConnection();
         var rawOverrides = await conn.QueryAsync<dynamic>(sql, new { userId, allIds = allIds.ToArray() });
         var overrides = rawOverrides.ToDictionary(
-            x => (Guid)x.layerid, 
-            x => Enum.TryParse<AccessLevel>(x.accesslevel, out var al) ? al : (AccessLevel?)null);
+            x => (Guid)x.LayerId, 
+            x => Enum.TryParse<AccessLevel>((string)x.AccessLevel, out var al) ? (AccessLevel?)al : null);
 
         // 3. Resolve "Effective Access" and "Privacy Block" (The Private-First Waterfall)
         var visibilityChain = new List<VisibilityLevel>();
