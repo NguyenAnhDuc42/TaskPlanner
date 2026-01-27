@@ -44,10 +44,7 @@ public class MoveItemHandler : BaseCommandHandler, IRequestHandler<MoveItemComma
 
     private async Task MoveSpace(Guid spaceId, long newOrderKey, CancellationToken cancellationToken)
     {
-        var space = await FindOrThrowAsync<ProjectSpace>(spaceId);
-
-        // Permission check
-        await RequirePermissionAsync(space, PermissionAction.Edit, cancellationToken);
+        var space = await AuthorizeAndFetchAsync<ProjectSpace>(spaceId, PermissionAction.Edit, cancellationToken);
 
         // Update order key
         space.Update(orderKey: newOrderKey);
@@ -55,18 +52,12 @@ public class MoveItemHandler : BaseCommandHandler, IRequestHandler<MoveItemComma
 
     private async Task MoveFolder(Guid folderId, Guid? newSpaceId, long newOrderKey, CancellationToken cancellationToken)
     {
-        var folder = await FindOrThrowAsync<ProjectFolder>(folderId);
+        var folder = await AuthorizeAndFetchAsync<ProjectFolder>(folderId, PermissionAction.Edit, cancellationToken);
 
-        // Permission check
-        await RequirePermissionAsync(folder, PermissionAction.Edit, cancellationToken);
-
-        // If moving to a different space, validate it exists
+        // If moving to a different space, validate it exists and we have permissions
         if (newSpaceId.HasValue && newSpaceId.Value != folder.ProjectSpaceId)
         {
-            var newSpace = await FindOrThrowAsync<ProjectSpace>(newSpaceId.Value);
-
-            // Permission check on target space
-            await RequirePermissionAsync(newSpace, PermissionAction.Edit, cancellationToken);
+            var newSpace = await AuthorizeAndFetchAsync<ProjectSpace>(newSpaceId.Value, PermissionAction.Edit, cancellationToken);
 
             // Update folder's space and order key
             await UnitOfWork.Set<ProjectFolder>()
@@ -86,10 +77,7 @@ public class MoveItemHandler : BaseCommandHandler, IRequestHandler<MoveItemComma
 
     private async Task MoveList(Guid listId, Guid? newParentId, long newOrderKey, CancellationToken cancellationToken)
     {
-        var list = await FindOrThrowAsync<ProjectList>(listId);
-
-        // Permission check
-        await RequirePermissionAsync(list, PermissionAction.Edit, cancellationToken);
+        var list = await AuthorizeAndFetchAsync<ProjectList>(listId, PermissionAction.Edit, cancellationToken);
 
         // Determine if moving to a folder or directly under a space
         if (newParentId.HasValue)
@@ -101,19 +89,17 @@ public class MoveItemHandler : BaseCommandHandler, IRequestHandler<MoveItemComma
 
             if (targetFolder != null)
             {
-                // Moving to a folder
-                await RequirePermissionAsync(targetFolder, PermissionAction.Edit, cancellationToken);
+                // Moving to a folder - Authorize on target folder
+                await AuthorizeAndFetchAsync<ProjectFolder>(targetFolder.Id, PermissionAction.Edit, cancellationToken);
 
                 list.Update(orderKey: newOrderKey, projectFolderId: newParentId.Value);
             }
             else
             {
-                // Try to find as space
-                var targetSpace = await FindOrThrowAsync<ProjectSpace>(newParentId.Value);
+                // Try to find as space - Authorize on target space
+                var targetSpace = await AuthorizeAndFetchAsync<ProjectSpace>(newParentId.Value, PermissionAction.Edit, cancellationToken);
 
                 // Moving directly under a space (no folder)
-                await RequirePermissionAsync(targetSpace, PermissionAction.Edit, cancellationToken);
-
                 await UnitOfWork.Set<ProjectList>()
                     .Where(l => l.Id == listId)
                     .ExecuteUpdateAsync(updates =>

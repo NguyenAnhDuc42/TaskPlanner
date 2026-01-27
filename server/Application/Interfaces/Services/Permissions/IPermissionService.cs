@@ -15,6 +15,14 @@ public interface IPermissionService
         CancellationToken ct)
         where TEntity : Entity;
 
+    Task<bool> CanPerformAsync(
+        Guid workspaceId,
+        Guid userId,
+        Guid entityId,
+        EntityType type,
+        PermissionAction action,
+        CancellationToken ct);
+
     // Overload 2: Create child in parent
     Task<bool> CanPerformAsync<TParent>(
         Guid workspaceId,

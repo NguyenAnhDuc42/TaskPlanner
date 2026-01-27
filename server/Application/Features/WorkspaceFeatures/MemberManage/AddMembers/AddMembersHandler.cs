@@ -9,24 +9,26 @@ using Microsoft.EntityFrameworkCore;
 using server.Application.Interfaces;
 using System;
 using Microsoft.Extensions.Caching.Hybrid;
+using Application.Interfaces.Services.Permissions;
+using Application.Common;
 
 namespace Application.Features.WorkspaceFeatures.MemberManage.AddMembers;
 
-public class AddMembersHandler : IRequestHandler<AddMembersCommand, Guid>
+public class AddMembersHandler : BaseCommandHandler, IRequestHandler<AddMembersCommand, Guid>
 {
-    private readonly ICurrentUserService _currentUserService;
-    private readonly IUnitOfWork _unitOfWork;
     private readonly HybridCache _cache;
 
-    public AddMembersHandler(ICurrentUserService currentUserService, IUnitOfWork unitOfWork, HybridCache cache)
+    public AddMembersHandler(IUnitOfWork unitOfWork, IPermissionService permissionService, ICurrentUserService currentUserService, WorkspaceContext workspaceContext, HybridCache cache)
+       : base(unitOfWork, permissionService, currentUserService, workspaceContext)
     {
-       _currentUserService = currentUserService;
-       _unitOfWork = unitOfWork;
-       _cache = cache;
+        _cache = cache;
     }
-    // future add email notification 
+
     public async Task<Guid> Handle(AddMembersCommand request, CancellationToken cancellationToken)
     {
+        // 1. Authorize & Fetch using the new unified logic
+        var workspace = await AuthorizeAndFetchAsync<ProjectWorkspace>(request.workspaceId, PermissionAction.Create, cancellationToken);
+
         var normalizedMembers = request.members
             .DistinctBy(m => m.email.Trim().ToLowerInvariant())
             .Where(m => !string.IsNullOrWhiteSpace(m.email))
@@ -36,13 +38,14 @@ public class AddMembersHandler : IRequestHandler<AddMembersCommand, Guid>
                 m.role
             })
             .ToList();
-        if (normalizedMembers.Count == 0) return request.workspaceId;
+
+        if (normalizedMembers.Count == 0) return workspace.Id;
 
         var emailsToFind = normalizedMembers
             .Select(m => m.NormalizedEmail)
             .ToList();
 
-        var users = await _unitOfWork.Set<User>()
+        var users = await UnitOfWork.Set<User>()
             .Where(u => emailsToFind.Contains(u.Email.ToLower()))
             .AsNoTracking()
             .ToListAsync(cancellationToken);
@@ -52,14 +55,10 @@ public class AddMembersHandler : IRequestHandler<AddMembersCommand, Guid>
                 elementSelector: u => u);
 
         // Fetch ALL members including soft-deleted ones to check for re-adds
-        var existingMembers = await _unitOfWork.Set<WorkspaceMember>()
+        var existingMembers = await UnitOfWork.Set<WorkspaceMember>()
             .IgnoreQueryFilters()
             .Where(wm => wm.ProjectWorkspaceId == request.workspaceId)
             .ToListAsync(cancellationToken);
-
-        var workspace = await _unitOfWork.Set<ProjectWorkspace>()
-            .FirstOrDefaultAsync(w => w.Id == request.workspaceId) 
-            ?? throw new KeyNotFoundException("No Workspace fouded");
 
         var specs = new List<(Guid UserId, Role Role, MembershipStatus Status, string? JoinMethod)>();
 
@@ -72,7 +71,6 @@ public class AddMembersHandler : IRequestHandler<AddMembersCommand, Guid>
             {
                 if (existing.DeletedAt != null)
                 {
-                    // Restore soft-deleted member
                     existing.UpdateRole(member.role);
                     existing.RestoreMember();
                 }
@@ -81,19 +79,13 @@ public class AddMembersHandler : IRequestHandler<AddMembersCommand, Guid>
 
             specs.Add((user.Id, member.role, MembershipStatus.Active, "Invite"));
         }
+
         if (specs.Count > 0)
         {
-            workspace.AddMembers(specs,_currentUserService.UserId);
-            await _cache.RemoveByTagAsync($"workspaces:{request.workspaceId}:members", cancellationToken);
-        }
-        var entries = _unitOfWork.ChangeTracker.Entries();
-        Console.WriteLine($"Tracked entries: {entries.Count()}");
-        foreach (var entry in entries)
-        {
-            Console.WriteLine($"  Entity: {entry.Entity.GetType().Name}, State: {entry.State}");
+            workspace.AddMembers(specs, CurrentUserId);
+            await _cache.RemoveByTagAsync(CacheConstants.Tags.WorkspaceMembers(request.workspaceId), cancellationToken);
         }
 
         return workspace.Id;
     }
 }
-

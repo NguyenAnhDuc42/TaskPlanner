@@ -19,7 +19,7 @@ public class CreateListHandler : BaseCommandHandler, IRequestHandler<CreateListC
 
     public async Task<Guid> Handle(CreateListCommand request, CancellationToken cancellationToken)
     {
-        var space = await FindOrThrowAsync<ProjectSpace>(request.spaceId);
+        var space = await AuthorizeAndFetchAsync<ProjectSpace>(request.spaceId, PermissionAction.Create, cancellationToken);
 
         ProjectFolder? folder = null;
         if (request.folderId.HasValue)
@@ -31,7 +31,6 @@ public class CreateListHandler : BaseCommandHandler, IRequestHandler<CreateListC
                 throw new InvalidOperationException("Folder does not belong to space");
             }
         }
-        await RequirePermissionAsync(space, EntityType.ProjectList, PermissionAction.Create, cancellationToken);
 
         long orderKey = folder?.GetNextItemOrderAndIncrement() ?? space.GetNextItemOrderAndIncrement();
         var customization = Customization.Create(request.color, request.icon);

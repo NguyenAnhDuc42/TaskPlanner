@@ -19,9 +19,7 @@ public class CreateSpaceHandler : BaseCommandHandler, IRequestHandler<CreateSpac
        
     public async Task<Guid> Handle(CreateSpaceCommand request, CancellationToken cancellationToken)
     {
-        var workspace = await FindOrThrowAsync<ProjectWorkspace>(request.workspaceId);
-        
-        await RequirePermissionAsync(workspace, EntityType.ProjectSpace, PermissionAction.Create, cancellationToken);
+        var workspace = await AuthorizeAndFetchAsync<ProjectWorkspace>(request.workspaceId, PermissionAction.Create, cancellationToken);
         var customization = Customization.Create(request.color, request.icon);
         var orderKey = workspace.GetNextItemOrderAndIncrement();
         

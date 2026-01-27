@@ -42,9 +42,10 @@ builder.Services.AddApplication(builder.Configuration);
 // We do NOT call AddHangfireServer() here (that's the Worker's job).
 builder.Services.AddBackground(builder.Configuration);
 
-
-
 var app = builder.Build();
+
+// Schedule Recurring Jobs
+HangfireJobScheduler.ScheduleJobs();
 
 // --- 3. Aspire Endpoints & Monitoring ---
 app.MapDefaultEndpoints(); // Standardizes /health and /alive across all containers

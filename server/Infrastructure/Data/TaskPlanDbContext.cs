@@ -41,6 +41,8 @@ public class TaskPlanDbContext : DbContext
     public DbSet<Widget> Widgets { get; set; }
     public DbSet<Dashboard> Dashboards { get; set; }
     
+    public DbSet<OutboxMessage> OutboxMessages { get; set; }
+    
 
 
 

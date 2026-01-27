@@ -7,14 +7,17 @@ namespace Infrastructure.Services.Permissions;
 
 public class PermissionService : IPermissionService
 {
-    private readonly PermissionContextBuilder _contextBuilder;
+    private readonly IHierarchyService _hierarchyService;
+    private readonly PermissionDataFetcher _dataFetcher;
     private readonly ILogger<PermissionService> _logger;
 
     public PermissionService(
-        PermissionContextBuilder contextBuilder,
+        IHierarchyService hierarchyService,
+        PermissionDataFetcher dataFetcher,
         ILogger<PermissionService> logger)
     {
-        _contextBuilder = contextBuilder;
+        _hierarchyService = hierarchyService;
+        _dataFetcher = dataFetcher;
         _logger = logger;
     }
 
@@ -26,29 +29,53 @@ public class PermissionService : IPermissionService
         CancellationToken ct) where TEntity : Entity
     {
         if (entity == null) throw new ArgumentNullException(nameof(entity));
+        var entityType = PermissionDataFetcher.GetEntityType<TEntity>();
+        
+        return await CanPerformAsync(workspaceId, userId, entity.Id, entityType, action, ct);
+    }
+
+    public async Task<bool> CanPerformAsync(
+        Guid workspaceId,
+        Guid userId,
+        Guid entityId,
+        EntityType type,
+        PermissionAction action,
+        CancellationToken ct)
+    {
         ct.ThrowIfCancellationRequested();
 
-        var entityType = PermissionDataFetcher.GetEntityType<TEntity>();
-
-        var rule = PermissionMatrix.GetRule(entityType, action);
-        if (rule == null)
+        // 1. Resolve Hierarchy
+        var path = await _hierarchyService.ResolvePathAsync(entityId, type, ct);
+        if (!path.IsValid)
         {
-            _logger.LogWarning("No permission rule found for {EntityType}.{Action}", entityType, action);
+            _logger.LogWarning("Failed to resolve hierarchy for {Type} {Id}", type, entityId);
             return false;
         }
 
-        var context = await _contextBuilder.BuildForEntityAsync(workspaceId, userId, entity, rule.DataNeeds, ct);
+        // 2. Validate Workspace Boundary
+        if (path.WorkspaceId != workspaceId)
+        {
+            _logger.LogWarning("Security violation: Entity {Id} ({Type}) belongs to workspace {ActualWs}, but request for {RequestedWs}",
+                entityId, type, path.WorkspaceId, workspaceId);
+            return false;
+        }
 
-        var result = rule.Evaluate(context);
+        // 3. Get Security Context (The Waterfall)
+        var context = await _dataFetcher.GetSecurityContextAsync(userId, path, ct);
+
+        // 4. Matrix Check
+        var result = PermissionMatrix.CanPerform(type, action, context);
+
         if (!result)
         {
-            _logger.LogWarning("Permission denied: User {UserId} action {Action} on {EntityType} {EntityId}",
-                userId, action, entityType, entity.Id);
+            _logger.LogWarning("Permission denied: User {UserId} action {Action} on {Type} {EntityId}",
+                userId, action, type, entityId);
         }
 
         return result;
     }
 
+    // Gradual refactor of older overloads to use the same logic if possible
     public async Task<bool> CanPerformAsync<TParent>(
         Guid workspaceId,
         Guid userId,
@@ -58,75 +85,36 @@ public class PermissionService : IPermissionService
         CancellationToken ct) where TParent : Entity
     {
         if (parentEntity == null) throw new ArgumentNullException(nameof(parentEntity));
-        ct.ThrowIfCancellationRequested();
-
-        var rule = PermissionMatrix.GetRule(childType, action);
-        if (rule == null)
-        {
-            _logger.LogWarning("No permission rule found for {EntityType}.{Action}", childType, action);
-            return false;
-        }
-
-        var context = await _contextBuilder.BuildForParentChildAsync(
-            workspaceId, userId, parentEntity, rule.DataNeeds, ct);
-
-        var result = rule.Evaluate(context);
-        if (!result)
-        {
-            var parentType = PermissionDataFetcher.GetEntityType<TParent>();
-            _logger.LogWarning("Permission denied: User {UserId} create {ChildType} in {ParentType} {ParentId}",
-                userId, childType, parentType, parentEntity.Id);
-        }
-
-        return result;
+        // For creating children, the ID we check is the PARENT's ID
+        return await CanPerformAsync(workspaceId, userId, parentEntity.Id, PermissionDataFetcher.GetEntityType<TParent>(), action, ct);
     }
 
     public async Task<bool> CanPerformAsync<TChild, TParent>(Guid workspaceId, Guid userId, TChild childEntity, TParent parentEntity, PermissionAction action, CancellationToken ct)
         where TChild : Entity
         where TParent : Entity
     {
-        if (parentEntity == null) throw new ArgumentNullException(nameof(parentEntity));
         if (childEntity == null) throw new ArgumentNullException(nameof(childEntity));
-        ct.ThrowIfCancellationRequested();
-
-        var childType = PermissionDataFetcher.GetEntityType<TChild>();
-
-        var rule = PermissionMatrix.GetRule(childType, action);
-        if (rule == null)
-        {
-            _logger.LogWarning("No permission rule found for {EntityType}.{Action}", childType, action);
-            return false;
-        }
-
-        var context = await _contextBuilder.BuildForChildWithParentAsync(
-            workspaceId, userId, childEntity, parentEntity, rule.DataNeeds, ct);
-
-        var result = rule.Evaluate(context);
-        if (!result) 
-        {
-            _logger.LogWarning("Permission denied: User {UserId} action {Action} on {EntityType} {EntityId}",userId, action, childType, childEntity.Id); 
-        }
-
-        return result;
+        return await CanPerformAsync(workspaceId, userId, childEntity.Id, PermissionDataFetcher.GetEntityType<TChild>(), action, ct);
     }
 
     public async Task InvalidateWorkspaceRoleCacheAsync(Guid userId, Guid workspaceId)
     {
-        await _contextBuilder.InvalidateWorkspaceRoleCacheAsync(userId, workspaceId);
+        await _dataFetcher.InvalidateWorkspaceRoleCacheAsync(userId, workspaceId);
     }
 
     public async Task InvalidateEntityAccessCacheAsync(Guid userId, Guid entityId, EntityType entityType)
     {
-        await _contextBuilder.InvalidateEntityAccessCacheAsync(userId, entityId, entityType);
+        await _dataFetcher.InvalidateUserPermissionsCacheAsync(userId);
     }
 
     public async Task InvalidateChatRoomCacheAsync(Guid userId, Guid chatRoomId)
     {
-        await _contextBuilder.InvalidateChatRoomCacheAsync(userId, chatRoomId);
+        await _dataFetcher.InvalidateChatRoomCacheAsync(userId, chatRoomId);
     }
 
     public async Task InvalidateUserCacheAsync(Guid userId, Guid workspaceId)
     {
-        await _contextBuilder.InvalidateUserCacheAsync(userId, workspaceId);
+        await _dataFetcher.InvalidateUserPermissionsCacheAsync(userId);
+        await _dataFetcher.InvalidateWorkspaceRoleCacheAsync(userId, workspaceId);
     }
 }

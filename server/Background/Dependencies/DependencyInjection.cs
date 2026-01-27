@@ -27,6 +27,7 @@ public static class DependencyInjection
 
         // Jobs (registered for DI so Hangfire can resolve them)
         services.AddScoped<MemberCleanupJob>();
+        services.AddScoped<ProcessOutboxJob>();
 
         return services;
     }

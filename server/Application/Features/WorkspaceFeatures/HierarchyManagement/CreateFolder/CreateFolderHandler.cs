@@ -19,9 +19,8 @@ public class CreateFolderHandler : BaseCommandHandler, IRequestHandler<CreateFol
 
     public async Task<Guid> Handle(CreateFolderCommand request, CancellationToken cancellationToken)
     {
-        var space = await FindOrThrowAsync<ProjectSpace>(request.spaceId);
+        var space = await AuthorizeAndFetchAsync<ProjectSpace>(request.spaceId, PermissionAction.Create, cancellationToken);
         
-        await RequirePermissionAsync(space, EntityType.ProjectFolder, PermissionAction.Create, cancellationToken);
         var customization = Customization.Create(request.color, request.icon);
         var orderKey = space.GetNextItemOrderAndIncrement();
         

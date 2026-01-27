@@ -22,7 +22,7 @@ public static class ServicesRegistration
         services.AddScoped<ICookieService, CookieService>();
         services.AddScoped<ITokenService, TokenService>();
         services.AddScoped<IPermissionService, PermissionService>();
-        services.AddScoped<PermissionContextBuilder>();
+        services.AddScoped<IHierarchyService, HierarchyService>();
         services.AddScoped<PermissionDataFetcher>();
         services.AddScoped<IRealtimeService, SignalRRealtimeService>();
         services.AddTransient<IExternalAuthService, ExternalAuthService>();

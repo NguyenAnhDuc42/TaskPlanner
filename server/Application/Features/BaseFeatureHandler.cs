@@ -114,6 +114,37 @@ public abstract class BaseFeatureHandler
         };
     }
 
+    protected async Task<T> AuthorizeAndFetchAsync<T>(
+        Guid id,
+        PermissionAction action,
+        CancellationToken ct)
+        where T : Entity
+    {
+        if (CurrentUserId == Guid.Empty)
+            throw new UnauthorizedAccessException();
+
+        var entityType = PermissionDataFetcher.GetEntityType<T>();
+
+        // 1. Authorize (ID-based check)
+        var hasPermission = await PermissionService.CanPerformAsync(
+            WorkspaceId,
+            CurrentUserId,
+            id,
+            entityType,
+            action,
+            ct);
+
+        if (!hasPermission)
+            throw new ForbiddenAccessException();
+
+        // 2. Fetch
+        var entity = await UnitOfWork.Set<T>().FindAsync(id);
+        if (entity == null)
+            throw new KeyNotFoundException($"{entityType} with ID {id} not found.");
+
+        return entity;
+    }
+
     protected async Task<T> FindOrThrowAsync<T>(Guid id)
     where T : Entity
     {

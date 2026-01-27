@@ -8,6 +8,8 @@ using Dapper;
 using MediatR;
 using Microsoft.Extensions.Caching.Hybrid;
 
+using Application.Common;
+
 namespace Application.Features.WorkspaceFeatures.MemberManage.GetMembers;
 
 public class GetMembersHandler : IRequestHandler<GetMembersQuery, PagedResult<MemberDto>>
@@ -61,7 +63,7 @@ public class GetMembersHandler : IRequestHandler<GetMembersQuery, PagedResult<Me
                 return new PagedResult<MemberDto>(items, nextCursor, hasMore);
             },
             new HybridCacheEntryOptions { Expiration = TimeSpan.FromMinutes(5) },
-            new[] { $"workspaces:{workspaceId}:members" },
+            new[] { CacheConstants.Tags.WorkspaceMembers(workspaceId) },
             cancellationToken);
     }
 

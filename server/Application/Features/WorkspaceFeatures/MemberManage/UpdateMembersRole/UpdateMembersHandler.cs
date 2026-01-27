@@ -7,28 +7,30 @@ using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Hybrid;
 using server.Application.Interfaces;
+using Application.Interfaces.Services.Permissions;
+using Application.Common;
 
 namespace Application.Features.WorkspaceFeatures.MemberManage.UpdateMembers;
 
-public class UpdateMembersHandler : IRequestHandler<UpdateMembersCommand, Unit>
+public class UpdateMembersHandler : BaseCommandHandler, IRequestHandler<UpdateMembersCommand, Unit>
 {
-    private readonly IUnitOfWork _unitOfWork;
-    private readonly ICurrentUserService _currentUserService;
     private readonly HybridCache _cache;
 
-    public UpdateMembersHandler(IUnitOfWork unitOfWork,ICurrentUserService currentUserService,HybridCache cache)
+    public UpdateMembersHandler(IUnitOfWork unitOfWork, IPermissionService permissionService, ICurrentUserService currentUserService, WorkspaceContext workspaceContext, HybridCache cache)
+        : base(unitOfWork, permissionService, currentUserService, workspaceContext)
     {
-        _unitOfWork = unitOfWork;
-        _currentUserService = currentUserService;
         _cache = cache;
     }
 
     public async Task<Unit> Handle(UpdateMembersCommand request, CancellationToken cancellationToken)
     {
-        var updateDict = request.members.ToDictionary(x => x.userId);
+        // 1. Authorize & Fetch
+        var workspace = await AuthorizeAndFetchAsync<ProjectWorkspace>(request.workspaceId, PermissionAction.Edit, cancellationToken);
 
+        var updateDict = request.members.ToDictionary(x => x.userId);
         var userIdsToUpdate = updateDict.Keys.ToList();
-        var membersToUpdate = await _unitOfWork.Set<WorkspaceMember>()
+
+        var membersToUpdate = await UnitOfWork.Set<WorkspaceMember>()
             .Where(m => m.ProjectWorkspaceId == request.workspaceId && userIdsToUpdate.Contains(m.UserId))
             .ToListAsync(cancellationToken);
 
@@ -38,20 +40,17 @@ public class UpdateMembersHandler : IRequestHandler<UpdateMembersCommand, Unit>
         {
             if (!updateDict.TryGetValue(member.UserId, out var updateInfo)) continue;
 
-            // Prevent changing the role of an Owner
             if (member.Role == Role.Owner && updateInfo.role.HasValue && updateInfo.role.Value != Role.Owner)
             {
-                // We skip role updates for owners. Alternatively, we could throw an exception, 
-                // but for batch updates, skipping is often more user-friendly.
                 if (updateInfo.status.HasValue) member.UpdateStatus(updateInfo.status.Value);
                 continue;
             }
 
             if (updateInfo.role.HasValue) member.UpdateRole(updateInfo.role.Value);
-
             if (updateInfo.status.HasValue) member.UpdateStatus(updateInfo.status.Value);
         }
-        await _cache.RemoveByTagAsync($"workspaces:{request.workspaceId}:members", cancellationToken);
+
+        await _cache.RemoveByTagAsync(CacheConstants.Tags.WorkspaceMembers(request.workspaceId), cancellationToken);
 
         return Unit.Value;
     }
