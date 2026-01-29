@@ -1,3 +1,4 @@
+
 using Application.Common;
 using Application.Common.Exceptions;
 using Application.Helpers;
@@ -7,6 +8,7 @@ using Domain.Common;
 using Domain.Entities.ProjectEntities;
 using Domain.Enums;
 using Domain.Enums.RelationShip;
+using Microsoft.EntityFrameworkCore;
 using server.Application.Interfaces;
 
 namespace Application.Features;
@@ -27,6 +29,12 @@ public abstract class BaseFeatureHandler
         CurrentUserService = currentUserService ?? throw new ArgumentNullException(nameof(currentUserService));
         WorkspaceContext = workspaceContext ?? throw new ArgumentNullException(nameof(workspaceContext));
     }
+
+    /// <summary>
+    /// LEGACY: For command handlers, prefer AuthorizeAndFetchAsync which combines fetch + authorize.
+    /// Still useful for query handlers that already have the entity loaded.
+    /// </summary>
+    [Obsolete("LEGACY: Prefer AuthorizeAndFetchAsync<T> for command handlers. Use only if entity is already loaded.", false)]
 
     protected async Task RequirePermissionAsync<TEntity>(
     TEntity entity,
@@ -64,30 +72,6 @@ public abstract class BaseFeatureHandler
             CurrentUserId,
             parentEntity,
             childType,
-            permission,
-            ct);
-
-        if (!hasPermission)
-            throw new ForbiddenAccessException();
-    }
-
-    // Variant 3: Action on child with parent
-    protected async Task RequirePermissionAsync<TChild, TParent>(
-        TChild childEntity,
-        TParent parentEntity,
-        PermissionAction permission,
-        CancellationToken ct)
-        where TChild : Entity
-        where TParent : Entity
-    {
-        if (CurrentUserId == Guid.Empty)
-            throw new UnauthorizedAccessException();
-
-        var hasPermission = await PermissionService.CanPerformAsync(
-            WorkspaceId,
-            CurrentUserId,
-            childEntity,
-            parentEntity,
             permission,
             ct);
 
@@ -153,5 +137,29 @@ public abstract class BaseFeatureHandler
             .FindAsync(id);
 
         return entity ?? throw new KeyNotFoundException($"Layer not found: {typeof(T).Name}:{id}");
+    }
+
+    /// <summary>
+    /// Validates that all provided user IDs are members of the current workspace.
+    /// Returns the list of valid user IDs.
+    /// Throws ValidationException if any user is not a workspace member.
+    /// </summary>
+    protected async Task<List<Guid>> ValidateWorkspaceMembers(List<Guid> userIds, CancellationToken ct)
+    {
+        if (userIds == null || !userIds.Any())
+            return new List<Guid>();
+
+        var validMembers = await UnitOfWork.Set<Domain.Entities.Relationship.WorkspaceMember>()
+            .Where(wm => userIds.Contains(wm.UserId) && wm.ProjectWorkspaceId == WorkspaceId)
+            .Select(wm => wm.UserId)
+            .ToListAsync(ct);
+
+        if (validMembers.Count != userIds.Count)
+        {
+            var invalidIds = userIds.Except(validMembers).ToList();
+            throw new System.ComponentModel.DataAnnotations.ValidationException($"One or more users are not workspace members. Invalid user IDs: {string.Join(", ", invalidIds)}");
+        }
+
+        return validMembers;
     }
 }

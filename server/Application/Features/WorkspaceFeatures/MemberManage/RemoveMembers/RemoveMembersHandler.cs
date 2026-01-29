@@ -13,14 +13,11 @@ using Application.Helpers;
 
 namespace Application.Features.WorkspaceFeatures.MemberManage.RemoveMembers;
 
-public class RemoveMembersHandler : BaseCommandHandler, IRequestHandler<RemoveMembersCommand, Guid>
+public class RemoveMembersHandler : BaseFeatureHandler, IRequestHandler<RemoveMembersCommand, Guid>
 {
-    private readonly HybridCache _cache;
-
-    public RemoveMembersHandler(IUnitOfWork unitOfWork, IPermissionService permissionService, ICurrentUserService currentUserService, WorkspaceContext workspaceContext, HybridCache cache)
+    public RemoveMembersHandler(IUnitOfWork unitOfWork, IPermissionService permissionService, ICurrentUserService currentUserService, WorkspaceContext workspaceContext)
         : base(unitOfWork, permissionService, currentUserService, workspaceContext)
     {
-        _cache = cache;
     }
 
     public async Task<Guid> Handle(RemoveMembersCommand request, CancellationToken cancellationToken)
@@ -28,14 +25,17 @@ public class RemoveMembersHandler : BaseCommandHandler, IRequestHandler<RemoveMe
         // 1. Authorize & Fetch
         var workspace = await AuthorizeAndFetchAsync<ProjectWorkspace>(request.workspaceId, PermissionAction.Delete, cancellationToken);
 
-        await UnitOfWork.Set<WorkspaceMember>()
+        var members = await UnitOfWork.Set<WorkspaceMember>()
             .Where(wm => wm.ProjectWorkspaceId == request.workspaceId && request.memberIds.Contains(wm.UserId))
-            .ExecuteUpdateAsync(updates =>
-                updates.SetProperty(wm => wm.DeletedAt, DateTimeOffset.UtcNow)
-                       .SetProperty(wm => wm.UpdatedAt, DateTimeOffset.UtcNow),
-                cancellationToken: cancellationToken);
+            .ToListAsync(cancellationToken);
 
-        await _cache.RemoveByTagAsync(CacheConstants.Tags.WorkspaceMembers(request.workspaceId), cancellationToken);
+        if (members.Any())
+        {
+            workspace.RemoveMembers(members.Select(m => m.UserId));
+            
+            // Note: ProjectWorkspace.RemoveMembers raises WorkspaceMemberRemovedEvent
+            // which handles the cache/SignalR plumbing.
+        }
 
         return workspace.Id;
     }

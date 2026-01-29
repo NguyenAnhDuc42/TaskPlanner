@@ -1,19 +1,15 @@
-using Application.Contract.UserContract;
 using Application.Contract.WorkspaceContract;
 using Application.Helper;
+using Application.Helpers;
 using Application.Interfaces.Repositories;
 using Application.Interfaces.Services.Permissions;
-using Domain;
-using Domain.Entities.ProjectEntities;
-using Domain.Entities.Relationship;
 using Domain.Enums;
 using MediatR;
-using Microsoft.EntityFrameworkCore;
 using server.Application.Interfaces;
 
 namespace Application.Features.WorkspaceFeatures.SelfManagement.GetDetailWorkspace;
 
-public class GetDetailWorkspaceHandler : BaseQueryHandler, IRequestHandler<GetDetailWorkspaceQuery, WorkspaceDetailDto>
+public class GetDetailWorkspaceHandler : BaseQueryHandler, IRequestHandler<GetDetailWorkspaceQuery, WorkspaceSecurityContextDto>
 {
     public GetDetailWorkspaceHandler(
         IUnitOfWork unitOfWork,
@@ -25,46 +21,46 @@ public class GetDetailWorkspaceHandler : BaseQueryHandler, IRequestHandler<GetDe
     {
     }
 
-    public async Task<WorkspaceDetailDto> Handle(GetDetailWorkspaceQuery request, CancellationToken cancellationToken)
+    public async Task<WorkspaceSecurityContextDto> Handle(GetDetailWorkspaceQuery request, CancellationToken cancellationToken)
     {
-        var workspace = await QueryNoTracking<ProjectWorkspace>()
-            .Where(w => w.Id == request.WorkspaceId)
-            .FirstOrDefaultAsync(cancellationToken)
-            ?? throw new KeyNotFoundException($"Workspace {request.WorkspaceId} not found");
+        // Simplified query - only fetch security-relevant data
+        const string sql = @"
+            SELECT 
+                w.creator_id as CreatorId,
+                wm.role as UserRole
+            FROM project_workspaces w
+            LEFT JOIN workspace_members wm ON wm.project_workspace_id = w.id 
+                AND wm.user_id = @userId AND wm.deleted_at IS NULL AND wm.status = 'Active'
+            WHERE w.id = @workspaceId AND w.deleted_at IS NULL";
 
-        // Check if user has access
-        await RequirePermissionAsync(workspace, PermissionAction.View, cancellationToken);
+        var workspaceData = await UnitOfWork.QuerySingleOrDefaultAsync<dynamic>(sql, new { 
+            userId = CurrentUserId, 
+            workspaceId = request.WorkspaceId 
+        }, cancellationToken);
 
-        // Get current user's membership info
-        var currentMember = await QueryNoTracking<WorkspaceMember>()
-            .Where(wm => wm.ProjectWorkspaceId == workspace.Id && wm.UserId == CurrentUserId)
-            .Select(wm => new MemberDto
-            {
-                Id = wm.UserId,
-                Role = wm.Role
-            })
-            .FirstOrDefaultAsync(cancellationToken)
-            ?? throw new UnauthorizedAccessException("User is not a member of this workspace");
+        if (workspaceData == null)
+            throw new KeyNotFoundException($"Workspace {request.WorkspaceId} not found");
 
-        return new WorkspaceDetailDto
+        // Security check: user must be a member or the creator
+        if (workspaceData.UserRole == null && workspaceData.CreatorId != CurrentUserId)
         {
-            Id = workspace.Id,
-            Name = workspace.Name,
-            Description = workspace.Description ?? string.Empty,
-            Color = workspace.Customization.Color,
-            Icon = workspace.Customization.Icon,
-            Variant = workspace.Variant.ToString(),
-            JoinCode = workspace.JoinCode,
-            IsOwned = workspace.CreatorId == CurrentUserId,
-            CurrentRole = currentMember,
-            Permissions = new List<string>(), // TODO: Implement permission list when ready
-            Settings = new WorkspaceSettingsDto
-            {
-                Theme = workspace.Theme,
-                Color = workspace.Customization.Color,
-                Icon = workspace.Customization.Icon,
-                StrictJoin = workspace.StrictJoin
-            }
+            throw new UnauthorizedAccessException("You don't have access to this workspace");
+        }
+
+        // Fetch all permissions in one go
+        var permissions = await PermissionService.GetWorkspacePermissionsAsync(CurrentUserId, request.WorkspaceId, cancellationToken);
+
+        // Determine role
+        var role = workspaceData.UserRole != null 
+            ? workspaceData.UserRole.ToString() 
+            : (workspaceData.CreatorId == CurrentUserId ? Role.Owner.ToString() : Role.Guest.ToString());
+
+        return new WorkspaceSecurityContextDto
+        {
+            WorkspaceId = request.WorkspaceId,
+            CurrentRole = role,
+            Permissions = permissions,
+            IsOwned = workspaceData.CreatorId == CurrentUserId
         };
     }
 }

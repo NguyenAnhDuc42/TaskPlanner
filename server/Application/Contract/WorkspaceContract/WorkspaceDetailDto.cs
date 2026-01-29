@@ -2,6 +2,7 @@ using Application.Contract.UserContract;
 
 namespace Application.Contract.WorkspaceContract;
 
+[Obsolete("Use WorkspaceSecurityContextDto for security context. UI data should be fetched separately.", false)]
 public record class WorkspaceDetailDto
 {
     public Guid Id { get; init; }

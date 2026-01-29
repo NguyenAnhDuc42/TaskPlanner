@@ -13,14 +13,11 @@ using Application.Helpers;
 
 namespace Application.Features.WorkspaceFeatures.MemberManage.UpdateMembers;
 
-public class UpdateMembersHandler : BaseCommandHandler, IRequestHandler<UpdateMembersCommand, Unit>
+public class UpdateMembersHandler : BaseFeatureHandler, IRequestHandler<UpdateMembersCommand, Unit>
 {
-    private readonly HybridCache _cache;
-
-    public UpdateMembersHandler(IUnitOfWork unitOfWork, IPermissionService permissionService, ICurrentUserService currentUserService, WorkspaceContext workspaceContext, HybridCache cache)
+    public UpdateMembersHandler(IUnitOfWork unitOfWork, IPermissionService permissionService, ICurrentUserService currentUserService, WorkspaceContext workspaceContext)
         : base(unitOfWork, permissionService, currentUserService, workspaceContext)
     {
-        _cache = cache;
     }
 
     public async Task<Unit> Handle(UpdateMembersCommand request, CancellationToken cancellationToken)
@@ -50,8 +47,6 @@ public class UpdateMembersHandler : BaseCommandHandler, IRequestHandler<UpdateMe
             if (updateInfo.role.HasValue) member.UpdateRole(updateInfo.role.Value);
             if (updateInfo.status.HasValue) member.UpdateStatus(updateInfo.status.Value);
         }
-
-        await _cache.RemoveByTagAsync(CacheConstants.Tags.WorkspaceMembers(request.workspaceId), cancellationToken);
 
         return Unit.Value;
     }

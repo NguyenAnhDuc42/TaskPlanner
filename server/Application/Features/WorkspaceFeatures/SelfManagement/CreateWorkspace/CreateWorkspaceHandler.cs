@@ -46,9 +46,6 @@ public class CreateWorkspaceHandler : IRequestHandler<CreateWorkspaceCommand, Gu
         await _unitOfWork.Set<ProjectWorkspace>().AddAsync(workspace, cancellationToken);
         await _unitOfWork.SaveChangesAsync();
 
-        // Invalidate user's workspace list cache
-        await _cache.RemoveByTagAsync($"user:{currentUserId}:workspaces", cancellationToken);
-
         return workspace.Id;
     }
 }

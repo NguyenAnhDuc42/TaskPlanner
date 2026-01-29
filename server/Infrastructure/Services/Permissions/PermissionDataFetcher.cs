@@ -102,8 +102,8 @@ public class PermissionDataFetcher
         var conn = _dbContext.Database.GetDbConnection();
         var rawOverrides = await conn.QueryAsync<dynamic>(sql, new { userId, allIds = allIds.ToArray() });
         var overrides = rawOverrides.ToDictionary(
-            x => (Guid)x.LayerId, 
-            x => Enum.TryParse<AccessLevel>((string)x.AccessLevel, out var al) ? (AccessLevel?)al : null);
+            x => (Guid)x.layerid,
+            x => Enum.TryParse<AccessLevel>(x.accesslevel.ToString(), out AccessLevel al) ? (AccessLevel?)al : null);
 
         // 3. Resolve "Effective Access" and "Privacy Block" (The Private-First Waterfall)
         var visibilityChain = new List<VisibilityLevel>();
@@ -317,15 +317,6 @@ public class PermissionDataFetcher
             _ => (false, false)
         };
 
-    public static EntityType GetEntityType<TEntity>() where TEntity : Entity =>
-        typeof(TEntity).Name switch
-        {
-            nameof(ProjectWorkspace) => EntityType.ProjectWorkspace,
-            nameof(ProjectSpace) => EntityType.ProjectSpace,
-            nameof(ProjectFolder) => EntityType.ProjectFolder,
-            nameof(ProjectList) => EntityType.ProjectList,
-            _ => throw new InvalidOperationException($"Unknown entity type: {typeof(TEntity).Name}")
-        };
 
     // Simplified tag-based invalidation
     public async Task InvalidateWorkspaceRoleCacheAsync(Guid userId, Guid workspaceId)

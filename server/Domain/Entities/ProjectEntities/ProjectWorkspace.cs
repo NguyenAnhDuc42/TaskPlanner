@@ -5,6 +5,8 @@ using Domain.Entities.Relationship;
 using Domain.Enums;
 using Domain.Enums.RelationShip;
 using Domain.Enums.Workspace;
+using Domain.Events;
+using Domain.Events.Membership;
 
 namespace Domain.Entities.ProjectEntities;
 
@@ -67,6 +69,9 @@ public sealed class ProjectWorkspace : Entity
         }
         var newMember = WorkspaceMember.Create(userId, this.Id, role, status, createdBy, joinMethod);
         _members.Add(newMember);
+        
+        AddDomainEvent(new WorkspaceMembersAddedBulkEvent(Id, new[] { new AddedMemberRecord(userId, role) }));
+        
         UpdateTimestamp();
     }
 
@@ -75,28 +80,32 @@ public sealed class ProjectWorkspace : Entity
         var newMembers = WorkspaceMember.AddBulk(memberSpecs, this.Id, createdBy);
 
         var changed = false;
+        var addedRecords = new List<AddedMemberRecord>();
         foreach (var member in newMembers)
         {
             if (!_members.Any(m => m.UserId == member.UserId))
             {
                 _members.Add(member);
+                addedRecords.Add(new AddedMemberRecord(member.UserId, member.Role));
                 changed = true;
             }
         }
 
         if (changed)
         {
+            AddDomainEvent(new WorkspaceMembersAddedBulkEvent(Id, addedRecords));
             UpdateTimestamp();
         }
     }
 
     public void RemoveMembers(IEnumerable<Guid> userIds)
     {
-        var initialCount = _members.Count;
-        _members.RemoveAll(m => userIds.Contains(m.UserId));
+        var idsToRemove = userIds.ToList();
+        var removedCount = _members.RemoveAll(m => idsToRemove.Contains(m.UserId));
 
-        if (_members.Count < initialCount)
+        if (removedCount > 0)
         {
+            AddDomainEvent(new WorkspaceMembersRemovedBulkEvent(Id, idsToRemove));
             UpdateTimestamp();
         }
     }

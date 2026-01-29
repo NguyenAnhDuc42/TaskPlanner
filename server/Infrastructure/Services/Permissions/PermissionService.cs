@@ -2,6 +2,7 @@
 using Domain.Enums;
 using Microsoft.Extensions.Logging;
 using Application.Interfaces.Services.Permissions;
+using Application.Common;
 
 namespace Infrastructure.Services.Permissions;
 
@@ -29,7 +30,7 @@ public class PermissionService : IPermissionService
         CancellationToken ct) where TEntity : Entity
     {
         if (entity == null) throw new ArgumentNullException(nameof(entity));
-        var entityType = PermissionDataFetcher.GetEntityType<TEntity>();
+        var entityType = EntityTypeMapper.GetEntityType<TEntity>();
         
         return await CanPerformAsync(workspaceId, userId, entity.Id, entityType, action, ct);
     }
@@ -86,15 +87,35 @@ public class PermissionService : IPermissionService
     {
         if (parentEntity == null) throw new ArgumentNullException(nameof(parentEntity));
         // For creating children, the ID we check is the PARENT's ID
-        return await CanPerformAsync(workspaceId, userId, parentEntity.Id, PermissionDataFetcher.GetEntityType<TParent>(), action, ct);
+        return await CanPerformAsync(workspaceId, userId, parentEntity.Id, EntityTypeMapper.GetEntityType<TParent>(), action, ct);
     }
 
-    public async Task<bool> CanPerformAsync<TChild, TParent>(Guid workspaceId, Guid userId, TChild childEntity, TParent parentEntity, PermissionAction action, CancellationToken ct)
-        where TChild : Entity
-        where TParent : Entity
+    public async Task<List<string>> GetWorkspacePermissionsAsync(Guid userId, Guid workspaceId, CancellationToken ct)
     {
-        if (childEntity == null) throw new ArgumentNullException(nameof(childEntity));
-        return await CanPerformAsync(workspaceId, userId, childEntity.Id, PermissionDataFetcher.GetEntityType<TChild>(), action, ct);
+        var role = await _dataFetcher.GetWorkspaceRoleAsync(userId, workspaceId, ct);
+        
+        var context = new PermissionContext
+        {
+            UserId = userId,
+            WorkspaceId = workspaceId,
+            WorkspaceRole = role,
+            IsPrivacyBlocked = false 
+        };
+
+        var allowed = new List<string>();
+        foreach (PermissionAction action in Enum.GetValues(typeof(PermissionAction)))
+        {
+            if (PermissionMatrix.CanPerform(EntityType.ProjectWorkspace, action, context))
+            {
+                allowed.Add(action.ToString());
+            }
+            if (PermissionMatrix.CanPerform(EntityType.WorkspaceMember, action, context))
+            {
+                allowed.Add($"Member.{action}");
+            }
+        }
+
+        return allowed;
     }
 
     public async Task InvalidateWorkspaceRoleCacheAsync(Guid userId, Guid workspaceId)
@@ -116,5 +137,14 @@ public class PermissionService : IPermissionService
     {
         await _dataFetcher.InvalidateUserPermissionsCacheAsync(userId);
         await _dataFetcher.InvalidateWorkspaceRoleCacheAsync(userId, workspaceId);
+    }
+
+    public async Task InvalidateBulkUserCacheAsync(Guid workspaceId, IEnumerable<Guid> userIds)
+    {
+        foreach (var userId in userIds)
+        {
+            await _dataFetcher.InvalidateUserPermissionsCacheAsync(userId);
+            await _dataFetcher.InvalidateWorkspaceRoleCacheAsync(userId, workspaceId);
+        }
     }
 }

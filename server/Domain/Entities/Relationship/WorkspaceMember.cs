@@ -3,6 +3,8 @@ using System.ComponentModel.DataAnnotations;
 using Domain.Common;
 using Domain.Enums;
 using Domain.Enums.RelationShip;
+using Domain.Events;
+using Domain.Events.Membership;
 
 namespace Domain.Entities.Relationship;
 
@@ -65,7 +67,7 @@ public class WorkspaceMember : Composite
         Role = newRole;
         if (oldRole != newRole)
         {
-            AddDomainEvent(new Events.Membership.WorkspaceMemberRoleChangedEvent(UserId, ProjectWorkspaceId, oldRole, newRole));
+            AddDomainEvent(new WorkspaceMemberRoleChangedEvent(UserId, ProjectWorkspaceId, oldRole, newRole));
         }
     }
 
@@ -87,6 +89,7 @@ public class WorkspaceMember : Composite
         DeletedAt = null;
         Status = MembershipStatus.Active;
         JoinedAt = DateTimeOffset.UtcNow;
+        AddDomainEvent(new WorkspaceMembersAddedBulkEvent(ProjectWorkspaceId, new[] { new AddedMemberRecord(UserId, Role) }));
     }
 
 }

@@ -1,7 +1,7 @@
 using System;
+using Application.Helpers;
 using Application.Interfaces.Repositories;
 using Application.Interfaces.Services.Permissions;
-using Domain;
 using Domain.Entities.ProjectEntities;
 using Domain.Enums;
 using MediatR;
@@ -9,14 +9,13 @@ using server.Application.Interfaces;
 
 namespace Application.Features.WorkspaceFeatures.UpdateWorkspace;
 
-public class UpdateWorkspaceHandler : BaseCommandHandler, IRequestHandler<UpdateWorkspaceCommand, Unit>
+public class UpdateWorkspaceHandler : BaseFeatureHandler, IRequestHandler<UpdateWorkspaceCommand, Unit>
 {
     public UpdateWorkspaceHandler(IUnitOfWork unitOfWork, IPermissionService permissionService, ICurrentUserService currentUserService, WorkspaceContext workspaceContext)
         : base(unitOfWork, permissionService, currentUserService, workspaceContext) { }
     public async Task<Unit> Handle(UpdateWorkspaceCommand request, CancellationToken cancellationToken)
     {
-        var workspace = await FindOrThrowAsync<ProjectWorkspace>(request.Id);
-        await RequirePermissionAsync(workspace, PermissionAction.Edit, cancellationToken);
+        var workspace = await AuthorizeAndFetchAsync<ProjectWorkspace>(request.Id, PermissionAction.Edit, cancellationToken);
 
         // Update basic info
         if (request.Name is not null || request.Description is not null)

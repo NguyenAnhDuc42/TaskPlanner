@@ -9,6 +9,7 @@ public static class CacheConstants
     {
         public static string UserPermissions(Guid userId) => $"user:{userId}:permissions";
         public static string WorkspaceMembers(Guid workspaceId) => $"workspaces:{workspaceId}:members";
+        public static string UserWorkspaces(Guid userId) => $"user:{userId}:workspaces";
     }
 
     // Keys for specific items

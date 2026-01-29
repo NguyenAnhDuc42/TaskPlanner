@@ -8,6 +8,7 @@ public enum PermissionAction
     Edit,        // prefer 'Update' over 'Edit' for clarity
     Delete,
     Archive,
+    Manage,
     ManageSettings,
     TransferOwnership,
     Comment,

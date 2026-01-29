@@ -2,6 +2,7 @@ using System.ComponentModel.DataAnnotations;
 using Application.Interfaces.Repositories;
 using Application.Interfaces.Services.Permissions;
 using Domain;
+using Application.Helpers;
 using Domain.Entities.ProjectEntities;
 using Domain.Entities.Relationship;
 using Domain.Enums;
@@ -11,7 +12,7 @@ using server.Application.Interfaces;
 
 namespace Application.Features.WorkspaceFeatures.SelfManagement.LeaveWorkspace;
 
-public class LeaveWorkspaceHandler : BaseCommandHandler, IRequestHandler<LeaveWorkspaceCommand, Unit>
+public class LeaveWorkspaceHandler : BaseFeatureHandler, IRequestHandler<LeaveWorkspaceCommand, Unit>
 {
     public LeaveWorkspaceHandler(
         IUnitOfWork unitOfWork,

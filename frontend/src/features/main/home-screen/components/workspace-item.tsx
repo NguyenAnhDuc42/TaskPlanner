@@ -63,7 +63,7 @@ export function WorkspaceItem({ workspaceSummary, onOpen, onPin }: Props) {
               <Pin
                 className={cn(
                   "h-4 w-4",
-                  workspaceSummary.isPinned && "fill-primary text-primary"
+                  workspaceSummary.isPinned && "fill-primary text-primary",
                 )}
               />
             </Button>
@@ -79,7 +79,7 @@ export function WorkspaceItem({ workspaceSummary, onOpen, onPin }: Props) {
               <PencilLine
                 className={cn(
                   "h-4 w-4",
-                  workspaceSummary.isPinned && "fill-primary text-primary"
+                  workspaceSummary.isPinned && "fill-primary text-primary",
                 )}
               />
             </Button>
@@ -88,7 +88,7 @@ export function WorkspaceItem({ workspaceSummary, onOpen, onPin }: Props) {
             <ChevronDown
               className={cn(
                 "h-4 w-4 text-muted-foreground transition-transform flex-shrink-0 group-hover:text-foreground",
-                open && "rotate-180"
+                open && "rotate-180",
               )}
             />
           </div>
@@ -122,30 +122,34 @@ export function WorkspaceItem({ workspaceSummary, onOpen, onPin }: Props) {
             </div>
           )}
           <div className="px-4 py-3 flex gap-2">
-            <Link to={"/workspaces/" + workspaceSummary.id} >
-            <Button
-              size="sm"
-              className="h-8 px-3 text-xs font-mono bg-primary hover:bg-primary/90 text-primary-foreground border-0"
-            >
-              Open
-            </Button>
+            <Link to={"/workspaces/" + workspaceSummary.id}>
+              <Button
+                size="sm"
+                className="h-8 px-3 text-xs font-mono bg-primary hover:bg-primary/90 text-primary-foreground border-0"
+              >
+                Open
+              </Button>
             </Link>
-            <Button
-              size="sm"
-              variant="outline"
-              className="h-8 px-3 text-xs font-mono border-border hover:bg-card bg-transparent"
-            >
-              <Settings className="h-3 w-3 mr-1" />
-              Settings
-            </Button>
-            <Button
-              size="sm"
-              variant="ghost"
-              className="h-8 px-3 text-xs font-mono text-muted-foreground hover:text-foreground hover:bg-transparent"
-            >
-              <Users className="h-3 w-3 mr-1" />
-              Members
-            </Button>
+            <Link to={"/workspaces/" + workspaceSummary.id + "/settings"}>
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-8 px-3 text-xs font-mono border-border hover:bg-card bg-transparent"
+              >
+                <Settings className="h-3 w-3 mr-1" />
+                Settings
+              </Button>
+            </Link>
+            <Link to={"/workspaces/" + workspaceSummary.id + "/members"}>
+              <Button
+                size="sm"
+                variant="ghost"
+                className="h-8 px-3 text-xs font-mono text-muted-foreground hover:text-foreground hover:bg-transparent"
+              >
+                <Users className="h-3 w-3 mr-1" />
+                Members
+              </Button>
+            </Link>
           </div>
         </div>
       </CollapsibleContent>

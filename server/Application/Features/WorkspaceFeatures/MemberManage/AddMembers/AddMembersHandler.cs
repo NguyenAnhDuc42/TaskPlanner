@@ -15,19 +15,16 @@ using Application.Helpers;
 
 namespace Application.Features.WorkspaceFeatures.MemberManage.AddMembers;
 
-public class AddMembersHandler : BaseCommandHandler, IRequestHandler<AddMembersCommand, Guid>
+public class AddMembersHandler : BaseFeatureHandler, IRequestHandler<AddMembersCommand, Guid>
 {
-    private readonly HybridCache _cache;
-
-    public AddMembersHandler(IUnitOfWork unitOfWork, IPermissionService permissionService, ICurrentUserService currentUserService, WorkspaceContext workspaceContext, HybridCache cache)
+    public AddMembersHandler(IUnitOfWork unitOfWork, IPermissionService permissionService, ICurrentUserService currentUserService, WorkspaceContext workspaceContext)
        : base(unitOfWork, permissionService, currentUserService, workspaceContext)
     {
-        _cache = cache;
     }
 
     public async Task<Guid> Handle(AddMembersCommand request, CancellationToken cancellationToken)
     {
-        // 1. Authorize & Fetch using the new unified logic
+        // 1. Authorize & Fetch
         var workspace = await AuthorizeAndFetchAsync<ProjectWorkspace>(request.workspaceId, PermissionAction.Create, cancellationToken);
 
         var normalizedMembers = request.members
@@ -55,7 +52,12 @@ public class AddMembersHandler : BaseCommandHandler, IRequestHandler<AddMembersC
                 keySelector: u => u.Email.Trim().ToLowerInvariant(),
                 elementSelector: u => u);
 
-        // Fetch ALL members including soft-deleted ones to check for re-adds
+        // Fetch existing members (including soft-deleted) to handle re-adds
+        // Note: ProjectWorkspace._members handles tracking if loaded via Include,
+        // but here we are fetching them separately for convenience.
+        // Actually, we should load them via the aggregate if possible, but the current 
+        // setup uses many-to-many relationships that might not be fully mapped in EF as Nav properties.
+        
         var existingMembers = await UnitOfWork.Set<WorkspaceMember>()
             .IgnoreQueryFilters()
             .Where(wm => wm.ProjectWorkspaceId == request.workspaceId)
@@ -84,7 +86,6 @@ public class AddMembersHandler : BaseCommandHandler, IRequestHandler<AddMembersC
         if (specs.Count > 0)
         {
             workspace.AddMembers(specs, CurrentUserId);
-            await _cache.RemoveByTagAsync(CacheConstants.Tags.WorkspaceMembers(request.workspaceId), cancellationToken);
         }
 
         return workspace.Id;

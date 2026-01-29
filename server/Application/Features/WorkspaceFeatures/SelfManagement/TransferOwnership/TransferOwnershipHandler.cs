@@ -1,7 +1,10 @@
 using System.ComponentModel.DataAnnotations;
+using Application.Common.Exceptions;
+using Application.Helpers;
 using Application.Interfaces.Repositories;
 using Application.Interfaces.Services.Permissions;
 using Domain;
+using Application.Helpers;
 using Domain.Entities.ProjectEntities;
 using Domain.Entities.Relationship;
 using Domain.Enums;
@@ -11,7 +14,7 @@ using server.Application.Interfaces;
 
 namespace Application.Features.WorkspaceFeatures.SelfManagement.TransferOwnership;
 
-public class TransferOwnershipHandler : BaseCommandHandler, IRequestHandler<TransferOwnershipCommand, Unit>
+public class TransferOwnershipHandler : BaseFeatureHandler, IRequestHandler<TransferOwnershipCommand, Unit>
 {
     public TransferOwnershipHandler(
         IUnitOfWork unitOfWork,
@@ -24,12 +27,13 @@ public class TransferOwnershipHandler : BaseCommandHandler, IRequestHandler<Tran
 
     public async Task<Unit> Handle(TransferOwnershipCommand request, CancellationToken cancellationToken)
     {
-        var workspace = await FindOrThrowAsync<ProjectWorkspace>(request.WorkspaceId);
+        // 1. Authorize & Fetch (Transfer is a Manage/Owner level action)
+        var workspace = await AuthorizeAndFetchAsync<ProjectWorkspace>(request.WorkspaceId, PermissionAction.Manage, cancellationToken);
 
-        // Only current owner can transfer ownership
+        // Extra check: Only current owner can transfer ownership (Role.Owner)
         if (workspace.CreatorId != CurrentUserId)
         {
-            throw new UnauthorizedAccessException("Only the workspace owner can transfer ownership");
+            throw new ForbiddenAccessException("Only the workspace owner can transfer ownership");
         }
 
         // Cannot transfer to self

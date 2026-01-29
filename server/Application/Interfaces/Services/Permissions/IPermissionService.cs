@@ -32,21 +32,16 @@ public interface IPermissionService
         PermissionAction action,
         CancellationToken ct)
         where TParent : Entity;
-
-    // Overload 3: Action on child with parent context
-    Task<bool> CanPerformAsync<TChild, TParent>(
-        Guid workspaceId,
-        Guid userId,
-        TChild childEntity,
-        TParent parentEntity,
-        PermissionAction action,
-        CancellationToken ct)
-        where TChild : Entity
-        where TParent : Entity;
+    /// <summary>
+    /// Gets a list of all permission strings the user has for a workspace.
+    /// Format: "ActionName" (e.g. "Create", "Delete", "ManageSettings")
+    /// </summary>
+    Task<List<string>> GetWorkspacePermissionsAsync(Guid userId, Guid workspaceId, CancellationToken ct);
 
     // Cache invalidation methods
     Task InvalidateWorkspaceRoleCacheAsync(Guid userId, Guid workspaceId);
     Task InvalidateEntityAccessCacheAsync(Guid userId, Guid entityId, EntityType entityType);
     Task InvalidateChatRoomCacheAsync(Guid userId, Guid chatRoomId);
     Task InvalidateUserCacheAsync(Guid userId, Guid workspaceId);
+    Task InvalidateBulkUserCacheAsync(Guid workspaceId, IEnumerable<Guid> userIds);
 }

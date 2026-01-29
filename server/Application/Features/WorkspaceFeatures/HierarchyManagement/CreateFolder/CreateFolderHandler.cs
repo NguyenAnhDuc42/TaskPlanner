@@ -1,7 +1,7 @@
 using System;
+using Application.Helpers;
 using Application.Interfaces.Repositories;
 using Application.Interfaces.Services.Permissions;
-using Domain;
 using Domain.Entities.ProjectEntities;
 using Domain.Entities.ProjectEntities.ValueObject;
 using Domain.Entities.Relationship;
@@ -12,7 +12,7 @@ using server.Application.Interfaces;
 
 namespace Application.Features.WorkspaceFeatures.HierarchyManagement.CreateFolder;
 
-public class CreateFolderHandler : BaseCommandHandler, IRequestHandler<CreateFolderCommand, Guid>
+public class CreateFolderHandler : BaseFeatureHandler, IRequestHandler<CreateFolderCommand, Guid>
 {
     public CreateFolderHandler(IUnitOfWork unitOfWork, ICurrentUserService currentUserService, IPermissionService permissionService, WorkspaceContext workspaceContext)
        : base(unitOfWork, permissionService, currentUserService, workspaceContext) { }

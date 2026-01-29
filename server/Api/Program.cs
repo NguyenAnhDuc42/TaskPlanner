@@ -2,7 +2,6 @@ using System.Security.Claims;
 using Api.Middlewares;
 using Application.Dependencies;
 using Background.Dependencies;
-using Domain;
 using Infrastructure;
 using Infrastructure.Hubs;
 using Scalar.AspNetCore;
@@ -14,7 +13,6 @@ builder.AddServiceDefaults();
 builder.Services.AddOpenApi();
 builder.Services.AddControllers();
 builder.Services.AddHttpContextAccessor();
-builder.Services.AddScoped<WorkspaceContext>();
 
 const string CorsPolicy = "AllowFrontend";
 
