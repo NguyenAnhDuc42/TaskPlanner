@@ -22,6 +22,11 @@ public class EntityAccess : Entity
         AccessLevel = accessLevel;
         CreatorId = creatorId;
     }
+    public void Update(AccessLevel accessLevel, Guid updaterId)
+    {
+        AccessLevel = accessLevel;
+        UpdateTimestamp();
+    }
     public static EntityAccess Create(Guid workspaceMemberId, Guid entityId, EntityLayerType entityLayer, AccessLevel accessLevel, Guid creatorId)
     {
         return new EntityAccess(workspaceMemberId, entityId, entityLayer, accessLevel, creatorId);

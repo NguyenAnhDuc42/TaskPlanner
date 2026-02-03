@@ -24,14 +24,24 @@ public class PermissionProvider : IPermissionProvider
     }
     public async Task<PermissionContext> GetPermissionsFor(Guid userId, Guid workspaceId, CancellationToken ct)
     {
-        var member = await _dbContext.WorkspaceMembers.AsNoTracking()
-           .FirstOrDefaultAsync(x => x.UserId == userId && x.ProjectWorkspaceId == workspaceId,cancellationToken: ct)
-           ?? throw new InvalidOperationException($"User {userId} not member of workspace {workspaceId}");
-        return await LoadAccessesAndBuildContext(userId, member.Id, member.Role, ct);
+        var cacheKey = $"wsm:{userId}:{workspaceId}";
 
+        var (memberId, role) = await _cache.GetOrCreateAsync(
+            cacheKey,
+            async token =>
+            {
+                var member = await _dbContext.WorkspaceMembers.AsNoTracking()
+                    .FirstOrDefaultAsync(x => x.UserId == userId && x.ProjectWorkspaceId == workspaceId, token)
+                    ?? throw new InvalidOperationException($"User {userId} not member of workspace {workspaceId}");
+                return (member.Id, member.Role);
+            },
+            cancellationToken: ct);
+
+        return await LoadAccessesAndBuildContext(userId, workspaceId, memberId, role, ct);
     }
     private async Task<PermissionContext> LoadAccessesAndBuildContext(
         Guid userId,
+        Guid workspaceId,
         Guid workspaceMemberId,
         Role role,
         CancellationToken ct)
@@ -49,8 +59,9 @@ public class PermissionProvider : IPermissionProvider
 
         return new PermissionContext(
             userId: userId,
+            workspaceId: workspaceId,
             workspaceMemberId: workspaceMemberId,
             role: role,
-            accesses: accesses.Select(x => ((EntityLayerType)x.EntityLayer,x.EntityId,(AccessLevel)x.AccessLevel)));
+            accesses: accesses.Select(x => ((EntityLayerType)x.EntityLayer, x.EntityId, (AccessLevel)x.AccessLevel)));
     }
 }

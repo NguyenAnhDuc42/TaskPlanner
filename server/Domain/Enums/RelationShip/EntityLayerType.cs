@@ -4,6 +4,8 @@ public enum EntityLayerType
 {
     ProjectWorkspace,
     ProjectSpace,
+    ProjectFolder,
     ProjectList,
-    ProjectFolder
+    ProjectTask,
+    ChatRoom
 }
