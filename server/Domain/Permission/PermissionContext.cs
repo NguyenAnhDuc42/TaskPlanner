@@ -7,7 +7,7 @@ public class PermissionContext
     public Guid UserId { get; init; }
     public Guid WorkspaceId { get; init; }
     public Guid WorkspaceMemberId { get; init; }
-    public Role Role { get; init; }
+    public Role WorkspaceRole { get; init; }
 
     private readonly Dictionary<(EntityLayerType, Guid), AccessLevel> _explicitAccess;
 
@@ -15,13 +15,13 @@ public class PermissionContext
         Guid userId,
         Guid workspaceId,
         Guid workspaceMemberId,
-        Role role,
+        Role workspaceRole,
         IEnumerable<(EntityLayerType type, Guid entityId, AccessLevel level)> accesses)
     {
         UserId = userId;
         WorkspaceId = workspaceId;
         WorkspaceMemberId = workspaceMemberId;
-        Role = role;
+        WorkspaceRole = workspaceRole;
         _explicitAccess = accesses.ToDictionary(x => (x.type, x.entityId), x => x.level);
     }
 

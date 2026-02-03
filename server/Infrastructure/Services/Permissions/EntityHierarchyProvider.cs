@@ -48,13 +48,16 @@ public sealed class EntityHierarchyProvider : IEntityHierarchyProvider
         {
             EntityId = taskId,
             EntityLayer = EntityLayerType.ProjectTask,
-            IsPrivate = listPath.IsPrivate,
+            IsPrivate = listPath.IsPrivate, 
             DirectParentId = task.ProjectListId,
             DirectParentType = EntityLayerType.ProjectList,
+            IsDirectParentPrivate = listPath.IsPrivate,
             ProjectWorkspaceId = listPath.ProjectWorkspaceId,
             ProjectSpaceId = listPath.ProjectSpaceId,
             ProjectFolderId = listPath.ProjectFolderId,
-            ProjectListId = task.ProjectListId
+            ProjectListId = task.ProjectListId,
+            IsSpacePrivate = listPath.IsSpacePrivate,
+            IsFolderPrivate = listPath.IsFolderPrivate
         };
     }
 
@@ -62,27 +65,41 @@ public sealed class EntityHierarchyProvider : IEntityHierarchyProvider
     {
         var list = await _context.ProjectLists
             .AsNoTracking()
-            .Select(l => new { l.Id, l.ProjectSpaceId, l.ProjectFolderId, l.IsPrivate })
+            .Select(l => new { l.Id, l.ProjectSpaceId, l.ProjectFolderId, l.IsPrivate, l.ProjectWorkspaceId })
             .FirstOrDefaultAsync(x => x.Id == listId, ct)
             ?? throw new KeyNotFoundException($"List {listId} not found");
 
+        var folder = list.ProjectFolderId.HasValue
+            ? await _context.ProjectFolders
+                .AsNoTracking()
+                .Select(f => new { f.Id, f.IsPrivate })
+                .FirstOrDefaultAsync(x => x.Id == list.ProjectFolderId, ct)
+            : null;
+
         var space = await _context.ProjectSpaces
             .AsNoTracking()
-            .Select(s => new { s.Id, s.ProjectWorkspaceId })
+            .Select(s => new { s.Id, s.IsPrivate, s.ProjectWorkspaceId })
             .FirstOrDefaultAsync(x => x.Id == list.ProjectSpaceId, ct)
             ?? throw new KeyNotFoundException($"Space {list.ProjectSpaceId} not found");
+
+        var directParentType = list.ProjectFolderId.HasValue ? EntityLayerType.ProjectFolder : EntityLayerType.ProjectSpace;
+        var directParentId = list.ProjectFolderId ?? list.ProjectSpaceId;
+        var directParentIsPrivate = list.ProjectFolderId.HasValue ? folder?.IsPrivate : space.IsPrivate;
 
         return new EntityPath
         {
             EntityId = listId,
             EntityLayer = EntityLayerType.ProjectList,
             IsPrivate = list.IsPrivate,
-            DirectParentId = list.ProjectFolderId ?? list.ProjectSpaceId,
-            DirectParentType = list.ProjectFolderId.HasValue ? EntityLayerType.ProjectFolder : EntityLayerType.ProjectSpace,
+            DirectParentId = directParentId,
+            DirectParentType = directParentType,
+            IsDirectParentPrivate = directParentIsPrivate,
             ProjectWorkspaceId = space.ProjectWorkspaceId,
             ProjectSpaceId = list.ProjectSpaceId,
             ProjectFolderId = list.ProjectFolderId,
-            ProjectListId = listId
+            ProjectListId = listId,
+            IsFolderPrivate = folder?.IsPrivate,
+            IsSpacePrivate = space.IsPrivate
         };
     }
 
@@ -96,7 +113,7 @@ public sealed class EntityHierarchyProvider : IEntityHierarchyProvider
 
         var space = await _context.ProjectSpaces
             .AsNoTracking()
-            .Select(s => new { s.Id, s.ProjectWorkspaceId })
+            .Select(s => new { s.Id, s.IsPrivate, s.ProjectWorkspaceId })
             .FirstOrDefaultAsync(x => x.Id == folder.ProjectSpaceId, ct)
             ?? throw new KeyNotFoundException($"Space {folder.ProjectSpaceId} not found");
 
@@ -107,10 +124,13 @@ public sealed class EntityHierarchyProvider : IEntityHierarchyProvider
             IsPrivate = folder.IsPrivate,
             DirectParentId = folder.ProjectSpaceId,
             DirectParentType = EntityLayerType.ProjectSpace,
+            IsDirectParentPrivate = space.IsPrivate,
             ProjectWorkspaceId = space.ProjectWorkspaceId,
             ProjectSpaceId = folder.ProjectSpaceId,
             ProjectFolderId = folderId,
-            ProjectListId = null
+            ProjectListId = null,
+            IsFolderPrivate = folder.IsPrivate,
+            IsSpacePrivate = space.IsPrivate
         };
     }
 
@@ -129,10 +149,13 @@ public sealed class EntityHierarchyProvider : IEntityHierarchyProvider
             IsPrivate = space.IsPrivate,
             DirectParentId = space.ProjectWorkspaceId,
             DirectParentType = EntityLayerType.ProjectWorkspace,
+            IsDirectParentPrivate = false, // Workspace is never private
             ProjectWorkspaceId = space.ProjectWorkspaceId,
             ProjectSpaceId = spaceId,
             ProjectFolderId = null,
-            ProjectListId = null
+            ProjectListId = null,
+            IsFolderPrivate = false,
+            IsSpacePrivate = space.IsPrivate
         };
     }
 
@@ -151,10 +174,13 @@ public sealed class EntityHierarchyProvider : IEntityHierarchyProvider
             IsPrivate = chatRoom.IsPrivate,
             DirectParentId = chatRoom.ProjectWorkspaceId,
             DirectParentType = EntityLayerType.ProjectWorkspace,
+            IsDirectParentPrivate = false,
             ProjectWorkspaceId = chatRoom.ProjectWorkspaceId,
             ProjectSpaceId = null,
             ProjectFolderId = null,
-            ProjectListId = null
+            ProjectListId = null,
+            IsFolderPrivate = false,
+            IsSpacePrivate = false
         };
     }
 
@@ -173,10 +199,13 @@ public sealed class EntityHierarchyProvider : IEntityHierarchyProvider
             IsPrivate = false,
             DirectParentId = null,
             DirectParentType = null,
+            IsDirectParentPrivate = null,
             ProjectWorkspaceId = workspaceId,
             ProjectSpaceId = null,
             ProjectFolderId = null,
-            ProjectListId = null
+            ProjectListId = null,
+            IsFolderPrivate = false,
+            IsSpacePrivate = false
         };
     }
 }

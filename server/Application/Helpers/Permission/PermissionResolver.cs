@@ -1,9 +1,6 @@
 ﻿using Domain.Enums;
 using Domain.Enums.RelationShip;
 using Domain.Permission;
-using System;
-using System.Collections.Generic;
-using System.Text;
 
 namespace Application.Helpers.Permission;
 
@@ -18,70 +15,69 @@ public class PermissionResolver
         if (directAccess.HasValue)
             return directAccess.Value;
 
-        // RULE 2: If private + no direct access = denied
+        // RULE 2: If this resource is private + no direct access = denied
         if (path.IsPrivate)
             return AccessLevel.None;
 
-        // RULE 3: Branch-based parent checks
+        // RULE 3: Walk up hierarchy from direct parent
+        if (path.DirectParentId.HasValue && path.DirectParentType.HasValue)
+        {
+            var parentAccess = context.GetExplicitAccess(
+                path.DirectParentType.Value,
+                path.DirectParentId.Value);
+
+            if (parentAccess.HasValue)
+                return parentAccess.Value;
+
+            // If parent is private, STOP - don't inherit past it
+            if (path.IsDirectParentPrivate == true)
+                return GetWorkspaceRoleDefault(context.WorkspaceRole);
+        }
+
         // ProjectTask -> ProjectList -> (ProjectFolder?) -> ProjectSpace
-        if (path.EntityLayer == EntityLayerType.ProjectTask)
+        // If we are at Task, we already checked List above as direct parent.
+        // If List was public and had no access, we check Folder or Space.
+        
+        // If parent was List (at Task level) and not private, check Folder
+        if (path.EntityLayer == EntityLayerType.ProjectTask && 
+            path.DirectParentType == EntityLayerType.ProjectList &&
+            path.IsDirectParentPrivate != true &&
+            path.ProjectFolderId.HasValue)
         {
-            if (path.ProjectListId.HasValue)
-            {
-                var listAccess = context.GetExplicitAccess(EntityLayerType.ProjectList, path.ProjectListId.Value);
-                if (listAccess.HasValue) return listAccess.Value;
-
-                if (path.ProjectFolderId.HasValue)
-                {
-                    var folderAccess = context.GetExplicitAccess(EntityLayerType.ProjectFolder, path.ProjectFolderId.Value);
-                    if (folderAccess.HasValue) return folderAccess.Value;
-                }
-
-                if (path.ProjectSpaceId.HasValue)
-                {
-                    var spaceAccess = context.GetExplicitAccess(EntityLayerType.ProjectSpace, path.ProjectSpaceId.Value);
-                    if (spaceAccess.HasValue) return spaceAccess.Value;
-                }
-            }
+            var folderAccess = context.GetExplicitAccess(EntityLayerType.ProjectFolder, path.ProjectFolderId.Value);
+            if (folderAccess.HasValue) return folderAccess.Value;
+            
+            if (path.IsFolderPrivate == true)
+                return GetWorkspaceRoleDefault(context.WorkspaceRole);
         }
-        // ProjectList -> (ProjectFolder?) -> ProjectSpace
-        else if (path.EntityLayer == EntityLayerType.ProjectList)
+
+        // Check Space (if we haven't stopped at Task->List or Task->List->Folder)
+        if (path.ProjectSpaceId.HasValue)
         {
-            if (path.ProjectFolderId.HasValue)
+            bool canCheckSpace = false;
+            if (path.EntityLayer == EntityLayerType.ProjectTask)
             {
-                var folderAccess = context.GetExplicitAccess(EntityLayerType.ProjectFolder, path.ProjectFolderId.Value);
-                if (folderAccess.HasValue) return folderAccess.Value;
+                // Task -> List(public) -> [Folder(public)?] -> Space
+                bool folderOk = !path.ProjectFolderId.HasValue || path.IsFolderPrivate != true;
+                if (path.IsDirectParentPrivate != true && folderOk)
+                    canCheckSpace = true;
+            }
+            else if (path.EntityLayer == EntityLayerType.ProjectList)
+            {
+                // List -> Folder(public) -> Space
+                if (path.DirectParentType == EntityLayerType.ProjectFolder && path.IsDirectParentPrivate != true)
+                    canCheckSpace = true;
             }
 
-            if (path.ProjectSpaceId.HasValue)
+            if (canCheckSpace)
             {
                 var spaceAccess = context.GetExplicitAccess(EntityLayerType.ProjectSpace, path.ProjectSpaceId.Value);
                 if (spaceAccess.HasValue) return spaceAccess.Value;
             }
-        }
-        // ProjectFolder -> ProjectSpace
-        else if (path.EntityLayer == EntityLayerType.ProjectFolder)
-        {
-            if (path.ProjectSpaceId.HasValue)
-            {
-                var spaceAccess = context.GetExplicitAccess(EntityLayerType.ProjectSpace, path.ProjectSpaceId.Value);
-                if (spaceAccess.HasValue) return spaceAccess.Value;
-            }
-        }
-        // ProjectSpace -> no parent
-        else if (path.EntityLayer == EntityLayerType.ProjectSpace)
-        {
-            // Already checked direct access above
-        }
-        // ChatRoom or others
-        else
-        {
-            var explicitAccess = context.GetExplicitAccess(path.EntityLayer, path.EntityId);
-            if (explicitAccess.HasValue) return explicitAccess.Value;
         }
 
         // RULE 4: Fallback to workspace role default
-        return GetRoleDefault(context.Role);
+        return GetWorkspaceRoleDefault(context.WorkspaceRole);
     }
 
     public bool CanAccess(
@@ -90,11 +86,6 @@ public class PermissionResolver
         AccessLevel requiredLevel)
     {
         var effectiveAccess = ResolveEffectiveAccess(context, path);
-        
-        // AccessLevel hierarchy: Manager (1) > Editor (2) > Viewer (3) > None (0)
-        // Wait, checking original definition: Manager=1, Editor=2, Viewer=3. 
-        // Guide says: Manager (3) > Editor (2) > Viewer (1) > None (0).
-        // Let's check the actual enum again.
         return IsGreaterOrEqual(effectiveAccess, requiredLevel);
     }
 
@@ -102,11 +93,6 @@ public class PermissionResolver
     {
         if (required == AccessLevel.None) return true;
         if (effective == AccessLevel.None) return false;
-        
-        // Enum: Manager, Editor, Viewer. 
-        // Usually Manager is "highest".
-        // If values are 1, 2, 3... we need to be careful.
-        
         return GetWeight(effective) >= GetWeight(required);
     }
 
@@ -118,7 +104,7 @@ public class PermissionResolver
         _ => 0
     };
 
-    private static AccessLevel GetRoleDefault(Role role) => role switch
+    private AccessLevel GetWorkspaceRoleDefault(Role role) => role switch
     {
         Role.Owner => AccessLevel.Manager,
         Role.Admin => AccessLevel.Manager,

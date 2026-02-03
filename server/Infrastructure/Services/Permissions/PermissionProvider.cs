@@ -43,7 +43,7 @@ public class PermissionProvider : IPermissionProvider
         Guid userId,
         Guid workspaceId,
         Guid workspaceMemberId,
-        Role role,
+        Role workspaceRole,
         CancellationToken ct)
     {
         var accesses = await _dbContext.EntityAccesses
@@ -61,7 +61,7 @@ public class PermissionProvider : IPermissionProvider
             userId: userId,
             workspaceId: workspaceId,
             workspaceMemberId: workspaceMemberId,
-            role: role,
+            workspaceRole: workspaceRole,
             accesses: accesses.Select(x => ((EntityLayerType)x.EntityLayer, x.EntityId, (AccessLevel)x.AccessLevel)));
     }
 }
