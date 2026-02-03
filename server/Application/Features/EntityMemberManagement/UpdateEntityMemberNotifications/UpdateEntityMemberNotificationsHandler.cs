@@ -1,5 +1,4 @@
 using Application.Interfaces.Repositories;
-using Application.Interfaces.Services.Permissions;
 using Domain;
 using Application.Helpers;
 using Domain.Entities.Relationship;
@@ -9,10 +8,10 @@ using server.Application.Interfaces;
 
 namespace Application.Features.EntityMemberManagement.UpdateEntityMemberNotifications;
 
-public class UpdateEntityMemberNotificationsHandler : BaseCommandHandler, IRequestHandler<UpdateEntityMemberNotificationsCommand, Unit>
+public class UpdateEntityMemberNotificationsHandler : BaseFeatureHandler, IRequestHandler<UpdateEntityMemberNotificationsCommand, Unit>
 {
-    public UpdateEntityMemberNotificationsHandler(IUnitOfWork unitOfWork, IPermissionService permissionService, ICurrentUserService currentUserService, WorkspaceContext workspaceContext)
-        : base(unitOfWork, permissionService, currentUserService, workspaceContext) { }
+    public UpdateEntityMemberNotificationsHandler(IUnitOfWork unitOfWork, ICurrentUserService currentUserService, WorkspaceContext workspaceContext)
+        : base(unitOfWork, currentUserService, workspaceContext) { }
 
     public async Task<Unit> Handle(UpdateEntityMemberNotificationsCommand request, CancellationToken cancellationToken)
     {

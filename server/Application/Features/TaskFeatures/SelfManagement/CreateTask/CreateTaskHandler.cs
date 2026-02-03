@@ -1,5 +1,4 @@
 using Application.Interfaces.Repositories;
-using Application.Interfaces.Services.Permissions;
 using Domain;
 using Application.Helpers;
 using Domain.Entities.ProjectEntities;
@@ -11,17 +10,14 @@ using server.Application.Interfaces;
 
 namespace Application.Features.TaskFeatures.SelfManagement.CreateTask;
 
-public class CreateTaskHandler : BaseCommandHandler, IRequestHandler<CreateTaskCommand, Guid>
+public class CreateTaskHandler : BaseFeatureHandler, IRequestHandler<CreateTaskCommand, Guid>
 {
-    public CreateTaskHandler(IUnitOfWork unitOfWork, IPermissionService permissionService, ICurrentUserService currentUserService, WorkspaceContext workspaceContext)
-        : base(unitOfWork, permissionService, currentUserService, workspaceContext) { }
+    public CreateTaskHandler(IUnitOfWork unitOfWork, ICurrentUserService currentUserService, WorkspaceContext workspaceContext)
+        : base(unitOfWork, currentUserService, workspaceContext) { }
 
     public async Task<Guid> Handle(CreateTaskCommand request, CancellationToken cancellationToken)
     {
-        var list = await FindOrThrowAsync<ProjectList>(request.ListId) as ProjectList
-            ?? throw new KeyNotFoundException("List not found");
-
-        await RequirePermissionAsync(list, EntityType.ProjectTask, PermissionAction.Create, cancellationToken);
+        var list = await FindOrThrowAsync<ProjectList>(request.ListId);
 
         // Get or use default status (TODO: implement GetDefaultStatusId when Status CRUD is done)
         Guid statusId = request.StatusId ?? Guid.Empty; // Temporary - will need actual status

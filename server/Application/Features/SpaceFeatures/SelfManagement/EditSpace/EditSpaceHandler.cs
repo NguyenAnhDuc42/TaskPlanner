@@ -1,6 +1,5 @@
 using System;
 using Application.Interfaces.Repositories;
-using Application.Interfaces.Services.Permissions;
 using Domain;
 using Application.Helpers;
 using Domain.Entities.ProjectEntities;
@@ -13,22 +12,19 @@ using server.Application.Interfaces;
 
 namespace Application.Features.SpaceFeatures.SelfManagement.EditSpace;
 
-public class EditSpaceHandler : BaseCommandHandler, IRequestHandler<EditSpaceCommand, Unit>
+public class EditSpaceHandler : BaseFeatureHandler, IRequestHandler<EditSpaceCommand, Unit>
 {
     public EditSpaceHandler(
         IUnitOfWork unitOfWork,
-        IPermissionService permissionService,
         ICurrentUserService currentUserService,
         WorkspaceContext workspaceContext
-    ) : base(unitOfWork, permissionService, currentUserService, workspaceContext) { }
+    ) : base(unitOfWork, currentUserService, workspaceContext) { }
 
     public async Task<Unit> Handle(EditSpaceCommand request, CancellationToken cancellationToken)
     {
         var space = await UnitOfWork.Set<ProjectSpace>()
             .FindAsync(request.spaceId, cancellationToken)
             ?? throw new KeyNotFoundException("Space not found");
-
-        await RequirePermissionAsync(space, PermissionAction.Edit, cancellationToken);
 
         // Update space properties
         space.Update(

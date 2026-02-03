@@ -2,7 +2,6 @@
 using Application.Contract.DashboardDtos;
 using Application.Helper;
 using Application.Interfaces.Repositories;
-using Application.Interfaces.Services.Permissions;
 using Domain;
 using Application.Helpers;
 using Domain.Entities.Support.Widget;
@@ -17,8 +16,8 @@ namespace Application.Features.DashboardManagement.GetDashboardList;
 
 public class GetDashboardListHandler : BaseQueryHandler, IRequestHandler<GetDashboardListQuery, PagedResult<DashboardListItemDto>>
 {
-    public GetDashboardListHandler(IUnitOfWork unitOfWork, IPermissionService permissionService, ICurrentUserService currentUserService, WorkspaceContext workspaceContext, CursorHelper cursorHelper)
-    : base(unitOfWork, permissionService, currentUserService, workspaceContext, cursorHelper) { }
+    public GetDashboardListHandler(IUnitOfWork unitOfWork, ICurrentUserService currentUserService, WorkspaceContext workspaceContext, CursorHelper cursorHelper)
+    : base(unitOfWork, currentUserService, workspaceContext, cursorHelper) { }
 
     public async Task<PagedResult<DashboardListItemDto>> Handle(GetDashboardListQuery request, CancellationToken cancellationToken)
     {

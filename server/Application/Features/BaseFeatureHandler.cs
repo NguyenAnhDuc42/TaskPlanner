@@ -1,9 +1,7 @@
-
 using Application.Common;
 using Application.Common.Exceptions;
 using Application.Helpers;
 using Application.Interfaces.Repositories;
-using Application.Interfaces.Services.Permissions;
 using Domain.Common;
 using Domain.Entities.ProjectEntities;
 using Domain.Enums;
@@ -16,67 +14,16 @@ namespace Application.Features;
 public abstract class BaseFeatureHandler
 {
     protected readonly IUnitOfWork UnitOfWork;
-    protected readonly IPermissionService PermissionService;
     protected readonly ICurrentUserService CurrentUserService;
     protected readonly WorkspaceContext WorkspaceContext;
     protected Guid WorkspaceId => WorkspaceContext.workspaceId;
     protected Guid CurrentUserId => CurrentUserService.CurrentUserId();
 
-    protected BaseFeatureHandler(IUnitOfWork unitOfWork, IPermissionService permissionService, ICurrentUserService currentUserService, WorkspaceContext workspaceContext)
+    protected BaseFeatureHandler(IUnitOfWork unitOfWork, ICurrentUserService currentUserService, WorkspaceContext workspaceContext)
     {
         UnitOfWork = unitOfWork ?? throw new ArgumentNullException(nameof(unitOfWork));
-        PermissionService = permissionService ?? throw new ArgumentNullException(nameof(permissionService));
         CurrentUserService = currentUserService ?? throw new ArgumentNullException(nameof(currentUserService));
         WorkspaceContext = workspaceContext ?? throw new ArgumentNullException(nameof(workspaceContext));
-    }
-
-    /// <summary>
-    /// LEGACY: For command handlers, prefer AuthorizeAndFetchAsync which combines fetch + authorize.
-    /// Still useful for query handlers that already have the entity loaded.
-    /// </summary>
-    [Obsolete("LEGACY: Prefer AuthorizeAndFetchAsync<T> for command handlers. Use only if entity is already loaded.", false)]
-
-    protected async Task RequirePermissionAsync<TEntity>(
-    TEntity entity,
-    PermissionAction permission,
-    CancellationToken ct)
-    where TEntity : Entity
-    {
-        if (CurrentUserId == Guid.Empty)
-            throw new UnauthorizedAccessException();
-
-        var hasPermission = await PermissionService.CanPerformAsync(
-            WorkspaceId,
-            CurrentUserId,
-            entity,
-            permission,
-            ct);
-
-        if (!hasPermission)
-            throw new ForbiddenAccessException();
-    }
-
-    // Variant 2: Create child in parent
-    protected async Task RequirePermissionAsync<TParent>(
-        TParent parentEntity,
-        EntityType childType,
-        PermissionAction permission,
-        CancellationToken ct)
-        where TParent : Entity
-    {
-        if (CurrentUserId == Guid.Empty)
-            throw new UnauthorizedAccessException();
-
-        var hasPermission = await PermissionService.CanPerformAsync(
-            WorkspaceId,
-            CurrentUserId,
-            parentEntity,
-            childType,
-            permission,
-            ct);
-
-        if (!hasPermission)
-            throw new ForbiddenAccessException();
     }
 
     protected async Task<Entity> GetLayer(Guid layerId, EntityLayerType layerType)
@@ -97,37 +44,6 @@ public abstract class BaseFeatureHandler
 
             _ => throw new ArgumentOutOfRangeException(nameof(layerType))
         };
-    }
-
-    protected async Task<T> AuthorizeAndFetchAsync<T>(
-        Guid id,
-        PermissionAction action,
-        CancellationToken ct)
-        where T : Entity
-    {
-        if (CurrentUserId == Guid.Empty)
-            throw new UnauthorizedAccessException();
-
-        var entityType = EntityTypeMapper.GetEntityType<T>();
-
-        // 1. Authorize (ID-based check)
-        var hasPermission = await PermissionService.CanPerformAsync(
-            WorkspaceId,
-            CurrentUserId,
-            id,
-            entityType,
-            action,
-            ct);
-
-        if (!hasPermission)
-            throw new ForbiddenAccessException();
-
-        // 2. Fetch
-        var entity = await UnitOfWork.Set<T>().FindAsync(id);
-        if (entity == null)
-            throw new KeyNotFoundException($"{entityType} with ID {id} not found.");
-
-        return entity;
     }
 
     protected async Task<T> FindOrThrowAsync<T>(Guid id)

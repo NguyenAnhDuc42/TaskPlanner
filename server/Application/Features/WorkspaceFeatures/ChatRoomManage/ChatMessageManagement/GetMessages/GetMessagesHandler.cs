@@ -1,6 +1,5 @@
 using Application.Helper;
 using Application.Interfaces.Repositories;
-using Application.Interfaces.Services.Permissions;
 using Domain;
 using Application.Helpers;
 using Domain.Entities.Relationship;
@@ -13,8 +12,8 @@ namespace Application.Features.WorkspaceFeatures.ChatRoomManage.ChatMessageManag
 
 public class GetMessagesHandler : BaseQueryHandler, IRequestHandler<GetMessagesQuery, GetMessagesResult>
 {
-    public GetMessagesHandler(IUnitOfWork unitOfWork, IPermissionService permissionService, ICurrentUserService currentUserService, WorkspaceContext workspaceContext, CursorHelper cursorHelper)
-    : base(unitOfWork, permissionService, currentUserService, workspaceContext, cursorHelper) { }
+    public GetMessagesHandler(IUnitOfWork unitOfWork, ICurrentUserService currentUserService, WorkspaceContext workspaceContext, CursorHelper cursorHelper)
+    : base(unitOfWork, currentUserService, workspaceContext, cursorHelper) { }
 
     public async Task<GetMessagesResult> Handle(GetMessagesQuery request, CancellationToken cancellationToken)
     {

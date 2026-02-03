@@ -1,7 +1,6 @@
 using System;
 using Application.Helpers;
 using Application.Interfaces.Repositories;
-using Application.Interfaces.Services.Permissions;
 using Domain.Entities.ProjectEntities;
 using Domain.Entities.ProjectEntities.ValueObject;
 using Domain.Entities.Relationship;
@@ -14,12 +13,12 @@ namespace Application.Features.WorkspaceFeatures.HierarchyManagement.CreateFolde
 
 public class CreateFolderHandler : BaseFeatureHandler, IRequestHandler<CreateFolderCommand, Guid>
 {
-    public CreateFolderHandler(IUnitOfWork unitOfWork, ICurrentUserService currentUserService, IPermissionService permissionService, WorkspaceContext workspaceContext)
-       : base(unitOfWork, permissionService, currentUserService, workspaceContext) { }
+    public CreateFolderHandler(IUnitOfWork unitOfWork, ICurrentUserService currentUserService, WorkspaceContext workspaceContext)
+       : base(unitOfWork, currentUserService, workspaceContext) { }
 
     public async Task<Guid> Handle(CreateFolderCommand request, CancellationToken cancellationToken)
     {
-        var space = await AuthorizeAndFetchAsync<ProjectSpace>(request.spaceId, PermissionAction.Create, cancellationToken);
+        var space = await FindOrThrowAsync<ProjectSpace>(request.spaceId);
         
         var customization = Customization.Create(request.color, request.icon);
         var orderKey = space.GetNextItemOrderAndIncrement();

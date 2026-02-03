@@ -1,5 +1,4 @@
 ﻿using Application.Interfaces.Repositories;
-using Application.Interfaces.Services.Permissions;
 using Domain;
 using Application.Helpers;
 using Domain.Entities.Support.Widget;
@@ -12,16 +11,15 @@ using System.Text;
 
 namespace Application.Features.DashboardManagement.DeleteDashboard;
 
-public class DeleteDashboadHandler : BaseCommandHandler, IRequestHandler<DeleteDashboardCommand, Unit>
+public class DeleteDashboadHandler : BaseFeatureHandler, IRequestHandler<DeleteDashboardCommand, Unit>
 {
-    public DeleteDashboadHandler(IUnitOfWork unitOfWork, IPermissionService permissionService, ICurrentUserService currentUserService, WorkspaceContext workspaceContext) 
-        : base(unitOfWork, permissionService, currentUserService, workspaceContext){}
+    public DeleteDashboadHandler(IUnitOfWork unitOfWork, ICurrentUserService currentUserService, WorkspaceContext workspaceContext) 
+        : base(unitOfWork, currentUserService, workspaceContext){}
 
     public async Task<Unit> Handle(DeleteDashboardCommand request, CancellationToken cancellationToken)
     {
         var layer = await GetLayer(request.layerId, request.layerType);
-        await RequirePermissionAsync(layer, EntityType.Dashboard, PermissionAction.Delete, cancellationToken);
-        var dashboard = await UnitOfWork.Set<Dashboard>().FindAsync(request.dashboardId) ?? throw new KeyNotFoundException("No dashboard founded");
+        var dashboard = await FindOrThrowAsync<Dashboard>(request.dashboardId);
         if (dashboard.IsMain == true) throw new InvalidOperationException("Cannot delete the main dashboard. Unset IsMain first or use a force-delete flow.");
 
         dashboard.SoftDelete();

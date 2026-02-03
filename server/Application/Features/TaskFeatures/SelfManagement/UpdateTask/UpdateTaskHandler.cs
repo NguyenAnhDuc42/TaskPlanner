@@ -1,5 +1,4 @@
 using Application.Interfaces.Repositories;
-using Application.Interfaces.Services.Permissions;
 using Domain;
 using Application.Helpers;
 using Domain.Entities.ProjectEntities;
@@ -9,17 +8,14 @@ using server.Application.Interfaces;
 
 namespace Application.Features.TaskFeatures.SelfManagement.UpdateTask;
 
-public class UpdateTaskHandler : BaseCommandHandler, IRequestHandler<UpdateTaskCommand, Unit>
+public class UpdateTaskHandler : BaseFeatureHandler, IRequestHandler<UpdateTaskCommand, Unit>
 {
-    public UpdateTaskHandler(IUnitOfWork unitOfWork, IPermissionService permissionService, ICurrentUserService currentUserService, WorkspaceContext workspaceContext)
-        : base(unitOfWork, permissionService, currentUserService, workspaceContext) { }
+    public UpdateTaskHandler(IUnitOfWork unitOfWork, ICurrentUserService currentUserService, WorkspaceContext workspaceContext)
+        : base(unitOfWork, currentUserService, workspaceContext) { }
 
     public async Task<Unit> Handle(UpdateTaskCommand request, CancellationToken cancellationToken)
     {
-        var task = await FindOrThrowAsync<ProjectTask>(request.TaskId) as ProjectTask
-            ?? throw new KeyNotFoundException("Task not found");
-
-        await RequirePermissionAsync(task, PermissionAction.Edit, cancellationToken);
+        var task = await FindOrThrowAsync<ProjectTask>(request.TaskId);
 
         // Update basic properties
         if (request.Name != null || request.Description != null)

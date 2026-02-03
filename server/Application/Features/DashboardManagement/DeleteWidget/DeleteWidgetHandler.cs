@@ -1,6 +1,5 @@
 using System;
 using Application.Interfaces.Repositories;
-using Application.Interfaces.Services.Permissions;
 using Domain;
 using Application.Helpers;
 using Domain.Entities.Support.Widget;
@@ -10,17 +9,14 @@ using server.Application.Interfaces;
 
 namespace Application.Features.DashboardManagement.DeleteWidget;
 
-public class DeleteWidgetHandler : BaseCommandHandler, IRequestHandler<DeleteWidgetCommand, Unit>
+public class DeleteWidgetHandler : BaseFeatureHandler, IRequestHandler<DeleteWidgetCommand, Unit>
 {
-    public DeleteWidgetHandler(IUnitOfWork unitOfWork, IPermissionService permissionService, ICurrentUserService currentUserService, WorkspaceContext workspaceContext)
-    : base(unitOfWork, permissionService, currentUserService, workspaceContext) { }
+    public DeleteWidgetHandler(IUnitOfWork unitOfWork, ICurrentUserService currentUserService, WorkspaceContext workspaceContext)
+    : base(unitOfWork, currentUserService, workspaceContext) { }
 
     public async Task<Unit> Handle(DeleteWidgetCommand request, CancellationToken cancellationToken)
     {
-        var dashboard = await UnitOfWork.Set<Dashboard>().FindAsync(request.dashboardId, cancellationToken)
-        ?? throw new KeyNotFoundException("Dashboard not found");
-
-        await RequirePermissionAsync(dashboard, EntityType.Widget, PermissionAction.Delete, cancellationToken);
+        var dashboard = await FindOrThrowAsync<Dashboard>(request.dashboardId);
 
         dashboard.RemoveWidget(request.widgetId);
 

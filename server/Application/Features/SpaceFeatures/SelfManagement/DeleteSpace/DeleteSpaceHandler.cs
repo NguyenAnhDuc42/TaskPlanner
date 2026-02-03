@@ -1,6 +1,5 @@
 using System;
 using Application.Interfaces.Repositories;
-using Application.Interfaces.Services.Permissions;
 using Domain;
 using Application.Helpers;
 using Domain.Entities.ProjectEntities;
@@ -10,15 +9,14 @@ using server.Application.Interfaces;
 
 namespace Application.Features.SpaceFeatures.SelfManagement.DeleteSpace;
 
-public class DeleteSpaceHandler : BaseCommandHandler, IRequestHandler<DeleteSpaceCommand, Unit>
+public class DeleteSpaceHandler : BaseFeatureHandler, IRequestHandler<DeleteSpaceCommand, Unit>
 {
-    public DeleteSpaceHandler(IUnitOfWork unitOfWork, ICurrentUserService currentUserService, IPermissionService permissionService, WorkspaceContext workspaceContext)
-        : base(unitOfWork, permissionService, currentUserService, workspaceContext) { }
+    public DeleteSpaceHandler(IUnitOfWork unitOfWork, ICurrentUserService currentUserService, WorkspaceContext workspaceContext)
+        : base(unitOfWork, currentUserService, workspaceContext) { }
 
     public async Task<Unit> Handle(DeleteSpaceCommand request, CancellationToken cancellationToken)
     {
-        var space = await UnitOfWork.Set<ProjectSpace>().FindAsync(request.spaceId, cancellationToken) ?? throw new KeyNotFoundException("Space not found");
-        await RequirePermissionAsync(space, PermissionAction.Delete, cancellationToken);
+        var space = await FindOrThrowAsync<ProjectSpace>(request.spaceId);
         space.SoftDelete();
         return Unit.Value;
     }

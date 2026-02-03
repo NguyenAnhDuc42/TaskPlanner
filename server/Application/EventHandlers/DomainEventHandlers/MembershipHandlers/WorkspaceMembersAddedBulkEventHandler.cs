@@ -1,5 +1,4 @@
 using Application.Interfaces;
-using Application.Interfaces.Services.Permissions;
 using Domain.Events.Membership;
 using MediatR;
 using Microsoft.Extensions.Logging;
@@ -10,18 +9,15 @@ namespace Application.EventHandlers.DomainEventHandlers.MembershipHandlers;
 
 public class WorkspaceMembersAddedBulkEventHandler : INotificationHandler<WorkspaceMembersAddedBulkEvent>
 {
-    private readonly IPermissionService _permissionService;
     private readonly IRealtimeService _realtimeService;
     private readonly HybridCache _cache;
     private readonly ILogger<WorkspaceMembersAddedBulkEventHandler> _logger;
 
     public WorkspaceMembersAddedBulkEventHandler(
-        IPermissionService permissionService,
         IRealtimeService realtimeService,
         HybridCache cache,
         ILogger<WorkspaceMembersAddedBulkEventHandler> logger)
     {
-        _permissionService = permissionService;
         _realtimeService = realtimeService;
         _cache = cache;
         _logger = logger;
@@ -33,9 +29,6 @@ public class WorkspaceMembersAddedBulkEventHandler : INotificationHandler<Worksp
         
         _logger.LogInformation("[Plumbing] WorkspaceMembersAddedBulkEvent for {UserCount} users in Workspace: {WorkspaceId}",
             userIds.Count, notification.WorkspaceId);
-
-        // 1. Invalidate permission cache (Batched)
-        await _permissionService.InvalidateBulkUserCacheAsync(notification.WorkspaceId, userIds);
 
         // 2. Invalidate workspace list cache for all users (Batched)
         var invalidationTasks = userIds.Select(userId => 

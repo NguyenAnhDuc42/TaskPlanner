@@ -3,7 +3,6 @@
 using Application.Helper;
 using Application.Helpers;
 using Application.Interfaces.Repositories;
-using Application.Interfaces.Services.Permissions;
 using Microsoft.EntityFrameworkCore;
 using server.Application.Interfaces;
 
@@ -13,8 +12,8 @@ public abstract class BaseQueryHandler : BaseFeatureHandler
 {
     protected readonly CursorHelper CursorHelper;
 
-    public BaseQueryHandler(IUnitOfWork unitOfWork, IPermissionService permissionService, ICurrentUserService currentUserService, WorkspaceContext workspaceContext, CursorHelper cursorHelper)
-        : base(unitOfWork, permissionService, currentUserService, workspaceContext)
+    public BaseQueryHandler(IUnitOfWork unitOfWork, ICurrentUserService currentUserService, WorkspaceContext workspaceContext, CursorHelper cursorHelper)
+        : base(unitOfWork, currentUserService, workspaceContext)
     {
         CursorHelper = cursorHelper ?? throw new ArgumentNullException(nameof(cursorHelper));
     }

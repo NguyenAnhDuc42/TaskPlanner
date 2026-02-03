@@ -1,8 +1,15 @@
 using Domain.Common;
 using Domain.Enums.RelationShip;
+using System;
 
 namespace Domain.Entities.Relationship;
 
+/// <summary>
+/// [LEGACY] EntityMember is deprecated. Use EntityAccess instead.
+/// This class will be removed in a future version.
+/// EntityAccess provides a cleaner separation between workspace membership and entity-level access.
+/// </summary>
+[Obsolete("EntityMember is legacy. Use EntityAccess instead. Will be removed in v2.0.", false)]
 public class EntityMember : Composite
 {
     public Guid UserId { get; private set; }
@@ -21,11 +28,13 @@ public class EntityMember : Composite
         CreatorId = creatorId;
     }
 
+    [Obsolete("Use EntityAccess instead.")]
     public static EntityMember AddMember(Guid userId, Guid layerId, EntityLayerType layerType, AccessLevel accessLevel, Guid creatorId)
     {
         return new EntityMember(userId, layerId, layerType, accessLevel, creatorId);
     }
 
+    [Obsolete("Use EntityAccess instead.")]
     public void UpdateAccessLevel(AccessLevel newAccessLevel)
     {
         var oldAccess = AccessLevel;
@@ -39,6 +48,7 @@ public class EntityMember : Composite
         }
     }
 
+    [Obsolete("Use EntityAccess instead.")]
     public void UpdateNotificationsEnabled(bool enabled)
     {
         NotificationsEnabled = enabled;

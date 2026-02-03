@@ -1,6 +1,5 @@
 using System.ComponentModel.DataAnnotations;
 using Application.Interfaces.Repositories;
-using Application.Interfaces.Services.Permissions;
 using Domain;
 using Application.Helpers;
 using Domain.Entities.ProjectEntities;
@@ -16,10 +15,9 @@ public class LeaveWorkspaceHandler : BaseFeatureHandler, IRequestHandler<LeaveWo
 {
     public LeaveWorkspaceHandler(
         IUnitOfWork unitOfWork,
-        IPermissionService permissionService,
         ICurrentUserService currentUserService,
         WorkspaceContext workspaceContext)
-        : base(unitOfWork, permissionService, currentUserService, workspaceContext)
+        : base(unitOfWork, currentUserService, workspaceContext)
     {
     }
 

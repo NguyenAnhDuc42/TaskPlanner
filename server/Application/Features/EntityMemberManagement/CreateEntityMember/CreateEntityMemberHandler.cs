@@ -1,5 +1,4 @@
 using Application.Interfaces.Repositories;
-using Application.Interfaces.Services.Permissions;
 using Domain;
 using Application.Helpers;
 using Domain.Entities.Relationship;
@@ -12,18 +11,15 @@ using System.ComponentModel.DataAnnotations;
 
 namespace Application.Features.EntityMemberManagement.CreateEntityMember;
 
-public class CreateEntityMemberHandler : BaseCommandHandler, IRequestHandler<CreateEntityMemberCommand, Unit>
+public class CreateEntityMemberHandler : BaseFeatureHandler, IRequestHandler<CreateEntityMemberCommand, Unit>
 {
-    public CreateEntityMemberHandler(IUnitOfWork unitOfWork, IPermissionService permissionService, ICurrentUserService currentUserService, WorkspaceContext workspaceContext)
-        : base(unitOfWork, permissionService, currentUserService, workspaceContext) { }
+    public CreateEntityMemberHandler(IUnitOfWork unitOfWork, ICurrentUserService currentUserService, WorkspaceContext workspaceContext)
+        : base(unitOfWork, currentUserService, workspaceContext) { }
 
     public async Task<Unit> Handle(CreateEntityMemberCommand request, CancellationToken cancellationToken)
     {
         // Get parent layer (Space/Folder/List) using GetLayer helper
         var layer = await GetLayer(request.LayerId, request.LayerType);
-
-        // Permission check
-        await RequirePermissionAsync(layer, EntityType.EntityMember, PermissionAction.Create, cancellationToken);
 
         // Validate all users are workspace members
         var workspaceMembers = await UnitOfWork.Set<WorkspaceMember>()

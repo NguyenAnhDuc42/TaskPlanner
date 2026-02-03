@@ -1,5 +1,4 @@
 using Application.Interfaces.Repositories;
-using Application.Interfaces.Services.Permissions;
 using Domain;
 using Application.Helpers;
 using Domain.Entities.ProjectEntities;
@@ -10,17 +9,14 @@ using server.Application.Interfaces;
 
 namespace Application.Features.FolderFeatures.SelfManagement.DeleteFolder;
 
-public class DeleteFolderHandler : BaseCommandHandler, IRequestHandler<DeleteFolderCommand, Unit>
+public class DeleteFolderHandler : BaseFeatureHandler, IRequestHandler<DeleteFolderCommand, Unit>
 {
-    public DeleteFolderHandler(IUnitOfWork unitOfWork, IPermissionService permissionService, ICurrentUserService currentUserService, WorkspaceContext workspaceContext)
-        : base(unitOfWork, permissionService, currentUserService, workspaceContext) { }
+    public DeleteFolderHandler(IUnitOfWork unitOfWork, ICurrentUserService currentUserService, WorkspaceContext workspaceContext)
+        : base(unitOfWork, currentUserService, workspaceContext) { }
 
     public async Task<Unit> Handle(DeleteFolderCommand request, CancellationToken cancellationToken)
     {
         var folder = await FindOrThrowAsync<ProjectFolder>(request.FolderId);
-
-        // Permission check
-        await RequirePermissionAsync(folder, PermissionAction.Delete, cancellationToken);
 
         // Check if folder has child lists
         var hasLists = await UnitOfWork.Set<ProjectList>()

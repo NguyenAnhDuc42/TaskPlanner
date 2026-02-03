@@ -9,7 +9,6 @@ using Microsoft.EntityFrameworkCore;
 using server.Application.Interfaces;
 using System;
 using Microsoft.Extensions.Caching.Hybrid;
-using Application.Interfaces.Services.Permissions;
 using Application.Common;
 using Application.Helpers;
 
@@ -17,15 +16,15 @@ namespace Application.Features.WorkspaceFeatures.MemberManage.AddMembers;
 
 public class AddMembersHandler : BaseFeatureHandler, IRequestHandler<AddMembersCommand, Guid>
 {
-    public AddMembersHandler(IUnitOfWork unitOfWork, IPermissionService permissionService, ICurrentUserService currentUserService, WorkspaceContext workspaceContext)
-       : base(unitOfWork, permissionService, currentUserService, workspaceContext)
+    public AddMembersHandler(IUnitOfWork unitOfWork, ICurrentUserService currentUserService, WorkspaceContext workspaceContext)
+       : base(unitOfWork, currentUserService, workspaceContext)
     {
     }
 
     public async Task<Guid> Handle(AddMembersCommand request, CancellationToken cancellationToken)
     {
-        // 1. Authorize & Fetch
-        var workspace = await AuthorizeAndFetchAsync<ProjectWorkspace>(request.workspaceId, PermissionAction.Create, cancellationToken);
+        // 1. Fetch
+        var workspace = await FindOrThrowAsync<ProjectWorkspace>(request.workspaceId);
 
         var normalizedMembers = request.members
             .DistinctBy(m => m.email.Trim().ToLowerInvariant())

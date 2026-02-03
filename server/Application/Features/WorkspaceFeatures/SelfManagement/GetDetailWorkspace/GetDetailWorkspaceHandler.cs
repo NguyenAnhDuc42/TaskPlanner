@@ -2,7 +2,6 @@ using Application.Contract.WorkspaceContract;
 using Application.Helper;
 using Application.Helpers;
 using Application.Interfaces.Repositories;
-using Application.Interfaces.Services.Permissions;
 using Domain.Enums;
 using MediatR;
 using server.Application.Interfaces;
@@ -13,11 +12,10 @@ public class GetDetailWorkspaceHandler : BaseQueryHandler, IRequestHandler<GetDe
 {
     public GetDetailWorkspaceHandler(
         IUnitOfWork unitOfWork,
-        IPermissionService permissionService,
         ICurrentUserService currentUserService,
         WorkspaceContext workspaceContext,
         CursorHelper cursorHelper)
-        : base(unitOfWork, permissionService, currentUserService, workspaceContext, cursorHelper)
+        : base(unitOfWork, currentUserService, workspaceContext, cursorHelper)
     {
     }
 
@@ -47,8 +45,8 @@ public class GetDetailWorkspaceHandler : BaseQueryHandler, IRequestHandler<GetDe
             throw new UnauthorizedAccessException("You don't have access to this workspace");
         }
 
-        // Fetch all permissions in one go
-        var permissions = await PermissionService.GetWorkspacePermissionsAsync(CurrentUserId, request.WorkspaceId, cancellationToken);
+        // Fetch all permissions in one go (Legacy: Removed for re-implementation)
+        var permissions = new List<string>();
 
         // Determine role
         var role = workspaceData.UserRole != null 

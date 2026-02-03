@@ -1,6 +1,5 @@
 using Application.Helpers.WidgetTool;
 using Application.Interfaces.Repositories;
-using Application.Interfaces.Services.Permissions;
 using Domain;
 using Application.Helpers;
 using Domain.Entities.Support.Widget;
@@ -11,19 +10,15 @@ using server.Application.Interfaces;
 
 namespace Application.Features.DashboardManagement.CreateWidget;
 
-public class CreateWidgetHandler : BaseCommandHandler, IRequestHandler<CreateWidgetCommand, Unit>
+public class CreateWidgetHandler : BaseFeatureHandler, IRequestHandler<CreateWidgetCommand, Unit>
 {
-    public CreateWidgetHandler(IUnitOfWork unitOfWork, IPermissionService permissionService, ICurrentUserService currentUserService, WorkspaceContext workspaceContext)
-        : base(unitOfWork, permissionService, currentUserService, workspaceContext) { }
+    public CreateWidgetHandler(IUnitOfWork unitOfWork, ICurrentUserService currentUserService, WorkspaceContext workspaceContext)
+        : base(unitOfWork, currentUserService, workspaceContext) { }
 
     public async Task<Unit> Handle(CreateWidgetCommand request, CancellationToken cancellationToken)
     {
         // Fetch dashboard aggregate
-        var dashboard = await UnitOfWork.Set<Dashboard>().FindAsync(request.dashboardId, cancellationToken)
-            ?? throw new KeyNotFoundException("Dashboard not found");
-
-        // Permission check
-        await RequirePermissionAsync(dashboard, EntityType.Widget, PermissionAction.Create, cancellationToken);
+        var dashboard = await FindOrThrowAsync<Dashboard>(request.dashboardId);
 
         // Rebuild occupancy tracker from current widgets
         dashboard.RebuildOccupancyTracker();

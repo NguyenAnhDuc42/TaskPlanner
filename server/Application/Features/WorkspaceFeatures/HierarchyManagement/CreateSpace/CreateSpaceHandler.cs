@@ -1,7 +1,6 @@
 using System;
 using Application.Helpers;
 using Application.Interfaces.Repositories;
-using Application.Interfaces.Services.Permissions;
 using Domain.Entities.ProjectEntities;
 using Domain.Entities.ProjectEntities.ValueObject;
 using Domain.Entities.Relationship;
@@ -14,12 +13,12 @@ namespace Application.Features.WorkspaceFeatures.HierarchyManagement.CreateSpace
 
 public class CreateSpaceHandler : BaseFeatureHandler, IRequestHandler<CreateSpaceCommand, Guid>
 {
-    public CreateSpaceHandler(IUnitOfWork unitOfWork, ICurrentUserService currentUserService, IPermissionService permissionService, WorkspaceContext workspaceContext)
-       : base(unitOfWork, permissionService, currentUserService, workspaceContext) { }
+    public CreateSpaceHandler(IUnitOfWork unitOfWork, ICurrentUserService currentUserService, WorkspaceContext workspaceContext)
+       : base(unitOfWork, currentUserService, workspaceContext) { }
        
     public async Task<Guid> Handle(CreateSpaceCommand request, CancellationToken cancellationToken)
     {
-        var workspace = await AuthorizeAndFetchAsync<ProjectWorkspace>(request.workspaceId, PermissionAction.Create, cancellationToken);
+        var workspace = await FindOrThrowAsync<ProjectWorkspace>(request.workspaceId);
         var customization = Customization.Create(request.color, request.icon);
         var orderKey = workspace.GetNextItemOrderAndIncrement();
         

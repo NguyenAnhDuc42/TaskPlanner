@@ -1,5 +1,4 @@
 using Application.Interfaces.Repositories;
-using Application.Interfaces.Services.Permissions;
 using Domain;
 using Application.Helpers;
 using Domain.Entities.ProjectEntities;
@@ -12,17 +11,14 @@ using server.Application.Interfaces;
 
 namespace Application.Features.FolderFeatures.SelfManagement.UpdateFolder;
 
-public class UpdateFolderHandler : BaseCommandHandler, IRequestHandler<UpdateFolderCommand, Unit>
+public class UpdateFolderHandler : BaseFeatureHandler, IRequestHandler<UpdateFolderCommand, Unit>
 {
-    public UpdateFolderHandler(IUnitOfWork unitOfWork, IPermissionService permissionService, ICurrentUserService currentUserService, WorkspaceContext workspaceContext)
-        : base(unitOfWork, permissionService, currentUserService, workspaceContext) { }
+    public UpdateFolderHandler(IUnitOfWork unitOfWork, ICurrentUserService currentUserService, WorkspaceContext workspaceContext)
+        : base(unitOfWork, currentUserService, workspaceContext) { }
 
     public async Task<Unit> Handle(UpdateFolderCommand request, CancellationToken cancellationToken)
     {
         var folder = await FindOrThrowAsync<ProjectFolder>(request.FolderId);
-
-        // Permission check
-        await RequirePermissionAsync(folder, PermissionAction.Edit, cancellationToken);
 
         // Update basic properties
         if (request.Name != null || request.Color != null || request.Icon != null)

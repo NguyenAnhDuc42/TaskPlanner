@@ -1,5 +1,4 @@
 using Application.Interfaces.Repositories;
-using Application.Interfaces.Services.Permissions;
 using Domain;
 using Application.Helpers;
 using Domain.Entities.ProjectEntities;
@@ -10,16 +9,14 @@ using server.Application.Interfaces;
 
 namespace Application.Features.ListFeatures.SelfManagement.DeleteList;
 
-public class DeleteListHandler : BaseCommandHandler, IRequestHandler<DeleteListCommand, Unit>
+public class DeleteListHandler : BaseFeatureHandler, IRequestHandler<DeleteListCommand, Unit>
 {
-    public DeleteListHandler(IUnitOfWork unitOfWork, IPermissionService permissionService, ICurrentUserService currentUserService, WorkspaceContext workspaceContext)
-        : base(unitOfWork, permissionService, currentUserService, workspaceContext) { }
+    public DeleteListHandler(IUnitOfWork unitOfWork, ICurrentUserService currentUserService, WorkspaceContext workspaceContext)
+        : base(unitOfWork, currentUserService, workspaceContext) { }
 
     public async Task<Unit> Handle(DeleteListCommand request, CancellationToken cancellationToken)
     {
         var list = await FindOrThrowAsync<ProjectList>(request.ListId);
-
-        await RequirePermissionAsync(list, PermissionAction.Delete, cancellationToken);
 
         // Check if list has active tasks
         var hasTasks = await UnitOfWork.Set<ProjectTask>()

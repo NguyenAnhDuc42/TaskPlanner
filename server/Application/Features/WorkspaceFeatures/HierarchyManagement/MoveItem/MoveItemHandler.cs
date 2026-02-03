@@ -1,5 +1,4 @@
 using Application.Interfaces.Repositories;
-using Application.Interfaces.Services.Permissions;
 using Domain;
 using Application.Helpers;
 using Domain.Entities.ProjectEntities;
@@ -10,14 +9,13 @@ using server.Application.Interfaces;
 
 namespace Application.Features.WorkspaceFeatures.HierarchyManagement.MoveItem;
 
-public class MoveItemHandler : BaseCommandHandler, IRequestHandler<MoveItemCommand, Unit>
+public class MoveItemHandler : BaseFeatureHandler, IRequestHandler<MoveItemCommand, Unit>
 {
     public MoveItemHandler(
         IUnitOfWork unitOfWork,
-        IPermissionService permissionService,
         ICurrentUserService currentUserService,
         WorkspaceContext workspaceContext)
-        : base(unitOfWork, permissionService, currentUserService, workspaceContext)
+        : base(unitOfWork, currentUserService, workspaceContext)
     {
     }
 
@@ -45,7 +43,7 @@ public class MoveItemHandler : BaseCommandHandler, IRequestHandler<MoveItemComma
 
     private async Task MoveSpace(Guid spaceId, long newOrderKey, CancellationToken cancellationToken)
     {
-        var space = await AuthorizeAndFetchAsync<ProjectSpace>(spaceId, PermissionAction.Edit, cancellationToken);
+        var space = await FindOrThrowAsync<ProjectSpace>(spaceId);
 
         // Update order key
         space.Update(orderKey: newOrderKey);
@@ -53,12 +51,12 @@ public class MoveItemHandler : BaseCommandHandler, IRequestHandler<MoveItemComma
 
     private async Task MoveFolder(Guid folderId, Guid? newSpaceId, long newOrderKey, CancellationToken cancellationToken)
     {
-        var folder = await AuthorizeAndFetchAsync<ProjectFolder>(folderId, PermissionAction.Edit, cancellationToken);
+        var folder = await FindOrThrowAsync<ProjectFolder>(folderId);
 
         // If moving to a different space, validate it exists and we have permissions
         if (newSpaceId.HasValue && newSpaceId.Value != folder.ProjectSpaceId)
         {
-            var newSpace = await AuthorizeAndFetchAsync<ProjectSpace>(newSpaceId.Value, PermissionAction.Edit, cancellationToken);
+            var newSpace = await FindOrThrowAsync<ProjectSpace>(newSpaceId.Value);
 
             // Update folder's space and order key
             await UnitOfWork.Set<ProjectFolder>()
@@ -78,7 +76,7 @@ public class MoveItemHandler : BaseCommandHandler, IRequestHandler<MoveItemComma
 
     private async Task MoveList(Guid listId, Guid? newParentId, long newOrderKey, CancellationToken cancellationToken)
     {
-        var list = await AuthorizeAndFetchAsync<ProjectList>(listId, PermissionAction.Edit, cancellationToken);
+        var list = await FindOrThrowAsync<ProjectList>(listId);
 
         // Determine if moving to a folder or directly under a space
         if (newParentId.HasValue)
@@ -91,14 +89,14 @@ public class MoveItemHandler : BaseCommandHandler, IRequestHandler<MoveItemComma
             if (targetFolder != null)
             {
                 // Moving to a folder - Authorize on target folder
-                await AuthorizeAndFetchAsync<ProjectFolder>(targetFolder.Id, PermissionAction.Edit, cancellationToken);
+                await FindOrThrowAsync<ProjectFolder>(targetFolder.Id);
 
                 list.Update(orderKey: newOrderKey, projectFolderId: newParentId.Value);
             }
             else
             {
                 // Try to find as space - Authorize on target space
-                var targetSpace = await AuthorizeAndFetchAsync<ProjectSpace>(newParentId.Value, PermissionAction.Edit, cancellationToken);
+                var targetSpace = await FindOrThrowAsync<ProjectSpace>(newParentId.Value);
 
                 // Moving directly under a space (no folder)
                 await UnitOfWork.Set<ProjectList>()

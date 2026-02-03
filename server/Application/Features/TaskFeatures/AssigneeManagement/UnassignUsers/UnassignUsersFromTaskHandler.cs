@@ -1,5 +1,4 @@
 using Application.Interfaces.Repositories;
-using Application.Interfaces.Services.Permissions;
 using Domain;
 using Application.Helpers;
 using Domain.Entities.ProjectEntities;
@@ -11,17 +10,14 @@ using server.Application.Interfaces;
 
 namespace Application.Features.TaskFeatures.AssigneeManagement.UnassignUsers;
 
-public class UnassignUsersFromTaskHandler : BaseCommandHandler, IRequestHandler<UnassignUsersFromTaskCommand, Unit>
+public class UnassignUsersFromTaskHandler : BaseFeatureHandler, IRequestHandler<UnassignUsersFromTaskCommand, Unit>
 {
-    public UnassignUsersFromTaskHandler(IUnitOfWork unitOfWork, IPermissionService permissionService, ICurrentUserService currentUserService, WorkspaceContext workspaceContext)
-        : base(unitOfWork, permissionService, currentUserService, workspaceContext) { }
+    public UnassignUsersFromTaskHandler(IUnitOfWork unitOfWork, ICurrentUserService currentUserService, WorkspaceContext workspaceContext)
+        : base(unitOfWork, currentUserService, workspaceContext) { }
 
     public async Task<Unit> Handle(UnassignUsersFromTaskCommand request, CancellationToken cancellationToken)
     {
-        var task = await FindOrThrowAsync<ProjectTask>(request.TaskId)
-            ?? throw new KeyNotFoundException("Task not found");
-
-        await RequirePermissionAsync(task, PermissionAction.Edit, cancellationToken);
+        var task = await FindOrThrowAsync<ProjectTask>(request.TaskId);
 
         // Remove assignments
         var assignmentsToRemove = await UnitOfWork.Set<TaskAssignment>()

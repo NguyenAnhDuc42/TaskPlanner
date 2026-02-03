@@ -7,7 +7,6 @@ using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Hybrid;
 using server.Application.Interfaces;
-using Application.Interfaces.Services.Permissions;
 using Application.Common;
 using Application.Helpers;
 
@@ -15,15 +14,15 @@ namespace Application.Features.WorkspaceFeatures.MemberManage.UpdateMembers;
 
 public class UpdateMembersHandler : BaseFeatureHandler, IRequestHandler<UpdateMembersCommand, Unit>
 {
-    public UpdateMembersHandler(IUnitOfWork unitOfWork, IPermissionService permissionService, ICurrentUserService currentUserService, WorkspaceContext workspaceContext)
-        : base(unitOfWork, permissionService, currentUserService, workspaceContext)
+    public UpdateMembersHandler(IUnitOfWork unitOfWork, ICurrentUserService currentUserService, WorkspaceContext workspaceContext)
+        : base(unitOfWork, currentUserService, workspaceContext)
     {
     }
 
     public async Task<Unit> Handle(UpdateMembersCommand request, CancellationToken cancellationToken)
     {
-        // 1. Authorize & Fetch
-        var workspace = await AuthorizeAndFetchAsync<ProjectWorkspace>(request.workspaceId, PermissionAction.Edit, cancellationToken);
+        // 1. Fetch
+        var workspace = await FindOrThrowAsync<ProjectWorkspace>(request.workspaceId);
 
         var updateDict = request.members.ToDictionary(x => x.userId);
         var userIdsToUpdate = updateDict.Keys.ToList();

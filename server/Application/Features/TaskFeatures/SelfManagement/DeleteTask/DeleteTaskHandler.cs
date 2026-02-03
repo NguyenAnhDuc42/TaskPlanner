@@ -1,5 +1,4 @@
 using Application.Interfaces.Repositories;
-using Application.Interfaces.Services.Permissions;
 using Domain;
 using Application.Helpers;
 using Domain.Entities.ProjectEntities;
@@ -9,17 +8,14 @@ using server.Application.Interfaces;
 
 namespace Application.Features.TaskFeatures.SelfManagement.DeleteTask;
 
-public class DeleteTaskHandler : BaseCommandHandler, IRequestHandler<DeleteTaskCommand, Unit>
+public class DeleteTaskHandler : BaseFeatureHandler, IRequestHandler<DeleteTaskCommand, Unit>
 {
-    public DeleteTaskHandler(IUnitOfWork unitOfWork, IPermissionService permissionService, ICurrentUserService currentUserService, WorkspaceContext workspaceContext)
-        : base(unitOfWork, permissionService, currentUserService, workspaceContext) { }
+    public DeleteTaskHandler(IUnitOfWork unitOfWork, ICurrentUserService currentUserService, WorkspaceContext workspaceContext)
+        : base(unitOfWork, currentUserService, workspaceContext) { }
 
     public async Task<Unit> Handle(DeleteTaskCommand request, CancellationToken cancellationToken)
     {
-        var task = await FindOrThrowAsync<ProjectTask>(request.TaskId) as ProjectTask
-            ?? throw new KeyNotFoundException("Task not found");
-
-        await RequirePermissionAsync(task, PermissionAction.Delete, cancellationToken);
+        var task = await FindOrThrowAsync<ProjectTask>(request.TaskId);
 
         task.SoftDelete();
 

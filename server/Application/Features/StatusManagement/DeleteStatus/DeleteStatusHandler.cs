@@ -1,5 +1,4 @@
 using Application.Interfaces.Repositories;
-using Application.Interfaces.Services.Permissions;
 using Domain;
 using Application.Helpers;
 using Domain.Entities.Support;
@@ -9,16 +8,14 @@ using server.Application.Interfaces;
 
 namespace Application.Features.StatusManagement.DeleteStatus;
 
-public class DeleteStatusHandler : BaseCommandHandler, IRequestHandler<DeleteStatusCommand, Unit>
+public class DeleteStatusHandler : BaseFeatureHandler, IRequestHandler<DeleteStatusCommand, Unit>
 {
-    public DeleteStatusHandler(IUnitOfWork unitOfWork, IPermissionService permissionService, ICurrentUserService currentUserService, WorkspaceContext workspaceContext)
-        : base(unitOfWork, permissionService, currentUserService, workspaceContext) { }
+    public DeleteStatusHandler(IUnitOfWork unitOfWork, ICurrentUserService currentUserService, WorkspaceContext workspaceContext)
+        : base(unitOfWork, currentUserService, workspaceContext) { }
 
     public async Task<Unit> Handle(DeleteStatusCommand request, CancellationToken cancellationToken)
     {
         var status = await FindOrThrowAsync<Status>(request.StatusId);
-
-        var layerEntity = await GetLayer(status.LayerId!.Value, status.LayerType);
         status.SoftDelete();
         
         return Unit.Value;

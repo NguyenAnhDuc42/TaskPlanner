@@ -1,6 +1,5 @@
 using Application.Interfaces;
 using Application.Interfaces.Repositories;
-using Application.Interfaces.Services.Permissions;
 using Domain;
 using Application.Helpers;
 using Domain.Entities.Support.Workspace;
@@ -10,17 +9,16 @@ using server.Application.Interfaces;
 
 namespace Application.Features.WorkspaceFeatures.ChatRoomManage.ChatMessageManagement.SendMessage;
 
-public class SendMessageHandler : BaseCommandHandler, IRequestHandler<SendMessageCommand, SendMessageResult>
+public class SendMessageHandler : BaseFeatureHandler, IRequestHandler<SendMessageCommand, SendMessageResult>
 {
     private readonly IRealtimeService _realtime;
 
     public SendMessageHandler(
         IUnitOfWork unitOfWork,
-        IPermissionService permissionService,
         ICurrentUserService currentUserService,
         WorkspaceContext workspaceContext,
         IRealtimeService realtime)
-        : base(unitOfWork, permissionService, currentUserService, workspaceContext)
+        : base(unitOfWork, currentUserService, workspaceContext)
     {
         _realtime = realtime;
     }

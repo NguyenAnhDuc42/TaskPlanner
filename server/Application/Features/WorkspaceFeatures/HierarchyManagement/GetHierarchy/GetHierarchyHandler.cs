@@ -1,7 +1,6 @@
 using Application.Contract.WorkspaceContract;
 using Application.Helper;
 using Application.Interfaces.Repositories;
-using Application.Interfaces.Services.Permissions;
 using Domain;
 using Application.Helpers;
 using Domain.Entities.ProjectEntities;
@@ -16,11 +15,10 @@ public class GetHierarchyHandler : BaseQueryHandler, IRequestHandler<GetHierarch
 {
     public GetHierarchyHandler(
         IUnitOfWork unitOfWork,
-        IPermissionService permissionService,
         ICurrentUserService currentUserService,
         WorkspaceContext workspaceContext,
         CursorHelper cursorHelper)
-        : base(unitOfWork, permissionService, currentUserService, workspaceContext, cursorHelper)
+        : base(unitOfWork, currentUserService, workspaceContext, cursorHelper)
     {
     }
 
@@ -31,8 +29,7 @@ public class GetHierarchyHandler : BaseQueryHandler, IRequestHandler<GetHierarch
             .FirstOrDefaultAsync(cancellationToken)
             ?? throw new KeyNotFoundException($"Workspace {request.WorkspaceId} not found");
 
-        // Check access
-        await RequirePermissionAsync(workspace, PermissionAction.View, cancellationToken);
+
 
         // Use raw SQL to fetch hierarchy with permission filtering
         // This query gets all spaces, folders, and lists that the user can see

@@ -1,5 +1,4 @@
 using Application.Interfaces.Repositories;
-using Application.Interfaces.Services.Permissions;
 using Domain;
 using Application.Helpers;
 using Domain.Entities.ProjectEntities;
@@ -12,16 +11,14 @@ using server.Application.Interfaces;
 
 namespace Application.Features.ListFeatures.SelfManagement.UpdateList;
 
-public class UpdateListHandler : BaseCommandHandler, IRequestHandler<UpdateListCommand, Unit>
+public class UpdateListHandler : BaseFeatureHandler, IRequestHandler<UpdateListCommand, Unit>
 {
-    public UpdateListHandler(IUnitOfWork unitOfWork, IPermissionService permissionService, ICurrentUserService currentUserService, WorkspaceContext workspaceContext)
-        : base(unitOfWork, permissionService, currentUserService, workspaceContext) { }
+    public UpdateListHandler(IUnitOfWork unitOfWork, ICurrentUserService currentUserService, WorkspaceContext workspaceContext)
+        : base(unitOfWork, currentUserService, workspaceContext) { }
 
     public async Task<Unit> Handle(UpdateListCommand request, CancellationToken cancellationToken)
     {
         var list = await FindOrThrowAsync<ProjectList>(request.ListId);
-
-        await RequirePermissionAsync(list, PermissionAction.Edit, cancellationToken);
 
         // Update basic properties
         if (request.Name != null || request.Color != null || request.Icon != null)

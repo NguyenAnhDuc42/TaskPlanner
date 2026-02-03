@@ -1,5 +1,4 @@
 using Application.Interfaces.Repositories;
-using Application.Interfaces.Services.Permissions;
 using Domain;
 using Application.Helpers;
 using Domain.Entities.ProjectEntities;
@@ -12,16 +11,14 @@ using server.Application.Interfaces;
 
 namespace Application.Features.SpaceFeatures.SelfManagement.UpdateSpace;
 
-public class UpdateSpaceHandler : BaseCommandHandler, IRequestHandler<UpdateSpaceCommand, Unit>
+public class UpdateSpaceHandler : BaseFeatureHandler, IRequestHandler<UpdateSpaceCommand, Unit>
 {
-    public UpdateSpaceHandler(IUnitOfWork unitOfWork, IPermissionService permissionService, ICurrentUserService currentUserService, WorkspaceContext workspaceContext)
-        : base(unitOfWork, permissionService, currentUserService, workspaceContext) { }
+    public UpdateSpaceHandler(IUnitOfWork unitOfWork, ICurrentUserService currentUserService, WorkspaceContext workspaceContext)
+        : base(unitOfWork, currentUserService, workspaceContext) { }
 
     public async Task<Unit> Handle(UpdateSpaceCommand request, CancellationToken cancellationToken)
     {
         var space = await FindOrThrowAsync<ProjectSpace>(request.SpaceId);
-
-        await RequirePermissionAsync(space, PermissionAction.Edit, cancellationToken);
 
         // Update basic properties
         if (request.Name != null || request.Description != null || request.Color != null || request.Icon != null)

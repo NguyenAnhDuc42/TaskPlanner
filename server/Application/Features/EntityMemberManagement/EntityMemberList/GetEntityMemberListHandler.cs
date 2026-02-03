@@ -1,7 +1,6 @@
 using Application.Common.Results;
 using Application.Helper;
 using Application.Interfaces.Repositories;
-using Application.Interfaces.Services.Permissions;
 using Domain;
 using Application.Helpers;
 using Domain.Entities;
@@ -15,16 +14,13 @@ namespace Application.Features.EntityMemberManagement.EntityMemberList;
 
 public class GetEntityMemberListHandler : BaseQueryHandler, IRequestHandler<GetEntityMemberListQuery, PagedResult<EntityMemberDto>>
 {
-    public GetEntityMemberListHandler(IUnitOfWork unitOfWork, IPermissionService permissionService, ICurrentUserService currentUserService, WorkspaceContext workspaceContext, CursorHelper cursorHelper)
-        : base(unitOfWork, permissionService, currentUserService, workspaceContext, cursorHelper) { }
+    public GetEntityMemberListHandler(IUnitOfWork unitOfWork, ICurrentUserService currentUserService, WorkspaceContext workspaceContext, CursorHelper cursorHelper)
+        : base(unitOfWork, currentUserService, workspaceContext, cursorHelper) { }
 
     public async Task<PagedResult<EntityMemberDto>> Handle(GetEntityMemberListQuery request, CancellationToken cancellationToken)
     {
         // Get parent layer
         var layer = await GetLayer(request.LayerId, request.LayerType);
-
-        // Permission check (Read permission)
-        await RequirePermissionAsync(layer, PermissionAction.View, cancellationToken);
 
         var pageSize = request.Pagination.PageSize;
 

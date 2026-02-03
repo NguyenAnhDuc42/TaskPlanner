@@ -1,7 +1,6 @@
 using System;
 using Application.Helpers;
 using Application.Interfaces.Repositories;
-using Application.Interfaces.Services.Permissions;
 using Domain.Entities.ProjectEntities;
 using Domain.Entities.ProjectEntities.ValueObject;
 using Domain.Entities.Relationship;
@@ -14,12 +13,12 @@ namespace Application.Features.WorkspaceFeatures.HierarchyManagement.CreateList;
 
 public class CreateListHandler : BaseFeatureHandler, IRequestHandler<CreateListCommand, Guid>
 {
-    public CreateListHandler(IUnitOfWork unitOfWork, ICurrentUserService currentUserService, IPermissionService permissionService, WorkspaceContext workspaceContext)
-       : base(unitOfWork, permissionService, currentUserService, workspaceContext) { }
+    public CreateListHandler(IUnitOfWork unitOfWork, ICurrentUserService currentUserService, WorkspaceContext workspaceContext)
+       : base(unitOfWork, currentUserService, workspaceContext) { }
 
     public async Task<Guid> Handle(CreateListCommand request, CancellationToken cancellationToken)
     {
-        var space = await AuthorizeAndFetchAsync<ProjectSpace>(request.spaceId, PermissionAction.Create, cancellationToken);
+        var space = await FindOrThrowAsync<ProjectSpace>(request.spaceId);
 
         ProjectFolder? folder = null;
         if (request.folderId.HasValue)

@@ -1,5 +1,4 @@
 using Application.Interfaces.Repositories;
-using Application.Interfaces.Services.Permissions;
 using Domain;
 using Application.Helpers;
 using Domain.Entities.ProjectEntities;
@@ -11,17 +10,14 @@ using server.Application.Interfaces;
 
 namespace Application.Features.TaskFeatures.AssigneeManagement.AssignUsers;
 
-public class AssignUsersToTaskHandler : BaseCommandHandler, IRequestHandler<AssignUsersToTaskCommand, Unit>
+public class AssignUsersToTaskHandler : BaseFeatureHandler, IRequestHandler<AssignUsersToTaskCommand, Unit>
 {
-    public AssignUsersToTaskHandler(IUnitOfWork unitOfWork, IPermissionService permissionService, ICurrentUserService currentUserService, WorkspaceContext workspaceContext)
-        : base(unitOfWork, permissionService, currentUserService, workspaceContext) { }
+    public AssignUsersToTaskHandler(IUnitOfWork unitOfWork, ICurrentUserService currentUserService, WorkspaceContext workspaceContext)
+        : base(unitOfWork, currentUserService, workspaceContext) { }
 
     public async Task<Unit> Handle(AssignUsersToTaskCommand request, CancellationToken cancellationToken)
     {
-        var task = await FindOrThrowAsync<ProjectTask>(request.TaskId) as ProjectTask
-            ?? throw new KeyNotFoundException("Task not found");
-
-        await RequirePermissionAsync(task, PermissionAction.Edit, cancellationToken);
+        var task = await FindOrThrowAsync<ProjectTask>(request.TaskId);
 
         // Validate all users are workspace members
         var validMembers = await ValidateWorkspaceMembers(request.UserIds, cancellationToken);

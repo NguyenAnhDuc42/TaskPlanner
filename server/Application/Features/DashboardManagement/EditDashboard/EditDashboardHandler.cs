@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Text;
 using Application.Interfaces.Repositories;
-using Application.Interfaces.Services.Permissions;
 using Domain;
 using Application.Helpers;
 using Domain.Entities.Support.Widget;
@@ -15,20 +14,15 @@ using server.Application.Interfaces;
 namespace Application.Features.DashboardManagement.EditDashboard;
 
 
-public class EditDashboardHandler : BaseCommandHandler, IRequestHandler<EditDashboardCommand, Unit>
+public class EditDashboardHandler : BaseFeatureHandler, IRequestHandler<EditDashboardCommand, Unit>
 {
-    public EditDashboardHandler(IUnitOfWork unitOfWork, IPermissionService permissionService, ICurrentUserService currentUserService, WorkspaceContext workspaceContext)
-        : base(unitOfWork, permissionService, currentUserService, workspaceContext) { }
+    public EditDashboardHandler(IUnitOfWork unitOfWork, ICurrentUserService currentUserService, WorkspaceContext workspaceContext)
+        : base(unitOfWork, currentUserService, workspaceContext) { }
 
     public async Task<Unit> Handle(EditDashboardCommand request, CancellationToken cancellationToken)
     {
         // Fetch dashboard
-        var dashboard = await UnitOfWork.Set<Dashboard>()
-            .FirstOrDefaultAsync(d => d.Id == request.dashboardId, cancellationToken)
-            ?? throw new KeyNotFoundException("Dashboard not found");
-
-        // Permission check
-        await RequirePermissionAsync(dashboard, EntityType.Dashboard, PermissionAction.Edit, cancellationToken);
+        var dashboard = await FindOrThrowAsync<Dashboard>(request.dashboardId);
 
         // Update properties if provided
         if (!string.IsNullOrWhiteSpace(request.name))

@@ -1,5 +1,4 @@
 using Application.Interfaces.Repositories;
-using Application.Interfaces.Services.Permissions;
 using Domain;
 using Application.Helpers;
 using Domain.Entities.Relationship;
@@ -10,18 +9,15 @@ using server.Application.Interfaces;
 
 namespace Application.Features.EntityMemberManagement.EditEntityMember;
 
-public class EditEntityMemberHandler : BaseCommandHandler, IRequestHandler<EditEntityMemberCommand, Unit>
+public class EditEntityMemberHandler : BaseFeatureHandler, IRequestHandler<EditEntityMemberCommand, Unit>
 {
-    public EditEntityMemberHandler(IUnitOfWork unitOfWork, IPermissionService permissionService, ICurrentUserService currentUserService, WorkspaceContext workspaceContext)
-        : base(unitOfWork, permissionService, currentUserService, workspaceContext) { }
+    public EditEntityMemberHandler(IUnitOfWork unitOfWork, ICurrentUserService currentUserService, WorkspaceContext workspaceContext)
+        : base(unitOfWork, currentUserService, workspaceContext) { }
 
     public async Task<Unit> Handle(EditEntityMemberCommand request, CancellationToken cancellationToken)
     {
         // Get parent layer
         var layer = await GetLayer(request.LayerId, request.LayerType);
-
-        // Permission check
-        await RequirePermissionAsync(layer, EntityType.EntityMember, PermissionAction.Edit, cancellationToken);
 
         // Find and update members
         var membersToUpdate = await UnitOfWork.Set<EntityMember>()

@@ -2,7 +2,6 @@ using System.ComponentModel.DataAnnotations;
 using Application.Common.Exceptions;
 using Application.Helpers;
 using Application.Interfaces.Repositories;
-using Application.Interfaces.Services.Permissions;
 using Domain;
 using Application.Helpers;
 using Domain.Entities.ProjectEntities;
@@ -18,17 +17,16 @@ public class TransferOwnershipHandler : BaseFeatureHandler, IRequestHandler<Tran
 {
     public TransferOwnershipHandler(
         IUnitOfWork unitOfWork,
-        IPermissionService permissionService,
         ICurrentUserService currentUserService,
         WorkspaceContext workspaceContext)
-        : base(unitOfWork, permissionService, currentUserService, workspaceContext)
+        : base(unitOfWork, currentUserService, workspaceContext)
     {
     }
 
     public async Task<Unit> Handle(TransferOwnershipCommand request, CancellationToken cancellationToken)
     {
-        // 1. Authorize & Fetch (Transfer is a Manage/Owner level action)
-        var workspace = await AuthorizeAndFetchAsync<ProjectWorkspace>(request.WorkspaceId, PermissionAction.Manage, cancellationToken);
+        // 1. Fetch
+        var workspace = await FindOrThrowAsync<ProjectWorkspace>(request.WorkspaceId);
 
         // Extra check: Only current owner can transfer ownership (Role.Owner)
         if (workspace.CreatorId != CurrentUserId)

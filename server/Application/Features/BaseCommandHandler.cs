@@ -2,7 +2,6 @@
 
 using Application.Helpers;
 using Application.Interfaces.Repositories;
-using Application.Interfaces.Services.Permissions;
 using Domain.Entities.Relationship;
 using Microsoft.EntityFrameworkCore;
 using server.Application.Interfaces;
@@ -12,8 +11,8 @@ namespace Application.Features;
 
 public abstract class BaseCommandHandler : BaseFeatureHandler
 {
-    protected BaseCommandHandler(IUnitOfWork unitOfWork, IPermissionService permissionService, ICurrentUserService currentUserService, WorkspaceContext workspaceContext)
-        : base(unitOfWork, permissionService, currentUserService, workspaceContext) { }
+    protected BaseCommandHandler(IUnitOfWork unitOfWork, ICurrentUserService currentUserService, WorkspaceContext workspaceContext)
+        : base(unitOfWork, currentUserService, workspaceContext) { }
 
     /// <summary>
     /// Validates that all provided user IDs are members of the current workspace.
