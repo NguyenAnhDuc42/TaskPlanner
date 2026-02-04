@@ -51,27 +51,34 @@ public class EditSpaceHandler : BaseFeatureHandler, IRequestHandler<EditSpaceCom
 
     private async Task EnsureSpaceHasMembersAsync(Guid spaceId, Guid creatorId, Guid currentUserId, CancellationToken cancellationToken)
     {
-        // Fetch only relevant members to minimize DB load
-        var members = await UnitOfWork.Set<EntityMember>()
-            .Where(em => em.LayerId == spaceId
-                      && em.LayerType == EntityLayerType.ProjectSpace
-                      && (em.UserId == creatorId || em.UserId == currentUserId))
+        // Fetch only relevant access records to minimize DB load
+        var accessRecords = await UnitOfWork.Set<EntityAccess>()
+            .Where(ea => ea.EntityId == spaceId
+                      && ea.EntityLayer == EntityLayerType.ProjectSpace)
+            .ToListAsync(cancellationToken);
+            
+        // We need to check which workspace members these access records belong to
+        var workspaceMembers = await UnitOfWork.Set<WorkspaceMember>()
+            .Where(wm => (wm.UserId == creatorId || wm.UserId == currentUserId) && wm.ProjectWorkspaceId == WorkspaceId)
             .ToListAsync(cancellationToken);
 
-        bool creatorExists = members.Any(em => em.UserId == creatorId);
-        bool currentUserExists = members.Any(em => em.UserId == currentUserId);
+        var creatorMember = workspaceMembers.FirstOrDefault(wm => wm.UserId == creatorId);
+        var currentUserMember = workspaceMembers.FirstOrDefault(wm => wm.UserId == currentUserId);
 
-        var toAdd = new List<EntityMember>();
+        bool creatorHasAccess = creatorMember != null && accessRecords.Any(ea => ea.WorkspaceMemberId == creatorMember.Id);
+        bool currentUserHasAccess = currentUserMember != null && accessRecords.Any(ea => ea.WorkspaceMemberId == currentUserMember.Id);
 
-        if (!creatorExists)
-            toAdd.Add(EntityMember.AddMember(creatorId, spaceId, EntityLayerType.ProjectSpace, AccessLevel.Manager, creatorId));
+        var toAdd = new List<EntityAccess>();
 
-        if (!currentUserExists && currentUserId != creatorId)
-            toAdd.Add(EntityMember.AddMember(currentUserId, spaceId, EntityLayerType.ProjectSpace, AccessLevel.Editor, currentUserId));
+        if (!creatorHasAccess && creatorMember != null)
+            toAdd.Add(EntityAccess.Create(creatorMember.Id, spaceId, EntityLayerType.ProjectSpace, AccessLevel.Manager, creatorId));
+
+        if (!currentUserHasAccess && currentUserMember != null && currentUserId != creatorId)
+            toAdd.Add(EntityAccess.Create(currentUserMember.Id, spaceId, EntityLayerType.ProjectSpace, AccessLevel.Editor, currentUserId));
 
         if (toAdd.Any())
         {
-            await UnitOfWork.Set<EntityMember>().AddRangeAsync(toAdd, cancellationToken);
+            await UnitOfWork.Set<EntityAccess>().AddRangeAsync(toAdd, cancellationToken);
         }
     }
 }

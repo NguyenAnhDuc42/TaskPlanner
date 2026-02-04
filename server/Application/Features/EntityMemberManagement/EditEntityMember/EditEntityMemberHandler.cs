@@ -19,16 +19,19 @@ public class EditEntityMemberHandler : BaseFeatureHandler, IRequestHandler<EditE
         // Get parent layer
         var layer = await GetLayer(request.LayerId, request.LayerType);
 
-        // Find and update members
-        var membersToUpdate = await UnitOfWork.Set<EntityMember>()
-            .Where(em => em.LayerId == request.LayerId
-                      && em.LayerType == request.LayerType
-                      && request.UserIds.Contains(em.UserId))
+        // Resolve workspace member IDs
+        var workspaceMemberIds = await GetWorkspaceMemberIds(request.UserIds, cancellationToken);
+
+        // Find and update access records
+        var accessToUpdate = await UnitOfWork.Set<EntityAccess>()
+            .Where(ea => ea.EntityId == request.LayerId
+                      && ea.EntityLayer == request.LayerType
+                      && workspaceMemberIds.Contains(ea.WorkspaceMemberId))
             .ToListAsync(cancellationToken);
 
-        if (membersToUpdate.Any())
+        if (accessToUpdate.Any())
         {
-            membersToUpdate.ForEach(em => em.UpdateAccessLevel(request.AccessLevel));
+            accessToUpdate.ForEach(ea => ea.UpdateAccessLevel(request.AccessLevel));
         }
 
         return Unit.Value;

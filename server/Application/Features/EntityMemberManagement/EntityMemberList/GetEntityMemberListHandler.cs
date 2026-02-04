@@ -24,36 +24,49 @@ public class GetEntityMemberListHandler : BaseQueryHandler, IRequestHandler<GetE
 
         var pageSize = request.Pagination.PageSize;
 
-        // Query EntityMembers with User details
-        var members = await QueryNoTracking<EntityMember>()
-            .Where(em => em.LayerId == request.LayerId && em.LayerType == request.LayerType)
+        // Query EntityAccess records
+        var accessRecords = await QueryNoTracking<EntityAccess>()
+            .Where(ea => ea.EntityId == request.LayerId && ea.EntityLayer == request.LayerType)
             .ApplyCursor(request.Pagination, CursorHelper)
             .ApplySort(request.Pagination)
             .Take(pageSize + 1)
             .ToListAsync(cancellationToken);
 
-        var hasMore = members.Count > pageSize;
-        var displayItems = members.Take(pageSize).ToList();
+        var hasMore = accessRecords.Count > pageSize;
+        var displayItems = accessRecords.Take(pageSize).ToList();
 
-        // Join with Users to get user details
-        var userIds = displayItems.Select(em => em.UserId).ToList();
+        // Get WorkspaceMember details to get UserIds
+        var wmIds = displayItems.Select(ea => ea.WorkspaceMemberId).ToList();
+        var workspaceMembers = await UnitOfWork.Set<WorkspaceMember>()
+            .AsNoTracking()
+            .Where(wm => wmIds.Contains(wm.Id))
+            .ToDictionaryAsync(wm => wm.Id, cancellationToken);
+
+        // Get User details
+        var userIds = workspaceMembers.Values.Select(wm => wm.UserId).Distinct().ToList();
         var users = await UnitOfWork.Set<User>()
+            .AsNoTracking()
             .Where(u => userIds.Contains(u.Id))
             .ToDictionaryAsync(u => u.Id, cancellationToken);
 
-        var dtos = displayItems.Select(em => new EntityMemberDto(
-            em.Id,
-            em.UserId,
-            users.ContainsKey(em.UserId) ? users[em.UserId].Name : "Unknown",
-            users.ContainsKey(em.UserId) ? users[em.UserId].Email : "Unknown",
-            em.AccessLevel,
-            em.CreatedAt
-        )).ToList();
+        var dtos = displayItems.Select(ea => {
+            var wm = workspaceMembers.GetValueOrDefault(ea.WorkspaceMemberId);
+            var user = wm != null ? users.GetValueOrDefault(wm.UserId) : null;
+            
+            return new EntityMemberDto(
+                ea.Id,
+                user?.Id ?? Guid.Empty,
+                user?.Name ?? "Unknown",
+                user?.Email ?? "Unknown",
+                ea.AccessLevel,
+                ea.CreatedAt
+            );
+        }).ToList();
 
         string? nextCursor = null;
         if (hasMore && displayItems.Count > 0)
         {
-            var lastItem = displayItems.Last(); // This is EntityMember, has UpdatedAt
+            var lastItem = displayItems.Last();
             nextCursor = CursorHelper.EncodeCursor(new CursorData(new Dictionary<string, object>
             {
                 { "Timestamp", lastItem.UpdatedAt },

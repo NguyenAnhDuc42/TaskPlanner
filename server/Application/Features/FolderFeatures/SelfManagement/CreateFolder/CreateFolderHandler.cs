@@ -36,25 +36,36 @@ public class CreateFolderHandler : BaseFeatureHandler, IRequestHandler<CreateFol
 
         await UnitOfWork.Set<ProjectFolder>().AddAsync(folder, cancellationToken);
         
-        // Create EntityMember for owner if private
+        await UnitOfWork.Set<ProjectFolder>().AddAsync(folder, cancellationToken);
+        
+        // Create EntityAccess for owner if private
         if (request.isPrivate)
         {
-            var member = EntityMember.AddMember(CurrentUserId, folder.Id, EntityLayerType.ProjectFolder, AccessLevel.Manager, CurrentUserId);
-            await UnitOfWork.Set<EntityMember>().AddAsync(member, cancellationToken);
+            var memberId = await GetWorkspaceMemberId(CurrentUserId, cancellationToken);
+            var access = EntityAccess.Create(memberId, folder.Id, EntityLayerType.ProjectFolder, AccessLevel.Manager, CurrentUserId);
+            await UnitOfWork.Set<EntityAccess>().AddAsync(access, cancellationToken);
         }
         
         // Invite additional members if provided
         if (request.memberIdsToInvite?.Any() == true)
         {
-            // Validate all are workspace members
-            var validMembers = await ValidateWorkspaceMembers(request.memberIdsToInvite, cancellationToken);
+            // Resolve workspace member IDs
+            var workspaceMemberIds = await GetWorkspaceMemberIds(request.memberIdsToInvite, cancellationToken);
 
-            // Create EntityMembers for invitees (exclude owner to avoid duplicates)
-            var inviteMembers = validMembers
-                .Where(userId => userId != CurrentUserId)
-                .Select(userId => EntityMember.AddMember(userId, folder.Id, EntityLayerType.ProjectFolder, AccessLevel.Editor, CurrentUserId));
+            // Create EntityAccess for invitees (exclude owner to avoid duplicates)
+            var accessRecords = workspaceMemberIds
+                .Where(id => id != CurrentUserId) // This is wrong, it should be where wm.UserId != CurrentUserId. Let's fix GetWorkspaceMemberIds to return a dict or something if needed, or just resolve manually here.
+                // Wait, GetWorkspaceMemberIds returns wm.Id. CurrentUserId is User.Id.
+                // I need the wm.Id for CurrentUserId.
+                ;
+                
+            var ownerMemberId = await GetWorkspaceMemberId(CurrentUserId, cancellationToken);
+            
+            var inviteAccessRecords = workspaceMemberIds
+                .Where(memberId => memberId != ownerMemberId)
+                .Select(memberId => EntityAccess.Create(memberId, folder.Id, EntityLayerType.ProjectFolder, AccessLevel.Editor, CurrentUserId));
 
-            await UnitOfWork.Set<EntityMember>().AddRangeAsync(inviteMembers, cancellationToken);
+            await UnitOfWork.Set<EntityAccess>().AddRangeAsync(inviteAccessRecords, cancellationToken);
         }
         
         return folder.Id;

@@ -42,23 +42,27 @@ public class CreateListHandler : BaseFeatureHandler, IRequestHandler<CreateListC
 
         await UnitOfWork.Set<ProjectList>().AddAsync(list, cancellationToken);
         
-        // Create EntityMember for owner if private
+        await UnitOfWork.Set<ProjectList>().AddAsync(list, cancellationToken);
+        
+        // Create EntityAccess for owner if private
         if (request.isPrivate)
         {
-            var member = EntityMember.AddMember(CurrentUserId, list.Id, EntityLayerType.ProjectList, AccessLevel.Manager, CurrentUserId);
-            await UnitOfWork.Set<EntityMember>().AddAsync(member, cancellationToken);
+            var memberId = await GetWorkspaceMemberId(CurrentUserId, cancellationToken);
+            var access = EntityAccess.Create(memberId, list.Id, EntityLayerType.ProjectList, AccessLevel.Manager, CurrentUserId);
+            await UnitOfWork.Set<EntityAccess>().AddAsync(access, cancellationToken);
         }
         
         // Invite additional members if provided
         if (request.memberIdsToInvite?.Any() == true)
         {
-            var validMembers = await ValidateWorkspaceMembers(request.memberIdsToInvite, cancellationToken);
+            var workspaceMemberIds = await GetWorkspaceMemberIds(request.memberIdsToInvite, cancellationToken);
+            var ownerMemberId = await GetWorkspaceMemberId(CurrentUserId, cancellationToken);
 
-            var inviteMembers = validMembers
-                .Where(userId => userId != CurrentUserId)
-                .Select(userId => EntityMember.AddMember(userId, list.Id, EntityLayerType.ProjectList, AccessLevel.Editor, CurrentUserId));
+            var accessRecords = workspaceMemberIds
+                .Where(memberId => memberId != ownerMemberId)
+                .Select(memberId => EntityAccess.Create(memberId, list.Id, EntityLayerType.ProjectList, AccessLevel.Editor, CurrentUserId));
 
-            await UnitOfWork.Set<EntityMember>().AddRangeAsync(inviteMembers, cancellationToken);
+            await UnitOfWork.Set<EntityAccess>().AddRangeAsync(accessRecords, cancellationToken);
         }
 
         return list.Id;

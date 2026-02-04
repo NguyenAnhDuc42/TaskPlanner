@@ -78,4 +78,31 @@ public abstract class BaseFeatureHandler
 
         return validMembers;
     }
+
+    protected async Task<Guid> GetWorkspaceMemberId(Guid userId, CancellationToken ct = default)
+    {
+        var member = await UnitOfWork.Set<Domain.Entities.Relationship.WorkspaceMember>()
+            .AsNoTracking()
+            .FirstOrDefaultAsync(wm => wm.UserId == userId && wm.ProjectWorkspaceId == WorkspaceId, ct);
+
+        return member?.Id ?? throw new KeyNotFoundException($"User {userId} is not a member of workspace {WorkspaceId}");
+    }
+
+    protected async Task<List<Guid>> GetWorkspaceMemberIds(List<Guid> userIds, CancellationToken ct = default)
+    {
+        if (userIds == null || !userIds.Any()) return new List<Guid>();
+
+        var members = await UnitOfWork.Set<Domain.Entities.Relationship.WorkspaceMember>()
+            .AsNoTracking()
+            .Where(wm => userIds.Contains(wm.UserId) && wm.ProjectWorkspaceId == WorkspaceId)
+            .Select(wm => wm.Id)
+            .ToListAsync(ct);
+
+        if (members.Count != userIds.Count)
+        {
+            throw new System.ComponentModel.DataAnnotations.ValidationException("One or more users are not members of this workspace.");
+        }
+
+        return members;
+    }
 }

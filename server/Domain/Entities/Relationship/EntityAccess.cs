@@ -14,7 +14,7 @@ public class EntityAccess : Entity
     public AccessLevel AccessLevel { get; private set; }
 
     private EntityAccess() { } // EF
-    private EntityAccess(Guid workspaceMemberId, Guid entityId, EntityLayerType entityLayer, AccessLevel accessLevel,  Guid creatorId)
+    private EntityAccess(Guid workspaceMemberId, Guid entityId, EntityLayerType entityLayer, AccessLevel accessLevel, Guid creatorId)
     {
         WorkspaceMemberId = workspaceMemberId;
         EntityId = entityId;

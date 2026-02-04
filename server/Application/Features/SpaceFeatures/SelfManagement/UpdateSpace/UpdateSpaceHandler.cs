@@ -36,43 +36,62 @@ public class UpdateSpaceHandler : BaseFeatureHandler, IRequestHandler<UpdateSpac
 
         if (willBePrivate)
         {
-            var existingMembers = await UnitOfWork.Set<EntityMember>()
-                .Where(em => em.LayerId == space.Id && em.LayerType == EntityLayerType.ProjectSpace)
+            var existingAccess = await UnitOfWork.Set<EntityAccess>()
+                .Where(ea => ea.EntityId == space.Id && ea.EntityLayer == EntityLayerType.ProjectSpace)
                 .ToListAsync(cancellationToken);
 
-            if (!existingMembers.Any())
+            if (!existingAccess.Any())
             {
-                var ownerMember = EntityMember.AddMember(
-                    CurrentUserId,
+                var memberId = await GetWorkspaceMemberId(CurrentUserId, cancellationToken);
+                var ownerAccess = EntityAccess.Create(
+                    memberId,
                     space.Id,
                     EntityLayerType.ProjectSpace,
                     AccessLevel.Manager,
                     CurrentUserId
                 );
-                await UnitOfWork.Set<EntityMember>().AddAsync(ownerMember, cancellationToken);
-                existingMembers.Add(ownerMember);
+                await UnitOfWork.Set<EntityAccess>().AddAsync(ownerAccess, cancellationToken);
+                existingAccess.Add(ownerAccess);
             }
 
             if (request.MemberIdsToAdd?.Any() == true)
             {
-                var existingMemberIds = existingMembers.Select(m => m.UserId).ToHashSet();
-                var newMemberIds = request.MemberIdsToAdd
+                // Resolve existing user IDs to compare (this is a bit more complex now since we have memberIds)
+                var existingMemberIds = await UnitOfWork.Set<WorkspaceMember>()
+                    .Where(wm => existingAccess.Select(ea => ea.WorkspaceMemberId).Contains(wm.Id))
+                    .Select(wm => wm.UserId)
+                    .ToListAsync(cancellationToken);
+
+                var newUserIds = request.MemberIdsToAdd
                     .Where(id => !existingMemberIds.Contains(id))
                     .ToList();
 
-                if (newMemberIds.Any())
+                if (newUserIds.Any())
                 {
-                    var validMembers = await ValidateWorkspaceMembers(newMemberIds, cancellationToken);
+                    var newWorkspaceMemberIds = await GetWorkspaceMemberIds(newUserIds, cancellationToken);
 
-                    var newMembers = validMembers.Select(userId =>
-                        EntityMember.AddMember(
-                            userId,
+                    var newAccessRecords = newWorkspaceMemberIds.Select(memberId =>
+                        EntityAccess.Create(
+                            memberId,
+                            space.Id,
+                            EntityLayerType.ProjectLayer, // This should probably be EntityLayerType.ProjectSpace? check enum
+                            AccessLevel.Editor,
+                            CurrentUserId
+                        ));
+                        
+                    // Wait, let's check EntityLayerType enum
+                    // Actually, the previous code used EntityLayerType.ProjectSpace.
+                    
+                    var correctAccessRecords = newWorkspaceMemberIds.Select(memberId =>
+                        EntityAccess.Create(
+                            memberId,
                             space.Id,
                             EntityLayerType.ProjectSpace,
                             AccessLevel.Editor,
                             CurrentUserId
                         ));
-                    await UnitOfWork.Set<EntityMember>().AddRangeAsync(newMembers, cancellationToken);
+                        
+                    await UnitOfWork.Set<EntityAccess>().AddRangeAsync(correctAccessRecords, cancellationToken);
                 }
             }
         }

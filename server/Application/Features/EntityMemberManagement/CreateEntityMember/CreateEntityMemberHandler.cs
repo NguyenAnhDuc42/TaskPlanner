@@ -29,26 +29,29 @@ public class CreateEntityMemberHandler : BaseFeatureHandler, IRequestHandler<Cre
         if (workspaceMembers.Count != request.UserIds.Count)
             throw new ValidationException("One or more users are not members of this workspace");
 
-        // Check for existing members
-        var existingMemberIds = await UnitOfWork.Set<EntityMember>()
-            .Where(em => em.LayerId == request.LayerId 
-                      && em.LayerType == request.LayerType 
-                      && request.UserIds.Contains(em.UserId))
-            .Select(em => em.UserId)
+        // Check for existing access
+        var existingMemberIds = await UnitOfWork.Set<EntityAccess>()
+            .Where(ea => ea.EntityId == request.LayerId 
+                      && ea.EntityLayer == request.LayerType 
+                      && workspaceMembers.Select(wm => wm.Id).Contains(ea.WorkspaceMemberId))
+            .Select(ea => ea.WorkspaceMemberId)
             .ToListAsync(cancellationToken);
 
-        // Filter out users who are already members
-        var newUserIds = request.UserIds.Except(existingMemberIds).ToList();
-
-        if (!newUserIds.Any())
-            return Unit.Value;
-
-        // Create new members
-        var newMembers = newUserIds
-            .Select(userId => EntityMember.AddMember(userId, request.LayerId, request.LayerType, request.AccessLevel, CurrentUserId))
+        // Filter out users who already have access
+        var newWorkspaceMemberIds = workspaceMembers
+            .Where(wm => !existingMemberIds.Contains(wm.Id))
+            .Select(wm => wm.Id)
             .ToList();
 
-        await UnitOfWork.Set<EntityMember>().AddRangeAsync(newMembers, cancellationToken);
+        if (!newWorkspaceMemberIds.Any())
+            return Unit.Value;
+
+        // Create new access records
+        var newAccessRecords = newWorkspaceMemberIds
+            .Select(memberId => EntityAccess.Create(memberId, request.LayerId, request.LayerType, request.AccessLevel, CurrentUserId))
+            .ToList();
+
+        await UnitOfWork.Set<EntityAccess>().AddRangeAsync(newAccessRecords, cancellationToken);
 
         return Unit.Value;
     }

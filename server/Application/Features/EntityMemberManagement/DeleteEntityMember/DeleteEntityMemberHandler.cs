@@ -19,16 +19,19 @@ public class DeleteEntityMemberHandler : BaseFeatureHandler, IRequestHandler<Del
         // Get parent layer
         var layer = await GetLayer(request.LayerId, request.LayerType);
 
-        // Find and remove members
-        var membersToRemove = await UnitOfWork.Set<EntityMember>()
-            .Where(em => em.LayerId == request.LayerId
-                      && em.LayerType == request.LayerType
-                      && request.UserIds.Contains(em.UserId))
+        // Resolve workspace member IDs
+        var workspaceMemberIds = await GetWorkspaceMemberIds(request.UserIds, cancellationToken);
+
+        // Find and remove access records
+        var accessToRemove = await UnitOfWork.Set<EntityAccess>()
+            .Where(ea => ea.EntityId == request.LayerId
+                      && ea.EntityLayer == request.LayerType
+                      && workspaceMemberIds.Contains(ea.WorkspaceMemberId))
             .ToListAsync(cancellationToken);
 
-        if (membersToRemove.Any())
+        if (accessToRemove.Any())
         {
-            UnitOfWork.Set<EntityMember>().RemoveRange(membersToRemove);
+            UnitOfWork.Set<EntityAccess>().RemoveRange(accessToRemove);
         }
 
         return Unit.Value;
