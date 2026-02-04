@@ -87,7 +87,7 @@ public class UpdateFolderHandler : BaseFeatureHandler, IRequestHandler<UpdateFol
             }
         }
 
-        // Update privacy flag (keep EntityMembers even if changing back to public)
+        // Update privacy flag (keep EntityAccess records even if changing back to public)
         if (request.IsPrivate.HasValue && request.IsPrivate.Value != folder.IsPrivate)
         {
             folder.UpdatePrivacy(request.IsPrivate.Value);

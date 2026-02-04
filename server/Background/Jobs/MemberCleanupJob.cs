@@ -27,6 +27,19 @@ public class MemberCleanupJob
         _logger.LogInformation("Starting cleanup for user {UserId} in workspace {WorkspaceId}", 
             userId, workspaceId);
 
+        // Find WorkspaceMemberId
+        var workspaceMemberId = await _context.WorkspaceMembers
+            .AsNoTracking()
+            .Where(wm => wm.UserId == userId && wm.ProjectWorkspaceId == workspaceId)
+            .Select(wm => wm.Id)
+            .FirstOrDefaultAsync();
+
+        if (workspaceMemberId == Guid.Empty)
+        {
+            _logger.LogWarning("No WorkspaceMember found for User {UserId} in Workspace {WorkspaceId}. Skipping cleanup.", userId, workspaceId);
+            return;
+        }
+
         // Get all entity IDs in this workspace
         var spaceIds = await _context.ProjectSpaces
             .AsNoTracking()
@@ -48,9 +61,9 @@ public class MemberCleanupJob
 
         var allLayerIds = spaceIds.Concat(folderIds).Concat(listIds).ToList();
 
-        // Soft-delete EntityMembers for this user
-        var entityMembersDeleted = await _context.EntityMembers
-            .Where(em => em.UserId == userId && allLayerIds.Contains(em.LayerId) && em.DeletedAt == null)
+        // Soft-delete EntityAccess for this user
+        var entityAccessDeleted = await _context.EntityAccesses
+            .Where(ea => ea.WorkspaceMemberId == workspaceMemberId && allLayerIds.Contains(ea.EntityId) && ea.DeletedAt == null)
             .ExecuteUpdateAsync(s => s
                 .SetProperty(e => e.DeletedAt, DateTimeOffset.UtcNow)
                 .SetProperty(e => e.UpdatedAt, DateTimeOffset.UtcNow));
@@ -69,7 +82,7 @@ public class MemberCleanupJob
                 .SetProperty(a => a.UpdatedAt, DateTimeOffset.UtcNow));
 
         _logger.LogInformation(
-            "Cleanup complete for user {UserId}: {EntityMembers} EntityMembers, {Assignments} TaskAssignments",
-            userId, entityMembersDeleted, assignmentsDeleted);
+            "Cleanup complete for user {UserId}: {EntityAccessCount} EntityAccess records, {Assignments} TaskAssignments",
+            userId, entityAccessDeleted, assignmentsDeleted);
     }
 }

@@ -8,7 +8,7 @@ public enum EntityType
     ProjectList,
     ProjectTask,
     ProjectFolder,
-    EntityMember,
+    EntityAccess,
     Dashboard,
     Widget,
     Tag,

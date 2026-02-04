@@ -2,9 +2,9 @@ using Application.Common.Interfaces;
 using Domain.Enums.RelationShip;
 using MediatR;
 
-namespace Application.Features.EntityMemberManagement.CreateEntityMember;
+namespace Application.Features.EntityAccessManagement.UpdateEntityAccess;
 
-public record CreateEntityMemberCommand(
+public record UpdateEntityAccessCommand(
     Guid LayerId,
     EntityLayerType LayerType,
     List<Guid> UserIds,

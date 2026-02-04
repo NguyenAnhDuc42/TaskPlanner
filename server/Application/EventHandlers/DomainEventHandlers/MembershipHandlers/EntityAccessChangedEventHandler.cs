@@ -5,20 +5,20 @@ using Microsoft.Extensions.Logging;
 
 namespace Application.EventHandlers.DomainEventHandlers.MembershipHandlers;
 
-public class EntityMemberAccessChangedEventHandler : INotificationHandler<EntityMemberAccessChangedEvent>
+public class EntityAccessChangedEventHandler : INotificationHandler<EntityAccessChangedEvent>
 {
     private readonly IRealtimeService _realtimeService;
-    private readonly ILogger<EntityMemberAccessChangedEventHandler> _logger;
+    private readonly ILogger<EntityAccessChangedEventHandler> _logger;
 
-    public EntityMemberAccessChangedEventHandler(
+    public EntityAccessChangedEventHandler(
         IRealtimeService realtimeService,
-        ILogger<EntityMemberAccessChangedEventHandler> logger)
+        ILogger<EntityAccessChangedEventHandler> logger)
     {
         _realtimeService = realtimeService;
         _logger = logger;
     }
 
-    public async Task Handle(EntityMemberAccessChangedEvent notification, CancellationToken cancellationToken)
+    public async Task Handle(EntityAccessChangedEvent notification, CancellationToken cancellationToken)
     {
         _logger.LogInformation("[Plumbing] Invalidating cache for access change: UserId={UserId}, EntityId={EntityId}, EntityType={EntityType}, {OldAccess}->{NewAccess}",
             notification.UserId, notification.EntityId, notification.EntityType, notification.OldAccess, notification.NewAccess);

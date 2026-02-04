@@ -10,33 +10,26 @@ using MediatR;
 using Microsoft.EntityFrameworkCore;
 using server.Application.Interfaces;
 
-namespace Application.Features.EntityMemberManagement.EntityMemberList;
+namespace Application.Features.EntityAccessManagement.GetEntityAccessList;
 
-public class GetEntityMemberListHandler : BaseQueryHandler, IRequestHandler<GetEntityMemberListQuery, PagedResult<EntityMemberDto>>
+public class GetEntityAccessListHandler : BaseFeatureHandler, IRequestHandler<GetEntityAccessListQuery, List<EntityAccessDto>>
 {
-    public GetEntityMemberListHandler(IUnitOfWork unitOfWork, ICurrentUserService currentUserService, WorkspaceContext workspaceContext, CursorHelper cursorHelper)
-        : base(unitOfWork, currentUserService, workspaceContext, cursorHelper) { }
+    public GetEntityAccessListHandler(IUnitOfWork unitOfWork, ICurrentUserService currentUserService, WorkspaceContext workspaceContext)
+        : base(unitOfWork, currentUserService, workspaceContext) { }
 
-    public async Task<PagedResult<EntityMemberDto>> Handle(GetEntityMemberListQuery request, CancellationToken cancellationToken)
+    public async Task<List<EntityAccessDto>> Handle(GetEntityAccessListQuery request, CancellationToken cancellationToken)
     {
         // Get parent layer
         var layer = await GetLayer(request.LayerId, request.LayerType);
 
-        var pageSize = request.Pagination.PageSize;
-
         // Query EntityAccess records
-        var accessRecords = await QueryNoTracking<EntityAccess>()
+        var accessRecords = await UnitOfWork.Set<EntityAccess>()
+            .AsNoTracking()
             .Where(ea => ea.EntityId == request.LayerId && ea.EntityLayer == request.LayerType)
-            .ApplyCursor(request.Pagination, CursorHelper)
-            .ApplySort(request.Pagination)
-            .Take(pageSize + 1)
             .ToListAsync(cancellationToken);
 
-        var hasMore = accessRecords.Count > pageSize;
-        var displayItems = accessRecords.Take(pageSize).ToList();
-
         // Get WorkspaceMember details to get UserIds
-        var wmIds = displayItems.Select(ea => ea.WorkspaceMemberId).ToList();
+        var wmIds = accessRecords.Select(ea => ea.WorkspaceMemberId).Distinct().ToList();
         var workspaceMembers = await UnitOfWork.Set<WorkspaceMember>()
             .AsNoTracking()
             .Where(wm => wmIds.Contains(wm.Id))
@@ -49,11 +42,11 @@ public class GetEntityMemberListHandler : BaseQueryHandler, IRequestHandler<GetE
             .Where(u => userIds.Contains(u.Id))
             .ToDictionaryAsync(u => u.Id, cancellationToken);
 
-        var dtos = displayItems.Select(ea => {
+        var dtos = accessRecords.Select(ea => {
             var wm = workspaceMembers.GetValueOrDefault(ea.WorkspaceMemberId);
             var user = wm != null ? users.GetValueOrDefault(wm.UserId) : null;
             
-            return new EntityMemberDto(
+            return new EntityAccessDto(
                 ea.Id,
                 user?.Id ?? Guid.Empty,
                 user?.Name ?? "Unknown",
@@ -63,17 +56,6 @@ public class GetEntityMemberListHandler : BaseQueryHandler, IRequestHandler<GetE
             );
         }).ToList();
 
-        string? nextCursor = null;
-        if (hasMore && displayItems.Count > 0)
-        {
-            var lastItem = displayItems.Last();
-            nextCursor = CursorHelper.EncodeCursor(new CursorData(new Dictionary<string, object>
-            {
-                { "Timestamp", lastItem.UpdatedAt },
-                { "Id", lastItem.Id }
-            }));
-        }
-
-        return new PagedResult<EntityMemberDto>(dtos, nextCursor, hasMore);
+        return dtos;
     }
 }

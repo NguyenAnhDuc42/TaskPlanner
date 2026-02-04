@@ -1,8 +1,8 @@
 using Domain.Enums.RelationShip;
 
-namespace Application.Features.EntityMemberManagement.EntityMemberList;
+namespace Application.Features.EntityAccessManagement.GetEntityAccessList;
 
-public record EntityMemberDto(
+public record EntityAccessDto(
     Guid Id,
     Guid UserId,
     string UserName,

@@ -52,11 +52,12 @@ public class GetHierarchyHandler : BaseQueryHandler, IRequestHandler<GetHierarch
                   AND (
                       s.is_private = false 
                       OR EXISTS (
-                          SELECT 1 FROM entity_members em 
-                          WHERE em.layer_id = s.id 
-                            AND em.user_id = @UserId 
-                            AND em.layer_type = 0  -- Space
-                            AND em.deleted_at IS NULL
+                          SELECT 1 FROM entity_accesses ea
+                          INNER JOIN workspace_members wm ON ea.workspace_member_id = wm.id
+                          WHERE ea.entity_id = s.id 
+                            AND wm.user_id = @UserId 
+                            AND ea.entity_layer = 0  -- Space
+                            AND ea.deleted_at IS NULL
                       )
                   )
             ),
@@ -76,11 +77,12 @@ public class GetHierarchyHandler : BaseQueryHandler, IRequestHandler<GetHierarch
                   AND (
                       f.is_private = false 
                       OR EXISTS (
-                          SELECT 1 FROM entity_members em 
-                          WHERE em.layer_id = f.id 
-                            AND em.user_id = @UserId 
-                            AND em.layer_type = 1  -- Folder
-                            AND em.deleted_at IS NULL
+                          SELECT 1 FROM entity_accesses ea
+                          INNER JOIN workspace_members wm ON ea.workspace_member_id = wm.id
+                          WHERE ea.entity_id = f.id 
+                            AND wm.user_id = @UserId 
+                            AND ea.entity_layer = 1  -- Folder
+                            AND ea.deleted_at IS NULL
                       )
                   )
             ),
@@ -101,11 +103,12 @@ public class GetHierarchyHandler : BaseQueryHandler, IRequestHandler<GetHierarch
                   AND (
                       l.is_private = false 
                       OR EXISTS (
-                          SELECT 1 FROM entity_members em 
-                          WHERE em.layer_id = l.id 
-                            AND em.user_id = @UserId 
-                            AND em.layer_type = 2  -- List
-                            AND em.deleted_at IS NULL
+                          SELECT 1 FROM entity_accesses ea
+                          INNER JOIN workspace_members wm ON ea.workspace_member_id = wm.id
+                          WHERE ea.entity_id = l.id 
+                            AND wm.user_id = @UserId 
+                            AND ea.entity_layer = 2  -- List
+                            AND ea.deleted_at IS NULL
                       )
                   )
                   AND (

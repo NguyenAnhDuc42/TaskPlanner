@@ -4,7 +4,7 @@ using Domain.Enums.RelationShip;
 
 namespace Domain.Events.Membership;
 
-public record EntityMemberAccessChangedEvent : BaseDomainEvent
+public record EntityAccessChangedEvent : BaseDomainEvent
 {
     public Guid UserId { get; init; }
     public Guid EntityId { get; init; }
@@ -12,7 +12,7 @@ public record EntityMemberAccessChangedEvent : BaseDomainEvent
     public AccessLevel OldAccess { get; init; }
     public AccessLevel NewAccess { get; init; }
     
-    public EntityMemberAccessChangedEvent(Guid userId, Guid entityId, EntityType entityType, AccessLevel oldAccess, AccessLevel newAccess) : base(entityId)
+    public EntityAccessChangedEvent(Guid userId, Guid entityId, EntityType entityType, AccessLevel oldAccess, AccessLevel newAccess) : base(entityId)
     {
         UserId = userId;
         EntityId = entityId;

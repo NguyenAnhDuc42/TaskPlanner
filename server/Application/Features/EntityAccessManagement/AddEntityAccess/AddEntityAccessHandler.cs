@@ -9,14 +9,14 @@ using Microsoft.EntityFrameworkCore;
 using server.Application.Interfaces;
 using System.ComponentModel.DataAnnotations;
 
-namespace Application.Features.EntityMemberManagement.CreateEntityMember;
+namespace Application.Features.EntityAccessManagement.AddEntityAccess;
 
-public class CreateEntityMemberHandler : BaseFeatureHandler, IRequestHandler<CreateEntityMemberCommand, Unit>
+public class AddEntityAccessHandler : BaseFeatureHandler, IRequestHandler<AddEntityAccessCommand, Unit>
 {
     public CreateEntityMemberHandler(IUnitOfWork unitOfWork, ICurrentUserService currentUserService, WorkspaceContext workspaceContext)
         : base(unitOfWork, currentUserService, workspaceContext) { }
 
-    public async Task<Unit> Handle(CreateEntityMemberCommand request, CancellationToken cancellationToken)
+    public async Task<Unit> Handle(AddEntityAccessCommand request, CancellationToken cancellationToken)
     {
         // Get parent layer (Space/Folder/List) using GetLayer helper
         var layer = await GetLayer(request.LayerId, request.LayerType);

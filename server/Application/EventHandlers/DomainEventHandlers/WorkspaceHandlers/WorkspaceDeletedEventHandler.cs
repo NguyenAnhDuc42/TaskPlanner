@@ -44,16 +44,16 @@ public class WorkspaceDeletedEventHandler : INotificationHandler<WorkspaceDelete
 
         var allEntityIds = spaceIds.Concat(folderIds).Concat(listIds).ToList();
 
-        // 1. Clean up EntityMembers for nested entities
+        // 1. Clean up EntityAccess for nested entities
         if (allEntityIds.Any())
         {
-            var membersDeletedCount = await _unitOfWork.Set<EntityMember>()
-                .Where(em => allEntityIds.Contains(em.LayerId) && em.DeletedAt == null)
+            var accessDeletedCount = await _unitOfWork.Set<EntityAccess>()
+                .Where(ea => allEntityIds.Contains(ea.EntityId) && ea.DeletedAt == null)
                 .ExecuteUpdateAsync(updates =>
                     updates.SetProperty(e => e.DeletedAt, DateTimeOffset.UtcNow)
                            .SetProperty(e => e.UpdatedAt, DateTimeOffset.UtcNow),
                     cancellationToken: cancellationToken);
-             _logger.LogInformation("Soft-deleted {EntityMemberCount} EntityMembers for workspace {WorkspaceId}", membersDeletedCount, evt.WorkspaceId);
+             _logger.LogInformation("Soft-deleted {EntityAccessCount} EntityAccess records for workspace {WorkspaceId}", accessDeletedCount, evt.WorkspaceId);
         }
 
         // 2. Clean up Statuses (both Workspace-level and Entity-level)

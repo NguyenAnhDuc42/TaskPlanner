@@ -7,14 +7,14 @@ using MediatR;
 using Microsoft.EntityFrameworkCore;
 using server.Application.Interfaces;
 
-namespace Application.Features.EntityMemberManagement.EditEntityMember;
+namespace Application.Features.EntityAccessManagement.UpdateEntityAccess;
 
-public class EditEntityMemberHandler : BaseFeatureHandler, IRequestHandler<EditEntityMemberCommand, Unit>
+public class UpdateEntityAccessHandler : BaseFeatureHandler, IRequestHandler<UpdateEntityAccessCommand, Unit>
 {
     public EditEntityMemberHandler(IUnitOfWork unitOfWork, ICurrentUserService currentUserService, WorkspaceContext workspaceContext)
         : base(unitOfWork, currentUserService, workspaceContext) { }
 
-    public async Task<Unit> Handle(EditEntityMemberCommand request, CancellationToken cancellationToken)
+    public async Task<Unit> Handle(UpdateEntityAccessCommand request, CancellationToken cancellationToken)
     {
         // Get parent layer
         var layer = await GetLayer(request.LayerId, request.LayerType);
