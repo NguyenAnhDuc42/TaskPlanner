@@ -1,11 +1,10 @@
-using Application.Features.WorkspaceFeatures.ChatRoomManage.ChatMessageManagement.GetMessages;
-using Application.Features.WorkspaceFeatures.ChatRoomManage.ChatMessageManagement.SendMessage;
-using Application.Features.WorkspaceFeatures.ChatRoomManage.CreateChatRoom;
-using Application.Features.WorkspaceFeatures.ChatRoomManage.DeleteChatRoom;
-using Application.Features.WorkspaceFeatures.ChatRoomManage.EditChatRoom;
-using Application.Features.WorkspaceFeatures.ChatRoomManage.GetChatRooms;
-using Application.Features.WorkspaceFeatures.ChatRoomManage.InviteMembersToChatRoom;
-using Application.Features.WorkspaceFeatures.ChatRoomManage.RemoveMembersFromChatRoom;
+using Application.Features.ChatRoomFeatures.ChatMessageManagement.GetMessages;
+using Application.Features.ChatRoomFeatures.ChatMessageManagement.SendMessage;
+using Application.Features.ChatRoomFeatures.CreateChatRoom;
+using Application.Features.ChatRoomFeatures.DeleteChatRoom;
+using Application.Features.ChatRoomFeatures.EditChatRoom;
+using Application.Features.ChatRoomFeatures.GetChatRooms;
+using Application.Features.ChatRoomFeatures.InviteMemberToChatRoom;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
 

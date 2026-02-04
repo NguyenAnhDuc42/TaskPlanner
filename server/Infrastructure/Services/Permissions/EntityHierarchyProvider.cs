@@ -65,7 +65,7 @@ public sealed class EntityHierarchyProvider : IEntityHierarchyProvider
     {
         var list = await _context.ProjectLists
             .AsNoTracking()
-            .Select(l => new { l.Id, l.ProjectSpaceId, l.ProjectFolderId, l.IsPrivate, l.ProjectWorkspaceId })
+            .Select(l => new { l.Id, l.ProjectSpaceId, l.ProjectFolderId, l.IsPrivate})
             .FirstOrDefaultAsync(x => x.Id == listId, ct)
             ?? throw new KeyNotFoundException($"List {listId} not found");
 
