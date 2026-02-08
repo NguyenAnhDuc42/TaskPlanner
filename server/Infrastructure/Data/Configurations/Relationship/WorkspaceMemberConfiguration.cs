@@ -6,7 +6,7 @@ using Domain.Entities.ProjectEntities;
 namespace Infrastructure.Data.Configurations.Relationship;
 
 
-public class WorkspaceMemberConfiguration : CompositeConfiguration<WorkspaceMember>
+public class WorkspaceMemberConfiguration : EntityConfiguration<WorkspaceMember>
 {
     public override void Configure(EntityTypeBuilder<WorkspaceMember> builder)
     {

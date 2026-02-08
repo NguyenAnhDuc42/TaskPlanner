@@ -18,12 +18,35 @@ public class CreateListHandler : BaseFeatureHandler, IRequestHandler<CreateListC
 
     public async Task<Guid> Handle(CreateListCommand request, CancellationToken cancellationToken)
     {
-        var space = await FindOrThrowAsync<ProjectSpace>(request.spaceId);
-        
+        ProjectSpace space;
         ProjectFolder? folder = null;
+
         if (request.folderId.HasValue)
         {
             folder = await FindOrThrowAsync<ProjectFolder>(request.folderId.Value);
+            
+            // If spaceId is empty/default, use the folder's space ID
+            if (request.spaceId == Guid.Empty)
+            {
+                 space = await FindOrThrowAsync<ProjectSpace>(folder.ProjectSpaceId);
+            }
+            else
+            {
+                // Verify space ID matches if provided
+                if (folder.ProjectSpaceId != request.spaceId)
+                {
+                    throw new ArgumentException("Folder does not belong to the specified Space.");
+                }
+                space = await FindOrThrowAsync<ProjectSpace>(request.spaceId);
+            }
+        }
+        else
+        {
+            if (request.spaceId == Guid.Empty)
+            {
+                 throw new ArgumentException("SpaceId is required when creating a list at the root.");
+            }
+            space = await FindOrThrowAsync<ProjectSpace>(request.spaceId);
         }
 
         var customization = Customization.Create(request.color, request.icon);

@@ -30,3 +30,37 @@ export interface WorkspaceHierarchy {
   name: string;
   spaces: SpaceHierarchy[];
 }
+
+import { z } from "zod";
+
+export const createSpaceSchema = z.object({
+  name: z.string().min(1, "Name is required"),
+  description: z.string().optional(),
+  color: z.string().optional(),
+  icon: z.string().optional(),
+  isPrivate: z.boolean().optional(),
+});
+export type CreateSpaceRequest = z.infer<typeof createSpaceSchema>;
+
+export const createFolderSchema = z.object({
+  spaceId: z.string().uuid(),
+  name: z.string().min(1, "Name is required"),
+  color: z.string().optional(),
+  icon: z.string().optional(),
+  isPrivate: z.boolean().optional(),
+});
+export type CreateFolderRequest = z.infer<typeof createFolderSchema>;
+
+export const createListSchema = z
+  .object({
+    spaceId: z.string().uuid().optional(),
+    folderId: z.string().uuid().optional(),
+    name: z.string().min(1, "Name is required"),
+    color: z.string().optional(),
+    icon: z.string().optional(),
+    isPrivate: z.boolean().optional(),
+  })
+  .refine((data) => data.spaceId || data.folderId, {
+    message: "Either spaceId or folderId must be provided",
+  });
+export type CreateListRequest = z.infer<typeof createListSchema>;

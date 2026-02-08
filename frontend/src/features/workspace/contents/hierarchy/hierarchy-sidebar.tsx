@@ -22,6 +22,11 @@ import type {
   FolderHierarchy,
   ListHierarchy,
 } from "./hierarchy-type";
+import { DialogFormWrapper } from "@/components/dialog-form-wrapper";
+import { PopoverFormWrapper } from "@/components/popover-wrapper";
+import { CreateSpaceForm } from "./hierarchy-components/create-space-form";
+import { CreateFolderListForm } from "./hierarchy-components/create-folderlist-form";
+import { ItemSettingPopover } from "./hierarchy-components/item-setting.popover";
 
 export function HierarchySidebar() {
   const { workspaceId } = useSidebarContext();
@@ -53,13 +58,22 @@ export function HierarchySidebar() {
           {hierarchy.name}
         </div>
         <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-0.5">
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-5 w-5 hover:bg-muted"
+          <DialogFormWrapper
+            title="Create Space"
+            trigger={
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-5 w-5 hover:bg-muted"
+              >
+                <Plus className="h-3.5 w-3.5 text-muted-foreground" />
+              </Button>
+            }
           >
-            <Plus className="h-3.5 w-3.5 text-muted-foreground" />
-          </Button>
+            <CreateSpaceForm onSuccess={() => {}} />
+          </DialogFormWrapper>
+
+          {/* Global Workspace Settings could go here */}
           <Button
             variant="ghost"
             size="icon"
@@ -111,15 +125,39 @@ function SpaceItem({ space }: { space: SpaceHierarchy }) {
           </Button>
         </CollapsibleTrigger>
 
-        {/* Placeholder Actions */}
-        <div className="opacity-0 group-hover/item:opacity-100 transition-opacity px-1">
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-6 w-6 hover:bg-muted"
+        <div className="opacity-0 group-hover/item:opacity-100 transition-opacity px-1 flex items-center">
+          <DialogFormWrapper
+            title="Create Item"
+            trigger={
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-6 w-6 hover:bg-muted"
+              >
+                <Plus className="h-3 w-3 text-muted-foreground" />
+              </Button>
+            }
           >
-            <Plus className="h-3 w-3 text-muted-foreground" />
-          </Button>
+            <CreateFolderListForm
+              parentId={space.id}
+              parentType="Space"
+              onSuccess={() => setIsOpen(true)}
+            />
+          </DialogFormWrapper>
+
+          <PopoverFormWrapper
+            trigger={
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-6 w-6 hover:bg-muted"
+              >
+                <MoreHorizontal className="h-3 w-3 text-muted-foreground" />
+              </Button>
+            }
+          >
+            <ItemSettingPopover type="Space" id={space.id} name={space.name} />
+          </PopoverFormWrapper>
         </div>
       </div>
 
@@ -162,15 +200,44 @@ function FolderItem({ folder }: { folder: FolderHierarchy }) {
             <span className="truncate">{folder.name}</span>
           </Button>
         </CollapsibleTrigger>
-        {/* Placeholder Actions */}
-        <div className="opacity-0 group-hover/item:opacity-100 transition-opacity px-1">
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-5 w-5 hover:bg-muted"
+
+        <div className="opacity-0 group-hover/item:opacity-100 transition-opacity px-1 flex items-center">
+          <DialogFormWrapper
+            title="Create List"
+            trigger={
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-5 w-5 hover:bg-muted"
+              >
+                <Plus className="h-3 w-3 text-muted-foreground" />
+              </Button>
+            }
           >
-            <Plus className="h-3 w-3 text-muted-foreground" />
-          </Button>
+            <CreateFolderListForm
+              parentId={folder.id}
+              parentType="Folder"
+              onSuccess={() => setIsOpen(true)}
+            />
+          </DialogFormWrapper>
+
+          <PopoverFormWrapper
+            trigger={
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-5 w-5 hover:bg-muted"
+              >
+                <MoreHorizontal className="h-3 w-3 text-muted-foreground" />
+              </Button>
+            }
+          >
+            <ItemSettingPopover
+              type="Folder"
+              id={folder.id}
+              name={folder.name}
+            />
+          </PopoverFormWrapper>
         </div>
       </div>
 
@@ -209,9 +276,20 @@ function ListItem({ list }: { list: ListHierarchy }) {
       </div>
       <span className="truncate">{list.name}</span>
       <div className="ml-auto opacity-0 group-hover/list:opacity-100 transition-opacity">
-        <Button variant="ghost" size="icon" className="h-5 w-5 hover:bg-muted">
-          <MoreHorizontal className="h-3 w-3 text-muted-foreground" />
-        </Button>
+        <PopoverFormWrapper
+          trigger={
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-5 w-5 hover:bg-muted"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <MoreHorizontal className="h-3 w-3 text-muted-foreground" />
+            </Button>
+          }
+        >
+          <ItemSettingPopover type="List" id={list.id} name={list.name} />
+        </PopoverFormWrapper>
       </div>
     </Button>
   );

@@ -40,9 +40,10 @@ public class GetHierarchyHandler : BaseQueryHandler, IRequestHandler<GetHierarch
             WITH user_spaces AS (
                 SELECT 
                     s.id,
+                    s.project_workspace_id,
                     s.name,
-                    s.color,
-                    s.icon,
+                    s.custom_color,
+                    s.custom_icon,
                     s.is_private,
                     s.order_key
                 FROM project_spaces s
@@ -52,11 +53,11 @@ public class GetHierarchyHandler : BaseQueryHandler, IRequestHandler<GetHierarch
                   AND (
                       s.is_private = false 
                       OR EXISTS (
-                          SELECT 1 FROM entity_accesses ea
+                          SELECT 1 FROM entity_access ea
                           INNER JOIN workspace_members wm ON ea.workspace_member_id = wm.id
                           WHERE ea.entity_id = s.id 
                             AND wm.user_id = @UserId 
-                            AND ea.entity_layer = 1  -- Space
+                            AND ea.entity_layer = 'ProjectSpace'  -- Space
                             AND ea.deleted_at IS NULL
                       )
                   )
@@ -66,8 +67,8 @@ public class GetHierarchyHandler : BaseQueryHandler, IRequestHandler<GetHierarch
                     f.id,
                     f.project_space_id,
                     f.name,
-                    f.color,
-                    f.icon,
+                    f.custom_color,
+                    f.custom_icon,
                     f.is_private,
                     f.order_key
                 FROM project_folders f
@@ -77,11 +78,11 @@ public class GetHierarchyHandler : BaseQueryHandler, IRequestHandler<GetHierarch
                   AND (
                       f.is_private = false 
                       OR EXISTS (
-                          SELECT 1 FROM entity_accesses ea
+                          SELECT 1 FROM entity_access ea
                           INNER JOIN workspace_members wm ON ea.workspace_member_id = wm.id
                           WHERE ea.entity_id = f.id 
                             AND wm.user_id = @UserId 
-                            AND ea.entity_layer = 2  -- Folder
+                            AND ea.entity_layer = 'ProjectFolder'  -- Folder
                             AND ea.deleted_at IS NULL
                       )
                   )
@@ -92,8 +93,8 @@ public class GetHierarchyHandler : BaseQueryHandler, IRequestHandler<GetHierarch
                     l.project_space_id,
                     l.project_folder_id,
                     l.name,
-                    l.color,
-                    l.icon,
+                    l.custom_color,
+                    l.custom_icon,
                     l.is_private,
                     l.order_key
                 FROM project_lists l
@@ -103,11 +104,11 @@ public class GetHierarchyHandler : BaseQueryHandler, IRequestHandler<GetHierarch
                   AND (
                       l.is_private = false 
                       OR EXISTS (
-                          SELECT 1 FROM entity_accesses ea
+                          SELECT 1 FROM entity_access ea
                           INNER JOIN workspace_members wm ON ea.workspace_member_id = wm.id
                           WHERE ea.entity_id = l.id 
                             AND wm.user_id = @UserId 
-                            AND ea.entity_layer = 3  -- List
+                            AND ea.entity_layer = 'ProjectList'  -- List
                             AND ea.deleted_at IS NULL
                       )
                   )
@@ -120,10 +121,10 @@ public class GetHierarchyHandler : BaseQueryHandler, IRequestHandler<GetHierarch
             SELECT 
                 'Space' as item_type,
                 id,
-                project_space_id::text as parent_id,
+                project_workspace_id::text as parent_id,
                 name,
-                color,
-                icon,
+                custom_color,
+                custom_icon,
                 is_private,
                 order_key,
                 NULL::uuid as project_folder_id
@@ -134,8 +135,8 @@ public class GetHierarchyHandler : BaseQueryHandler, IRequestHandler<GetHierarch
                 id,
                 project_space_id::text as parent_id,
                 name,
-                color,
-                icon,
+                custom_color,
+                custom_icon,
                 is_private,
                 order_key,
                 NULL::uuid as project_folder_id
@@ -146,8 +147,8 @@ public class GetHierarchyHandler : BaseQueryHandler, IRequestHandler<GetHierarch
                 id,
                 COALESCE(project_folder_id::text, project_space_id::text) as parent_id,
                 name,
-                color,
-                icon,
+                custom_color,
+                custom_icon,
                 is_private,
                 order_key,
                 project_folder_id
@@ -172,8 +173,8 @@ public class GetHierarchyHandler : BaseQueryHandler, IRequestHandler<GetHierarch
         {
             Id = s.Id,
             Name = s.Name,
-            Color = s.Color,
-            Icon = s.Icon,
+            Color = s.CustomColor,
+            Icon = s.CustomIcon,
             IsPrivate = s.IsPrivate,
             Folders = folders
                 .Where(f => Guid.Parse(f.ParentId) == s.Id)
@@ -181,8 +182,8 @@ public class GetHierarchyHandler : BaseQueryHandler, IRequestHandler<GetHierarch
                 {
                     Id = f.Id,
                     Name = f.Name,
-                    Color = f.Color,
-                    Icon = f.Icon,
+                    Color = f.CustomColor,
+                    Icon = f.CustomIcon,
                     IsPrivate = f.IsPrivate,
                     Lists = lists
                         .Where(l => l.ProjectFolderId.HasValue && l.ProjectFolderId.Value == f.Id)
@@ -190,8 +191,8 @@ public class GetHierarchyHandler : BaseQueryHandler, IRequestHandler<GetHierarch
                         {
                             Id = l.Id,
                             Name = l.Name,
-                            Color = l.Color,
-                            Icon = l.Icon,
+                            Color = l.CustomColor,
+                            Icon = l.CustomIcon,
                             IsPrivate = l.IsPrivate
                         })
                         .ToList()
@@ -203,8 +204,8 @@ public class GetHierarchyHandler : BaseQueryHandler, IRequestHandler<GetHierarch
                 {
                     Id = l.Id,
                     Name = l.Name,
-                    Color = l.Color,
-                    Icon = l.Icon,
+                    Color = l.CustomColor,
+                    Icon = l.CustomIcon,
                     IsPrivate = l.IsPrivate
                 })
                 .ToList()
@@ -225,8 +226,8 @@ public class GetHierarchyHandler : BaseQueryHandler, IRequestHandler<GetHierarch
         public Guid Id { get; set; }
         public string ParentId { get; set; } = null!;
         public string Name { get; set; } = null!;
-        public string Color { get; set; } = null!;
-        public string Icon { get; set; } = null!;
+        public string CustomColor { get; set; } = null!;
+        public string CustomIcon { get; set; } = null!;
         public bool IsPrivate { get; set; }
         public long OrderKey { get; set; }
         public Guid? ProjectFolderId { get; set; }

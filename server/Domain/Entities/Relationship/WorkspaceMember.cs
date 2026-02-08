@@ -8,7 +8,7 @@ using Domain.Events.Membership;
 
 namespace Domain.Entities.Relationship;
 
-public class WorkspaceMember : Composite
+public class WorkspaceMember : Entity
 {
     public Guid UserId { get; private set; }
     public Guid ProjectWorkspaceId { get; private set; }
