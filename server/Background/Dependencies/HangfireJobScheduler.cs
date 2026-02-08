@@ -3,16 +3,20 @@ using Background.Jobs;
 
 namespace Background.Dependencies;
 
-public static class HangfireJobScheduler
+public  class HangfireJobScheduler
 {
-    public static void ScheduleJobs()
+    private readonly IRecurringJobManager _recurringJobManager;
+
+    public HangfireJobScheduler(IRecurringJobManager recurringJobManager)
     {
-        // Process outbox messages every minute
-        RecurringJob.AddOrUpdate<ProcessOutboxJob>(
+        _recurringJobManager = recurringJobManager;
+    }
+
+    public void Schedule()
+    {
+        _recurringJobManager.AddOrUpdate<ProcessOutboxJob>(
             "process-outbox",
             job => job.RunAsync(),
-            Cron.Minutely());
-
-        // You can add other recurring jobs here
+            Cron.Minutely);
     }
 }

@@ -42,8 +42,13 @@ builder.Services.AddBackground(builder.Configuration);
 
 var app = builder.Build();
 
-// Schedule Recurring Jobs
-HangfireJobScheduler.ScheduleJobs();
+using (var scope = app.Services.CreateScope())
+{
+    var scheduler = scope.ServiceProvider
+        .GetRequiredService<HangfireJobScheduler>();
+
+    scheduler.Schedule();
+}
 
 // --- 3. Aspire Endpoints & Monitoring ---
 app.MapDefaultEndpoints(); // Standardizes /health and /alive across all containers

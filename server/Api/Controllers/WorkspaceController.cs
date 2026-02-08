@@ -12,6 +12,7 @@ using Domain.Enums;
 using Application.Contract.UserContract;
 using Application.Features.WorkspaceFeatures.MemberManage.GetMembers;
 using Application.Features.WorkspaceFeatures.MemberManage.AddMembers;
+using Application.Features.WorkspaceFeatures.HierarchyManagement.GetHierarchy;
 using Application.Features.WorkspaceFeatures.MemberManage.UpdateMembers;
 using Application.Features.WorkspaceFeatures.MemberManage.RemoveMembers;
 
@@ -71,6 +72,14 @@ namespace Api.Controllers
             var filter = new WorkspaceFilter(name, owned, isArchived, variant);
             var query = new GetWorksapceListQuery(pagination, filter);
 
+            var result = await _mediator.Send(query, cancellationToken);
+            return Ok(result);
+        }
+
+        [HttpGet("{id:guid}/hierarchy")]
+        public async Task<ActionResult<WorkspaceHierarchyDto>> GetHierarchy(Guid id, CancellationToken cancellationToken)
+        {
+            var query = new GetHierarchyQuery(id);
             var result = await _mediator.Send(query, cancellationToken);
             return Ok(result);
         }

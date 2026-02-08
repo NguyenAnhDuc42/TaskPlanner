@@ -11,7 +11,7 @@ namespace Application.Features.EntityAccessManagement.RemoveEntityAccess;
 
 public class RemoveEntityAccessHandler : BaseFeatureHandler, IRequestHandler<RemoveEntityAccessCommand, Unit>
 {
-    public DeleteEntityMemberHandler(IUnitOfWork unitOfWork, ICurrentUserService currentUserService, WorkspaceContext workspaceContext)
+    public RemoveEntityAccessHandler(IUnitOfWork unitOfWork, ICurrentUserService currentUserService, WorkspaceContext workspaceContext)
         : base(unitOfWork, currentUserService, workspaceContext) { }
 
     public async Task<Unit> Handle(RemoveEntityAccessCommand request, CancellationToken cancellationToken)

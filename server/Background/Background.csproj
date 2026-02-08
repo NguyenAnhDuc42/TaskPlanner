@@ -10,6 +10,7 @@
     <PackageReference Include="Confluent.Kafka" />
     <PackageReference Include="Hangfire.AspNetCore" />
     <PackageReference Include="Hangfire.MemoryStorage" />
+    <PackageReference Include="Hangfire.PostgreSql" />
     <PackageReference Include="MassTransit" />
     <PackageReference Include="MediatR" />
     <PackageReference Include="Microsoft.Extensions.Hosting" />

@@ -2,6 +2,7 @@ import { type ContentPage, getNavigationItems } from "../type";
 import { Button } from "@/components/ui/button";
 import { MembersSidebar } from "../contents/members/member-components/members-sidebar";
 import { SettingsSidebar } from "../contents/setting/setting-components/settings-sidebar";
+import { HierarchySidebar } from "../contents/hierarchy/hierarchy-sidebar";
 
 // FEATURE SIDEBARS
 
@@ -34,6 +35,8 @@ export function SidebarRegistry({ page }: { page: ContentPage }) {
       return <MembersSidebar />;
     case "settings":
       return <SettingsSidebar />;
+    case "tasks":
+      return <HierarchySidebar />;
     default:
       return <DefaultSidebar page={page as ContentPage} />;
   }

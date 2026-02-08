@@ -11,7 +11,7 @@ namespace Application.Features.EntityAccessManagement.UpdateEntityAccess;
 
 public class UpdateEntityAccessHandler : BaseFeatureHandler, IRequestHandler<UpdateEntityAccessCommand, Unit>
 {
-    public EditEntityMemberHandler(IUnitOfWork unitOfWork, ICurrentUserService currentUserService, WorkspaceContext workspaceContext)
+    public UpdateEntityAccessHandler(IUnitOfWork unitOfWork, ICurrentUserService currentUserService, WorkspaceContext workspaceContext)
         : base(unitOfWork, currentUserService, workspaceContext) { }
 
     public async Task<Unit> Handle(UpdateEntityAccessCommand request, CancellationToken cancellationToken)

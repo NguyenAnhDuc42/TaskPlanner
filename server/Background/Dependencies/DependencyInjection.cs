@@ -1,9 +1,7 @@
-using System;
 using Application.Interfaces;
-using Background.Jobs;
 using Background.Services;
 using Hangfire;
-using Hangfire.MemoryStorage;
+using Hangfire.PostgreSql;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -11,23 +9,29 @@ namespace Background.Dependencies;
 
 public static class DependencyInjection
 {
-    public static IServiceCollection AddBackground(this IServiceCollection services, IConfiguration config)
+    public static IServiceCollection AddBackground(
+        this IServiceCollection services,
+        IConfiguration config)
     {
-        // Hangfire with in-memory storage (use PostgreSQL in production)
-        services.AddHangfire(c => c
-            .SetDataCompatibilityLevel(CompatibilityLevel.Version_180)
-            .UseSimpleAssemblyNameTypeSerializer()
-            .UseRecommendedSerializerSettings()
-            .UseMemoryStorage());
+        services.AddHangfire(cfg =>
+        {
+            cfg
+                .SetDataCompatibilityLevel(CompatibilityLevel.Version_180)
+                .UseSimpleAssemblyNameTypeSerializer()
+                .UseRecommendedSerializerSettings()
+                .UsePostgreSqlStorage(options =>
+                {
+                    options.UseNpgsqlConnection(
+                        config.GetConnectionString("Hangfire"));
+                });
+        });
 
-        services.AddHangfireServer();
+        // API = client only
+        services.AddSingleton<IBackgroundJobClient, BackgroundJobClient>();
+        services.AddSingleton<IRecurringJobManager, RecurringJobManager>();
 
-        // Background job service
         services.AddSingleton<IBackgroundJobService, HangfireBackgroundJobService>();
-
-        // Jobs (registered for DI so Hangfire can resolve them)
-        services.AddScoped<MemberCleanupJob>();
-        services.AddScoped<ProcessOutboxJob>();
+        services.AddSingleton<HangfireJobScheduler>();
 
         return services;
     }

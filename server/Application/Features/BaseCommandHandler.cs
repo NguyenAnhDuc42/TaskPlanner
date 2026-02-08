@@ -19,7 +19,7 @@ public abstract class BaseCommandHandler : BaseFeatureHandler
     /// Returns the list of valid user IDs.
     /// Throws ValidationException if any user is not a workspace member.
     /// </summary>
-    protected async Task<List<Guid>> ValidateWorkspaceMembers(List<Guid> userIds, CancellationToken ct)
+    protected new async Task<List<Guid>> ValidateWorkspaceMembers(List<Guid> userIds, CancellationToken ct)
     {
         if (userIds == null || !userIds.Any())
             return new List<Guid>();

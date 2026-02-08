@@ -1,9 +1,6 @@
 using Application.Interfaces.Repositories;
-using Domain;
 using Application.Helpers;
 using Domain.Entities.Relationship;
-using Domain.Enums;
-using Domain.Enums.RelationShip;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using server.Application.Interfaces;
@@ -13,7 +10,7 @@ namespace Application.Features.EntityAccessManagement.AddEntityAccess;
 
 public class AddEntityAccessHandler : BaseFeatureHandler, IRequestHandler<AddEntityAccessCommand, Unit>
 {
-    public CreateEntityMemberHandler(IUnitOfWork unitOfWork, ICurrentUserService currentUserService, WorkspaceContext workspaceContext)
+    public AddEntityAccessHandler(IUnitOfWork unitOfWork, ICurrentUserService currentUserService, WorkspaceContext workspaceContext)
         : base(unitOfWork, currentUserService, workspaceContext) { }
 
     public async Task<Unit> Handle(AddEntityAccessCommand request, CancellationToken cancellationToken)

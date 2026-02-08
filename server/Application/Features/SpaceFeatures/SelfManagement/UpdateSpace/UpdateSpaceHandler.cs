@@ -74,7 +74,7 @@ public class UpdateSpaceHandler : BaseFeatureHandler, IRequestHandler<UpdateSpac
                         EntityAccess.Create(
                             memberId,
                             space.Id,
-                            EntityLayerType.ProjectLayer, // This should probably be EntityLayerType.ProjectSpace? check enum
+                            EntityLayerType.ProjectSpace, // This should probably be EntityLayerType.ProjectSpace? check enum
                             AccessLevel.Editor,
                             CurrentUserId
                         ));

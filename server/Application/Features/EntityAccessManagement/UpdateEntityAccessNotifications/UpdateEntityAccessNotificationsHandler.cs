@@ -8,7 +8,7 @@ namespace Application.Features.EntityAccessManagement.UpdateEntityAccessNotifica
 
 public class UpdateEntityAccessNotificationsHandler : BaseFeatureHandler, IRequestHandler<UpdateEntityAccessNotificationsCommand, Unit>
 {
-    public UpdateEntityMemberNotificationsHandler(IUnitOfWork unitOfWork, ICurrentUserService currentUserService, WorkspaceContext workspaceContext)
+    public UpdateEntityAccessNotificationsHandler(IUnitOfWork unitOfWork, ICurrentUserService currentUserService, WorkspaceContext workspaceContext)
         : base(unitOfWork, currentUserService, workspaceContext) { }
 
     public Task<Unit> Handle(UpdateEntityAccessNotificationsCommand request, CancellationToken cancellationToken)
