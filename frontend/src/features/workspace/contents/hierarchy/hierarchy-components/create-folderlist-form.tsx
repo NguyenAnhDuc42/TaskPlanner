@@ -7,6 +7,8 @@ import { Loader2 } from "lucide-react";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { ColorPicker } from "@/components/color-picker";
 import IconPicker from "@/components/icon-picker";
+import { Checkbox } from "@/components/ui/checkbox";
+import { toast } from "sonner";
 
 interface Props {
   workspaceId?: string;
@@ -15,24 +17,18 @@ interface Props {
   onSuccess?: () => void;
 }
 
-export function CreateFolderListForm({
-  parentId,
-  parentType,
-  onSuccess,
-}: Props) {
-  // If parent is Folder, only "List" creation is allowed.
-  // If parent is Space, allow "Folder" or "List".
+export function CreateFolderListForm({ parentId, parentType, onSuccess }: Props) {
   const [type, setType] = useState<"folder" | "list">(
     parentType === "Folder" ? "list" : "folder",
   );
   const [name, setName] = useState("");
   const [color, setColor] = useState("#808080");
   const [icon, setIcon] = useState(parentType === "Folder" ? "List" : "Folder");
+  const [isPrivate, setIsPrivate] = useState(false);
 
   const createFolder = useCreateFolder();
   const createList = useCreateList();
 
-  // Reset icon/color when type switches (optional, but good UX)
   const handleTypeChange = (val: "folder" | "list") => {
     setType(val);
     setIcon(val === "folder" ? "Folder" : "List");
@@ -52,6 +48,7 @@ export function CreateFolderListForm({
           name: name,
           color: color,
           icon: icon,
+          isPrivate: isPrivate,
         });
       } else {
         // Type is List
@@ -61,6 +58,7 @@ export function CreateFolderListForm({
             name: name,
             color: color,
             icon: icon,
+            isPrivate: isPrivate,
           });
         } else {
           // Parent is Folder
@@ -69,14 +67,19 @@ export function CreateFolderListForm({
             name: name,
             color: color,
             icon: icon,
+            isPrivate: isPrivate,
           });
         }
       }
       setName("");
       setColor("#808080");
+      toast.success(
+        `${type.charAt(0).toUpperCase() + type.slice(1)} created successfully`,
+      );
       onSuccess?.();
-    } catch (error) {
+    } catch (error: any) {
       console.error("Failed to create item", error);
+      toast.error(error.message || `Failed to create ${type}`);
     }
   };
 
@@ -119,6 +122,20 @@ export function CreateFolderListForm({
           <Label>Icon</Label>
           <IconPicker value={icon} onChange={setIcon} />
         </div>
+      </div>
+
+      <div className="flex items-center space-x-2">
+        <Checkbox
+          id="isFolderPrivate"
+          checked={isPrivate}
+          onCheckedChange={(checked) => setIsPrivate(checked === true)}
+        />
+        <Label
+          htmlFor="isFolderPrivate"
+          className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+        >
+          Make this {type} private
+        </Label>
       </div>
 
       <div className="flex justify-end gap-2">

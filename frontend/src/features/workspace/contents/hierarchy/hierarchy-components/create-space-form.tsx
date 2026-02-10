@@ -6,6 +6,8 @@ import { Label } from "@/components/ui/label";
 import { Loader2 } from "lucide-react";
 import { ColorPicker } from "@/components/color-picker";
 import IconPicker from "@/components/icon-picker";
+import { Checkbox } from "@/components/ui/checkbox";
+import { toast } from "sonner";
 
 interface Props {
   onSuccess?: () => void;
@@ -15,6 +17,7 @@ export function CreateSpaceForm({ onSuccess }: Props) {
   const [name, setName] = useState("");
   const [color, setColor] = useState("#808080");
   const [icon, setIcon] = useState("LayoutGrid"); // Default space icon name
+  const [isPrivate, setIsPrivate] = useState(false);
 
   const createSpace = useCreateSpace();
 
@@ -27,13 +30,16 @@ export function CreateSpaceForm({ onSuccess }: Props) {
         name: name,
         color: color,
         icon: icon,
+        isPrivate: isPrivate,
       });
       setName("");
       setColor("#808080");
       setIcon("LayoutGrid");
+      toast.success("Space created successfully");
       onSuccess?.();
-    } catch (error) {
+    } catch (error: any) {
       console.error("Failed to create space", error);
+      toast.error(error.message || "Failed to create space");
     }
   };
 
@@ -59,6 +65,20 @@ export function CreateSpaceForm({ onSuccess }: Props) {
           <Label>Icon</Label>
           <IconPicker value={icon} onChange={setIcon} />
         </div>
+      </div>
+
+      <div className="flex items-center space-x-2">
+        <Checkbox
+          id="isPrivate"
+          checked={isPrivate}
+          onCheckedChange={(checked) => setIsPrivate(checked === true)}
+        />
+        <Label
+          htmlFor="isPrivate"
+          className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+        >
+          Make this space private
+        </Label>
       </div>
 
       <div className="flex justify-end gap-2">

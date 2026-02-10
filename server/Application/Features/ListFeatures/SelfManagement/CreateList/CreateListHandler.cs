@@ -65,8 +65,6 @@ public class CreateListHandler : BaseFeatureHandler, IRequestHandler<CreateListC
 
         await UnitOfWork.Set<ProjectList>().AddAsync(list, cancellationToken);
         
-        await UnitOfWork.Set<ProjectList>().AddAsync(list, cancellationToken);
-        
         // Create EntityAccess for owner if private
         if (request.isPrivate)
         {

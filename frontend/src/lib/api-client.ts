@@ -30,8 +30,20 @@ const processQueue = (error: any, token: any = null) => {
   failedQueue = [];
 };
 
-// Request Interceptor: Simply return config
-api.interceptors.request.use((config) => config);
+// Request Interceptor: Inject Workspace ID and other context
+api.interceptors.request.use((config) => {
+  // Automatically inject Workspace ID if we're in a workspace route
+  if (!config.headers["X-Workspace-Id"]) {
+    const workspaceIdMatch = window.location.pathname.match(
+      /\/workspaces\/([a-f\d-]+)/i,
+    );
+    if (workspaceIdMatch) {
+      config.headers["X-Workspace-Id"] = workspaceIdMatch[1];
+    }
+  }
+
+  return config;
+});
 
 // Response Interceptor: Reactive Refresh on 401
 api.interceptors.response.use(
@@ -82,5 +94,5 @@ api.interceptors.response.use(
     }
 
     return Promise.reject(error);
-  }
+  },
 );

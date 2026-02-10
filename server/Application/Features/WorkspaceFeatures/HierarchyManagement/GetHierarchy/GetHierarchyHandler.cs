@@ -57,6 +57,7 @@ public class GetHierarchyHandler : BaseQueryHandler, IRequestHandler<GetHierarch
                           INNER JOIN workspace_members wm ON ea.workspace_member_id = wm.id
                           WHERE ea.entity_id = s.id 
                             AND wm.user_id = @UserId 
+                            AND wm.project_workspace_id = @WorkspaceId
                             AND ea.entity_layer = 'ProjectSpace'  -- Space
                             AND ea.deleted_at IS NULL
                       )
@@ -82,6 +83,7 @@ public class GetHierarchyHandler : BaseQueryHandler, IRequestHandler<GetHierarch
                           INNER JOIN workspace_members wm ON ea.workspace_member_id = wm.id
                           WHERE ea.entity_id = f.id 
                             AND wm.user_id = @UserId 
+                            AND wm.project_workspace_id = @WorkspaceId
                             AND ea.entity_layer = 'ProjectFolder'  -- Folder
                             AND ea.deleted_at IS NULL
                       )
@@ -108,6 +110,7 @@ public class GetHierarchyHandler : BaseQueryHandler, IRequestHandler<GetHierarch
                           INNER JOIN workspace_members wm ON ea.workspace_member_id = wm.id
                           WHERE ea.entity_id = l.id 
                             AND wm.user_id = @UserId 
+                            AND wm.project_workspace_id = @WorkspaceId
                             AND ea.entity_layer = 'ProjectList'  -- List
                             AND ea.deleted_at IS NULL
                       )

@@ -1,32 +1,44 @@
 import { useState, type ReactNode } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "./ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./ui/dialog";
 
 interface Props {
-  trigger: ReactNode; // Your button component
+  trigger: ReactNode;
   title: string;
-  children: ReactNode; // Your form component
+  children: ReactNode;
+  open?: boolean;
   onOpenChange?: (open: boolean) => void;
 }
 
-export function DialogFormWrapper({ trigger, title, children, onOpenChange }: Props) {
-    const [open, setOpen] = useState(false);
-    const handleOpenChange = (open: boolean) => {
-        setOpen(open);
-        onOpenChange?.(open);
-    }
-    
-    return (
-        <>
-        <div onClick={() => handleOpenChange(true)}>{trigger}</div>
-        
-        <Dialog open={open} onOpenChange={handleOpenChange}>
-            <DialogContent>
-                <DialogHeader>
-                    <DialogTitle>{title}</DialogTitle>
-                </DialogHeader>
-                {children}
-            </DialogContent>
-        </Dialog>
-        </>
-    );
+export function DialogFormWrapper({
+  trigger,
+  title,
+  children,
+  open: controlledOpen,
+  onOpenChange: setControlledOpen,
+}: Props) {
+  const [internalOpen, setInternalOpen] = useState(false);
+
+  const isControlled = controlledOpen !== undefined;
+  const open = isControlled ? controlledOpen : internalOpen;
+
+  const handleOpenChange = (newOpen: boolean) => {
+    if (!isControlled) setInternalOpen(newOpen);
+
+    setControlledOpen?.(newOpen);
+  };
+
+  return (
+    <>
+      <div onClick={() => handleOpenChange(true)}>{trigger}</div>
+
+      <Dialog open={open} onOpenChange={handleOpenChange}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{title}</DialogTitle>
+          </DialogHeader>
+          {children}
+        </DialogContent>
+      </Dialog>
+    </>
+  );
 }
