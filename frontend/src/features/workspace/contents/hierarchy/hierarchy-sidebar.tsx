@@ -29,6 +29,13 @@ import { CreateSpaceForm } from "./hierarchy-components/create-space-form";
 import { CreateFolderListForm } from "./hierarchy-components/create-folderlist-form";
 import { ItemSettingPopover } from "./hierarchy-components/item-setting.popover";
 
+const NAME_CHAR_LIMIT = 15;
+
+function clampName(name: string, limit = NAME_CHAR_LIMIT) {
+  if (name.length <= limit) return name;
+  return `${name.slice(0, Math.max(0, limit - 1))}…`;
+}
+
 export function HierarchySidebar() {
   const { workspaceId } = useSidebarContext();
   const { data: hierarchy, isLoading, error } = useHierarchy(workspaceId || "");
@@ -148,7 +155,7 @@ function SpaceItem({ space }: { space: SpaceHierarchy }) {
         >
           <IconComponent className="h-4 w-4 flex-shrink-0" />
           <span className="truncate text-sm font-medium text-foreground flex-1 min-w-0">
-            {space.name}
+            {clampName(space.name)}
           </span>
           {space.isPrivate && (
             <Lock className="h-3 w-3 ml-1 flex-shrink-0 text-muted-foreground/50" />
@@ -257,7 +264,7 @@ function FolderItem({ folder }: { folder: FolderHierarchy }) {
         >
           <IconComponent className="h-3.5 w-3.5 flex-shrink-0" />
           <span className="truncate text-xs text-foreground flex-1 min-w-0">
-            {folder.name}
+            {clampName(folder.name)}
           </span>
           {folder.isPrivate && (
             <Lock className="h-2.5 w-2.5 ml-1 flex-shrink-0 text-muted-foreground/50" />
@@ -351,7 +358,7 @@ function ListItem({ list }: { list: ListHierarchy }) {
           <IconComponent className="h-3.5 w-3.5 flex-shrink-0" />
         </div>
         <span className="truncate text-xs text-foreground flex-1 min-w-0">
-          {list.name}
+          {clampName(list.name)}
         </span>
         {list.isPrivate && (
           <Lock className="h-2.5 w-2.5 ml-1 flex-shrink-0 text-muted-foreground/50" />
