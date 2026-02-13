@@ -6,6 +6,9 @@ import type {
   CreateSpaceRequest,
   CreateFolderRequest,
   CreateListRequest,
+  UpdateSpaceRequest,
+  UpdateFolderRequest,
+  UpdateListRequest,
 } from "./hierarchy-type";
 import { hierarchyKeys } from "./hierarchy-keys";
 
@@ -88,6 +91,102 @@ export function useCreateSpace() {
         icon: data.icon || "space",
         isPrivate: data.isPrivate ?? false,
       });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: hierarchyKeys.detail(workspaceId || ""),
+      });
+    },
+  });
+}
+
+export function useUpdateSpace() {
+  const queryClient = useQueryClient();
+  const { workspaceId } = useParams({ strict: false });
+
+  return useMutation({
+    mutationFn: async (data: UpdateSpaceRequest) => {
+      await api.put(`/spaces/${data.spaceId}`, data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: hierarchyKeys.detail(workspaceId || ""),
+      });
+    },
+  });
+}
+
+export function useDeleteSpace() {
+  const queryClient = useQueryClient();
+  const { workspaceId } = useParams({ strict: false });
+
+  return useMutation({
+    mutationFn: async (id: string) => {
+      await api.delete(`/spaces/${id}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: hierarchyKeys.detail(workspaceId || ""),
+      });
+    },
+  });
+}
+
+export function useUpdateFolder() {
+  const queryClient = useQueryClient();
+  const { workspaceId } = useParams({ strict: false });
+
+  return useMutation({
+    mutationFn: async (data: UpdateFolderRequest) => {
+      await api.put(`/folders/${data.folderId}`, data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: hierarchyKeys.detail(workspaceId || ""),
+      });
+    },
+  });
+}
+
+export function useDeleteFolder() {
+  const queryClient = useQueryClient();
+  const { workspaceId } = useParams({ strict: false });
+
+  return useMutation({
+    mutationFn: async (id: string) => {
+      await api.delete(`/folders/${id}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: hierarchyKeys.detail(workspaceId || ""),
+      });
+    },
+  });
+}
+
+export function useUpdateList() {
+  const queryClient = useQueryClient();
+  const { workspaceId } = useParams({ strict: false });
+
+  return useMutation({
+    mutationFn: async (data: UpdateListRequest) => {
+      await api.put(`/lists/${data.listId}`, data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: hierarchyKeys.detail(workspaceId || ""),
+      });
+    },
+  });
+}
+
+export function useDeleteList() {
+  const queryClient = useQueryClient();
+  const { workspaceId } = useParams({ strict: false });
+
+  return useMutation({
+    mutationFn: async (id: string) => {
+      await api.delete(`/lists/${id}`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({

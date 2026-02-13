@@ -46,10 +46,11 @@ public class CreateSpaceHandler : BaseFeatureHandler, IRequestHandler<CreateSpac
         // Invite additional members if provided
         if (request.memberIdsToInvite?.Any() == true)
         {
+            var currentMemberId = await GetWorkspaceMemberId(CurrentUserId, cancellationToken);
             var memberIds = await GetWorkspaceMemberIds(request.memberIdsToInvite, cancellationToken);
 
             var accessRecords = memberIds
-                .Where(id => id != CurrentUserId) // Already handled if they were in the list
+                .Where(id => id != currentMemberId) // Already handled if they were in the list
                 .Select(memberId => EntityAccess.Create(memberId, space.Id, EntityLayerType.ProjectSpace, AccessLevel.Editor, CurrentUserId));
 
             await UnitOfWork.Set<EntityAccess>().AddRangeAsync(accessRecords, cancellationToken);

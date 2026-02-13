@@ -1,4 +1,5 @@
 using System;
+using Application.Common.Interfaces;
 using MediatR;
 
 namespace Application.Features.FolderFeatures.SelfManagement.UpdateFolder;
@@ -10,4 +11,4 @@ public record UpdateFolderCommand(
     string? Icon,
     bool? IsPrivate,
     List<Guid>? MemberIdsToAdd  // Add members during update
-) : IRequest<Unit>;
+) : ICommand<Unit>;

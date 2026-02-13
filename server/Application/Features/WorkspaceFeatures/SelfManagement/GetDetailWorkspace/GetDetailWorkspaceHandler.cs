@@ -8,15 +8,18 @@ using server.Application.Interfaces;
 
 namespace Application.Features.WorkspaceFeatures.SelfManagement.GetDetailWorkspace;
 
-public class GetDetailWorkspaceHandler : BaseQueryHandler, IRequestHandler<GetDetailWorkspaceQuery, WorkspaceSecurityContextDto>
+public class GetDetailWorkspaceHandler : BaseFeatureHandler, IRequestHandler<GetDetailWorkspaceQuery, WorkspaceSecurityContextDto>
 {
+    private readonly CursorHelper _cursorHelper;
+
     public GetDetailWorkspaceHandler(
         IUnitOfWork unitOfWork,
         ICurrentUserService currentUserService,
         WorkspaceContext workspaceContext,
         CursorHelper cursorHelper)
-        : base(unitOfWork, currentUserService, workspaceContext, cursorHelper)
+        : base(unitOfWork, currentUserService, workspaceContext)
     {
+        _cursorHelper = cursorHelper ?? throw new ArgumentNullException(nameof(cursorHelper));
     }
 
     public async Task<WorkspaceSecurityContextDto> Handle(GetDetailWorkspaceQuery request, CancellationToken cancellationToken)

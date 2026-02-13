@@ -36,8 +36,6 @@ public class CreateFolderHandler : BaseFeatureHandler, IRequestHandler<CreateFol
 
         await UnitOfWork.Set<ProjectFolder>().AddAsync(folder, cancellationToken);
         
-        await UnitOfWork.Set<ProjectFolder>().AddAsync(folder, cancellationToken);
-        
         // Create EntityAccess for owner if private
         if (request.isPrivate)
         {
@@ -51,14 +49,6 @@ public class CreateFolderHandler : BaseFeatureHandler, IRequestHandler<CreateFol
         {
             // Resolve workspace member IDs
             var workspaceMemberIds = await GetWorkspaceMemberIds(request.memberIdsToInvite, cancellationToken);
-
-            // Create EntityAccess for invitees (exclude owner to avoid duplicates)
-            var accessRecords = workspaceMemberIds
-                .Where(id => id != CurrentUserId) // This is wrong, it should be where wm.UserId != CurrentUserId. Let's fix GetWorkspaceMemberIds to return a dict or something if needed, or just resolve manually here.
-                // Wait, GetWorkspaceMemberIds returns wm.Id. CurrentUserId is User.Id.
-                // I need the wm.Id for CurrentUserId.
-                ;
-                
             var ownerMemberId = await GetWorkspaceMemberId(CurrentUserId, cancellationToken);
             
             var inviteAccessRecords = workspaceMemberIds

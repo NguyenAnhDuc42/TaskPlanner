@@ -16,7 +16,7 @@ public class DeleteSpaceHandler : BaseFeatureHandler, IRequestHandler<DeleteSpac
 
     public async Task<Unit> Handle(DeleteSpaceCommand request, CancellationToken cancellationToken)
     {
-        var space = await FindOrThrowAsync<ProjectSpace>(request.spaceId);
+        var space = await FindOrThrowAsync<ProjectSpace>(request.SpaceId);
         space.SoftDelete();
         return Unit.Value;
     }

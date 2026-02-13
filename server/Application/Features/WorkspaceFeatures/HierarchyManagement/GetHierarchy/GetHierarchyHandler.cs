@@ -7,19 +7,26 @@ using Domain.Entities.ProjectEntities;
 using Domain.Enums;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using server.Application.Interfaces;
 
 namespace Application.Features.WorkspaceFeatures.HierarchyManagement.GetHierarchy;
 
-public class GetHierarchyHandler : BaseQueryHandler, IRequestHandler<GetHierarchyQuery, WorkspaceHierarchyDto>
+public class GetHierarchyHandler : BaseFeatureHandler, IRequestHandler<GetHierarchyQuery, WorkspaceHierarchyDto>
 {
+    private readonly CursorHelper _cursorHelper;
+    private readonly ILogger<GetHierarchyHandler> _logger;
+
     public GetHierarchyHandler(
         IUnitOfWork unitOfWork,
         ICurrentUserService currentUserService,
         WorkspaceContext workspaceContext,
-        CursorHelper cursorHelper)
-        : base(unitOfWork, currentUserService, workspaceContext, cursorHelper)
+        CursorHelper cursorHelper,
+        ILogger<GetHierarchyHandler> logger)
+        : base(unitOfWork, currentUserService, workspaceContext)
     {
+        _cursorHelper = cursorHelper ?? throw new ArgumentNullException(nameof(cursorHelper));
+        _logger = logger;
     }
 
     public async Task<WorkspaceHierarchyDto> Handle(GetHierarchyQuery request, CancellationToken cancellationToken)
@@ -28,8 +35,6 @@ public class GetHierarchyHandler : BaseQueryHandler, IRequestHandler<GetHierarch
             .Where(w => w.Id == request.WorkspaceId)
             .FirstOrDefaultAsync(cancellationToken)
             ?? throw new KeyNotFoundException($"Workspace {request.WorkspaceId} not found");
-
-
 
         // Use raw SQL to fetch hierarchy with permission filtering
         // This query gets all spaces, folders, and lists that the user can see
@@ -58,8 +63,9 @@ public class GetHierarchyHandler : BaseQueryHandler, IRequestHandler<GetHierarch
                           WHERE ea.entity_id = s.id 
                             AND wm.user_id = @UserId 
                             AND wm.project_workspace_id = @WorkspaceId
-                            AND ea.entity_layer = 'ProjectSpace'  -- Space
+                            AND ea.entity_layer = 'ProjectSpace'
                             AND ea.deleted_at IS NULL
+                            AND wm.deleted_at IS NULL
                       )
                   )
             ),
@@ -84,8 +90,9 @@ public class GetHierarchyHandler : BaseQueryHandler, IRequestHandler<GetHierarch
                           WHERE ea.entity_id = f.id 
                             AND wm.user_id = @UserId 
                             AND wm.project_workspace_id = @WorkspaceId
-                            AND ea.entity_layer = 'ProjectFolder'  -- Folder
+                            AND ea.entity_layer = 'ProjectFolder'
                             AND ea.deleted_at IS NULL
+                            AND wm.deleted_at IS NULL
                       )
                   )
             ),
@@ -111,10 +118,11 @@ public class GetHierarchyHandler : BaseQueryHandler, IRequestHandler<GetHierarch
                           WHERE ea.entity_id = l.id 
                             AND wm.user_id = @UserId 
                             AND wm.project_workspace_id = @WorkspaceId
-                            AND ea.entity_layer = 'ProjectList'  -- List
+                            AND ea.entity_layer = 'ProjectList'
                             AND ea.deleted_at IS NULL
+                            AND wm.deleted_at IS NULL
                       )
-                  )
+                  ) 
                   AND (
                       -- List must be either directly under space (no folder) or under a visible folder
                       l.project_folder_id IS NULL 
@@ -159,11 +167,61 @@ public class GetHierarchyHandler : BaseQueryHandler, IRequestHandler<GetHierarch
             ORDER BY order_key;
         ";
 
+        _logger.LogWarning("[HIERARCHY DEBUG] UserId={UserId}, WorkspaceId={WorkspaceId}", CurrentUserId, request.WorkspaceId);
+
+        // DEBUG: Check what entity_access records exist for this user
+        var debugAccessSql = @"
+            SELECT ea.entity_id, ea.entity_layer, ea.access_level, wm.user_id
+            FROM entity_access ea
+            INNER JOIN workspace_members wm ON ea.workspace_member_id = wm.id
+            WHERE wm.user_id = @UserId 
+              AND wm.project_workspace_id = @WorkspaceId
+              AND ea.deleted_at IS NULL
+              AND wm.deleted_at IS NULL";
+        var debugAccess = await UnitOfWork.QueryAsync<dynamic>(debugAccessSql, new { UserId = CurrentUserId, WorkspaceId = request.WorkspaceId }, cancellationToken);
+        _logger.LogWarning("[HIERARCHY DEBUG] EntityAccess records for this user: {Count}", debugAccess.Count());
+        foreach (var a in debugAccess)
+        {
+            _logger.LogWarning("[HIERARCHY DEBUG]   -> entity_id={EntityId}, layer={Layer}, access={Access}", (object)a.entity_id, (object)a.entity_layer, (object)a.access_level);
+        }
+
+        // DEBUG: Check how many private spaces exist total
+        var debugPrivateSql = @"
+            SELECT id, name, is_private 
+            FROM project_spaces 
+            WHERE project_workspace_id = @WorkspaceId AND deleted_at IS NULL AND is_private = true";
+        var debugPrivate = await UnitOfWork.QueryAsync<dynamic>(debugPrivateSql, new { WorkspaceId = request.WorkspaceId }, cancellationToken);
+        _logger.LogWarning("[HIERARCHY DEBUG] Total private spaces in DB: {Count}", debugPrivate.Count());
+        foreach (var p in debugPrivate)
+        {
+            _logger.LogWarning("[HIERARCHY DEBUG]   -> id={Id}, name={Name}, is_private={IsPrivate}", (object)p.id, (object)p.name, (object)p.is_private);
+        }
+
+        // DEBUG: Check private folders
+        var debugFolderSql = @"
+            SELECT id, name, is_private, project_space_id 
+            FROM project_folders 
+            WHERE deleted_at IS NULL AND is_private = true";
+        var debugFolders = await UnitOfWork.QueryAsync<dynamic>(debugFolderSql, cancellationToken: cancellationToken);
+        _logger.LogWarning("[HIERARCHY DEBUG] Total private folders in DB: {Count}", debugFolders.Count());
+        foreach (var f in debugFolders)
+        {
+            _logger.LogWarning("[HIERARCHY DEBUG]   -> id={Id}, name={Name}, is_private={IsPrivate}, space={SpaceId}", (object)f.id, (object)f.name, (object)f.is_private, (object)f.project_space_id);
+        }
+
         var results = await UnitOfWork.QueryAsync<HierarchyRawItem>(sql, new 
         { 
             WorkspaceId = request.WorkspaceId, 
             UserId = CurrentUserId 
         }, cancellationToken);
+
+        // Temporary debug: log ALL returned items with their privacy flag
+        _logger.LogWarning("[HIERARCHY DEBUG] Total items returned: {Count}", results.Count());
+        foreach (var item in results)
+        {
+            _logger.LogWarning("[HIERARCHY DEBUG]   -> {Type}: {Name} (id={Id}, is_private={IsPrivate})", 
+                item.ItemType, item.Name, item.Id, item.IsPrivate);
+        }
 
         // Group results by type
         var items = results.ToList();

@@ -105,4 +105,9 @@ public abstract class BaseFeatureHandler
 
         return members;
     }
+
+    protected IQueryable<T> QueryNoTracking<T>() where T : class
+    {
+        return UnitOfWork.Set<T>().AsNoTracking();
+    }
 }

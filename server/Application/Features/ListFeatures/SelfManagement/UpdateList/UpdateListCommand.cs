@@ -1,4 +1,5 @@
 using System;
+using Application.Common.Interfaces;
 using MediatR;
 
 namespace Application.Features.ListFeatures.SelfManagement.UpdateList;
@@ -12,4 +13,4 @@ public record UpdateListCommand(
     DateTimeOffset? StartDate,
     DateTimeOffset? DueDate,
     List<Guid>? MemberIdsToAdd
-) : IRequest<Unit>;
+) : ICommand<Unit>;

@@ -46,7 +46,7 @@ public class ProcessOutboxJob
         {
             try
             {
-                var eventType = TypeCache.GetOrAdd(message.Type, name => typeof(BaseDomainEvent).Assembly.GetTypes().FirstOrDefault(t => t.Name == name));
+                var eventType = TypeCache.GetOrAdd(message.Type, name => typeof(BaseDomainEvent).Assembly.GetTypes().FirstOrDefault(t => t.Name == name)!);
 
                 if (eventType == null)
                 {

@@ -11,13 +11,23 @@ using server.Application.Interfaces;
 using System;
 using System.Collections.Generic;
 using System.Text;
+using System.Linq;
 
 namespace Application.Features.DashboardManagement.GetDashboardList;
 
-public class GetDashboardListHandler : BaseQueryHandler, IRequestHandler<GetDashboardListQuery, PagedResult<DashboardListItemDto>>
+public class GetDashboardListHandler : BaseFeatureHandler, IRequestHandler<GetDashboardListQuery, PagedResult<DashboardListItemDto>>
 {
-    public GetDashboardListHandler(IUnitOfWork unitOfWork, ICurrentUserService currentUserService, WorkspaceContext workspaceContext, CursorHelper cursorHelper)
-    : base(unitOfWork, currentUserService, workspaceContext, cursorHelper) { }
+    private readonly CursorHelper _cursorHelper;
+
+    public GetDashboardListHandler(
+        IUnitOfWork unitOfWork, 
+        ICurrentUserService currentUserService, 
+        WorkspaceContext workspaceContext, 
+        CursorHelper cursorHelper)
+        : base(unitOfWork, currentUserService, workspaceContext)
+    {
+        _cursorHelper = cursorHelper ?? throw new ArgumentNullException(nameof(cursorHelper));
+    }
 
     public async Task<PagedResult<DashboardListItemDto>> Handle(GetDashboardListQuery request, CancellationToken cancellationToken)
     {
@@ -26,7 +36,7 @@ public class GetDashboardListHandler : BaseQueryHandler, IRequestHandler<GetDash
         var pageSize = request.pagination.PageSize;
         var dashboards = await UnitOfWork.Set<Dashboard>()
             .ApplyFilter(request.filter, CurrentUserId)
-            .ApplyCursor(request.pagination, CursorHelper)
+            .ApplyCursor(request.pagination, _cursorHelper)
             .ApplySort(request.pagination)
             .Take(pageSize + 1)
             .AsNoTracking()
@@ -42,7 +52,7 @@ public class GetDashboardListHandler : BaseQueryHandler, IRequestHandler<GetDash
             var lastItem = displayItems.Last();
 
             // NOTE: Using UpdatedAt and Id for the keyset cursor
-            nextCursor = CursorHelper.EncodeCursor(new CursorData(new Dictionary<string, object>
+            nextCursor = _cursorHelper.EncodeCursor(new CursorData(new Dictionary<string, object>
             {
                 { "Timestamp", lastItem.UpdatedAt }, // Assuming UpdatedAt is DateTimeOffset
                 { "Id", lastItem.Id } // Secondary sort key for uniqueness

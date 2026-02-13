@@ -1,4 +1,5 @@
 using System;
+using Application.Common.Interfaces;
 using MediatR;
 
 namespace Application.Features.SpaceFeatures.SelfManagement.UpdateSpace;
@@ -11,4 +12,4 @@ public record UpdateSpaceCommand(
     string? Icon,
     bool? IsPrivate,
     List<Guid>? MemberIdsToAdd
-) : IRequest<Unit>;
+) : ICommand<Unit>;

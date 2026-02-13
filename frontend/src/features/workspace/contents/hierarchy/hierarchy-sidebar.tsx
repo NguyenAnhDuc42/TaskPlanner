@@ -29,7 +29,7 @@ import { CreateSpaceForm } from "./hierarchy-components/create-space-form";
 import { CreateFolderListForm } from "./hierarchy-components/create-folderlist-form";
 import { ItemSettingPopover } from "./hierarchy-components/item-setting.popover";
 
-const NAME_CHAR_LIMIT = 15;
+const NAME_CHAR_LIMIT = 13;
 
 function clampName(name: string, limit = NAME_CHAR_LIMIT) {
   if (name.length <= limit) return name;
@@ -198,7 +198,14 @@ function SpaceItem({ space }: { space: SpaceHierarchy }) {
               </Button>
             }
           >
-            <ItemSettingPopover type="Space" id={space.id} name={space.name} />
+            <ItemSettingPopover
+              type="Space"
+              id={space.id}
+              name={space.name}
+              color={space.color}
+              icon={space.icon}
+              isPrivate={space.isPrivate}
+            />
           </PopoverFormWrapper>
         </div>
       </div>
@@ -311,6 +318,9 @@ function FolderItem({ folder }: { folder: FolderHierarchy }) {
               type="Folder"
               id={folder.id}
               name={folder.name}
+              color={folder.color}
+              icon={folder.icon}
+              isPrivate={folder.isPrivate}
             />
           </PopoverFormWrapper>
         </div>
@@ -378,7 +388,14 @@ function ListItem({ list }: { list: ListHierarchy }) {
             </Button>
           }
         >
-          <ItemSettingPopover type="List" id={list.id} name={list.name} />
+          <ItemSettingPopover
+            type="List"
+            id={list.id}
+            name={list.name}
+            color={list.color}
+            icon={list.icon}
+            isPrivate={list.isPrivate}
+          />
         </PopoverFormWrapper>
       </div>
     </div>
