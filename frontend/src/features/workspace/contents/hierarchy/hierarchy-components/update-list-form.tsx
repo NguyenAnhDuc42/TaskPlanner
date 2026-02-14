@@ -61,7 +61,9 @@ export function UpdateListForm({
         color: color,
         icon: icon,
         isPrivate: isPrivate,
-        memberIdsToAdd: selectedMemberIds,
+        membersToAddOrUpdate: selectedMemberIds.map((workspaceMemberId) => ({
+          workspaceMemberId,
+        })),
       });
       toast.success("List updated successfully");
       onSuccess?.();

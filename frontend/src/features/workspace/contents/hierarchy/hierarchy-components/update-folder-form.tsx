@@ -61,7 +61,9 @@ export function UpdateFolderForm({
         color: color,
         icon: icon,
         isPrivate: isPrivate,
-        memberIdsToAdd: selectedMemberIds,
+        membersToAddOrUpdate: selectedMemberIds.map((workspaceMemberId) => ({
+          workspaceMemberId,
+        })),
       });
       toast.success("Folder updated successfully");
       onSuccess?.();

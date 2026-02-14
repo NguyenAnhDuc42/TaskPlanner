@@ -54,80 +54,79 @@ public sealed class ProjectList : Entity
         return currentOrder;
     }
 
-    public void Update(string? name = null, string? color = null, string? icon = null, DateTimeOffset? startDate = null, DateTimeOffset? dueDate = null, bool? isPrivate = null, long? orderKey = null, bool? isArchived = null, Guid? projectFolderId = null)
+    public void UpdateName(string name)
     {
-        var changed = false;
-
-        var candidateName = name is null ? Name : (name.Trim() == string.Empty ? throw new ArgumentException("Name cannot be empty.", nameof(name)) : name.Trim());
-
+        var candidateName = name.Trim() == string.Empty
+            ? throw new ArgumentException("Name cannot be empty.", nameof(name))
+            : name.Trim();
         ValidateBasicInfo(candidateName);
-
-        if (candidateName != Name) { Name = candidateName; changed = true; }
-
-        if (startDate.HasValue || dueDate.HasValue)
-        {
-            var finalStart = startDate ?? StartDate;
-            var finalDue = dueDate ?? DueDate;
-            if (finalStart.HasValue && finalDue.HasValue && finalStart > finalDue) throw new ArgumentException("Start date cannot be later than due date.", nameof(startDate));
-            if (finalStart != StartDate || finalDue != DueDate) { StartDate = finalStart; DueDate = finalDue; changed = true; }
-        }
-
-        if (color is not null || icon is not null)
-        {
-            var c = color?.Trim() ?? Customization.Color;
-            var i = icon?.Trim() ?? Customization.Icon;
-            var newCustomization = Customization.Create(c, i);
-            if (!newCustomization.Equals(Customization)) { Customization = newCustomization; changed = true; }
-        }
-
-        if (isPrivate.HasValue && isPrivate.Value != IsPrivate) { IsPrivate = isPrivate.Value; changed = true; }
-        if (orderKey.HasValue && orderKey != OrderKey) { OrderKey = orderKey.Value; changed = true; }
-        if (projectFolderId is not null && projectFolderId != ProjectFolderId) { ProjectFolderId = projectFolderId; changed = true; }
-        if (isArchived.HasValue && isArchived.Value != IsArchived) { IsArchived = isArchived.Value; changed = true; }
-
-        if (changed) UpdateTimestamp();
+        if (candidateName == Name) return;
+        Name = candidateName;
+        UpdateTimestamp();
     }
 
-    public void UpdateDetails(string name, string? color = null, string? icon = null)
+    public void UpdateColor(string color)
     {
-        var changed = false;
-        var candidateName = name.Trim() == string.Empty ? throw new ArgumentException("Name cannot be empty.", nameof(name)) : name.Trim();
-        ValidateBasicInfo(candidateName);
-        if (candidateName != Name)
-        {
-            Name = candidateName;
-            changed = true;
-        }
-
-        if (color is not null || icon is not null)
-        {
-            var c = color?.Trim() ?? Customization.Color;
-            var i = icon?.Trim() ?? Customization.Icon;
-            var newCustomization = Customization.Create(c, i);
-            if (!newCustomization.Equals(Customization)) { Customization = newCustomization; changed = true; }
-        }
-
-        if (changed) UpdateTimestamp();
+        var candidateColor = color.Trim();
+        var newCustomization = Customization.Create(candidateColor, Customization.Icon);
+        if (newCustomization.Equals(Customization)) return;
+        Customization = newCustomization;
+        UpdateTimestamp();
     }
 
-    public void UpdateDates(DateTimeOffset? startDate, DateTimeOffset? dueDate)
+    public void UpdateIcon(string icon)
     {
-        if (startDate.HasValue && dueDate.HasValue && startDate > dueDate) throw new ArgumentException("Start date cannot be later than due date.", nameof(startDate));
-        
-        var changed = false;
-        if (StartDate != startDate) { StartDate = startDate; changed = true; }
-        if (DueDate != dueDate) { DueDate = dueDate; changed = true; }
-        
-        if (changed) UpdateTimestamp();
+        var candidateIcon = icon.Trim();
+        var newCustomization = Customization.Create(Customization.Color, candidateIcon);
+        if (newCustomization.Equals(Customization)) return;
+        Customization = newCustomization;
+        UpdateTimestamp();
     }
 
-    public void UpdatePrivacy(bool isPrivate)
+    public void UpdateStartDate(DateTimeOffset? startDate)
     {
-        if (IsPrivate != isPrivate)
-        {
-            IsPrivate = isPrivate;
-            UpdateTimestamp();
-        }
+        if (startDate.HasValue && DueDate.HasValue && startDate > DueDate)
+            throw new ArgumentException("Start date cannot be later than due date.", nameof(startDate));
+        if (StartDate == startDate) return;
+        StartDate = startDate;
+        UpdateTimestamp();
+    }
+
+    public void UpdateDueDate(DateTimeOffset? dueDate)
+    {
+        if (StartDate.HasValue && dueDate.HasValue && StartDate > dueDate)
+            throw new ArgumentException("Start date cannot be later than due date.", nameof(dueDate));
+        if (DueDate == dueDate) return;
+        DueDate = dueDate;
+        UpdateTimestamp();
+    }
+
+    public void UpdatePrivate(bool isPrivate)
+    {
+        if (IsPrivate == isPrivate) return;
+        IsPrivate = isPrivate;
+        UpdateTimestamp();
+    }
+
+    public void UpdateOrderKey(long orderKey)
+    {
+        if (OrderKey == orderKey) return;
+        OrderKey = orderKey;
+        UpdateTimestamp();
+    }
+
+    public void UpdateProjectFolderId(Guid? projectFolderId)
+    {
+        if (ProjectFolderId == projectFolderId) return;
+        ProjectFolderId = projectFolderId;
+        UpdateTimestamp();
+    }
+
+    public void UpdateInheritStatus(bool inheritStatus)
+    {
+        if (InheritStatus == inheritStatus) return;
+        InheritStatus = inheritStatus;
+        UpdateTimestamp();
     }
 
     public void Archive() { if (IsArchived) return; IsArchived = true; UpdateTimestamp(); }

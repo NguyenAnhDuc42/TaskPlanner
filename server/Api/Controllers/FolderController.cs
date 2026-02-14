@@ -36,12 +36,20 @@ namespace Api.Controllers
         }
 
         [HttpPut("{id:guid}")]
-        public async Task<IActionResult> Update(Guid id, [FromBody] UpdateFolderCommand command, CancellationToken cancellationToken)
+        public async Task<IActionResult> Update(Guid id, [FromBody] UpdateFolderRequest request, CancellationToken cancellationToken)
         {
-            if (id != command.FolderId)
-            {
-                return BadRequest("ID mismatch");
-            }
+            var membersToAddOrUpdate =
+                request.MembersToAddOrUpdate
+                ?? request.MemberIdsToAdd?.Select(memberId => new UpdateFolderMemberValue(memberId, null)).ToList();
+
+            var command = new UpdateFolderCommand(
+                FolderId: id,
+                Name: request.Name,
+                Color: request.Color,
+                Icon: request.Icon,
+                IsPrivate: request.IsPrivate,
+                MembersToAddOrUpdate: membersToAddOrUpdate
+            );
 
             var result = await _mediator.Send(command, cancellationToken);
             return Ok(result);
@@ -55,4 +63,13 @@ namespace Api.Controllers
             return Ok(result);
         }
     }
+
+    public record UpdateFolderRequest(
+        string? Name,
+        string? Color,
+        string? Icon,
+        bool? IsPrivate,
+        List<Guid>? MemberIdsToAdd,
+        List<UpdateFolderMemberValue>? MembersToAddOrUpdate
+    );
 }

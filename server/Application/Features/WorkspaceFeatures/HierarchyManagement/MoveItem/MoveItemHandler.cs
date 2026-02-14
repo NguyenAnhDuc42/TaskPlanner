@@ -45,8 +45,7 @@ public class MoveItemHandler : BaseFeatureHandler, IRequestHandler<MoveItemComma
     {
         var space = await FindOrThrowAsync<ProjectSpace>(spaceId);
 
-        // Update order key
-        space.Update(orderKey: newOrderKey);
+        space.UpdateOrderKey(newOrderKey);
     }
 
     private async Task MoveFolder(Guid folderId, Guid? newSpaceId, long newOrderKey, CancellationToken cancellationToken)
@@ -70,7 +69,7 @@ public class MoveItemHandler : BaseFeatureHandler, IRequestHandler<MoveItemComma
         else
         {
             // Just reorder within same space
-            folder.Update(orderKey: newOrderKey);
+            folder.UpdateOrderKey(newOrderKey);
         }
     }
 
@@ -91,7 +90,8 @@ public class MoveItemHandler : BaseFeatureHandler, IRequestHandler<MoveItemComma
                 // Moving to a folder - Authorize on target folder
                 await FindOrThrowAsync<ProjectFolder>(targetFolder.Id);
 
-                list.Update(orderKey: newOrderKey, projectFolderId: newParentId.Value);
+                list.UpdateOrderKey(newOrderKey);
+                list.UpdateProjectFolderId(newParentId.Value);
             }
             else
             {
@@ -112,7 +112,7 @@ public class MoveItemHandler : BaseFeatureHandler, IRequestHandler<MoveItemComma
         else
         {
             // Just reorder within same parent
-            list.Update(orderKey: newOrderKey);
+            list.UpdateOrderKey(newOrderKey);
         }
     }
 

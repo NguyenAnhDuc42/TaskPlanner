@@ -58,4 +58,5 @@ public class GetEntityAccessListHandler : BaseFeatureHandler, IRequestHandler<Ge
 
         return dtos;
     }
+    
 }

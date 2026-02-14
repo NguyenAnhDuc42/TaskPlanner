@@ -65,6 +65,16 @@ export const createListSchema = z
   });
 export type CreateListRequest = z.infer<typeof createListSchema>;
 
+export const accessLevelSchema = z.enum(["Manager", "Editor", "Viewer"]);
+export type AccessLevel = z.infer<typeof accessLevelSchema>;
+
+export const updateMemberValueSchema = z.object({
+  workspaceMemberId: z.string().uuid(),
+  accessLevel: accessLevelSchema.optional(),
+  isRemove: z.boolean().optional(),
+});
+export type UpdateMemberValue = z.infer<typeof updateMemberValueSchema>;
+
 export const updateSpaceSchema = z.object({
   spaceId: z.string().uuid(),
   name: z.string().min(1).optional(),
@@ -72,7 +82,7 @@ export const updateSpaceSchema = z.object({
   color: z.string().optional(),
   icon: z.string().optional(),
   isPrivate: z.boolean().optional(),
-  memberIdsToAdd: z.array(z.string().uuid()).optional(),
+  membersToAddOrUpdate: z.array(updateMemberValueSchema).optional(),
 });
 export type UpdateSpaceRequest = z.infer<typeof updateSpaceSchema>;
 
@@ -82,7 +92,7 @@ export const updateFolderSchema = z.object({
   color: z.string().optional(),
   icon: z.string().optional(),
   isPrivate: z.boolean().optional(),
-  memberIdsToAdd: z.array(z.string().uuid()).optional(),
+  membersToAddOrUpdate: z.array(updateMemberValueSchema).optional(),
 });
 export type UpdateFolderRequest = z.infer<typeof updateFolderSchema>;
 
@@ -94,6 +104,6 @@ export const updateListSchema = z.object({
   isPrivate: z.boolean().optional(),
   startDate: z.string().datetime().optional(),
   dueDate: z.string().datetime().optional(),
-  memberIdsToAdd: z.array(z.string().uuid()).optional(),
+  membersToAddOrUpdate: z.array(updateMemberValueSchema).optional(),
 });
 export type UpdateListRequest = z.infer<typeof updateListSchema>;

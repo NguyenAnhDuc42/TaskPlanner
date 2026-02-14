@@ -61,7 +61,9 @@ export function UpdateSpaceForm({
         color: color,
         icon: icon,
         isPrivate: isPrivate,
-        memberIdsToAdd: selectedMemberIds,
+        membersToAddOrUpdate: selectedMemberIds.map((workspaceMemberId) => ({
+          workspaceMemberId,
+        })),
       });
       toast.success("Space updated successfully");
       onSuccess?.();

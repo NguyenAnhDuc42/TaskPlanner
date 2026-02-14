@@ -25,12 +25,21 @@ namespace Api.Controllers
         }
 
         [HttpPut("{id:guid}")]
-        public async Task<IActionResult> Update(Guid id, [FromBody] UpdateSpaceCommand command, CancellationToken cancellationToken)
+        public async Task<IActionResult> Update(Guid id, [FromBody] UpdateSpaceRequest request, CancellationToken cancellationToken)
         {
-            if (id != command.SpaceId)
-            {
-                return BadRequest("ID mismatch");
-            }
+            var membersToAddOrUpdate =
+                request.MembersToAddOrUpdate
+                ?? request.MemberIdsToAdd?.Select(memberId => new UpdateSpaceMemberValue(memberId, null)).ToList();
+
+            var command = new UpdateSpaceCommand(
+                SpaceId: id,
+                Name: request.Name,
+                Description: request.Description,
+                Color: request.Color,
+                Icon: request.Icon,
+                IsPrivate: request.IsPrivate,
+                MembersToAddOrUpdate: membersToAddOrUpdate
+            );
 
             var result = await _mediator.Send(command, cancellationToken);
             return Ok(result);
@@ -44,4 +53,14 @@ namespace Api.Controllers
             return Ok(result);
         }
     }
+
+    public record UpdateSpaceRequest(
+        string? Name,
+        string? Description,
+        string? Color,
+        string? Icon,
+        bool? IsPrivate,
+        List<Guid>? MemberIdsToAdd,
+        List<UpdateSpaceMemberValue>? MembersToAddOrUpdate
+    );
 }

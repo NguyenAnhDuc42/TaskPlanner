@@ -1,5 +1,6 @@
 using System;
 using Application.Common.Interfaces;
+using Domain.Enums.RelationShip;
 using MediatR;
 
 namespace Application.Features.ListFeatures.SelfManagement.UpdateList;
@@ -12,5 +13,7 @@ public record UpdateListCommand(
     bool? IsPrivate,
     DateTimeOffset? StartDate,
     DateTimeOffset? DueDate,
-    List<Guid>? MemberIdsToAdd
+    List<UpdateListMemberValue>? MembersToAddOrUpdate
 ) : ICommand<Unit>;
+
+public record UpdateListMemberValue(Guid workspaceMemberId, AccessLevel? accessLevel, bool isRemove = false);

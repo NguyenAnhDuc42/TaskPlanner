@@ -1,9 +1,7 @@
 using Application.Interfaces.Repositories;
-using Domain;
 using Application.Helpers;
 using Domain.Entities.ProjectEntities;
 using Domain.Entities.Relationship;
-using Domain.Enums;
 using Domain.Enums.RelationShip;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
@@ -19,87 +17,50 @@ public class UpdateListHandler : BaseFeatureHandler, IRequestHandler<UpdateListC
     public async Task<Unit> Handle(UpdateListCommand request, CancellationToken cancellationToken)
     {
         var list = await FindOrThrowAsync<ProjectList>(request.ListId);
+        if (request.Name is not null) list.UpdateName(request.Name);
+        if (request.Color is not null) list.UpdateColor(request.Color);
+        if (request.Icon is not null) list.UpdateIcon(request.Icon);
+        if (request.IsPrivate.HasValue) list.UpdatePrivate(request.IsPrivate.Value);
+        if (request.StartDate.HasValue) list.UpdateStartDate(request.StartDate);
+        if (request.DueDate.HasValue) list.UpdateDueDate(request.DueDate);
 
-        // Update basic properties
-        if (request.Name != null || request.Color != null || request.Icon != null)
+        if (request.MembersToAddOrUpdate != null && request.MembersToAddOrUpdate.Any())
         {
-            list.UpdateDetails(
-                request.Name ?? list.Name,
-                request.Color ?? list.Customization.Color,
-                request.Icon ?? list.Customization.Icon
-            );
+            await UpdateMembersAsync(list.Id, request.MembersToAddOrUpdate, cancellationToken);
         }
-
-        // Update dates
-        if (request.StartDate.HasValue || request.DueDate.HasValue)
-        {
-            list.UpdateDates(
-                request.StartDate ?? list.StartDate,
-                request.DueDate ?? list.DueDate
-            );
-        }
-
-        // Handle privacy + member management
-        bool willBePrivate = request.IsPrivate ?? list.IsPrivate;
-
-        if (willBePrivate)
-        {
-            // Check if list already has EntityAccess
-            var existingAccess = await UnitOfWork.Set<EntityAccess>()
-                .Where(ea => ea.EntityId == list.Id && ea.EntityLayer == EntityLayerType.ProjectList)
-                .ToListAsync(cancellationToken);
-
-            // If NO access exists, create owner access
-            if (!existingAccess.Any())
-            {
-                var memberId = await GetWorkspaceMemberId(CurrentUserId, cancellationToken);
-                var ownerAccess = EntityAccess.Create(
-                    memberId,
-                    list.Id,
-                    EntityLayerType.ProjectList,
-                    AccessLevel.Manager,
-                    CurrentUserId
-                );
-                await UnitOfWork.Set<EntityAccess>().AddAsync(ownerAccess, cancellationToken);
-                existingAccess.Add(ownerAccess);
-            }
-
-            if (request.MemberIdsToAdd?.Any() == true)
-            {
-                // Resolve existing user IDs to compare
-                var existingMemberIds = await UnitOfWork.Set<WorkspaceMember>()
-                    .Where(wm => existingAccess.Select(ea => ea.WorkspaceMemberId).Contains(wm.Id))
-                    .Select(wm => wm.UserId)
-                    .ToListAsync(cancellationToken);
-
-                var newUserIds = request.MemberIdsToAdd
-                    .Where(id => !existingMemberIds.Contains(id))
-                    .ToList();
-
-                if (newUserIds.Any())
-                {
-                    // Resolve workspace member IDs for new invitees
-                    var newWorkspaceMemberIds = await GetWorkspaceMemberIds(newUserIds, cancellationToken);
-
-                    // Create EntityAccess records for new invitees
-                    var newAccessRecords = newWorkspaceMemberIds.Select(memberId =>
-                        EntityAccess.Create(
-                            memberId,
-                            list.Id,
-                            EntityLayerType.ProjectList,
-                            AccessLevel.Editor,
-                            CurrentUserId
-                        ));
-                    await UnitOfWork.Set<EntityAccess>().AddRangeAsync(newAccessRecords, cancellationToken);
-                }
-            }
-        }
-
-        if (request.IsPrivate.HasValue && request.IsPrivate.Value != list.IsPrivate)
-        {
-            list.UpdatePrivacy(request.IsPrivate.Value);
-        }
-
         return Unit.Value;
+    }
+
+    private async Task UpdateMembersAsync(Guid listId, List<UpdateListMemberValue> members, CancellationToken cancellationToken)
+    {
+        var existingMembers = await UnitOfWork.Set<EntityAccess>()
+            .Where(ea => ea.EntityId == listId && ea.EntityLayer == EntityLayerType.ProjectList)
+            .ToListAsync(cancellationToken);
+
+        var existingMap = existingMembers.ToDictionary(em => em.WorkspaceMemberId);
+        var updateMap = members.ToDictionary(m => m.workspaceMemberId);
+
+        var toAdd = updateMap.Keys.Except(existingMap.Keys).ToList();
+        var toUpdate = updateMap.Keys.Intersect(existingMap.Keys).ToList();
+        var toRemove = existingMap.Keys.Except(updateMap.Keys).ToList();
+
+        if (toAdd.Any())
+        {
+            var newRecords = toAdd.Select(memberId =>
+                EntityAccess.Create(memberId, listId, EntityLayerType.ProjectList,
+                    updateMap[memberId].accessLevel ?? AccessLevel.Viewer, CurrentUserId));
+            await UnitOfWork.Set<EntityAccess>().AddRangeAsync(newRecords, cancellationToken);
+        }
+
+        foreach (var memberId in toUpdate)
+        {
+            var access = existingMap[memberId];
+            if (updateMap[memberId].accessLevel.HasValue) access.UpdateAccessLevel(updateMap[memberId].accessLevel!.Value);
+        }
+
+        foreach (var memberId in toRemove)
+        {
+            existingMap[memberId].Remove();
+        }
     }
 }
