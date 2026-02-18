@@ -3,6 +3,7 @@ import z from "zod";
 
 export interface MemberSummary {
   id: string;
+  workspaceMemberId: string;
   name: string;
   email: string;
   avatarUrl: string;

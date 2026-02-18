@@ -5,6 +5,7 @@ namespace Application.Contract.UserContract;
 public record class MemberDto
 {
     public Guid Id { get; init; }
+    public Guid WorkspaceMemberId { get; init; }
     public string? Name { get; init; }
     public string? Email { get; init; }
     public string? AvatarUrl { get; init; }

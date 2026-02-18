@@ -9,6 +9,7 @@ import type {
   UpdateSpaceRequest,
   UpdateFolderRequest,
   UpdateListRequest,
+  EntityAccessMember,
 } from "./hierarchy-type";
 import { hierarchyKeys } from "./hierarchy-keys";
 
@@ -108,9 +109,12 @@ export function useUpdateSpace() {
     mutationFn: async (data: UpdateSpaceRequest) => {
       await api.put(`/spaces/${data.spaceId}`, data);
     },
-    onSuccess: () => {
+    onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({
         queryKey: hierarchyKeys.detail(workspaceId || ""),
+      });
+      queryClient.invalidateQueries({
+        queryKey: hierarchyKeys.membersAccess("space", variables.spaceId),
       });
     },
   });
@@ -140,9 +144,12 @@ export function useUpdateFolder() {
     mutationFn: async (data: UpdateFolderRequest) => {
       await api.put(`/folders/${data.folderId}`, data);
     },
-    onSuccess: () => {
+    onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({
         queryKey: hierarchyKeys.detail(workspaceId || ""),
+      });
+      queryClient.invalidateQueries({
+        queryKey: hierarchyKeys.membersAccess("folder", variables.folderId),
       });
     },
   });
@@ -172,11 +179,53 @@ export function useUpdateList() {
     mutationFn: async (data: UpdateListRequest) => {
       await api.put(`/lists/${data.listId}`, data);
     },
-    onSuccess: () => {
+    onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({
         queryKey: hierarchyKeys.detail(workspaceId || ""),
       });
+      queryClient.invalidateQueries({
+        queryKey: hierarchyKeys.membersAccess("list", variables.listId),
+      });
     },
+  });
+}
+
+export function useSpaceMembersAccess(spaceId: string) {
+  return useQuery({
+    queryKey: hierarchyKeys.membersAccess("space", spaceId),
+    queryFn: async () => {
+      const { data } = await api.get<EntityAccessMember[]>(
+        `/spaces/${spaceId}/members-access`,
+      );
+      return data;
+    },
+    enabled: !!spaceId,
+  });
+}
+
+export function useFolderMembersAccess(folderId: string) {
+  return useQuery({
+    queryKey: hierarchyKeys.membersAccess("folder", folderId),
+    queryFn: async () => {
+      const { data } = await api.get<EntityAccessMember[]>(
+        `/folders/${folderId}/members-access`,
+      );
+      return data;
+    },
+    enabled: !!folderId,
+  });
+}
+
+export function useListMembersAccess(listId: string) {
+  return useQuery({
+    queryKey: hierarchyKeys.membersAccess("list", listId),
+    queryFn: async () => {
+      const { data } = await api.get<EntityAccessMember[]>(
+        `/lists/${listId}/members-access`,
+      );
+      return data;
+    },
+    enabled: !!listId,
   });
 }
 

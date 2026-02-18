@@ -14,7 +14,6 @@ using Application.Features.WorkspaceFeatures.MemberManage.GetMembers;
 using Application.Features.WorkspaceFeatures.MemberManage.AddMembers;
 using Application.Features.WorkspaceFeatures.HierarchyManagement.GetHierarchy;
 using Application.Features.WorkspaceFeatures.MemberManage.UpdateMembers;
-using Application.Features.WorkspaceFeatures.MemberManage.RemoveMembers;
 
 namespace Api.Controllers
 {

@@ -1,6 +1,8 @@
 using Application.Features.FolderFeatures.SelfManagement.CreateFolder;
 using Application.Features.FolderFeatures.SelfManagement.DeleteFolder;
 using Application.Features.FolderFeatures.SelfManagement.UpdateFolder;
+using Application.Features.EntityAccessManagement.GetEntityAccessList;
+using Domain.Enums.RelationShip;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
 
@@ -60,6 +62,14 @@ namespace Api.Controllers
         {
             var command = new DeleteFolderCommand(id);
             var result = await _mediator.Send(command, cancellationToken);
+            return Ok(result);
+        }
+
+        [HttpGet("{id:guid}/members-access")]
+        public async Task<IActionResult> GetMembersAccess(Guid id, CancellationToken cancellationToken)
+        {
+            var query = new GetEntityAccessListQuery(id, EntityLayerType.ProjectFolder);
+            var result = await _mediator.Send(query, cancellationToken);
             return Ok(result);
         }
     }

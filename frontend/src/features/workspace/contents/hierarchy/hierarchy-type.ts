@@ -1,3 +1,9 @@
+import {
+  ASSIGNABLE_ACCESS_LEVELS,
+  type AssignableAccessLevel,
+} from "@/types/access-level";
+import { z } from "zod";
+
 export interface ListHierarchy {
   id: string;
   name: string;
@@ -31,7 +37,17 @@ export interface WorkspaceHierarchy {
   spaces: SpaceHierarchy[];
 }
 
-import { z } from "zod";
+export interface EntityAccessMember {
+  workspaceMemberId: string;
+  userId: string;
+  userName: string;
+  userEmail: string;
+  accessLevel: AccessLevel;
+  createdAt: string;
+  isCreator: boolean;
+}
+
+
 
 export const createSpaceSchema = z.object({
   name: z.string().min(1, "Name is required"),
@@ -65,8 +81,8 @@ export const createListSchema = z
   });
 export type CreateListRequest = z.infer<typeof createListSchema>;
 
-export const accessLevelSchema = z.enum(["Manager", "Editor", "Viewer"]);
-export type AccessLevel = z.infer<typeof accessLevelSchema>;
+export const accessLevelSchema = z.enum(ASSIGNABLE_ACCESS_LEVELS);
+export type AccessLevel = AssignableAccessLevel;
 
 export const updateMemberValueSchema = z.object({
   workspaceMemberId: z.string().uuid(),

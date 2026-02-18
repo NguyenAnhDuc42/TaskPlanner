@@ -8,6 +8,7 @@ namespace Application.Features.WorkspaceFeatures.MemberManage.GetMembers;
 public class MemberRow
 {
     public Guid Id { get; set; }
+    public Guid WorkspaceMemberId { get; set; }
     public DateTimeOffset CreatedAt { get; set; }
     public DateTimeOffset? JoinedAt { get; set; }
     public string Name { get; set; } = null!;
@@ -20,6 +21,7 @@ public static class GetMembersSQL
     public const string Asc = @"
     SELECT 
         u.id,
+        wm.id AS WorkspaceMemberId,
         wm.created_at AS CreatedAt,
         wm.joined_at AS JoinedAt,
         u.name ,
@@ -49,6 +51,7 @@ public static class GetMembersSQL
     public const string Desc = @"
     SELECT 
         u.id,
+        wm.id AS WorkspaceMemberId,
         wm.created_at AS CreatedAt,
         wm.joined_at AS JoinedAt,
         u.name,

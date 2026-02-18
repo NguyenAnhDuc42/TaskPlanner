@@ -97,6 +97,7 @@ public class GetMembersHandler : IRequestHandler<GetMembersQuery, PagedResult<Me
         return rows.Select(x => new MemberDto
         {
             Id = x.Id,
+            WorkspaceMemberId = x.WorkspaceMemberId,
             Name = x.Name,
             Email = x.Email,
             AvatarUrl = x.AvatarUrl,

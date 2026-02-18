@@ -67,6 +67,7 @@ export function ItemSettingPopover({
         title={`Edit ${type}`}
         open={isEditOpen}
         onOpenChange={setIsEditOpen}
+        contentClassName="sm:max-w-4xl"
         trigger={
           <Button
             variant="ghost"
@@ -85,7 +86,7 @@ export function ItemSettingPopover({
             initialColor={color}
             initialIcon={icon}
             initialIsPrivate={isPrivate}
-            onSuccess={() => setIsEditOpen(false)}
+            open={isEditOpen}
           />
         )}
         {type === "Folder" && (
@@ -95,7 +96,7 @@ export function ItemSettingPopover({
             initialColor={color}
             initialIcon={icon}
             initialIsPrivate={isPrivate}
-            onSuccess={() => setIsEditOpen(false)}
+            open={isEditOpen}
           />
         )}
         {type === "List" && (
@@ -105,7 +106,7 @@ export function ItemSettingPopover({
             initialColor={color}
             initialIcon={icon}
             initialIsPrivate={isPrivate}
-            onSuccess={() => setIsEditOpen(false)}
+            open={isEditOpen}
           />
         )}
       </DialogFormWrapper>

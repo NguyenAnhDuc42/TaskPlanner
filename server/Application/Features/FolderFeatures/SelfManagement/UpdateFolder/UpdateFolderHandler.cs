@@ -22,43 +22,113 @@ public class UpdateFolderHandler : BaseFeatureHandler, IRequestHandler<UpdateFol
         if (request.Icon is not null) folder.UpdateIcon(request.Icon);
         if (request.IsPrivate.HasValue) folder.UpdatePrivate(request.IsPrivate.Value);
 
+        var ownerWorkspaceMemberId = await GetWorkspaceMemberId(
+            folder.CreatorId ?? CurrentUserId,
+            cancellationToken
+        );
+
         if (request.MembersToAddOrUpdate != null && request.MembersToAddOrUpdate.Any())
         {
-            await UpdateMembersAsync(folder.Id, request.MembersToAddOrUpdate, cancellationToken);
+            await UpdateMembersAsync(
+                folder.Id,
+                ownerWorkspaceMemberId,
+                request.MembersToAddOrUpdate,
+                cancellationToken
+            );
+        }
+
+        if (folder.IsPrivate)
+        {
+            await EnsureOwnerAccessAsync(folder.Id, ownerWorkspaceMemberId, cancellationToken);
         }
         return Unit.Value;
     }
 
-    private async Task UpdateMembersAsync(Guid folderId, List<UpdateFolderMemberValue> members, CancellationToken cancellationToken)
+    private async Task UpdateMembersAsync(
+        Guid folderId,
+        Guid ownerWorkspaceMemberId,
+        List<UpdateFolderMemberValue> members,
+        CancellationToken cancellationToken
+    )
     {
         var existingMembers = await UnitOfWork.Set<EntityAccess>()
-            .Where(ea => ea.EntityId == folderId && ea.EntityLayer == EntityLayerType.ProjectFolder)
+            .Where(ea =>
+                ea.EntityId == folderId &&
+                ea.EntityLayer == EntityLayerType.ProjectFolder &&
+                ea.DeletedAt == null)
             .ToListAsync(cancellationToken);
 
         var existingMap = existingMembers.ToDictionary(em => em.WorkspaceMemberId);
-        var updateMap = members.ToDictionary(m => m.workspaceMemberId);
-
-        var toAdd = updateMap.Keys.Except(existingMap.Keys).ToList();
-        var toUpdate = updateMap.Keys.Intersect(existingMap.Keys).ToList();
-        var toRemove = existingMap.Keys.Except(updateMap.Keys).ToList();
-
-        if (toAdd.Any())
+        foreach (var member in members)
         {
-            var newRecords = toAdd.Select(memberId =>
-                EntityAccess.Create(memberId, folderId, EntityLayerType.ProjectFolder,
-                    updateMap[memberId].accessLevel ?? AccessLevel.Viewer, CurrentUserId));
-            await UnitOfWork.Set<EntityAccess>().AddRangeAsync(newRecords, cancellationToken);
+            if (member.workspaceMemberId == ownerWorkspaceMemberId)
+            {
+                if (existingMap.TryGetValue(ownerWorkspaceMemberId, out var ownerAccess))
+                {
+                    ownerAccess.UpdateAccessLevel(AccessLevel.Manager);
+                }
+                continue;
+            }
+
+            if (existingMap.TryGetValue(member.workspaceMemberId, out var current))
+            {
+                if (member.isRemove)
+                {
+                    current.Remove();
+                    continue;
+                }
+
+                if (member.accessLevel.HasValue)
+                {
+                    current.UpdateAccessLevel(member.accessLevel.Value);
+                }
+
+                continue;
+            }
+
+            if (member.isRemove)
+            {
+                continue;
+            }
+
+            var newAccess = EntityAccess.Create(
+                member.workspaceMemberId,
+                folderId,
+                EntityLayerType.ProjectFolder,
+                member.accessLevel ?? AccessLevel.Viewer,
+                CurrentUserId);
+
+            await UnitOfWork.Set<EntityAccess>().AddAsync(newAccess, cancellationToken);
+        }
+    }
+
+    private async Task EnsureOwnerAccessAsync(Guid folderId, Guid ownerWorkspaceMemberId, CancellationToken cancellationToken)
+    {
+        var ownerAccess = await UnitOfWork.Set<EntityAccess>()
+            .Where(ea =>
+                ea.EntityId == folderId &&
+                ea.EntityLayer == EntityLayerType.ProjectFolder &&
+                ea.WorkspaceMemberId == ownerWorkspaceMemberId &&
+                ea.DeletedAt == null)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (ownerAccess is null)
+        {
+            var newOwnerAccess = EntityAccess.Create(
+                ownerWorkspaceMemberId,
+                folderId,
+                EntityLayerType.ProjectFolder,
+                AccessLevel.Manager,
+                CurrentUserId
+            );
+
+            await UnitOfWork.Set<EntityAccess>().AddAsync(newOwnerAccess, cancellationToken);
+            return;
         }
 
-        foreach (var memberId in toUpdate)
+        if (ownerAccess.AccessLevel != AccessLevel.Manager)
         {
-            var access = existingMap[memberId];
-            if (updateMap[memberId].accessLevel.HasValue) access.UpdateAccessLevel(updateMap[memberId].accessLevel!.Value);
-        }
-
-        foreach (var memberId in toRemove)
-        {
-            existingMap[memberId].Remove();
+            ownerAccess.UpdateAccessLevel(AccessLevel.Manager);
         }
     }
 }

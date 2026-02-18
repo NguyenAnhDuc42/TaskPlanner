@@ -29,7 +29,7 @@ import { CreateSpaceForm } from "./hierarchy-components/create-space-form";
 import { CreateFolderListForm } from "./hierarchy-components/create-folderlist-form";
 import { ItemSettingPopover } from "./hierarchy-components/item-setting.popover";
 
-const NAME_CHAR_LIMIT = 13;
+const NAME_CHAR_LIMIT = 10;
 
 function clampName(name: string, limit = NAME_CHAR_LIMIT) {
   if (name.length <= limit) return name;

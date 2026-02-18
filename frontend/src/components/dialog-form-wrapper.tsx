@@ -7,6 +7,7 @@ interface Props {
   children: ReactNode;
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
+  contentClassName?: string;
 }
 
 export function DialogFormWrapper({
@@ -15,6 +16,7 @@ export function DialogFormWrapper({
   children,
   open: controlledOpen,
   onOpenChange: setControlledOpen,
+  contentClassName,
 }: Props) {
   const [internalOpen, setInternalOpen] = useState(false);
 
@@ -32,7 +34,7 @@ export function DialogFormWrapper({
       <div onClick={() => handleOpenChange(true)}>{trigger}</div>
 
       <Dialog open={open} onOpenChange={handleOpenChange}>
-        <DialogContent>
+        <DialogContent className={contentClassName}>
           <DialogHeader>
             <DialogTitle>{title}</DialogTitle>
           </DialogHeader>
