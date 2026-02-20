@@ -37,9 +37,11 @@ export function CreateSpaceForm({ onSuccess }: Props) {
       setIcon("LayoutGrid");
       toast.success("Space created successfully");
       onSuccess?.();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Failed to create space", error);
-      toast.error(error.message || "Failed to create space");
+      const errorMessage =
+        error instanceof Error ? error.message : "Failed to create space";
+      toast.error(errorMessage);
     }
   };
 

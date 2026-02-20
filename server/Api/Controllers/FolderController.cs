@@ -9,14 +9,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace Api.Controllers
 {
     [Route("api/[controller]")]
-    [ApiController]
-
-    // Note: Creating a folder is typically done under a space, so the route might be best placed on SpaceController.
-    // However, for clean separation, we can have a dedicated controller.
-    // We can also route it like `api/folders` and expect SpaceId in the body.
-    // But RESTful convention often uses nested paths.
-    // Given the command structure, let's keep it simple.
-    
+    [ApiController]    
     public class FoldersController : ControllerBase
     {
         private readonly IMediator _mediator;
@@ -40,17 +33,12 @@ namespace Api.Controllers
         [HttpPut("{id:guid}")]
         public async Task<IActionResult> Update(Guid id, [FromBody] UpdateFolderRequest request, CancellationToken cancellationToken)
         {
-            var membersToAddOrUpdate =
-                request.MembersToAddOrUpdate
-                ?? request.MemberIdsToAdd?.Select(memberId => new UpdateFolderMemberValue(memberId, null)).ToList();
-
             var command = new UpdateFolderCommand(
                 FolderId: id,
                 Name: request.Name,
                 Color: request.Color,
                 Icon: request.Icon,
-                IsPrivate: request.IsPrivate,
-                MembersToAddOrUpdate: membersToAddOrUpdate
+                IsPrivate: request.IsPrivate
             );
 
             var result = await _mediator.Send(command, cancellationToken);
@@ -78,8 +66,6 @@ namespace Api.Controllers
         string? Name,
         string? Color,
         string? Icon,
-        bool? IsPrivate,
-        List<Guid>? MemberIdsToAdd,
-        List<UpdateFolderMemberValue>? MembersToAddOrUpdate
+        bool? IsPrivate
     );
 }

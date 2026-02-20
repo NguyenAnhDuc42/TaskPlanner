@@ -42,7 +42,7 @@ export function MemberSelector({
   });
 
   const allMembers = useMemo(() => {
-    return membersPack?.pages.flatMap((page: any) => page.items) || [];
+    return membersPack?.pages.flatMap((page) => page.items) || [];
   }, [membersPack]);
 
   const sortedMembers = useMemo(() => {

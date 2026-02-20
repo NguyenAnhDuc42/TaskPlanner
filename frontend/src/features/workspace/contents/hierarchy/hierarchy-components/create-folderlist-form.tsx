@@ -77,9 +77,11 @@ export function CreateFolderListForm({ parentId, parentType, onSuccess }: Props)
         `${type.charAt(0).toUpperCase() + type.slice(1)} created successfully`,
       );
       onSuccess?.();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Failed to create item", error);
-      toast.error(error.message || `Failed to create ${type}`);
+      const errorMessage =
+        error instanceof Error ? error.message : `Failed to create ${type}`;
+      toast.error(errorMessage);
     }
   };
 

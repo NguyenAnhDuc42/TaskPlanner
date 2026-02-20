@@ -10,6 +10,7 @@ import type {
   UpdateFolderRequest,
   UpdateListRequest,
   EntityAccessMember,
+  UpdateEntityAccessBulkRequest,
 } from "./hierarchy-type";
 import { hierarchyKeys } from "./hierarchy-keys";
 
@@ -109,12 +110,9 @@ export function useUpdateSpace() {
     mutationFn: async (data: UpdateSpaceRequest) => {
       await api.put(`/spaces/${data.spaceId}`, data);
     },
-    onSuccess: (_data, variables) => {
+    onSuccess: () => {
       queryClient.invalidateQueries({
         queryKey: hierarchyKeys.detail(workspaceId || ""),
-      });
-      queryClient.invalidateQueries({
-        queryKey: hierarchyKeys.membersAccess("space", variables.spaceId),
       });
     },
   });
@@ -144,12 +142,9 @@ export function useUpdateFolder() {
     mutationFn: async (data: UpdateFolderRequest) => {
       await api.put(`/folders/${data.folderId}`, data);
     },
-    onSuccess: (_data, variables) => {
+    onSuccess: () => {
       queryClient.invalidateQueries({
         queryKey: hierarchyKeys.detail(workspaceId || ""),
-      });
-      queryClient.invalidateQueries({
-        queryKey: hierarchyKeys.membersAccess("folder", variables.folderId),
       });
     },
   });
@@ -179,12 +174,9 @@ export function useUpdateList() {
     mutationFn: async (data: UpdateListRequest) => {
       await api.put(`/lists/${data.listId}`, data);
     },
-    onSuccess: (_data, variables) => {
+    onSuccess: () => {
       queryClient.invalidateQueries({
         queryKey: hierarchyKeys.detail(workspaceId || ""),
-      });
-      queryClient.invalidateQueries({
-        queryKey: hierarchyKeys.membersAccess("list", variables.listId),
       });
     },
   });
@@ -195,7 +187,7 @@ export function useSpaceMembersAccess(spaceId: string) {
     queryKey: hierarchyKeys.membersAccess("space", spaceId),
     queryFn: async () => {
       const { data } = await api.get<EntityAccessMember[]>(
-        `/spaces/${spaceId}/members-access`,
+        `/entityaccess/${spaceId}/ProjectSpace`,
       );
       return data;
     },
@@ -208,7 +200,7 @@ export function useFolderMembersAccess(folderId: string) {
     queryKey: hierarchyKeys.membersAccess("folder", folderId),
     queryFn: async () => {
       const { data } = await api.get<EntityAccessMember[]>(
-        `/folders/${folderId}/members-access`,
+        `/entityaccess/${folderId}/ProjectFolder`,
       );
       return data;
     },
@@ -221,11 +213,32 @@ export function useListMembersAccess(listId: string) {
     queryKey: hierarchyKeys.membersAccess("list", listId),
     queryFn: async () => {
       const { data } = await api.get<EntityAccessMember[]>(
-        `/lists/${listId}/members-access`,
+        `/entityaccess/${listId}/ProjectList`,
       );
       return data;
     },
     enabled: !!listId,
+  });
+}
+
+export function useUpdateEntityAccessBulk() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (data: UpdateEntityAccessBulkRequest) => {
+      await api.post(`/entityaccess/bulk`, data);
+    },
+    onSuccess: (_data, variables) => {
+      const type =
+        variables.layerType === 1
+          ? "space"
+          : variables.layerType === 2
+            ? "folder"
+            : "list";
+      queryClient.invalidateQueries({
+        queryKey: hierarchyKeys.membersAccess(type, variables.entityId),
+      });
+    },
   });
 }
 

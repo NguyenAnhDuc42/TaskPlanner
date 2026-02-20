@@ -10,9 +10,5 @@ public record UpdateSpaceCommand( Guid SpaceId,
     string? Description,
     string? Color,
     string? Icon,
-    bool? IsPrivate,
-    List<UpdateSpaceMemberValue>? MembersToAddOrUpdate// Add or update members during update
+    bool? IsPrivate
 ) : ICommand<Unit>;
-
-
-public record UpdateSpaceMemberValue (Guid workspaceMemberId, AccessLevel? accessLevel,bool isRemove = false);

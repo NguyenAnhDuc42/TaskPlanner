@@ -12,8 +12,6 @@ public record UpdateListCommand(
     string? Icon,
     bool? IsPrivate,
     DateTimeOffset? StartDate,
-    DateTimeOffset? DueDate,
-    List<UpdateListMemberValue>? MembersToAddOrUpdate
+    DateTimeOffset? DueDate
 ) : ICommand<Unit>;
 
-public record UpdateListMemberValue(Guid workspaceMemberId, AccessLevel? accessLevel, bool isRemove = false);

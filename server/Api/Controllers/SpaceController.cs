@@ -29,18 +29,13 @@ namespace Api.Controllers
         [HttpPut("{id:guid}")]
         public async Task<IActionResult> Update(Guid id, [FromBody] UpdateSpaceRequest request, CancellationToken cancellationToken)
         {
-            var membersToAddOrUpdate =
-                request.MembersToAddOrUpdate
-                ?? request.MemberIdsToAdd?.Select(memberId => new UpdateSpaceMemberValue(memberId, null)).ToList();
-
             var command = new UpdateSpaceCommand(
                 SpaceId: id,
                 Name: request.Name,
                 Description: request.Description,
                 Color: request.Color,
                 Icon: request.Icon,
-                IsPrivate: request.IsPrivate,
-                MembersToAddOrUpdate: membersToAddOrUpdate
+                IsPrivate: request.IsPrivate
             );
 
             var result = await _mediator.Send(command, cancellationToken);
@@ -69,8 +64,6 @@ namespace Api.Controllers
         string? Description,
         string? Color,
         string? Icon,
-        bool? IsPrivate,
-        List<Guid>? MemberIdsToAdd,
-        List<UpdateSpaceMemberValue>? MembersToAddOrUpdate
+        bool? IsPrivate
     );
 }

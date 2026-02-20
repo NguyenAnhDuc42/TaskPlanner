@@ -47,8 +47,6 @@ export interface EntityAccessMember {
   isCreator: boolean;
 }
 
-
-
 export const createSpaceSchema = z.object({
   name: z.string().min(1, "Name is required"),
   description: z.string().optional(),
@@ -98,7 +96,6 @@ export const updateSpaceSchema = z.object({
   color: z.string().optional(),
   icon: z.string().optional(),
   isPrivate: z.boolean().optional(),
-  membersToAddOrUpdate: z.array(updateMemberValueSchema).optional(),
 });
 export type UpdateSpaceRequest = z.infer<typeof updateSpaceSchema>;
 
@@ -108,7 +105,6 @@ export const updateFolderSchema = z.object({
   color: z.string().optional(),
   icon: z.string().optional(),
   isPrivate: z.boolean().optional(),
-  membersToAddOrUpdate: z.array(updateMemberValueSchema).optional(),
 });
 export type UpdateFolderRequest = z.infer<typeof updateFolderSchema>;
 
@@ -120,6 +116,14 @@ export const updateListSchema = z.object({
   isPrivate: z.boolean().optional(),
   startDate: z.string().datetime().optional(),
   dueDate: z.string().datetime().optional(),
-  membersToAddOrUpdate: z.array(updateMemberValueSchema).optional(),
 });
 export type UpdateListRequest = z.infer<typeof updateListSchema>;
+
+export const updateEntityAccessBulkSchema = z.object({
+  entityId: z.string().uuid(),
+  layerType: z.number(), // EntityLayerType enum values
+  members: z.array(updateMemberValueSchema),
+});
+export type UpdateEntityAccessBulkRequest = z.infer<
+  typeof updateEntityAccessBulkSchema
+>;

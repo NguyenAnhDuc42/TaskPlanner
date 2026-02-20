@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { Edit2, Trash2, Settings, Loader2 } from "lucide-react";
+import { Edit2, Trash2, Loader2, ShieldCheck } from "lucide-react";
 import {
   useDeleteSpace,
   useDeleteFolder,
@@ -11,6 +11,7 @@ import { DialogFormWrapper } from "@/components/dialog-form-wrapper";
 import { UpdateSpaceForm } from "./update-space-form";
 import { UpdateFolderForm } from "./update-folder-form";
 import { UpdateListForm } from "./update-list-form";
+import { ManageAccessDialog } from "./manage-access-dialog";
 import { toast } from "sonner";
 
 interface Props {
@@ -35,6 +36,7 @@ export function ItemSettingPopover({
   const deleteList = useDeleteList();
   const [isDeleting, setIsDeleting] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
+  const [isManageAccessOpen, setIsManageAccessOpen] = useState(false);
 
   const handleDelete = async () => {
     if (!confirm(`Are you sure you want to delete ${type} "${name}"?`)) return;
@@ -45,12 +47,13 @@ export function ItemSettingPopover({
       if (type === "Folder") await deleteFolder.mutateAsync(id);
       if (type === "List") await deleteList.mutateAsync(id);
       toast.success(`${type} deleted successfully`);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error(`Failed to delete ${type}`, error);
-      toast.error(
-        error.message ||
-          `Failed to delete ${type}. It may contain child items.`,
-      );
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : `Failed to delete ${type}. It may contain child items.`;
+      toast.error(errorMessage);
     } finally {
       setIsDeleting(false);
     }
@@ -75,7 +78,7 @@ export function ItemSettingPopover({
             className="justify-start gap-2 px-2 h-8 font-normal"
           >
             <Edit2 className="h-4 w-4" />
-            Rename / Edit
+            Edit Settings
           </Button>
         }
       >
@@ -86,7 +89,6 @@ export function ItemSettingPopover({
             initialColor={color}
             initialIcon={icon}
             initialIsPrivate={isPrivate}
-            open={isEditOpen}
           />
         )}
         {type === "Folder" && (
@@ -96,7 +98,6 @@ export function ItemSettingPopover({
             initialColor={color}
             initialIcon={icon}
             initialIsPrivate={isPrivate}
-            open={isEditOpen}
           />
         )}
         {type === "List" && (
@@ -106,7 +107,6 @@ export function ItemSettingPopover({
             initialColor={color}
             initialIcon={icon}
             initialIsPrivate={isPrivate}
-            open={isEditOpen}
           />
         )}
       </DialogFormWrapper>
@@ -115,11 +115,19 @@ export function ItemSettingPopover({
         variant="ghost"
         size="sm"
         className="justify-start gap-2 px-2 h-8 font-normal"
-        onClick={() => console.log("Settings")}
+        onClick={() => setIsManageAccessOpen(true)}
       >
-        <Settings className="h-4 w-4" />
-        {type} Settings
+        <ShieldCheck className="h-4 w-4" />
+        Manage Access
       </Button>
+
+      <ManageAccessDialog
+        entityId={id}
+        entityName={name}
+        layerType={type.toLowerCase() as "space" | "folder" | "list"}
+        open={isManageAccessOpen}
+        onOpenChange={setIsManageAccessOpen}
+      />
 
       <Separator />
 

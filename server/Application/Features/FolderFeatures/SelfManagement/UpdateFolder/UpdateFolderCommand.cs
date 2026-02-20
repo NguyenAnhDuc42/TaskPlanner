@@ -10,8 +10,6 @@ public record UpdateFolderCommand(
     string? Name,
     string? Color,
     string? Icon,
-    bool? IsPrivate,
-    List<UpdateFolderMemberValue>? MembersToAddOrUpdate
+    bool? IsPrivate
 ) : ICommand<Unit>;
 
-public record UpdateFolderMemberValue(Guid workspaceMemberId, AccessLevel? accessLevel, bool isRemove = false);
