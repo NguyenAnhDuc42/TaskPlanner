@@ -1,6 +1,5 @@
 using Application.Interfaces.Services.Permissions;
 using Domain.Entities.ProjectEntities;
-using Domain.Entities.Support.Workspace;
 using Domain.Enums.RelationShip;
 using Domain.Permission;
 using Infrastructure.Data;

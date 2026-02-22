@@ -1,7 +1,7 @@
 using Application.Helpers;
 using Application.Interfaces.Repositories;
 using Domain.Entities.Relationship;
-using Domain.Entities.Support.Workspace;
+using Domain.Entities.ProjectEntities;
 using Domain.Enums.Workspace;
 using MediatR;
 using server.Application.Interfaces;

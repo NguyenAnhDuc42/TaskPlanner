@@ -1,6 +1,6 @@
 using Application.Helpers;
 using Application.Interfaces.Repositories;
-using Domain.Entities.Support.Workspace;
+using Domain.Entities.ProjectEntities;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using server.Application.Interfaces;

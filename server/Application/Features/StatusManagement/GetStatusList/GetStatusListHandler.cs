@@ -1,6 +1,6 @@
 using Application.Contract.StatusContract;
 using Application.Interfaces.Repositories;
-using Domain.Entities.Support;
+using Domain.Entities.ProjectEntities;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 

@@ -2,7 +2,7 @@ using Domain.Common;
 using Domain.Entities.Relationship;
 using Domain.Enums.Workspace;
 
-namespace Domain.Entities.Support.Workspace;
+namespace Domain.Entities.ProjectEntities;
 
 public class ChatRoom : Entity
 {
@@ -36,7 +36,6 @@ public class ChatRoom : Entity
     {
         var chatRoom = new ChatRoom(name, projectWorkspaceId, creatorId, isPrivate, avatarUrl);
 
-        // Add creator as owner
         var ownerMember = ChatRoomMember.AddOwner(chatRoom.Id, creatorId, creatorId);
         chatRoom._members.Add(ownerMember);
 
@@ -50,7 +49,6 @@ public class ChatRoom : Entity
 
         _members.Add(member);
         UpdateTimestamp();
-        // AddDomainEvent(new MemberAddedToChatRoomEvent(Id, member.UserId, member.Role));
     }
 
     public void AddMembers(List<ChatRoomMember> members)
@@ -69,7 +67,6 @@ public class ChatRoom : Entity
 
         _members.Remove(member);
         UpdateTimestamp();
-        // AddDomainEvent(new MemberRemovedFromChatRoomEvent(Id, userId));
     }
 
     public void RemoveMembers(List<Guid> userIds)
@@ -96,7 +93,6 @@ public class ChatRoom : Entity
 
         IsArchived = true;
         UpdateTimestamp();
-        // AddDomainEvent(new ChatRoomArchivedEvent(Id, WorkspaceId));
     }
 
     public bool IsMember(Guid userId) => _members.Any(m => m.UserId == userId);
@@ -104,9 +100,9 @@ public class ChatRoom : Entity
     public ChatRoomRole? GetMemberRole(Guid userId) => _members.FirstOrDefault(m => m.UserId == userId)?.Role;
 
     public bool CanUserDelete(Guid userId, ChatRoomRole userRole, bool isWorkspaceOwner) =>
-        userId == CreatorId ||                    // Creator can always delete
-        userRole == ChatRoomRole.Owner ||         // Room owner can delete
-        isWorkspaceOwner;                         // Workspace owner can delete any room
+        userId == CreatorId ||
+        userRole == ChatRoomRole.Owner ||
+        isWorkspaceOwner;
 
     public void Update(string? name = null, string? avatarUrl = null, bool? isPrivate = null, bool? isArchived = null)
     {
@@ -146,15 +142,11 @@ public class ChatRoom : Entity
         {
             IsArchived = isArchived.Value;
             changed = true;
-            // domaineventexample
-            // if (isArchived.Value) AddDomainEvent(new ChatRoomArchivedEvent(Id, WorkspaceId));
-            // else AddDomainEvent(new ChatRoomUnarchivedEvent(Id, WorkspaceId));
         }
 
         if (changed)
         {
             UpdateTimestamp();
-            // AddDomainEvent(new ChatRoomUpdatedEvent(Id, WorkspaceId));
         }
     }
 }

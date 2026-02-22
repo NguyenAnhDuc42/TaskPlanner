@@ -1,9 +1,9 @@
-using Domain.Entities.Support.Widget;
+using Domain.Entities.ProjectEntities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 
-namespace Infrastructure.Data.Configurations.Support;
+namespace Infrastructure.Data.Configurations.ProjectEntities;
 
 public class WidgetConfiguration : EntityConfiguration<Widget>
 {
@@ -21,7 +21,7 @@ public class WidgetConfiguration : EntityConfiguration<Widget>
         builder.Property(x => x.Visibility).HasColumnName("visibility").HasConversion<string>().HasMaxLength(50).IsRequired();
         builder.Property(x => x.WidgetType).HasColumnName("widget_type").HasConversion<string>().HasMaxLength(100).IsRequired();
 
-        // config JSON - store as text/jsonb depending on provider; leaving generic as string
+        // config JSON
         builder.Property(x => x.ConfigJson).HasColumnName("config_json").IsRequired();
 
         // indexes for common lookups
@@ -29,8 +29,7 @@ public class WidgetConfiguration : EntityConfiguration<Widget>
         builder.HasIndex(x => x.LayerId);
         builder.HasIndex(x => new { x.LayerType, x.LayerId });
 
-        // optional: if you want canonical widget uniqueness per scope+type you can enable:
-         builder.HasIndex(x => new { x.LayerType, x.LayerId, x.WidgetType }).IsUnique(false);
+        builder.HasIndex(x => new { x.LayerType, x.LayerId, x.WidgetType }).IsUnique(false);
 
         builder.OwnsOne(x => x.Layout, cb =>
         {

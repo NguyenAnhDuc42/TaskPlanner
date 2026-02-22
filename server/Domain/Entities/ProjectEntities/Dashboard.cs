@@ -6,7 +6,7 @@ using Domain.Enums;
 using Domain.Enums.RelationShip;
 using Domain.Enums.Widget;
 
-namespace Domain.Entities.Support.Widget;
+namespace Domain.Entities.ProjectEntities;
 
 public class Dashboard : Entity
 {
@@ -84,10 +84,6 @@ public class Dashboard : Entity
         }
     }
 
-    /// <summary>
-    /// Move widget to new position. Cascades widgets down in same column if collision.
-    /// O(n * cascade_depth) where n = affected widgets
-    /// </summary>
     public void MoveWidget(Guid widgetId, int newCol, int newRow)
     {
         var widget = _widgets.FirstOrDefault(w => w.Id == widgetId);
@@ -95,29 +91,21 @@ public class Dashboard : Entity
 
         ValidatePosition(newCol, newRow);
 
-        // Check for collision at new position BEFORE unmarking
         var collidingWidgets = FindCollidingWidgetsInColumn(newCol, newRow, widget.Layout.Width, widget.Layout.Height, widgetId);
 
-        // Unmark widget's current position
         _occupancyTracker.UnmarkOccupied(widget.Layout.Col, widget.Layout.Row, widget.Layout.Width, widget.Layout.Height);
 
         if (collidingWidgets.Any())
         {
-            // Cascade colliding widgets down
             CascadeWidgetsDown(collidingWidgets, widget.Layout.Height);
         }
 
-        // Place widget at new position
         widget.UpdateLayout(widget.Layout.WithPosition(newCol, newRow));
         _occupancyTracker.MarkOccupied(newCol, newRow, widget.Layout.Width, widget.Layout.Height);
 
         UpdateTimestamp();
     }
 
-    /// <summary>
-    /// Resize widget. Cascades widgets down if height increases and collision detected.
-    /// O(n * cascade_depth) where n = affected widgets
-    /// </summary>
     public void ResizeWidget(Guid widgetId, int newWidth, int newHeight)
     {
         var widget = _widgets.FirstOrDefault(w => w.Id == widgetId);
@@ -128,7 +116,6 @@ public class Dashboard : Entity
         int oldHeight = widget.Layout.Height;
         int heightDifference = newHeight - oldHeight;
 
-        // If height increased, check for collision below BEFORE unmarking
         if (heightDifference > 0)
         {
             int checkStartRow = widget.Layout.Row + oldHeight;
@@ -136,26 +123,25 @@ public class Dashboard : Entity
 
             if (collidingWidgets.Any())
             {
-                // Cascade colliding widgets down
                 CascadeWidgetsDown(collidingWidgets, heightDifference);
             }
         }
 
-        // Unmark old position
         _occupancyTracker.UnmarkOccupied(widget.Layout.Col, widget.Layout.Row, widget.Layout.Width, widget.Layout.Height);
 
-        // Update widget with new dimensions
         var newLayout = new WidgetLayout(widget.Layout.Col, widget.Layout.Row, newWidth, newHeight);
         widget.UpdateLayout(newLayout);
         _occupancyTracker.MarkOccupied(widget.Layout.Col, widget.Layout.Row, newWidth, newHeight);
 
         UpdateTimestamp();
     }
+
     public void UpdateMain(bool isMain)
     {
         IsMain = isMain;
         UpdateTimestamp();
     }
+
     public void UpdateName(string name)
     {
         if (string.IsNullOrWhiteSpace(name))
@@ -170,45 +156,33 @@ public class Dashboard : Entity
         UpdateTimestamp();
     }
 
-    /// <summary>
-    /// Find widgets in same column that collide with given rectangle
-    /// Excludes the source widget
-    /// </summary>
     private List<Widget> FindCollidingWidgetsInColumn(int col, int row, int width, int height, Guid excludeWidgetId)
     {
         var colliding = new List<Widget>();
 
         foreach (var widget in _widgets.Where(w => w.Id != excludeWidgetId && w.Layout.Col == col))
         {
-            // Check if widget overlaps with area
             if (widget.Layout.Row < row + height && widget.Layout.Row + widget.Layout.Height > row)
             {
                 colliding.Add(widget);
             }
         }
 
-        // Return sorted by row (top to bottom) - no need to sort in caller
         return colliding.OrderBy(w => w.Layout.Row).ToList();
     }
 
-    /// <summary>
-    /// Cascade widgets down by pushing them below the obstruction
-    /// Only processes widgets in same column
-    /// </summary>
     private void CascadeWidgetsDown(List<Widget> widgetsToMove, int pushDistance)
     {
         if (widgetsToMove.Count == 0) return;
         if (widgetsToMove.Count > MaxCascadeDepth)
             throw new InvalidOperationException($"Cascade depth exceeds limit ({MaxCascadeDepth}). Too many widgets would shift.");
 
-        // Already sorted, no need to re-sort
         foreach (var widget in widgetsToMove)
         {
             _occupancyTracker.UnmarkOccupied(widget.Layout.Col, widget.Layout.Row, widget.Layout.Width, widget.Layout.Height);
 
             int newRow = widget.Layout.Row + pushDistance;
 
-            // Validate before modifying to prevent partial state on failure
             if (newRow < 0 || newRow >= MaxGridRows)
                 throw new InvalidOperationException($"Cascade would push widget beyond canvas bounds (max rows: {MaxGridRows})");
 
@@ -216,6 +190,7 @@ public class Dashboard : Entity
             _occupancyTracker.MarkOccupied(widget.Layout.Col, newRow, widget.Layout.Width, widget.Layout.Height);
         }
     }
+
     private WidgetLayout FindNextAvailablePosition(int widgetWidth, int widgetHeight)
     {
         const int maxScanRows = 1000;

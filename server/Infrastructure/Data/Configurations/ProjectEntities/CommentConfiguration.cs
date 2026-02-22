@@ -1,8 +1,8 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
-using Domain.Entities.Support;
+using Domain.Entities.ProjectEntities;
 
-namespace Infrastructure.Data.Configurations.Support.Task;
+namespace Infrastructure.Data.Configurations.ProjectEntities;
 
 public class CommentConfiguration : EntityConfiguration<Comment>
 {

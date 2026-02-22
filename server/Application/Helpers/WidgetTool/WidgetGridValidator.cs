@@ -1,6 +1,6 @@
 using System;
 
-using Domain.Entities.Support.Widget;
+using Domain.Entities.ProjectEntities;
 
 namespace Application.Helpers.WidgetTool;
 

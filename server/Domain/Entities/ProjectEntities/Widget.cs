@@ -4,7 +4,7 @@ using Domain.Enums;
 using Domain.Enums.RelationShip;
 using Domain.Enums.Widget;
 
-namespace Domain.Entities.Support.Widget;
+namespace Domain.Entities.ProjectEntities;
 
 public class Widget : Entity
 {
@@ -18,7 +18,7 @@ public class Widget : Entity
 
     private Widget() { } // EF
 
-    internal Widget(Guid id, Guid dashboardId, WidgetLayout layout, EntityLayerType layerType, Guid layerId, WidgetType widgetType, string configJson, WidgetVisibility visibility,Guid creatorId)
+    internal Widget(Guid id, Guid dashboardId, WidgetLayout layout, EntityLayerType layerType, Guid layerId, WidgetType widgetType, string configJson, WidgetVisibility visibility, Guid creatorId)
         : base(id)
     {
         DashboardId = dashboardId;

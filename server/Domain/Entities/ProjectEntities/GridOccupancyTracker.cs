@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace Domain.Entities.Support.Widget;
+namespace Domain.Entities.ProjectEntities;
 
 public class GridOccupancyTracker
 {

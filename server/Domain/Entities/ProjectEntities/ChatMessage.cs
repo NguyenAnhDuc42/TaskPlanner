@@ -1,6 +1,6 @@
 using Domain.Common;
 
-namespace Domain.Entities.Support.Workspace;
+namespace Domain.Entities.ProjectEntities;
 
 public class ChatMessage : Entity
 {
@@ -33,7 +33,6 @@ public class ChatMessage : Entity
             throw new ArgumentException("Message content cannot be empty.", nameof(content));
 
         var message = new ChatMessage(chatRoomId, content, replyToMessageId, creatorId);
-        // message.AddDomainEvent(new ChatMessageCreatedEvent(message.Id, chatRoomId, creatorId));
         return message;
     }
 
@@ -49,7 +48,6 @@ public class ChatMessage : Entity
         IsEdited = true;
         EditedAt = DateTimeOffset.UtcNow;
         UpdateTimestamp();
-        // AddDomainEvent(new ChatMessageEditedEvent(Id, ChatRoomId, userId));
     }
 
     public void Pin()
@@ -59,7 +57,6 @@ public class ChatMessage : Entity
 
         IsPinned = true;
         UpdateTimestamp();
-        // AddDomainEvent(new ChatMessagePinnedEvent(Id, ChatRoomId));
     }
 
     public void Unpin()
@@ -69,7 +66,6 @@ public class ChatMessage : Entity
 
         IsPinned = false;
         UpdateTimestamp();
-        // AddDomainEvent(new ChatMessageUnpinnedEvent(Id, ChatRoomId));
     }
 
     public void SetHasAttachment(bool hasAttachment)

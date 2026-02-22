@@ -1,8 +1,6 @@
 using Application.Interfaces.Repositories;
 using Domain.Entities.ProjectEntities;
 using Domain.Entities.Relationship;
-using Domain.Entities.Support;
-using Domain.Entities.Support.Widget;
 using Domain.Events.Workspace;
 using MediatR;
 using Microsoft.EntityFrameworkCore;

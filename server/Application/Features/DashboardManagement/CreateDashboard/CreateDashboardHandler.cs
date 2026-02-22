@@ -1,7 +1,7 @@
 ﻿using Application.Interfaces.Repositories;
 using Domain;
 using Application.Helpers;
-using Domain.Entities.Support.Widget;
+using Domain.Entities.ProjectEntities;
 using Domain.Enums;
 using Domain.Enums.RelationShip;
 using MediatR;

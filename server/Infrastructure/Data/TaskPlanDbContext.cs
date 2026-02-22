@@ -2,11 +2,9 @@ using Microsoft.EntityFrameworkCore;
 using System.Reflection; 
 using Domain.Entities;
 using Domain.Entities.Relationship;
-using Domain.Entities.Support;
 using Domain.Entities.ProjectEntities;
 using Domain.Common;
-using Domain.Entities.Support.Workspace;
-using Domain.Entities.Support.Widget;
+using Domain.Entities.Support;
 namespace Infrastructure.Data;
 
 public class TaskPlanDbContext : DbContext
@@ -24,6 +22,7 @@ public class TaskPlanDbContext : DbContext
     public DbSet<ProjectFolder> ProjectFolders { get; set; }
     public DbSet<ProjectList> ProjectLists { get; set; }
     public DbSet<ProjectTask> ProjectTasks { get; set; }
+    public DbSet<ViewDefinition> ViewDefinitions { get; set; }
 
     // Relationship Entities
     public DbSet<WorkspaceMember> WorkspaceMembers { get; set; }

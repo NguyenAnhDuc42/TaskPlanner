@@ -1,8 +1,8 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
-using Domain.Entities.Support.Workspace;
+using Domain.Entities.ProjectEntities;
 
-namespace Infrastructure.Data.Configurations.Support.Workspace;
+namespace Infrastructure.Data.Configurations.ProjectEntities;
 
 public class ChatMessageConfiguration : EntityConfiguration<ChatMessage>
 {

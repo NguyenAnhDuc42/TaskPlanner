@@ -2,7 +2,7 @@ using Application.Helpers;
 using Application.Interfaces.Repositories;
 using Domain.Entities.ProjectEntities;
 using Domain.Entities.Relationship;
-using Domain.Entities.Support.Workspace;
+using Domain.Entities.ProjectEntities;
 using Domain.Enums;
 using Domain.Enums.RelationShip;
 using Domain.Enums.Workspace;

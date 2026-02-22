@@ -4,7 +4,7 @@ using Application.Helper;
 using Application.Interfaces.Repositories;
 using Domain;
 using Application.Helpers;
-using Domain.Entities.Support.Widget;
+using Domain.Entities.ProjectEntities;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using server.Application.Interfaces;

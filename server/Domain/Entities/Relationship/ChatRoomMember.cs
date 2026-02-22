@@ -1,5 +1,5 @@
 using Domain.Common;
-using Domain.Entities.Support.Workspace;
+using Domain.Entities.ProjectEntities;
 using Domain.Enums.Workspace;
 
 namespace Domain.Entities.Relationship;

@@ -1,7 +1,7 @@
 using System;
 using Domain.Common;
 
-namespace Domain.Entities.Support;
+namespace Domain.Entities.ProjectEntities;
 
 public class Comment : Entity
 {

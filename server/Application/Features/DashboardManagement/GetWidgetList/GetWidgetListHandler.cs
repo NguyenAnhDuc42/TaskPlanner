@@ -4,7 +4,7 @@ using Application.Contract.WidgetDtos;
 using Application.Helpers.WidgetTool;
 using Application.Helpers.WidgetTool.WidgetQueryBuilder;
 using Application.Interfaces.Repositories;
-using Domain.Entities.Support.Widget;
+using Domain.Entities.ProjectEntities;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 
