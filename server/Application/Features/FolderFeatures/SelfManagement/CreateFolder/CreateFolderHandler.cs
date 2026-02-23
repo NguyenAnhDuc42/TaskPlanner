@@ -1,4 +1,5 @@
 using System;
+using Application.Features.StatusManagement.Helpers;
 using Application.Helpers;
 using Application.Interfaces.Repositories;
 using Domain.Entities.ProjectEntities;
@@ -36,6 +37,11 @@ public class CreateFolderHandler : BaseFeatureHandler, IRequestHandler<CreateFol
 
         await UnitOfWork.Set<ProjectFolder>().AddAsync(folder, cancellationToken);
         
+        if (!folder.InheritStatus)
+        {
+            await StatusInitializer.InitDefaultStatuses(UnitOfWork, folder.Id, EntityLayerType.ProjectFolder, CurrentUserId);
+        }
+
         // Create EntityAccess for owner if private
         if (request.isPrivate)
         {

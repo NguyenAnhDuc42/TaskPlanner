@@ -10,6 +10,5 @@ public record CreateStatusCommand(
     EntityLayerType LayerType,
     string Name,
     string Color,
-    StatusCategory Category,
-    long? OrderKey = null
+    StatusCategory Category
 ) : IRequest<Guid>;

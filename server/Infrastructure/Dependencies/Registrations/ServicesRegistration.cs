@@ -10,6 +10,7 @@ using Infrastructure.Services.Permissions;
 using Microsoft.Extensions.DependencyInjection;
 using server.Application.Interfaces;
 using System;
+using Application.Features.ViewFeatures.Logic;
 
 namespace Infrastructure.Dependencies.Registrations;
 
@@ -30,6 +31,8 @@ public static class ServicesRegistration
         services.AddScoped<PermissionResolver>();
         services.AddScoped<IEntityHierarchyProvider, EntityHierarchyProvider>();
         services.AddScoped<IAccessGrantService, AccessGrantService>();
+        services.AddScoped<ViewBuilder>();
+        services.AddScoped<IStatusResolver, StatusResolver>();
 
         services.AddHttpContextAccessor();
 

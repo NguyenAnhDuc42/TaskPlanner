@@ -12,6 +12,7 @@ public record UpdateListCommand(
     string? Icon,
     bool? IsPrivate,
     DateTimeOffset? StartDate,
-    DateTimeOffset? DueDate
+    DateTimeOffset? DueDate,
+    bool? InheritStatus
 ) : ICommand<Unit>;
 

@@ -21,21 +21,25 @@ export function ContentDisplayer() {
   const segments = location.pathname.split("/");
   const activeContent = (segments[3] || "dashboard") as ContentPage;
 
+  const displayTitle = ["tasks", "spaces", "folders", "lists"].includes(
+    activeContent,
+  )
+    ? "Tasks"
+    : activeContent;
+
   return (
     <div className="flex-1 flex overflow-hidden bg-background border rounded-xl shadow-lg">
       {/* SIDEBAR FRAME: Directly managed here in the displayer */}
       <div
         className={cn(
           "transition-all duration-300 ease-in-out overflow-hidden border-r flex flex-col bg-background",
-          isInnerSidebarOpen ? "w-64" : "w-0"
+          isInnerSidebarOpen ? "w-64" : "w-0",
         )}
       >
         <div className="w-64 h-full flex flex-col">
           {/* Header */}
           <div className="flex items-center justify-between p-4 flex-shrink-0">
-            <h2 className="font-semibold capitalize text-lg">
-              {activeContent}
-            </h2>
+            <h2 className="font-semibold capitalize text-lg">{displayTitle}</h2>
             <Button
               variant="ghost"
               size="icon"

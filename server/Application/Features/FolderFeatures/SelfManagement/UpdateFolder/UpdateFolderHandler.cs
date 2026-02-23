@@ -6,6 +6,7 @@ using Domain.Enums.RelationShip;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using server.Application.Interfaces;
+using Application.Features.StatusManagement.Helpers;
 
 namespace Application.Features.FolderFeatures.SelfManagement.UpdateFolder;
 
@@ -21,6 +22,24 @@ public class UpdateFolderHandler : BaseFeatureHandler, IRequestHandler<UpdateFol
         if (request.Color is not null) folder.UpdateColor(request.Color);
         if (request.Icon is not null) folder.UpdateIcon(request.Icon);
         if (request.IsPrivate.HasValue) folder.UpdatePrivate(request.IsPrivate.Value);
+
+        if (request.InheritStatus.HasValue)
+        {
+            var oldInherit = folder.InheritStatus;
+            folder.UpdateInheritStatus(request.InheritStatus.Value);
+
+            // If we just TURNED OFF inheritance, ensure we have default statuses
+            if (oldInherit && !folder.InheritStatus)
+            {
+                var hasLocalStatuses = await UnitOfWork.Set<Status>()
+                    .AnyAsync(s => s.LayerId == folder.Id && s.LayerType == EntityLayerType.ProjectFolder, cancellationToken);
+
+                if (!hasLocalStatuses)
+                {
+                    await StatusInitializer.InitDefaultStatuses(UnitOfWork, folder.Id, EntityLayerType.ProjectFolder, CurrentUserId);
+                }
+            }
+        }
 
         if (folder.IsPrivate)
         {

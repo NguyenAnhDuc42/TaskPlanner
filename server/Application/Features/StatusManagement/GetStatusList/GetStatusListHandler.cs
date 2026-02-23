@@ -18,8 +18,8 @@ public class GetStatusListHandler : IRequestHandler<GetStatusListQuery, List<Sta
     public async Task<List<StatusDto>> Handle(GetStatusListQuery request, CancellationToken cancellationToken)
     {
         var statuses = await _unitOfWork.Set<Status>()
-            .Where(s => s.LayerId == request.LayerId && s.LayerType == request.LayerType)
-            .OrderBy(s => s.OrderKey)
+            .Where(s => s.LayerId == request.LayerId && s.LayerType == request.LayerType && s.DeletedAt == null)
+            .OrderBy(s => s.CreatedAt)
             .AsNoTracking()
             .ToListAsync(cancellationToken);
 
@@ -28,7 +28,6 @@ public class GetStatusListHandler : IRequestHandler<GetStatusListQuery, List<Sta
             s.Name,
             s.Color,
             s.Category,
-            s.OrderKey,
             s.IsDefaultStatus
         )).ToList();
     }

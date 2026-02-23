@@ -36,6 +36,9 @@ export function SidebarRegistry({ page }: { page: ContentPage }) {
     case "settings":
       return <SettingsSidebar />;
     case "tasks":
+    case "spaces":
+    case "folders":
+    case "lists":
       return <HierarchySidebar />;
     default:
       return <DefaultSidebar page={page as ContentPage} />;

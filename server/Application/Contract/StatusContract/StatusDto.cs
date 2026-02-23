@@ -7,6 +7,5 @@ public record StatusDto(
     string Name,
     string Color,
     StatusCategory Category,
-    long OrderKey,
     bool IsDefault
 );

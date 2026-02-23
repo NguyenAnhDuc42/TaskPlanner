@@ -8,5 +8,6 @@ public record CreateViewCommand(
     Guid LayerId,
     EntityLayerType LayerType,
     ViewType ViewType,
-    string Name
+    string Name,
+    bool IsDefault = false
 ) : ICommand<Guid>;

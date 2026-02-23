@@ -1,4 +1,5 @@
 using System;
+using Application.Features.StatusManagement.Helpers;
 using Application.Helpers;
 using Application.Interfaces.Repositories;
 using Domain.Entities.ProjectEntities;
@@ -65,6 +66,11 @@ public class CreateListHandler : BaseFeatureHandler, IRequestHandler<CreateListC
 
         await UnitOfWork.Set<ProjectList>().AddAsync(list, cancellationToken);
         
+        if (!list.InheritStatus)
+        {
+            await StatusInitializer.InitDefaultStatuses(UnitOfWork, list.Id, EntityLayerType.ProjectList, CurrentUserId);
+        }
+
         // Create EntityAccess for owner if private
         if (request.isPrivate)
         {

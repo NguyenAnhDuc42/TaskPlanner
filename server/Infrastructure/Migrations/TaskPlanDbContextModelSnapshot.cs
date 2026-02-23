@@ -74,6 +74,291 @@ namespace Infrastructure.Migrations
                     b.ToTable("password_reset_tokens", (string)null);
                 });
 
+            modelBuilder.Entity("Domain.Entities.ProjectEntities.ChatMessage", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<Guid>("ChatRoomId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("chat_room_id");
+
+                    b.Property<string>("Content")
+                        .IsRequired()
+                        .HasMaxLength(4000)
+                        .HasColumnType("character varying(4000)")
+                        .HasColumnName("content");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid?>("CreatorId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("creator_id");
+
+                    b.Property<DateTimeOffset?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("deleted_at");
+
+                    b.Property<DateTimeOffset?>("EditedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("edited_at");
+
+                    b.Property<bool>("HasAttachment")
+                        .HasColumnType("boolean")
+                        .HasColumnName("has_attachment");
+
+                    b.Property<bool>("IsEdited")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_edited");
+
+                    b.Property<bool>("IsPinned")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_pinned");
+
+                    b.Property<int>("ReactionCount")
+                        .HasColumnType("integer")
+                        .HasColumnName("reaction_count");
+
+                    b.Property<Guid?>("ReplyToMessageId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("reply_to_message_id");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ChatRoomId");
+
+                    b.HasIndex("CreatorId");
+
+                    b.HasIndex("ReplyToMessageId");
+
+                    b.ToTable("chat_messages", (string)null);
+                });
+
+            modelBuilder.Entity("Domain.Entities.ProjectEntities.ChatRoom", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("AvatarUrl")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("avatar_url");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid?>("CreatorId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("creator_id");
+
+                    b.Property<DateTimeOffset?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("deleted_at");
+
+                    b.Property<bool>("IsArchived")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_archived");
+
+                    b.Property<bool>("IsPrivate")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_private");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("name");
+
+                    b.Property<Guid>("ProjectWorkspaceId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("project_workspace_id");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("type");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreatorId");
+
+                    b.HasIndex("ProjectWorkspaceId");
+
+                    b.ToTable("chat_rooms", (string)null);
+                });
+
+            modelBuilder.Entity("Domain.Entities.ProjectEntities.Comment", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("Content")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)")
+                        .HasColumnName("content");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid?>("CreatorId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("creator_id");
+
+                    b.Property<DateTimeOffset?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("deleted_at");
+
+                    b.Property<bool>("IsEdited")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_edited");
+
+                    b.Property<Guid?>("ParentCommentId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("parent_comment_id");
+
+                    b.Property<Guid>("ProjectTaskId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("project_task_id");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreatorId");
+
+                    b.HasIndex("ProjectTaskId");
+
+                    b.ToTable("comments", (string)null);
+                });
+
+            modelBuilder.Entity("Domain.Entities.ProjectEntities.Dashboard", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid?>("CreatorId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("creator_id");
+
+                    b.Property<DateTimeOffset?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("deleted_at");
+
+                    b.Property<bool>("IsMain")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_main");
+
+                    b.Property<bool>("IsShared")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_shared");
+
+                    b.Property<Guid>("LayerId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("layer_id");
+
+                    b.Property<string>("LayerType")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("layer_type");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("name");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreatorId");
+
+                    b.HasIndex("LayerId");
+
+                    b.HasIndex("LayerType", "LayerId");
+
+                    b.ToTable("dashboards", (string)null);
+                });
+
+            modelBuilder.Entity("Domain.Entities.ProjectEntities.Document", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("Content")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("content");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid?>("CreatorId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("creator_id");
+
+                    b.Property<DateTimeOffset?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("deleted_at");
+
+                    b.Property<Guid>("LayerId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("layer_id");
+
+                    b.Property<string>("LayerType")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("layer_type");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("name");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreatorId");
+
+                    b.HasIndex("LayerId", "LayerType");
+
+                    b.ToTable("documents", (string)null);
+                });
+
             modelBuilder.Entity("Domain.Entities.ProjectEntities.ProjectFolder", b =>
                 {
                     b.Property<Guid>("Id")
@@ -439,6 +724,201 @@ namespace Infrastructure.Migrations
                     b.HasIndex("Name");
 
                     b.ToTable("project_workspaces", (string)null);
+                });
+
+            modelBuilder.Entity("Domain.Entities.ProjectEntities.Status", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("Category")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("category");
+
+                    b.Property<string>("Color")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("color");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid?>("CreatorId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("creator_id");
+
+                    b.Property<DateTimeOffset?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("deleted_at");
+
+                    b.Property<bool>("IsDefaultStatus")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_default_status");
+
+                    b.Property<Guid?>("LayerId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("layer_id");
+
+                    b.Property<string>("LayerType")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("layer_type");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("name");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreatorId");
+
+                    b.HasIndex("LayerId", "LayerType");
+
+                    b.ToTable("statuses", (string)null);
+                });
+
+            modelBuilder.Entity("Domain.Entities.ProjectEntities.ViewDefinition", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid?>("CreatorId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("creator_id");
+
+                    b.Property<DateTimeOffset?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("deleted_at");
+
+                    b.Property<string>("DisplayConfigJson")
+                        .HasColumnType("text")
+                        .HasColumnName("display_config_json");
+
+                    b.Property<string>("FilterConfigJson")
+                        .HasColumnType("text")
+                        .HasColumnName("filter_config_json");
+
+                    b.Property<bool>("IsDefault")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_default");
+
+                    b.Property<Guid>("LayerId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("layer_id");
+
+                    b.Property<string>("LayerType")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("layer_type");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("name");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<string>("ViewType")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("view_type");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreatorId");
+
+                    b.HasIndex("LayerId", "LayerType");
+
+                    b.ToTable("view_definitions", (string)null);
+                });
+
+            modelBuilder.Entity("Domain.Entities.ProjectEntities.Widget", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("ConfigJson")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("config_json");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid?>("CreatorId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("creator_id");
+
+                    b.Property<Guid>("DashboardId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("deleted_at");
+
+                    b.Property<Guid>("LayerId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("layer_id");
+
+                    b.Property<string>("LayerType")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("layer_type");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<string>("Visibility")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("visibility");
+
+                    b.Property<string>("WidgetType")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("widget_type");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreatorId");
+
+                    b.HasIndex("LayerId");
+
+                    b.HasIndex("LayerType");
+
+                    b.HasIndex("LayerType", "LayerId");
+
+                    b.HasIndex("LayerType", "LayerId", "WidgetType");
+
+                    b.ToTable("widgets", (string)null);
                 });
 
             modelBuilder.Entity("Domain.Entities.Relationship.AttachmentLink", b =>
@@ -892,55 +1372,6 @@ namespace Infrastructure.Migrations
                     b.ToTable("attachments", (string)null);
                 });
 
-            modelBuilder.Entity("Domain.Entities.Support.Comment", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .HasColumnType("uuid")
-                        .HasColumnName("id");
-
-                    b.Property<string>("Content")
-                        .IsRequired()
-                        .HasMaxLength(2000)
-                        .HasColumnType("character varying(2000)")
-                        .HasColumnName("content");
-
-                    b.Property<DateTimeOffset>("CreatedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("created_at");
-
-                    b.Property<Guid?>("CreatorId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("creator_id");
-
-                    b.Property<DateTimeOffset?>("DeletedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("deleted_at");
-
-                    b.Property<bool>("IsEdited")
-                        .HasColumnType("boolean")
-                        .HasColumnName("is_edited");
-
-                    b.Property<Guid?>("ParentCommentId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("parent_comment_id");
-
-                    b.Property<Guid>("ProjectTaskId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("project_task_id");
-
-                    b.Property<DateTimeOffset>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("updated_at");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("CreatorId");
-
-                    b.HasIndex("ProjectTaskId");
-
-                    b.ToTable("comments", (string)null);
-                });
-
             modelBuilder.Entity("Domain.Entities.Support.Notification.NotificationDelivery", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1285,326 +1716,6 @@ namespace Infrastructure.Migrations
                     b.ToTable("outbox_messages", (string)null);
                 });
 
-            modelBuilder.Entity("Domain.Entities.Support.Status", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .HasColumnType("uuid")
-                        .HasColumnName("id");
-
-                    b.Property<string>("Category")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)")
-                        .HasColumnName("category");
-
-                    b.Property<string>("Color")
-                        .IsRequired()
-                        .HasMaxLength(32)
-                        .HasColumnType("character varying(32)")
-                        .HasColumnName("color");
-
-                    b.Property<DateTimeOffset>("CreatedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("created_at");
-
-                    b.Property<Guid?>("CreatorId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("creator_id");
-
-                    b.Property<DateTimeOffset?>("DeletedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("deleted_at");
-
-                    b.Property<bool>("IsDefaultStatus")
-                        .HasColumnType("boolean")
-                        .HasColumnName("is_default_status");
-
-                    b.Property<Guid?>("LayerId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("layer_id");
-
-                    b.Property<string>("LayerType")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)")
-                        .HasColumnName("layer_type");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)")
-                        .HasColumnName("name");
-
-                    b.Property<long>("OrderKey")
-                        .HasColumnType("bigint")
-                        .HasColumnName("order_key");
-
-                    b.Property<DateTimeOffset>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("updated_at");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("CreatorId");
-
-                    b.HasIndex("LayerId", "LayerType");
-
-                    b.HasIndex("LayerId", "LayerType", "OrderKey");
-
-                    b.ToTable("statuses", (string)null);
-                });
-
-            modelBuilder.Entity("Domain.Entities.Support.Widget.Dashboard", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .HasColumnType("uuid")
-                        .HasColumnName("id");
-
-                    b.Property<DateTimeOffset>("CreatedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("created_at");
-
-                    b.Property<Guid?>("CreatorId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("creator_id");
-
-                    b.Property<DateTimeOffset?>("DeletedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("deleted_at");
-
-                    b.Property<bool>("IsMain")
-                        .HasColumnType("boolean")
-                        .HasColumnName("is_main");
-
-                    b.Property<bool>("IsShared")
-                        .HasColumnType("boolean")
-                        .HasColumnName("is_shared");
-
-                    b.Property<Guid>("LayerId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("layer_id");
-
-                    b.Property<string>("LayerType")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)")
-                        .HasColumnName("layer_type");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("character varying(200)")
-                        .HasColumnName("name");
-
-                    b.Property<DateTimeOffset>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("updated_at");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("CreatorId");
-
-                    b.HasIndex("LayerId");
-
-                    b.HasIndex("LayerType", "LayerId");
-
-                    b.ToTable("dashboards", (string)null);
-                });
-
-            modelBuilder.Entity("Domain.Entities.Support.Widget.Widget", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .HasColumnType("uuid")
-                        .HasColumnName("id");
-
-                    b.Property<string>("ConfigJson")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("config_json");
-
-                    b.Property<DateTimeOffset>("CreatedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("created_at");
-
-                    b.Property<Guid?>("CreatorId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("creator_id");
-
-                    b.Property<Guid>("DashboardId")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTimeOffset?>("DeletedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("deleted_at");
-
-                    b.Property<Guid>("LayerId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("layer_id");
-
-                    b.Property<string>("LayerType")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)")
-                        .HasColumnName("layer_type");
-
-                    b.Property<DateTimeOffset>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("updated_at");
-
-                    b.Property<string>("Visibility")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)")
-                        .HasColumnName("visibility");
-
-                    b.Property<string>("WidgetType")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)")
-                        .HasColumnName("widget_type");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("CreatorId");
-
-                    b.HasIndex("LayerId");
-
-                    b.HasIndex("LayerType");
-
-                    b.HasIndex("LayerType", "LayerId");
-
-                    b.HasIndex("LayerType", "LayerId", "WidgetType");
-
-                    b.ToTable("widgets", (string)null);
-                });
-
-            modelBuilder.Entity("Domain.Entities.Support.Workspace.ChatMessage", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .HasColumnType("uuid")
-                        .HasColumnName("id");
-
-                    b.Property<Guid>("ChatRoomId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("chat_room_id");
-
-                    b.Property<string>("Content")
-                        .IsRequired()
-                        .HasMaxLength(4000)
-                        .HasColumnType("character varying(4000)")
-                        .HasColumnName("content");
-
-                    b.Property<DateTimeOffset>("CreatedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("created_at");
-
-                    b.Property<Guid?>("CreatorId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("creator_id");
-
-                    b.Property<DateTimeOffset?>("DeletedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("deleted_at");
-
-                    b.Property<DateTimeOffset?>("EditedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("edited_at");
-
-                    b.Property<bool>("HasAttachment")
-                        .HasColumnType("boolean")
-                        .HasColumnName("has_attachment");
-
-                    b.Property<bool>("IsEdited")
-                        .HasColumnType("boolean")
-                        .HasColumnName("is_edited");
-
-                    b.Property<bool>("IsPinned")
-                        .HasColumnType("boolean")
-                        .HasColumnName("is_pinned");
-
-                    b.Property<int>("ReactionCount")
-                        .HasColumnType("integer")
-                        .HasColumnName("reaction_count");
-
-                    b.Property<Guid?>("ReplyToMessageId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("reply_to_message_id");
-
-                    b.Property<DateTimeOffset>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("updated_at");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ChatRoomId");
-
-                    b.HasIndex("CreatorId");
-
-                    b.HasIndex("ReplyToMessageId");
-
-                    b.ToTable("chat_messages", (string)null);
-                });
-
-            modelBuilder.Entity("Domain.Entities.Support.Workspace.ChatRoom", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .HasColumnType("uuid")
-                        .HasColumnName("id");
-
-                    b.Property<string>("AvatarUrl")
-                        .HasMaxLength(500)
-                        .HasColumnType("character varying(500)")
-                        .HasColumnName("avatar_url");
-
-                    b.Property<DateTimeOffset>("CreatedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("created_at");
-
-                    b.Property<Guid?>("CreatorId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("creator_id");
-
-                    b.Property<DateTimeOffset?>("DeletedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("deleted_at");
-
-                    b.Property<bool>("IsArchived")
-                        .HasColumnType("boolean")
-                        .HasColumnName("is_archived");
-
-                    b.Property<bool>("IsPrivate")
-                        .HasColumnType("boolean")
-                        .HasColumnName("is_private");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("character varying(200)")
-                        .HasColumnName("name");
-
-                    b.Property<Guid>("ProjectWorkspaceId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("project_workspace_id");
-
-                    b.Property<string>("Type")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)")
-                        .HasColumnName("type");
-
-                    b.Property<DateTimeOffset>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("updated_at");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("CreatorId");
-
-                    b.HasIndex("ProjectWorkspaceId");
-
-                    b.ToTable("chat_rooms", (string)null);
-                });
-
             modelBuilder.Entity("Domain.Entities.User", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1657,6 +1768,24 @@ namespace Infrastructure.Migrations
                         .IsUnique();
 
                     b.ToTable("users", (string)null);
+                });
+
+            modelBuilder.Entity("Domain.Entities.ProjectEntities.ChatMessage", b =>
+                {
+                    b.HasOne("Domain.Entities.ProjectEntities.ChatRoom", "ChatRoom")
+                        .WithMany("Messages")
+                        .HasForeignKey("ChatRoomId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Domain.Entities.ProjectEntities.ChatMessage", "ReplyToMessage")
+                        .WithMany()
+                        .HasForeignKey("ReplyToMessageId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("ChatRoom");
+
+                    b.Navigation("ReplyToMessage");
                 });
 
             modelBuilder.Entity("Domain.Entities.ProjectEntities.ProjectFolder", b =>
@@ -1814,44 +1943,9 @@ namespace Infrastructure.Migrations
                         .IsRequired();
                 });
 
-            modelBuilder.Entity("Domain.Entities.Relationship.ChatRoomMember", b =>
+            modelBuilder.Entity("Domain.Entities.ProjectEntities.Widget", b =>
                 {
-                    b.HasOne("Domain.Entities.Support.Workspace.ChatRoom", "ChatRoom")
-                        .WithMany("Members")
-                        .HasForeignKey("ChatRoomId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("ChatRoom");
-                });
-
-            modelBuilder.Entity("Domain.Entities.Relationship.TaskAssignment", b =>
-                {
-                    b.HasOne("Domain.Entities.User", null)
-                        .WithMany()
-                        .HasForeignKey("AssigneeId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("Domain.Entities.ProjectEntities.ProjectTask", null)
-                        .WithMany()
-                        .HasForeignKey("TaskId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-                });
-
-            modelBuilder.Entity("Domain.Entities.Relationship.WorkspaceMember", b =>
-                {
-                    b.HasOne("Domain.Entities.ProjectEntities.ProjectWorkspace", null)
-                        .WithMany("Members")
-                        .HasForeignKey("ProjectWorkspaceId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-                });
-
-            modelBuilder.Entity("Domain.Entities.Support.Widget.Widget", b =>
-                {
-                    b.OwnsOne("Domain.Entities.Support.Widget.WidgetLayout", "Layout", b1 =>
+                    b.OwnsOne("Domain.Entities.ProjectEntities.WidgetLayout", "Layout", b1 =>
                         {
                             b1.Property<Guid>("WidgetId")
                                 .HasColumnType("uuid");
@@ -1884,34 +1978,51 @@ namespace Infrastructure.Migrations
                         .IsRequired();
                 });
 
-            modelBuilder.Entity("Domain.Entities.Support.Workspace.ChatMessage", b =>
+            modelBuilder.Entity("Domain.Entities.Relationship.ChatRoomMember", b =>
                 {
-                    b.HasOne("Domain.Entities.Support.Workspace.ChatRoom", "ChatRoom")
-                        .WithMany("Messages")
+                    b.HasOne("Domain.Entities.ProjectEntities.ChatRoom", "ChatRoom")
+                        .WithMany("Members")
                         .HasForeignKey("ChatRoomId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("Domain.Entities.Support.Workspace.ChatMessage", "ReplyToMessage")
-                        .WithMany()
-                        .HasForeignKey("ReplyToMessageId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
                     b.Navigation("ChatRoom");
+                });
 
-                    b.Navigation("ReplyToMessage");
+            modelBuilder.Entity("Domain.Entities.Relationship.TaskAssignment", b =>
+                {
+                    b.HasOne("Domain.Entities.User", null)
+                        .WithMany()
+                        .HasForeignKey("AssigneeId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Domain.Entities.ProjectEntities.ProjectTask", null)
+                        .WithMany()
+                        .HasForeignKey("TaskId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Domain.Entities.Relationship.WorkspaceMember", b =>
+                {
+                    b.HasOne("Domain.Entities.ProjectEntities.ProjectWorkspace", null)
+                        .WithMany("Members")
+                        .HasForeignKey("ProjectWorkspaceId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Domain.Entities.ProjectEntities.ChatRoom", b =>
+                {
+                    b.Navigation("Members");
+
+                    b.Navigation("Messages");
                 });
 
             modelBuilder.Entity("Domain.Entities.ProjectEntities.ProjectWorkspace", b =>
                 {
                     b.Navigation("Members");
-                });
-
-            modelBuilder.Entity("Domain.Entities.Support.Workspace.ChatRoom", b =>
-                {
-                    b.Navigation("Members");
-
-                    b.Navigation("Messages");
                 });
 #pragma warning restore 612, 618
         }

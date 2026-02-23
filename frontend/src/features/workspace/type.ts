@@ -2,6 +2,9 @@ import { Home, Folder, FileText, type LucideIcon } from "lucide-react";
 export type ContentPage =
   | "dashboard"
   | "tasks"
+  | "spaces"
+  | "folders"
+  | "lists"
   | "calendar"
   | "members"
   | "communications"

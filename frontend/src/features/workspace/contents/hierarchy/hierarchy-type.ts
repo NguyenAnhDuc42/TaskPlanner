@@ -10,6 +10,7 @@ export interface ListHierarchy {
   color: string;
   icon: string;
   isPrivate: boolean;
+  inheritStatus: boolean;
 }
 
 export interface FolderHierarchy {
@@ -18,6 +19,7 @@ export interface FolderHierarchy {
   color: string;
   icon: string;
   isPrivate: boolean;
+  inheritStatus: boolean;
   lists: ListHierarchy[];
 }
 
@@ -105,6 +107,7 @@ export const updateFolderSchema = z.object({
   color: z.string().optional(),
   icon: z.string().optional(),
   isPrivate: z.boolean().optional(),
+  inheritStatus: z.boolean().optional(),
 });
 export type UpdateFolderRequest = z.infer<typeof updateFolderSchema>;
 
@@ -114,6 +117,7 @@ export const updateListSchema = z.object({
   color: z.string().optional(),
   icon: z.string().optional(),
   isPrivate: z.boolean().optional(),
+  inheritStatus: z.boolean().optional(),
   startDate: z.string().datetime().optional(),
   dueDate: z.string().datetime().optional(),
 });

@@ -6,6 +6,7 @@ using Domain.Enums.RelationShip;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using server.Application.Interfaces;
+using Application.Features.StatusManagement.Helpers;
 
 namespace Application.Features.ListFeatures.SelfManagement.UpdateList;
 
@@ -23,6 +24,24 @@ public class UpdateListHandler : BaseFeatureHandler, IRequestHandler<UpdateListC
         if (request.IsPrivate.HasValue) list.UpdatePrivate(request.IsPrivate.Value);
         if (request.StartDate.HasValue) list.UpdateStartDate(request.StartDate);
         if (request.DueDate.HasValue) list.UpdateDueDate(request.DueDate);
+
+        if (request.InheritStatus.HasValue)
+        {
+            var oldInherit = list.InheritStatus;
+            list.UpdateInheritStatus(request.InheritStatus.Value);
+
+            // If we just TURNED OFF inheritance, ensure we have default statuses
+            if (oldInherit && !list.InheritStatus)
+            {
+                var hasLocalStatuses = await UnitOfWork.Set<Status>()
+                    .AnyAsync(s => s.LayerId == list.Id && s.LayerType == EntityLayerType.ProjectList, cancellationToken);
+
+                if (!hasLocalStatuses)
+                {
+                    await StatusInitializer.InitDefaultStatuses(UnitOfWork, list.Id, EntityLayerType.ProjectList, CurrentUserId);
+                }
+            }
+        }
 
         if (list.IsPrivate)
         {

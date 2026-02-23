@@ -1,4 +1,5 @@
 using System;
+using Application.Features.StatusManagement.Helpers;
 using Application.Helpers;
 using Application.Interfaces.Repositories;
 using Domain.Entities.ProjectEntities;
@@ -35,6 +36,9 @@ public class CreateSpaceHandler : BaseFeatureHandler, IRequestHandler<CreateSpac
 
         await UnitOfWork.Set<ProjectSpace>().AddAsync(space, cancellationToken);
         
+        // Initializing default statuses for Space
+        await StatusInitializer.InitDefaultStatuses(UnitOfWork, space.Id, EntityLayerType.ProjectSpace, CurrentUserId);
+
         // Create EntityAccess for owner if private
         if (request.isPrivate)
         {

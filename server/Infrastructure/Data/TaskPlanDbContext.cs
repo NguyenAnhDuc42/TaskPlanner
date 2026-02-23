@@ -23,6 +23,7 @@ public class TaskPlanDbContext : DbContext
     public DbSet<ProjectList> ProjectLists { get; set; }
     public DbSet<ProjectTask> ProjectTasks { get; set; }
     public DbSet<ViewDefinition> ViewDefinitions { get; set; }
+    public DbSet<Document> Documents { get; set; }
 
     // Relationship Entities
     public DbSet<WorkspaceMember> WorkspaceMembers { get; set; }

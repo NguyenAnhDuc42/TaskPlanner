@@ -38,7 +38,8 @@ namespace Api.Controllers
                 Name: request.Name,
                 Color: request.Color,
                 Icon: request.Icon,
-                IsPrivate: request.IsPrivate
+                IsPrivate: request.IsPrivate,
+                InheritStatus: request.InheritStatus
             );
 
             var result = await _mediator.Send(command, cancellationToken);
@@ -66,6 +67,8 @@ namespace Api.Controllers
         string? Name,
         string? Color,
         string? Icon,
-        bool? IsPrivate
+        bool? IsPrivate,
+        bool? InheritStatus
+
     );
 }

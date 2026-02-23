@@ -10,6 +10,7 @@ public record UpdateFolderCommand(
     string? Name,
     string? Color,
     string? Icon,
-    bool? IsPrivate
+    bool? IsPrivate,
+    bool? InheritStatus
 ) : ICommand<Unit>;
 

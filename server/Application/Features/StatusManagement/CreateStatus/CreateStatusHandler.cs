@@ -17,15 +17,12 @@ public class CreateStatusHandler : BaseFeatureHandler, IRequestHandler<CreateSta
     {
         var layerEntity = await GetLayer(request.LayerId, request.LayerType);
         
-        var orderKey = request.OrderKey ?? DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
-        
         var status = Status.Create(
             layerId: request.LayerId,
             layerType: request.LayerType,
             name: request.Name,
             color: request.Color,
             category: request.Category,
-            orderKey: orderKey,
             creatorId: CurrentUserId
         );
 

@@ -32,13 +32,13 @@ public class CreateWorkspaceEventHandler : INotificationHandler<CreatedWorkspace
 
         // 3. Create Default Statuses
         var todoStatus = Status.Create(notification.workspaceId, Domain.Enums.RelationShip.EntityLayerType.ProjectWorkspace, 
-            "To Do", "#87909e", Domain.Enums.StatusCategory.NotStarted, 0, notification.userId);
+            "To Do", "#87909e", Domain.Enums.StatusCategory.NotStarted, notification.userId);
         
         var inProgressStatus = Status.Create(notification.workspaceId, Domain.Enums.RelationShip.EntityLayerType.ProjectWorkspace, 
-            "In Progress", "#337ea9", Domain.Enums.StatusCategory.Active, 1, notification.userId);
+            "In Progress", "#337ea9", Domain.Enums.StatusCategory.Active, notification.userId);
         
         var doneStatus = Status.Create(notification.workspaceId, Domain.Enums.RelationShip.EntityLayerType.ProjectWorkspace, 
-            "Done", "#209955", Domain.Enums.StatusCategory.Done, 2, notification.userId);
+            "Done", "#209955", Domain.Enums.StatusCategory.Done, notification.userId);
         doneStatus.SetDefault(true);
 
         await _unitOfWork.Set<Status>().AddRangeAsync(new[] { todoStatus, inProgressStatus, doneStatus }, cancellationToken);

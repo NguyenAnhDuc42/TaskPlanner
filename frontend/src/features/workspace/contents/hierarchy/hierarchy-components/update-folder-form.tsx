@@ -15,6 +15,7 @@ interface Props {
   initialColor: string;
   initialIcon: string;
   initialIsPrivate: boolean;
+  initialInheritStatus: boolean;
 }
 
 export function UpdateFolderForm({
@@ -23,11 +24,13 @@ export function UpdateFolderForm({
   initialColor,
   initialIcon,
   initialIsPrivate,
+  initialInheritStatus,
 }: Props) {
   const [name, setName] = useState(initialName);
   const [color, setColor] = useState(initialColor);
   const [icon, setIcon] = useState(initialIcon);
   const [isPrivate, setIsPrivate] = useState(initialIsPrivate);
+  const [inheritStatus, setInheritStatus] = useState(initialInheritStatus);
 
   const updateFolder = useUpdateFolder();
 
@@ -42,6 +45,7 @@ export function UpdateFolderForm({
         color: color,
         icon: icon,
         isPrivate: isPrivate,
+        inheritStatus: inheritStatus,
       });
       toast.success("Folder updated successfully");
     } catch (error: unknown) {
@@ -78,18 +82,42 @@ export function UpdateFolderForm({
             </div>
           </div>
 
-          <div className="flex items-center space-x-2">
-            <Checkbox
-              id="isFolderPrivate"
-              checked={isPrivate}
-              onCheckedChange={(checked) => setIsPrivate(checked === true)}
-            />
-            <Label
-              htmlFor="isFolderPrivate"
-              className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-            >
-              Private folder
-            </Label>
+          <div className="space-y-3">
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="isFolderPrivate"
+                checked={isPrivate}
+                onCheckedChange={(checked) => setIsPrivate(checked === true)}
+              />
+              <Label
+                htmlFor="isFolderPrivate"
+                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+              >
+                Private folder
+              </Label>
+            </div>
+
+            <div className="flex items-center space-x-2 border-t pt-3">
+              <Checkbox
+                id="inheritStatus"
+                checked={inheritStatus}
+                onCheckedChange={(checked) =>
+                  setInheritStatus(checked === true)
+                }
+              />
+              <div className="grid gap-1.5 leading-none">
+                <Label
+                  htmlFor="inheritStatus"
+                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                >
+                  Inherit status from Space
+                </Label>
+                <p className="text-xs text-muted-foreground">
+                  If disabled, this folder will have its own independent
+                  statuses.
+                </p>
+              </div>
+            </div>
           </div>
         </div>
       </div>
