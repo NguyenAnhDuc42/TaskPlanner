@@ -8,6 +8,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Application.Helper;
 using Application.Helpers;
+using Application.Features.ViewFeatures.Logic;
 namespace Application.Dependencies;
 
 public static class DependencyInjection
@@ -30,6 +31,9 @@ public static class DependencyInjection
 
         // Workspace Context
         services.AddScoped<WorkspaceContext>();
+
+        // View Engine
+        services.AddScoped<ViewBuilder>();
 
         return services;
     }

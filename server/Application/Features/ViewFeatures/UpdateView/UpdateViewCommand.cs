@@ -4,7 +4,8 @@ namespace Application.Features.ViewFeatures.UpdateView;
 
 public record UpdateViewCommand(
     Guid Id,
-    string Name,
-    long OrderKey,
-    bool IsDefault
+    string? Name,
+    bool? IsDefault,
+    string? FilterConfigJson,
+    string? DisplayConfigJson
 ) : ICommand<MediatR.Unit>;

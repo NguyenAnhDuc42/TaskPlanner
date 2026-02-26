@@ -12,7 +12,9 @@ import { UpdateSpaceForm } from "./update-space-form";
 import { UpdateFolderForm } from "./update-folder-form";
 import { UpdateListForm } from "./update-list-form";
 import { ManageAccessDialog } from "./manage-access-dialog";
+import { StatusManagementDialog } from "./status-management-dialog";
 import { toast } from "sonner";
+import { ListChecks } from "lucide-react";
 
 interface Props {
   type: "Space" | "Folder" | "List";
@@ -37,6 +39,7 @@ export function ItemSettingPopover({
   const [isDeleting, setIsDeleting] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isManageAccessOpen, setIsManageAccessOpen] = useState(false);
+  const [isStatusesOpen, setIsStatusesOpen] = useState(false);
 
   const handleDelete = async () => {
     if (!confirm(`Are you sure you want to delete ${type} "${name}"?`)) return;
@@ -98,6 +101,7 @@ export function ItemSettingPopover({
             initialColor={color}
             initialIcon={icon}
             initialIsPrivate={isPrivate}
+            initialInheritStatus={false}
           />
         )}
         {type === "List" && (
@@ -107,6 +111,7 @@ export function ItemSettingPopover({
             initialColor={color}
             initialIcon={icon}
             initialIsPrivate={isPrivate}
+            initialInheritStatus={false}
           />
         )}
       </DialogFormWrapper>
@@ -127,6 +132,30 @@ export function ItemSettingPopover({
         layerType={type.toLowerCase() as "space" | "folder" | "list"}
         open={isManageAccessOpen}
         onOpenChange={setIsManageAccessOpen}
+      />
+
+      <Button
+        variant="ghost"
+        size="sm"
+        className="justify-start gap-2 px-2 h-8 font-normal"
+        onClick={() => setIsStatusesOpen(true)}
+      >
+        <ListChecks className="h-4 w-4" />
+        Statuses
+      </Button>
+
+      <StatusManagementDialog
+        open={isStatusesOpen}
+        onOpenChange={setIsStatusesOpen}
+        layerId={id}
+        layerType={
+          type === "Space"
+            ? "ProjectSpace"
+            : type === "Folder"
+              ? "ProjectFolder"
+              : "ProjectList"
+        }
+        layerName={name}
       />
 
       <Separator />

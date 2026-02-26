@@ -8,7 +8,7 @@ export const useViews = (layerId: string, layerType: string) => {
     queryKey: ["views", layerId, layerType],
     queryFn: async () => {
       const response = await api.get<ViewDto[]>(
-        `/api/views?layerId=${layerId}&layerType=${layerType}`,
+        `/views?layerId=${layerId}&layerType=${layerType}`,
       );
       return response.data;
     },
@@ -20,7 +20,7 @@ export const useViewData = (viewId: string) => {
   return useQuery({
     queryKey: ["viewData", viewId],
     queryFn: async () => {
-      const response = await api.get<ViewResponse>(`/api/views/${viewId}/data`);
+      const response = await api.get<ViewResponse>(`/views/${viewId}/data`);
       return response.data;
     },
     enabled: !!viewId,
@@ -36,7 +36,7 @@ export const useCreateView = () => {
       name: string;
       viewType: ViewType;
     }) => {
-      const response = await api.post("/api/views", data);
+      const response = await api.post("/views", data);
       return response.data;
     },
     onSuccess: (_, variables) => {

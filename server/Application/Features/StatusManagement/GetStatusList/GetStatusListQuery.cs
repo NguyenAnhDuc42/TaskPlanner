@@ -1,4 +1,5 @@
 using System;
+using Application.Common.Interfaces;
 using Application.Common.Results;
 using Application.Contract.StatusContract;
 using Domain.Enums;
@@ -10,4 +11,4 @@ namespace Application.Features.StatusManagement.GetStatusList;
 public record GetStatusListQuery(
     Guid LayerId,
     EntityLayerType LayerType
-) : IRequest<List<StatusDto>>;
+) : IQuery<List<StatusDto>>;
