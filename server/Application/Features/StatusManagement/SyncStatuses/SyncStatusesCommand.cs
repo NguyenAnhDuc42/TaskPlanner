@@ -1,6 +1,8 @@
+using Application.Common.Interfaces;
+using System;
 using Domain.Enums;
-using Domain.Enums.RelationShip;
 using MediatR;
+using Domain.Enums.RelationShip;
 
 namespace Application.Features.StatusManagement.SyncStatuses;
 
@@ -14,4 +16,4 @@ public record StatusSyncItem(
 public record SyncStatusesCommand(
     Guid LayerId, 
     EntityLayerType LayerType, 
-    List<StatusSyncItem> Statuses) : IRequest<Unit>;
+    List<StatusSyncItem> Statuses) : ICommand<Unit>;

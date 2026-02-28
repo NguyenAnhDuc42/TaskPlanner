@@ -1,3 +1,4 @@
+using Application.Common.Interfaces;
 using System;
 using Domain.Enums;
 using MediatR;
@@ -14,4 +15,4 @@ public record UpdateTaskCommand(
     DateTimeOffset? DueDate,
     int? StoryPoints,
     long? TimeEstimate
-) : IRequest<Unit>;
+) : ICommand<Unit>;
