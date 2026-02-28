@@ -2,19 +2,21 @@ using Domain.Enums;
 
 namespace Application.Contract.Common;
 
-public record TaskDto(
-    Guid Id,
-    Guid ProjectListId,
-    string Name,
-    string? Description,
-    Guid? StatusId,
-    Priority Priority,
-    DateTimeOffset? StartDate,
-    DateTimeOffset? DueDate,
-    int? StoryPoints,
-    long? TimeEstimate,
-    long? OrderKey
-);
+public class TaskDto
+{
+    public Guid Id { get; set; }
+    public Guid ProjectListId { get; set; }
+    public string Name { get; set; } = null!;
+    public string? Description { get; set; }
+    public Guid? StatusId { get; set; }
+    public Priority Priority { get; set; }
+    public DateTimeOffset? StartDate { get; set; }
+    public DateTimeOffset? DueDate { get; set; }
+    public int? StoryPoints { get; set; }
+    public long? TimeEstimate { get; set; }
+    public long? OrderKey { get; set; }
+    public DateTimeOffset CreatedAt { get; set; }
+}
 
 public record DocumentDto(
     Guid Id,

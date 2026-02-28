@@ -21,7 +21,8 @@ public static class TaskSql
         t.due_date        AS DueDate,
         t.story_points    AS StoryPoints,
         t.time_estimate   AS TimeEstimate,
-        t.order_key       AS OrderKey";
+        t.order_key       AS OrderKey,
+        t.created_at      AS CreatedAt";
 
     // For ListTasksSql where there's no alias prefix
     private const string TaskColumnsNoAlias = @"
@@ -35,7 +36,8 @@ public static class TaskSql
         due_date        AS DueDate,
         story_points    AS StoryPoints,
         time_estimate   AS TimeEstimate,
-        order_key       AS OrderKey";
+        order_key       AS OrderKey,
+        created_at      AS CreatedAt";
 
     public static string GetSql(EntityLayerType layerType) => layerType switch
     {

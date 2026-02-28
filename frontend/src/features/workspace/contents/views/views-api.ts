@@ -46,3 +46,28 @@ export const useCreateView = () => {
     },
   });
 };
+
+export const useUpdateView = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (data: {
+      id: string;
+      layerId: string;
+      layerType: string;
+      name?: string;
+      isDefault?: boolean;
+      filterConfigJson?: string;
+      displayConfigJson?: string;
+    }) => {
+      // The API only needs the ID in the URL and the rest in the body
+      const { id, layerId: _layerId, layerType: _layerType, ...body } = data;
+      const response = await api.put(`/views/${id}`, { id, ...body });
+      return response.data;
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({
+        queryKey: ["views", variables.layerId, variables.layerType],
+      });
+    },
+  });
+};

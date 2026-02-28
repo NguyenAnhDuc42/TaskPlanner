@@ -127,7 +127,7 @@ export function AddMembersForm({
       if (remaining.length === 0) {
         onOpenChange(false);
       }
-    } catch (err) {
+    } catch (_err) {
       // toast handled by useMutation
     }
   };

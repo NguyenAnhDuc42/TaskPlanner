@@ -5,16 +5,16 @@ import type { ViewDto } from "./views-type";
 import { TaskListView } from "./view-components/list-view";
 import { TaskBoardView } from "./view-components/board-view";
 import { ViewType } from "@/types/view-type";
+import type { TaskListViewResult, TasksBoardViewResult } from "./views-type";
 import { Loader2 } from "lucide-react";
-import { useAuth } from "@/features/auth/auth-context";
 import { ViewTabBar } from "./view-tab-bar";
+import { ViewOptionsBar } from "./view-options-bar";
 
 interface ViewContainerProps {
   layerType: "ProjectSpace" | "ProjectFolder" | "ProjectList";
 }
 
 export function ViewContainer({ layerType }: ViewContainerProps) {
-  const { user } = useAuth();
   const params = useParams({ strict: false });
   const layerId = (
     layerType === "ProjectSpace"
@@ -30,12 +30,13 @@ export function ViewContainer({ layerType }: ViewContainerProps) {
   );
   const [activeView, setActiveView] = useState<ViewDto | null>(null);
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (views && views.length > 0 && !activeView) {
       const defaultView = views.find((v) => v.isDefault) || views[0];
       setActiveView(defaultView);
     }
-  }, [views, activeView]);
+  }, [views]);
 
   const { data: viewData, isLoading: isDataLoading } = useViewData(
     activeView?.id || "",
@@ -59,6 +60,14 @@ export function ViewContainer({ layerType }: ViewContainerProps) {
         layerType={layerType}
       />
 
+      {activeView && (
+        <ViewOptionsBar
+          view={activeView}
+          layerId={layerId}
+          layerType={layerType}
+        />
+      )}
+
       <div className="flex-1 overflow-auto p-4">
         {isDataLoading ? (
           <div className="flex items-center justify-center h-full">
@@ -67,10 +76,16 @@ export function ViewContainer({ layerType }: ViewContainerProps) {
         ) : activeView && viewData ? (
           <>
             {activeView.viewType === ViewType.List && (
-              <TaskListView data={viewData} />
+              <TaskListView
+                data={viewData as TaskListViewResult}
+                view={activeView}
+              />
             )}
             {activeView.viewType === ViewType.Board && (
-              <TaskBoardView data={viewData} />
+              <TaskBoardView
+                data={viewData as TasksBoardViewResult}
+                view={activeView}
+              />
             )}
             {/* Add more types as implemented */}
           </>

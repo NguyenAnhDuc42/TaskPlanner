@@ -1,9 +1,15 @@
 import type { ViewDto } from "./views-type";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { Plus, Settings2 } from "lucide-react";
+import { Plus, Settings2, List, LayoutDashboard, FileText } from "lucide-react";
 import { useCreateView } from "./views-api";
 import { ViewType } from "@/types/view-type";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface ViewTabBarProps {
   views: ViewDto[];
@@ -22,11 +28,11 @@ export function ViewTabBar({
 }: ViewTabBarProps) {
   const createView = useCreateView();
 
-  const handleAddView = (type: ViewType, name: string) => {
+  const handleAddView = (type: ViewType, defaultName: string) => {
     createView.mutate({
       layerId,
       layerType,
-      name,
+      name: defaultName,
       viewType: type,
     });
   };
@@ -48,9 +54,33 @@ export function ViewTabBar({
         </button>
       ))}
 
-      <Button variant="ghost" size="icon" className="h-8 w-8 ml-2">
-        <Plus className="h-4 w-4" />
-      </Button>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="ghost" size="icon" className="h-8 w-8 ml-2">
+            <Plus className="h-4 w-4" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="start">
+          <DropdownMenuItem
+            onClick={() => handleAddView(ViewType.List, "New List")}
+          >
+            <List className="h-4 w-4 mr-2 text-muted-foreground" />
+            List
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            onClick={() => handleAddView(ViewType.Board, "New Board")}
+          >
+            <LayoutDashboard className="h-4 w-4 mr-2 text-muted-foreground" />
+            Board
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            onClick={() => handleAddView(ViewType.Doc, "New Doc")}
+          >
+            <FileText className="h-4 w-4 mr-2 text-muted-foreground" />
+            Doc
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
 
       <div className="ml-auto flex items-center gap-2">
         <Button

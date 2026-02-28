@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using System.Text.Json.Serialization;
 using Api.Middlewares;
 using Application.Dependencies;
 using Background.Dependencies;
@@ -36,8 +37,7 @@ builder.AddNpgsqlDbContext<Infrastructure.Data.TaskPlanDbContext>("DefaultConnec
 builder.Services.AddInfrastructure(connectionString, builder.Configuration);
 builder.Services.AddApplication(builder.Configuration);
 
-// NOTE: In the API, we only add the Background CLIENTS. 
-// We do NOT call AddHangfireServer() here (that's the Worker's job).
+
 builder.Services.AddBackground(builder.Configuration);
 
 var app = builder.Build();
