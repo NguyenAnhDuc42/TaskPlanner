@@ -16,12 +16,12 @@ import { Route as AuthIndexRouteImport } from './routes/auth/index'
 import { Route as WorkspacesWorkspaceIdRouteImport } from './routes/workspaces/$workspaceId'
 import { Route as AuthSignUpRouteImport } from './routes/auth/sign-up'
 import { Route as AuthSignInRouteImport } from './routes/auth/sign-in'
-import { Route as WorkspacesWorkspaceIdSettingsRouteImport } from './routes/workspaces/$workspaceId.settings'
-import { Route as WorkspacesWorkspaceIdMembersRouteImport } from './routes/workspaces/$workspaceId.members'
-import { Route as WorkspacesWorkspaceIdCommunicationsRouteImport } from './routes/workspaces/$workspaceId.communications'
-import { Route as WorkspacesWorkspaceIdSpacesSpaceIdRouteImport } from './routes/workspaces/$workspaceId.spaces.$spaceId'
-import { Route as WorkspacesWorkspaceIdListsListIdRouteImport } from './routes/workspaces/$workspaceId.lists.$listId'
-import { Route as WorkspacesWorkspaceIdFoldersFolderIdRouteImport } from './routes/workspaces/$workspaceId.folders.$folderId'
+import { Route as WorkspacesWorkspaceIdSettingsRouteImport } from './routes/workspaces/$workspaceId/settings'
+import { Route as WorkspacesWorkspaceIdMembersRouteImport } from './routes/workspaces/$workspaceId/members'
+import { Route as WorkspacesWorkspaceIdCommunicationsRouteImport } from './routes/workspaces/$workspaceId/communications'
+import { Route as WorkspacesWorkspaceIdSpacesSpaceIdRouteImport } from './routes/workspaces/$workspaceId/spaces/$spaceId'
+import { Route as WorkspacesWorkspaceIdListsListIdRouteImport } from './routes/workspaces/$workspaceId/lists/$listId'
+import { Route as WorkspacesWorkspaceIdFoldersFolderIdRouteImport } from './routes/workspaces/$workspaceId/folders/$folderId'
 
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',

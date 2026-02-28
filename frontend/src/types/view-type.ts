@@ -1,9 +1,9 @@
 export const ViewType = {
-  List: 0,
-  Board: 1,
-  Calendar: 2,
-  Dashboard: 3,
-  Doc: 4,
+  List: "List",
+  Board: "Board",
+  Calendar: "Calendar",
+  Dashboard: "Dashboard",
+  Doc: "Doc",
 } as const;
 
 export type ViewType = (typeof ViewType)[keyof typeof ViewType];

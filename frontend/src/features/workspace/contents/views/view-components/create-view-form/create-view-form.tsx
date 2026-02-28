@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Field, FieldLabel } from "@/components/ui/field";
 import { ViewType } from "@/types/view-type";
-import { useCreateView } from "../views-api";
+import { useCreateView } from "../../views-api";
 import { toast } from "sonner";
 import {
   Plus,
