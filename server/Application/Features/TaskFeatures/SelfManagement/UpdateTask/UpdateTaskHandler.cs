@@ -1,21 +1,26 @@
 using Application.Interfaces.Repositories;
-using Domain;
 using Application.Helpers;
 using Domain.Entities.ProjectEntities;
-using Domain.Enums;
 using MediatR;
 using server.Application.Interfaces;
+using Application.Contract.Common;
+using Microsoft.EntityFrameworkCore;
+using Domain.Entities.Relationship;
+using Domain.Enums.RelationShip;
 
 namespace Application.Features.TaskFeatures.SelfManagement.UpdateTask;
 
-public class UpdateTaskHandler : BaseFeatureHandler, IRequestHandler<UpdateTaskCommand, Unit>
+public class UpdateTaskHandler : BaseFeatureHandler, IRequestHandler<UpdateTaskCommand, TaskDto>
 {
     public UpdateTaskHandler(IUnitOfWork unitOfWork, ICurrentUserService currentUserService, WorkspaceContext workspaceContext)
         : base(unitOfWork, currentUserService, workspaceContext) { }
 
-    public async Task<Unit> Handle(UpdateTaskCommand request, CancellationToken cancellationToken)
+    public async Task<TaskDto> Handle(UpdateTaskCommand request, CancellationToken cancellationToken)
     {
-        var task = await FindOrThrowAsync<ProjectTask>(request.TaskId);
+        var task = await UnitOfWork.Set<ProjectTask>()
+            .Include(t => t.Assignees)
+            .FirstOrDefaultAsync(t => t.Id == request.TaskId, cancellationToken)
+            ?? throw new KeyNotFoundException($"Task not found: {request.TaskId}");
 
         // Update basic properties
         if (request.Name != null || request.Description != null)
@@ -56,6 +61,60 @@ public class UpdateTaskHandler : BaseFeatureHandler, IRequestHandler<UpdateTaskC
             );
         }
 
-        return Unit.Value;
+        // Update assignees
+        if (request.AssigneeIds != null)
+        {
+            // 1. Validate are workspace members
+            var validUserIds = await ValidateWorkspaceMembers(request.AssigneeIds, cancellationToken);
+            var memberIds = await GetWorkspaceMemberIds(validUserIds, cancellationToken);
+
+            // 2. Validate bubble-up access
+            var accessibleMemberIds = await GetAccessibleMemberIds(task.ProjectListId, EntityLayerType.ProjectList, memberIds);
+
+            if (accessibleMemberIds.Count != memberIds.Count)
+            {
+                throw new System.ComponentModel.DataAnnotations.ValidationException("One or more assignees do not have permission to access this List.");
+            }
+
+            // 3. Process changes
+            var currentMemberIds = task.Assignees.Select(a => a.WorkspaceMemberId).ToHashSet();
+            
+            // Removal
+            var toRemove = currentMemberIds.Where(id => !accessibleMemberIds.Contains(id)).ToList();
+            task.RemoveAsignees(toRemove);
+
+            // Addition
+            var toAdd = accessibleMemberIds.Where(id => !currentMemberIds.Contains(id))
+                .Select(id => TaskAssignment.Create(task.Id, id, CurrentUserId))
+                .ToList();
+            task.AddAsignees(toAdd);
+        }
+
+        await UnitOfWork.SaveChangesAsync(cancellationToken);
+        // Map and return
+        var assigneeDtos = await UnitOfWork.QueryAsync<AssigneeDto>(@"
+            SELECT u.id AS Id, u.name AS Name, NULL AS AvatarUrl
+            FROM   task_assignments ta
+            JOIN   workspace_members wm ON ta.workspace_member_id = wm.id
+            JOIN   users u             ON wm.user_id = u.id
+            WHERE  ta.task_id = @TaskId
+              AND  ta.deleted_at IS NULL", new { TaskId = task.Id });
+
+        return new TaskDto
+        {
+            Id = task.Id,
+            ProjectListId = task.ProjectListId,
+            Name = task.Name,
+            Description = task.Description,
+            StatusId = task.StatusId,
+            Priority = task.Priority,
+            StartDate = task.StartDate,
+            DueDate = task.DueDate,
+            StoryPoints = task.StoryPoints,
+            TimeEstimate = task.TimeEstimate,
+            OrderKey = task.OrderKey,
+            CreatedAt = task.CreatedAt,
+            Assignees = assigneeDtos.ToList()
+        };
     }
 }

@@ -14,8 +14,6 @@ public class WorkspaceMemberConfiguration : EntityConfiguration<WorkspaceMember>
 
         builder.ToTable("workspace_members");
 
-        builder.HasKey(x => new { x.ProjectWorkspaceId, x.UserId });
-
         builder.Property(x => x.UserId).IsRequired().HasColumnName("user_id");
         builder.Property(x => x.ProjectWorkspaceId).IsRequired().HasColumnName("project_workspace_id");
         builder.Property(x => x.Role).HasConversion<string>().HasMaxLength(50).HasColumnName("role").IsRequired();
@@ -28,8 +26,10 @@ public class WorkspaceMemberConfiguration : EntityConfiguration<WorkspaceMember>
         // Indexes for lookups and admin queries
         builder.HasIndex(x => x.ProjectWorkspaceId);
         builder.HasIndex(x => x.UserId);
+        builder.HasIndex(x => new { x.UserId, x.ProjectWorkspaceId });
         builder.HasIndex(x => new { x.ProjectWorkspaceId, x.Status });
 
-        builder.HasOne<ProjectWorkspace>().WithMany(pw => pw.Members).HasForeignKey(x => x.ProjectWorkspaceId).OnDelete(DeleteBehavior.Cascade);
+        builder.HasOne<ProjectWorkspace>().WithMany(pw => pw.Members).HasForeignKey(x => x.ProjectWorkspaceId);
+        builder.HasOne(x => x.User).WithMany().HasForeignKey(x => x.UserId);
     }
 }

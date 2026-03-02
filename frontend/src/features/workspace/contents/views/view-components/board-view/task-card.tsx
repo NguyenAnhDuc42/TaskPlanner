@@ -5,6 +5,7 @@ import { cn } from "@/lib/utils";
 
 interface TaskCardProps {
   task: TaskDto;
+  onClick?: (task: TaskDto) => void;
 }
 
 const getPriorityStyles = (priority: string) => {
@@ -22,13 +23,14 @@ const getPriorityStyles = (priority: string) => {
   }
 };
 
-export function TaskCard({ task }: TaskCardProps) {
+export function TaskCard({ task, onClick }: TaskCardProps) {
   const priorityStyle = getPriorityStyles(task.priority);
 
   return (
     <Card
+      onClick={() => onClick?.(task)}
       className={cn(
-        "shadow-sm hover:shadow-md transition-all duration-200 cursor-grab active:cursor-grabbing border-muted-foreground/10 group bg-card/50 backdrop-blur-[2px] border-l-4",
+        "shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer active:scale-[0.98] border-muted-foreground/10 group bg-card/50 backdrop-blur-[2px] border-l-4",
         priorityStyle,
       )}
     >

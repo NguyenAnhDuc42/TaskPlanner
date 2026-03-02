@@ -16,7 +16,14 @@ public class TaskDto
     public long? TimeEstimate { get; set; }
     public long? OrderKey { get; set; }
     public DateTimeOffset CreatedAt { get; set; }
+    public List<AssigneeDto> Assignees { get; set; } = new();
 }
+
+public record AssigneeDto(
+    Guid Id,
+    string Name,
+    string? AvatarUrl
+);
 
 public record DocumentDto(
     Guid Id,

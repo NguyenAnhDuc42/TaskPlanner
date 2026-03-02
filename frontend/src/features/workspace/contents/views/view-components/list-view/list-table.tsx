@@ -14,6 +14,7 @@ import { cn } from "@/lib/utils";
 interface ListTableProps {
   tasks: TaskDto[];
   visibleCols: string[];
+  onTaskClick?: (task: TaskDto) => void;
 }
 
 const getPriorityStyles = (priority: string) => {
@@ -31,7 +32,7 @@ const getPriorityStyles = (priority: string) => {
   }
 };
 
-export function ListTable({ tasks, visibleCols }: ListTableProps) {
+export function ListTable({ tasks, visibleCols, onTaskClick }: ListTableProps) {
   return (
     <div className="rounded-xl border bg-card/30 backdrop-blur-sm overflow-hidden shadow-sm">
       <Table>
@@ -61,6 +62,7 @@ export function ListTable({ tasks, visibleCols }: ListTableProps) {
           {tasks.map((task) => (
             <TableRow
               key={task.id}
+              onClick={() => onTaskClick?.(task)}
               className="hover:bg-muted/30 cursor-pointer group/row transition-colors border-b last:border-0 h-11"
             >
               <TableCell className="font-medium py-2">

@@ -85,10 +85,43 @@ public class ViewBuilder
         // including access-control joins (entity_access / workspace_members / private flags).
         var userId = _currentUserService.CurrentUserId();
         var sql = TaskSql.GetSql(layerType);
-        var tasks = await _unitOfWork.QueryAsync<TaskDto>(sql, new { layerId, UserId = userId });
+        var tasks = (await _unitOfWork.QueryAsync<TaskDto>(sql, new { layerId, UserId = userId })).ToList();
+
+        await FetchAssignees(tasks);
 
         var statuses = await GetEffectiveStatuses(layerId, layerType);
         return (tasks, statuses);
+    }
+
+    private async Task FetchAssignees(List<TaskDto> tasks)
+    {
+        var taskIds = tasks.Select(t => t.Id).ToList();
+        if (!taskIds.Any()) return;
+
+        const string sql = @"
+            SELECT ta.task_id AS TaskId, u.id AS Id, u.name AS Name, NULL AS AvatarUrl
+            FROM   task_assignments ta
+            JOIN   workspace_members wm ON ta.workspace_member_id = wm.id
+            JOIN   users u             ON wm.user_id = u.id
+            WHERE  ta.task_id IN @TaskIds
+              AND  ta.deleted_at IS NULL";
+
+        var assignments = await _unitOfWork.QueryAsync<dynamic>(sql, new { TaskIds = taskIds });
+
+        var assignmentLookup = assignments
+            .GroupBy(a => (Guid)a.taskid)
+            .ToDictionary(
+                g => g.Key,
+                g => g.Select(a => new AssigneeDto((Guid)a.id, (string)a.name, (string?)a.avatarurl)).ToList()
+            );
+
+        foreach (var task in tasks)
+        {
+            if (assignmentLookup.TryGetValue(task.Id, out var assignees))
+            {
+                task.Assignees = assignees;
+            }
+        }
     }
 
     // Status resolution with Dapper, using correct snake_case column names.

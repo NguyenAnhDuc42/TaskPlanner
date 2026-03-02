@@ -1,6 +1,6 @@
 using Application.Helpers;
 using Application.Interfaces.Repositories;
-using Domain.Entities;
+using Domain.Entities.ProjectEntities;
 using Domain.Entities.Relationship;
 using Domain.Enums.RelationShip;
 using MediatR;
@@ -16,53 +16,181 @@ public class GetEntityAccessListHandler : BaseFeatureHandler, IRequestHandler<Ge
 
     public async Task<List<EntityAccessMemberDto>> Handle(GetEntityAccessListQuery request, CancellationToken cancellationToken)
     {
+        var (resolvedId, resolvedType) = await GetEffectiveAccessLayer(request.LayerId, request.LayerType);
+        var isInheritedFromParent = resolvedId != request.LayerId || resolvedType != request.LayerType;
         var layer = await GetLayer(request.LayerId, request.LayerType);
         var creatorId = layer.CreatorId;
 
-        var accessRecords = await UnitOfWork.Set<EntityAccess>()
+        var explicitAccess = await UnitOfWork.Set<EntityAccess>()
             .AsNoTracking()
-            .Where(ea =>
-                ea.DeletedAt == null &&
-                ea.EntityId == request.LayerId &&
-                ea.EntityLayer == request.LayerType)
-            .ToListAsync(cancellationToken);
+            .Where(ea => ea.EntityId == resolvedId && ea.EntityLayer == resolvedType && ea.DeletedAt == null)
+            .ToDictionaryAsync(ea => ea.WorkspaceMemberId, cancellationToken);
 
-        if (accessRecords.Count == 0) return [];
-
-        var memberIds = accessRecords.Select(ea => ea.WorkspaceMemberId).Distinct().ToList();
-        var members = await UnitOfWork.Set<WorkspaceMember>()
-            .AsNoTracking()
-            .Where(wm => memberIds.Contains(wm.Id) && wm.ProjectWorkspaceId == WorkspaceId && wm.DeletedAt == null)
-            .Select(wm => new { wm.Id, wm.UserId })
-            .ToDictionaryAsync(wm => wm.Id, cancellationToken);
-
-        var userIds = members.Values.Select(m => m.UserId).Distinct().ToList();
-        var users = await UnitOfWork.Set<User>()
-            .AsNoTracking()
-            .Where(u => userIds.Contains(u.Id) && u.DeletedAt == null)
-            .Select(u => new { u.Id, u.Name, u.Email })
-            .ToDictionaryAsync(u => u.Id, cancellationToken);
-
-        var result = new List<EntityAccessMemberDto>(accessRecords.Count);
-
-        foreach (var access in accessRecords)
+        if (request.IsManagementMode)
         {
-            if (!members.TryGetValue(access.WorkspaceMemberId, out var member) || !users.TryGetValue(member.UserId, out var user))
-            {
-                continue;
-            }
-
-            result.Add(new EntityAccessMemberDto(
-                access.WorkspaceMemberId,
-                user.Id,
-                user.Name,
-                user.Email,
-                access.AccessLevel,
-                access.CreatedAt,
-                creatorId.HasValue && creatorId.Value == user.Id
-            ));
+            var parentScopedMemberIds = await GetParentScopedMemberIds(request.LayerId, request.LayerType, cancellationToken);
+            return await GetManagementModeMembers(explicitAccess, resolvedType, creatorId, isInheritedFromParent, parentScopedMemberIds, cancellationToken);
         }
 
-        return result;
+        return await GetAssignableModeMembers(explicitAccess, resolvedType, creatorId, isInheritedFromParent, cancellationToken);
+    }
+
+    private async Task<List<EntityAccessMemberDto>> GetManagementModeMembers(
+        Dictionary<Guid, EntityAccess> explicitAccess,
+        EntityLayerType resolvedType,
+        Guid? creatorId,
+        bool isInheritedFromParent,
+        List<Guid>? parentScopedMemberIds,
+        CancellationToken cancellationToken)
+    {
+        var query = UnitOfWork.Set<WorkspaceMember>()
+            .Include(wm => wm.User)
+            .AsNoTracking()
+            .Where(wm => wm.ProjectWorkspaceId == WorkspaceId && wm.DeletedAt == null);
+
+        // Management candidates must come from the effective parent chain.
+        // If parent chain resolves to Workspace, parentScopedMemberIds is null and all workspace members are allowed.
+        if (parentScopedMemberIds is not null)
+        {
+            query = query.Where(wm => parentScopedMemberIds.Contains(wm.Id));
+        }
+
+        var members = await query.ToListAsync(cancellationToken);
+
+        return members.Select(wm =>
+        {
+            var explicitLevel = explicitAccess.TryGetValue(wm.Id, out var ea) ? ea.AccessLevel : (AccessLevel?)null;
+            var effectiveLevel = explicitLevel ?? (resolvedType == EntityLayerType.ProjectWorkspace ? AccessLevel.Editor : AccessLevel.None);
+            var isInherited = isInheritedFromParent || effectiveLevel != explicitLevel;
+
+            return new EntityAccessMemberDto(
+                wm.Id,
+                wm.UserId,
+                wm.User.Name,
+                wm.User.Email,
+                wm.Role,
+                explicitLevel,
+                effectiveLevel,
+                isInherited,
+                wm.CreatedAt,
+                creatorId.HasValue && creatorId.Value == wm.UserId,
+                wm.UserId == CurrentUserId
+            );
+        }).ToList();
+    }
+
+    private async Task<List<EntityAccessMemberDto>> GetAssignableModeMembers(
+        Dictionary<Guid, EntityAccess> explicitAccess,
+        EntityLayerType resolvedType,
+        Guid? creatorId,
+        bool isInheritedFromParent,
+        CancellationToken cancellationToken)
+    {
+        var query = UnitOfWork.Set<WorkspaceMember>()
+            .Include(wm => wm.User)
+            .AsNoTracking()
+            .Where(wm => wm.ProjectWorkspaceId == WorkspaceId && wm.DeletedAt == null);
+
+        if (resolvedType != EntityLayerType.ProjectWorkspace)
+        {
+            var activeMemberIds = explicitAccess.Keys.ToList();
+            query = query.Where(wm => activeMemberIds.Contains(wm.Id));
+        }
+
+        var results = await query.ToListAsync(cancellationToken);
+
+        return results.Select(wm =>
+        {
+            var explicitLevel = explicitAccess.TryGetValue(wm.Id, out var ea) ? ea.AccessLevel : (AccessLevel?)null;
+            var effectiveLevel = explicitLevel ?? (resolvedType == EntityLayerType.ProjectWorkspace ? AccessLevel.Editor : AccessLevel.None);
+            var isInherited = isInheritedFromParent || effectiveLevel != explicitLevel;
+
+            return new EntityAccessMemberDto(
+                wm.Id,
+                wm.UserId,
+                wm.User.Name,
+                wm.User.Email,
+                wm.Role,
+                explicitLevel,
+                effectiveLevel,
+                isInherited,
+                wm.CreatedAt,
+                creatorId.HasValue && creatorId.Value == wm.UserId,
+                wm.UserId == CurrentUserId
+            );
+        }).ToList();
+    }
+
+    private async Task<List<Guid>?> GetParentScopedMemberIds(
+        Guid layerId,
+        EntityLayerType layerType,
+        CancellationToken cancellationToken)
+    {
+        if (layerType == EntityLayerType.ProjectWorkspace)
+            return null;
+
+        var parent = await GetParentLayer(layerId, layerType, cancellationToken);
+        var (parentResolvedId, parentResolvedType) = await GetEffectiveAccessLayer(parent.Id, parent.Type);
+
+        if (parentResolvedType == EntityLayerType.ProjectWorkspace)
+            return null;
+
+        return await UnitOfWork.Set<EntityAccess>()
+            .AsNoTracking()
+            .Where(ea =>
+                ea.EntityId == parentResolvedId &&
+                ea.EntityLayer == parentResolvedType &&
+                ea.DeletedAt == null)
+            .Select(ea => ea.WorkspaceMemberId)
+            .Distinct()
+            .ToListAsync(cancellationToken);
+    }
+
+    private async Task<(Guid Id, EntityLayerType Type)> GetParentLayer(
+        Guid layerId,
+        EntityLayerType layerType,
+        CancellationToken cancellationToken)
+    {
+        return layerType switch
+        {
+            EntityLayerType.ProjectSpace => (WorkspaceId, EntityLayerType.ProjectWorkspace),
+
+            EntityLayerType.ProjectFolder => await ResolveFolderParent(layerId, cancellationToken),
+
+            EntityLayerType.ProjectList => await ResolveListParent(layerId, cancellationToken),
+
+            _ => throw new ArgumentOutOfRangeException(nameof(layerType), layerType, "Unsupported layer type for parent resolution")
+        };
+    }
+
+    private async Task<(Guid Id, EntityLayerType Type)> ResolveListParent(Guid listId, CancellationToken cancellationToken)
+    {
+        var parent = await UnitOfWork.Set<ProjectList>()
+            .AsNoTracking()
+            .Where(l => l.Id == listId)
+            .Select(l => new { l.ProjectFolderId, l.ProjectSpaceId })
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (parent is null)
+            throw new KeyNotFoundException($"List not found: {listId}");
+
+        if (parent.ProjectFolderId.HasValue)
+            return (parent.ProjectFolderId.Value, EntityLayerType.ProjectFolder);
+
+        return (parent.ProjectSpaceId, EntityLayerType.ProjectSpace);
+    }
+
+    private async Task<(Guid Id, EntityLayerType Type)> ResolveFolderParent(Guid folderId, CancellationToken cancellationToken)
+    {
+        var parentSpaceId = await UnitOfWork.Set<ProjectFolder>()
+            .AsNoTracking()
+            .Where(f => f.Id == folderId)
+            .Select(f => (Guid?)f.ProjectSpaceId)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (!parentSpaceId.HasValue)
+            throw new KeyNotFoundException($"Folder not found: {folderId}");
+
+        return (parentSpaceId.Value, EntityLayerType.ProjectSpace);
     }
 }

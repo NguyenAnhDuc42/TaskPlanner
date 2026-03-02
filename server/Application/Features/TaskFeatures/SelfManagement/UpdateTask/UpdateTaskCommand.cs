@@ -2,6 +2,7 @@ using Application.Common.Interfaces;
 using System;
 using Domain.Enums;
 using MediatR;
+using Application.Contract.Common;
 
 namespace Application.Features.TaskFeatures.SelfManagement.UpdateTask;
 
@@ -14,5 +15,6 @@ public record UpdateTaskCommand(
     DateTimeOffset? StartDate,
     DateTimeOffset? DueDate,
     int? StoryPoints,
-    long? TimeEstimate
-) : ICommand<Unit>;
+    long? TimeEstimate,
+    List<Guid>? AssigneeIds = null
+) : ICommand<TaskDto>;

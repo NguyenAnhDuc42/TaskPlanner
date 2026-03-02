@@ -1,16 +1,22 @@
-import type { TaskListViewResult, ViewDto } from "../../views-type";
+import type { TaskListViewResult, ViewDto, TaskDto } from "../../views-type";
 import { StatusSection } from "./status-section";
 import { ListTable } from "./list-table";
 import { STATUS_CATEGORIES } from "../../../hierarchy/status-constants";
-import { Badge } from "@/components/ui/badge";
+import { useState } from "react";
+import { TaskDetailSheet } from "../../../tasks/task-detail-sheet";
 
 export function TaskListView({
   data,
   view,
+  workspaceId,
+  listId,
 }: {
   data: TaskListViewResult;
   view: ViewDto;
+  workspaceId: string;
+  listId?: string;
 }) {
+  const [selectedTask, setSelectedTask] = useState<TaskDto | null>(null);
   const { tasks, statuses } = data;
 
   const displayConfig = view.displayConfigJson
@@ -28,9 +34,19 @@ export function TaskListView({
   ];
 
   return (
-    <div className="space-y-12 pb-10">
+    <div className="space-y-12 pb-10 relative">
+      <TaskDetailSheet
+        task={selectedTask}
+        isOpen={!!selectedTask}
+        onClose={() => setSelectedTask(null)}
+      />
+
       {!isGroupedByStatus ? (
-        <ListTable tasks={tasks} visibleCols={visibleCols} />
+        <ListTable
+          tasks={tasks}
+          visibleCols={visibleCols}
+          onTaskClick={setSelectedTask}
+        />
       ) : (
         STATUS_CATEGORIES.map((cat) => {
           const catStatuses = statuses.filter((s) => s.category === cat.id);
@@ -48,29 +64,24 @@ export function TaskListView({
                 >
                   {cat.label}
                 </div>
-                <div className="h-px flex-1 bg-muted/20" />
-                <Badge
-                  variant="ghost"
-                  className="text-[10px] text-muted-foreground/40 font-bold uppercase tracking-tighter"
-                >
-                  {catTasksCount} {catTasksCount === 1 ? "task" : "tasks"}
-                </Badge>
+                <div className="h-px w-8 bg-muted/20" />
+                <div className="text-[10px] text-muted-foreground/40 font-bold uppercase tracking-tighter">
+                  {catTasksCount} tasks
+                </div>
               </div>
 
-              <div className="p-4 rounded-2xl border-2 border-dashed border-muted/20 bg-muted/5 space-y-10">
-                {catStatuses.map((status) => {
-                  const statusTasks = tasks.filter(
-                    (t) => t.statusId === status.id,
-                  );
-                  return (
-                    <StatusSection
-                      key={status.id}
-                      status={status}
-                      tasks={statusTasks}
-                      visibleCols={visibleCols}
-                    />
-                  );
-                })}
+              <div className="space-y-6 p-4 rounded-[2rem] border-2 border-dashed border-muted/20 bg-muted/5">
+                {catStatuses.map((s) => (
+                  <StatusSection
+                    key={s.id}
+                    status={s}
+                    tasks={tasks.filter((t) => t.statusId === s.id)}
+                    visibleCols={visibleCols}
+                    workspaceId={workspaceId}
+                    listId={listId}
+                    onTaskClick={setSelectedTask}
+                  />
+                ))}
               </div>
             </div>
           );

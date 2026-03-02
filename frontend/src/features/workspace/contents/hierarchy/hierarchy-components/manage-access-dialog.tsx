@@ -10,7 +10,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { Loader2, ShieldCheck } from "lucide-react";
 import { MemberSelector } from "./member-selector";
-import { useParams } from "@tanstack/react-router";
 import { toast } from "sonner";
 import {
   useSpaceMembersAccess,
@@ -36,7 +35,6 @@ export function ManageAccessDialog({
   open,
   onOpenChange,
 }: Props) {
-  const { workspaceId } = useParams({ strict: false });
   const [selectedMemberIds, setSelectedMemberIds] = useState<string[]>([]);
   const [initialMemberIds, setInitialMemberIds] = useState<string[]>([]);
   const [creatorWorkspaceMemberId, setCreatorWorkspaceMemberId] = useState<
@@ -46,23 +44,26 @@ export function ManageAccessDialog({
     Record<string, AssignableAccessLevel>
   >({});
 
-  const useAccessQuery =
+  const hook =
     layerType === "space"
       ? useSpaceMembersAccess
       : layerType === "folder"
         ? useFolderMembersAccess
         : useListMembersAccess;
 
-  const { data: accessMembers, isLoading: isLoadingAccess } =
-    useAccessQuery(entityId);
+  const { data: accessMembers, isLoading: isLoadingAccess } = hook(
+    entityId,
+    true,
+  );
   const updateAccessBulk = useUpdateEntityAccessBulk();
 
   useEffect(() => {
     if (!open || !accessMembers) return;
 
-    const selectedIds = accessMembers.map((member) =>
-      member.workspaceMemberId.toLowerCase(),
-    );
+    // Filter for members who have explicit or effective access for initial selected state
+    const selectedIds = accessMembers
+      .filter((m) => m.explicitAccess !== null || m.effectiveAccess !== "None")
+      .map((member) => member.workspaceMemberId.toLowerCase());
     const levelMap: Record<string, AssignableAccessLevel> = {};
     const creator = accessMembers
       .find((member) => member.isCreator)
@@ -70,7 +71,7 @@ export function ManageAccessDialog({
 
     for (const member of accessMembers) {
       levelMap[member.workspaceMemberId.toLowerCase()] =
-        toAssignableAccessLevel(member.accessLevel);
+        toAssignableAccessLevel(member.effectiveAccess);
     }
 
     setSelectedMemberIds(selectedIds);
@@ -159,7 +160,8 @@ export function ManageAccessDialog({
             </div>
           ) : (
             <MemberSelector
-              workspaceId={workspaceId || ""}
+              members={accessMembers || []}
+              isLoading={isLoadingAccess}
               selectedIds={selectedMemberIds}
               selectedAccessLevels={selectedAccessLevels}
               creatorWorkspaceMemberId={creatorWorkspaceMemberId}

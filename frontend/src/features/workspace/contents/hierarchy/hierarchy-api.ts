@@ -182,12 +182,18 @@ export function useUpdateList() {
   });
 }
 
-export function useSpaceMembersAccess(spaceId: string) {
+export function useSpaceMembersAccess(
+  spaceId: string,
+  isManagementMode: boolean = false,
+) {
   return useQuery({
-    queryKey: hierarchyKeys.membersAccess("space", spaceId),
+    queryKey: hierarchyKeys.membersAccess("space", spaceId, isManagementMode),
     queryFn: async () => {
       const { data } = await api.get<EntityAccessMember[]>(
         `/entityaccess/${spaceId}/ProjectSpace`,
+        {
+          params: { isManagementMode },
+        },
       );
       return data;
     },
@@ -195,12 +201,18 @@ export function useSpaceMembersAccess(spaceId: string) {
   });
 }
 
-export function useFolderMembersAccess(folderId: string) {
+export function useFolderMembersAccess(
+  folderId: string,
+  isManagementMode: boolean = false,
+) {
   return useQuery({
-    queryKey: hierarchyKeys.membersAccess("folder", folderId),
+    queryKey: hierarchyKeys.membersAccess("folder", folderId, isManagementMode),
     queryFn: async () => {
       const { data } = await api.get<EntityAccessMember[]>(
         `/entityaccess/${folderId}/ProjectFolder`,
+        {
+          params: { isManagementMode },
+        },
       );
       return data;
     },
@@ -208,12 +220,18 @@ export function useFolderMembersAccess(folderId: string) {
   });
 }
 
-export function useListMembersAccess(listId: string) {
+export function useListMembersAccess(
+  listId: string,
+  isManagementMode: boolean = false,
+) {
   return useQuery({
-    queryKey: hierarchyKeys.membersAccess("list", listId),
+    queryKey: hierarchyKeys.membersAccess("list", listId, isManagementMode),
     queryFn: async () => {
       const { data } = await api.get<EntityAccessMember[]>(
         `/entityaccess/${listId}/ProjectList`,
+        {
+          params: { isManagementMode },
+        },
       );
       return data;
     },

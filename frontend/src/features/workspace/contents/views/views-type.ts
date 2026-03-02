@@ -1,22 +1,11 @@
 import { ViewType } from "@/types/view-type";
+import type { TaskDto, StatusDto } from "../tasks/tasks-type";
+
+export type { TaskDto, StatusDto };
 
 // ==========================================
 // Entities
 // ==========================================
-export interface TaskDto {
-  id: string;
-  projectListId: string;
-  name: string;
-  description?: string;
-  statusId?: string;
-  priority: string; // Maps to enum Priority
-  startDate?: string; // ISO date string
-  dueDate?: string; // ISO date string
-  storyPoints?: number;
-  timeEstimate?: number;
-  orderKey?: number;
-  createdAt: string; // ISO date string
-}
 
 export interface DocumentDto {
   id: string;
@@ -25,13 +14,7 @@ export interface DocumentDto {
   content: string;
 }
 
-export interface StatusDto {
-  id: string;
-  name: string;
-  color: string;
-  category: string; // Maps to StatusCategory enum
-  isDefault: boolean;
-}
+// StatusDto is now imported from tasks-type for consistency
 
 // ==========================================
 // View Definition & Configuration

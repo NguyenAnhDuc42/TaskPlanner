@@ -1,4 +1,5 @@
 using Application.Interfaces.Repositories;
+using Application.Interfaces;
 using Domain.Entities.ProjectEntities;
 using MediatR;
 using server.Application.Interfaces;
@@ -9,15 +10,26 @@ namespace Application.Features.StatusManagement.SyncStatuses;
 
 public class SyncStatusesHandler : BaseFeatureHandler, IRequestHandler<SyncStatusesCommand, Unit>
 {
-    public SyncStatusesHandler(IUnitOfWork unitOfWork, ICurrentUserService currentUserService, WorkspaceContext workspaceContext)
-        : base(unitOfWork, currentUserService, workspaceContext) { }
+    private readonly IStatusResolver _statusResolver;
+
+    public SyncStatusesHandler(
+        IUnitOfWork unitOfWork,
+        ICurrentUserService currentUserService,
+        WorkspaceContext workspaceContext,
+        IStatusResolver statusResolver)
+        : base(unitOfWork, currentUserService, workspaceContext)
+    {
+        _statusResolver = statusResolver;
+    }
 
     public async Task<Unit> Handle(SyncStatusesCommand request, CancellationToken cancellationToken)
     {
         await GetLayer(request.LayerId, request.LayerType);
+        var (effectiveLayerId, effectiveLayerType) =
+            await _statusResolver.ResolveEffectiveLayer(request.LayerId, request.LayerType);
 
         var existingStatuses = await UnitOfWork.Set<Status>()
-            .Where(s => s.LayerId == request.LayerId && s.LayerType == request.LayerType)
+            .Where(s => s.LayerId == effectiveLayerId && s.LayerType == effectiveLayerType)
             .ToListAsync(cancellationToken);
 
         foreach (var item in request.Statuses)
@@ -28,8 +40,8 @@ public class SyncStatusesHandler : BaseFeatureHandler, IRequestHandler<SyncStatu
                 if (item.IsDeleted) continue;
 
                 var newStatus = Status.Create(
-                    request.LayerId,
-                    request.LayerType,
+                    effectiveLayerId,
+                    effectiveLayerType,
                     item.Name,
                     item.Color,
                     item.Category,

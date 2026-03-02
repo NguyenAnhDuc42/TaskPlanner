@@ -21,6 +21,9 @@ public class ProjectTask : Entity
     public long? TimeEstimate { get; private set; }
     public long? OrderKey { get; private set; }
 
+    private readonly List<TaskAssignment> _assignees = new();
+    public virtual IReadOnlyCollection<TaskAssignment> Assignees => _assignees.AsReadOnly();    
+
     // EF Core
     private ProjectTask() { }
 
@@ -136,9 +139,27 @@ public class ProjectTask : Entity
         if (TimeEstimate != timeEstimate) { TimeEstimate = timeEstimate; changed = true; }
         if (changed) UpdateTimestamp();
     }
+    public void AddAsignees(List<TaskAssignment> newAssignments)
+    {
+        foreach (var assignment in newAssignments)
+        {
+            if (!_assignees.Any(a => a.WorkspaceMemberId == assignment.WorkspaceMemberId))
+            {
+                _assignees.Add(assignment);
+            }
+        }
+        if (newAssignments.Count > 0) UpdateTimestamp();
+    }
+
+    public void RemoveAsignees(List<Guid> memberIdsToRemove)
+    {
+        var removed = _assignees.RemoveAll(a => memberIdsToRemove.Contains(a.WorkspaceMemberId));
+        if (removed > 0) UpdateTimestamp();
+    }
 
     public void Archive() { if (IsArchived) return; IsArchived = true; UpdateTimestamp(); }
     public void Unarchive() { if (!IsArchived) return; IsArchived = false; UpdateTimestamp(); }
+
 
     private static void ValidateBasicInfo(string name, string? description)
     {
@@ -157,4 +178,6 @@ public class ProjectTask : Entity
         if (storyPoints.HasValue && storyPoints < 0) throw new ArgumentOutOfRangeException(nameof(storyPoints));
         if (timeEstimateSeconds.HasValue && timeEstimateSeconds < 0) throw new ArgumentOutOfRangeException(nameof(timeEstimateSeconds));
     }
+
+
 }

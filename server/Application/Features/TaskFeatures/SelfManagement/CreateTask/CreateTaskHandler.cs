@@ -1,21 +1,20 @@
 using Application.Interfaces.Repositories;
-using Domain;
 using Application.Helpers;
 using Domain.Entities.ProjectEntities;
 using Domain.Entities.Relationship;
-using Domain.Enums;
 using MediatR;
-using Microsoft.EntityFrameworkCore;
 using server.Application.Interfaces;
+using Application.Contract.Common;
+using Domain.Enums.RelationShip;
 
 namespace Application.Features.TaskFeatures.SelfManagement.CreateTask;
 
-public class CreateTaskHandler : BaseFeatureHandler, IRequestHandler<CreateTaskCommand, Guid>
+public class CreateTaskHandler : BaseFeatureHandler, IRequestHandler<CreateTaskCommand, TaskDto>
 {
     public CreateTaskHandler(IUnitOfWork unitOfWork, ICurrentUserService currentUserService, WorkspaceContext workspaceContext)
         : base(unitOfWork, currentUserService, workspaceContext) { }
 
-    public async Task<Guid> Handle(CreateTaskCommand request, CancellationToken cancellationToken)
+    public async Task<TaskDto> Handle(CreateTaskCommand request, CancellationToken cancellationToken)
     {
         var list = await FindOrThrowAsync<ProjectList>(request.ListId);
 
@@ -40,18 +39,52 @@ public class CreateTaskHandler : BaseFeatureHandler, IRequestHandler<CreateTaskC
         await UnitOfWork.Set<ProjectTask>().AddAsync(task, cancellationToken);
 
         // Immediate assignment
+        var assignees = new List<AssigneeDto>();
         if (request.AssigneeIds?.Any() == true)
         {
-            // Validate assignees are workspace members
-            var validMembers = await ValidateWorkspaceMembers(request.AssigneeIds, cancellationToken);
+            // Validate assignees are workspace members and get their MemberIds
+            var validUserIds = await ValidateWorkspaceMembers(request.AssigneeIds, cancellationToken);
+            var memberIds = await GetWorkspaceMemberIds(validUserIds, cancellationToken);
+
+            // 2. Validate bubble-up access (Space/Folder/List privacy)
+            var accessibleMemberIds = await GetAccessibleMemberIds(request.ListId, EntityLayerType.ProjectList, memberIds);
+
+            if (accessibleMemberIds.Count != memberIds.Count)
+            {
+                throw new System.ComponentModel.DataAnnotations.ValidationException("One or more assignees do not have permission to access this List.");
+            }
 
             // Create assignments
-            var assignments = validMembers
-                .Select(userId => TaskAssignment.Assign(task.Id, userId, CurrentUserId));
+            var assignments = accessibleMemberIds.Select(memberId => TaskAssignment.Create(task.Id, memberId, CurrentUserId));
 
-            await UnitOfWork.Set<TaskAssignment>().AddRangeAsync(assignments, cancellationToken);
+            task.AddAsignees(assignments.ToList());
+
+            // Fetch assignee details for the DTO
+            var details = await UnitOfWork.QueryAsync<AssigneeDto>(@"
+                SELECT u.id AS Id, u.name AS Name, NULL AS AvatarUrl
+                FROM users u
+                JOIN workspace_members wm ON wm.user_id = u.id
+                WHERE wm.id IN @MemberIds", new { MemberIds = accessibleMemberIds });
+            assignees = details.ToList();
         }
 
-        return task.Id;
+
+
+        return new TaskDto
+        {
+            Id = task.Id,
+            ProjectListId = task.ProjectListId,
+            Name = task.Name,
+            Description = task.Description,
+            StatusId = task.StatusId,
+            Priority = task.Priority,
+            StartDate = task.StartDate,
+            DueDate = task.DueDate,
+            StoryPoints = task.StoryPoints,
+            TimeEstimate = task.TimeEstimate,
+            OrderKey = task.OrderKey,
+            CreatedAt = task.CreatedAt,
+            Assignees = assignees
+        };
     }
 }

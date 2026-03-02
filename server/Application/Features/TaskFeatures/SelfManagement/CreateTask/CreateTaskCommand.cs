@@ -1,6 +1,7 @@
 using Application.Common.Interfaces;
 using System;
 using Domain.Enums;
+using Application.Contract.Common;
 
 namespace Application.Features.TaskFeatures.SelfManagement.CreateTask;
 
@@ -15,4 +16,4 @@ public record CreateTaskCommand(
     DateTimeOffset? DueDate,
     int? StoryPoints,
     long? TimeEstimate
-) : ICommand<Guid>;  // Return task ID
+) : ICommand<TaskDto>;  // Return TaskDto

@@ -25,9 +25,9 @@ public class EntityAccessController : ControllerBase
     }
 
     [HttpGet("{entityId:guid}/{layerType}")]
-    public async Task<IActionResult> GetAccessList(Guid entityId, EntityLayerType layerType, CancellationToken cancellationToken)
+    public async Task<IActionResult> GetAccessList(Guid entityId, EntityLayerType layerType, [FromQuery] bool isManagementMode, CancellationToken cancellationToken)
     {
-        var query = new GetEntityAccessListQuery(entityId, layerType);
+        var query = new GetEntityAccessListQuery(entityId, layerType, isManagementMode);
         var result = await _mediator.Send(query, cancellationToken);
         return Ok(result);
     }

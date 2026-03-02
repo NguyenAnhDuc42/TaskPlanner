@@ -2,18 +2,26 @@ import type {
   TasksBoardViewResult,
   DisplayConfig,
   ViewDto,
+  TaskDto,
 } from "../../views-type";
 import { Plus } from "lucide-react";
 import { BoardColumn } from "./board-column";
 import { STATUS_CATEGORIES } from "../../../hierarchy/status-constants";
+import { useState } from "react";
+import { TaskDetailSheet } from "../../../tasks/task-detail-sheet";
 
 export function TaskBoardView({
   data,
   view,
+  workspaceId,
+  listId,
 }: {
   data: TasksBoardViewResult;
   view: ViewDto;
+  workspaceId: string;
+  listId?: string;
 }) {
+  const [selectedTask, setSelectedTask] = useState<TaskDto | null>(null);
   const { tasks, statuses } = data;
 
   const displayConfig: DisplayConfig = view.displayConfigJson
@@ -25,7 +33,14 @@ export function TaskBoardView({
   if (!isGroupedByStatus) {
     return (
       <div className="h-full flex gap-4 overflow-x-auto pb-4 no-scrollbar">
-        <BoardColumn name="All Tasks" color="#888888" tasks={tasks} />
+        <BoardColumn
+          name="All Tasks"
+          color="#888888"
+          tasks={tasks}
+          workspaceId={workspaceId}
+          listId={listId}
+          onTaskClick={setSelectedTask}
+        />
       </div>
     );
   }
@@ -38,7 +53,13 @@ export function TaskBoardView({
   });
 
   return (
-    <div className="h-full flex gap-8 overflow-x-auto pb-6 no-scrollbar items-start">
+    <div className="h-full flex gap-8 overflow-x-auto pb-6 no-scrollbar items-start relative">
+      <TaskDetailSheet
+        task={selectedTask}
+        isOpen={!!selectedTask}
+        onClose={() => setSelectedTask(null)}
+      />
+
       {STATUS_CATEGORIES.map((cat) => {
         const catStatuses = sortedStatuses.filter((s) => s.category === cat.id);
         if (catStatuses.length === 0) return null;
@@ -68,6 +89,10 @@ export function TaskBoardView({
                   name={s.name}
                   color={s.color}
                   tasks={tasks.filter((t) => t.statusId === s.id)}
+                  statusId={s.id}
+                  workspaceId={workspaceId}
+                  listId={listId}
+                  onTaskClick={setSelectedTask}
                 />
               ))}
             </div>

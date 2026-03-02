@@ -50,6 +50,9 @@ export function ViewContainer({ layerType }: ViewContainerProps) {
     );
   }
 
+  const workspaceId = params.workspaceId as string;
+  const listId = layerType === "ProjectList" ? layerId : undefined;
+
   return (
     <div className="flex flex-col h-full overflow-hidden">
       <ViewTabBar
@@ -79,12 +82,16 @@ export function ViewContainer({ layerType }: ViewContainerProps) {
               <TaskListView
                 data={viewData as TaskListViewResult}
                 view={activeView}
+                workspaceId={workspaceId}
+                listId={listId}
               />
             )}
             {activeView.viewType === ViewType.Board && (
               <TaskBoardView
                 data={viewData as TasksBoardViewResult}
                 view={activeView}
+                workspaceId={workspaceId}
+                listId={listId}
               />
             )}
             {/* Add more types as implemented */}

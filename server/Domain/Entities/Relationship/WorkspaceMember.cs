@@ -1,4 +1,5 @@
 using System;
+using Domain.Entities;
 using System.ComponentModel.DataAnnotations;
 using Domain.Common;
 using Domain.Enums;
@@ -11,6 +12,7 @@ namespace Domain.Entities.Relationship;
 public class WorkspaceMember : Entity
 {
     public Guid UserId { get; private set; }
+    public virtual User User { get; private set; } = null!;
     public Guid ProjectWorkspaceId { get; private set; }
     public Role Role { get; private set; } // Only here
     public MembershipStatus Status { get; private set; } // Pending, Active, Invited, Suspended

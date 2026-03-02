@@ -1,11 +1,16 @@
 import { useState, useMemo } from "react";
-import { useMembers } from "../../members/members-api";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Search, UserPlus, UserX } from "lucide-react";
+import {
+  Search,
+  UserPlus,
+  UserX,
+  Shield,
+  ShieldCheck,
+  ShieldAlert,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
-import type { MemberSummary } from "../../members/members-type";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -18,9 +23,11 @@ import {
   ASSIGNABLE_ACCESS_LEVELS,
   type AssignableAccessLevel,
 } from "@/types/access-level";
+import type { EntityAccessMember } from "../hierarchy-type";
 
 interface Props {
-  workspaceId: string;
+  members: EntityAccessMember[];
+  isLoading: boolean;
   selectedIds: string[];
   selectedAccessLevels: Record<string, AssignableAccessLevel>;
   creatorWorkspaceMemberId?: string;
@@ -29,7 +36,8 @@ interface Props {
 }
 
 export function MemberSelector({
-  workspaceId,
+  members,
+  isLoading,
   selectedIds,
   selectedAccessLevels,
   creatorWorkspaceMemberId,
@@ -37,22 +45,19 @@ export function MemberSelector({
   onAccessLevelChange,
 }: Props) {
   const [search, setSearch] = useState("");
-  const { data: membersPack, isLoading } = useMembers(workspaceId, {
-    name: search || undefined,
-  });
 
-  const allMembers = useMemo(() => {
-    return membersPack?.pages.flatMap((page) => page.items) || [];
-  }, [membersPack]);
+  const filteredMembers = useMemo(() => {
+    return members.filter(
+      (m) =>
+        m.userName.toLowerCase().includes(search.toLowerCase()) ||
+        m.userEmail.toLowerCase().includes(search.toLowerCase()),
+    );
+  }, [members, search]);
 
   const sortedMembers = useMemo(() => {
-    return [...allMembers].sort((a: MemberSummary, b: MemberSummary) => {
-      const aSelected = selectedIds.some(
-        (id) => id.toLowerCase() === a.workspaceMemberId.toLowerCase(),
-      );
-      const bSelected = selectedIds.some(
-        (id) => id.toLowerCase() === b.workspaceMemberId.toLowerCase(),
-      );
+    return [...filteredMembers].sort((a, b) => {
+      const aSelected = selectedIds.includes(a.workspaceMemberId.toLowerCase());
+      const bSelected = selectedIds.includes(b.workspaceMemberId.toLowerCase());
 
       if (aSelected !== bSelected) return aSelected ? -1 : 1;
 
@@ -64,9 +69,9 @@ export function MemberSelector({
         b.workspaceMemberId.toLowerCase();
       if (aIsCreator !== bIsCreator) return aIsCreator ? -1 : 1;
 
-      return (a.name || "").localeCompare(b.name || "");
+      return (a.userName || "").localeCompare(b.userName || "");
     });
-  }, [allMembers, selectedIds, creatorWorkspaceMemberId]);
+  }, [filteredMembers, selectedIds, creatorWorkspaceMemberId]);
 
   return (
     <div className="space-y-3">
@@ -87,22 +92,24 @@ export function MemberSelector({
         />
       </div>
 
-      <ScrollArea className="h-[260px] border rounded-md p-2">
+      <ScrollArea className="h-[300px] border rounded-md p-2">
         {isLoading ? (
           <div className="p-4 text-center text-xs text-muted-foreground">
             Loading members...
           </div>
-        ) : allMembers.length === 0 ? (
+        ) : members.length === 0 ? (
           <div className="p-4 text-center text-xs text-muted-foreground">
             No members found.
           </div>
         ) : (
           <div className="space-y-2">
-            {sortedMembers.map((member: MemberSummary) => {
+            {sortedMembers.map((member) => {
               const memberId = member.workspaceMemberId.toLowerCase();
               const selected = selectedIds.includes(memberId);
               const isCreator =
                 creatorWorkspaceMemberId?.toLowerCase() === memberId;
+              const isInherited = member.isInherited;
+              const role = member.role;
 
               return (
                 <div
@@ -110,30 +117,67 @@ export function MemberSelector({
                   className={cn(
                     "w-full flex items-center gap-2 px-2 py-2 rounded-md border text-sm transition-colors",
                     selected
-                      ? "bg-primary/10 border-primary/40 text-foreground"
+                      ? "bg-primary/5 border-primary/20 text-foreground"
                       : "bg-card border-border hover:bg-muted",
+                    isInherited && "border-dashed",
                   )}
                 >
                   <div className="flex-1 min-w-0 flex items-center gap-3">
                     <div className="flex-1 text-left min-w-0">
-                      <div className="font-medium truncate">{member.name}</div>
-                      <div className="text-[10px] text-muted-foreground truncate mt-0.5">
-                        {member.email}
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium truncate">
+                          {member.userName}
+                        </span>
+                        {role === "Owner" && (
+                          <ShieldAlert className="h-3 w-3 text-red-500" />
+                        )}
+                        {role === "Admin" && (
+                          <ShieldCheck className="h-3 w-3 text-blue-500" />
+                        )}
+                        {role === "Member" && (
+                          <Shield className="h-3 w-3 text-slate-500" />
+                        )}
+                        <span className="text-[9px] text-muted-foreground font-normal">
+                          ({role})
+                        </span>
                       </div>
-                      {isCreator ? (
-                        <div className="text-[10px] text-primary mt-0.5">
-                          Creator
-                        </div>
-                      ) : null}
+                      <div className="text-[10px] text-muted-foreground truncate">
+                        {member.userEmail}
+                      </div>
+                      <div className="flex items-center gap-2 mt-0.5">
+                        {member.isMe && (
+                          <Badge
+                            variant="outline"
+                            className="px-1 py-0 text-[8px] h-3.5 border-blue-200 text-blue-600 uppercase"
+                          >
+                            You
+                          </Badge>
+                        )}
+                        {isCreator && (
+                          <Badge
+                            variant="secondary"
+                            className="px-1 py-0 text-[8px] h-3.5 uppercase"
+                          >
+                            Creator
+                          </Badge>
+                        )}
+                        {isInherited && (
+                          <Badge
+                            variant="outline"
+                            className="px-1 py-0 text-[8px] h-3.5 border-dashed text-orange-500 border-orange-200 uppercase"
+                          >
+                            Inherited
+                          </Badge>
+                        )}
+                      </div>
                     </div>
                   </div>
+
                   <Select
-                    value={
-                      selectedAccessLevels[memberId.toLowerCase()] ?? "Editor"
-                    }
+                    value={selectedAccessLevels[memberId] ?? "Editor"}
                     onValueChange={(value) =>
                       onAccessLevelChange(
-                        memberId.toLowerCase(),
+                        memberId,
                         value as AssignableAccessLevel,
                       )
                     }
@@ -141,7 +185,7 @@ export function MemberSelector({
                   >
                     <SelectTrigger
                       size="sm"
-                      className="w-[92px] shrink-0"
+                      className="w-[92px] shrink-0 h-8"
                       onClick={(e) => e.stopPropagation()}
                     >
                       <SelectValue placeholder="Access" />
@@ -154,17 +198,18 @@ export function MemberSelector({
                       ))}
                     </SelectContent>
                   </Select>
+
                   {selected ? (
                     <Button
                       type="button"
                       size="sm"
-                      variant={isCreator ? "secondary" : "destructive"}
+                      variant={isCreator ? "ghost" : "destructive"}
                       className="h-8 px-2 text-xs shrink-0"
-                      disabled={isCreator}
+                      disabled={isCreator || isInherited}
                       onClick={() => onToggle(memberId)}
                     >
-                      <UserX className="h-3.5 w-3.5 mr-1" />
-                      {isCreator ? "Locked" : "Remove"}
+                      <UserX className="h-3.5 w-3.5" />
+                      {isCreator || isInherited ? "" : ""}
                     </Button>
                   ) : (
                     <Button
@@ -172,18 +217,15 @@ export function MemberSelector({
                       size="sm"
                       variant="outline"
                       className="h-8 px-2 text-xs shrink-0"
-                      disabled={isCreator}
                       onClick={() => {
                         onAccessLevelChange(
                           memberId,
-                          selectedAccessLevels[memberId.toLowerCase()] ??
-                            "Editor",
+                          selectedAccessLevels[memberId] ?? "Editor",
                         );
                         onToggle(memberId);
                       }}
                     >
-                      <UserPlus className="h-3.5 w-3.5 mr-1" />
-                      Add
+                      <UserPlus className="h-3.5 w-3.5" />
                     </Button>
                   )}
                 </div>
