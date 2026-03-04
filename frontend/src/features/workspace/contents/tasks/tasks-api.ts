@@ -1,16 +1,45 @@
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api-client";
 import type {
   TaskDto,
   CreateTaskRequest,
   UpdateTaskRequest,
+  TaskCreateListOption,
 } from "./tasks-type";
+
+export const useTaskCreateListOptions = (
+  workspaceId: string,
+  layerId: string,
+  layerType: string,
+  statusId?: string,
+) => {
+  return useQuery({
+    queryKey: [
+      "task-create-list-options",
+      workspaceId,
+      layerId,
+      layerType,
+      statusId,
+    ],
+    queryFn: async () => {
+      const response = await api.get<TaskCreateListOption[]>(
+        "/lists/task-create-options",
+        {
+          params: { layerId, layerType, statusId },
+          headers: { "X-Workspace-Id": workspaceId },
+        },
+      );
+      return response.data;
+    },
+    enabled: !!workspaceId && !!layerId && !!layerType,
+  });
+};
 
 export const useCreateTask = (workspaceId: string) => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (data: CreateTaskRequest) => {
-      const response = await api.post<string>("/tasks", data, {
+      const response = await api.post<TaskDto>("/tasks", data, {
         headers: { "X-Workspace-Id": workspaceId },
       });
       return response.data;

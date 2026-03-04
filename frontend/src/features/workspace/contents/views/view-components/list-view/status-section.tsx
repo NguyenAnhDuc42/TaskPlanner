@@ -10,6 +10,8 @@ interface StatusSectionProps {
   tasks: TaskDto[];
   visibleCols: string[];
   workspaceId: string;
+  layerId: string;
+  layerType: "ProjectSpace" | "ProjectFolder" | "ProjectList";
   listId?: string;
   onTaskClick?: (task: TaskDto) => void;
 }
@@ -19,6 +21,8 @@ export function StatusSection({
   tasks,
   visibleCols,
   workspaceId,
+  layerId,
+  layerType,
   listId,
   onTaskClick,
 }: StatusSectionProps) {
@@ -73,13 +77,13 @@ export function StatusSection({
         />
       </div>
 
-      {listId && (
-        <InlineCreateTask
-          listId={listId}
-          statusId={status.id}
-          workspaceId={workspaceId}
-        />
-      )}
+      <InlineCreateTask
+        listId={listId}
+        statusId={status.id}
+        workspaceId={workspaceId}
+        layerId={layerId}
+        layerType={layerType}
+      />
     </div>
   );
 }

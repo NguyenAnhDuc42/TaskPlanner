@@ -36,6 +36,13 @@ export interface CreateTaskRequest {
   assigneeIds?: string[];
 }
 
+export interface TaskCreateListOption {
+  id: string;
+  name: string;
+  color: string;
+  icon: string;
+}
+
 export interface UpdateTaskRequest {
   taskId: string;
   name?: string;

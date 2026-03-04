@@ -1,6 +1,7 @@
 using Application.Features.ListFeatures.SelfManagement.CreateList;
 using Application.Features.ListFeatures.SelfManagement.DeleteList;
 using Application.Features.ListFeatures.SelfManagement.UpdateList;
+using Application.Features.ListFeatures.Support.GetTaskCreateLists;
 using Application.Features.EntityAccessManagement.GetEntityAccessList;
 using Domain.Enums.RelationShip;
 using MediatR;
@@ -83,6 +84,17 @@ namespace Api.Controllers
         {
             var query = new GetEntityAccessListQuery(id, EntityLayerType.ProjectList);
             var result = await _mediator.Send(query, cancellationToken);
+            return Ok(result);
+        }
+
+        [HttpGet("task-create-options")]
+        public async Task<IActionResult> GetTaskCreateOptions(
+            [FromQuery] Guid layerId,
+            [FromQuery] EntityLayerType layerType,
+            [FromQuery] Guid? statusId,
+            CancellationToken cancellationToken)
+        {
+            var result = await _mediator.Send(new GetTaskCreateListsQuery(layerId, layerType, statusId), cancellationToken);
             return Ok(result);
         }
     }

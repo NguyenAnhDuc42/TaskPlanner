@@ -12,6 +12,8 @@ interface BoardColumnProps {
   tasks: TaskDto[];
   statusId?: string;
   workspaceId: string;
+  layerId: string;
+  layerType: "ProjectSpace" | "ProjectFolder" | "ProjectList";
   listId?: string;
   onTaskClick?: (task: TaskDto) => void;
 }
@@ -22,6 +24,8 @@ export function BoardColumn({
   tasks,
   statusId,
   workspaceId,
+  layerId,
+  layerType,
   listId,
   onTaskClick,
 }: BoardColumnProps) {
@@ -66,13 +70,13 @@ export function BoardColumn({
             <TaskCard key={task.id} task={task} onClick={onTaskClick} />
           ))}
 
-          {listId && (
-            <InlineCreateTask
-              listId={listId}
-              statusId={statusId}
-              workspaceId={workspaceId}
-            />
-          )}
+          <InlineCreateTask
+            listId={listId}
+            statusId={statusId}
+            workspaceId={workspaceId}
+            layerId={layerId}
+            layerType={layerType}
+          />
         </div>
       </ScrollArea>
     </div>

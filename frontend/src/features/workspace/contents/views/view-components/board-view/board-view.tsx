@@ -14,11 +14,15 @@ export function TaskBoardView({
   data,
   view,
   workspaceId,
+  layerId,
+  layerType,
   listId,
 }: {
   data: TasksBoardViewResult;
   view: ViewDto;
   workspaceId: string;
+  layerId: string;
+  layerType: "ProjectSpace" | "ProjectFolder" | "ProjectList";
   listId?: string;
 }) {
   const [selectedTask, setSelectedTask] = useState<TaskDto | null>(null);
@@ -38,6 +42,8 @@ export function TaskBoardView({
           color="#888888"
           tasks={tasks}
           workspaceId={workspaceId}
+          layerId={layerId}
+          layerType={layerType}
           listId={listId}
           onTaskClick={setSelectedTask}
         />
@@ -91,6 +97,8 @@ export function TaskBoardView({
                   tasks={tasks.filter((t) => t.statusId === s.id)}
                   statusId={s.id}
                   workspaceId={workspaceId}
+                  layerId={layerId}
+                  layerType={layerType}
                   listId={listId}
                   onTaskClick={setSelectedTask}
                 />

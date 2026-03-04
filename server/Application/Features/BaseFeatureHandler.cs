@@ -1,4 +1,5 @@
 
+using System.ComponentModel.DataAnnotations;
 using Application.Helpers;
 using Application.Interfaces.Repositories;
 using Domain.Common;
@@ -88,7 +89,7 @@ public abstract class BaseFeatureHandler
         var result = await UnitOfWork.QuerySingleOrDefaultAsync<dynamic>(sql, new { EntityId = entityId, EntityType = type.ToString() });
 
         if (result == null) return (WorkspaceId, EntityLayerType.ProjectWorkspace);
-        
+
         return (result.id, Enum.Parse<EntityLayerType>(result.entity_type));
     }
 
@@ -112,12 +113,88 @@ public abstract class BaseFeatureHandler
 
         // Otherwise, filter by explicit EntityAccess on the resolved private layer
         return await UnitOfWork.Set<EntityAccess>()
-            .Where(ea => ea.EntityId == resolvedId 
-                   && ea.EntityLayer == resolvedType 
+            .Where(ea => ea.EntityId == resolvedId
+                   && ea.EntityLayer == resolvedType
                    && memberIds.Contains(ea.WorkspaceMemberId)
                    && ea.DeletedAt == null)
             .Select(ea => ea.WorkspaceMemberId)
             .ToListAsync();
+    }
+
+    protected async Task<(Guid Id, EntityLayerType Type)> GetEffectiveStatusLayer(Guid entityId, EntityLayerType type)
+    {
+        switch (type)
+        {
+            case EntityLayerType.ProjectList:
+                {
+                    var list = await UnitOfWork.Set<ProjectList>()
+                        .AsNoTracking()
+                        .FirstOrDefaultAsync(x => x.Id == entityId);
+
+                    if (list == null) throw new KeyNotFoundException("List not found");
+                    if (!list.InheritStatus) return (entityId, type);
+
+                    if (list.ProjectFolderId.HasValue)
+                        return await GetEffectiveStatusLayer(list.ProjectFolderId.Value, EntityLayerType.ProjectFolder);
+
+                    return await GetEffectiveStatusLayer(list.ProjectSpaceId, EntityLayerType.ProjectSpace);
+                }
+
+            case EntityLayerType.ProjectFolder:
+                {
+                    var folder = await UnitOfWork.Set<ProjectFolder>()
+                        .AsNoTracking()
+                        .FirstOrDefaultAsync(x => x.Id == entityId);
+
+                    if (folder == null) throw new KeyNotFoundException("Folder not found");
+                    if (!folder.InheritStatus) return (entityId, type);
+
+                    return await GetEffectiveStatusLayer(folder.ProjectSpaceId, EntityLayerType.ProjectSpace);
+                }
+
+            case EntityLayerType.ProjectSpace:
+                return (entityId, type);
+
+            default:
+                return (entityId, type);
+        }
+    }
+
+    protected async Task<Guid?> ResolveTaskStatusId(Guid listId, Guid? requestedStatusId, CancellationToken ct)
+    {
+        var (effectiveLayerId, effectiveLayerType) =
+            await GetEffectiveStatusLayer(listId, EntityLayerType.ProjectList);
+
+        if (requestedStatusId.HasValue)
+        {
+            var isValidStatus = await UnitOfWork.Set<Status>()
+                .AsNoTracking()
+                .AnyAsync(
+                    s => s.Id == requestedStatusId.Value
+                      && s.LayerId == effectiveLayerId
+                      && s.LayerType == effectiveLayerType
+                      && s.DeletedAt == null,
+                    ct);
+
+            if (!isValidStatus)
+            {
+                throw new ValidationException(
+                    "Selected status does not belong to the effective status layer for this task.");
+            }
+
+            return requestedStatusId.Value;
+        }
+
+        return await UnitOfWork.Set<Status>()
+            .AsNoTracking()
+            .Where(s =>
+                s.LayerId == effectiveLayerId &&
+                s.LayerType == effectiveLayerType &&
+                s.DeletedAt == null)
+            .OrderByDescending(s => s.IsDefaultStatus)
+            .ThenBy(s => s.CreatedAt)
+            .Select(s => (Guid?)s.Id)
+            .FirstOrDefaultAsync(ct);
     }
     protected async Task<List<Guid>> ValidateWorkspaceMembers(List<Guid> userIds, CancellationToken ct)
     {
@@ -132,7 +209,7 @@ public abstract class BaseFeatureHandler
         if (validMembers.Count != userIds.Count)
         {
             var invalidIds = userIds.Except(validMembers).ToList();
-            throw new System.ComponentModel.DataAnnotations.ValidationException($"One or more users are not workspace members. Invalid user IDs: {string.Join(", ", invalidIds)}");
+            throw new ValidationException($"One or more users are not workspace members. Invalid user IDs: {string.Join(", ", invalidIds)}");
         }
 
         return validMembers;
@@ -159,7 +236,7 @@ public abstract class BaseFeatureHandler
 
         if (members.Count != userIds.Count)
         {
-            throw new System.ComponentModel.DataAnnotations.ValidationException("One or more users are not members of this workspace.");
+            throw new ValidationException("One or more users are not members of this workspace.");
         }
 
         return members;

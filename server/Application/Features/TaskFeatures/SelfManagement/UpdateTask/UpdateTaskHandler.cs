@@ -7,6 +7,7 @@ using Application.Contract.Common;
 using Microsoft.EntityFrameworkCore;
 using Domain.Entities.Relationship;
 using Domain.Enums.RelationShip;
+using System.ComponentModel.DataAnnotations;
 
 namespace Application.Features.TaskFeatures.SelfManagement.UpdateTask;
 
@@ -34,7 +35,12 @@ public class UpdateTaskHandler : BaseFeatureHandler, IRequestHandler<UpdateTaskC
         // Update status
         if (request.StatusId.HasValue && request.StatusId.Value != task.StatusId)
         {
-            task.UpdateStatus(request.StatusId.Value);
+            var resolvedStatusId = await ResolveTaskStatusId(task.ProjectListId, request.StatusId.Value, cancellationToken);
+            if (!resolvedStatusId.HasValue)
+            {
+                throw new ValidationException("No valid status found in effective status layer.");
+            }
+            task.UpdateStatus(resolvedStatusId.Value);
         }
 
         // Update priority

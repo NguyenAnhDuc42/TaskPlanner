@@ -18,8 +18,7 @@ public class CreateTaskHandler : BaseFeatureHandler, IRequestHandler<CreateTaskC
     {
         var list = await FindOrThrowAsync<ProjectList>(request.ListId);
 
-        // Get or use default status (TODO: implement GetDefaultStatusId when Status CRUD is done)
-        Guid statusId = request.StatusId ?? Guid.Empty; // Temporary - will need actual status
+        var statusId = await ResolveTaskStatusId(request.ListId, request.StatusId, cancellationToken);
 
         var task = ProjectTask.Create(
             projectListId: request.ListId,
@@ -64,7 +63,7 @@ public class CreateTaskHandler : BaseFeatureHandler, IRequestHandler<CreateTaskC
                 SELECT u.id AS Id, u.name AS Name, NULL AS AvatarUrl
                 FROM users u
                 JOIN workspace_members wm ON wm.user_id = u.id
-                WHERE wm.id IN @MemberIds", new { MemberIds = accessibleMemberIds });
+                WHERE wm.id = ANY(@MemberIds)", new { MemberIds = accessibleMemberIds.ToArray() });
             assignees = details.ToList();
         }
 

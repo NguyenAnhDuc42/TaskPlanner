@@ -1,6 +1,7 @@
 import type { DisplayConfig, ViewDto } from "./views-type";
 import { useUpdateView } from "./views-api";
 import { CreateViewForm } from "./view-components/create-view-form/create-view-form";
+import { CreateTaskButton } from "../tasks/tasks-component/create-task-button";
 import { Button } from "@/components/ui/button";
 import { Filter, ArrowDownUp, Group, Columns3, Settings2 } from "lucide-react";
 import {
@@ -18,6 +19,7 @@ interface ViewOptionsBarProps {
   view: ViewDto;
   layerId: string;
   layerType: string;
+  workspaceId: string;
 }
 
 const COLUMNS = [
@@ -30,6 +32,7 @@ export function ViewOptionsBar({
   view,
   layerId,
   layerType,
+  workspaceId,
 }: ViewOptionsBarProps) {
   const updateView = useUpdateView();
 
@@ -232,6 +235,11 @@ export function ViewOptionsBar({
       </DropdownMenu>
 
       <div className="ml-auto flex items-center gap-3">
+        <CreateTaskButton
+          workspaceId={workspaceId}
+          layerId={layerId}
+          layerType={layerType}
+        />
         <CreateViewForm layerId={layerId} layerType={layerType} />
         <Button
           variant="ghost"

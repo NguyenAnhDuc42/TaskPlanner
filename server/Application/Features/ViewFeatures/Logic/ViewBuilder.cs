@@ -89,8 +89,50 @@ public class ViewBuilder
 
         await FetchAssignees(tasks);
 
-        var statuses = await GetEffectiveStatuses(layerId, layerType);
+        var statuses = layerType == EntityLayerType.ProjectList
+            ? await GetEffectiveStatuses(layerId, layerType)
+            : await GetStatusesForVisibleTasks(tasks, layerId, layerType);
         return (tasks, statuses);
+    }
+
+    private async Task<IEnumerable<StatusDto>> GetStatusesForVisibleTasks(
+        IReadOnlyCollection<TaskDto> tasks,
+        Guid layerId,
+        EntityLayerType layerType)
+    {
+        var effectiveStatuses = (await GetEffectiveStatuses(layerId, layerType)).ToList();
+
+        var statusIds = tasks
+            .Where(t => t.StatusId.HasValue)
+            .Select(t => t.StatusId!.Value)
+            .Distinct()
+            .ToArray();
+
+        if (statusIds.Length == 0)
+        {
+            return effectiveStatuses;
+        }
+
+        const string sql = @"
+            SELECT id, name, color, category, is_default_status AS IsDefault
+            FROM   statuses
+            WHERE  id = ANY(@StatusIds)
+              AND  deleted_at IS NULL
+            ORDER BY created_at";
+
+        var taskStatuses = (await _unitOfWork.QueryAsync<StatusDto>(sql, new { StatusIds = statusIds })).ToList();
+        var merged = new List<StatusDto>(effectiveStatuses);
+        var existingIds = effectiveStatuses.Select(s => s.Id).ToHashSet();
+
+        foreach (var status in taskStatuses)
+        {
+            if (existingIds.Add(status.Id))
+            {
+                merged.Add(status);
+            }
+        }
+
+        return merged;
     }
 
     private async Task FetchAssignees(List<TaskDto> tasks)
@@ -103,10 +145,10 @@ public class ViewBuilder
             FROM   task_assignments ta
             JOIN   workspace_members wm ON ta.workspace_member_id = wm.id
             JOIN   users u             ON wm.user_id = u.id
-            WHERE  ta.task_id IN @TaskIds
+            WHERE  ta.task_id = ANY(@TaskIds)
               AND  ta.deleted_at IS NULL";
 
-        var assignments = await _unitOfWork.QueryAsync<dynamic>(sql, new { TaskIds = taskIds });
+        var assignments = await _unitOfWork.QueryAsync<dynamic>(sql, new { TaskIds = taskIds.ToArray() });
 
         var assignmentLookup = assignments
             .GroupBy(a => (Guid)a.taskid)

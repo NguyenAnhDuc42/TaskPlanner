@@ -68,6 +68,7 @@ export function ViewContainer({ layerType }: ViewContainerProps) {
           view={activeView}
           layerId={layerId}
           layerType={layerType}
+          workspaceId={workspaceId}
         />
       )}
 
@@ -83,6 +84,8 @@ export function ViewContainer({ layerType }: ViewContainerProps) {
                 data={viewData as TaskListViewResult}
                 view={activeView}
                 workspaceId={workspaceId}
+                layerId={layerId}
+                layerType={layerType}
                 listId={listId}
               />
             )}
@@ -91,6 +94,8 @@ export function ViewContainer({ layerType }: ViewContainerProps) {
                 data={viewData as TasksBoardViewResult}
                 view={activeView}
                 workspaceId={workspaceId}
+                layerId={layerId}
+                layerType={layerType}
                 listId={listId}
               />
             )}

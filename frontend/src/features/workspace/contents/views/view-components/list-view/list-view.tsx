@@ -9,11 +9,15 @@ export function TaskListView({
   data,
   view,
   workspaceId,
+  layerId,
+  layerType,
   listId,
 }: {
   data: TaskListViewResult;
   view: ViewDto;
   workspaceId: string;
+  layerId: string;
+  layerType: "ProjectSpace" | "ProjectFolder" | "ProjectList";
   listId?: string;
 }) {
   const [selectedTask, setSelectedTask] = useState<TaskDto | null>(null);
@@ -78,6 +82,8 @@ export function TaskListView({
                     tasks={tasks.filter((t) => t.statusId === s.id)}
                     visibleCols={visibleCols}
                     workspaceId={workspaceId}
+                    layerId={layerId}
+                    layerType={layerType}
                     listId={listId}
                     onTaskClick={setSelectedTask}
                   />
