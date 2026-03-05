@@ -8,6 +8,8 @@ using Microsoft.EntityFrameworkCore;
 using Domain.Entities.Relationship;
 using Domain.Enums.RelationShip;
 using System.ComponentModel.DataAnnotations;
+using Application.Features.TaskFeatures.Logic;
+using ValidationException = System.ComponentModel.DataAnnotations.ValidationException;
 
 namespace Application.Features.TaskFeatures.SelfManagement.UpdateTask;
 
@@ -23,6 +25,17 @@ public class UpdateTaskHandler : BaseFeatureHandler, IRequestHandler<UpdateTaskC
             .FirstOrDefaultAsync(t => t.Id == request.TaskId, cancellationToken)
             ?? throw new KeyNotFoundException($"Task not found: {request.TaskId}");
 
+        var currentWorkspaceMemberId = await WorkspaceContext.GetWorkspaceMemberIdAsync(cancellationToken);
+        var accessibleCurrentMemberIds = await GetAccessibleMemberIds(
+            task.ProjectListId,
+            EntityLayerType.ProjectList,
+            new List<Guid> { currentWorkspaceMemberId });
+
+        if (accessibleCurrentMemberIds.Count == 0)
+        {
+            throw new ValidationException("You do not have permission to update this task.");
+        }
+
         // Update basic properties
         if (request.Name != null || request.Description != null)
         {
@@ -35,7 +48,25 @@ public class UpdateTaskHandler : BaseFeatureHandler, IRequestHandler<UpdateTaskC
         // Update status
         if (request.StatusId.HasValue && request.StatusId.Value != task.StatusId)
         {
-            var resolvedStatusId = await ResolveTaskStatusId(task.ProjectListId, request.StatusId.Value, cancellationToken);
+            var (effectiveLayerId, effectiveLayerType) =
+                await TaskStatusLayerResolver.GetEffectiveStatusLayer(
+                    UnitOfWork,
+                    task.ProjectListId,
+                    EntityLayerType.ProjectList,
+                    cancellationToken);
+
+            var mappedRequestedStatusId = await TaskStatusSemanticMapper.MapRequestedStatusToEffectiveLayer(
+                UnitOfWork,
+                effectiveLayerId,
+                effectiveLayerType,
+                request.StatusId,
+                cancellationToken);
+
+            var resolvedStatusId = await TaskStatusLayerResolver.ResolveTaskStatusId(
+                UnitOfWork,
+                task.ProjectListId,
+                mappedRequestedStatusId,
+                cancellationToken);
             if (!resolvedStatusId.HasValue)
             {
                 throw new ValidationException("No valid status found in effective status layer.");
@@ -79,7 +110,7 @@ public class UpdateTaskHandler : BaseFeatureHandler, IRequestHandler<UpdateTaskC
 
             if (accessibleMemberIds.Count != memberIds.Count)
             {
-                throw new System.ComponentModel.DataAnnotations.ValidationException("One or more assignees do not have permission to access this List.");
+                throw new ValidationException("One or more assignees do not have permission to access this List.");
             }
 
             // 3. Process changes

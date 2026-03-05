@@ -13,6 +13,8 @@ interface StatusSectionProps {
   layerId: string;
   layerType: "ProjectSpace" | "ProjectFolder" | "ProjectList";
   listId?: string;
+  isInlineOpen: boolean;
+  onInlineOpenChange: (open: boolean) => void;
   onTaskClick?: (task: TaskDto) => void;
 }
 
@@ -24,6 +26,8 @@ export function StatusSection({
   layerId,
   layerType,
   listId,
+  isInlineOpen,
+  onInlineOpenChange,
   onTaskClick,
 }: StatusSectionProps) {
   return (
@@ -83,6 +87,8 @@ export function StatusSection({
         workspaceId={workspaceId}
         layerId={layerId}
         layerType={layerType}
+        isOpen={isInlineOpen}
+        onOpenChange={onInlineOpenChange}
       />
     </div>
   );

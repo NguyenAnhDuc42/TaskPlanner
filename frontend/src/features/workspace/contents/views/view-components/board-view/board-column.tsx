@@ -15,6 +15,8 @@ interface BoardColumnProps {
   layerId: string;
   layerType: "ProjectSpace" | "ProjectFolder" | "ProjectList";
   listId?: string;
+  isInlineOpen: boolean;
+  onInlineOpenChange: (open: boolean) => void;
   onTaskClick?: (task: TaskDto) => void;
 }
 
@@ -27,6 +29,8 @@ export function BoardColumn({
   layerId,
   layerType,
   listId,
+  isInlineOpen,
+  onInlineOpenChange,
   onTaskClick,
 }: BoardColumnProps) {
   return (
@@ -76,6 +80,8 @@ export function BoardColumn({
             workspaceId={workspaceId}
             layerId={layerId}
             layerType={layerType}
+            isOpen={isInlineOpen}
+            onOpenChange={onInlineOpenChange}
           />
         </div>
       </ScrollArea>

@@ -2,8 +2,9 @@ import type { TaskListViewResult, ViewDto, TaskDto } from "../../views-type";
 import { StatusSection } from "./status-section";
 import { ListTable } from "./list-table";
 import { STATUS_CATEGORIES } from "../../../hierarchy/status-constants";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { TaskDetailSheet } from "../../../tasks/task-detail-sheet";
+import { groupStatusesForDisplay } from "../../status-display";
 
 export function TaskListView({
   data,
@@ -21,7 +22,16 @@ export function TaskListView({
   listId?: string;
 }) {
   const [selectedTask, setSelectedTask] = useState<TaskDto | null>(null);
+  const [openInlineStatusId, setOpenInlineStatusId] = useState<string | null>(
+    null,
+  );
   const { tasks, statuses } = data;
+  const groupedStatusDisplay = useMemo(
+    () => groupStatusesForDisplay(statuses, tasks),
+    [statuses, tasks],
+  );
+  const groupedStatuses = groupedStatusDisplay.statuses;
+  const tasksByStatusId = groupedStatusDisplay.tasksByStatusId;
 
   const displayConfig = view.displayConfigJson
     ? JSON.parse(view.displayConfigJson)
@@ -41,6 +51,7 @@ export function TaskListView({
     <div className="space-y-12 pb-10 relative">
       <TaskDetailSheet
         task={selectedTask}
+        workspaceId={workspaceId}
         isOpen={!!selectedTask}
         onClose={() => setSelectedTask(null)}
       />
@@ -53,12 +64,13 @@ export function TaskListView({
         />
       ) : (
         STATUS_CATEGORIES.map((cat) => {
-          const catStatuses = statuses.filter((s) => s.category === cat.id);
+          const catStatuses = groupedStatuses.filter((s) => s.category === cat.id);
           if (catStatuses.length === 0) return null;
 
-          const catTasksCount = tasks.filter((t) =>
-            catStatuses.some((s) => s.id === t.statusId),
-          ).length;
+          const catTasksCount = catStatuses.reduce(
+            (total, status) => total + (tasksByStatusId[status.id]?.length ?? 0),
+            0,
+          );
 
           return (
             <div key={cat.id} className="space-y-4">
@@ -79,12 +91,19 @@ export function TaskListView({
                   <StatusSection
                     key={s.id}
                     status={s}
-                    tasks={tasks.filter((t) => t.statusId === s.id)}
+                    tasks={tasksByStatusId[s.id] ?? []}
                     visibleCols={visibleCols}
                     workspaceId={workspaceId}
                     layerId={layerId}
                     layerType={layerType}
                     listId={listId}
+                    isInlineOpen={openInlineStatusId === s.id}
+                    onInlineOpenChange={(open) => {
+                      setOpenInlineStatusId((current) => {
+                        if (open) return s.id;
+                        return current === s.id ? null : current;
+                      });
+                    }}
                     onTaskClick={setSelectedTask}
                   />
                 ))}

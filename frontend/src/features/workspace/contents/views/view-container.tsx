@@ -1,7 +1,6 @@
 import { useParams } from "@tanstack/react-router";
 import { useViews, useViewData } from "./views-api";
-import { useState, useEffect } from "react";
-import type { ViewDto } from "./views-type";
+import { useMemo, useState } from "react";
 import { TaskListView } from "./view-components/list-view/list-view";
 import { TaskBoardView } from "./view-components/board-view/board-view";
 import { ViewType } from "@/types/view-type";
@@ -24,22 +23,25 @@ export function ViewContainer({ layerType }: ViewContainerProps) {
         : params.listId
   ) as string;
 
-  const { data: views, isLoading: isViewsLoading } = useViews(
-    layerId,
-    layerType,
-  );
-  const [activeView, setActiveView] = useState<ViewDto | null>(null);
+  const { data: views, isLoading: isViewsLoading } = useViews(layerId, layerType);
+  const [preferredViewIdByLayer, setPreferredViewIdByLayer] = useState<
+    Record<string, string>
+  >({});
+  const layerKey = `${layerType}:${layerId}`;
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(() => {
-    if (views && views.length > 0 && !activeView) {
-      const defaultView = views.find((v) => v.isDefault) || views[0];
-      setActiveView(defaultView);
+  const activeViewId = useMemo(() => {
+    if (!views || views.length === 0) return null;
+    const preferred = preferredViewIdByLayer[layerKey];
+    if (preferred && views.some((view) => view.id === preferred)) {
+      return preferred;
     }
-  }, [views]);
+    return (views.find((view) => view.isDefault) ?? views[0]).id;
+  }, [views, preferredViewIdByLayer, layerKey]);
+
+  const activeView = views?.find((v) => v.id === activeViewId) ?? null;
 
   const { data: viewData, isLoading: isDataLoading } = useViewData(
-    activeView?.id || "",
+    activeViewId || "",
   );
 
   if (isViewsLoading) {
@@ -57,8 +59,10 @@ export function ViewContainer({ layerType }: ViewContainerProps) {
     <div className="flex flex-col h-full overflow-hidden">
       <ViewTabBar
         views={views || []}
-        activeViewId={activeView?.id || null}
-        onViewChange={(v) => setActiveView(v)}
+        activeViewId={activeViewId}
+        onViewChange={(v) =>
+          setPreferredViewIdByLayer((prev) => ({ ...prev, [layerKey]: v.id }))
+        }
         layerId={layerId}
         layerType={layerType}
       />

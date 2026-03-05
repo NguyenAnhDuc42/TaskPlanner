@@ -6,6 +6,7 @@ using MediatR;
 using server.Application.Interfaces;
 using Application.Contract.Common;
 using Domain.Enums.RelationShip;
+using Application.Features.TaskFeatures.Logic;
 
 namespace Application.Features.TaskFeatures.SelfManagement.CreateTask;
 
@@ -18,7 +19,25 @@ public class CreateTaskHandler : BaseFeatureHandler, IRequestHandler<CreateTaskC
     {
         var list = await FindOrThrowAsync<ProjectList>(request.ListId);
 
-        var statusId = await ResolveTaskStatusId(request.ListId, request.StatusId, cancellationToken);
+        var (effectiveLayerId, effectiveLayerType) =
+            await TaskStatusLayerResolver.GetEffectiveStatusLayer(
+                UnitOfWork,
+                request.ListId,
+                EntityLayerType.ProjectList,
+                cancellationToken);
+
+        var mappedRequestedStatusId = await TaskStatusSemanticMapper.MapRequestedStatusToEffectiveLayer(
+            UnitOfWork,
+            effectiveLayerId,
+            effectiveLayerType,
+            request.StatusId,
+            cancellationToken);
+
+        var statusId = await TaskStatusLayerResolver.ResolveTaskStatusId(
+            UnitOfWork,
+            request.ListId,
+            mappedRequestedStatusId,
+            cancellationToken);
 
         var task = ProjectTask.Create(
             projectListId: request.ListId,

@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api-client";
 import { type StatusDto, type StatusCategory } from "./status-types";
 import { statusKeys } from "./status-keys";
+import { viewsKeys } from "../views/views-keys";
 
 export const useStatuses = (layerId: string, layerType: string) => {
   return useQuery({
@@ -48,7 +49,7 @@ export const useUpdateStatus = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: statusKeys.all });
-      queryClient.invalidateQueries({ queryKey: ["viewData"] });
+      queryClient.invalidateQueries({ queryKey: viewsKeys.dataRoot() });
     },
   });
 };
@@ -61,7 +62,7 @@ export const useDeleteStatus = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: statusKeys.all });
-      queryClient.invalidateQueries({ queryKey: ["viewData"] });
+      queryClient.invalidateQueries({ queryKey: viewsKeys.dataRoot() });
     },
   });
 };
@@ -85,7 +86,7 @@ export const useSyncStatuses = () => {
       queryClient.invalidateQueries({
         queryKey: statusKeys.list(variables.layerId, variables.layerType),
       });
-      queryClient.invalidateQueries({ queryKey: ["viewData"] });
+      queryClient.invalidateQueries({ queryKey: viewsKeys.dataRoot() });
     },
   });
 };

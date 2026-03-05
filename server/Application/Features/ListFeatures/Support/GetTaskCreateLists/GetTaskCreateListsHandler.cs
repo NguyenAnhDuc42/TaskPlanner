@@ -92,25 +92,52 @@ public class GetTaskCreateListsHandler : BaseFeatureHandler, IRequestHandler<Get
 
         if (request.StatusId.HasValue)
         {
-            var statusLayer = await UnitOfWork.Set<Status>()
+            var requestedStatus = await UnitOfWork.Set<Status>()
                 .AsNoTracking()
-                .Where(s => s.Id == request.StatusId.Value && s.DeletedAt == null && s.LayerId != null)
+                .Where(s => s.Id == request.StatusId.Value && s.DeletedAt == null)
+                .Select(s => new
+                {
+                    s.Name,
+                    s.Category
+                })
+                .FirstOrDefaultAsync(cancellationToken);
+
+            if (requestedStatus == null)
+            {
+                return new List<TaskCreateListOptionDto>();
+            }
+
+            var candidateLayerKeys = visibleListCandidates
+                .Select(x => new { x.EffectiveLayerId, x.EffectiveLayerType })
+                .Distinct()
+                .ToList();
+
+            var candidateLayerIds = candidateLayerKeys
+                .Select(x => x.EffectiveLayerId)
+                .Distinct()
+                .ToList();
+
+            var matchingLayerKeys = (await UnitOfWork.Set<Status>()
+                .AsNoTracking()
+                .Where(s =>
+                    s.DeletedAt == null &&
+                    s.LayerId.HasValue &&
+                    candidateLayerIds.Contains(s.LayerId.Value) &&
+                    s.Category == requestedStatus.Category &&
+                    s.Name.ToLower() == requestedStatus.Name.ToLower())
                 .Select(s => new
                 {
                     LayerId = s.LayerId!.Value,
                     s.LayerType
                 })
-                .FirstOrDefaultAsync(cancellationToken);
-
-            if (statusLayer == null)
-            {
-                return new List<TaskCreateListOptionDto>();
-            }
+                .Distinct()
+                .ToListAsync(cancellationToken))
+                .Select(x => $"{x.LayerId:N}:{(int)x.LayerType}")
+                .ToHashSet();
 
             visibleListCandidates = visibleListCandidates
                 .Where(x =>
-                    x.EffectiveLayerId == statusLayer.LayerId &&
-                    x.EffectiveLayerType == statusLayer.LayerType)
+                    matchingLayerKeys.Contains($"{x.EffectiveLayerId:N}:{(int)x.EffectiveLayerType}"))
                 .ToList();
         }
 

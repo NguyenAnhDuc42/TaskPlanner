@@ -185,6 +185,7 @@ export function useUpdateList() {
 export function useSpaceMembersAccess(
   spaceId: string,
   isManagementMode: boolean = false,
+  enabled: boolean = true,
 ) {
   return useQuery({
     queryKey: hierarchyKeys.membersAccess("space", spaceId, isManagementMode),
@@ -197,13 +198,14 @@ export function useSpaceMembersAccess(
       );
       return data;
     },
-    enabled: !!spaceId,
+    enabled: enabled && !!spaceId,
   });
 }
 
 export function useFolderMembersAccess(
   folderId: string,
   isManagementMode: boolean = false,
+  enabled: boolean = true,
 ) {
   return useQuery({
     queryKey: hierarchyKeys.membersAccess("folder", folderId, isManagementMode),
@@ -216,13 +218,14 @@ export function useFolderMembersAccess(
       );
       return data;
     },
-    enabled: !!folderId,
+    enabled: enabled && !!folderId,
   });
 }
 
 export function useListMembersAccess(
   listId: string,
   isManagementMode: boolean = false,
+  enabled: boolean = true,
 ) {
   return useQuery({
     queryKey: hierarchyKeys.membersAccess("list", listId, isManagementMode),
@@ -235,7 +238,10 @@ export function useListMembersAccess(
       );
       return data;
     },
-    enabled: !!listId,
+    enabled: enabled && !!listId,
+    staleTime: 60_000,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
   });
 }
 

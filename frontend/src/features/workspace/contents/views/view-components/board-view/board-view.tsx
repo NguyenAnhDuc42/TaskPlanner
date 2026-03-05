@@ -7,8 +7,9 @@ import type {
 import { Plus } from "lucide-react";
 import { BoardColumn } from "./board-column";
 import { STATUS_CATEGORIES } from "../../../hierarchy/status-constants";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { TaskDetailSheet } from "../../../tasks/task-detail-sheet";
+import { groupStatusesForDisplay } from "../../status-display";
 
 export function TaskBoardView({
   data,
@@ -26,7 +27,16 @@ export function TaskBoardView({
   listId?: string;
 }) {
   const [selectedTask, setSelectedTask] = useState<TaskDto | null>(null);
+  const [openInlineColumnId, setOpenInlineColumnId] = useState<string | null>(
+    null,
+  );
   const { tasks, statuses } = data;
+  const groupedStatusDisplay = useMemo(
+    () => groupStatusesForDisplay(statuses, tasks),
+    [statuses, tasks],
+  );
+  const groupedStatuses = groupedStatusDisplay.statuses;
+  const tasksByStatusId = groupedStatusDisplay.tasksByStatusId;
 
   const displayConfig: DisplayConfig = view.displayConfigJson
     ? JSON.parse(view.displayConfigJson)
@@ -45,6 +55,13 @@ export function TaskBoardView({
           layerId={layerId}
           layerType={layerType}
           listId={listId}
+          isInlineOpen={openInlineColumnId === "all"}
+          onInlineOpenChange={(open) => {
+            setOpenInlineColumnId((current) => {
+              if (open) return "all";
+              return current === "all" ? null : current;
+            });
+          }}
           onTaskClick={setSelectedTask}
         />
       </div>
@@ -52,7 +69,7 @@ export function TaskBoardView({
   }
 
   // Sort statuses by category order first
-  const sortedStatuses = [...statuses].sort((a, b) => {
+  const sortedStatuses = [...groupedStatuses].sort((a, b) => {
     const aIndex = STATUS_CATEGORIES.findIndex((cat) => cat.id === a.category);
     const bIndex = STATUS_CATEGORIES.findIndex((cat) => cat.id === b.category);
     return aIndex - bIndex;
@@ -62,6 +79,7 @@ export function TaskBoardView({
     <div className="h-full flex gap-8 overflow-x-auto pb-6 no-scrollbar items-start relative">
       <TaskDetailSheet
         task={selectedTask}
+        workspaceId={workspaceId}
         isOpen={!!selectedTask}
         onClose={() => setSelectedTask(null)}
       />
@@ -70,9 +88,10 @@ export function TaskBoardView({
         const catStatuses = sortedStatuses.filter((s) => s.category === cat.id);
         if (catStatuses.length === 0) return null;
 
-        const catTasksCount = tasks.filter((t) =>
-          catStatuses.some((s) => s.id === t.statusId),
-        ).length;
+        const catTasksCount = catStatuses.reduce(
+          (total, status) => total + (tasksByStatusId[status.id]?.length ?? 0),
+          0,
+        );
 
         return (
           <div key={cat.id} className="flex flex-col gap-4 h-full">
@@ -94,12 +113,19 @@ export function TaskBoardView({
                   key={s.id}
                   name={s.name}
                   color={s.color}
-                  tasks={tasks.filter((t) => t.statusId === s.id)}
+                  tasks={tasksByStatusId[s.id] ?? []}
                   statusId={s.id}
                   workspaceId={workspaceId}
                   layerId={layerId}
                   layerType={layerType}
                   listId={listId}
+                  isInlineOpen={openInlineColumnId === s.id}
+                  onInlineOpenChange={(open) => {
+                    setOpenInlineColumnId((current) => {
+                      if (open) return s.id;
+                      return current === s.id ? null : current;
+                    });
+                  }}
                   onTaskClick={setSelectedTask}
                 />
               ))}

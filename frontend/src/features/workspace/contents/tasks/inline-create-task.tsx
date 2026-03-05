@@ -12,6 +12,8 @@ interface InlineCreateTaskProps {
   workspaceId: string;
   layerId: string;
   layerType: "ProjectSpace" | "ProjectFolder" | "ProjectList";
+  isOpen?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }
 
 export function InlineCreateTask({
@@ -20,8 +22,10 @@ export function InlineCreateTask({
   workspaceId,
   layerId,
   layerType,
+  isOpen,
+  onOpenChange,
 }: InlineCreateTaskProps) {
-  const [isAdding, setIsAdding] = useState(false);
+  const [internalIsAdding, setInternalIsAdding] = useState(false);
   const [taskName, setTaskName] = useState("");
   const [description, setDescription] = useState("");
   const [priority, setPriority] = useState<Priority>(Priority.Normal);
@@ -30,12 +34,20 @@ export function InlineCreateTask({
   const [selectedAssigneeIds, setSelectedAssigneeIds] = useState<string[]>([]);
   const [selectedListId, setSelectedListId] = useState(listId ?? "");
   const inputRef = useRef<HTMLInputElement>(null);
+  const isAdding = isOpen ?? internalIsAdding;
+  const setIsAdding = (open: boolean) => {
+    onOpenChange?.(open);
+    if (isOpen === undefined) {
+      setInternalIsAdding(open);
+    }
+  };
   const createTask = useCreateTask(workspaceId);
   const { data: listOptions } = useTaskCreateListOptions(
     workspaceId,
     layerId,
     layerType,
     statusId,
+    isAdding,
   );
   const hasListOptions = (listOptions?.length ?? 0) > 0;
   const preferredListId = selectedListId || listId || "";
@@ -43,7 +55,11 @@ export function InlineCreateTask({
     ? preferredListId
     : listOptions?.[0]?.id || "";
   const shouldShowListPicker = (listOptions?.length ?? 0) > 1;
-  const { data: accessibleMembers } = useListMembersAccess(effectiveListId, false);
+  const { data: accessibleMembers } = useListMembersAccess(
+    effectiveListId,
+    false,
+    isAdding && !!effectiveListId,
+  );
 
   const hasInvalidDateRange =
     !!startDate && !!dueDate && new Date(startDate) > new Date(dueDate);
@@ -64,6 +80,15 @@ export function InlineCreateTask({
       inputRef.current.focus();
     }
   }, [isAdding]);
+
+  const resetForm = () => {
+    setTaskName("");
+    setDescription("");
+    setPriority(Priority.Normal);
+    setStartDate("");
+    setDueDate("");
+    setSelectedAssigneeIds([]);
+  };
 
   const handleSubmit = async (e?: React.FormEvent) => {
     e?.preventDefault();
@@ -87,12 +112,7 @@ export function InlineCreateTask({
         assigneeIds:
           selectedAssigneeIds.length > 0 ? selectedAssigneeIds : undefined,
       });
-      setTaskName("");
-      setDescription("");
-      setPriority(Priority.Normal);
-      setStartDate("");
-      setDueDate("");
-      setSelectedAssigneeIds([]);
+      resetForm();
       // Keep it open for rapid entry but maybe flash success
     } catch (error) {
       console.error("Failed to create task:", error);
@@ -104,12 +124,7 @@ export function InlineCreateTask({
       handleSubmit();
     } else if (e.key === "Escape") {
       setIsAdding(false);
-      setTaskName("");
-      setDescription("");
-      setPriority(Priority.Normal);
-      setStartDate("");
-      setDueDate("");
-      setSelectedAssigneeIds([]);
+      resetForm();
     }
   };
 
@@ -245,12 +260,7 @@ export function InlineCreateTask({
               className="h-7 w-7 rounded-md hover:bg-destructive/10 hover:text-destructive"
               onClick={() => {
                 setIsAdding(false);
-                setTaskName("");
-                setDescription("");
-                setPriority(Priority.Normal);
-                setStartDate("");
-                setDueDate("");
-                setSelectedAssigneeIds([]);
+                resetForm();
               }}
             >
               <X className="h-3.5 w-3.5" />

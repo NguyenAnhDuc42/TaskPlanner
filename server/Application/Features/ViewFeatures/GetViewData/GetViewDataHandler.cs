@@ -26,6 +26,7 @@ public class GetViewDataHandler : BaseFeatureHandler, IRequestHandler<GetViewDat
         var view = await UnitOfWork.Set<ViewDefinition>().FindAsync(request.ViewId);
         if (view == null) throw new KeyNotFoundException("View not found.");
 
-        return await _viewBuilder.Build(view.LayerId, view.LayerType, view);
+        var workspaceMemberId = await WorkspaceContext.GetWorkspaceMemberIdAsync(cancellationToken);
+        return await _viewBuilder.Build(view.LayerId, view.LayerType, view, workspaceMemberId);
     }
 }

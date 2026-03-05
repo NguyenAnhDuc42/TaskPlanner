@@ -59,21 +59,21 @@ public static class TaskSql
                                          AND ea_l.entity_layer = 'ProjectList'
                                          AND ea_l.deleted_at IS NULL
         LEFT JOIN workspace_members wm_l  ON wm_l.id = ea_l.workspace_member_id
-                                         AND wm_l.user_id = @UserId
+                                         AND wm_l.id = @WorkspaceMemberId
                                          AND wm_l.deleted_at IS NULL
         -- Space access
         LEFT JOIN entity_access ea_s      ON ea_s.entity_id = s.id
                                          AND ea_s.entity_layer = 'ProjectSpace'
                                          AND ea_s.deleted_at IS NULL
         LEFT JOIN workspace_members wm_s  ON wm_s.id = ea_s.workspace_member_id
-                                         AND wm_s.user_id = @UserId
+                                         AND wm_s.id = @WorkspaceMemberId
                                          AND wm_s.deleted_at IS NULL
         -- Folder access
         LEFT JOIN entity_access ea_f      ON ea_f.entity_id = f.id
                                          AND ea_f.entity_layer = 'ProjectFolder'
                                          AND ea_f.deleted_at IS NULL
         LEFT JOIN workspace_members wm_f  ON wm_f.id = ea_f.workspace_member_id
-                                         AND wm_f.user_id = @UserId
+                                         AND wm_f.id = @WorkspaceMemberId
                                          AND wm_f.deleted_at IS NULL
         WHERE s.project_workspace_id = @layerId
           AND t.is_archived = false
@@ -94,14 +94,14 @@ public static class TaskSql
                                          AND ea_l.entity_layer = 'ProjectList'
                                          AND ea_l.deleted_at IS NULL
         LEFT JOIN workspace_members wm_l  ON wm_l.id = ea_l.workspace_member_id
-                                         AND wm_l.user_id = @UserId
+                                         AND wm_l.id = @WorkspaceMemberId
                                          AND wm_l.deleted_at IS NULL
         -- Folder access
         LEFT JOIN entity_access ea_f      ON ea_f.entity_id = f.id
                                          AND ea_f.entity_layer = 'ProjectFolder'
                                          AND ea_f.deleted_at IS NULL
         LEFT JOIN workspace_members wm_f  ON wm_f.id = ea_f.workspace_member_id
-                                         AND wm_f.user_id = @UserId
+                                         AND wm_f.id = @WorkspaceMemberId
                                          AND wm_f.deleted_at IS NULL
         WHERE l.project_space_id = @layerId
           AND t.is_archived = false
@@ -120,7 +120,7 @@ public static class TaskSql
                                          AND ea_l.entity_layer = 'ProjectList'
                                          AND ea_l.deleted_at IS NULL
         LEFT JOIN workspace_members wm_l  ON wm_l.id = ea_l.workspace_member_id
-                                         AND wm_l.user_id = @UserId
+                                         AND wm_l.id = @WorkspaceMemberId
                                          AND wm_l.deleted_at IS NULL
         WHERE l.project_folder_id = @layerId
           AND t.is_archived = false

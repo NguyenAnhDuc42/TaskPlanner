@@ -7,6 +7,7 @@ public enum Priority
 {
     Urgent,
     High,
-    Medium,
+    Normal,
     Low,
+    Medium = Normal,
 }

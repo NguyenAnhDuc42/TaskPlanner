@@ -6,21 +6,23 @@ import type {
   UpdateTaskRequest,
   TaskCreateListOption,
 } from "./tasks-type";
+import { tasksKeys } from "./tasks-keys";
+import { viewsKeys } from "../views/views-keys";
 
 export const useTaskCreateListOptions = (
   workspaceId: string,
   layerId: string,
   layerType: string,
   statusId?: string,
+  enabled: boolean = true,
 ) => {
   return useQuery({
-    queryKey: [
-      "task-create-list-options",
+    queryKey: tasksKeys.createListOptions(
       workspaceId,
       layerId,
       layerType,
       statusId,
-    ],
+    ),
     queryFn: async () => {
       const response = await api.get<TaskCreateListOption[]>(
         "/lists/task-create-options",
@@ -31,7 +33,10 @@ export const useTaskCreateListOptions = (
       );
       return response.data;
     },
-    enabled: !!workspaceId && !!layerId && !!layerType,
+    enabled: enabled && !!workspaceId && !!layerId && !!layerType,
+    staleTime: 60_000,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
   });
 };
 
@@ -45,7 +50,7 @@ export const useCreateTask = (workspaceId: string) => {
       return response.data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["viewData"] });
+      queryClient.invalidateQueries({ queryKey: viewsKeys.dataRoot() });
     },
   });
 };
@@ -62,8 +67,8 @@ export const useUpdateTask = (workspaceId: string) => {
     },
     onSuccess: (updatedTask) => {
       // Optimistic update or just invalidate
-      queryClient.invalidateQueries({ queryKey: ["viewData"] });
-      queryClient.setQueryData(["task", updatedTask.id], updatedTask);
+      queryClient.invalidateQueries({ queryKey: viewsKeys.dataRoot() });
+      queryClient.setQueryData(tasksKeys.detail(updatedTask.id), updatedTask);
     },
   });
 };
@@ -77,7 +82,7 @@ export const useDeleteTask = (workspaceId: string) => {
       });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["viewData"] });
+      queryClient.invalidateQueries({ queryKey: viewsKeys.dataRoot() });
     },
   });
 };

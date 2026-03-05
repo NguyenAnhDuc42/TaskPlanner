@@ -2,10 +2,11 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api-client";
 import type { ViewDto, ViewResponse } from "./views-type";
 import { ViewType } from "@/types/view-type";
+import { viewsKeys } from "./views-keys";
 
 export const useViews = (layerId: string, layerType: string) => {
   return useQuery({
-    queryKey: ["views", layerId, layerType],
+    queryKey: viewsKeys.list(layerId, layerType),
     queryFn: async () => {
       const response = await api.get<ViewDto[]>(
         `/views?layerId=${layerId}&layerType=${layerType}`,
@@ -18,7 +19,7 @@ export const useViews = (layerId: string, layerType: string) => {
 
 export const useViewData = (viewId: string) => {
   return useQuery({
-    queryKey: ["viewData", viewId],
+    queryKey: viewsKeys.data(viewId),
     queryFn: async () => {
       const response = await api.get<ViewResponse>(`/views/${viewId}/data`);
       return response.data;
@@ -41,7 +42,7 @@ export const useCreateView = () => {
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({
-        queryKey: ["views", variables.layerId, variables.layerType],
+        queryKey: viewsKeys.list(variables.layerId, variables.layerType),
       });
     },
   });
@@ -66,7 +67,7 @@ export const useUpdateView = () => {
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({
-        queryKey: ["views", variables.layerId, variables.layerType],
+        queryKey: viewsKeys.list(variables.layerId, variables.layerType),
       });
     },
   });

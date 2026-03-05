@@ -1,40 +1,170 @@
-import React from "react";
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet";
-import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
-import { Button } from "@/components/ui/button";
-import { Calendar, Flag, User, Clock, CheckCircle2 } from "lucide-react";
-import type { TaskDto } from "./tasks-type";
+import { type ReactNode, useMemo, useState } from "react";
 import { format } from "date-fns";
+import { Calendar, Flag, Trash2, User } from "lucide-react";
+import { toast } from "sonner";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Separator } from "@/components/ui/separator";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Priority } from "@/types/priority";
+import type { TaskDto } from "./tasks-type";
+import { useUpdateTask, useDeleteTask } from "./tasks-api";
+import { useStatuses } from "../hierarchy/statuses-api";
+import { useListMembersAccess } from "../hierarchy/hierarchy-api";
 
 interface TaskDetailSheetProps {
   task: TaskDto | null;
+  workspaceId: string;
   isOpen: boolean;
   onClose: () => void;
 }
 
+const toInputDate = (value?: string) => (value ? value.slice(0, 10) : "");
+const toIsoDateStart = (value: string) =>
+  value ? new Date(`${value}T00:00:00`).toISOString() : undefined;
+
 export function TaskDetailSheet({
   task,
+  workspaceId,
   isOpen,
   onClose,
 }: TaskDetailSheetProps) {
   if (!task) return null;
 
   return (
+    <TaskDetailSheetBody
+      key={task.id}
+      task={task}
+      workspaceId={workspaceId}
+      isOpen={isOpen}
+      onClose={onClose}
+    />
+  );
+}
+
+function TaskDetailSheetBody({
+  task,
+  workspaceId,
+  isOpen,
+  onClose,
+}: TaskDetailSheetProps & { task: TaskDto }) {
+  const initialName = task.name;
+  const initialDescription = task.description ?? "";
+  const initialPriority = task.priority;
+  const initialStartDate = toInputDate(task.startDate);
+  const initialDueDate = toInputDate(task.dueDate);
+  const initialStatusId = task.statusId ?? "";
+  const initialAssigneeIds = task.assignees.map((a) => a.id);
+
+  const [name, setName] = useState(initialName);
+  const [description, setDescription] = useState(initialDescription);
+  const [priority, setPriority] = useState<Priority>(initialPriority);
+  const [startDate, setStartDate] = useState(initialStartDate);
+  const [dueDate, setDueDate] = useState(initialDueDate);
+  const [statusId, setStatusId] = useState(initialStatusId);
+  const [selectedAssigneeIds, setSelectedAssigneeIds] =
+    useState<string[]>(initialAssigneeIds);
+  const [isDeleteConfirming, setIsDeleteConfirming] = useState(false);
+
+  const updateTask = useUpdateTask(workspaceId);
+  const deleteTask = useDeleteTask(workspaceId);
+  const { data: statuses } = useStatuses(task.projectListId, "ProjectList");
+  const { data: accessibleMembers } = useListMembersAccess(
+    task.projectListId,
+    false,
+    isOpen,
+  );
+
+  const effectiveStatusId =
+    (statusId && statuses?.some((s) => s.id === statusId)
+      ? statusId
+      : statuses?.find((s) => s.isDefault)?.id || statuses?.[0]?.id) ?? "";
+
+  const hasInvalidDateRange =
+    !!startDate && !!dueDate && new Date(startDate) > new Date(dueDate);
+
+  const isDirty = useMemo(() => {
+    const sortedCurrentAssignees = [...selectedAssigneeIds].sort();
+    const sortedInitialAssignees = [...initialAssigneeIds].sort();
+
+    return (
+      name !== initialName ||
+      description !== initialDescription ||
+      priority !== initialPriority ||
+      startDate !== initialStartDate ||
+      dueDate !== initialDueDate ||
+      effectiveStatusId !== initialStatusId ||
+      sortedCurrentAssignees.join(",") !== sortedInitialAssignees.join(",")
+    );
+  }, [
+    name,
+    initialName,
+    description,
+    initialDescription,
+    priority,
+    initialPriority,
+    startDate,
+    initialStartDate,
+    dueDate,
+    initialDueDate,
+    effectiveStatusId,
+    initialStatusId,
+    selectedAssigneeIds,
+    initialAssigneeIds,
+  ]);
+
+  const isPending = updateTask.isPending || deleteTask.isPending;
+
+  const toggleAssignee = (userId: string) => {
+    setSelectedAssigneeIds((prev) =>
+      prev.includes(userId)
+        ? prev.filter((id) => id !== userId)
+        : [...prev, userId],
+    );
+  };
+
+  const handleSave = async () => {
+    if (!name.trim() || hasInvalidDateRange || isPending) return;
+
+    try {
+      await updateTask.mutateAsync({
+        taskId: task.id,
+        name: name.trim(),
+        description: description.trim() || undefined,
+        statusId: effectiveStatusId || undefined,
+        priority,
+        startDate: toIsoDateStart(startDate),
+        dueDate: toIsoDateStart(dueDate),
+        assigneeIds: selectedAssigneeIds,
+      });
+      toast.success("Task updated");
+      setIsDeleteConfirming(false);
+    } catch (error) {
+      console.error(error);
+      toast.error("Failed to update task");
+    }
+  };
+
+  const handleDelete = async () => {
+    try {
+      await deleteTask.mutateAsync(task.id);
+      toast.success("Task deleted");
+      onClose();
+    } catch (error) {
+      console.error(error);
+      toast.error("Failed to delete task");
+    }
+  };
+
+  return (
     <Sheet open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <SheetContent className="sm:max-w-xl w-[90%] p-0 bg-background/95 backdrop-blur-xl border-l border-primary/10">
         <div className="flex flex-col h-full">
-          {/* Header Area */}
           <div className="p-6 pb-4 space-y-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <CheckCircle2 className="h-4 w-4 text-muted-foreground" />
+                <Flag className="h-4 w-4 text-muted-foreground" />
                 <span className="text-xs font-bold text-muted-foreground uppercase tracking-widest">
                   Task Detail
                 </span>
@@ -43,97 +173,167 @@ export function TaskDetailSheet({
                 variant="secondary"
                 className="bg-primary/5 text-primary border-primary/10 hover:bg-primary/10"
               >
-                {task.statusId ? "In Progress" : "No Status"}
+                {statuses?.find((s) => s.id === effectiveStatusId)?.name ||
+                  "No Status"}
               </Badge>
             </div>
 
             <SheetHeader>
-              <SheetTitle className="text-2xl font-black tracking-tight leading-tight">
-                {task.name}
+              <SheetTitle className="space-y-2">
+                <Input
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  className="text-lg font-black"
+                  disabled={isPending}
+                />
               </SheetTitle>
             </SheetHeader>
           </div>
 
           <Separator className="bg-primary/5" />
 
-          {/* Attribution Section */}
-          <div className="grid grid-cols-2 gap-px bg-primary/5">
-            <AttributeItem
+          <div className="grid grid-cols-2 gap-px bg-primary/5 p-px">
+            <AttributeEditor
               icon={<Flag className="h-3.5 w-3.5" />}
               label="Priority"
-              value={task.priority}
-              valueColor={
-                task.priority === Priority.Urgent
-                  ? "text-red-500"
-                  : "text-foreground"
-              }
-            />
-            <AttributeItem
+            >
+              <select
+                className="h-8 rounded-md border bg-background px-2 text-xs w-full"
+                value={priority}
+                onChange={(e) => setPriority(e.target.value as Priority)}
+                disabled={isPending}
+              >
+                <option value={Priority.Low}>Low</option>
+                <option value={Priority.Normal}>Normal</option>
+                <option value={Priority.High}>High</option>
+                <option value={Priority.Urgent}>Urgent</option>
+              </select>
+            </AttributeEditor>
+
+            <AttributeEditor
               icon={<User className="h-3.5 w-3.5" />}
-              label="Assignee"
-              value={task.assignees?.[0]?.name || "Unassigned"}
-            />
-            <AttributeItem
+              label="Status"
+            >
+              <select
+                className="h-8 rounded-md border bg-background px-2 text-xs w-full"
+                value={effectiveStatusId}
+                onChange={(e) => setStatusId(e.target.value)}
+                disabled={isPending || !statuses?.length}
+              >
+                {(statuses ?? []).map((status) => (
+                  <option key={status.id} value={status.id}>
+                    {status.name}
+                  </option>
+                ))}
+              </select>
+            </AttributeEditor>
+
+            <AttributeEditor
+              icon={<Calendar className="h-3.5 w-3.5" />}
+              label="Start Date"
+            >
+              <Input
+                type="date"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+                className="h-8 text-xs"
+                disabled={isPending}
+              />
+            </AttributeEditor>
+
+            <AttributeEditor
               icon={<Calendar className="h-3.5 w-3.5" />}
               label="Due Date"
-              value={
-                task.dueDate
-                  ? format(new Date(task.dueDate), "MMM dd, yyyy")
-                  : "No date"
-              }
-            />
-            <AttributeItem
-              icon={<Clock className="h-3.5 w-3.5" />}
-              label="Story Points"
-              value={task.storyPoints?.toString() || "0"}
-            />
+            >
+              <Input
+                type="date"
+                value={dueDate}
+                onChange={(e) => setDueDate(e.target.value)}
+                className="h-8 text-xs"
+                disabled={isPending}
+              />
+            </AttributeEditor>
           </div>
 
           <Separator className="bg-primary/5" />
 
-          {/* Description Section */}
           <div className="flex-1 p-6 space-y-4 overflow-y-auto">
             <div className="space-y-2">
               <h4 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60">
                 Description
               </h4>
-              <div className="text-sm leading-relaxed text-foreground/80 min-h-[100px] whitespace-pre-wrap">
-                {task.description ||
-                  "No description provided. Click to add one..."}
-              </div>
+              <Input
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                className="text-sm"
+                placeholder="Description"
+                disabled={isPending}
+              />
             </div>
 
-            <div className="space-y-4 pt-4">
+            <div className="space-y-3 pt-2">
               <h4 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60">
                 Assignees
               </h4>
-              <div className="flex flex-wrap gap-2">
-                {task.assignees?.map((a) => (
-                  <div
-                    key={a.id}
-                    className="flex items-center gap-2 bg-muted/50 px-3 py-1.5 rounded-full border border-primary/5"
-                  >
-                    <div className="h-5 w-5 rounded-full bg-primary/20 flex items-center justify-center text-[10px] font-bold">
-                      {a.name.substring(0, 1)}
-                    </div>
-                    <span className="text-xs font-medium">{a.name}</span>
-                  </div>
-                ))}
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-8 w-8 rounded-full border border-dashed border-muted-foreground/20"
-                >
-                  <PlusIcon className="h-3 w-3" />
-                </Button>
+              <div className="flex flex-wrap gap-1.5">
+                {(accessibleMembers ?? []).map((member) => {
+                  const selected = selectedAssigneeIds.includes(member.userId);
+                  return (
+                    <button
+                      key={member.userId}
+                      type="button"
+                      onClick={() => toggleAssignee(member.userId)}
+                      className={`h-7 px-2 rounded-md border text-[11px] ${
+                        selected
+                          ? "bg-primary/10 border-primary/40 text-primary"
+                          : "bg-background border-border text-muted-foreground"
+                      }`}
+                      disabled={isPending}
+                    >
+                      {member.userName}
+                    </button>
+                  );
+                })}
               </div>
             </div>
+
+            {hasInvalidDateRange && (
+              <div className="text-xs text-destructive">
+                Start date cannot be later than due date.
+              </div>
+            )}
           </div>
 
-          <div className="p-4 bg-muted/5 border-t border-primary/5 flex justify-end gap-2">
-            <span className="text-[10px] text-muted-foreground font-medium italic">
+          <div className="p-4 bg-muted/5 border-t border-primary/5 flex items-center justify-between gap-2">
+            <div className="text-[10px] text-muted-foreground font-medium italic">
               Created on {format(new Date(task.createdAt), "MMMM dd, yyyy")}
-            </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Button
+                type="button"
+                variant={isDeleteConfirming ? "destructive" : "outline"}
+                size="sm"
+                onClick={() => {
+                  if (isDeleteConfirming) {
+                    void handleDelete();
+                    return;
+                  }
+                  setIsDeleteConfirming(true);
+                }}
+                disabled={isPending}
+              >
+                <Trash2 className="h-3.5 w-3.5 mr-1" />
+                {isDeleteConfirming ? "Confirm Delete" : "Delete"}
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                onClick={() => void handleSave()}
+                disabled={!isDirty || !name.trim() || hasInvalidDateRange || isPending}
+              >
+                Save
+              </Button>
+            </div>
           </div>
         </div>
       </SheetContent>
@@ -141,46 +341,24 @@ export function TaskDetailSheet({
   );
 }
 
-function AttributeItem({
+function AttributeEditor({
   icon,
   label,
-  value,
-  valueColor = "text-foreground",
+  children,
 }: {
-  icon: React.ReactNode;
+  icon: ReactNode;
   label: string;
-  value: string;
-  valueColor?: string;
+  children: ReactNode;
 }) {
   return (
-    <div className="bg-background p-4 flex flex-col gap-1.5 hover:bg-muted/30 transition-colors cursor-pointer group">
-      <div className="flex items-center gap-2 text-muted-foreground/60 group-hover:text-primary transition-colors">
+    <div className="bg-background p-3 flex flex-col gap-1.5">
+      <div className="flex items-center gap-2 text-muted-foreground/60">
         {icon}
         <span className="text-[10px] font-black uppercase tracking-widest">
           {label}
         </span>
       </div>
-      <span className={`text-xs font-bold ${valueColor}`}>{value}</span>
+      {children}
     </div>
-  );
-}
-
-function PlusIcon(props: React.SVGProps<SVGSVGElement>) {
-  return (
-    <svg
-      {...props}
-      xmlns="http://www.w3.org/2000/svg"
-      width="24"
-      height="24"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <path d="M5 12h14" />
-      <path d="M12 5v14" />
-    </svg>
   );
 }
