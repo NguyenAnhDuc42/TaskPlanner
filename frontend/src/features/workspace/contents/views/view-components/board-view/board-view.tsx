@@ -7,7 +7,7 @@ import type {
 import { Plus } from "lucide-react";
 import { BoardColumn } from "./board-column";
 import { STATUS_CATEGORIES } from "../../../hierarchy/status-constants";
-import { useMemo, useState } from "react";
+import { type WheelEvent, useMemo, useRef, useState } from "react";
 import { TaskDetailSheet } from "../../../tasks/task-detail-sheet";
 import { groupStatusesForDisplay } from "../../status-display";
 
@@ -37,6 +37,31 @@ export function TaskBoardView({
   );
   const groupedStatuses = groupedStatusDisplay.statuses;
   const tasksByStatusId = groupedStatusDisplay.tasksByStatusId;
+  const boardScrollRef = useRef<HTMLDivElement | null>(null);
+
+  const handleBoardWheel = (e: WheelEvent<HTMLDivElement>) => {
+    // Keep vertical wheel behavior inside column scroll areas.
+    const target = e.target as HTMLElement;
+    if (target.closest("[data-radix-scroll-area-viewport]")) {
+      return;
+    }
+
+    const container = boardScrollRef.current;
+    if (!container) {
+      return;
+    }
+
+    if (container.scrollWidth <= container.clientWidth) {
+      return;
+    }
+
+    if (Math.abs(e.deltaY) <= Math.abs(e.deltaX)) {
+      return;
+    }
+
+    container.scrollLeft += e.deltaY;
+    e.preventDefault();
+  };
 
   const displayConfig: DisplayConfig = view.displayConfigJson
     ? JSON.parse(view.displayConfigJson)
@@ -46,7 +71,11 @@ export function TaskBoardView({
 
   if (!isGroupedByStatus) {
     return (
-      <div className="h-full flex gap-4 overflow-x-auto pb-4 no-scrollbar">
+      <div
+        ref={boardScrollRef}
+        onWheel={handleBoardWheel}
+        className="h-full flex gap-4 overflow-x-auto pb-4 no-scrollbar"
+      >
         <BoardColumn
           name="All Tasks"
           color="#888888"
@@ -76,7 +105,11 @@ export function TaskBoardView({
   });
 
   return (
-    <div className="h-full flex gap-8 overflow-x-auto pb-6 no-scrollbar items-start relative">
+    <div
+      ref={boardScrollRef}
+      onWheel={handleBoardWheel}
+      className="h-full flex gap-8 overflow-x-auto pb-6 no-scrollbar items-start relative"
+    >
       <TaskDetailSheet
         task={selectedTask}
         workspaceId={workspaceId}

@@ -17,6 +17,22 @@ public class DeleteTaskHandler : BaseFeatureHandler, IRequestHandler<DeleteTaskC
     public async Task<Unit> Handle(DeleteTaskCommand request, CancellationToken cancellationToken)
     {
         var task = await FindOrThrowAsync<ProjectTask>(request.TaskId);
+        await EnsureCurrentUserCanDeleteTask(task, cancellationToken);
+
+        task.SoftDelete();
+
+        return Unit.Value;
+    }
+
+    private async Task EnsureCurrentUserCanDeleteTask(
+        ProjectTask task,
+        CancellationToken cancellationToken)
+    {
+        if (task.CreatorId == CurrentUserId)
+        {
+            return;
+        }
+
         var currentWorkspaceMemberId = await WorkspaceContext.GetWorkspaceMemberIdAsync(cancellationToken);
         var accessibleCurrentMemberIds = await GetAccessibleMemberIds(
             task.ProjectListId,
@@ -27,9 +43,5 @@ public class DeleteTaskHandler : BaseFeatureHandler, IRequestHandler<DeleteTaskC
         {
             throw new ValidationException("You do not have permission to delete this task.");
         }
-
-        task.SoftDelete();
-
-        return Unit.Value;
     }
 }

@@ -2,9 +2,12 @@ import React, { useState, useRef, useEffect } from "react";
 import { Plus, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { useCreateTask, useTaskCreateListOptions } from "./tasks-api";
+import {
+  useCreateTask,
+  useTaskCreateListOptions,
+  useTaskListAssignees,
+} from "./tasks-api";
 import { Priority } from "@/types/priority";
-import { useListMembersAccess } from "../hierarchy/hierarchy-api";
 
 interface InlineCreateTaskProps {
   listId?: string;
@@ -55,9 +58,9 @@ export function InlineCreateTask({
     ? preferredListId
     : listOptions?.[0]?.id || "";
   const shouldShowListPicker = (listOptions?.length ?? 0) > 1;
-  const { data: accessibleMembers } = useListMembersAccess(
+  const { data: accessibleMembers } = useTaskListAssignees(
+    workspaceId,
     effectiveListId,
-    false,
     isAdding && !!effectiveListId,
   );
 

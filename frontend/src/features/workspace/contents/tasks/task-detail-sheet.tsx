@@ -9,9 +9,13 @@ import { Separator } from "@/components/ui/separator";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Priority } from "@/types/priority";
 import type { TaskDto } from "./tasks-type";
-import { useUpdateTask, useDeleteTask } from "./tasks-api";
+import {
+  useUpdateTask,
+  useDeleteTask,
+  useTaskAssigneeCandidates,
+  useTaskAssignees,
+} from "./tasks-api";
 import { useStatuses } from "../hierarchy/statuses-api";
-import { useListMembersAccess } from "../hierarchy/hierarchy-api";
 
 interface TaskDetailSheetProps {
   task: TaskDto | null;
@@ -65,14 +69,21 @@ function TaskDetailSheetBody({
   const [statusId, setStatusId] = useState(initialStatusId);
   const [selectedAssigneeIds, setSelectedAssigneeIds] =
     useState<string[]>(initialAssigneeIds);
+  const [assigneeSearch, setAssigneeSearch] = useState("");
   const [isDeleteConfirming, setIsDeleteConfirming] = useState(false);
 
   const updateTask = useUpdateTask(workspaceId);
   const deleteTask = useDeleteTask(workspaceId);
   const { data: statuses } = useStatuses(task.projectListId, "ProjectList");
-  const { data: accessibleMembers } = useListMembersAccess(
-    task.projectListId,
-    false,
+  const { data: assignedMembers } = useTaskAssignees(
+    workspaceId,
+    task.id,
+    isOpen,
+  );
+  const { data: candidateMembers } = useTaskAssigneeCandidates(
+    workspaceId,
+    task.id,
+    assigneeSearch,
     isOpen,
   );
 
@@ -115,6 +126,27 @@ function TaskDetailSheetBody({
   ]);
 
   const isPending = updateTask.isPending || deleteTask.isPending;
+  const memberByUserId = useMemo(() => {
+    const map = new Map<string, { userId: string; userName: string }>();
+    (assignedMembers ?? []).forEach((m) =>
+      map.set(m.userId, { userId: m.userId, userName: m.userName }),
+    );
+    (candidateMembers ?? []).forEach((m) =>
+      map.set(m.userId, { userId: m.userId, userName: m.userName }),
+    );
+    task.assignees.forEach((a) =>
+      map.set(a.id, { userId: a.id, userName: a.name }),
+    );
+    return map;
+  }, [assignedMembers, candidateMembers, task.assignees]);
+
+  const selectedAssignees = selectedAssigneeIds
+    .map((id) => memberByUserId.get(id))
+    .filter((member): member is { userId: string; userName: string } => !!member);
+
+  const availableCandidates = (candidateMembers ?? []).filter(
+    (candidate) => !selectedAssigneeIds.includes(candidate.userId),
+  );
 
   const toggleAssignee = (userId: string) => {
     setSelectedAssigneeIds((prev) =>
@@ -273,27 +305,54 @@ function TaskDetailSheetBody({
 
             <div className="space-y-3 pt-2">
               <h4 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60">
-                Assignees
+                Assigned
               </h4>
               <div className="flex flex-wrap gap-1.5">
-                {(accessibleMembers ?? []).map((member) => {
-                  const selected = selectedAssigneeIds.includes(member.userId);
-                  return (
-                    <button
-                      key={member.userId}
-                      type="button"
-                      onClick={() => toggleAssignee(member.userId)}
-                      className={`h-7 px-2 rounded-md border text-[11px] ${
-                        selected
-                          ? "bg-primary/10 border-primary/40 text-primary"
-                          : "bg-background border-border text-muted-foreground"
-                      }`}
-                      disabled={isPending}
-                    >
-                      {member.userName}
-                    </button>
-                  );
-                })}
+                {selectedAssignees.map((member) => (
+                  <button
+                    key={member.userId}
+                    type="button"
+                    onClick={() => toggleAssignee(member.userId)}
+                    className="h-7 px-2 rounded-md border text-[11px] bg-primary/10 border-primary/40 text-primary"
+                    disabled={isPending}
+                  >
+                    {member.userName} x
+                  </button>
+                ))}
+                {selectedAssignees.length === 0 && (
+                  <div className="text-xs text-muted-foreground">No assignees</div>
+                )}
+              </div>
+            </div>
+
+            <div className="space-y-3 pt-2">
+              <h4 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60">
+                Add Assignee
+              </h4>
+              <Input
+                value={assigneeSearch}
+                onChange={(e) => setAssigneeSearch(e.target.value)}
+                placeholder="Search accessible members..."
+                className="h-8 text-xs"
+                disabled={isPending}
+              />
+              <div className="flex flex-wrap gap-1.5">
+                {availableCandidates.map((member) => (
+                  <button
+                    key={member.userId}
+                    type="button"
+                    onClick={() => toggleAssignee(member.userId)}
+                    className="h-7 px-2 rounded-md border text-[11px] bg-background border-border text-muted-foreground"
+                    disabled={isPending}
+                  >
+                    {member.userName}
+                  </button>
+                ))}
+                {availableCandidates.length === 0 && (
+                  <div className="text-xs text-muted-foreground">
+                    No available candidates
+                  </div>
+                )}
               </div>
             </div>
 

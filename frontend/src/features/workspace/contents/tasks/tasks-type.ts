@@ -43,6 +43,12 @@ export interface TaskCreateListOption {
   icon: string;
 }
 
+export interface TaskAssigneeOption {
+  userId: string;
+  userName: string;
+  avatarUrl?: string;
+}
+
 export interface UpdateTaskRequest {
   taskId: string;
   name?: string;

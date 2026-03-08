@@ -1,4 +1,7 @@
 using Application.Features.TaskFeatures.SelfManagement.CreateTask;
+using Application.Features.TaskFeatures.AssigneeManagement.GetTaskAssigneeCandidates;
+using Application.Features.TaskFeatures.AssigneeManagement.GetTaskAssignees;
+using Application.Features.TaskFeatures.AssigneeManagement.GetTaskListAssignees;
 using Application.Features.TaskFeatures.SelfManagement.DeleteTask;
 using Application.Features.TaskFeatures.SelfManagement.UpdateTask;
 using Domain.Enums;
@@ -50,6 +53,31 @@ public class TasksController : ControllerBase
     {
         await _mediator.Send(new DeleteTaskCommand(id), cancellationToken);
         return NoContent();
+    }
+
+    [HttpGet("lists/{listId:guid}/assignees")]
+    public async Task<IActionResult> GetListAssignees(Guid listId, CancellationToken cancellationToken)
+    {
+        var result = await _mediator.Send(new GetTaskListAssigneesQuery(listId), cancellationToken);
+        return Ok(result);
+    }
+
+    [HttpGet("{taskId:guid}/assignees")]
+    public async Task<IActionResult> GetTaskAssignees(Guid taskId, CancellationToken cancellationToken)
+    {
+        var result = await _mediator.Send(new GetTaskAssigneesQuery(taskId), cancellationToken);
+        return Ok(result);
+    }
+
+    [HttpGet("{taskId:guid}/assignee-candidates")]
+    public async Task<IActionResult> GetTaskAssigneeCandidates(
+        Guid taskId,
+        [FromQuery] string? search,
+        [FromQuery] int limit = 50,
+        CancellationToken cancellationToken = default)
+    {
+        var result = await _mediator.Send(new GetTaskAssigneeCandidatesQuery(taskId, search, limit), cancellationToken);
+        return Ok(result);
     }
 }
 

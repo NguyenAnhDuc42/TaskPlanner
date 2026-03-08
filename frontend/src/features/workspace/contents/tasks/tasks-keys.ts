@@ -15,4 +15,13 @@ export const tasksKeys = {
       layerType,
       statusId ?? null,
     ] as const,
+  listAssigneesRoot: () => [...tasksKeys.all, "list-assignees"] as const,
+  listAssignees: (workspaceId: string, listId: string) =>
+    [...tasksKeys.listAssigneesRoot(), workspaceId, listId] as const,
+  assigneesRoot: () => [...tasksKeys.all, "assignees"] as const,
+  assignees: (workspaceId: string, taskId: string) =>
+    [...tasksKeys.assigneesRoot(), workspaceId, taskId] as const,
+  assigneeCandidatesRoot: () => [...tasksKeys.all, "assignee-candidates"] as const,
+  assigneeCandidates: (workspaceId: string, taskId: string, search: string) =>
+    [...tasksKeys.assigneeCandidatesRoot(), workspaceId, taskId, search] as const,
 };

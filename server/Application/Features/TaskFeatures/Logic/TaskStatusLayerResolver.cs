@@ -18,8 +18,7 @@ public static class TaskStatusLayerResolver
         {
             case EntityLayerType.ProjectList:
             {
-                var list = await unitOfWork.Set<ProjectList>()
-                    .AsNoTracking()
+                var list = await unitOfWork.Set<ProjectList>().AsNoTracking()
                     .FirstOrDefaultAsync(x => x.Id == entityId, ct);
 
                 if (list == null) throw new KeyNotFoundException("List not found");
@@ -43,8 +42,7 @@ public static class TaskStatusLayerResolver
 
             case EntityLayerType.ProjectFolder:
             {
-                var folder = await unitOfWork.Set<ProjectFolder>()
-                    .AsNoTracking()
+                var folder = await unitOfWork.Set<ProjectFolder>().AsNoTracking()
                     .FirstOrDefaultAsync(x => x.Id == entityId, ct);
 
                 if (folder == null) throw new KeyNotFoundException("Folder not found");
@@ -76,8 +74,7 @@ public static class TaskStatusLayerResolver
 
         if (requestedStatusId.HasValue)
         {
-            var isValidStatus = await unitOfWork.Set<Status>()
-                .AsNoTracking()
+            var isValidStatus = await unitOfWork.Set<Status>().AsNoTracking()
                 .AnyAsync(
                     s => s.Id == requestedStatusId.Value
                       && s.LayerId == effectiveLayerId

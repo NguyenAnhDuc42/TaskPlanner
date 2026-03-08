@@ -14,10 +14,7 @@ public static class TaskStatusSemanticMapper
         Guid? requestedStatusId,
         CancellationToken ct)
     {
-        if (!requestedStatusId.HasValue)
-        {
-            return null;
-        }
+        if (!requestedStatusId.HasValue) return null;
 
         var requested = await unitOfWork.Set<Status>()
             .AsNoTracking()
@@ -25,10 +22,7 @@ public static class TaskStatusSemanticMapper
             .Select(s => new { s.Name, s.Category })
             .FirstOrDefaultAsync(ct);
 
-        if (requested == null)
-        {
-            return requestedStatusId;
-        }
+        if (requested == null) return requestedStatusId;
 
         var exactExists = await unitOfWork.Set<Status>()
             .AsNoTracking()
@@ -39,10 +33,7 @@ public static class TaskStatusSemanticMapper
                 s.DeletedAt == null,
                 ct);
 
-        if (exactExists)
-        {
-            return requestedStatusId;
-        }
+        if (exactExists) return requestedStatusId;
 
         var semanticMatch = await unitOfWork.Set<Status>()
             .AsNoTracking()
