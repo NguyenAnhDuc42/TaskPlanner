@@ -8,6 +8,7 @@ using Application.Features.Auth.ResetPassword;
 using Application.Features.Auth.OAuth;
 using Application.Features.Auth.ChangePassword;
 using Application.Features.Auth.GetCurrentUser;
+using Application.Features.Auth.UpdateProfile;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
 
@@ -107,6 +108,15 @@ public class AuthController : ControllerBase
         var result = await _mediator.Send(query, cancellationToken);
         return Ok(result);
     }
+
+    [HttpPut("profile")]
+    [Microsoft.AspNetCore.Authorization.Authorize]
+    public async Task<IActionResult> UpdateProfile([FromBody] UpdateProfileRequest request, CancellationToken cancellationToken)
+    {
+        var command = new UpdateProfileCommand(request.Name, request.Email);
+        var result = await _mediator.Send(command, cancellationToken);
+        return Ok(result);
+    }
 }
 
 // Request Models
@@ -116,3 +126,4 @@ public record ForgotPasswordRequest(string Email);
 public record ResetPasswordRequest(string Token, string NewPassword);
 public record ExternalLoginRequest(string Provider, string Token);
 public record ChangePasswordRequest(string CurrentPassword, string NewPassword);
+public record UpdateProfileRequest(string? Name, string? Email);

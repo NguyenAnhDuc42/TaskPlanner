@@ -11,19 +11,28 @@ using System;
 using Microsoft.Extensions.Caching.Hybrid;
 using Application.Common;
 using Application.Helpers;
+using Application.Features.WorkspaceFeatures.Logic;
 
 namespace Application.Features.WorkspaceFeatures.MemberManage.AddMembers;
 
 public class AddMembersHandler : BaseFeatureHandler, IRequestHandler<AddMembersCommand, Guid>
 {
-    public AddMembersHandler(IUnitOfWork unitOfWork, ICurrentUserService currentUserService, WorkspaceContext workspaceContext)
+    private readonly WorkspacePermissionLogic _workspacePermissionLogic;
+
+    public AddMembersHandler(
+        IUnitOfWork unitOfWork,
+        ICurrentUserService currentUserService,
+        WorkspaceContext workspaceContext,
+        WorkspacePermissionLogic workspacePermissionLogic)
        : base(unitOfWork, currentUserService, workspaceContext)
     {
+        _workspacePermissionLogic = workspacePermissionLogic;
     }
 
     public async Task<Guid> Handle(AddMembersCommand request, CancellationToken cancellationToken)
     {
-        // 1. Fetch
+        await _workspacePermissionLogic.EnsureCanManageMembers(request.workspaceId, CurrentUserId, cancellationToken);
+
         var workspace = await FindOrThrowAsync<ProjectWorkspace>(request.workspaceId);
 
         var normalizedMembers = request.members
@@ -84,7 +93,11 @@ public class AddMembersHandler : BaseFeatureHandler, IRequestHandler<AddMembersC
 
         if (specs.Count > 0)
         {
-            workspace.AddMembers(specs, CurrentUserId);
+            var newMembers = WorkspaceMember.AddBulk(specs, workspace.Id, CurrentUserId);
+            foreach (var member in newMembers)
+            {
+                workspace.AddMember(member, CurrentUserId);
+            }
         }
 
         return workspace.Id;

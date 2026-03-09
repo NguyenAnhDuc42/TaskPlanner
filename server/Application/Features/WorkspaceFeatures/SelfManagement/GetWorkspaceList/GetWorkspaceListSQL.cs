@@ -1,4 +1,5 @@
-﻿using Domain.Enums;
+using Domain.Enums;
+using Domain.Enums.RelationShip;
 using Domain.Enums.Workspace;
 
 namespace Application.Features.WorkspaceFeatures.SelfManagement.GetWorkspaceList;
@@ -8,16 +9,18 @@ public class WorkspaceRow
     public Guid Id { get; init; }
     public DateTimeOffset UpdatedAt { get; init; }
 
-    // API fields
     public string Name { get; init; } = null!;
     public string Icon { get; init; } = null!;
     public string Color { get; init; } = null!;
     public string Description { get; init; } = null!;
     public WorkspaceVariant Variant { get; init; }
     public Role Role { get; init; }
+    public MembershipStatus MembershipStatus { get; init; }
     public int MemberCount { get; init; }
     public bool IsArchived { get; init; }
+    public bool IsPinned { get; init; }
 }
+
 public static class GetWorkspaceListSQL
 {
     public const string Asc = @"
@@ -31,13 +34,14 @@ public static class GetWorkspaceListSQL
         w.variant,
         w.is_archived,
         wm.role,
-        COUNT(wm_all.user_id) as member_count
+        wm.status AS MembershipStatus,
+        wm.is_pinned AS IsPinned,
+        COUNT(wm_all.user_id) AS MemberCount
     FROM 
         project_workspaces w
     JOIN workspace_members wm 
         ON wm.project_workspace_id = w.id AND wm.user_id = @CurrentUserId AND wm.deleted_at IS NULL
-    JOIN
-        workspace_members wm_all
+    JOIN workspace_members wm_all
         ON wm_all.project_workspace_id = w.id AND wm_all.deleted_at IS NULL
     WHERE 
         w.deleted_at IS NULL AND
@@ -53,9 +57,9 @@ public static class GetWorkspaceListSQL
                 )
         )
     GROUP BY
-        w.id, wm.role, w.updated_at, w.is_archived
+        w.id, w.name, w.custom_icon, w.custom_color, w.description, w.variant, w.is_archived, wm.role, wm.status, w.updated_at, wm.is_pinned
     ORDER BY
-        w.updated_at ASC, w.id ASC
+        wm.is_pinned DESC, w.updated_at ASC, w.id ASC
     LIMIT @PageSizePLusOne;
     ";
 
@@ -70,13 +74,14 @@ public static class GetWorkspaceListSQL
         w.variant,
         w.is_archived,
         wm.role,
-        COUNT(wm_all.user_id) as member_count
+        wm.status AS MembershipStatus,
+        wm.is_pinned AS IsPinned,
+        COUNT(wm_all.user_id) AS MemberCount
     FROM 
         project_workspaces w
     JOIN workspace_members wm 
         ON wm.project_workspace_id = w.id AND wm.user_id = @CurrentUserId AND wm.deleted_at IS NULL
-    JOIN
-        workspace_members wm_all
+    JOIN workspace_members wm_all
         ON wm_all.project_workspace_id = w.id AND wm_all.deleted_at IS NULL
     WHERE 
         w.deleted_at IS NULL AND
@@ -92,9 +97,9 @@ public static class GetWorkspaceListSQL
                 )
         )
     GROUP BY
-        w.id, wm.role, w.updated_at, w.is_archived
+        w.id, w.name, w.custom_icon, w.custom_color, w.description, w.variant, w.is_archived, wm.role, wm.status, w.updated_at, wm.is_pinned
     ORDER BY
-        w.updated_at DESC, w.id DESC
+        wm.is_pinned DESC, w.updated_at DESC, w.id DESC
     LIMIT @PageSizePLusOne;
     ";
 }

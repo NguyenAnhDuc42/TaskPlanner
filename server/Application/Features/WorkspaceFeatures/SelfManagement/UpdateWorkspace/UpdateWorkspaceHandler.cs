@@ -1,21 +1,66 @@
-using System;
 using Application.Helpers;
 using Application.Interfaces.Repositories;
 using Domain.Entities.ProjectEntities;
-using Domain.Enums;
 using MediatR;
+using Application.Interfaces; 
+using Application.Features.WorkspaceFeatures.Logic;
+using Microsoft.Extensions.Caching.Hybrid; 
+using Microsoft.Extensions.Logging;
+using Application.Features.WorkspaceFeatures.UpdateWorkspace;
 using server.Application.Interfaces;
 
-namespace Application.Features.WorkspaceFeatures.UpdateWorkspace;
+
+namespace Application.Features.WorkspaceFeatures.SelfManagement.UpdateWorkspace; 
 
 public class UpdateWorkspaceHandler : BaseFeatureHandler, IRequestHandler<UpdateWorkspaceCommand, Unit>
 {
-    public UpdateWorkspaceHandler(IUnitOfWork unitOfWork, ICurrentUserService currentUserService, WorkspaceContext workspaceContext)
-        : base(unitOfWork, currentUserService, workspaceContext) { }
+    private readonly WorkspacePermissionLogic _workspacePermissionLogic;
+    private readonly HybridCache _cache;
+    private readonly IRealtimeService _realtime;
+    private readonly ILogger<UpdateWorkspaceHandler> _logger;
+
+    public UpdateWorkspaceHandler(
+        IUnitOfWork unitOfWork,
+        ICurrentUserService currentUserService,
+        WorkspaceContext workspaceContext,
+        WorkspacePermissionLogic workspacePermissionLogic,
+        HybridCache cache,
+        IRealtimeService realtime,
+        ILogger<UpdateWorkspaceHandler> logger)
+        : base(unitOfWork, currentUserService, workspaceContext)
+    {
+        _workspacePermissionLogic = workspacePermissionLogic;
+        _cache = cache;
+        _realtime = realtime;
+        _logger = logger;
+    }
+
     public async Task<Unit> Handle(UpdateWorkspaceCommand request, CancellationToken cancellationToken)
     {
+        _logger.LogInformation("Updating workspace {WorkspaceId} by user {UserId}", request.Id, CurrentUserId);
+
+        await ValidatePermission(request.Id, CurrentUserId, cancellationToken);
+
         var workspace = await FindOrThrowAsync<ProjectWorkspace>(request.Id);
 
+        UpdateWorkspaceDetails(workspace, request);
+
+        await UnitOfWork.SaveChangesAsync(cancellationToken);
+
+        await InvalidateCache(CurrentUserId, cancellationToken);
+
+        NotifyClients(workspace.Id, CurrentUserId);
+
+        return Unit.Value;
+    }
+
+    private async Task ValidatePermission(Guid workspaceId, Guid userId, CancellationToken ct)
+    {
+        await _workspacePermissionLogic.EnsureCanUpdateWorkspace(workspaceId, userId, ct);
+    }
+
+    private void UpdateWorkspaceDetails(ProjectWorkspace workspace, UpdateWorkspaceCommand request)
+    {
         // Update basic info
         if (request.Name is not null || request.Description is not null)
             workspace.UpdateBasicInfo(request.Name, request.Description);
@@ -44,8 +89,16 @@ public class UpdateWorkspaceHandler : BaseFeatureHandler, IRequestHandler<Update
         // Regenerate join code if requested
         if (request.RegenerateJoinCode)
             workspace.RegenerateJoinCode();
-
-        return Unit.Value;
     }
 
+    private async Task InvalidateCache(Guid userId, CancellationToken ct)
+    {
+        await _cache.RemoveByTagAsync(WorkspaceCacheKeys.WorkspaceListTag(userId), ct);
+    }
+
+    private void NotifyClients(Guid workspaceId, Guid userId)
+    {
+        _ = _realtime.NotifyUserAsync(userId, "WorkspaceUpdated", new { WorkspaceId = workspaceId }, default);
+        _ = _realtime.NotifyWorkspaceAsync(workspaceId, "WorkspaceSettingsUpdated", new { WorkspaceId = workspaceId }, default);
+    }
 }

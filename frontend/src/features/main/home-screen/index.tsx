@@ -1,59 +1,59 @@
 import { CalenderTasks } from "./components/calender-tasks";
 import { NotificationsList } from "./components/notifications-list";
 import { WorkspaceList } from "./components/workspace-list";
-import { useWorkspaces, useCreateWorkspace } from "./api";
 import { Head } from "./components/head";
 import { CreateWorkspaceForm } from "./components/create-workspace-form";
-import React from "react";
+import { JoinWorkspaceDialog } from "./components/join-workspace-dialog";
+import { useWorkspaceHome, useJoinWorkspaceByCode } from "./api";
 
 export function WorkspaceHomeScreen() {
-  const [filters, setFilters] = React.useState<{
-    name?: string;
-    variant?: string;
-    owned?: boolean;
-    isArchived?: boolean;
-    direction?: "Ascending" | "Descending";
-  }>({});
-
   const {
-    data,
-    isLoading: isWorkspacesLoading,
-    fetchNextPage,
+    filters,
+    workspaces,
+    isWorkspacesLoading,
+    isCreating,
+    isCreateModalOpen,
+    setIsCreateModalOpen,
+    isJoinModalOpen,
+    setIsJoinModalOpen,
     hasNextPage,
     isFetchingNextPage,
-  } = useWorkspaces(filters);
+    fetchNextPage,
+    handleCreateWorkspace,
+    handleJoinWorkspace,
+    handlePinWorkspace,
+    handleSearchChange,
+    handleFilterChange,
+  } = useWorkspaceHome();
 
-  const workspaces = React.useMemo(() => {
-    return data?.pages.flatMap((page) => page.items) ?? [];
-  }, [data]);
-
-  const { mutate: create, isPending: isCreating } = useCreateWorkspace();
-  const [isCreateModalOpen, setIsCreateModalOpen] = React.useState(false);
+  const { mutate: joinByCode, isPending: isJoining } = useJoinWorkspaceByCode();
 
   return (
-    <div className="flex flex-col h-screen overflow-hidden">
+    <div className="flex flex-col h-screen overflow-hidden bg-background">
       <Head />
-      <div className="flex-1 grid grid-flow-col grid-rows-2 gap-4 p-4 min-h-0">
-        <div className="col-span-3 row-span-2 min-h-0">
+      <div className="flex-1 grid grid-cols-4 gap-4 p-4 min-h-0">
+        <div className="col-span-3 h-full min-h-0">
           <WorkspaceList
             workspaces={workspaces}
             isLoading={isWorkspacesLoading}
             onCreateWorkspace={() => setIsCreateModalOpen(true)}
+            onJoinWorkspace={handleJoinWorkspace}
+            onPinWorkspace={handlePinWorkspace}
             onFetchNextPage={fetchNextPage}
             hasNextPage={hasNextPage}
             isFetchingNextPage={isFetchingNextPage}
-            onSearchChange={(name) => setFilters((prev) => ({ ...prev, name }))}
+            onSearchChange={handleSearchChange}
             filters={filters}
-            onFilterChange={(newFilters) =>
-              setFilters((prev) => ({ ...prev, ...newFilters }))
-            }
+            onFilterChange={handleFilterChange}
           />
         </div>
-        <div className="col-span-1 row-span-1 outline-2">
-          <CalenderTasks />
-        </div>
-        <div className="col-span-1 row-span-1 outline-2">
-          <NotificationsList />
+        <div className="col-span-1 flex flex-col gap-4 min-h-0">
+          <div className="flex-1 min-h-0 outline-2 outline-border rounded-xl">
+            <CalenderTasks />
+          </div>
+          <div className="flex-1 min-h-0 outline-2 outline-border rounded-xl">
+            <NotificationsList />
+          </div>
         </div>
       </div>
 
@@ -62,10 +62,14 @@ export function WorkspaceHomeScreen() {
         onOpenChange={setIsCreateModalOpen}
         showTrigger={false}
         isLoading={isCreating}
-        onSubmit={(data) => {
-          create({ ...data, strictJoin: false });
-          // Note: The form handles closing itself via internal onOpenChange/setOpen call in handleSubmit
-        }}
+        onSubmit={handleCreateWorkspace}
+      />
+
+      <JoinWorkspaceDialog
+        open={isJoinModalOpen}
+        onOpenChange={setIsJoinModalOpen}
+        isLoading={isJoining}
+        onJoin={(code) => joinByCode(code)}
       />
     </div>
   );

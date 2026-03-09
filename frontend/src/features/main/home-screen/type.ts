@@ -46,4 +46,7 @@ export interface WorkspaceSummary {
   memberCount: number;
   isArchived: boolean;
   isPinned: boolean;
+  canUpdateWorkspace: boolean;
+  canManageMembers: boolean;
+  canPinWorkspace: boolean;
 }

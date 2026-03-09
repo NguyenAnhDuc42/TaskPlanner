@@ -1,27 +1,32 @@
-using Application.Common;
-using System;
 using Application.Interfaces.Repositories;
 using Domain.Entities.ProjectEntities;
 using Domain.Entities.Relationship;
-using Domain.Enums;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Caching.Hybrid;
 using server.Application.Interfaces;
 using Application.Helpers;
+using Application.Features.WorkspaceFeatures.Logic;
 
 namespace Application.Features.WorkspaceFeatures.MemberManage.RemoveMembers;
 
 public class RemoveMembersHandler : BaseFeatureHandler, IRequestHandler<RemoveMembersCommand, Guid>
 {
-    public RemoveMembersHandler(IUnitOfWork unitOfWork, ICurrentUserService currentUserService, WorkspaceContext workspaceContext)
+    private readonly WorkspacePermissionLogic _workspacePermissionLogic;
+
+    public RemoveMembersHandler(
+        IUnitOfWork unitOfWork,
+        ICurrentUserService currentUserService,
+        WorkspaceContext workspaceContext,
+        WorkspacePermissionLogic workspacePermissionLogic)
         : base(unitOfWork, currentUserService, workspaceContext)
     {
+        _workspacePermissionLogic = workspacePermissionLogic;
     }
 
     public async Task<Guid> Handle(RemoveMembersCommand request, CancellationToken cancellationToken)
     {
-        // 1. Fetch
+        await _workspacePermissionLogic.EnsureCanManageMembers(request.workspaceId, CurrentUserId, cancellationToken);
+
         var workspace = await FindOrThrowAsync<ProjectWorkspace>(request.workspaceId);
 
         var members = await UnitOfWork.Set<WorkspaceMember>()

@@ -13,6 +13,9 @@ import { workspaceKeys } from "../query-keys";
 import { toast } from "sonner";
 import { isAxiosError } from "axios";
 import type { PagedResult } from "@/types/paged-result";
+import { useNavigate, useSearch } from "@tanstack/react-router";
+import React from "react";
+import { signalRService } from "@/lib/signalr-service";
 
 type CreateWorkspaceValues = z.infer<typeof createWorkspaceSchema>;
 
@@ -82,4 +85,150 @@ export function useWorkspaces(filters?: {
     refetchOnWindowFocus: false,
     placeholderData: keepPreviousData,
   });
+}
+
+export function useSetWorkspacePin() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (payload: { workspaceId: string; isPinned: boolean }) => {
+      await api.put(`/workspaces/${payload.workspaceId}/pin`, {
+        isPinned: payload.isPinned,
+      });
+    },
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: workspaceKeys.list() });
+    },
+    onError: () => {
+      toast.error("Failed to update workspace pin");
+    },
+  });
+}
+
+export function useJoinWorkspaceByCode() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (joinCode: string) => {
+      const response = await api.post<{
+        workspaceId: string;
+        membershipStatus: string;
+        isNewMember: boolean;
+      }>("/workspaces/join", { joinCode });
+      return response.data;
+    },
+    onSuccess: async (data) => {
+      await queryClient.invalidateQueries({ queryKey: workspaceKeys.list() });
+      if (data.membershipStatus === "Pending") {
+        toast.info("Join request sent. Waiting for approval.");
+      } else {
+        toast.success("Joined workspace successfully");
+      }
+    },
+    onError: (error) => {
+      if (isAxiosError(error) && error.response?.data) {
+        const data = error.response.data;
+        const message = data.detail || data.title || "Failed to join workspace";
+        toast.error(message);
+      } else {
+        toast.error("Failed to join workspace");
+      }
+    },
+  });
+}
+
+export function useWorkspaceHome() {
+  const search = useSearch({ from: "/" }) as any;
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
+
+  const {
+    data,
+    isLoading: isWorkspacesLoading,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+  } = useWorkspaces(search);
+
+  const workspaces = React.useMemo(() => {
+    return data?.pages.flatMap((page) => page.items) ?? [];
+  }, [data]);
+
+  const { mutate: createInternal, isPending: isCreating } = useCreateWorkspace();
+  const { mutate: setWorkspacePin } = useSetWorkspacePin();
+
+  const [isCreateModalOpen, setIsCreateModalOpen] = React.useState(false);
+  const [isJoinModalOpen, setIsJoinModalOpen] = React.useState(false);
+
+  React.useEffect(() => {
+    signalRService.startConnection();
+
+    const onUpdate = () => {
+      queryClient.invalidateQueries({ queryKey: workspaceKeys.list() });
+    };
+
+    signalRService.on("WorkspaceUpdated", onUpdate);
+    signalRService.on("WorkspacePinned", onUpdate);
+
+    return () => {
+      signalRService.off("WorkspaceUpdated", onUpdate);
+      signalRService.off("WorkspacePinned", onUpdate);
+    };
+  }, [queryClient]);
+
+  const handleCreateWorkspace = React.useCallback(
+    (data: any) => {
+      createInternal({ ...data, strictJoin: false });
+    },
+    [createInternal],
+  );
+
+  const handleJoinWorkspace = React.useCallback(() => {
+    setIsJoinModalOpen(true);
+  }, []);
+
+  const handlePinWorkspace = React.useCallback(
+    (workspaceId: string, isPinned: boolean) => {
+      setWorkspacePin({ workspaceId, isPinned });
+    },
+    [setWorkspacePin],
+  );
+
+  const handleSearchChange = React.useCallback(
+    (name: string) => {
+      (navigate as any)({
+        search: (prev: any) => ({ ...prev, name: name || undefined }),
+        replace: true,
+      });
+    },
+    [navigate],
+  );
+
+  const handleFilterChange = React.useCallback(
+    (newFilters: any) => {
+      (navigate as any)({
+        search: (prev: any) => ({ ...prev, ...newFilters }),
+      });
+    },
+    [navigate],
+  );
+
+  return {
+    filters: search,
+    workspaces,
+    isWorkspacesLoading,
+    isCreating,
+    isCreateModalOpen,
+    setIsCreateModalOpen,
+    isJoinModalOpen,
+    setIsJoinModalOpen,
+    hasNextPage,
+    isFetchingNextPage,
+    fetchNextPage,
+    handleCreateWorkspace,
+    handleJoinWorkspace,
+    handlePinWorkspace,
+    handleSearchChange,
+    handleFilterChange,
+  };
 }

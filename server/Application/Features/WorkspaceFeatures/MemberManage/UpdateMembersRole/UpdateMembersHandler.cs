@@ -9,19 +9,28 @@ using Microsoft.Extensions.Caching.Hybrid;
 using server.Application.Interfaces;
 using Application.Common;
 using Application.Helpers;
+using Application.Features.WorkspaceFeatures.Logic;
 
 namespace Application.Features.WorkspaceFeatures.MemberManage.UpdateMembers;
 
 public class UpdateMembersHandler : BaseFeatureHandler, IRequestHandler<UpdateMembersCommand, Unit>
 {
-    public UpdateMembersHandler(IUnitOfWork unitOfWork, ICurrentUserService currentUserService, WorkspaceContext workspaceContext)
+    private readonly WorkspacePermissionLogic _workspacePermissionLogic;
+
+    public UpdateMembersHandler(
+        IUnitOfWork unitOfWork,
+        ICurrentUserService currentUserService,
+        WorkspaceContext workspaceContext,
+        WorkspacePermissionLogic workspacePermissionLogic)
         : base(unitOfWork, currentUserService, workspaceContext)
     {
+        _workspacePermissionLogic = workspacePermissionLogic;
     }
 
     public async Task<Unit> Handle(UpdateMembersCommand request, CancellationToken cancellationToken)
     {
-        // 1. Fetch
+        await _workspacePermissionLogic.EnsureCanManageMembers(request.workspaceId, CurrentUserId, cancellationToken);
+
         var workspace = await FindOrThrowAsync<ProjectWorkspace>(request.workspaceId);
 
         var updateDict = request.members.ToDictionary(x => x.userId);

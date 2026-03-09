@@ -1,10 +1,8 @@
 using System;
 using Domain.Entities;
-using System.ComponentModel.DataAnnotations;
 using Domain.Common;
 using Domain.Enums;
 using Domain.Enums.RelationShip;
-using Domain.Events;
 using Domain.Events.Membership;
 
 namespace Domain.Entities.Relationship;
@@ -16,18 +14,20 @@ public class WorkspaceMember : Entity
     public Guid ProjectWorkspaceId { get; private set; }
     public Role Role { get; private set; } // Only here
     public MembershipStatus Status { get; private set; } // Pending, Active, Invited, Suspended
+    public bool IsPinned { get; private set; }
     public DateTimeOffset? JoinedAt { get; private set; }
     public DateTimeOffset? SuspendedAt { get; private set; }
     public Guid? SuspendedBy { get; private set; }
     public string? JoinMethod { get; private set; } = string.Empty; // "Invite", "Request", "Code"
     private WorkspaceMember() { } // EF
 
-    public WorkspaceMember(Guid userId, Guid projectWorkspaceId, Role role, MembershipStatus status, Guid creatorId, string? joinMethod)
+    private WorkspaceMember(Guid userId, Guid projectWorkspaceId, Role role, MembershipStatus status, Guid creatorId, string? joinMethod)
     {
         UserId = userId;
         ProjectWorkspaceId = projectWorkspaceId;
         Role = role;
         Status = status;
+        IsPinned = false;
         CreatorId = creatorId;
         JoinedAt = status == MembershipStatus.Active ? DateTimeOffset.UtcNow : null;
         JoinMethod = joinMethod;
@@ -92,6 +92,38 @@ public class WorkspaceMember : Entity
         Status = MembershipStatus.Active;
         JoinedAt = DateTimeOffset.UtcNow;
         AddDomainEvent(new WorkspaceMembersAddedBulkEvent(ProjectWorkspaceId, new[] { new AddedMemberRecord(UserId, Role) }));
+    }
+
+    public void SetPinned(bool isPinned)
+    {
+        if (IsPinned == isPinned) return;
+        IsPinned = isPinned;
+        UpdateTimestamp();
+    }
+
+    public void JoinByCode(bool strictJoin)
+    {
+        if (Status == MembershipStatus.Suspended)
+            throw new InvalidOperationException("Suspended members cannot join this workspace.");
+
+        if (strictJoin)
+        {
+            Status = MembershipStatus.Pending;
+            JoinedAt = null;
+        }
+        else
+        {
+            Status = MembershipStatus.Active;
+            JoinedAt = DateTimeOffset.UtcNow;
+        }
+
+        UpdateTimestamp();
+    }
+
+    public void RestoreForJoinByCode(bool strictJoin)
+    {
+        DeletedAt = null;
+        JoinByCode(strictJoin);
     }
 
 }

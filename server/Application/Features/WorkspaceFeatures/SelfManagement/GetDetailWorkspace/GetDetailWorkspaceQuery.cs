@@ -1,4 +1,3 @@
-using Application.Contract.WorkspaceContract;
 using MediatR;
 
 namespace Application.Features.WorkspaceFeatures.SelfManagement.GetDetailWorkspace;

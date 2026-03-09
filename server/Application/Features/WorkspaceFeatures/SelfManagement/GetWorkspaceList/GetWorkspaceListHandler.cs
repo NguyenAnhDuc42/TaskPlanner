@@ -1,45 +1,52 @@
-using Application.Common;
 using Application.Common.Filters;
 using Application.Common.Results;
 using Application.Contract.WorkspaceContract;
+using Application.Features.WorkspaceFeatures.SelfManagement;
 using Application.Features.WorkspaceFeatures.SelfManagement.GetWorkspaceList;
 using Application.Helper;
+using Application.Helpers;
 using Application.Interfaces.Repositories;
-using Dapper;
 using MediatR;
 using Microsoft.Extensions.Caching.Hybrid;
+using Microsoft.Extensions.Logging;
 using server.Application.Interfaces;
-using System.Data;
 using System.Text.Json;
+using Domain.Enums;
+using Domain.Enums.RelationShip;
 
 
 namespace Application.Features.WorkspaceFeatures.GetWorkspaceList;
 
-public class GetWorkspaceListHandler : IRequestHandler<GetWorksapceListQuery, PagedResult<WorkspaceSummaryDto>>
+public class GetWorkspaceListHandler : BaseFeatureHandler, IRequestHandler<GetWorksapceListQuery, PagedResult<WorkspaceSummaryDto>>
 {
-    private readonly IDbConnection _connection;
-    private readonly ICurrentUserService _currentUserService;
     private readonly CursorHelper _cursorHelper;
     private readonly HybridCache _cache;
+    private readonly ILogger<GetWorkspaceListHandler> _logger;
 
 
-    public GetWorkspaceListHandler(IDbConnection dbConnection, IUnitOfWork unitOfWork, ICurrentUserService currentUserService, CursorHelper cursorHelper, HybridCache cache)
+    public GetWorkspaceListHandler(
+        IUnitOfWork unitOfWork,
+        ICurrentUserService currentUserService,
+        WorkspaceContext workspaceContext,
+        CursorHelper cursorHelper,
+        HybridCache cache,
+        ILogger<GetWorkspaceListHandler> logger)
+        : base(unitOfWork, currentUserService, workspaceContext)
     {
-        _connection = dbConnection;
-        _currentUserService = currentUserService;
         _cursorHelper = cursorHelper;
         _cache = cache;
+        _logger = logger;
     }
 
     public async Task<PagedResult<WorkspaceSummaryDto>> Handle(GetWorksapceListQuery request, CancellationToken cancellationToken)
     {
-        var currentUserId = _currentUserService.CurrentUserId();
+        var currentUserId = CurrentUserService.CurrentUserId();
         var cacheKey = WorkspaceCacheKeys.WorkspaceList(currentUserId, request);
-        Console.WriteLine($"[HybridCache] DEBUG: CacheKey = {cacheKey}");
+        _logger.LogDebug("Workspace list cache lookup. UserId={UserId}, CacheKey={CacheKey}", currentUserId, cacheKey);
 
         return await _cache.GetOrCreateAsync(cacheKey, async token =>
             {
-                Console.WriteLine($"[HybridCache] MISS: Fetching workspace list from DB for user {currentUserId}");
+                _logger.LogDebug("Workspace list cache miss. UserId={UserId}", currentUserId);
                 var pageSize = request.Pagination.PageSize;
 
                 DecodeCursor(request.Pagination.Cursor, out var cursorTs, out var cursorId);
@@ -50,17 +57,20 @@ public class GetWorkspaceListHandler : IRequestHandler<GetWorksapceListQuery, Pa
 
                 var variantString = request.filter.Variant?.ToString();
 
-                var rows = (await _connection.QueryAsync<WorkspaceRow>(sql, new
+                var rows = (await UnitOfWork.QueryAsync<WorkspaceRow>(sql, new
                 {
-                    CurrentUserId = currentUserId,
+                    currentUserId,
                     name = request.filter.Name,
                     owned = request.filter.Owned,
                     IsArchived = request.filter.isArchived,
-                    variant = variantString,   // important
+                    variant = variantString,
                     cursorTimestamp = cursorTs,
                     cursorId,
                     PageSizePLusOne = pageSize + 1
-                })).AsList();
+                }, token)).ToList();
+
+                _logger.LogInformation("[Diagnostic] Workspace SQL returned {Count} rows for UserId={UserId}. Filters: Name={Name}, Owned={Owned}, Archived={Archived}, Variant={Variant}", 
+                    rows.Count, currentUserId, request.filter.Name, request.filter.Owned, request.filter.isArchived, variantString);
 
                 var hasMore = rows.Count > pageSize;
                 if (hasMore)
@@ -75,7 +85,7 @@ public class GetWorkspaceListHandler : IRequestHandler<GetWorksapceListQuery, Pa
                 return new PagedResult<WorkspaceSummaryDto>(items, nextCursor, hasMore);
             },
             new HybridCacheEntryOptions { Expiration = TimeSpan.FromMinutes(5) },
-            new[] { $"user:{currentUserId}:workspaces" },
+            new[] { $"user:{CurrentUserId}:workspaces" },
             cancellationToken);
     }
 
@@ -83,12 +93,9 @@ public class GetWorkspaceListHandler : IRequestHandler<GetWorksapceListQuery, Pa
     {
         ts = null;
         id = null;
-
-        Console.WriteLine($"DEBUG: Raw cursor = {cursor}");
         if (string.IsNullOrEmpty(cursor)) return;
 
         var data = _cursorHelper.DecodeCursor(cursor);
-        Console.WriteLine($"DEBUG: Decoded data = {JsonSerializer.Serialize(data)}");
 
         if (data?.Values == null) return;
 
@@ -105,7 +112,6 @@ public class GetWorkspaceListHandler : IRequestHandler<GetWorksapceListQuery, Pa
             if (Guid.TryParse(idStr, out var parsedId))
                 id = parsedId;
         }
-        Console.WriteLine($"DEBUG: Decoded ts = {ts}, id = {id}");
     }
 
 
@@ -120,26 +126,25 @@ public class GetWorkspaceListHandler : IRequestHandler<GetWorksapceListQuery, Pa
             Description = x.Description,
             Variant = x.Variant,
             Role = x.Role,
-            MemberCount = x.MemberCount
+            MemberCount = x.MemberCount,
+            IsArchived = x.IsArchived,
+            IsPinned = x.IsPinned,
+            CanUpdateWorkspace = x.MembershipStatus == MembershipStatus.Active && (x.Role == Role.Owner || x.Role == Role.Admin),
+            CanManageMembers = x.MembershipStatus == MembershipStatus.Active && (x.Role == Role.Owner || x.Role == Role.Admin),
+            CanPinWorkspace = x.MembershipStatus == MembershipStatus.Active
         }).ToList();
     }
 
 
     private string EncodeNextCursor(WorkspaceRow last)
     {
-        Console.WriteLine($"DEBUG ENCODE: Timestamp = {last.UpdatedAt}, Id = {last.Id}");
-
         var cursorData = new CursorData(new Dictionary<string, object>
         {
             { "Timestamp", last.UpdatedAt },
             { "Id", last.Id }
         });
 
-        Console.WriteLine($"DEBUG ENCODE: Before encryption = {JsonSerializer.Serialize(cursorData.Values)}");
-
         var encoded = _cursorHelper.EncodeCursor(cursorData);
-
-        Console.WriteLine($"DEBUG ENCODE: After encryption = {encoded}");
 
         return encoded;
     }

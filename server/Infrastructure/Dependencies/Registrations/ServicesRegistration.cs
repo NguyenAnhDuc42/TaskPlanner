@@ -3,6 +3,7 @@ using Application.Interfaces.Repositories;
 using Application.Interfaces.Services;
 using Application.Interfaces.Services.Permissions;
 using Application.Helpers.Permission;
+using Application.Features.WorkspaceFeatures.Logic;
 using Infrastructure.Auth;
 using Infrastructure.Data;
 using Infrastructure.Services;
@@ -31,6 +32,7 @@ public static class ServicesRegistration
         services.AddScoped<PermissionResolver>();
         services.AddScoped<IEntityHierarchyProvider, EntityHierarchyProvider>();
         services.AddScoped<IAccessGrantService, AccessGrantService>();
+        services.AddScoped<WorkspacePermissionLogic>();
         services.AddScoped<ViewBuilder>();
         services.AddScoped<IStatusResolver, StatusResolver>();
 

@@ -3,6 +3,7 @@ using System.Security.Claims;
 using Domain.Entities;
 using Infrastructure.Data;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Logging;
 using server.Application.Interfaces;
 
 namespace Infrastructure.Auth;
@@ -11,10 +12,13 @@ public class CurrentUserService : ICurrentUserService
 {
     private readonly IHttpContextAccessor _httpContextAccessor;
     private readonly TaskPlanDbContext _dbContext;
-    public CurrentUserService(IHttpContextAccessor httpContextAccessor, TaskPlanDbContext dbContext)
+    private readonly ILogger<CurrentUserService> _logger;
+
+    public CurrentUserService(IHttpContextAccessor httpContextAccessor, TaskPlanDbContext dbContext, ILogger<CurrentUserService> logger)
     {
         _httpContextAccessor = httpContextAccessor ?? throw new ArgumentNullException(nameof(httpContextAccessor));
         _dbContext = dbContext ?? throw new ArgumentNullException(nameof(dbContext));
+        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
     public User CurrentUser()
@@ -33,21 +37,37 @@ public class CurrentUserService : ICurrentUserService
 
     public Guid CurrentUserId()
     {
-        var userIdClaim = _httpContextAccessor.HttpContext?.User.FindFirst(ClaimTypes.NameIdentifier);
+        var httpContext = _httpContextAccessor.HttpContext;
+        if (httpContext == null) return Guid.Empty;
+
+        var user = httpContext.User;
+        
+        // Find by both standard ClaimTypes and JWT 'sub'
+        var userIdClaim = user.FindFirst(ClaimTypes.NameIdentifier) ?? 
+                          user.FindFirst("sub");
+
         if (userIdClaim == null || !Guid.TryParse(userIdClaim.Value, out var userId))
-        { return Guid.Empty; }
+        {
+            if (httpContext.User.Identity?.IsAuthenticated == true)
+            {
+                var claims = string.Join(", ", httpContext.User.Claims.Select(c => $"{c.Type}={c.Value}"));
+                _logger.LogWarning("[Diagnostic] User is authenticated but ID claim ('{IdType}' or 'sub') is missing or invalid. Claims present: {Claims}", 
+                    ClaimTypes.NameIdentifier, claims);
+            }
+            else
+            {
+                _logger.LogDebug("[Diagnostic] User is not authenticated.");
+            }
+            return Guid.Empty;
+        }
         return userId;
     }
 
     public Guid UserId
     {
-        get
-        {
-            var claim = _httpContextAccessor.HttpContext?.User.FindFirst(ClaimTypes.NameIdentifier);
-            return Guid.TryParse(claim?.Value, out var id) 
-                ? id : Guid.Empty;
-        }
+        get => CurrentUserId();
     }
-
-
 }
+
+
+

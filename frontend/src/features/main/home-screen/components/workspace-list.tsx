@@ -21,7 +21,9 @@ type Props = {
   workspaces: WorkspaceSummary[];
   isLoading?: boolean;
   onCreateWorkspace?: () => void;
+  onJoinWorkspace?: () => void;
   onWorkspaceOpen?: (id: string) => void;
+  onPinWorkspace?: (workspaceId: string, isPinned: boolean) => void;
   onFetchNextPage?: () => void;
   hasNextPage?: boolean;
   isFetchingNextPage?: boolean;
@@ -39,7 +41,9 @@ export function WorkspaceList({
   workspaces,
   isLoading,
   onCreateWorkspace,
+  onJoinWorkspace,
   onWorkspaceOpen,
+  onPinWorkspace,
   onFetchNextPage,
   hasNextPage,
   isFetchingNextPage,
@@ -91,6 +95,12 @@ export function WorkspaceList({
             className="flex items-center gap-2 h-9 px-4 bg-primary hover:bg-primary/90 text-primary-foreground border-0 font-mono text-sm rounded-md"
           >
             Create
+          </button>
+          <button
+            onClick={onJoinWorkspace}
+            className="flex items-center gap-2 h-9 px-4 bg-card hover:bg-card/80 text-foreground border border-border font-mono text-sm rounded-md"
+          >
+            Join
           </button>
 
           <DropdownMenu>
@@ -241,6 +251,7 @@ export function WorkspaceList({
                     <WorkspaceItem
                       workspaceSummary={workspace}
                       onOpen={onWorkspaceOpen}
+                      onPin={onPinWorkspace}
                     />
                   </div>
                 ))}

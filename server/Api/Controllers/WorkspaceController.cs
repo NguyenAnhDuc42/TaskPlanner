@@ -2,32 +2,34 @@ using Application.Common.Filters;
 using Application.Common.Results;
 using Application.Contract.WorkspaceContract;
 using Application.Features.WorkspaceFeatures.SelfManagement.CreateWorkspace;
-using Application.Features.WorkspaceFeatures.UpdateWorkspace;
-using Application.Features.WorkspaceFeatures.GetWorkspaceList;
+using Application.Features.WorkspaceFeatures.SelfManagement.GetWorkspaceList;
 using Domain.Enums.Workspace;
 using MediatR;
 using Microsoft.AspNetCore.JsonPatch;
 using Microsoft.AspNetCore.Mvc;
 using Domain.Enums;
 using Application.Contract.UserContract;
+using Microsoft.AspNetCore.Authorization;
 using Application.Features.WorkspaceFeatures.MemberManage.GetMembers;
 using Application.Features.WorkspaceFeatures.MemberManage.AddMembers;
 using Application.Features.WorkspaceFeatures.HierarchyManagement.GetHierarchy;
 using Application.Features.WorkspaceFeatures.MemberManage.UpdateMembers;
-
+using Application.Features.WorkspaceFeatures.SelfManagement.GetDetailWorkspace;
+using Application.Features.WorkspaceFeatures.SelfManagement.SetWorkspacePin;
+using Application.Features.WorkspaceFeatures.SelfManagement.JoinWorkspaceByCode;
+using Application.Features.WorkspaceFeatures.UpdateWorkspace;
 namespace Api.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize]
     public class WorkspacesController : ControllerBase
     {
         private readonly IMediator _mediator;
-
         public WorkspacesController(IMediator mediator)
         {
             _mediator = mediator;
         }
-
         [HttpPost]
         public async Task<IActionResult> CreateWorkspace([FromBody] CreateWorkspaceCommand command, CancellationToken cancellationToken)
         {
@@ -56,6 +58,25 @@ namespace Api.Controllers
             return NoContent();
         }
 
+        [HttpPut("{id:guid}/pin")]
+        public async Task<IActionResult> SetWorkspacePin(
+            Guid id,
+            [FromBody] SetWorkspacePinRequest request,
+            CancellationToken cancellationToken)
+        {
+            await _mediator.Send(new SetWorkspacePinCommand(id, request.IsPinned), cancellationToken);
+            return NoContent();
+        }
+
+        [HttpPost("join")]
+        public async Task<IActionResult> JoinWorkspaceByCode(
+            [FromBody] JoinWorkspaceByCodeRequest request,
+            CancellationToken cancellationToken)
+        {
+            var result = await _mediator.Send(new JoinWorkspaceByCodeCommand(request.JoinCode), cancellationToken);
+            return Ok(result);
+        }
+
         [HttpGet]
         public async Task<ActionResult<PagedResult<WorkspaceSummaryDto>>> GetWorkspaces(
             [FromQuery] string? cursor,
@@ -80,6 +101,15 @@ namespace Api.Controllers
         {
             var query = new GetHierarchyQuery(id);
             var result = await _mediator.Send(query, cancellationToken);
+            return Ok(result);
+        }
+
+        [HttpGet("{id:guid}/me/permissions")]
+        public async Task<ActionResult<WorkspaceSecurityContextDto>> GetMyWorkspacePermissions(
+            Guid id,
+            CancellationToken cancellationToken)
+        {
+            var result = await _mediator.Send(new GetDetailWorkspaceQuery(id), cancellationToken);
             return Ok(result);
         }
 
@@ -150,6 +180,8 @@ namespace Api.Controllers
     public record AddMembersRequest(List<MemberValue> Members, bool? EnableEmail = false, string? Message = null);
     public record UpdateMembersRequest(List<UpdateMemberValue> Members);
     public record RemoveMembersRequest(List<Guid> MemberIds);
+    public record SetWorkspacePinRequest(bool IsPinned);
+    public record JoinWorkspaceByCodeRequest(string JoinCode);
 
 
 }

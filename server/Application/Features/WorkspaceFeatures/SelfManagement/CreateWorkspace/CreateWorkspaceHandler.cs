@@ -1,51 +1,85 @@
-using Application.Contract.WorkspaceContract;
+using Application.Helpers;
 using Application.Interfaces.Repositories;
 using Domain.Entities.ProjectEntities;
 using Domain.Entities.ProjectEntities.ValueObject;
+using Application.Features.WorkspaceFeatures.SelfManagement;
 using MediatR;
-using server.Application.Interfaces;
 using Microsoft.Extensions.Caching.Hybrid;
+using Application.Interfaces;
+using server.Application.Interfaces;
 
 namespace Application.Features.WorkspaceFeatures.SelfManagement.CreateWorkspace;
 
-public class CreateWorkspaceHandler : IRequestHandler<CreateWorkspaceCommand, Guid>
+public class CreateWorkspaceHandler : BaseFeatureHandler, IRequestHandler<CreateWorkspaceCommand, Guid>
 {
-    private readonly IUnitOfWork _unitOfWork;
-    private readonly ICurrentUserService _currentUserService;
-    private readonly HybridCache _cache;
 
-    public CreateWorkspaceHandler(IUnitOfWork unitOfWork, ICurrentUserService currentUserService, HybridCache cache)
+    private readonly HybridCache _cache;
+    private readonly IRealtimeService _realtime;
+
+    public CreateWorkspaceHandler(
+        IUnitOfWork unitOfWork,
+        ICurrentUserService currentUserService,
+        WorkspaceContext workspaceContext,
+        HybridCache cache,
+        IRealtimeService realtime)
+        : base(unitOfWork, currentUserService, workspaceContext) 
     {
-        _unitOfWork = unitOfWork ?? throw new ArgumentNullException(nameof(unitOfWork));
-        _currentUserService = currentUserService ?? throw new ArgumentNullException(nameof(currentUserService));
         _cache = cache;
+        _realtime = realtime;
     }
 
     public async Task<Guid> Handle(CreateWorkspaceCommand request, CancellationToken cancellationToken)
     {
-        var currentUserId = _currentUserService.CurrentUserId();
+        var currentUserId = ValidateRequest();
+        
+        var workspace = await PersistWorkspace(request, currentUserId, cancellationToken);
+        
+        await InvalidateCache(currentUserId, cancellationToken);
+        
+        NotifyClients(workspace.Id, currentUserId);
+
+        return workspace.Id;
+    }
+
+    private Guid ValidateRequest()
+    {
+        var currentUserId = CurrentUserId;
         if (currentUserId == Guid.Empty)
         {
             throw new UnauthorizedAccessException("User not authenticated.");
         }
+        return currentUserId;
+    }
 
-        var variant = request.Variant;
-        var theme = request.Theme;
+    private async Task<ProjectWorkspace> PersistWorkspace(CreateWorkspaceCommand request, Guid currentUserId, CancellationToken ct)
+    {
         var customization = Customization.Create(request.Color, request.Icon);
         var workspace = ProjectWorkspace.Create(
             name: request.Name,
             description: request.Description,
-            joinCode: null, // Let the entity generate it
+            joinCode: null,
             customization: customization,
             creatorId: currentUserId,
-            theme: theme,
-            variant: variant,
+            theme: request.Theme,
+            variant: request.Variant,
             strictJoin: request.StrictJoin
         );
 
-        await _unitOfWork.Set<ProjectWorkspace>().AddAsync(workspace, cancellationToken);
-        await _unitOfWork.SaveChangesAsync();
+        await UnitOfWork.Set<ProjectWorkspace>().AddAsync(workspace, ct);
+        await UnitOfWork.SaveChangesAsync(ct);
+        
+        return workspace;
+    }
 
-        return workspace.Id;
+    private async Task InvalidateCache(Guid userId, CancellationToken ct)
+    {
+        // Invalidate the workspace list for this user
+        await _cache.RemoveByTagAsync(WorkspaceCacheKeys.WorkspaceListTag(userId), ct);
+    }
+
+    private void NotifyClients(Guid workspaceId, Guid userId)
+    {
+        // Notify the user's home screen to refetch the list
+        _ = _realtime.NotifyUserAsync(userId, "WorkspaceCreated", new { WorkspaceId = workspaceId }, default);
     }
 }

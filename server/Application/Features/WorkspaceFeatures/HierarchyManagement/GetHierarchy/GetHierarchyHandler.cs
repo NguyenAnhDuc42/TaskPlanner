@@ -3,6 +3,7 @@ using Application.Helper;
 using Application.Interfaces.Repositories;
 using Domain;
 using Application.Helpers;
+using Application.Features.WorkspaceFeatures.Logic;
 using Domain.Entities.ProjectEntities;
 using Domain.Enums;
 using MediatR;
@@ -14,19 +15,24 @@ namespace Application.Features.WorkspaceFeatures.HierarchyManagement.GetHierarch
 public class GetHierarchyHandler : BaseFeatureHandler, IRequestHandler<GetHierarchyQuery, WorkspaceHierarchyDto>
 {
     private readonly CursorHelper _cursorHelper;
+    private readonly WorkspacePermissionLogic _workspacePermissionLogic;
 
     public GetHierarchyHandler(
         IUnitOfWork unitOfWork,
         ICurrentUserService currentUserService,
         WorkspaceContext workspaceContext,
-        CursorHelper cursorHelper)
+        CursorHelper cursorHelper,
+        WorkspacePermissionLogic workspacePermissionLogic)
         : base(unitOfWork, currentUserService, workspaceContext)
     {
         _cursorHelper = cursorHelper ?? throw new ArgumentNullException(nameof(cursorHelper));
+        _workspacePermissionLogic = workspacePermissionLogic;
     }
 
     public async Task<WorkspaceHierarchyDto> Handle(GetHierarchyQuery request, CancellationToken cancellationToken)
     {
+        await _workspacePermissionLogic.EnsureCanViewHierarchy(request.WorkspaceId, CurrentUserId, cancellationToken);
+
         var workspace = await QueryNoTracking<ProjectWorkspace>()
             .Where(w => w.Id == request.WorkspaceId)
             .FirstOrDefaultAsync(cancellationToken)

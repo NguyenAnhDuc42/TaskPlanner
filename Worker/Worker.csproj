@@ -16,7 +16,7 @@
     <PackageReference Include="Scalar.AspNetCore" />
   </ItemGroup>
 
-  <ItemGroup>
+  <ItemGroup> 
     <ProjectReference Include="..\server\Background\Background.csproj" />
     <ProjectReference Include="..\server\Infrastructure\Infrastructure.csproj" />
     <ProjectReference Include="..\ServiceDefaults\ServiceDefaults.csproj" />

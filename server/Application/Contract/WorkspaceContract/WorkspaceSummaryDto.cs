@@ -19,4 +19,7 @@ public record class WorkspaceSummaryDto
     public int MemberCount { get; init; }
     public bool IsArchived { get; init; }
     public bool IsPinned { get; init; }
+    public bool CanUpdateWorkspace { get; init; }
+    public bool CanManageMembers { get; init; }
+    public bool CanPinWorkspace { get; init; }
 }

@@ -49,6 +49,7 @@ public sealed class ProjectWorkspace : Entity
         string.IsNullOrWhiteSpace(joinCode) ? Guid.NewGuid().ToString("N")[..8].ToUpperInvariant() : joinCode.Trim(),
         customization ?? Customization.CreateDefault(), theme, variant, strictJoin, creatorId, 10_000_000L);
         workspace.AddMember(creatorId, Role.Owner, MembershipStatus.Active, creatorId, null);
+        workspace.AddDomainEvent(new Domain.Events.Workspace.CreatedWorkspaceEvent(creatorId, workspace.Id));
         return workspace;
     }
 
@@ -72,6 +73,22 @@ public sealed class ProjectWorkspace : Entity
         
         AddDomainEvent(new WorkspaceMembersAddedBulkEvent(Id, new[] { new AddedMemberRecord(userId, role) }));
         
+        UpdateTimestamp();
+    }
+
+    public void AddMember(WorkspaceMember member, Guid actorId)
+    {
+        if (member is null)
+            throw new ArgumentNullException(nameof(member));
+
+        if (member.ProjectWorkspaceId != Id)
+            throw new InvalidOperationException("Member does not belong to this workspace.");
+
+        if (_members.Any(m => m.UserId == member.UserId))
+            throw new InvalidOperationException("User is already a member of this workspace.");
+
+        _members.Add(member);
+        AddDomainEvent(new WorkspaceMembersAddedBulkEvent(Id, new[] { new AddedMemberRecord(member.UserId, member.Role) }));
         UpdateTimestamp();
     }
 

@@ -51,3 +51,25 @@ export function useLogout() {
     },
   });
 }
+
+export function useUpdateProfile() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (payload: { name?: string; email?: string }) => {
+      const { data } = await api.put<User>("/auth/profile", payload);
+      return data;
+    },
+    onSuccess: (updatedUser) => {
+      queryClient.setQueryData(authKeys.me(), updatedUser);
+    },
+  });
+}
+
+export function useChangePassword() {
+  return useMutation({
+    mutationFn: async (payload: { currentPassword: string; newPassword: string }) => {
+      await api.post("/auth/change-password", payload);
+    },
+  });
+}
