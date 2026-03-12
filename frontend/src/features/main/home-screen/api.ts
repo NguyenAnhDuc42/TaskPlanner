@@ -1,4 +1,4 @@
-import type z from "zod";
+import { z } from "zod";
 import type { createWorkspaceSchema, WorkspaceSummary } from "./type";
 import {
   keepPreviousData,
@@ -154,7 +154,8 @@ export function useWorkspaceHome() {
     return data?.pages.flatMap((page) => page.items) ?? [];
   }, [data]);
 
-  const { mutate: createInternal, isPending: isCreating } = useCreateWorkspace();
+  const { mutate: createInternal, isPending: isCreating } =
+    useCreateWorkspace();
   const { mutate: setWorkspacePin } = useSetWorkspacePin();
 
   const [isCreateModalOpen, setIsCreateModalOpen] = React.useState(false);
