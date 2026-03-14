@@ -1,22 +1,21 @@
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible";
-import React from "react";
 import type { WorkspaceSummary } from "../type";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { ChevronDown, PencilLine, Pin, Settings, Users } from "lucide-react";
+import { Pin, Settings, Users } from "lucide-react";
 import { DynamicIcon } from "@/components/dynamic-icon";
-import { Link } from "@tanstack/react-router";
 import { Badge } from "@/components/ui/badge";
 import type { Role } from "@/types/role";
+import { Card } from "@/components/ui/card";
 
 type Props = {
   workspaceSummary: WorkspaceSummary;
   onOpen?: (id: string) => void;
   onPin?: (id: string, isPinned: boolean) => void;
+};
+
+const truncate = (str: string, max: number) => {
+  if (str.length <= max) return str;
+  return str.slice(0, max) + "...";
 };
 
 function RoleBadge({ role }: { role: Role }) {
@@ -60,170 +59,97 @@ function RoleBadge({ role }: { role: Role }) {
   );
 }
 
-export function WorkspaceItem({ workspaceSummary, onOpen, onPin }: Props) {
-  const [open, setOpen] = React.useState(false);
-
-  React.useEffect(() => {
-    if (open) onOpen?.(workspaceSummary.id);
-  }, [open, onOpen, workspaceSummary.id]);
-
+export function WorkspaceItem({ workspaceSummary, onOpen, onPin, selected }: Props & { selected?: boolean }) {
   return (
-    <Collapsible open={open} onOpenChange={setOpen}>
-      <CollapsibleTrigger asChild>
-        <div className="w-full border border-border bg-card hover:bg-card/80 transition-colors cursor-pointer group">
-          <div className="flex items-center gap-4 p-4">
-            {/* Icon with color accent */}
-            <div
-              className="h-10 w-10 flex items-center justify-center text-sm font-bold flex-shrink-0 border border-border/50"
-              style={{
-                backgroundColor: `${workspaceSummary.color}20`,
-                borderColor: workspaceSummary.color,
-              }}
-            >
-              <DynamicIcon
-                name={workspaceSummary.icon}
-                color={workspaceSummary.color}
-                size={20}
-              />
-            </div>
+    <Card
+      className={cn(
+        "group relative border transition-all duration-300 cursor-pointer p-4 overflow-hidden",
+        selected 
+          ? "border-primary bg-primary/5 shadow-md shadow-primary/5 scale-[1.01]" 
+          : "border-border/50 hover:border-primary/40 hover:bg-muted/30",
+        "w-full max-w-full"
+      )}
+      onClick={() => onOpen?.(workspaceSummary.id)}
+    >
+      <div className="flex items-start gap-4 w-full">
+        {/* Workspace Icon */}
+        <div 
+          className="h-12 w-12 rounded-xl flex items-center justify-center text-sm font-bold shrink-0 border border-border/50 transition-transform group-hover:scale-105 shadow-sm"
+          style={{
+            backgroundColor: `${workspaceSummary.color}15`,
+            borderColor: `${workspaceSummary.color}40`,
+          }}
+        >
+          <DynamicIcon
+            name={workspaceSummary.icon}
+            color={workspaceSummary.color}
+            size={24}
+          />
+        </div>
 
-            {/* Main content - name and role tag */}
-            <div className="flex-1 min-w-0 flex items-center gap-2">
-              <h3 className="font-mono font-bold text-sm text-foreground truncate tracking-tight">
-                {workspaceSummary.name}
-              </h3>
-              <RoleBadge role={workspaceSummary.role} />
-            </div>
+        {/* Content */}
+        <div className="flex-1 min-w-0 py-0.5 overflow-hidden">
+          <div className="flex items-center gap-2 mb-1 w-full overflow-hidden">
+            <h3 className="font-bold text-sm text-foreground truncate tracking-tight flex-1">
+              {truncate(workspaceSummary.name, 40)}
+            </h3>
+            <RoleBadge role={workspaceSummary.role} />
+            {workspaceSummary.isPinned && (
+              <Pin className="h-3 w-3 fill-primary text-primary animate-in fade-in zoom-in" />
+            )}
+          </div>
+          
+          <p className="text-xs text-muted-foreground line-clamp-1 h-4 mb-3 italic font-medium opacity-60 max-w-full truncate">
+            {workspaceSummary.description 
+              ? truncate(workspaceSummary.description, 80) 
+              : "No description set"}
+          </p>
 
-            <Button
-              size="sm"
+          <div className="flex items-center gap-4 text-muted-foreground/60">
+            <div className="flex items-center gap-1.5 transition-colors group-hover:text-foreground">
+              <Users className="h-3.5 w-3.5" />
+              <span className="text-[10px] font-bold uppercase tracking-wider">{workspaceSummary.memberCount}</span>
+            </div>
+            <div className="flex items-center gap-1.5 transition-colors group-hover:text-foreground/70">
+              <div className="h-1 w-1 rounded-full bg-border" />
+              <span className="text-[10px] font-mono uppercase tracking-widest">{workspaceSummary.variant}</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Actions Container */}
+        <div className="flex flex-col gap-1 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+           <Button
+              size="icon"
               variant="ghost"
-              className="h-6 w-6 p-0 flex-shrink-0 text-muted-foreground hover:text-primary transition-colors"
+              className="h-8 w-8 text-muted-foreground hover:text-primary rounded-lg"
               disabled={!workspaceSummary.canPinWorkspace}
-              title={
-                workspaceSummary.canPinWorkspace
-                  ? "Pin workspace"
-                  : "You cannot pin this workspace"
-              }
               onClick={(e) => {
                 e.stopPropagation();
                 onPin?.(workspaceSummary.id, !workspaceSummary.isPinned);
               }}
             >
-              <Pin
-                className={cn(
-                  "h-4 w-4",
-                  workspaceSummary.isPinned && "fill-primary text-primary",
-                )}
-              />
+              <Pin className={cn("h-3.5 w-3.5", workspaceSummary.isPinned && "fill-primary")} />
             </Button>
             <Button
-              size="sm"
+              size="icon"
               variant="ghost"
-              className="h-6 w-6 p-0 flex-shrink-0 text-muted-foreground hover:text-primary transition-colors"
-              disabled={!workspaceSummary.canUpdateWorkspace}
-              title={
-                workspaceSummary.canUpdateWorkspace
-                  ? "Workspace settings"
-                  : "Only owner/admin can edit workspace settings"
-              }
+              className="h-8 w-8 text-muted-foreground hover:text-foreground rounded-lg"
+              onClick={(e) => {
+                e.stopPropagation();
+              }}
             >
-              <PencilLine className={cn("h-4 w-4")} />
+              <Settings className="h-3.5 w-3.5" />
             </Button>
-
-            {/* Chevron */}
-            <ChevronDown
-              className={cn(
-                "h-4 w-4 text-muted-foreground transition-transform flex-shrink-0 group-hover:text-foreground",
-                open && "rotate-180",
-              )}
-            />
-          </div>
         </div>
-      </CollapsibleTrigger>
-
-      <CollapsibleContent>
-        <div className="border border-t-0 border-border bg-card/50">
-          <div className="px-4 py-3 border-b border-border/50 text-xs text-muted-foreground font-mono space-y-1 text-left">
-            <div>
-              Type:{" "}
-              <span className="text-foreground">
-                {workspaceSummary.variant}
-              </span>
-            </div>
-            <div>
-              Role:{" "}
-              <span className="text-foreground">{workspaceSummary.role}</span>
-            </div>
-            <div>
-              Members:{" "}
-              <span className="text-foreground">
-                {workspaceSummary.memberCount}
-              </span>
-            </div>
-          </div>
-
-          {workspaceSummary.description && (
-            <div className="px-4 py-3 border-b border-border/50 text-xs text-muted-foreground font-mono text-left">
-              {workspaceSummary.description}
-            </div>
-          )}
-          <div className="px-4 py-3 flex gap-2">
-            <Link to={"/workspaces/" + workspaceSummary.id}>
-              <Button
-                size="sm"
-                className="h-8 px-3 text-xs font-mono bg-primary hover:bg-primary/90 text-primary-foreground border-0"
-              >
-                Open
-              </Button>
-            </Link>
-            {workspaceSummary.canUpdateWorkspace ? (
-              <Link to={"/workspaces/" + workspaceSummary.id + "/settings"}>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="h-8 px-3 text-xs font-mono border-border hover:bg-card bg-transparent"
-                >
-                  <Settings className="h-3 w-3 mr-1" />
-                  Settings
-                </Button>
-              </Link>
-            ) : (
-              <Button
-                size="sm"
-                variant="outline"
-                className="h-8 px-3 text-xs font-mono border-border bg-transparent"
-                disabled
-              >
-                <Settings className="h-3 w-3 mr-1" />
-                Settings
-              </Button>
-            )}
-            {workspaceSummary.canManageMembers ? (
-              <Link to={"/workspaces/" + workspaceSummary.id + "/members"}>
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  className="h-8 px-3 text-xs font-mono text-muted-foreground hover:text-foreground hover:bg-transparent"
-                >
-                  <Users className="h-3 w-3 mr-1" />
-                  Members
-                </Button>
-              </Link>
-            ) : (
-              <Button
-                size="sm"
-                variant="ghost"
-                className="h-8 px-3 text-xs font-mono text-muted-foreground"
-                disabled
-              >
-                <Users className="h-3 w-3 mr-1" />
-                Members
-              </Button>
-            )}
-          </div>
+      </div>
+      
+      {/* Decorative pulse when selected */}
+      {selected && (
+        <div className="absolute top-0 right-0 p-1">
+          <div className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse" />
         </div>
-      </CollapsibleContent>
-    </Collapsible>
+      )}
+    </Card>
   );
 }

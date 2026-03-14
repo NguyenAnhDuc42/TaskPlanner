@@ -35,6 +35,8 @@ type Props = {
     direction?: "Ascending" | "Descending";
   };
   onFilterChange?: (filters: Partial<Props["filters"]>) => void;
+  selectedWorkspaceId?: string;
+  onSelectWorkspace?: (workspace: WorkspaceSummary | null) => void;
 };
 
 export function WorkspaceList({
@@ -50,6 +52,8 @@ export function WorkspaceList({
   onSearchChange,
   filters,
   onFilterChange,
+  selectedWorkspaceId,
+  onSelectWorkspace,
 }: Props) {
   const [searchQuery, setSearchQuery] = React.useState("");
   const observerRef = React.useRef<HTMLDivElement>(null);
@@ -244,14 +248,18 @@ export function WorkspaceList({
               onCreateWorkspace={onCreateWorkspace}
             />
           ) : (
-            <ScrollArea className="flex-1 w-full min-h-0">
-              <div className="p-4 space-y-2">
+            <ScrollArea className="flex-1 w-full min-h-0 min-w-0">
+              <div className="p-4 space-y-2 ">
                 {filteredWorkspaces.map((workspace) => (
                   <div key={workspace.id}>
                     <WorkspaceItem
                       workspaceSummary={workspace}
-                      onOpen={onWorkspaceOpen}
+                      onOpen={(id) => {
+                        onWorkspaceOpen?.(id);
+                        onSelectWorkspace?.(workspace);
+                      }}
                       onPin={onPinWorkspace}
+                      selected={workspace.id === selectedWorkspaceId}
                     />
                   </div>
                 ))}

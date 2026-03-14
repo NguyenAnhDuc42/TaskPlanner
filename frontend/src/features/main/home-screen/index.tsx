@@ -1,10 +1,12 @@
-import { CalenderTasks } from "./components/calender-tasks";
-import { NotificationsList } from "./components/notifications-list";
 import { WorkspaceList } from "./components/workspace-list";
 import { Head } from "./components/head";
+import { LeftSidebar } from "./components/left-sidebar";
+import { WorkspaceDetails } from "./components/workspace-details";
 import { CreateWorkspaceForm } from "./components/create-workspace-form";
 import { JoinWorkspaceDialog } from "./components/join-workspace-dialog";
 import { useWorkspaceHome, useJoinWorkspaceByCode } from "./api";
+import * as React from "react";
+import type { WorkspaceSummary } from "./type";
 
 export function WorkspaceHomeScreen() {
   const {
@@ -27,12 +29,17 @@ export function WorkspaceHomeScreen() {
   } = useWorkspaceHome();
 
   const { mutate: joinByCode, isPending: isJoining } = useJoinWorkspaceByCode();
+  const [selectedWorkspace, setSelectedWorkspace] = React.useState<WorkspaceSummary | null>(null);
 
   return (
     <div className="flex flex-col h-screen overflow-hidden bg-background">
       <Head />
-      <div className="flex-1 grid grid-cols-4 gap-4 p-4 min-h-0">
-        <div className="col-span-3 h-full min-h-0">
+      <div className="flex-1 flex overflow-hidden gap-4 p-4 min-h-0">
+        {/* Left: Schedule & Notifications */}
+        <LeftSidebar />
+
+        {/* Center: Workspace Listing */}
+        <div className="flex-1 min-w-0 flex flex-col h-full">
           <WorkspaceList
             workspaces={workspaces}
             isLoading={isWorkspacesLoading}
@@ -45,16 +52,17 @@ export function WorkspaceHomeScreen() {
             onSearchChange={handleSearchChange}
             filters={filters}
             onFilterChange={handleFilterChange}
+            selectedWorkspaceId={selectedWorkspace?.id}
+            onSelectWorkspace={setSelectedWorkspace}
           />
         </div>
-        <div className="col-span-1 flex flex-col gap-4 min-h-0">
-          <div className="flex-1 min-h-0 outline-2 outline-border rounded-xl">
-            <CalenderTasks />
-          </div>
-          <div className="flex-1 min-h-0 outline-2 outline-border rounded-xl">
-            <NotificationsList />
-          </div>
-        </div>
+
+        {/* Right: Detailed Analytics & Quick Management */}
+        {selectedWorkspace && (
+           <div className="animate-in fade-in slide-in-from-right-4 duration-300">
+             <WorkspaceDetails workspace={selectedWorkspace} />
+           </div>
+        )}
       </div>
 
       <CreateWorkspaceForm

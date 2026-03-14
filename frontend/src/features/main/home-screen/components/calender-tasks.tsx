@@ -1,4 +1,3 @@
-"use client";
 
 import * as React from "react";
 import { Calendar } from "@/components/ui/calendar";
@@ -23,15 +22,7 @@ export function CalenderTasks() {
   const today = React.useMemo(() => new Date(), []);
 
   return (
-    <div className="flex flex-col h-full p-2 bg-card border border-border rounded-xl">
-      <div className="px-2 py-1 mb-1 border-b border-border/50">
-        <h2 className="text-[10px] font-mono font-bold uppercase tracking-[0.2em] text-primary/80">
-          Schedule
-        </h2>
-        <p className="text-[10px] font-mono font-bold text-foreground">
-          {format(today, "MMMM dd, yyyy")}
-        </p>
-      </div>
+    <div className="flex flex-col h-full p-2 bg-transparent border-0">
 
       <div className="flex-1 flex items-center justify-center overflow-hidden [--cell-size:30px]">
         <Calendar
