@@ -3,7 +3,6 @@ import {
   Share2, 
   Lock, 
   BarChart3, 
-  ExternalLink,
   FileText,
   MousePointer2,
   Database
@@ -23,7 +22,7 @@ export function WorkspaceDetails({ workspace }: WorkspaceDetailsProps) {
 
   if (!workspace) {
     return (
-      <Card className="w-96 flex flex-col items-center justify-center p-6 bg-muted/5 border-dashed">
+      <Card className="w-96 flex flex-col items-center justify-center p-6 bg-muted/5 border-dashed rounded-2xl">
         <div className="h-12 w-12 rounded-full bg-muted flex items-center justify-center mb-4">
           <MousePointer2 className="h-6 w-6 text-muted-foreground/40" />
         </div>
@@ -42,7 +41,7 @@ export function WorkspaceDetails({ workspace }: WorkspaceDetailsProps) {
   };
 
   return (
-    <Card className="w-96 p-6 overflow-y-auto h-full flex flex-col shadow-sm border-border/50">
+    <Card className="w-96 p-6 overflow-y-auto h-full flex flex-col shadow-sm border border-border/50 rounded-2xl">
       {/* Header */}
       <div className="mb-6 flex items-start justify-between">
         <div className="min-w-0 pr-4">
@@ -93,16 +92,16 @@ export function WorkspaceDetails({ workspace }: WorkspaceDetailsProps) {
 
       {/* Tabs */}
       <Tabs defaultValue="members" className="w-full flex-1 flex flex-col min-h-0">
-        <TabsList className="grid w-full grid-cols-3 bg-muted/50 p-1 rounded-lg">
-          <TabsTrigger value="members" className="gap-2 text-[10px] uppercase font-bold tracking-wider py-2 transition-all data-[state=active]:bg-background data-[state=active]:shadow-sm">
+        <TabsList className="grid w-full grid-cols-3 bg-muted/50 p-1 rounded-sm">
+          <TabsTrigger value="members" className="gap-2 text-[10px] uppercase font-bold tracking-wider transition-all data-[state=active]:bg-background data-[state=active]:shadow-sm rounded-sm">
             <Users className="h-3 w-3" />
             Members
           </TabsTrigger>
-          <TabsTrigger value="settings" className="gap-2 text-[10px] uppercase font-bold tracking-wider py-2 transition-all data-[state=active]:bg-background data-[state=active]:shadow-sm">
+          <TabsTrigger value="settings" className="gap-2 text-[10px] uppercase font-bold tracking-wider transition-all data-[state=active]:bg-background data-[state=active]:shadow-sm rounded-sm">
             <Lock className="h-3 w-3" />
             Access
           </TabsTrigger>
-          <TabsTrigger value="activity" className="gap-2 text-[10px] uppercase font-bold tracking-wider py-2 transition-all data-[state=active]:bg-background data-[state=active]:shadow-sm">
+          <TabsTrigger value="activity" className="gap-2 text-[10px] uppercase font-bold tracking-wider transition-all data-[state=active]:bg-background data-[state=active]:shadow-sm rounded-sm">
             <BarChart3 className="h-3 w-3" />
             Log
           </TabsTrigger>
@@ -110,7 +109,7 @@ export function WorkspaceDetails({ workspace }: WorkspaceDetailsProps) {
 
         <TabsContent value="members" className="mt-4 flex-1 flex flex-col min-h-0">
           <div className="space-y-2 overflow-y-auto flex-1 pr-1">
-             <div className="flex items-center justify-between p-3 rounded-xl bg-muted/30 border border-transparent hover:border-border/50 transition-all group">
+             <div className="flex items-center justify-between p-3 rounded-sm bg-muted/30 border border-transparent hover:border-border/50 transition-all group">
                 <div className="flex items-center gap-3">
                   <div className="h-8 w-8 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center text-[10px] font-black text-primary uppercase">
                     ME
@@ -135,7 +134,7 @@ export function WorkspaceDetails({ workspace }: WorkspaceDetailsProps) {
           <Card className="border-border/50 bg-muted/20 p-4 shadow-none">
             <div className="flex items-center justify-between mb-2">
               <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Role Visibility</p>
-              <div className="px-2 py-0.5 rounded-md bg-primary/10 text-primary text-[9px] font-black uppercase">
+              <div className="px-2 py-0.5 rounded-sm bg-primary/10 text-primary text-[9px] font-black uppercase">
                 {workspace.role}
               </div>
             </div>
@@ -151,7 +150,7 @@ export function WorkspaceDetails({ workspace }: WorkspaceDetailsProps) {
         </TabsContent>
 
         <TabsContent value="activity" className="mt-4 flex-1 flex flex-col">
-          <div className="flex-1 flex flex-col items-center justify-center border border-dashed border-border/50 rounded-2xl bg-muted/10">
+          <div className="flex-1 flex flex-col items-center justify-center border border-dashed border-border/50 rounded-sm bg-muted/10">
              <BarChart3 className="h-8 w-8 text-muted-foreground/20 mb-2" />
              <p className="text-muted-foreground/40 text-[10px] font-mono font-black uppercase tracking-[0.3em] text-center px-12 leading-relaxed">
                No telemetry captured for this node.

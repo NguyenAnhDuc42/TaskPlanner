@@ -67,7 +67,7 @@ export function Head() {
     <header className="border-b border-border/50 bg-card/60 backdrop-blur-md sticky top-0 z-50 px-6 py-3">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary shadow-lg shadow-primary/20">
+          <div className="flex h-10 w-10 items-center justify-center rounded-sm bg-primary shadow-lg shadow-primary/20">
             <span className="text-lg font-black text-primary-foreground tracking-tighter">W</span>
           </div>
           <div>
@@ -77,18 +77,18 @@ export function Head() {
         </div>
 
         <div className="flex items-center gap-4">
-          <div className="flex items-center gap-1 bg-muted/40 p-1 rounded-xl border border-border/30">
-            <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground rounded-lg">
+          <div className="flex items-center gap-1 bg-muted/40 p-1 rounded-sm border border-border/30">
+            <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground rounded-sm">
               <HelpCircle className="h-4 w-4" />
             </Button>
-            <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground rounded-lg relative">
+            <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground rounded-sm relative">
               <Bell className="h-4 w-4" />
               <div className="absolute top-2 right-2 h-1.5 w-1.5 bg-primary rounded-full border border-card" />
             </Button>
             
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground rounded-lg">
+                <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground rounded-sm">
                   <Settings className="h-4 w-4" />
                 </Button>
               </DropdownMenuTrigger>

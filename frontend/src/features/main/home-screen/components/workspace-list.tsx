@@ -91,18 +91,18 @@ export function WorkspaceList({
     filters?.direction;
 
   return (
-    <div className="h-full bg-background flex flex-col outline-2">
-      <div className="border-b border-border px-6 py-6">
+    <div className="h-full bg-card flex flex-col border border-border/50 shadow-sm overflow-hidden rounded-xl">
+      <div className="border-b border-border/50 px-6 py-6">
         <div className="flex items-center gap-4">
           <button
             onClick={onCreateWorkspace}
-            className="flex items-center gap-2 h-9 px-4 bg-primary hover:bg-primary/90 text-primary-foreground border-0 font-mono text-sm rounded-md"
+            className="flex items-center gap-2 h-9 px-4 bg-primary hover:bg-primary/90 text-primary-foreground border-0 font-mono text-sm rounded-sm"
           >
             Create
           </button>
           <button
             onClick={onJoinWorkspace}
-            className="flex items-center gap-2 h-9 px-4 bg-card hover:bg-card/80 text-foreground border border-border font-mono text-sm rounded-md"
+            className="flex items-center gap-2 h-9 px-4 bg-card hover:bg-card/80 text-foreground border border-border font-mono text-sm rounded-sm"
           >
             Join
           </button>
@@ -112,7 +112,7 @@ export function WorkspaceList({
               <Button
                 variant={hasActiveFilters ? "default" : "outline"}
                 size="sm"
-                className="gap-2 h-9 rounded-md border-border"
+                className="gap-2 h-9 rounded-sm border-border"
               >
                 <Filter className="h-4 w-4" />
                 Filter
@@ -226,7 +226,7 @@ export function WorkspaceList({
               placeholder="Search workspaces..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full h-9 pl-10 pr-9 bg-card border border-border text-foreground placeholder-muted-foreground font-mono text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/30 transition-colors"
+              className="w-full h-9 pl-10 pr-9 bg-card border border-border text-foreground placeholder-muted-foreground font-mono text-sm rounded-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/30 transition-colors"
             />
             {searchQuery && (
               <button

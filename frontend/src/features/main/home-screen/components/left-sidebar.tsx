@@ -1,4 +1,3 @@
-
 import { Bell, Calendar as CalendarIcon } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { CalenderTasks } from "./calender-tasks";
@@ -6,7 +5,7 @@ import { NotificationsList } from "./notifications-list";
 
 export function LeftSidebar() {
   return (
-    <Card className="w-72 flex-shrink-0 flex flex-col h-full bg-card border-border/50 shadow-sm overflow-hidden">
+    <Card className="hidden xl:flex w-72 flex-shrink-0 flex flex-col h-full bg-card border border-border/50 shadow-sm overflow-hidden rounded-2xl">
       <div className="p-4 flex flex-col min-h-0 flex-1 gap-6">
         {/* Calendar Section */}
         <div className="flex flex-col gap-3">
@@ -16,7 +15,7 @@ export function LeftSidebar() {
               Schedule
             </h2>
           </div>
-          <div className="flex justify-center bg-muted/10 rounded-2xl p-1 border border-border/40">
+          <div className="flex justify-center bg-muted/10 rounded-sm p-1 border border-border/40">
             <CalenderTasks />
           </div>
         </div>
@@ -30,7 +29,7 @@ export function LeftSidebar() {
             </h2>
           </div>
           <div className="flex-1 min-h-0">
-             <NotificationsList />
+            <NotificationsList />
           </div>
         </div>
       </div>

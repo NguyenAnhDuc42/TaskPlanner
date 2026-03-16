@@ -3,8 +3,7 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Pin, Settings, Users } from "lucide-react";
 import { DynamicIcon } from "@/components/dynamic-icon";
-import { Badge } from "@/components/ui/badge";
-import type { Role } from "@/types/role";
+import { RoleBadge } from "@/components/role-badge";
 import { Card } from "@/components/ui/card";
 
 type Props = {
@@ -18,63 +17,27 @@ const truncate = (str: string, max: number) => {
   return str.slice(0, max) + "...";
 };
 
-function RoleBadge({ role }: { role: Role }) {
-  if (role === "None") return null;
-
-  let variant: "default" | "secondary" | "outline" | "destructive" = "outline";
-  let className = "text-[10px] px-1.5 h-4 font-mono uppercase tracking-wider";
-
-  switch (role) {
-    case "Owner":
-      variant = "default";
-      className = cn(
-        className,
-        "bg-red-500/20 text-red-500 border-red-500/30 hover:bg-red-500/40 border",
-      );
-      break;
-    case "Admin":
-      variant = "outline";
-      className = cn(
-        className,
-        "bg-blue-500/10 text-blue-500 border-blue-500/30 hover:bg-blue-500/20 border",
-      );
-      break;
-    case "Member":
-      variant = "secondary";
-      className = cn(
-        className,
-        "bg-green-500/10 text-green-500 border-green-500/30 border",
-      );
-      break;
-    case "Guest":
-      variant = "secondary";
-      className = cn(className, "opacity-60 border");
-      break;
-  }
-
-  return (
-    <Badge variant={variant} className={className}>
-      {role}
-    </Badge>
-  );
-}
 
 export function WorkspaceItem({ workspaceSummary, onOpen, onPin, selected }: Props & { selected?: boolean }) {
   return (
     <Card
       className={cn(
-        "group relative border transition-all duration-300 cursor-pointer p-4 overflow-hidden",
+        "group relative border transition-all duration-300 cursor-pointer p-4 overflow-hidden rounded-xl",
         selected 
-          ? "border-primary bg-primary/5 shadow-md shadow-primary/5 scale-[1.01]" 
+          ? "border-opacity-50 border-solid shadow-md scale-[1.01]" 
           : "border-border/50 hover:border-primary/40 hover:bg-muted/30",
         "w-full max-w-full"
       )}
+      style={selected ? {
+        borderColor: workspaceSummary.color,
+        backgroundColor: `${workspaceSummary.color}10`,
+      } : undefined}
       onClick={() => onOpen?.(workspaceSummary.id)}
     >
       <div className="flex items-start gap-4 w-full">
         {/* Workspace Icon */}
         <div 
-          className="h-12 w-12 rounded-xl flex items-center justify-center text-sm font-bold shrink-0 border border-border/50 transition-transform group-hover:scale-105 shadow-sm"
+          className="h-12 w-12 rounded-sm flex items-center justify-center text-sm font-bold shrink-0 border border-border/50 transition-transform group-hover:scale-105 shadow-sm"
           style={{
             backgroundColor: `${workspaceSummary.color}15`,
             borderColor: `${workspaceSummary.color}40`,
@@ -94,9 +57,6 @@ export function WorkspaceItem({ workspaceSummary, onOpen, onPin, selected }: Pro
               {truncate(workspaceSummary.name, 40)}
             </h3>
             <RoleBadge role={workspaceSummary.role} />
-            {workspaceSummary.isPinned && (
-              <Pin className="h-3 w-3 fill-primary text-primary animate-in fade-in zoom-in" />
-            )}
           </div>
           
           <p className="text-xs text-muted-foreground line-clamp-1 h-4 mb-3 italic font-medium opacity-60 max-w-full truncate">
@@ -118,11 +78,11 @@ export function WorkspaceItem({ workspaceSummary, onOpen, onPin, selected }: Pro
         </div>
 
         {/* Actions Container */}
-        <div className="flex flex-col gap-1 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+        <div className="flex flex-col gap-1 shrink-0 transition-opacity">
            <Button
               size="icon"
               variant="ghost"
-              className="h-8 w-8 text-muted-foreground hover:text-primary rounded-lg"
+              className="h-8 w-8 text-muted-foreground hover:bg-transparent rounded-sm"
               disabled={!workspaceSummary.canPinWorkspace}
               onClick={(e) => {
                 e.stopPropagation();
@@ -134,7 +94,7 @@ export function WorkspaceItem({ workspaceSummary, onOpen, onPin, selected }: Pro
             <Button
               size="icon"
               variant="ghost"
-              className="h-8 w-8 text-muted-foreground hover:text-foreground rounded-lg"
+              className="h-8 w-8 text-muted-foreground hover:bg-transparent rounded-sm"
               onClick={(e) => {
                 e.stopPropagation();
               }}
@@ -147,7 +107,7 @@ export function WorkspaceItem({ workspaceSummary, onOpen, onPin, selected }: Pro
       {/* Decorative pulse when selected */}
       {selected && (
         <div className="absolute top-0 right-0 p-1">
-          <div className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse" />
+          <div className="h-1.5 w-1.5 rounded-full animate-pulse" style={{ backgroundColor: workspaceSummary.color }} />
         </div>
       )}
     </Card>
