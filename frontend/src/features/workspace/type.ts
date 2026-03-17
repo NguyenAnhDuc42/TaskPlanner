@@ -1,7 +1,7 @@
 import { Home, Folder, FileText, type LucideIcon } from "lucide-react";
 export type ContentPage =
   | "dashboard"
-  | "tasks"
+  | "projects"
   | "spaces"
   | "folders"
   | "lists"
@@ -38,7 +38,7 @@ export const getNavigationItems = (contentType: ContentPage): NavItem[] => {
         { id: "analytics", icon: FileText, label: "Analytics" },
         { id: "reports", icon: Folder, label: "Reports" },
       ];
-    case "tasks":
+    case "projects":
       return [
         { id: "all-tasks", icon: FileText, label: "All Tasks" },
         { id: "my-tasks", icon: Home, label: "My Tasks" },

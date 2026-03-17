@@ -86,7 +86,7 @@ export function CreateWorkspaceForm({
         <DialogTrigger asChild>
           <Button
             disabled={isLoading}
-            className="flex items-center gap-2 h-9 px-4 bg-primary hover:bg-primary/90 text-primary-foreground border-0 font-mono text-sm"
+            className="flex items-center gap-2 h-9 px-4 bg-primary hover:bg-primary/90 text-primary-foreground border-0 font-mono text-sm "
           >
             <Plus className="h-4 w-4" />
             Create

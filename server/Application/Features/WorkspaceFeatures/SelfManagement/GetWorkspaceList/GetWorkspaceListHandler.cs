@@ -1,6 +1,6 @@
 using Application.Common.Filters;
 using Application.Common.Results;
-using Application.Contract.WorkspaceContract;
+using Application.Common.Results;
 using Application.Features.WorkspaceFeatures.SelfManagement;
 using Application.Features.WorkspaceFeatures.SelfManagement.GetWorkspaceList;
 using Application.Helper;
@@ -117,6 +117,7 @@ public class GetWorkspaceListHandler : BaseFeatureHandler, IRequestHandler<GetWo
 
     private static List<WorkspaceSummaryDto> Map(List<WorkspaceRow> rows)
     {
+        var jsonOptions = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
         return rows.Select(x => new WorkspaceSummaryDto
         {
             Id = x.Id,
@@ -131,7 +132,10 @@ public class GetWorkspaceListHandler : BaseFeatureHandler, IRequestHandler<GetWo
             IsPinned = x.IsPinned,
             CanUpdateWorkspace = x.MembershipStatus == MembershipStatus.Active && (x.Role == Role.Owner || x.Role == Role.Admin),
             CanManageMembers = x.MembershipStatus == MembershipStatus.Active && (x.Role == Role.Owner || x.Role == Role.Admin),
-            CanPinWorkspace = x.MembershipStatus == MembershipStatus.Active
+            CanPinWorkspace = x.MembershipStatus == MembershipStatus.Active,
+            Members = string.IsNullOrEmpty(x.MembersJson) 
+                ? new List<WorkspaceMemberSummaryDto>() 
+                : JsonSerializer.Deserialize<List<WorkspaceMemberSummaryDto>>(x.MembersJson, jsonOptions) ?? new()
         }).ToList();
     }
 

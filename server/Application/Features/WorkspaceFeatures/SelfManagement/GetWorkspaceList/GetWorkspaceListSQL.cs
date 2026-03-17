@@ -19,6 +19,7 @@ public class WorkspaceRow
     public int MemberCount { get; init; }
     public bool IsArchived { get; init; }
     public bool IsPinned { get; init; }
+    public string? MembersJson { get; init; }
 }
 
 public static class GetWorkspaceListSQL
@@ -36,13 +37,22 @@ public static class GetWorkspaceListSQL
         wm.role,
         wm.status AS MembershipStatus,
         wm.is_pinned AS IsPinned,
-        COUNT(wm_all.user_id) AS MemberCount
+        (SELECT COUNT(*) FROM workspace_members WHERE project_workspace_id = w.id AND deleted_at IS NULL) AS MemberCount,
+        (
+            SELECT json_agg(json_build_object('Id', u.id, 'Name', u.name, 'Role', m.role))
+            FROM (
+                SELECT user_id, role 
+                FROM workspace_members 
+                WHERE project_workspace_id = w.id AND deleted_at IS NULL
+                ORDER BY created_at ASC
+                LIMIT 5
+            ) m
+            JOIN users u ON u.id = m.user_id
+        ) AS MembersJson
     FROM 
         project_workspaces w
     JOIN workspace_members wm 
         ON wm.project_workspace_id = w.id AND wm.user_id = @CurrentUserId AND wm.deleted_at IS NULL
-    JOIN workspace_members wm_all
-        ON wm_all.project_workspace_id = w.id AND wm_all.deleted_at IS NULL
     WHERE 
         w.deleted_at IS NULL AND
         (@name IS NULL OR w.name ILIKE '%' || @name || '%') AND 
@@ -56,8 +66,6 @@ public static class GetWorkspaceListSQL
                     (w.updated_at = @cursorTimestamp AND w.id > @cursorId)
                 )
         )
-    GROUP BY
-        w.id, w.name, w.custom_icon, w.custom_color, w.description, w.variant, w.is_archived, wm.role, wm.status, w.updated_at, wm.is_pinned
     ORDER BY
         wm.is_pinned DESC, w.updated_at ASC, w.id ASC
     LIMIT @PageSizePLusOne;
@@ -76,13 +84,22 @@ public static class GetWorkspaceListSQL
         wm.role,
         wm.status AS MembershipStatus,
         wm.is_pinned AS IsPinned,
-        COUNT(wm_all.user_id) AS MemberCount
+        (SELECT COUNT(*) FROM workspace_members WHERE project_workspace_id = w.id AND deleted_at IS NULL) AS MemberCount,
+        (
+            SELECT json_agg(json_build_object('Id', u.id, 'Name', u.name, 'Role', m.role))
+            FROM (
+                SELECT user_id, role 
+                FROM workspace_members 
+                WHERE project_workspace_id = w.id AND deleted_at IS NULL
+                ORDER BY created_at ASC
+                LIMIT 5
+            ) m
+            JOIN users u ON u.id = m.user_id
+        ) AS MembersJson
     FROM 
         project_workspaces w
     JOIN workspace_members wm 
         ON wm.project_workspace_id = w.id AND wm.user_id = @CurrentUserId AND wm.deleted_at IS NULL
-    JOIN workspace_members wm_all
-        ON wm_all.project_workspace_id = w.id AND wm_all.deleted_at IS NULL
     WHERE 
         w.deleted_at IS NULL AND
         (@name IS NULL OR w.name ILIKE '%' || @name || '%') AND 
@@ -96,8 +113,6 @@ public static class GetWorkspaceListSQL
                     (w.updated_at = @cursorTimestamp AND w.id < @cursorId)
                 )
         )
-    GROUP BY
-        w.id, w.name, w.custom_icon, w.custom_color, w.description, w.variant, w.is_archived, wm.role, wm.status, w.updated_at, wm.is_pinned
     ORDER BY
         wm.is_pinned DESC, w.updated_at DESC, w.id DESC
     LIMIT @PageSizePLusOne;

@@ -1,11 +1,10 @@
-using System;
 using Domain.Common;
 
 namespace Domain.Entities.Relationship;
 
 public class TaskAssignment : Entity
 {
-    public Guid TaskId { get; private set; }
+    public Guid ProjectTaskId { get; private set; }
     public Guid WorkspaceMemberId { get; private set; }
     public string? Notes { get; private set; }
     public int? EstimatedHours { get; private set; }
@@ -14,17 +13,17 @@ public class TaskAssignment : Entity
 
     private TaskAssignment() { }
 
-    private TaskAssignment(Guid taskId, Guid workspaceMemberId, Guid creatorId, string? notes = null, int? estimatedHours = null)
+    private TaskAssignment(Guid projectTaskId, Guid workspaceMemberId, Guid creatorId, string? notes = null, int? estimatedHours = null)
     {
-        TaskId = taskId;
+        ProjectTaskId = projectTaskId;
         WorkspaceMemberId = workspaceMemberId;
         CreatorId = creatorId;
         Notes = notes;
         EstimatedHours = estimatedHours;
     }
 
-    public static TaskAssignment Create(Guid taskId, Guid workspaceMemberId, Guid creatorId, string? notes = null, int? estimatedHours = null) =>
-        new(taskId, workspaceMemberId, creatorId, notes, estimatedHours);
+    public static TaskAssignment Create(Guid projectTaskId, Guid workspaceMemberId, Guid creatorId, string? notes = null, int? estimatedHours = null) =>
+        new(projectTaskId, workspaceMemberId, creatorId, notes, estimatedHours);
 
     public void MarkCompleted(int? actualHours = null)
     {

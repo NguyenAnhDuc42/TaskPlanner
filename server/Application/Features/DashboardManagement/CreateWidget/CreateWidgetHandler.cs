@@ -1,9 +1,7 @@
 using Application.Helpers.WidgetTool;
 using Application.Interfaces.Repositories;
-using Domain;
 using Application.Helpers;
 using Domain.Entities.ProjectEntities;
-using Domain.Enums;
 using Domain.Enums.Widget;
 using MediatR;
 using server.Application.Interfaces;

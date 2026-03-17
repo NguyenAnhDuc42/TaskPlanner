@@ -64,14 +64,14 @@ export function Head() {
   };
 
   return (
-    <header className="border-b border-border/50 bg-card/60 backdrop-blur-md sticky top-0 z-50 px-6 py-3">
+    <header className="border-b border-border/50 bg-card/60 backdrop-blur-md sticky top-0 z-50 px-6 py-3 outline">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="flex h-10 w-10 items-center justify-center rounded-sm bg-primary shadow-lg shadow-primary/20">
-            <span className="text-lg font-black text-primary-foreground tracking-tighter">W</span>
+            <span className="text-lg font-black text-primary-foreground tracking-tighter">TP</span>
           </div>
           <div>
-            <h1 className="text-lg font-black text-foreground tracking-tight uppercase">Workspace Hub</h1>
+            <h1 className="text-lg font-black text-foreground tracking-tight uppercase">TaskPlanner</h1>
             <p className="text-[10px] font-mono text-muted-foreground uppercase tracking-widest leading-none">Management Center</p>
           </div>
         </div>

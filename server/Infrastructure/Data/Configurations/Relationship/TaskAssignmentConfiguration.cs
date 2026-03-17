@@ -13,7 +13,7 @@ public class TaskAssignmentConfiguration : EntityConfiguration<TaskAssignment>
 
         builder.ToTable("task_assignments");
 
-        builder.Property(x => x.TaskId).HasColumnName("task_id").IsRequired();
+        builder.Property(x => x.ProjectTaskId).HasColumnName("project_task_id").IsRequired();
         builder.Property(x => x.WorkspaceMemberId).HasColumnName("workspace_member_id").IsRequired();
         builder.Property(x => x.Notes).HasColumnName("notes").HasMaxLength(500);
         builder.Property(x => x.EstimatedHours).HasColumnName("estimated_hours");
@@ -21,7 +21,7 @@ public class TaskAssignmentConfiguration : EntityConfiguration<TaskAssignment>
         builder.Property(x => x.CompletedAt).HasColumnName("completed_at");
 
         // Indexes
-        builder.HasIndex(x => x.TaskId);
+        builder.HasIndex(x => x.ProjectTaskId);
         builder.HasIndex(x => x.WorkspaceMemberId);
         // Foreign keys
         builder.HasOne<WorkspaceMember>()
@@ -31,7 +31,7 @@ public class TaskAssignmentConfiguration : EntityConfiguration<TaskAssignment>
 
         builder.HasOne<ProjectTask>()
             .WithMany(pt => pt.Assignees)
-            .HasForeignKey(x => x.TaskId)
+            .HasForeignKey(x => x.ProjectTaskId)
             .OnDelete(DeleteBehavior.Cascade);
     }
 }

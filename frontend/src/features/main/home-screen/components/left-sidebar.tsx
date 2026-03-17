@@ -5,7 +5,7 @@ import { NotificationsList } from "./notifications-list";
 
 export function LeftSidebar() {
   return (
-    <Card className="hidden xl:flex w-72 flex-shrink-0 flex flex-col h-full bg-card border border-border/50 shadow-sm overflow-hidden rounded-2xl">
+    <Card className="hidden xl:flex w-72 flex-shrink-0 flex flex-col h-full bg-card border border-border/50 shadow-sm overflow-hidden outline rounded-md ">
       <div className="p-4 flex flex-col min-h-0 flex-1 gap-6">
         {/* Calendar Section */}
         <div className="flex flex-col gap-3">
@@ -15,7 +15,7 @@ export function LeftSidebar() {
               Schedule
             </h2>
           </div>
-          <div className="flex justify-center bg-muted/10 rounded-sm p-1 border border-border/40">
+          <div className="flex justify-center bg-muted/10 rounded-md p-1 border border-border/40 outline">
             <CalenderTasks />
           </div>
         </div>

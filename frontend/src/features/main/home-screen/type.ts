@@ -49,4 +49,9 @@ export interface WorkspaceSummary {
   canUpdateWorkspace: boolean;
   canManageMembers: boolean;
   canPinWorkspace: boolean;
+  members: {
+    id: string;
+    name: string;
+    role: Role;
+  }[];
 }

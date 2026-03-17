@@ -28,7 +28,7 @@ export function CalenderTasks() {
         <Calendar
           modifiers={{ selected: today }}
           onDayClick={handleDayClick}
-          className="p-0 border-0 rounded-sm"
+          className="p-0 border-0 rounded-md "
         />
       </div>
 
@@ -42,7 +42,7 @@ export function CalenderTasks() {
               Upcoming tasks for this date.
             </DialogDescription>
           </DialogHeader>
-          <div className="py-12 flex flex-col items-center justify-center border border-dashed border-border rounded-sm bg-muted/20">
+          <div className="py-12 flex flex-col items-center justify-center border border-dashed border-border rounded-md bg-muted/20">
             <p className="text-muted-foreground/60 text-[10px] font-mono uppercase tracking-widest text-center px-8">
               No tasks found for this day.
             </p>

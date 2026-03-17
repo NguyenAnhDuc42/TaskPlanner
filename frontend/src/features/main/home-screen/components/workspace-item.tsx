@@ -22,7 +22,7 @@ export function WorkspaceItem({ workspaceSummary, onOpen, onPin, selected }: Pro
   return (
     <Card
       className={cn(
-        "group relative border transition-all duration-300 cursor-pointer p-4 overflow-hidden rounded-xl",
+        "group relative border transition-all duration-300 cursor-pointer p-4 overflow-hidden outline rounded-md",
         selected 
           ? "border-opacity-50 border-solid shadow-md scale-[1.01]" 
           : "border-border/50 hover:border-primary/40 hover:bg-muted/30",
@@ -37,7 +37,7 @@ export function WorkspaceItem({ workspaceSummary, onOpen, onPin, selected }: Pro
       <div className="flex items-start gap-4 w-full">
         {/* Workspace Icon */}
         <div 
-          className="h-12 w-12 rounded-sm flex items-center justify-center text-sm font-bold shrink-0 border border-border/50 transition-transform group-hover:scale-105 shadow-sm"
+          className="h-12 w-12 rounded-md flex items-center justify-center text-sm font-bold shrink-0 border border-border/50 transition-transform group-hover:scale-105 shadow-sm"
           style={{
             backgroundColor: `${workspaceSummary.color}15`,
             borderColor: `${workspaceSummary.color}40`,
@@ -82,7 +82,7 @@ export function WorkspaceItem({ workspaceSummary, onOpen, onPin, selected }: Pro
            <Button
               size="icon"
               variant="ghost"
-              className="h-8 w-8 text-muted-foreground hover:bg-transparent rounded-sm"
+              className="h-8 w-8 text-muted-foreground hover:bg-transparent rounded-md"
               disabled={!workspaceSummary.canPinWorkspace}
               onClick={(e) => {
                 e.stopPropagation();
@@ -94,7 +94,7 @@ export function WorkspaceItem({ workspaceSummary, onOpen, onPin, selected }: Pro
             <Button
               size="icon"
               variant="ghost"
-              className="h-8 w-8 text-muted-foreground hover:bg-transparent rounded-sm"
+              className="h-8 w-8 text-muted-foreground hover:bg-transparent rounded-md"
               onClick={(e) => {
                 e.stopPropagation();
               }}

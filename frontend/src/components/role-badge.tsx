@@ -32,12 +32,12 @@ export function RoleBadge({ role }: { role: Role }) {
       break;
     case "Guest":
       variant = "secondary";
-      className = cn(className, "opacity-60 border");
+      className = cn(className, "opacity-60 border border-gray-500/30");
       break;
   }
 
   return (
-    <Badge variant={variant} className={className}>
+    <Badge variant={variant} className={className} style={{ borderRadius: "0.25rem" }}>
       {role}
     </Badge>
   );

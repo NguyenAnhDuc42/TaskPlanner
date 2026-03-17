@@ -74,7 +74,7 @@ public class MemberCleanupJob
             .ToListAsync();
 
         var assignmentsDeleted = await _context.TaskAssignments
-            .Where(a => a.WorkspaceMemberId == workspaceMemberId && taskIds.Contains(a.TaskId) && a.DeletedAt == null)
+            .Where(a => a.WorkspaceMemberId == workspaceMemberId && taskIds.Contains(a.ProjectTaskId) && a.DeletedAt == null)
             .ExecuteUpdateAsync(s => s
                 .SetProperty(a => a.DeletedAt, DateTimeOffset.UtcNow)
                 .SetProperty(a => a.UpdatedAt, DateTimeOffset.UtcNow));

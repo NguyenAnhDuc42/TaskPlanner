@@ -35,7 +35,8 @@ export function SidebarRegistry({ page }: { page: ContentPage }) {
       return <MembersSidebar />;
     case "settings":
       return <SettingsSidebar />;
-    case "tasks":
+    case "projects":
+      return <HierarchySidebar />;
     case "spaces":
     case "folders":
     case "lists":

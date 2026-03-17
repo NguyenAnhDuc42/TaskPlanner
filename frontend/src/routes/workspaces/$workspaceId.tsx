@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { SidebarProvider } from "@/features/workspace/components/sidebar-provider";
 import { OuterSidebar } from "@/features/workspace/components/outer-sidebar";
+import { InnerSidebar } from "@/features/workspace/components/inner-sidebar";
 import { ContentDisplayer } from "@/features/workspace/components/content-displayer";
 
 export const Route = createFileRoute("/workspaces/$workspaceId")({
@@ -13,10 +14,13 @@ function WorkspaceLayout() {
   return (
     <SidebarProvider initialWorkspaceId={workspaceId}>
       <div className="flex h-screen w-full overflow-hidden bg-background p-4 gap-4">
-        {/* Outer Sidebar - Persistent Visual Frame */}
+        {/* Column 1: Outer Sidebar */}
         <OuterSidebar />
 
-        {/* Content Displayer - Persistent Visual Frame with Inner Sidebar */}
+        {/* Column 2: Contextual Inner Sidebar */}
+        <InnerSidebar />
+
+        {/* Column 3: The Main Canvas */}
         <ContentDisplayer />
       </div>
     </SidebarProvider>
