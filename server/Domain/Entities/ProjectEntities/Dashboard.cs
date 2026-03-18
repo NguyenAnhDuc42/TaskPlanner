@@ -1,8 +1,4 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using Domain.Common;
-using Domain.Enums;
 using Domain.Enums.RelationShip;
 using Domain.Enums.Widget;
 
@@ -10,20 +6,14 @@ namespace Domain.Entities.ProjectEntities;
 
 public class Dashboard : Entity
 {
-    private const int MaxGridCols = 12;
-    private const int MaxGridRows = 2000;
-    private const int MaxCascadeDepth = 1000; // Safety limit for cascade chains
-
     public EntityLayerType LayerType { get; private set; }
     public Guid LayerId { get; private set; }
     public string Name { get; private set; } = string.Empty;
     public bool IsShared { get; private set; }
-    public bool IsMain { get; private set; } = false;
+    public bool IsMain { get; private set; }
 
     private readonly List<Widget> _widgets = new();
     public IReadOnlyCollection<Widget> Widgets => _widgets.AsReadOnly();
-
-    private GridOccupancyTracker _occupancyTracker = new(MaxGridCols, MaxGridRows);
 
     private Dashboard() { }
 
@@ -41,67 +31,97 @@ public class Dashboard : Entity
     public static Dashboard CreateWorkspaceDashboard(Guid workspaceId, Guid creatorId, string name, bool isShared = false, bool isMain = false)
     {
         if (creatorId == Guid.Empty) throw new ArgumentException("CreatorId cannot be empty.", nameof(creatorId));
+
         return new(Guid.NewGuid(), EntityLayerType.ProjectWorkspace, workspaceId, name, isShared, creatorId, isMain);
     }
 
-    public static Dashboard CreateScopedDashboard(EntityLayerType layerType, Guid layerId, Guid creatorId, string name, bool isShared = false, bool isMain = false)
+    public static Dashboard CreateScopedDashboard( EntityLayerType layerType, Guid layerId, Guid creatorId, string name, bool isShared = false, bool isMain = false)
     {
         if (layerType == EntityLayerType.ProjectWorkspace) throw new ArgumentException("Use CreateWorkspaceDashboard for workspace scope.", nameof(layerType));
         if (layerId == Guid.Empty) throw new ArgumentException("LayerId cannot be empty.", nameof(layerId));
         if (creatorId == Guid.Empty) throw new ArgumentException("CreatorId cannot be empty.", nameof(creatorId));
+
         return new(Guid.NewGuid(), layerType, layerId, name, isShared, creatorId, isMain);
     }
 
-    public void RebuildOccupancyTracker()
+    public void AddWidget(WidgetType widgetType, string configJson, WidgetVisibility visibility, int col, int row, int width, int height, Guid creatorId)
     {
-        _occupancyTracker = new GridOccupancyTracker(MaxGridCols, MaxGridRows);
-        foreach (var widget in _widgets)
-        {
-            _occupancyTracker.MarkOccupied(widget.Layout.Col, widget.Layout.Row, widget.Layout.Width, widget.Layout.Height);
-        }
-    }
-
-    public void AddWidget(WidgetType widgetType, string configJson, WidgetVisibility visibility, int width, int height, Guid creatorId)
-    {
-        ValidateWidgetDimensions(width, height);
-
-        var newLayout = FindNextAvailablePosition(width, height);
-        var widget = new Widget(Guid.NewGuid(), Id, newLayout, LayerType, LayerId,widgetType, configJson, visibility, creatorId);
+        var layout = new WidgetLayout(col, row, width, height);
+        var widget = new Widget(
+            Guid.NewGuid(), Id, layout, LayerType, LayerId,
+            widgetType, configJson, visibility, creatorId);
 
         _widgets.Add(widget);
-        _occupancyTracker.MarkOccupied(newLayout.Col, newLayout.Row, width, height);
         UpdateTimestamp();
     }
 
     public void RemoveWidget(Guid widgetId)
     {
         var widget = _widgets.FirstOrDefault(w => w.Id == widgetId);
-        if (widget != null)
+        if (widget is null) return;
+
+        _widgets.Remove(widget);
+        UpdateTimestamp();
+    }
+
+    public void UpdateName(string name)
+    {
+        if (string.IsNullOrWhiteSpace(name))
+            throw new ArgumentException("Name cannot be empty.");
+        Name = name;
+        UpdateTimestamp();
+    }
+
+    public void UpdateShared(bool isShared) { IsShared = isShared; UpdateTimestamp(); }
+    public void UpdateMain(bool isMain) { IsMain = isMain; UpdateTimestamp(); }
+
+    /* ─── Commanded out: Over-engineered logic ───────────────────────
+    private const int MaxGridCols = 12;
+    private const int MaxGridRows = 2000;
+    private const int MaxCascadeDepth = 1000;
+    private const int MaxScanRows = 1000;
+
+    private GridOccupancyTracker? _occupancyTracker;
+    private GridOccupancyTracker OccupancyTracker
+    {
+        get
         {
-            _occupancyTracker.UnmarkOccupied(widget.Layout.Col, widget.Layout.Row, widget.Layout.Width, widget.Layout.Height);
-            _widgets.Remove(widget);
-            UpdateTimestamp();
+            if (_occupancyTracker is not null) return _occupancyTracker;
+
+            _occupancyTracker = new GridOccupancyTracker(MaxGridCols, MaxGridRows);
+            foreach (var w in _widgets)
+                _occupancyTracker.MarkOccupied(
+                    w.Layout.Col, w.Layout.Row,
+                    w.Layout.Width, w.Layout.Height);
+
+            return _occupancyTracker;
         }
     }
 
     public void MoveWidget(Guid widgetId, int newCol, int newRow)
     {
         var widget = _widgets.FirstOrDefault(w => w.Id == widgetId);
-        if (widget == null) return;
+        if (widget is null) return;
 
         ValidatePosition(newCol, newRow);
 
-        var collidingWidgets = FindCollidingWidgetsInColumn(newCol, newRow, widget.Layout.Width, widget.Layout.Height, widgetId);
+        OccupancyTracker.UnmarkOccupied(
+            widget.Layout.Col, widget.Layout.Row,
+            widget.Layout.Width, widget.Layout.Height);
 
-        _occupancyTracker.UnmarkOccupied(widget.Layout.Col, widget.Layout.Row, widget.Layout.Width, widget.Layout.Height);
+        var collisions = FindCollidingWidgets(
+            newCol, newRow, widget.Layout.Width, widget.Layout.Height, widgetId);
 
-        if (collidingWidgets.Any())
+        if (collisions.Count > 0)
         {
-            CascadeWidgetsDown(collidingWidgets, widget.Layout.Height);
+            int firstColliderTop = collisions[0].Layout.Row;
+            int intrusionDepth = (newRow + widget.Layout.Height) - firstColliderTop;
+            CascadeWidgetsDown(collisions, intrusionDepth);
         }
 
-        widget.UpdateLayout(widget.Layout.WithPosition(newCol, newRow));
-        _occupancyTracker.MarkOccupied(newCol, newRow, widget.Layout.Width, widget.Layout.Height);
+        var newLayout = widget.Layout.WithPosition(newCol, newRow);
+        widget.UpdateLayout(newLayout);
+        OccupancyTracker.MarkOccupied(newCol, newRow, newLayout.Width, newLayout.Height);
 
         UpdateTimestamp();
     }
@@ -109,122 +129,95 @@ public class Dashboard : Entity
     public void ResizeWidget(Guid widgetId, int newWidth, int newHeight)
     {
         var widget = _widgets.FirstOrDefault(w => w.Id == widgetId);
-        if (widget == null) return;
+        if (widget is null) return;
 
         ValidateWidgetDimensions(newWidth, newHeight);
 
-        int oldHeight = widget.Layout.Height;
-        int heightDifference = newHeight - oldHeight;
+        int heightDelta = newHeight - widget.Layout.Height;
 
-        if (heightDifference > 0)
+        if (heightDelta > 0)
         {
-            int checkStartRow = widget.Layout.Row + oldHeight;
-            var collidingWidgets = FindCollidingWidgetsInColumn(widget.Layout.Col, checkStartRow, newWidth, heightDifference, widgetId);
+            int expansionStartRow = widget.Layout.Row + widget.Layout.Height;
+            var collisions = FindCollidingWidgets(
+                widget.Layout.Col, expansionStartRow,
+                newWidth, heightDelta, widgetId);
 
-            if (collidingWidgets.Any())
-            {
-                CascadeWidgetsDown(collidingWidgets, heightDifference);
-            }
+            if (collisions.Count > 0)
+                CascadeWidgetsDown(collisions, heightDelta);
         }
 
-        _occupancyTracker.UnmarkOccupied(widget.Layout.Col, widget.Layout.Row, widget.Layout.Width, widget.Layout.Height);
+        var oldLayout = widget.Layout;
+        var newLayout = new WidgetLayout(oldLayout.Col, oldLayout.Row, newWidth, newHeight);
 
-        var newLayout = new WidgetLayout(widget.Layout.Col, widget.Layout.Row, newWidth, newHeight);
+        OccupancyTracker.UnmarkOccupied(
+            oldLayout.Col, oldLayout.Row,
+            oldLayout.Width, oldLayout.Height);
+
         widget.UpdateLayout(newLayout);
-        _occupancyTracker.MarkOccupied(widget.Layout.Col, widget.Layout.Row, newWidth, newHeight);
+
+        OccupancyTracker.MarkOccupied(
+            newLayout.Col, newLayout.Row,
+            newLayout.Width, newLayout.Height);
 
         UpdateTimestamp();
     }
 
-    public void UpdateMain(bool isMain)
+    private List<Widget> FindCollidingWidgets(
+        int col, int row, int width, int height, Guid excludeId)
     {
-        IsMain = isMain;
-        UpdateTimestamp();
+        return _widgets
+            .Where(w =>
+                w.Id != excludeId
+                && w.Layout.Col < col + width
+                && w.Layout.Col + w.Layout.Width > col
+                && w.Layout.Row < row + height
+                && w.Layout.Row + w.Layout.Height > row)
+            .OrderBy(w => w.Layout.Row)
+            .ToList();
     }
 
-    public void UpdateName(string name)
+    private void CascadeWidgetsDown(List<Widget> widgets, int pushDistance)
     {
-        if (string.IsNullOrWhiteSpace(name))
-            throw new ArgumentException("Name cannot be empty");
-        Name = name;
-        UpdateTimestamp();
-    }
-
-    public void UpdateShared(bool isShared)
-    {
-        IsShared = isShared;
-        UpdateTimestamp();
-    }
-
-    private List<Widget> FindCollidingWidgetsInColumn(int col, int row, int width, int height, Guid excludeWidgetId)
-    {
-        var colliding = new List<Widget>();
-
-        foreach (var widget in _widgets.Where(w => w.Id != excludeWidgetId && w.Layout.Col == col))
+        if (widgets.Count == 0) return;
+        foreach (var w in widgets)
         {
-            if (widget.Layout.Row < row + height && widget.Layout.Row + widget.Layout.Height > row)
-            {
-                colliding.Add(widget);
-            }
-        }
+            int newRow = w.Layout.Row + pushDistance;
+            OccupancyTracker.UnmarkOccupied(
+                w.Layout.Col, w.Layout.Row,
+                w.Layout.Width, w.Layout.Height);
 
-        return colliding.OrderBy(w => w.Layout.Row).ToList();
-    }
+            var pushed = w.Layout.WithPosition(w.Layout.Col, newRow);
+            w.UpdateLayout(pushed);
 
-    private void CascadeWidgetsDown(List<Widget> widgetsToMove, int pushDistance)
-    {
-        if (widgetsToMove.Count == 0) return;
-        if (widgetsToMove.Count > MaxCascadeDepth)
-            throw new InvalidOperationException($"Cascade depth exceeds limit ({MaxCascadeDepth}). Too many widgets would shift.");
-
-        foreach (var widget in widgetsToMove)
-        {
-            _occupancyTracker.UnmarkOccupied(widget.Layout.Col, widget.Layout.Row, widget.Layout.Width, widget.Layout.Height);
-
-            int newRow = widget.Layout.Row + pushDistance;
-
-            if (newRow < 0 || newRow >= MaxGridRows)
-                throw new InvalidOperationException($"Cascade would push widget beyond canvas bounds (max rows: {MaxGridRows})");
-
-            widget.UpdateLayout(widget.Layout.WithPosition(widget.Layout.Col, newRow));
-            _occupancyTracker.MarkOccupied(widget.Layout.Col, newRow, widget.Layout.Width, widget.Layout.Height);
+            OccupancyTracker.MarkOccupied(
+                pushed.Col, pushed.Row,
+                pushed.Width, pushed.Height);
         }
     }
 
-    private WidgetLayout FindNextAvailablePosition(int widgetWidth, int widgetHeight)
+    private WidgetLayout FindNextAvailablePosition(int width, int height)
     {
-        const int maxScanRows = 1000;
-        int scanLimit = Math.Min(_occupancyTracker.GetMaxScanRow(widgetHeight) + 1, maxScanRows);
+        int scanLimit = Math.Min(
+            OccupancyTracker.GetScanUpperBound(height), MaxScanRows);
 
         for (int row = 0; row < scanLimit; row++)
-        {
-            for (int col = 0; col <= MaxGridCols - widgetWidth; col++)
-            {
-                if (_occupancyTracker.CanPlaceAt(col, row, widgetWidth, widgetHeight))
-                {
-                    return new WidgetLayout(col, row, widgetWidth, widgetHeight);
-                }
-            }
-        }
+            for (int col = 0; col <= MaxGridCols - width; col++)
+                if (OccupancyTracker.CanPlaceAt(col, row, width, height))
+                    return new WidgetLayout(col, row, width, height);
 
-        throw new InvalidOperationException("Dashboard grid is full, cannot place widget");
+        throw new InvalidOperationException("Dashboard grid is full.");
     }
 
-    private void ValidateWidgetDimensions(int width, int height)
+    private static void ValidateWidgetDimensions(int width, int height)
     {
         if (width <= 0 || height <= 0)
-            throw new ArgumentException("Widget dimensions must be positive");
-        if (width > MaxGridCols)
-            throw new ArgumentException($"Widget width cannot exceed {MaxGridCols}");
-        if (height > MaxGridRows)
-            throw new ArgumentException($"Widget height cannot exceed {MaxGridRows}");
+            throw new ArgumentException("Widget dimensions must be positive.");
     }
 
-    private void ValidatePosition(int col, int row)
+    private static void ValidatePosition(int col, int row)
     {
         if (col < 0 || row < 0)
-            throw new ArgumentException("Position cannot be negative");
-        if (col >= MaxGridCols || row >= MaxGridRows)
-            throw new ArgumentException("Position exceeds canvas bounds");
+            throw new ArgumentException("Position cannot be negative.");
     }
+    ────────────────────────────────────────────────────────────────── */
 }

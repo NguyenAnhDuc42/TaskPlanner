@@ -1,31 +1,26 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-
 namespace Domain.Entities.ProjectEntities;
 
-public class GridOccupancyTracker
+public sealed class GridOccupancyTracker
 {
     private readonly int _maxGridCols;
     private readonly int _maxGridRows;
-    private readonly Dictionary<(int row, int col), bool> _occupiedCells = new();
+    private readonly bool[,] _cells;
     private int _maxOccupiedRow = -1;
 
     public GridOccupancyTracker(int maxGridCols = 12, int maxGridRows = 2000)
     {
         _maxGridCols = maxGridCols;
         _maxGridRows = maxGridRows;
+        _cells = new bool[maxGridRows, maxGridCols];
     }
 
     public void MarkOccupied(int col, int row, int width, int height)
     {
         for (int r = row; r < row + height; r++)
-        {
             for (int c = col; c < col + width; c++)
-            {
-                _occupiedCells[(r, c)] = true;
-            }
-        }
+                _cells[r, c] = true;
+
+        // Only grow — never shrink on mark
         int bottomRow = row + height - 1;
         if (bottomRow > _maxOccupiedRow)
             _maxOccupiedRow = bottomRow;
@@ -34,30 +29,28 @@ public class GridOccupancyTracker
     public void UnmarkOccupied(int col, int row, int width, int height)
     {
         for (int r = row; r < row + height; r++)
-        {
             for (int c = col; c < col + width; c++)
-            {
-                _occupiedCells.Remove((r, c));
-            }
-        }
-        _maxOccupiedRow = _occupiedCells.Any() ? _occupiedCells.Keys.Max(k => k.row) : -1;
+                _cells[r, c] = false;
+
+        // Intentionally skip recomputing _maxOccupiedRow.
+        // Slight over-scan on FindNextAvailablePosition is O(empty_rows × cols)
+        // which is far cheaper than O(all_occupied_cells) on every remove.
     }
 
     public bool CanPlaceAt(int col, int row, int width, int height)
     {
-        if (col < 0 || col + width > _maxGridCols || row < 0 || row + height > _maxGridRows)
+        if (col < 0 || col + width > _maxGridCols ||
+            row < 0 || row + height > _maxGridRows)
             return false;
 
         for (int r = row; r < row + height; r++)
-        {
             for (int c = col; c < col + width; c++)
-            {
-                if (_occupiedCells.TryGetValue((r, c), out var occupied) && occupied)
-                    return false;
-            }
-        }
+                if (_cells[r, c]) return false;
+
         return true;
     }
 
-    public int GetMaxScanRow(int widgetHeight) => _maxOccupiedRow + widgetHeight;
+    // Exclusive upper bound — safe to use directly in for (row < GetScanUpperBound(...))
+    public int GetScanUpperBound(int widgetHeight) =>
+        _maxOccupiedRow + widgetHeight + 1;
 }

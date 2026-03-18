@@ -1,4 +1,4 @@
-﻿using Application.Interfaces.Repositories;
+using Application.Interfaces.Repositories;
 using Domain;
 using Application.Helpers;
 using Domain.Entities.ProjectEntities;
