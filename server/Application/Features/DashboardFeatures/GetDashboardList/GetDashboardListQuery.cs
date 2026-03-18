@@ -1,12 +1,15 @@
-﻿using Application.Common.Filters;
-using Application.Common.Interfaces;
-using Application.Common.Results;
-using Application.Contract.DashboardDtos;
+using Application.Common.Mediatr;
 using Domain.Enums.RelationShip;
-using System;
-using System.Collections.Generic;
-using System.Text;
+using MediatR;
 
-namespace Application.Features.DashboardManagement.GetDashboardList;
+namespace Application.Features.DashboardFeatures.GetDashboardList;
 
-public record class GetDashboardListQuery(CursorPaginationRequest pagination,Guid layerId,EntityLayerType layerType,DashboardFilter filter) : IQuery<PagedResult<DashboardListItemDto>>;
+public record class GetDashboardListQuery(Guid layerId, EntityLayerType layerType) : IRequest<List<DashboardDto>>;
+
+public record DashboardDto(
+    Guid Id,
+    string Name,
+    bool IsShared,
+    bool IsMain,
+    EntityLayerType LayerType,
+    Guid LayerId);

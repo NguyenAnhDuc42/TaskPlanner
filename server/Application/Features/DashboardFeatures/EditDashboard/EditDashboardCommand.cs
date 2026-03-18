@@ -1,9 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
 using Application.Common.Interfaces;
 using MediatR;
 
-namespace Application.Features.DashboardManagement.EditDashboard;
+namespace Application.Features.DashboardFeatures.EditDashboard;
 
-public record EditDashboardCommand(Guid dashboardId, string? name = null, bool? isShared = null, bool? isMain = null) : ICommand<Unit>;
+public record class EditDashboardCommand(Guid dashboardId, string name, bool? isShared, bool? isMain) : ICommand<Unit>;

@@ -1,7 +1,7 @@
 using Application.Common.Interfaces;
-using Application.Helpers.WidgetTool;
+using Domain.Enums.Widget;
 using MediatR;
 
-namespace Application.Features.DashboardManagement.EditWidget;
+namespace Application.Features.DashboardFeatures.EditWidget;
 
-public record class EditWidgetCommand(Guid dashboardId,Guid widgetId,WidgetFilter filter) : ICommand<Unit>;
+public record class EditWidgetCommand(Guid dashboardId, Guid widgetId, string? configJson, WidgetVisibility? visibility) : ICommand<Unit>;

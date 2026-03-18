@@ -1,14 +1,12 @@
 using Application.Interfaces.Repositories;
-using Domain;
 using Application.Helpers;
 using Domain.Entities.ProjectEntities;
-using Domain.Enums;
 using Domain.Enums.RelationShip;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using server.Application.Interfaces;
 
-namespace Application.Features.DashboardManagement.CreateDashboard;
+namespace Application.Features.DashboardFeatures.CreateDashboard;
 
 public class CreateDashboardHandler : BaseFeatureHandler, IRequestHandler<CreateDashboardCommand, Unit>
 {
@@ -24,18 +22,15 @@ public class CreateDashboardHandler : BaseFeatureHandler, IRequestHandler<Create
 
         await UnitOfWork.Set<Dashboard>().AddAsync(dashboard,cancellationToken);
         return Unit.Value;
-
     }
 
-    private async Task ChangeMainDashboard(Guid layerId,EntityLayerType layerType,CancellationToken cancellation)
+    private async Task ChangeMainDashboard(Guid layerId, EntityLayerType layerType, CancellationToken cancellation)
     {
         await UnitOfWork.Set<Dashboard>()
-        .Where(d => d.LayerId == layerId && d.LayerType == layerType && d.IsMain)
-        .ExecuteUpdateAsync(updater => updater
-            .SetProperty(d => d.IsMain, _ => false)
-            .SetProperty(d => d.UpdatedAt, _ => DateTime.UtcNow),
-          cancellation);
+            .Where(d => d.LayerId == layerId && d.LayerType == layerType && d.IsMain)
+            .ExecuteUpdateAsync(updater => updater
+                .SetProperty(d => d.IsMain, _ => false)
+                .SetProperty(d => d.UpdatedAt, _ => DateTime.UtcNow),
+              cancellation);
     }
-
 }
-

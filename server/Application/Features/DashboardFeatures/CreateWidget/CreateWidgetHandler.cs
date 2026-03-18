@@ -1,36 +1,21 @@
-using Application.Common.Interfaces;
+using Application.Helpers;
+using Application.Interfaces.Repositories;
 using Domain.Entities.ProjectEntities;
 using Domain.Enums.Widget;
 using MediatR;
-using Microsoft.EntityFrameworkCore;
+using server.Application.Interfaces;
 
 namespace Application.Features.DashboardFeatures.CreateWidget;
 
-public record class CreateWidgetCommand(
-    Guid dashboardId, 
-    WidgetType widgetType,
-    int Col,
-    int Row,
-    int Width,
-    int Height) : IRequest<Unit>;
-
-public class CreateWidgetHandler : BaseFeatureHandler<CreateWidgetCommand, Unit>
+public class CreateWidgetHandler : BaseFeatureHandler, IRequestHandler<CreateWidgetCommand, Unit>
 {
-    public CreateWidgetHandler(IApplicationDbContext context, ICurrentUserService currentUserService)
-        : base(context, currentUserService) { }
+    public CreateWidgetHandler(IUnitOfWork unitOfWork, ICurrentUserService currentUserService, WorkspaceContext workspaceContext)
+        : base(unitOfWork, currentUserService, workspaceContext) { }
 
     public async Task<Unit> Handle(CreateWidgetCommand request, CancellationToken cancellationToken)
     {
-        var dashboard = await _context.Dashboards
-            .Include(d => d.Widgets)
-            .FirstOrDefaultAsync(d => d.Id == request.dashboardId, cancellationToken);
+        var dashboard = await FindOrThrowAsync<Dashboard>(request.dashboardId);
 
-        if (dashboard == null)
-            throw new InvalidOperationException("Dashboard not found.");
-
-        // Create widget config (using 1x1 as placeholder if factory isn't updated)
-        // Ideally the dashboard.AddWidget is now the active domain logic.
-        
         dashboard.AddWidget(
             widgetType: request.widgetType,
             configJson: "{}", // Default empty config
@@ -42,7 +27,6 @@ public class CreateWidgetHandler : BaseFeatureHandler<CreateWidgetCommand, Unit>
             creatorId: CurrentUserId
         );
 
-        await _context.SaveChangesAsync(cancellationToken);
         return Unit.Value;
     }
 }

@@ -1,11 +1,7 @@
-﻿using Application.Common.Interfaces;
-using Domain.Enums.RelationShip;
+using Application.Common.Interfaces;
 using MediatR;
-using System;
-using System.Collections.Generic;
-using System.Text;
+using Domain.Enums.RelationShip;
 
-namespace Application.Features.DashboardManagement.DeleteDashboard;
+namespace Application.Features.DashboardFeatures.DeleteDashboard;
 
-public record class DeleteDashboardCommand(Guid layerId,EntityLayerType layerType,Guid dashboardId) : ICommand<Unit>;
-
+public record class DeleteDashboardCommand(Guid layerId, EntityLayerType layerType, Guid dashboardId) : ICommand<Unit>;

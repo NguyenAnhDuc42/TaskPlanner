@@ -1,30 +1,30 @@
-using System;
-using System.Text.Json;
-using Application.Interfaces.Repositories;
-using Domain;
 using Application.Helpers;
+using Application.Interfaces.Repositories;
 using Domain.Entities.ProjectEntities;
-using Domain.Enums;
 using MediatR;
+using Microsoft.EntityFrameworkCore;
 using server.Application.Interfaces;
 
-namespace Application.Features.DashboardManagement.EditWidget;
+namespace Application.Features.DashboardFeatures.EditWidget;
 
 public class EditWidgetHandler : BaseFeatureHandler, IRequestHandler<EditWidgetCommand, Unit>
 {
     public EditWidgetHandler(IUnitOfWork unitOfWork, ICurrentUserService currentUserService, WorkspaceContext workspaceContext)
-    : base(unitOfWork, currentUserService, workspaceContext) { }
+        : base(unitOfWork, currentUserService, workspaceContext) { }
 
     public async Task<Unit> Handle(EditWidgetCommand request, CancellationToken cancellationToken)
     {
-        var widget = await FindOrThrowAsync<Widget>(request.widgetId);
+        var dashboard = await UnitOfWork.Set<Dashboard>()
+            .Include(d => d.Widgets)
+            .FirstOrDefaultAsync(d => d.Id == request.dashboardId, cancellationToken);
 
-        var dashboard = await FindOrThrowAsync<Dashboard>(request.dashboardId);
+        if (dashboard == null) throw new KeyNotFoundException("Dashboard not found.");
 
-        var configJson = JsonSerializer.Serialize(request.filter);
-        widget.UpdateConfig(configJson);
+        var widget = dashboard.Widgets.FirstOrDefault(w => w.Id == request.widgetId);
+        if (widget == null) throw new KeyNotFoundException("Widget not found.");
 
-        UnitOfWork.Set<Widget>().Update(widget);
+        if (request.configJson != null) widget.UpdateConfig(request.configJson);
+        if (request.visibility.HasValue) widget.UpdateVisibility(request.visibility.Value);
 
         return Unit.Value;
     }

@@ -1,8 +1,8 @@
 using Application.Common.Interfaces;
 using Domain.Enums.RelationShip;
 using MediatR;
+using System;
 
-namespace Application.Features.DashboardManagement.CreateDashboard;
+namespace Application.Features.DashboardFeatures.CreateDashboard;
 
-
-public record CreateDashboardCommand(Guid layerId,EntityLayerType layerType ,string name,bool isShared,bool isMain) : ICommand<Unit>;
+public record class CreateDashboardCommand(EntityLayerType layerType, Guid layerId, string name, bool isShared = false, bool isMain = false) : ICommand<Unit>;
