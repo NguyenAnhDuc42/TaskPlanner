@@ -16,6 +16,7 @@ import { Route as AuthIndexRouteImport } from './routes/auth/index'
 import { Route as WorkspacesWorkspaceIdRouteImport } from './routes/workspaces/$workspaceId'
 import { Route as AuthSignUpRouteImport } from './routes/auth/sign-up'
 import { Route as AuthSignInRouteImport } from './routes/auth/sign-in'
+import { Route as WorkspacesWorkspaceIdIndexRouteImport } from './routes/workspaces/$workspaceId/index'
 import { Route as WorkspacesWorkspaceIdSettingsRouteImport } from './routes/workspaces/$workspaceId/settings'
 import { Route as WorkspacesWorkspaceIdMembersRouteImport } from './routes/workspaces/$workspaceId/members'
 import { Route as WorkspacesWorkspaceIdCommunicationsRouteImport } from './routes/workspaces/$workspaceId/communications'
@@ -58,6 +59,12 @@ const AuthSignInRoute = AuthSignInRouteImport.update({
   path: '/sign-in',
   getParentRoute: () => AuthRoute,
 } as any)
+const WorkspacesWorkspaceIdIndexRoute =
+  WorkspacesWorkspaceIdIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => WorkspacesWorkspaceIdRoute,
+  } as any)
 const WorkspacesWorkspaceIdSettingsRoute =
   WorkspacesWorkspaceIdSettingsRouteImport.update({
     id: '/settings',
@@ -106,6 +113,7 @@ export interface FileRoutesByFullPath {
   '/workspaces/$workspaceId/communications': typeof WorkspacesWorkspaceIdCommunicationsRoute
   '/workspaces/$workspaceId/members': typeof WorkspacesWorkspaceIdMembersRoute
   '/workspaces/$workspaceId/settings': typeof WorkspacesWorkspaceIdSettingsRoute
+  '/workspaces/$workspaceId/': typeof WorkspacesWorkspaceIdIndexRoute
   '/workspaces/$workspaceId/folders/$folderId': typeof WorkspacesWorkspaceIdFoldersFolderIdRoute
   '/workspaces/$workspaceId/lists/$listId': typeof WorkspacesWorkspaceIdListsListIdRoute
   '/workspaces/$workspaceId/spaces/$spaceId': typeof WorkspacesWorkspaceIdSpacesSpaceIdRoute
@@ -115,11 +123,11 @@ export interface FileRoutesByTo {
   '/about': typeof AboutRoute
   '/auth/sign-in': typeof AuthSignInRoute
   '/auth/sign-up': typeof AuthSignUpRoute
-  '/workspaces/$workspaceId': typeof WorkspacesWorkspaceIdRouteWithChildren
   '/auth': typeof AuthIndexRoute
   '/workspaces/$workspaceId/communications': typeof WorkspacesWorkspaceIdCommunicationsRoute
   '/workspaces/$workspaceId/members': typeof WorkspacesWorkspaceIdMembersRoute
   '/workspaces/$workspaceId/settings': typeof WorkspacesWorkspaceIdSettingsRoute
+  '/workspaces/$workspaceId': typeof WorkspacesWorkspaceIdIndexRoute
   '/workspaces/$workspaceId/folders/$folderId': typeof WorkspacesWorkspaceIdFoldersFolderIdRoute
   '/workspaces/$workspaceId/lists/$listId': typeof WorkspacesWorkspaceIdListsListIdRoute
   '/workspaces/$workspaceId/spaces/$spaceId': typeof WorkspacesWorkspaceIdSpacesSpaceIdRoute
@@ -136,6 +144,7 @@ export interface FileRoutesById {
   '/workspaces/$workspaceId/communications': typeof WorkspacesWorkspaceIdCommunicationsRoute
   '/workspaces/$workspaceId/members': typeof WorkspacesWorkspaceIdMembersRoute
   '/workspaces/$workspaceId/settings': typeof WorkspacesWorkspaceIdSettingsRoute
+  '/workspaces/$workspaceId/': typeof WorkspacesWorkspaceIdIndexRoute
   '/workspaces/$workspaceId/folders/$folderId': typeof WorkspacesWorkspaceIdFoldersFolderIdRoute
   '/workspaces/$workspaceId/lists/$listId': typeof WorkspacesWorkspaceIdListsListIdRoute
   '/workspaces/$workspaceId/spaces/$spaceId': typeof WorkspacesWorkspaceIdSpacesSpaceIdRoute
@@ -153,6 +162,7 @@ export interface FileRouteTypes {
     | '/workspaces/$workspaceId/communications'
     | '/workspaces/$workspaceId/members'
     | '/workspaces/$workspaceId/settings'
+    | '/workspaces/$workspaceId/'
     | '/workspaces/$workspaceId/folders/$folderId'
     | '/workspaces/$workspaceId/lists/$listId'
     | '/workspaces/$workspaceId/spaces/$spaceId'
@@ -162,11 +172,11 @@ export interface FileRouteTypes {
     | '/about'
     | '/auth/sign-in'
     | '/auth/sign-up'
-    | '/workspaces/$workspaceId'
     | '/auth'
     | '/workspaces/$workspaceId/communications'
     | '/workspaces/$workspaceId/members'
     | '/workspaces/$workspaceId/settings'
+    | '/workspaces/$workspaceId'
     | '/workspaces/$workspaceId/folders/$folderId'
     | '/workspaces/$workspaceId/lists/$listId'
     | '/workspaces/$workspaceId/spaces/$spaceId'
@@ -182,6 +192,7 @@ export interface FileRouteTypes {
     | '/workspaces/$workspaceId/communications'
     | '/workspaces/$workspaceId/members'
     | '/workspaces/$workspaceId/settings'
+    | '/workspaces/$workspaceId/'
     | '/workspaces/$workspaceId/folders/$folderId'
     | '/workspaces/$workspaceId/lists/$listId'
     | '/workspaces/$workspaceId/spaces/$spaceId'
@@ -244,6 +255,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/auth/sign-in'
       preLoaderRoute: typeof AuthSignInRouteImport
       parentRoute: typeof AuthRoute
+    }
+    '/workspaces/$workspaceId/': {
+      id: '/workspaces/$workspaceId/'
+      path: '/'
+      fullPath: '/workspaces/$workspaceId/'
+      preLoaderRoute: typeof WorkspacesWorkspaceIdIndexRouteImport
+      parentRoute: typeof WorkspacesWorkspaceIdRoute
     }
     '/workspaces/$workspaceId/settings': {
       id: '/workspaces/$workspaceId/settings'
@@ -308,6 +326,7 @@ interface WorkspacesWorkspaceIdRouteChildren {
   WorkspacesWorkspaceIdCommunicationsRoute: typeof WorkspacesWorkspaceIdCommunicationsRoute
   WorkspacesWorkspaceIdMembersRoute: typeof WorkspacesWorkspaceIdMembersRoute
   WorkspacesWorkspaceIdSettingsRoute: typeof WorkspacesWorkspaceIdSettingsRoute
+  WorkspacesWorkspaceIdIndexRoute: typeof WorkspacesWorkspaceIdIndexRoute
   WorkspacesWorkspaceIdFoldersFolderIdRoute: typeof WorkspacesWorkspaceIdFoldersFolderIdRoute
   WorkspacesWorkspaceIdListsListIdRoute: typeof WorkspacesWorkspaceIdListsListIdRoute
   WorkspacesWorkspaceIdSpacesSpaceIdRoute: typeof WorkspacesWorkspaceIdSpacesSpaceIdRoute
@@ -318,6 +337,7 @@ const WorkspacesWorkspaceIdRouteChildren: WorkspacesWorkspaceIdRouteChildren = {
     WorkspacesWorkspaceIdCommunicationsRoute,
   WorkspacesWorkspaceIdMembersRoute: WorkspacesWorkspaceIdMembersRoute,
   WorkspacesWorkspaceIdSettingsRoute: WorkspacesWorkspaceIdSettingsRoute,
+  WorkspacesWorkspaceIdIndexRoute: WorkspacesWorkspaceIdIndexRoute,
   WorkspacesWorkspaceIdFoldersFolderIdRoute:
     WorkspacesWorkspaceIdFoldersFolderIdRoute,
   WorkspacesWorkspaceIdListsListIdRoute: WorkspacesWorkspaceIdListsListIdRoute,

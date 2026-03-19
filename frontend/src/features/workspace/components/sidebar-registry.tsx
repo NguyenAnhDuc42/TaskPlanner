@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { MembersSidebar } from "../contents/members/member-components/members-sidebar";
 import { SettingsSidebar } from "../contents/setting/setting-components/settings-sidebar";
 import { HierarchySidebar } from "../contents/hierarchy/hierarchy-sidebar";
+import { DashboardSidebar } from "../contents/dashboard/dashboard-sidebar";
 
 // FEATURE SIDEBARS
 
@@ -30,6 +31,8 @@ const DefaultSidebar = ({ page }: { page: ContentPage }) => {
 // THE REGISTRY
 export function SidebarRegistry({ page }: { page: ContentPage }) {
   switch (page) {
+    case "dashboard":
+      return <DashboardSidebar />;
     case "members":
     case "communications":
       return <MembersSidebar />;

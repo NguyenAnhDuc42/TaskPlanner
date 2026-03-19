@@ -17,7 +17,15 @@ public class CreateDashboardHandler : BaseFeatureHandler, IRequestHandler<Create
     {
         var layer = await GetLayer(request.layerId, request.layerType);
         
-        var dashboard = Dashboard.CreateScopedDashboard(request.layerType, request.layerId, CurrentUserId, request.name, request.isShared, request.isMain);
+        Dashboard dashboard;
+        if (request.layerType == EntityLayerType.ProjectWorkspace)
+        {
+            dashboard = Dashboard.CreateWorkspaceDashboard(request.layerId, CurrentUserId, request.name, request.isShared, request.isMain);
+        }
+        else
+        {
+            dashboard = Dashboard.CreateScopedDashboard(request.layerType, request.layerId, CurrentUserId, request.name, request.isShared, request.isMain);
+        }
         if (request.isMain) await ChangeMainDashboard(request.layerId,request.layerType,cancellationToken);
 
         await UnitOfWork.Set<Dashboard>().AddAsync(dashboard,cancellationToken);

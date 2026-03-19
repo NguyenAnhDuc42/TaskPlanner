@@ -3,8 +3,14 @@ import { SidebarProvider } from "@/features/workspace/components/sidebar-provide
 import { OuterSidebar } from "@/features/workspace/components/outer-sidebar";
 import { InnerSidebar } from "@/features/workspace/components/inner-sidebar";
 import { ContentDisplayer } from "@/features/workspace/components/content-displayer";
+import { z } from "zod";
+
+export const workspaceSearchSchema = z.object({
+  dashboardId: z.uuid().optional(),
+});
 
 export const Route = createFileRoute("/workspaces/$workspaceId")({
+  validateSearch: (search) => workspaceSearchSchema.parse(search),
   component: WorkspaceLayout,
 });
 

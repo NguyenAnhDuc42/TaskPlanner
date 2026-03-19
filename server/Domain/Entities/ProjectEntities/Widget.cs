@@ -31,7 +31,7 @@ public class Widget : Entity
         CreatorId = creatorId;
     }
 
-    public void SetVisibility(WidgetVisibility visibility)
+    public void UpdateVisibility(WidgetVisibility visibility)
     {
         Visibility = visibility;
         UpdateTimestamp();
