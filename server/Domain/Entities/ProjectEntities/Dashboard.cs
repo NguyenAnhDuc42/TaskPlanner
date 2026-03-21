@@ -13,7 +13,7 @@ public class Dashboard : Entity
     public bool IsMain { get; private set; }
 
     private readonly List<Widget> _widgets = new();
-    public IReadOnlyCollection<Widget> Widgets => _widgets.AsReadOnly();
+    public IReadOnlyCollection<Widget> Widgets => _widgets;
 
     private Dashboard() { }
 

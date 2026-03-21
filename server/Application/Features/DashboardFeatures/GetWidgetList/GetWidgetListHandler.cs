@@ -14,14 +14,8 @@ public class GetWidgetListHandler : BaseFeatureHandler, IRequestHandler<GetWidge
 
     public async Task<List<WidgetDto>> Handle(GetWidgetListQuery request, CancellationToken cancellationToken)
     {
-        var dashboard = await UnitOfWork.Set<Dashboard>()
-            .Include(d => d.Widgets)
-            .FirstOrDefaultAsync(d => d.Id == request.dashboardId, cancellationToken);
-
-        if (dashboard == null) throw new KeyNotFoundException("Dashboard not found.");
-
-        return dashboard.Widgets
-            .Where(w => w.DeletedAt == null)
+        return await UnitOfWork.Set<Widget>()
+            .Where(w => w.DashboardId == request.dashboardId && w.DeletedAt == null)
             .Select(w => new WidgetDto(
                 w.Id,
                 w.DashboardId,
@@ -29,6 +23,6 @@ public class GetWidgetListHandler : BaseFeatureHandler, IRequestHandler<GetWidge
                 w.WidgetType,
                 w.ConfigJson,
                 w.Visibility))
-            .ToList();
+            .ToListAsync(cancellationToken);
     }
 }

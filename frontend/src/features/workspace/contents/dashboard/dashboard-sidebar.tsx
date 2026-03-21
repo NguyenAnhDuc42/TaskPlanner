@@ -4,6 +4,8 @@ import {
   Loader2, 
   Plus 
 } from "lucide-react";
+import { Route } from "@/routes/workspaces/$workspaceId";
+import { useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useState } from "react";
@@ -16,6 +18,17 @@ export function DashboardSidebar() {
   const { workspaceId } = useSidebarContext();
   const { data: dashboards, isLoading } = useDashboards(workspaceId || "", EntityLayerType.ProjectWorkspace);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const { dashboardId } = Route.useSearch();
+  const navigate = Route.useNavigate();
+
+  useEffect(() => {
+    if (!dashboardId && dashboards && dashboards.length > 0) {
+      navigate({
+        search: (prev: any) => ({ ...prev, dashboardId: dashboards[0].id }),
+        replace: true,
+      });
+    }
+  }, [dashboardId, dashboards, navigate]);
 
   if (isLoading) {
     return (

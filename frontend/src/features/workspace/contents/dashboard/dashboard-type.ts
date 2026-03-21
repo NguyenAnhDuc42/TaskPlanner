@@ -45,16 +45,16 @@ export interface CreateDashboardRequest {
 export interface CreateWidgetRequest {
   dashboardId: string;
   widgetType: WidgetType;
-  col: number;
-  row: number;
-  width: number;
-  height: number;
+  Col: number;
+  Row: number;
+  Width: number;
+  Height: number;
 }
 
 export interface SaveDashboardLayoutRequest {
-  widgetId: string;
-  col: number;
-  row: number;
-  width: number;
-  height: number;
+  WidgetId: string;
+  Col: number;
+  Row: number;
+  Width: number;
+  Height: number;
 }

@@ -18,13 +18,11 @@ public class DashboardConfiguration : EntityConfiguration<Dashboard>
         builder.Property(x => x.IsShared).HasColumnName("is_shared").IsRequired();
         builder.Property(x => x.IsMain).HasColumnName("is_main").IsRequired();
 
-        // Navigation to Widgets
         builder.HasMany(x => x.Widgets)
             .WithOne()
             .HasForeignKey(w => w.DashboardId)
             .OnDelete(DeleteBehavior.Cascade);
 
-        builder.Ignore(x => x.Widgets); 
         builder.Metadata.FindNavigation(nameof(Dashboard.Widgets))?.SetPropertyAccessMode(PropertyAccessMode.Field);
 
         builder.HasIndex(x => x.LayerId);

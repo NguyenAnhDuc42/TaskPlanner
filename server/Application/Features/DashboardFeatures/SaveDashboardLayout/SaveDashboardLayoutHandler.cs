@@ -14,15 +14,16 @@ public class SaveDashboardLayoutHandler : BaseFeatureHandler, IRequestHandler<Sa
 
     public async Task<bool> Handle(SaveDashboardLayoutCommand request, CancellationToken cancellationToken)
     {
-        var dashboard = await UnitOfWork.Set<Dashboard>()
-            .Include(d => d.Widgets)
-            .FirstOrDefaultAsync(d => d.Id == request.DashboardId, cancellationToken);
+        var widgetIds = request.Layouts.Select(l => l.WidgetId).ToList();
+        var widgets = await UnitOfWork.Set<Widget>()
+            .Where(w => w.DashboardId == request.DashboardId && widgetIds.Contains(w.Id))
+            .ToListAsync(cancellationToken);
 
-        if (dashboard == null) return false;
+        if (widgets.Count == 0 && request.Layouts.Count > 0) return false;
 
         foreach (var update in request.Layouts)
         {
-            var widget = dashboard.Widgets.FirstOrDefault(w => w.Id == update.WidgetId);
+            var widget = widgets.FirstOrDefault(w => w.Id == update.WidgetId);
             if (widget != null)
             {
                 var newLayout = new WidgetLayout(update.Col, update.Row, update.Width, update.Height);
