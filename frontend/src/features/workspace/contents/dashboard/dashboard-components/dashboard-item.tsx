@@ -15,8 +15,8 @@ export function DashboardItem({ dashboard }: { dashboard: DashboardDto }) {
       className={cn(
         "flex items-center group/item w-full rounded-md transition-all duration-200 pr-1 pl-2 border border-transparent overflow-hidden cursor-pointer",
         isActive 
-          ? "bg-accent/40 border-current" 
-          : "hover:bg-accent/10 hover:border-current"
+          ? "bg-primary hover:bg-primary/80" 
+          : "hover:bg-accent/10"
       )}
       onClick={() => navigate({ search: { dashboardId: dashboard.id } })}
     >

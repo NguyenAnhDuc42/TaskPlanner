@@ -31,6 +31,13 @@ public class SignalRRealtimeService : IRealtimeService
             .SendAsync(eventName, data, ct);
     }
 
+    public async Task NotifyDashboardAsync(Guid dashboardId, string eventName, object data, CancellationToken ct = default)
+    {
+        await _hubContext.Clients
+            .Group($"dashboard:{dashboardId}")
+            .SendAsync(eventName, data, ct);
+    }
+
     public async Task NotifyChatRoomAsync(Guid chatRoomId, string eventName, object data, CancellationToken ct = default)
     {
         await _hubContext.Clients

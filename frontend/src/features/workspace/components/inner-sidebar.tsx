@@ -24,7 +24,7 @@ export function InnerSidebar() {
     <div
       className={cn(
         "transition-all duration-300 ease-in-out overflow-hidden flex flex-col h-full flex-shrink-0 bg-transparent",
-        isInnerSidebarOpen ? "w-64" : "w-0 shadow-none",
+        isInnerSidebarOpen ? "w-64 shadow-sm" : "w-0 shadow-none",
       )}
     >
       <div className="w-full h-full flex flex-col">

@@ -22,9 +22,9 @@ export function DashboardSidebar() {
   const navigate = Route.useNavigate();
 
   useEffect(() => {
-    if (!dashboardId && dashboards && dashboards.length > 0) {
+    if (!dashboardId && dashboards?.items && dashboards.items.length > 0) {
       navigate({
-        search: (prev: any) => ({ ...prev, dashboardId: dashboards[0].id }),
+        search: (prev: any) => ({ ...prev, dashboardId: dashboards.items[0].id }),
         replace: true,
       });
     }
@@ -61,10 +61,10 @@ export function DashboardSidebar() {
 
       <ScrollArea className="flex-1">
         <div className="px-1 flex flex-col gap-1">
-          {dashboards?.map((dashboard) => (
+          {dashboards?.items?.map((dashboard) => (
             <DashboardItem key={dashboard.id} dashboard={dashboard} />
           ))}
-          {dashboards?.length === 0 && (
+          {dashboards?.items?.length === 0 && (
             <div className="text-xs text-muted-foreground px-3 py-4 text-center italic">
               No dashboards found.
             </div>

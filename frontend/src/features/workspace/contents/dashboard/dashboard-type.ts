@@ -1,5 +1,5 @@
-
 import type { EntityLayerType } from "@/types/relationship-type";
+export type { PagedResult } from "@/types/paged-result";
 import { WidgetType } from "@/types/widget-type";
 
 export interface DashboardDto {
@@ -58,3 +58,39 @@ export interface SaveDashboardLayoutRequest {
   Width: number;
   Height: number;
 }
+
+// --- Dynamic Widget Data (SignalR Pushes) ---
+
+export interface WidgetPosition {
+  col: number;
+  row: number;
+  width: number;
+  height: number;
+}
+
+export interface WidgetDataBase {
+  widgetId: string;
+  position: WidgetPosition;
+  type: WidgetType; // Correct type
+}
+
+export interface TaskStatusItem {
+  id: string;
+  listId: string;
+  title: string;
+  statusId: string;
+  startDate: string | null;
+  dueDate: string | null;
+  priority: number;
+  createdAt: string;
+}
+
+export interface TaskStatusWidgetData extends WidgetDataBase {
+  type: typeof WidgetType.TaskList; // Using enum/const value
+  totalCount: number;
+  overdueCount: number;
+  todayCount: number;
+  tasks: TaskStatusItem[];
+}
+
+export type WidgetData = TaskStatusWidgetData;

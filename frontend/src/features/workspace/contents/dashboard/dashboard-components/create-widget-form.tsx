@@ -6,14 +6,9 @@ import { cn } from "@/lib/utils";
 import { 
   ListTodo, 
   Rss, 
-  Bell, 
   Clock, 
-  ShieldCheck, 
-  BarChart3, 
-  Target, 
   Zap, 
   Calendar as CalendarIcon, 
-  LayoutTemplate,
   FolderTree
 } from "lucide-react";
 

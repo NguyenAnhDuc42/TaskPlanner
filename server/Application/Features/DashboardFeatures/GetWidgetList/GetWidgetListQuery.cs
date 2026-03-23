@@ -1,9 +1,14 @@
+using Application.Common.Filters;
+using Application.Common.Interfaces;
+using Application.Common.Results;
 using Domain.Enums.Widget;
 using MediatR;
+using System;
+using System.Collections.Generic;
 
 namespace Application.Features.DashboardFeatures.GetWidgetList;
 
-public record class GetWidgetListQuery(Guid dashboardId) : IRequest<List<WidgetDto>>;
+public record class GetWidgetListQuery(Guid dashboardId, CursorPaginationRequest pagination) : IQuery<PagedResult<WidgetDto>>;
 
 public record WidgetDto(
     Guid Id,
@@ -11,7 +16,8 @@ public record WidgetDto(
     WidgetLayoutDto Layout,
     WidgetType WidgetType,
     string ConfigJson,
-    WidgetVisibility Visibility);
+    WidgetVisibility Visibility,
+    DateTimeOffset UpdatedAt);
 
 public record WidgetLayoutDto(
     int Col,

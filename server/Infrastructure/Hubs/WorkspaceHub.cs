@@ -26,6 +26,16 @@ public class WorkspaceHub : Hub
         await Groups.RemoveFromGroupAsync(Context.ConnectionId, $"workspace:{workspaceId}");
     }
 
+    public async Task JoinDashboard(Guid dashboardId)
+    {
+        await Groups.AddToGroupAsync(Context.ConnectionId, $"dashboard:{dashboardId}");
+    }
+
+    public async Task LeaveDashboard(Guid dashboardId)
+    {
+        await Groups.RemoveFromGroupAsync(Context.ConnectionId, $"dashboard:{dashboardId}");
+    }
+
     /// <summary>
     /// Client joins their personal notification group.
     /// Call this on connection.

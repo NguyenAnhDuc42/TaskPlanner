@@ -1,3 +1,5 @@
+using Application.Common.Filters;
+using Application.Common.Results;
 using Application.Features.DashboardFeatures.CreateDashboard;
 using Application.Features.DashboardFeatures.CreateWidget;
 using Application.Features.DashboardFeatures.DeleteDashboard;
@@ -7,7 +9,9 @@ using Application.Features.DashboardFeatures.EditWidget;
 using Application.Features.DashboardFeatures.GetDashboardList;
 using Application.Features.DashboardFeatures.GetWidgetList;
 using Application.Features.DashboardFeatures.SaveDashboardLayout;
+using Application.Features.WorkspaceFeatures.SelfManagement.GetWorkspaceList;
 using Domain.Enums.RelationShip;
+using Domain.Enums.Workspace;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -34,12 +38,15 @@ public class DashboardsController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<ActionResult<List<DashboardDto>>> GetDashboards(
+    public async Task<ActionResult<PagedResult<DashboardDto>>> GetDashboards(
         [FromQuery] Guid layerId, 
         [FromQuery] EntityLayerType layerType, 
-        CancellationToken ct)
+        [FromQuery] string? cursor,
+        [FromQuery] int pageSize = 10,
+        CancellationToken ct = default)
     {
-        var result = await _mediator.Send(new GetDashboardListQuery(layerId, layerType), ct);
+        var pagination = new CursorPaginationRequest(cursor, pageSize);
+        var result = await _mediator.Send(new GetDashboardListQuery(layerId, layerType, pagination), ct);
         return Ok(result);
     }
 
@@ -60,11 +67,18 @@ public class DashboardsController : ControllerBase
     }
 
     [HttpGet("{id:guid}/widgets")]
-    public async Task<ActionResult<List<WidgetDto>>> GetWidgets(Guid id, CancellationToken ct)
+    public async Task<ActionResult<PagedResult<WidgetDto>>> GetWidgets(
+        Guid id,
+        [FromQuery] string? cursor,
+        [FromQuery] int pageSize = 12,
+        CancellationToken ct = default)
     {
-        var result = await _mediator.Send(new GetWidgetListQuery(id), ct);
+        var pagination = new CursorPaginationRequest(cursor, pageSize);
+        var result = await _mediator.Send(new GetWidgetListQuery(id, pagination), ct);
         return Ok(result);
     }
+   
+
 
     [HttpPost("{id:guid}/widgets")]
     public async Task<IActionResult> CreateWidget(Guid id, [FromBody] CreateWidgetCommand command, CancellationToken ct)

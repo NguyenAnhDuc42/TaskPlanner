@@ -1,9 +1,14 @@
+using Application.Common.Filters;
+using Application.Common.Interfaces;
+using Application.Common.Results;
 using Domain.Enums.RelationShip;
-using MediatR;
 
 namespace Application.Features.DashboardFeatures.GetDashboardList;
 
-public record class GetDashboardListQuery(Guid layerId, EntityLayerType layerType) : IRequest<List<DashboardDto>>;
+public record class GetDashboardListQuery(
+    Guid layerId, 
+    EntityLayerType layerType, 
+    CursorPaginationRequest Pagination) : IQuery<PagedResult<DashboardDto>>;
 
 public record DashboardDto(
     Guid Id,
@@ -11,4 +16,5 @@ public record DashboardDto(
     bool IsShared,
     bool IsMain,
     EntityLayerType LayerType,
-    Guid LayerId);
+    Guid LayerId,
+    DateTimeOffset UpdatedAt);

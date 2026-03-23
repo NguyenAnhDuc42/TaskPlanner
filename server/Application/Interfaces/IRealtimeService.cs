@@ -16,6 +16,11 @@ public interface IRealtimeService
     Task NotifyUserAsync(Guid userId, string eventName, object data, CancellationToken ct = default);
 
     /// <summary>
+    /// Notify all clients viewing a specific dashboard.
+    /// </summary>
+    Task NotifyDashboardAsync(Guid dashboardId, string eventName, object data, CancellationToken ct = default);
+
+    /// <summary>
     /// Notify all clients in a specific chat room.
     /// </summary>
     Task NotifyChatRoomAsync(Guid chatRoomId, string eventName, object data, CancellationToken ct = default);

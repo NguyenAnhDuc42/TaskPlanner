@@ -5,4 +5,4 @@ using System;
 
 namespace Application.Features.DashboardFeatures.CreateDashboard;
 
-public record class CreateDashboardCommand(EntityLayerType layerType, Guid layerId, string name, bool isShared = false, bool isMain = false) : ICommand<Unit>;
+public record class CreateDashboardCommand(EntityLayerType layerType, Guid layerId, string name, bool isShared = false, bool isMain = false) : ICommand<Guid>;

@@ -9,6 +9,7 @@ import type {
   SaveDashboardLayoutRequest 
 } from "./dashboard-type";
 import type { EntityLayerType } from "@/types/relationship-type";
+import type { PagedResult } from "@/types/paged-result";
 
 export const dashboardKeys = {
   all: ["dashboards"] as const,
@@ -20,7 +21,7 @@ export const dashboardQueryOptions = {
   list: (layerId: string, layerType: EntityLayerType) => ({
     queryKey: dashboardKeys.list(layerId, layerType),
     queryFn: async () => {
-      const { data } = await api.get<DashboardDto[]>("/dashboards", {
+      const { data } = await api.get<PagedResult<DashboardDto>>("/dashboards", {
         params: { layerId, layerType },
       });
       return data;
@@ -30,7 +31,7 @@ export const dashboardQueryOptions = {
   widgets: (dashboardId: string) => ({
     queryKey: dashboardKeys.widgets(dashboardId),
     queryFn: async () => {
-      const { data } = await api.get<WidgetDto[]>(`/dashboards/${dashboardId}/widgets`);
+      const { data } = await api.get<PagedResult<WidgetDto>>(`/dashboards/${dashboardId}/widgets`);
       return data;
     },
     enabled: !!dashboardId,

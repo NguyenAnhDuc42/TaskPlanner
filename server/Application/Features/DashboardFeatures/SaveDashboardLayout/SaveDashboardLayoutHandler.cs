@@ -1,27 +1,57 @@
+using Application.Common.Interfaces;
+using Application.Features.DashboardFeatures;
 using Application.Helpers;
+using Application.Interfaces;
 using Application.Interfaces.Repositories;
 using Domain.Entities.ProjectEntities;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Hybrid;
 using server.Application.Interfaces;
 
 namespace Application.Features.DashboardFeatures.SaveDashboardLayout;
 
 public class SaveDashboardLayoutHandler : BaseFeatureHandler, IRequestHandler<SaveDashboardLayoutCommand, bool>
 {
-    public SaveDashboardLayoutHandler(IUnitOfWork unitOfWork, ICurrentUserService currentUserService, WorkspaceContext workspaceContext) 
-        : base(unitOfWork, currentUserService, workspaceContext) { }
+    private readonly HybridCache _cache;
+    private readonly IRealtimeService _realtime;
 
-    public async Task<bool> Handle(SaveDashboardLayoutCommand request, CancellationToken cancellationToken)
+    public SaveDashboardLayoutHandler(
+        IUnitOfWork unitOfWork, 
+        ICurrentUserService currentUserService, 
+        WorkspaceContext workspaceContext,
+        HybridCache cache,
+        IRealtimeService realtime) 
+        : base(unitOfWork, currentUserService, workspaceContext)
     {
-        var widgetIds = request.Layouts.Select(l => l.WidgetId).ToList();
-        var widgets = await UnitOfWork.Set<Widget>()
-            .Where(w => w.DashboardId == request.DashboardId && widgetIds.Contains(w.Id))
-            .ToListAsync(cancellationToken);
+        _cache = cache;
+        _realtime = realtime;
+    }
 
+    public async Task<bool> Handle(SaveDashboardLayoutCommand request, CancellationToken ct)
+    {
+        var widgets = await GetWidgetsAsync(request, ct);
+        
         if (widgets.Count == 0 && request.Layouts.Count > 0) return false;
 
-        foreach (var update in request.Layouts)
+        ApplyLayoutUpdates(widgets, request.Layouts);
+        
+        await SyncAndNotifyAsync(request.DashboardId, ct);
+        
+        return true;
+    }
+
+    private async Task<List<Widget>> GetWidgetsAsync(SaveDashboardLayoutCommand request, CancellationToken ct)
+    {
+        var widgetIds = request.Layouts.Select(l => l.WidgetId).ToList();
+        return await UnitOfWork.Set<Widget>()
+            .Where(w => w.DashboardId == request.DashboardId && widgetIds.Contains(w.Id) && w.DeletedAt == null)
+            .ToListAsync(ct);
+    }
+
+    private void ApplyLayoutUpdates(List<Widget> widgets, List<WidgetLayoutUpdateDto> updates)
+    {
+        foreach (var update in updates)
         {
             var widget = widgets.FirstOrDefault(w => w.Id == update.WidgetId);
             if (widget != null)
@@ -30,7 +60,11 @@ public class SaveDashboardLayoutHandler : BaseFeatureHandler, IRequestHandler<Sa
                 widget.UpdateLayout(newLayout);
             }
         }
+    }
 
-        return true;
+    private async Task SyncAndNotifyAsync(Guid dashboardId, CancellationToken ct)
+    {
+        await _cache.RemoveByTagAsync(WidgetCacheKeys.WidgetListTag(dashboardId), ct);
+        _ = _realtime.NotifyUserAsync(CurrentUserId, "DashboardLayoutSaved", new { DashboardId = dashboardId }, ct);
     }
 }

@@ -1,6 +1,4 @@
-using System;
-using Application.Helpers.WidgetTool;
-using Application.Helpers.WidgetTool.WidgetQueryBuilder;
+using Application.Features.DashboardFeatures.WidgetDataHelper;
 using Application.Pipeline;
 using FluentValidation;
 using MediatR;
@@ -23,7 +21,6 @@ public static class DependencyInjection
 
         // Widget Tools
         services.AddScoped<WidgetBuilder>();
-        services.AddSingleton<WidgetGridValidator>();
 
         // Cursor Helper
         services.Configure<CursorEncryptionOptions>(config.GetSection(CursorEncryptionOptions.SectionName));

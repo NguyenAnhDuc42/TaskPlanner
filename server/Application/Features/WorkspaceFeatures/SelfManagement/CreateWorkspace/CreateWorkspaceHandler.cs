@@ -12,7 +12,6 @@ namespace Application.Features.WorkspaceFeatures.SelfManagement.CreateWorkspace;
 
 public class CreateWorkspaceHandler : BaseFeatureHandler, IRequestHandler<CreateWorkspaceCommand, Guid>
 {
-
     private readonly HybridCache _cache;
     private readonly IRealtimeService _realtime;
 
@@ -66,20 +65,17 @@ public class CreateWorkspaceHandler : BaseFeatureHandler, IRequestHandler<Create
         );
 
         await UnitOfWork.Set<ProjectWorkspace>().AddAsync(workspace, ct);
-        await UnitOfWork.SaveChangesAsync(ct);
         
         return workspace;
     }
 
     private async Task InvalidateCache(Guid userId, CancellationToken ct)
     {
-        // Invalidate the workspace list for this user
         await _cache.RemoveByTagAsync(WorkspaceCacheKeys.WorkspaceListTag(userId), ct);
     }
 
     private void NotifyClients(Guid workspaceId, Guid userId)
     {
-        // Notify the user's home screen to refetch the list
         _ = _realtime.NotifyUserAsync(userId, "WorkspaceCreated", new { WorkspaceId = workspaceId }, default);
     }
 }
