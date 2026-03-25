@@ -13,9 +13,9 @@ export function DashboardItem({ dashboard }: { dashboard: DashboardDto }) {
   return (
     <div
       className={cn(
-        "flex items-center group/item w-full rounded-md transition-all duration-200 pr-1 pl-2 border border-transparent overflow-hidden cursor-pointer",
+        "flex items-center group/item w-full rounded-md transition-all duration-200 pr-1 pl-2 border border-transparent overflow-hidden cursor-pointer outline",
         isActive 
-          ? "bg-primary hover:bg-primary/80" 
+          ? "bg-primary hover:bg-primary/80 outline" 
           : "hover:bg-accent/10"
       )}
       onClick={() => navigate({ search: { dashboardId: dashboard.id } })}

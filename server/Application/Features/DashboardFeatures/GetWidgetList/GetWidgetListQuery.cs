@@ -16,7 +16,6 @@ public record WidgetDto(
     WidgetLayoutDto Layout,
     WidgetType WidgetType,
     string ConfigJson,
-    WidgetVisibility Visibility,
     DateTimeOffset UpdatedAt);
 
 public record WidgetLayoutDto(

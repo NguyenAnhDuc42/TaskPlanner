@@ -24,9 +24,9 @@ export function WorkspaceItem({ workspaceSummary, onOpen, onPin, selected }: Pro
       className={cn(
         "group relative border transition-all duration-300 cursor-pointer p-4 overflow-hidden outline rounded-md",
         selected 
-          ? "border-opacity-50 border-solid shadow-md scale-[1.01]" 
+          ? "border-opacity-50 border-solid shadow-md" 
           : "border-border/50 hover:border-primary/40 hover:bg-muted/30",
-        "w-full max-w-full"
+        "w-full min-w-0"
       )}
       style={selected ? {
         borderColor: workspaceSummary.color,
@@ -34,7 +34,7 @@ export function WorkspaceItem({ workspaceSummary, onOpen, onPin, selected }: Pro
       } : undefined}
       onClick={() => onOpen?.(workspaceSummary.id)}
     >
-      <div className="flex items-start gap-4 w-full">
+      <div className="flex items-start gap-4 w-full min-w-0">
         {/* Workspace Icon */}
         <div 
           className="h-12 w-12 rounded-md flex items-center justify-center text-sm font-bold shrink-0 border border-border/50 transition-transform group-hover:scale-105 shadow-sm"
@@ -61,7 +61,7 @@ export function WorkspaceItem({ workspaceSummary, onOpen, onPin, selected }: Pro
           
           <p className="text-xs text-muted-foreground line-clamp-1 h-4 mb-3 italic font-medium opacity-60 max-w-full truncate">
             {workspaceSummary.description 
-              ? truncate(workspaceSummary.description, 80) 
+              ? truncate(workspaceSummary.description, 50) 
               : "No description set"}
           </p>
 

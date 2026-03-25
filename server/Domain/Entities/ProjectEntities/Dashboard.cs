@@ -44,12 +44,12 @@ public class Dashboard : Entity
         return new(Guid.NewGuid(), layerType, layerId, name, isShared, creatorId, isMain);
     }
 
-    public void AddWidget(WidgetType widgetType, string configJson, WidgetVisibility visibility, int col, int row, int width, int height, Guid creatorId)
+    public void AddWidget(WidgetType widgetType, string configJson, int col, int row, int width, int height, Guid creatorId)
     {
         var layout = new WidgetLayout(col, row, width, height);
         var widget = new Widget(
             Guid.NewGuid(), Id, layout, LayerType, LayerId,
-            widgetType, configJson, visibility, creatorId);
+            widgetType, configJson, creatorId);
 
         _widgets.Add(widget);
         UpdateTimestamp();

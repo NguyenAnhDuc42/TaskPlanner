@@ -24,15 +24,7 @@ export interface WidgetDto {
   layout: WidgetLayoutDto;
   widgetType: WidgetType;
   configJson: string;
-  visibility: WidgetVisibility;
 }
-
-export const WidgetVisibility = {
-  Public: 0,
-  Private: 1,
-} as const;
-
-export type WidgetVisibility = (typeof WidgetVisibility)[keyof typeof WidgetVisibility];
 
 export interface CreateDashboardRequest {
   layerType: EntityLayerType;
@@ -57,6 +49,18 @@ export interface SaveDashboardLayoutRequest {
   Row: number;
   Width: number;
   Height: number;
+}
+
+export interface EditDashboardRequest {
+  dashboardId: string;
+  name?: string;
+  isShared?: boolean;
+}
+
+export interface EditWidgetRequest {
+  dashboardId: string;
+  widgetId: string;
+  configJson?: string;
 }
 
 // --- Dynamic Widget Data (SignalR Pushes) ---

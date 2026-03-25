@@ -13,12 +13,11 @@ public class Widget : Entity
     public EntityLayerType LayerType { get; private set; }
     public Guid LayerId { get; private set; }
     public WidgetType WidgetType { get; private set; }
-    public WidgetVisibility Visibility { get; private set; }
     public string ConfigJson { get; private set; } = "{}";
 
     private Widget() { } // EF
 
-    internal Widget(Guid id, Guid dashboardId, WidgetLayout layout, EntityLayerType layerType, Guid layerId, WidgetType widgetType, string configJson, WidgetVisibility visibility, Guid creatorId)
+    internal Widget(Guid id, Guid dashboardId, WidgetLayout layout, EntityLayerType layerType, Guid layerId, WidgetType widgetType, string configJson, Guid creatorId)
         : base(id)
     {
         DashboardId = dashboardId;
@@ -27,14 +26,7 @@ public class Widget : Entity
         LayerId = layerId;
         WidgetType = widgetType;
         ConfigJson = string.IsNullOrWhiteSpace(configJson) ? "{}" : configJson;
-        Visibility = visibility;
         CreatorId = creatorId;
-    }
-
-    public void UpdateVisibility(WidgetVisibility visibility)
-    {
-        Visibility = visibility;
-        UpdateTimestamp();
     }
 
     public void UpdateConfig(string configJson)

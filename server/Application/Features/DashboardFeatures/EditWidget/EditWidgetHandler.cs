@@ -56,7 +56,6 @@ public class EditWidgetHandler : BaseFeatureHandler, IRequestHandler<EditWidgetC
     private void ApplyUpdates(Widget widget, EditWidgetCommand request)
     {
         if (request.configJson != null) widget.UpdateConfig(request.configJson);
-        if (request.visibility.HasValue) widget.UpdateVisibility(request.visibility.Value);
     }
 
     private async Task SyncAndNotifyAsync(Widget widget, Guid dashboardId, CancellationToken ct)

@@ -54,7 +54,6 @@ public class CreateWidgetHandler : BaseFeatureHandler, IRequestHandler<CreateWid
         dashboard.AddWidget(
             widgetType: request.widgetType,
             configJson: "{}",
-            visibility: WidgetVisibility.Public,
             col: request.Col,
             row: request.Row,
             width: request.Width,

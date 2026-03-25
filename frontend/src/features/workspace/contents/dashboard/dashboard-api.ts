@@ -6,7 +6,9 @@ import type {
   WidgetDto, 
   CreateDashboardRequest, 
   CreateWidgetRequest, 
-  SaveDashboardLayoutRequest 
+  SaveDashboardLayoutRequest,
+  EditDashboardRequest,
+  EditWidgetRequest
 } from "./dashboard-type";
 import type { EntityLayerType } from "@/types/relationship-type";
 import type { PagedResult } from "@/types/paged-result";
@@ -99,6 +101,48 @@ export function useDeleteDashboard() {
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({
         queryKey: dashboardKeys.list(variables.layerId, variables.layerType),
+      });
+    },
+  });
+}
+
+export function useUpdateDashboard() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (request: EditDashboardRequest) => {
+      await api.put(`/dashboards/${request.dashboardId}`, request);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: dashboardKeys.all,
+      });
+    },
+  });
+}
+
+export function useUpdateWidget() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (request: EditWidgetRequest) => {
+      await api.put(`/dashboards/${request.dashboardId}/widgets/${request.widgetId}`, request);
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({
+        queryKey: dashboardKeys.widgets(variables.dashboardId),
+      });
+    },
+  });
+}
+
+export function useDeleteWidget() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ dashboardId, widgetId }: { dashboardId: string; widgetId: string }) => {
+      await api.delete(`/dashboards/${dashboardId}/widgets/${widgetId}`);
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({
+        queryKey: dashboardKeys.widgets(variables.dashboardId),
       });
     },
   });

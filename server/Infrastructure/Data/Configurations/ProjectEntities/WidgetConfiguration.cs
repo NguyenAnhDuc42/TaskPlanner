@@ -18,7 +18,6 @@ public class WidgetConfiguration : EntityConfiguration<Widget>
         builder.Property(x => x.LayerId).HasColumnName("layer_id").IsRequired();
 
         // enums as strings
-        builder.Property(x => x.Visibility).HasColumnName("visibility").HasConversion<string>().HasMaxLength(50).IsRequired();
         builder.Property(x => x.WidgetType).HasColumnName("widget_type").HasConversion<string>().HasMaxLength(100).IsRequired();
 
         // config JSON

@@ -52,7 +52,6 @@ public class GetWidgetListHandler : BaseFeatureHandler, IRequestHandler<GetWidge
             new WidgetLayoutDto(w.Layout.Col, w.Layout.Row, w.Layout.Width, w.Layout.Height),
             w.WidgetType,
             w.ConfigJson,
-            w.Visibility,
             w.UpdatedAt)).ToList();
 
         // 2. Async Data Building (Fire-and-forget)

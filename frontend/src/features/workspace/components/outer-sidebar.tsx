@@ -62,7 +62,7 @@ export function OuterSidebar() {
     <TooltipProvider delayDuration={100}>
       <div className="relative h-full w-fit flex-shrink-0 flex flex-col items-center bg-transparent">
         {/* Navigation Card */}
-        <div className="bg-card border border-border/50 rounded-md p-2 flex flex-col items-center gap-2 shadow-sm shrink-0">
+        <div className="bg-card border border-border/50 rounded-md p-2 flex flex-col items-center gap-2 shadow-md shrink-0">
           {/* Expand Button - Only visible when closed, integrated with Nav Card */}
           {!isInnerSidebarOpen && (
             <Tooltip>

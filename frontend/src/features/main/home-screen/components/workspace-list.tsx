@@ -249,9 +249,9 @@ export function WorkspaceList({
             />
           ) : (
             <ScrollArea className="flex-1 w-full min-h-0 min-w-0">
-              <div className="p-4 space-y-2 ">
+              <div className="p-4 space-y-2  w-full min-w-0">
                 {filteredWorkspaces.map((workspace) => (
-                  <div key={workspace.id}>
+                  <div key={workspace.id} className="w-full min-w-0">
                     <WorkspaceItem
                       workspaceSummary={workspace}
                       onOpen={(id) => {
