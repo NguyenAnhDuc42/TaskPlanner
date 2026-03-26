@@ -5,15 +5,16 @@ import { Clock, Calendar, ListTodo, AlertCircle } from "lucide-react";
 
 interface TaskListWidgetProps {
   data: TaskStatusWidgetData;
+  expanded?: boolean;
 }
 
-export function TaskListWidget({ data }: TaskListWidgetProps) {
+export function TaskListWidget({ data, expanded = false }: TaskListWidgetProps) {
   useEffect(() => {
     console.log("[TaskListWidget] Data Received:", data);
   }, [data]);
 
   return (
-    <div className="flex flex-col h-full bg-card">
+    <div className={`flex flex-col ${expanded ? 'min-h-0' : 'h-full'} bg-card`}>
       {/* Stat Cards Row */}
       <div className="grid grid-cols-3 gap-2 p-3 border-b bg-muted/5">
         <div className="flex flex-col items-center justify-center p-2 rounded-lg border bg-background shadow-sm">

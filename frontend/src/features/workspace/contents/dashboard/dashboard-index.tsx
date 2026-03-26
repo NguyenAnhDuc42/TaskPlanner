@@ -3,7 +3,7 @@ import "/node_modules/react-grid-layout/css/styles.css";
 import "/node_modules/react-resizable/css/styles.css";
 import { useWidgets, useSaveDashboardLayout, useUpdateDashboard, useDeleteDashboard, useDeleteWidget, useDashboards } from "./dashboard-api";
 import { Route } from "@/routes/workspaces/$workspaceId";
-import { Loader2, Plus, Settings, LayoutIcon, MoreVertical, Pencil, Trash2 } from "lucide-react";
+import { Loader2, Plus, Settings, LayoutIcon, MoreVertical, Pencil, Trash2, Maximize2, GripVertical } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useMemo, useState, useEffect } from "react";
 import { DialogFormWrapper } from "@/components/dialog-form-wrapper";
@@ -11,7 +11,7 @@ import { CreateWidgetForm } from "./dashboard-components/create-widget-form";
 import { WidgetDataRenderer } from "./dashboard-components/widgets/widget-data-renderer";
 import { signalRService } from "@/lib/signalr-service";
 import { useAuth } from "@/features/auth/auth-context";
-import type { WidgetData } from "./dashboard-type";
+import type { WidgetData, WidgetDto } from "./dashboard-type";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -40,6 +40,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { WidgetDetailDialog } from "./dashboard-components/widgets/widget-detail-dialog";
 
 const GridLayout = WidthProvider(ReactGridLayout);
 
@@ -63,6 +64,7 @@ export function DashboardIndex() {
   
   const [isDeleteDashboardOpen, setIsDeleteDashboardOpen] = useState(false);
   const [widgetToDelete, setWidgetToDelete] = useState<string | null>(null);
+  const [expandedWidget, setExpandedWidget] = useState<{ widget: WidgetDto; data?: WidgetData } | null>(null);
 
   const currentDashboard = useMemo(() => {
     return dashboards?.items.find(d => d.id === dashboardId);
@@ -237,6 +239,13 @@ export function DashboardIndex() {
         </AlertDialogContent>
       </AlertDialog>
 
+      <WidgetDetailDialog
+        open={!!expandedWidget}
+        onOpenChange={(open) => !open && setExpandedWidget(null)}
+        widget={expandedWidget?.widget ?? null}
+        data={expandedWidget?.data}
+      />
+
       {/* Sticky Top-Bar */}
       <div className="sticky top-0 z-20 flex items-center justify-between h-14 px-6 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 shrink-0">
         <div className="flex flex-col">
@@ -312,7 +321,7 @@ export function DashboardIndex() {
           cols={12}
           rowHeight={100}
           onLayoutChange={onLayoutChange}
-          draggableHandle=".widget-header"
+          draggableHandle=".widget-grip-handle"
           compactType="horizontal"
           preventCollision={false}
           resizeHandles={['s', 'w', 'e', 'n', 'sw', 'nw', 'se', 'ne']}
@@ -326,11 +335,25 @@ export function DashboardIndex() {
             const dynamicData = widgetDataMap[widget.id];
             
             return (
-              <div key={widget.id} className="bg-card border rounded-xl shadow-sm overflow-hidden flex flex-col group hover:ring-1 hover:ring-primary/40 transition-all">
+              <div key={widget.id} className="bg-card border rounded-md shadow-sm overflow-hidden flex flex-col group hover:ring-1 hover:ring-primary/40 transition-all hover:scale-[1.01] hover:shadow-md">
                 <div className="widget-header p-2.5 border-b bg-muted/20 flex items-center justify-between cursor-move">
-                  <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground truncate mr-2">
-                    {widget.widgetType}
-                  </span>
+                  <div className="flex items-center gap-1.5 truncate">
+                    <div className="widget-grip-handle">
+                      <GripVertical className="h-3.5 w-3.5 text-muted-foreground/40 flex-shrink-0" />
+                    </div>
+                    <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground truncate">
+                      {widget.widgetType}
+                    </span>
+                  </div>
+                  <div className="flex items-end gap-2">
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    className="h-5 w-5 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                    onClick={() => setExpandedWidget({ widget, data: dynamicData })}
+                  >
+                    <Maximize2 className="h-3 w-3" />
+                  </Button>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <Button variant="ghost" size="icon" className="h-5 w-5 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity data-[state=open]:opacity-100">
@@ -352,6 +375,7 @@ export function DashboardIndex() {
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
+                  </div>
                 </div>
                 
                 <div className="flex-1 overflow-hidden">
