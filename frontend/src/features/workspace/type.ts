@@ -1,4 +1,7 @@
 import { Home, Folder, FileText, type LucideIcon } from "lucide-react";
+
+export type WorkspaceTheme = "Light" | "Dark" | "System" | "Mars" | "DeepSpace" | "Boreal";
+
 export type ContentPage =
   | "dashboard"
   | "projects"

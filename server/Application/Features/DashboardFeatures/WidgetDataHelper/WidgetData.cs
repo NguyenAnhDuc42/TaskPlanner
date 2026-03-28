@@ -1,4 +1,5 @@
 
+using Application.Features.DashboardFeatures.WidgetDataHelper.SQL;
 using System.Text.Json.Serialization;
 
 namespace Application.Features.DashboardFeatures.WidgetDataHelper;
@@ -52,7 +53,7 @@ public class GoalsWidgetData : WidgetData
 
 public class FolderListWidgetData : WidgetData
 {
-    public List<object> Folders { get; set; } = new();
+    public List<FolderListItem> Folders { get; set; } = new();
 }
 
 public class ActivityFeedWidgetData : WidgetData

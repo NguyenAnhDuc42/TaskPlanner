@@ -27,36 +27,18 @@ public class GetDetailWorkspaceHandler : BaseFeatureHandler, IRequestHandler<Get
             CurrentUserId,
             cancellationToken);
 
+        var workspace = await UnitOfWork.Set<Domain.Entities.ProjectEntities.ProjectWorkspace>()
+            .FindAsync(request.WorkspaceId, cancellationToken);
+
         return new WorkspaceSecurityContextDto
         {
             WorkspaceId = request.WorkspaceId,
             CurrentRole = snapshot.Role.ToString(),
-            Permissions = BuildPermissionNames(snapshot),
             IsOwned = snapshot.IsOwned,
-            PermissionFlags = new WorkspacePermissionFlagsDto
-            {
-                CanViewHierarchy = snapshot.CanViewHierarchy,
-                CanManageWorkspace = snapshot.CanManageWorkspace,
-                CanManageMembers = snapshot.CanManageMembers,
-                CanCreateSpace = snapshot.CanCreateSpace,
-                CanUpdateWorkspace = snapshot.CanUpdateWorkspace,
-                CanDeleteWorkspace = snapshot.CanDeleteWorkspace
-            }
+            Theme = workspace?.Theme ?? Domain.Enums.Workspace.Theme.Light,
+            Color = workspace?.Customization.Color ?? string.Empty,
+            Icon = workspace?.Customization.Icon ?? string.Empty
         };
-    }
-
-    private static List<string> BuildPermissionNames(WorkspacePermissionSnapshot snapshot)
-    {
-        var permissions = new List<string>();
-
-        if (snapshot.CanViewHierarchy) permissions.Add("workspace.viewHierarchy");
-        if (snapshot.CanManageWorkspace) permissions.Add("workspace.manage");
-        if (snapshot.CanManageMembers) permissions.Add("workspace.members.manage");
-        if (snapshot.CanCreateSpace) permissions.Add("workspace.space.create");
-        if (snapshot.CanUpdateWorkspace) permissions.Add("workspace.update");
-        if (snapshot.CanDeleteWorkspace) permissions.Add("workspace.delete");
-
-        return permissions;
     }
 }
 

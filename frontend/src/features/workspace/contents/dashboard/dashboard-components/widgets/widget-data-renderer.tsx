@@ -24,17 +24,17 @@ export function WidgetDataRenderer({ widget, data }: WidgetDataRendererProps) {
       
       case WidgetType.FolderList:
         return (
-          <div className="h-full flex flex-col items-center justify-center p-4 text-muted-foreground/60 text-xs gap-2">
-            <span className="font-semibold uppercase tracking-wider text-[10px]">Folder List</span>
-            <span className="italic">No folders found.</span>
+          <div className="h-full flex flex-col items-center justify-center p-4 text-[var(--theme-text-normal)] text-xs gap-3 opacity-60">
+            <span className="font-bold uppercase tracking-[0.2em] text-[9px]">Folder List</span>
+            <span className="italic text-[10px]">No projects or folders found.</span>
           </div>
         );
 
       case WidgetType.ActivityFeed:
         return (
-          <div className="h-full flex flex-col items-center justify-center p-4 text-muted-foreground/60 text-xs gap-2">
-            <span className="font-semibold uppercase tracking-wider text-[10px]">Activity Feed</span>
-            <span className="italic">No recent activity.</span>
+          <div className="h-full flex flex-col items-center justify-center p-4 text-[var(--theme-text-normal)] text-xs gap-3 opacity-60">
+            <span className="font-bold uppercase tracking-[0.2em] text-[9px]">Activity Feed</span>
+            <span className="italic text-[10px]">No recent activity in this section.</span>
           </div>
         );
     }

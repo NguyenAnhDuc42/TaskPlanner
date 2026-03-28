@@ -13,26 +13,42 @@ export function DashboardItem({ dashboard }: { dashboard: DashboardDto }) {
   return (
     <div
       className={cn(
-        "flex items-center group/item w-full rounded-md transition-all duration-200 pr-1 pl-2 border border-transparent overflow-hidden cursor-pointer outline",
+        "flex items-center group/item w-full rounded-md transition-all duration-200 pr-1 pl-2 border border-transparent overflow-hidden cursor-pointer",
         isActive 
-          ? "bg-primary hover:bg-primary/80 outline" 
-          : "hover:bg-accent/10"
+          ? "theme-selected shadow-md" 
+          : "hover:bg-[var(--theme-item-hover)] group"
       )}
       onClick={() => navigate({ search: { dashboardId: dashboard.id } })}
     >
       <div className="flex-1 flex items-center gap-2 py-2 min-w-0 overflow-hidden">
-        <Layout className="h-4 w-4 flex-shrink-0 text-muted-foreground" />
-        <span className="truncate text-sm font-medium text-foreground flex-1 min-w-0">
+        <Layout className={cn(
+          "h-4 w-4 flex-shrink-0 transition-colors",
+          isActive ? "text-[var(--theme-text-active)]" : "text-[var(--theme-text-normal)] group-hover/item:text-[var(--theme-text-hover)]"
+        )} />
+        <span className={cn(
+          "truncate text-sm font-medium flex-1 min-w-0 transition-colors",
+          isActive ? "text-[var(--theme-text-active)]" : "text-[var(--theme-text-normal)] group-hover/item:text-[var(--theme-text-hover)]"
+        )}>
           {dashboard.name}
         </span>
         {dashboard.isMain && (
-          <Star className="h-3 w-3 fill-yellow-500 text-yellow-500 flex-shrink-0" />
+          <Star className={cn(
+            "h-3 w-3 flex-shrink-0",
+            isActive ? "fill-current text-[var(--theme-text-active)]" : "fill-yellow-500 text-yellow-500"
+          )} />
         )}
       </div>
 
       <div className="flex-shrink-0 opacity-0 group-hover/item:opacity-100 transition-opacity px-1">
-        <Button variant="ghost" size="icon" className="h-6 w-6 hover:bg-muted">
-          <MoreHorizontal className="h-3 w-3 text-muted-foreground" />
+        <Button 
+          variant="ghost" 
+          size="icon" 
+          className={cn(
+            "h-6 w-6 rounded-md transition-colors",
+            isActive ? "text-[var(--theme-text-active)] hover:bg-black/10" : "text-[var(--theme-text-normal)] hover:text-[var(--theme-text-hover)] hover:bg-[var(--theme-item-hover)]"
+          )}
+        >
+          <MoreHorizontal className="h-3 w-3" />
         </Button>
       </div>
     </div>

@@ -42,7 +42,7 @@ export function DashboardSidebar() {
   return (
     <div className="h-full flex flex-col gap-4">
       <div className="flex items-center justify-between px-3">
-        <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+        <span className="text-[10px] font-bold text-[var(--theme-text-normal)] uppercase tracking-[0.2em] opacity-80">
           Dashboards
         </span>
         <DialogFormWrapper
@@ -50,8 +50,8 @@ export function DashboardSidebar() {
           open={isCreateOpen}
           onOpenChange={setIsCreateOpen}
           trigger={
-            <Button variant="ghost" size="icon" className="h-5 w-5 hover:bg-muted">
-              <Plus className="h-3.5 w-3.5 text-muted-foreground" />
+            <Button variant="ghost" size="icon" className="h-6 w-6 text-[var(--theme-text-normal)] hover:text-[var(--theme-text-hover)] hover:bg-[var(--theme-item-hover)] rounded-md transition-all">
+              <Plus className="h-4 w-4" />
             </Button>
           }
         >

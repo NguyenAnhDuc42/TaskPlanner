@@ -12,18 +12,11 @@ public class WidgetConfiguration : EntityConfiguration<Widget>
         base.Configure(builder);
 
         builder.ToTable("widgets");
-
-        // core props
         builder.Property(x => x.LayerType).HasColumnName("layer_type").HasConversion<string>().HasMaxLength(50).IsRequired();
         builder.Property(x => x.LayerId).HasColumnName("layer_id").IsRequired();
-
-        // enums as strings
         builder.Property(x => x.WidgetType).HasColumnName("widget_type").HasConversion<string>().HasMaxLength(100).IsRequired();
-
-        // config JSON
         builder.Property(x => x.ConfigJson).HasColumnName("config_json").IsRequired();
 
-        // indexes for common lookups
         builder.HasIndex(x => x.LayerType);
         builder.HasIndex(x => x.LayerId);
         builder.HasIndex(x => new { x.LayerType, x.LayerId });

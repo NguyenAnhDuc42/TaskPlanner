@@ -172,3 +172,117 @@
   transform: none !important;
   z-index: 10 !important;
 }
+
+/* ─── Premium Theme System ─────────────────────────────────────── */
+
+/* Universal Glassmorphism Utility */
+.glass-panel {
+  @apply backdrop-blur-xl border border-[var(--glass-border)]; /* Full border for visibility on all sides */
+  background-color: var(--glass-bg, rgba(255, 255, 255, 0.05));
+}
+
+/* Theme: Mars (Premium Space Obsidian & Orange) */
+.theme-mars {
+  --theme-bg-base: #050201;
+  --theme-bg-glow: rgba(255, 87, 34, 0.12);
+  --theme-mesh-1: rgba(255, 87, 34, 0.05);
+  --theme-mesh-2: rgba(255, 87, 34, 0.04);
+  --theme-mesh-3: rgba(255, 87, 34, 0.1);
+  
+  --theme-item-normal: rgba(255, 255, 255, 0.02);
+  --theme-item-hover: rgba(255, 255, 255, 0.06);
+  --theme-item-active: #ff5722;
+  
+  --theme-text-normal: rgba(255, 255, 255, 0.7);
+  --theme-text-hover: #ffffff;
+  --theme-text-active: #000000;
+  
+  --theme-border-dim: rgba(255, 255, 255, 0.06);
+  --theme-border-crisp: rgba(255, 255, 255, 0.12);
+  
+  --glass-bg: rgba(255, 87, 34, 0.05);
+  --glass-border: rgba(255, 255, 255, 0.15);
+  --background: var(--theme-bg-base);
+  --sidebar: transparent;
+  --card: rgba(255, 255, 255, 0.02)
+  --border: var(--theme-border-dim);
+}
+
+/* Theme: DeepSpace (Premium Electric Blue) */
+.theme-deepspace {
+  --theme-bg-base: #02040a; /* Deep Blue Obsidian */
+  --theme-bg-glow: rgba(59, 130, 246, 0.12);
+  --theme-mesh-1: rgba(59, 130, 246, 0.06);
+  --theme-mesh-2: rgba(59, 130, 246, 0.04);
+  --theme-mesh-3: rgba(59, 130, 246, 0.1);
+  
+  --theme-item-normal: rgba(255, 255, 255, 0.02);
+  --theme-item-hover: rgba(59, 130, 246, 0.15);
+  --theme-item-active: #3b82f6;
+  
+  --theme-text-normal: rgba(255, 255, 255, 0.5);
+  --theme-text-hover: rgba(255, 255, 255, 0.9);
+  --theme-text-active: #ffffff;
+  
+  --theme-border-dim: rgba(59, 130, 246, 0.05);
+  --theme-border-crisp: rgba(59, 130, 246, 0.2);
+  
+  --glass-bg: rgba(2, 4, 10, 0.2);
+  --glass-border: rgba(59, 130, 246, 0.2);
+  --background: var(--theme-bg-base);
+  --sidebar: transparent;
+  --card: rgba(59, 130, 246, 0.05);
+  --border: var(--theme-border-dim);
+}
+
+/* Theme: Boreal (Premium Emerald/Teal Aurora) */
+.theme-boreal {
+  --theme-bg-base: #020a06; /* Deep Forest Obsidian */
+  --theme-bg-glow: rgba(16, 185, 129, 0.12);
+  --theme-mesh-1: rgba(16, 185, 129, 0.06);
+  --theme-mesh-2: rgba(20, 184, 166, 0.04);
+  --theme-mesh-3: rgba(16, 185, 129, 0.1);
+  
+  --theme-item-normal: rgba(255, 255, 255, 0.02);
+  --theme-item-hover: rgba(16, 185, 129, 0.15);
+  --theme-item-active: #10b981;
+  
+  --theme-text-normal: rgba(255, 255, 255, 0.5);
+  --theme-text-hover: rgba(255, 255, 255, 0.9);
+  --theme-text-active: #000000;
+  
+  --theme-border-dim: rgba(16, 185, 129, 0.05);
+  --theme-border-crisp: rgba(16, 185, 129, 0.2);
+  
+  --glass-bg: rgba(2, 10, 6, 0.2);
+  --glass-border: rgba(16, 185, 129, 0.2);
+  --background: var(--theme-bg-base);
+  --sidebar: transparent;
+  --card: rgba(16, 185, 129, 0.05);
+  --border: var(--theme-border-dim);
+}
+
+/* Updated Orbital Background using CSS Variables for easy theme switching */
+.sandy-mesh-bg {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background-color: var(--theme-bg-base);
+  background-image: 
+    radial-gradient(at 15% 20%, var(--theme-mesh-1) 0px, transparent 50%),
+    radial-gradient(at 85% 85%, var(--theme-mesh-2) 0px, transparent 40%),
+    radial-gradient(at 50% 50%, var(--theme-mesh-3), transparent 70%);
+  overflow: hidden;
+}
+
+/* Selection States for all themes */
+.theme-selected {
+  background-color: var(--theme-item-active) !important;
+  color: var(--theme-text-active) !important;
+  @apply font-bold shadow-lg;
+}
+
+/* Specific Selection Shadows */
+.theme-mars .theme-selected { box-shadow: 0 10px 15px -3px rgba(255, 87, 34, 0.3); }
+.theme-deepspace .theme-selected { box-shadow: 0 10px 15px -3px rgba(59, 130, 246, 0.3); }
+.theme-boreal .theme-selected { box-shadow: 0 10px 15px -3px rgba(16, 185, 129, 0.3); }

@@ -1,3 +1,5 @@
+using Application.Features.DashboardFeatures.WidgetDataHelper.SQL;
+using Application.Helpers;
 using Application.Interfaces;
 using Application.Interfaces.Repositories;
 using Domain.Entities.ProjectEntities;
@@ -29,6 +31,7 @@ public class WidgetBuilder
             using var scope = _serviceProvider.CreateScope();
             var unitOfWork = scope.ServiceProvider.GetRequiredService<IUnitOfWork>();
             var realtime = scope.ServiceProvider.GetRequiredService<IRealtimeService>();
+            var workspaceContext = scope.ServiceProvider.GetRequiredService<WorkspaceContext>();
 
             foreach (var widget in widgets)
             {
@@ -36,7 +39,7 @@ public class WidgetBuilder
                 {
                     _logger.LogDebug("Building data for Widget: {WidgetId} (Type: {Type})", widget.Id, widget.WidgetType);
                     
-                    var widgetData = await BuildDataItemAsync(unitOfWork, widget, ct);
+                    var widgetData = await BuildDataItemAsync(unitOfWork,workspaceContext, widget, ct);
                     await realtime.NotifyDashboardAsync(widget.DashboardId, "WidgetDataLoaded", widgetData, ct);
                     _logger.LogInformation("Successfully pushed data for Widget: {WidgetId} ({State}) to Dashboard Group: {DashboardId}", 
                         widget.Id, widgetData.GetType().Name, widget.DashboardId);
@@ -58,14 +61,15 @@ public class WidgetBuilder
         await Task.CompletedTask;
     }
 
-    private async Task<WidgetData> BuildDataItemAsync(IUnitOfWork unitOfWork, Widget widget, CancellationToken ct)
+    private async Task<WidgetData> BuildDataItemAsync(IUnitOfWork unitOfWork,WorkspaceContext workspaceContext, Widget widget, CancellationToken ct)
     {
         var position = new WidgetPosition(widget.Layout.Col, widget.Layout.Row, widget.Layout.Width, widget.Layout.Height);
-        
+        var workspaceMemberId = await workspaceContext.GetWorkspaceMemberIdAsync(ct);
+
         switch (widget.WidgetType)
         {
             case WidgetType.TaskList:
-                var tasks = await TaskListWidgetSQL.ExecuteAsync(unitOfWork, widget.LayerId, widget.LayerType, widget.ConfigJson, ct);
+                var tasks = await TaskListWidgetSQL.ExecuteAsync(unitOfWork, widget.LayerId, widget.LayerType, widget.ConfigJson,workspaceMemberId, ct);
                 var now = DateTime.UtcNow.Date;
                 return new TaskStatusWidgetData
                 {
@@ -78,7 +82,13 @@ public class WidgetBuilder
                 };
 
             case WidgetType.FolderList:
-                return new FolderListWidgetData { WidgetId = widget.Id, Position = position };
+                var folders = await FolderListWidgetSQL.ExecuteAsync(unitOfWork, widget.LayerId, widget.LayerType, widget.ConfigJson, workspaceMemberId, ct);
+                return new FolderListWidgetData 
+                { 
+                    WidgetId = widget.Id, 
+                    Position = position , 
+                    Folders = folders 
+                };
 
             case WidgetType.ActivityFeed:
                 return new ActivityFeedWidgetData { WidgetId = widget.Id, Position = position };

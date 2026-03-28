@@ -89,31 +89,31 @@ export function CreateWidgetForm({
 
   return (
     <div className="space-y-6 py-4">
-      <div className="grid grid-cols-1 gap-3">
+      <div className="grid grid-cols-1 gap-2.5">
         {WIDGET_OPTIONS.map((option) => (
           <button
             key={option.type}
             type="button"
             onClick={() => setSelectedType(option.type as WidgetType)}
             className={cn(
-              "flex items-start gap-4 p-4 rounded-xl border transition-all text-left group",
+              "flex items-start gap-4 p-4 rounded-xl border transition-all text-left group box-border",
               selectedType === option.type 
-                ? "border-primary bg-primary/[0.02] ring-1 ring-primary/20" 
-                : "border-border hover:border-primary/40 hover:bg-muted/50"
+                ? "border-[var(--theme-bg-glow)] bg-[var(--theme-item-hover)] shadow-sm" 
+                : "border-border/5 hover:border-border/10 hover:bg-[var(--theme-item-normal)]"
             )}
           >
-            <div className={cn("p-2.5 rounded-lg shrink-0 transition-colors", option.bg, option.color)}>
-              <option.icon className="h-5 w-5" />
+            <div className={cn("p-2.5 rounded-lg shrink-0 transition-colors bg-transparent border border-current opacity-60 group-hover:opacity-100", option.color)}>
+              <option.icon className="h-4 w-4" />
             </div>
             <div className="flex-1 min-w-0">
-              <div className="font-semibold text-sm">{option.label}</div>
-              <div className="text-xs text-muted-foreground mt-0.5 line-clamp-2">
+              <div className="font-bold text-[11px] uppercase tracking-wider text-[var(--theme-text-hover)]">{option.label}</div>
+              <div className="text-[10px] text-[var(--theme-text-normal)] mt-0.5 line-clamp-1 opacity-60 group-hover:opacity-100 transition-opacity">
                 {option.description}
               </div>
             </div>
             <div className={cn(
-              "h-2 w-2 rounded-full mt-1.5 shrink-0 transition-opacity",
-              selectedType === option.type ? "bg-primary opacity-100" : "bg-muted opacity-0 group-hover:opacity-50"
+              "h-1.5 w-1.5 rounded-full mt-2 shrink-0 transition-all",
+              selectedType === option.type ? "bg-[var(--theme-bg-glow)] scale-125" : "bg-white/10 opacity-0 group-hover:opacity-50"
             )} />
           </button>
         ))}
@@ -122,7 +122,7 @@ export function CreateWidgetForm({
       <div className="flex justify-end pt-2">
         <Button 
           onClick={handleSubmit} 
-          className="w-full sm:w-auto px-8" 
+          className="w-full theme-selected border-0 transition-all hover:scale-[1.02]" 
           disabled={createWidget.isPending}
         >
           {createWidget.isPending ? "Creating..." : "Create Widget"}

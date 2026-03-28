@@ -127,13 +127,13 @@ export function DashboardIndex() {
 
   if (!dashboardId) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[500px] text-center gap-4">
-        <div className="p-4 rounded-full bg-muted">
-          <LayoutIcon className="h-8 w-8 text-muted-foreground" />
+      <div className="flex flex-col items-center justify-center min-h-[500px] text-center gap-6 animate-in fade-in slide-in-from-bottom-4 duration-700">
+        <div className="p-6 rounded-full bg-[var(--theme-item-normal)] border border-border/10">
+          <LayoutIcon className="h-10 w-10 text-[var(--theme-text-hover)] opacity-60" />
         </div>
-        <div>
-          <h3 className="text-lg font-semibold">Select a Dashboard</h3>
-          <p className="text-sm text-muted-foreground">Select a dashboard from the sidebar to start.</p>
+        <div className="space-y-1.5">
+          <h3 className="text-lg font-bold uppercase tracking-[0.3em] text-[var(--theme-text-hover)]">Select a Dashboard</h3>
+          <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-[var(--theme-text-normal)] opacity-40 italic">Initiate a workspace segment to begin.</p>
         </div>
       </div>
     );
@@ -142,7 +142,7 @@ export function DashboardIndex() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-[500px]">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <Loader2 className="h-8 w-8 animate-spin text-[var(--theme-text-normal)]" />
       </div>
     );
   }
@@ -247,10 +247,10 @@ export function DashboardIndex() {
       />
 
       {/* Sticky Top-Bar */}
-      <div className="sticky top-0 z-20 flex items-center justify-between h-14 px-6 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 shrink-0">
+      <div className="sticky top-0 z-20 flex items-center justify-between h-14 px-6 border-b border-border/10 bg-[var(--glass-bg)] backdrop-blur-xl shrink-0">
         <div className="flex flex-col">
-          <h1 className="text-sm font-semibold tracking-tight uppercase text-muted-foreground/70">Dashboard</h1>
-          <div className="text-xs font-medium text-foreground/80 flex items-center gap-2">
+          <h1 className="text-[10px] font-bold uppercase tracking-[0.3em] text-[var(--theme-text-normal)] opacity-60">Dashboard</h1>
+          <div className="text-xs font-bold uppercase tracking-[0.1em] text-[var(--theme-text-hover)] flex items-center gap-2">
             {currentDashboard?.name || "Workspace Hub"}
           </div>
         </div>
@@ -260,14 +260,14 @@ export function DashboardIndex() {
             open={isAddWidgetOpen}
             onOpenChange={setIsAddWidgetOpen}
             trigger={
-              <Button size="sm" variant="outline" className="h-8 gap-2 rounded-md shadow-sm bg-primary hover:bg-primary/80">
+              <Button size="sm" variant="ghost" className="h-8 gap-2 rounded-md theme-selected transition-all hover:scale-[1.02] border-0">
                 <Plus className="h-3.5 w-3.5 " />
                 <span className="hidden sm:inline">Add Widget</span>
               </Button>
             }
           >
             <CreateWidgetForm 
-              dashboardId={dashboardId} 
+              dashboardId={dashboardId || ""} 
               onSuccess={() => setIsAddWidgetOpen(false)} 
             />
           </DialogFormWrapper>
@@ -302,7 +302,7 @@ export function DashboardIndex() {
       </div>
 
       {/* Scrollable Layout Area */}
-      <div className="flex-1 relative overflow-y-auto overflow-x-hidden min-h-0 bg-muted/[0.02]">
+      <div className="flex-1 relative overflow-y-auto overflow-x-hidden min-h-0 bg-transparent">
         {/* Visual Grid Blocks Background */}
         <div 
           className="absolute inset-0 pointer-events-none opacity-[0.04]" 
@@ -335,13 +335,13 @@ export function DashboardIndex() {
             const dynamicData = widgetDataMap[widget.id];
             
             return (
-              <div key={widget.id} className="bg-card border rounded-md shadow-sm overflow-hidden flex flex-col group hover:ring-1 hover:ring-primary/40 transition-all hover:scale-[1.01] hover:shadow-md">
-                <div className="widget-header p-2.5 border-b bg-muted/20 flex items-center justify-between cursor-move">
+              <div key={widget.id} className="glass-panel rounded-md shadow-sm overflow-hidden flex flex-col group hover:ring-[var(--theme-border-crisp)] transition-all hover:scale-[1.01] hover:shadow-xl">
+                <div className="widget-header p-2.5 border-b border-border/10 bg-transparent flex items-center justify-between cursor-move">
                   <div className="flex items-center gap-1.5 truncate">
                     <div className="widget-grip-handle">
-                      <GripVertical className="h-3.5 w-3.5 text-muted-foreground/40 flex-shrink-0" />
+                      <GripVertical className="h-3.5 w-3.5 text-[var(--theme-text-normal)] opacity-30 group-hover:opacity-100 flex-shrink-0" />
                     </div>
-                    <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground truncate">
+                    <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-[var(--theme-text-normal)] truncate">
                       {widget.widgetType}
                     </span>
                   </div>
@@ -349,14 +349,14 @@ export function DashboardIndex() {
                   <Button 
                     variant="ghost" 
                     size="icon" 
-                    className="h-5 w-5 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                    className="h-5 w-5 flex-shrink-0 text-[var(--theme-text-normal)] hover:text-[var(--theme-text-hover)] hover:bg-[var(--theme-item-hover)] opacity-0 group-hover:opacity-100 transition-opacity"
                     onClick={() => setExpandedWidget({ widget, data: dynamicData })}
                   >
                     <Maximize2 className="h-3 w-3" />
                   </Button>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="icon" className="h-5 w-5 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity data-[state=open]:opacity-100">
+                      <Button variant="ghost" size="icon" className="h-5 w-5 flex-shrink-0 text-[var(--theme-text-normal)] hover:text-[var(--theme-text-hover)] hover:bg-[var(--theme-item-hover)] opacity-0 group-hover:opacity-100 transition-opacity data-[state=open]:opacity-100">
                         <MoreVertical className="h-3 w-3" />
                       </Button>
                     </DropdownMenuTrigger>

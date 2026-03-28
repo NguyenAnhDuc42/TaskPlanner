@@ -7,6 +7,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.IdentityModel.Tokens;
 using server.Application.Interfaces;
+using System.IdentityModel.Tokens.Jwt;
 
 namespace Infrastructure.Dependencies.Registrations;
 
@@ -14,9 +15,8 @@ public static class AuthenticationRegistration
 {
     public static IServiceCollection AddJwtAuthentication(this IServiceCollection services, IConfiguration config)
     {
-        System.IdentityModel.Tokens.Jwt.JwtSecurityTokenHandler.DefaultInboundClaimTypeMap.Clear();
-        var jwtSettings = config.GetSection("JwtSettings").Get<JwtSettings>()
-            ?? throw new ArgumentException("JwtSettings is not set in configuration");
+        JwtSecurityTokenHandler.DefaultInboundClaimTypeMap.Clear();
+        var jwtSettings = config.GetSection("JwtSettings").Get<JwtSettings>() ?? throw new ArgumentException("JwtSettings is not set in configuration");
 
         services.Configure<JwtSettings>(config.GetSection("JwtSettings"));
         services.Configure<CookieSettings>(config.GetSection("CookieSettings"));

@@ -6,5 +6,8 @@ public enum Theme
 {
     Light,
     Dark,
-    System
+    System,
+    Mars,
+    DeepSpace,
+    Boreal
 }

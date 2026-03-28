@@ -30,7 +30,14 @@ export const createWorkspaceSchema = z.object({
     z.literal("Company"),
   ]),
 
-  theme: z.union([z.literal("Light"), z.literal("Dark"), z.literal("System")]),
+  theme: z.union([
+    z.literal("Light"),
+    z.literal("Dark"),
+    z.literal("System"),
+    z.literal("Mars"),
+    z.literal("DeepSpace"),
+    z.literal("Boreal"),
+  ]),
 
   strictJoin: z.boolean(),
 });

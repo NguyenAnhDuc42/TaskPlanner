@@ -22,5 +22,6 @@ public class EntityAccessConfiguration : EntityConfiguration<EntityAccess>
         builder.HasIndex(x => x.EntityId);
         builder.HasIndex(x => new { x.EntityId, x.EntityLayer });
         builder.HasIndex(x => new { x.WorkspaceMemberId, x.EntityId });
+        builder.HasIndex(x => new { x.WorkspaceMemberId, x.EntityId, x.EntityLayer });
     }
 }

@@ -5,7 +5,6 @@ using Application.Interfaces.Repositories;
 using Domain.Common;
 using Domain.Entities.ProjectEntities;
 using Domain.Entities.Relationship;
-using Domain.Enums;
 using Domain.Enums.RelationShip;
 using Microsoft.EntityFrameworkCore;
 using server.Application.Interfaces;

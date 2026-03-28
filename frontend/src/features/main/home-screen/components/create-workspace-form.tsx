@@ -21,7 +21,7 @@ import IconPicker from "@/components/icon-picker";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
 const VARIANTS: WorkspaceVariant[] = ["Personal", "Team", "Company"];
-const THEMES: Theme[] = ["Light", "Dark", "System"];
+const THEMES: Theme[] = ["Light", "Dark", "System", "Mars", "DeepSpace", "Boreal"];
 
 export type FormData = {
   name: string;
@@ -195,16 +195,16 @@ export function CreateWorkspaceForm({
                     onValueChange={(theme) =>
                       setData({ ...data, theme: theme as Theme })
                     }
-                    className="grid grid-cols-3 gap-2"
+                    className="grid grid-cols-2 sm:grid-cols-3 gap-2"
                   >
                     {THEMES.map((theme) => (
                       <label
                         key={theme}
                         className={cn(
-                          "flex items-center justify-center px-4 py-2 border border-border rounded cursor-pointer transition-all font-mono text-xs",
+                          "flex items-center justify-center px-4 py-2 border border-border rounded cursor-pointer transition-all font-mono text-[10px] uppercase tracking-wider",
                           data.theme === theme
-                            ? "bg-primary text-primary-foreground border-primary"
-                            : "bg-card hover:bg-card/80 text-foreground"
+                            ? "bg-primary text-primary-foreground border-primary shadow-sm"
+                            : "bg-muted/50 hover:bg-muted text-muted-foreground hover:text-foreground"
                         )}
                       >
                         <RadioGroupItem value={theme} className="sr-only" />

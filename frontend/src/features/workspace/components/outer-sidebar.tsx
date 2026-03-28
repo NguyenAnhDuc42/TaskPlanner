@@ -37,7 +37,7 @@ const navItems: NavItem[] = [
   { id: "communications", icon: MessageSquare, label: "Communication" },
 ];
 
-export function OuterSidebar() {
+export function OuterSidebar({ className }: { className?: string }) {
   const navigate = useNavigate();
   const { user } = useAuth();
   const {
@@ -60,9 +60,9 @@ export function OuterSidebar() {
 
   return (
     <TooltipProvider delayDuration={100}>
-      <div className="relative h-full w-fit flex-shrink-0 flex flex-col items-center bg-transparent">
+      <div className={cn("relative h-full w-fit flex-shrink-0 flex flex-col items-center bg-transparent", className)}>
         {/* Navigation Card */}
-        <div className="bg-card border border-border/50 rounded-md p-2 flex flex-col items-center gap-2 shadow-md shrink-0">
+        <div className="glass-panel rounded-md p-2 flex flex-col items-center gap-2 shrink-0">
           {/* Expand Button - Only visible when closed, integrated with Nav Card */}
           {!isInnerSidebarOpen && (
             <Tooltip>
@@ -70,7 +70,7 @@ export function OuterSidebar() {
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="w-10 h-10 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-all duration-200"
+                  className="w-10 h-10 rounded-md text-[var(--theme-text-normal)] hover:text-[var(--theme-text-hover)] hover:bg-[var(--theme-item-hover)] transition-all duration-200"
                   onClick={toggleInnerSidebar}
                 >
                   <PanelLeftOpen className="h-5 w-5" />
@@ -94,7 +94,7 @@ export function OuterSidebar() {
                     size="icon"
                     className={cn(
                       "w-10 h-10 rounded-md transition-all duration-200",
-                      isActive ? "shadow-md scale-105" : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
+                      isActive ? "theme-selected scale-105" : "text-[var(--theme-text-normal)] hover:bg-[var(--theme-item-hover)] hover:text-[var(--theme-text-hover)]"
                     )}
                     onClick={() => handleNavClick(item.id)}
                     onMouseEnter={() => {
@@ -118,7 +118,7 @@ export function OuterSidebar() {
         <div className="flex-1" />
 
         {/* Bottom Section Card */}
-        <div className="bg-card border border-border/50 rounded-md p-2 flex flex-col items-center gap-2 shadow-sm">
+        <div className="glass-panel rounded-md p-2 flex flex-col items-center gap-2 shadow-sm">
           <Tooltip>
             <TooltipTrigger asChild>
               <Button
@@ -126,7 +126,7 @@ export function OuterSidebar() {
                 size="icon"
                 className={cn(
                   "w-10 h-10 rounded-md transition-all duration-200",
-                  activeContent === "settings" ? "shadow-md" : "text-muted-foreground hover:bg-accent hover:text-foreground"
+                  activeContent === "settings" ? "theme-selected shadow-md" : "text-[var(--theme-text-normal)] hover:bg-[var(--theme-item-hover)] hover:text-[var(--theme-text-hover)]"
                 )}
                 onClick={() => handleNavClick("settings")}
               >
@@ -157,7 +157,7 @@ export function OuterSidebar() {
               <Button
                 variant="ghost"
                 size="icon"
-                className="w-10 h-10 rounded-md hover:bg-primary/10 hover:text-primary text-muted-foreground transition-all duration-200"
+                className="w-10 h-10 rounded-md hover:bg-[var(--theme-item-hover)] hover:text-[var(--theme-text-hover)] text-[var(--theme-text-normal)] transition-all duration-200"
               >
                 <Plus className="h-5 w-5" />
               </Button>
@@ -173,7 +173,7 @@ export function OuterSidebar() {
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="w-8 h-8 rounded-md hover:bg-destructive/10 hover:text-destructive text-muted-foreground/30 transition-colors"
+                  className="w-8 h-8 rounded-md hover:bg-destructive/10 hover:text-destructive text-[var(--theme-text-normal)] transition-colors opacity-40 hover:opacity-100"
                   onClick={() => navigate({ to: "/" })}
                 >
                   <LogOut className="h-4 w-4" />
@@ -193,9 +193,9 @@ export function OuterSidebar() {
             onMouseEnter={() => setHoveredIcon(hoveredIcon)}
             onMouseLeave={() => setHoveredIcon(null)}
           >
-            <div className="h-full w-full bg-card border border-border/50 rounded-md shadow-xl flex flex-col overflow-hidden">
-              <div className="px-4 py-4 flex-shrink-0 bg-muted/20 border-b border-border/50">
-                <h3 className="font-bold text-sm uppercase tracking-wider text-foreground/80">
+            <div className="h-full w-full glass-panel rounded-md shadow-xl flex flex-col overflow-hidden">
+              <div className="px-4 py-4 flex-shrink-0 bg-transparent border-b border-border/10">
+                <h3 className="font-bold text-sm uppercase tracking-wider text-[var(--theme-text-hover)]">
                   {hoveredIcon}
                 </h3>
               </div>

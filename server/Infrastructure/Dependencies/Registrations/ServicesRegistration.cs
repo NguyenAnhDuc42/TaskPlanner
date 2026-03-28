@@ -33,7 +33,6 @@ public static class ServicesRegistration
         services.AddScoped<IEntityHierarchyProvider, EntityHierarchyProvider>();
         services.AddScoped<IAccessGrantService, AccessGrantService>();
         services.AddScoped<WorkspacePermissionLogic>();
-        services.AddScoped<ViewBuilder>();
         services.AddScoped<IStatusResolver, StatusResolver>();
 
         services.AddHttpContextAccessor();

@@ -20,8 +20,7 @@ public static class DbContextRegistration
          d.ServiceType == typeof(DbContextOptions<TaskPlanDbContext>) ||
          d.ServiceType == typeof(TaskPlanDbContext)))
         {
-            services.AddDbContext<TaskPlanDbContext>(options =>
-                options.UseNpgsql(connectionString));
+            services.AddDbContext<TaskPlanDbContext>(options => options.UseNpgsql(connectionString));
         }
 
         // 2. Always register IDbConnection (safe for both cases)
