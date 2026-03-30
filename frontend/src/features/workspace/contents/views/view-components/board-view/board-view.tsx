@@ -10,6 +10,8 @@ import { STATUS_CATEGORIES } from "../../../hierarchy/status-constants";
 import { type WheelEvent, useMemo, useRef, useState } from "react";
 import { TaskDetailSheet } from "../../../tasks/task-detail-sheet";
 import { groupStatusesForDisplay } from "../../status-display";
+import type { EntityLayerType } from "@/types/relationship-type";
+import { cn } from "@/lib/utils";
 
 export function TaskBoardView({
   data,
@@ -23,7 +25,7 @@ export function TaskBoardView({
   view: ViewDto;
   workspaceId: string;
   layerId: string;
-  layerType: "ProjectSpace" | "ProjectFolder" | "ProjectList";
+  layerType: EntityLayerType;
   listId?: string;
 }) {
   const [selectedTask, setSelectedTask] = useState<TaskDto | null>(null);
@@ -40,24 +42,16 @@ export function TaskBoardView({
   const boardScrollRef = useRef<HTMLDivElement | null>(null);
 
   const handleBoardWheel = (e: WheelEvent<HTMLDivElement>) => {
-    // Keep vertical wheel behavior inside column scroll areas.
     const target = e.target as HTMLElement;
     if (target.closest("[data-radix-scroll-area-viewport]")) {
       return;
     }
 
     const container = boardScrollRef.current;
-    if (!container) {
-      return;
-    }
+    if (!container) return;
 
-    if (container.scrollWidth <= container.clientWidth) {
-      return;
-    }
-
-    if (Math.abs(e.deltaY) <= Math.abs(e.deltaX)) {
-      return;
-    }
+    if (container.scrollWidth <= container.clientWidth) return;
+    if (Math.abs(e.deltaY) <= Math.abs(e.deltaX)) return;
 
     container.scrollLeft += e.deltaY;
     e.preventDefault();
@@ -69,16 +63,27 @@ export function TaskBoardView({
 
   const isGroupedByStatus = displayConfig.groupBy === "status";
 
+  // Detail Sheet
+  const renderDetailSheet = (
+    <TaskDetailSheet
+      task={selectedTask}
+      workspaceId={workspaceId}
+      isOpen={!!selectedTask}
+      onClose={() => setSelectedTask(null)}
+    />
+  );
+
   if (!isGroupedByStatus) {
     return (
       <div
         ref={boardScrollRef}
         onWheel={handleBoardWheel}
-        className="h-full flex gap-4 overflow-x-auto pb-4 no-scrollbar"
+        className="h-full flex gap-6 overflow-x-auto pb-10 no-scrollbar items-start"
       >
+        {renderDetailSheet}
         <BoardColumn
-          name="All Tasks"
-          color="#888888"
+          name="Active Objectives"
+          color="var(--primary)"
           tasks={tasks}
           workspaceId={workspaceId}
           layerId={layerId}
@@ -97,7 +102,6 @@ export function TaskBoardView({
     );
   }
 
-  // Sort statuses by category order first
   const sortedStatuses = [...groupedStatuses].sort((a, b) => {
     const aIndex = STATUS_CATEGORIES.findIndex((cat) => cat.id === a.category);
     const bIndex = STATUS_CATEGORIES.findIndex((cat) => cat.id === b.category);
@@ -108,14 +112,9 @@ export function TaskBoardView({
     <div
       ref={boardScrollRef}
       onWheel={handleBoardWheel}
-      className="h-full flex gap-8 overflow-x-auto pb-6 no-scrollbar items-start relative"
+      className="h-full flex gap-16 overflow-x-auto pb-12 no-scrollbar items-start relative px-2"
     >
-      <TaskDetailSheet
-        task={selectedTask}
-        workspaceId={workspaceId}
-        isOpen={!!selectedTask}
-        onClose={() => setSelectedTask(null)}
-      />
+      {renderDetailSheet}
 
       {STATUS_CATEGORIES.map((cat) => {
         const catStatuses = sortedStatuses.filter((s) => s.category === cat.id);
@@ -127,20 +126,21 @@ export function TaskBoardView({
         );
 
         return (
-          <div key={cat.id} className="flex flex-col gap-4 h-full">
-            <div className="flex items-center gap-3 px-2 flex-shrink-0">
-              <div
-                className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest shadow-sm ${cat.bgColor} ${cat.color}`}
-              >
-                {cat.label}
+          <div key={cat.id} className="flex flex-col gap-6 h-full flex-shrink-0">
+            {/* Category Header */}
+            <div className="flex flex-col gap-1 px-4 flex-shrink-0 relative">
+              <div className="flex items-center gap-3">
+                <div className={cn("w-2 h-0.5 rounded-full", cat.color.replace('text-', 'bg-'))} />
+                <h2 className={cn("text-[11px] font-black uppercase tracking-[0.3em]", cat.color)}>
+                  {cat.label}
+                </h2>
               </div>
-              <div className="h-px w-8 bg-muted/20" />
-              <div className="text-[10px] text-muted-foreground/40 font-bold uppercase tracking-tighter">
-                {catTasksCount}
+              <div className="text-[9px] font-bold text-muted-foreground/30 uppercase tracking-[0.2em] pl-5">
+                Sector Registry: {catTasksCount} Objectives
               </div>
             </div>
 
-            <div className="flex gap-4 p-4 rounded-[2rem] border-2 border-dashed border-muted/20 bg-muted/5 h-full">
+            <div className="flex gap-6 h-full items-start">
               {catStatuses.map((s) => (
                 <BoardColumn
                   key={s.id}
@@ -167,14 +167,14 @@ export function TaskBoardView({
         );
       })}
 
-      {/* Quick Status Add Column */}
-      <div className="w-80 flex-shrink-0 border-2 border-dashed border-muted/20 rounded-2xl flex items-center justify-center bg-muted/5 hover:bg-muted/10 transition-colors cursor-pointer group h-[200px] mt-[44px]">
-        <div className="flex items-center gap-2 text-muted-foreground group-hover:text-foreground">
-          <Plus className="h-4 w-4" />
-          <span className="text-sm font-bold uppercase tracking-wider">
-            Add Status
-          </span>
+      {/* Add Status Prompt */}
+      <div className="w-[340px] flex-shrink-0 rounded-[2.5rem] border border-dashed border-white/5 bg-white/[0.01] flex flex-col items-center justify-center h-[300px] mt-[64px] group cursor-pointer hover:bg-white/[0.03] transition-all duration-500">
+        <div className="p-4 rounded-2xl bg-white/5 group-hover:bg-primary/20 transition-all duration-500 group-hover:scale-110 shadow-2xl">
+          <Plus className="h-6 w-6 text-muted-foreground/40 group-hover:text-primary transition-colors" />
         </div>
+        <span className="mt-4 text-[10px] font-black text-muted-foreground/30 uppercase tracking-[0.3em] group-hover:text-foreground transition-colors">
+          Initialize New Sector
+        </span>
       </div>
     </div>
   );

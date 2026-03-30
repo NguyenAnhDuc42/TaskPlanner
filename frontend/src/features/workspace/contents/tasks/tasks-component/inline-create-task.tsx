@@ -6,9 +6,9 @@ import {
   useCreateTask,
   useTaskCreateListOptions,
   useTaskListAssignees,
-} from "./tasks-api";
+} from "../tasks-api";
 import { Priority } from "@/types/priority";
-import type { EntityLayerType } from "@/types/relationship-type";
+import { EntityLayerType } from "@/types/relationship-type";
 
 interface InlineCreateTaskProps {
   listId?: string;

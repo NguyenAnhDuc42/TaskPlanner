@@ -1,9 +1,8 @@
-import { Badge } from "@/components/ui/badge";
 import { ListTable } from "./list-table";
 import type { TaskDto, StatusDto } from "../../views-type";
 import { Plus, MoreHorizontal } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { InlineCreateTask } from "../../../tasks/inline-create-task";
+import type { EntityLayerType } from "@/types/relationship-type";
 
 interface StatusSectionProps {
   status: StatusDto;
@@ -11,7 +10,7 @@ interface StatusSectionProps {
   visibleCols: string[];
   workspaceId: string;
   layerId: string;
-  layerType: "ProjectSpace" | "ProjectFolder" | "ProjectList";
+  layerType: EntityLayerType;
   listId?: string;
   isInlineOpen: boolean;
   onInlineOpenChange: (open: boolean) => void;
@@ -30,50 +29,46 @@ export function StatusSection({
   onInlineOpenChange,
   onTaskClick,
 }: StatusSectionProps) {
+  const statusColor = status.color || "var(--primary)";
+
   return (
     <div
-      className="space-y-4 p-2 rounded-xl transition-all border-2"
-      style={{
-        borderColor: `${status.color}20`,
-        backgroundColor: `${status.color}05`,
-      }}
+      className="space-y-4 p-4 rounded-[2rem] transition-all border border-white/5 bg-white/[0.02] backdrop-blur-sm shadow-xl relative overflow-hidden"
     >
-      <div className="flex items-center justify-between px-2 group/header">
-        <div className="flex items-center gap-3">
+      {/* Status Header */}
+      <div className="flex items-center justify-between px-2 group/header z-10 relative">
+        <div className="flex items-center gap-4">
           <div
-            className="w-2.5 h-2.5 rounded-full shadow-sm"
-            style={{ backgroundColor: status.color }}
+            className="w-1.5 h-6 rounded-full shadow-[0_0_8px_currentColor]"
+            style={{ backgroundColor: statusColor, color: statusColor }}
           />
-          <h3 className="font-bold text-[11px] uppercase tracking-widest text-foreground/70">
-            {status.name}
-          </h3>
-          <Badge
-            variant="outline"
-            className="bg-background/50 text-[10px] px-1.5 py-0 border-none font-bold text-muted-foreground/60 shadow-none"
-          >
-            {tasks.length}
-          </Badge>
+          <div className="flex flex-col gap-0.5">
+            <h3 className="font-black text-[10px] uppercase tracking-[0.25em] text-foreground/90">
+              {status.name}
+            </h3>
+            <div className="text-[9px] font-bold text-muted-foreground/30 uppercase tracking-widest flex items-center gap-1.5 leading-none">
+              <span style={{ color: statusColor }}>{tasks.length}</span> objectives discovered
+            </div>
+          </div>
         </div>
 
-        <div className="flex items-center gap-1 opacity-0 group-hover/header:opacity-100 transition-opacity">
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-7 w-7 hover:bg-background/80"
+        <div className="flex items-center gap-3 opacity-0 group-hover/header:opacity-100 transition-all duration-300 transform group-hover/header:translate-x-0 translate-x-2">
+          <div
+            className="p-1.5 rounded-md hover:bg-white/10 cursor-pointer transition-colors group/btn"
+            onClick={() => onInlineOpenChange(true)}
           >
-            <Plus className="h-3.5 w-3.5" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-7 w-7 hover:bg-background/80"
+            <Plus className="h-3.5 w-3.5 text-muted-foreground/60 group-hover/btn:text-foreground transition-colors" />
+          </div>
+          <div
+            className="p-1.5 rounded-md hover:bg-white/10 cursor-pointer transition-colors group/btn"
           >
-            <MoreHorizontal className="h-3.5 w-3.5" />
-          </Button>
+            <MoreHorizontal className="h-3.5 w-3.5 text-muted-foreground/60 group-hover/btn:text-foreground transition-colors" />
+          </div>
         </div>
       </div>
 
-      <div className="bg-background/40 rounded-lg overflow-hidden border border-muted/20">
+      {/* Task Table Container */}
+      <div className="rounded-2xl overflow-hidden border border-white/5 bg-black/20 z-10 relative">
         <ListTable
           tasks={tasks}
           visibleCols={visibleCols}

@@ -1,72 +1,77 @@
 import type { TaskDto } from "../../views-type";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Calendar, Flag } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { Calendar, User, Flag } from "lucide-react";
 
 interface TaskCardProps {
   task: TaskDto;
   onClick?: (task: TaskDto) => void;
 }
 
-const getPriorityStyles = (priority: string) => {
+const getPriorityVisuals = (priority: string) => {
   switch (priority?.toLowerCase()) {
     case "urgent":
-      return "border-l-red-500 text-red-500";
+      return { color: "#ef4444", label: "URGENT", glow: "rgba(239, 68, 68, 0.2)" };
     case "high":
-      return "border-l-orange-500 text-orange-500";
+      return { color: "#f97316", label: "HIGH", glow: "rgba(249, 115, 22, 0.2)" };
     case "normal":
-      return "border-l-blue-500 text-blue-500";
+      return { color: "#3b82f6", label: "NORMAL", glow: "rgba(59, 130, 246, 0.2)" };
     case "low":
-      return "border-l-slate-400 text-slate-400";
+      return { color: "#64748b", label: "LOW", glow: "rgba(100, 116, 139, 0.2)" };
     default:
-      return "border-l-transparent";
+      return { color: "#64748b", label: "NORMAL", glow: "rgba(100, 116, 139, 0.2)" };
   }
 };
 
 export function TaskCard({ task, onClick }: TaskCardProps) {
-  const priorityStyle = getPriorityStyles(task.priority);
+  const prio = getPriorityVisuals(task.priority);
 
   return (
-    <Card
+    <div
       onClick={() => onClick?.(task)}
-      className={cn(
-        "shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer active:scale-[0.98] border-muted-foreground/10 group bg-card/50 backdrop-blur-[2px] border-l-4",
-        priorityStyle,
-      )}
+      className="group relative flex flex-col gap-4 p-4 rounded-3xl border border-white/5 bg-white/[0.02] hover:bg-white/[0.05] transition-all duration-300 cursor-pointer shadow-xl overflow-hidden active:scale-[0.98]"
     >
-      <CardHeader className="p-3 pb-2 space-y-2">
-        <div className="flex justify-between items-start gap-2">
-          <CardTitle className="text-[13px] font-semibold leading-relaxed group-hover:text-primary transition-colors line-clamp-2">
+      {/* Selection Border Glow */}
+      <div className="absolute inset-0 border border-primary/0 group-hover:border-primary/20 rounded-3xl transition-colors duration-300 pointer-events-none" />
+
+      {/* Task Content */}
+      <div className="flex flex-col gap-2 relative z-10">
+        <div className="flex justify-between items-start gap-3">
+          <span className="text-[14px] font-bold text-foreground/80 leading-snug tracking-tight group-hover:text-foreground transition-colors line-clamp-3">
             {task.name}
-          </CardTitle>
+          </span>
         </div>
-      </CardHeader>
-      <CardContent className="p-3 pt-0">
-        <div className="flex items-center justify-between mt-1">
-          <div className="flex items-center gap-2">
-            {task.priority && (
-              <Flag
-                className={cn(
-                  "h-3 w-3 fill-current",
-                  priorityStyle.split(" ")[1],
-                )}
-              />
-            )}
-            <div className="h-5 w-5 rounded-full bg-muted border flex items-center justify-center text-[8px] text-muted-foreground font-bold">
-              ?
-            </div>
+      </div>
+
+      {/* Technical Metadata Row */}
+      <div className="mt-2 flex items-center justify-between relative z-10">
+        <div className="flex items-center gap-3">
+          {/* Priority Indicator */}
+          <div 
+            className="flex items-center gap-1.5 px-2 py-0.5 rounded-md border text-[9px] font-black uppercase tracking-widest shadow-sm bg-black/20"
+            style={{ 
+              borderColor: `${prio.color}30`,
+              color: prio.color,
+              boxShadow: `0 0 10px ${prio.glow}`
+            }}
+          >
+            <Flag className="h-2.5 w-2.5 fill-current" />
+            {prio.label}
           </div>
-          {task.dueDate && (
-            <div className="flex items-center gap-1 text-[10px] text-muted-foreground font-medium bg-muted/30 px-1.5 py-0.5 rounded">
-              <Calendar className="h-2.5 w-2.5" />
-              {new Date(task.dueDate).toLocaleDateString(undefined, {
-                month: "short",
-                day: "numeric",
-              })}
-            </div>
-          )}
+
+          <div className="h-6 w-6 rounded-full bg-white/5 border border-white/10 flex items-center justify-center shadow-inner group-hover:border-white/20 transition-all">
+            <User className="h-3 w-3 text-muted-foreground/30 group-hover:text-muted-foreground/60 transition-colors" />
+          </div>
         </div>
-      </CardContent>
-    </Card>
+
+        {task.dueDate && (
+          <div className="flex items-center gap-1.5 text-[9px] font-black text-muted-foreground/30 uppercase tracking-[0.15em] bg-white/5 px-2 py-1 rounded-lg group-hover:text-muted-foreground/60 transition-colors">
+            <Calendar className="h-3 w-3 opacity-40" />
+            {new Date(task.dueDate).toLocaleDateString(undefined, {
+              month: "short",
+              day: "numeric",
+            })}
+          </div>
+        )}
+      </div>
+    </div>
   );
 }

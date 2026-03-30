@@ -8,14 +8,14 @@ import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Priority } from "@/types/priority";
-import type { TaskDto } from "./tasks-type";
+import type { TaskDto } from "../tasks-type";
 import {
   useUpdateTask,
   useDeleteTask,
   useTaskAssigneeCandidates,
   useTaskAssignees,
-} from "./tasks-api";
-import { useStatuses } from "../hierarchy/statuses-api";
+} from "../tasks-api";
+import { useStatuses } from "../../hierarchy/statuses-api";
 
 interface TaskDetailSheetProps {
   task: TaskDto | null;
@@ -67,7 +67,8 @@ function TaskDetailSheetBody({
   const [startDate, setStartDate] = useState(initialStartDate);
   const [dueDate, setDueDate] = useState(initialDueDate);
   const [statusId, setStatusId] = useState(initialStatusId);
-  const [selectedAssigneeIds, setSelectedAssigneeIds] = useState<string[]>(initialAssigneeIds);
+  const [selectedAssigneeIds, setSelectedAssigneeIds] =
+    useState<string[]>(initialAssigneeIds);
   const [assigneeSearch, setAssigneeSearch] = useState("");
   const [isDeleteConfirming, setIsDeleteConfirming] = useState(false);
 

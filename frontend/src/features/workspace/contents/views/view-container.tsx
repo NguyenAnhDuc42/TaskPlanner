@@ -1,3 +1,4 @@
+import { EntityLayerType } from "@/types/relationship-type";
 import { useParams } from "@tanstack/react-router";
 import { useViews, useViewData } from "./views-api";
 import { useMemo, useState } from "react";
@@ -6,27 +7,26 @@ import { TaskBoardView } from "./view-components/board-view/board-view";
 import { ViewType } from "@/types/view-type";
 import type { TaskListViewResult, TasksBoardViewResult } from "./views-type";
 import { Loader2 } from "lucide-react";
-import { ViewTabBar } from "./view-tab-bar";
-import { ViewOptionsBar } from "./view-options-bar";
+import { ViewTabBar } from "./view-components/view-tab-bar";
+import { ViewOptionsBar } from "./view-components/view-options-bar";
+
 
 interface ViewContainerProps {
-  layerType: "ProjectSpace" | "ProjectFolder" | "ProjectList";
+  layerType: EntityLayerType;
 }
 
 export function ViewContainer({ layerType }: ViewContainerProps) {
   const params = useParams({ strict: false });
   const layerId = (
-    layerType === "ProjectSpace"
+    layerType === EntityLayerType.ProjectSpace
       ? params.spaceId
-      : layerType === "ProjectFolder"
+      : layerType === EntityLayerType.ProjectFolder
         ? params.folderId
         : params.listId
   ) as string;
 
   const { data: views, isLoading: isViewsLoading } = useViews(layerId, layerType);
-  const [preferredViewIdByLayer, setPreferredViewIdByLayer] = useState<
-    Record<string, string>
-  >({});
+  const [preferredViewIdByLayer, setPreferredViewIdByLayer] = useState<Record<string, string>>({});
   const layerKey = `${layerType}:${layerId}`;
 
   const activeViewId = useMemo(() => {
@@ -53,7 +53,7 @@ export function ViewContainer({ layerType }: ViewContainerProps) {
   }
 
   const workspaceId = params.workspaceId as string;
-  const listId = layerType === "ProjectList" ? layerId : undefined;
+  const listId = layerType === EntityLayerType.ProjectList ? layerId : undefined;
 
   return (
     <div className="flex flex-col h-full overflow-hidden">

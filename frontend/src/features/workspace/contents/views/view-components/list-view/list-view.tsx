@@ -6,6 +6,9 @@ import { useMemo, useState } from "react";
 import { TaskDetailSheet } from "../../../tasks/task-detail-sheet";
 import { groupStatusesForDisplay } from "../../status-display";
 
+import { EntityLayerType } from "@/types/relationship-type";
+import { cn } from "@/lib/utils";
+
 export function TaskListView({
   data,
   view,
@@ -18,7 +21,7 @@ export function TaskListView({
   view: ViewDto;
   workspaceId: string;
   layerId: string;
-  layerType: "ProjectSpace" | "ProjectFolder" | "ProjectList";
+  layerType: EntityLayerType;
   listId?: string;
 }) {
   const [selectedTask, setSelectedTask] = useState<TaskDto | null>(null);
@@ -48,7 +51,7 @@ export function TaskListView({
   ];
 
   return (
-    <div className="space-y-12 pb-10 relative">
+    <div className="space-y-16 pb-20 relative">
       <TaskDetailSheet
         task={selectedTask}
         workspaceId={workspaceId}
@@ -57,11 +60,13 @@ export function TaskListView({
       />
 
       {!isGroupedByStatus ? (
-        <ListTable
-          tasks={tasks}
-          visibleCols={visibleCols}
-          onTaskClick={setSelectedTask}
-        />
+        <div className="rounded-[2rem] border border-white/5 bg-white/[0.02] backdrop-blur-md overflow-hidden shadow-2xl">
+          <ListTable
+            tasks={tasks}
+            visibleCols={visibleCols}
+            onTaskClick={setSelectedTask}
+          />
+        </div>
       ) : (
         STATUS_CATEGORIES.map((cat) => {
           const catStatuses = groupedStatuses.filter((s) => s.category === cat.id);
@@ -73,20 +78,24 @@ export function TaskListView({
           );
 
           return (
-            <div key={cat.id} className="space-y-4">
-              <div className="flex items-center gap-3 px-2">
-                <div
-                  className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest shadow-sm ${cat.bgColor} ${cat.color}`}
-                >
-                  {cat.label}
+            <div key={cat.id} className="space-y-8">
+              {/* Category Header */}
+              <div className="flex items-center gap-6 px-2">
+                <div className="flex flex-col gap-1">
+                  <div className="flex items-center gap-3">
+                    <div className={cn("w-2 h-0.5 rounded-full", cat.color.replace('text-', 'bg-'))} />
+                    <h2 className={cn("text-[11px] font-black uppercase tracking-[0.3em]", cat.color)}>
+                      {cat.label}
+                    </h2>
+                  </div>
+                  <div className="text-[9px] font-bold text-muted-foreground/30 uppercase tracking-[0.2em] pl-5">
+                    Sector Registry: {catTasksCount} Objectives
+                  </div>
                 </div>
-                <div className="h-px w-8 bg-muted/20" />
-                <div className="text-[10px] text-muted-foreground/40 font-bold uppercase tracking-tighter">
-                  {catTasksCount} tasks
-                </div>
+                <div className="h-px flex-1 bg-gradient-to-r from-white/10 to-transparent" />
               </div>
 
-              <div className="space-y-6 p-4 rounded-[2rem] border-2 border-dashed border-muted/20 bg-muted/5">
+              <div className="space-y-10 group/category">
                 {catStatuses.map((s) => (
                   <StatusSection
                     key={s.id}

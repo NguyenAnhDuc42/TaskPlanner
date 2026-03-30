@@ -2,8 +2,6 @@ import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { WidgetType } from "@/types/widget-type";
 import type { WidgetData, WidgetDto } from "../../dashboard-type";
 import { TaskListWidget } from "./task-list-widget";
-import { X } from "lucide-react";
-import { Button } from "@/components/ui/button";
 
 interface WidgetDetailDialogProps {
   open: boolean;
