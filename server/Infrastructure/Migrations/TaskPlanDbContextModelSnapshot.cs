@@ -22,6 +22,153 @@ namespace Infrastructure.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
+            modelBuilder.Entity("Attachment", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("Checksum")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)")
+                        .HasColumnName("checksum");
+
+                    b.Property<string>("ChecksumAlgorithm")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("checksum_algorithm");
+
+                    b.Property<string>("ContentType")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)")
+                        .HasColumnName("content_type");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid?>("CreatorId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("creator_id");
+
+                    b.Property<DateTimeOffset?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("deleted_at");
+
+                    b.Property<string>("FileName")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("file_name");
+
+                    b.Property<bool>("IsPublic")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_public");
+
+                    b.Property<string>("Metadata")
+                        .HasColumnType("jsonb")
+                        .HasColumnName("metadata");
+
+                    b.Property<string>("ProcessingState")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("processing_state");
+
+                    b.Property<long>("SizeBytes")
+                        .HasColumnType("bigint")
+                        .HasColumnName("size_bytes");
+
+                    b.Property<string>("StorageKey")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("storage_key");
+
+                    b.Property<string>("StoragePath")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)")
+                        .HasColumnName("storage_path");
+
+                    b.Property<string>("StorageProvider")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("storage_provider");
+
+                    b.Property<int>("Type")
+                        .HasColumnType("integer")
+                        .HasColumnName("attachment_type");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Checksum");
+
+                    b.HasIndex("CreatorId");
+
+                    b.HasIndex("ProcessingState");
+
+                    b.HasIndex("StorageKey");
+
+                    b.HasIndex("Type");
+
+                    b.ToTable("attachments", (string)null);
+                });
+
+            modelBuilder.Entity("AttachmentLink", b =>
+                {
+                    b.Property<Guid>("AttachmentId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("attachment_id");
+
+                    b.Property<string>("ParentEntityType")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("parent_entity_type");
+
+                    b.Property<Guid>("ParentEntityId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("parent_entity_id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid?>("CreatorId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("creator_id");
+
+                    b.Property<DateTimeOffset?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("deleted_at");
+
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("AttachmentId", "ParentEntityType", "ParentEntityId");
+
+                    b.HasIndex("AttachmentId");
+
+                    b.HasIndex("CreatorId");
+
+                    b.HasIndex("ParentEntityType", "ParentEntityId");
+
+                    b.ToTable("attachment_links", (string)null);
+                });
+
             modelBuilder.Entity("Domain.Entities.PasswordResetToken", b =>
                 {
                     b.Property<Guid>("Id")
@@ -377,77 +524,10 @@ namespace Infrastructure.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("deleted_at");
 
-                    b.Property<bool>("InheritStatus")
-                        .HasColumnType("boolean")
-                        .HasColumnName("inherit_status");
-
-                    b.Property<bool>("IsArchived")
-                        .HasColumnType("boolean")
-                        .HasColumnName("is_archived");
-
-                    b.Property<bool>("IsPrivate")
-                        .HasColumnType("boolean")
-                        .HasColumnName("is_private");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("character varying(200)")
-                        .HasColumnName("name");
-
-                    b.Property<long>("NextItemOrder")
-                        .HasColumnType("bigint")
-                        .HasColumnName("next_item_order");
-
-                    b.Property<long>("OrderKey")
-                        .HasColumnType("bigint")
-                        .HasColumnName("order_key");
-
-                    b.Property<Guid>("ProjectSpaceId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("project_space_id");
-
-                    b.Property<DateTimeOffset>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("updated_at");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("CreatorId");
-
-                    b.HasIndex("ProjectSpaceId");
-
-                    b.HasIndex("ProjectSpaceId", "OrderKey");
-
-                    b.ToTable("project_folders", (string)null);
-                });
-
-            modelBuilder.Entity("Domain.Entities.ProjectEntities.ProjectList", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .HasColumnType("uuid")
-                        .HasColumnName("id");
-
-                    b.Property<DateTimeOffset>("CreatedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("created_at");
-
-                    b.Property<Guid?>("CreatorId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("creator_id");
-
-                    b.Property<DateTimeOffset?>("DeletedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("deleted_at");
-
                     b.Property<DateTimeOffset?>("DueDate")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("due_date");
 
-                    b.Property<bool>("InheritStatus")
-                        .HasColumnType("boolean")
-                        .HasColumnName("inherit_status");
-
                     b.Property<bool>("IsArchived")
                         .HasColumnType("boolean")
                         .HasColumnName("is_archived");
@@ -469,10 +549,6 @@ namespace Infrastructure.Migrations
                     b.Property<long>("OrderKey")
                         .HasColumnType("bigint")
                         .HasColumnName("order_key");
-
-                    b.Property<Guid?>("ProjectFolderId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("project_folder_id");
 
                     b.Property<Guid>("ProjectSpaceId")
                         .HasColumnType("uuid")
@@ -492,9 +568,9 @@ namespace Infrastructure.Migrations
 
                     b.HasIndex("ProjectSpaceId");
 
-                    b.HasIndex("ProjectSpaceId", "ProjectFolderId");
+                    b.HasIndex("ProjectSpaceId", "OrderKey");
 
-                    b.ToTable("project_lists", (string)null);
+                    b.ToTable("project_folders", (string)null);
                 });
 
             modelBuilder.Entity("Domain.Entities.ProjectEntities.ProjectSpace", b =>
@@ -519,10 +595,6 @@ namespace Infrastructure.Migrations
                         .HasMaxLength(2000)
                         .HasColumnType("character varying(2000)")
                         .HasColumnName("description");
-
-                    b.Property<bool>("InheritStatus")
-                        .HasColumnType("boolean")
-                        .HasColumnName("inherit_status");
 
                     b.Property<bool>("IsArchived")
                         .HasColumnType("boolean")
@@ -612,9 +684,17 @@ namespace Infrastructure.Migrations
                         .HasColumnType("character varying(32)")
                         .HasColumnName("priority");
 
-                    b.Property<Guid>("ProjectListId")
+                    b.Property<Guid?>("ProjectFolderId")
                         .HasColumnType("uuid")
-                        .HasColumnName("project_list_id");
+                        .HasColumnName("project_folder_id");
+
+                    b.Property<Guid?>("ProjectSpaceId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("project_space_id");
+
+                    b.Property<Guid>("ProjectWorkspaceId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("project_workspace_id");
 
                     b.Property<DateTimeOffset?>("StartDate")
                         .HasColumnType("timestamp with time zone")
@@ -642,11 +722,13 @@ namespace Infrastructure.Migrations
 
                     b.HasIndex("DueDate");
 
-                    b.HasIndex("ProjectListId");
+                    b.HasIndex("ProjectFolderId");
 
-                    b.HasIndex("ProjectListId", "OrderKey");
+                    b.HasIndex("ProjectSpaceId");
 
-                    b.HasIndex("ProjectListId", "StatusId");
+                    b.HasIndex("ProjectWorkspaceId");
+
+                    b.HasIndex("ProjectSpaceId", "StatusId");
 
                     b.ToTable("project_tasks", (string)null);
                 });
@@ -760,16 +842,6 @@ namespace Infrastructure.Migrations
                         .HasColumnType("boolean")
                         .HasColumnName("is_default_status");
 
-                    b.Property<Guid?>("LayerId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("layer_id");
-
-                    b.Property<string>("LayerType")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)")
-                        .HasColumnName("layer_type");
-
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(100)
@@ -780,11 +852,15 @@ namespace Infrastructure.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("updated_at");
 
+                    b.Property<Guid>("WorkflowId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("workflow_id");
+
                     b.HasKey("Id");
 
                     b.HasIndex("CreatorId");
 
-                    b.HasIndex("LayerId", "LayerType");
+                    b.HasIndex("WorkflowId");
 
                     b.ToTable("statuses", (string)null);
                 });
@@ -917,20 +993,11 @@ namespace Infrastructure.Migrations
                     b.ToTable("widgets", (string)null);
                 });
 
-            modelBuilder.Entity("Domain.Entities.Relationship.AttachmentLink", b =>
+            modelBuilder.Entity("Domain.Entities.ProjectEntities.Workflow", b =>
                 {
-                    b.Property<Guid>("AttachmentId")
+                    b.Property<Guid>("Id")
                         .HasColumnType("uuid")
-                        .HasColumnName("attachment_id");
-
-                    b.Property<string>("ParentEntityType")
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)")
-                        .HasColumnName("parent_entity_type");
-
-                    b.Property<Guid>("ParentEntityId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("parent_entity_id");
+                        .HasColumnName("id");
 
                     b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("timestamp with time zone")
@@ -944,22 +1011,32 @@ namespace Infrastructure.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("deleted_at");
 
-                    b.Property<Guid>("Id")
-                        .HasColumnType("uuid");
+                    b.Property<string>("Description")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("description");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("name");
+
+                    b.Property<Guid>("ProjectSpaceId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("project_space_id");
 
                     b.Property<DateTimeOffset>("UpdatedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("updated_at");
 
-                    b.HasKey("AttachmentId", "ParentEntityType", "ParentEntityId");
-
-                    b.HasIndex("AttachmentId");
+                    b.HasKey("Id");
 
                     b.HasIndex("CreatorId");
 
-                    b.HasIndex("ParentEntityType", "ParentEntityId");
+                    b.HasIndex("ProjectSpaceId");
 
-                    b.ToTable("attachment_links", (string)null);
+                    b.ToTable("workflows", (string)null);
                 });
 
             modelBuilder.Entity("Domain.Entities.Relationship.ChatRoomMember", b =>
@@ -1006,10 +1083,6 @@ namespace Infrastructure.Migrations
                     b.Property<DateTimeOffset?>("MuteEndTime")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("mute_end_time");
-
-                    b.Property<bool>("NotificationsEnabled")
-                        .HasColumnType("boolean")
-                        .HasColumnName("notifications_enabled");
 
                     b.Property<string>("Role")
                         .IsRequired()
@@ -1068,6 +1141,10 @@ namespace Infrastructure.Migrations
                         .HasColumnType("character varying(50)")
                         .HasColumnName("entity_layer");
 
+                    b.Property<Guid>("ProjectWorkspaceId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("project_workspace_id");
+
                     b.Property<DateTimeOffset>("UpdatedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("updated_at");
@@ -1082,11 +1159,17 @@ namespace Infrastructure.Migrations
 
                     b.HasIndex("EntityId");
 
+                    b.HasIndex("ProjectWorkspaceId");
+
                     b.HasIndex("WorkspaceMemberId");
 
                     b.HasIndex("EntityId", "EntityLayer");
 
                     b.HasIndex("WorkspaceMemberId", "EntityId");
+
+                    b.HasIndex("ProjectWorkspaceId", "EntityId", "EntityLayer");
+
+                    b.HasIndex("WorkspaceMemberId", "EntityId", "EntityLayer");
 
                     b.ToTable("entity_access", (string)null);
                 });
@@ -1287,109 +1370,6 @@ namespace Infrastructure.Migrations
                     b.HasIndex("UserId", "RevokedAt", "ExpiresAt");
 
                     b.ToTable("sessions", (string)null);
-                });
-
-            modelBuilder.Entity("Domain.Entities.Support.Attachment", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .HasColumnType("uuid")
-                        .HasColumnName("id");
-
-                    b.Property<string>("Checksum")
-                        .IsRequired()
-                        .HasMaxLength(256)
-                        .HasColumnType("character varying(256)")
-                        .HasColumnName("checksum");
-
-                    b.Property<string>("ChecksumAlgorithm")
-                        .IsRequired()
-                        .HasMaxLength(64)
-                        .HasColumnType("character varying(64)")
-                        .HasColumnName("checksum_algorithm");
-
-                    b.Property<string>("ContentId")
-                        .IsRequired()
-                        .HasMaxLength(512)
-                        .HasColumnType("character varying(512)")
-                        .HasColumnName("content_id");
-
-                    b.Property<string>("ContentType")
-                        .IsRequired()
-                        .HasMaxLength(256)
-                        .HasColumnType("character varying(256)")
-                        .HasColumnName("content_type");
-
-                    b.Property<DateTimeOffset>("CreatedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("created_at");
-
-                    b.Property<Guid?>("CreatorId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("creator_id");
-
-                    b.Property<string>("CustomMetaJson")
-                        .IsRequired()
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("jsonb")
-                        .HasColumnName("custom_meta_json")
-                        .HasDefaultValueSql("'{}'::jsonb");
-
-                    b.Property<DateTimeOffset?>("DeletedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("deleted_at");
-
-                    b.Property<string>("FileName")
-                        .IsRequired()
-                        .HasMaxLength(512)
-                        .HasColumnType("character varying(512)")
-                        .HasColumnName("file_name");
-
-                    b.Property<bool>("IsPublic")
-                        .HasColumnType("boolean")
-                        .HasColumnName("is_public");
-
-                    b.Property<int>("LinkCount")
-                        .HasColumnType("integer")
-                        .HasColumnName("link_count");
-
-                    b.Property<string>("ProcessingState")
-                        .IsRequired()
-                        .HasMaxLength(64)
-                        .HasColumnType("character varying(64)")
-                        .HasColumnName("processing_state");
-
-                    b.Property<long>("SizeBytes")
-                        .HasColumnType("bigint")
-                        .HasColumnName("size_bytes");
-
-                    b.Property<string>("StoragePath")
-                        .IsRequired()
-                        .HasMaxLength(2000)
-                        .HasColumnType("character varying(2000)")
-                        .HasColumnName("storage_path");
-
-                    b.Property<string>("StorageProvider")
-                        .IsRequired()
-                        .HasMaxLength(64)
-                        .HasColumnType("character varying(64)")
-                        .HasColumnName("storage_provider");
-
-                    b.Property<DateTimeOffset>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("updated_at");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ContentId")
-                        .IsUnique();
-
-                    b.HasIndex("CreatorId");
-
-                    b.HasIndex("LinkCount");
-
-                    b.HasIndex("ProcessingState");
-
-                    b.ToTable("attachments", (string)null);
                 });
 
             modelBuilder.Entity("Domain.Entities.Support.Notification.NotificationDelivery", b =>
@@ -1839,37 +1819,6 @@ namespace Infrastructure.Migrations
                         .IsRequired();
                 });
 
-            modelBuilder.Entity("Domain.Entities.ProjectEntities.ProjectList", b =>
-                {
-                    b.OwnsOne("Domain.Entities.ProjectEntities.ValueObject.Customization", "Customization", b1 =>
-                        {
-                            b1.Property<Guid>("ProjectListId")
-                                .HasColumnType("uuid");
-
-                            b1.Property<string>("Color")
-                                .IsRequired()
-                                .HasMaxLength(32)
-                                .HasColumnType("character varying(32)")
-                                .HasColumnName("custom_color");
-
-                            b1.Property<string>("Icon")
-                                .IsRequired()
-                                .HasMaxLength(128)
-                                .HasColumnType("character varying(128)")
-                                .HasColumnName("custom_icon");
-
-                            b1.HasKey("ProjectListId");
-
-                            b1.ToTable("project_lists");
-
-                            b1.WithOwner()
-                                .HasForeignKey("ProjectListId");
-                        });
-
-                    b.Navigation("Customization")
-                        .IsRequired();
-                });
-
             modelBuilder.Entity("Domain.Entities.ProjectEntities.ProjectSpace", b =>
                 {
                     b.OwnsOne("Domain.Entities.ProjectEntities.ValueObject.Customization", "Customization", b1 =>
@@ -1963,6 +1912,15 @@ namespace Infrastructure.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("Domain.Entities.ProjectEntities.Status", b =>
+                {
+                    b.HasOne("Domain.Entities.ProjectEntities.Workflow", null)
+                        .WithMany("Statuses")
+                        .HasForeignKey("WorkflowId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("Domain.Entities.ProjectEntities.Widget", b =>
                 {
                     b.HasOne("Domain.Entities.ProjectEntities.Dashboard", null)
@@ -2001,6 +1959,15 @@ namespace Infrastructure.Migrations
                         });
 
                     b.Navigation("Layout")
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Domain.Entities.ProjectEntities.Workflow", b =>
+                {
+                    b.HasOne("Domain.Entities.ProjectEntities.ProjectSpace", null)
+                        .WithMany()
+                        .HasForeignKey("ProjectSpaceId")
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
                 });
 
@@ -2067,6 +2034,11 @@ namespace Infrastructure.Migrations
             modelBuilder.Entity("Domain.Entities.ProjectEntities.ProjectWorkspace", b =>
                 {
                     b.Navigation("Members");
+                });
+
+            modelBuilder.Entity("Domain.Entities.ProjectEntities.Workflow", b =>
+                {
+                    b.Navigation("Statuses");
                 });
 #pragma warning restore 612, 618
         }

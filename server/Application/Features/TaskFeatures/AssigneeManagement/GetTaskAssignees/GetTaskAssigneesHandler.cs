@@ -8,20 +8,15 @@ using ValidationException = System.ComponentModel.DataAnnotations.ValidationExce
 
 namespace Application.Features.TaskFeatures.AssigneeManagement.GetTaskAssignees;
 
-public class GetTaskAssigneesHandler
-    : BaseFeatureHandler, IRequestHandler<GetTaskAssigneesQuery, List<TaskAssigneeDto>>
+public class GetTaskAssigneesHandler : BaseFeatureHandler, IRequestHandler<GetTaskAssigneesQuery, List<TaskAssigneeDto>>
 {
-    public GetTaskAssigneesHandler(
-        IUnitOfWork unitOfWork,
-        ICurrentUserService currentUserService,
-        WorkspaceContext workspaceContext)
+    public GetTaskAssigneesHandler(IUnitOfWork unitOfWork, ICurrentUserService currentUserService, WorkspaceContext workspaceContext)
         : base(unitOfWork, currentUserService, workspaceContext) { }
 
-    public async Task<List<TaskAssigneeDto>> Handle(
-        GetTaskAssigneesQuery request,
-        CancellationToken cancellationToken)
+    public async Task<List<TaskAssigneeDto>> Handle(GetTaskAssigneesQuery request, CancellationToken cancellationToken)
     {
-        var task = await FindOrThrowAsync<ProjectTask>(request.TaskId);
+        var task = await UnitOfWork.Set<ProjectTask>().FindAsync(request.TaskId, cancellationToken);
+        if (task == null) throw new KeyNotFoundException($"Task {request.TaskId} not found");
         await EnsureCurrentUserCanAccessTask(task, cancellationToken);
 
         var assignees = await UnitOfWork.QueryAsync<TaskAssigneeDto>(@"
@@ -45,9 +40,15 @@ public class GetTaskAssigneesHandler
         }
 
         var currentWorkspaceMemberId = await WorkspaceContext.GetWorkspaceMemberIdAsync(cancellationToken);
+        
+        var parentId = task.ProjectFolderId ?? task.ProjectSpaceId ?? task.ProjectWorkspaceId;
+        var parentType = task.ProjectFolderId.HasValue ? EntityLayerType.ProjectFolder :
+                        task.ProjectSpaceId.HasValue ? EntityLayerType.ProjectSpace : 
+                        EntityLayerType.ProjectWorkspace;
+
         var accessibleCurrentMemberIds = await GetAccessibleMemberIds(
-            task.ProjectListId,
-            EntityLayerType.ProjectList,
+            parentId,
+            parentType,
             new List<Guid> { currentWorkspaceMemberId });
 
         if (accessibleCurrentMemberIds.Count == 0)

@@ -1,44 +1,39 @@
 using Application.Interfaces.Repositories;
 using Domain.Entities.ProjectEntities;
-using Domain.Entities.Relationship;
+using Domain.Enums.RelationShip;
 using MediatR;
-using Microsoft.EntityFrameworkCore;
 using server.Application.Interfaces;
 using Application.Helpers;
-using Application.Features.WorkspaceFeatures.Logic;
 
 namespace Application.Features.WorkspaceFeatures.MemberManage.RemoveMembers;
 
 public class RemoveMembersHandler : BaseFeatureHandler, IRequestHandler<RemoveMembersCommand, Guid>
 {
-    private readonly WorkspacePermissionLogic _workspacePermissionLogic;
-
-    public RemoveMembersHandler(
-        IUnitOfWork unitOfWork,
-        ICurrentUserService currentUserService,
-        WorkspaceContext workspaceContext,
-        WorkspacePermissionLogic workspacePermissionLogic)
-        : base(unitOfWork, currentUserService, workspaceContext)
-    {
-        _workspacePermissionLogic = workspacePermissionLogic;
-    }
+    public RemoveMembersHandler(IUnitOfWork unitOfWork, ICurrentUserService currentUserService, WorkspaceContext workspaceContext)
+        : base(unitOfWork, currentUserService, workspaceContext) { }
 
     public async Task<Guid> Handle(RemoveMembersCommand request, CancellationToken cancellationToken)
     {
-        await _workspacePermissionLogic.EnsureCanManageMembers(request.workspaceId, CurrentUserId, cancellationToken);
+        // Direct Find for cleaner resolution
+        var workspace = await UnitOfWork.Set<ProjectWorkspace>().FindAsync(request.workspaceId, cancellationToken);
+        if (workspace == null) throw new KeyNotFoundException($"Workspace {request.workspaceId} not found");
 
-        var workspace = await FindOrThrowAsync<ProjectWorkspace>(request.workspaceId);
-
-        var members = await UnitOfWork.Set<WorkspaceMember>()
-            .Where(wm => wm.ProjectWorkspaceId == request.workspaceId && request.memberIds.Contains(wm.UserId))
-            .ToListAsync(cancellationToken);
-
-        if (members.Any())
+        if (request.memberIds.Any())
         {
-            workspace.RemoveMembers(members.Select(m => m.UserId));
-            
-            // Note: ProjectWorkspace.RemoveMembers raises WorkspaceMemberRemovedEvent
-            // which handles the cache/SignalR plumbing.
+            var sql = @"
+                UPDATE workspace_members 
+                SET deleted_at = NOW(), 
+                    updated_at = NOW() 
+                WHERE project_workspace_id = @WorkspaceId 
+                  AND user_id = ANY(@UserIds)
+                  AND deleted_at IS NULL";
+
+            await UnitOfWork.ExecuteAsync(sql, new
+            {
+                WorkspaceId = workspace.Id,
+                UserIds = request.memberIds.ToArray()
+            }, cancellationToken);
+
         }
 
         return workspace.Id;

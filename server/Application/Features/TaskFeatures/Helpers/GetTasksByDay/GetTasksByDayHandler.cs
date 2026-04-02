@@ -34,7 +34,7 @@ public class GetTaskByDayHandler : BaseFeatureHandler, IRequestHandler<GetTaskBy
                          || (t.StartDate.HasValue && t.DueDate.HasValue && t.StartDate.Value < dayEnd && t.DueDate.Value >= dayStart)
                          || (t.StartDate.HasValue && !t.DueDate.HasValue && t.StartDate.Value >= dayStart && t.StartDate.Value < dayEnd)
                      )
-                   group new TaskSummaryDto(t.Id, t.ProjectListId, t.Name)
+                   group new TaskSummaryDto(t.Id, t.Name)
                    by new { w.Id, w.Name } into g
                    select new WorkspaceGroupDto(g.Key.Id, g.Key.Name, g.ToList()))
             .AsNoTracking()

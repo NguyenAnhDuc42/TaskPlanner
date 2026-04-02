@@ -3,11 +3,10 @@ using Application.Helpers;
 using Domain.Entities.ProjectEntities;
 using MediatR;
 using server.Application.Interfaces;
-using Application.Contract.Common;
+using Application.Features.ViewFeatures.GetViewData;
 using Microsoft.EntityFrameworkCore;
 using Domain.Entities.Relationship;
 using Domain.Enums.RelationShip;
-using Application.Features.TaskFeatures.Logic;
 using ValidationException = System.ComponentModel.DataAnnotations.ValidationException;
 
 namespace Application.Features.TaskFeatures.SelfManagement.UpdateTask;
@@ -41,9 +40,16 @@ public class UpdateTaskHandler : BaseFeatureHandler, IRequestHandler<UpdateTaskC
         if (task.CreatorId == CurrentUserId) return;
 
         var currentWorkspaceMemberId = await WorkspaceContext.GetWorkspaceMemberIdAsync(cancellationToken);
+        
+        // Use the deepest available ParentId for access check
+        var parentId = task.ProjectFolderId ?? task.ProjectSpaceId ?? task.ProjectWorkspaceId;
+        var parentType = task.ProjectFolderId.HasValue ? EntityLayerType.ProjectFolder :
+                        task.ProjectSpaceId.HasValue ? EntityLayerType.ProjectSpace : 
+                        EntityLayerType.ProjectWorkspace;
+
         var accessibleCurrentMemberIds = await GetAccessibleMemberIds(
-            task.ProjectListId,
-            EntityLayerType.ProjectList,
+            parentId,
+            parentType,
             new List<Guid> { currentWorkspaceMemberId });
 
         if (accessibleCurrentMemberIds.Count == 0) throw new ValidationException($"You do not have permission to {action} this task.");
@@ -62,29 +68,16 @@ public class UpdateTaskHandler : BaseFeatureHandler, IRequestHandler<UpdateTaskC
     {
         if (!request.StatusId.HasValue || request.StatusId.Value == task.StatusId) return;
      
-        var (effectiveLayerId, effectiveLayerType) =
-            await TaskStatusLayerResolver.GetEffectiveStatusLayer(
-                UnitOfWork,
-                task.ProjectListId,
-                EntityLayerType.ProjectList,
-                cancellationToken);
+        // Statuses are strictly owned by Space now
+        if (task.ProjectSpaceId.HasValue)
+        {
+            const string sql = "SELECT COUNT(1) FROM statuses WHERE id = @Id AND project_space_id = @SpaceId AND deleted_at IS NULL";
+            var isValid = await UnitOfWork.QuerySingleOrDefaultAsync<int>(sql, new { Id = request.StatusId.Value, SpaceId = task.ProjectSpaceId.Value }, cancellationToken);
+            
+            if (isValid == 0) throw new ValidationException("Selected status does not belong to the effective status layer for this task.");
 
-        var mappedRequestedStatusId = await TaskStatusSemanticMapper.MapRequestedStatusToEffectiveLayer(
-            UnitOfWork,
-            effectiveLayerId,
-            effectiveLayerType,
-            request.StatusId,
-            cancellationToken);
-
-        var resolvedStatusId = await TaskStatusLayerResolver.ResolveTaskStatusId(
-            UnitOfWork,
-            task.ProjectListId,
-            mappedRequestedStatusId,
-            cancellationToken);
-
-        if (!resolvedStatusId.HasValue) throw new ValidationException("No valid status found in effective status layer.");
-
-        task.UpdateStatus(resolvedStatusId.Value);
+            task.UpdateStatus(request.StatusId.Value);
+        }
     }
 
     private static void ApplyPriorityUpdate(ProjectTask task, UpdateTaskCommand request)
@@ -121,12 +114,18 @@ public class UpdateTaskHandler : BaseFeatureHandler, IRequestHandler<UpdateTaskC
 
         var validUserIds = await ValidateWorkspaceMembers(request.AssigneeIds, cancellationToken);
         var memberIds = await GetWorkspaceMemberIds(validUserIds, cancellationToken);
+
+        var parentId = task.ProjectFolderId ?? task.ProjectSpaceId ?? task.ProjectWorkspaceId;
+        var parentType = task.ProjectFolderId.HasValue ? EntityLayerType.ProjectFolder :
+                        task.ProjectSpaceId.HasValue ? EntityLayerType.ProjectSpace : 
+                        EntityLayerType.ProjectWorkspace;
+
         var accessibleMemberIds = await GetAccessibleMemberIds(
-            task.ProjectListId,
-            EntityLayerType.ProjectList,
+            parentId,
+            parentType,
             memberIds);
 
-        if (accessibleMemberIds.Count != memberIds.Count) throw new ValidationException("One or more assignees do not have permission to access this List.");
+        if (accessibleMemberIds.Count != memberIds.Count) throw new ValidationException("One or more assignees do not have permission to access this container.");
 
         var currentMemberIds = task.Assignees.Select(a => a.WorkspaceMemberId).ToHashSet();
         var toRemove = currentMemberIds.Where(id => !accessibleMemberIds.Contains(id)).ToList();
@@ -152,7 +151,9 @@ public class UpdateTaskHandler : BaseFeatureHandler, IRequestHandler<UpdateTaskC
         return new TaskDto
         {
             Id = task.Id,
-            ProjectListId = task.ProjectListId,
+            ProjectWorkspaceId = task.ProjectWorkspaceId,
+            ProjectSpaceId = task.ProjectSpaceId,
+            ProjectFolderId = task.ProjectFolderId,
             Name = task.Name,
             Description = task.Description,
             StatusId = task.StatusId,

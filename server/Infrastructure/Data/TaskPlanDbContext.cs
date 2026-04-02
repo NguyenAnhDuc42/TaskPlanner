@@ -20,8 +20,8 @@ public class TaskPlanDbContext : DbContext
     public DbSet<ProjectWorkspace> ProjectWorkspaces { get; set; }
     public DbSet<ProjectSpace> ProjectSpaces { get; set; }
     public DbSet<ProjectFolder> ProjectFolders { get; set; }
-    public DbSet<ProjectList> ProjectLists { get; set; }
     public DbSet<ProjectTask> ProjectTasks { get; set; }
+    public DbSet<Workflow> Workflows { get; set; }
     public DbSet<ViewDefinition> ViewDefinitions { get; set; }
     public DbSet<Document> Documents { get; set; }
 

@@ -19,7 +19,8 @@ public class CreateFolderHandler : BaseFeatureHandler, IRequestHandler<CreateFol
 
     public async Task<Guid> Handle(CreateFolderCommand request, CancellationToken cancellationToken)
     {
-        var space = await FindOrThrowAsync<ProjectSpace>(request.spaceId);
+        var space = await UnitOfWork.Set<ProjectSpace>().FindAsync(request.spaceId, cancellationToken);
+        if (space == null) throw new KeyNotFoundException($"Space {request.spaceId} not found");
         
         var customization = Customization.Create(request.color, request.icon);
         var orderKey = space.GetNextItemOrderAndIncrement();
@@ -27,26 +28,22 @@ public class CreateFolderHandler : BaseFeatureHandler, IRequestHandler<CreateFol
         var folder = ProjectFolder.Create(
             projectSpaceId: space.Id,
             name: request.name,
-            color: customization.Color,
-            icon: customization.Icon,
+            color: request.color,
+            icon: request.icon,
             isPrivate: request.isPrivate,
-            inheritStatus: false,
             creatorId: CurrentUserId,
-            orderKey: orderKey
+            orderKey: orderKey,
+            start: request.startDate,
+            due: request.dueDate
         );
 
         await UnitOfWork.Set<ProjectFolder>().AddAsync(folder, cancellationToken);
-        
-        if (!folder.InheritStatus)
-        {
-            await StatusInitializer.InitDefaultStatuses(UnitOfWork, folder.Id, EntityLayerType.ProjectFolder, CurrentUserId);
-        }
 
         // Create EntityAccess for owner if private
         if (request.isPrivate)
         {
             var memberId = await GetWorkspaceMemberId(CurrentUserId, cancellationToken);
-            var access = EntityAccess.Create(memberId, folder.Id, EntityLayerType.ProjectFolder, AccessLevel.Manager, CurrentUserId);
+            var access = EntityAccess.Create(WorkspaceId, memberId, folder.Id, EntityLayerType.ProjectFolder, AccessLevel.Manager, CurrentUserId);
             await UnitOfWork.Set<EntityAccess>().AddAsync(access, cancellationToken);
         }
         
@@ -59,7 +56,7 @@ public class CreateFolderHandler : BaseFeatureHandler, IRequestHandler<CreateFol
             
             var inviteAccessRecords = workspaceMemberIds
                 .Where(memberId => memberId != ownerMemberId)
-                .Select(memberId => EntityAccess.Create(memberId, folder.Id, EntityLayerType.ProjectFolder, AccessLevel.Editor, CurrentUserId));
+                .Select(memberId => EntityAccess.Create(WorkspaceId, memberId, folder.Id, EntityLayerType.ProjectFolder, AccessLevel.Editor, CurrentUserId));
 
             await UnitOfWork.Set<EntityAccess>().AddRangeAsync(inviteAccessRecords, cancellationToken);
         }

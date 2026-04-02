@@ -23,7 +23,8 @@ public class GetTaskAssigneeCandidatesHandler
         GetTaskAssigneeCandidatesQuery request,
         CancellationToken cancellationToken)
     {
-        var task = await FindOrThrowAsync<ProjectTask>(request.TaskId);
+        var task = await UnitOfWork.Set<ProjectTask>().FindAsync(request.TaskId, cancellationToken);
+        if (task == null) throw new KeyNotFoundException($"Task {request.TaskId} not found");
         await EnsureCurrentUserCanAccessTask(task, cancellationToken);
 
         var allWorkspaceMemberIds = await UnitOfWork.Set<WorkspaceMember>()
@@ -32,9 +33,14 @@ public class GetTaskAssigneeCandidatesHandler
             .Select(wm => wm.Id)
             .ToListAsync(cancellationToken);
 
+        var parentId = task.ProjectFolderId ?? task.ProjectSpaceId ?? task.ProjectWorkspaceId;
+        var parentType = task.ProjectFolderId.HasValue ? EntityLayerType.ProjectFolder :
+                        task.ProjectSpaceId.HasValue ? EntityLayerType.ProjectSpace : 
+                        EntityLayerType.ProjectWorkspace;
+
         var accessibleMemberIds = await GetAccessibleMemberIds(
-            task.ProjectListId,
-            EntityLayerType.ProjectList,
+            parentId,
+            parentType,
             allWorkspaceMemberIds);
 
         if (accessibleMemberIds.Count == 0)
@@ -80,9 +86,15 @@ public class GetTaskAssigneeCandidatesHandler
         }
 
         var currentWorkspaceMemberId = await WorkspaceContext.GetWorkspaceMemberIdAsync(cancellationToken);
+        
+        var parentId = task.ProjectFolderId ?? task.ProjectSpaceId ?? task.ProjectWorkspaceId;
+        var parentType = task.ProjectFolderId.HasValue ? EntityLayerType.ProjectFolder :
+                        task.ProjectSpaceId.HasValue ? EntityLayerType.ProjectSpace : 
+                        EntityLayerType.ProjectWorkspace;
+
         var accessibleCurrentMemberIds = await GetAccessibleMemberIds(
-            task.ProjectListId,
-            EntityLayerType.ProjectList,
+            parentId,
+            parentType,
             new List<Guid> { currentWorkspaceMemberId });
 
         if (accessibleCurrentMemberIds.Count == 0)

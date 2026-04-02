@@ -39,7 +39,8 @@ namespace Api.Controllers
                 Color: request.Color,
                 Icon: request.Icon,
                 IsPrivate: request.IsPrivate,
-                InheritStatus: request.InheritStatus
+                StartDate: request.StartDate,
+                DueDate: request.DueDate
             );
 
             var result = await _mediator.Send(command, cancellationToken);
@@ -68,7 +69,7 @@ namespace Api.Controllers
         string? Color,
         string? Icon,
         bool? IsPrivate,
-        bool? InheritStatus
-
+        DateTimeOffset? StartDate,
+        DateTimeOffset? DueDate
     );
 }

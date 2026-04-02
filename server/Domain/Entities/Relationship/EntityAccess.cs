@@ -1,4 +1,4 @@
-﻿using Domain.Common;
+using Domain.Common;
 using Domain.Enums.RelationShip;
 using System;
 using System.Collections.Generic;
@@ -8,14 +8,16 @@ namespace Domain.Entities.Relationship;
 
 public class EntityAccess : Entity
 {
+    public Guid ProjectWorkspaceId { get; private set; }
     public Guid WorkspaceMemberId { get; private set; }
     public Guid EntityId { get; private set; }
     public EntityLayerType EntityLayer { get; private set; }
     public AccessLevel AccessLevel { get; private set; }
 
     private EntityAccess() { } // EF
-    private EntityAccess(Guid workspaceMemberId, Guid entityId, EntityLayerType entityLayer, AccessLevel accessLevel, Guid creatorId)
+    private EntityAccess(Guid projectWorkspaceId, Guid workspaceMemberId, Guid entityId, EntityLayerType entityLayer, AccessLevel accessLevel, Guid creatorId)
     {
+        ProjectWorkspaceId = projectWorkspaceId;
         WorkspaceMemberId = workspaceMemberId;
         EntityId = entityId;
         EntityLayer = entityLayer;
@@ -27,9 +29,9 @@ public class EntityAccess : Entity
         AccessLevel = accessLevel;
         UpdateTimestamp();
     }
-    public static EntityAccess Create(Guid workspaceMemberId, Guid entityId, EntityLayerType entityLayer, AccessLevel accessLevel, Guid creatorId)
+    public static EntityAccess Create(Guid projectWorkspaceId, Guid workspaceMemberId, Guid entityId, EntityLayerType entityLayer, AccessLevel accessLevel, Guid creatorId)
     {
-        return new EntityAccess(workspaceMemberId, entityId, entityLayer, accessLevel, creatorId);
+        return new EntityAccess(projectWorkspaceId, workspaceMemberId, entityId, entityLayer, accessLevel, creatorId);
     }
     public void UpdateAccessLevel(AccessLevel newAccessLevel)
     {

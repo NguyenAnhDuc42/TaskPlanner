@@ -20,6 +20,7 @@ public class UpdateEntityAccessBulkHandler : BaseFeatureHandler, IRequestHandler
 
         var existingAccess = await UnitOfWork.Set<EntityAccess>()
             .Where(ea =>
+                ea.ProjectWorkspaceId == WorkspaceId &&
                 ea.EntityId == request.EntityId &&
                 ea.EntityLayer == request.LayerType &&
                 ea.DeletedAt == null)
@@ -48,6 +49,7 @@ public class UpdateEntityAccessBulkHandler : BaseFeatureHandler, IRequestHandler
             {
                 // Add new access
                 var newAccess = EntityAccess.Create(
+                    WorkspaceId,
                     memberUpdate.WorkspaceMemberId,
                     request.EntityId,
                     request.LayerType,

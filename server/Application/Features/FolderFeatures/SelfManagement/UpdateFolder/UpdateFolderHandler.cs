@@ -17,29 +17,21 @@ public class UpdateFolderHandler : BaseFeatureHandler, IRequestHandler<UpdateFol
 
     public async Task<Unit> Handle(UpdateFolderCommand request, CancellationToken cancellationToken)
     {
-        var folder = await FindOrThrowAsync<ProjectFolder>(request.FolderId);
+        var folder = await UnitOfWork.Set<ProjectFolder>().FindAsync(request.FolderId, cancellationToken);
+        if (folder == null) throw new KeyNotFoundException($"Folder {request.FolderId} not found");
         if (request.Name is not null) folder.UpdateName(request.Name);
         if (request.Color is not null) folder.UpdateColor(request.Color);
         if (request.Icon is not null) folder.UpdateIcon(request.Icon);
         if (request.IsPrivate.HasValue) folder.UpdatePrivate(request.IsPrivate.Value);
 
-        if (request.InheritStatus.HasValue)
+        if (request.StartDate != null || request.DueDate != null)
         {
-            var oldInherit = folder.InheritStatus;
-            folder.UpdateInheritStatus(request.InheritStatus.Value);
-
-            // If we just TURNED OFF inheritance, ensure we have default statuses
-            if (oldInherit && !folder.InheritStatus)
-            {
-                var hasLocalStatuses = await UnitOfWork.Set<Status>()
-                    .AnyAsync(s => s.LayerId == folder.Id && s.LayerType == EntityLayerType.ProjectFolder, cancellationToken);
-
-                if (!hasLocalStatuses)
-                {
-                    await StatusInitializer.InitDefaultStatuses(UnitOfWork, folder.Id, EntityLayerType.ProjectFolder, CurrentUserId);
-                }
-            }
+            folder.UpdateDates(
+                request.StartDate ?? folder.StartDate,
+                request.DueDate ?? folder.DueDate);
         }
+
+
 
         if (folder.IsPrivate)
         {
@@ -56,6 +48,7 @@ public class UpdateFolderHandler : BaseFeatureHandler, IRequestHandler<UpdateFol
     {
         var ownerAccess = await UnitOfWork.Set<EntityAccess>()
             .Where(ea =>
+                ea.ProjectWorkspaceId == WorkspaceId &&
                 ea.EntityId == folderId &&
                 ea.EntityLayer == EntityLayerType.ProjectFolder &&
                 ea.WorkspaceMemberId == ownerWorkspaceMemberId &&
@@ -65,6 +58,7 @@ public class UpdateFolderHandler : BaseFeatureHandler, IRequestHandler<UpdateFol
         if (ownerAccess is null)
         {
             var newOwnerAccess = EntityAccess.Create(
+                WorkspaceId,
                 ownerWorkspaceMemberId,
                 folderId,
                 EntityLayerType.ProjectFolder,

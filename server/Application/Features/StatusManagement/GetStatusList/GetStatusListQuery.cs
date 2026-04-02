@@ -1,11 +1,14 @@
-using System;
-using Application.Common.Interfaces;
-using Application.Contract.StatusContract;
-using Domain.Enums.RelationShip;
+using MediatR;
+using Domain.Enums;
 
 namespace Application.Features.StatusManagement.GetStatusList;
 
-public record GetStatusListQuery(
-    Guid LayerId,
-    EntityLayerType LayerType
-) : IQuery<List<StatusDto>>;
+public record GetStatusListQuery(Guid WorkflowId) : IRequest<List<StatusDto>>;
+
+public record StatusDto(
+    Guid Id,
+    string Name,
+    string Color,
+    StatusCategory Category,
+    bool IsDefaultStatus
+);

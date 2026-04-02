@@ -23,7 +23,6 @@ public class ChatRoomMemberConfiguration : CompositeConfiguration<ChatRoomMember
         builder.Property(x => x.IsBanned).HasColumnName("is_banned").IsRequired();
         builder.Property(x => x.BannedAt).HasColumnName("banned_at");
         builder.Property(x => x.BannedBy).HasColumnName("banned_by");
-        builder.Property(x => x.NotificationsEnabled).HasColumnName("notifications_enabled").IsRequired();
 
         // Indexes
         builder.HasIndex(x => x.ChatRoomId);

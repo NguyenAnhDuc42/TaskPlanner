@@ -55,12 +55,7 @@ public class TasksController : ControllerBase
         return NoContent();
     }
 
-    [HttpGet("lists/{listId:guid}/assignees")]
-    public async Task<IActionResult> GetListAssignees(Guid listId, CancellationToken cancellationToken)
-    {
-        var result = await _mediator.Send(new GetTaskListAssigneesQuery(listId), cancellationToken);
-        return Ok(result);
-    }
+
 
     [HttpGet("{taskId:guid}/assignees")]
     public async Task<IActionResult> GetTaskAssignees(Guid taskId, CancellationToken cancellationToken)

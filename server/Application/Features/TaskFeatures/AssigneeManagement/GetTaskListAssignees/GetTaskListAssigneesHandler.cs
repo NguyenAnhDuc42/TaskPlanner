@@ -1,6 +1,7 @@
 using Application.Helpers;
 using Application.Interfaces.Repositories;
 using Domain.Entities.Relationship;
+using Domain.Entities.ProjectEntities;
 using Domain.Enums.RelationShip;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
@@ -14,12 +15,13 @@ public class GetTaskListAssigneesHandler : BaseFeatureHandler, IRequestHandler<G
 
     public async Task<List<TaskAssigneeOptionDto>> Handle( GetTaskListAssigneesQuery request, CancellationToken cancellationToken)
     {
-        await GetLayer(request.ListId, EntityLayerType.ProjectList);
+        var folder = await UnitOfWork.Set<ProjectFolder>().FindAsync(request.ListId, cancellationToken);
+        if (folder == null) throw new KeyNotFoundException($"Folder {request.ListId} not found");
 
         var currentWorkspaceMemberId = await WorkspaceContext.GetWorkspaceMemberIdAsync(cancellationToken);
         var currentMemberHasAccess = await GetAccessibleMemberIds(
             request.ListId,
-            EntityLayerType.ProjectList,
+            EntityLayerType.ProjectFolder,
             new List<Guid> { currentWorkspaceMemberId });
 
         if (currentMemberHasAccess.Count == 0) return new List<TaskAssigneeOptionDto>();
@@ -32,7 +34,7 @@ public class GetTaskListAssigneesHandler : BaseFeatureHandler, IRequestHandler<G
 
         var accessibleMemberIds = await GetAccessibleMemberIds(
             request.ListId,
-            EntityLayerType.ProjectList,
+            EntityLayerType.ProjectFolder,
             allWorkspaceMemberIds);
 
         if (accessibleMemberIds.Count == 0) return new List<TaskAssigneeOptionDto>();

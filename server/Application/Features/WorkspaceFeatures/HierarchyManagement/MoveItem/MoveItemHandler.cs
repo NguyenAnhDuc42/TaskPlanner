@@ -11,6 +11,8 @@ namespace Application.Features.WorkspaceFeatures.HierarchyManagement.MoveItem;
 
 public class MoveItemHandler : BaseFeatureHandler, IRequestHandler<MoveItemCommand, Unit>
 {
+    private const long DefaultIncrement = 10_000_000L;
+
     public MoveItemHandler(
         IUnitOfWork unitOfWork,
         ICurrentUserService currentUserService,
@@ -21,7 +23,7 @@ public class MoveItemHandler : BaseFeatureHandler, IRequestHandler<MoveItemComma
 
     public async Task<Unit> Handle(MoveItemCommand request, CancellationToken cancellationToken)
     {
-        var newOrderKey = CalculateNewOrderKey(request.PreviousItemOrderKey, request.NextItemOrderKey);
+        var newOrderKey = await ResolveOrderKey(request, cancellationToken);
 
         switch (request.ItemType)
         {
@@ -31,8 +33,8 @@ public class MoveItemHandler : BaseFeatureHandler, IRequestHandler<MoveItemComma
             case ItemType.Folder:
                 await MoveFolder(request.ItemId, request.TargetParentId, newOrderKey, cancellationToken);
                 break;
-            case ItemType.List:
-                await MoveList(request.ItemId, request.TargetParentId, newOrderKey, cancellationToken);
+            case ItemType.Task:
+                await MoveTask(request.ItemId, request.TargetParentId, newOrderKey, cancellationToken);
                 break;
             default:
                 throw new ArgumentException($"Unknown item type: {request.ItemType}");
@@ -41,23 +43,74 @@ public class MoveItemHandler : BaseFeatureHandler, IRequestHandler<MoveItemComma
         return Unit.Value;
     }
 
+    private async Task<long> ResolveOrderKey(MoveItemCommand request, CancellationToken cancellationToken)
+    {
+        // Case 1: Simple fractional indexing
+        if (request.PreviousItemOrderKey.HasValue || request.NextItemOrderKey.HasValue)
+        {
+            var key = CalculateFractionalKey(request.PreviousItemOrderKey, request.NextItemOrderKey);
+            
+            // Safety check: if keys are too close (collision), fall back to max + buffer
+            if (request.PreviousItemOrderKey.HasValue && request.NextItemOrderKey.HasValue && 
+                Math.Abs(request.NextItemOrderKey.Value - request.PreviousItemOrderKey.Value) <= 1)
+            {
+                return await GetMaxOrderKey(request, cancellationToken) + DefaultIncrement;
+            }
+            
+            return key;
+        }
+
+        // Case 2: No context provided (e.g. initial add or "bug out" fallback)
+        // Pick the latest number based on the upper layer as requested
+        return await GetMaxOrderKey(request, cancellationToken) + DefaultIncrement;
+    }
+
+    private async Task<long> GetMaxOrderKey(MoveItemCommand request, CancellationToken cancellationToken)
+    {
+        IQueryable<long?> query = request.ItemType switch
+        {
+            ItemType.Space => UnitOfWork.Set<ProjectSpace>()
+                                .Where(s => s.ProjectWorkspaceId == WorkspaceId)
+                                .Select(s => (long?)s.OrderKey),
+            ItemType.Folder => UnitOfWork.Set<ProjectFolder>()
+                                .Where(f => f.ProjectSpaceId == request.TargetParentId)
+                                .Select(f => (long?)f.OrderKey),
+            ItemType.Task => UnitOfWork.Set<ProjectTask>()
+                                .Where(t => (request.TargetParentId.HasValue && t.ProjectFolderId == request.TargetParentId) || 
+                                           (!request.TargetParentId.HasValue && t.ProjectSpaceId == WorkspaceId)) // Workspace as direct parent fallback
+                                .Select(t => t.OrderKey),
+            _ => throw new ArgumentOutOfRangeException()
+        };
+
+        return await query.MaxAsync(cancellationToken) ?? 0L;
+    }
+
+    private long CalculateFractionalKey(long? previous, long? next)
+    {
+        if (!previous.HasValue && next.HasValue) return next.Value / 2;
+        if (previous.HasValue && !next.HasValue) return previous.Value + DefaultIncrement;
+        if (previous.HasValue && next.HasValue) return (previous.Value + next.Value) / 2;
+        return DefaultIncrement;
+    }
+
     private async Task MoveSpace(Guid spaceId, long newOrderKey, CancellationToken cancellationToken)
     {
-        var space = await FindOrThrowAsync<ProjectSpace>(spaceId);
+        var space = await UnitOfWork.Set<ProjectSpace>().FindAsync(spaceId, cancellationToken);
+        if (space == null) throw new KeyNotFoundException($"Space {spaceId} not found");
 
         space.UpdateOrderKey(newOrderKey);
     }
 
     private async Task MoveFolder(Guid folderId, Guid? newSpaceId, long newOrderKey, CancellationToken cancellationToken)
     {
-        var folder = await FindOrThrowAsync<ProjectFolder>(folderId);
+        var folder = await UnitOfWork.Set<ProjectFolder>().FindAsync(folderId, cancellationToken);
+        if (folder == null) throw new KeyNotFoundException($"Folder {folderId} not found");
 
-        // If moving to a different space, validate it exists and we have permissions
         if (newSpaceId.HasValue && newSpaceId.Value != folder.ProjectSpaceId)
         {
-            var newSpace = await FindOrThrowAsync<ProjectSpace>(newSpaceId.Value);
+            var newSpace = await UnitOfWork.Set<ProjectSpace>().FindAsync(newSpaceId.Value, cancellationToken);
+            if (newSpace == null) throw new KeyNotFoundException($"Space {newSpaceId.Value} not found");
 
-            // Update folder's space and order key
             await UnitOfWork.Set<ProjectFolder>()
                 .Where(f => f.Id == folderId)
                 .ExecuteUpdateAsync(updates =>
@@ -68,78 +121,46 @@ public class MoveItemHandler : BaseFeatureHandler, IRequestHandler<MoveItemComma
         }
         else
         {
-            // Just reorder within same space
             folder.UpdateOrderKey(newOrderKey);
         }
     }
 
-    private async Task MoveList(Guid listId, Guid? newParentId, long newOrderKey, CancellationToken cancellationToken)
+    private async Task MoveTask(Guid taskId, Guid? targetParentId, long newOrderKey, CancellationToken cancellationToken)
     {
-        var list = await FindOrThrowAsync<ProjectList>(listId);
+        var task = await UnitOfWork.Set<ProjectTask>().FindAsync(taskId, cancellationToken);
+        if (task == null) throw new KeyNotFoundException($"Task {taskId} not found");
 
-        // Determine if moving to a folder or directly under a space
-        if (newParentId.HasValue)
+        Guid? resolvedSpaceId = null;
+        Guid? resolvedFolderId = null;
+
+        if (targetParentId.HasValue)
         {
-            // Try to find as folder first
-            var targetFolder = await UnitOfWork.Set<ProjectFolder>()
-                .Where(f => f.Id == newParentId.Value)
-                .FirstOrDefaultAsync(cancellationToken);
-
-            if (targetFolder != null)
+            // Resolve parent (could be folder or space)
+            var folder = await UnitOfWork.Set<ProjectFolder>().FindAsync(targetParentId.Value, cancellationToken);
+            if (folder != null)
             {
-                // Moving to a folder - Authorize on target folder
-                await FindOrThrowAsync<ProjectFolder>(targetFolder.Id);
-
-                list.UpdateOrderKey(newOrderKey);
-                list.UpdateProjectFolderId(newParentId.Value);
+                resolvedFolderId = folder.Id;
+                resolvedSpaceId = folder.ProjectSpaceId;
             }
             else
             {
-                // Try to find as space - Authorize on target space
-                var targetSpace = await FindOrThrowAsync<ProjectSpace>(newParentId.Value);
-
-                // Moving directly under a space (no folder)
-                await UnitOfWork.Set<ProjectList>()
-                    .Where(l => l.Id == listId)
-                    .ExecuteUpdateAsync(updates =>
-                        updates.SetProperty(l => l.ProjectSpaceId, targetSpace.Id)
-                               .SetProperty(l => l.ProjectFolderId, (Guid?)null)
-                               .SetProperty(l => l.OrderKey, newOrderKey)
-                               .SetProperty(l => l.UpdatedAt, DateTimeOffset.UtcNow),
-                        cancellationToken: cancellationToken);
+                var space = await UnitOfWork.Set<ProjectSpace>().FindAsync(targetParentId.Value, cancellationToken);
+                if (space != null)
+                {
+                    resolvedSpaceId = space.Id;
+                    resolvedFolderId = null;
+                }
             }
         }
-        else
-        {
-            // Just reorder within same parent
-            list.UpdateOrderKey(newOrderKey);
-        }
-    }
 
-    /// <summary>
-    /// Calculate new order key using fractional indexing
-    /// </summary>
-    private long CalculateNewOrderKey(long? previousOrderKey, long? nextOrderKey)
-    {
-        // Moving to top (no previous item)
-        if (!previousOrderKey.HasValue && nextOrderKey.HasValue)
-        {
-            return nextOrderKey.Value / 2;
-        }
-
-        // Moving to bottom (no next item)
-        if (previousOrderKey.HasValue && !nextOrderKey.HasValue)
-        {
-            return previousOrderKey.Value + 10_000_000L;
-        }
-
-        // Moving between two items
-        if (previousOrderKey.HasValue && nextOrderKey.HasValue)
-        {
-            return (previousOrderKey.Value + nextOrderKey.Value) / 2;
-        }
-
-        // Fallback (shouldn't happen)
-        return 10_000_000L;
+        if (resolvedSpaceId == null) throw new ArgumentException("Target parent must be a valid folder or space.");
+        await UnitOfWork.Set<ProjectTask>()
+            .Where(t => t.Id == taskId)
+            .ExecuteUpdateAsync(updates =>
+                updates.SetProperty(t => t.ProjectSpaceId, resolvedSpaceId)
+                       .SetProperty(t => t.ProjectFolderId, resolvedFolderId)
+                       .SetProperty(t => t.OrderKey, newOrderKey)
+                       .SetProperty(t => t.UpdatedAt, DateTimeOffset.UtcNow),
+                cancellationToken: cancellationToken);
     }
 }

@@ -7,6 +7,4 @@ public enum ViewType
 {
     List,
     Board,
-    Dashboard,
-    Doc
 }

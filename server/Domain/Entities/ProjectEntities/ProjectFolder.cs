@@ -15,12 +15,13 @@ public sealed class ProjectFolder : Entity
     public long OrderKey { get; private set; }
     public bool IsPrivate { get; private set; } = true;
     public bool IsArchived { get; private set; }
-    public bool InheritStatus { get; private set; } = false;
     public long NextItemOrder { get; private set; }
+    public DateTimeOffset? StartDate { get; private set; }
+    public DateTimeOffset? DueDate { get; private set; }
 
     private ProjectFolder() { }
 
-    private ProjectFolder(Guid id, Guid projectSpaceId, string name, Customization customization, bool isPrivate, bool inheritStatus, long orderKey, Guid creatorId, long nextItemOrder)
+    private ProjectFolder(Guid id, Guid projectSpaceId, string name, Customization customization, bool isPrivate, long orderKey, Guid creatorId, long nextItemOrder, DateTimeOffset? startDate, DateTimeOffset? dueDate)
     {
         Id = id;
         ProjectSpaceId = projectSpaceId;
@@ -29,21 +30,23 @@ public sealed class ProjectFolder : Entity
         if (name.Length > 100) throw new ArgumentException("Name too long.", nameof(name));
         Customization = customization ?? throw new ArgumentNullException(nameof(customization));
         IsPrivate = isPrivate;
-        InheritStatus = inheritStatus;
         OrderKey = orderKey;
         CreatorId = creatorId;
         IsArchived = false;
         NextItemOrder = nextItemOrder;
+        StartDate = startDate;
+        DueDate = dueDate;
     }
 
-    public static ProjectFolder Create(Guid projectSpaceId, string name, string color, string icon, bool isPrivate, bool inheritStatus, Guid creatorId, long orderKey)
+    public static ProjectFolder Create(Guid projectSpaceId, string name, string color, string icon, bool isPrivate, Guid creatorId, long orderKey, DateTimeOffset? start = null, DateTimeOffset? due = null)
     {
         if (string.IsNullOrWhiteSpace(color)) throw new ArgumentException("Color required.", nameof(color));
         if (!IsValidColorCode(color)) throw new ArgumentException("Invalid color.", nameof(color));
         if (creatorId == Guid.Empty) throw new ArgumentException("CreatorId cannot be empty.", nameof(creatorId));
 
+        if (start.HasValue && due.HasValue && start > due) throw new ArgumentException("Start date cannot be later than due date.", nameof(start));
         var customization = Customization.Create(color.Trim(), icon.Trim());
-        return new ProjectFolder(Guid.NewGuid(), projectSpaceId, name?.Trim() ?? throw new ArgumentNullException(nameof(name)), customization, isPrivate, inheritStatus, orderKey, creatorId,10_000_000L);
+        return new ProjectFolder(Guid.NewGuid(), projectSpaceId, name?.Trim() ?? throw new ArgumentNullException(nameof(name)), customization, isPrivate, orderKey, creatorId, 10_000_000L, start, due);
     }
 
     public long GetNextItemOrderAndIncrement()
@@ -87,18 +90,23 @@ public sealed class ProjectFolder : Entity
         UpdateTimestamp();
     }
 
+    public void UpdateDates(DateTimeOffset? startDate, DateTimeOffset? dueDate)
+    {
+        if (startDate.HasValue && dueDate.HasValue && startDate > dueDate)
+            throw new ArgumentException("Start date cannot be later than due date.", nameof(startDate));
+
+        var changed = false;
+        if (StartDate != startDate) { StartDate = startDate; changed = true; }
+        if (DueDate != dueDate) { DueDate = dueDate; changed = true; }
+        
+        if (changed) UpdateTimestamp();
+    }
+
     public void UpdateOrderKey(long orderKey)
     {
         if (orderKey < 0) throw new ArgumentOutOfRangeException(nameof(orderKey), "Order key cannot be negative.");
         if (OrderKey == orderKey) return;
         OrderKey = orderKey;
-        UpdateTimestamp();
-    }
-
-    public void UpdateInheritStatus(bool inheritStatus)
-    {
-        if (InheritStatus == inheritStatus) return;
-        InheritStatus = inheritStatus;
         UpdateTimestamp();
     }
 

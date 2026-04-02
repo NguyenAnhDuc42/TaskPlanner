@@ -1,7 +1,7 @@
 using Application.Interfaces.Repositories;
 using Domain.Entities.ProjectEntities;
 using MediatR;
-using Application.Features.ViewFeatures.Logic;
+using Application.Features.ViewFeatures.FeatureHelpers;
 using Application.Helpers;
 using server.Application.Interfaces;
 

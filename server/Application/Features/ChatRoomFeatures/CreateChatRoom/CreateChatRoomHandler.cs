@@ -18,7 +18,8 @@ public class CreateChatRoomHandler : BaseFeatureHandler, IRequestHandler<CreateC
 
     public async Task<Unit> Handle(CreateChatRoomCommand request, CancellationToken cancellationToken)
     {
-        var workspace = await FindOrThrowAsync<ProjectWorkspace>(request.workspaceId);
+        var workspace = await UnitOfWork.Set<ProjectWorkspace>().FindAsync(request.workspaceId, cancellationToken);
+        if (workspace == null) throw new KeyNotFoundException($"Workspace {request.workspaceId} not found");
         
         var chatRoom = ChatRoom.Create(
             name: request.name, 

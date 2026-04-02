@@ -1,6 +1,5 @@
 using Application.Common.Filters;
 using Application.Common.Results;
-using Application.Contract.WorkspaceContract;
 using Application.Features.WorkspaceFeatures.SelfManagement.CreateWorkspace;
 using Application.Features.WorkspaceFeatures.SelfManagement.GetWorkspaceList;
 using Domain.Enums.Workspace;
@@ -8,7 +7,6 @@ using MediatR;
 using Microsoft.AspNetCore.JsonPatch;
 using Microsoft.AspNetCore.Mvc;
 using Domain.Enums;
-using Application.Contract.UserContract;
 using Microsoft.AspNetCore.Authorization;
 using Application.Features.WorkspaceFeatures.MemberManage.GetMembers;
 using Application.Features.WorkspaceFeatures.MemberManage.AddMembers;

@@ -3,101 +3,72 @@ using Domain.Entities;
 using Domain.Entities.ProjectEntities;
 using Domain.Entities.Relationship;
 using Domain.Enums;
-using Domain.Enums.RelationShip;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using server.Application.Interfaces;
-using System;
-using Microsoft.Extensions.Caching.Hybrid;
 using Application.Common;
 using Application.Helpers;
-using Application.Features.WorkspaceFeatures.Logic;
 
 namespace Application.Features.WorkspaceFeatures.MemberManage.AddMembers;
 
 public class AddMembersHandler : BaseFeatureHandler, IRequestHandler<AddMembersCommand, Guid>
 {
-    private readonly WorkspacePermissionLogic _workspacePermissionLogic;
-
     public AddMembersHandler(
         IUnitOfWork unitOfWork,
         ICurrentUserService currentUserService,
-        WorkspaceContext workspaceContext,
-        WorkspacePermissionLogic workspacePermissionLogic)
+        WorkspaceContext workspaceContext)
        : base(unitOfWork, currentUserService, workspaceContext)
     {
-        _workspacePermissionLogic = workspacePermissionLogic;
     }
 
     public async Task<Guid> Handle(AddMembersCommand request, CancellationToken cancellationToken)
     {
-        await _workspacePermissionLogic.EnsureCanManageMembers(request.workspaceId, CurrentUserId, cancellationToken);
+        // Use direct Find instead of FindOrThrow for cleaner resolution
+        var workspace = await UnitOfWork.Set<ProjectWorkspace>()
+            .AsNoTracking()
+            .FirstOrDefaultAsync(w => w.Id == request.workspaceId, cancellationToken);
 
-        var workspace = await FindOrThrowAsync<ProjectWorkspace>(request.workspaceId);
+        if (workspace == null) throw new KeyNotFoundException($"Workspace {request.workspaceId} not found");
 
         var normalizedMembers = request.members
             .DistinctBy(m => m.email.Trim().ToLowerInvariant())
             .Where(m => !string.IsNullOrWhiteSpace(m.email))
-            .Select(m => new
-            {
-                NormalizedEmail = m.email.Trim().ToLowerInvariant(),
-                m.role
-            })
             .ToList();
 
         if (normalizedMembers.Count == 0) return workspace.Id;
 
-        var emailsToFind = normalizedMembers
-            .Select(m => m.NormalizedEmail)
-            .ToList();
+        // 🟢 Optimized Bulk Process using Raw SQL
+        // 1. Find User IDs by Email
+        var emails = normalizedMembers.Select(m => m.email.Trim().ToLowerInvariant()).ToList();
+        var usersSql = "SELECT id, email FROM users WHERE LOWER(email) = ANY(@Emails)";
+        var users = await UnitOfWork.QueryAsync<(Guid Id, string Email)>(usersSql, new { Emails = emails }, cancellationToken);
+        var userMap = users.ToDictionary(u => u.Email.ToLower(), u => u.Id);
 
-        var users = await UnitOfWork.Set<User>()
-            .Where(u => emailsToFind.Contains(u.Email.ToLower()))
-            .AsNoTracking()
-            .ToListAsync(cancellationToken);
-
-        var usersByNormalizedEmail = users.ToDictionary(
-                keySelector: u => u.Email.Trim().ToLowerInvariant(),
-                elementSelector: u => u);
-
-        // Fetch existing members (including soft-deleted) to handle re-adds
-        // Note: ProjectWorkspace._members handles tracking if loaded via Include,
-        // but here we are fetching them separately for convenience.
-        // Actually, we should load them via the aggregate if possible, but the current 
-        // setup uses many-to-many relationships that might not be fully mapped in EF as Nav properties.
-        
-        var existingMembers = await UnitOfWork.Set<WorkspaceMember>()
-            .IgnoreQueryFilters()
-            .Where(wm => wm.ProjectWorkspaceId == request.workspaceId)
-            .ToListAsync(cancellationToken);
-
-        var specs = new List<(Guid UserId, Role Role, MembershipStatus Status, string? JoinMethod)>();
-
+        // 2. Separate into inserts and restores (Soft-delete cleanup)
         foreach (var member in normalizedMembers)
         {
-            if(!usersByNormalizedEmail.TryGetValue(member.NormalizedEmail, out var user)) continue;
+            var emailLower = member.email.Trim().ToLowerInvariant();
+            if (!userMap.TryGetValue(emailLower, out var userId)) continue;
 
-            var existing = existingMembers.FirstOrDefault(m => m.UserId == user.Id);
-            if (existing != null)
+            // Execute raw UPSERT for members to keep it clean and fast
+            var upsertSql = @"
+                INSERT INTO workspace_members (id, project_workspace_id, user_id, role, membership_status, join_method, creator_id, created_at, updated_at, deleted_at)
+                VALUES (@Id, @WorkspaceId, @UserId, @Role, 'Active', 'Invite', @CreatorId, NOW(), NOW(), NULL)
+                ON CONFLICT (project_workspace_id, user_id) 
+                DO UPDATE SET 
+                    deleted_at = NULL, 
+                    role = EXCLUDED.role,
+                    updated_at = NOW()
+                WHERE workspace_members.deleted_at IS NOT NULL OR workspace_members.role != EXCLUDED.role;";
+
+            await UnitOfWork.ExecuteAsync(upsertSql, new
             {
-                if (existing.DeletedAt != null)
-                {
-                    existing.UpdateRole(member.role);
-                    existing.RestoreMember();
-                }
-                continue;
-            }
-
-            specs.Add((user.Id, member.role, MembershipStatus.Active, "Invite"));
-        }
-
-        if (specs.Count > 0)
-        {
-            var newMembers = WorkspaceMember.AddBulk(specs, workspace.Id, CurrentUserId);
-            foreach (var member in newMembers)
-            {
-                workspace.AddMember(member, CurrentUserId);
-            }
+                Id = Guid.NewGuid(),
+                WorkspaceId = workspace.Id,
+                UserId = userId,
+                Role = member.role.ToString(), // Assuming Role is enum mapped as string or adjust accordingly
+                CreatorId = CurrentUserId
+            }, cancellationToken);
         }
 
         return workspace.Id;

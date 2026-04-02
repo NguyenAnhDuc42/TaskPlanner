@@ -14,7 +14,6 @@ namespace Application.Features.DashboardFeatures.WidgetDataHelper;
 public record class TaskStatusItem
 {
     public Guid Id { get; set; }
-    public Guid ListId { get; set; }
     public string? Title { get; set; }
     public Guid StatusId { get; set; }
     public DateTimeOffset? StartDate { get; set; }
@@ -31,17 +30,15 @@ public static class TaskListWidgetSQL
             var selector = builder.AddTemplate(@"
                 SELECT 
                     t.id,
-                    t.project_list_id as listId,
                     t.name as title,
                     t.status_id as statusId,
                     t.due_date as dueDate,
                     t.priority,
                     t.created_at as createdAt
                 FROM project_tasks t
-                INNER JOIN project_lists l ON t.project_list_id = l.id
-                INNER JOIN project_spaces s ON l.project_space_id = s.id
+                INNER JOIN project_spaces s ON t.project_space_id = s.id
                 INNER JOIN project_workspaces w ON s.project_workspace_id = w.id
-                LEFT JOIN project_folders f ON l.project_folder_id = f.id
+                LEFT JOIN project_folders f ON t.project_folder_id = f.id
                 /**where**/
                 ORDER BY t.created_at DESC
                 LIMIT @limit");
@@ -57,15 +54,11 @@ public static class TaskListWidgetSQL
                 case EntityLayerType.ProjectFolder:
                     builder.Where("f.id = @layerId");
                     break;
-                case EntityLayerType.ProjectList:
-                    builder.Where("l.id = @layerId");
-                    break;
             }
 
         builder.Where(@"
             -- Soft delete
             t.deleted_at IS NULL
-            AND l.deleted_at IS NULL
             AND s.deleted_at IS NULL
             AND w.deleted_at IS NULL
             AND (f.id IS NULL OR f.deleted_at IS NULL)
@@ -79,7 +72,6 @@ public static class TaskListWidgetSQL
 
             parameters.Add("@spaceType", EntityLayerType.ProjectSpace.ToString());
             parameters.Add("@folderType", EntityLayerType.ProjectFolder.ToString());
-            parameters.Add("@listType", EntityLayerType.ProjectList.ToString());
             parameters.Add("@taskType", EntityLayerType.ProjectTask.ToString());
 
         var tasks = await unitOfWork.QueryAsync<TaskStatusItem>(selector.RawSql, parameters, ct);

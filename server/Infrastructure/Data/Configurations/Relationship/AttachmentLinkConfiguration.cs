@@ -4,7 +4,7 @@ using Domain.Entities.Relationship;
 
 namespace Infrastructure.Data.Configurations.Relationship;
 
-public class AttachmentLinkConfiguration : CompositeConfiguration<AttachmentLink>
+public class AttachmentLinkConfiguration : EntityConfiguration<AttachmentLink>
 {
     public override void Configure(EntityTypeBuilder<AttachmentLink> builder)
     {
@@ -23,6 +23,5 @@ public class AttachmentLinkConfiguration : CompositeConfiguration<AttachmentLink
         builder.HasIndex(x => new { x.ParentEntityType, x.ParentEntityId });
         builder.HasIndex(x => x.AttachmentId);
 
-        // If you prefer a synthetic PK instead, replace HasKey(...) with a generated Id property on AttachmentLink.
     }
 }

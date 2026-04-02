@@ -1,7 +1,9 @@
 using Application.Helpers;
 using Application.Interfaces.Repositories;
 using Domain.Entities.ProjectEntities;
+using Domain.Enums.RelationShip;
 using MediatR;
+using Microsoft.EntityFrameworkCore;
 using server.Application.Interfaces;
 
 namespace Application.Features.ViewFeatures.CreateView;
@@ -14,8 +16,17 @@ public class CreateViewHandler : BaseFeatureHandler, IRequestHandler<CreateViewC
 
     public async Task<Guid> Handle(CreateViewCommand request, CancellationToken cancellationToken)
     {
-        // Ownership/Existence check
-        await GetLayer(request.LayerId, request.LayerType);
+        // 1. Layer Existence Validation
+        var layerExists = request.LayerType switch
+        {
+            EntityLayerType.ProjectWorkspace => await UnitOfWork.Set<ProjectWorkspace>().AnyAsync(x => x.Id == request.LayerId, cancellationToken),
+            EntityLayerType.ProjectSpace => await UnitOfWork.Set<ProjectSpace>().AnyAsync(x => x.Id == request.LayerId, cancellationToken),
+            EntityLayerType.ProjectFolder => await UnitOfWork.Set<ProjectFolder>().AnyAsync(x => x.Id == request.LayerId, cancellationToken),
+            EntityLayerType.ChatRoom => await UnitOfWork.Set<ChatRoom>().AnyAsync(x => x.Id == request.LayerId, cancellationToken),
+            _ => false
+        };
+
+        if (!layerExists) throw new KeyNotFoundException($"{request.LayerType} {request.LayerId} not found");
 
         var view = ViewDefinition.Create(
             request.LayerId, 

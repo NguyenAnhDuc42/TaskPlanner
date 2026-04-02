@@ -11,6 +11,7 @@ public record UpdateFolderCommand(
     string? Color,
     string? Icon,
     bool? IsPrivate,
-    bool? InheritStatus
+    DateTimeOffset? StartDate = null,
+    DateTimeOffset? DueDate = null
 ) : ICommand<Unit>;
 

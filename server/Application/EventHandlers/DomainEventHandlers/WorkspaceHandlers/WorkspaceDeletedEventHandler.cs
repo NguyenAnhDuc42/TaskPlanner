@@ -35,12 +35,7 @@ public class WorkspaceDeletedEventHandler : INotificationHandler<WorkspaceDelete
             .Select(f => f.Id)
             .ToListAsync(cancellationToken);
 
-        var listIds = await _unitOfWork.Set<ProjectList>()
-            .Where(l => l.ProjectFolderId != null && folderIds.Contains(l.ProjectFolderId.Value) && spaceIds.Contains(l.ProjectSpaceId))
-            .Select(l => l.Id)
-            .ToListAsync(cancellationToken);
-
-        var allEntityIds = spaceIds.Concat(folderIds).Concat(listIds).ToList();
+        var allEntityIds = spaceIds.Concat(folderIds).ToList();
 
         // 1. Clean up EntityAccess for nested entities
         if (allEntityIds.Any())
@@ -54,13 +49,9 @@ public class WorkspaceDeletedEventHandler : INotificationHandler<WorkspaceDelete
              _logger.LogInformation("Soft-deleted {EntityAccessCount} EntityAccess records for workspace {WorkspaceId}", accessDeletedCount, evt.WorkspaceId);
         }
 
-        // 2. Clean up Statuses (both Workspace-level and Entity-level)
-        // Combine WorkspaceId with allEntityIds for status cleanup
-        var allLayersForStatus = new List<Guid> { evt.WorkspaceId };
-        allLayersForStatus.AddRange(allEntityIds);
-
+        // 2. Clean up Statuses (Linked via Workflow -> Space)
         var statusesDeletedCount = await _unitOfWork.Set<Status>()
-            .Where(s => s.LayerId.HasValue && allLayersForStatus.Contains(s.LayerId.Value) && s.DeletedAt == null)
+            .Where(s => _unitOfWork.Set<Workflow>().Any(w => w.Id == s.WorkflowId && spaceIds.Contains(w.ProjectSpaceId)) && s.DeletedAt == null)
             .ExecuteUpdateAsync(updates =>
                 updates.SetProperty(e => e.DeletedAt, DateTimeOffset.UtcNow)
                        .SetProperty(e => e.UpdatedAt, DateTimeOffset.UtcNow),

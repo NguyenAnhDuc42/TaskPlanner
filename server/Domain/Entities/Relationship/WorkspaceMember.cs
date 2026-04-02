@@ -12,7 +12,7 @@ public class WorkspaceMember : Entity
     public Guid UserId { get; private set; }
     public virtual User User { get; private set; } = null!;
     public Guid ProjectWorkspaceId { get; private set; }
-    public Role Role { get; private set; } // Only here
+    public Role Role { get; private set; }
     public MembershipStatus Status { get; private set; } // Pending, Active, Invited, Suspended
     public bool IsPinned { get; private set; }
     public DateTimeOffset? JoinedAt { get; private set; }
@@ -32,11 +32,12 @@ public class WorkspaceMember : Entity
         JoinedAt = status == MembershipStatus.Active ? DateTimeOffset.UtcNow : null;
         JoinMethod = joinMethod;
     }
+
     public static WorkspaceMember Create(Guid userId, Guid workspaceId, Role role, MembershipStatus status, Guid createdBy, string? joinMethod)
       => new(userId, workspaceId, role, status, createdBy, joinMethod);
+
     public static WorkspaceMember CreateOwner(Guid userId, Guid projectWorkspaceId, Guid createdBy)
         => new(userId, projectWorkspaceId, Role.Owner, MembershipStatus.Active, createdBy, "Created");
-  
 
     public static List<WorkspaceMember> AddBulk(List<(Guid UserId, Role Role, MembershipStatus Status, string? JoinMethod)> memberSpecs, Guid projectWorkspaceId, Guid createdBy)
     {
@@ -56,21 +57,20 @@ public class WorkspaceMember : Entity
         Status = MembershipStatus.Active;
         JoinedAt = DateTimeOffset.UtcNow;
     }
+
     public void SuspendMembership(Guid suspenderId)
     {
         Status = MembershipStatus.Suspended;
         SuspendedAt = DateTimeOffset.UtcNow;
         SuspendedBy = suspenderId;
     }
+
     public void UpdateStatus(MembershipStatus newStatus) => Status = newStatus;
+
     public void UpdateRole(Role newRole)
     {
-        var oldRole = Role;
         Role = newRole;
-        if (oldRole != newRole)
-        {
-            AddDomainEvent(new WorkspaceMemberRoleChangedEvent(UserId, ProjectWorkspaceId, oldRole, newRole));
-        }
+        UpdateTimestamp();
     }
 
     public void UpdateMembershipDetails(Role? newRole, MembershipStatus? newStatus)
@@ -91,7 +91,6 @@ public class WorkspaceMember : Entity
         DeletedAt = null;
         Status = MembershipStatus.Active;
         JoinedAt = DateTimeOffset.UtcNow;
-        AddDomainEvent(new WorkspaceMembersAddedBulkEvent(ProjectWorkspaceId, new[] { new AddedMemberRecord(UserId, Role) }));
     }
 
     public void SetPinned(bool isPinned)
@@ -125,6 +124,5 @@ public class WorkspaceMember : Entity
         DeletedAt = null;
         JoinByCode(strictJoin);
     }
-
 }
 

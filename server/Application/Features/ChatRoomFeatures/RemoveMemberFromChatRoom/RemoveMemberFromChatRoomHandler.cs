@@ -16,7 +16,8 @@ public class RemoveMemberFromChatRoomHandler : BaseFeatureHandler, IRequestHandl
 
     public async Task<Unit> Handle(RemoveMembersFromChatRoomCommand request, CancellationToken cancellationToken)
     {
-        var chatRoom = await FindOrThrowAsync<ChatRoom>(request.chatRoomId);
+        var chatRoom = await UnitOfWork.Set<ChatRoom>().FindAsync(request.chatRoomId, cancellationToken);
+        if (chatRoom == null) throw new KeyNotFoundException($"ChatRoom {request.chatRoomId} not found");
         
         var membersToRemove = await UnitOfWork.Set<ChatRoomMember>()
             .Where(x => x.ChatRoomId == chatRoom.Id && request.memberIds.Contains(x.UserId))

@@ -25,36 +25,6 @@ public abstract class BaseFeatureHandler
         CurrentUserService = currentUserService ?? throw new ArgumentNullException(nameof(currentUserService));
         WorkspaceContext = workspaceContext ?? throw new ArgumentNullException(nameof(workspaceContext));
     }
-
-    protected async Task<Entity> GetLayer(Guid layerId, EntityLayerType layerType)
-    {
-        return layerType switch
-        {
-            EntityLayerType.ProjectWorkspace =>
-                await FindOrThrowAsync<ProjectWorkspace>(layerId),
-
-            EntityLayerType.ProjectSpace =>
-                await FindOrThrowAsync<ProjectSpace>(layerId),
-
-            EntityLayerType.ProjectFolder =>
-                await FindOrThrowAsync<ProjectFolder>(layerId),
-
-            EntityLayerType.ProjectList =>
-                await FindOrThrowAsync<ProjectList>(layerId),
-
-            _ => throw new ArgumentOutOfRangeException(nameof(layerType))
-        };
-    }
-
-    protected async Task<T> FindOrThrowAsync<T>(Guid id)
-    where T : Entity
-    {
-        var entity = await UnitOfWork.Set<T>()
-            .FindAsync(id);
-
-        return entity ?? throw new KeyNotFoundException($"Layer not found: {typeof(T).Name}:{id}");
-    }
-
     /// <summary>
     /// Finds the "Effective Access Layer" for an entity by walking up the hierarchy (Bubble-up).
     /// Returns the LayerId and LayerType of the first Private parent it finds, or the Workspace if all are public.
@@ -66,8 +36,6 @@ public abstract class BaseFeatureHandler
                 -- Starting Layer
                 SELECT id, entity_type, parent_id, is_private, 1 AS level
                 FROM (
-                    SELECT l.id, 'ProjectList' AS entity_type, COALESCE(l.project_folder_id, l.project_space_id) AS parent_id, l.is_private FROM project_lists l WHERE l.id = @EntityId AND @EntityType = 'ProjectList'
-                    UNION ALL
                     SELECT f.id, 'ProjectFolder' AS entity_type, f.project_space_id AS parent_id, f.is_private FROM project_folders f WHERE f.id = @EntityId AND @EntityType = 'ProjectFolder'
                     UNION ALL
                     SELECT s.id, 'ProjectSpace' AS entity_type, s.project_workspace_id AS parent_id, s.is_private FROM project_spaces s WHERE s.id = @EntityId AND @EntityType = 'ProjectSpace'
@@ -166,8 +134,5 @@ public abstract class BaseFeatureHandler
         return members;
     }
 
-    protected IQueryable<T> QueryNoTracking<T>() where T : class
-    {
-        return UnitOfWork.Set<T>().AsNoTracking();
-    }
+
 }

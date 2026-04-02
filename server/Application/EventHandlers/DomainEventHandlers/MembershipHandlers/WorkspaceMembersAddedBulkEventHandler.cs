@@ -47,7 +47,7 @@ public class WorkspaceMembersAddedBulkEventHandler : INotificationHandler<Worksp
         var workspaceNotifyTask = _realtimeService.NotifyWorkspaceAsync(
             notification.WorkspaceId,
             "MembersUpdated",
-            new { members = notification.AddedMembers.Select(m => new { userId = m.UserId, role = m.Role }), action = "Added" },
+            new { members = notification.AddedMembers.Select(m => new { userId = m.UserId, role = m.Role.ToString() }), action = "Added" },
             cancellationToken);
 
         await Task.WhenAll(notificationTasks.Concat(new[] { workspaceNotifyTask }));

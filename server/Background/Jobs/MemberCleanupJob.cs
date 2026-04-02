@@ -51,25 +51,17 @@ public class MemberCleanupJob
             .Select(f => f.Id)
             .ToListAsync();
 
-        var listIds = await _context.ProjectLists
-            .AsNoTracking()
-            .Where(l => spaceIds.Contains(l.ProjectSpaceId))
-            .Select(l => l.Id)
-            .ToListAsync();
-
-        var allLayerIds = spaceIds.Concat(folderIds).Concat(listIds).ToList();
-
-        // Soft-delete EntityAccess for this user
+        // Soft-delete EntityAccess for this user in this workspace
         var entityAccessDeleted = await _context.EntityAccesses
-            .Where(ea => ea.WorkspaceMemberId == workspaceMemberId && allLayerIds.Contains(ea.EntityId) && ea.DeletedAt == null)
+            .Where(ea => ea.ProjectWorkspaceId == workspaceId && ea.WorkspaceMemberId == workspaceMemberId && ea.DeletedAt == null)
             .ExecuteUpdateAsync(s => s
                 .SetProperty(e => e.DeletedAt, DateTimeOffset.UtcNow)
                 .SetProperty(e => e.UpdatedAt, DateTimeOffset.UtcNow));
 
-        // Soft-delete TaskAssignments for this user
+        // Soft-delete TaskAssignments for this user in this workspace
         var taskIds = await _context.ProjectTasks
             .AsNoTracking()
-            .Where(t => listIds.Contains(t.ProjectListId))
+            .Where(t => t.ProjectWorkspaceId == workspaceId)
             .Select(t => t.Id)
             .ToListAsync();
 

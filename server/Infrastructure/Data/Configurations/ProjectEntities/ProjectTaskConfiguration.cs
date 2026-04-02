@@ -12,7 +12,10 @@ public class ProjectTaskConfiguration : EntityConfiguration<ProjectTask>
 
         builder.ToTable("project_tasks");
 
-        builder.Property(x => x.ProjectListId).HasColumnName("project_list_id").IsRequired();
+        builder.Property(x => x.ProjectWorkspaceId).HasColumnName("project_workspace_id").IsRequired();
+        builder.Property(x => x.ProjectSpaceId).HasColumnName("project_space_id");
+        builder.Property(x => x.ProjectFolderId).HasColumnName("project_folder_id");
+        
         builder.Property(x => x.Name).HasColumnName("name").HasMaxLength(300).IsRequired();
         builder.Property(x => x.Description).HasColumnName("description").HasMaxLength(4000);
         builder.Property(x => x.StatusId).HasColumnName("status_id");
@@ -30,14 +33,10 @@ public class ProjectTaskConfiguration : EntityConfiguration<ProjectTask>
             cb.Property(p => p.Icon).HasColumnName("custom_icon").HasMaxLength(128).IsRequired();
         });
 
-        builder.HasIndex(x => x.ProjectListId);
-        builder.HasIndex(x => new { x.ProjectListId, x.StatusId });
-        builder.HasIndex(x => new { x.ProjectListId, x.OrderKey });
+        builder.HasIndex(x => x.ProjectWorkspaceId);
+        builder.HasIndex(x => x.ProjectSpaceId);
+        builder.HasIndex(x => x.ProjectFolderId);
+        builder.HasIndex(x => new { x.ProjectSpaceId, x.StatusId });
         builder.HasIndex(x => x.DueDate);
-
-        // builder.HasOne<ProjectList>()
-        //     .WithMany()
-        //     .HasForeignKey(x => x.ProjectListId)
-        //     .OnDelete(DeleteBehavior.Cascade);
     }
 }

@@ -14,7 +14,6 @@ public class ChatRoomMember : Composite
     public bool IsBanned { get; private set; } = false;
     public DateTimeOffset? BannedAt { get; private set; }
     public Guid? BannedBy { get; private set; }
-    public bool NotificationsEnabled { get; private set; } = true;
     public ChatRoom? ChatRoom { get; private set; }
 
     private ChatRoomMember() { }
@@ -86,11 +85,7 @@ public class ChatRoomMember : Composite
         Role = ChatRoomRole.Member;
         UpdateTimestamp();
     }
-    public void TurnOffNotifications()
-    {
-        NotificationsEnabled = false;
-        UpdateTimestamp();
-    }
+
 
     public bool IsActive => !IsBanned && (MuteEndTime == null || MuteEndTime <= DateTimeOffset.UtcNow);
 }

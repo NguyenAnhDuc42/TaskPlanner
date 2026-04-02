@@ -1,4 +1,4 @@
-﻿using Domain.Common;
+using Domain.Common;
 using Domain.Entities.ProjectEntities;
 using Domain.Enums;
 namespace Infrastructure.Services;
@@ -11,7 +11,6 @@ public static class EntityTypeMapper
             nameof(ProjectWorkspace) => EntityType.ProjectWorkspace,
             nameof(ProjectSpace) => EntityType.ProjectSpace,
             nameof(ProjectFolder) => EntityType.ProjectFolder,
-            nameof(ProjectList) => EntityType.ProjectList,
             nameof(ProjectTask) => EntityType.ProjectTask,
             _ => throw new InvalidOperationException($"Unknown entity type: {typeof(TEntity).Name}")
         };

@@ -23,7 +23,8 @@ public class TransferOwnershipHandler : BaseFeatureHandler, IRequestHandler<Tran
     public async Task<Unit> Handle(TransferOwnershipCommand request, CancellationToken cancellationToken)
     {
         // 1. Fetch
-        var workspace = await FindOrThrowAsync<ProjectWorkspace>(request.WorkspaceId);
+        var workspace = await UnitOfWork.Set<ProjectWorkspace>().FindAsync(request.WorkspaceId, cancellationToken);
+        if (workspace == null) throw new KeyNotFoundException($"Workspace {request.WorkspaceId} not found");
 
         // Extra check: Only current owner can transfer ownership (Role.Owner)
         if (workspace.CreatorId != CurrentUserId)

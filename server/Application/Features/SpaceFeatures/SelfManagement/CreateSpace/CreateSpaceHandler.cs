@@ -19,7 +19,8 @@ public class CreateSpaceHandler : BaseFeatureHandler, IRequestHandler<CreateSpac
        
     public async Task<Guid> Handle(CreateSpaceCommand request, CancellationToken cancellationToken)
     {
-        var workspace = await FindOrThrowAsync<ProjectWorkspace>(request.workspaceId);
+        var workspace = await UnitOfWork.Set<ProjectWorkspace>().FindAsync(request.workspaceId, cancellationToken);
+        if (workspace == null) throw new KeyNotFoundException($"Workspace {request.workspaceId} not found");
         var customization = Customization.Create(request.color, request.icon);
         var orderKey = workspace.GetNextItemOrderAndIncrement();
         
@@ -29,7 +30,6 @@ public class CreateSpaceHandler : BaseFeatureHandler, IRequestHandler<CreateSpac
             description: request.description,
             customization: customization,
             isPrivate: request.isPrivate,
-            inheritStatus: false,
             creatorId: CurrentUserId,
             orderKey: orderKey
         );
@@ -37,13 +37,13 @@ public class CreateSpaceHandler : BaseFeatureHandler, IRequestHandler<CreateSpac
         await UnitOfWork.Set<ProjectSpace>().AddAsync(space, cancellationToken);
         
         // Initializing default statuses for Space
-        await StatusInitializer.InitDefaultStatuses(UnitOfWork, space.Id, EntityLayerType.ProjectSpace, CurrentUserId);
+        await StatusInitializer.InitDefaultStatuses(UnitOfWork, space.Id, CurrentUserId);
 
         // Create EntityAccess for owner if private
         if (request.isPrivate)
         {
             var memberId = await GetWorkspaceMemberId(CurrentUserId, cancellationToken);
-            var access = EntityAccess.Create(memberId, space.Id, EntityLayerType.ProjectSpace, AccessLevel.Manager, CurrentUserId);
+            var access = EntityAccess.Create(WorkspaceId, memberId, space.Id, EntityLayerType.ProjectSpace, AccessLevel.Manager, CurrentUserId);
             await UnitOfWork.Set<EntityAccess>().AddAsync(access, cancellationToken);
         }
         
@@ -55,7 +55,7 @@ public class CreateSpaceHandler : BaseFeatureHandler, IRequestHandler<CreateSpac
 
             var accessRecords = memberIds
                 .Where(id => id != currentMemberId) // Already handled if they were in the list
-                .Select(memberId => EntityAccess.Create(memberId, space.Id, EntityLayerType.ProjectSpace, AccessLevel.Editor, CurrentUserId));
+                .Select(memberId => EntityAccess.Create(WorkspaceId, memberId, space.Id, EntityLayerType.ProjectSpace, AccessLevel.Editor, CurrentUserId));
 
             await UnitOfWork.Set<EntityAccess>().AddRangeAsync(accessRecords, cancellationToken);
         }

@@ -16,7 +16,8 @@ public class UpdateSpaceHandler : BaseFeatureHandler, IRequestHandler<UpdateSpac
 
     public async Task<Unit> Handle(UpdateSpaceCommand request, CancellationToken cancellationToken)
     {
-        var space = await FindOrThrowAsync<ProjectSpace>(request.SpaceId);
+        var space = await UnitOfWork.Set<ProjectSpace>().FindAsync(request.SpaceId, cancellationToken);
+        if (space == null) throw new KeyNotFoundException($"Space {request.SpaceId} not found");
         if (request.Name is not null) space.UpdateName(request.Name);
         if (request.Description is not null) space.UpdateDescription(request.Description);
         if (request.Color is not null) space.UpdateColor(request.Color);
@@ -38,6 +39,7 @@ public class UpdateSpaceHandler : BaseFeatureHandler, IRequestHandler<UpdateSpac
     {
         var ownerAccess = await UnitOfWork.Set<EntityAccess>()
             .Where(ea =>
+                ea.ProjectWorkspaceId == WorkspaceId &&
                 ea.EntityId == spaceId &&
                 ea.EntityLayer == EntityLayerType.ProjectSpace &&
                 ea.WorkspaceMemberId == ownerWorkspaceMemberId &&
@@ -47,6 +49,7 @@ public class UpdateSpaceHandler : BaseFeatureHandler, IRequestHandler<UpdateSpac
         if (ownerAccess is null)
         {
             var newOwnerAccess = EntityAccess.Create(
+                WorkspaceId,
                 ownerWorkspaceMemberId,
                 spaceId,
                 EntityLayerType.ProjectSpace,

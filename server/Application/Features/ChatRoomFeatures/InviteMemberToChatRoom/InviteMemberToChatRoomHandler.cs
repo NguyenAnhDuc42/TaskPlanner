@@ -16,7 +16,8 @@ public class InviteMemberToChatRoomHandler : BaseFeatureHandler, IRequestHandler
 
     public async Task<Unit> Handle(InviteMembersToChatRoomCommand request, CancellationToken cancellationToken)
     {
-        var chatRoom = await FindOrThrowAsync<ChatRoom>(request.chatRoomId);
+        var chatRoom = await UnitOfWork.Set<ChatRoom>().FindAsync(request.chatRoomId, cancellationToken);
+        if (chatRoom == null) throw new KeyNotFoundException($"ChatRoom {request.chatRoomId} not found");
         
         var chatRoomMembers = request.memberIds
             .Select(x => ChatRoomMember.AddMember(chatRoom.Id, x, CurrentUserId));

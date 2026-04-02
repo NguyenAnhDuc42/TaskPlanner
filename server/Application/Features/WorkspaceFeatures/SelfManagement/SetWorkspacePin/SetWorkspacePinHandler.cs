@@ -1,5 +1,5 @@
 using Application.Common.Exceptions;
-using Application.Features.WorkspaceFeatures.Logic;
+
 using Application.Helpers;
 using Application.Interfaces.Repositories;
 using Domain.Entities.Relationship;
@@ -15,7 +15,7 @@ namespace Application.Features.WorkspaceFeatures.SelfManagement.SetWorkspacePin;
 
 public class SetWorkspacePinHandler : BaseFeatureHandler, IRequestHandler<SetWorkspacePinCommand, Unit>
 {
-    private readonly WorkspacePermissionLogic _workspacePermissionLogic;
+
     private readonly HybridCache _cache;
     private readonly IRealtimeService _realtime;
 
@@ -23,21 +23,20 @@ public class SetWorkspacePinHandler : BaseFeatureHandler, IRequestHandler<SetWor
         IUnitOfWork unitOfWork,
         ICurrentUserService currentUserService,
         WorkspaceContext workspaceContext,
-        WorkspacePermissionLogic workspacePermissionLogic,
+
         HybridCache cache,
         IRealtimeService realtime)
         : base(unitOfWork, currentUserService, workspaceContext)
     {
         _cache = cache;
         _realtime = realtime;
-        _workspacePermissionLogic = workspacePermissionLogic;
+
     }
 
     public async Task<Unit> Handle(SetWorkspacePinCommand request, CancellationToken cancellationToken)
     {
         var currentUserId = CurrentUserId;
         
-        await ValidateRequest(request.WorkspaceId, currentUserId, cancellationToken);
         
         await UpdatePinStatus(request.WorkspaceId, request.IsPinned, currentUserId, cancellationToken);
         
@@ -48,14 +47,7 @@ public class SetWorkspacePinHandler : BaseFeatureHandler, IRequestHandler<SetWor
         return Unit.Value;
     }
 
-    private async Task ValidateRequest(Guid workspaceId, Guid userId, CancellationToken ct)
-    {
-        var snapshot = await _workspacePermissionLogic.GetSnapshot(workspaceId, userId, ct);
-        if (!snapshot.CanViewHierarchy)
-        {
-            throw new ForbiddenAccessException("You do not have permission to pin this workspace.");
-        }
-    }
+
 
     private async Task UpdatePinStatus(Guid workspaceId, bool isPinned, Guid userId, CancellationToken ct)
     {

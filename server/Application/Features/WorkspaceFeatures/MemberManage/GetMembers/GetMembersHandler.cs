@@ -3,7 +3,7 @@ using Application.Common;
 using Application.Common.Filters;
 using Application.Common.Results;
 using Application.Contract.UserContract;
-using Application.Features.WorkspaceFeatures.Logic;
+
 using Application.Helper;
 using Application.Helpers;
 using Application.Interfaces.Repositories;
@@ -19,7 +19,7 @@ public class GetMembersHandler : BaseFeatureHandler, IRequestHandler<GetMembersQ
 {
     private readonly CursorHelper _cursorHelper;
     private readonly HybridCache _cache;
-    private readonly WorkspacePermissionLogic _workspacePermissionLogic;
+
     private readonly ILogger<GetMembersHandler> _logger;
 
     public GetMembersHandler(
@@ -28,22 +28,18 @@ public class GetMembersHandler : BaseFeatureHandler, IRequestHandler<GetMembersQ
         WorkspaceContext workspaceContext,
         CursorHelper cursorHelper,
         HybridCache cache,
-        WorkspacePermissionLogic workspacePermissionLogic,
+
         ILogger<GetMembersHandler> logger)
         : base(unitOfWork, currentUserService, workspaceContext)
     {
         _cursorHelper = cursorHelper;
         _cache = cache;
-        _workspacePermissionLogic = workspacePermissionLogic;
+
         _logger = logger;
     }
 
     public async Task<PagedResult<MemberDto>> Handle(GetMembersQuery request, CancellationToken cancellationToken)
     {
-        await _workspacePermissionLogic.EnsureCanManageMembers(
-            request.WorkspaceId,
-            CurrentUserId,
-            cancellationToken);
 
         var workspaceId = request.WorkspaceId;
         var cacheKey = WorkspaceCacheKeys.MemberList(workspaceId, request);

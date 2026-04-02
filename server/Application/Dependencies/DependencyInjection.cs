@@ -6,7 +6,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Application.Helper;
 using Application.Helpers;
-using Application.Features.ViewFeatures.Logic;
+using Application.Features.ViewFeatures.FeatureHelpers;
 namespace Application.Dependencies;
 
 public static class DependencyInjection

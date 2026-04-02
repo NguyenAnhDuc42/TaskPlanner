@@ -30,31 +30,28 @@ public class CreateWorkspaceEventHandler : INotificationHandler<CreatedWorkspace
         var dashboard = Dashboard.CreateWorkspaceDashboard(notification.workspaceId, notification.userId, "Overview", isMain: true);
         await _unitOfWork.Set<Dashboard>().AddAsync(dashboard, cancellationToken);
 
-        // 3. Create Default Statuses
-        var todoStatus = Status.Create(notification.workspaceId, Domain.Enums.RelationShip.EntityLayerType.ProjectWorkspace, 
-            "To Do", "#87909e", Domain.Enums.StatusCategory.NotStarted, notification.userId);
-        
-        var inProgressStatus = Status.Create(notification.workspaceId, Domain.Enums.RelationShip.EntityLayerType.ProjectWorkspace, 
-            "In Progress", "#337ea9", Domain.Enums.StatusCategory.Active, notification.userId);
-        
-        var doneStatus = Status.Create(notification.workspaceId, Domain.Enums.RelationShip.EntityLayerType.ProjectWorkspace, 
-            "Done", "#209955", Domain.Enums.StatusCategory.Done, notification.userId);
-        doneStatus.SetDefault(true);
-
-        await _unitOfWork.Set<Status>().AddRangeAsync(new[] { todoStatus, inProgressStatus, doneStatus }, cancellationToken);
-
-        // 4. Create Example Space
+        // 3. Create Example Space
         var exampleSpace = ProjectSpace.Create(
             notification.workspaceId,
             "Welcome Space",
             "This is your first space. You can add more spaces, folders, and lists to organize your work.",
             null, // default customization
             isPrivate: true,
-            inheritStatus: true,
             creatorId: notification.userId,
             orderKey: 10_000_000
         );
         await _unitOfWork.Set<ProjectSpace>().AddAsync(exampleSpace, cancellationToken);
+
+        // 4. Create Main Workflow for the Space
+        var mainWorkflow = Workflow.Create(
+            exampleSpace.Id, 
+            "Standard Workflow", 
+            "The primary task pipeline for this space.", 
+            notification.userId);
+        await _unitOfWork.Set<Workflow>().AddAsync(mainWorkflow, cancellationToken);
+
+        // 5. Create Default Statuses linked to the Workflow
+        var defaultStatuses = Status.CreateDefaultStatuses(mainWorkflow.Id, notification.userId);
+        await _unitOfWork.Set<Status>().AddRangeAsync(defaultStatuses, cancellationToken);
     }
 }
-

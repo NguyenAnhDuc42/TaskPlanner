@@ -14,7 +14,8 @@ public class DeleteChatRoomHandler : BaseFeatureHandler, IRequestHandler<DeleteC
 
     public async Task<Unit> Handle(DeleteChatRoomCommand request, CancellationToken cancellationToken)
     {
-        var chatRoom = await FindOrThrowAsync<ChatRoom>(request.ChatRoomId);
+        var chatRoom = await UnitOfWork.Set<ChatRoom>().FindAsync(request.ChatRoomId, cancellationToken);
+        if (chatRoom == null) throw new KeyNotFoundException($"ChatRoom {request.ChatRoomId} not found");
         chatRoom.SoftDelete();
         UnitOfWork.Set<ChatRoom>().Update(chatRoom);
         return Unit.Value;

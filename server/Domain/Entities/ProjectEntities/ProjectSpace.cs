@@ -11,14 +11,13 @@ public sealed class ProjectSpace : Entity
     public Customization Customization { get; private set; } = Customization.CreateDefault();
     public bool IsPrivate { get; private set; } = true;
     public bool IsArchived { get; private set; }
-    public bool InheritStatus { get; private set; } = false;
     public long OrderKey { get; private set; }
 
     public long NextItemOrder { get; private set; }
 
     private ProjectSpace() { }
 
-    private ProjectSpace(Guid id, Guid projectWorkspaceId, string name, string? description, Customization customization, bool isPrivate, bool inheritStatus, Guid creatorId, long orderKey, long nextItemOrder)
+    private ProjectSpace(Guid id, Guid projectWorkspaceId, string name, string? description, Customization customization, bool isPrivate, Guid creatorId, long orderKey, long nextItemOrder)
     {
         Id = id;
         ProjectWorkspaceId = projectWorkspaceId;
@@ -26,18 +25,17 @@ public sealed class ProjectSpace : Entity
         Description = string.IsNullOrWhiteSpace(description) ? null : description;
         Customization = customization ?? Customization.CreateDefault();
         IsPrivate = isPrivate;
-        InheritStatus = inheritStatus;
         CreatorId = creatorId;
         OrderKey = orderKey;
         IsArchived = false;
         NextItemOrder = nextItemOrder;
     }
 
-    public static ProjectSpace Create(Guid projectWorkspaceId, string name, string? description, Customization? customization, bool isPrivate, bool inheritStatus, Guid creatorId, long orderKey)
+    public static ProjectSpace Create(Guid projectWorkspaceId, string name, string? description, Customization? customization, bool isPrivate, Guid creatorId, long orderKey)
     {
         if (creatorId == Guid.Empty) throw new ArgumentException("CreatorId cannot be empty.", nameof(creatorId));
         return new ProjectSpace(Guid.NewGuid(), projectWorkspaceId, name?.Trim() ?? throw new ArgumentNullException(nameof(name)),
-            string.IsNullOrWhiteSpace(description) ? null : description?.Trim(), customization ?? Customization.CreateDefault(), isPrivate, inheritStatus, creatorId, orderKey, 10_000_000L);
+            string.IsNullOrWhiteSpace(description) ? null : description?.Trim(), customization ?? Customization.CreateDefault(), isPrivate, creatorId, orderKey, 10_000_000L);
     }
 
     public long GetNextItemOrderAndIncrement()
@@ -108,13 +106,6 @@ public sealed class ProjectSpace : Entity
     {
         if (OrderKey == orderKey) return;
         OrderKey = orderKey;
-        UpdateTimestamp();
-    }
-
-    public void UpdateInheritStatus(bool inheritStatus)
-    {
-        if (InheritStatus == inheritStatus) return;
-        InheritStatus = inheritStatus;
         UpdateTimestamp();
     }
 

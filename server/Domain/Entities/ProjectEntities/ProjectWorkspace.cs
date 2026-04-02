@@ -48,7 +48,8 @@ public sealed class ProjectWorkspace : Entity
         string.IsNullOrWhiteSpace(description) ? null : description?.Trim(),
         string.IsNullOrWhiteSpace(joinCode) ? Guid.NewGuid().ToString("N")[..8].ToUpperInvariant() : joinCode.Trim(),
         customization ?? Customization.CreateDefault(), theme, variant, strictJoin, creatorId, 10_000_000L);
-        workspace.AddMember(creatorId, Role.Owner, MembershipStatus.Active, creatorId, null);
+        
+        workspace.AddMember(creatorId, Role.Owner, MembershipStatus.Active, creatorId, "Created");
         workspace.AddDomainEvent(new Domain.Events.Workspace.CreatedWorkspaceEvent(creatorId, workspace.Id));
         return workspace;
     }

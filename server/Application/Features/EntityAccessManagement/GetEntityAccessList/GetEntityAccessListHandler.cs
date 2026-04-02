@@ -18,12 +18,23 @@ public class GetEntityAccessListHandler : BaseFeatureHandler, IRequestHandler<Ge
     {
         var (resolvedId, resolvedType) = await GetEffectiveAccessLayer(request.LayerId, request.LayerType);
         var isInheritedFromParent = resolvedId != request.LayerId || resolvedType != request.LayerType;
-        var layer = await GetLayer(request.LayerId, request.LayerType);
-        var creatorId = layer.CreatorId;
+
+        // Resolve creator ID for the layer for "Creator" badge
+        Guid? creatorId = request.LayerType switch
+        {
+            EntityLayerType.ProjectWorkspace => await UnitOfWork.Set<ProjectWorkspace>().Where(x => x.Id == request.LayerId).Select(x => x.CreatorId).FirstOrDefaultAsync(cancellationToken),
+            EntityLayerType.ProjectSpace => await UnitOfWork.Set<ProjectSpace>().Where(x => x.Id == request.LayerId).Select(x => x.CreatorId).FirstOrDefaultAsync(cancellationToken),
+            EntityLayerType.ProjectFolder => await UnitOfWork.Set<ProjectFolder>().Where(x => x.Id == request.LayerId).Select(x => x.CreatorId).FirstOrDefaultAsync(cancellationToken),
+            EntityLayerType.ChatRoom => await UnitOfWork.Set<ChatRoom>().Where(x => x.Id == request.LayerId).Select(x => x.CreatorId).FirstOrDefaultAsync(cancellationToken),
+            _ => null
+        };
 
         var explicitAccess = await UnitOfWork.Set<EntityAccess>()
             .AsNoTracking()
-            .Where(ea => ea.EntityId == resolvedId && ea.EntityLayer == resolvedType && ea.DeletedAt == null)
+            .Where(ea => ea.ProjectWorkspaceId == WorkspaceId 
+                      && ea.EntityId == resolvedId 
+                      && ea.EntityLayer == resolvedType 
+                      && ea.DeletedAt == null)
             .ToDictionaryAsync(ea => ea.WorkspaceMemberId, cancellationToken);
 
         if (request.IsManagementMode)
@@ -138,6 +149,7 @@ public class GetEntityAccessListHandler : BaseFeatureHandler, IRequestHandler<Ge
         return await UnitOfWork.Set<EntityAccess>()
             .AsNoTracking()
             .Where(ea =>
+                ea.ProjectWorkspaceId == WorkspaceId &&
                 ea.EntityId == parentResolvedId &&
                 ea.EntityLayer == parentResolvedType &&
                 ea.DeletedAt == null)
@@ -157,28 +169,11 @@ public class GetEntityAccessListHandler : BaseFeatureHandler, IRequestHandler<Ge
 
             EntityLayerType.ProjectFolder => await ResolveFolderParent(layerId, cancellationToken),
 
-            EntityLayerType.ProjectList => await ResolveListParent(layerId, cancellationToken),
-
             _ => throw new ArgumentOutOfRangeException(nameof(layerType), layerType, "Unsupported layer type for parent resolution")
         };
     }
 
-    private async Task<(Guid Id, EntityLayerType Type)> ResolveListParent(Guid listId, CancellationToken cancellationToken)
-    {
-        var parent = await UnitOfWork.Set<ProjectList>()
-            .AsNoTracking()
-            .Where(l => l.Id == listId)
-            .Select(l => new { l.ProjectFolderId, l.ProjectSpaceId })
-            .FirstOrDefaultAsync(cancellationToken);
 
-        if (parent is null)
-            throw new KeyNotFoundException($"List not found: {listId}");
-
-        if (parent.ProjectFolderId.HasValue)
-            return (parent.ProjectFolderId.Value, EntityLayerType.ProjectFolder);
-
-        return (parent.ProjectSpaceId, EntityLayerType.ProjectSpace);
-    }
 
     private async Task<(Guid Id, EntityLayerType Type)> ResolveFolderParent(Guid folderId, CancellationToken cancellationToken)
     {

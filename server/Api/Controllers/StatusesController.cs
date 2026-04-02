@@ -17,13 +17,12 @@ public class StatusesController : ControllerBase
         _mediator = mediator;
     }
 
-    [HttpGet]
+    [HttpGet("workflow/{workflowId:guid}")]
     public async Task<IActionResult> GetStatuses(
-        [FromQuery] Guid layerId,
-        [FromQuery] EntityLayerType layerType,
+        Guid workflowId,
         CancellationToken cancellationToken)
     {
-        var query = new GetStatusListQuery(layerId, layerType);
+        var query = new GetStatusListQuery(workflowId);
         var result = await _mediator.Send(query, cancellationToken);
         return Ok(result);
     }

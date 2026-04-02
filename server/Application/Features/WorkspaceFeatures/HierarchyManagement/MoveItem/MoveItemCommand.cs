@@ -8,7 +8,7 @@ public enum ItemType
 {
     Space,
     Folder,
-    List
+    Task
 }
 
 public record class MoveItemCommand(

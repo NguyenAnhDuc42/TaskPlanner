@@ -16,15 +16,16 @@ public class DeleteFolderHandler : BaseFeatureHandler, IRequestHandler<DeleteFol
 
     public async Task<Unit> Handle(DeleteFolderCommand request, CancellationToken cancellationToken)
     {
-        var folder = await FindOrThrowAsync<ProjectFolder>(request.FolderId);
+        var folder = await UnitOfWork.Set<ProjectFolder>().FindAsync(request.FolderId, cancellationToken);
+        if (folder == null) throw new KeyNotFoundException($"Folder {request.FolderId} not found");
 
-        // Check if folder has child lists
-        var hasLists = await UnitOfWork.Set<ProjectList>()
-            .AnyAsync(l => l.ProjectFolderId == folder.Id && !l.IsArchived, cancellationToken);
+        // Check if folder has child tasks
+        var hasTasks = await UnitOfWork.Set<ProjectTask>()
+            .AnyAsync(t => t.ProjectFolderId == folder.Id && !t.IsArchived, cancellationToken);
 
-        if (hasLists)
+        if (hasTasks)
         {
-            throw new InvalidOperationException("Cannot delete folder that contains active lists. Archive or move the lists first.");
+            throw new InvalidOperationException("Cannot delete folder that contains active tasks. Archive or move the tasks first.");
         }
 
         folder.SoftDelete();

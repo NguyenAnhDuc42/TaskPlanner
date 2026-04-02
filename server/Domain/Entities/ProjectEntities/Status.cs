@@ -7,8 +7,7 @@ namespace Domain.Entities.ProjectEntities;
 
 public class Status : Entity
 {
-    public Guid? LayerId { get; private set; }
-    public EntityLayerType LayerType { get; private set; }
+    public Guid WorkflowId { get; private set; }
     public string Name { get; private set; } = null!;
     public string Color { get; private set; } = null!;
     public StatusCategory Category { get; private set; }
@@ -16,33 +15,31 @@ public class Status : Entity
 
     private Status() { } // EF Core
 
-    private Status(Guid id, Guid? layerId, EntityLayerType layerType, string name, string color, StatusCategory category, Guid creatorId)
+    private Status(Guid id, Guid workflowId, string name, string color, StatusCategory category, Guid creatorId)
         : base(id)
     {
         if (string.IsNullOrWhiteSpace(name)) throw new ArgumentException("Status name cannot be empty.", nameof(name));
         if (string.IsNullOrWhiteSpace(color)) throw new ArgumentException("Status color cannot be empty.", nameof(color));
-        if (layerId == Guid.Empty) throw new ArgumentException(nameof(layerId));
-        if (!Enum.IsDefined(typeof(EntityLayerType), layerType)) throw new ArgumentException(nameof(layerType));
+        if (workflowId == Guid.Empty) throw new ArgumentException(nameof(workflowId));
 
         Name = name.Trim();
         Color = color.Trim();
         Category = category;
-        LayerId = layerId;
-        LayerType = layerType;
+        WorkflowId = workflowId;
         IsDefaultStatus = false;
         CreatorId = creatorId;
     }
 
-    public static Status Create(Guid layerId, EntityLayerType layerType, string name, string color, StatusCategory category, Guid creatorId)
-        => new Status(Guid.NewGuid(), layerId, layerType, name, color, category, creatorId);
+    public static Status Create(Guid workflowId, string name, string color, StatusCategory category, Guid creatorId)
+        => new Status(Guid.NewGuid(), workflowId, name, color, category, creatorId);
 
-    public static List<Status> CreateDefaultStatuses(Guid layerId, EntityLayerType layerType, Guid creatorId)
+    public static List<Status> CreateDefaultStatuses(Guid workflowId, Guid creatorId)
     {
         return new List<Status>
         {
-            new Status(Guid.NewGuid(), layerId, layerType, "To Do", "#808080", StatusCategory.NotStarted, creatorId),
-            new Status(Guid.NewGuid(), layerId, layerType, "In Progress", "#1e90ff", StatusCategory.Active, creatorId),
-            new Status(Guid.NewGuid(), layerId, layerType, "Complete", "#008000", StatusCategory.Done, creatorId)
+            new Status(Guid.NewGuid(), workflowId, "To Do", "#808080", StatusCategory.NotStarted, creatorId),
+            new Status(Guid.NewGuid(), workflowId, "In Progress", "#1e90ff", StatusCategory.Active, creatorId),
+            new Status(Guid.NewGuid(), workflowId, "Complete", "#008000", StatusCategory.Done, creatorId)
         };
     }
 
@@ -66,11 +63,10 @@ public class Status : Entity
         UpdateTimestamp();
     }
 
-    public void SetLayer(Guid layerId, EntityLayerType layerType)
+    public void SetWorkflow(Guid workflowId)
     {
-        if (LayerId == layerId && LayerType == layerType) return;
-        LayerId = layerId;
-        LayerType = layerType;
+        if (WorkflowId == workflowId) return;
+        WorkflowId = workflowId;
         UpdateTimestamp();
     }
 }

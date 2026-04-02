@@ -1,17 +1,13 @@
 using Application.Interfaces;
 using Application.Interfaces.Repositories;
 using Application.Interfaces.Services;
-using Application.Interfaces.Services.Permissions;
-using Application.Helpers.Permission;
-using Application.Features.WorkspaceFeatures.Logic;
 using Infrastructure.Auth;
 using Infrastructure.Data;
 using Infrastructure.Services;
-using Infrastructure.Services.Permissions;
 using Microsoft.Extensions.DependencyInjection;
 using server.Application.Interfaces;
 using System;
-using Application.Features.ViewFeatures.Logic;
+using Application.Features.ViewFeatures.FeatureHelpers;
 
 namespace Infrastructure.Dependencies.Registrations;
 
@@ -26,14 +22,6 @@ public static class ServicesRegistration
         services.AddScoped<ITokenService, TokenService>();
         services.AddScoped<IRealtimeService, SignalRRealtimeService>();
         services.AddTransient<IExternalAuthService, ExternalAuthService>();
-
-        // New Permission System
-        services.AddScoped<IPermissionProvider, PermissionProvider>();
-        services.AddScoped<PermissionResolver>();
-        services.AddScoped<IEntityHierarchyProvider, EntityHierarchyProvider>();
-        services.AddScoped<IAccessGrantService, AccessGrantService>();
-        services.AddScoped<WorkspacePermissionLogic>();
-        services.AddScoped<IStatusResolver, StatusResolver>();
 
         services.AddHttpContextAccessor();
 

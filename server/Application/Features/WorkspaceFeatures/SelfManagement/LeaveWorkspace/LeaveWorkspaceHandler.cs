@@ -23,7 +23,8 @@ public class LeaveWorkspaceHandler : BaseFeatureHandler, IRequestHandler<LeaveWo
 
     public async Task<Unit> Handle(LeaveWorkspaceCommand request, CancellationToken cancellationToken)
     {
-        var workspace = await FindOrThrowAsync<ProjectWorkspace>(request.WorkspaceId);
+        var workspace = await UnitOfWork.Set<ProjectWorkspace>().FindAsync(request.WorkspaceId, cancellationToken);
+        if (workspace == null) throw new KeyNotFoundException($"Workspace {request.WorkspaceId} not found");
 
         // Check if user is a member
         var isMember = await UnitOfWork.Set<WorkspaceMember>()

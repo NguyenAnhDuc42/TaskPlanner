@@ -9,5 +9,7 @@ public record class CreateFolderCommand(
     string color,
     string icon,
     bool isPrivate,
+    DateTimeOffset? startDate = null,
+    DateTimeOffset? dueDate = null,
     List<Guid>? memberIdsToInvite = null
 ) : ICommand<Guid>;

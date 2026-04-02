@@ -1,5 +1,4 @@
 using Application.Interfaces.Repositories;
-using Application.Interfaces;
 using Domain.Entities.ProjectEntities;
 using MediatR;
 using server.Application.Interfaces;
@@ -10,38 +9,29 @@ namespace Application.Features.StatusManagement.SyncStatuses;
 
 public class SyncStatusesHandler : BaseFeatureHandler, IRequestHandler<SyncStatusesCommand, Unit>
 {
-    private readonly IStatusResolver _statusResolver;
-
     public SyncStatusesHandler(
         IUnitOfWork unitOfWork,
         ICurrentUserService currentUserService,
-        WorkspaceContext workspaceContext,
-        IStatusResolver statusResolver)
-        : base(unitOfWork, currentUserService, workspaceContext)
-    {
-        _statusResolver = statusResolver;
-    }
+        WorkspaceContext workspaceContext)
+        : base(unitOfWork, currentUserService, workspaceContext) { }
 
     public async Task<Unit> Handle(SyncStatusesCommand request, CancellationToken cancellationToken)
     {
-        await GetLayer(request.LayerId, request.LayerType);
-        var (effectiveLayerId, effectiveLayerType) =
-            await _statusResolver.ResolveEffectiveLayer(request.LayerId, request.LayerType);
+        var workflow = await UnitOfWork.Set<Workflow>().FindAsync(request.WorkflowId, cancellationToken);
+        if (workflow == null) throw new KeyNotFoundException($"Workflow {request.WorkflowId} not found");
 
         var existingStatuses = await UnitOfWork.Set<Status>()
-            .Where(s => s.LayerId == effectiveLayerId && s.LayerType == effectiveLayerType)
+            .Where(s => s.WorkflowId == request.WorkflowId && s.DeletedAt == null)
             .ToListAsync(cancellationToken);
 
         foreach (var item in request.Statuses)
         {
             if (item.Id == null || item.Id == Guid.Empty)
             {
-                // Create new
                 if (item.IsDeleted) continue;
 
                 var newStatus = Status.Create(
-                    effectiveLayerId,
-                    effectiveLayerType,
+                    request.WorkflowId,
                     item.Name,
                     item.Color,
                     item.Category,
@@ -51,7 +41,6 @@ public class SyncStatusesHandler : BaseFeatureHandler, IRequestHandler<SyncStatu
             }
             else
             {
-                // Find existing
                 var status = existingStatuses.FirstOrDefault(s => s.Id == item.Id);
                 if (status == null) continue;
 
@@ -65,9 +54,6 @@ public class SyncStatusesHandler : BaseFeatureHandler, IRequestHandler<SyncStatu
                 }
             }
         }
-
-        // Optional: Reconcile statuses not in the request (if we want "Complete Overwrite" behavior)
-        // For now, explicit IsDeleted is safer for the UI flow.
 
         return Unit.Value;
     }

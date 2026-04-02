@@ -1,8 +1,6 @@
 using Application.Common.Interfaces;
-using System;
 using Domain.Enums;
 using MediatR;
-using Domain.Enums.RelationShip;
 
 namespace Application.Features.StatusManagement.SyncStatuses;
 
@@ -14,6 +12,5 @@ public record StatusSyncItem(
     bool IsDeleted = false);
 
 public record SyncStatusesCommand(
-    Guid LayerId, 
-    EntityLayerType LayerType, 
+    Guid WorkflowId, 
     List<StatusSyncItem> Statuses) : ICommand<Unit>;

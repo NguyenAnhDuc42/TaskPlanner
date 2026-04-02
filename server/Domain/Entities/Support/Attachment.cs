@@ -1,74 +1,115 @@
 using Domain.Common;
+using Domain.Entities.Support.ValueObject;
 using Domain.Enums;
-
-namespace Domain.Entities.Support;
 
 public class Attachment : Entity
 {
-    public string ContentId { get; private set; } = "";        // "sha256:..." or object key
-    public StorageProvider StorageProvider { get; private set; }   // e.g., "S3", "GCS", "Local" - minimal string to avoid enum coupling
-    public string StoragePath { get; private set; } = "";        // bucket/key or logical path (not required for domain but convenient)
+    // Storage Info
+    public string StorageKey { get; private set; } = "";
+    public StorageProvider StorageProvider { get; private set; }
+    public string StoragePath { get; private set; } = "";
 
-    // Visible metadata
+    // Metadata
     public string FileName { get; private set; } = "";
-    public string ContentType { get; private set; } = ""; // mime type
+    public string ContentType { get; private set; } = "";
+    public AttachmentType Type { get; private set; }
     public long SizeBytes { get; private set; }
+
+    // Integrity
     public string Checksum { get; private set; } = "";
     public string ChecksumAlgorithm { get; private set; } = "SHA256";
 
-    // Lifecycle & state
+    // State
     public AttachmentProcessingState ProcessingState { get; private set; }
     public bool IsPublic { get; private set; }
-    // Operational
-    public int LinkCount { get; private set; } = 0;       // gc/ref-count hint (keeps things simple)
-    public string CustomMetaJson { get; private set; } = "{}"; // exif, dims, thumbnails pointers
+
+    // Value Object
+    public AttachmentMetadata? Metadata { get; private set; }
+
     protected Attachment() { }
 
-    public static Attachment Create(
-        string contentId, StorageProvider storageProvider, string storagePath,
-        string fileName, string contentType, long sizeBytes, string checksum, Guid creatorId, bool isPublic = false, string? customMetaJson = null)
-    {
-        if (string.IsNullOrWhiteSpace(contentId)) throw new ArgumentException(nameof(contentId));
-        if (sizeBytes < 0) throw new ArgumentOutOfRangeException(nameof(sizeBytes));
+    // --- Explicit Factory Methods ---
 
+    public static Attachment CreateFile(string fileName, string contentType, long sizeBytes, string checksum, Guid creatorId, bool isPublic = false)
+    {
         return new Attachment
         {
-            Id = Guid.NewGuid(),
-            ContentId = contentId,
-            StorageProvider = storageProvider,
-            StoragePath = storagePath,
+            Type = AttachmentType.File,
             FileName = fileName,
             ContentType = contentType,
             SizeBytes = sizeBytes,
             Checksum = checksum,
-            ProcessingState = AttachmentProcessingState.Uploaded,
+            ProcessingState = AttachmentProcessingState.Uploading,
             IsPublic = isPublic,
-            CustomMetaJson = customMetaJson ?? "{}",
-            LinkCount = 0,
+            CreatorId = creatorId,
+            Metadata = new FileMetadata(Path.GetExtension(fileName))
+        };
+    }
+
+    public static Attachment CreateMedia(string fileName, string contentType, long sizeBytes, string checksum, Guid creatorId, bool isPublic = false)
+    {
+        return new Attachment
+        {
+            Type = AttachmentType.Media,
+            FileName = fileName,
+            ContentType = contentType,
+            SizeBytes = sizeBytes,
+            Checksum = checksum,
+            ProcessingState = AttachmentProcessingState.Uploading,
+            IsPublic = isPublic,
+            CreatorId = creatorId,
+            Metadata = new MediaMetaData(null, null, null)
+        };
+    }
+
+    public static Attachment CreateLink(string url, string? title, string? description, string? imageUrl, Guid creatorId, bool isPublic = false)
+    {
+        return new Attachment
+        {
+            Type = AttachmentType.Link,
+            FileName = title ?? url,
+            StoragePath = url,
+            ContentType = "text/uri-list",
+            ProcessingState = AttachmentProcessingState.Ready,
+            Metadata = new LinkMetadata(url, title, description, imageUrl),
+            IsPublic = isPublic,
             CreatorId = creatorId
         };
     }
 
-    // Behavior
-    public void MarkScanning() => ProcessingState = AttachmentProcessingState.Scanning;
-
-    public void MarkReady()
+    public static Attachment CreateEmbed(string embedUrl, string provider, string? title, Guid creatorId, bool isPublic = false)
     {
+        return new Attachment
+        {
+            Type = AttachmentType.Embed,
+            FileName = title ?? provider,
+            StoragePath = embedUrl,
+            ContentType = "text/html",
+            ProcessingState = AttachmentProcessingState.Ready,
+            Metadata = new EmbedMetadata(embedUrl, provider),
+            IsPublic = isPublic,
+            CreatorId = creatorId
+        };
+    }
+
+
+    // --- State Transitions ---
+
+    public void MarkReady(string storageKey, string storagePath, StorageProvider provider, AttachmentMetadata? finalMetadata = null)
+    {
+        if (ProcessingState != AttachmentProcessingState.Uploading)
+            throw new InvalidOperationException("Only uploading attachments can be marked ready.");
+
+        StorageKey = storageKey;
+        StoragePath = storagePath;
+        StorageProvider = provider;
         ProcessingState = AttachmentProcessingState.Ready;
-        // DomainEvents.Raise(new AttachmentReadyEvent(Id, ContentId, SizeBytes));
+
+        if (finalMetadata != null) Metadata = finalMetadata;
     }
 
-    public void IncrementLinkCount()
+    public void MarkFailed()
     {
-        LinkCount++;
+        ProcessingState = AttachmentProcessingState.Failed;
     }
-
-    public void DecrementLinkCount()
-    {
-        LinkCount = Math.Max(0, LinkCount - 1);
-    }
-
-    public void SetCustomMeta(string json) => CustomMetaJson = json ?? "{}";
-
-    public void SetPublic(bool isPublic) => IsPublic = isPublic;
 }

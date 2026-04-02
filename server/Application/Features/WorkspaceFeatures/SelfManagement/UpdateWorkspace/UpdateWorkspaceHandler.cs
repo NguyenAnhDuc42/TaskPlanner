@@ -3,7 +3,7 @@ using Application.Interfaces.Repositories;
 using Domain.Entities.ProjectEntities;
 using MediatR;
 using Application.Interfaces; 
-using Application.Features.WorkspaceFeatures.Logic;
+
 using Microsoft.Extensions.Caching.Hybrid; 
 using Microsoft.Extensions.Logging;
 using Application.Features.WorkspaceFeatures.UpdateWorkspace;
@@ -14,7 +14,7 @@ namespace Application.Features.WorkspaceFeatures.SelfManagement.UpdateWorkspace;
 
 public class UpdateWorkspaceHandler : BaseFeatureHandler, IRequestHandler<UpdateWorkspaceCommand, Unit>
 {
-    private readonly WorkspacePermissionLogic _workspacePermissionLogic;
+
     private readonly HybridCache _cache;
     private readonly IRealtimeService _realtime;
     private readonly ILogger<UpdateWorkspaceHandler> _logger;
@@ -23,13 +23,13 @@ public class UpdateWorkspaceHandler : BaseFeatureHandler, IRequestHandler<Update
         IUnitOfWork unitOfWork,
         ICurrentUserService currentUserService,
         WorkspaceContext workspaceContext,
-        WorkspacePermissionLogic workspacePermissionLogic,
+
         HybridCache cache,
         IRealtimeService realtime,
         ILogger<UpdateWorkspaceHandler> logger)
         : base(unitOfWork, currentUserService, workspaceContext)
     {
-        _workspacePermissionLogic = workspacePermissionLogic;
+
         _cache = cache;
         _realtime = realtime;
         _logger = logger;
@@ -39,9 +39,9 @@ public class UpdateWorkspaceHandler : BaseFeatureHandler, IRequestHandler<Update
     {
         _logger.LogInformation("Updating workspace {WorkspaceId} by user {UserId}", request.Id, CurrentUserId);
 
-        await ValidatePermission(request.Id, CurrentUserId, cancellationToken);
 
-        var workspace = await FindOrThrowAsync<ProjectWorkspace>(request.Id);
+        var workspace = await UnitOfWork.Set<ProjectWorkspace>().FindAsync(request.Id, cancellationToken);
+        if (workspace == null) throw new KeyNotFoundException($"Workspace {request.Id} not found");
 
         UpdateWorkspaceDetails(workspace, request);
 
@@ -54,10 +54,7 @@ public class UpdateWorkspaceHandler : BaseFeatureHandler, IRequestHandler<Update
         return Unit.Value;
     }
 
-    private async Task ValidatePermission(Guid workspaceId, Guid userId, CancellationToken ct)
-    {
-        await _workspacePermissionLogic.EnsureCanUpdateWorkspace(workspaceId, userId, ct);
-    }
+
 
     private void UpdateWorkspaceDetails(ProjectWorkspace workspace, UpdateWorkspaceCommand request)
     {

@@ -1,12 +1,12 @@
 using Application.Common.Interfaces;
-using System;
+using Application.Features.ViewFeatures.GetViewData;
 using Domain.Enums;
-using Application.Contract.Common;
-
+using Domain.Enums.RelationShip;
 namespace Application.Features.TaskFeatures.SelfManagement.CreateTask;
 
 public record CreateTaskCommand(
-    Guid ListId,
+    Guid ParentId,
+    EntityLayerType ParentType,
     string Name,
     string? Description,
     Guid? StatusId,
