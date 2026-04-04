@@ -12,10 +12,12 @@ public class WorkflowConfiguration : EntityConfiguration<Workflow>
 
         builder.ToTable("workflows");
 
+        builder.Property(x => x.ProjectWorkspaceId).HasColumnName("project_workspace_id").IsRequired();
         builder.Property(x => x.ProjectSpaceId).HasColumnName("project_space_id").IsRequired();
         builder.Property(x => x.Name).HasColumnName("name").HasMaxLength(100).IsRequired();
         builder.Property(x => x.Description).HasColumnName("description").HasMaxLength(500);
     
+        builder.HasIndex(x => x.ProjectWorkspaceId);
         builder.HasIndex(x => x.ProjectSpaceId);
         
         builder.HasOne<ProjectSpace>()

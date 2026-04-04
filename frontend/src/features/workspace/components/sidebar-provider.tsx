@@ -20,7 +20,7 @@ interface SidebarProviderProps {
 
 export function SidebarProvider({
   children,
-  defaultContent = "dashboard",
+  defaultContent = "projects",
   defaultOpen = true,
   initialWorkspaceId,
 }: SidebarProviderProps) {

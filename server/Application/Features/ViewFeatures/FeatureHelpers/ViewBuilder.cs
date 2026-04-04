@@ -1,10 +1,8 @@
-using Application.Contract.StatusContract;
 using Application.Interfaces.Repositories;
 using Domain.Entities.ProjectEntities;
 using Domain.Enums;
 using Domain.Enums.RelationShip;
 using Microsoft.EntityFrameworkCore;
-using Application.Contract.Common;
 using Application.Features.ViewFeatures.GetViewData;
 using Application.Helpers;
 using Domain.Entities.Relationship;
@@ -83,7 +81,7 @@ public class ViewBuilder
     private async Task<IEnumerable<StatusDto>> GetStatusesForSpace(Guid spaceId)
     {
         const string sql = @"
-            SELECT s.id, s.name, s.color, s.category, s.is_default_status AS IsDefault
+            SELECT s.id, s.name, s.color, s.category
             FROM   statuses s
             JOIN   workflows w ON s.workflow_id = w.id
             WHERE  w.project_space_id = @SpaceId

@@ -12,6 +12,7 @@ public class CreateWorkspaceEventHandler : INotificationHandler<CreatedWorkspace
 {
     private readonly ILogger<CreateWorkspaceEventHandler> _logger;
     private readonly IUnitOfWork _unitOfWork;
+    
     public CreateWorkspaceEventHandler(ILogger<CreateWorkspaceEventHandler> logger, IUnitOfWork unitOfWork)
     {
         _logger = logger;
@@ -20,38 +21,91 @@ public class CreateWorkspaceEventHandler : INotificationHandler<CreatedWorkspace
 
     public async Task Handle(CreatedWorkspaceEvent notification, CancellationToken cancellationToken)
     {
-        _logger.LogInformation("Handling CreatedWorkspaceEvent for WorkspaceId: {WorkspaceId}, UserId: {UserId}", notification.workspaceId, notification.userId);
+        _logger.LogInformation("Seeding initial hierarchy for WorkspaceId: {WorkspaceId}", notification.workspaceId);
 
-        // 1. Create Workspace Owner
+        await CreateOwnerProfile(notification, cancellationToken);
+        var space = await SeedWelcomeSpace(notification, cancellationToken);
+        var folder = await SeedGettingStartedFolder(notification, space.Id, cancellationToken);
+        var statuses = await SeedWorkflowAndStatuses(notification, space.Id, cancellationToken);
+        
+        await SeedInitialTasks(notification, space.Id, folder.Id, statuses, cancellationToken);
+    }
+
+    private async Task CreateOwnerProfile(CreatedWorkspaceEvent notification, CancellationToken cancellationToken)
+    {
         var workspaceMember = WorkspaceMember.CreateOwner(notification.userId, notification.workspaceId, notification.userId);
         await _unitOfWork.Set<WorkspaceMember>().AddAsync(workspaceMember, cancellationToken);
+    }
 
-        // 2. Create Default Dashboard
-        var dashboard = Dashboard.CreateWorkspaceDashboard(notification.workspaceId, notification.userId, "Overview", isMain: true);
-        await _unitOfWork.Set<Dashboard>().AddAsync(dashboard, cancellationToken);
-
-        // 3. Create Example Space
-        var exampleSpace = ProjectSpace.Create(
+    private async Task<ProjectSpace> SeedWelcomeSpace(CreatedWorkspaceEvent notification, CancellationToken cancellationToken)
+    {
+        var space = ProjectSpace.Create(
             notification.workspaceId,
             "Welcome Space",
-            "This is your first space. You can add more spaces, folders, and lists to organize your work.",
-            null, // default customization
-            isPrivate: true,
+            "Initial space for your project.",
+            null,
+            isPrivate: false,
             creatorId: notification.userId,
             orderKey: 10_000_000
         );
-        await _unitOfWork.Set<ProjectSpace>().AddAsync(exampleSpace, cancellationToken);
+        await _unitOfWork.Set<ProjectSpace>().AddAsync(space, cancellationToken);
+        return space;
+    }
 
-        // 4. Create Main Workflow for the Space
-        var mainWorkflow = Workflow.Create(
-            exampleSpace.Id, 
-            "Standard Workflow", 
-            "The primary task pipeline for this space.", 
-            notification.userId);
-        await _unitOfWork.Set<Workflow>().AddAsync(mainWorkflow, cancellationToken);
+    private async Task<ProjectFolder> SeedGettingStartedFolder(CreatedWorkspaceEvent notification, Guid spaceId, CancellationToken cancellationToken)
+    {
+        var folder = ProjectFolder.Create(
+            spaceId,
+            "Getting Started",
+            "Start your journey here.",
+            null,
+            isPrivate: false,
+            creatorId: notification.userId,
+            orderKey: 20_000_000
+        );
+        await _unitOfWork.Set<ProjectFolder>().AddAsync(folder, cancellationToken);
+        return folder;
+    }
 
-        // 5. Create Default Statuses linked to the Workflow
-        var defaultStatuses = Status.CreateDefaultStatuses(mainWorkflow.Id, notification.userId);
-        await _unitOfWork.Set<Status>().AddRangeAsync(defaultStatuses, cancellationToken);
+    private async Task<List<Status>> SeedWorkflowAndStatuses(CreatedWorkspaceEvent notification, Guid spaceId, CancellationToken cancellationToken)
+    {
+        var workflow = Workflow.Create(notification.workspaceId, spaceId, "Default Workflow", null, notification.userId);
+        await _unitOfWork.Set<Workflow>().AddAsync(workflow, cancellationToken);
+        
+        var statuses = Status.CreateStarterSet(notification.workspaceId, workflow.Id, notification.userId);
+        await _unitOfWork.Set<Status>().AddRangeAsync(statuses, cancellationToken);
+        return statuses;
+    }
+
+    private async Task SeedInitialTasks(CreatedWorkspaceEvent notification, Guid spaceId, Guid folderId, List<Status> statuses, CancellationToken cancellationToken)
+    {
+        var firstStatus = statuses.First(s => s.Category == Domain.Enums.StatusCategory.NotStarted);
+
+        var folderTask = ProjectTask.Create(
+            projectWorkspaceId: notification.workspaceId,
+            projectSpaceId: spaceId,
+            projectFolderId: folderId,
+            name: "Explore the hierarchy",
+            description: "Notice how this task is nested under the 'Getting Started' folder.",
+            customization: null,
+            creatorId: notification.userId,
+            statusId: firstStatus.Id,
+            orderKey: 30_000_000L
+        );
+        
+        var spaceTask = ProjectTask.Create(
+            projectWorkspaceId: notification.workspaceId,
+            projectSpaceId: spaceId,
+            projectFolderId: null,
+            name: "Standalone Task",
+            description: "This task lives directly under the space.",
+            customization: null,
+            creatorId: notification.userId,
+            statusId: firstStatus.Id,
+            orderKey: 40_000_000L
+        );
+
+        await _unitOfWork.Set<ProjectTask>().AddAsync(folderTask, cancellationToken);
+        await _unitOfWork.Set<ProjectTask>().AddAsync(spaceTask, cancellationToken);
     }
 }

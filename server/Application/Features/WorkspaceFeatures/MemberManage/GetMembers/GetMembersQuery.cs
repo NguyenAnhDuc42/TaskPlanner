@@ -1,5 +1,3 @@
-
-
 using Application.Common.Filters;
 using Application.Common.Interfaces;
 using Application.Common.Results;
@@ -16,6 +14,7 @@ public record class GetMembersFilter(
     Guid? TaskId,
     Role? Role
 );
+
 public record class MemberDto
 {
     public Guid Id { get; init; }

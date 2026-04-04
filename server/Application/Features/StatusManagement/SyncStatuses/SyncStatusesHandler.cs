@@ -31,6 +31,7 @@ public class SyncStatusesHandler : BaseFeatureHandler, IRequestHandler<SyncStatu
                 if (item.IsDeleted) continue;
 
                 var newStatus = Status.Create(
+                    workflow.ProjectWorkspaceId,
                     request.WorkflowId,
                     item.Name,
                     item.Color,

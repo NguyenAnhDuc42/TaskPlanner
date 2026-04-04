@@ -36,8 +36,8 @@ public class CreateSpaceHandler : BaseFeatureHandler, IRequestHandler<CreateSpac
 
         await UnitOfWork.Set<ProjectSpace>().AddAsync(space, cancellationToken);
         
-        // Initializing default statuses for Space
-        await StatusInitializer.InitDefaultStatuses(UnitOfWork, space.Id, CurrentUserId);
+        // Initializing statuses for Space
+        await StatusInitializer.InitWorkspaceStatuses(UnitOfWork, workspace.Id, space.Id, CurrentUserId);
 
         // Create EntityAccess for owner if private
         if (request.isPrivate)

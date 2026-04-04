@@ -98,7 +98,7 @@ public static class GetHierarchySql
             order_key,
             NULL::uuid as status_id,
             0 as priority,
-            0 as sort_group -- Folders always top
+            0 as sort_group
         FROM user_folders
         UNION ALL
         SELECT 
@@ -112,7 +112,7 @@ public static class GetHierarchySql
             order_key,
             status_id,
             CAST(priority as integer) as priority,
-            1 as sort_group -- Tasks always bottom
+            1 as sort_group
         FROM user_tasks
         ORDER BY sort_group, order_key;";
 }

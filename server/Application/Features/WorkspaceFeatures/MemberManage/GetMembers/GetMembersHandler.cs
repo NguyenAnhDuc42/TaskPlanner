@@ -2,7 +2,7 @@ using System.Text.Json;
 using Application.Common;
 using Application.Common.Filters;
 using Application.Common.Results;
-using Application.Contract.UserContract;
+
 
 using Application.Helper;
 using Application.Helpers;
@@ -22,19 +22,11 @@ public class GetMembersHandler : BaseFeatureHandler, IRequestHandler<GetMembersQ
 
     private readonly ILogger<GetMembersHandler> _logger;
 
-    public GetMembersHandler(
-        IUnitOfWork unitOfWork,
-        ICurrentUserService currentUserService,
-        WorkspaceContext workspaceContext,
-        CursorHelper cursorHelper,
-        HybridCache cache,
-
-        ILogger<GetMembersHandler> logger)
+    public GetMembersHandler( IUnitOfWork unitOfWork,ICurrentUserService currentUserService,WorkspaceContext workspaceContext,CursorHelper cursorHelper,HybridCache cache,ILogger<GetMembersHandler> logger)
         : base(unitOfWork, currentUserService, workspaceContext)
     {
         _cursorHelper = cursorHelper;
         _cache = cache;
-
         _logger = logger;
     }
 

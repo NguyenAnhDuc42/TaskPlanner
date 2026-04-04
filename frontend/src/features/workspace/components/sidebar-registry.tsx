@@ -3,7 +3,6 @@ import { Button } from "@/components/ui/button";
 import { MembersSidebar } from "../contents/members/member-components/members-sidebar";
 import { SettingsSidebar } from "../contents/setting/setting-components/settings-sidebar";
 import { HierarchySidebar } from "../contents/hierarchy/hierarchy-sidebar";
-import { DashboardSidebar } from "../contents/dashboard/dashboard-sidebar";
 
 // FEATURE SIDEBARS
 
@@ -17,12 +16,10 @@ const DefaultSidebar = ({ page }: { page: ContentPage }) => {
           <Button
             key={item.id}
             variant="ghost"
-            className="w-full justify-start gap-3 px-3 py-2 h-10 transition-all duration-200 hover:bg-[var(--theme-item-hover)] group"
+            className="w-full justify-start gap-3 px-3 h-9 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
           >
-            <Icon className="h-4 w-4 text-[var(--theme-text-normal)] group-hover:text-[var(--theme-text-hover)] transition-colors" />
-            <span className="text-sm font-medium text-[var(--theme-text-normal)] group-hover:text-[var(--theme-text-hover)] transition-colors">
-              {item.label}
-            </span>
+            <Icon className="h-4 w-4 flex-shrink-0" />
+            <span className="text-sm font-medium truncate">{item.label}</span>
           </Button>
         );
       })}
@@ -33,8 +30,6 @@ const DefaultSidebar = ({ page }: { page: ContentPage }) => {
 // THE REGISTRY
 export function SidebarRegistry({ page }: { page: ContentPage }) {
   switch (page) {
-    case "dashboard":
-      return <DashboardSidebar />;
     case "members":
     case "communications":
       return <MembersSidebar />;
@@ -43,8 +38,10 @@ export function SidebarRegistry({ page }: { page: ContentPage }) {
     case "projects":
       return <HierarchySidebar />;
     case "spaces":
+      return <HierarchySidebar />;
     case "folders":
-    case "lists":
+      return <HierarchySidebar />;
+    case "tasks":
       return <HierarchySidebar />;
     default:
       return <DefaultSidebar page={page as ContentPage} />;

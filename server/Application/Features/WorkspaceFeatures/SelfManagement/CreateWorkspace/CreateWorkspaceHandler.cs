@@ -60,7 +60,6 @@ public class CreateWorkspaceHandler : BaseFeatureHandler, IRequestHandler<Create
             customization: customization,
             creatorId: currentUserId,
             theme: request.Theme,
-            variant: request.Variant,
             strictJoin: request.StrictJoin
         );
 

@@ -3,11 +3,10 @@ import { Home, Folder, FileText, type LucideIcon } from "lucide-react";
 export type WorkspaceTheme = "Light" | "Dark" | "System" | "Mars" | "DeepSpace" | "Boreal";
 
 export type ContentPage =
-  | "dashboard"
   | "projects"
   | "spaces"
   | "folders"
-  | "lists"
+  | "tasks"
   | "calendar"
   | "members"
   | "communications"
@@ -35,12 +34,6 @@ export interface NavItem {
 
 export const getNavigationItems = (contentType: ContentPage): NavItem[] => {
   switch (contentType) {
-    case "dashboard":
-      return [
-        { id: "overview", icon: Home, label: "Overview" },
-        { id: "analytics", icon: FileText, label: "Analytics" },
-        { id: "reports", icon: Folder, label: "Reports" },
-      ];
     case "projects":
       return [
         { id: "all-tasks", icon: FileText, label: "All Tasks" },

@@ -16,8 +16,7 @@ public sealed class ProjectWorkspace : Entity
     public string? Description { get; private set; }
     public string JoinCode { get; private set; } = null!;
     public Customization Customization { get; private set; } = Customization.CreateDefault();
-    public Theme Theme { get; private set; } = Theme.System;
-    public WorkspaceVariant Variant { get; private set; } = WorkspaceVariant.Team;
+    public Theme Theme { get; private set; } = Theme.Dark;
     public bool StrictJoin { get; private set; } = false;
     public bool IsArchived { get; private set; }
     public long NextItemOrder { get; private set; }
@@ -27,7 +26,7 @@ public sealed class ProjectWorkspace : Entity
 
     private ProjectWorkspace() { }
 
-    private ProjectWorkspace(Guid id, string name, string? description, string joinCode, Customization customization, Theme theme, WorkspaceVariant variant, bool strictJoin, Guid creatorId, long nextItemOrder)
+    private ProjectWorkspace(Guid id, string name, string? description, string joinCode, Customization customization, Theme theme, bool strictJoin, Guid creatorId, long nextItemOrder)
     {
         Id = id;
         Name = name ?? throw new ArgumentNullException(nameof(name));
@@ -35,19 +34,18 @@ public sealed class ProjectWorkspace : Entity
         JoinCode = joinCode ?? throw new ArgumentNullException(nameof(joinCode));
         Customization = customization ?? Customization.CreateDefault();
         Theme = theme;
-        Variant = variant;
         StrictJoin = strictJoin;
         CreatorId = creatorId;
         IsArchived = false;
         NextItemOrder = nextItemOrder;
     }
 
-    public static ProjectWorkspace Create(string name, string? description, string? joinCode, Customization? customization, Guid creatorId, Theme theme = Theme.System, WorkspaceVariant variant = WorkspaceVariant.Team, bool strictJoin = false)
+    public static ProjectWorkspace Create(string name, string? description, string? joinCode, Customization? customization, Guid creatorId, Theme theme = Theme.Dark, bool strictJoin = false)
     {
         var workspace = new ProjectWorkspace(Guid.NewGuid(), name?.Trim() ?? throw new ArgumentNullException(nameof(name)),
         string.IsNullOrWhiteSpace(description) ? null : description?.Trim(),
         string.IsNullOrWhiteSpace(joinCode) ? Guid.NewGuid().ToString("N")[..8].ToUpperInvariant() : joinCode.Trim(),
-        customization ?? Customization.CreateDefault(), theme, variant, strictJoin, creatorId, 10_000_000L);
+        customization ?? Customization.CreateDefault(), theme, strictJoin, creatorId, 10_000_000L);
         
         workspace.AddMember(creatorId, Role.Owner, MembershipStatus.Active, creatorId, "Created");
         workspace.AddDomainEvent(new Domain.Events.Workspace.CreatedWorkspaceEvent(creatorId, workspace.Id));
@@ -192,13 +190,6 @@ public sealed class ProjectWorkspace : Entity
     {
         if (Theme == theme) return;
         Theme = theme;
-        UpdateTimestamp();
-    }
-
-    public void UpdateVariant(WorkspaceVariant variant)
-    {
-        if (Variant == variant) return;
-        Variant = variant;
         UpdateTimestamp();
     }
 

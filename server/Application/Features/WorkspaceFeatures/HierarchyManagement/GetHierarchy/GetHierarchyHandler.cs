@@ -11,76 +11,79 @@ namespace Application.Features.WorkspaceFeatures.HierarchyManagement.GetHierarch
 
 public class GetHierarchyHandler : BaseFeatureHandler, IRequestHandler<GetHierarchyQuery, WorkspaceHierarchyDto>
 {
-
-    public GetHierarchyHandler(
-        IUnitOfWork unitOfWork,
-        ICurrentUserService currentUserService,
-        WorkspaceContext workspaceContext)
-        : base(unitOfWork, currentUserService, workspaceContext)
-    {
-    }
+    public GetHierarchyHandler(IUnitOfWork unitOfWork, ICurrentUserService currentUserService, WorkspaceContext workspaceContext)
+        : base(unitOfWork, currentUserService, workspaceContext) { }
 
     public async Task<WorkspaceHierarchyDto> Handle(GetHierarchyQuery request, CancellationToken cancellationToken)
     {
-        var workspace = await UnitOfWork.Set<ProjectWorkspace>().AsNoTracking().FirstOrDefaultAsync(w => w.Id == request.WorkspaceId, cancellationToken);
+        var workspace = await (from w in UnitOfWork.Set<ProjectWorkspace>().AsNoTracking()
+                              where w.Id == request.WorkspaceId
+                              select w).FirstOrDefaultAsync(cancellationToken);
+
         if (workspace == null) throw new KeyNotFoundException($"Workspace {request.WorkspaceId} not found");
 
-        var results = await UnitOfWork.QueryAsync<HierarchyRawItem>(GetHierarchySql.Query, new 
+        var rawItems = (await UnitOfWork.QueryAsync<HierarchyRawItem>(GetHierarchySql.Query, new 
         { 
             WorkspaceId = request.WorkspaceId, 
             UserId = CurrentUserId 
-        }, cancellationToken);
+        }, cancellationToken)).ToList();
 
-        var items = results.ToList();
-        var spaces = items.Where(i => i.ItemType == "Space").ToList();
-        var folders = items.Where(i => i.ItemType == "Folder").ToList();
-        var tasks = items.Where(i => i.ItemType == "Task").ToList();
-
-        var spaceHierarchy = spaces.Select(s => new SpaceHierarchyDto
+        return new WorkspaceHierarchyDto
         {
-            Id = s.Id,
-            Name = s.Name,
-            Color = s.Color ?? "",
-            Icon = s.Icon ?? "",
-            IsPrivate = s.IsPrivate,
-            Folders = folders
-                .Where(f => Guid.Parse(f.ParentId) == s.Id)
-                .Select(f => new FolderHierarchyDto
+            Id = workspace.Id,
+            Name = workspace.Name,
+            Spaces = MapSpaces(rawItems)
+        };
+    }
+
+    private List<SpaceHierarchyDto> MapSpaces(List<HierarchyRawItem> allItems)
+    {
+        var spaces = from i in allItems where i.ItemType == "Space" select i;
+        var folders = (from i in allItems where i.ItemType == "Folder" select i).ToList();
+        var tasks = (from i in allItems where i.ItemType == "Task" select i).ToList();
+
+        return (from s in spaces
+                select new SpaceHierarchyDto
+                {
+                    Id = s.Id,
+                    Name = s.Name,
+                    Color = s.Color ?? "",
+                    Icon = s.Icon ?? "",
+                    IsPrivate = s.IsPrivate,
+                    Folders = MapFolders(s.Id, folders, tasks),
+                    Tasks = MapTasks(s.Id.ToString(), tasks)
+                }).ToList();
+    }
+
+    private List<FolderHierarchyDto> MapFolders(Guid spaceId, List<HierarchyRawItem> folders, List<HierarchyRawItem> tasks)
+    {
+        return (from f in folders
+                where Guid.Parse(f.ParentId) == spaceId
+                select new FolderHierarchyDto
                 {
                     Id = f.Id,
                     Name = f.Name,
                     Color = f.Color ?? "",
                     Icon = f.Icon ?? "",
                     IsPrivate = f.IsPrivate,
-                    Tasks = tasks
-                        .Where(t => t.ParentId == f.Id.ToString())
-                        .Select(MapToTaskDto)
-                        .ToList()
-                })
-                .ToList(),
-            Tasks = tasks
-                .Where(t => t.ParentId == s.Id.ToString())
-                .Select(MapToTaskDto)
-                .ToList()
-        }).ToList();
-
-        return new WorkspaceHierarchyDto
-        {
-            Id = workspace.Id,
-            Name = workspace.Name,
-            Spaces = spaceHierarchy
-        };
+                    Tasks = MapTasks(f.Id.ToString(), tasks)
+                }).ToList();
     }
 
-    private static TaskHierarchyDto MapToTaskDto(HierarchyRawItem item) => new()
+    private List<TaskHierarchyDto> MapTasks(string parentId, List<HierarchyRawItem> tasks)
     {
-        Id = item.Id,
-        Name = item.Name,
-        StatusId = item.StatusId,
-        Priority = item.Priority,
-        Color = "", // Specific task customization can be added later if needed
-        Icon = ""
-    };
+        return (from t in tasks
+                where t.ParentId == parentId
+                select new TaskHierarchyDto
+                {
+                    Id = t.Id,
+                    Name = t.Name,
+                    StatusId = t.StatusId,
+                    Priority = t.Priority,
+                    Color = "",
+                    Icon = ""
+                }).ToList();
+    }
 
     private class HierarchyRawItem
     {

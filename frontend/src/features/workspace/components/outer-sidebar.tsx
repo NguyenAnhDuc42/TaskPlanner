@@ -8,8 +8,8 @@ import {
   LogOut,
   MessageSquare,
   Plus,
-  Home,
   PanelLeftOpen,
+  Briefcase,
 } from "lucide-react";
 import { useNavigate } from "@tanstack/react-router";
 import { useSidebarContext } from "./sidebar-provider";
@@ -31,7 +31,6 @@ interface NavItem {
 }
 
 const navItems: NavItem[] = [
-  { id: "dashboard", icon: Home, label: "Dashboard" },
   { id: "projects", icon: CheckSquare, label: "Projects" },
   { id: "members", icon: Users, label: "Members" },
   { id: "communications", icon: MessageSquare, label: "Communication" },
@@ -53,16 +52,16 @@ export function OuterSidebar({ className }: { className?: string }) {
   const handleNavClick = (id: ContentPage) => {
     setActiveContent(id);
     navigate({
-      to: id === "dashboard" ? "/workspaces/$workspaceId" : `/workspaces/$workspaceId/${id}`,
+      to: `/workspaces/$workspaceId/${id}`,
       params: { workspaceId: workspaceId || "default" },
     });
   };
 
   return (
     <TooltipProvider delayDuration={100}>
-      <div className={cn("relative h-full w-fit flex-shrink-0 flex flex-col items-center bg-transparent", className)}>
-        {/* Navigation Card */}
-        <div className="glass-panel rounded-md p-2 flex flex-col items-center gap-2 shrink-0">
+      <div className={cn("relative h-full w-fit flex-shrink-0 flex flex-col items-center gap-2", className)}>
+        {/* Top Section Card */}
+        <div className="flex flex-col items-center gap-1.5 shrink-0 bg-background border border-border rounded-md shadow-sm p-1.5">
           {/* Expand Button - Only visible when closed, integrated with Nav Card */}
           {!isInnerSidebarOpen && (
             <Tooltip>
@@ -70,7 +69,7 @@ export function OuterSidebar({ className }: { className?: string }) {
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="w-10 h-10 rounded-md text-[var(--theme-text-normal)] hover:text-[var(--theme-text-hover)] hover:bg-[var(--theme-item-hover)] transition-all duration-200"
+                  className="w-8 h-8 rounded-md text-[var(--theme-text-normal)] hover:text-[var(--theme-text-hover)] hover:bg-[var(--theme-item-hover)] transition-all duration-200"
                   onClick={toggleInnerSidebar}
                 >
                   <PanelLeftOpen className="h-5 w-5" />
@@ -93,7 +92,7 @@ export function OuterSidebar({ className }: { className?: string }) {
                     variant={isActive ? "default" : "ghost"}
                     size="icon"
                     className={cn(
-                      "w-10 h-10 rounded-md transition-all duration-200",
+                      "w-8 h-8 rounded-md transition-all duration-200",
                       isActive ? "theme-selected scale-105" : "text-[var(--theme-text-normal)] hover:bg-[var(--theme-item-hover)] hover:text-[var(--theme-text-hover)]"
                     )}
                     onClick={() => handleNavClick(item.id)}
@@ -112,35 +111,66 @@ export function OuterSidebar({ className }: { className?: string }) {
               </Tooltip>
             );
           })}
-        </div>
 
-        {/* Spacer */}
-        <div className="flex-1" />
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="w-8 h-8 rounded-md hover:bg-[var(--theme-item-hover)] hover:text-[var(--theme-text-hover)] text-[var(--theme-text-normal)] transition-all duration-200"
+              >
+                <Plus className="h-5 w-5" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="right" sideOffset={10} className="font-mono text-[10px] uppercase tracking-wider font-bold">
+              Quick Action
+            </TooltipContent>
+          </Tooltip>
 
-        {/* Bottom Section Card */}
-        <div className="glass-panel rounded-md p-2 flex flex-col items-center gap-2 shadow-sm">
           <Tooltip>
             <TooltipTrigger asChild>
               <Button
                 variant={activeContent === "settings" ? "default" : "ghost"}
                 size="icon"
                 className={cn(
-                  "w-10 h-10 rounded-md transition-all duration-200",
+                  "w-8 h-8 rounded-md transition-all duration-200",
                   activeContent === "settings" ? "theme-selected shadow-md" : "text-[var(--theme-text-normal)] hover:bg-[var(--theme-item-hover)] hover:text-[var(--theme-text-hover)]"
                 )}
                 onClick={() => handleNavClick("settings")}
               >
-                <Settings className="h-5 w-5" />
+                <Settings className="h-4 w-4" />
               </Button>
             </TooltipTrigger>
             <TooltipContent side="right" sideOffset={10} className="font-mono text-[10px] uppercase tracking-wider font-bold">
               Settings
             </TooltipContent>
           </Tooltip>
+        </div>
+
+        {/* Spacer */}
+        <div className="flex-1" />
+
+        {/* Bottom Section Card */}
+        <div className="flex flex-col items-center gap-2 bg-background border border-border rounded-md shadow-sm p-1.5">
 
           <Tooltip>
             <TooltipTrigger asChild>
-              <Avatar className="h-10 w-10 border border-border shadow-sm hover:scale-110 transition-transform cursor-pointer rounded-full overflow-hidden bg-muted">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="w-8 h-8 rounded-md hover:bg-[var(--theme-item-hover)] hover:text-[var(--theme-text-hover)] text-[var(--theme-text-normal)] transition-all duration-200"
+              >
+                <Briefcase className="h-4 w-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="right" sideOffset={10} className="font-mono text-[10px] uppercase tracking-wider font-bold">
+              Workspaces
+            </TooltipContent>
+          </Tooltip>
+
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Avatar className="h-8 w-8 border border-border shadow-sm hover:scale-110 transition-transform cursor-pointer rounded-md overflow-hidden bg-muted">
                 <AvatarImage src="" />
                 <AvatarFallback className="text-[10px] font-bold">
                   {user?.name?.substring(0, 2).toUpperCase() || <Users className="h-4 w-4" />}
@@ -152,22 +182,7 @@ export function OuterSidebar({ className }: { className?: string }) {
             </TooltipContent>
           </Tooltip>
 
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="w-10 h-10 rounded-md hover:bg-[var(--theme-item-hover)] hover:text-[var(--theme-text-hover)] text-[var(--theme-text-normal)] transition-all duration-200"
-              >
-                <Plus className="h-5 w-5" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent side="right" sideOffset={10} className="font-mono text-[10px] uppercase tracking-wider font-bold">
-              Quick Action
-            </TooltipContent>
-          </Tooltip>
-
-          <div className="pt-2">
+          <div className="pt-1">
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
@@ -193,8 +208,8 @@ export function OuterSidebar({ className }: { className?: string }) {
             onMouseEnter={() => setHoveredIcon(hoveredIcon)}
             onMouseLeave={() => setHoveredIcon(null)}
           >
-            <div className="h-full w-full glass-panel rounded-md shadow-xl flex flex-col overflow-hidden">
-              <div className="px-4 py-4 flex-shrink-0 bg-transparent border-b border-border/10">
+            <div className="h-full w-full bg-background border border-border rounded-2xl shadow-xl flex flex-col overflow-hidden">
+              <div className="px-6 py-4 flex-shrink-0 bg-transparent border-b border-border/10">
                 <h3 className="font-bold text-sm uppercase tracking-wider text-[var(--theme-text-hover)]">
                   {hoveredIcon}
                 </h3>

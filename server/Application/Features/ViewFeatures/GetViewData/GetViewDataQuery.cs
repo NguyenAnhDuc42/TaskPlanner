@@ -1,8 +1,7 @@
 using System.Collections.Generic;
 using Application.Common.Interfaces;
-using Application.Contract.Common;
-using Application.Contract.StatusContract;
 using Domain.Enums;
+
 namespace Application.Features.ViewFeatures.GetViewData;
 
 public class TaskDto
@@ -30,8 +29,14 @@ public record AssigneeDto(
     string? AvatarUrl
 );
 
-public record GetViewDataQuery(Guid ViewId) : IQuery<BaseViewResult>;
+public record StatusDto(
+    Guid Id,
+    string Name,
+    string Color,
+    StatusCategory Category
+);
 
+public record GetViewDataQuery(Guid ViewId) : IQuery<BaseViewResult>;
 
 public abstract record BaseViewResult(ViewType ViewType);
 
@@ -44,4 +49,3 @@ public record TasksBoardViewResult(
     IEnumerable<TaskDto> Tasks,
     IEnumerable<StatusDto> Statuses
 ) : BaseViewResult(ViewType.Board);
-

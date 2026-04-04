@@ -21,7 +21,6 @@ public class ProjectWorkspaceConfiguration : EntityConfiguration<ProjectWorkspac
 
         // enums as strings
         builder.Property(x => x.Theme).HasColumnName("theme").HasConversion<string>().HasMaxLength(50).IsRequired();
-        builder.Property(x => x.Variant).HasColumnName("variant").HasConversion<string>().HasMaxLength(50).IsRequired();
 
         // owned VO
         builder.OwnsOne(x => x.Customization, cb =>

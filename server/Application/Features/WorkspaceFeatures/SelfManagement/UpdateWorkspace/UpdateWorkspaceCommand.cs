@@ -12,7 +12,6 @@ public record class UpdateWorkspaceCommand : ICommand<Unit>
     public string? Color { get; set; }
     public string? Icon { get; set; }
     public Theme? Theme { get; set; }
-    public WorkspaceVariant? Variant { get; set; }
     public bool? StrictJoin { get; set; }
     public bool? IsArchived { get; set; }
     public bool RegenerateJoinCode { get; set; }

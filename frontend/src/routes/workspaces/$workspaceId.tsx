@@ -41,22 +41,17 @@ function WorkspaceLayout() {
 function WorkspaceThemeLayout({ workspace }: { workspace: any }) {
   const { isInnerSidebarOpen } = useSidebarContext();
   const themeClass = workspace?.theme ? `theme-${workspace.theme.toLowerCase()}` : "";
-  const isPremiumTheme = workspace?.theme === "Mars" || workspace?.theme === "DeepSpace" || workspace?.theme === "Boreal";
 
   return (
     <div className={cn(
-      "relative flex h-screen w-full overflow-hidden p-4 transition-colors duration-500", 
-      !isPremiumTheme && "bg-background",
+      "relative flex h-screen w-full overflow-hidden p-3 transition-colors duration-500 bg-background", 
       themeClass
     )}>
-      {/* Background Mesh for Premium Themes */}
-      {isPremiumTheme && <div className="sandy-mesh-bg" />}
-
       {/* Column 1: Outer Sidebar */}
-      <OuterSidebar className="flex-shrink-0 mr-4" />
+      <OuterSidebar className="flex-shrink-0 mr-3" />
 
       {/* Column 2: Contextual Inner Sidebar */}
-      <InnerSidebar className={cn("flex-shrink-0 transition-all duration-300", isInnerSidebarOpen ? "mr-4" : "mr-0")} />
+      <InnerSidebar className={cn("flex-shrink-0 transition-all duration-300", isInnerSidebarOpen ? "mr-3" : "mr-0")} />
 
       {/* Column 3: The Main Canvas */}
       <div className="flex-1 min-w-0 h-full">

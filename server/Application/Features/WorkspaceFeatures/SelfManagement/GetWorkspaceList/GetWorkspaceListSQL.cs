@@ -13,7 +13,6 @@ public class WorkspaceRow
     public string Icon { get; init; } = null!;
     public string Color { get; init; } = null!;
     public string Description { get; init; } = null!;
-    public WorkspaceVariant Variant { get; init; }
     public Role Role { get; init; }
     public MembershipStatus MembershipStatus { get; init; }
     public int MemberCount { get; init; }
@@ -32,7 +31,6 @@ public static class GetWorkspaceListSQL
         w.custom_icon AS Icon,
         w.custom_color AS Color,
         w.description,
-        w.variant,
         w.is_archived,
         wm.role,
         wm.status AS MembershipStatus,
@@ -58,7 +56,6 @@ public static class GetWorkspaceListSQL
         (@name IS NULL OR w.name ILIKE '%' || @name || '%') AND 
         (@owned IS NULL OR @owned = false OR wm.role = 'Owner') AND
         (@isArchived IS NULL OR w.is_archived = @isArchived) AND 
-        (@variant IS NULL OR w.variant = @variant) AND 
         (
             @cursorTimestamp IS NULL OR
                 (
@@ -79,7 +76,6 @@ public static class GetWorkspaceListSQL
         w.custom_icon AS Icon,
         w.custom_color AS Color,
         w.description,
-        w.variant,
         w.is_archived,
         wm.role,
         wm.status AS MembershipStatus,
@@ -105,7 +101,6 @@ public static class GetWorkspaceListSQL
         (@name IS NULL OR w.name ILIKE '%' || @name || '%') AND 
         (@owned IS NULL OR @owned = false OR wm.role = 'Owner') AND
         (@isArchived IS NULL OR w.is_archived = @isArchived) AND 
-        (@variant IS NULL OR w.variant = @variant) AND 
         (
             @cursorTimestamp IS NULL OR
                 (

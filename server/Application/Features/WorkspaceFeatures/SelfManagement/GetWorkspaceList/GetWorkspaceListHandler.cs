@@ -54,22 +54,19 @@ public class GetWorkspaceListHandler : BaseFeatureHandler, IRequestHandler<GetWo
                     ? GetWorkspaceListSQL.Asc
                     : GetWorkspaceListSQL.Desc;
 
-                var variantString = request.filter.Variant?.ToString();
-
                 var rows = (await UnitOfWork.QueryAsync<WorkspaceRow>(sql, new
                 {
                     currentUserId,
                     name = request.filter.Name,
                     owned = request.filter.Owned,
                     IsArchived = request.filter.isArchived,
-                    variant = variantString,
                     cursorTimestamp = cursorTs,
                     cursorId,
                     PageSizePLusOne = pageSize + 1
                 }, token)).ToList();
 
-                _logger.LogInformation("[Diagnostic] Workspace SQL returned {Count} rows for UserId={UserId}. Filters: Name={Name}, Owned={Owned}, Archived={Archived}, Variant={Variant}", 
-                    rows.Count, currentUserId, request.filter.Name, request.filter.Owned, request.filter.isArchived, variantString);
+                _logger.LogInformation("[Diagnostic] Workspace SQL returned {Count} rows for UserId={UserId}. Filters: Name={Name}, Owned={Owned}, Archived={Archived}", 
+                    rows.Count, currentUserId, request.filter.Name, request.filter.Owned, request.filter.isArchived);
 
                 var hasMore = rows.Count > pageSize;
                 if (hasMore)
@@ -124,7 +121,6 @@ public class GetWorkspaceListHandler : BaseFeatureHandler, IRequestHandler<GetWo
             Icon = x.Icon,
             Color = x.Color,
             Description = x.Description,
-            Variant = x.Variant,
             Role = x.Role,
             MemberCount = x.MemberCount,
             IsArchived = x.IsArchived,

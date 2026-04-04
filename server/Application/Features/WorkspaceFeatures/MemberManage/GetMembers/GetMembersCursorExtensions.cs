@@ -1,4 +1,4 @@
-﻿using Application.Contract.UserContract;
+using Application.Features.Auth.GetCurrentUser;
 using Application.Features.WorkspaceFeatures.GetWorkspaceList;
 using Domain.Entities;
 using Domain.Entities.ProjectEntities;

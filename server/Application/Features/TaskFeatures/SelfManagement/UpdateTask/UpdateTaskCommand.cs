@@ -1,9 +1,6 @@
-using Application.Common.Interfaces;
-using System;
-using Domain.Enums;
-using MediatR;
-using Application.Contract.Common;
 using Application.Features.ViewFeatures.GetViewData;
+using Application.Common.Interfaces;
+using Domain.Enums;
 namespace Application.Features.TaskFeatures.SelfManagement.UpdateTask;
 
 public record UpdateTaskCommand(

@@ -1,5 +1,5 @@
 using Application.Common.Exceptions;
-using Application.Contract.UserContract;
+using Application.Features.Auth.GetCurrentUser;
 using Application.Interfaces.Repositories;
 using Domain.Entities;
 using MediatR;

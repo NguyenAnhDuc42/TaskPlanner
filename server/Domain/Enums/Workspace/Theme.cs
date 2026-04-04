@@ -4,9 +4,7 @@ namespace Domain.Enums.Workspace;
 [JsonConverter(typeof(JsonStringEnumConverter))]
 public enum Theme
 {
-    Light,
     Dark,
-    System,
     Mars,
     DeepSpace,
     Boreal

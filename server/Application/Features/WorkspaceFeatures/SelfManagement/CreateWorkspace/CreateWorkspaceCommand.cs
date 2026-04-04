@@ -12,7 +12,6 @@ public record CreateWorkspaceCommand : ICommand<Guid>
     public string? Description { get; init; }
     public string Color { get; init; } = null!;
     public string Icon { get; init; } = null!;
-    public WorkspaceVariant Variant { get; init; }
     public Theme Theme { get; init; }
     public bool StrictJoin { get; init; }
 }

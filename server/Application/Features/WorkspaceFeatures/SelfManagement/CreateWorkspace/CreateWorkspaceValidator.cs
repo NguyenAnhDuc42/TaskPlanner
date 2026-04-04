@@ -25,11 +25,6 @@ public class CreateWorkspaceValidator : AbstractValidator<CreateWorkspaceCommand
             .NotEmpty().WithMessage("Icon is required.")
             .MaximumLength(50).WithMessage("Icon must be at most 50 characters.");
 
-        // Validate that the value is a valid member of the WorkspaceVariant enum
-        RuleFor(x => x.Variant)
-            .Must(variant => Enum.IsDefined(typeof(WorkspaceVariant), variant))
-            .WithMessage("Invalid workspace variant provided.");
-
         // Validate that the value is a valid member of the Theme enum
         RuleFor(x => x.Theme)
             .Must(theme => Enum.IsDefined(typeof(Theme), theme))

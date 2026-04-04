@@ -47,7 +47,7 @@ public class CreateTaskHandler : BaseFeatureHandler, IRequestHandler<CreateTaskC
                 JOIN   workflows w ON s.workflow_id = w.id
                 WHERE  w.project_space_id = @SpaceId 
                   AND  s.deleted_at IS NULL
-                ORDER BY s.is_default_status DESC, s.created_at ASC 
+                ORDER BY s.created_at ASC 
                 LIMIT 1";
 
             statusId = await UnitOfWork.QuerySingleOrDefaultAsync<Guid?>(statusSql, new { SpaceId = ancestors.ProjectSpaceId.Value }, cancellationToken);

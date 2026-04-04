@@ -1,6 +1,6 @@
 using MediatR;
 using server.Application.Interfaces;
-using Application.Contract.UserContract;
+using Application.Features.Auth;
 
 namespace Application.Features.Auth.GetCurrentUser;
 

@@ -32,8 +32,7 @@ public class GetStatusListHandler : BaseFeatureHandler, IRequestHandler<GetStatu
             s.Id,
             s.Name,
             s.Color,
-            s.Category,
-            s.IsDefaultStatus
+            s.Category
         )).ToList();
     }
 }

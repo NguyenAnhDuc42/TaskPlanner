@@ -9,6 +9,5 @@ public record StatusDto(
     Guid Id,
     string Name,
     string Color,
-    StatusCategory Category,
-    bool IsDefaultStatus
+    StatusCategory Category
 );

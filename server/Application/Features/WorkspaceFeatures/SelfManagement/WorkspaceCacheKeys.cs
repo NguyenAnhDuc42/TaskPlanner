@@ -29,10 +29,6 @@ public static class WorkspaceCacheKeys
         {
             sb.Append("&archived=true");
         }
-        if (query.filter.Variant.HasValue)
-        {
-            sb.Append($"&variant={query.filter.Variant.Value}");
-        }
 
         return sb.ToString();
     }

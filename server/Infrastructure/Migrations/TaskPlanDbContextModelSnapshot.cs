@@ -790,12 +790,6 @@ namespace Infrastructure.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("updated_at");
 
-                    b.Property<string>("Variant")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)")
-                        .HasColumnName("variant");
-
                     b.HasKey("Id");
 
                     b.HasIndex("CreatorId");
@@ -838,15 +832,15 @@ namespace Infrastructure.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("deleted_at");
 
-                    b.Property<bool>("IsDefaultStatus")
-                        .HasColumnType("boolean")
-                        .HasColumnName("is_default_status");
-
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)")
                         .HasColumnName("name");
+
+                    b.Property<Guid>("ProjectWorkspaceId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("project_workspace_id");
 
                     b.Property<DateTimeOffset>("UpdatedAt")
                         .HasColumnType("timestamp with time zone")
@@ -859,6 +853,8 @@ namespace Infrastructure.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("CreatorId");
+
+                    b.HasIndex("ProjectWorkspaceId");
 
                     b.HasIndex("WorkflowId");
 
@@ -1026,6 +1022,10 @@ namespace Infrastructure.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("project_space_id");
 
+                    b.Property<Guid>("ProjectWorkspaceId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("project_workspace_id");
+
                     b.Property<DateTimeOffset>("UpdatedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("updated_at");
@@ -1035,6 +1035,8 @@ namespace Infrastructure.Migrations
                     b.HasIndex("CreatorId");
 
                     b.HasIndex("ProjectSpaceId");
+
+                    b.HasIndex("ProjectWorkspaceId");
 
                     b.ToTable("workflows", (string)null);
                 });

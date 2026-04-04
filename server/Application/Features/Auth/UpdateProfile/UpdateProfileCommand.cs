@@ -1,5 +1,5 @@
 using Application.Common.Interfaces;
-using Application.Contract.UserContract;
+using Application.Features.Auth.GetCurrentUser;
 
 namespace Application.Features.Auth.UpdateProfile;
 

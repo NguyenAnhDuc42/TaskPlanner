@@ -70,9 +70,6 @@ public class UpdateWorkspaceHandler : BaseFeatureHandler, IRequestHandler<Update
         if (request.Theme.HasValue)
             workspace.UpdateTheme(request.Theme.Value);
 
-        if (request.Variant.HasValue)
-            workspace.UpdateVariant(request.Variant.Value);
-
         if (request.StrictJoin.HasValue)
             workspace.UpdateStrictJoin(request.StrictJoin.Value);
 

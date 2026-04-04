@@ -82,12 +82,11 @@ namespace Api.Controllers
             [FromQuery] int pageSize = 10,
             [FromQuery] bool? owned = null,
             [FromQuery] bool? isArchived = null,
-            [FromQuery] WorkspaceVariant? variant = null,
             [FromQuery] SortDirection direction = SortDirection.Ascending,
             CancellationToken cancellationToken = default)
         {
             var pagination = new CursorPaginationRequest(cursor, pageSize, Direction: direction);
-            var filter = new WorkspaceFilter(name, owned, isArchived, variant);
+            var filter = new WorkspaceFilter(name, owned, isArchived);
             var query = new GetWorksapceListQuery(pagination, filter);
 
             var result = await _mediator.Send(query, cancellationToken);

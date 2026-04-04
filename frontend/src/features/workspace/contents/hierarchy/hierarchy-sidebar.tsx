@@ -1,33 +1,33 @@
 import { useSidebarContext } from "@/features/workspace/components/sidebar-provider";
-import { useHierarchy } from "../hierarchy/hierarchy-api";
+import { useHierarchy } from "./hierarchy-api";
 import {
   Loader2,
   ChevronRight,
   Plus,
-  MoreHorizontal,
   Lock,
+  CheckSquare,
+  Search,
+  FileText,
+  Clock,
+  ChevronDown,
 } from "lucide-react";
 import * as Icons from "lucide-react";
 import {
   Collapsible,
   CollapsibleContent,
+  CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import { cn } from "@/lib/utils";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { useNavigate, useParams, useLocation } from "@tanstack/react-router";
-import { useState } from "react";
+import { useNavigate, useLocation } from "@tanstack/react-router";
+import { useState, useMemo } from "react";
 import type {
   SpaceHierarchy,
   FolderHierarchy,
-  ListHierarchy,
+  TaskHierarchy,
 } from "./hierarchy-type";
-import { DialogFormWrapper } from "@/components/dialog-form-wrapper";
-import { PopoverFormWrapper } from "@/components/popover-wrapper";
-import { CreateSpaceForm } from "./hierarchy-components/create-space-form";
-import { CreateFolderListForm } from "./hierarchy-components/create-folderlist-form";
-import { ItemSettingPopover } from "./hierarchy-components/item-setting.popover";
 
-const NAME_CHAR_LIMIT = 14;
+const NAME_CHAR_LIMIT = 20;
 
 function clampName(name: string, limit = NAME_CHAR_LIMIT) {
   if (name.length <= limit) return name;
@@ -37,360 +37,207 @@ function clampName(name: string, limit = NAME_CHAR_LIMIT) {
 export function HierarchySidebar() {
   const { workspaceId } = useSidebarContext();
   const { data: hierarchy, isLoading, error } = useHierarchy(workspaceId || "");
-  const [isCreateSpaceOpen, setIsCreateSpaceOpen] = useState(false);
+  const [isHierarchyOpen, setIsHierarchyOpen] = useState(true);
+  const [isDocsOpen, setIsDocsOpen] = useState(true);
+  const [searchQuery, setSearchQuery] = useState("");
+
+  const filteredHierarchy = useMemo(() => {
+    if (!hierarchy || !searchQuery) return hierarchy;
+    const query = searchQuery.toLowerCase();
+    const filteredSpaces = hierarchy.spaces.map(space => {
+      const folders = space.folders.filter(f => f.name.toLowerCase().includes(query));
+      const tasksInSpace = space.tasks.filter(t => t.name.toLowerCase().includes(query));
+      const isSpaceMatch = space.name.toLowerCase().includes(query);
+      if (isSpaceMatch || folders.length > 0 || tasksInSpace.length > 0) {
+        return { ...space, folders, tasks: tasksInSpace, isExpanded: true };
+      }
+      return null;
+    }).filter(s => s !== null) as SpaceHierarchy[];
+    return { ...hierarchy, spaces: filteredSpaces };
+  }, [hierarchy, searchQuery]);
 
   if (isLoading) {
     return (
-      <div className="flex flex-col items-center justify-center h-40 text-muted-foreground/40 gap-3">
-        <Loader2 className="h-5 w-5 animate-spin" />
-        <span className="text-[10px] font-black uppercase tracking-widest">Loading...</span>
+      <div className="flex flex-col items-center justify-center h-40 gap-3 text-muted-foreground">
+        <Loader2 className="h-4 w-4 animate-spin" />
+        <span className="text-[10px] font-bold uppercase tracking-widest">Loading...</span>
       </div>
     );
   }
 
-  if (error) {
-    return (
-      <div className="p-6 text-destructive/60 text-[10px] font-black uppercase tracking-widest text-center">
-        Error loading mission data.
-      </div>
-    );
-  }
-
-  if (!hierarchy) return null;
+  if (error) return null;
 
   return (
-    <div className="h-full flex flex-col bg-transparent rounded-md backdrop-blur-sm">
-      <div className="flex items-center justify-between px-4 py-3 group gap-2 min-w-0">
-        <div className="text-[10px] font-black text-muted-foreground/60 uppercase tracking-[0.2em] truncate flex-1 min-w-0">
-          {hierarchy.name}
-        </div>
-        <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1">
-          <DialogFormWrapper
-            title="Create Space"
-            open={isCreateSpaceOpen}
-            onOpenChange={setIsCreateSpaceOpen}
-            trigger={
-              <div
-                className="p-1 rounded-md hover:bg-white/10 cursor-pointer transition-colors"
-                role="button"
-              >
-                <Plus className="h-3.5 w-3.5 text-muted-foreground/60" />
-              </div>
-            }
-          >
-            <CreateSpaceForm onSuccess={() => setIsCreateSpaceOpen(false)} />
-          </DialogFormWrapper>
-        </div>
-      </div>
-      <ScrollArea className="flex-1">
-        <div className="px-1 pb-4 flex flex-col gap-0">
-          {hierarchy.spaces.map((space) => (
-            <SpaceItem key={space.id} space={space} />
-          ))}
-          {hierarchy.spaces.length === 0 && (
-            <div className="text-[10px] text-muted-foreground/30 px-4 py-8 text-center italic font-bold uppercase tracking-widest underline decoration-2 decoration-white/5 underline-offset-8">
-              No regions discovered
-            </div>
+    <div className="h-full flex flex-col bg-background overflow-hidden select-none">
+      {/* Search & Actions */}
+      <div className="px-1 pb-1 pt-0 border-b border-border flex-shrink-0 flex items-center gap-1">
+        <div className="flex items-center gap-2 px-2 h-7 rounded-sm bg-muted border border-border focus-within:border-primary/60 transition-colors group flex-1">
+          <Search className="h-3 w-3 text-muted-foreground flex-shrink-0" />
+          <input
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search..."
+            className="flex-1 bg-transparent border-none outline-none text-[10px] font-semibold text-foreground placeholder:text-muted-foreground"
+          />
+          {searchQuery && (
+            <button
+              onClick={() => setSearchQuery("")}
+              className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+            >
+              ✕
+            </button>
           )}
+        </div>
+        <button className="h-7 w-7 flex-shrink-0 flex items-center justify-center rounded-sm text-muted-foreground hover:text-foreground hover:bg-muted transition-colors" title="Create Space">
+          <Plus className="h-4 w-4" />
+        </button>
+      </div>
+
+      <ScrollArea className="flex-1 min-h-0">
+        <div className="py-2">
+
+          {/* NAVIGATION SECTION */}
+          <Collapsible open={isHierarchyOpen} onOpenChange={setIsHierarchyOpen}>
+            <CollapsibleTrigger className="w-full flex items-center gap-2 px-1 py-0.5 hover:bg-muted transition-colors group rounded-sm">
+              <ChevronDown className={cn("h-3 w-3 text-muted-foreground transition-transform duration-200", !isHierarchyOpen && "-rotate-90")} />
+              <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider flex-1 text-left">Navigation</span>
+              <Plus className="h-3 w-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity hover:text-primary" />
+            </CollapsibleTrigger>
+            <CollapsibleContent>
+              <div className="px-2 pt-0.5 pb-2 flex flex-col gap-0.5">
+                {filteredHierarchy?.spaces.map((space) => (
+                  <SpaceItem key={space.id} space={space} isForcedOpen={!!searchQuery} />
+                ))}
+              </div>
+            </CollapsibleContent>
+          </Collapsible>
+
+          {/* DOCS & TASKS SECTION */}
+          <Collapsible open={isDocsOpen} onOpenChange={setIsDocsOpen}>
+            <CollapsibleTrigger className="w-full flex items-center gap-2 px-1 py-0.5 hover:bg-muted transition-colors group mt-1 pt-1 border-t border-border rounded-sm">
+              <ChevronDown className={cn("h-3 w-3 text-muted-foreground transition-transform duration-200", !isDocsOpen && "-rotate-90")} />
+              <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider text-left">Docs & Tasks</span>
+            </CollapsibleTrigger>
+            <CollapsibleContent>
+              <div className="px-2 pt-0.5 pb-2 flex flex-col gap-0.5">
+                <MockItem icon={FileText} label="Product Roadmap" count={3} />
+                <MockItem icon={FileText} label="Design Systems" count={12} />
+                <MockItem icon={Clock} label="Recent Tasks" />
+              </div>
+            </CollapsibleContent>
+          </Collapsible>
+
         </div>
       </ScrollArea>
     </div>
   );
 }
 
-function SpaceItem({ space }: { space: SpaceHierarchy }) {
+function MockItem({ icon: Icon, label, count }: { icon: any; label: string; count?: number }) {
+  return (
+    <div className="flex items-center gap-2 px-1 py-0.5 rounded-sm hover:bg-muted cursor-pointer group transition-colors">
+      <Icon className="h-3.5 w-3.5 text-muted-foreground group-hover:text-foreground transition-colors flex-shrink-0" />
+      <span className="text-[11px] font-semibold text-muted-foreground group-hover:text-foreground transition-colors flex-1 truncate">{label}</span>
+      {count !== undefined && (
+        <span className="text-[10px] font-mono text-muted-foreground">{count}</span>
+      )}
+    </div>
+  );
+}
+
+function SpaceItem({ space, isForcedOpen }: { space: SpaceHierarchy; isForcedOpen?: boolean }) {
   const [isOpen, setIsOpen] = useState(true);
-  const [isCreateOpen, setIsCreateOpen] = useState(false);
-  const { workspaceId } = useParams({ strict: false });
+  const { workspaceId } = useSidebarContext();
   const navigate = useNavigate();
   const location = useLocation();
   const isActive = location.pathname.includes(`/spaces/${space.id}`);
-
   const IconComponent = (Icons as any)[space.icon] || Icons.LayoutGrid;
   const spaceColor = space.color || "var(--primary)";
+  const effectiveOpen = isForcedOpen || isOpen;
 
   return (
-    <Collapsible open={isOpen} onOpenChange={setIsOpen} className="w-full">
+    <Collapsible open={effectiveOpen} onOpenChange={setIsOpen} className="w-full">
       <div
         className={cn(
-          "group/item relative flex items-center w-full px-1 py-1 rounded-md transition-all duration-300 cursor-pointer overflow-hidden mb-0",
-          isActive
-            ? "bg-white/[0.08] shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)] border border-white/10"
-            : "hover:bg-white/5 border border-transparent hover:border-white/5",
+          "flex items-center w-full px-1 py-0.5 rounded-sm transition-colors cursor-pointer mb-px",
+          isActive ? "bg-primary/10 text-primary" : "text-foreground hover:bg-muted"
         )}
-        onClick={() =>
-          navigate({ to: `/workspaces/${workspaceId}/spaces/${space.id}` })
-        }
+        onClick={() => navigate({ to: `/workspaces/${workspaceId}/spaces/${space.id}` })}
       >
         <div
-          className={cn(
-            "p-1 rounded-md mr-1 transition-transform duration-300 hover:bg-white/10",
-            isOpen && "rotate-90",
-          )}
-          onClick={(e) => {
-            e.stopPropagation();
-            setIsOpen(!isOpen);
-          }}
+          className="relative flex items-center justify-center w-5 h-5 flex-shrink-0 cursor-pointer rounded-sm hover:bg-background/50 group/icon mr-0.5"
+          onClick={(e) => { e.stopPropagation(); setIsOpen(!isOpen); }}
         >
-          <ChevronRight className="h-3 w-3 text-muted-foreground/30" />
+          <IconComponent className="h-3.5 w-3.5 absolute transition-opacity group-hover/icon:opacity-0" style={{ color: isActive ? spaceColor : undefined }} />
+          <ChevronRight className={cn("h-4 w-4 absolute opacity-0 transition-all text-muted-foreground group-hover/icon:opacity-100", isOpen && "rotate-90")} />
         </div>
-
-        <div
-          className="flex-shrink-0 p-1 rounded-md shadow-sm border border-white/5"
-          style={{
-            backgroundColor: `${spaceColor}15`,
-            color: spaceColor,
-          }}
-        >
-          <IconComponent className="h-3.5 w-3.5" />
-        </div>
-
-        <span
-          className={cn(
-            "ml-3 truncate text-[13px] font-bold tracking-tight transition-colors duration-300",
-            isActive ? "text-foreground" : "text-muted-foreground/60 group-hover/item:text-foreground/90",
-          )}
-        >
-          {clampName(space.name, 14)}
-        </span>
-
-        {space.isPrivate && (
-          <Lock className="h-3 w-3 ml-2 text-muted-foreground/20" />
-        )}
-
-        <div className="ml-auto flex items-center gap-0.5 opacity-0 group-hover/item:opacity-100 transition-opacity">
-          <div onClick={(e) => e.stopPropagation()}>
-            <DialogFormWrapper
-              title="Create Item"
-              open={isCreateOpen}
-              onOpenChange={setIsCreateOpen}
-              trigger={
-                <div
-                  className="p-1 rounded-md hover:bg-white/10 transition-colors"
-                >
-                  <Plus className="h-3 w-3 text-muted-foreground/40" />
-                </div>
-              }
-            >
-              <CreateFolderListForm
-                parentId={space.id}
-                parentType="Space"
-                onSuccess={() => {
-                  setIsOpen(true);
-                  setIsCreateOpen(false);
-                }}
-              />
-            </DialogFormWrapper>
-          </div>
-
-          <div onClick={(e) => e.stopPropagation()}>
-            <PopoverFormWrapper
-              trigger={
-                <div
-                  className="p-1 rounded-md hover:bg-white/10 transition-colors"
-                >
-                  <MoreHorizontal className="h-3 w-3 text-muted-foreground/40" />
-                </div>
-              }
-            >
-              <ItemSettingPopover
-                type="Space"
-                id={space.id}
-                name={space.name}
-                color={space.color}
-                icon={space.icon}
-                isPrivate={space.isPrivate}
-              />
-            </PopoverFormWrapper>
-          </div>
-        </div>
+        <span className="truncate text-[11px] font-bold flex-1">{clampName(space.name)}</span>
+        {space.isPrivate && <Lock className="h-3 w-3 text-muted-foreground flex-shrink-0 opacity-40 ml-1" />}
       </div>
 
-      <CollapsibleContent className="space-y-0.5 mt-0.5 ml-3.5 pl-1 border-l border-white/5 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:slide-out-to-top-2 data-[state=open]:slide-in-from-top-2 duration-300">
+      <CollapsibleContent className="ml-3 pl-1 border-l border-border mt-0.5 flex flex-col">
         {space.folders.map((folder) => (
           <FolderItem key={folder.id} folder={folder} />
         ))}
-        {space.lists.map((list) => (
-          <ListItem key={list.id} list={list} />
+        {space.tasks.map((task) => (
+          <TaskItem key={task.id} task={task} />
         ))}
-        {space.folders.length === 0 && space.lists.length === 0 && (
-          <div className="text-[10px] text-muted-foreground/20 px-6 py-2 italic font-medium uppercase tracking-widest">
-            Void
-          </div>
-        )}
       </CollapsibleContent>
     </Collapsible>
   );
 }
 
 function FolderItem({ folder }: { folder: FolderHierarchy }) {
-  const [isOpen, setIsOpen] = useState(true);
-  const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [isOpen, setIsOpen] = useState(false);
   const IconComponent = (Icons as any)[folder.icon] || Icons.Folder;
   const location = useLocation();
   const isActive = location.pathname.includes(`/folders/${folder.id}`);
   const navigate = useNavigate();
-  const { workspaceId } = useParams({ strict: false });
-
-  const folderColor = folder.color || "var(--primary)";
+  const { workspaceId } = useSidebarContext();
 
   return (
     <Collapsible open={isOpen} onOpenChange={setIsOpen} className="w-full">
       <div
         className={cn(
-          "group/item relative flex items-center w-full px-1 py-0.5 rounded-md transition-all duration-300 cursor-pointer overflow-hidden",
-          isActive 
-            ? "bg-white/[0.08] border border-white/10" 
-            : "hover:bg-white/5 border border-transparent hover:border-white/5",
+          "flex items-center w-full px-1 py-0.5 rounded-sm transition-colors cursor-pointer mb-px",
+          isActive ? "bg-primary/10 text-foreground" : "text-muted-foreground hover:bg-muted hover:text-foreground"
         )}
-        onClick={() =>
-          navigate({ to: `/workspaces/${workspaceId}/folders/${folder.id}` })
-        }
+        onClick={() => navigate({ to: `/workspaces/${workspaceId}/folders/${folder.id}` })}
       >
         <div
-          className={cn(
-            "p-1 rounded-md mr-0.5 transition-transform duration-200 hover:bg-white/10",
-            isOpen && "rotate-90",
-          )}
-          onClick={(e) => {
-            e.stopPropagation();
-            setIsOpen(!isOpen);
-          }}
+          className="relative flex items-center justify-center w-5 h-5 flex-shrink-0 cursor-pointer rounded-sm hover:bg-background/50 group/icon mr-0.5"
+          onClick={(e) => { e.stopPropagation(); setIsOpen(!isOpen); }}
         >
-          <ChevronRight className="h-3 w-3 text-muted-foreground/30" />
+          <IconComponent className="h-3.5 w-3.5 absolute transition-opacity group-hover/icon:opacity-0" style={{ color: folder.color }} />
+          <ChevronRight className={cn("h-4 w-4 absolute opacity-0 transition-all text-muted-foreground group-hover/icon:opacity-100", isOpen && "rotate-90")} />
         </div>
-
-        <div
-          className="flex-shrink-0 p-1 rounded-sm opacity-70 group-hover/item:opacity-100 transition-opacity"
-          style={{ color: folderColor }}
-        >
-          <IconComponent className="h-3.5 w-3.5" />
-        </div>
-
-        <span
-          className={cn(
-            "ml-2 truncate text-[11px] font-bold tracking-tight transition-colors duration-300",
-            isActive ? "text-foreground" : "text-muted-foreground/60 group-hover/item:text-foreground/90",
-          )}
-        >
-          {clampName(folder.name)}
-        </span>
-
-        <div className="ml-auto flex items-center gap-0.5 opacity-0 group-hover/item:opacity-100 transition-opacity">
-          <div onClick={(e) => e.stopPropagation()}>
-            <DialogFormWrapper
-              title="Create List"
-              open={isCreateOpen}
-              onOpenChange={setIsCreateOpen}
-              trigger={
-                <div
-                  className="p-1 rounded-md hover:bg-white/10 transition-colors"
-                >
-                  <Plus className="h-3 w-3 text-muted-foreground/40" />
-                </div>
-              }
-            >
-              <CreateFolderListForm
-                parentId={folder.id}
-                parentType="Folder"
-                onSuccess={() => {
-                  setIsOpen(true);
-                  setIsCreateOpen(false);
-                }}
-              />
-            </DialogFormWrapper>
-          </div>
-
-          <div onClick={(e) => e.stopPropagation()}>
-            <PopoverFormWrapper
-              trigger={
-                <div
-                  className="p-1 rounded-md hover:bg-white/10 transition-colors"
-                >
-                  <MoreHorizontal className="h-3 w-3 text-muted-foreground/40" />
-                </div>
-              }
-            >
-              <ItemSettingPopover
-                type="Folder"
-                id={folder.id}
-                name={folder.name}
-                color={folder.color}
-                icon={folder.icon}
-                isPrivate={folder.isPrivate}
-              />
-            </PopoverFormWrapper>
-          </div>
-        </div>
+        <span className="truncate text-[11px] font-semibold flex-1">{clampName(folder.name)}</span>
       </div>
-
-      <CollapsibleContent className="space-y-0.5 mt-0.5 ml-3 pl-1 border-l border-white/5 duration-300">
-        {folder.lists.map((list) => (
-          <ListItem key={list.id} list={list} />
+      <CollapsibleContent className="ml-3 pl-1 border-l border-border mt-0.5 flex flex-col">
+        {folder.tasks.map((task) => (
+          <TaskItem key={task.id} task={task} />
         ))}
       </CollapsibleContent>
     </Collapsible>
   );
 }
 
-function ListItem({ list }: { list: ListHierarchy }) {
+function TaskItem({ task }: { task: TaskHierarchy }) {
   const navigate = useNavigate();
-  const { workspaceId } = useParams({ strict: false });
-
+  const { workspaceId } = useSidebarContext();
   const location = useLocation();
-  const isActive = location.pathname.includes(`/lists/${list.id}`);
-  const IconComponent = (Icons as any)[list.icon] || Icons.List;
-  const listColor = list.color || "var(--primary)";
+  const isActive = location.pathname.includes(`/tasks/${task.id}`);
 
   return (
     <div
-      className={cn("group/list relative flex items-center w-full pr-2 pl-6 py-0.5 rounded-md transition-all duration-300 cursor-pointer overflow-hidden",
-        isActive ? "bg-white/[0.08] border border-white/10" 
-                 : "hover:bg-white/5 border border-transparent hover:border-white/5",
+      className={cn(
+        "flex items-center w-full px-1 py-0.5 rounded-sm transition-colors cursor-pointer mb-px pl-6",
+        isActive ? "text-primary bg-primary/10" : "text-muted-foreground hover:bg-muted hover:text-foreground"
       )}
-      onClick={() => navigate({ to: `/workspaces/${workspaceId}/lists/${list.id}` })}
+      onClick={() => navigate({ to: `/workspaces/${workspaceId}/tasks/${task.id}` })}
     >
-      <div className="w-3.5 flex justify-center items-center flex-shrink-0 transition-all duration-300 group-hover/list:scale-110 opacity-60 group-hover/list:opacity-100"
-           style={{ color: listColor }}
-      >
-        <IconComponent className="h-3.5 w-3.5" />
-      </div>
-
-      <span
-        className={cn(
-          "ml-3 truncate text-[11px] font-bold tracking-tight transition-colors duration-300",
-          isActive ? "text-foreground" : "text-muted-foreground/50 group-hover/list:text-foreground/90",
-        )}
-      >
-        {clampName(list.name)}
-      </span>
-
-      {list.isPrivate && (
-        <Lock className="h-2.5 w-2.5 ml-1.5 text-muted-foreground/20" />
-      )}
-
-      <div className="ml-auto opacity-0 group-hover/list:opacity-100 transition-opacity">
-        <div onClick={(e) => e.stopPropagation()}>
-          <PopoverFormWrapper
-            trigger={
-              <div
-                className="p-1 rounded-md hover:bg-white/10"
-              >
-                <MoreHorizontal className="h-3 w-3 text-muted-foreground/40" />
-              </div>
-            }
-          >
-            <ItemSettingPopover
-              type="List"
-              id={list.id}
-              name={list.name}
-              color={list.color}
-              icon={list.icon}
-              isPrivate={list.isPrivate}
-            />
-          </PopoverFormWrapper>
-        </div>
-      </div>
+      <CheckSquare className="h-3.5 w-3.5 flex-shrink-0 opacity-60 mr-1.5" />
+      <span className="truncate text-[11px] font-semibold flex-1 leading-tight">{clampName(task.name)}</span>
     </div>
   );
 }

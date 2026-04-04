@@ -5,6 +5,7 @@ namespace Domain.Entities.ProjectEntities;
 
 public class Workflow : Entity
 {
+    public Guid ProjectWorkspaceId { get; private set; }
     public Guid ProjectSpaceId { get; private set; }
     public string Name { get; private set; } = null!;
     public string? Description { get; private set; }
@@ -14,17 +15,32 @@ public class Workflow : Entity
 
     private Workflow() { }
 
-    private Workflow(Guid id, Guid projectSpaceId, string name, string? description, Guid creatorId) : base(id)
+    private Workflow(Guid id, Guid projectWorkspaceId, Guid projectSpaceId, string name, string? description, Guid creatorId) : base(id)
     {
+        ProjectWorkspaceId = projectWorkspaceId;
         ProjectSpaceId = projectSpaceId;
         Name = name?.Trim() ?? throw new ArgumentNullException(nameof(name));
         Description = description?.Trim();
         CreatorId = creatorId;
     }
 
-    public static Workflow Create(Guid projectSpaceId, string name, string? description, Guid creatorId)
+    public static Workflow Create(Guid projectWorkspaceId, Guid projectSpaceId, string name, string? description, Guid creatorId)
     {
-        return new Workflow(Guid.NewGuid(), projectSpaceId, name, description, creatorId);
+        return new Workflow(Guid.NewGuid(), projectWorkspaceId, projectSpaceId, name, description, creatorId);
+    }
+
+    public Workflow Clone(Guid newSpaceId, Guid creatorId)
+    {
+        var newWorkflowId = Guid.NewGuid();
+        var cloned = new Workflow(newWorkflowId, ProjectWorkspaceId, newSpaceId, $"{Name} (Copy)", Description, creatorId);
+        
+        foreach (var status in Statuses)
+        {
+            var newStatus = Status.Create(ProjectWorkspaceId, newWorkflowId, status.Name, status.Color, status.Category, creatorId);
+            cloned._statuses.Add(newStatus);
+        }
+
+        return cloned;
     }
 
     public void UpdateDetails(string name, string? description)
