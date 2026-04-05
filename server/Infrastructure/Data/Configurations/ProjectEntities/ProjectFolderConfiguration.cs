@@ -14,10 +14,9 @@ public class ProjectFolderConfiguration : EntityConfiguration<ProjectFolder>
 
         builder.Property(x => x.ProjectSpaceId).HasColumnName("project_space_id").IsRequired();
         builder.Property(x => x.Name).HasColumnName("name").HasMaxLength(200).IsRequired();
-        builder.Property(x => x.OrderKey).HasColumnName("order_key");
+        builder.Property(x => x.OrderKey).HasColumnName("order_key").HasMaxLength(255).IsRequired();
         builder.Property(x => x.IsPrivate).HasColumnName("is_private").IsRequired();
         builder.Property(x => x.IsArchived).HasColumnName("is_archived").IsRequired();
-        builder.Property(x => x.NextItemOrder).HasColumnName("next_item_order").IsRequired();
         builder.Property(x => x.StartDate).HasColumnName("start_date");
         builder.Property(x => x.DueDate).HasColumnName("due_date");
 
@@ -28,7 +27,6 @@ public class ProjectFolderConfiguration : EntityConfiguration<ProjectFolder>
         });
 
         builder.HasIndex(x => x.ProjectSpaceId);
-        builder.HasIndex(x => new { x.ProjectSpaceId, x.OrderKey });
 
         // builder.HasOne<ProjectSpace>()
         //     .WithMany()

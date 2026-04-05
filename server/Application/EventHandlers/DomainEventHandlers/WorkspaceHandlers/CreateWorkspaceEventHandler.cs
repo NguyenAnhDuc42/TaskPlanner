@@ -1,5 +1,6 @@
 using System;
 using Application.Interfaces.Repositories;
+using Domain.Common;
 using Domain.Entities.ProjectEntities;
 using Domain.Entities.Relationship;
 using Domain.Events.Workspace;
@@ -24,9 +25,9 @@ public class CreateWorkspaceEventHandler : INotificationHandler<CreatedWorkspace
         _logger.LogInformation("Seeding initial hierarchy for WorkspaceId: {WorkspaceId}", notification.workspaceId);
 
         await CreateOwnerProfile(notification, cancellationToken);
+        var statuses = await SeedWorkflowAndStatuses(notification, cancellationToken);
         var space = await SeedWelcomeSpace(notification, cancellationToken);
         var folder = await SeedGettingStartedFolder(notification, space.Id, cancellationToken);
-        var statuses = await SeedWorkflowAndStatuses(notification, space.Id, cancellationToken);
         
         await SeedInitialTasks(notification, space.Id, folder.Id, statuses, cancellationToken);
     }
@@ -46,7 +47,7 @@ public class CreateWorkspaceEventHandler : INotificationHandler<CreatedWorkspace
             null,
             isPrivate: false,
             creatorId: notification.userId,
-            orderKey: 10_000_000
+            orderKey: FractionalIndex.Start()
         );
         await _unitOfWork.Set<ProjectSpace>().AddAsync(space, cancellationToken);
         return space;
@@ -57,19 +58,19 @@ public class CreateWorkspaceEventHandler : INotificationHandler<CreatedWorkspace
         var folder = ProjectFolder.Create(
             spaceId,
             "Getting Started",
-            "Start your journey here.",
-            null,
+            "#6366f1",
+            "Folder",
             isPrivate: false,
             creatorId: notification.userId,
-            orderKey: 20_000_000
+            orderKey: FractionalIndex.Start()
         );
         await _unitOfWork.Set<ProjectFolder>().AddAsync(folder, cancellationToken);
         return folder;
     }
 
-    private async Task<List<Status>> SeedWorkflowAndStatuses(CreatedWorkspaceEvent notification, Guid spaceId, CancellationToken cancellationToken)
+    private async Task<List<Status>> SeedWorkflowAndStatuses(CreatedWorkspaceEvent notification, CancellationToken cancellationToken)
     {
-        var workflow = Workflow.Create(notification.workspaceId, spaceId, "Default Workflow", null, notification.userId);
+        var workflow = Workflow.Create(notification.workspaceId, "Default Workflow", null, notification.userId);
         await _unitOfWork.Set<Workflow>().AddAsync(workflow, cancellationToken);
         
         var statuses = Status.CreateStarterSet(notification.workspaceId, workflow.Id, notification.userId);
@@ -90,7 +91,7 @@ public class CreateWorkspaceEventHandler : INotificationHandler<CreatedWorkspace
             customization: null,
             creatorId: notification.userId,
             statusId: firstStatus.Id,
-            orderKey: 30_000_000L
+            orderKey: FractionalIndex.Start()
         );
         
         var spaceTask = ProjectTask.Create(
@@ -102,7 +103,7 @@ public class CreateWorkspaceEventHandler : INotificationHandler<CreatedWorkspace
             customization: null,
             creatorId: notification.userId,
             statusId: firstStatus.Id,
-            orderKey: 40_000_000L
+            orderKey: FractionalIndex.After(FractionalIndex.Start())
         );
 
         await _unitOfWork.Set<ProjectTask>().AddAsync(folderTask, cancellationToken);

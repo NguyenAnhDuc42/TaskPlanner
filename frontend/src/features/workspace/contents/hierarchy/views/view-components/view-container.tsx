@@ -1,9 +1,13 @@
 import { EntityLayerType } from "@/types/relationship-type";
-import { TaskListView } from "./view-components/list-view/list-view";
-import { TaskBoardView } from "./view-components/board-view/board-view";
-import { TaskInfoView } from "./view-components/task/task-info-view";
+import { TaskListView } from "./list-view/list-view";
+import { TaskBoardView } from "./board-view/board-view";
+import { TaskInfoView } from "./task/task-info-view";
 import { ViewType } from "@/types/view-type";
-import type { TaskListViewResult, TasksBoardViewResult, ViewDto } from "./views-type";
+import type {
+  TaskListViewResult,
+  TasksBoardViewResult,
+  ViewDto,
+} from "../views-type";
 
 interface ViewContainerProps {
   workspaceId: string;
@@ -13,16 +17,15 @@ interface ViewContainerProps {
   view: ViewDto;
 }
 
-export function ViewContainer({ 
-  workspaceId, 
-  layerId, 
-  layerType, 
-  data, 
-  view 
+export function ViewContainer({
+  workspaceId,
+  layerId,
+  layerType,
+  data,
+  view,
 }: ViewContainerProps) {
-  
   // Dispatch based on Layer Type and View Type
-  
+
   // Exception: Task Layer has a specialized Info View
   if (layerType === EntityLayerType.ProjectTask) {
     return (
@@ -56,8 +59,10 @@ export function ViewContainer({
       {/* Fallback for unhandled view types */}
       {view.viewType !== ViewType.List && view.viewType !== ViewType.Board && (
         <div className="flex flex-col items-center justify-center h-full text-muted-foreground/20">
-           <div className="h-20 w-20 border-2 border-dashed border-white/5 rounded-3xl mb-4 animate-pulse" />
-           <span className="text-[10px] font-black uppercase tracking-widest">{view.name} Layout Orchestration...</span>
+          <div className="h-20 w-20 border-2 border-dashed border-white/5 rounded-3xl mb-4 animate-pulse" />
+          <span className="text-[10px] font-black uppercase tracking-widest">
+            {view.name} Layout Orchestration...
+          </span>
         </div>
       )}
     </div>

@@ -1,8 +1,8 @@
-import type { ViewDto } from "./views-type";
+import type { ViewDto } from "../views-type";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { Plus, Settings2, List, LayoutDashboard, FileText } from "lucide-react";
-import { useCreateView } from "./views-api";
+import { useCreateView } from "../views-api";
 import { ViewType } from "@/types/view-type";
 import {
   DropdownMenu,

@@ -10,6 +10,7 @@ import {
   Plus,
   PanelLeftOpen,
   Briefcase,
+  ChevronLeft,
 } from "lucide-react";
 import { useNavigate } from "@tanstack/react-router";
 import { useSidebarContext } from "./sidebar-provider";
@@ -59,7 +60,12 @@ export function OuterSidebar({ className }: { className?: string }) {
 
   return (
     <TooltipProvider delayDuration={100}>
-      <div className={cn("relative h-full w-fit flex-shrink-0 flex flex-col items-center gap-2", className)}>
+      <div
+        className={cn(
+          "relative h-full w-fit flex-shrink-0 flex flex-col items-center gap-2",
+          className,
+        )}
+      >
         {/* Top Section Card */}
         <div className="flex flex-col items-center gap-1.5 shrink-0 bg-background border border-border rounded-md shadow-sm p-1.5">
           {/* Expand Button - Only visible when closed, integrated with Nav Card */}
@@ -75,7 +81,11 @@ export function OuterSidebar({ className }: { className?: string }) {
                   <PanelLeftOpen className="h-5 w-5" />
                 </Button>
               </TooltipTrigger>
-              <TooltipContent side="right" sideOffset={10} className="font-mono text-[10px] uppercase tracking-wider font-bold">
+              <TooltipContent
+                side="right"
+                sideOffset={10}
+                className="font-mono text-[10px] uppercase tracking-wider font-bold"
+              >
                 Expand
               </TooltipContent>
             </Tooltip>
@@ -93,7 +103,9 @@ export function OuterSidebar({ className }: { className?: string }) {
                     size="icon"
                     className={cn(
                       "w-8 h-8 rounded-md transition-all duration-200",
-                      isActive ? "theme-selected scale-105" : "text-[var(--theme-text-normal)] hover:bg-[var(--theme-item-hover)] hover:text-[var(--theme-text-hover)]"
+                      isActive
+                        ? "theme-selected scale-105"
+                        : "text-[var(--theme-text-normal)] hover:bg-[var(--theme-item-hover)] hover:text-[var(--theme-text-hover)]",
                     )}
                     onClick={() => handleNavClick(item.id)}
                     onMouseEnter={() => {
@@ -105,7 +117,11 @@ export function OuterSidebar({ className }: { className?: string }) {
                     <Icon className="h-5 w-5" />
                   </Button>
                 </TooltipTrigger>
-                <TooltipContent side="right" sideOffset={10} className="font-mono text-[10px] uppercase tracking-wider font-bold">
+                <TooltipContent
+                  side="right"
+                  sideOffset={10}
+                  className="font-mono text-[10px] uppercase tracking-wider font-bold"
+                >
                   {item.label}
                 </TooltipContent>
               </Tooltip>
@@ -122,7 +138,11 @@ export function OuterSidebar({ className }: { className?: string }) {
                 <Plus className="h-5 w-5" />
               </Button>
             </TooltipTrigger>
-            <TooltipContent side="right" sideOffset={10} className="font-mono text-[10px] uppercase tracking-wider font-bold">
+            <TooltipContent
+              side="right"
+              sideOffset={10}
+              className="font-mono text-[10px] uppercase tracking-wider font-bold"
+            >
               Quick Action
             </TooltipContent>
           </Tooltip>
@@ -134,14 +154,20 @@ export function OuterSidebar({ className }: { className?: string }) {
                 size="icon"
                 className={cn(
                   "w-8 h-8 rounded-md transition-all duration-200",
-                  activeContent === "settings" ? "theme-selected shadow-md" : "text-[var(--theme-text-normal)] hover:bg-[var(--theme-item-hover)] hover:text-[var(--theme-text-hover)]"
+                  activeContent === "settings"
+                    ? "theme-selected shadow-md"
+                    : "text-[var(--theme-text-normal)] hover:bg-[var(--theme-item-hover)] hover:text-[var(--theme-text-hover)]",
                 )}
                 onClick={() => handleNavClick("settings")}
               >
                 <Settings className="h-4 w-4" />
               </Button>
             </TooltipTrigger>
-            <TooltipContent side="right" sideOffset={10} className="font-mono text-[10px] uppercase tracking-wider font-bold">
+            <TooltipContent
+              side="right"
+              sideOffset={10}
+              className="font-mono text-[10px] uppercase tracking-wider font-bold"
+            >
               Settings
             </TooltipContent>
           </Tooltip>
@@ -152,7 +178,6 @@ export function OuterSidebar({ className }: { className?: string }) {
 
         {/* Bottom Section Card */}
         <div className="flex flex-col items-center gap-2 bg-background border border-border rounded-md shadow-sm p-1.5">
-
           <Tooltip>
             <TooltipTrigger asChild>
               <Button
@@ -163,7 +188,11 @@ export function OuterSidebar({ className }: { className?: string }) {
                 <Briefcase className="h-4 w-4" />
               </Button>
             </TooltipTrigger>
-            <TooltipContent side="right" sideOffset={10} className="font-mono text-[10px] uppercase tracking-wider font-bold">
+            <TooltipContent
+              side="right"
+              sideOffset={10}
+              className="font-mono text-[10px] uppercase tracking-wider font-bold"
+            >
               Workspaces
             </TooltipContent>
           </Tooltip>
@@ -173,11 +202,17 @@ export function OuterSidebar({ className }: { className?: string }) {
               <Avatar className="h-8 w-8 border border-border shadow-sm hover:scale-110 transition-transform cursor-pointer rounded-md overflow-hidden bg-muted">
                 <AvatarImage src="" />
                 <AvatarFallback className="text-[10px] font-bold">
-                  {user?.name?.substring(0, 2).toUpperCase() || <Users className="h-4 w-4" />}
+                  {user?.name?.substring(0, 2).toUpperCase() || (
+                    <Users className="h-4 w-4" />
+                  )}
                 </AvatarFallback>
               </Avatar>
             </TooltipTrigger>
-            <TooltipContent side="right" sideOffset={10} className="font-mono text-[10px] uppercase tracking-wider font-bold">
+            <TooltipContent
+              side="right"
+              sideOffset={10}
+              className="font-mono text-[10px] uppercase tracking-wider font-bold"
+            >
               Profile
             </TooltipContent>
           </Tooltip>
@@ -194,7 +229,11 @@ export function OuterSidebar({ className }: { className?: string }) {
                   <LogOut className="h-4 w-4" />
                 </Button>
               </TooltipTrigger>
-              <TooltipContent side="right" sideOffset={10} className="font-mono text-[10px] uppercase tracking-wider font-bold text-destructive">
+              <TooltipContent
+                side="right"
+                sideOffset={10}
+                className="font-mono text-[10px] uppercase tracking-wider font-bold text-destructive"
+              >
                 Exit
               </TooltipContent>
             </Tooltip>
@@ -209,19 +248,26 @@ export function OuterSidebar({ className }: { className?: string }) {
             onMouseLeave={() => setHoveredIcon(null)}
           >
             <div className="h-full w-full bg-background border border-border rounded-2xl shadow-xl flex flex-col overflow-hidden">
-              <div className="px-6 py-4 flex-shrink-0 bg-transparent border-b border-border/10">
-                <h3 className="font-bold text-sm uppercase tracking-wider text-[var(--theme-text-hover)]">
-                  {hoveredIcon}
-                </h3>
+              {/* Header - Mirroring InnerSidebar exactly */}
+              <div className="flex items-center justify-between px-2 py-2 flex-shrink-0 border-b border-border">
+                <h2 className="font-black text-sm uppercase tracking-widest text-foreground">
+                  {hoveredIcon === "communications" ? "Chat" : hoveredIcon}
+                </h2>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7 text-muted-foreground hover:text-foreground hover:bg-muted rounded-md transition-colors"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
               </div>
 
-              <ScrollArea className="flex-1 px-3 py-4">
-                <SidebarRegistry page={hoveredIcon} />
+              {/* Scrollable content area mirroring InnerSidebar's p-1 structure */}
+              <ScrollArea className="flex-1 min-h-0">
+                <div className="flex-1 p-1 min-h-0 flex flex-col overflow-hidden">
+                  <SidebarRegistry page={hoveredIcon} />
+                </div>
               </ScrollArea>
-
-              <div className="p-3 bg-muted/10 border-t border-border/50 text-[9px] text-muted-foreground uppercase font-bold tracking-widest text-center">
-                Quick Explorer
-              </div>
             </div>
           </div>
         )}
@@ -229,4 +275,3 @@ export function OuterSidebar({ className }: { className?: string }) {
     </TooltipProvider>
   );
 }
-

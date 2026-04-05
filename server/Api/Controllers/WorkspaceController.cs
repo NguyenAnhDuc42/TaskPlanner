@@ -101,6 +101,21 @@ namespace Api.Controllers
             return Ok(result);
         }
 
+        [HttpGet("{id:guid}/hierarchy/nodes/{nodeId}/tasks")]
+        public async Task<ActionResult<NodeTasksDto>> GetNodeTasks(
+            Guid id,
+            Guid nodeId,
+            [FromQuery] string parentType,
+            [FromQuery] string? cursorOrderKey,
+            [FromQuery] string? cursorTaskId,
+            [FromQuery] int pageSize = 50,
+            CancellationToken cancellationToken = default)
+        {
+            var query = new GetNodeTasksQuery(id, nodeId, parentType, cursorOrderKey, cursorTaskId, pageSize);
+            var result = await _mediator.Send(query, cancellationToken);
+            return Ok(result);
+        }
+
         [HttpGet("{id:guid}/me/permissions")]
         public async Task<ActionResult<WorkspaceSecurityContextDto>> GetMyWorkspacePermissions(
             Guid id,

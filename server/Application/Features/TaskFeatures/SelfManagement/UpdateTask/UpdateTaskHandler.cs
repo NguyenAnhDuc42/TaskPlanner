@@ -68,16 +68,20 @@ public class UpdateTaskHandler : BaseFeatureHandler, IRequestHandler<UpdateTaskC
     {
         if (!request.StatusId.HasValue || request.StatusId.Value == task.StatusId) return;
      
-        // Statuses are strictly owned by Space now
-        if (task.ProjectSpaceId.HasValue)
-        {
-            const string sql = "SELECT COUNT(1) FROM statuses WHERE id = @Id AND project_space_id = @SpaceId AND deleted_at IS NULL";
-            var isValid = await UnitOfWork.QuerySingleOrDefaultAsync<int>(sql, new { Id = request.StatusId.Value, SpaceId = task.ProjectSpaceId.Value }, cancellationToken);
-            
-            if (isValid == 0) throw new ValidationException("Selected status does not belong to the effective status layer for this task.");
+        // Statuses are now owned by the Workspace (Liquid Workflow)
+        const string sql = @"
+            SELECT COUNT(1) 
+            FROM   statuses s
+            JOIN   workflows w ON s.workflow_id = w.id
+            WHERE  s.id = @Id 
+              AND  w.project_workspace_id = @WorkspaceId 
+              AND  s.deleted_at IS NULL";
 
-            task.UpdateStatus(request.StatusId.Value);
-        }
+        var isValid = await UnitOfWork.QuerySingleOrDefaultAsync<int>(sql, new { Id = request.StatusId.Value, WorkspaceId = task.ProjectWorkspaceId }, cancellationToken);
+        
+        if (isValid == 0) throw new ValidationException("Selected status does not belong to the workspace's workflow.");
+
+        task.UpdateStatus(request.StatusId.Value);
     }
 
     private static void ApplyPriorityUpdate(ProjectTask task, UpdateTaskCommand request)

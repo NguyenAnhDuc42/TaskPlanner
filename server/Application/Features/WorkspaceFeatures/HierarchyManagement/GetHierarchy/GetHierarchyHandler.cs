@@ -16,13 +16,10 @@ public class GetHierarchyHandler : BaseFeatureHandler, IRequestHandler<GetHierar
 
     public async Task<WorkspaceHierarchyDto> Handle(GetHierarchyQuery request, CancellationToken cancellationToken)
     {
-        var workspace = await (from w in UnitOfWork.Set<ProjectWorkspace>().AsNoTracking()
-                              where w.Id == request.WorkspaceId
-                              select w).FirstOrDefaultAsync(cancellationToken);
-
+        var workspace =  await UnitOfWork.Set<ProjectWorkspace>().AsNoTracking().FirstOrDefaultAsync(x => x.Id == request.WorkspaceId, cancellationToken);
         if (workspace == null) throw new KeyNotFoundException($"Workspace {request.WorkspaceId} not found");
 
-        var rawItems = (await UnitOfWork.QueryAsync<HierarchyRawItem>(GetHierarchySql.Query, new 
+        var rawItems = (await UnitOfWork.QueryAsync<HierarchyRawItem>(GetHierarchySql.StructureQuery, new 
         { 
             WorkspaceId = request.WorkspaceId, 
             UserId = CurrentUserId 
@@ -38,51 +35,36 @@ public class GetHierarchyHandler : BaseFeatureHandler, IRequestHandler<GetHierar
 
     private List<SpaceHierarchyDto> MapSpaces(List<HierarchyRawItem> allItems)
     {
-        var spaces = from i in allItems where i.ItemType == "Space" select i;
-        var folders = (from i in allItems where i.ItemType == "Folder" select i).ToList();
-        var tasks = (from i in allItems where i.ItemType == "Task" select i).ToList();
+        var spaces = allItems.Where(i => i.ItemType == "Space");
+        var folders = allItems.Where(i => i.ItemType == "Folder").ToList();
 
-        return (from s in spaces
-                select new SpaceHierarchyDto
-                {
-                    Id = s.Id,
-                    Name = s.Name,
-                    Color = s.Color ?? "",
-                    Icon = s.Icon ?? "",
-                    IsPrivate = s.IsPrivate,
-                    Folders = MapFolders(s.Id, folders, tasks),
-                    Tasks = MapTasks(s.Id.ToString(), tasks)
-                }).ToList();
+        return spaces.Select(s => new SpaceHierarchyDto
+        {
+            Id = s.Id,
+            Name = s.Name,
+            Color = s.Color ?? "",
+            Icon = s.Icon ?? "",
+            IsPrivate = s.IsPrivate,
+            OrderKey = s.OrderKey,
+            Folders = MapFolders(s.Id, folders),
+            Tasks = new List<TaskHierarchyDto>() // populated on expand via GetNodeTasks
+        }).ToList();
     }
 
-    private List<FolderHierarchyDto> MapFolders(Guid spaceId, List<HierarchyRawItem> folders, List<HierarchyRawItem> tasks)
+    private List<FolderHierarchyDto> MapFolders(Guid spaceId, List<HierarchyRawItem> folders)
     {
-        return (from f in folders
-                where Guid.Parse(f.ParentId) == spaceId
-                select new FolderHierarchyDto
-                {
-                    Id = f.Id,
-                    Name = f.Name,
-                    Color = f.Color ?? "",
-                    Icon = f.Icon ?? "",
-                    IsPrivate = f.IsPrivate,
-                    Tasks = MapTasks(f.Id.ToString(), tasks)
-                }).ToList();
-    }
-
-    private List<TaskHierarchyDto> MapTasks(string parentId, List<HierarchyRawItem> tasks)
-    {
-        return (from t in tasks
-                where t.ParentId == parentId
-                select new TaskHierarchyDto
-                {
-                    Id = t.Id,
-                    Name = t.Name,
-                    StatusId = t.StatusId,
-                    Priority = t.Priority,
-                    Color = "",
-                    Icon = ""
-                }).ToList();
+        return folders
+            .Where(f => Guid.Parse(f.ParentId) == spaceId)
+            .Select(f => new FolderHierarchyDto
+            {
+                Id = f.Id,
+                Name = f.Name,
+                Color = f.Color ?? "",
+                Icon = f.Icon ?? "",
+                IsPrivate = f.IsPrivate,
+                OrderKey = f.OrderKey,
+                Tasks = new List<TaskHierarchyDto>() // populated on expand via GetNodeTasks
+            }).ToList();
     }
 
     private class HierarchyRawItem
@@ -94,9 +76,6 @@ public class GetHierarchyHandler : BaseFeatureHandler, IRequestHandler<GetHierar
         public string? Color { get; set; }
         public string? Icon { get; set; }
         public bool IsPrivate { get; set; }
-        public long OrderKey { get; set; }
-        public Guid? StatusId { get; set; }
-        public Priority Priority { get; set; }
-        public int SortGroup { get; set; }
+        public string OrderKey { get; set; } = null!;
     }
 }

@@ -1,6 +1,7 @@
 using Application.Interfaces.Repositories;
 using Domain;
 using Application.Helpers;
+using Domain.Common;
 using Domain.Entities.ProjectEntities;
 using Domain.Enums;
 using MediatR;
@@ -11,8 +12,6 @@ namespace Application.Features.WorkspaceFeatures.HierarchyManagement.MoveItem;
 
 public class MoveItemHandler : BaseFeatureHandler, IRequestHandler<MoveItemCommand, Unit>
 {
-    private const long DefaultIncrement = 10_000_000L;
-
     public MoveItemHandler(
         IUnitOfWork unitOfWork,
         ICurrentUserService currentUserService,
@@ -43,65 +42,48 @@ public class MoveItemHandler : BaseFeatureHandler, IRequestHandler<MoveItemComma
         return Unit.Value;
     }
 
-    private async Task<long> ResolveOrderKey(MoveItemCommand request, CancellationToken cancellationToken)
+    private async Task<string> ResolveOrderKey(MoveItemCommand request, CancellationToken cancellationToken)
     {
-        // Case 1: Simple fractional indexing
-        if (request.PreviousItemOrderKey.HasValue || request.NextItemOrderKey.HasValue)
+        // Case 1: Both neighbours known — compute midpoint
+        if (request.PreviousItemOrderKey != null || request.NextItemOrderKey != null)
         {
-            var key = CalculateFractionalKey(request.PreviousItemOrderKey, request.NextItemOrderKey);
-            
-            // Safety check: if keys are too close (collision), fall back to max + buffer
-            if (request.PreviousItemOrderKey.HasValue && request.NextItemOrderKey.HasValue && 
-                Math.Abs(request.NextItemOrderKey.Value - request.PreviousItemOrderKey.Value) <= 1)
-            {
-                return await GetMaxOrderKey(request, cancellationToken) + DefaultIncrement;
-            }
-            
-            return key;
+            return FractionalIndex.Between(request.PreviousItemOrderKey, request.NextItemOrderKey);
         }
 
-        // Case 2: No context provided (e.g. initial add or "bug out" fallback)
-        // Pick the latest number based on the upper layer as requested
-        return await GetMaxOrderKey(request, cancellationToken) + DefaultIncrement;
+        // Case 2: No context — append at the end
+        var maxKey = await GetMaxOrderKey(request, cancellationToken);
+        return maxKey is null ? FractionalIndex.Start() : FractionalIndex.After(maxKey);
     }
 
-    private async Task<long> GetMaxOrderKey(MoveItemCommand request, CancellationToken cancellationToken)
+    private async Task<string?> GetMaxOrderKey(MoveItemCommand request, CancellationToken cancellationToken)
     {
-        IQueryable<long?> query = request.ItemType switch
+        return request.ItemType switch
         {
-            ItemType.Space => UnitOfWork.Set<ProjectSpace>()
-                                .Where(s => s.ProjectWorkspaceId == WorkspaceId)
-                                .Select(s => (long?)s.OrderKey),
-            ItemType.Folder => UnitOfWork.Set<ProjectFolder>()
-                                .Where(f => f.ProjectSpaceId == request.TargetParentId)
-                                .Select(f => (long?)f.OrderKey),
-            ItemType.Task => UnitOfWork.Set<ProjectTask>()
-                                .Where(t => (request.TargetParentId.HasValue && t.ProjectFolderId == request.TargetParentId) || 
-                                           (!request.TargetParentId.HasValue && t.ProjectSpaceId == WorkspaceId)) // Workspace as direct parent fallback
-                                .Select(t => t.OrderKey),
+            ItemType.Space => await UnitOfWork.Set<ProjectSpace>()
+                                .Where(s => s.ProjectWorkspaceId == WorkspaceId && s.DeletedAt == null)
+                                .MaxAsync(s => (string?)s.OrderKey, cancellationToken),
+
+            ItemType.Folder => await UnitOfWork.Set<ProjectFolder>()
+                                .Where(f => f.ProjectSpaceId == request.TargetParentId && f.DeletedAt == null)
+                                .MaxAsync(f => (string?)f.OrderKey, cancellationToken),
+
+            ItemType.Task => await UnitOfWork.Set<ProjectTask>()
+                                .Where(t => (request.TargetParentId.HasValue && t.ProjectFolderId == request.TargetParentId) ||
+                                           (!request.TargetParentId.HasValue && t.ProjectSpaceId == WorkspaceId && t.ProjectFolderId == null))
+                                .MaxAsync(t => (string?)t.OrderKey, cancellationToken),
+
             _ => throw new ArgumentOutOfRangeException()
         };
-
-        return await query.MaxAsync(cancellationToken) ?? 0L;
     }
 
-    private long CalculateFractionalKey(long? previous, long? next)
-    {
-        if (!previous.HasValue && next.HasValue) return next.Value / 2;
-        if (previous.HasValue && !next.HasValue) return previous.Value + DefaultIncrement;
-        if (previous.HasValue && next.HasValue) return (previous.Value + next.Value) / 2;
-        return DefaultIncrement;
-    }
-
-    private async Task MoveSpace(Guid spaceId, long newOrderKey, CancellationToken cancellationToken)
+    private async Task MoveSpace(Guid spaceId, string newOrderKey, CancellationToken cancellationToken)
     {
         var space = await UnitOfWork.Set<ProjectSpace>().FindAsync(spaceId, cancellationToken);
         if (space == null) throw new KeyNotFoundException($"Space {spaceId} not found");
-
         space.UpdateOrderKey(newOrderKey);
     }
 
-    private async Task MoveFolder(Guid folderId, Guid? newSpaceId, long newOrderKey, CancellationToken cancellationToken)
+    private async Task MoveFolder(Guid folderId, Guid? newSpaceId, string newOrderKey, CancellationToken cancellationToken)
     {
         var folder = await UnitOfWork.Set<ProjectFolder>().FindAsync(folderId, cancellationToken);
         if (folder == null) throw new KeyNotFoundException($"Folder {folderId} not found");
@@ -125,7 +107,7 @@ public class MoveItemHandler : BaseFeatureHandler, IRequestHandler<MoveItemComma
         }
     }
 
-    private async Task MoveTask(Guid taskId, Guid? targetParentId, long newOrderKey, CancellationToken cancellationToken)
+    private async Task MoveTask(Guid taskId, Guid? targetParentId, string newOrderKey, CancellationToken cancellationToken)
     {
         var task = await UnitOfWork.Set<ProjectTask>().FindAsync(taskId, cancellationToken);
         if (task == null) throw new KeyNotFoundException($"Task {taskId} not found");
@@ -135,7 +117,6 @@ public class MoveItemHandler : BaseFeatureHandler, IRequestHandler<MoveItemComma
 
         if (targetParentId.HasValue)
         {
-            // Resolve parent (could be folder or space)
             var folder = await UnitOfWork.Set<ProjectFolder>().FindAsync(targetParentId.Value, cancellationToken);
             if (folder != null)
             {

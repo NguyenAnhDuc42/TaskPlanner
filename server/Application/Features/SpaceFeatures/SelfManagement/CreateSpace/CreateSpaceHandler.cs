@@ -1,13 +1,14 @@
 using System;
-using Application.Features.StatusManagement.Helpers;
 using Application.Helpers;
 using Application.Interfaces.Repositories;
+using Domain.Common;
 using Domain.Entities.ProjectEntities;
 using Domain.Entities.ProjectEntities.ValueObject;
 using Domain.Entities.Relationship;
 using Domain.Enums;
 using Domain.Enums.RelationShip;
 using MediatR;
+using Microsoft.EntityFrameworkCore;
 using server.Application.Interfaces;
 
 namespace Application.Features.SpaceFeatures.SelfManagement.CreateSpace;
@@ -22,7 +23,12 @@ public class CreateSpaceHandler : BaseFeatureHandler, IRequestHandler<CreateSpac
         var workspace = await UnitOfWork.Set<ProjectWorkspace>().FindAsync(request.workspaceId, cancellationToken);
         if (workspace == null) throw new KeyNotFoundException($"Workspace {request.workspaceId} not found");
         var customization = Customization.Create(request.color, request.icon);
-        var orderKey = workspace.GetNextItemOrderAndIncrement();
+
+        // Resolve order key: append after the last space in this workspace
+        var maxKey = await UnitOfWork.Set<ProjectSpace>()
+            .Where(s => s.ProjectWorkspaceId == request.workspaceId && s.DeletedAt == null)
+            .MaxAsync(s => (string?)s.OrderKey, cancellationToken);
+        var orderKey = maxKey is null ? FractionalIndex.Start() : FractionalIndex.After(maxKey);
         
         var space = ProjectSpace.Create(
             projectWorkspaceId: workspace.Id,
@@ -36,9 +42,6 @@ public class CreateSpaceHandler : BaseFeatureHandler, IRequestHandler<CreateSpac
 
         await UnitOfWork.Set<ProjectSpace>().AddAsync(space, cancellationToken);
         
-        // Initializing statuses for Space
-        await StatusInitializer.InitWorkspaceStatuses(UnitOfWork, workspace.Id, space.Id, CurrentUserId);
-
         // Create EntityAccess for owner if private
         if (request.isPrivate)
         {

@@ -21,7 +21,7 @@ public class ProjectTask : Entity
     public DateTimeOffset? DueDate { get; private set; }
     public int? StoryPoints { get; private set; }
     public long? TimeEstimate { get; private set; }
-    public long? OrderKey { get; private set; }
+    public string? OrderKey { get; private set; }
 
     private readonly List<TaskAssignment> _assignees = new();
     public virtual IReadOnlyCollection<TaskAssignment> Assignees => _assignees.AsReadOnly();    
@@ -29,7 +29,7 @@ public class ProjectTask : Entity
     // EF Core
     private ProjectTask() { }
 
-    private ProjectTask(Guid id, Guid projectWorkspaceId, Guid? projectSpaceId, Guid? projectFolderId, string name, string? description, Customization customization, Guid creatorId, Guid? statusId, Priority priority, DateTimeOffset? startDate, DateTimeOffset? dueDate, int? storyPoints, long? timeEstimate, long orderKey)
+    private ProjectTask(Guid id, Guid projectWorkspaceId, Guid? projectSpaceId, Guid? projectFolderId, string name, string? description, Customization customization, Guid creatorId, Guid? statusId, Priority priority, DateTimeOffset? startDate, DateTimeOffset? dueDate, int? storyPoints, long? timeEstimate, string orderKey)
     {
         Id = id;
         ProjectWorkspaceId = projectWorkspaceId;
@@ -49,10 +49,10 @@ public class ProjectTask : Entity
         IsArchived = false;
     }
 
-    public static ProjectTask Create(Guid projectWorkspaceId, Guid? projectSpaceId, Guid? projectFolderId, string name, string? description, Customization? customization, Guid creatorId, Guid? statusId = null, Priority priority = Priority.Low, DateTimeOffset? startDate = null, DateTimeOffset? dueDate = null, int? storyPoints = null, long? timeEstimate = null, long orderKey = 10_000_000L)
-        => new ProjectTask(Guid.NewGuid(), projectWorkspaceId, projectSpaceId, projectFolderId, name?.Trim() ?? throw new ArgumentNullException(nameof(name)), string.IsNullOrWhiteSpace(description) ? null : description?.Trim(), customization ?? Customization.CreateDefault(), creatorId, statusId, priority, startDate, dueDate, storyPoints, timeEstimate, orderKey);
+    public static ProjectTask Create(Guid projectWorkspaceId, Guid? projectSpaceId, Guid? projectFolderId, string name, string? description, Customization? customization, Guid creatorId, Guid? statusId = null, Priority priority = Priority.Low, DateTimeOffset? startDate = null, DateTimeOffset? dueDate = null, int? storyPoints = null, long? timeEstimate = null, string? orderKey = null)
+        => new ProjectTask(Guid.NewGuid(), projectWorkspaceId, projectSpaceId, projectFolderId, name?.Trim() ?? throw new ArgumentNullException(nameof(name)), string.IsNullOrWhiteSpace(description) ? null : description?.Trim(), customization ?? Customization.CreateDefault(), creatorId, statusId, priority, startDate, dueDate, storyPoints, timeEstimate, orderKey ?? FractionalIndex.Start());
 
-    public void Update(string? name = null, string? description = null, DateTimeOffset? startDate = null, DateTimeOffset? dueDate = null, Priority? priority = null, Guid? StatusId = null, int? storyPoints = null, long? timeEstimateSeconds = null, string? color = null, string? icon = null, long? orderKey = null)
+    public void Update(string? name = null, string? description = null, DateTimeOffset? startDate = null, DateTimeOffset? dueDate = null, Priority? priority = null, Guid? StatusId = null, int? storyPoints = null, long? timeEstimateSeconds = null, string? color = null, string? icon = null, string? orderKey = null)
     {
         var changed = false;
 
@@ -89,7 +89,7 @@ public class ProjectTask : Entity
             if (!newCustomization.Equals(Customization)) { Customization = newCustomization; changed = true; }
         }
 
-        if (orderKey.HasValue && orderKey != OrderKey) { OrderKey = orderKey.Value; changed = true; }
+        if (orderKey != null && orderKey != OrderKey) { OrderKey = orderKey; changed = true; }
 
         if (changed) UpdateTimestamp();
     }

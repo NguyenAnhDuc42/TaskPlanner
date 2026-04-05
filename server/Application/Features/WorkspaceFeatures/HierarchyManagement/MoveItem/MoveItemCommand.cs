@@ -14,7 +14,7 @@ public enum ItemType
 public record class MoveItemCommand(
     Guid ItemId,
     ItemType ItemType,
-    Guid? TargetParentId,  // New parent (Space for Folder, Folder for List)
-    long? PreviousItemOrderKey,  // OrderKey of item above (null if moving to top)
-    long? NextItemOrderKey       // OrderKey of item below (null if moving to bottom)
+    Guid? TargetParentId,  // New parent (Space for Folder, Folder/Space for Task)
+    string? PreviousItemOrderKey,  // OrderKey of item above (null if moving to top)
+    string? NextItemOrderKey       // OrderKey of item below (null if moving to bottom)
 ) : ICommand<Unit>;

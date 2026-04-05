@@ -2,7 +2,11 @@ namespace Application.Features.WorkspaceFeatures.HierarchyManagement.GetHierarch
 
 public static class GetHierarchySql
 {
-    public const string Query = @"
+    /// <summary>
+    /// Query 1: Structure only — Spaces and Folders.
+    /// Run once on workspace open. No tasks. Fast and cacheable.
+    /// </summary>
+    public const string StructureQuery = @"
         WITH user_spaces AS (
             SELECT 
                 s.id,
@@ -56,22 +60,6 @@ public static class GetHierarchySql
                         AND wm.deleted_at IS NULL
                   )
               )
-        ),
-        user_tasks AS (
-            SELECT 
-                t.id,
-                COALESCE(t.project_folder_id, t.project_space_id) as parent_id,
-                t.name,
-                t.status_id,
-                t.priority,
-                t.project_workspace_id,
-                t.order_key,
-                t.project_folder_id,
-                t.project_space_id
-            FROM project_tasks t
-            WHERE t.project_workspace_id = @WorkspaceId
-              AND t.deleted_at IS NULL
-              AND t.is_archived = false
         )
         SELECT 
             'Space' as item_type,
@@ -81,12 +69,11 @@ public static class GetHierarchySql
             custom_color as color,
             custom_icon as icon,
             is_private,
-            order_key,
-            NULL::uuid as status_id,
-            0 as priority,
-            0 as sort_group
+            order_key
         FROM user_spaces
+
         UNION ALL
+
         SELECT 
             'Folder' as item_type,
             id,
@@ -95,24 +82,41 @@ public static class GetHierarchySql
             custom_color as color,
             custom_icon as icon,
             is_private,
-            order_key,
-            NULL::uuid as status_id,
-            0 as priority,
-            0 as sort_group
+            order_key
         FROM user_folders
-        UNION ALL
+
+        ORDER BY order_key;";
+
+    /// <summary>
+    /// Query 2: Tasks per parent — paginated with a composite cursor (order_key, id).
+    /// Called on node expand. Uses partial indexes for performance.
+    /// </summary>
+    public const string TasksQuery = @"
         SELECT 
-            'Task' as item_type,
-            id,
-            parent_id::text,
-            name,
-            '' as color,
-            '' as icon,
-            false as is_private,
-            order_key,
-            status_id,
-            CAST(priority as integer) as priority,
-            1 as sort_group
-        FROM user_tasks
-        ORDER BY sort_group, order_key;";
+            t.id,
+            t.name,
+            t.status_id,
+            t.priority,
+            t.order_key,
+            t.project_folder_id,
+            t.project_space_id,
+            CASE 
+                WHEN t.project_folder_id IS NOT NULL THEN 'Folder'
+                ELSE 'Space'
+            END as parent_type
+        FROM project_tasks t
+        WHERE t.project_workspace_id = @WorkspaceId
+          AND t.deleted_at IS NULL
+          AND t.is_archived = false
+          AND (
+              (@ParentType = 'Folder' AND t.project_folder_id = @ParentId)
+              OR
+              (@ParentType = 'Space' AND t.project_space_id = @ParentId AND t.project_folder_id IS NULL)
+          )
+          AND (
+              @CursorOrderKey IS NULL
+              OR (t.order_key, t.id::text) > (@CursorOrderKey, @CursorTaskId)
+          )
+        ORDER BY t.order_key, t.id
+        LIMIT @PageSize;";
 }

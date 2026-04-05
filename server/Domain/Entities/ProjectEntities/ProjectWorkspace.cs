@@ -19,14 +19,13 @@ public sealed class ProjectWorkspace : Entity
     public Theme Theme { get; private set; } = Theme.Dark;
     public bool StrictJoin { get; private set; } = false;
     public bool IsArchived { get; private set; }
-    public long NextItemOrder { get; private set; }
 
     private readonly List<WorkspaceMember> _members = new();
     public IReadOnlyCollection<WorkspaceMember> Members => _members.AsReadOnly();
 
     private ProjectWorkspace() { }
 
-    private ProjectWorkspace(Guid id, string name, string? description, string joinCode, Customization customization, Theme theme, bool strictJoin, Guid creatorId, long nextItemOrder)
+    private ProjectWorkspace(Guid id, string name, string? description, string joinCode, Customization customization, Theme theme, bool strictJoin, Guid creatorId)
     {
         Id = id;
         Name = name ?? throw new ArgumentNullException(nameof(name));
@@ -37,7 +36,6 @@ public sealed class ProjectWorkspace : Entity
         StrictJoin = strictJoin;
         CreatorId = creatorId;
         IsArchived = false;
-        NextItemOrder = nextItemOrder;
     }
 
     public static ProjectWorkspace Create(string name, string? description, string? joinCode, Customization? customization, Guid creatorId, Theme theme = Theme.Dark, bool strictJoin = false)
@@ -45,18 +43,11 @@ public sealed class ProjectWorkspace : Entity
         var workspace = new ProjectWorkspace(Guid.NewGuid(), name?.Trim() ?? throw new ArgumentNullException(nameof(name)),
         string.IsNullOrWhiteSpace(description) ? null : description?.Trim(),
         string.IsNullOrWhiteSpace(joinCode) ? Guid.NewGuid().ToString("N")[..8].ToUpperInvariant() : joinCode.Trim(),
-        customization ?? Customization.CreateDefault(), theme, strictJoin, creatorId, 10_000_000L);
+        customization ?? Customization.CreateDefault(), theme, strictJoin, creatorId);
         
         workspace.AddMember(creatorId, Role.Owner, MembershipStatus.Active, creatorId, "Created");
         workspace.AddDomainEvent(new Domain.Events.Workspace.CreatedWorkspaceEvent(creatorId, workspace.Id));
         return workspace;
-    }
-
-    public long GetNextItemOrderAndIncrement()
-    {
-        var currentOrder = NextItemOrder;
-        NextItemOrder += 10_000_000L;
-        return currentOrder;
     }
 
     #region Member Management

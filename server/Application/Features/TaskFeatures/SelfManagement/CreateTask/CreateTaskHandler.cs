@@ -1,8 +1,10 @@
 using Application.Interfaces.Repositories;
 using Application.Helpers;
+using Domain.Common;
 using Domain.Entities.ProjectEntities;
 using Domain.Entities.Relationship;
 using MediatR;
+using Microsoft.EntityFrameworkCore;
 using server.Application.Interfaces;
 using Domain.Enums.RelationShip;
 using Application.Features.ViewFeatures.GetViewData;
@@ -18,54 +20,53 @@ public class CreateTaskHandler : BaseFeatureHandler, IRequestHandler<CreateTaskC
     {
         // 1. Resolve Ancestors (Dapper-based Helper)
         var ancestors = await HierarchyHelper.GetAncestorChain(UnitOfWork, request.ParentId, request.ParentType, cancellationToken);    
-        long orderKey;
-        // 2. Resolve OrderKey (Fetch from parent)
+        // 2. Resolve OrderKey — query max key for the parent, then compute After
+        string orderKey;
         switch (request.ParentType)
         {
             case EntityLayerType.ProjectFolder:
-                var folder = await UnitOfWork.Set<ProjectFolder>().FindAsync(request.ParentId, cancellationToken);
-                if (folder == null) throw new KeyNotFoundException($"Folder {request.ParentId} not found");
-                orderKey = folder.GetNextItemOrderAndIncrement();
+                var maxFolderTaskKey = await UnitOfWork.Set<ProjectTask>()
+                    .Where(t => t.ProjectFolderId == request.ParentId && t.DeletedAt == null)
+                    .MaxAsync(t => (string?)t.OrderKey, cancellationToken);
+                orderKey = maxFolderTaskKey is null ? FractionalIndex.Start() : FractionalIndex.After(maxFolderTaskKey);
                 break;
             case EntityLayerType.ProjectSpace:
-                var space = await UnitOfWork.Set<ProjectSpace>().FindAsync(request.ParentId, cancellationToken);
-                if (space == null) throw new KeyNotFoundException($"Space {request.ParentId} not found");
-                orderKey = space.GetNextItemOrderAndIncrement();
+                var maxSpaceTaskKey = await UnitOfWork.Set<ProjectTask>()
+                    .Where(t => t.ProjectSpaceId == request.ParentId && t.ProjectFolderId == null && t.DeletedAt == null)
+                    .MaxAsync(t => (string?)t.OrderKey, cancellationToken);
+                orderKey = maxSpaceTaskKey is null ? FractionalIndex.Start() : FractionalIndex.After(maxSpaceTaskKey);
                 break;
             default:
-                orderKey = 10_000_000L;
+                orderKey = FractionalIndex.Start();
                 break;
         }
 
-        // 3. Resolve Status (Space-only ownership via Workflow)
+        // 3. Resolve Status (Workspace-level ownership via Workflow)
         Guid? statusId = null;
-        if (ancestors.ProjectSpaceId.HasValue)
+        const string statusSql = @"
+            SELECT s.id 
+            FROM   statuses s
+            JOIN   workflows w ON s.workflow_id = w.id
+            WHERE  w.project_workspace_id = @WorkspaceId 
+              AND  s.deleted_at IS NULL
+            ORDER BY s.created_at ASC 
+            LIMIT 1";
+
+        statusId = await UnitOfWork.QuerySingleOrDefaultAsync<Guid?>(statusSql, new { WorkspaceId = ancestors.ProjectWorkspaceId }, cancellationToken);
+        
+        // If user requested a status, validate it belongs to this workspace's workflow
+        if (request.StatusId.HasValue)
         {
-            const string statusSql = @"
-                SELECT s.id 
+            const string validateSql = @"
+                SELECT COUNT(1) 
                 FROM   statuses s
                 JOIN   workflows w ON s.workflow_id = w.id
-                WHERE  w.project_space_id = @SpaceId 
-                  AND  s.deleted_at IS NULL
-                ORDER BY s.created_at ASC 
-                LIMIT 1";
+                WHERE  s.id = @Id 
+                  AND  w.project_workspace_id = @WorkspaceId 
+                  AND  s.deleted_at IS NULL";
 
-            statusId = await UnitOfWork.QuerySingleOrDefaultAsync<Guid?>(statusSql, new { SpaceId = ancestors.ProjectSpaceId.Value }, cancellationToken);
-            
-            // If user requested a status, validate it belongs to this space's workflow
-            if (request.StatusId.HasValue)
-            {
-                const string validateSql = @"
-                    SELECT COUNT(1) 
-                    FROM   statuses s
-                    JOIN   workflows w ON s.workflow_id = w.id
-                    WHERE  s.id = @Id 
-                      AND  w.project_space_id = @SpaceId 
-                      AND  s.deleted_at IS NULL";
-
-                var isValid = await UnitOfWork.QuerySingleOrDefaultAsync<int>(validateSql, new { Id = request.StatusId.Value, SpaceId = ancestors.ProjectSpaceId.Value }, cancellationToken);
-                if (isValid > 0) statusId = request.StatusId.Value;
-            }
+            var isValid = await UnitOfWork.QuerySingleOrDefaultAsync<int>(validateSql, new { Id = request.StatusId.Value, WorkspaceId = ancestors.ProjectWorkspaceId }, cancellationToken);
+            if (isValid > 0) statusId = request.StatusId.Value;
         }
 
         // 4. Create Task

@@ -1,13 +1,14 @@
 using System;
-using Application.Features.StatusManagement.Helpers;
 using Application.Helpers;
 using Application.Interfaces.Repositories;
+using Domain.Common;
 using Domain.Entities.ProjectEntities;
 using Domain.Entities.ProjectEntities.ValueObject;
 using Domain.Entities.Relationship;
 using Domain.Enums;
 using Domain.Enums.RelationShip;
 using MediatR;
+using Microsoft.EntityFrameworkCore;
 using server.Application.Interfaces;
 
 namespace Application.Features.FolderFeatures.SelfManagement.CreateFolder;
@@ -23,7 +24,12 @@ public class CreateFolderHandler : BaseFeatureHandler, IRequestHandler<CreateFol
         if (space == null) throw new KeyNotFoundException($"Space {request.spaceId} not found");
         
         var customization = Customization.Create(request.color, request.icon);
-        var orderKey = space.GetNextItemOrderAndIncrement();
+
+        // Resolve order key: append after the last folder in this space
+        var maxKey = await UnitOfWork.Set<ProjectFolder>()
+            .Where(f => f.ProjectSpaceId == request.spaceId && f.DeletedAt == null)
+            .MaxAsync(f => (string?)f.OrderKey, cancellationToken);
+        var orderKey = maxKey is null ? FractionalIndex.Start() : FractionalIndex.After(maxKey);
         
         var folder = ProjectFolder.Create(
             projectSpaceId: space.Id,

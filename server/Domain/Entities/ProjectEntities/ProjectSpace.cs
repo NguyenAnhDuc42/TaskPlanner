@@ -11,13 +11,11 @@ public sealed class ProjectSpace : Entity
     public Customization Customization { get; private set; } = Customization.CreateDefault();
     public bool IsPrivate { get; private set; } = true;
     public bool IsArchived { get; private set; }
-    public long OrderKey { get; private set; }
-
-    public long NextItemOrder { get; private set; }
+    public string OrderKey { get; private set; } = FractionalIndex.Start();
 
     private ProjectSpace() { }
 
-    private ProjectSpace(Guid id, Guid projectWorkspaceId, string name, string? description, Customization customization, bool isPrivate, Guid creatorId, long orderKey, long nextItemOrder)
+    private ProjectSpace(Guid id, Guid projectWorkspaceId, string name, string? description, Customization customization, bool isPrivate, Guid creatorId, string orderKey)
     {
         Id = id;
         ProjectWorkspaceId = projectWorkspaceId;
@@ -28,21 +26,14 @@ public sealed class ProjectSpace : Entity
         CreatorId = creatorId;
         OrderKey = orderKey;
         IsArchived = false;
-        NextItemOrder = nextItemOrder;
     }
 
-    public static ProjectSpace Create(Guid projectWorkspaceId, string name, string? description, Customization? customization, bool isPrivate, Guid creatorId, long orderKey)
+    public static ProjectSpace Create(Guid projectWorkspaceId, string name, string? description, Customization? customization, bool isPrivate, Guid creatorId, string orderKey)
     {
         if (creatorId == Guid.Empty) throw new ArgumentException("CreatorId cannot be empty.", nameof(creatorId));
+        if (string.IsNullOrWhiteSpace(orderKey)) throw new ArgumentException("OrderKey cannot be empty.", nameof(orderKey));
         return new ProjectSpace(Guid.NewGuid(), projectWorkspaceId, name?.Trim() ?? throw new ArgumentNullException(nameof(name)),
-            string.IsNullOrWhiteSpace(description) ? null : description?.Trim(), customization ?? Customization.CreateDefault(), isPrivate, creatorId, orderKey, 10_000_000L);
-    }
-
-    public long GetNextItemOrderAndIncrement()
-    {
-        var currentOrder = NextItemOrder;
-        NextItemOrder += 10_000_000L;
-        return currentOrder;
+            string.IsNullOrWhiteSpace(description) ? null : description?.Trim(), customization ?? Customization.CreateDefault(), isPrivate, creatorId, orderKey);
     }
 
     public void UpdateName(string name)
@@ -102,8 +93,9 @@ public sealed class ProjectSpace : Entity
         }
     }
 
-    public void UpdateOrderKey(long orderKey)
+    public void UpdateOrderKey(string orderKey)
     {
+        if (string.IsNullOrWhiteSpace(orderKey)) throw new ArgumentException("OrderKey cannot be empty.", nameof(orderKey));
         if (OrderKey == orderKey) return;
         OrderKey = orderKey;
         UpdateTimestamp();

@@ -10,6 +10,7 @@ export interface SpaceHierarchy {
   color: string;
   icon: string;
   isPrivate: boolean;
+  orderKey: string;
   folders: FolderHierarchy[];
   tasks: TaskHierarchy[];
 }
@@ -20,6 +21,7 @@ export interface FolderHierarchy {
   color: string;
   icon: string;
   isPrivate: boolean;
+  orderKey: string;
   tasks: TaskHierarchy[];
 }
 
@@ -30,6 +32,14 @@ export interface TaskHierarchy {
   priority: number;
   color?: string;
   icon?: string;
+  orderKey: string;
+}
+
+export interface NodeTasksResponse {
+  tasks: TaskHierarchy[];
+  nextCursorOrderKey?: string;
+  nextCursorTaskId?: string;
+  hasMore: boolean;
 }
 
 // Request DTOs (Preserved Space/Folder, Purged List)
@@ -48,6 +58,17 @@ export interface CreateFolderRequest {
   color?: string;
   icon?: string;
   isPrivate?: boolean;
+}
+
+export interface CreateTaskRequest {
+  parentId: string;
+  parentType: 'Space' | 'Folder';
+  name: string;
+  description?: string;
+  statusId?: string;
+  priority?: number;
+  startDate?: string;
+  dueDate?: string;
 }
 
 export interface UpdateSpaceRequest {
@@ -86,4 +107,12 @@ export interface UpdateEntityAccessBulkRequest {
     accessLevel?: string;
     isRemove: boolean;
   }[];
+}
+
+export interface MoveItemRequest {
+  itemId: string;
+  itemType: "Space" | "Folder" | "Task";
+  targetParentId?: string;
+  previousItemOrderKey?: string;
+  nextItemOrderKey?: string;
 }

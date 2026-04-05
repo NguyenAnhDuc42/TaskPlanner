@@ -18,7 +18,7 @@ public class TaskDto
     public DateTimeOffset? DueDate { get; set; }
     public int? StoryPoints { get; set; }
     public long? TimeEstimate { get; set; }
-    public long? OrderKey { get; set; }
+    public string? OrderKey { get; set; }
     public DateTimeOffset CreatedAt { get; set; }
     public List<AssigneeDto> Assignees { get; set; } = new();
 }

@@ -49,15 +49,23 @@ public class WorkspaceDeletedEventHandler : INotificationHandler<WorkspaceDelete
              _logger.LogInformation("Soft-deleted {EntityAccessCount} EntityAccess records for workspace {WorkspaceId}", accessDeletedCount, evt.WorkspaceId);
         }
 
-        // 2. Clean up Statuses (Linked via Workflow -> Space)
+        // 2. Clean up Statuses (Linked via Workflow -> Workspace)
         var statusesDeletedCount = await _unitOfWork.Set<Status>()
-            .Where(s => _unitOfWork.Set<Workflow>().Any(w => w.Id == s.WorkflowId && spaceIds.Contains(w.ProjectSpaceId)) && s.DeletedAt == null)
+            .Where(s => _unitOfWork.Set<Workflow>().Any(w => w.Id == s.WorkflowId && w.ProjectWorkspaceId == evt.WorkspaceId) && s.DeletedAt == null)
             .ExecuteUpdateAsync(updates =>
                 updates.SetProperty(e => e.DeletedAt, DateTimeOffset.UtcNow)
                        .SetProperty(e => e.UpdatedAt, DateTimeOffset.UtcNow),
                 cancellationToken: cancellationToken);
 
-        // 3. Clean up Dashboards (Workspace-level)
+        // 3. Clean up Workflows (Workspace-level)
+        var workflowsDeletedCount = await _unitOfWork.Set<Workflow>()
+            .Where(w => w.ProjectWorkspaceId == evt.WorkspaceId && w.DeletedAt == null)
+            .ExecuteUpdateAsync(updates =>
+                updates.SetProperty(e => e.DeletedAt, DateTimeOffset.UtcNow)
+                       .SetProperty(e => e.UpdatedAt, DateTimeOffset.UtcNow),
+                cancellationToken: cancellationToken);
+
+        // 4. Clean up Dashboards (Workspace-level)
         var dashboardsDeletedCount = await _unitOfWork.Set<Dashboard>()
             .Where(d => d.LayerId == evt.WorkspaceId && d.LayerType == Domain.Enums.RelationShip.EntityLayerType.ProjectWorkspace && d.DeletedAt == null)
             .ExecuteUpdateAsync(updates =>
@@ -65,8 +73,8 @@ public class WorkspaceDeletedEventHandler : INotificationHandler<WorkspaceDelete
                        .SetProperty(e => e.UpdatedAt, DateTimeOffset.UtcNow),
                 cancellationToken: cancellationToken);
 
-        _logger.LogInformation("Cleanup complete for workspace {WorkspaceId}: {StatusCount} Statuses, {DashboardCount} Dashboards",
-            evt.WorkspaceId, statusesDeletedCount, dashboardsDeletedCount);
+        _logger.LogInformation("Cleanup complete for workspace {WorkspaceId}: {StatusCount} Statuses, {WorkflowCount} Workflows, {DashboardCount} Dashboards",
+            evt.WorkspaceId, statusesDeletedCount, workflowsDeletedCount, dashboardsDeletedCount);
 
     }
 }

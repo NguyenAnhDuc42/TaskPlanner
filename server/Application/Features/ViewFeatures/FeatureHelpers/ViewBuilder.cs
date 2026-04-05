@@ -54,41 +54,39 @@ public class ViewBuilder
 
         await FetchAssignees(tasks);
 
-        // Statuses are always owned by the Space
-        var spaceId = await ResolveSpaceId(layerId, layerType);
-        var statuses = spaceId.HasValue
-            ? await GetStatusesForSpace(spaceId.Value)
+        // Statuses are now owned by the Workspace
+        var workspaceId = await ResolveWorkspaceId(layerId, layerType);
+        var statuses = workspaceId.HasValue
+            ? await GetStatusesForWorkspace(workspaceId.Value)
             : Enumerable.Empty<StatusDto>();
 
         return (tasks, statuses);
     }
 
-    /// <summary>
-    /// Resolves the SpaceId for a given layer. Uses Dapper for non-Space layers.
-    /// </summary>
-    private async Task<Guid?> ResolveSpaceId(Guid layerId, EntityLayerType layerType)
+    private async Task<Guid?> ResolveWorkspaceId(Guid layerId, EntityLayerType layerType)
     {
         return layerType switch
         {
-            EntityLayerType.ProjectSpace => layerId,
+            EntityLayerType.ProjectWorkspace => layerId,
+            EntityLayerType.ProjectSpace => await _unitOfWork.QuerySingleOrDefaultAsync<Guid?>(
+                "SELECT project_workspace_id FROM project_spaces WHERE id = @Id", new { Id = layerId }),
             EntityLayerType.ProjectFolder => await _unitOfWork.QuerySingleOrDefaultAsync<Guid?>(
-                "SELECT project_space_id FROM project_folders WHERE id = @Id", new { Id = layerId }),
-            EntityLayerType.ProjectWorkspace => null, // No single space at workspace level
+                "SELECT s.project_workspace_id FROM project_folders f JOIN project_spaces s ON f.project_space_id = s.id WHERE f.id = @Id", new { Id = layerId }),
             _ => null
         };
     }
 
-    private async Task<IEnumerable<StatusDto>> GetStatusesForSpace(Guid spaceId)
+    private async Task<IEnumerable<StatusDto>> GetStatusesForWorkspace(Guid workspaceId)
     {
         const string sql = @"
             SELECT s.id, s.name, s.color, s.category
             FROM   statuses s
             JOIN   workflows w ON s.workflow_id = w.id
-            WHERE  w.project_space_id = @SpaceId
+            WHERE  w.project_workspace_id = @WorkspaceId
               AND  s.deleted_at IS NULL
             ORDER BY s.created_at";
 
-        return await _unitOfWork.QueryAsync<StatusDto>(sql, new { SpaceId = spaceId });
+        return await _unitOfWork.QueryAsync<StatusDto>(sql, new { WorkspaceId = workspaceId });
     }
 
     private async Task FetchAssignees(List<TaskDto> tasks)
