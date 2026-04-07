@@ -1,22 +1,22 @@
 import { useSidebarContext } from "@/features/workspace/components/sidebar-provider";
 import { useDashboards } from "./dashboard-api";
-import { 
-  Loader2, 
-  Plus 
-} from "lucide-react";
+import { Loader2, Plus } from "lucide-react";
 import { Route } from "@/routes/workspaces/$workspaceId";
 import { useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useState } from "react";
-import { EntityLayerType } from "@/types/relationship-type";
+import { EntityLayerType } from "@/types/entity-layer-type";
 import { DialogFormWrapper } from "@/components/dialog-form-wrapper";
 import { DashboardItem } from "./dashboard-components/dashboard-item";
 import { CreateDashboardForm } from "./dashboard-components/create-dashboard-form";
 
 export function DashboardSidebar() {
   const { workspaceId } = useSidebarContext();
-  const { data: dashboards, isLoading } = useDashboards(workspaceId || "", EntityLayerType.ProjectWorkspace);
+  const { data: dashboards, isLoading } = useDashboards(
+    workspaceId || "",
+    EntityLayerType.ProjectWorkspace,
+  );
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const { dashboardId } = Route.useSearch();
   const navigate = Route.useNavigate();
@@ -24,7 +24,10 @@ export function DashboardSidebar() {
   useEffect(() => {
     if (!dashboardId && dashboards?.items && dashboards.items.length > 0) {
       navigate({
-        search: (prev: any) => ({ ...prev, dashboardId: dashboards.items[0].id }),
+        search: (prev: any) => ({
+          ...prev,
+          dashboardId: dashboards.items[0].id,
+        }),
         replace: true,
       });
     }
@@ -50,7 +53,11 @@ export function DashboardSidebar() {
           open={isCreateOpen}
           onOpenChange={setIsCreateOpen}
           trigger={
-            <Button variant="ghost" size="icon" className="h-6 w-6 text-[var(--theme-text-normal)] hover:text-[var(--theme-text-hover)] hover:bg-[var(--theme-item-hover)] rounded-md transition-all">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-6 w-6 text-[var(--theme-text-normal)] hover:text-[var(--theme-text-hover)] hover:bg-[var(--theme-item-hover)] rounded-md transition-all"
+            >
               <Plus className="h-4 w-4" />
             </Button>
           }

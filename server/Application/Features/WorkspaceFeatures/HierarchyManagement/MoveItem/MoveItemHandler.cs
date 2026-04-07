@@ -26,13 +26,13 @@ public class MoveItemHandler : BaseFeatureHandler, IRequestHandler<MoveItemComma
 
         switch (request.ItemType)
         {
-            case ItemType.Space:
+            case Domain.Enums.RelationShip.EntityLayerType.ProjectSpace:
                 await MoveSpace(request.ItemId, newOrderKey, cancellationToken);
                 break;
-            case ItemType.Folder:
+            case Domain.Enums.RelationShip.EntityLayerType.ProjectFolder:
                 await MoveFolder(request.ItemId, request.TargetParentId, newOrderKey, cancellationToken);
                 break;
-            case ItemType.Task:
+            case Domain.Enums.RelationShip.EntityLayerType.ProjectTask:
                 await MoveTask(request.ItemId, request.TargetParentId, newOrderKey, cancellationToken);
                 break;
             default:
@@ -45,12 +45,21 @@ public class MoveItemHandler : BaseFeatureHandler, IRequestHandler<MoveItemComma
     private async Task<string> ResolveOrderKey(MoveItemCommand request, CancellationToken cancellationToken)
     {
         // Case 1: Both neighbours known — compute midpoint
-        if (request.PreviousItemOrderKey != null || request.NextItemOrderKey != null)
+        if (request.PreviousItemOrderKey != null && request.NextItemOrderKey != null)
         {
+            // Safety: If keys are equal or inverted, fallback to simple After() to avoid crash
+            if (string.Compare(request.PreviousItemOrderKey, request.NextItemOrderKey, StringComparison.Ordinal) >= 0)
+            {
+                return FractionalIndex.After(request.PreviousItemOrderKey);
+            }
             return FractionalIndex.Between(request.PreviousItemOrderKey, request.NextItemOrderKey);
         }
 
-        // Case 2: No context — append at the end
+        // Case 2: Only one neighbour known
+        if (request.PreviousItemOrderKey != null) return FractionalIndex.After(request.PreviousItemOrderKey);
+        if (request.NextItemOrderKey != null) return FractionalIndex.Before(request.NextItemOrderKey);
+
+        // Case 3: No context — append at the end
         var maxKey = await GetMaxOrderKey(request, cancellationToken);
         return maxKey is null ? FractionalIndex.Start() : FractionalIndex.After(maxKey);
     }
@@ -59,15 +68,15 @@ public class MoveItemHandler : BaseFeatureHandler, IRequestHandler<MoveItemComma
     {
         return request.ItemType switch
         {
-            ItemType.Space => await UnitOfWork.Set<ProjectSpace>()
+            Domain.Enums.RelationShip.EntityLayerType.ProjectSpace => await UnitOfWork.Set<ProjectSpace>()
                                 .Where(s => s.ProjectWorkspaceId == WorkspaceId && s.DeletedAt == null)
                                 .MaxAsync(s => (string?)s.OrderKey, cancellationToken),
 
-            ItemType.Folder => await UnitOfWork.Set<ProjectFolder>()
+            Domain.Enums.RelationShip.EntityLayerType.ProjectFolder => await UnitOfWork.Set<ProjectFolder>()
                                 .Where(f => f.ProjectSpaceId == request.TargetParentId && f.DeletedAt == null)
                                 .MaxAsync(f => (string?)f.OrderKey, cancellationToken),
 
-            ItemType.Task => await UnitOfWork.Set<ProjectTask>()
+            Domain.Enums.RelationShip.EntityLayerType.ProjectTask => await UnitOfWork.Set<ProjectTask>()
                                 .Where(t => (request.TargetParentId.HasValue && t.ProjectFolderId == request.TargetParentId) ||
                                            (!request.TargetParentId.HasValue && t.ProjectSpaceId == WorkspaceId && t.ProjectFolderId == null))
                                 .MaxAsync(t => (string?)t.OrderKey, cancellationToken),

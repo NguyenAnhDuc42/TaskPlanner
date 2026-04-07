@@ -35,7 +35,7 @@ public class GetHierarchyHandler : BaseFeatureHandler, IRequestHandler<GetHierar
 
     private List<SpaceHierarchyDto> MapSpaces(List<HierarchyRawItem> allItems)
     {
-        var spaces = allItems.Where(i => i.ItemType == "Space");
+        var spaces = allItems.Where(i => i.ItemType == "Space").OrderBy(i => i.OrderKey).ThenBy(i => i.Id);
         var folders = allItems.Where(i => i.ItemType == "Folder").ToList();
 
         return spaces.Select(s => new SpaceHierarchyDto
@@ -55,6 +55,8 @@ public class GetHierarchyHandler : BaseFeatureHandler, IRequestHandler<GetHierar
     {
         return folders
             .Where(f => Guid.Parse(f.ParentId) == spaceId)
+            .OrderBy(f => f.OrderKey)
+            .ThenBy(f => f.Id)
             .Select(f => new FolderHierarchyDto
             {
                 Id = f.Id,

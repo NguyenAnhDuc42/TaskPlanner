@@ -1,7 +1,7 @@
 import { ListTable } from "./list-table";
 import type { TaskDto, StatusDto } from "../../views-type";
 import { Plus, MoreHorizontal } from "lucide-react";
-import type { EntityLayerType } from "@/types/relationship-type";
+import type { EntityLayerType } from "@/types/entity-layer-type";
 
 interface StatusSectionProps {
   status: StatusDto;

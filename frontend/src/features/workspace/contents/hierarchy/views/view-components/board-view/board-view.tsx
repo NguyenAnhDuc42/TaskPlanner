@@ -7,7 +7,7 @@ import { Plus } from "lucide-react";
 import { BoardColumn } from "./board-column";
 import { type WheelEvent, useMemo, useRef, useState } from "react";
 
-import type { EntityLayerType } from "@/types/relationship-type";
+import type { EntityLayerType } from "@/types/entity-layer-type";
 import { cn } from "@/lib/utils";
 
 export function TaskBoardView({
@@ -25,7 +25,9 @@ export function TaskBoardView({
   layerType: EntityLayerType;
   listId?: string;
 }) {
-  const [openInlineColumnId, setOpenInlineColumnId] = useState<string | null>(null);
+  const [openInlineColumnId, setOpenInlineColumnId] = useState<string | null>(
+    null,
+  );
 
   const boardScrollRef = useRef<HTMLDivElement | null>(null);
 
@@ -45,9 +47,6 @@ export function TaskBoardView({
     : { groupBy: "status" };
 
   const isGroupedByStatus = displayConfig.groupBy === "status";
-
- 
-
 
   return (
     <div

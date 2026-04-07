@@ -19,9 +19,18 @@ import {
 } from "lucide-react"
 import { DialogFormWrapper } from "@/components/dialog-form-wrapper"
 import { TaskForm } from "../creation-form/task-form"
+import { useSidebarContext } from "@/features/workspace/components/sidebar-provider"
 import * as React from "react"
 
-export function TaskMenu({ taskId, onAction }: { taskId: string, onAction?: (action: string) => void }) {
+import { type EntityLayerType, EntityLayerType as EntityLayerConst } from "@/types/entity-layer-type"
+
+export function TaskMenu({ taskId, parentId, parentType, onAction }: { 
+  taskId: string, 
+  parentId: string, 
+  parentType: EntityLayerType,
+  onAction?: (action: string) => void 
+}) {
+  const { workspaceId } = useSidebarContext()
   const [isCreatingTask, setIsCreatingTask] = React.useState(false)
 
   return (
@@ -41,7 +50,10 @@ export function TaskMenu({ taskId, onAction }: { taskId: string, onAction?: (act
         contentClassName="sm:max-w-[800px] p-0 overflow-hidden border-none shadow-2xl rounded-2xl bg-background outline-none ring-1 ring-border/50"
       >
         <TaskForm 
-          onSubmit={(data) => { console.log("Create Sibling Task of:", taskId, data); setIsCreatingTask(false); }}
+          workspaceId={workspaceId || ""}
+          parentId={parentId}
+          parentType={parentType}
+          onSubmitSuccess={() => setIsCreatingTask(false)}
           onCancel={() => setIsCreatingTask(false)}
         />
       </DialogFormWrapper>
@@ -93,8 +105,11 @@ export function TaskMenu({ taskId, onAction }: { taskId: string, onAction?: (act
         contentClassName="max-w-3xl p-0 overflow-hidden border-none shadow-2xl rounded-2xl bg-background outline-none ring-1 ring-border/50"
       >
         <TaskForm 
-          onSubmit={(data) => { console.log("Update Task:", taskId, data); }}
-          onCancel={() => {}}
+          workspaceId={workspaceId || ""}
+          parentId={taskId} // Placeholder for editing task
+          parentType={EntityLayerConst.ProjectFolder} // Placeholder - should actually be task context
+          onSubmitSuccess={() => onAction?.("close-edit")}
+          onCancel={() => onAction?.("close-edit")}
         />
       </DialogFormWrapper>
 

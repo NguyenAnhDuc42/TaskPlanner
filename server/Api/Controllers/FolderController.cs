@@ -19,13 +19,9 @@ namespace Api.Controllers
             _mediator = mediator;
         }
 
-        [HttpPost("space/{spaceId}")]
-        public async Task<IActionResult> Create(Guid spaceId, [FromBody] CreateFolderCommand command, CancellationToken cancellationToken)
+        [HttpPost]
+        public async Task<IActionResult> Create([FromBody] CreateFolderCommand command, CancellationToken cancellationToken)
         {
-             if (spaceId != command.spaceId)
-            {
-                 return BadRequest("Space ID mismatch");
-            }
             var result = await _mediator.Send(command, cancellationToken);
             return Ok(result);
         }

@@ -1,4 +1,4 @@
-import { EntityLayerType } from "@/types/relationship-type";
+import { EntityLayerType } from "@/types/entity-layer-type";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { MoreHorizontal, Plus } from "lucide-react";
 import { TaskCard } from "./task-card";
@@ -66,7 +66,9 @@ export function BoardColumn({
 
           {tasks.length === 0 && !isInlineOpen && (
             <div className="py-10 flex flex-col items-center justify-center gap-2 text-muted-foreground/30">
-              <span className="text-[9px] font-black uppercase tracking-[0.2em]">Empty</span>
+              <span className="text-[9px] font-black uppercase tracking-[0.2em]">
+                Empty
+              </span>
             </div>
           )}
         </div>

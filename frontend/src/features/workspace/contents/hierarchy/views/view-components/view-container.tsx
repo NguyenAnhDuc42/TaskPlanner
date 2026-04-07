@@ -1,4 +1,4 @@
-import { EntityLayerType } from "@/types/relationship-type";
+import { EntityLayerType } from "@/types/entity-layer-type";
 import { TaskListView } from "./list-view/list-view";
 import { TaskBoardView } from "./board-view/board-view";
 import { TaskInfoView } from "./task/task-info-view";

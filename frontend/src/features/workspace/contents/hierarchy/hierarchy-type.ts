@@ -1,3 +1,5 @@
+import { type EntityLayerType } from "@/types/entity-layer-type";
+
 export interface WorkspaceHierarchy {
   id: string;
   name: string;
@@ -44,6 +46,7 @@ export interface NodeTasksResponse {
 
 // Request DTOs (Preserved Space/Folder, Purged List)
 export interface CreateSpaceRequest {
+  workspaceId: string;
   name: string;
   description?: string;
   color?: string;
@@ -62,7 +65,7 @@ export interface CreateFolderRequest {
 
 export interface CreateTaskRequest {
   parentId: string;
-  parentType: 'Space' | 'Folder';
+  parentType: EntityLayerType;
   name: string;
   description?: string;
   statusId?: string;
@@ -111,7 +114,7 @@ export interface UpdateEntityAccessBulkRequest {
 
 export interface MoveItemRequest {
   itemId: string;
-  itemType: "Space" | "Folder" | "Task";
+  itemType: EntityLayerType;
   targetParentId?: string;
   previousItemOrderKey?: string;
   nextItemOrderKey?: string;

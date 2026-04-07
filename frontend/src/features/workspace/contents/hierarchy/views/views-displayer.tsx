@@ -1,4 +1,4 @@
-import { EntityLayerType } from "@/types/relationship-type";
+import { EntityLayerType } from "@/types/entity-layer-type";
 import { useEntityInfo, useHierarchy } from "../hierarchy-api";
 import * as Icons from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -136,7 +136,7 @@ export function ViewsDisplayer({
   return (
     <div className="flex-1 flex overflow-hidden h-full bg-transparent gap-1">
       {/* MAIN CONTENT AREA */}
-      <div className="flex-1 flex flex-col min-w-0 h-full bg-background border border-border overflow-hidden rounded-xl shadow-sm">
+      <div className="flex-1 flex flex-col min-w-0 h-full bg-background border border-border overflow-hidden rounded-md shadow-sm">
         {/* HEADER: Identity of the Space/Folder/Task */}
         <div className="flex items-center gap-3 px-6 h-12 flex-shrink-0 bg-background border-b border-border z-30">
           <div
@@ -255,7 +255,7 @@ export function ViewsDisplayer({
       {/* PROPS HOLDER */}
       <div
         className={cn(
-          "flex flex-col h-full bg-background border border-border rounded-xl shadow-sm transition-all duration-300 ease-in-out",
+          "flex flex-col h-full bg-background border border-border rounded-md shadow-sm transition-all duration-300 ease-in-out",
           isPropsOpen
             ? "w-[300px]"
             : "w-0 opacity-0 overflow-hidden pointer-events-none border-none",

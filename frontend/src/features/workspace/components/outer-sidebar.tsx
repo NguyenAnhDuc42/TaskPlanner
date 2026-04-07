@@ -247,7 +247,7 @@ export function OuterSidebar({ className }: { className?: string }) {
             onMouseEnter={() => setHoveredIcon(hoveredIcon)}
             onMouseLeave={() => setHoveredIcon(null)}
           >
-            <div className="h-full w-full bg-background border border-border rounded-2xl shadow-xl flex flex-col overflow-hidden">
+            <div className="h-full w-full bg-background border border-border rounded-md shadow-xl flex flex-col overflow-hidden">
               {/* Header - Mirroring InnerSidebar exactly */}
               <div className="flex items-center justify-between px-2 py-2 flex-shrink-0 border-b border-border">
                 <h2 className="font-black text-sm uppercase tracking-widest text-foreground">

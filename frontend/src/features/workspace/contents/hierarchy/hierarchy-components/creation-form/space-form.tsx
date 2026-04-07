@@ -60,7 +60,7 @@ export function SpaceForm({ workspaceId, onSubmitSuccess, onCancel }: SpaceFormP
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 autoFocus
-                onKeyDown={(e) => e.key === 'Enter' && name.trim() && createSpace.mutate({ name, description, icon, color, isPrivate }, { onSuccess: onSubmitSuccess })}
+                onKeyDown={(e) => e.key === 'Enter' && name.trim() && createSpace.mutate({ workspaceId, name, description, icon, color, isPrivate }, { onSuccess: onSubmitSuccess })}
               />
             </div>
           </div>
@@ -97,7 +97,7 @@ export function SpaceForm({ workspaceId, onSubmitSuccess, onCancel }: SpaceFormP
             Cancel
           </Button>
           <Button 
-              onClick={() => createSpace.mutate({ name, description, icon, color, isPrivate }, { onSuccess: onSubmitSuccess })} 
+              onClick={() => createSpace.mutate({ workspaceId, name, description, icon, color, isPrivate }, { onSuccess: onSubmitSuccess })} 
               disabled={!name.trim() || createSpace.isPending}
               className="rounded-xl font-bold uppercase tracking-widest text-[11px] px-8 h-10 shadow-lg shadow-primary/10"
           >

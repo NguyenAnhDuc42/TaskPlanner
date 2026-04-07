@@ -1,4 +1,4 @@
-import type { EntityLayerType } from "@/types/relationship-type";
+import type { EntityLayerType } from "@/types/entity-layer-type";
 export type { PagedResult } from "@/types/paged-result";
 import { WidgetType } from "@/types/widget-type";
 

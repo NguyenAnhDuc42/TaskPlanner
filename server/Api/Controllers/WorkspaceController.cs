@@ -187,7 +187,33 @@ namespace Api.Controllers
             var result = await _mediator.Send(command, cancellationToken);
             return Ok(result);
         }
+
+        [HttpPost("{id:guid}/hierarchy/move")]
+        public async Task<IActionResult> MoveHierarchyItem(
+            Guid id,
+            [FromBody] MoveItemRequest request,
+            CancellationToken cancellationToken)
+        {
+            var command = new Application.Features.WorkspaceFeatures.HierarchyManagement.MoveItem.MoveItemCommand(
+                ItemId: request.ItemId,
+                ItemType: request.ItemType,
+                TargetParentId: request.TargetParentId,
+                PreviousItemOrderKey: request.PreviousItemOrderKey,
+                NextItemOrderKey: request.NextItemOrderKey
+            );
+            
+            await _mediator.Send(command, cancellationToken);
+            return NoContent();
+        }
     }
+
+    public record MoveItemRequest(
+        Guid ItemId,
+        Domain.Enums.RelationShip.EntityLayerType ItemType,
+        Guid? TargetParentId,
+        string? PreviousItemOrderKey,
+        string? NextItemOrderKey
+    );
 
     public record AddMembersRequest(List<MemberValue> Members, bool? EnableEmail = false, string? Message = null);
     public record UpdateMembersRequest(List<UpdateMemberValue> Members);

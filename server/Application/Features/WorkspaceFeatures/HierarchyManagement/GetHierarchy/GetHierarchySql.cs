@@ -85,7 +85,7 @@ public static class GetHierarchySql
             order_key
         FROM user_folders
 
-        ORDER BY order_key;";
+        ORDER BY order_key, id;";
 
     /// <summary>
     /// Query 2: Tasks per parent — paginated with a composite cursor (order_key, id).

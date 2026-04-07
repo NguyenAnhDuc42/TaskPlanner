@@ -13,11 +13,12 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { UniversalPicker } from "@/components/universal-picker"
 import { PropItem } from "@/components/prop-item"
 import { useCreateTask } from "../../hierarchy-api"
+import { type EntityLayerType } from "@/types/entity-layer-type"
 
 interface TaskFormProps {
   workspaceId: string
   parentId: string
-  parentType: 'Space' | 'Folder'
+  parentType: EntityLayerType
   onSubmitSuccess: () => void
   onCancel: () => void
 }

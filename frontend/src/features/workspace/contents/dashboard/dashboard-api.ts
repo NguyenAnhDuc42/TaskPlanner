@@ -1,22 +1,24 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api-client";
 
-import type { 
-  DashboardDto, 
-  WidgetDto, 
-  CreateDashboardRequest, 
-  CreateWidgetRequest, 
+import type {
+  DashboardDto,
+  WidgetDto,
+  CreateDashboardRequest,
+  CreateWidgetRequest,
   SaveDashboardLayoutRequest,
   EditDashboardRequest,
-  EditWidgetRequest
+  EditWidgetRequest,
 } from "./dashboard-type";
-import type { EntityLayerType } from "@/types/relationship-type";
+import type { EntityLayerType } from "@/types/entity-layer-type";
 import type { PagedResult } from "@/types/paged-result";
 
 export const dashboardKeys = {
   all: ["dashboards"] as const,
-  list: (layerId: string, layerType: EntityLayerType) => [...dashboardKeys.all, "list", layerId, layerType] as const,
-  widgets: (dashboardId: string) => [...dashboardKeys.all, "widgets", dashboardId] as const,
+  list: (layerId: string, layerType: EntityLayerType) =>
+    [...dashboardKeys.all, "list", layerId, layerType] as const,
+  widgets: (dashboardId: string) =>
+    [...dashboardKeys.all, "widgets", dashboardId] as const,
 };
 
 export const dashboardQueryOptions = {
@@ -33,7 +35,9 @@ export const dashboardQueryOptions = {
   widgets: (dashboardId: string) => ({
     queryKey: dashboardKeys.widgets(dashboardId),
     queryFn: async () => {
-      const { data } = await api.get<PagedResult<WidgetDto>>(`/dashboards/${dashboardId}/widgets`);
+      const { data } = await api.get<PagedResult<WidgetDto>>(
+        `/dashboards/${dashboardId}/widgets`,
+      );
       return data;
     },
     enabled: !!dashboardId,
@@ -79,7 +83,13 @@ export function useCreateWidget() {
 export function useSaveDashboardLayout() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async ({ dashboardId, layouts }: { dashboardId: string; layouts: SaveDashboardLayoutRequest[] }) => {
+    mutationFn: async ({
+      dashboardId,
+      layouts,
+    }: {
+      dashboardId: string;
+      layouts: SaveDashboardLayoutRequest[];
+    }) => {
       await api.post(`/dashboards/${dashboardId}/layout`, layouts);
     },
     onSuccess: (_, variables) => {
@@ -93,7 +103,15 @@ export function useSaveDashboardLayout() {
 export function useDeleteDashboard() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async ({ id, layerId, layerType }: { id: string; layerId: string; layerType: EntityLayerType }) => {
+    mutationFn: async ({
+      id,
+      layerId,
+      layerType,
+    }: {
+      id: string;
+      layerId: string;
+      layerType: EntityLayerType;
+    }) => {
       await api.delete(`/dashboards/${id}`, {
         params: { layerId, layerType },
       });
@@ -124,7 +142,10 @@ export function useUpdateWidget() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (request: EditWidgetRequest) => {
-      await api.put(`/dashboards/${request.dashboardId}/widgets/${request.widgetId}`, request);
+      await api.put(
+        `/dashboards/${request.dashboardId}/widgets/${request.widgetId}`,
+        request,
+      );
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({
@@ -137,7 +158,13 @@ export function useUpdateWidget() {
 export function useDeleteWidget() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async ({ dashboardId, widgetId }: { dashboardId: string; widgetId: string }) => {
+    mutationFn: async ({
+      dashboardId,
+      widgetId,
+    }: {
+      dashboardId: string;
+      widgetId: string;
+    }) => {
       await api.delete(`/dashboards/${dashboardId}/widgets/${widgetId}`);
     },
     onSuccess: (_, variables) => {

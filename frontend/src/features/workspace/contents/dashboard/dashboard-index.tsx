@@ -1,9 +1,26 @@
 import { ReactGridLayout, WidthProvider } from "react-grid-layout/legacy";
 import "/node_modules/react-grid-layout/css/styles.css";
 import "/node_modules/react-resizable/css/styles.css";
-import { useWidgets, useSaveDashboardLayout, useUpdateDashboard, useDeleteDashboard, useDeleteWidget, useDashboards } from "./dashboard-api";
+import {
+  useWidgets,
+  useSaveDashboardLayout,
+  useUpdateDashboard,
+  useDeleteDashboard,
+  useDeleteWidget,
+  useDashboards,
+} from "./dashboard-api";
 import { Route } from "@/routes/workspaces/$workspaceId";
-import { Loader2, Plus, Settings, LayoutIcon, MoreVertical, Pencil, Trash2, Maximize2, GripVertical } from "lucide-react";
+import {
+  Loader2,
+  Plus,
+  Settings,
+  LayoutIcon,
+  MoreVertical,
+  Pencil,
+  Trash2,
+  Maximize2,
+  GripVertical,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useMemo, useState, useEffect } from "react";
 import { DialogFormWrapper } from "@/components/dialog-form-wrapper";
@@ -20,7 +37,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
-import { EntityLayerType } from "@/types/relationship-type";
+import { EntityLayerType } from "@/types/entity-layer-type";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -54,24 +71,29 @@ export function DashboardIndex() {
   const updateDashboard = useUpdateDashboard();
   const deleteDashboard = useDeleteDashboard();
   const deleteWidget = useDeleteWidget();
-  
+
   const { user } = useAuth();
   const [isAddWidgetOpen, setIsAddWidgetOpen] = useState(false);
-  
+
   // Custom Shadcn Dialog States
   const [isRenameOpen, setIsRenameOpen] = useState(false);
   const [renameInput, setRenameInput] = useState("");
-  
+
   const [isDeleteDashboardOpen, setIsDeleteDashboardOpen] = useState(false);
   const [widgetToDelete, setWidgetToDelete] = useState<string | null>(null);
-  const [expandedWidget, setExpandedWidget] = useState<{ widget: WidgetDto; data?: WidgetData } | null>(null);
+  const [expandedWidget, setExpandedWidget] = useState<{
+    widget: WidgetDto;
+    data?: WidgetData;
+  } | null>(null);
 
   const currentDashboard = useMemo(() => {
-    return dashboards?.items.find(d => d.id === dashboardId);
+    return dashboards?.items.find((d) => d.id === dashboardId);
   }, [dashboards?.items, dashboardId]);
-  
+
   // Reactive state for dynamic widget data (populated via SignalR)
-  const [widgetDataMap, setWidgetDataMap] = useState<Record<string, WidgetData>>({});
+  const [widgetDataMap, setWidgetDataMap] = useState<
+    Record<string, WidgetData>
+  >({});
 
   useEffect(() => {
     if (!dashboardId || !user?.id) return;
@@ -87,14 +109,14 @@ export function DashboardIndex() {
     };
 
     setupHub();
-    
+
     const onWidgetData = (data: WidgetData) => {
       console.log("[DashboardHub] Received Data:", data.widgetId);
-      setWidgetDataMap(prev => ({ ...prev, [data.widgetId]: data }));
+      setWidgetDataMap((prev) => ({ ...prev, [data.widgetId]: data }));
     };
 
     signalRService.on("WidgetDataLoaded", onWidgetData);
-    
+
     return () => {
       signalRService.invoke("LeaveDashboard", dashboardId).catch(() => {});
       signalRService.off("WidgetDataLoaded", onWidgetData);
@@ -102,7 +124,7 @@ export function DashboardIndex() {
   }, [dashboardId]);
 
   const layout = useMemo(() => {
-    return (widgets?.items || []).map(w => ({
+    return (widgets?.items || []).map((w) => ({
       i: w.id,
       x: w.layout.col,
       y: w.layout.row,
@@ -113,7 +135,7 @@ export function DashboardIndex() {
 
   const onLayoutChange = (currentLayout: any) => {
     if (!dashboardId) return;
-    
+
     const updates = currentLayout.map((l: any) => ({
       WidgetId: l.i,
       Col: l.x,
@@ -132,8 +154,12 @@ export function DashboardIndex() {
           <LayoutIcon className="h-10 w-10 text-[var(--theme-text-hover)] opacity-60" />
         </div>
         <div className="space-y-1.5">
-          <h3 className="text-lg font-bold uppercase tracking-[0.3em] text-[var(--theme-text-hover)]">Select a Dashboard</h3>
-          <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-[var(--theme-text-normal)] opacity-40 italic">Initiate a workspace segment to begin.</p>
+          <h3 className="text-lg font-bold uppercase tracking-[0.3em] text-[var(--theme-text-hover)]">
+            Select a Dashboard
+          </h3>
+          <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-[var(--theme-text-normal)] opacity-40 italic">
+            Initiate a workspace segment to begin.
+          </p>
         </div>
       </div>
     );
@@ -157,7 +183,9 @@ export function DashboardIndex() {
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="name" className="text-right">Name</Label>
+              <Label htmlFor="name" className="text-right">
+                Name
+              </Label>
               <Input
                 id="name"
                 value={renameInput}
@@ -167,41 +195,56 @@ export function DashboardIndex() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsRenameOpen(false)}>Cancel</Button>
-            <Button onClick={() => {
-              if (renameInput.trim()) {
-                updateDashboard.mutate({ dashboardId: dashboardId!, name: renameInput.trim() }, {
-                  onSuccess: () => {
-                    toast.success("Dashboard renamed");
-                    setIsRenameOpen(false);
-                  }
-                });
-              }
-            }}>Save changes</Button>
+            <Button variant="outline" onClick={() => setIsRenameOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              onClick={() => {
+                if (renameInput.trim()) {
+                  updateDashboard.mutate(
+                    { dashboardId: dashboardId!, name: renameInput.trim() },
+                    {
+                      onSuccess: () => {
+                        toast.success("Dashboard renamed");
+                        setIsRenameOpen(false);
+                      },
+                    },
+                  );
+                }
+              }}
+            >
+              Save changes
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      <AlertDialog open={isDeleteDashboardOpen} onOpenChange={setIsDeleteDashboardOpen}>
+      <AlertDialog
+        open={isDeleteDashboardOpen}
+        onOpenChange={setIsDeleteDashboardOpen}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
             <AlertDialogDescription>
-              This action cannot be undone. This will permanently delete your dashboard
-              and remove all its widgets.
+              This action cannot be undone. This will permanently delete your
+              dashboard and remove all its widgets.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction 
+            <AlertDialogAction
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               onClick={() => {
-                deleteDashboard.mutate({ id: dashboardId!, layerId: workspaceId, layerType }, {
-                  onSuccess: () => {
-                    toast.success("Dashboard deleted");
-                    setIsDeleteDashboardOpen(false);
-                  }
-                });
+                deleteDashboard.mutate(
+                  { id: dashboardId!, layerId: workspaceId, layerType },
+                  {
+                    onSuccess: () => {
+                      toast.success("Dashboard deleted");
+                      setIsDeleteDashboardOpen(false);
+                    },
+                  },
+                );
               }}
             >
               Delete
@@ -210,26 +253,33 @@ export function DashboardIndex() {
         </AlertDialogContent>
       </AlertDialog>
 
-      <AlertDialog open={!!widgetToDelete} onOpenChange={(open) => !open && setWidgetToDelete(null)}>
+      <AlertDialog
+        open={!!widgetToDelete}
+        onOpenChange={(open) => !open && setWidgetToDelete(null)}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Remove Widget?</AlertDialogTitle>
             <AlertDialogDescription>
-              This will remove the widget from the dashboard. You can always add it back later.
+              This will remove the widget from the dashboard. You can always add
+              it back later.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction 
+            <AlertDialogAction
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               onClick={() => {
                 if (widgetToDelete) {
-                  deleteWidget.mutate({ dashboardId: dashboardId!, widgetId: widgetToDelete }, {
-                    onSuccess: () => {
-                      toast.success("Widget removed");
-                      setWidgetToDelete(null);
-                    }
-                  });
+                  deleteWidget.mutate(
+                    { dashboardId: dashboardId!, widgetId: widgetToDelete },
+                    {
+                      onSuccess: () => {
+                        toast.success("Widget removed");
+                        setWidgetToDelete(null);
+                      },
+                    },
+                  );
                 }
               }}
             >
@@ -249,7 +299,9 @@ export function DashboardIndex() {
       {/* Sticky Top-Bar */}
       <div className="sticky top-0 z-20 flex items-center justify-between h-14 px-6 border-b border-border/10 bg-[var(--glass-bg)] backdrop-blur-xl shrink-0">
         <div className="flex flex-col">
-          <h1 className="text-[10px] font-bold uppercase tracking-[0.3em] text-[var(--theme-text-normal)] opacity-60">Dashboard</h1>
+          <h1 className="text-[10px] font-bold uppercase tracking-[0.3em] text-[var(--theme-text-normal)] opacity-60">
+            Dashboard
+          </h1>
           <div className="text-xs font-bold uppercase tracking-[0.1em] text-[var(--theme-text-hover)] flex items-center gap-2">
             {currentDashboard?.name || "Workspace Hub"}
           </div>
@@ -260,25 +312,33 @@ export function DashboardIndex() {
             open={isAddWidgetOpen}
             onOpenChange={setIsAddWidgetOpen}
             trigger={
-              <Button size="sm" variant="ghost" className="h-8 gap-2 rounded-md theme-selected transition-all hover:scale-[1.02] border-0">
+              <Button
+                size="sm"
+                variant="ghost"
+                className="h-8 gap-2 rounded-md theme-selected transition-all hover:scale-[1.02] border-0"
+              >
                 <Plus className="h-3.5 w-3.5 " />
                 <span className="hidden sm:inline">Add Widget</span>
               </Button>
             }
           >
-            <CreateWidgetForm 
-              dashboardId={dashboardId || ""} 
-              onSuccess={() => setIsAddWidgetOpen(false)} 
+            <CreateWidgetForm
+              dashboardId={dashboardId || ""}
+              onSuccess={() => setIsAddWidgetOpen(false)}
             />
           </DialogFormWrapper>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-8 w-8 group hover:bg-muted/50 data-[state=open]:bg-muted">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 group hover:bg-muted/50 data-[state=open]:bg-muted"
+              >
                 <MoreVertical className="h-3.5 w-3.5" />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-48">
-              <DropdownMenuItem 
+              <DropdownMenuItem
                 onClick={() => {
                   setRenameInput(currentDashboard?.name || "");
                   setIsRenameOpen(true);
@@ -289,7 +349,7 @@ export function DashboardIndex() {
                 <span>Rename Dashboard</span>
               </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem 
+              <DropdownMenuItem
                 className="cursor-pointer gap-2 text-destructive focus:bg-destructive/10 focus:text-destructive"
                 onClick={() => setIsDeleteDashboardOpen(true)}
               >
@@ -304,15 +364,15 @@ export function DashboardIndex() {
       {/* Scrollable Layout Area */}
       <div className="flex-1 relative overflow-y-auto overflow-x-hidden min-h-0 bg-transparent">
         {/* Visual Grid Blocks Background */}
-        <div 
-          className="absolute inset-0 pointer-events-none opacity-[0.04]" 
-          style={{ 
+        <div
+          className="absolute inset-0 pointer-events-none opacity-[0.04]"
+          style={{
             backgroundSize: `${100 / 12}% 110px`,
-            padding: '16px',
-            backgroundOrigin: 'content-box',
-            backgroundRepeat: 'repeat',
-            minHeight: '100%'
-          }} 
+            padding: "16px",
+            backgroundOrigin: "content-box",
+            backgroundRepeat: "repeat",
+            minHeight: "100%",
+          }}
         />
 
         <GridLayout
@@ -324,18 +384,22 @@ export function DashboardIndex() {
           draggableHandle=".widget-grip-handle"
           compactType="horizontal"
           preventCollision={false}
-          resizeHandles={['s', 'w', 'e', 'n', 'sw', 'nw', 'se', 'ne']}
+          resizeHandles={["s", "w", "e", "n", "sw", "nw", "se", "ne"]}
           resizeHandle={(axis, ref) => (
             <span
               ref={ref}
-              className={`react-resizable-handle react-resizable-handle-${axis} opacity-0`}/>
+              className={`react-resizable-handle react-resizable-handle-${axis} opacity-0`}
+            />
           )}
         >
           {widgets?.items?.map((widget) => {
             const dynamicData = widgetDataMap[widget.id];
-            
+
             return (
-              <div key={widget.id} className="glass-panel rounded-md shadow-sm overflow-hidden flex flex-col group hover:ring-[var(--theme-border-crisp)] transition-all hover:scale-[1.01] hover:shadow-xl">
+              <div
+                key={widget.id}
+                className="glass-panel rounded-md shadow-sm overflow-hidden flex flex-col group hover:ring-[var(--theme-border-crisp)] transition-all hover:scale-[1.01] hover:shadow-xl"
+              >
                 <div className="widget-header p-2.5 border-b border-border/10 bg-transparent flex items-center justify-between cursor-move">
                   <div className="flex items-center gap-1.5 truncate">
                     <div className="widget-grip-handle">
@@ -346,40 +410,51 @@ export function DashboardIndex() {
                     </span>
                   </div>
                   <div className="flex items-end gap-2">
-                  <Button 
-                    variant="ghost" 
-                    size="icon" 
-                    className="h-5 w-5 flex-shrink-0 text-[var(--theme-text-normal)] hover:text-[var(--theme-text-hover)] hover:bg-[var(--theme-item-hover)] opacity-0 group-hover:opacity-100 transition-opacity"
-                    onClick={() => setExpandedWidget({ widget, data: dynamicData })}
-                  >
-                    <Maximize2 className="h-3 w-3" />
-                  </Button>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="icon" className="h-5 w-5 flex-shrink-0 text-[var(--theme-text-normal)] hover:text-[var(--theme-text-hover)] hover:bg-[var(--theme-item-hover)] opacity-0 group-hover:opacity-100 transition-opacity data-[state=open]:opacity-100">
-                        <MoreVertical className="h-3 w-3" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem className="cursor-pointer gap-2" onClick={() => toast.info("Widget config edit not yet implemented")}>
-                        <Settings className="h-3.5 w-3.5" />
-                        <span>Edit Config</span>
-                      </DropdownMenuItem>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem 
-                        className="cursor-pointer gap-2 text-destructive focus:bg-destructive/10 focus:text-destructive"
-                        onClick={() => setWidgetToDelete(widget.id)}
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                        <span>Remove Widget</span>
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-5 w-5 flex-shrink-0 text-[var(--theme-text-normal)] hover:text-[var(--theme-text-hover)] hover:bg-[var(--theme-item-hover)] opacity-0 group-hover:opacity-100 transition-opacity"
+                      onClick={() =>
+                        setExpandedWidget({ widget, data: dynamicData })
+                      }
+                    >
+                      <Maximize2 className="h-3 w-3" />
+                    </Button>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-5 w-5 flex-shrink-0 text-[var(--theme-text-normal)] hover:text-[var(--theme-text-hover)] hover:bg-[var(--theme-item-hover)] opacity-0 group-hover:opacity-100 transition-opacity data-[state=open]:opacity-100"
+                        >
+                          <MoreVertical className="h-3 w-3" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem
+                          className="cursor-pointer gap-2"
+                          onClick={() =>
+                            toast.info("Widget config edit not yet implemented")
+                          }
+                        >
+                          <Settings className="h-3.5 w-3.5" />
+                          <span>Edit Config</span>
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem
+                          className="cursor-pointer gap-2 text-destructive focus:bg-destructive/10 focus:text-destructive"
+                          onClick={() => setWidgetToDelete(widget.id)}
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                          <span>Remove Widget</span>
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </div>
                 </div>
-                
+
                 <div className="flex-1 overflow-hidden">
-                   <WidgetDataRenderer widget={widget} data={dynamicData} />
+                  <WidgetDataRenderer widget={widget} data={dynamicData} />
                 </div>
               </div>
             );
@@ -389,4 +464,3 @@ export function DashboardIndex() {
     </div>
   );
 }
-
