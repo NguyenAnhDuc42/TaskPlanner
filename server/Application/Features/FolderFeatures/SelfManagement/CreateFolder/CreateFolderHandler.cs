@@ -34,6 +34,7 @@ public class CreateFolderHandler : BaseFeatureHandler, IRequestHandler<CreateFol
         var folder = ProjectFolder.Create(
             projectSpaceId: space.Id,
             name: request.name,
+            description: request.description,
             color: request.color,
             icon: request.icon,
             isPrivate: request.isPrivate,

@@ -113,23 +113,29 @@ export function useMoveItem(workspaceId: string) {
           if (!old) return old;
           
           const newHierarchy = JSON.parse(JSON.stringify(old)) as WorkspaceHierarchy;
-          const { itemId, itemType, targetParentId, nextItemOrderKey } = moveRequest;
+          const { itemId, itemType, targetParentId, nextItemOrderKey, newOrderKey } = moveRequest;
 
           if (itemType === "ProjectSpace") {
             const spaces = newHierarchy.spaces || [];
             const activeIndex = spaces.findIndex(s => s.id === itemId);
             if (activeIndex !== -1) {
               const [removed] = spaces.splice(activeIndex, 1);
-              // Find target index based on nextItemOrderKey
+              if (newOrderKey) removed.orderKey = newOrderKey;
+
               const overIndex = nextItemOrderKey 
                 ? spaces.findIndex(s => s.orderKey === nextItemOrderKey) 
                 : spaces.length;
               spaces.splice(overIndex === -1 ? spaces.length : overIndex, 0, removed);
+              
+              // Final sort consistency
+              newHierarchy.spaces = spaces.sort((a, b) => a.orderKey.localeCompare(b.orderKey));
             }
           } 
           else if (itemType === "ProjectFolder") {
             let folderToMove: any = null;
             const spaces = newHierarchy.spaces || [];
+            
+            // 1. Remove from source
             for (const space of spaces) {
               const folders = space.folders || [];
               const idx = folders.findIndex(f => f.id === itemId);
@@ -139,16 +145,20 @@ export function useMoveItem(workspaceId: string) {
               }
             }
             
+            // 2. Insert into target
             if (folderToMove && targetParentId) {
               const targetSpace = (newHierarchy.spaces || []).find(s => s.id === targetParentId);
               if (targetSpace) {
                 const targetFolders = targetSpace.folders || [];
-                // Find target index in targetSpace folders
+                if (newOrderKey) folderToMove.orderKey = newOrderKey;
+
                 const overIndex = nextItemOrderKey 
                   ? targetFolders.findIndex(f => f.orderKey === nextItemOrderKey) 
                   : targetFolders.length;
                 targetFolders.splice(overIndex === -1 ? targetFolders.length : overIndex, 0, folderToMove);
-                targetSpace.folders = targetFolders; // Ensure assignment if was empty
+                
+                // Final sort consistency within target space
+                targetSpace.folders = targetFolders.sort((a, b) => a.orderKey.localeCompare(b.orderKey));
               }
             }
           }

@@ -10,6 +10,7 @@ import { sortableKeyboardCoordinates, arrayMove } from "@dnd-kit/sortable";
 import { EntityLayerType, EntityLayerType as EntityLayerConst } from "@/types/entity-layer-type";
 import type { SpaceHierarchy, WorkspaceHierarchy } from "../hierarchy-type";
 import { useState } from "react";
+import { fractionalBetween, fractionalAfter } from "../utils/fractional-index";
 
 interface UseHierarchyDndProps {
   filteredHierarchy: WorkspaceHierarchy | undefined;
@@ -54,6 +55,7 @@ export function useHierarchyDnd({ filteredHierarchy, moveItem }: UseHierarchyDnd
     // Movement context
     let prevKey: string | undefined;
     let nextKey: string | undefined;
+    let newOrderKey: string | undefined;
     let targetParentId: string | undefined;
 
     // 1. REORDERING SPACES
@@ -69,12 +71,14 @@ export function useHierarchyDnd({ filteredHierarchy, moveItem }: UseHierarchyDnd
       const moved = arrayMove(spaces, oldIndex, newIndex);
       prevKey = newIndex > 0 ? moved[newIndex - 1]?.orderKey : undefined;
       nextKey = newIndex < moved.length - 1 ? moved[newIndex + 1]?.orderKey : undefined;
+      newOrderKey = fractionalBetween(prevKey, nextKey);
       
       moveItem.mutate({
         itemId: activeData.id,
         itemType: EntityLayerConst.ProjectSpace,
         previousItemOrderKey: prevKey,
-        nextItemOrderKey: nextKey
+        nextItemOrderKey: nextKey,
+        newOrderKey
       });
     } 
     // 2. MOVING/REORDERING FOLDERS
@@ -108,12 +112,15 @@ export function useHierarchyDnd({ filteredHierarchy, moveItem }: UseHierarchyDnd
         nextKey = finalIdx < folders.length ? folders[finalIdx]?.orderKey : undefined;
       }
 
+      newOrderKey = fractionalBetween(prevKey, nextKey);
+
       moveItem.mutate({
         itemId: activeData.id,
         itemType: EntityLayerConst.ProjectFolder,
         targetParentId,
         previousItemOrderKey: prevKey,
-        nextItemOrderKey: nextKey
+        nextItemOrderKey: nextKey,
+        newOrderKey
       });
     }
     // 3. REORDERING TASKS
@@ -122,12 +129,14 @@ export function useHierarchyDnd({ filteredHierarchy, moveItem }: UseHierarchyDnd
       
       // For now tasks only reorder within their current parent
       prevKey = overData.orderKey;
+      newOrderKey = fractionalAfter(prevKey); // Simple strategy for now
       
       moveItem.mutate({
         itemId: activeData.id,
         itemType: EntityLayerConst.ProjectTask,
         targetParentId: activeData?.parentId,
         previousItemOrderKey: prevKey,
+        newOrderKey
       });
     }
   };

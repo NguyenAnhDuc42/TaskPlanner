@@ -13,7 +13,7 @@ public class ProjectWorkspaceConfiguration : EntityConfiguration<ProjectWorkspac
         builder.ToTable("project_workspaces");
 
         builder.Property(x => x.Name).HasColumnName("name").HasMaxLength(200).IsRequired();
-        builder.Property(x => x.Description).HasColumnName("description").HasMaxLength(2000);
+        builder.Property(x => x.Description).HasColumnName("description").HasColumnType("jsonb").IsRequired(false);
         builder.Property(x => x.JoinCode).HasColumnName("join_code").HasMaxLength(32).IsRequired();
         builder.Property(x => x.StrictJoin).HasColumnName("strict_join").IsRequired();
         builder.Property(x => x.IsArchived).HasColumnName("is_archived").IsRequired();

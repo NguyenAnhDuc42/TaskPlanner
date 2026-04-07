@@ -10,6 +10,7 @@ public sealed class ProjectFolder : Entity
 {
     public Guid ProjectSpaceId { get; private set; }
     public string Name { get; private set; } = null!;
+    public string? Description { get; private set; }
     public Customization Customization { get; private set; } = Customization.CreateDefault();
     public string OrderKey { get; private set; } = FractionalIndex.Start();
     public bool IsPrivate { get; private set; } = true;
@@ -19,13 +20,14 @@ public sealed class ProjectFolder : Entity
 
     private ProjectFolder() { }
 
-    private ProjectFolder(Guid id, Guid projectSpaceId, string name, Customization customization, bool isPrivate, string orderKey, Guid creatorId, DateTimeOffset? startDate, DateTimeOffset? dueDate)
+    private ProjectFolder(Guid id, Guid projectSpaceId, string name, string? description, Customization customization, bool isPrivate, string orderKey, Guid creatorId, DateTimeOffset? startDate, DateTimeOffset? dueDate)
     {
         Id = id;
         ProjectSpaceId = projectSpaceId;
         Name = name ?? throw new ArgumentNullException(nameof(name));
         if (string.IsNullOrWhiteSpace(name)) throw new ArgumentException("Name cannot be empty.", nameof(name));
         if (name.Length > 100) throw new ArgumentException("Name too long.", nameof(name));
+        Description = string.IsNullOrWhiteSpace(description) ? null : description;
         Customization = customization ?? throw new ArgumentNullException(nameof(customization));
         IsPrivate = isPrivate;
         OrderKey = orderKey;
@@ -35,7 +37,7 @@ public sealed class ProjectFolder : Entity
         DueDate = dueDate;
     }
 
-    public static ProjectFolder Create(Guid projectSpaceId, string name, string color, string icon, bool isPrivate, Guid creatorId, string orderKey, DateTimeOffset? start = null, DateTimeOffset? due = null)
+    public static ProjectFolder Create(Guid projectSpaceId, string name, string? description, string color, string icon, bool isPrivate, Guid creatorId, string orderKey, DateTimeOffset? start = null, DateTimeOffset? due = null)
     {
         if (string.IsNullOrWhiteSpace(color)) throw new ArgumentException("Color required.", nameof(color));
         if (!IsValidColorCode(color)) throw new ArgumentException("Invalid color.", nameof(color));
@@ -44,7 +46,7 @@ public sealed class ProjectFolder : Entity
 
         if (start.HasValue && due.HasValue && start > due) throw new ArgumentException("Start date cannot be later than due date.", nameof(start));
         var customization = Customization.Create(color.Trim(), icon.Trim());
-        return new ProjectFolder(Guid.NewGuid(), projectSpaceId, name?.Trim() ?? throw new ArgumentNullException(nameof(name)), customization, isPrivate, orderKey, creatorId, start, due);
+        return new ProjectFolder(Guid.NewGuid(), projectSpaceId, name?.Trim() ?? throw new ArgumentNullException(nameof(name)), description, customization, isPrivate, orderKey, creatorId, start, due);
     }
 
     public void UpdateName(string name)
@@ -53,6 +55,14 @@ public sealed class ProjectFolder : Entity
         ValidateName(candidateName);
         if (candidateName == Name) return;
         Name = candidateName;
+        UpdateTimestamp();
+    }
+
+    public void UpdateDescription(string? description)
+    {
+        var candidateDescription = string.IsNullOrWhiteSpace(description) ? null : description.Trim();
+        if (candidateDescription == Description) return;
+        Description = candidateDescription;
         UpdateTimestamp();
     }
 

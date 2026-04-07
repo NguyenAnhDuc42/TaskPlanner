@@ -22,7 +22,7 @@ public class MoveItemHandler : BaseFeatureHandler, IRequestHandler<MoveItemComma
 
     public async Task<Unit> Handle(MoveItemCommand request, CancellationToken cancellationToken)
     {
-        var newOrderKey = await ResolveOrderKey(request, cancellationToken);
+        var newOrderKey = request.NewOrderKey ?? await ResolveOrderKey(request, cancellationToken);
 
         switch (request.ItemType)
         {

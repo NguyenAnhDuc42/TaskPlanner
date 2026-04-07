@@ -20,6 +20,7 @@ public class UpdateFolderHandler : BaseFeatureHandler, IRequestHandler<UpdateFol
         var folder = await UnitOfWork.Set<ProjectFolder>().FindAsync(request.FolderId, cancellationToken);
         if (folder == null) throw new KeyNotFoundException($"Folder {request.FolderId} not found");
         if (request.Name is not null) folder.UpdateName(request.Name);
+        if (request.Description is not null) folder.UpdateDescription(request.Description);
         if (request.Color is not null) folder.UpdateColor(request.Color);
         if (request.Icon is not null) folder.UpdateIcon(request.Icon);
         if (request.IsPrivate.HasValue) folder.UpdatePrivate(request.IsPrivate.Value);

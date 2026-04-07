@@ -199,7 +199,8 @@ namespace Api.Controllers
                 ItemType: request.ItemType,
                 TargetParentId: request.TargetParentId,
                 PreviousItemOrderKey: request.PreviousItemOrderKey,
-                NextItemOrderKey: request.NextItemOrderKey
+                NextItemOrderKey: request.NextItemOrderKey,
+                NewOrderKey: request.NewOrderKey
             );
             
             await _mediator.Send(command, cancellationToken);
@@ -212,7 +213,8 @@ namespace Api.Controllers
         Domain.Enums.RelationShip.EntityLayerType ItemType,
         Guid? TargetParentId,
         string? PreviousItemOrderKey,
-        string? NextItemOrderKey
+        string? NextItemOrderKey,
+        string? NewOrderKey
     );
 
     public record AddMembersRequest(List<MemberValue> Members, bool? EnableEmail = false, string? Message = null);

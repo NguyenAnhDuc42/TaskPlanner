@@ -118,4 +118,5 @@ export interface MoveItemRequest {
   targetParentId?: string;
   previousItemOrderKey?: string;
   nextItemOrderKey?: string;
+  newOrderKey?: string;
 }
