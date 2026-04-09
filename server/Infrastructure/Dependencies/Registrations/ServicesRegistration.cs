@@ -15,8 +15,8 @@ public static class ServicesRegistration
 {
     public static IServiceCollection AddServices(this IServiceCollection services)
     {
-
         services.AddScoped<IUnitOfWork, UnitOfWork>();
+        services.AddScoped<IDataBase, Database>();
         services.AddScoped<ICurrentUserService, CurrentUserService>();
         services.AddScoped<ICookieService, CookieService>();
         services.AddScoped<ITokenService, TokenService>();

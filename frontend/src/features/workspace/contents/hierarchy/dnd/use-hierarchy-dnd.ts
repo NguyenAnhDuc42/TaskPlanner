@@ -8,19 +8,29 @@ import {
 } from "@dnd-kit/core";
 import { sortableKeyboardCoordinates, arrayMove } from "@dnd-kit/sortable";
 import { EntityLayerType, EntityLayerType as EntityLayerConst } from "@/types/entity-layer-type";
-import type { SpaceHierarchy, WorkspaceHierarchy } from "../hierarchy-type";
+import type { 
+  SpaceHierarchy, 
+  WorkspaceHierarchy, 
+  MoveItemRequest, 
+  FolderHierarchy, 
+  TaskHierarchy 
+} from "../hierarchy-type";
 import { useState } from "react";
-import { fractionalBetween, fractionalAfter } from "../utils/fractional-index";
+import { fractionalAfter, fractionalBetween } from "../utils/fractional-index";
 
 interface UseHierarchyDndProps {
   filteredHierarchy: WorkspaceHierarchy | undefined;
   moveItem: {
-    mutate: (data: any) => void;
+    mutate: (data: MoveItemRequest) => void;
   };
 }
 
 export function useHierarchyDnd({ filteredHierarchy, moveItem }: UseHierarchyDndProps) {
-  const [activeItem, setActiveItem] = useState<{ id: string, type: EntityLayerType, data: any } | null>(null);
+  const [activeItem, setActiveItem] = useState<{ 
+    id: string, 
+    type: EntityLayerType, 
+    data: SpaceHierarchy | FolderHierarchy | TaskHierarchy 
+  } | null>(null);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {

@@ -1,8 +1,10 @@
 import { FileText, Clock, Trash2, Archive, MoreVertical } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
+
+
 interface TaskInfoViewProps {
-  data: any;
+  data: ViewResponse;
   taskId: string;
 }
 
@@ -64,7 +66,10 @@ export function TaskInfoView({ data, taskId: _taskId }: TaskInfoViewProps) {
   );
 }
 
-function ActivityRow({ icon: Icon, text, time }: { icon: any, text: string, time: string }) {
+import type { LucideIcon } from "lucide-react";
+import type { ViewResponse } from "../../views-type";
+
+function ActivityRow({ icon: Icon, text, time }: { icon: LucideIcon, text: string, time: string }) {
   return (
     <div className="flex items-center justify-between py-1 group/row cursor-default">
       <div className="flex items-center gap-3">

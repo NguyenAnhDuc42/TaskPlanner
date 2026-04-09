@@ -60,7 +60,10 @@ public class UpdateWorkspaceHandler : BaseFeatureHandler, IRequestHandler<Update
     {
         // Update basic info
         if (request.Name is not null || request.Description is not null)
-            workspace.UpdateBasicInfo(request.Name, request.Description);
+        {
+            var slug = request.Name != null ? SlugHelper.GenerateSlug(request.Name) : null;
+            workspace.UpdateBasicInfo(request.Name, slug, request.Description);
+        }
 
         // Update customization
         if (request.Color is not null || request.Icon is not null)

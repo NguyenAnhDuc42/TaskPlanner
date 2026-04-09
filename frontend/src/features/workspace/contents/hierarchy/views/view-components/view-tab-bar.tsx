@@ -10,13 +10,14 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { EntityLayerType } from "@/types/entity-layer-type";
 
 interface ViewTabBarProps {
   views: ViewDto[];
   activeViewId: string | null;
   onViewChange: (view: ViewDto) => void;
   layerId: string;
-  layerType: string;
+  layerType: EntityLayerType;
 }
 
 export function ViewTabBar({

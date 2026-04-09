@@ -30,12 +30,15 @@ public class CreateSpaceHandler : BaseFeatureHandler, IRequestHandler<CreateSpac
             .MaxAsync(s => (string?)s.OrderKey, cancellationToken);
         var orderKey = maxKey is null ? FractionalIndex.Start() : FractionalIndex.After(maxKey);
         
+        var slug = SlugHelper.GenerateSlug(request.name);
+        
         var space = ProjectSpace.Create(
-            projectWorkspaceId: workspace.Id,
+            projectWorkspaceId: WorkspaceId,
             name: request.name,
+            slug: slug,
             description: request.description,
             customization: customization,
-            isPrivate: request.isPrivate,
+            isPrivate: request.isPrivate ?? true,
             creatorId: CurrentUserId,
             orderKey: orderKey
         );

@@ -70,11 +70,13 @@ public class CreateTaskHandler : BaseFeatureHandler, IRequestHandler<CreateTaskC
         }
 
         // 4. Create Task
+        var slug = SlugHelper.GenerateSlug(request.Name);
         var task = ProjectTask.Create(
             projectWorkspaceId: ancestors.ProjectWorkspaceId,
             projectSpaceId: ancestors.ProjectSpaceId,
             projectFolderId: ancestors.ProjectFolderId,
             name: request.Name,
+            slug: slug,
             description: request.Description,
             customization: null,
             creatorId: CurrentUserId,

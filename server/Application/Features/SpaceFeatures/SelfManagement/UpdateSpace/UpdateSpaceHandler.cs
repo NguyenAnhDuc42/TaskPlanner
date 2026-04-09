@@ -18,11 +18,18 @@ public class UpdateSpaceHandler : BaseFeatureHandler, IRequestHandler<UpdateSpac
     {
         var space = await UnitOfWork.Set<ProjectSpace>().FindAsync(request.SpaceId, cancellationToken);
         if (space == null) throw new KeyNotFoundException($"Space {request.SpaceId} not found");
-        if (request.Name is not null) space.UpdateName(request.Name);
-        if (request.Description is not null) space.UpdateDescription(request.Description);
-        if (request.Color is not null) space.UpdateColor(request.Color);
-        if (request.Icon is not null) space.UpdateIcon(request.Icon);
-        if (request.IsPrivate.HasValue) space.UpdatePrivate(request.IsPrivate.Value);
+
+        if (request.Name is not null || request.Description is not null)
+        {
+            var slug = request.Name != null ? SlugHelper.GenerateSlug(request.Name) : null;
+            space.UpdateBasicInfo(request.Name, slug, request.Description);
+        }
+
+        if (request.Color is not null || request.Icon is not null) 
+            space.UpdateCustomization(request.Color, request.Icon);
+
+        if (request.IsPrivate.HasValue) 
+            space.UpdatePrivate(request.IsPrivate.Value);
 
         if (space.IsPrivate)
         {
@@ -32,6 +39,8 @@ public class UpdateSpaceHandler : BaseFeatureHandler, IRequestHandler<UpdateSpac
             );
             await EnsureOwnerAccessAsync(space.Id, ownerWorkspaceMemberId, cancellationToken);
         }
+
+        await UnitOfWork.SaveChangesAsync(cancellationToken);
         return Unit.Value;
     }
 

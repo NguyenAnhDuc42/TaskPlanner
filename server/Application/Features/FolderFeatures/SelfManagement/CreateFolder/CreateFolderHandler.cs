@@ -31,17 +31,19 @@ public class CreateFolderHandler : BaseFeatureHandler, IRequestHandler<CreateFol
             .MaxAsync(f => (string?)f.OrderKey, cancellationToken);
         var orderKey = maxKey is null ? FractionalIndex.Start() : FractionalIndex.After(maxKey);
         
+        var slug = SlugHelper.GenerateSlug(request.name);
+
         var folder = ProjectFolder.Create(
             projectSpaceId: space.Id,
             name: request.name,
+            slug: slug,
             description: request.description,
-            color: request.color,
-            icon: request.icon,
+            orderKey: orderKey,
             isPrivate: request.isPrivate,
             creatorId: CurrentUserId,
-            orderKey: orderKey,
-            start: request.startDate,
-            due: request.dueDate
+            customization: customization,
+            startDate: request.startDate,
+            dueDate: request.dueDate
         );
 
         await UnitOfWork.Set<ProjectFolder>().AddAsync(folder, cancellationToken);

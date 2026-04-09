@@ -52,9 +52,12 @@ public class CreateWorkspaceHandler : BaseFeatureHandler, IRequestHandler<Create
 
     private async Task<ProjectWorkspace> PersistWorkspace(CreateWorkspaceCommand request, Guid currentUserId, CancellationToken ct)
     {
+        var slug = SlugHelper.GenerateSlug(request.Name);
         var customization = Customization.Create(request.Color, request.Icon);
+        
         var workspace = ProjectWorkspace.Create(
             name: request.Name,
+            slug: slug,
             description: request.Description,
             joinCode: null,
             customization: customization,

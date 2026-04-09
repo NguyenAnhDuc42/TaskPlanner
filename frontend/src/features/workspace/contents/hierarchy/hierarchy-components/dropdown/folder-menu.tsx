@@ -14,6 +14,7 @@ import { FolderForm } from "../creation-form/folder-form"
 import { TaskForm } from "../creation-form/task-form"
 import { useSidebarContext } from "@/features/workspace/components/sidebar-provider"
 import { useState } from "react"
+import { EntityLayerType } from "@/types/entity-layer-type"
 
 export function FolderMenu({ folderId, spaceId, onAction }: { folderId: string, spaceId: string, onAction?: (action: string) => void }) {
   const { workspaceId } = useSidebarContext()
@@ -57,7 +58,7 @@ export function FolderMenu({ folderId, spaceId, onAction }: { folderId: string, 
         <TaskForm 
           workspaceId={workspaceId || ""}
           parentId={folderId}
-          parentType="Folder"
+          parentType={EntityLayerType.ProjectFolder}
           onSubmitSuccess={() => setActiveForm(null)}
           onCancel={() => setActiveForm(null)}
         />

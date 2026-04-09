@@ -1,7 +1,7 @@
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo } from "react";
 import { type EntityLayerType } from "@/types/entity-layer-type";
-import type { CreateFolderRequest, CreateSpaceRequest, CreateTaskRequest, MoveItemRequest, NodeTasksResponse, UpdateFolderRequest, UpdateSpaceRequest, WorkspaceHierarchy } from "./hierarchy-type";
+import type { CreateFolderRequest, CreateSpaceRequest, CreateTaskRequest, FolderHierarchy, MoveItemRequest, NodeTasksResponse, UpdateFolderRequest, UpdateSpaceRequest, WorkspaceHierarchy } from "./hierarchy-type";
 import { hierarchyKeys } from "./hierarchy-keys";
 import { api } from "@/lib/api-client";
 
@@ -132,7 +132,7 @@ export function useMoveItem(workspaceId: string) {
             }
           } 
           else if (itemType === "ProjectFolder") {
-            let folderToMove: any = null;
+            let folderToMove: FolderHierarchy | null = null;
             const spaces = newHierarchy.spaces || [];
             
             // 1. Remove from source

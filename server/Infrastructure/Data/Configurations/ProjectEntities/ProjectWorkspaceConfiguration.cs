@@ -12,27 +12,59 @@ public class ProjectWorkspaceConfiguration : EntityConfiguration<ProjectWorkspac
 
         builder.ToTable("project_workspaces");
 
-        builder.Property(x => x.Name).HasColumnName("name").HasMaxLength(200).IsRequired();
-        builder.Property(x => x.Description).HasColumnName("description").HasColumnType("jsonb").IsRequired(false);
-        builder.Property(x => x.JoinCode).HasColumnName("join_code").HasMaxLength(32).IsRequired();
-        builder.Property(x => x.StrictJoin).HasColumnName("strict_join").IsRequired();
-        builder.Property(x => x.IsArchived).HasColumnName("is_archived").IsRequired();
+        builder.Property(w => w.Id)
+            .HasColumnName("id")
+            .HasColumnOrder(0);
 
-        // enums as strings
-        builder.Property(x => x.Theme).HasColumnName("theme").HasConversion<string>().HasMaxLength(50).IsRequired();
+        builder.Property(w => w.Name)
+            .HasColumnName("name")
+            .IsRequired()
+            .HasMaxLength(150)
+            .HasColumnOrder(1);
 
-        // owned VO
-        builder.OwnsOne(x => x.Customization, cb =>
+        builder.Property(w => w.Slug)
+            .HasColumnName("slug")
+            .IsRequired()
+            .HasMaxLength(100)
+            .HasColumnOrder(2);
+        
+        builder.HasIndex(w => w.Slug).IsUnique();
+
+        builder.Property(w => w.Description)
+            .HasColumnName("description")
+            .HasColumnType("jsonb")
+            .HasColumnOrder(3);
+
+        builder.Property(w => w.JoinCode)
+            .HasColumnName("join_code")
+            .IsRequired()
+            .HasMaxLength(32)
+            .HasColumnOrder(4);
+
+        builder.OwnsOne(w => w.Customization, c =>
         {
-            cb.Property(p => p.Color).HasColumnName("custom_color").HasMaxLength(32).IsRequired();
-            cb.Property(p => p.Icon).HasColumnName("custom_icon").HasMaxLength(128).IsRequired();
+            c.Property(cust => cust.Color).HasColumnName("custom_color").HasColumnOrder(5);
+            c.Property(cust => cust.Icon).HasColumnName("custom_icon").HasColumnOrder(6);
         });
 
-        // Indexes
-        builder.HasIndex(x => x.CreatorId);
-        builder.HasIndex(x => x.JoinCode).IsUnique(true);
+        builder.Property(w => w.Theme)
+            .HasColumnName("theme")
+            .HasConversion<string>()
+            .HasMaxLength(50)
+            .HasColumnOrder(7);
 
-        // optional: searchable name
-        builder.HasIndex(x => x.Name);
+        builder.Property(w => w.StrictJoin)
+            .HasColumnName("strict_join")
+            .HasColumnOrder(8);
+
+        builder.Property(w => w.IsArchived)
+            .HasColumnName("is_archived")
+            .HasColumnOrder(9);
+
+        // Auditing (Overrides from base to set order)
+        builder.Property(w => w.CreatedAt).HasColumnOrder(10);
+        builder.Property(w => w.UpdatedAt).HasColumnOrder(11);
+        builder.Property(w => w.DeletedAt).HasColumnOrder(12);
+        builder.Property(w => w.CreatorId).HasColumnOrder(13);
     }
 }

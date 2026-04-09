@@ -59,9 +59,11 @@ public class UpdateTaskHandler : BaseFeatureHandler, IRequestHandler<UpdateTaskC
     {
         if (request.Name == null && request.Description == null) return;
 
-        task.UpdateDetails(
-            request.Name ?? task.Name,
-            request.Description ?? task.Description);
+        var slug = request.Name != null ? SlugHelper.GenerateSlug(request.Name) : null;
+        task.UpdateBasicInfo(
+            request.Name,
+            slug,
+            request.Description);
     }
 
     private async Task ApplyStatusUpdate(ProjectTask task, UpdateTaskCommand request, CancellationToken cancellationToken)

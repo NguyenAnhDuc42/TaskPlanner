@@ -7,13 +7,14 @@ import type {
   TaskListViewResult,
   TasksBoardViewResult,
   ViewDto,
+  ViewResponse,
 } from "../views-type";
 
 interface ViewContainerProps {
   workspaceId: string;
   layerId: string;
   layerType: EntityLayerType;
-  data: any;
+  data: ViewResponse;
   view: ViewDto;
 }
 

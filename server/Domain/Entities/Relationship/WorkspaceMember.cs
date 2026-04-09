@@ -19,9 +19,7 @@ public class WorkspaceMember : Entity
     public DateTimeOffset? SuspendedAt { get; private set; }
     public Guid? SuspendedBy { get; private set; }
     public string? JoinMethod { get; private set; } = string.Empty; // "Invite", "Request", "Code"
-    private WorkspaceMember() { } // EF
-
-    private WorkspaceMember(Guid userId, Guid projectWorkspaceId, Role role, MembershipStatus status, Guid creatorId, string? joinMethod)
+    internal WorkspaceMember(Guid userId, Guid projectWorkspaceId, Role role, MembershipStatus status, Guid creatorId, string? joinMethod)
     {
         UserId = userId;
         ProjectWorkspaceId = projectWorkspaceId;
@@ -33,13 +31,13 @@ public class WorkspaceMember : Entity
         JoinMethod = joinMethod;
     }
 
-    public static WorkspaceMember Create(Guid userId, Guid workspaceId, Role role, MembershipStatus status, Guid createdBy, string? joinMethod)
+    internal static WorkspaceMember Create(Guid userId, Guid workspaceId, Role role, MembershipStatus status, Guid createdBy, string? joinMethod)
       => new(userId, workspaceId, role, status, createdBy, joinMethod);
 
-    public static WorkspaceMember CreateOwner(Guid userId, Guid projectWorkspaceId, Guid createdBy)
+    internal static WorkspaceMember CreateOwner(Guid userId, Guid projectWorkspaceId, Guid createdBy)
         => new(userId, projectWorkspaceId, Role.Owner, MembershipStatus.Active, createdBy, "Created");
 
-    public static List<WorkspaceMember> AddBulk(List<(Guid UserId, Role Role, MembershipStatus Status, string? JoinMethod)> memberSpecs, Guid projectWorkspaceId, Guid createdBy)
+    internal static List<WorkspaceMember> AddBulk(List<(Guid UserId, Role Role, MembershipStatus Status, string? JoinMethod)> memberSpecs, Guid projectWorkspaceId, Guid createdBy)
     {
         return memberSpecs
             .Select(spec => new WorkspaceMember(

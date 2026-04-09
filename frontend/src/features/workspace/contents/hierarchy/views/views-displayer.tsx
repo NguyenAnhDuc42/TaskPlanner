@@ -44,7 +44,7 @@ interface ViewsDisplayerProps {
 const MOCK_TABS = [
   { id: "v1", name: "List", type: ViewType.List, icon: ListIcon },
   { id: "v2", name: "Board", type: ViewType.Board, icon: LayoutDashboard },
-  { id: "v3", name: "Docs", type: "doc" as ViewType, icon: FileText },
+  { id: "v3", name: "Docs", type: ViewType.Doc, icon: FileText },
 ];
 
 const MOCK_STATUSES = [
@@ -80,7 +80,7 @@ export function ViewsDisplayer({
   const activeData = useMemo(() => {
     if (!hierarchy) return { tasks: [], statuses: MOCK_STATUSES };
 
-    let rawTasks: any[] = [];
+    let rawTasks: TaskHierarchy[] = [];
     if (layerType === EntityLayerType.ProjectSpace) {
       const space = hierarchy.spaces.find((s) => s.id === entityId);
       if (space) {
@@ -130,8 +130,8 @@ export function ViewsDisplayer({
 
   if (!entityInfo) return null;
 
-  const iconName = entityInfo.icon || "HelpCircle";
-  const IconComponent = (Icons as any)[iconName] || Icons.HelpCircle;
+  const iconName = entityInfo.icon as keyof typeof Icons || "HelpCircle";
+  const IconComponent = (Icons[iconName] as LucideIcon) || Icons.HelpCircle;
 
   return (
     <div className="flex-1 flex overflow-hidden h-full bg-transparent gap-1">
@@ -247,7 +247,7 @@ export function ViewsDisplayer({
             layerId={entityId}
             layerType={layerType}
             data={activeData}
-            view={activeViewDto as any}
+            view={activeViewDto as ViewDto}
           />
         </div>
       </div>
@@ -363,7 +363,7 @@ function TabButton({
   active,
   onClick,
 }: {
-  icon: any;
+  icon: LucideIcon;
   active: boolean;
   onClick: () => void;
 }) {
