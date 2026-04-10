@@ -11,4 +11,4 @@ public record class MoveItemCommand(
     string? PreviousItemOrderKey,   // OrderKey of item above
     string? NextItemOrderKey,        // OrderKey of item below
     string? NewOrderKey             // Optional: Pre-calculated key from frontend
-) : ICommand<Unit>;
+) : ICommandRequest;

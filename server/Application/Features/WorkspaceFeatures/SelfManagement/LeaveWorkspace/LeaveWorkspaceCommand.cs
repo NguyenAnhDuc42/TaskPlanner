@@ -3,4 +3,4 @@ using MediatR;
 
 namespace Application.Features.WorkspaceFeatures.SelfManagement.LeaveWorkspace;
 
-public record class LeaveWorkspaceCommand(Guid WorkspaceId) : ICommand<Unit>;
+public record class LeaveWorkspaceCommand(Guid WorkspaceId) : ICommandRequest;

@@ -1,40 +1,45 @@
-
-using Application.Helpers;
-using Application.Interfaces.Repositories;
+using Application.Common.Errors;
+using Application.Common.Interfaces;
+using Application.Common.Results;
+using Application.Features;
+using Application.Interfaces;
+using Application.Interfaces.Data;
 using Domain.Entities.Relationship;
 using Domain.Enums;
-using MediatR;
 using Microsoft.EntityFrameworkCore;
 using server.Application.Interfaces;
 
 namespace Application.Features.WorkspaceFeatures.SelfManagement.GetDetailWorkspace;
 
-public class GetDetailWorkspaceHandler : BaseFeatureHandler, IRequestHandler<GetDetailWorkspaceQuery, WorkspaceSecurityContextDto>
+public class GetDetailWorkspaceHandler : IQueryHandler<GetDetailWorkspaceQuery, WorkspaceSecurityContextDto>
 {
+    private readonly IDataBase _db;
+    private readonly ICurrentUserService _currentUserService;
 
     public GetDetailWorkspaceHandler(
-        IUnitOfWork unitOfWork,
-        ICurrentUserService currentUserService,
-        WorkspaceContext workspaceContext)
-        : base(unitOfWork, currentUserService, workspaceContext)
+        IDataBase db,
+        ICurrentUserService currentUserService)
     {
-
+        _db = db;
+        _currentUserService = currentUserService;
     }
 
-    public async Task<WorkspaceSecurityContextDto> Handle(GetDetailWorkspaceQuery request, CancellationToken cancellationToken)
+    public async Task<Result<WorkspaceSecurityContextDto>> Handle(GetDetailWorkspaceQuery request, CancellationToken cancellationToken)
     {
-        var workspace = await UnitOfWork.Set<Domain.Entities.ProjectEntities.ProjectWorkspace>()
-            .FindAsync(request.WorkspaceId, cancellationToken);
-            
-        if (workspace == null) throw new KeyNotFoundException($"Workspace {request.WorkspaceId} not found");
+        var currentUserId = _currentUserService.CurrentUserId();
+        if (currentUserId == Guid.Empty) return Result.Failure<WorkspaceSecurityContextDto>(Application.Common.Errors.Error.Unauthorized("User.NotAuthenticated", "User not authenticated."));
 
-        var member = await UnitOfWork.Set<WorkspaceMember>()
+        var workspace = await _db.Workspaces.FindAsync(new object[] { request.WorkspaceId }, cancellationToken);
+            
+        if (workspace == null) return Result.Failure<WorkspaceSecurityContextDto>(Application.Common.Errors.Error.NotFound("Workspace.NotFound", $"Workspace {request.WorkspaceId} not found"));
+
+        var member = await _db.Members
             .AsNoTracking()
-            .FirstOrDefaultAsync(wm => wm.ProjectWorkspaceId == request.WorkspaceId && wm.UserId == CurrentUserId, cancellationToken);
+            .FirstOrDefaultAsync(wm => wm.ProjectWorkspaceId == request.WorkspaceId && wm.UserId == currentUserId, cancellationToken);
 
         var role = member?.Role ?? Role.Guest;
 
-        return new WorkspaceSecurityContextDto
+        var dto = new WorkspaceSecurityContextDto
         {
             WorkspaceId = request.WorkspaceId,
             CurrentRole = role.ToString(),
@@ -51,5 +56,7 @@ public class GetDetailWorkspaceHandler : BaseFeatureHandler, IRequestHandler<Get
             // Feature Toggles (Frontend control)
             IsDashboardEnabled = false // Disabled per user request
         };
+
+        return Result.Success(dto);
     }
 }

@@ -10,6 +10,8 @@ using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
 using System.Data;
 using Infrastructure.Events.Extensions;
+using Hangfire;
+using Background.Jobs;
 
 namespace Infrastructure.Data;
 
@@ -17,12 +19,17 @@ public class Database : IDataBase
 {
     private readonly TaskPlanDbContext _context;
     private readonly IDomainEventDispatcher _domainDispatcher;
+    private readonly IBackgroundJobClient _backgroundJobClient;
     private IDbContextTransaction? _currentTransaction;
 
-    public Database(TaskPlanDbContext context, IDomainEventDispatcher domainDispatcher)
+    public Database(
+        TaskPlanDbContext context, 
+        IDomainEventDispatcher domainDispatcher,
+        IBackgroundJobClient backgroundJobClient)
     {
         _context = context;
         _domainDispatcher = domainDispatcher;
+        _backgroundJobClient = backgroundJobClient;
     }
 
     public IDbConnection Connection => _context.Database.GetDbConnection();
@@ -38,6 +45,7 @@ public class Database : IDataBase
     public DbSet<Comment> Comments => _context.Set<Comment>();
     public DbSet<Document> Documents => _context.Set<Document>();
     public DbSet<Dashboard> Dashboards => _context.Set<Dashboard>();
+    public DbSet<Workflow> Workflows => _context.Set<Workflow>();
 
     public DbSet<T> Set<T>() where T : class => _context.Set<T>();
     public bool HasActiveTransaction => _currentTransaction != null;
@@ -106,12 +114,7 @@ public class Database : IDataBase
 
         if (domainEvents.Any())
         {
-            await _domainDispatcher.DispatchAsync(domainEvents, cancellationToken);
-            var sideEffectEvents = _context.ChangeTracker.CollectDomainEvents();
-            if (sideEffectEvents.Any())
-            {
-                totalChanges += await SaveChangesAsync(cancellationToken);
-            }
+            _backgroundJobClient.Enqueue<ProcessOutboxJob>(job => job.RunAsync());
         }
 
         return totalChanges;

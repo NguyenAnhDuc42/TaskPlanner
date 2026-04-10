@@ -1,13 +1,13 @@
 using Application.Interfaces;
 using Domain.Events.Membership;
-using MediatR;
+using Application.Common.Interfaces;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Caching.Hybrid;
 using Application.Common;
 
 namespace Application.EventHandlers.DomainEventHandlers.MembershipHandlers;
 
-public class WorkspaceMembersAddedBulkEventHandler : INotificationHandler<WorkspaceMembersAddedBulkEvent>
+public class WorkspaceMembersAddedBulkEventHandler : IDomainEventHandler<WorkspaceMembersAddedBulkEvent>
 {
     private readonly IRealtimeService _realtimeService;
     private readonly HybridCache _cache;

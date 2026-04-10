@@ -20,59 +20,45 @@ public class MemberCleanupJob
         _logger = logger;
     }
 
-    public async Task CleanupMemberDataAsync(Guid workspaceId, Guid userId)
+    public async Task CleanupMembersDataAsync(Guid workspaceId, IEnumerable<Guid> userIds)
     {
-        _logger.LogInformation("Starting cleanup for user {UserId} in workspace {WorkspaceId}", 
-            userId, workspaceId);
+        var userList = userIds.ToList();
+        if (!userList.Any()) return;
 
-        // Find WorkspaceMemberId
-        var workspaceMemberId = await _context.WorkspaceMembers
+        _logger.LogInformation("Starting bulk cleanup for {Count} users in workspace {WorkspaceId}", 
+            userList.Count, workspaceId);
+
+        // Find all WorkspaceMemberIds for these users
+        var memberIds = await _context.WorkspaceMembers
             .AsNoTracking()
-            .Where(wm => wm.UserId == userId && wm.ProjectWorkspaceId == workspaceId)
+            .Where(wm => userList.Contains(wm.UserId) && wm.ProjectWorkspaceId == workspaceId)
             .Select(wm => wm.Id)
-            .FirstOrDefaultAsync();
+            .ToListAsync();
 
-        if (workspaceMemberId == Guid.Empty)
+        if (!memberIds.Any())
         {
-            _logger.LogWarning("No WorkspaceMember found for User {UserId} in Workspace {WorkspaceId}. Skipping cleanup.", userId, workspaceId);
+            _logger.LogWarning("No WorkspaceMembers found for the provided users in Workspace {WorkspaceId}. Skipping cleanup.", workspaceId);
             return;
         }
 
-        // Get all entity IDs in this workspace
-        var spaceIds = await _context.ProjectSpaces
-            .AsNoTracking()
-            .Where(s => s.ProjectWorkspaceId == workspaceId)
-            .Select(s => s.Id)
-            .ToListAsync();
+        var deletedAt = DateTimeOffset.UtcNow;
 
-        var folderIds = await _context.ProjectFolders
-            .AsNoTracking()
-            .Where(f => spaceIds.Contains(f.ProjectSpaceId))
-            .Select(f => f.Id)
-            .ToListAsync();
-
-        // Soft-delete EntityAccess for this user in this workspace
+        // 1. Soft-delete EntityAccess for these members
         var entityAccessDeleted = await _context.EntityAccesses
-            .Where(ea => ea.ProjectWorkspaceId == workspaceId && ea.WorkspaceMemberId == workspaceMemberId && ea.DeletedAt == null)
+            .Where(ea => ea.ProjectWorkspaceId == workspaceId && memberIds.Contains(ea.WorkspaceMemberId) && ea.DeletedAt == null)
             .ExecuteUpdateAsync(s => s
-                .SetProperty(e => e.DeletedAt, DateTimeOffset.UtcNow)
-                .SetProperty(e => e.UpdatedAt, DateTimeOffset.UtcNow));
+                .SetProperty(e => e.DeletedAt, deletedAt)
+                .SetProperty(e => e.UpdatedAt, deletedAt));
 
-        // Soft-delete TaskAssignments for this user in this workspace
-        var taskIds = await _context.ProjectTasks
-            .AsNoTracking()
-            .Where(t => t.ProjectWorkspaceId == workspaceId)
-            .Select(t => t.Id)
-            .ToListAsync();
-
+        // 2. Soft-delete TaskAssignments for these members
         var assignmentsDeleted = await _context.TaskAssignments
-            .Where(a => a.WorkspaceMemberId == workspaceMemberId && taskIds.Contains(a.ProjectTaskId) && a.DeletedAt == null)
+            .Where(a => memberIds.Contains(a.WorkspaceMemberId) && a.DeletedAt == null)
             .ExecuteUpdateAsync(s => s
-                .SetProperty(a => a.DeletedAt, DateTimeOffset.UtcNow)
-                .SetProperty(a => a.UpdatedAt, DateTimeOffset.UtcNow));
+                .SetProperty(a => a.DeletedAt, deletedAt)
+                .SetProperty(a => a.UpdatedAt, deletedAt));
 
         _logger.LogInformation(
-            "Cleanup complete for user {UserId}: {EntityAccessCount} EntityAccess records, {Assignments} TaskAssignments",
-            userId, entityAccessDeleted, assignmentsDeleted);
+            "Bulk cleanup complete for workspace {WorkspaceId}: {EntityAccessCount} EntityAccess records, {Assignments} TaskAssignments",
+            workspaceId, entityAccessDeleted, assignmentsDeleted);
     }
 }

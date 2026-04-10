@@ -1,19 +1,29 @@
-using Application.Interfaces.Repositories;
-using Application.Helpers;
+using Application.Common.Errors;
+using Application.Common.Interfaces;
+using Application.Common.Results;
+using Application.Features;
+using Application.Interfaces;
+using Application.Interfaces.Data;
 using Domain.Enums;
-using MediatR;
-using server.Application.Interfaces;
 
 namespace Application.Features.WorkspaceFeatures.HierarchyManagement.GetHierarchy;
 
-public class GetNodeTasksHandler : BaseFeatureHandler, IRequestHandler<GetNodeTasksQuery, NodeTasksDto>
+public class GetNodeTasksHandler : IQueryHandler<GetNodeTasksQuery, NodeTasksDto>
 {
-    public GetNodeTasksHandler(IUnitOfWork unitOfWork, ICurrentUserService currentUserService, WorkspaceContext workspaceContext)
-        : base(unitOfWork, currentUserService, workspaceContext) { }
+    private readonly IDataBase _db;
+    private readonly ICurrentUserService _currentUserService;
 
-    public async Task<NodeTasksDto> Handle(GetNodeTasksQuery request, CancellationToken cancellationToken)
+    public GetNodeTasksHandler(IDataBase db, ICurrentUserService currentUserService) {
+        _db = db;
+        _currentUserService = currentUserService;
+    }
+
+    public async Task<Result<NodeTasksDto>> Handle(GetNodeTasksQuery request, CancellationToken cancellationToken)
     {
-        var rawTasks = (await UnitOfWork.QueryAsync<TaskRawItem>(GetHierarchySql.TasksQuery, new
+        var currentUserId = _currentUserService.CurrentUserId();
+        if (currentUserId == Guid.Empty) return Result.Failure<NodeTasksDto>(Error.Unauthorized("User.NotAuthenticated", "User not authenticated."));
+
+        var rawTasks = (await _db.QueryAsync<TaskRawItem>(GetHierarchySql.TasksQuery, new
         {
             WorkspaceId = request.WorkspaceId,
             ParentId = request.ParentId,
@@ -21,7 +31,7 @@ public class GetNodeTasksHandler : BaseFeatureHandler, IRequestHandler<GetNodeTa
             CursorOrderKey = request.CursorOrderKey,
             CursorTaskId = request.CursorTaskId,
             PageSize = request.PageSize + 1  // fetch one extra to detect HasMore
-        }, cancellationToken)).ToList();
+        }, cancellationToken: cancellationToken)).ToList();
 
         var hasMore = rawTasks.Count > request.PageSize;
         if (hasMore) rawTasks.RemoveAt(rawTasks.Count - 1);
@@ -39,13 +49,13 @@ public class GetNodeTasksHandler : BaseFeatureHandler, IRequestHandler<GetNodeTa
 
         var last = rawTasks.LastOrDefault();
 
-        return new NodeTasksDto
+        return Result.Success(new NodeTasksDto
         {
             Tasks = tasks,
             HasMore = hasMore,
             NextCursorOrderKey = hasMore ? last?.OrderKey : null,
             NextCursorTaskId = hasMore ? last?.Id.ToString() : null
-        };
+        });
     }
 
     private class TaskRawItem

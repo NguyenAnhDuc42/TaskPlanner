@@ -1,101 +1,73 @@
+using Application.Common.Errors;
+using Application.Common.Interfaces;
+using Application.Common.Results;
+using Application.Features;
 using Application.Helpers;
-using Application.Interfaces.Repositories;
+using Application.Interfaces;
+using Application.Interfaces.Data;
 using Domain.Entities.ProjectEntities;
-using MediatR;
-using Application.Interfaces; 
-
-using Microsoft.Extensions.Caching.Hybrid; 
+using Microsoft.Extensions.Caching.Hybrid;
 using Microsoft.Extensions.Logging;
-using Application.Features.WorkspaceFeatures.UpdateWorkspace;
 using server.Application.Interfaces;
 
+namespace Application.Features.WorkspaceFeatures.SelfManagement.UpdateWorkspace;
 
-namespace Application.Features.WorkspaceFeatures.SelfManagement.UpdateWorkspace; 
-
-public class UpdateWorkspaceHandler : BaseFeatureHandler, IRequestHandler<UpdateWorkspaceCommand, Unit>
+public class UpdateWorkspaceHandler : ICommandHandler<UpdateWorkspaceCommand>
 {
-
+    private readonly IDataBase _db;
+    private readonly ICurrentUserService _currentUserService;
     private readonly HybridCache _cache;
     private readonly IRealtimeService _realtime;
     private readonly ILogger<UpdateWorkspaceHandler> _logger;
 
-    public UpdateWorkspaceHandler(
-        IUnitOfWork unitOfWork,
-        ICurrentUserService currentUserService,
-        WorkspaceContext workspaceContext,
-
-        HybridCache cache,
-        IRealtimeService realtime,
-        ILogger<UpdateWorkspaceHandler> logger)
-        : base(unitOfWork, currentUserService, workspaceContext)
+    public UpdateWorkspaceHandler(IDataBase db, ICurrentUserService currentUserService, HybridCache cache, IRealtimeService realtime, ILogger<UpdateWorkspaceHandler> logger)
     {
-
+        _db = db;
+        _currentUserService = currentUserService;
         _cache = cache;
         _realtime = realtime;
         _logger = logger;
     }
 
-    public async Task<Unit> Handle(UpdateWorkspaceCommand request, CancellationToken cancellationToken)
+    public async Task<Result> Handle(UpdateWorkspaceCommand request, CancellationToken cancellationToken)
     {
-        _logger.LogInformation("Updating workspace {WorkspaceId} by user {UserId}", request.Id, CurrentUserId);
+        var currentUserId = _currentUserService.CurrentUserId();
+        if (currentUserId == Guid.Empty) 
+            return Result.Failure(Error.Unauthorized("User.NotAuthenticated", "User not authenticated."));
 
+        _logger.LogInformation("Updating workspace {WorkspaceId} by user {UserId}", request.Id, currentUserId);
 
-        var workspace = await UnitOfWork.Set<ProjectWorkspace>().FindAsync(request.Id, cancellationToken);
-        if (workspace == null) throw new KeyNotFoundException($"Workspace {request.Id} not found");
+        var workspace = await _db.Workspaces.FindAsync(new object[] { request.Id }, cancellationToken);
+        if (workspace == null) 
+            return Result.Failure(Error.NotFound("Workspace.NotFound", $"Workspace {request.Id} not found"));
 
-        UpdateWorkspaceDetails(workspace, request);
-
-        await UnitOfWork.SaveChangesAsync(cancellationToken);
-
-        await InvalidateCache(CurrentUserId, cancellationToken);
-
-        NotifyClients(workspace.Id, CurrentUserId);
-
-        return Unit.Value;
-    }
-
-
-
-    private void UpdateWorkspaceDetails(ProjectWorkspace workspace, UpdateWorkspaceCommand request)
-    {
-        // Update basic info
+        // --- Apply Updates Inline ---
         if (request.Name is not null || request.Description is not null)
         {
             var slug = request.Name != null ? SlugHelper.GenerateSlug(request.Name) : null;
             workspace.UpdateBasicInfo(request.Name, slug, request.Description);
         }
 
-        // Update customization
-        if (request.Color is not null || request.Icon is not null)
+        if (request.Color is not null || request.Icon is not null) 
             workspace.UpdateCustomization(request.Color, request.Icon);
 
-        // Update settings
-        if (request.Theme.HasValue)
-            workspace.UpdateTheme(request.Theme.Value);
-
-        if (request.StrictJoin.HasValue)
-            workspace.UpdateStrictJoin(request.StrictJoin.Value);
-
-        // Handle archive/unarchive
+        if (request.Theme.HasValue) workspace.UpdateTheme(request.Theme.Value);
+        if (request.StrictJoin.HasValue) workspace.UpdateStrictJoin(request.StrictJoin.Value);
         if (request.IsArchived.HasValue)
         {
             if (request.IsArchived.Value) workspace.Archive();
             else workspace.Unarchive();
         }
+        if (request.RegenerateJoinCode) workspace.RegenerateJoinCode();
 
-        // Regenerate join code if requested
-        if (request.RegenerateJoinCode)
-            workspace.RegenerateJoinCode();
-    }
+        await _db.SaveChangesAsync(cancellationToken);
 
-    private async Task InvalidateCache(Guid userId, CancellationToken ct)
-    {
-        await _cache.RemoveByTagAsync(WorkspaceCacheKeys.WorkspaceListTag(userId), ct);
-    }
+        // --- Side Effects ---
+        await _cache.RemoveByTagAsync(WorkspaceCacheKeys.WorkspaceListTag(currentUserId), cancellationToken);
+        
+        _ = _realtime.NotifyUserAsync(currentUserId, "WorkspaceUpdated", new { WorkspaceId = workspace.Id }, default);
+        _ = _realtime.NotifyWorkspaceAsync(workspace.Id, "WorkspaceSettingsUpdated", new { WorkspaceId = workspace.Id }, default);
 
-    private void NotifyClients(Guid workspaceId, Guid userId)
-    {
-        _ = _realtime.NotifyUserAsync(userId, "WorkspaceUpdated", new { WorkspaceId = workspaceId }, default);
-        _ = _realtime.NotifyWorkspaceAsync(workspaceId, "WorkspaceSettingsUpdated", new { WorkspaceId = workspaceId }, default);
+        return Result.Success();
     }
 }

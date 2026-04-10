@@ -4,4 +4,4 @@ using MediatR;
 
 namespace Application.Features.WorkspaceFeatures.DeleteWorkspace;
 
-public record class DeleteWorkspaceCommand(Guid workspaceId) : ICommand<Unit>;
+public record class DeleteWorkspaceCommand(Guid workspaceId) : ICommandRequest;

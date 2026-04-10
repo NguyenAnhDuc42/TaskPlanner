@@ -1,58 +1,54 @@
-using Application.Helpers;
-using Domain.Entities.ProjectEntities;
-using MediatR;
-using Application.Interfaces; 
-
-using Microsoft.Extensions.Caching.Hybrid; 
-using Microsoft.Extensions.Logging; 
+using Application.Common.Errors;
+using Application.Common.Interfaces;
+using Application.Common.Results;
+using Application.Features;
 using Application.Features.WorkspaceFeatures.DeleteWorkspace;
-using Application.Interfaces.Repositories;
+using Application.Helpers;
+using Application.Interfaces;
+using Application.Interfaces.Data;
+using Domain.Entities.ProjectEntities;
+using Microsoft.Extensions.Caching.Hybrid;
+using Microsoft.Extensions.Logging;
 using server.Application.Interfaces;
 
-namespace Application.Features.WorkspaceFeatures.SelfManagement.DeleteWorkspace; 
+namespace Application.Features.WorkspaceFeatures.SelfManagement.DeleteWorkspace;
 
-public class DeleteWorkspaceHandler : BaseFeatureHandler, IRequestHandler<DeleteWorkspaceCommand, Unit>
+public class DeleteWorkspaceHandler : ICommandHandler<DeleteWorkspaceCommand>
 {
-
+    private readonly IDataBase _db;
+    private readonly ICurrentUserService _currentUserService;
     private readonly HybridCache _cache;
     private readonly IRealtimeService _realtime;
     private readonly ILogger<DeleteWorkspaceHandler> _logger;
 
-    public DeleteWorkspaceHandler(IUnitOfWork unitOfWork, ICurrentUserService currentUserService, WorkspaceContext workspaceContext, HybridCache cache, IRealtimeService realtime, ILogger<DeleteWorkspaceHandler> logger)
-        : base(unitOfWork, currentUserService, workspaceContext)
+    public DeleteWorkspaceHandler(IDataBase db, ICurrentUserService currentUserService, HybridCache cache, IRealtimeService realtime, ILogger<DeleteWorkspaceHandler> logger)
     {
+        _db = db;
+        _currentUserService = currentUserService;
         _cache = cache;
         _realtime = realtime;
         _logger = logger;
     }
 
-    public async Task<Unit> Handle(DeleteWorkspaceCommand request, CancellationToken cancellationToken)
+    public async Task<Result> Handle(DeleteWorkspaceCommand request, CancellationToken cancellationToken)
     {
-        _logger.LogInformation("Deleting workspace {WorkspaceId} by user {UserId}", request.workspaceId, CurrentUserId);
-        await PerformDelete(request.workspaceId, cancellationToken);
-        await InvalidateCache(CurrentUserId, cancellationToken);
-        NotifyClients(request.workspaceId, CurrentUserId);
-        return Unit.Value;
-    }
+        var currentUserId = _currentUserService.CurrentUserId();
+        if (currentUserId == Guid.Empty) return Result.Failure(Error.Unauthorized("User.NotAuthenticated", "User not authenticated."));
 
+        _logger.LogInformation("Deleting workspace {WorkspaceId} by user {UserId}", request.workspaceId, currentUserId);
 
+        var workspace = await _db.Workspaces.FindAsync(new object[] { request.workspaceId }, cancellationToken);
+        if (workspace == null) return Result.Failure(Error.NotFound("Workspace.NotFound", $"Workspace {request.workspaceId} not found"));
 
-    private async Task PerformDelete(Guid workspaceId, CancellationToken ct)
-    {
-        var workspace = await UnitOfWork.Set<ProjectWorkspace>().FindAsync(workspaceId);
-        if (workspace == null) throw new KeyNotFoundException($"Workspace {workspaceId} not found");
         workspace.SoftDelete();
-        await UnitOfWork.SaveChangesAsync(ct);
-    }
+        await _db.SaveChangesAsync(cancellationToken);
 
-    private async Task InvalidateCache(Guid userId, CancellationToken ct)
-    {
-        await _cache.RemoveByTagAsync(WorkspaceCacheKeys.WorkspaceListTag(userId), ct);
-    }
+        // --- Side Effects ---
+        await _cache.RemoveByTagAsync(WorkspaceCacheKeys.WorkspaceListTag(currentUserId), cancellationToken);
+        
+        _ = _realtime.NotifyUserAsync(currentUserId, "WorkspaceDeleted", new { WorkspaceId = request.workspaceId }, default);
+        _ = _realtime.NotifyWorkspaceAsync(request.workspaceId, "WorkspacePermanentlyDeleted", new { WorkspaceId = request.workspaceId }, default);
 
-    private void NotifyClients(Guid workspaceId, Guid userId)
-    {
-        _ = _realtime.NotifyUserAsync(userId, "WorkspaceDeleted", new { WorkspaceId = workspaceId }, default);
-        _ = _realtime.NotifyWorkspaceAsync(workspaceId, "WorkspacePermanentlyDeleted", new { WorkspaceId = workspaceId }, default);
+        return Result.Success();
     }
 }

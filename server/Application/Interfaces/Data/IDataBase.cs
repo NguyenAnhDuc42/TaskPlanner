@@ -23,4 +23,5 @@ public interface IDataBase : IUnitOfWork
     DbSet<Comment> Comments { get; }
     DbSet<Document> Documents { get; }
     DbSet<Dashboard> Dashboards { get; }
+    DbSet<Workflow> Workflows { get; }
 }

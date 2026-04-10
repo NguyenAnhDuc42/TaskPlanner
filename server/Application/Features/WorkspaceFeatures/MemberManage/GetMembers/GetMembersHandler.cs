@@ -2,37 +2,36 @@ using System.Text.Json;
 using Application.Common;
 using Application.Common.Filters;
 using Application.Common.Results;
-
-
+using Application.Features;
 using Application.Helper;
 using Application.Helpers;
-using Application.Interfaces.Repositories;
-using MediatR;
-using Application.Features.WorkspaceFeatures.MemberManage;
+using Application.Interfaces;
+using Application.Interfaces.Data;
+using Domain.Entities;
+using Domain.Entities.Relationship;
 using Microsoft.Extensions.Caching.Hybrid;
 using Microsoft.Extensions.Logging;
-using server.Application.Interfaces;
 
 namespace Application.Features.WorkspaceFeatures.MemberManage.GetMembers;
 
-public class GetMembersHandler : BaseFeatureHandler, IRequestHandler<GetMembersQuery, PagedResult<MemberDto>>
+public class GetMembersHandler : IQueryHandler<GetMembersQuery, PagedResult<MemberDto>>
 {
+    private readonly IDataBase _db;
+    private readonly ICurrentUserService _currentUserService;
     private readonly CursorHelper _cursorHelper;
     private readonly HybridCache _cache;
-
     private readonly ILogger<GetMembersHandler> _logger;
 
-    public GetMembersHandler( IUnitOfWork unitOfWork,ICurrentUserService currentUserService,WorkspaceContext workspaceContext,CursorHelper cursorHelper,HybridCache cache,ILogger<GetMembersHandler> logger)
-        : base(unitOfWork, currentUserService, workspaceContext)
-    {
+    public GetMembersHandler(IDataBase db, ICurrentUserService currentUserService, CursorHelper cursorHelper, HybridCache cache, ILogger<GetMembersHandler> logger) {
+        _db = db;
+        _currentUserService = currentUserService;
         _cursorHelper = cursorHelper;
         _cache = cache;
         _logger = logger;
     }
 
-    public async Task<PagedResult<MemberDto>> Handle(GetMembersQuery request, CancellationToken cancellationToken)
+    public async Task<Result<PagedResult<MemberDto>>> Handle(GetMembersQuery request, CancellationToken cancellationToken)
     {
-
         var workspaceId = request.WorkspaceId;
         var cacheKey = WorkspaceCacheKeys.MemberList(workspaceId, request);
         _logger.LogDebug(
@@ -40,7 +39,7 @@ public class GetMembersHandler : BaseFeatureHandler, IRequestHandler<GetMembersQ
             workspaceId,
             cacheKey);
 
-        return await _cache.GetOrCreateAsync(cacheKey, async token =>
+        var result = await _cache.GetOrCreateAsync(cacheKey, async token =>
         {
             _logger.LogDebug("Workspace member list cache miss. WorkspaceId={WorkspaceId}", workspaceId);
             var pageSize = request.pagination.PageSize;
@@ -50,7 +49,7 @@ public class GetMembersHandler : BaseFeatureHandler, IRequestHandler<GetMembersQ
                 ? GetMembersSQL.Asc
                 : GetMembersSQL.Desc;
 
-            var rows = (await UnitOfWork.QueryAsync<MemberRow>(sql, new
+            var rows = (await _db.QueryAsync<MemberRow>(sql, new
             {
                 WorkspaceId = workspaceId,
                 name = request.filter.Name,
@@ -59,7 +58,7 @@ public class GetMembersHandler : BaseFeatureHandler, IRequestHandler<GetMembersQ
                 cursorTimestamp,
                 cursorId,
                 pageSizePLusOne = pageSize + 1
-            }, token)).ToList();
+            }, cancellationToken: token)).ToList();
 
             var hasMore = rows.Count > pageSize;
             if (hasMore) rows.RemoveAt(rows.Count - 1);
@@ -74,6 +73,8 @@ public class GetMembersHandler : BaseFeatureHandler, IRequestHandler<GetMembersQ
         new HybridCacheEntryOptions { Expiration = TimeSpan.FromMinutes(5) },
         new[] { CacheConstants.Tags.WorkspaceMembers(workspaceId) },
         cancellationToken);
+
+        return Result.Success(result);
     }
 
     private void DecodeCursor(string? cursor, out DateTimeOffset? ts, out Guid? id)

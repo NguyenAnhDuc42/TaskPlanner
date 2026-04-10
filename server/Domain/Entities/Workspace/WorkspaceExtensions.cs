@@ -18,4 +18,7 @@ public static class WorkspaceExtensions
 
     public static IQueryable<ProjectWorkspace> ByJoinCode(this IQueryable<ProjectWorkspace> query, string joinCode) => 
         query.Where(workspace => workspace.JoinCode == joinCode.Trim());
+
+    public static IQueryable<ProjectWorkspace> WhereNotDeleted(this IQueryable<ProjectWorkspace> query) => 
+        query.Where(workspace => workspace.DeletedAt == null);
 }

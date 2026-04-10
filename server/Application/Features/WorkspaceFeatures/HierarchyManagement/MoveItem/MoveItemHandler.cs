@@ -1,45 +1,56 @@
-using Application.Interfaces.Repositories;
-using Domain;
-using Application.Helpers;
+using Application.Common.Errors;
+using Application.Common.Interfaces;
+using Application.Common.Results;
+using Application.Features;
+using Application.Interfaces;
+using Application.Interfaces.Data;
 using Domain.Common;
+using Domain.Entities;
 using Domain.Entities.ProjectEntities;
-using Domain.Enums;
-using MediatR;
 using Microsoft.EntityFrameworkCore;
 using server.Application.Interfaces;
 
 namespace Application.Features.WorkspaceFeatures.HierarchyManagement.MoveItem;
 
-public class MoveItemHandler : BaseFeatureHandler, IRequestHandler<MoveItemCommand, Unit>
+public class MoveItemHandler : ICommandHandler<MoveItemCommand>
 {
-    public MoveItemHandler(
-        IUnitOfWork unitOfWork,
-        ICurrentUserService currentUserService,
-        WorkspaceContext workspaceContext)
-        : base(unitOfWork, currentUserService, workspaceContext)
-    {
+    private readonly IDataBase _db;
+    private readonly ICurrentUserService _currentUserService;
+    private readonly WorkspaceContext _workspaceContext;
+
+    public MoveItemHandler(IDataBase db, ICurrentUserService currentUserService, WorkspaceContext workspaceContext) {
+        _db = db;
+        _currentUserService = currentUserService;
+        _workspaceContext = workspaceContext;
     }
 
-    public async Task<Unit> Handle(MoveItemCommand request, CancellationToken cancellationToken)
+    public async Task<Result> Handle(MoveItemCommand request, CancellationToken cancellationToken)
     {
+        var currentUserId = _currentUserService.CurrentUserId();
+        if (currentUserId == Guid.Empty) return Result.Failure(Error.Unauthorized("User.NotAuthenticated", "User not authenticated."));
+
         var newOrderKey = request.NewOrderKey ?? await ResolveOrderKey(request, cancellationToken);
 
         switch (request.ItemType)
         {
             case Domain.Enums.RelationShip.EntityLayerType.ProjectSpace:
-                await MoveSpace(request.ItemId, newOrderKey, cancellationToken);
+                var spaceResult = await MoveSpace(request.ItemId, newOrderKey, cancellationToken);
+                if (spaceResult.IsFailure) return spaceResult;
                 break;
             case Domain.Enums.RelationShip.EntityLayerType.ProjectFolder:
-                await MoveFolder(request.ItemId, request.TargetParentId, newOrderKey, cancellationToken);
+                var folderResult = await MoveFolder(request.ItemId, request.TargetParentId, newOrderKey, cancellationToken);
+                if (folderResult.IsFailure) return folderResult;
                 break;
             case Domain.Enums.RelationShip.EntityLayerType.ProjectTask:
-                await MoveTask(request.ItemId, request.TargetParentId, newOrderKey, cancellationToken);
+                var taskResult = await MoveTask(request.ItemId, request.TargetParentId, newOrderKey, cancellationToken);
+                if (taskResult.IsFailure) return taskResult;
                 break;
             default:
-                throw new ArgumentException($"Unknown item type: {request.ItemType}");
+                return Result.Failure(Error.Validation("Item.UnknownType", $"Unknown item type: {request.ItemType}"));
         }
 
-        return Unit.Value;
+        await _db.SaveChangesAsync(cancellationToken);
+        return Result.Success();
     }
 
     private async Task<string> ResolveOrderKey(MoveItemCommand request, CancellationToken cancellationToken)
@@ -66,43 +77,49 @@ public class MoveItemHandler : BaseFeatureHandler, IRequestHandler<MoveItemComma
 
     private async Task<string?> GetMaxOrderKey(MoveItemCommand request, CancellationToken cancellationToken)
     {
+        var workspaceId = _workspaceContext.workspaceId;
+        
         return request.ItemType switch
         {
-            Domain.Enums.RelationShip.EntityLayerType.ProjectSpace => await UnitOfWork.Set<ProjectSpace>()
-                                .Where(s => s.ProjectWorkspaceId == WorkspaceId && s.DeletedAt == null)
+            Domain.Enums.RelationShip.EntityLayerType.ProjectSpace => await _db.Spaces
+                                .ByWorkspace(workspaceId)
+                                .WhereNotDeleted()
                                 .MaxAsync(s => (string?)s.OrderKey, cancellationToken),
 
-            Domain.Enums.RelationShip.EntityLayerType.ProjectFolder => await UnitOfWork.Set<ProjectFolder>()
-                                .Where(f => f.ProjectSpaceId == request.TargetParentId && f.DeletedAt == null)
+            Domain.Enums.RelationShip.EntityLayerType.ProjectFolder => await _db.Folders
+                                .BySpace(request.TargetParentId.GetValueOrDefault())
+                                .WhereNotDeleted()
                                 .MaxAsync(f => (string?)f.OrderKey, cancellationToken),
 
-            Domain.Enums.RelationShip.EntityLayerType.ProjectTask => await UnitOfWork.Set<ProjectTask>()
+            Domain.Enums.RelationShip.EntityLayerType.ProjectTask => await _db.Tasks
                                 .Where(t => (request.TargetParentId.HasValue && t.ProjectFolderId == request.TargetParentId) ||
-                                           (!request.TargetParentId.HasValue && t.ProjectSpaceId == WorkspaceId && t.ProjectFolderId == null))
+                                           (!request.TargetParentId.HasValue && t.ProjectSpaceId == workspaceId && t.ProjectFolderId == null))
+                                .WhereNotDeleted()
                                 .MaxAsync(t => (string?)t.OrderKey, cancellationToken),
 
             _ => throw new ArgumentOutOfRangeException()
         };
     }
 
-    private async Task MoveSpace(Guid spaceId, string newOrderKey, CancellationToken cancellationToken)
+    private async Task<Result> MoveSpace(Guid spaceId, string newOrderKey, CancellationToken cancellationToken)
     {
-        var space = await UnitOfWork.Set<ProjectSpace>().FindAsync(spaceId, cancellationToken);
-        if (space == null) throw new KeyNotFoundException($"Space {spaceId} not found");
+        var space = await _db.Spaces.FindAsync(new object[] { spaceId }, cancellationToken);
+        if (space == null) return Result.Failure(Error.NotFound("Space.NotFound", $"Space {spaceId} not found"));
         space.UpdateOrderKey(newOrderKey);
+        return Result.Success();
     }
 
-    private async Task MoveFolder(Guid folderId, Guid? newSpaceId, string newOrderKey, CancellationToken cancellationToken)
+    private async Task<Result> MoveFolder(Guid folderId, Guid? newSpaceId, string newOrderKey, CancellationToken cancellationToken)
     {
-        var folder = await UnitOfWork.Set<ProjectFolder>().FindAsync(folderId, cancellationToken);
-        if (folder == null) throw new KeyNotFoundException($"Folder {folderId} not found");
+        var folder = await _db.Folders.FindAsync(new object[] { folderId }, cancellationToken);
+        if (folder == null) return Result.Failure(Error.NotFound("Folder.NotFound", $"Folder {folderId} not found"));
 
         if (newSpaceId.HasValue && newSpaceId.Value != folder.ProjectSpaceId)
         {
-            var newSpace = await UnitOfWork.Set<ProjectSpace>().FindAsync(newSpaceId.Value, cancellationToken);
-            if (newSpace == null) throw new KeyNotFoundException($"Space {newSpaceId.Value} not found");
+            var newSpace = await _db.Spaces.FindAsync(new object[] { newSpaceId.Value }, cancellationToken);
+            if (newSpace == null) return Result.Failure(Error.NotFound("Space.NotFound", $"Space {newSpaceId.Value} not found"));
 
-            await UnitOfWork.Set<ProjectFolder>()
+            await _db.Folders
                 .Where(f => f.Id == folderId)
                 .ExecuteUpdateAsync(updates =>
                     updates.SetProperty(f => f.ProjectSpaceId, newSpaceId.Value)
@@ -114,19 +131,20 @@ public class MoveItemHandler : BaseFeatureHandler, IRequestHandler<MoveItemComma
         {
             folder.UpdateOrderKey(newOrderKey);
         }
+        return Result.Success();
     }
 
-    private async Task MoveTask(Guid taskId, Guid? targetParentId, string newOrderKey, CancellationToken cancellationToken)
+    private async Task<Result> MoveTask(Guid taskId, Guid? targetParentId, string newOrderKey, CancellationToken cancellationToken)
     {
-        var task = await UnitOfWork.Set<ProjectTask>().FindAsync(taskId, cancellationToken);
-        if (task == null) throw new KeyNotFoundException($"Task {taskId} not found");
+        var task = await _db.Tasks.FindAsync(new object[] { taskId }, cancellationToken);
+        if (task == null) return Result.Failure(Error.NotFound("Task.NotFound", $"Task {taskId} not found"));
 
         Guid? resolvedSpaceId = null;
         Guid? resolvedFolderId = null;
 
         if (targetParentId.HasValue)
         {
-            var folder = await UnitOfWork.Set<ProjectFolder>().FindAsync(targetParentId.Value, cancellationToken);
+            var folder = await _db.Folders.FindAsync(new object[] { targetParentId.Value }, cancellationToken);
             if (folder != null)
             {
                 resolvedFolderId = folder.Id;
@@ -134,7 +152,7 @@ public class MoveItemHandler : BaseFeatureHandler, IRequestHandler<MoveItemComma
             }
             else
             {
-                var space = await UnitOfWork.Set<ProjectSpace>().FindAsync(targetParentId.Value, cancellationToken);
+                var space = await _db.Spaces.FindAsync(new object[] { targetParentId.Value }, cancellationToken);
                 if (space != null)
                 {
                     resolvedSpaceId = space.Id;
@@ -143,8 +161,9 @@ public class MoveItemHandler : BaseFeatureHandler, IRequestHandler<MoveItemComma
             }
         }
 
-        if (resolvedSpaceId == null) throw new ArgumentException("Target parent must be a valid folder or space.");
-        await UnitOfWork.Set<ProjectTask>()
+        if (resolvedSpaceId == null) return Result.Failure(Error.Validation("MoveTask.InvalidTarget", "Target parent must be a valid folder or space."));
+        
+        await _db.Tasks
             .Where(t => t.Id == taskId)
             .ExecuteUpdateAsync(updates =>
                 updates.SetProperty(t => t.ProjectSpaceId, resolvedSpaceId)
@@ -152,5 +171,7 @@ public class MoveItemHandler : BaseFeatureHandler, IRequestHandler<MoveItemComma
                        .SetProperty(t => t.OrderKey, newOrderKey)
                        .SetProperty(t => t.UpdatedAt, DateTimeOffset.UtcNow),
                 cancellationToken: cancellationToken);
+                
+        return Result.Success();
     }
 }

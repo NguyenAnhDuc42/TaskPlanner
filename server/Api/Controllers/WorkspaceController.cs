@@ -3,7 +3,6 @@ using Application.Common.Results;
 using Application.Features.WorkspaceFeatures.SelfManagement.CreateWorkspace;
 using Application.Features.WorkspaceFeatures.SelfManagement.GetWorkspaceList;
 using Domain.Enums.Workspace;
-using MediatR;
 using Microsoft.AspNetCore.JsonPatch;
 using Microsoft.AspNetCore.Mvc;
 using Domain.Enums;
@@ -16,6 +15,10 @@ using Application.Features.WorkspaceFeatures.SelfManagement.GetDetailWorkspace;
 using Application.Features.WorkspaceFeatures.SelfManagement.SetWorkspacePin;
 using Application.Features.WorkspaceFeatures.SelfManagement.JoinWorkspaceByCode;
 using Application.Features.WorkspaceFeatures.UpdateWorkspace;
+using Application.Features;
+using Application.Features.WorkspaceFeatures.MemberManage.RemoveMembers;
+using Application.Features.WorkspaceFeatures.HierarchyManagement.MoveItem;
+
 namespace Api.Controllers
 {
     [Route("api/[controller]")]
@@ -23,19 +26,57 @@ namespace Api.Controllers
     [Authorize]
     public class WorkspacesController : ControllerBase
     {
-        private readonly IMediator _mediator;
-        public WorkspacesController(IMediator mediator)
+        private readonly ICommandHandler<CreateWorkspaceCommand, Guid> _createHandler;
+        private readonly ICommandHandler<UpdateWorkspaceCommand> _updateHandler;
+        private readonly ICommandHandler<SetWorkspacePinCommand> _setPinHandler;
+        private readonly ICommandHandler<JoinWorkspaceByCodeCommand, Guid> _joinHandler;
+        private readonly IQueryHandler<GetWorksapceListQuery, PagedResult<WorkspaceSummaryDto>> _getListHandler;
+        private readonly IQueryHandler<GetHierarchyQuery, WorkspaceHierarchyDto> _getHierarchyHandler;
+        private readonly IQueryHandler<GetNodeTasksQuery, NodeTasksDto> _getNodeTasksHandler;
+        private readonly IQueryHandler<GetDetailWorkspaceQuery, WorkspaceSecurityContextDto> _getDetailHandler;
+        private readonly IQueryHandler<GetMembersQuery, PagedResult<MemberDto>> _getMembersHandler;
+        private readonly ICommandHandler<AddMembersCommand, Guid> _addHandler;
+        private readonly ICommandHandler<UpdateMembersCommand> _updateMembersHandler;
+        private readonly ICommandHandler<RemoveMembersCommand> _removeHandler;
+        private readonly ICommandHandler<MoveItemCommand> _moveHandler;
+
+        public WorkspacesController(
+            ICommandHandler<CreateWorkspaceCommand, Guid> createHandler,
+            ICommandHandler<UpdateWorkspaceCommand> updateHandler,
+            ICommandHandler<SetWorkspacePinCommand> setPinHandler,
+            ICommandHandler<JoinWorkspaceByCodeCommand, Guid> joinHandler,
+            IQueryHandler<GetWorksapceListQuery, PagedResult<WorkspaceSummaryDto>> getListHandler,
+            IQueryHandler<GetHierarchyQuery, WorkspaceHierarchyDto> getHierarchyHandler,
+            IQueryHandler<GetNodeTasksQuery, NodeTasksDto> getNodeTasksHandler,
+            IQueryHandler<GetDetailWorkspaceQuery, WorkspaceSecurityContextDto> getDetailHandler,
+            IQueryHandler<GetMembersQuery, PagedResult<MemberDto>> getMembersHandler,
+            ICommandHandler<AddMembersCommand, Guid> addHandler,
+            ICommandHandler<UpdateMembersCommand> updateMembersHandler,
+            ICommandHandler<RemoveMembersCommand> removeHandler,
+            ICommandHandler<MoveItemCommand> moveHandler)
         {
-            _mediator = mediator;
+            _createHandler = createHandler;
+            _updateHandler = updateHandler;
+            _setPinHandler = setPinHandler;
+            _joinHandler = joinHandler;
+            _getListHandler = getListHandler;
+            _getHierarchyHandler = getHierarchyHandler;
+            _getNodeTasksHandler = getNodeTasksHandler;
+            _getDetailHandler = getDetailHandler;
+            _getMembersHandler = getMembersHandler;
+            _addHandler = addHandler;
+            _updateMembersHandler = updateMembersHandler;
+            _removeHandler = removeHandler;
+            _moveHandler = moveHandler;
         }
+
         [HttpPost]
         public async Task<IActionResult> CreateWorkspace([FromBody] CreateWorkspaceCommand command, CancellationToken cancellationToken)
         {
-            var result = await _mediator.Send(command, cancellationToken);
-            return Ok(result); // or return CreatedAtAction if appropriate
+            var result = await _createHandler.Handle(command, cancellationToken);
+            return Ok(result);
         }
 
-        // JSON Patch method stays mostly the same
         [HttpPatch("{id:guid}")]
         public async Task<IActionResult> UpdateWorkspace(Guid id, [FromBody] JsonPatchDocument<UpdateWorkspaceCommand> patch, CancellationToken cancellationToken)
         {
@@ -52,7 +93,7 @@ namespace Api.Controllers
             if (!ModelState.IsValid)
                 return ValidationProblem(ModelState);
 
-            await _mediator.Send(command, cancellationToken);
+            await _updateHandler.Handle(command, cancellationToken);
             return NoContent();
         }
 
@@ -62,7 +103,7 @@ namespace Api.Controllers
             [FromBody] SetWorkspacePinRequest request,
             CancellationToken cancellationToken)
         {
-            await _mediator.Send(new SetWorkspacePinCommand(id, request.IsPinned), cancellationToken);
+            await _setPinHandler.Handle(new SetWorkspacePinCommand(id, request.IsPinned), cancellationToken);
             return NoContent();
         }
 
@@ -71,7 +112,7 @@ namespace Api.Controllers
             [FromBody] JoinWorkspaceByCodeRequest request,
             CancellationToken cancellationToken)
         {
-            var result = await _mediator.Send(new JoinWorkspaceByCodeCommand(request.JoinCode), cancellationToken);
+            var result = await _joinHandler.Handle(new JoinWorkspaceByCodeCommand(request.JoinCode), cancellationToken);
             return Ok(result);
         }
 
@@ -89,7 +130,7 @@ namespace Api.Controllers
             var filter = new WorkspaceFilter(name, owned, isArchived);
             var query = new GetWorksapceListQuery(pagination, filter);
 
-            var result = await _mediator.Send(query, cancellationToken);
+            var result = await _getListHandler.Handle(query, cancellationToken);
             return Ok(result);
         }
 
@@ -97,7 +138,7 @@ namespace Api.Controllers
         public async Task<ActionResult<WorkspaceHierarchyDto>> GetHierarchy(Guid id, CancellationToken cancellationToken)
         {
             var query = new GetHierarchyQuery(id);
-            var result = await _mediator.Send(query, cancellationToken);
+            var result = await _getHierarchyHandler.Handle(query, cancellationToken);
             return Ok(result);
         }
 
@@ -112,7 +153,7 @@ namespace Api.Controllers
             CancellationToken cancellationToken = default)
         {
             var query = new GetNodeTasksQuery(id, nodeId, parentType, cursorOrderKey, cursorTaskId, pageSize);
-            var result = await _mediator.Send(query, cancellationToken);
+            var result = await _getNodeTasksHandler.Handle(query, cancellationToken);
             return Ok(result);
         }
 
@@ -121,7 +162,7 @@ namespace Api.Controllers
             Guid id,
             CancellationToken cancellationToken)
         {
-            var result = await _mediator.Send(new GetDetailWorkspaceQuery(id), cancellationToken);
+            var result = await _getDetailHandler.Handle(new GetDetailWorkspaceQuery(id), cancellationToken);
             return Ok(result);
         }
 
@@ -139,11 +180,12 @@ namespace Api.Controllers
         {
             var pagination = new CursorPaginationRequest(cursor, pageSize);
             var filter = new GetMembersFilter(name, email, spaceId, taskId, role);
-            var query = new GetMembersQuery(pagination,id,filter);
+            var query = new GetMembersQuery(pagination, id, filter);
 
-            var result = await _mediator.Send(query, cancellationToken);
+            var result = await _getMembersHandler.Handle(query, cancellationToken);
             return Ok(result);
         }
+
         [HttpPost("{id:guid}/members")]
         public async Task<IActionResult> AddMembers(
             Guid id,
@@ -156,7 +198,7 @@ namespace Api.Controllers
                 enableEmail: request.EnableEmail,
                 message: request.Message
             );
-            var result = await _mediator.Send(command, cancellationToken);
+            var result = await _addHandler.Handle(command, cancellationToken);
             return Ok(result);
         }
 
@@ -170,7 +212,7 @@ namespace Api.Controllers
                 workspaceId: id,
                 members: request.Members
             );
-            var result = await _mediator.Send(command, cancellationToken);
+            var result = await _updateMembersHandler.Handle(command, cancellationToken);
             return Ok(result);
         }
 
@@ -180,11 +222,11 @@ namespace Api.Controllers
             [FromBody] RemoveMembersRequest request,
             CancellationToken cancellationToken)
         {
-            var command = new Application.Features.WorkspaceFeatures.MemberManage.RemoveMembers.RemoveMembersCommand(
+            var command = new RemoveMembersCommand(
                 workspaceId: id,
                 memberIds: request.MemberIds
             );
-            var result = await _mediator.Send(command, cancellationToken);
+            var result = await _removeHandler.Handle(command, cancellationToken);
             return Ok(result);
         }
 
@@ -194,7 +236,7 @@ namespace Api.Controllers
             [FromBody] MoveItemRequest request,
             CancellationToken cancellationToken)
         {
-            var command = new Application.Features.WorkspaceFeatures.HierarchyManagement.MoveItem.MoveItemCommand(
+            var command = new MoveItemCommand(
                 ItemId: request.ItemId,
                 ItemType: request.ItemType,
                 TargetParentId: request.TargetParentId,
@@ -202,8 +244,8 @@ namespace Api.Controllers
                 NextItemOrderKey: request.NextItemOrderKey,
                 NewOrderKey: request.NewOrderKey
             );
-            
-            await _mediator.Send(command, cancellationToken);
+
+            await _moveHandler.Handle(command, cancellationToken);
             return NoContent();
         }
     }

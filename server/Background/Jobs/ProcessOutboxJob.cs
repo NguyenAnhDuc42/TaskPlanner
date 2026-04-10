@@ -17,27 +17,48 @@ namespace Background.Jobs;
 public class ProcessOutboxJob
 {
     private readonly TaskPlanDbContext _dbContext;
-    private readonly IMediator _mediator;
+    private readonly IDomainEventDispatcher _domainDispatcher;
     private readonly ILogger<ProcessOutboxJob> _logger;
 
     public ProcessOutboxJob(
         TaskPlanDbContext dbContext,
-        IMediator mediator,
+        IDomainEventDispatcher domainDispatcher,
         ILogger<ProcessOutboxJob> logger)
     {
         _dbContext = dbContext;
-        _mediator = mediator;
+        _domainDispatcher = domainDispatcher;
         _logger = logger;
     }
 
-    private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, Type> TypeCache = new();
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, Type?> TypeCache = new();
+    private static readonly object TypeLock = new();
+    private static bool _typesLoaded = false;
+
+    private static void LoadTypes()
+    {
+        if (_typesLoaded) return;
+        lock (TypeLock)
+        {
+            if (_typesLoaded) return;
+            var eventTypes = typeof(BaseDomainEvent).Assembly.GetTypes()
+                .Where(t => typeof(IDomainEvent).IsAssignableFrom(t) && !t.IsInterface && !t.IsAbstract);
+            
+            foreach (var type in eventTypes)
+            {
+                TypeCache.TryAdd(type.Name, type);
+            }
+            _typesLoaded = true;
+        }
+    }
 
     public async Task RunAsync()
     {
+        LoadTypes();
+
         var messages = await _dbContext.OutboxMessages
             .Where(m => m.State == OutboxState.Pending)
             .OrderBy(m => m.OccurredOnUtc)
-            .Take(50) // Increased batch size for better throughput
+            .Take(50)
             .ToListAsync();
 
         if (!messages.Any()) return;
@@ -46,11 +67,9 @@ public class ProcessOutboxJob
         {
             try
             {
-                var eventType = TypeCache.GetOrAdd(message.Type, name => typeof(BaseDomainEvent).Assembly.GetTypes().FirstOrDefault(t => t.Name == name)!);
-
-                if (eventType == null)
+                if (!TypeCache.TryGetValue(message.Type, out var eventType) || eventType == null)
                 {
-                    message.MarkAsFailed($"Could not find type: {message.Type}");
+                    message.MarkAsFailed($"Could not find type mapping for: {message.Type}");
                     continue;
                 }
 
@@ -61,7 +80,8 @@ public class ProcessOutboxJob
                     continue;
                 }
 
-                await _mediator.Publish(domainEvent);
+                _logger.LogTrace("Processing {EventType} message {Id}", message.Type, message.Id);
+                await _domainDispatcher.DispatchAsync(new[] { domainEvent });
                 message.MarkAsProcessed();
             }
             catch (Exception ex)

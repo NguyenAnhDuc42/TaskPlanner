@@ -3,7 +3,7 @@ using MediatR;
 
 namespace Application.Features.WorkspaceFeatures.HierarchyManagement.GetHierarchy;
 
-public record class GetHierarchyQuery(Guid WorkspaceId) : IRequest<WorkspaceHierarchyDto>;
+public record class GetHierarchyQuery(Guid WorkspaceId) : IQueryRequest<WorkspaceHierarchyDto>;
 
 public record class WorkspaceHierarchyDto
 {
@@ -55,7 +55,7 @@ public record class GetNodeTasksQuery(
     string? CursorOrderKey,  // null on first page
     string? CursorTaskId,    // null on first page
     int PageSize = 50
-) : IRequest<NodeTasksDto>;
+) : IQueryRequest<NodeTasksDto>;
 
 public record class NodeTasksDto
 {

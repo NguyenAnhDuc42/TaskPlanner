@@ -1,23 +1,22 @@
-using System;
-using Application.Interfaces.Repositories;
+using Application.Interfaces.Data;
 using Domain.Common;
 using Domain.Entities.ProjectEntities;
 using Domain.Entities.Relationship;
 using Domain.Events.Workspace;
-using MediatR;
+using Application.Common.Interfaces;
 using Microsoft.Extensions.Logging;
 
 namespace Application.EventHandlers.DomainEventHandlers.WorkspaceHandlers;
 
-public class CreateWorkspaceEventHandler : INotificationHandler<CreatedWorkspaceEvent>
+public class CreateWorkspaceEventHandler : IDomainEventHandler<CreatedWorkspaceEvent>
 {
     private readonly ILogger<CreateWorkspaceEventHandler> _logger;
-    private readonly IUnitOfWork _unitOfWork;
+    private readonly IDataBase _db;
     
-    public CreateWorkspaceEventHandler(ILogger<CreateWorkspaceEventHandler> logger, IUnitOfWork unitOfWork)
+    public CreateWorkspaceEventHandler(ILogger<CreateWorkspaceEventHandler> logger, IDataBase db)
     {
         _logger = logger;
-        _unitOfWork = unitOfWork;
+        _db = db;
     }
 
     public async Task Handle(CreatedWorkspaceEvent notification, CancellationToken cancellationToken)
@@ -35,7 +34,7 @@ public class CreateWorkspaceEventHandler : INotificationHandler<CreatedWorkspace
     private async Task CreateOwnerProfile(CreatedWorkspaceEvent notification, CancellationToken cancellationToken)
     {
         var workspaceMember = WorkspaceMember.CreateOwner(notification.userId, notification.workspaceId, notification.userId);
-        await _unitOfWork.Set<WorkspaceMember>().AddAsync(workspaceMember, cancellationToken);
+        await _db.Members.AddAsync(workspaceMember, cancellationToken);
     }
 
     private async Task<ProjectSpace> SeedWelcomeSpace(CreatedWorkspaceEvent notification, CancellationToken cancellationToken)
@@ -49,7 +48,7 @@ public class CreateWorkspaceEventHandler : INotificationHandler<CreatedWorkspace
             creatorId: notification.userId,
             orderKey: FractionalIndex.Start()
         );
-        await _unitOfWork.Set<ProjectSpace>().AddAsync(space, cancellationToken);
+        await _db.Spaces.AddAsync(space, cancellationToken);
         return space;
     }
 
@@ -64,17 +63,17 @@ public class CreateWorkspaceEventHandler : INotificationHandler<CreatedWorkspace
             creatorId: notification.userId,
             orderKey: FractionalIndex.Start()
         );
-        await _unitOfWork.Set<ProjectFolder>().AddAsync(folder, cancellationToken);
+        await _db.Folders.AddAsync(folder, cancellationToken);
         return folder;
     }
 
     private async Task<List<Status>> SeedWorkflowAndStatuses(CreatedWorkspaceEvent notification, CancellationToken cancellationToken)
     {
         var workflow = Workflow.Create(notification.workspaceId, "Default Workflow", null, notification.userId);
-        await _unitOfWork.Set<Workflow>().AddAsync(workflow, cancellationToken);
+        await _db.Workflows.AddAsync(workflow, cancellationToken);
         
         var statuses = Status.CreateStarterSet(notification.workspaceId, workflow.Id, notification.userId);
-        await _unitOfWork.Set<Status>().AddRangeAsync(statuses, cancellationToken);
+        await _db.Statuses.AddRangeAsync(statuses, cancellationToken);
         return statuses;
     }
 
@@ -106,7 +105,8 @@ public class CreateWorkspaceEventHandler : INotificationHandler<CreatedWorkspace
             orderKey: FractionalIndex.After(FractionalIndex.Start())
         );
 
-        await _unitOfWork.Set<ProjectTask>().AddAsync(folderTask, cancellationToken);
-        await _unitOfWork.Set<ProjectTask>().AddAsync(spaceTask, cancellationToken);
+        await _db.Tasks.AddAsync(folderTask, cancellationToken);
+        await _db.Tasks.AddAsync(spaceTask, cancellationToken);
+        await _db.SaveChangesAsync(cancellationToken);
     }
 }

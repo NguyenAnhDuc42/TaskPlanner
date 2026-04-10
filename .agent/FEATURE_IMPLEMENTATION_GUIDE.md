@@ -1,193 +1,92 @@
-# Feature Implementation Guide (The TaskPlanner Master Blueprint)
+# TaskPlanner Technical Charter (Feature Implementation Guide)
 
-This document is the **Definitive Source of Truth**. It represents the ultimate production standard we are building towards, mapping both our **current infrastructure** and our **future roadmap**.
+This document defines the **Project Mindset**, the **Flow of Code**, and the **Architectural Tenets** that govern all development in TaskPlanner. It is the definitive source of truth for the project's production standards.
 
 ---
 
-## 💎 THE MASTER VISUAL (The North Star)
+## 💎 1. THE ARCHITECTURAL TENETS (The Mindset)
 
-```text
-FEATURE SLICE: CreateTask (Representative Flow)
+### 🔄 A. Aggressive Centralization
+If any logic—be it a recursive SQL check, a validation rule, or a security boundary—is required by more than one feature, it MUST be centralized. 
+- **Rule**: Never repeat "patch-up" code. Move it to the most central layer suitable (e.g., `WorkspaceContext`, `IDomainService`, or a `Decorator`).
+- **Goal**: One change in a centralized rule must propagate throughout the entire system.
 
-┌─────────────────────────────────────────────────────────────┐
-│ COMMAND LAYER                                               │
-├─────────────────────────────────────────────────────────────┤
-│ CreateTaskCommand
-│     ↓
-│ Decorator: ValidationDecorator (FluentValidator)
-│     ↓
-│ Decorator: CachingDecorator (cache invalidation strategy)
-│     ↓
-│ Decorator: DistributedLockDecorator (Redlock for concurrent writes)
-│     ↓
-│ Decorator: CircuitBreakerDecorator (Polly)
-│     ↓
-│ CreateTaskCommandHandler (actual logic)
-│     ├─ UnitOfWork.Begin()
-│     ├─ Domain logic (TaskAggregate.Create)
-│     ├─ Publish DomainEvent (TaskCreated)
-│     └─ UnitOfWork.Commit()
-└─────────────────────────────────────────────────────────────┘
-                         ↓
-┌─────────────────────────────────────────────────────────────┐
-│ EVENT PUBLISHING (Outbox Pattern - guaranteed delivery)     │
-├─────────────────────────────────────────────────────────────┤
-│ TaskCreatedDomainEvent
-│     ↓ (Outbox table persisted with transaction)
-│ EventPublisher (MediatR INotificationHandler)
-│     ├─ IN-PROCESS Handlers (synchronous, same transaction)
-│     │   ├─ GridOccupancyHandler
-│     │   │   └─ Update Dashboard aggregate
-│     │   │       └─ Invalidate Redis cache key: "dashboard:grid:{workspaceId}"
-│     │   │
-│     │   ├─ UpdateTaskCountHandler
-│     │   │   └─ Increment Redis counter: "tasks:count:{userId}:{status}"
-│     │   │
-│     │   └─ PublishIntegrationEventHandler
-│     │       └─ Write to OutboxEvents table
-│     │
-│     └─ ASYNC/DISTRIBUTED (separate transaction, Outbox worker)
-│         ├─ IntegrationEvent published to MassTransit
-│         └─ Outbox Relay Worker (polls OutboxEvents → publishes to RabbitMQ/AWS SQS)
-└─────────────────────────────────────────────────────────────┘
-                         ↓
-┌─────────────────────────────────────────────────────────────┐
-│ CACHE LAYER (Redis)                                         │
-├─────────────────────────────────────────────────────────────┤
-│ ├─ Cache invalidation: "dashboard:grid:{workspaceId}"
-│ ├─ Cache invalidation: "tasks:user:{userId}"
-│ ├─ Cache invalidation: "task:list:{workspaceId}:*"
-│ ├─ Warm cache: Pre-fetch frequently accessed keys (background job)
-│ └─ TTL strategy: different TTLs per data type
-│     ├─ Hot data (task status): 5 min
-│     ├─ Cold data (workspace settings): 1 hour
-│     └─ Semi-hot (user preferences): 15 min
-└─────────────────────────────────────────────────────────────┘
-                         ↓
-┌─────────────────────────────────────────────────────────────┐
-│ REAL-TIME NOTIFICATION (SignalR Hub)                        │
-├─────────────────────────────────────────────────────────────┤
-│ TaskCreatedIntegrationEvent
-│     ↓
-│ SignalRNotificationHandler
-│     ├─ Resolve connected users: "task_updated_{workspaceId}"
-│     ├─ Send to hub: hubContext.Clients.Group(groupName)
-│     │   .SendAsync("TaskCreated", taskDTO)
-│     ├─ Broadcast via Redis pub/sub for multi-server scaling
-│     │   └─ SignalR backplane (StackExchange.Redis)
-│     └─ Rate limit: sliding window (1000 msgs/sec per connection)
-└─────────────────────────────────────────────────────────────┘
-                         ↓
-┌─────────────────────────────────────────────────────────────┐
-│ READ MODEL PROJECTION (Event-driven)                        │
-├─────────────────────────────────────────────────────────────┐
-│ TaskCreatedIntegrationEvent
-│     ↓
-│ ProjectionHandler (eventually consistent)
-│     ├─ Read from EventStore (Event Sourcing) OR
-│     ├─ Read from MassTransit message (event-streaming)
-│     ├─ Update read model:
-│     │   ├─ TaskListProjection (PostgreSQL materialized view)
-│     │   ├─ TaskSearchProjection (Elasticsearch index)
-│     │   └─ TaskAnalyticsProjection (TimescaleDB)
-│     └─ Invalidate related caches
-└─────────────────────────────────────────────────────────────┘
-                         ↓
-┌─────────────────────────────────────────────────────────────┐
-│ EXTERNAL INTEGRATIONS (Distributed Handlers)                │
-├─────────────────────────────────────────────────────────────┤
-│ TaskCreatedIntegrationEvent routed to:
-│     ├─ NotificationSlice Consumer
-│     │   ├─ Email service (with retry: Polly exponential backoff)
-│     │   └─ SMS service (with rate limiting: sliding window token bucket)
-│     │
-│     ├─ SlackIntegrationSlice Consumer
-│     │   ├─ Webhook post (circuit breaker + timeout)
-│     │   └─ Fallback: queue for batch processing
-│     │
-│     ├─ ElasticsearchIndexingConsumer
-│     │   ├─ Bulk indexing (batch size: 1000 docs)
-│     │   ├─ Retry policy: dead letter queue after 3 failures
-│     │   └─ Monitor: Elastic APM instrumentation
-│     │
-│     ├─ DataWarehouseConsumer (analytics)
-│     │   ├─ Kafka streaming to data lake
-│     │   └─ ETL pipeline to Snowflake/BigQuery
-│     │
-│     └─ WebhookConsumer (customer integrations)
-│         ├─ Retry with exponential backoff
-│         ├─ Signature verification (HMAC-SHA256)
-│         └─ Rate limit per customer: 100 req/sec
-└─────────────────────────────────────────────────────────────┘
-                         ↓
-│ MONITORING & RESILIENCE                                     │
-├─────────────────────────────────────────────────────────────┐
-│ ├─ Structured logging (Serilog + Seq)
-│ │   └─ Log all events + timings for tracing
-│ ├─ Distributed tracing (OpenTelemetry + Jaeger)
-│ │   └─ Track event flow across services
-│ ├─ Health checks
-│ │   ├─ Redis connection
-│ │   ├─ RabbitMQ connection
-│ │   ├─ Elasticsearch cluster
-│ │   └─ Database connection pool
-│ ├─ Metrics (Prometheus)
-│ │   ├─ Handler execution time (histogram)
-│ │   ├─ Event publish latency (gauge)
-│ │   ├─ Cache hit rate (counter)
-│ │   └─ Failed event count (counter)
-│ └─ Dead Letter Queue handling
-│     └─ Poison pill detection + manual intervention
-└─────────────────────────────────────────────────────────────┘
+### 🚫 B. Expected Failures as Data (Explicit Errors)
+We treat foreseeable failures (NotFound, Unauthorized, Validation) as **Data**, not as **System Exceptions**.
+- **Rule**: Mandatory usage of the `Result` and `Result<T>` system. 
+- **Exceptions**: Reserved strictly for catastrophic system failures (e.g., Database Connection lost).
+- **Enforcement**: If you see a `throw new Exception` for business logic, refactor it to a `Result.Failure`.
+
+### 🎭 C. Pure Handler Responsibility
+A Command/Query Handler should focus 100% on the **"Perfect Path"** logic of the business feature.
+- **Rule**: Cross-cutting concerns (Validation, Security Context, Logging, Transaction Management) MUST be handled by **Decorators** or **Pipeline Behaviors**.
+- **Result**: Handlers remain lean, readable, and easy to test.
+
+---
+
+## 🏗️ 2. THE ANATOMY OF A SLICE (Vertical Slice Architecture)
+
+We organize code by **what it does**, not **what type of file it is**.
+
+- **The Single File Rule**: A feature slice (e.g., `GetHierarchy.cs`) SHOULD contain the Command/Query record, the DTOs, SQL Query, and the Handler logic in one cohesive unit.
+- **Organization**: Group slices by feature module: `Application/Features/[Module]/[SubModule]/[Feature]/`.
+
+---
+
+## 🛡️ 3. THE EXECUTION FLOW (The Life of a Request)
+
+### Step 1: Resolution (The Context Entry)
+The request enters the API. The **Security Boundary** (e.g., `WorkspaceContext`) resolves the "Truth" of the request:
+- *Who* is the user? 
+- *Which* Workspace are they in? 
+- *What* is their Member identity? 
+- **Rule**: All security resolution happens here. Handlers receive resolved IDs, not raw HttpContext.
+
+### Step 2: Validation & Guarding (The Decorator Layer)
+The request is validated via FluentValidation and guarded by context-checks (e.g., `ValidationDecorator`). If failed, a `Result.Failure` is returned immediately.
+
+### Step 3: Execution (The Pure Handler)
+The Handler executes the business logic using the settled IDs from the Context.
+- Uses `IDataBase` named properties.
+- Uses **Domain Extensions** (`WhereNotDeleted()`, `ByWorkspace()`) for data operations.
+
+### Step 4: Persistence & Side-Effects (Option B)
+The Handler calls `_db.SaveChangesAsync()`. 
+- CORE data is committed.
+- Domain Events are captured in the **Outbox**.
+- **Background Jobs** (Seeding, Cleanup, Real-time) are enqueued immediately.
+
+---
+
+## 📝 4. REFERENCE ANATOMY (The "Perfect" Query Slice)
+
+```csharp
+namespace Application.Features.WorkspaceFeatures.HierarchyManagement;
+
+// 1. DTOs and Logic live together
+public record WorkspaceHierarchyDto(Guid Id, string Name, List<SpaceDto> Spaces);
+public record SpaceDto(Guid Id, string Name, string Color);
+
+// 2. The Query Request
+public record GetHierarchyQuery(Guid WorkspaceId) : IQueryRequest<WorkspaceHierarchyDto>;
+
+// 3. The Handler (Focused strictly on data retrieval)
+public class GetHierarchyHandler : IQueryHandler<GetHierarchyQuery, WorkspaceHierarchyDto>
+{
+    private readonly IDataBase _db;
+
+    public GetHierarchyHandler(IDataBase db) => _db = db;
+
+    public async Task<Result<WorkspaceHierarchyDto>> Handle(GetHierarchyQuery request, CancellationToken ct)
+    {
+        // Use Domain Extensions for safe, centralized logic
+        var workspace = await _db.Workspaces
+            .AsNoTracking()
+            .WhereNotDeleted()
+            .ProjectToDto() // Centralized projection
+            .FirstOrDefaultAsync(w => w.Id == request.WorkspaceId, ct);
+
+        return workspace ?? Error.NotFound("Workspace.NotFound", "Workspace not found.");
+    }
+}
 ```
-
----
-
-## 🛠️ THE PRAGMATIC MAPPING (The "Shit We Have Now")
-
-This section maps the **Gold Standard** (above) directly to the **TaskPlanner Codebase**.
-
-### 1. The Command Pipeline (`Application.Pipeline`)
-- **Status**: ✅ **Implemented**
-- **Mapping**: 
-    - `ValidationBehavior.cs` -> FluentValidation.
-    - `TransactionBehavior.cs` -> **Managed persistence**.
-- **RULE**: Handlers MUST NOT call `SaveChangesAsync()`. It is the Pipeline's job.
-
-### 2. Caching & State Sync (`Application.Features`)
-- **Status**: ✅ **Implemented** (Phase 1)
-- **Mapping**: 
-    - **`HybridCache`** -> Our primary Redis-backed cache layer. 
-    - **Keys**: Centralized in `[Feature]CacheKeys.cs`.
-    - **Invalidation**: Tag-based (e.g., `_cache.RemoveByTagAsync`).
-
-### 3. Real-time Notification
-- **Status**: ✅ **Implemented**
-- **Mapping**: 
-    - **`IRealtimeService`** -> Abstraction over SignalR. 
-    - **Standard**: Broadcast at the end of every Command handler.
-
----
-
-## 🚧 ROADMAP (The "Missing Shit" We're Building Toward)
-
-- [ ] **Distributed Locks**: Redlock implementation for concurrent write safety.
-- [ ] **Outbox Pattern**: Moving persistence of events to a separate table for guaranteed delivery.
-- [ ] **MassTransit/RabbitMQ**: For distributed consumers (Notifications, Indexing).
-- [ ] **Elasticsearch**: Dedicated read-model projection for search.
-- [ ] **OpenTelemetry**: Integrated distributed tracing.
-
----
-
-## 🏗️ Implementation Standards
-
-### 1. The Handler Pattern
-- Use **Clean, focused private methods**. No `// Block 1` comments.
-- **NEVER** call `SaveChangesAsync()`.
-- Broadcast state changes via `IRealtimeService` as the final handler step.
-
-### 2. High-Performance Reads
-- Use LINQ `from...join...select` syntax.
-- **Always** include `.AsNoTracking()`.
-- Define DTOs inside the same `.cs` file as the Query.
-- Casing: **C# Properties = PascalCase**, **JSON Wire = camelCase**.

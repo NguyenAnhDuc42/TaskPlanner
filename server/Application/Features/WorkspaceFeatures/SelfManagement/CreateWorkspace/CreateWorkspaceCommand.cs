@@ -6,7 +6,7 @@ using MediatR;
 
 namespace Application.Features.WorkspaceFeatures.SelfManagement.CreateWorkspace;
 
-public record CreateWorkspaceCommand : ICommand<Guid>
+public record CreateWorkspaceCommand : ICommandRequest<Guid>
 {
     public string Name { get; init; } = null!;
     public string? Description { get; init; }

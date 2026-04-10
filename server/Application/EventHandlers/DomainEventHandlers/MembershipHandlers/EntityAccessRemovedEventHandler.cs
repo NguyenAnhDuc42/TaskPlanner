@@ -1,10 +1,10 @@
 using Domain.Events.Membership;
-using MediatR;
+using Application.Common.Interfaces;
 using Microsoft.Extensions.Logging;
 
 namespace Application.EventHandlers.DomainEventHandlers.MembershipHandlers;
 
-public class EntityAccessRemovedEventHandler : INotificationHandler<EntityAccessRemovedEvent>
+public class EntityAccessRemovedEventHandler : IDomainEventHandler<EntityAccessRemovedEvent>
 {
     private readonly ILogger<EntityAccessRemovedEventHandler> _logger;
 

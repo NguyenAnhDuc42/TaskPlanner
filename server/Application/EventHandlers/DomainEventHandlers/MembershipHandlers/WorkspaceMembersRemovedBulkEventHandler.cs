@@ -1,26 +1,31 @@
 using Application.Interfaces;
 using Domain.Events.Membership;
-using MediatR;
+using Application.Common.Interfaces;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Caching.Hybrid;
 using Application.Common;
+using Hangfire;
+using Background.Jobs;
 
 namespace Application.EventHandlers.DomainEventHandlers.MembershipHandlers;
 
-public class WorkspaceMembersRemovedBulkEventHandler : INotificationHandler<WorkspaceMembersRemovedBulkEvent>
+public class WorkspaceMembersRemovedBulkEventHandler : IDomainEventHandler<WorkspaceMembersRemovedBulkEvent>
 {
     private readonly IRealtimeService _realtimeService;
     private readonly HybridCache _cache;
     private readonly ILogger<WorkspaceMembersRemovedBulkEventHandler> _logger;
+    private readonly IBackgroundJobClient _backgroundJobClient;
 
     public WorkspaceMembersRemovedBulkEventHandler(
         IRealtimeService realtimeService,
         HybridCache cache,
-        ILogger<WorkspaceMembersRemovedBulkEventHandler> logger)
+        ILogger<WorkspaceMembersRemovedBulkEventHandler> logger,
+        IBackgroundJobClient backgroundJobClient)
     {
         _realtimeService = realtimeService;
         _cache = cache;
         _logger = logger;
+        _backgroundJobClient = backgroundJobClient;
     }
 
     public async Task Handle(WorkspaceMembersRemovedBulkEvent notification, CancellationToken cancellationToken)
@@ -49,6 +54,9 @@ public class WorkspaceMembersRemovedBulkEventHandler : INotificationHandler<Work
             "MembersUpdated",
             new { userIds = userIds, action = "Removed" },
             cancellationToken);
+
+        // 5. Cleanup member data asynchronously
+        _backgroundJobClient.Enqueue<MemberCleanupJob>(job => job.CleanupMembersDataAsync(notification.WorkspaceId, userIds));
 
         await Task.WhenAll(notificationTasks.Concat(new[] { workspaceNotifyTask }));
     }

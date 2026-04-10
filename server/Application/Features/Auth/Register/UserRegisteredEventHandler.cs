@@ -2,12 +2,12 @@ using System.Threading;
 using System.Threading.Tasks;
 using Application.Interfaces.Services;
 using Domain.Events.UserEvents;
-using MediatR;
+using Application.Common.Interfaces;
 using Microsoft.Extensions.Logging;
 
 namespace Application.Features.Auth.Register;
 
-public class UserRegisteredEventHandler : INotificationHandler<UserRegisteredEvent>
+public class UserRegisteredEventHandler : IDomainEventHandler<UserRegisteredEvent>
 {
     private readonly ILogger<UserRegisteredEventHandler> _logger;
 

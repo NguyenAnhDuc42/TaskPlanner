@@ -1,36 +1,50 @@
-using Application.Interfaces.Repositories;
-using Domain;
-using Application.Helpers;
+using Application.Common.Errors;
+using Application.Common.Interfaces;
+using Application.Common.Results;
+using Application.Features;
+using Application.Interfaces;
+using Application.Interfaces.Data;
+using Domain.Entities;
 using Domain.Entities.ProjectEntities;
-using Domain.Enums;
-using MediatR;
 using Microsoft.EntityFrameworkCore;
-using server.Application.Interfaces;
 
 namespace Application.Features.WorkspaceFeatures.HierarchyManagement.GetHierarchy;
 
-public class GetHierarchyHandler : BaseFeatureHandler, IRequestHandler<GetHierarchyQuery, WorkspaceHierarchyDto>
+public class GetHierarchyHandler : IQueryHandler<GetHierarchyQuery, WorkspaceHierarchyDto>
 {
-    public GetHierarchyHandler(IUnitOfWork unitOfWork, ICurrentUserService currentUserService, WorkspaceContext workspaceContext)
-        : base(unitOfWork, currentUserService, workspaceContext) { }
+    private readonly IDataBase _db;
+    private readonly ICurrentUserService _currentUserService;
 
-    public async Task<WorkspaceHierarchyDto> Handle(GetHierarchyQuery request, CancellationToken cancellationToken)
+    public GetHierarchyHandler(IDataBase db, ICurrentUserService currentUserService) {
+        _db = db;
+        _currentUserService = currentUserService;
+    }
+
+    public async Task<Result<WorkspaceHierarchyDto>> Handle(GetHierarchyQuery request, CancellationToken cancellationToken)
     {
-        var workspace =  await UnitOfWork.Set<ProjectWorkspace>().AsNoTracking().FirstOrDefaultAsync(x => x.Id == request.WorkspaceId, cancellationToken);
-        if (workspace == null) throw new KeyNotFoundException($"Workspace {request.WorkspaceId} not found");
+        var currentUserId = _currentUserService.CurrentUserId();
+        if (currentUserId == Guid.Empty) return Result.Failure<WorkspaceHierarchyDto>(Error.Unauthorized("User.NotAuthenticated", "User not authenticated."));
 
-        var rawItems = (await UnitOfWork.QueryAsync<HierarchyRawItem>(GetHierarchySql.StructureQuery, new 
+        var workspace = await _db.Workspaces
+            .AsNoTracking()
+            .WhereNotDeleted()
+            .FirstOrDefaultAsync(x => x.Id == request.WorkspaceId, cancellationToken);
+        if (workspace == null) return Result.Failure<WorkspaceHierarchyDto>(Error.NotFound("Workspace.NotFound", $"Workspace {request.WorkspaceId} not found"));
+
+        var rawItems = (await _db.QueryAsync<HierarchyRawItem>(GetHierarchySql.StructureQuery, new 
         { 
             WorkspaceId = request.WorkspaceId, 
-            UserId = CurrentUserId 
-        }, cancellationToken)).ToList();
+            UserId = currentUserId 
+        }, cancellationToken: cancellationToken)).ToList();
 
-        return new WorkspaceHierarchyDto
+        var dto = new WorkspaceHierarchyDto
         {
             Id = workspace.Id,
             Name = workspace.Name,
             Spaces = MapSpaces(rawItems)
         };
+
+        return Result.Success(dto);
     }
 
     private List<SpaceHierarchyDto> MapSpaces(List<HierarchyRawItem> allItems)

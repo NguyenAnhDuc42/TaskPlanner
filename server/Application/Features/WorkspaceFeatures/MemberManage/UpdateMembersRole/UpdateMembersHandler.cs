@@ -1,24 +1,35 @@
-using Application.Interfaces.Repositories;
+using Application.Common.Errors;
+using Application.Common.Interfaces;
+using Application.Common.Results;
+using Application.Features;
+using Application.Interfaces;
+using Application.Interfaces.Data;
+using Domain.Entities;
 using Domain.Entities.ProjectEntities;
-using Domain.Enums;
-using Domain.Enums.RelationShip;
-using MediatR;
 using Microsoft.EntityFrameworkCore;
 using server.Application.Interfaces;
-using Application.Helpers;
 
 namespace Application.Features.WorkspaceFeatures.MemberManage.UpdateMembers;
 
-public class UpdateMembersHandler : BaseFeatureHandler, IRequestHandler<UpdateMembersCommand, Unit>
+public class UpdateMembersHandler : ICommandHandler<UpdateMembersCommand>
 {
-    public UpdateMembersHandler(IUnitOfWork unitOfWork, ICurrentUserService currentUserService, WorkspaceContext workspaceContext)
-        : base(unitOfWork, currentUserService, workspaceContext) { }
+    private readonly IDataBase _db;
+    private readonly ICurrentUserService _currentUserService;
 
-    public async Task<Unit> Handle(UpdateMembersCommand request, CancellationToken cancellationToken)
+    public UpdateMembersHandler(IDataBase db, ICurrentUserService currentUserService) {
+        _db = db;
+        _currentUserService = currentUserService;
+    }
+
+    public async Task<Result> Handle(UpdateMembersCommand request, CancellationToken cancellationToken)
     {
-        var workspace = await UnitOfWork.Set<ProjectWorkspace>().FindAsync(request.workspaceId, cancellationToken);
-        if (workspace == null) throw new KeyNotFoundException($"Workspace {request.workspaceId} not found");
-        if (request.members == null || !request.members.Any()) return Unit.Value;
+        var currentUserId = _currentUserService.CurrentUserId();
+        if (currentUserId == Guid.Empty) return Result.Failure(Error.Unauthorized("User.NotAuthenticated", "User not authenticated."));
+
+        var workspace = await _db.Workspaces.FindAsync(new object[] { request.workspaceId }, cancellationToken);
+        if (workspace == null) return Result.Failure(Error.NotFound("Workspace.NotFound", $"Workspace {request.workspaceId} not found"));
+
+        if (request.members == null || !request.members.Any()) return Result.Success();
 
         foreach (var memberUpdate in request.members)
         {
@@ -32,15 +43,15 @@ public class UpdateMembersHandler : BaseFeatureHandler, IRequestHandler<UpdateMe
                   AND role != 'Owner' -- Protection for owners
                   AND deleted_at IS NULL";
 
-            await UnitOfWork.ExecuteAsync(sql, new
+            await _db.ExecuteAsync(sql, new
             {
                 WorkspaceId = workspace.Id,
                 UserId = memberUpdate.userId,
                 Role = memberUpdate.role?.ToString(),
                 Status = memberUpdate.status?.ToString()
-            }, cancellationToken);
+            }, cancellationToken: cancellationToken);
         }
 
-        return Unit.Value;
+        return Result.Success();
     }
 }

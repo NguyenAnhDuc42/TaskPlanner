@@ -5,7 +5,7 @@ using MediatR;
 
 namespace Application.Features.WorkspaceFeatures.MemberManage.UpdateMembers;
 
-public record class UpdateMembersCommand(Guid workspaceId, List<UpdateMemberValue> members) : ICommand<Unit>;
+public record class UpdateMembersCommand(Guid workspaceId, List<UpdateMemberValue> members) : ICommandRequest;
 
 
 public record class UpdateMemberValue(Guid userId,Role? role, MembershipStatus? status);

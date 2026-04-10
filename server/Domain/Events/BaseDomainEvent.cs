@@ -1,10 +1,9 @@
 using System;
 using Domain.Common.Interfaces;
-using MediatR;
 
 namespace Domain.Events;
 
-public record class BaseDomainEvent : IDomainEvent,INotification
+public record class BaseDomainEvent : IDomainEvent
 {
     public Guid EventId { get; init; } = Guid.NewGuid();
     public Guid? AggregateId { get; init; } = null;

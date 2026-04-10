@@ -1,47 +1,60 @@
-using Application.Interfaces.Repositories;
+using Application.Common.Errors;
+using Application.Common.Interfaces;
+using Application.Common.Results;
+using Application.Features;
+using Application.Interfaces;
+using Application.Interfaces.Data;
 using Domain.Entities;
 using Domain.Entities.ProjectEntities;
 using Domain.Entities.Relationship;
-using Domain.Enums;
-using MediatR;
 using Microsoft.EntityFrameworkCore;
 using server.Application.Interfaces;
-using Application.Common;
-using Application.Helpers;
 
 namespace Application.Features.WorkspaceFeatures.MemberManage.AddMembers;
 
-public class AddMembersHandler : BaseFeatureHandler, IRequestHandler<AddMembersCommand, Guid>
+public class AddMembersHandler : ICommandHandler<AddMembersCommand, Guid>
 {
+    private readonly IDataBase _db;
+    private readonly ICurrentUserService _currentUserService;
+
     public AddMembersHandler(
-        IUnitOfWork unitOfWork,
-        ICurrentUserService currentUserService,
-        WorkspaceContext workspaceContext)
-       : base(unitOfWork, currentUserService, workspaceContext)
+        IDataBase db,
+        ICurrentUserService currentUserService)
     {
+        _db = db;
+        _currentUserService = currentUserService;
     }
 
-    public async Task<Guid> Handle(AddMembersCommand request, CancellationToken cancellationToken)
+    public async Task<Result<Guid>> Handle(AddMembersCommand request, CancellationToken cancellationToken)
     {
+        var currentUserId = _currentUserService.CurrentUserId();
+        if (currentUserId == Guid.Empty)
+        {
+            return Result.Failure<Guid>(Error.Unauthorized("User.NotAuthenticated", "User not authenticated."));
+        }
+
         // Use direct Find instead of FindOrThrow for cleaner resolution
-        var workspace = await UnitOfWork.Set<ProjectWorkspace>()
+        var workspace = await _db.Workspaces
             .AsNoTracking()
             .FirstOrDefaultAsync(w => w.Id == request.workspaceId, cancellationToken);
 
-        if (workspace == null) throw new KeyNotFoundException($"Workspace {request.workspaceId} not found");
+        if (workspace == null)
+        {
+            return Result.Failure<Guid>(Error.NotFound("Workspace.NotFound", $"Workspace {request.workspaceId} not found"));
+        }
 
         var normalizedMembers = request.members
             .DistinctBy(m => m.email.Trim().ToLowerInvariant())
             .Where(m => !string.IsNullOrWhiteSpace(m.email))
             .ToList();
 
-        if (normalizedMembers.Count == 0) return workspace.Id;
+        if (normalizedMembers.Count == 0) return Result.Success(workspace.Id);
 
         // 🟢 Optimized Bulk Process using Raw SQL
         // 1. Find User IDs by Email
         var emails = normalizedMembers.Select(m => m.email.Trim().ToLowerInvariant()).ToList();
         var usersSql = "SELECT id, email FROM users WHERE LOWER(email) = ANY(@Emails)";
-        var users = await UnitOfWork.QueryAsync<(Guid Id, string Email)>(usersSql, new { Emails = emails }, cancellationToken);
+        var users = await _db.QueryAsync<(Guid Id, string Email)>(usersSql, new { Emails = emails }, cancellationToken: cancellationToken);
         var userMap = users.ToDictionary(u => u.Email.ToLower(), u => u.Id);
 
         // 2. Separate into inserts and restores (Soft-delete cleanup)
@@ -61,16 +74,16 @@ public class AddMembersHandler : BaseFeatureHandler, IRequestHandler<AddMembersC
                     updated_at = NOW()
                 WHERE workspace_members.deleted_at IS NOT NULL OR workspace_members.role != EXCLUDED.role;";
 
-            await UnitOfWork.ExecuteAsync(upsertSql, new
+            await _db.ExecuteAsync(upsertSql, new
             {
                 Id = Guid.NewGuid(),
                 WorkspaceId = workspace.Id,
                 UserId = userId,
                 Role = member.role.ToString(), // Assuming Role is enum mapped as string or adjust accordingly
-                CreatorId = CurrentUserId
-            }, cancellationToken);
+                CreatorId = currentUserId
+            }, cancellationToken: cancellationToken);
         }
 
-        return workspace.Id;
+        return Result.Success(workspace.Id);
     }
 }

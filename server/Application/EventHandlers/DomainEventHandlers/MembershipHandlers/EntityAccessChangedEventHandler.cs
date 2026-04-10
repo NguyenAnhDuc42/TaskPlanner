@@ -1,11 +1,11 @@
 using Application.Interfaces;
 using Domain.Events.Membership;
-using MediatR;
+using Application.Common.Interfaces;
 using Microsoft.Extensions.Logging;
 
 namespace Application.EventHandlers.DomainEventHandlers.MembershipHandlers;
 
-public class EntityAccessChangedEventHandler : INotificationHandler<EntityAccessChangedEvent>
+public class EntityAccessChangedEventHandler : IDomainEventHandler<EntityAccessChangedEvent>
 {
     private readonly IRealtimeService _realtimeService;
     private readonly ILogger<EntityAccessChangedEventHandler> _logger;

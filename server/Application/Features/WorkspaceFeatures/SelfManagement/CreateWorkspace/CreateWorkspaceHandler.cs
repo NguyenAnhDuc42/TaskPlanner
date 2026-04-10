@@ -1,83 +1,56 @@
+using Application.Common.Errors;
+using Application.Common.Interfaces;
+using Application.Common.Results;
+using Application.Features;
 using Application.Helpers;
-using Application.Interfaces.Repositories;
+using Application.Interfaces;
+using Application.Interfaces.Data;
 using Domain.Entities.ProjectEntities;
 using Domain.Entities.ProjectEntities.ValueObject;
-using Application.Features.WorkspaceFeatures.SelfManagement;
-using MediatR;
 using Microsoft.Extensions.Caching.Hybrid;
-using Application.Interfaces;
 using server.Application.Interfaces;
 
 namespace Application.Features.WorkspaceFeatures.SelfManagement.CreateWorkspace;
 
-public class CreateWorkspaceHandler : BaseFeatureHandler, IRequestHandler<CreateWorkspaceCommand, Guid>
+public class CreateWorkspaceHandler : ICommandHandler<CreateWorkspaceCommand, Guid>
 {
+    private readonly IDataBase _db;
+    private readonly ICurrentUserService _currentUserService;
     private readonly HybridCache _cache;
     private readonly IRealtimeService _realtime;
 
-    public CreateWorkspaceHandler(
-        IUnitOfWork unitOfWork,
-        ICurrentUserService currentUserService,
-        WorkspaceContext workspaceContext,
-        HybridCache cache,
-        IRealtimeService realtime)
-        : base(unitOfWork, currentUserService, workspaceContext) 
+    public CreateWorkspaceHandler(IDataBase db, ICurrentUserService currentUserService, HybridCache cache, IRealtimeService realtime)
     {
+        _db = db;
+        _currentUserService = currentUserService;
         _cache = cache;
         _realtime = realtime;
     }
 
-    public async Task<Guid> Handle(CreateWorkspaceCommand request, CancellationToken cancellationToken)
+    public async Task<Result<Guid>> Handle(CreateWorkspaceCommand request, CancellationToken cancellationToken)
     {
-        var currentUserId = ValidateRequest();
-        
-        var workspace = await PersistWorkspace(request, currentUserId, cancellationToken);
-        
-        await InvalidateCache(currentUserId, cancellationToken);
-        
-        NotifyClients(workspace.Id, currentUserId);
+        var currentUserId = _currentUserService.CurrentUserId();
+        if (currentUserId == Guid.Empty) 
+            return Result.Failure<Guid>(Error.Unauthorized("User.NotAuthenticated", "User not authenticated."));
 
-        return workspace.Id;
-    }
-
-    private Guid ValidateRequest()
-    {
-        var currentUserId = CurrentUserId;
-        if (currentUserId == Guid.Empty)
-        {
-            throw new UnauthorizedAccessException("User not authenticated.");
-        }
-        return currentUserId;
-    }
-
-    private async Task<ProjectWorkspace> PersistWorkspace(CreateWorkspaceCommand request, Guid currentUserId, CancellationToken ct)
-    {
-        var slug = SlugHelper.GenerateSlug(request.Name);
-        var customization = Customization.Create(request.Color, request.Icon);
-        
         var workspace = ProjectWorkspace.Create(
             name: request.Name,
-            slug: slug,
+            slug: SlugHelper.GenerateSlug(request.Name),
             description: request.Description,
             joinCode: null,
-            customization: customization,
+            customization: Customization.Create(request.Color, request.Icon),
             creatorId: currentUserId,
             theme: request.Theme,
             strictJoin: request.StrictJoin
         );
 
-        await UnitOfWork.Set<ProjectWorkspace>().AddAsync(workspace, ct);
+        await _db.Workspaces.AddAsync(workspace, cancellationToken);
+        await _db.SaveChangesAsync(cancellationToken);
         
-        return workspace;
-    }
+        await _cache.RemoveByTagAsync(WorkspaceCacheKeys.WorkspaceListTag(currentUserId), cancellationToken);
 
-    private async Task InvalidateCache(Guid userId, CancellationToken ct)
-    {
-        await _cache.RemoveByTagAsync(WorkspaceCacheKeys.WorkspaceListTag(userId), ct);
-    }
+        _ = _realtime.NotifyUserAsync(currentUserId, "WorkspaceCreated", new { WorkspaceId = workspace.Id }, default);
 
-    private void NotifyClients(Guid workspaceId, Guid userId)
-    {
-        _ = _realtime.NotifyUserAsync(userId, "WorkspaceCreated", new { WorkspaceId = workspaceId }, default);
+        return Result.Success(workspace.Id);
     }
 }

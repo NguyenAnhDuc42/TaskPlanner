@@ -16,4 +16,7 @@ public static class FolderExtensions
 
     public static IQueryable<ProjectFolder> BySpace(this IQueryable<ProjectFolder> query, Guid spaceId) => 
         query.Where(folder => folder.ProjectSpaceId == spaceId);
+
+    public static IQueryable<ProjectFolder> WhereNotDeleted(this IQueryable<ProjectFolder> query) => 
+        query.Where(folder => folder.DeletedAt == null);
 }

@@ -22,4 +22,7 @@ public static class TaskExtensions
         
     public static IQueryable<ProjectTask> ByWorkspace(this IQueryable<ProjectTask> query, Guid workspaceId) => 
         query.Where(task => task.ProjectWorkspaceId == workspaceId);
+
+    public static IQueryable<ProjectTask> WhereNotDeleted(this IQueryable<ProjectTask> query) => 
+        query.Where(task => task.DeletedAt == null);
 }

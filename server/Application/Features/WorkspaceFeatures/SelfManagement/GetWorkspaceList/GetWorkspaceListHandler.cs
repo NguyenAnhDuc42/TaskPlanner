@@ -4,8 +4,8 @@ using Application.Features.WorkspaceFeatures.SelfManagement;
 using Application.Features.WorkspaceFeatures.SelfManagement.GetWorkspaceList;
 using Application.Helper;
 using Application.Helpers;
-using Application.Interfaces.Repositories;
-using MediatR;
+using Application.Interfaces;
+using Application.Interfaces.Data;
 using Microsoft.Extensions.Caching.Hybrid;
 using Microsoft.Extensions.Logging;
 using server.Application.Interfaces;
@@ -13,37 +13,37 @@ using System.Text.Json;
 using Domain.Enums;
 using Domain.Enums.RelationShip;
 
-
 namespace Application.Features.WorkspaceFeatures.GetWorkspaceList;
 
-public class GetWorkspaceListHandler : BaseFeatureHandler, IRequestHandler<GetWorksapceListQuery, PagedResult<WorkspaceSummaryDto>>
+public class GetWorkspaceListHandler : IQueryHandler<GetWorksapceListQuery, PagedResult<WorkspaceSummaryDto>>
 {
+    private readonly IDataBase _db;
+    private readonly ICurrentUserService _currentUserService;
     private readonly CursorHelper _cursorHelper;
     private readonly HybridCache _cache;
     private readonly ILogger<GetWorkspaceListHandler> _logger;
 
-
     public GetWorkspaceListHandler(
-        IUnitOfWork unitOfWork,
+        IDataBase db,
         ICurrentUserService currentUserService,
-        WorkspaceContext workspaceContext,
         CursorHelper cursorHelper,
         HybridCache cache,
         ILogger<GetWorkspaceListHandler> logger)
-        : base(unitOfWork, currentUserService, workspaceContext)
     {
+        _db = db;
+        _currentUserService = currentUserService;
         _cursorHelper = cursorHelper;
         _cache = cache;
         _logger = logger;
     }
 
-    public async Task<PagedResult<WorkspaceSummaryDto>> Handle(GetWorksapceListQuery request, CancellationToken cancellationToken)
+    public async Task<Result<PagedResult<WorkspaceSummaryDto>>> Handle(GetWorksapceListQuery request, CancellationToken cancellationToken)
     {
-        var currentUserId = CurrentUserService.CurrentUserId();
+        var currentUserId = _currentUserService.CurrentUserId();
         var cacheKey = WorkspaceCacheKeys.WorkspaceList(currentUserId, request);
         _logger.LogDebug("Workspace list cache lookup. UserId={UserId}, CacheKey={CacheKey}", currentUserId, cacheKey);
 
-        return await _cache.GetOrCreateAsync(cacheKey, async token =>
+        var result = await _cache.GetOrCreateAsync(cacheKey, async token =>
             {
                 _logger.LogDebug("Workspace list cache miss. UserId={UserId}", currentUserId);
                 var pageSize = request.Pagination.PageSize;
@@ -54,7 +54,7 @@ public class GetWorkspaceListHandler : BaseFeatureHandler, IRequestHandler<GetWo
                     ? GetWorkspaceListSQL.Asc
                     : GetWorkspaceListSQL.Desc;
 
-                var rows = (await UnitOfWork.QueryAsync<WorkspaceRow>(sql, new
+                var rows = (await _db.QueryAsync<WorkspaceRow>(sql, new
                 {
                     currentUserId,
                     name = request.filter.Name,
@@ -63,7 +63,7 @@ public class GetWorkspaceListHandler : BaseFeatureHandler, IRequestHandler<GetWo
                     cursorTimestamp = cursorTs,
                     cursorId,
                     PageSizePLusOne = pageSize + 1
-                }, token)).ToList();
+                }, cancellationToken: token)).ToList();
 
                 _logger.LogInformation("[Diagnostic] Workspace SQL returned {Count} rows for UserId={UserId}. Filters: Name={Name}, Owned={Owned}, Archived={Archived}", 
                     rows.Count, currentUserId, request.filter.Name, request.filter.Owned, request.filter.isArchived);
@@ -81,8 +81,10 @@ public class GetWorkspaceListHandler : BaseFeatureHandler, IRequestHandler<GetWo
                 return new PagedResult<WorkspaceSummaryDto>(items, nextCursor, hasMore);
             },
             new HybridCacheEntryOptions { Expiration = TimeSpan.FromMinutes(5) },
-            new[] { $"user:{CurrentUserId}:workspaces" },
+            new[] { $"user:{currentUserId}:workspaces" },
             cancellationToken);
+
+        return Result.Success(result);
     }
 
     private void DecodeCursor(string? cursor, out DateTimeOffset? ts, out Guid? id)
@@ -94,7 +96,6 @@ public class GetWorkspaceListHandler : BaseFeatureHandler, IRequestHandler<GetWo
         var data = _cursorHelper.DecodeCursor(cursor);
 
         if (data?.Values == null) return;
-
 
         if (data.Values.TryGetValue("Timestamp", out var tsObj))
         {
@@ -109,7 +110,6 @@ public class GetWorkspaceListHandler : BaseFeatureHandler, IRequestHandler<GetWo
                 id = parsedId;
         }
     }
-
 
     private static List<WorkspaceSummaryDto> Map(List<WorkspaceRow> rows)
     {
@@ -134,7 +134,6 @@ public class GetWorkspaceListHandler : BaseFeatureHandler, IRequestHandler<GetWo
         }).ToList();
     }
 
-
     private string EncodeNextCursor(WorkspaceRow last)
     {
         var cursorData = new CursorData(new Dictionary<string, object>
@@ -143,9 +142,7 @@ public class GetWorkspaceListHandler : BaseFeatureHandler, IRequestHandler<GetWo
             { "Id", last.Id }
         });
 
-        var encoded = _cursorHelper.EncodeCursor(cursorData);
-
-        return encoded;
+        return _cursorHelper.EncodeCursor(cursorData);
     }
 
 

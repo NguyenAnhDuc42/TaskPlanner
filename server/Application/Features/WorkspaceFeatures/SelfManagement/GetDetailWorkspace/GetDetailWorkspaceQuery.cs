@@ -3,7 +3,7 @@ using MediatR;
 
 namespace Application.Features.WorkspaceFeatures.SelfManagement.GetDetailWorkspace;
 
-public record class GetDetailWorkspaceQuery(Guid WorkspaceId) : IRequest<WorkspaceSecurityContextDto>;
+public record class GetDetailWorkspaceQuery(Guid WorkspaceId) : IQueryRequest<WorkspaceSecurityContextDto>;
 
 public record WorkspaceSecurityContextDto
 {

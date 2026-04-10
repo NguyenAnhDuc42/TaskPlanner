@@ -6,7 +6,7 @@ using Domain.Enums.Workspace;
 
 namespace Application.Features.WorkspaceFeatures.SelfManagement.GetWorkspaceList;
 
-public record class GetWorksapceListQuery(CursorPaginationRequest Pagination, WorkspaceFilter filter) : IQuery<PagedResult<WorkspaceSummaryDto>>;
+public record class GetWorksapceListQuery(CursorPaginationRequest Pagination, WorkspaceFilter filter) : IQueryRequest<PagedResult<WorkspaceSummaryDto>>;
 public record WorkspaceFilter(string? Name = null, bool? Owned = null, bool? isArchived = null);
 
 public record class WorkspaceMemberSummaryDto

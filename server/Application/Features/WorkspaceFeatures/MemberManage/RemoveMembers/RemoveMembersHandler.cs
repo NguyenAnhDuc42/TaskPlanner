@@ -1,22 +1,35 @@
-using Application.Interfaces.Repositories;
+using Application.Common.Errors;
+using Application.Common.Interfaces;
+using Application.Common.Results;
+using Application.Features;
+using Application.Interfaces;
+using Application.Interfaces.Data;
+using Domain.Entities;
 using Domain.Entities.ProjectEntities;
-using Domain.Enums.RelationShip;
-using MediatR;
+using Microsoft.EntityFrameworkCore;
 using server.Application.Interfaces;
-using Application.Helpers;
 
 namespace Application.Features.WorkspaceFeatures.MemberManage.RemoveMembers;
 
-public class RemoveMembersHandler : BaseFeatureHandler, IRequestHandler<RemoveMembersCommand, Guid>
+public class RemoveMembersHandler : ICommandHandler<RemoveMembersCommand, Guid>
 {
-    public RemoveMembersHandler(IUnitOfWork unitOfWork, ICurrentUserService currentUserService, WorkspaceContext workspaceContext)
-        : base(unitOfWork, currentUserService, workspaceContext) { }
+    private readonly IDataBase _db;
+    private readonly ICurrentUserService _currentUserService;
 
-    public async Task<Guid> Handle(RemoveMembersCommand request, CancellationToken cancellationToken)
+    public RemoveMembersHandler(IDataBase db, ICurrentUserService currentUserService) 
     {
+        _db = db;
+        _currentUserService = currentUserService;
+    }
+
+    public async Task<Result<Guid>> Handle(RemoveMembersCommand request, CancellationToken cancellationToken)
+    {
+        var currentUserId = _currentUserService.CurrentUserId();
+        if (currentUserId == Guid.Empty) return Result.Failure<Guid>(Error.Unauthorized("User.NotAuthenticated", "User not authenticated."));
+
         // Direct Find for cleaner resolution
-        var workspace = await UnitOfWork.Set<ProjectWorkspace>().FindAsync(request.workspaceId, cancellationToken);
-        if (workspace == null) throw new KeyNotFoundException($"Workspace {request.workspaceId} not found");
+        var workspace = await _db.Workspaces.FindAsync(new object[] { request.workspaceId }, cancellationToken);
+        if (workspace == null) return Result.Failure<Guid>(Error.NotFound("Workspace.NotFound", $"Workspace {request.workspaceId} not found"));
 
         if (request.memberIds.Any())
         {
@@ -28,14 +41,13 @@ public class RemoveMembersHandler : BaseFeatureHandler, IRequestHandler<RemoveMe
                   AND user_id = ANY(@UserIds)
                   AND deleted_at IS NULL";
 
-            await UnitOfWork.ExecuteAsync(sql, new
+            await _db.ExecuteAsync(sql, new
             {
                 WorkspaceId = workspace.Id,
                 UserIds = request.memberIds.ToArray()
-            }, cancellationToken);
-
+            }, cancellationToken: cancellationToken);
         }
 
-        return workspace.Id;
+        return Result.Success(workspace.Id);
     }
 }

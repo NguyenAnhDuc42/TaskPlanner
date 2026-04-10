@@ -4,7 +4,7 @@ using MediatR;
 
 namespace Application.Features.WorkspaceFeatures.UpdateWorkspace;
 
-public record class UpdateWorkspaceCommand : ICommand<Unit>
+public record class UpdateWorkspaceCommand : ICommandRequest
 {
     public Guid Id { get; init; }
     public string? Name { get; set; }

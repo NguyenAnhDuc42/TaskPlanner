@@ -1,11 +1,11 @@
 using Application.Interfaces;
 using Domain.Events.Membership;
-using MediatR;
+using Application.Common.Interfaces;
 using Microsoft.Extensions.Logging;
 
 namespace Application.EventHandlers.DomainEventHandlers.MembershipHandlers;
 
-public class WorkspaceMemberRoleChangedEventHandler : INotificationHandler<WorkspaceMemberRoleChangedEvent>
+public class WorkspaceMemberRoleChangedEventHandler : IDomainEventHandler<WorkspaceMemberRoleChangedEvent>
 {
     private readonly IRealtimeService _realtimeService;
     private readonly ILogger<WorkspaceMemberRoleChangedEventHandler> _logger;
