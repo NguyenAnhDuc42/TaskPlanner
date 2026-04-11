@@ -1,4 +1,3 @@
-using Api.Controllers;
 using Application.Features.Auth.Login;
 using Application.Features.Auth.Logout;
 using Application.Features.Auth.RefreshToken;
@@ -9,34 +8,34 @@ using Application.Features.Auth.OAuth;
 using Application.Features.Auth.ChangePassword;
 using Application.Features.Auth.GetCurrentUser;
 using Application.Features.Auth.UpdateProfile;
-using MediatR;
+using Application.Common.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 
 namespace server.Api.Controllers;
+
 [Route("api/[controller]")]
 [ApiController]
 public class AuthController : ControllerBase
 {
-    private readonly IMediator _mediator;
+    private readonly IHandler _handler;
 
-    public AuthController(IMediator mediator)
+    public AuthController(IHandler iHandler)
     {
-        _mediator = mediator;
+        _handler = iHandler;
     }
 
     [HttpPost("login")]
     public async Task<IActionResult> Login([FromBody] LoginRequest request, CancellationToken cancellationToken)
     {
         var command = new LoginCommand(request.Email, request.Password);
-        var result = await _mediator.Send(command, cancellationToken);
+        var result = await _handler.SendAsync<LoginCommand, LoginResponse>(command, cancellationToken);
         return Ok(result);
     }
 
     [HttpPost("logout")]
     public async Task<IActionResult> Logout(CancellationToken cancellationToken)
     {
-        var command = new LogoutCommand();
-        var result = await _mediator.Send(command, cancellationToken);
+        var result = await _handler.SendAsync(new LogoutCommand(), cancellationToken);
         return Ok(result);
     }
 
@@ -44,40 +43,33 @@ public class AuthController : ControllerBase
     public async Task<IActionResult> Register([FromBody] RegisterRequest request, CancellationToken cancellationToken)
     {
         var command = new RegisterCommand(request.UserName, request.Email, request.Password);
-        var result = await _mediator.Send(command, cancellationToken);
+        var result = await _handler.SendAsync(command, cancellationToken);
         return Ok(result);
     }
 
     [HttpPost("refresh")]
     public async Task<IActionResult> Refresh(CancellationToken cancellationToken)
     {
-        var command = new RefreshTokenCommand();
-        var result = await _mediator.Send(command, cancellationToken);
+        var result = await _handler.SendAsync<RefreshTokenCommand, RefreshTokenResponse>(new RefreshTokenCommand(), cancellationToken);
         return Ok(result);
     }
 
     [HttpPost("forgot-password")]
     public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordRequest request, CancellationToken cancellationToken)
     {
-        var command = new ForgotPasswordCommand(request.Email);
-        var token = await _mediator.Send(command, cancellationToken);
+        var result = await _handler.SendAsync<ForgotPasswordCommand, string?>(new ForgotPasswordCommand(request.Email), cancellationToken);
         
-        if (token == null)
-        {
-             // Security: Don't reveal user existence, but since this is now dev-mode friendly, 
-             // maybe we just say sent? Or actually since we cant send email, returning OK is fine.
-             return Ok(new { message = "If the email exists, a reset token has been generated (check logs or response if dev mode)." });
-        }
+        if (result.Value == null)
+            return Ok(new { message = "If the email exists, a reset token has been generated." });
 
-        // Return token directly for convenience since email is disabled
-        return Ok(new { message = "Reset token generated.", token });
+        return Ok(new { message = "Reset token generated.", token = result.Value });
     }
 
     [HttpPost("reset-password")]
     public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordRequest request, CancellationToken cancellationToken)
     {
         var command = new ResetPasswordCommand(request.Token, request.NewPassword);
-        await _mediator.Send(command, cancellationToken);
+        await _handler.SendAsync(command, cancellationToken);
         return Ok(new { message = "Password reset successfully." });
     }
 
@@ -85,18 +77,16 @@ public class AuthController : ControllerBase
     public async Task<IActionResult> ExternalLogin([FromBody] ExternalLoginRequest request, CancellationToken cancellationToken)
     {
         var command = new ExternalLoginCommand(request.Provider, request.Token);
-        var result = await _mediator.Send(command, cancellationToken);
+        var result = await _handler.SendAsync<ExternalLoginCommand, LoginResponse>(command, cancellationToken);
         return Ok(result);
     }
-
-
 
     [HttpPost("change-password")]
     [Microsoft.AspNetCore.Authorization.Authorize]
     public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordRequest request, CancellationToken cancellationToken)
     {
         var command = new ChangePasswordCommand(request.CurrentPassword, request.NewPassword);
-        await _mediator.Send(command, cancellationToken);
+        await _handler.SendAsync(command, cancellationToken);
         return Ok(new { message = "Password changed successfully." });
     }
 
@@ -104,8 +94,7 @@ public class AuthController : ControllerBase
     [Microsoft.AspNetCore.Authorization.Authorize]
     public async Task<IActionResult> GetCurrentUser(CancellationToken cancellationToken)
     {
-        var query = new GetCurrentUserQuery();
-        var result = await _mediator.Send(query, cancellationToken);
+        var result = await _handler.QueryAsync<GetCurrentUserQuery, GetCurrentUserDto>(new GetCurrentUserQuery(), cancellationToken);
         return Ok(result);
     }
 
@@ -114,12 +103,11 @@ public class AuthController : ControllerBase
     public async Task<IActionResult> UpdateProfile([FromBody] UpdateProfileRequest request, CancellationToken cancellationToken)
     {
         var command = new UpdateProfileCommand(request.Name, request.Email);
-        var result = await _mediator.Send(command, cancellationToken);
+        var result = await _handler.SendAsync<UpdateProfileCommand, UpdateProfileDto>(command, cancellationToken);
         return Ok(result);
     }
 }
 
-// Request Models
 public record LoginRequest(string Email, string Password);
 public record RegisterRequest(string UserName, string Email, string Password);
 public record ForgotPasswordRequest(string Email);

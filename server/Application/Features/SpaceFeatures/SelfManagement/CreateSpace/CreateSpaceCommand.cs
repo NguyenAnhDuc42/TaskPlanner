@@ -11,4 +11,4 @@ public record class CreateSpaceCommand(
     string icon,
     bool isPrivate,
     List<Guid>? memberIdsToInvite = null
-) : ICommand<Guid>;
+) : ICommandRequest<Guid>;

@@ -1,21 +1,22 @@
-using Application.Helpers;
-using Application.Interfaces;
-using Application.Interfaces.Repositories;
-using Domain.Entities.ProjectEntities;
-using MediatR;
+using Application.Interfaces.Data;
+using Application.Common.Results;
 using Microsoft.EntityFrameworkCore;
-using server.Application.Interfaces;
 
 namespace Application.Features.ViewFeatures.GetViews;
 
-public class GetViewsHandler : BaseFeatureHandler, IRequestHandler<GetViewsQuery, List<ViewDto>>
+public class GetViewsHandler : IQueryHandler<GetViewsQuery, List<ViewDto>>
 {
-    public GetViewsHandler(IUnitOfWork unitOfWork, WorkspaceContext workspaceContext, ICurrentUserService currentUserService) 
-        : base(unitOfWork, currentUserService, workspaceContext) { }
+    private readonly IDataBase _db;
 
-    public async Task<List<ViewDto>> Handle(GetViewsQuery request, CancellationToken cancellationToken)
+    public GetViewsHandler(IDataBase db)
     {
-        return await UnitOfWork.Set<ViewDefinition>()
+        _db = db;
+    }
+
+    public async Task<Result<List<ViewDto>>> Handle(GetViewsQuery request, CancellationToken ct)
+    {
+        var views = await _db.Views
+            .AsNoTracking()
             .Where(v => v.LayerId == request.LayerId && v.LayerType == request.LayerType)
             .OrderBy(v => v.CreatedAt)
             .Select(v => new ViewDto(
@@ -24,6 +25,8 @@ public class GetViewsHandler : BaseFeatureHandler, IRequestHandler<GetViewsQuery
                 v.ViewType,
                 v.IsDefault
             ))
-            .ToListAsync(cancellationToken);
+            .ToListAsync(ct);
+
+        return views;
     }
 }

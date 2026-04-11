@@ -10,4 +10,4 @@ public record CreateViewCommand(
     ViewType ViewType,
     string Name,
     bool IsDefault = false
-) : ICommand<Guid>;
+) : ICommandRequest<Guid>;

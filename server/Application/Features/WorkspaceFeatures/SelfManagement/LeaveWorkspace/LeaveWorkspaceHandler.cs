@@ -22,13 +22,17 @@ public class LeaveWorkspaceHandler : ICommandHandler<LeaveWorkspaceCommand>
         _currentUserService = currentUserService;
     }
 
-    public async Task<Result> Handle(LeaveWorkspaceCommand request, CancellationToken cancellationToken)
+    public async Task<Result> Handle(LeaveWorkspaceCommand request, CancellationToken ct)
     {
         var currentUserId = _currentUserService.CurrentUserId();
-        if (currentUserId == Guid.Empty) return Result.Failure(Error.Unauthorized("User.NotAuthenticated", "User not authenticated."));
+        if (currentUserId == Guid.Empty) 
+            return Result.Failure(Error.Unauthorized("User.NotAuthenticated", "User not authenticated."));
 
-        var workspace = await _db.Workspaces.FindAsync(new object[] { request.WorkspaceId }, cancellationToken);
-        if (workspace == null) return Result.Failure(Error.NotFound("Workspace.NotFound", $"Workspace {request.WorkspaceId} not found"));
+        var workspace = await _db.Workspaces
+            .ById(request.WorkspaceId)
+            .FirstOrDefaultAsync(ct);
+
+        if (workspace == null) return Result.Failure(WorkspaceError.NotFound);
 
         // Check if user is a member
         var isMember = await _db.Members

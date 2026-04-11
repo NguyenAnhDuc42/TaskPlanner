@@ -9,7 +9,9 @@ public static class WorkspaceExtensions
     public static bool IsActive(this ProjectWorkspace workspace) => 
         !workspace.IsArchived;
 
-    // Queryable Extensions
+    public static IQueryable<ProjectWorkspace> ById(this IQueryable<ProjectWorkspace> query, Guid id) => 
+        query.Where(workspace => workspace.Id == id);
+
     public static IQueryable<ProjectWorkspace> WhereActive(this IQueryable<ProjectWorkspace> query) => 
         query.Where(workspace => !workspace.IsArchived);
 

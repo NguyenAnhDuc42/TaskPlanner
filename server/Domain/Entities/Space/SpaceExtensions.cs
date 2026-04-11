@@ -10,7 +10,9 @@ public static class SpaceExtensions
     public static bool IsActive(this ProjectSpace space) => 
         !space.IsArchived;
 
-    // Queryable Extensions
+    public static IQueryable<ProjectSpace> ById(this IQueryable<ProjectSpace> query, Guid id) => 
+        query.Where(space => space.Id == id);
+
     public static IQueryable<ProjectSpace> WhereActive(this IQueryable<ProjectSpace> query) => 
         query.Where(space => !space.IsArchived);
 

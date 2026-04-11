@@ -1,138 +1,142 @@
-using Application.Interfaces.Repositories;
 using Application.Helpers;
+using Application.Interfaces.Data;
+using Application.Common.Results;
+using Application.Common.Errors;
 using Domain.Common;
+using Domain.Entities;
 using Domain.Entities.ProjectEntities;
-using Domain.Entities.Relationship;
-using MediatR;
+using Domain.Entities.ProjectEntities.ValueObject;
+using Domain.Enums.RelationShip;
 using Microsoft.EntityFrameworkCore;
 using server.Application.Interfaces;
-using Domain.Enums.RelationShip;
-using Application.Features.ViewFeatures.GetViewData;
+using Dapper;
 
 namespace Application.Features.TaskFeatures.SelfManagement.CreateTask;
 
-public class CreateTaskHandler : BaseFeatureHandler, IRequestHandler<CreateTaskCommand, TaskDto>
+public class CreateTaskHandler : ICommandHandler<CreateTaskCommand, TaskDto>
 {
-    public CreateTaskHandler(IUnitOfWork unitOfWork, ICurrentUserService currentUserService, WorkspaceContext workspaceContext)
-        : base(unitOfWork, currentUserService, workspaceContext) { }
+    private readonly IDataBase _db;
+    private readonly ICurrentUserService _currentUserService;
 
-    public async Task<TaskDto> Handle(CreateTaskCommand request, CancellationToken cancellationToken)
+    public CreateTaskHandler(IDataBase db, ICurrentUserService currentUserService)
     {
-        // 1. Resolve Ancestors (Dapper-based Helper)
-        var ancestors = await HierarchyHelper.GetAncestorChain(UnitOfWork, request.ParentId, request.ParentType, cancellationToken);    
-        // 2. Resolve OrderKey — query max key for the parent, then compute After
-        string orderKey;
-        switch (request.ParentType)
-        {
-            case EntityLayerType.ProjectFolder:
-                var maxFolderTaskKey = await UnitOfWork.Set<ProjectTask>()
-                    .Where(t => t.ProjectFolderId == request.ParentId && t.DeletedAt == null)
-                    .MaxAsync(t => (string?)t.OrderKey, cancellationToken);
-                orderKey = maxFolderTaskKey is null ? FractionalIndex.Start() : FractionalIndex.After(maxFolderTaskKey);
-                break;
-            case EntityLayerType.ProjectSpace:
-                var maxSpaceTaskKey = await UnitOfWork.Set<ProjectTask>()
-                    .Where(t => t.ProjectSpaceId == request.ParentId && t.ProjectFolderId == null && t.DeletedAt == null)
-                    .MaxAsync(t => (string?)t.OrderKey, cancellationToken);
-                orderKey = maxSpaceTaskKey is null ? FractionalIndex.Start() : FractionalIndex.After(maxSpaceTaskKey);
-                break;
-            default:
-                orderKey = FractionalIndex.Start();
-                break;
-        }
+        _db = db;
+        _currentUserService = currentUserService;
+    }
 
-        // 3. Resolve Status (Workspace-level ownership via Workflow)
-        Guid? statusId = null;
-        const string statusSql = @"
-            SELECT s.id 
-            FROM   statuses s
-            JOIN   workflows w ON s.workflow_id = w.id
-            WHERE  w.project_workspace_id = @WorkspaceId 
-              AND  s.deleted_at IS NULL
-            ORDER BY s.created_at ASC 
-            LIMIT 1";
+    public async Task<Result<TaskDto>> Handle(CreateTaskCommand request, CancellationToken ct)
+    {
+        var currentUserId = _currentUserService.CurrentUserId();
+        if (currentUserId == Guid.Empty) 
+            return Result.Failure<TaskDto>(Error.Unauthorized("User.NotAuthenticated", "User not authenticated."));
 
-        statusId = await UnitOfWork.QuerySingleOrDefaultAsync<Guid?>(statusSql, new { WorkspaceId = ancestors.ProjectWorkspaceId }, cancellationToken);
+        // 1. Resolve Ancestors
+        var ancestors = await HierarchyHelper.GetAncestorChain(_db, request.ParentId, request.ParentType, ct);
         
-        // If user requested a status, validate it belongs to this workspace's workflow
-        if (request.StatusId.HasValue)
+        // 2. Resolve OrderKey
+        string orderKey = request.ParentType switch
         {
-            const string validateSql = @"
-                SELECT COUNT(1) 
-                FROM   statuses s
-                JOIN   workflows w ON s.workflow_id = w.id
-                WHERE  s.id = @Id 
-                  AND  w.project_workspace_id = @WorkspaceId 
-                  AND  s.deleted_at IS NULL";
+            EntityLayerType.ProjectFolder => await ResolveFolderOrderKey(request.ParentId, ct),
+            EntityLayerType.ProjectSpace => await ResolveSpaceOrderKey(request.ParentId, ct),
+            _ => FractionalIndex.Start()
+        };
 
-            var isValid = await UnitOfWork.QuerySingleOrDefaultAsync<int>(validateSql, new { Id = request.StatusId.Value, WorkspaceId = ancestors.ProjectWorkspaceId }, cancellationToken);
-            if (isValid > 0) statusId = request.StatusId.Value;
-        }
+        // 3. Resolve Status
+        var statusId = await ResolveStatusId(ancestors.ProjectWorkspaceId, request.StatusId);
 
         // 4. Create Task
         var slug = SlugHelper.GenerateSlug(request.Name);
         var task = ProjectTask.Create(
-            projectWorkspaceId: ancestors.ProjectWorkspaceId,
-            projectSpaceId: ancestors.ProjectSpaceId,
-            projectFolderId: ancestors.ProjectFolderId,
-            name: request.Name,
-            slug: slug,
-            description: request.Description,
-            customization: null,
-            creatorId: CurrentUserId,
-            statusId: statusId,
-            priority: request.Priority,
-            orderKey: orderKey,
-            startDate: request.StartDate,
-            dueDate: request.DueDate,
-            storyPoints: request.StoryPoints,
-            timeEstimate: request.TimeEstimate
+            ancestors.ProjectWorkspaceId,
+            ancestors.ProjectSpaceId,
+            ancestors.ProjectFolderId,
+            request.Name,
+            slug,
+            request.Description,
+            null,
+            currentUserId,
+            statusId,
+            request.Priority,
+            orderKey,
+            request.StartDate,
+            request.DueDate,
+            request.StoryPoints,
+            request.TimeEstimate
         );
 
-        await UnitOfWork.Set<ProjectTask>().AddAsync(task, cancellationToken);
+        await _db.Tasks.AddAsync(task, ct);
 
         // 5. Assignments
         var assignees = new List<AssigneeDto>();
         if (request.AssigneeIds?.Any() == true)
         {
-            var validUserIds = await ValidateWorkspaceMembers(request.AssigneeIds, cancellationToken);
-            var memberIds = await GetWorkspaceMemberIds(validUserIds, cancellationToken);
-
-            var accessibleMemberIds = await GetAccessibleMemberIds(request.ParentId, request.ParentType, memberIds);
-
-            if (accessibleMemberIds.Count != memberIds.Count)
-            {
-                throw new System.ComponentModel.DataAnnotations.ValidationException("One or more assignees do not have permission to access this container.");
-            }
-
-            var assignments = accessibleMemberIds.Select(memberId => TaskAssignment.Create(task.Id, memberId, CurrentUserId));
-            task.AddAsignees(assignments.ToList());
-
-            var details = await UnitOfWork.QueryAsync<AssigneeDto>(@"
-                SELECT u.id AS Id, u.name AS Name, NULL AS AvatarUrl
-                FROM users u
-                JOIN workspace_members wm ON wm.user_id = u.id
-                WHERE wm.id = ANY(@MemberIds)", new { MemberIds = accessibleMemberIds.ToArray() });
-            assignees = details.ToList();
+            assignees = await HandleAssignments(task, ancestors.ProjectWorkspaceId, request.AssigneeIds, currentUserId, ct);
         }
 
-        return new TaskDto
+        await _db.SaveChangesAsync(ct);
+
+        return Result.Success(new TaskDto(
+            task.Id,
+            task.ProjectWorkspaceId,
+            task.ProjectSpaceId,
+            task.ProjectFolderId,
+            task.Name,
+            task.Description,
+            task.StatusId,
+            task.Priority,
+            task.StartDate,
+            task.DueDate,
+            task.StoryPoints,
+            task.TimeEstimate,
+            task.OrderKey,
+            task.CreatedAt,
+            assignees
+        ));
+    }
+
+    private async Task<string> ResolveFolderOrderKey(Guid folderId, CancellationToken ct)
+    {
+        var maxKey = await _db.Tasks.ByFolder(folderId).WhereNotDeleted().MaxAsync(t => (string?)t.OrderKey, ct);
+        return maxKey is null ? FractionalIndex.Start() : FractionalIndex.After(maxKey);
+    }
+
+    private async Task<string> ResolveSpaceOrderKey(Guid spaceId, CancellationToken ct)
+    {
+        var maxKey = await _db.Tasks.BySpace(spaceId).Where(t => t.ProjectFolderId == null).WhereNotDeleted().MaxAsync(t => (string?)t.OrderKey, ct);
+        return maxKey is null ? FractionalIndex.Start() : FractionalIndex.After(maxKey);
+    }
+
+    private async Task<Guid?> ResolveStatusId(Guid workspaceId, Guid? requestedStatusId)
+    {
+        if (requestedStatusId.HasValue)
         {
-            Id = task.Id,
-            ProjectWorkspaceId = task.ProjectWorkspaceId,
-            ProjectSpaceId = task.ProjectSpaceId,
-            ProjectFolderId = task.ProjectFolderId,
-            Name = task.Name,
-            Description = task.Description,
-            StatusId = task.StatusId,
-            Priority = task.Priority,
-            StartDate = task.StartDate,
-            DueDate = task.DueDate,
-            StoryPoints = task.StoryPoints,
-            TimeEstimate = task.TimeEstimate,
-            OrderKey = task.OrderKey,
-            CreatedAt = task.CreatedAt,
-            Assignees = assignees
-        };
+            var isValid = await _db.Connection.QuerySingleOrDefaultAsync<int>(@"
+                SELECT COUNT(1) FROM statuses s JOIN workflows w ON s.workflow_id = w.id
+                WHERE s.id = @Id AND w.project_workspace_id = @WorkspaceId AND s.deleted_at IS NULL", 
+                new { Id = requestedStatusId.Value, WorkspaceId = workspaceId });
+            if (isValid > 0) return requestedStatusId;
+        }
+
+        return await _db.Connection.QuerySingleOrDefaultAsync<Guid?>(@"
+            SELECT s.id FROM statuses s JOIN workflows w ON s.workflow_id = w.id
+            WHERE w.project_workspace_id = @WorkspaceId AND s.deleted_at IS NULL
+            ORDER BY s.created_at ASC LIMIT 1", new { WorkspaceId = workspaceId });
+    }
+
+    private async Task<List<AssigneeDto>> HandleAssignments(ProjectTask task, Guid workspaceId, List<Guid> userIds, Guid currentUserId, CancellationToken ct)
+    {
+        var memberIds = await _db.WorkspaceMembers
+            .Where(wm => wm.ProjectWorkspaceId == workspaceId && userIds.Contains(wm.UserId))
+            .Select(wm => wm.Id)
+            .ToListAsync(ct);
+
+        var assignments = memberIds.Select(memberId => TaskAssignment.Create(task.Id, memberId, currentUserId)).ToList();
+        task.AddAsignees(assignments);
+
+        var details = await _db.Connection.QueryAsync<AssigneeDto>(@"
+            SELECT u.id AS Id, u.name AS Name, NULL AS AvatarUrl
+            FROM users u JOIN workspace_members wm ON wm.user_id = u.id
+            WHERE wm.id = ANY(@MemberIds)", new { MemberIds = memberIds.ToArray() });
+        return details.ToList();
     }
 }

@@ -1,59 +1,49 @@
-using Application.Interfaces.Repositories;
+using Application.Common.Results;
+using Application.Interfaces.Data;
 using Domain.Entities;
-using MediatR;
 using Microsoft.EntityFrameworkCore;
 using server.Application.Interfaces;
-using Application.Common.Exceptions;
 
 namespace Application.Features.Auth.ResetPassword;
 
-public class ResetPasswordHandler : IRequestHandler<ResetPasswordCommand>
+public class ResetPasswordHandler : ICommandHandler<ResetPasswordCommand>
 {
-    private readonly IUnitOfWork _unitOfWork;
+    private readonly IDataBase _db;
     private readonly IPasswordService _passwordService;
 
-    public ResetPasswordHandler(IUnitOfWork unitOfWork, IPasswordService passwordService)
+    public ResetPasswordHandler(IDataBase db, IPasswordService passwordService)
     {
-        _unitOfWork = unitOfWork;
+        _db = db;
         _passwordService = passwordService;
     }
 
-    public async Task Handle(ResetPasswordCommand request, CancellationToken cancellationToken)
+    public async Task<Result> Handle(ResetPasswordCommand request, CancellationToken ct)
     {
-        var resetToken = await _unitOfWork.Set<PasswordResetToken>()
-            .FirstOrDefaultAsync(p => p.Token == request.Token, cancellationToken);
+        var resetToken = await _db.PasswordResetTokens
+            .FirstOrDefaultAsync(p => p.Token == request.Token, ct);
 
         if (resetToken == null || !resetToken.IsValid)
-        {
-            throw new InvalidTokenException("Invalid or expired password reset token.");
-        }
+            return Error.Unauthorized("Auth.InvalidToken", "Invalid or expired password reset token.");
 
-        var user = await _unitOfWork.Set<User>()
-            .FirstOrDefaultAsync(u => u.Id == resetToken.UserId, cancellationToken);
-
+        var user = await _db.Users.FirstOrDefaultAsync(u => u.Id == resetToken.UserId, ct);
         if (user == null)
-        {
-            throw new InvalidTokenException("User not found.");
-        }
+            return Error.NotFound("User.NotFound", "User associated with this token not found.");
 
         var newPasswordHash = _passwordService.HashPassword(request.NewPassword);
         user.ChangePassword(newPasswordHash);
         resetToken.MarkAsUsed();
-
-        _unitOfWork.Set<User>().Update(user);
-        _unitOfWork.Set<PasswordResetToken>().Update(resetToken);
         
         // Security: Revoke all sessions after password change
-        var userSessions = await _unitOfWork.Set<Session>()
+        var userSessions = await _db.Sessions
             .Where(s => s.UserId == user.Id && !s.RevokedAt.HasValue)
-            .ToListAsync(cancellationToken);
+            .ToListAsync(ct);
 
         foreach (var session in userSessions)
         {
             session.Revoke(DateTimeOffset.UtcNow);
-            _unitOfWork.Set<Session>().Update(session);
         }
         
-        await _unitOfWork.SaveChangesAsync(cancellationToken);
+        await _db.SaveChangesAsync(ct);
+        return Result.Success();
     }
 }

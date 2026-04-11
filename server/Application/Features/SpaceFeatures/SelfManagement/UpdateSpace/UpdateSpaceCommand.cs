@@ -11,4 +11,4 @@ public record UpdateSpaceCommand( Guid SpaceId,
     string? Color,
     string? Icon,
     bool? IsPrivate
-) : ICommand<Unit>;
+) : ICommandRequest;

@@ -1,5 +1,4 @@
 using Application.Common.Interfaces;
-using MediatR;
 
 namespace Application.Features.FolderFeatures.SelfManagement.CreateFolder;
 
@@ -11,6 +10,5 @@ public record class CreateFolderCommand(
     string icon,
     bool isPrivate,
     DateTimeOffset? startDate = null,
-    DateTimeOffset? dueDate = null,
-    List<Guid>? memberIdsToInvite = null
-) : ICommand<Guid>;
+    DateTimeOffset? dueDate = null
+) : ICommandRequest<Guid>;

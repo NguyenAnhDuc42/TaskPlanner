@@ -1,71 +1,61 @@
 using Application.Features.FolderFeatures.SelfManagement.CreateFolder;
 using Application.Features.FolderFeatures.SelfManagement.DeleteFolder;
 using Application.Features.FolderFeatures.SelfManagement.UpdateFolder;
-using Application.Features.EntityAccessManagement.GetEntityAccessList;
-using Domain.Enums.RelationShip;
-using MediatR;
 using Microsoft.AspNetCore.Mvc;
+using Application.Common.Interfaces;
 
-namespace Api.Controllers
+namespace Api.Controllers;
+
+[Route("api/[controller]")]
+[ApiController]    
+public class FoldersController : ControllerBase
 {
-    [Route("api/[controller]")]
-    [ApiController]    
-    public class FoldersController : ControllerBase
+    private readonly IHandler _handler;
+
+    public FoldersController(IHandler handler)
     {
-        private readonly IMediator _mediator;
-
-        public FoldersController(IMediator mediator)
-        {
-            _mediator = mediator;
-        }
-
-        [HttpPost]
-        public async Task<IActionResult> Create([FromBody] CreateFolderCommand command, CancellationToken cancellationToken)
-        {
-            var result = await _mediator.Send(command, cancellationToken);
-            return Ok(result);
-        }
-
-        [HttpPut("{id:guid}")]
-        public async Task<IActionResult> Update(Guid id, [FromBody] UpdateFolderRequest request, CancellationToken cancellationToken)
-        {
-            var command = new UpdateFolderCommand(
-                FolderId: id,
-                Name: request.Name,
-                Color: request.Color,
-                Icon: request.Icon,
-                IsPrivate: request.IsPrivate,
-                StartDate: request.StartDate,
-                DueDate: request.DueDate
-            );
-
-            var result = await _mediator.Send(command, cancellationToken);
-            return Ok(result);
-        }
-
-        [HttpDelete("{id:guid}")]
-        public async Task<IActionResult> Delete(Guid id, CancellationToken cancellationToken)
-        {
-            var command = new DeleteFolderCommand(id);
-            var result = await _mediator.Send(command, cancellationToken);
-            return Ok(result);
-        }
-
-        [HttpGet("{id:guid}/members-access")]
-        public async Task<IActionResult> GetMembersAccess(Guid id, CancellationToken cancellationToken)
-        {
-            var query = new GetEntityAccessListQuery(id, EntityLayerType.ProjectFolder);
-            var result = await _mediator.Send(query, cancellationToken);
-            return Ok(result);
-        }
+        _handler = handler;
     }
 
-    public record UpdateFolderRequest(
-        string? Name,
-        string? Color,
-        string? Icon,
-        bool? IsPrivate,
-        DateTimeOffset? StartDate,
-        DateTimeOffset? DueDate
-    );
+    [HttpPost]
+    public async Task<IActionResult> Create([FromBody] CreateFolderCommand command, CancellationToken ct)
+    {
+        var result = await _handler.SendAsync<CreateFolderCommand, Guid>(command, ct);
+        return result.ToActionResult();
+    }
+
+    [HttpPut("{id:guid}")]
+    public async Task<IActionResult> Update(Guid id, [FromBody] UpdateFolderRequest request, CancellationToken ct)
+    {
+        var command = new UpdateFolderCommand(
+            FolderId: id,
+            Name: request.Name,
+            Description: request.Description,
+            Color: request.Color,
+            Icon: request.Icon,
+            IsPrivate: request.IsPrivate,
+            StartDate: request.StartDate,
+            DueDate: request.DueDate
+        );
+
+        var result = await _handler.SendAsync(command, ct);
+        return result.ToActionResult();
+    }
+
+    [HttpDelete("{id:guid}")]
+    public async Task<IActionResult> Delete(Guid id, CancellationToken ct)
+    {
+        var result = await _handler.SendAsync(new DeleteFolderCommand(id), ct);
+        return result.ToActionResult();
+    }
 }
+
+public record UpdateFolderRequest(
+    string? Name,
+    string? Description,
+    string? Color,
+    string? Icon,
+    bool? IsPrivate,
+    DateTimeOffset? StartDate,
+    DateTimeOffset? DueDate
+);

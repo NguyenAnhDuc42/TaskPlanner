@@ -1,30 +1,29 @@
-using Application.Common.Exceptions;
-using Application.Features.Auth.GetCurrentUser;
-using Application.Interfaces.Repositories;
+using Application.Common.Errors;
+using Application.Common.Results;
 using Domain.Entities;
-using MediatR;
 using Microsoft.EntityFrameworkCore;
 using server.Application.Interfaces;
 
 namespace Application.Features.Auth.UpdateProfile;
 
-public class UpdateProfileHandler : IRequestHandler<UpdateProfileCommand, UserDto>
+public class UpdateProfileHandler : ICommandHandler<UpdateProfileCommand, UpdateProfileDto>
 {
-    private readonly IUnitOfWork _unitOfWork;
+    private readonly IDataBase _db;
     private readonly ICurrentUserService _currentUserService;
 
-    public UpdateProfileHandler(IUnitOfWork unitOfWork, ICurrentUserService currentUserService)
+    public UpdateProfileHandler(IDataBase db, ICurrentUserService currentUserService)
     {
-        _unitOfWork = unitOfWork;
+        _db = db;
         _currentUserService = currentUserService;
     }
 
-    public async Task<UserDto> Handle(UpdateProfileCommand request, CancellationToken cancellationToken)
+    public async Task<Result<UpdateProfileDto>> Handle(UpdateProfileCommand request, CancellationToken ct)
     {
         var userId = _currentUserService.CurrentUserId();
-        var user = await _unitOfWork.Set<User>()
-            .FirstOrDefaultAsync(u => u.Id == userId, cancellationToken)
-            ?? throw new KeyNotFoundException("Current user not found.");
+        var user = await _db.Users.FirstOrDefaultAsync(u => u.Id == userId, ct);
+        
+        if (user is null) 
+            return UserError.NotFound;
 
         if (request.Name is not null)
         {
@@ -34,20 +33,19 @@ public class UpdateProfileHandler : IRequestHandler<UpdateProfileCommand, UserDt
         if (request.Email is not null)
         {
             var normalizedEmail = request.Email.Trim().ToLowerInvariant();
-            var emailExists = await _unitOfWork.Set<User>()
+            var emailExists = await _db.Users
                 .AsNoTracking()
-                .AnyAsync(u => u.Id != userId && u.Email.ToLower() == normalizedEmail, cancellationToken);
+                .AnyAsync(u => u.Id != userId && u.Email.ToLower() == normalizedEmail, ct);
 
             if (emailExists)
-            {
-                throw new DuplicateEmailException(request.Email);
-            }
+                return UserError.DuplicateEmail;
 
             user.UpdateEmail(request.Email.Trim());
         }
 
+        await _db.SaveChangesAsync(ct);
 
-        return new UserDto(user.Id, user.Name, user.Email);
+        return new UpdateProfileDto(user.Id, user.Name, user.Email);
     }
 }
 

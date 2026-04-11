@@ -22,9 +22,19 @@ public static class SpaceError
 public static class FolderError
 {
     public static readonly Error NotFound = Error.NotFound("Folder.NotFound", "The folder with the specified identifier was not found.");
+    public static readonly Error HasActiveTasks = Error.Failure("Folder.HasActiveTasks", "Cannot delete folder that contains active tasks. Archive or move the tasks first.");
 }
 
 public static class TaskError
 {
     public static readonly Error NotFound = Error.NotFound("Task.NotFound", "The task with the specified identifier was not found.");
+}
+public static class AuthError
+{
+    public static readonly Error InvalidCredentials = Error.Unauthorized("Auth.InvalidCredentials", "The email or password provided is incorrect.");
+}
+
+public static class ViewError
+{
+    public static readonly Error NotFound = Error.NotFound("View.NotFound", "The view with the specified identifier was not found.");
 }

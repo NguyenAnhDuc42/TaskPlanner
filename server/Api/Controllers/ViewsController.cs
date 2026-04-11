@@ -4,8 +4,8 @@ using Application.Features.ViewFeatures.GetViewData;
 using Application.Features.ViewFeatures.GetViews;
 using Application.Features.ViewFeatures.UpdateView;
 using Domain.Enums.RelationShip;
-using MediatR;
 using Microsoft.AspNetCore.Mvc;
+using Application.Common.Interfaces;
 
 namespace Api.Controllers;
 
@@ -13,56 +13,49 @@ namespace Api.Controllers;
 [ApiController]
 public class ViewsController : ControllerBase
 {
-    private readonly IMediator _mediator;
+    private readonly IHandler _handler;
 
-    public ViewsController(IMediator mediator)
+    public ViewsController(IHandler handler)
     {
-        _mediator = mediator;
+        _handler = handler;
     }
 
     [HttpGet]
     public async Task<IActionResult> GetViews(
         [FromQuery] Guid layerId,
         [FromQuery] EntityLayerType layerType,
-        CancellationToken cancellationToken)
+        CancellationToken ct)
     {
-        var result = await _mediator.Send(new GetViewsQuery(layerId, layerType), cancellationToken);
-        return Ok(result);
+        var result = await _handler.QueryAsync<GetViewsQuery, List<ViewDto>>(new GetViewsQuery(layerId, layerType), ct);
+        return result.ToActionResult();
     }
 
     [HttpGet("{id:guid}/data")]
-    public async Task<IActionResult> GetViewData(Guid id, CancellationToken cancellationToken)
+    public async Task<IActionResult> GetViewData(Guid id, CancellationToken ct)
     {
-        var result = await _mediator.Send(new GetViewDataQuery(id), cancellationToken);
-        return Ok(result);
+        var result = await _handler.QueryAsync<GetViewDataQuery, BaseViewResult>(new GetViewDataQuery(id), ct);
+        return result.ToActionResult();
     }
 
     [HttpPost]
-    public async Task<IActionResult> CreateView(
-        [FromBody] CreateViewCommand command,
-        CancellationToken cancellationToken)
+    public async Task<IActionResult> CreateView([FromBody] CreateViewCommand command, CancellationToken ct)
     {
-        var viewId = await _mediator.Send(command, cancellationToken);
-        return Ok(new { Id = viewId });
+        var result = await _handler.SendAsync<CreateViewCommand, Guid>(command, ct);
+        return result.ToActionResult();
     }
 
     [HttpPut("{id:guid}")]
-    public async Task<IActionResult> UpdateView(
-        Guid id,
-        [FromBody] UpdateViewCommand command,
-        CancellationToken cancellationToken)
+    public async Task<IActionResult> UpdateView(Guid id, [FromBody] UpdateViewCommand command, CancellationToken ct)
     {
-        if (id != command.Id)
-            return BadRequest("Route id does not match body id.");
-
-        await _mediator.Send(command, cancellationToken);
-        return NoContent();
+        if (id != command.Id) return BadRequest("Route id does not match body id.");
+        var result = await _handler.SendAsync(command, ct);
+        return result.ToActionResult();
     }
 
     [HttpDelete("{id:guid}")]
-    public async Task<IActionResult> DeleteView(Guid id, CancellationToken cancellationToken)
+    public async Task<IActionResult> DeleteView(Guid id, CancellationToken ct)
     {
-        await _mediator.Send(new DeleteViewCommand(id), cancellationToken);
-        return NoContent();
+        var result = await _handler.SendAsync(new DeleteViewCommand(id), ct);
+        return result.ToActionResult();
     }
 }

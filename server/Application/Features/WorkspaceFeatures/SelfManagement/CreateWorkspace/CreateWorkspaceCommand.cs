@@ -6,12 +6,11 @@ using MediatR;
 
 namespace Application.Features.WorkspaceFeatures.SelfManagement.CreateWorkspace;
 
-public record CreateWorkspaceCommand : ICommandRequest<Guid>
-{
-    public string Name { get; init; } = null!;
-    public string? Description { get; init; }
-    public string Color { get; init; } = null!;
-    public string Icon { get; init; } = null!;
-    public Theme Theme { get; init; }
-    public bool StrictJoin { get; init; }
-}
+public record CreateWorkspaceCommand(
+    string Name,
+    string? Description,
+    string Color,
+    string Icon,
+    Theme Theme,
+    bool StrictJoin
+) : ICommandRequest<Guid>;

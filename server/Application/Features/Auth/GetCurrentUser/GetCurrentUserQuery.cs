@@ -1,10 +1,10 @@
-using MediatR;
+using Application.Common.Interfaces;
 
 namespace Application.Features.Auth.GetCurrentUser;
 
-public record GetCurrentUserQuery : IRequest<UserDto>;
+public record GetCurrentUserQuery : IQueryRequest<GetCurrentUserDto>;
 
-public record UserDto(
+public record GetCurrentUserDto(
     Guid Id,
     string Name,
     string Email

@@ -1,9 +1,8 @@
-using MediatR;
+using Application.Common.Interfaces;
+using Application.Common.Results;
 using Domain.Enums;
 
 namespace Application.Features.StatusManagement.GetStatusList;
-
-public record GetStatusListQuery(Guid WorkflowId) : IRequest<List<StatusDto>>;
 
 public record StatusDto(
     Guid Id,
@@ -11,3 +10,5 @@ public record StatusDto(
     string Color,
     StatusCategory Category
 );
+
+public record GetStatusListQuery(Guid WorkflowId) : IQueryRequest<List<StatusDto>>;

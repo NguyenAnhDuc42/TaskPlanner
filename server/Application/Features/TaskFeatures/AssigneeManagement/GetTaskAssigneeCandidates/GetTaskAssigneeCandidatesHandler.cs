@@ -1,105 +1,56 @@
-using Application.Helpers;
-using Application.Interfaces.Repositories;
+using Application.Common.Errors;
+using Application.Common.Results;
 using Domain.Entities.ProjectEntities;
-using Domain.Entities.Relationship;
-using Domain.Enums.RelationShip;
-using MediatR;
-using Microsoft.EntityFrameworkCore;
 using server.Application.Interfaces;
-using ValidationException = System.ComponentModel.DataAnnotations.ValidationException;
+using Application.Interfaces.Data;
+using Dapper;
 
 namespace Application.Features.TaskFeatures.AssigneeManagement.GetTaskAssigneeCandidates;
 
 public class GetTaskAssigneeCandidatesHandler
-    : BaseFeatureHandler, IRequestHandler<GetTaskAssigneeCandidatesQuery, List<TaskAssigneeCandidateDto>>
+    : IQueryHandler<GetTaskAssigneeCandidatesQuery, List<TaskAssigneeCandidateDto>>
 {
-    public GetTaskAssigneeCandidatesHandler(
-        IUnitOfWork unitOfWork,
-        ICurrentUserService currentUserService,
-        WorkspaceContext workspaceContext)
-        : base(unitOfWork, currentUserService, workspaceContext) { }
+    private readonly IDataBase _db;
 
-    public async Task<List<TaskAssigneeCandidateDto>> Handle(
-        GetTaskAssigneeCandidatesQuery request,
-        CancellationToken cancellationToken)
+    public GetTaskAssigneeCandidatesHandler(IDataBase db)
     {
-        var task = await UnitOfWork.Set<ProjectTask>().FindAsync(request.TaskId, cancellationToken);
-        if (task == null) throw new KeyNotFoundException($"Task {request.TaskId} not found");
-        await EnsureCurrentUserCanAccessTask(task, cancellationToken);
+        _db = db;
+    }
 
-        var allWorkspaceMemberIds = await UnitOfWork.Set<WorkspaceMember>()
-            .AsNoTracking()
-            .Where(wm => wm.ProjectWorkspaceId == WorkspaceId && wm.DeletedAt == null)
-            .Select(wm => wm.Id)
-            .ToListAsync(cancellationToken);
+    public async Task<Result<List<TaskAssigneeCandidateDto>>> Handle(
+        GetTaskAssigneeCandidatesQuery request,
+        CancellationToken ct)
+    {
+        var task = await _db.Tasks.FindAsync(request.TaskId, ct);
+        if (task == null) return TaskError.NotFound;
 
-        var parentId = task.ProjectFolderId ?? task.ProjectSpaceId ?? task.ProjectWorkspaceId;
-        var parentType = task.ProjectFolderId.HasValue ? EntityLayerType.ProjectFolder :
-                        task.ProjectSpaceId.HasValue ? EntityLayerType.ProjectSpace : 
-                        EntityLayerType.ProjectWorkspace;
-
-        var accessibleMemberIds = await GetAccessibleMemberIds(
-            parentId,
-            parentType,
-            allWorkspaceMemberIds);
-
-        if (accessibleMemberIds.Count == 0)
-        {
-            return new List<TaskAssigneeCandidateDto>();
-        }
-
-        var assignedUserIds = (await UnitOfWork.QueryAsync<Guid>(@"
+        var assignedUserIds = (await _db.Connection.QueryAsync<Guid>(@"
             SELECT wm.user_id
             FROM task_assignments ta
             JOIN workspace_members wm ON ta.workspace_member_id = wm.id
             WHERE ta.task_id = @TaskId
               AND ta.deleted_at IS NULL
-              AND wm.deleted_at IS NULL", new { TaskId = task.Id }, cancellationToken)).ToArray();
+              AND wm.deleted_at IS NULL", new { TaskId = task.Id })).ToArray();
 
         var safeLimit = request.Limit <= 0 ? 50 : Math.Min(request.Limit, 100);
 
-        var candidates = await UnitOfWork.QueryAsync<TaskAssigneeCandidateDto>(@"
+        var candidates = await _db.Connection.QueryAsync<TaskAssigneeCandidateDto>(@"
             SELECT u.id AS UserId, u.name AS UserName, NULL AS AvatarUrl
             FROM workspace_members wm
             JOIN users u ON wm.user_id = u.id
-            WHERE wm.id = ANY(@WorkspaceMemberIds)
+            WHERE wm.project_workspace_id = @WorkspaceId
               AND wm.deleted_at IS NULL
               AND (@Search IS NULL OR u.name ILIKE ('%' || @Search || '%'))
               AND (array_length(@AssignedUserIds, 1) IS NULL OR NOT (u.id = ANY(@AssignedUserIds)))
             ORDER BY u.name
             LIMIT @Limit", new
         {
-            WorkspaceMemberIds = accessibleMemberIds.ToArray(),
+            WorkspaceId = task.ProjectWorkspaceId,
             Search = string.IsNullOrWhiteSpace(request.Search) ? null : request.Search.Trim(),
             AssignedUserIds = assignedUserIds,
             Limit = safeLimit
-        }, cancellationToken);
+        });
 
         return candidates.ToList();
-    }
-
-    private async Task EnsureCurrentUserCanAccessTask(ProjectTask task, CancellationToken cancellationToken)
-    {
-        if (task.CreatorId == CurrentUserId)
-        {
-            return;
-        }
-
-        var currentWorkspaceMemberId = await WorkspaceContext.GetWorkspaceMemberIdAsync(cancellationToken);
-        
-        var parentId = task.ProjectFolderId ?? task.ProjectSpaceId ?? task.ProjectWorkspaceId;
-        var parentType = task.ProjectFolderId.HasValue ? EntityLayerType.ProjectFolder :
-                        task.ProjectSpaceId.HasValue ? EntityLayerType.ProjectSpace : 
-                        EntityLayerType.ProjectWorkspace;
-
-        var accessibleCurrentMemberIds = await GetAccessibleMemberIds(
-            parentId,
-            parentType,
-            new List<Guid> { currentWorkspaceMemberId });
-
-        if (accessibleCurrentMemberIds.Count == 0)
-        {
-            throw new ValidationException("You do not have permission to view assignee candidates for this task.");
-        }
     }
 }

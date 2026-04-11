@@ -1,32 +1,27 @@
-using Application.Interfaces.Repositories;
-using Domain.Entities.ProjectEntities;
-using MediatR;
+using Application.Common.Errors;
+using Application.Common.Results;
 using Application.Features.ViewFeatures.FeatureHelpers;
-using Application.Helpers;
+using Application.Interfaces.Data;
 using server.Application.Interfaces;
 
 namespace Application.Features.ViewFeatures.GetViewData;
 
-public class GetViewDataHandler : BaseFeatureHandler, IRequestHandler<GetViewDataQuery, BaseViewResult>
+public class GetViewDataHandler : IQueryHandler<GetViewDataQuery, BaseViewResult>
 {
+    private readonly IDataBase _db;
     private readonly ViewBuilder _viewBuilder;
 
-    public GetViewDataHandler(
-        IUnitOfWork unitOfWork,
-        ViewBuilder viewBuilder,
-        WorkspaceContext workspaceContext,
-        ICurrentUserService currentUserService)
-        : base(unitOfWork, currentUserService, workspaceContext)
+    public GetViewDataHandler(IDataBase db, ViewBuilder viewBuilder)
     {
+        _db = db;
         _viewBuilder = viewBuilder;
     }
 
-    public async Task<BaseViewResult> Handle(GetViewDataQuery request, CancellationToken cancellationToken)
+    public async Task<Result<BaseViewResult>> Handle(GetViewDataQuery request, CancellationToken ct)
     {
-        var view = await UnitOfWork.Set<ViewDefinition>().FindAsync(request.ViewId);
-        if (view == null) throw new KeyNotFoundException("View not found.");
+        var view = await _db.Views.FindAsync(request.ViewId, ct);
+        if (view == null) return ViewError.NotFound;
 
-        var workspaceMemberId = await WorkspaceContext.GetWorkspaceMemberIdAsync(cancellationToken);
-        return await _viewBuilder.Build(view.LayerId, view.LayerType, view, workspaceMemberId);
+        return await _viewBuilder.Build(view.LayerId, view.LayerType, view);
     }
 }

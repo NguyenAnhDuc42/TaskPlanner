@@ -4,7 +4,7 @@ using Domain.Enums;
 
 namespace Application.Features.ViewFeatures.GetViews;
 
-public record GetViewsQuery(Guid LayerId, EntityLayerType LayerType) : IQuery<List<ViewDto>>;
+public record GetViewsQuery(Guid LayerId, EntityLayerType LayerType) : IQueryRequest<List<ViewDto>>;
 
 public record ViewDto(
     Guid Id,

@@ -1,54 +1,29 @@
-using Application.Interfaces.Repositories;
-using Domain;
 using Application.Helpers;
+using Application.Common.Errors;
+using Application.Common.Results;
 using Domain.Entities.ProjectEntities;
-using Domain.Enums.RelationShip;
-using MediatR;
 using server.Application.Interfaces;
-using ValidationException = System.ComponentModel.DataAnnotations.ValidationException;
+using Application.Interfaces.Data;
 
 namespace Application.Features.TaskFeatures.SelfManagement.DeleteTask;
 
-public class DeleteTaskHandler : BaseFeatureHandler, IRequestHandler<DeleteTaskCommand, Unit>
+public class DeleteTaskHandler : ICommandHandler<DeleteTaskCommand>
 {
-    public DeleteTaskHandler(IUnitOfWork unitOfWork, ICurrentUserService currentUserService, WorkspaceContext workspaceContext)
-        : base(unitOfWork, currentUserService, workspaceContext) { }
+    private readonly IDataBase _db;
 
-    public async Task<Unit> Handle(DeleteTaskCommand request, CancellationToken cancellationToken)
+    public DeleteTaskHandler(IDataBase db)
     {
-        var task = await UnitOfWork.Set<ProjectTask>().FindAsync(request.TaskId, cancellationToken);
-        if (task == null) throw new KeyNotFoundException($"Task {request.TaskId} not found");
-        await EnsureCurrentUserCanDeleteTask(task, cancellationToken);
-
-        task.SoftDelete();
-
-        return Unit.Value;
+        _db = db;
     }
 
-    private async Task EnsureCurrentUserCanDeleteTask(
-        ProjectTask task,
-        CancellationToken cancellationToken)
+    public async Task<Result> Handle(DeleteTaskCommand request, CancellationToken ct)
     {
-        if (task.CreatorId == CurrentUserId)
-        {
-            return;
-        }
+        var task = await _db.Tasks.FindAsync(request.TaskId, ct);
+        if (task == null) return TaskError.NotFound;
 
-        var currentWorkspaceMemberId = await WorkspaceContext.GetWorkspaceMemberIdAsync(cancellationToken);
+        task.SoftDelete();
+        await _db.SaveChangesAsync(ct);
         
-        var parentId = task.ProjectFolderId ?? task.ProjectSpaceId ?? task.ProjectWorkspaceId;
-        var parentType = task.ProjectFolderId.HasValue ? EntityLayerType.ProjectFolder :
-                        task.ProjectSpaceId.HasValue ? EntityLayerType.ProjectSpace : 
-                        EntityLayerType.ProjectWorkspace;
-
-        var accessibleCurrentMemberIds = await GetAccessibleMemberIds(
-            parentId,
-            parentType,
-            new List<Guid> { currentWorkspaceMemberId });
-
-        if (accessibleCurrentMemberIds.Count == 0)
-        {
-            throw new ValidationException("You do not have permission to delete this task.");
-        }
+        return Result.Success();
     }
 }

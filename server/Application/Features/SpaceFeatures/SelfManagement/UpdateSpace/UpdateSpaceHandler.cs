@@ -1,24 +1,38 @@
-using Application.Interfaces.Repositories;
+using Application.Common.Errors;
+using Application.Interfaces.Data;
 using Application.Helpers;
+using Application.Common.Results;
 using Domain.Entities.ProjectEntities;
-using Domain.Entities.Relationship;
-using Domain.Enums.RelationShip;
-using MediatR;
 using Microsoft.EntityFrameworkCore;
 using server.Application.Interfaces;
 
 namespace Application.Features.SpaceFeatures.SelfManagement.UpdateSpace;
 
-public class UpdateSpaceHandler : BaseFeatureHandler, IRequestHandler<UpdateSpaceCommand, Unit>
+public class UpdateSpaceHandler : ICommandHandler<UpdateSpaceCommand>
 {
-    public UpdateSpaceHandler(IUnitOfWork unitOfWork, ICurrentUserService currentUserService, WorkspaceContext workspaceContext)
-        : base(unitOfWork, currentUserService, workspaceContext) { }
+    private readonly IDataBase _db;
+    private readonly ICurrentUserService _currentUserService;
+    private readonly WorkspaceContext _workspaceContext;
 
-    public async Task<Unit> Handle(UpdateSpaceCommand request, CancellationToken cancellationToken)
+    public UpdateSpaceHandler(IDataBase db, ICurrentUserService currentUserService, WorkspaceContext workspaceContext)
     {
-        var space = await UnitOfWork.Set<ProjectSpace>().FindAsync(request.SpaceId, cancellationToken);
-        if (space == null) throw new KeyNotFoundException($"Space {request.SpaceId} not found");
+        _db = db;
+        _currentUserService = currentUserService;
+        _workspaceContext = workspaceContext;
+    }
 
+    public async Task<Result> Handle(UpdateSpaceCommand request, CancellationToken ct)
+    {
+        var space = await _db.Spaces
+            .ById(request.SpaceId)
+            .FirstOrDefaultAsync(ct);
+
+        if (space == null) return Result.Failure(SpaceError.NotFound);
+
+        var workspaceIdResult = _workspaceContext.TryGetWorkspaceId();
+        if (workspaceIdResult.IsFailure) return workspaceIdResult;
+
+        // 3. Apply Updates
         if (request.Name is not null || request.Description is not null)
         {
             var slug = request.Name != null ? SlugHelper.GenerateSlug(request.Name) : null;
@@ -31,49 +45,8 @@ public class UpdateSpaceHandler : BaseFeatureHandler, IRequestHandler<UpdateSpac
         if (request.IsPrivate.HasValue) 
             space.UpdatePrivate(request.IsPrivate.Value);
 
-        if (space.IsPrivate)
-        {
-            var ownerWorkspaceMemberId = await GetWorkspaceMemberId(
-                space.CreatorId ?? CurrentUserId,
-                cancellationToken
-            );
-            await EnsureOwnerAccessAsync(space.Id, ownerWorkspaceMemberId, cancellationToken);
-        }
-
-        await UnitOfWork.SaveChangesAsync(cancellationToken);
-        return Unit.Value;
-    }
-
-    private async Task EnsureOwnerAccessAsync(Guid spaceId, Guid ownerWorkspaceMemberId, CancellationToken cancellationToken)
-    {
-        var ownerAccess = await UnitOfWork.Set<EntityAccess>()
-            .Where(ea =>
-                ea.ProjectWorkspaceId == WorkspaceId &&
-                ea.EntityId == spaceId &&
-                ea.EntityLayer == EntityLayerType.ProjectSpace &&
-                ea.WorkspaceMemberId == ownerWorkspaceMemberId &&
-                ea.DeletedAt == null)
-            .FirstOrDefaultAsync(cancellationToken);
-
-        if (ownerAccess is null)
-        {
-            var newOwnerAccess = EntityAccess.Create(
-                WorkspaceId,
-                ownerWorkspaceMemberId,
-                spaceId,
-                EntityLayerType.ProjectSpace,
-                AccessLevel.Manager,
-                CurrentUserId
-            );
-
-            await UnitOfWork.Set<EntityAccess>().AddAsync(newOwnerAccess, cancellationToken);
-            return;
-        }
-
-        if (ownerAccess.AccessLevel != AccessLevel.Manager)
-        {
-            ownerAccess.UpdateAccessLevel(AccessLevel.Manager);
-        }
+        await _db.SaveChangesAsync(ct);
+        return Result.Success();
     }
 }
 

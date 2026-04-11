@@ -10,7 +10,9 @@ public static class FolderExtensions
     public static bool IsActive(this ProjectFolder folder) => 
         !folder.IsArchived;
 
-    // Queryable Extensions
+    public static IQueryable<ProjectFolder> ById(this IQueryable<ProjectFolder> query, Guid id) => 
+        query.Where(folder => folder.Id == id);
+
     public static IQueryable<ProjectFolder> WhereActive(this IQueryable<ProjectFolder> query) => 
         query.Where(folder => !folder.IsArchived);
 

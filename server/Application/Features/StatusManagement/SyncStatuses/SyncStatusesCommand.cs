@@ -1,9 +1,13 @@
 using Application.Common.Interfaces;
 using Domain.Enums;
-using MediatR;
 
 namespace Application.Features.StatusManagement.SyncStatuses;
-
+public record SyncStatusesCommand(
+    Guid WorkflowId, 
+    List<StatusSyncItem> Statuses,
+    Guid? SpaceId = null,
+    Guid? FolderId = null) : ICommandRequest;
+    
 public record StatusSyncItem(
     Guid? Id, 
     string Name, 
@@ -11,6 +15,4 @@ public record StatusSyncItem(
     StatusCategory Category, 
     bool IsDeleted = false);
 
-public record SyncStatusesCommand(
-    Guid WorkflowId, 
-    List<StatusSyncItem> Statuses) : ICommand<Unit>;
+

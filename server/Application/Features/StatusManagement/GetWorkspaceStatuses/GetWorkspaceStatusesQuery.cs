@@ -1,4 +1,5 @@
 using Application.Common.Interfaces;
+using Application.Common.Results;
 using Domain.Enums;
 
 namespace Application.Features.StatusManagement.GetWorkspaceStatuses;
@@ -10,4 +11,8 @@ public record StatusDto(
     StatusCategory Category
 );
 
-public record GetWorkspaceStatusesQuery() : IQuery<List<StatusDto>>;
+public record GetWorkspaceStatusesQuery(
+    Guid WorkspaceId,
+    Guid? SpaceId = null,
+    Guid? FolderId = null
+) : IQueryRequest<List<StatusDto>>;

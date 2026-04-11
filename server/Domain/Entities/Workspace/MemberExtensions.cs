@@ -8,6 +8,9 @@ namespace Domain.Entities;
 
 public static class MemberExtensions
 {
+    public static IQueryable<WorkspaceMember> ById(this IQueryable<WorkspaceMember> query, Guid id) => 
+        query.Where(m => m.Id == id);
+
     public static IQueryable<WorkspaceMember> ByWorkspace(this IQueryable<WorkspaceMember> query, Guid workspaceId) =>
         query.Where(m => m.ProjectWorkspaceId == workspaceId);
 

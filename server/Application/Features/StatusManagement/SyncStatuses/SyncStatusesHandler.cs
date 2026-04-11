@@ -1,28 +1,40 @@
-using Application.Interfaces.Repositories;
+using Application.Common.Errors;
+using Application.Common.Interfaces;
+using Application.Common.Results;
+using Application.Interfaces.Data;
 using Domain.Entities.ProjectEntities;
-using MediatR;
-using server.Application.Interfaces;
-using Application.Helpers;
 using Microsoft.EntityFrameworkCore;
+using server.Application.Interfaces;
 
 namespace Application.Features.StatusManagement.SyncStatuses;
 
-public class SyncStatusesHandler : BaseFeatureHandler, IRequestHandler<SyncStatusesCommand, Unit>
+public class SyncStatusesHandler : ICommandHandler<SyncStatusesCommand>
 {
-    public SyncStatusesHandler(
-        IUnitOfWork unitOfWork,
-        ICurrentUserService currentUserService,
-        WorkspaceContext workspaceContext)
-        : base(unitOfWork, currentUserService, workspaceContext) { }
+    private readonly IDataBase _db;
+    private readonly ICurrentUserService _currentUserService;
 
-    public async Task<Unit> Handle(SyncStatusesCommand request, CancellationToken cancellationToken)
+    public SyncStatusesHandler(IDataBase db, ICurrentUserService currentUserService)
     {
-        var workflow = await UnitOfWork.Set<Workflow>().FindAsync(request.WorkflowId, cancellationToken);
-        if (workflow == null) throw new KeyNotFoundException($"Workflow {request.WorkflowId} not found");
+        _db = db;
+        _currentUserService = currentUserService;
+    }
 
-        var existingStatuses = await UnitOfWork.Set<Status>()
-            .Where(s => s.WorkflowId == request.WorkflowId && s.DeletedAt == null)
-            .ToListAsync(cancellationToken);
+    public async Task<Result> Handle(SyncStatusesCommand request, CancellationToken ct)
+    {
+        var currentUserId = _currentUserService.CurrentUserId();
+        if (currentUserId == Guid.Empty) 
+            return Result.Failure(Error.Unauthorized("User.NotAuthenticated", "User not authenticated."));
+
+        var workflow = await _db.Workflows
+            .ById(request.WorkflowId)
+            .FirstOrDefaultAsync(ct);
+
+        if (workflow == null) return Result.Failure(Error.NotFound("Workflow.NotFound", $"Workflow {request.WorkflowId} not found"));
+
+        var existingStatuses = await _db.Statuses
+            .ByWorkflow(request.WorkflowId)
+            .WhereNotDeleted()
+            .ToListAsync(ct);
 
         foreach (var item in request.Statuses)
         {
@@ -36,9 +48,9 @@ public class SyncStatusesHandler : BaseFeatureHandler, IRequestHandler<SyncStatu
                     item.Name,
                     item.Color,
                     item.Category,
-                    CurrentUserId
+                    currentUserId
                 );
-                await UnitOfWork.Set<Status>().AddAsync(newStatus, cancellationToken);
+                await _db.Statuses.AddAsync(newStatus, ct);
             }
             else
             {
@@ -56,6 +68,7 @@ public class SyncStatusesHandler : BaseFeatureHandler, IRequestHandler<SyncStatu
             }
         }
 
-        return Unit.Value;
+        await _db.SaveChangesAsync(ct);
+        return Result.Success();
     }
 }

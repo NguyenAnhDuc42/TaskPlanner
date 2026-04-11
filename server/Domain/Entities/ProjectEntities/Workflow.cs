@@ -6,6 +6,8 @@ namespace Domain.Entities.ProjectEntities;
 public class Workflow : Entity
 {
     public Guid ProjectWorkspaceId { get; private set; }
+    public Guid? SpaceId { get; private set; }
+    public Guid? FolderId { get; private set; }
     public string Name { get; private set; } = null!;
     public string? Description { get; private set; }
 
@@ -14,17 +16,19 @@ public class Workflow : Entity
 
     private Workflow() { }
 
-    private Workflow(Guid id, Guid projectWorkspaceId, string name, string? description, Guid creatorId) : base(id)
+    private Workflow(Guid id, Guid projectWorkspaceId, Guid? spaceId, Guid? folderId, string name, string? description, Guid creatorId) : base(id)
     {
         ProjectWorkspaceId = projectWorkspaceId;
+        SpaceId = spaceId;
+        FolderId = folderId;
         Name = name?.Trim() ?? throw new ArgumentNullException(nameof(name));
         Description = description?.Trim();
         CreatorId = creatorId;
     }
 
-    public static Workflow Create(Guid projectWorkspaceId, string name, string? description, Guid creatorId)
+    public static Workflow Create(Guid projectWorkspaceId, string name, string? description, Guid creatorId, Guid? spaceId = null, Guid? folderId = null)
     {
-        return new Workflow(Guid.NewGuid(), projectWorkspaceId, name, description, creatorId);
+        return new Workflow(Guid.NewGuid(), projectWorkspaceId, spaceId, folderId, name, description, creatorId);
     }
 
     public Workflow Clone(Guid creatorId)

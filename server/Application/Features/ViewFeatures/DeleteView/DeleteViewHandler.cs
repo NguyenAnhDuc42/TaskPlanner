@@ -1,23 +1,27 @@
-using Application.Interfaces.Repositories;
+using Application.Interfaces.Data;
+using Application.Common.Results;
+using Application.Common.Errors;
 using Domain.Entities.ProjectEntities;
-using MediatR;
-using Application.Helpers;
-using server.Application.Interfaces;
 
 namespace Application.Features.ViewFeatures.DeleteView;
 
-public class DeleteViewHandler : BaseFeatureHandler, IRequestHandler<DeleteViewCommand, Unit>
+public class DeleteViewHandler : ICommandHandler<DeleteViewCommand>
 {
-    public DeleteViewHandler(IUnitOfWork unitOfWork, WorkspaceContext workspaceContext, ICurrentUserService currentUserService) 
-        : base(unitOfWork, currentUserService, workspaceContext) { }
+    private readonly IDataBase _db;
 
-    public async Task<Unit> Handle(DeleteViewCommand request, CancellationToken cancellationToken)
+    public DeleteViewHandler(IDataBase db)
     {
-        var view = await UnitOfWork.Set<ViewDefinition>().FindAsync(request.Id);
-        if (view == null) throw new KeyNotFoundException("View not found.");
+        _db = db;
+    }
 
-        UnitOfWork.Set<ViewDefinition>().Remove(view);
+    public async Task<Result> Handle(DeleteViewCommand request, CancellationToken ct)
+    {
+        var view = await _db.Views.FindAsync(request.Id, ct);
+        if (view == null) return ViewError.NotFound;
+
+        _db.Views.Remove(view);
+        await _db.SaveChangesAsync(ct);
         
-        return Unit.Value;
+        return Result.Success();
     }
 }

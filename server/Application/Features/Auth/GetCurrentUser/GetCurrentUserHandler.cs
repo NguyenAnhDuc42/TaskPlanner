@@ -1,23 +1,23 @@
-using MediatR;
+using Application.Common.Results;
+using Application.Features;
 using server.Application.Interfaces;
-using Application.Features.Auth;
 
 namespace Application.Features.Auth.GetCurrentUser;
 
-public class GetCurrentUserHandler : IRequestHandler<GetCurrentUserQuery, UserDto>
+public class GetCurrentUserHandler : IQueryHandler<GetCurrentUserQuery, GetCurrentUserDto>
 {
     private readonly ICurrentUserService _currentUserService;
 
     public GetCurrentUserHandler(ICurrentUserService currentUserService)
     {
-        _currentUserService = currentUserService ?? throw new ArgumentNullException(nameof(currentUserService));
+        _currentUserService = currentUserService;
     }
 
-    public async Task<UserDto> Handle(GetCurrentUserQuery request, CancellationToken cancellationToken)
+    public async Task<Result<GetCurrentUserDto>> Handle(GetCurrentUserQuery request, CancellationToken ct)
     {
-        var user = await _currentUserService.CurrentUserAsync(cancellationToken);
+        var user = await _currentUserService.CurrentUserAsync(ct);
         
-        return new UserDto(
+        return new GetCurrentUserDto(
             Id: user.Id,
             Name: user.Name,
             Email: user.Email

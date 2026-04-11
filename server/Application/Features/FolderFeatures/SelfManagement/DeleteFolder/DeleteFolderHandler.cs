@@ -1,35 +1,36 @@
-using Application.Interfaces.Repositories;
-using Domain;
-using Application.Helpers;
-using Domain.Entities.ProjectEntities;
-using Domain.Enums;
-using MediatR;
+using Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 using server.Application.Interfaces;
+using Application.Interfaces.Data;
 
 namespace Application.Features.FolderFeatures.SelfManagement.DeleteFolder;
 
-public class DeleteFolderHandler : BaseFeatureHandler, IRequestHandler<DeleteFolderCommand, Unit>
+public class DeleteFolderHandler : ICommandHandler<DeleteFolderCommand>
 {
-    public DeleteFolderHandler(IUnitOfWork unitOfWork, ICurrentUserService currentUserService, WorkspaceContext workspaceContext)
-        : base(unitOfWork, currentUserService, workspaceContext) { }
+    private readonly IDataBase _db;
 
-    public async Task<Unit> Handle(DeleteFolderCommand request, CancellationToken cancellationToken)
+    public DeleteFolderHandler(IDataBase db)
     {
-        var folder = await UnitOfWork.Set<ProjectFolder>().FindAsync(request.FolderId, cancellationToken);
-        if (folder == null) throw new KeyNotFoundException($"Folder {request.FolderId} not found");
+        _db = db;
+    }
 
-        // Check if folder has child tasks
-        var hasTasks = await UnitOfWork.Set<ProjectTask>()
-            .AnyAsync(t => t.ProjectFolderId == folder.Id && !t.IsArchived, cancellationToken);
+    public async Task<Result> Handle(DeleteFolderCommand request, CancellationToken ct)
+    {
+        var folder = await _db.Folders.ById(request.FolderId).FirstOrDefaultAsync(ct);
+        if (folder == null) return Result.Failure(FolderError.NotFound);
 
-        if (hasTasks)
-        {
-            throw new InvalidOperationException("Cannot delete folder that contains active tasks. Archive or move the tasks first.");
-        }
+        // Check if folder has active tasks
+        var hasTasks = await _db.Tasks
+            .AsNoTracking()
+            .ByFolder(folder.Id)
+            .WhereActive()
+            .AnyAsync(ct);
+
+        if (hasTasks) return Result.Failure(FolderError.HasActiveTasks);
 
         folder.SoftDelete();
-
-        return Unit.Value;
+        await _db.SaveChangesAsync(ct);
+        
+        return Result.Success();
     }
 }

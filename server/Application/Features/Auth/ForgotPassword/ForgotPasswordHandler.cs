@@ -1,38 +1,37 @@
-using Application.Interfaces.Repositories;
-using Application.Interfaces.Services;
+using Application.Common.Results;
+using Application.Interfaces.Data;
 using Domain.Entities;
-using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
 namespace Application.Features.Auth.ForgotPassword;
 
-public class ForgotPasswordHandler : IRequestHandler<ForgotPasswordCommand, string?>
+public class ForgotPasswordHandler : ICommandHandler<ForgotPasswordCommand, string?>
 {
-    private readonly IUnitOfWork _unitOfWork;
+    private readonly IDataBase _db;
     private readonly ILogger<ForgotPasswordHandler> _logger;
 
-    public ForgotPasswordHandler(IUnitOfWork unitOfWork, ILogger<ForgotPasswordHandler> logger)
+    public ForgotPasswordHandler(IDataBase db, ILogger<ForgotPasswordHandler> logger)
     {
-        _unitOfWork = unitOfWork;
+        _db = db;
         _logger = logger;
     }
 
-    public async Task<string?> Handle(ForgotPasswordCommand request, CancellationToken cancellationToken)
+    public async Task<Result<string?>> Handle(ForgotPasswordCommand request, CancellationToken ct)
     {
-        var user = await _unitOfWork.Set<User>().FirstOrDefaultAsync(u => u.Email == request.Email, cancellationToken);
+        var user = await _db.Users.FirstOrDefaultAsync(u => u.Email == request.Email, ct);
         
         if (user == null)
         {
             _logger.LogWarning("Password reset requested for non-existent email: {Email}", request.Email);
-            return null;
+            return Result.Success<string?>(null);
         }
 
         var token = Guid.NewGuid().ToString("N");
         var resetToken = PasswordResetToken.Create(user.Id, token, TimeSpan.FromHours(1));
         
-        await _unitOfWork.Set<PasswordResetToken>().AddAsync(resetToken, cancellationToken);
-        await _unitOfWork.SaveChangesAsync(cancellationToken);
+        await _db.PasswordResetTokens.AddAsync(resetToken, ct);
+        await _db.SaveChangesAsync(ct);
 
         _logger.LogInformation("Password reset token generated for {Email}: {Token}", user.Email, token);
         return token;

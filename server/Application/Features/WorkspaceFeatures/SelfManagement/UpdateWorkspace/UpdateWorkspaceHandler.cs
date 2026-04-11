@@ -29,7 +29,7 @@ public class UpdateWorkspaceHandler : ICommandHandler<UpdateWorkspaceCommand>
         _logger = logger;
     }
 
-    public async Task<Result> Handle(UpdateWorkspaceCommand request, CancellationToken cancellationToken)
+    public async Task<Result> Handle(UpdateWorkspaceCommand request, CancellationToken ct)
     {
         var currentUserId = _currentUserService.CurrentUserId();
         if (currentUserId == Guid.Empty) 
@@ -37,9 +37,11 @@ public class UpdateWorkspaceHandler : ICommandHandler<UpdateWorkspaceCommand>
 
         _logger.LogInformation("Updating workspace {WorkspaceId} by user {UserId}", request.Id, currentUserId);
 
-        var workspace = await _db.Workspaces.FindAsync(new object[] { request.Id }, cancellationToken);
-        if (workspace == null) 
-            return Result.Failure(Error.NotFound("Workspace.NotFound", $"Workspace {request.Id} not found"));
+        var workspace = await _db.Workspaces
+            .ById(request.Id)
+            .FirstOrDefaultAsync(ct);
+
+        if (workspace == null) return Result.Failure(WorkspaceError.NotFound);
 
         // --- Apply Updates Inline ---
         if (request.Name is not null || request.Description is not null)

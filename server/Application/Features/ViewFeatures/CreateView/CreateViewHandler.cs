@@ -1,42 +1,51 @@
 using Application.Helpers;
-using Application.Interfaces.Repositories;
+using Application.Interfaces.Data;
+using Application.Common.Results;
+using Application.Common.Errors;
 using Domain.Entities.ProjectEntities;
 using Domain.Enums.RelationShip;
-using MediatR;
 using Microsoft.EntityFrameworkCore;
 using server.Application.Interfaces;
 
 namespace Application.Features.ViewFeatures.CreateView;
 
-
-public class CreateViewHandler : BaseFeatureHandler, IRequestHandler<CreateViewCommand, Guid>
+public class CreateViewHandler : ICommandHandler<CreateViewCommand, Guid>
 {
-    public CreateViewHandler(IUnitOfWork unitOfWork, ICurrentUserService currentUserService, WorkspaceContext workspaceContext) 
-        : base(unitOfWork, currentUserService, workspaceContext) { }
+    private readonly IDataBase _db;
+    private readonly ICurrentUserService _currentUserService;
 
-    public async Task<Guid> Handle(CreateViewCommand request, CancellationToken cancellationToken)
+    public CreateViewHandler(IDataBase db, ICurrentUserService currentUserService)
+    {
+        _db = db;
+        _currentUserService = currentUserService;
+    }
+
+    public async Task<Result<Guid>> Handle(CreateViewCommand request, CancellationToken ct)
     {
         // 1. Layer Existence Validation
-        var layerExists = request.LayerType switch
+        var error = request.LayerType switch
         {
-            EntityLayerType.ProjectWorkspace => await UnitOfWork.Set<ProjectWorkspace>().AnyAsync(x => x.Id == request.LayerId, cancellationToken),
-            EntityLayerType.ProjectSpace => await UnitOfWork.Set<ProjectSpace>().AnyAsync(x => x.Id == request.LayerId, cancellationToken),
-            EntityLayerType.ProjectFolder => await UnitOfWork.Set<ProjectFolder>().AnyAsync(x => x.Id == request.LayerId, cancellationToken),
-            EntityLayerType.ChatRoom => await UnitOfWork.Set<ChatRoom>().AnyAsync(x => x.Id == request.LayerId, cancellationToken),
-            _ => false
+            EntityLayerType.ProjectWorkspace => await _db.Workspaces.AnyAsync(x => x.Id == request.LayerId, ct) ? null : WorkspaceError.NotFound,
+            EntityLayerType.ProjectSpace => await _db.Spaces.AnyAsync(x => x.Id == request.LayerId, ct) ? null : SpaceError.NotFound,
+            EntityLayerType.ProjectFolder => await _db.Folders.AnyAsync(x => x.Id == request.LayerId, ct) ? null : FolderError.NotFound,
+            _ => Error.Validation("Layer.Invalid", "Invalid layer type.")
         };
 
-        if (!layerExists) throw new KeyNotFoundException($"{request.LayerType} {request.LayerId} not found");
+        if (error != null) return error;
+
+        var currentUserId = _currentUserService.CurrentUserId();
 
         var view = ViewDefinition.Create(
             request.LayerId, 
             request.LayerType, 
             request.Name, 
             request.ViewType,
-            CurrentUserId,
+            currentUserId,
             request.IsDefault);
 
-        await UnitOfWork.Set<ViewDefinition>().AddAsync(view);
+        await _db.Views.AddAsync(view, ct);
+        await _db.SaveChangesAsync(ct);
+        
         return view.Id;
     }
 }

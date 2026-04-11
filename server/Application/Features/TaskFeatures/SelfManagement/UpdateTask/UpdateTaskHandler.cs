@@ -1,158 +1,115 @@
-using Application.Interfaces.Repositories;
 using Application.Helpers;
+using Application.Interfaces.Data;
+using Application.Common.Results;
+using Application.Common.Errors;
 using Domain.Entities.ProjectEntities;
-using MediatR;
-using server.Application.Interfaces;
-using Application.Features.ViewFeatures.GetViewData;
-using Microsoft.EntityFrameworkCore;
 using Domain.Entities.Relationship;
-using Domain.Enums.RelationShip;
-using ValidationException = System.ComponentModel.DataAnnotations.ValidationException;
+using Microsoft.EntityFrameworkCore;
+using server.Application.Interfaces;
+using Dapper;
 
 namespace Application.Features.TaskFeatures.SelfManagement.UpdateTask;
 
-public class UpdateTaskHandler : BaseFeatureHandler, IRequestHandler<UpdateTaskCommand, TaskDto>
+public class UpdateTaskHandler : ICommandHandler<UpdateTaskCommand, TaskDto>
 {
-    public UpdateTaskHandler(IUnitOfWork unitOfWork, ICurrentUserService currentUserService, WorkspaceContext workspaceContext)
-        : base(unitOfWork, currentUserService, workspaceContext) { }
+    private readonly IDataBase _db;
+    private readonly ICurrentUserService _currentUserService;
 
-    public async Task<TaskDto> Handle(UpdateTaskCommand request, CancellationToken cancellationToken)
+    public UpdateTaskHandler(IDataBase db, ICurrentUserService currentUserService)
     {
-        var task = await UnitOfWork.Set<ProjectTask>()
-            .Include(t => t.Assignees)
-            .FirstOrDefaultAsync(t => t.Id == request.TaskId, cancellationToken)
-            ?? throw new KeyNotFoundException($"Task not found: {request.TaskId}");
+        _db = db;
+        _currentUserService = currentUserService;
+    }
 
-        await EnsureCurrentUserCanModifyTask(task, "update", cancellationToken);
+    public async Task<Result<TaskDto>> Handle(UpdateTaskCommand request, CancellationToken ct)
+    {
+        var task = await _db.Tasks
+            .Include(t => t.Assignees)
+            .FirstOrDefaultAsync(t => t.Id == request.TaskId, ct);
+        
+        if (task == null) return TaskError.NotFound;
+
         ApplyBasicDetails(task, request);
-        await ApplyStatusUpdate(task, request, cancellationToken);
+        await ApplyStatusUpdate(task, request, ct);
         ApplyPriorityUpdate(task, request);
         ApplyDateUpdate(task, request);
         ApplyEstimationUpdate(task, request);
-        await ApplyAssigneeUpdate(task, request, cancellationToken);
+        await ApplyAssigneeUpdate(task, request, ct);
 
-        await UnitOfWork.SaveChangesAsync(cancellationToken);
-        return await BuildTaskDto(task, cancellationToken);
-    }
-
-    private async Task EnsureCurrentUserCanModifyTask(ProjectTask task, string action, CancellationToken cancellationToken)
-    {
-        if (task.CreatorId == CurrentUserId) return;
-
-        var currentWorkspaceMemberId = await WorkspaceContext.GetWorkspaceMemberIdAsync(cancellationToken);
-        
-        // Use the deepest available ParentId for access check
-        var parentId = task.ProjectFolderId ?? task.ProjectSpaceId ?? task.ProjectWorkspaceId;
-        var parentType = task.ProjectFolderId.HasValue ? EntityLayerType.ProjectFolder :
-                        task.ProjectSpaceId.HasValue ? EntityLayerType.ProjectSpace : 
-                        EntityLayerType.ProjectWorkspace;
-
-        var accessibleCurrentMemberIds = await GetAccessibleMemberIds(
-            parentId,
-            parentType,
-            new List<Guid> { currentWorkspaceMemberId });
-
-        if (accessibleCurrentMemberIds.Count == 0) throw new ValidationException($"You do not have permission to {action} this task.");
+        await _db.SaveChangesAsync(ct);
+        return await BuildTaskDto(task, ct);
     }
 
     private static void ApplyBasicDetails(ProjectTask task, UpdateTaskCommand request)
     {
         if (request.Name == null && request.Description == null) return;
-
         var slug = request.Name != null ? SlugHelper.GenerateSlug(request.Name) : null;
-        task.UpdateBasicInfo(
-            request.Name,
-            slug,
-            request.Description);
+        task.UpdateBasicInfo(request.Name, slug, request.Description);
     }
 
-    private async Task ApplyStatusUpdate(ProjectTask task, UpdateTaskCommand request, CancellationToken cancellationToken)
+    private async Task ApplyStatusUpdate(ProjectTask task, UpdateTaskCommand request, CancellationToken ct)
     {
         if (!request.StatusId.HasValue || request.StatusId.Value == task.StatusId) return;
-     
-        // Statuses are now owned by the Workspace (Liquid Workflow)
-        const string sql = @"
+        
+        var isValid = await _db.Connection.QuerySingleOrDefaultAsync<int>(@"
             SELECT COUNT(1) 
             FROM   statuses s
             JOIN   workflows w ON s.workflow_id = w.id
             WHERE  s.id = @Id 
               AND  w.project_workspace_id = @WorkspaceId 
-              AND  s.deleted_at IS NULL";
+              AND  s.deleted_at IS NULL", new { Id = request.StatusId.Value, WorkspaceId = task.ProjectWorkspaceId });
 
-        var isValid = await UnitOfWork.QuerySingleOrDefaultAsync<int>(sql, new { Id = request.StatusId.Value, WorkspaceId = task.ProjectWorkspaceId }, cancellationToken);
-        
-        if (isValid == 0) throw new ValidationException("Selected status does not belong to the workspace's workflow.");
-
-        task.UpdateStatus(request.StatusId.Value);
+        if (isValid > 0) task.UpdateStatus(request.StatusId.Value);
     }
 
     private static void ApplyPriorityUpdate(ProjectTask task, UpdateTaskCommand request)
     {
-        if (!request.Priority.HasValue || request.Priority.Value == task.Priority) return;
-
-        task.UpdatePriority(request.Priority.Value);
+        if (request.Priority.HasValue) task.UpdatePriority(request.Priority.Value);
     }
 
     private static void ApplyDateUpdate(ProjectTask task, UpdateTaskCommand request)
     {
-        if (!request.StartDate.HasValue && !request.DueDate.HasValue) return;
-
-        task.UpdateDates(
-            request.StartDate ?? task.StartDate,
-            request.DueDate ?? task.DueDate);
+        if (request.StartDate.HasValue || request.DueDate.HasValue)
+            task.UpdateDates(request.StartDate ?? task.StartDate, request.DueDate ?? task.DueDate);
     }
 
     private static void ApplyEstimationUpdate(ProjectTask task, UpdateTaskCommand request)
     {
-        if (!request.StoryPoints.HasValue && !request.TimeEstimate.HasValue) return;
-
-        task.UpdateEstimation(
-            request.StoryPoints ?? task.StoryPoints,
-            request.TimeEstimate ?? task.TimeEstimate);
+        if (request.StoryPoints.HasValue || request.TimeEstimate.HasValue)
+            task.UpdateEstimation(request.StoryPoints ?? task.StoryPoints, request.TimeEstimate ?? task.TimeEstimate);
     }
 
-    private async Task ApplyAssigneeUpdate(
-        ProjectTask task,
-        UpdateTaskCommand request,
-        CancellationToken cancellationToken)
+    private async Task ApplyAssigneeUpdate(ProjectTask task, UpdateTaskCommand request, CancellationToken ct)
     {
         if (request.AssigneeIds == null) return;
 
-        var validUserIds = await ValidateWorkspaceMembers(request.AssigneeIds, cancellationToken);
-        var memberIds = await GetWorkspaceMemberIds(validUserIds, cancellationToken);
-
-        var parentId = task.ProjectFolderId ?? task.ProjectSpaceId ?? task.ProjectWorkspaceId;
-        var parentType = task.ProjectFolderId.HasValue ? EntityLayerType.ProjectFolder :
-                        task.ProjectSpaceId.HasValue ? EntityLayerType.ProjectSpace : 
-                        EntityLayerType.ProjectWorkspace;
-
-        var accessibleMemberIds = await GetAccessibleMemberIds(
-            parentId,
-            parentType,
-            memberIds);
-
-        if (accessibleMemberIds.Count != memberIds.Count) throw new ValidationException("One or more assignees do not have permission to access this container.");
+        var currentUserId = _currentUserService.CurrentUserId();
+        var memberIds = await _db.WorkspaceMembers
+            .Where(wm => wm.ProjectWorkspaceId == task.ProjectWorkspaceId && request.AssigneeIds.Contains(wm.UserId))
+            .Select(wm => wm.Id)
+            .ToListAsync(ct);
 
         var currentMemberIds = task.Assignees.Select(a => a.WorkspaceMemberId).ToHashSet();
-        var toRemove = currentMemberIds.Where(id => !accessibleMemberIds.Contains(id)).ToList();
-        task.RemoveAsignees(toRemove);
+        
+        var toRemove = task.Assignees.Where(a => !memberIds.Contains(a.WorkspaceMemberId)).ToList();
+        task.RemoveAsignees(toRemove.Select(a => a.WorkspaceMemberId).ToList());
 
-        var toAdd = accessibleMemberIds
+        var toAdd = memberIds
             .Where(id => !currentMemberIds.Contains(id))
-            .Select(id => TaskAssignment.Create(task.Id, id, CurrentUserId))
+            .Select(id => TaskAssignment.Create(task.Id, id, currentUserId))
             .ToList();
         task.AddAsignees(toAdd);
     }
 
-    private async Task<TaskDto> BuildTaskDto(ProjectTask task, CancellationToken cancellationToken)
+    private async Task<TaskDto> BuildTaskDto(ProjectTask task, CancellationToken ct)
     {
-        var assigneeDtos = await UnitOfWork.QueryAsync<AssigneeDto>(@"
+        var assigneeDtos = await _db.Connection.QueryAsync<AssigneeDto>(@"
             SELECT u.id AS Id, u.name AS Name, NULL AS AvatarUrl
             FROM   task_assignments ta
             JOIN   workspace_members wm ON ta.workspace_member_id = wm.id
             JOIN   users u             ON wm.user_id = u.id
             WHERE  ta.task_id = @TaskId
-              AND  ta.deleted_at IS NULL", new { TaskId = task.Id }, cancellationToken);
+              AND  ta.deleted_at IS NULL", new { TaskId = task.Id });
 
         return new TaskDto
         {

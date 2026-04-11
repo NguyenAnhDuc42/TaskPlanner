@@ -21,13 +21,18 @@ public class UpdateMembersHandler : ICommandHandler<UpdateMembersCommand>
         _currentUserService = currentUserService;
     }
 
-    public async Task<Result> Handle(UpdateMembersCommand request, CancellationToken cancellationToken)
+    public async Task<Result> Handle(UpdateMembersCommand request, CancellationToken ct)
     {
         var currentUserId = _currentUserService.CurrentUserId();
-        if (currentUserId == Guid.Empty) return Result.Failure(Error.Unauthorized("User.NotAuthenticated", "User not authenticated."));
+        if (currentUserId == Guid.Empty) 
+            return Result.Failure(Error.Unauthorized("User.NotAuthenticated", "User not authenticated."));
 
-        var workspace = await _db.Workspaces.FindAsync(new object[] { request.workspaceId }, cancellationToken);
-        if (workspace == null) return Result.Failure(Error.NotFound("Workspace.NotFound", $"Workspace {request.workspaceId} not found"));
+        var workspace = await _db.Workspaces
+            .AsNoTracking()
+            .ById(request.workspaceId)
+            .FirstOrDefaultAsync(ct);
+
+        if (workspace == null) return Result.Failure(WorkspaceError.NotFound);
 
         if (request.members == null || !request.members.Any()) return Result.Success();
 

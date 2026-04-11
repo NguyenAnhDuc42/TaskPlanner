@@ -26,54 +26,17 @@ namespace Api.Controllers
     [Authorize]
     public class WorkspacesController : ControllerBase
     {
-        private readonly ICommandHandler<CreateWorkspaceCommand, Guid> _createHandler;
-        private readonly ICommandHandler<UpdateWorkspaceCommand> _updateHandler;
-        private readonly ICommandHandler<SetWorkspacePinCommand> _setPinHandler;
-        private readonly ICommandHandler<JoinWorkspaceByCodeCommand, Guid> _joinHandler;
-        private readonly IQueryHandler<GetWorksapceListQuery, PagedResult<WorkspaceSummaryDto>> _getListHandler;
-        private readonly IQueryHandler<GetHierarchyQuery, WorkspaceHierarchyDto> _getHierarchyHandler;
-        private readonly IQueryHandler<GetNodeTasksQuery, NodeTasksDto> _getNodeTasksHandler;
-        private readonly IQueryHandler<GetDetailWorkspaceQuery, WorkspaceSecurityContextDto> _getDetailHandler;
-        private readonly IQueryHandler<GetMembersQuery, PagedResult<MemberDto>> _getMembersHandler;
-        private readonly ICommandHandler<AddMembersCommand, Guid> _addHandler;
-        private readonly ICommandHandler<UpdateMembersCommand> _updateMembersHandler;
-        private readonly ICommandHandler<RemoveMembersCommand> _removeHandler;
-        private readonly ICommandHandler<MoveItemCommand> _moveHandler;
+        private readonly IHandler _handler;
 
-        public WorkspacesController(
-            ICommandHandler<CreateWorkspaceCommand, Guid> createHandler,
-            ICommandHandler<UpdateWorkspaceCommand> updateHandler,
-            ICommandHandler<SetWorkspacePinCommand> setPinHandler,
-            ICommandHandler<JoinWorkspaceByCodeCommand, Guid> joinHandler,
-            IQueryHandler<GetWorksapceListQuery, PagedResult<WorkspaceSummaryDto>> getListHandler,
-            IQueryHandler<GetHierarchyQuery, WorkspaceHierarchyDto> getHierarchyHandler,
-            IQueryHandler<GetNodeTasksQuery, NodeTasksDto> getNodeTasksHandler,
-            IQueryHandler<GetDetailWorkspaceQuery, WorkspaceSecurityContextDto> getDetailHandler,
-            IQueryHandler<GetMembersQuery, PagedResult<MemberDto>> getMembersHandler,
-            ICommandHandler<AddMembersCommand, Guid> addHandler,
-            ICommandHandler<UpdateMembersCommand> updateMembersHandler,
-            ICommandHandler<RemoveMembersCommand> removeHandler,
-            ICommandHandler<MoveItemCommand> moveHandler)
+        public WorkspacesController(IHandler iHandler)
         {
-            _createHandler = createHandler;
-            _updateHandler = updateHandler;
-            _setPinHandler = setPinHandler;
-            _joinHandler = joinHandler;
-            _getListHandler = getListHandler;
-            _getHierarchyHandler = getHierarchyHandler;
-            _getNodeTasksHandler = getNodeTasksHandler;
-            _getDetailHandler = getDetailHandler;
-            _getMembersHandler = getMembersHandler;
-            _addHandler = addHandler;
-            _updateMembersHandler = updateMembersHandler;
-            _removeHandler = removeHandler;
-            _moveHandler = moveHandler;
+            _handler = iHandler;
         }
 
         [HttpPost]
         public async Task<IActionResult> CreateWorkspace([FromBody] CreateWorkspaceCommand command, CancellationToken cancellationToken)
         {
-            var result = await _createHandler.Handle(command, cancellationToken);
+            var result = await _handler.SendAsync(command, cancellationToken);
             return Ok(result);
         }
 
@@ -93,7 +56,7 @@ namespace Api.Controllers
             if (!ModelState.IsValid)
                 return ValidationProblem(ModelState);
 
-            await _updateHandler.Handle(command, cancellationToken);
+            await _handler.SendAsync(command, cancellationToken);
             return NoContent();
         }
 
@@ -103,7 +66,7 @@ namespace Api.Controllers
             [FromBody] SetWorkspacePinRequest request,
             CancellationToken cancellationToken)
         {
-            await _setPinHandler.Handle(new SetWorkspacePinCommand(id, request.IsPinned), cancellationToken);
+            await _handler.SendAsync(new SetWorkspacePinCommand(id, request.IsPinned), cancellationToken);
             return NoContent();
         }
 
@@ -112,7 +75,7 @@ namespace Api.Controllers
             [FromBody] JoinWorkspaceByCodeRequest request,
             CancellationToken cancellationToken)
         {
-            var result = await _joinHandler.Handle(new JoinWorkspaceByCodeCommand(request.JoinCode), cancellationToken);
+            var result = await _handler.SendAsync(new JoinWorkspaceByCodeCommand(request.JoinCode), cancellationToken);
             return Ok(result);
         }
 
@@ -130,7 +93,7 @@ namespace Api.Controllers
             var filter = new WorkspaceFilter(name, owned, isArchived);
             var query = new GetWorksapceListQuery(pagination, filter);
 
-            var result = await _getListHandler.Handle(query, cancellationToken);
+            var result = await _handler.QueryAsync<GetWorksapceListQuery, PagedResult<WorkspaceSummaryDto>>(query, cancellationToken);
             return Ok(result);
         }
 
@@ -138,7 +101,7 @@ namespace Api.Controllers
         public async Task<ActionResult<WorkspaceHierarchyDto>> GetHierarchy(Guid id, CancellationToken cancellationToken)
         {
             var query = new GetHierarchyQuery(id);
-            var result = await _getHierarchyHandler.Handle(query, cancellationToken);
+            var result = await _handler.QueryAsync<GetHierarchyQuery, WorkspaceHierarchyDto>(query, cancellationToken);
             return Ok(result);
         }
 
@@ -153,7 +116,7 @@ namespace Api.Controllers
             CancellationToken cancellationToken = default)
         {
             var query = new GetNodeTasksQuery(id, nodeId, parentType, cursorOrderKey, cursorTaskId, pageSize);
-            var result = await _getNodeTasksHandler.Handle(query, cancellationToken);
+            var result = await _handler.QueryAsync<GetNodeTasksQuery, NodeTasksDto>(query, cancellationToken);
             return Ok(result);
         }
 
@@ -162,7 +125,7 @@ namespace Api.Controllers
             Guid id,
             CancellationToken cancellationToken)
         {
-            var result = await _getDetailHandler.Handle(new GetDetailWorkspaceQuery(id), cancellationToken);
+            var result = await _handler.QueryAsync<GetDetailWorkspaceQuery, WorkspaceSecurityContextDto>(new GetDetailWorkspaceQuery(id), cancellationToken);
             return Ok(result);
         }
 
@@ -182,7 +145,7 @@ namespace Api.Controllers
             var filter = new GetMembersFilter(name, email, spaceId, taskId, role);
             var query = new GetMembersQuery(pagination, id, filter);
 
-            var result = await _getMembersHandler.Handle(query, cancellationToken);
+            var result = await _handler.QueryAsync<GetMembersQuery, PagedResult<MemberDto>>(query, cancellationToken);
             return Ok(result);
         }
 
@@ -198,7 +161,7 @@ namespace Api.Controllers
                 enableEmail: request.EnableEmail,
                 message: request.Message
             );
-            var result = await _addHandler.Handle(command, cancellationToken);
+            var result = await _handler.SendAsync<AddMembersCommand, Guid>(command, cancellationToken);
             return Ok(result);
         }
 
@@ -212,7 +175,7 @@ namespace Api.Controllers
                 workspaceId: id,
                 members: request.Members
             );
-            var result = await _updateMembersHandler.Handle(command, cancellationToken);
+            var result = await _handler.SendAsync(command, cancellationToken);
             return Ok(result);
         }
 
@@ -226,7 +189,7 @@ namespace Api.Controllers
                 workspaceId: id,
                 memberIds: request.MemberIds
             );
-            var result = await _removeHandler.Handle(command, cancellationToken);
+            var result = await _handler.SendAsync(command, cancellationToken);
             return Ok(result);
         }
 
@@ -245,7 +208,7 @@ namespace Api.Controllers
                 NewOrderKey: request.NewOrderKey
             );
 
-            await _moveHandler.Handle(command, cancellationToken);
+            await _handler.SendAsync(command, cancellationToken);
             return NoContent();
         }
     }

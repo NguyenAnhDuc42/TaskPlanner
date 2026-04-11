@@ -53,6 +53,9 @@ public static class DependencyInjection
         // Workspace Context
         services.AddScoped<WorkspaceContext>();
 
+        // Handler Dispatcher
+        services.AddScoped<IHandler, HandlerDispatcher>();
+
         // View Engine
         services.AddScoped<ViewBuilder>();
 

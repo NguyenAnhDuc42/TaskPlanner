@@ -1,7 +1,4 @@
-using System;
 using Application.Common.Interfaces;
-using Domain.Enums.RelationShip;
-using MediatR;
 
 namespace Application.Features.FolderFeatures.SelfManagement.UpdateFolder;
 
@@ -14,5 +11,4 @@ public record UpdateFolderCommand(
     bool? IsPrivate,
     DateTimeOffset? StartDate = null,
     DateTimeOffset? DueDate = null
-) : ICommand<Unit>;
-
+) : ICommandRequest;

@@ -1,25 +1,28 @@
 using Application.Helpers;
-using Application.Interfaces.Repositories;
+using Application.Common.Errors;
+using Application.Common.Results;
 using Domain.Entities.ProjectEntities;
-using Domain.Enums.RelationShip;
-using MediatR;
 using server.Application.Interfaces;
-using ValidationException = System.ComponentModel.DataAnnotations.ValidationException;
+using Application.Interfaces.Data;
+using Dapper;
 
 namespace Application.Features.TaskFeatures.AssigneeManagement.GetTaskAssignees;
 
-public class GetTaskAssigneesHandler : BaseFeatureHandler, IRequestHandler<GetTaskAssigneesQuery, List<TaskAssigneeDto>>
+public class GetTaskAssigneesHandler : IQueryHandler<GetTaskAssigneesQuery, List<TaskAssigneeDto>>
 {
-    public GetTaskAssigneesHandler(IUnitOfWork unitOfWork, ICurrentUserService currentUserService, WorkspaceContext workspaceContext)
-        : base(unitOfWork, currentUserService, workspaceContext) { }
+    private readonly IDataBase _db;
 
-    public async Task<List<TaskAssigneeDto>> Handle(GetTaskAssigneesQuery request, CancellationToken cancellationToken)
+    public GetTaskAssigneesHandler(IDataBase db)
     {
-        var task = await UnitOfWork.Set<ProjectTask>().FindAsync(request.TaskId, cancellationToken);
-        if (task == null) throw new KeyNotFoundException($"Task {request.TaskId} not found");
-        await EnsureCurrentUserCanAccessTask(task, cancellationToken);
+        _db = db;
+    }
 
-        var assignees = await UnitOfWork.QueryAsync<TaskAssigneeDto>(@"
+    public async Task<Result<List<TaskAssigneeDto>>> Handle(GetTaskAssigneesQuery request, CancellationToken ct)
+    {
+        var task = await _db.Tasks.FindAsync(request.TaskId, ct);
+        if (task == null) return TaskError.NotFound;
+
+        var assignees = await _db.Connection.QueryAsync<TaskAssigneeDto>(@"
             SELECT u.id AS UserId, u.name AS UserName, NULL AS AvatarUrl
             FROM task_assignments ta
             JOIN workspace_members wm ON ta.workspace_member_id = wm.id
@@ -27,33 +30,8 @@ public class GetTaskAssigneesHandler : BaseFeatureHandler, IRequestHandler<GetTa
             WHERE ta.task_id = @TaskId
               AND ta.deleted_at IS NULL
               AND wm.deleted_at IS NULL
-            ORDER BY u.name", new { TaskId = task.Id }, cancellationToken);
+            ORDER BY u.name", new { TaskId = task.Id });
 
         return assignees.ToList();
-    }
-
-    private async Task EnsureCurrentUserCanAccessTask(ProjectTask task, CancellationToken cancellationToken)
-    {
-        if (task.CreatorId == CurrentUserId)
-        {
-            return;
-        }
-
-        var currentWorkspaceMemberId = await WorkspaceContext.GetWorkspaceMemberIdAsync(cancellationToken);
-        
-        var parentId = task.ProjectFolderId ?? task.ProjectSpaceId ?? task.ProjectWorkspaceId;
-        var parentType = task.ProjectFolderId.HasValue ? EntityLayerType.ProjectFolder :
-                        task.ProjectSpaceId.HasValue ? EntityLayerType.ProjectSpace : 
-                        EntityLayerType.ProjectWorkspace;
-
-        var accessibleCurrentMemberIds = await GetAccessibleMemberIds(
-            parentId,
-            parentType,
-            new List<Guid> { currentWorkspaceMemberId });
-
-        if (accessibleCurrentMemberIds.Count == 0)
-        {
-            throw new ValidationException("You do not have permission to view this task assignee list.");
-        }
     }
 }

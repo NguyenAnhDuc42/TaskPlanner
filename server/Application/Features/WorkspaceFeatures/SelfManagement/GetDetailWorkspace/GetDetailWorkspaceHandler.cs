@@ -24,20 +24,26 @@ public class GetDetailWorkspaceHandler : IQueryHandler<GetDetailWorkspaceQuery, 
         _currentUserService = currentUserService;
     }
 
-    public async Task<Result<WorkspaceSecurityContextDto>> Handle(GetDetailWorkspaceQuery request, CancellationToken cancellationToken)
+    public async Task<Result<WorkspaceSecurityContextDto>> Handle(GetDetailWorkspaceQuery request, CancellationToken ct)
     {
         var currentUserId = _currentUserService.CurrentUserId();
-        if (currentUserId == Guid.Empty) return Result.Failure<WorkspaceSecurityContextDto>(Application.Common.Errors.Error.Unauthorized("User.NotAuthenticated", "User not authenticated."));
+        if (currentUserId == Guid.Empty) 
+            return Result.Failure<WorkspaceSecurityContextDto>(Error.Unauthorized("User.NotAuthenticated", "User not authenticated."));
 
-        var workspace = await _db.Workspaces.FindAsync(new object[] { request.WorkspaceId }, cancellationToken);
-            
-        if (workspace == null) return Result.Failure<WorkspaceSecurityContextDto>(Application.Common.Errors.Error.NotFound("Workspace.NotFound", $"Workspace {request.WorkspaceId} not found"));
-
-        var member = await _db.Members
+        var workspace = await _db.Workspaces
             .AsNoTracking()
-            .FirstOrDefaultAsync(wm => wm.ProjectWorkspaceId == request.WorkspaceId && wm.UserId == currentUserId, cancellationToken);
+            .ById(request.WorkspaceId)
+            .FirstOrDefaultAsync(ct);
+            
+        if (workspace == null) return Result.Failure<WorkspaceSecurityContextDto>(WorkspaceError.NotFound);
 
-        var role = member?.Role ?? Role.Guest;
+        var memberValue = await _db.Members
+            .AsNoTracking()
+            .ByWorkspace(request.WorkspaceId)
+            .ByUser(currentUserId)
+            .FirstOrDefaultAsync(ct);
+
+        var role = memberValue?.Role ?? Role.Guest;
 
         var dto = new WorkspaceSecurityContextDto
         {

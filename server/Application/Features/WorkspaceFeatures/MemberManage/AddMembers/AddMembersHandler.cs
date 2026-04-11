@@ -17,32 +17,26 @@ public class AddMembersHandler : ICommandHandler<AddMembersCommand, Guid>
     private readonly IDataBase _db;
     private readonly ICurrentUserService _currentUserService;
 
-    public AddMembersHandler(
-        IDataBase db,
-        ICurrentUserService currentUserService)
+    public AddMembersHandler(IDataBase db, ICurrentUserService currentUserService)
     {
         _db = db;
         _currentUserService = currentUserService;
     }
 
-    public async Task<Result<Guid>> Handle(AddMembersCommand request, CancellationToken cancellationToken)
+    public async Task<Result<Guid>> Handle(AddMembersCommand request, CancellationToken ct)
     {
         var currentUserId = _currentUserService.CurrentUserId();
-        if (currentUserId == Guid.Empty)
-        {
+        if (currentUserId == Guid.Empty) 
             return Result.Failure<Guid>(Error.Unauthorized("User.NotAuthenticated", "User not authenticated."));
-        }
 
-        // Use direct Find instead of FindOrThrow for cleaner resolution
         var workspace = await _db.Workspaces
             .AsNoTracking()
-            .FirstOrDefaultAsync(w => w.Id == request.workspaceId, cancellationToken);
+            .ById(request.workspaceId)
+            .FirstOrDefaultAsync(ct);
 
-        if (workspace == null)
-        {
-            return Result.Failure<Guid>(Error.NotFound("Workspace.NotFound", $"Workspace {request.workspaceId} not found"));
-        }
-
+        if (workspace == null) return Result.Failure<Guid>(WorkspaceError.NotFound);
+        
+    
         var normalizedMembers = request.members
             .DistinctBy(m => m.email.Trim().ToLowerInvariant())
             .Where(m => !string.IsNullOrWhiteSpace(m.email))
@@ -54,7 +48,7 @@ public class AddMembersHandler : ICommandHandler<AddMembersCommand, Guid>
         // 1. Find User IDs by Email
         var emails = normalizedMembers.Select(m => m.email.Trim().ToLowerInvariant()).ToList();
         var usersSql = "SELECT id, email FROM users WHERE LOWER(email) = ANY(@Emails)";
-        var users = await _db.QueryAsync<(Guid Id, string Email)>(usersSql, new { Emails = emails }, cancellationToken: cancellationToken);
+        var users = await _db.QueryAsync<(Guid Id, string Email)>(usersSql, new { Emails = emails }, cancellationToken: ct);
         var userMap = users.ToDictionary(u => u.Email.ToLower(), u => u.Id);
 
         // 2. Separate into inserts and restores (Soft-delete cleanup)
@@ -81,7 +75,7 @@ public class AddMembersHandler : ICommandHandler<AddMembersCommand, Guid>
                 UserId = userId,
                 Role = member.role.ToString(), // Assuming Role is enum mapped as string or adjust accordingly
                 CreatorId = currentUserId
-            }, cancellationToken: cancellationToken);
+            }, cancellationToken: ct);
         }
 
         return Result.Success(workspace.Id);

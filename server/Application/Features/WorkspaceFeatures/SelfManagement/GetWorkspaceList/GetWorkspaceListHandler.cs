@@ -69,8 +69,7 @@ public class GetWorkspaceListHandler : IQueryHandler<GetWorksapceListQuery, Page
                     rows.Count, currentUserId, request.filter.Name, request.filter.Owned, request.filter.isArchived);
 
                 var hasMore = rows.Count > pageSize;
-                if (hasMore)
-                    rows.RemoveAt(rows.Count - 1);
+                if (hasMore) rows.RemoveAt(rows.Count - 1);
 
                 var items = Map(rows);
 

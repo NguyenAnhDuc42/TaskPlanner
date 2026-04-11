@@ -1,24 +1,31 @@
-using System;
-using Application.Interfaces.Repositories;
-using Domain;
-using Application.Helpers;
+using Application.Common.Errors;
+using Application.Interfaces.Data;
+using Application.Common.Results;
 using Domain.Entities.ProjectEntities;
-using Domain.Enums;
-using MediatR;
 using server.Application.Interfaces;
 
 namespace Application.Features.SpaceFeatures.SelfManagement.DeleteSpace;
 
-public class DeleteSpaceHandler : BaseFeatureHandler, IRequestHandler<DeleteSpaceCommand, Unit>
+public class DeleteSpaceHandler : ICommandHandler<DeleteSpaceCommand>
 {
-    public DeleteSpaceHandler(IUnitOfWork unitOfWork, ICurrentUserService currentUserService, WorkspaceContext workspaceContext)
-        : base(unitOfWork, currentUserService, workspaceContext) { }
+    private readonly IDataBase _db;
 
-    public async Task<Unit> Handle(DeleteSpaceCommand request, CancellationToken cancellationToken)
+    public DeleteSpaceHandler(IDataBase db)
     {
-        var space = await UnitOfWork.Set<ProjectSpace>().FindAsync(request.SpaceId, cancellationToken);
-        if (space == null) throw new KeyNotFoundException($"Space {request.SpaceId} not found");
+        _db = db;
+    }
+
+    public async Task<Result> Handle(DeleteSpaceCommand request, CancellationToken ct)
+    {
+        var space = await _db.Spaces
+            .ById(request.SpaceId)
+            .FirstOrDefaultAsync(ct);
+
+        if (space == null) return Result.Failure(SpaceError.NotFound);
+
         space.SoftDelete();
-        return Unit.Value;
+        
+        await _db.SaveChangesAsync(ct);
+        return Result.Success();
     }
 }

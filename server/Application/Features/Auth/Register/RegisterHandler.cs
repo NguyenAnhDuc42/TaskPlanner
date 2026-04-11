@@ -1,17 +1,17 @@
-using Application.Interfaces.Repositories;
+using Application.Common.Errors;
+using Application.Interfaces.Data;
+using Application.Common.Results;
 using Domain.Entities;
-using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using server.Application.Interfaces;
-using Application.Common.Exceptions;
 using Microsoft.AspNetCore.Http;
 
 namespace Application.Features.Auth.Register;
 
-public class RegisterHandler : IRequestHandler<RegisterCommand, RegisterResponse>
+public class RegisterHandler : ICommandHandler<RegisterCommand, RegisterResponse>
 {
-    private readonly IUnitOfWork _unitOfWork;
+    private readonly IDataBase _db;
     private readonly IPasswordService _passwordService;
     private readonly ITokenService _tokenService;
     private readonly ICookieService _cookieService;
@@ -19,14 +19,14 @@ public class RegisterHandler : IRequestHandler<RegisterCommand, RegisterResponse
     private readonly ILogger<RegisterHandler> _logger;
 
     public RegisterHandler(
-        IUnitOfWork unitOfWork, 
+        IDataBase db, 
         IPasswordService passwordService, 
         ITokenService tokenService, 
         ICookieService cookieService, 
         IHttpContextAccessor httpContextAccessor, 
         ILogger<RegisterHandler> logger)
     {
-        _unitOfWork = unitOfWork;
+        _db = db;
         _passwordService = passwordService;
         _tokenService = tokenService;
         _cookieService = cookieService;
@@ -34,25 +34,28 @@ public class RegisterHandler : IRequestHandler<RegisterCommand, RegisterResponse
         _logger = logger;
     }
 
-    public async Task<RegisterResponse> Handle(RegisterCommand request, CancellationToken cancellationToken)
+    public async Task<Result<RegisterResponse>> Handle(RegisterCommand request, CancellationToken ct)
     {
         _logger.LogInformation("Registering new user: {Email}", request.email);
-        var exists = await _unitOfWork.Set<User>().AnyAsync(u => u.Email == request.email, cancellationToken);
+
+        var exists = await _db.Users.AnyAsync(u => u.Email == request.email, ct);
         if (exists)
         {
             _logger.LogWarning("Registration failed: Email {Email} already exists", request.email);
-            throw new DuplicateEmailException(request.email);
+            return UserError.DuplicateEmail;
         }
 
         var passwordHash = _passwordService.HashPassword(request.password);
         var user = User.Create(request.username, request.email, passwordHash);
         
-        await _unitOfWork.Set<User>().AddAsync(user, cancellationToken);
-        // Persist User first to satisfy FK constraint for Session
-        await _unitOfWork.SaveChangesAsync(cancellationToken);
+        await _db.Users.AddAsync(user, ct);
+        await _db.SaveChangesAsync(ct);
 
-        // Auto-login: Generate tokens and set cookies
-        var httpContext = _httpContextAccessor.HttpContext ?? throw new Exception("No HttpContext");
+        // Auto-login flow
+        var httpContext = _httpContextAccessor.HttpContext;
+        if (httpContext is null) 
+            return Error.Failure("Auth.ContextError", "No HttpContext available for registration login.");
+
         var userAgent = httpContext.Request.Headers["User-Agent"].ToString();
         var ipAddress = httpContext.Connection.RemoteIpAddress?.ToString() ?? "Unknown IP";
 
@@ -60,9 +63,9 @@ public class RegisterHandler : IRequestHandler<RegisterCommand, RegisterResponse
         _cookieService.SetAuthCookies(httpContext, tokens);
 
         var session = Session.Create(user.Id, tokens.RefreshToken, tokens.ExpirationRefreshToken, userAgent, ipAddress);
-        _unitOfWork.Set<Session>().Add(session);
+        await _db.Sessions.AddAsync(session, ct);
 
-        await _unitOfWork.SaveChangesAsync(cancellationToken);
+        await _db.SaveChangesAsync(ct);
 
         _logger.LogInformation("User registered and logged in: {UserId}, {Email}", user.Id, user.Email);
 

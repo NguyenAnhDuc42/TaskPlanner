@@ -1,60 +1,58 @@
-using Application.Interfaces.Repositories;
-using Domain.Entities.ProjectEntities;
+using Application.Interfaces.Data;
 using Domain.Enums;
 using Domain.Enums.RelationShip;
 using Microsoft.EntityFrameworkCore;
 using Application.Features.ViewFeatures.GetViewData;
 using Application.Helpers;
-using Domain.Entities.Relationship;
+using Application.Features.TaskFeatures.SelfManagement;
+using Dapper;
 
 namespace Application.Features.ViewFeatures.FeatureHelpers;
 
 public class ViewBuilder
 {
-    private readonly IUnitOfWork _unitOfWork;
+    private readonly IDataBase _db;
 
-    public ViewBuilder(IUnitOfWork unitOfWork)
+    public ViewBuilder(IDataBase db)
     {
-        _unitOfWork = unitOfWork;
+        _db = db;
     }
 
     public async Task<BaseViewResult> Build(
         Guid layerId,
         EntityLayerType layerType,
-        ViewDefinition view,
-        Guid workspaceMemberId)
+        ViewDefinition view)
     {
         return view.ViewType switch
         {
-            ViewType.List  => await BuildListView(layerId, layerType, workspaceMemberId),
-            ViewType.Board => await BuildBoardView(layerId, layerType, workspaceMemberId),
+            ViewType.List  => await BuildListView(layerId, layerType),
+            ViewType.Board => await BuildBoardView(layerId, layerType),
             _              => throw new NotSupportedException($"ViewType {view.ViewType} is not supported yet.")
         };
     }
 
-    private async Task<TaskListViewResult> BuildListView(Guid layerId, EntityLayerType layerType, Guid workspaceMemberId)
+    private async Task<TaskListViewResult> BuildListView(Guid layerId, EntityLayerType layerType)
     {
-        var (tasks, statuses) = await GetTasksAndStatuses(layerId, layerType, workspaceMemberId);
+        var (tasks, statuses) = await GetTasksAndStatuses(layerId, layerType);
         return new TaskListViewResult(tasks, statuses);
     }
 
-    private async Task<TasksBoardViewResult> BuildBoardView(Guid layerId, EntityLayerType layerType, Guid workspaceMemberId)
+    private async Task<TasksBoardViewResult> BuildBoardView(Guid layerId, EntityLayerType layerType)
     {
-        var (tasks, statuses) = await GetTasksAndStatuses(layerId, layerType, workspaceMemberId);
+        var (tasks, statuses) = await GetTasksAndStatuses(layerId, layerType);
         return new TasksBoardViewResult(tasks, statuses);
     }
 
-
     private async Task<(IEnumerable<TaskDto> Tasks, IEnumerable<StatusDto> Statuses)> GetTasksAndStatuses(
-        Guid layerId, EntityLayerType layerType, Guid workspaceMemberId)
+        Guid layerId, EntityLayerType layerType)
     {
         var sql = TaskSql.GetSql(layerType);
-        var tasksResult = await _unitOfWork.QueryAsync<TaskDto>(sql, new { layerId, WorkspaceMemberId = workspaceMemberId });
+        // EntityAccess removed: No WorkspaceMemberId check in SQL
+        var tasksResult = await _db.Connection.QueryAsync<TaskDto>(sql, new { layerId });
         var tasks = tasksResult.ToList();
 
         await FetchAssignees(tasks);
 
-        // Statuses are now owned by the Workspace
         var workspaceId = await ResolveWorkspaceId(layerId, layerType);
         var statuses = workspaceId.HasValue
             ? await GetStatusesForWorkspace(workspaceId.Value)
@@ -68,9 +66,9 @@ public class ViewBuilder
         return layerType switch
         {
             EntityLayerType.ProjectWorkspace => layerId,
-            EntityLayerType.ProjectSpace => await _unitOfWork.QuerySingleOrDefaultAsync<Guid?>(
+            EntityLayerType.ProjectSpace => await _db.Connection.QuerySingleOrDefaultAsync<Guid?>(
                 "SELECT project_workspace_id FROM project_spaces WHERE id = @Id", new { Id = layerId }),
-            EntityLayerType.ProjectFolder => await _unitOfWork.QuerySingleOrDefaultAsync<Guid?>(
+            EntityLayerType.ProjectFolder => await _db.Connection.QuerySingleOrDefaultAsync<Guid?>(
                 "SELECT s.project_workspace_id FROM project_folders f JOIN project_spaces s ON f.project_space_id = s.id WHERE f.id = @Id", new { Id = layerId }),
             _ => null
         };
@@ -86,7 +84,7 @@ public class ViewBuilder
               AND  s.deleted_at IS NULL
             ORDER BY s.created_at";
 
-        return await _unitOfWork.QueryAsync<StatusDto>(sql, new { WorkspaceId = workspaceId });
+        return await _db.Connection.QueryAsync<StatusDto>(sql, new { WorkspaceId = workspaceId });
     }
 
     private async Task FetchAssignees(List<TaskDto> tasks)
@@ -102,7 +100,7 @@ public class ViewBuilder
             WHERE  ta.task_id = ANY(@TaskIds)
               AND  ta.deleted_at IS NULL";
 
-        var assignments = await _unitOfWork.QueryAsync<dynamic>(sql, new { TaskIds = taskIds.ToArray() });
+        var assignments = await _db.Connection.QueryAsync<dynamic>(sql, new { TaskIds = taskIds.ToArray() });
 
         var assignmentLookup = assignments
             .GroupBy(a => (Guid)a.taskid)

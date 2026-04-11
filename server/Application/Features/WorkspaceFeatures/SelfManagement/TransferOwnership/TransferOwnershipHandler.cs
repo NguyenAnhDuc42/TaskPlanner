@@ -21,13 +21,17 @@ public class TransferOwnershipHandler : ICommandHandler<TransferOwnershipCommand
         _currentUserService = currentUserService;
     }
 
-    public async Task<Result> Handle(TransferOwnershipCommand request, CancellationToken cancellationToken)
+    public async Task<Result> Handle(TransferOwnershipCommand request, CancellationToken ct)
     {
         var currentUserId = _currentUserService.CurrentUserId();
-        if (currentUserId == Guid.Empty) return Result.Failure(Error.Unauthorized("User.NotAuthenticated", "User not authenticated."));
+        if (currentUserId == Guid.Empty) 
+            return Result.Failure(Error.Unauthorized("User.NotAuthenticated", "User not authenticated."));
 
-        var workspace = await _db.Workspaces.FindAsync(new object[] { request.WorkspaceId }, cancellationToken);
-        if (workspace == null) return Result.Failure(Error.NotFound("Workspace.NotFound", $"Workspace {request.WorkspaceId} not found"));
+        var workspace = await _db.Workspaces
+            .ById(request.WorkspaceId)
+            .FirstOrDefaultAsync(ct);
+
+        if (workspace == null) return Result.Failure(WorkspaceError.NotFound);
 
         // Extra check: Only current owner can transfer ownership (Role.Owner)
         if (workspace.CreatorId != currentUserId) return Result.Failure(Error.Forbidden("Workspace.Forbidden", "Only the workspace owner can transfer ownership"));

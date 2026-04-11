@@ -27,16 +27,17 @@ public class SetWorkspacePinHandler : ICommandHandler<SetWorkspacePinCommand>
         _realtime = realtime;
     }
 
-    public async Task<Result> Handle(SetWorkspacePinCommand request, CancellationToken cancellationToken)
+    public async Task<Result> Handle(SetWorkspacePinCommand request, CancellationToken ct)
     {
         var currentUserId = _currentUserService.CurrentUserId();
-        if (currentUserId == Guid.Empty) return Result.Failure(Error.Unauthorized("User.NotAuthenticated", "User not authenticated."));
+        if (currentUserId == Guid.Empty) 
+            return Result.Failure(Error.Unauthorized("User.NotAuthenticated", "User not authenticated."));
         
         var member = await _db.Members
             .ByWorkspace(request.WorkspaceId)
             .ByUser(currentUserId)
             .WhereActive()
-            .FirstOrDefaultAsync(cancellationToken);
+            .FirstOrDefaultAsync(ct);
 
         if (member is null) return Result.Failure(Error.Forbidden("Workspace.Forbidden", "Only active members can pin workspaces."));
 

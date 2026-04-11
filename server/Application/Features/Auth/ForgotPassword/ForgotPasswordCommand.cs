@@ -1,5 +1,5 @@
-using MediatR;
+using Application.Common.Interfaces;
 
 namespace Application.Features.Auth.ForgotPassword;
 
-public record ForgotPasswordCommand(string Email) : IRequest<string?>;
+public record ForgotPasswordCommand(string Email) : ICommandRequest<string?>;

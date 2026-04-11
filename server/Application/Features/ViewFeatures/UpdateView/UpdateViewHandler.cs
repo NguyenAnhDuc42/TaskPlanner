@@ -1,20 +1,24 @@
-using Application.Interfaces.Repositories;
+using Application.Interfaces.Data;
+using Application.Common.Results;
+using Application.Common.Errors;
 using Domain.Entities.ProjectEntities;
-using MediatR;
-using Application.Helpers;
 using server.Application.Interfaces;
 
 namespace Application.Features.ViewFeatures.UpdateView;
 
-public class UpdateViewHandler : BaseFeatureHandler, IRequestHandler<UpdateViewCommand, Unit>
+public class UpdateViewHandler : ICommandHandler<UpdateViewCommand>
 {
-    public UpdateViewHandler(IUnitOfWork unitOfWork, ICurrentUserService currentUserService, WorkspaceContext workspaceContext)
-        : base(unitOfWork, currentUserService, workspaceContext) { }
+    private readonly IDataBase _db;
 
-    public async Task<Unit> Handle(UpdateViewCommand request, CancellationToken cancellationToken)
+    public UpdateViewHandler(IDataBase db)
     {
-        var view = await UnitOfWork.Set<ViewDefinition>().FindAsync(request.Id);
-        if (view == null) throw new KeyNotFoundException("View not found.");
+        _db = db;
+    }
+
+    public async Task<Result> Handle(UpdateViewCommand request, CancellationToken ct)
+    {
+        var view = await _db.Views.FindAsync(request.Id, ct);
+        if (view == null) return ViewError.NotFound;
 
         view.Update(request.Name, request.IsDefault);
         if (request.FilterConfigJson != null || request.DisplayConfigJson != null)
@@ -25,6 +29,7 @@ public class UpdateViewHandler : BaseFeatureHandler, IRequestHandler<UpdateViewC
             );
         }
 
-        return Unit.Value;
+        await _db.SaveChangesAsync(ct);
+        return Result.Success();
     }
 }

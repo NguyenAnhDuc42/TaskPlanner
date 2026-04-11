@@ -1,55 +1,75 @@
-using Application.Features;
-using Application.Helpers;
-using Application.Interfaces.Repositories;
+using Application.Common.Errors;
+using Application.Common.Interfaces;
+using Application.Common.Results;
+using Application.Interfaces.Data;
 using Domain.Entities.ProjectEntities;
-using MediatR;
 using Microsoft.EntityFrameworkCore;
 using server.Application.Interfaces;
 
 namespace Application.Features.StatusManagement.GetWorkspaceStatuses;
 
-public class GetWorkspaceStatusesHandler : BaseFeatureHandler, IRequestHandler<GetWorkspaceStatusesQuery, List<StatusDto>>
+public class GetWorkspaceStatusesHandler : IQueryHandler<GetWorkspaceStatusesQuery, List<StatusDto>>
 {
-    public GetWorkspaceStatusesHandler(
-        IUnitOfWork unitOfWork,
-        ICurrentUserService currentUserService,
-        WorkspaceContext workspaceContext)
-        : base(unitOfWork, currentUserService, workspaceContext) { }
+    private readonly IDataBase _db;
 
-    public async Task<List<StatusDto>> Handle(GetWorkspaceStatusesQuery request, CancellationToken cancellationToken)
+    public GetWorkspaceStatusesHandler(IDataBase db)
     {
-        var workflowId = await ResolveWorkflowIdAsync(cancellationToken);
-        
-        if (workflowId == Guid.Empty)
+        _db = db;
+    }
+
+    public async Task<Result<List<StatusDto>>> Handle(GetWorkspaceStatusesQuery request, CancellationToken ct)
+    {
+        // 1. Resolve Hierarchy Workflow
+        var workflow = await ResolveHierarchyWorkflowAsync(request, ct);
+
+        if (workflow == null)
+            return Result.Failure<List<StatusDto>>(Error.NotFound("Workflow.NotFound", "No lifecycle workflow found for the given context."));
+
+        // 2. Fetch Statuses
+        var statuses = await _db.Statuses
+            .ByWorkflow(workflow.Id)
+            .WhereNotDeleted()
+            .OrderBy(s => s.CreatedAt)
+            .Select(s => new StatusDto(
+                s.Id,
+                s.Name,
+                s.Color,
+                s.Category
+            ))
+            .ToListAsync(ct);
+
+        return Result.Success(statuses);
+    }
+
+    private async Task<Workflow?> ResolveHierarchyWorkflowAsync(GetWorkspaceStatusesQuery request, CancellationToken ct)
+    {
+        // Try Folder first
+        if (request.FolderId.HasValue)
         {
-            return new List<StatusDto>();
+            var folderWorkflow = await _db.Workflows
+                .ByFolder(request.FolderId.Value)
+                .WhereNotDeleted()
+                .FirstOrDefaultAsync(ct);
+            if (folderWorkflow != null) return folderWorkflow;
         }
 
-        return await FetchStatusesAsync(workflowId, cancellationToken);
-    }
+        // Try Space second
+        if (request.SpaceId.HasValue)
+        {
+            var spaceWorkflow = await _db.Workflows
+                .BySpace(request.SpaceId.Value)
+                .WhereNotDeleted()
+                .FirstOrDefaultAsync(ct);
+            if (spaceWorkflow != null) return spaceWorkflow;
+        }
 
-    private async Task<Guid> ResolveWorkflowIdAsync(CancellationToken ct)
-    {
-        // Implicitly resolve WorkspaceId from WorkspaceContext
-        var currentWorkspaceId = WorkspaceContext.workspaceId;
-
-        return await (from w in UnitOfWork.Set<Workflow>().AsNoTracking()
-                      where w.ProjectWorkspaceId == currentWorkspaceId && w.DeletedAt == null
-                      select w.Id)
-                     .FirstOrDefaultAsync(ct);
-    }
-
-    private async Task<List<StatusDto>> FetchStatusesAsync(Guid workflowId, CancellationToken ct)
-    {
-        return await (from s in UnitOfWork.Set<Status>().AsNoTracking()
-                      where s.WorkflowId == workflowId && s.DeletedAt == null
-                      orderby s.CreatedAt
-                      select new StatusDto(
-                          s.Id,
-                          s.Name,
-                          s.Color,
-                          s.Category
-                      ))
-                     .ToListAsync(ct);
+        // Fallback to Workspace
+        return await _db.Workspaces
+            .ById(request.WorkspaceId)
+            .Join(_db.Workflows.Where(w => w.SpaceId == null && w.FolderId == null && w.DeletedAt == null),
+                  w => w.Id,
+                  wf => wf.ProjectWorkspaceId,
+                  (w, wf) => wf)
+            .FirstOrDefaultAsync(ct);
     }
 }

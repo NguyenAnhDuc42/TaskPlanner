@@ -8,4 +8,4 @@ public record UpdateViewCommand(
     bool? IsDefault,
     string? FilterConfigJson,
     string? DisplayConfigJson
-) : ICommand<MediatR.Unit>;
+) : ICommandRequest;

@@ -15,14 +15,13 @@ public record class GetMembersFilter(
     Role? Role
 );
 
-public record class MemberDto
-{
-    public Guid Id { get; init; }
-    public Guid WorkspaceMemberId { get; init; }
-    public string? Name { get; init; }
-    public string? Email { get; init; }
-    public string? AvatarUrl { get; init; }
-    public Role Role { get; init; }
-    public DateTimeOffset CreatedAt { get; init; }
-    public DateTimeOffset? JoinedAt { get; init; }
-}
+public record class MemberDto(
+    Guid Id,
+    Guid WorkspaceMemberId,
+    string? Name,
+    string? Email,
+    string? AvatarUrl,
+    Role Role,
+    DateTimeOffset CreatedAt,
+    DateTimeOffset? JoinedAt
+);

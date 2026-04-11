@@ -3,7 +3,7 @@ using Application.Features.SpaceFeatures.SelfManagement.DeleteSpace;
 using Application.Features.SpaceFeatures.SelfManagement.UpdateSpace;
 using Application.Features.EntityAccessManagement.GetEntityAccessList;
 using Domain.Enums.RelationShip;
-using MediatR;
+using Application.Common.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Api.Controllers
@@ -12,17 +12,17 @@ namespace Api.Controllers
     [ApiController]
     public class SpacesController : ControllerBase
     {
-        private readonly IMediator _mediator;
+        private readonly IHandler _handler;
 
-        public SpacesController(IMediator mediator)
+        public SpacesController(IHandler iHandler)
         {
-            _mediator = mediator;
+            _handler = iHandler;
         }
 
         [HttpPost]
         public async Task<IActionResult> Create([FromBody] CreateSpaceCommand command, CancellationToken cancellationToken)
         {
-            var result = await _mediator.Send(command, cancellationToken);
+            var result = await _handler.SendAsync<CreateSpaceCommand, Guid>(command, cancellationToken);
             return Ok(result);
         }
 
@@ -38,7 +38,7 @@ namespace Api.Controllers
                 IsPrivate: request.IsPrivate
             );
 
-            var result = await _mediator.Send(command, cancellationToken);
+            var result = await _handler.SendAsync(command, cancellationToken);
             return Ok(result);
         }
 
@@ -46,7 +46,7 @@ namespace Api.Controllers
         public async Task<IActionResult> Delete(Guid id, CancellationToken cancellationToken)
         {
             var command = new DeleteSpaceCommand(id);
-            var result = await _mediator.Send(command, cancellationToken);
+            var result = await _handler.SendAsync(command, cancellationToken);
             return Ok(result);
         }
 
@@ -54,7 +54,7 @@ namespace Api.Controllers
         public async Task<IActionResult> GetMembersAccess(Guid id, CancellationToken cancellationToken)
         {
             var query = new GetEntityAccessListQuery(id, EntityLayerType.ProjectSpace);
-            var result = await _mediator.Send(query, cancellationToken);
+            var result = await _handler.QueryAsync<GetEntityAccessListQuery, List<EntityAccessDto>>(query, cancellationToken);
             return Ok(result);
         }
     }

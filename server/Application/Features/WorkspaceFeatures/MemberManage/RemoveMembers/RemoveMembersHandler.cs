@@ -22,14 +22,18 @@ public class RemoveMembersHandler : ICommandHandler<RemoveMembersCommand, Guid>
         _currentUserService = currentUserService;
     }
 
-    public async Task<Result<Guid>> Handle(RemoveMembersCommand request, CancellationToken cancellationToken)
+    public async Task<Result<Guid>> Handle(RemoveMembersCommand request, CancellationToken ct)
     {
         var currentUserId = _currentUserService.CurrentUserId();
-        if (currentUserId == Guid.Empty) return Result.Failure<Guid>(Error.Unauthorized("User.NotAuthenticated", "User not authenticated."));
+        if (currentUserId == Guid.Empty) 
+            return Result.Failure<Guid>(Error.Unauthorized("User.NotAuthenticated", "User not authenticated."));
 
-        // Direct Find for cleaner resolution
-        var workspace = await _db.Workspaces.FindAsync(new object[] { request.workspaceId }, cancellationToken);
-        if (workspace == null) return Result.Failure<Guid>(Error.NotFound("Workspace.NotFound", $"Workspace {request.workspaceId} not found"));
+        var workspace = await _db.Workspaces
+            .AsNoTracking()
+            .ById(request.workspaceId)
+            .FirstOrDefaultAsync(ct);
+
+        if (workspace == null) return Result.Failure<Guid>(WorkspaceError.NotFound);
 
         if (request.memberIds.Any())
         {

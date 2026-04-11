@@ -1,36 +1,37 @@
-using System;
-using Application.Helpers;
-using Application.Interfaces.Repositories;
-using Domain.Common;
-using Domain.Entities.ProjectEntities;
-using Domain.Entities.ProjectEntities.ValueObject;
-using Domain.Entities.Relationship;
-using Domain.Enums;
-using Domain.Enums.RelationShip;
-using MediatR;
+using Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 using server.Application.Interfaces;
+using Application.Interfaces.Data;
 
 namespace Application.Features.FolderFeatures.SelfManagement.CreateFolder;
 
-public class CreateFolderHandler : BaseFeatureHandler, IRequestHandler<CreateFolderCommand, Guid>
+public class CreateFolderHandler : ICommandHandler<CreateFolderCommand, Guid>
 {
-    public CreateFolderHandler(IUnitOfWork unitOfWork, ICurrentUserService currentUserService, WorkspaceContext workspaceContext)
-       : base(unitOfWork, currentUserService, workspaceContext) { }
+    private readonly IDataBase _db;
+    private readonly ICurrentUserService _currentUserService;
+    private readonly WorkspaceContext _workspaceContext;
 
-    public async Task<Guid> Handle(CreateFolderCommand request, CancellationToken cancellationToken)
+    public CreateFolderHandler(IDataBase db, ICurrentUserService currentUserService, WorkspaceContext workspaceContext)
     {
-        var space = await UnitOfWork.Set<ProjectSpace>().FindAsync(request.spaceId, cancellationToken);
-        if (space == null) throw new KeyNotFoundException($"Space {request.spaceId} not found");
+        _db = db;
+        _currentUserService = currentUserService;
+        _workspaceContext = workspaceContext;
+    }
+
+    public async Task<Result<Guid>> Handle(CreateFolderCommand request, CancellationToken ct)
+    {
+        var space = await _db.Spaces.ById(request.spaceId).FirstOrDefaultAsync(ct);
+        if (space == null) return Result.Failure<Guid>(SpaceError.NotFound);
         
         var customization = Customization.Create(request.color, request.icon);
 
-        // Resolve order key: append after the last folder in this space
-        var maxKey = await UnitOfWork.Set<ProjectFolder>()
-            .Where(f => f.ProjectSpaceId == request.spaceId && f.DeletedAt == null)
-            .MaxAsync(f => (string?)f.OrderKey, cancellationToken);
-        var orderKey = maxKey is null ? FractionalIndex.Start() : FractionalIndex.After(maxKey);
+        var maxKey = await _db.Folders
+            .AsNoTracking()
+            .BySpace(request.spaceId)
+            .WhereNotDeleted()
+            .MaxAsync(f => (string?)f.OrderKey, ct);
         
+        var orderKey = maxKey is null ? FractionalIndex.Start() : FractionalIndex.After(maxKey);
         var slug = SlugHelper.GenerateSlug(request.name);
 
         var folder = ProjectFolder.Create(
@@ -40,35 +41,14 @@ public class CreateFolderHandler : BaseFeatureHandler, IRequestHandler<CreateFol
             description: request.description,
             orderKey: orderKey,
             isPrivate: request.isPrivate,
-            creatorId: CurrentUserId,
+            creatorId: _currentUserService.CurrentUserId(),
             customization: customization,
             startDate: request.startDate,
             dueDate: request.dueDate
         );
 
-        await UnitOfWork.Set<ProjectFolder>().AddAsync(folder, cancellationToken);
-
-        // Create EntityAccess for owner if private
-        if (request.isPrivate)
-        {
-            var memberId = await GetWorkspaceMemberId(CurrentUserId, cancellationToken);
-            var access = EntityAccess.Create(WorkspaceId, memberId, folder.Id, EntityLayerType.ProjectFolder, AccessLevel.Manager, CurrentUserId);
-            await UnitOfWork.Set<EntityAccess>().AddAsync(access, cancellationToken);
-        }
-        
-        // Invite additional members if provided
-        if (request.memberIdsToInvite?.Any() == true)
-        {
-            // Resolve workspace member IDs
-            var workspaceMemberIds = await GetWorkspaceMemberIds(request.memberIdsToInvite, cancellationToken);
-            var ownerMemberId = await GetWorkspaceMemberId(CurrentUserId, cancellationToken);
-            
-            var inviteAccessRecords = workspaceMemberIds
-                .Where(memberId => memberId != ownerMemberId)
-                .Select(memberId => EntityAccess.Create(WorkspaceId, memberId, folder.Id, EntityLayerType.ProjectFolder, AccessLevel.Editor, CurrentUserId));
-
-            await UnitOfWork.Set<EntityAccess>().AddRangeAsync(inviteAccessRecords, cancellationToken);
-        }
+        await _db.Folders.AddAsync(folder, ct);
+        await _db.SaveChangesAsync(ct);
         
         return folder.Id;
     }

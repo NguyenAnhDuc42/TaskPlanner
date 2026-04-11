@@ -1,70 +1,60 @@
-using System;
-using Application.Helpers;
-using Application.Interfaces.Repositories;
-using Domain.Common;
-using Domain.Entities.ProjectEntities;
-using Domain.Entities.ProjectEntities.ValueObject;
-using Domain.Entities.Relationship;
-using Domain.Enums;
-using Domain.Enums.RelationShip;
-using MediatR;
+using Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 using server.Application.Interfaces;
 
 namespace Application.Features.SpaceFeatures.SelfManagement.CreateSpace;
 
-public class CreateSpaceHandler : BaseFeatureHandler, IRequestHandler<CreateSpaceCommand, Guid>
+public class CreateSpaceHandler : ICommandHandler<CreateSpaceCommand, Guid>
 {
-    public CreateSpaceHandler(IUnitOfWork unitOfWork, ICurrentUserService currentUserService, WorkspaceContext workspaceContext)
-       : base(unitOfWork, currentUserService, workspaceContext) { }
-       
-    public async Task<Guid> Handle(CreateSpaceCommand request, CancellationToken cancellationToken)
+    private readonly IDataBase _db;
+    private readonly ICurrentUserService _currentUserService;
+    private readonly WorkspaceContext _workspaceContext;
+
+    public CreateSpaceHandler(IDataBase db, ICurrentUserService currentUserService, WorkspaceContext workspaceContext)
     {
-        var workspace = await UnitOfWork.Set<ProjectWorkspace>().FindAsync(request.workspaceId, cancellationToken);
-        if (workspace == null) throw new KeyNotFoundException($"Workspace {request.workspaceId} not found");
+        _db = db;
+        _currentUserService = currentUserService;
+        _workspaceContext = workspaceContext;
+    }
+
+    public async Task<Result<Guid>> Handle(CreateSpaceCommand request, CancellationToken ct)
+    {
+        // 1. Resolve Workspace
+        var workspaceIdResult = _workspaceContext.TryGetWorkspaceId();
+        if (workspaceIdResult.IsFailure) return workspaceIdResult;
+
+        var workspaceId = workspaceIdResult.Value;
+        var currentUserId = _currentUserService.CurrentUserId();
+
+        // 2. Validate Workspace existence
+        var workspaceExists = await _db.Workspaces.AnyAsync(w => w.Id == workspaceId, ct);
+        if (!workspaceExists) return Error.NotFound("Workspace.NotFound", $"Workspace {workspaceId} not found.");
+
+        // 3. Fractional Index Calculation
+        var maxKey = await _db.Spaces
+            .AsNoTracking()
+            .ByWorkspace(workspaceId)
+            .WhereNotDeleted()
+            .MaxAsync(s => (string?)s.OrderKey, ct);
+        var orderKey = maxKey is null ? FractionalIndex.Start() : FractionalIndex.After(maxKey);
+
+        var slug = SlugHelper.GenerateSlug(request.name);
         var customization = Customization.Create(request.color, request.icon);
 
-        // Resolve order key: append after the last space in this workspace
-        var maxKey = await UnitOfWork.Set<ProjectSpace>()
-            .Where(s => s.ProjectWorkspaceId == request.workspaceId && s.DeletedAt == null)
-            .MaxAsync(s => (string?)s.OrderKey, cancellationToken);
-        var orderKey = maxKey is null ? FractionalIndex.Start() : FractionalIndex.After(maxKey);
-        
-        var slug = SlugHelper.GenerateSlug(request.name);
-        
+        // 4. Create Space
         var space = ProjectSpace.Create(
-            projectWorkspaceId: WorkspaceId,
+            projectWorkspaceId: workspaceId,
             name: request.name,
             slug: slug,
             description: request.description,
             customization: customization,
-            isPrivate: request.isPrivate ?? true,
-            creatorId: CurrentUserId,
+            isPrivate: request.isPrivate,
+            creatorId: currentUserId,
             orderKey: orderKey
         );
 
-        await UnitOfWork.Set<ProjectSpace>().AddAsync(space, cancellationToken);
-        
-        // Create EntityAccess for owner if private
-        if (request.isPrivate)
-        {
-            var memberId = await GetWorkspaceMemberId(CurrentUserId, cancellationToken);
-            var access = EntityAccess.Create(WorkspaceId, memberId, space.Id, EntityLayerType.ProjectSpace, AccessLevel.Manager, CurrentUserId);
-            await UnitOfWork.Set<EntityAccess>().AddAsync(access, cancellationToken);
-        }
-        
-        // Invite additional members if provided
-        if (request.memberIdsToInvite?.Any() == true)
-        {
-            var currentMemberId = await GetWorkspaceMemberId(CurrentUserId, cancellationToken);
-            var memberIds = await GetWorkspaceMemberIds(request.memberIdsToInvite, cancellationToken);
-
-            var accessRecords = memberIds
-                .Where(id => id != currentMemberId) // Already handled if they were in the list
-                .Select(memberId => EntityAccess.Create(WorkspaceId, memberId, space.Id, EntityLayerType.ProjectSpace, AccessLevel.Editor, CurrentUserId));
-
-            await UnitOfWork.Set<EntityAccess>().AddRangeAsync(accessRecords, cancellationToken);
-        }
+        await _db.Spaces.AddAsync(space, ct);
+        await _db.SaveChangesAsync(ct);
         
         return space.Id;
     }

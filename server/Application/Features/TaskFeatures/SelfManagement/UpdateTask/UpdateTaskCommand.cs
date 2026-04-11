@@ -1,6 +1,7 @@
-using Application.Features.ViewFeatures.GetViewData;
 using Application.Common.Interfaces;
 using Domain.Enums;
+using Application.Features.TaskFeatures.SelfManagement;
+
 namespace Application.Features.TaskFeatures.SelfManagement.UpdateTask;
 
 public record UpdateTaskCommand(
@@ -14,4 +15,4 @@ public record UpdateTaskCommand(
     int? StoryPoints,
     long? TimeEstimate,
     List<Guid>? AssigneeIds = null
-) : ICommand<TaskDto>;
+) : ICommandRequest<TaskDto>;

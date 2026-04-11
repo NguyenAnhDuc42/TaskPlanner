@@ -1,7 +1,7 @@
 using Application.Common.Interfaces;
-using Application.Features.ViewFeatures.GetViewData;
 using Domain.Enums;
 using Domain.Enums.RelationShip;
+
 namespace Application.Features.TaskFeatures.SelfManagement.CreateTask;
 
 public record CreateTaskCommand(
@@ -11,9 +11,9 @@ public record CreateTaskCommand(
     string? Description,
     Guid? StatusId,
     Priority Priority,
-    List<Guid>? AssigneeIds,  // Assign users immediately
+    List<Guid>? AssigneeIds,
     DateTimeOffset? StartDate,
     DateTimeOffset? DueDate,
     int? StoryPoints,
     long? TimeEstimate
-) : ICommand<TaskDto>;  // Return TaskDto
+) : ICommandRequest<TaskDto>;
