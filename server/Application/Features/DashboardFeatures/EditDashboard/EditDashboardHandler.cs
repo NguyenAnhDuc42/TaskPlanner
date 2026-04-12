@@ -11,6 +11,7 @@ using server.Application.Interfaces;
 
 namespace Application.Features.DashboardFeatures.EditDashboard;
 
+[Obsolete("Dashboard features are legacy and will be removed in favor of modernized Functional Views.")]
 public class EditDashboardHandler : BaseFeatureHandler, IRequestHandler<EditDashboardCommand, Unit>
 {
     private readonly HybridCache _cache;

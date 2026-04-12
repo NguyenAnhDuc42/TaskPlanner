@@ -1,83 +1,68 @@
 using Application.Common.Errors;
 using Application.Common.Interfaces;
 using Application.Common.Results;
-using Application.Features;
-using Application.Interfaces;
+using Application.Helpers;
 using Application.Interfaces.Data;
-using Domain.Entities;
-using Domain.Entities.ProjectEntities;
 using Domain.Entities.Relationship;
+using Domain.Enums;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Hybrid;
 using server.Application.Interfaces;
 
 namespace Application.Features.WorkspaceFeatures.MemberManage.AddMembers;
 
-public class AddMembersHandler : ICommandHandler<AddMembersCommand, Guid>
+public class AddMembersHandler(
+    IDataBase db, 
+    WorkspaceContext context,
+    HybridCache cache, 
+    IRealtimeService realtime
+) : ICommandHandler<AddMembersCommand>
 {
-    private readonly IDataBase _db;
-    private readonly ICurrentUserService _currentUserService;
-
-    public AddMembersHandler(IDataBase db, ICurrentUserService currentUserService)
+    public async Task<Result> Handle(AddMembersCommand request, CancellationToken ct)
     {
-        _db = db;
-        _currentUserService = currentUserService;
-    }
+        // 1. Permission Check
+        // Redundant null check removed; PermissionDecorator guarantees context.CurrentMember exists
+        if (context.CurrentMember.Role > Role.Admin)
+            return Result.Failure(MemberError.DontHavePermission);
 
-    public async Task<Result<Guid>> Handle(AddMembersCommand request, CancellationToken ct)
-    {
-        var currentUserId = _currentUserService.CurrentUserId();
-        if (currentUserId == Guid.Empty) 
-            return Result.Failure<Guid>(Error.Unauthorized("User.NotAuthenticated", "User not authenticated."));
+        var workspace = await db.Workspaces.ById(request.workspaceId).FirstOrDefaultAsync(ct);
+        if (workspace == null) return Result.Failure(WorkspaceError.NotFound);
 
-        var workspace = await _db.Workspaces
+        // 2. Logic
+        var existingUserIds = await db.WorkspaceMembers
             .AsNoTracking()
-            .ById(request.workspaceId)
-            .FirstOrDefaultAsync(ct);
+            .ByWorkspace(request.workspaceId)
+            .Select(m => m.UserId)
+            .ToListAsync(ct);
 
-        if (workspace == null) return Result.Failure<Guid>(WorkspaceError.NotFound);
-        
-    
-        var normalizedMembers = request.members
-            .DistinctBy(m => m.email.Trim().ToLowerInvariant())
-            .Where(m => !string.IsNullOrWhiteSpace(m.email))
-            .ToList();
+        var newUserIds = request.userIds.Except(existingUserIds).ToList();
+        if (!newUserIds.Any()) return Result.Success();
 
-        if (normalizedMembers.Count == 0) return Result.Success(workspace.Id);
-
-        // 🟢 Optimized Bulk Process using Raw SQL
-        // 1. Find User IDs by Email
-        var emails = normalizedMembers.Select(m => m.email.Trim().ToLowerInvariant()).ToList();
-        var usersSql = "SELECT id, email FROM users WHERE LOWER(email) = ANY(@Emails)";
-        var users = await _db.QueryAsync<(Guid Id, string Email)>(usersSql, new { Emails = emails }, cancellationToken: ct);
-        var userMap = users.ToDictionary(u => u.Email.ToLower(), u => u.Id);
-
-        // 2. Separate into inserts and restores (Soft-delete cleanup)
-        foreach (var member in normalizedMembers)
+        foreach (var userId in newUserIds)
         {
-            var emailLower = member.email.Trim().ToLowerInvariant();
-            if (!userMap.TryGetValue(emailLower, out var userId)) continue;
-
-            // Execute raw UPSERT for members to keep it clean and fast
-            var upsertSql = @"
-                INSERT INTO workspace_members (id, project_workspace_id, user_id, role, membership_status, join_method, creator_id, created_at, updated_at, deleted_at)
-                VALUES (@Id, @WorkspaceId, @UserId, @Role, 'Active', 'Invite', @CreatorId, NOW(), NOW(), NULL)
-                ON CONFLICT (project_workspace_id, user_id) 
-                DO UPDATE SET 
-                    deleted_at = NULL, 
-                    role = EXCLUDED.role,
-                    updated_at = NOW()
-                WHERE workspace_members.deleted_at IS NOT NULL OR workspace_members.role != EXCLUDED.role;";
-
-            await _db.ExecuteAsync(upsertSql, new
-            {
-                Id = Guid.NewGuid(),
-                WorkspaceId = workspace.Id,
-                UserId = userId,
-                Role = member.role.ToString(), // Assuming Role is enum mapped as string or adjust accordingly
-                CreatorId = currentUserId
-            }, cancellationToken: ct);
+            var member = WorkspaceMember.Create(
+                userId: userId,
+                projectWorkspaceId: request.workspaceId,
+                role: request.role,
+                status: MembershipStatus.Active,
+                invitedById: context.CurrentMember.UserId,
+                inviteMethod: "Email"
+            );
+            workspace.AddMember(member, context.CurrentMember.UserId);
         }
 
-        return Result.Success(workspace.Id);
+        await db.SaveChangesAsync(ct);
+
+        // 3. Cache Invalidation
+        foreach (var userId in newUserIds)
+        {
+            await cache.RemoveByTagAsync(WorkspaceCacheKeys.WorkspaceListTag(userId), ct);
+        }
+        await cache.RemoveByTagAsync(CacheConstants.Tags.WorkspaceMembers(request.workspaceId), ct);
+
+        // 4. Notifications
+        _ = realtime.NotifyUsersAsync(newUserIds, "AddedToWorkspace", new { WorkspaceId = workspace.Id }, ct);
+
+        return Result.Success();
     }
 }

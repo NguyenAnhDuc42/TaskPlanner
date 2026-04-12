@@ -11,4 +11,4 @@ public record class CreateFolderCommand(
     bool isPrivate,
     DateTimeOffset? startDate = null,
     DateTimeOffset? dueDate = null
-) : ICommandRequest<Guid>;
+) : ICommandRequest<Guid>, IAuthorizedWorkspaceRequest;

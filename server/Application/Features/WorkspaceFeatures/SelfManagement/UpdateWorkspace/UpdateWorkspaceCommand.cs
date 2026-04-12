@@ -1,10 +1,9 @@
 using Application.Common.Interfaces;
 using Domain.Enums.Workspace;
-using MediatR;
 
 namespace Application.Features.WorkspaceFeatures.UpdateWorkspace;
 
-public record class UpdateWorkspaceCommand(
+public record UpdateWorkspaceCommand(
     Guid Id,
     string? Name,
     string? Description,
@@ -14,4 +13,4 @@ public record class UpdateWorkspaceCommand(
     bool? StrictJoin,
     bool? IsArchived,
     bool RegenerateJoinCode
-) : ICommandRequest;
+) : ICommandRequest, IAuthorizedWorkspaceRequest;

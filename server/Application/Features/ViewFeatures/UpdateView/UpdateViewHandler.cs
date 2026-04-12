@@ -1,35 +1,25 @@
-using Application.Interfaces.Data;
-using Application.Common.Results;
 using Application.Common.Errors;
-using Domain.Entities.ProjectEntities;
-using server.Application.Interfaces;
+using Application.Common.Interfaces;
+using Application.Common.Results;
+using Application.Helpers;
+using Application.Interfaces.Data;
+using Domain.Enums;
 
 namespace Application.Features.ViewFeatures.UpdateView;
 
-public class UpdateViewHandler : ICommandHandler<UpdateViewCommand>
+public class UpdateViewHandler(IDataBase db, WorkspaceContext context) : ICommandHandler<UpdateViewCommand>
 {
-    private readonly IDataBase _db;
-
-    public UpdateViewHandler(IDataBase db)
-    {
-        _db = db;
-    }
-
     public async Task<Result> Handle(UpdateViewCommand request, CancellationToken ct)
     {
-        var view = await _db.Views.FindAsync(request.Id, ct);
+        var view = await db.Views.FindAsync([request.Id], ct);
         if (view == null) return ViewError.NotFound;
 
-        view.Update(request.Name, request.IsDefault);
-        if (request.FilterConfigJson != null || request.DisplayConfigJson != null)
-        {
-            view.UpdateConfigs(
-                request.FilterConfigJson ?? view.FilterConfigJson,
-                request.DisplayConfigJson ?? view.DisplayConfigJson
-            );
-        }
+        if (context.CurrentMember.Role < Role.Admin && view.CreatorId != context.CurrentMember.Id)
+            return MemberError.DontHavePermission;
 
-        await _db.SaveChangesAsync(ct);
+        view.Name = request.Name;
+        await db.SaveChangesAsync(ct);
+
         return Result.Success();
     }
 }

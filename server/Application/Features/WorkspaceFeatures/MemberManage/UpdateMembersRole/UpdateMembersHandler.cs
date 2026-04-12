@@ -1,62 +1,43 @@
 using Application.Common.Errors;
 using Application.Common.Interfaces;
 using Application.Common.Results;
-using Application.Features;
-using Application.Interfaces;
+using Application.Helpers;
 using Application.Interfaces.Data;
-using Domain.Entities;
-using Domain.Entities.ProjectEntities;
+using Domain.Enums;
 using Microsoft.EntityFrameworkCore;
-using server.Application.Interfaces;
 
-namespace Application.Features.WorkspaceFeatures.MemberManage.UpdateMembers;
+namespace Application.Features.WorkspaceFeatures.MemberManage.UpdateMembersRole;
 
-public class UpdateMembersHandler : ICommandHandler<UpdateMembersCommand>
+public class UpdateMembersHandler(IDataBase db, WorkspaceContext context) : ICommandHandler<UpdateMembersCommand, Guid>
 {
-    private readonly IDataBase _db;
-    private readonly ICurrentUserService _currentUserService;
-
-    public UpdateMembersHandler(IDataBase db, ICurrentUserService currentUserService) {
-        _db = db;
-        _currentUserService = currentUserService;
-    }
-
-    public async Task<Result> Handle(UpdateMembersCommand request, CancellationToken ct)
+    public async Task<Result<Guid>> Handle(UpdateMembersCommand request, CancellationToken ct)
     {
-        var currentUserId = _currentUserService.CurrentUserId();
-        if (currentUserId == Guid.Empty) 
-            return Result.Failure(Error.Unauthorized("User.NotAuthenticated", "User not authenticated."));
+        // Permission: Only Admin/Owner can update member roles
+        if (context.CurrentMember.Role > Role.Admin)
+            return Result<Guid>.Failure(MemberError.DontHavePermission);
 
-        var workspace = await _db.Workspaces
-            .AsNoTracking()
-            .ById(request.workspaceId)
-            .FirstOrDefaultAsync(ct);
+        var userIds = request.members.Select(m => m.userId).ToList();
 
-        if (workspace == null) return Result.Failure(WorkspaceError.NotFound);
+        var membersToUpdate = await db.WorkspaceMembers
+            .Where(m => m.ProjectWorkspaceId == context.workspaceId && userIds.Contains(m.UserId))
+            .ToListAsync(ct);
 
-        if (request.members == null || !request.members.Any()) return Result.Success();
+        if (membersToUpdate.Count == 0) return Result<Guid>.Success(context.workspaceId);
 
-        foreach (var memberUpdate in request.members)
+        var memberMap = request.members.ToDictionary(m => m.userId);
+
+        foreach (var memberEntity in membersToUpdate)
         {
-            var sql = @"
-                UPDATE workspace_members 
-                SET role = COALESCE(@Role, role), 
-                    membership_status = COALESCE(@Status, membership_status), 
-                    updated_at = NOW() 
-                WHERE project_workspace_id = @WorkspaceId 
-                  AND user_id = @UserId 
-                  AND role != 'Owner' -- Protection for owners
-                  AND deleted_at IS NULL";
-
-            await _db.ExecuteAsync(sql, new
+            if (memberMap.TryGetValue(memberEntity.UserId, out var update))
             {
-                WorkspaceId = workspace.Id,
-                UserId = memberUpdate.userId,
-                Role = memberUpdate.role?.ToString(),
-                Status = memberUpdate.status?.ToString()
-            }, cancellationToken: cancellationToken);
+                memberEntity.UpdateMembershipDetails(
+                    update.role ?? memberEntity.Role,
+                    update.status ?? memberEntity.MembershipStatus
+                );
+            }
         }
 
-        return Result.Success();
+        await db.SaveChangesAsync(ct);
+        return Result<Guid>.Success(context.workspaceId);
     }
 }

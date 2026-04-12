@@ -11,6 +11,7 @@ using server.Application.Interfaces;
 
 namespace Application.Features.DashboardFeatures.DeleteDashboard;
 
+[Obsolete("Dashboard features are legacy and will be removed in favor of modernized Functional Views.")]
 public class DeleteDashboardHandler : BaseFeatureHandler, IRequestHandler<DeleteDashboardCommand, Unit>
 {
     private readonly HybridCache _cache;

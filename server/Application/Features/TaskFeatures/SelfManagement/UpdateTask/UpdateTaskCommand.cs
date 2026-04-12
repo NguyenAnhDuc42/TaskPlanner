@@ -15,4 +15,4 @@ public record UpdateTaskCommand(
     int? StoryPoints,
     long? TimeEstimate,
     List<Guid>? AssigneeIds = null
-) : ICommandRequest<TaskDto>;
+) : ICommandRequest<TaskDto>, IAuthorizedWorkspaceRequest;

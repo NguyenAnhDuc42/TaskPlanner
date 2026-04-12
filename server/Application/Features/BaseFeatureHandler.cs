@@ -10,6 +10,7 @@ using server.Application.Interfaces;
 
 namespace Application.Features;
 
+[Obsolete("BaseFeatureHandler is legacy and should not be used for new features. Prefer modernized direct injection patterns.")]
 public abstract class BaseFeatureHandler
 {
     protected readonly IUnitOfWork UnitOfWork;

@@ -5,6 +5,7 @@ namespace Domain.Enums;
 [JsonConverter(typeof(JsonStringEnumConverter))]
 public enum ViewType
 {
-    List,
-    Board,
+    Overview,
+    Tasks,
+    Documents
 }

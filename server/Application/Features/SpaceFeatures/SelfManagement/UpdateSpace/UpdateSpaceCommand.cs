@@ -5,10 +5,12 @@ using MediatR;
 
 namespace Application.Features.SpaceFeatures.SelfManagement.UpdateSpace;
 
-public record UpdateSpaceCommand( Guid SpaceId,
+public record UpdateSpaceCommand(
+    Guid workspaceId,
+    Guid SpaceId,
     string? Name,
     string? Description,
     string? Color,
     string? Icon,
     bool? IsPrivate
-) : ICommandRequest;
+) : ICommandRequest, IAuthorizedWorkspaceRequest;

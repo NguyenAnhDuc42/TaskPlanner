@@ -15,4 +15,4 @@ public record GetWorkspaceStatusesQuery(
     Guid WorkspaceId,
     Guid? SpaceId = null,
     Guid? FolderId = null
-) : IQueryRequest<List<StatusDto>>;
+) : IQueryRequest<List<StatusDto>>, IAuthorizedWorkspaceRequest;

@@ -7,13 +7,15 @@ using Microsoft.Extensions.DependencyInjection;
 using Application.Helper;
 using Application.Helpers;
 using Application.Features.ViewFeatures.FeatureHelpers;
+using Application.Common.Interfaces;
+using Application.Features;
+
 namespace Application.Dependencies;
 
 public static class DependencyInjection
 {
-    public static IServiceCollection AddApplication(this IServiceCollection services,IConfiguration config)
+    public static IServiceCollection AddApplication(this IServiceCollection services, IConfiguration config)
     {
-
         services.AddValidatorsFromAssemblyContaining<ApplicationAssemblyMarker>();
         services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(typeof(ApplicationAssemblyMarker).Assembly));
         services.AddTransient(typeof(IPipelineBehavior<,>), typeof(ValidationBehavior<,>));
@@ -39,10 +41,14 @@ public static class DependencyInjection
         services.Decorate(typeof(ICommandHandler<,>), typeof(Application.Behaviors.ValidationDecorator.CommandHandler<,>));
         services.Decorate(typeof(IQueryHandler<,>), typeof(Application.Behaviors.ValidationDecorator.QueryHandler<,>));
 
+        services.Decorate(typeof(ICommandHandler<>), typeof(Application.Behaviors.PermissionDecorator.CommandBaseHandler<>));
+        services.Decorate(typeof(ICommandHandler<,>), typeof(Application.Behaviors.PermissionDecorator.CommandHandler<,>));
+        services.Decorate(typeof(IQueryHandler<,>), typeof(Application.Behaviors.PermissionDecorator.QueryHandler<,>));
+
         services.Decorate(typeof(ICommandHandler<>), typeof(LoggingDecorator.CommandBaseHandler<>));
         services.Decorate(typeof(ICommandHandler<,>), typeof(LoggingDecorator.CommandHandler<,>));
         services.Decorate(typeof(IQueryHandler<,>), typeof(LoggingDecorator.QueryHandler<,>));
- 
+
         // Widget Tools
         services.AddScoped<WidgetBuilder>();
 

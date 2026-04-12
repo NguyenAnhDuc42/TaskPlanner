@@ -1,37 +1,25 @@
 using Application.Common.Errors;
 using Application.Common.Interfaces;
 using Application.Common.Results;
-using Application.Features;
-using Application.Interfaces;
+using Application.Helpers;
 using Application.Interfaces.Data;
 using Domain.Enums;
 
 namespace Application.Features.WorkspaceFeatures.HierarchyManagement.GetHierarchy;
 
-public class GetNodeTasksHandler : IQueryHandler<GetNodeTasksQuery, NodeTasksDto>
+public class GetNodeTasksHandler(IDataBase db, WorkspaceContext context) : IQueryHandler<GetNodeTasksQuery, NodeTasksDto>
 {
-    private readonly IDataBase _db;
-    private readonly ICurrentUserService _currentUserService;
-
-    public GetNodeTasksHandler(IDataBase db, ICurrentUserService currentUserService) {
-        _db = db;
-        _currentUserService = currentUserService;
-    }
-
-    public async Task<Result<NodeTasksDto>> Handle(GetNodeTasksQuery request, CancellationToken cancellationToken)
+    public async Task<Result<NodeTasksDto>> Handle(GetNodeTasksQuery request, CancellationToken ct)
     {
-        var currentUserId = _currentUserService.CurrentUserId();
-        if (currentUserId == Guid.Empty) return Result.Failure<NodeTasksDto>(Error.Unauthorized("User.NotAuthenticated", "User not authenticated."));
-
-        var rawTasks = (await _db.QueryAsync<TaskRawItem>(GetHierarchySql.TasksQuery, new
+        var rawTasks = (await db.QueryAsync<TaskRawItem>(GetHierarchySql.TasksQuery, new
         {
             WorkspaceId = request.WorkspaceId,
             ParentId = request.ParentId,
             ParentType = request.ParentType,
             CursorOrderKey = request.CursorOrderKey,
             CursorTaskId = request.CursorTaskId,
-            PageSize = request.PageSize + 1  // fetch one extra to detect HasMore
-        }, cancellationToken: cancellationToken)).ToList();
+            PageSize = request.PageSize + 1
+        }, cancellationToken: ct)).ToList();
 
         var hasMore = rawTasks.Count > request.PageSize;
         if (hasMore) rawTasks.RemoveAt(rawTasks.Count - 1);
@@ -49,7 +37,7 @@ public class GetNodeTasksHandler : IQueryHandler<GetNodeTasksQuery, NodeTasksDto
 
         var last = rawTasks.LastOrDefault();
 
-        return Result.Success(new NodeTasksDto
+        return Result<NodeTasksDto>.Success(new NodeTasksDto
         {
             Tasks = tasks,
             HasMore = hasMore,

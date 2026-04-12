@@ -38,3 +38,8 @@ public static class ViewError
 {
     public static readonly Error NotFound = Error.NotFound("View.NotFound", "The view with the specified identifier was not found.");
 }
+
+public static class MemberError
+{
+    public static readonly Error DontHavePermission = Error.Forbidden("Member.DontHavePermission", "You do not have permission to perform this action.");
+}

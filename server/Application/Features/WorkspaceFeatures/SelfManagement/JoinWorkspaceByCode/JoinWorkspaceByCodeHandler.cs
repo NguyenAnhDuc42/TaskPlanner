@@ -1,12 +1,8 @@
-using System.ComponentModel.DataAnnotations;
 using Application.Common.Errors;
 using Application.Common.Interfaces;
 using Application.Common.Results;
-using Application.Features;
-using Application.Interfaces;
+using Application.Helpers;
 using Application.Interfaces.Data;
-using Domain.Entities;
-using Domain.Entities.ProjectEntities;
 using Domain.Entities.Relationship;
 using Domain.Enums;
 using Domain.Enums.RelationShip;
@@ -16,28 +12,21 @@ using server.Application.Interfaces;
 
 namespace Application.Features.WorkspaceFeatures.SelfManagement.JoinWorkspaceByCode;
 
-public class JoinWorkspaceByCodeHandler : ICommandHandler<JoinWorkspaceByCodeCommand, JoinWorkspaceByCodeResult>
+public class JoinWorkspaceByCodeHandler(
+    IDataBase db, 
+    ICurrentUserService currentUserService, 
+    HybridCache cache, 
+    IRealtimeService realtime
+) : ICommandHandler<JoinWorkspaceByCodeCommand, JoinWorkspaceByCodeResult>
 {
-    private readonly IDataBase _db;
-    private readonly ICurrentUserService _currentUserService;
-    private readonly HybridCache _cache;
-    private readonly IRealtimeService _realtime;
-
-    public JoinWorkspaceByCodeHandler(IDataBase db, ICurrentUserService currentUserService, HybridCache cache, IRealtimeService realtime) {
-        _db = db;
-        _currentUserService = currentUserService;
-        _cache = cache;
-        _realtime = realtime;
-    }
-
     public async Task<Result<JoinWorkspaceByCodeResult>> Handle(JoinWorkspaceByCodeCommand request, CancellationToken ct)
     {
-        var currentUserId = _currentUserService.CurrentUserId();
+        var currentUserId = currentUserService.CurrentUserId();
         if (currentUserId == Guid.Empty) 
             return Result.Failure<JoinWorkspaceByCodeResult>(Error.Unauthorized("User.NotAuthenticated", "User not authenticated."));
 
         var normalizedCode = request.JoinCode.Trim().ToUpperInvariant();
-        var workspace = await _db.Workspaces
+        var workspace = await db.Workspaces
             .ByJoinCode(normalizedCode)
             .WhereNotDeleted()
             .FirstOrDefaultAsync(ct);
@@ -45,7 +34,7 @@ public class JoinWorkspaceByCodeHandler : ICommandHandler<JoinWorkspaceByCodeCom
         if (workspace == null) return Result.Failure<JoinWorkspaceByCodeResult>(Error.Validation("Workspace.InvalidJoinCode", "Invalid join code."));
         if (workspace.IsArchived) return Result.Failure<JoinWorkspaceByCodeResult>(Error.Validation("Workspace.Archived", "Cannot join an archived workspace."));
 
-        var existingMember = await _db.Members.IgnoreQueryFilters()
+        var existingMember = await db.WorkspaceMembers.IgnoreQueryFilters()
             .ByWorkspace(workspace.Id)
             .ByUser(currentUserId)
             .FirstOrDefaultAsync(ct);
@@ -61,19 +50,19 @@ public class JoinWorkspaceByCodeHandler : ICommandHandler<JoinWorkspaceByCodeCom
         else if (existingMember.DeletedAt != null)
         {
             existingMember.RestoreForJoinByCode(workspace.StrictJoin);
-            dataResult = new JoinWorkspaceByCodeResult(workspace.Id, existingMember.Status.ToString(), false);
+            dataResult = new JoinWorkspaceByCodeResult(workspace.Id, existingMember.MembershipStatus.ToString(), false);
         }
         else
         {
             existingMember.JoinByCode(workspace.StrictJoin);
-            dataResult = new JoinWorkspaceByCodeResult(workspace.Id, existingMember.Status.ToString(), false);
+            dataResult = new JoinWorkspaceByCodeResult(workspace.Id, existingMember.MembershipStatus.ToString(), false);
         }
 
-        await _db.SaveChangesAsync(ct);
+        await db.SaveChangesAsync(ct);
 
-        await _cache.RemoveByTagAsync(WorkspaceCacheKeys.WorkspaceListTag(currentUserId), ct);
+        await cache.RemoveByTagAsync(WorkspaceCacheKeys.WorkspaceListTag(currentUserId), ct);
         
-        _ = _realtime.NotifyUserAsync(currentUserId, "WorkspaceJoined", new { WorkspaceId = workspace.Id }, default);
+        _ = realtime.NotifyUserAsync(currentUserId, "WorkspaceJoined", new { WorkspaceId = workspace.Id }, ct);
 
         return Result.Success(dataResult);
     }

@@ -1,52 +1,55 @@
 using Application.Common.Errors;
 using Application.Common.Interfaces;
 using Application.Common.Results;
-using Application.Features;
-using Application.Interfaces;
+using Application.Helpers;
 using Application.Interfaces.Data;
-using Domain.Entities;
-using Domain.Entities.Relationship;
-using Domain.Enums.RelationShip;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Hybrid;
 using server.Application.Interfaces;
 
 namespace Application.Features.WorkspaceFeatures.SelfManagement.SetWorkspacePin;
 
-public class SetWorkspacePinHandler : ICommandHandler<SetWorkspacePinCommand>
+public class SetWorkspacePinHandler(
+    IDataBase db, 
+    WorkspaceContext context,
+    ICurrentUserService currentUserService, 
+    HybridCache cache, 
+    IRealtimeService realtime
+) : ICommandHandler<SetWorkspacePinCommand>
 {
-    private readonly IDataBase _db;
-    private readonly ICurrentUserService _currentUserService;
-    private readonly HybridCache _cache;
-    private readonly IRealtimeService _realtime;
-
-    public SetWorkspacePinHandler(IDataBase db, ICurrentUserService currentUserService, HybridCache cache, IRealtimeService realtime) {
-        _db = db;
-        _currentUserService = currentUserService;
-        _cache = cache;
-        _realtime = realtime;
-    }
-
     public async Task<Result> Handle(SetWorkspacePinCommand request, CancellationToken ct)
     {
-        var currentUserId = _currentUserService.CurrentUserId();
+        var currentUserId = currentUserService.CurrentUserId();
         if (currentUserId == Guid.Empty) 
             return Result.Failure(Error.Unauthorized("User.NotAuthenticated", "User not authenticated."));
         
-        var member = await _db.Members
-            .ByWorkspace(request.WorkspaceId)
-            .ByUser(currentUserId)
-            .WhereActive()
-            .FirstOrDefaultAsync(ct);
+        // 1. Membership Check
+        var member = context.CurrentMember;
+        if (member == null || context.workspaceId != request.WorkspaceId)
+        {
+            member = await db.WorkspaceMembers
+                .ByWorkspace(request.WorkspaceId)
+                .ByUser(currentUserId)
+                .WhereActive()
+                .FirstOrDefaultAsync(ct);
+        }
 
-        if (member is null) return Result.Failure(Error.Forbidden("Workspace.Forbidden", "Only active members can pin workspaces."));
+        if (member is null) 
+            return Result.Failure(Error.Forbidden("Workspace.Forbidden", "Only active members can pin workspaces."));
 
-        member.SetPinned(request.IsPinned);
-        await _db.SaveChangesAsync(cancellationToken);
+        // 2. Logic execution
+        // We need an instance to update - reload if necessary (though the member above might be tracked if not AsNoTracking)
+        var memberEntity = await db.WorkspaceMembers
+            .FirstOrDefaultAsync(m => m.Id == member.Id, ct);
+
+        if (memberEntity == null) return Result.Failure(MemberError.NotFound);
+
+        memberEntity.SetPinned(request.IsPinned);
+        await db.SaveChangesAsync(ct);
         
-        await _cache.RemoveByTagAsync(WorkspaceCacheKeys.WorkspaceListTag(currentUserId), cancellationToken);
+        await cache.RemoveByTagAsync(WorkspaceCacheKeys.WorkspaceListTag(currentUserId), ct);
         
-        _ = _realtime.NotifyUserAsync(currentUserId, "WorkspacePinned", new { WorkspaceId = request.WorkspaceId, IsPinned = request.IsPinned }, default);
+        _ = realtime.NotifyUserAsync(currentUserId, "WorkspacePinned", new { WorkspaceId = request.WorkspaceId, IsPinned = request.IsPinned }, ct);
 
         return Result.Success();
     }

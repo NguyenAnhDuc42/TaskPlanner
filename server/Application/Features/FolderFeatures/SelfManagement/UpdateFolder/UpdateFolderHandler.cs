@@ -1,26 +1,27 @@
-using Application.Helpers;
 using Application.Common.Errors;
+using Application.Common.Interfaces;
 using Application.Common.Results;
-using Domain.Entities.ProjectEntities;
-using Microsoft.EntityFrameworkCore;
-using server.Application.Interfaces;
+using Application.Helpers;
 using Application.Interfaces.Data;
+using Domain.Entities.ProjectEntities;
+using Domain.Enums;
+using Microsoft.EntityFrameworkCore;
 
 namespace Application.Features.FolderFeatures.SelfManagement.UpdateFolder;
 
-public class UpdateFolderHandler : ICommandHandler<UpdateFolderCommand>
+public class UpdateFolderHandler(IDataBase db, WorkspaceContext context) : ICommandHandler<UpdateFolderCommand>
 {
-    private readonly IDataBase _db;
-
-    public UpdateFolderHandler(IDataBase db)
-    {
-        _db = db;
-    }
-
     public async Task<Result> Handle(UpdateFolderCommand request, CancellationToken ct)
     {
-        var folder = await _db.Folders.ById(request.FolderId).FirstOrDefaultAsync(ct);
+        var folder = await db.Folders.ById(request.FolderId).FirstOrDefaultAsync(ct);
         if (folder == null) return Result.Failure(FolderError.NotFound);
+
+        // Security Resolve: Check if member has access to this space and correct role
+        if (folder.ProjectSpace.ProjectWorkspaceId != context.workspaceId)
+            return Result.Failure(MemberError.DontHavePermission);
+
+        if (context.CurrentMember.Role > Role.Admin && folder.CreatorId != context.CurrentMember.Id)
+            return Result.Failure(MemberError.DontHavePermission);
 
         if (request.Name is not null || request.Description is not null)
         {
@@ -41,7 +42,7 @@ public class UpdateFolderHandler : ICommandHandler<UpdateFolderCommand>
                 request.DueDate ?? folder.DueDate);
         }
 
-        await _db.SaveChangesAsync(ct);
+        await db.SaveChangesAsync(ct);
         return Result.Success();
     }
 }

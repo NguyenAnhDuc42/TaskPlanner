@@ -1,24 +1,18 @@
-using Application.Interfaces.Data;
+using Application.Common.Interfaces;
 using Application.Common.Results;
+using Application.Helpers;
+using Application.Interfaces.Data;
 using Microsoft.EntityFrameworkCore;
 
 namespace Application.Features.ViewFeatures.GetViews;
 
-public class GetViewsHandler : IQueryHandler<GetViewsQuery, List<ViewDto>>
+public class GetViewsHandler(IDataBase db, WorkspaceContext context) : IQueryHandler<GetViewsQuery, List<ViewDto>>
 {
-    private readonly IDataBase _db;
-
-    public GetViewsHandler(IDataBase db)
-    {
-        _db = db;
-    }
-
     public async Task<Result<List<ViewDto>>> Handle(GetViewsQuery request, CancellationToken ct)
     {
-        var views = await _db.Views
+        var views = await db.Views
             .AsNoTracking()
-            .Where(v => v.LayerId == request.LayerId && v.LayerType == request.LayerType)
-            .OrderBy(v => v.CreatedAt)
+            .ByLayer(request.LayerId, request.LayerType)
             .Select(v => new ViewDto(
                 v.Id,
                 v.Name,
@@ -27,6 +21,6 @@ public class GetViewsHandler : IQueryHandler<GetViewsQuery, List<ViewDto>>
             ))
             .ToListAsync(ct);
 
-        return views;
+        return Result<List<ViewDto>>.Success(views);
     }
 }

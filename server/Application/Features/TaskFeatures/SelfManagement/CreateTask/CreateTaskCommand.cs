@@ -16,4 +16,4 @@ public record CreateTaskCommand(
     DateTimeOffset? DueDate,
     int? StoryPoints,
     long? TimeEstimate
-) : ICommandRequest<TaskDto>;
+) : ICommandRequest<TaskDto>, IAuthorizedWorkspaceRequest;

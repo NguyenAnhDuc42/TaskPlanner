@@ -1,74 +1,60 @@
 using Application.Common.Errors;
 using Application.Common.Interfaces;
 using Application.Common.Results;
-using Application.Features;
 using Application.Helpers;
-using Application.Interfaces;
 using Application.Interfaces.Data;
-using Domain.Entities.ProjectEntities;
+using Domain.Enums;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Hybrid;
-using Microsoft.Extensions.Logging;
 using server.Application.Interfaces;
 
 namespace Application.Features.WorkspaceFeatures.SelfManagement.UpdateWorkspace;
 
-public class UpdateWorkspaceHandler : ICommandHandler<UpdateWorkspaceCommand>
+public class UpdateWorkspaceHandler(
+    IDataBase db, 
+    WorkspaceContext context,
+    HybridCache cache, 
+    IRealtimeService realtime
+) : ICommandHandler<UpdateWorkspaceCommand>
 {
-    private readonly IDataBase _db;
-    private readonly ICurrentUserService _currentUserService;
-    private readonly HybridCache _cache;
-    private readonly IRealtimeService _realtime;
-    private readonly ILogger<UpdateWorkspaceHandler> _logger;
-
-    public UpdateWorkspaceHandler(IDataBase db, ICurrentUserService currentUserService, HybridCache cache, IRealtimeService realtime, ILogger<UpdateWorkspaceHandler> logger)
-    {
-        _db = db;
-        _currentUserService = currentUserService;
-        _cache = cache;
-        _realtime = realtime;
-        _logger = logger;
-    }
-
     public async Task<Result> Handle(UpdateWorkspaceCommand request, CancellationToken ct)
     {
-        var currentUserId = _currentUserService.CurrentUserId();
-        if (currentUserId == Guid.Empty) 
-            return Result.Failure(Error.Unauthorized("User.NotAuthenticated", "User not authenticated."));
+        // Permission Check: Redundant null check removed; PermissionDecorator guarantees context.CurrentMember
+        if (context.CurrentMember.Role > Role.Admin)
+            return Result.Failure(MemberError.DontHavePermission);
 
-        _logger.LogInformation("Updating workspace {WorkspaceId} by user {UserId}", request.Id, currentUserId);
-
-        var workspace = await _db.Workspaces
+        var workspace = await db.Workspaces
             .ById(request.Id)
             .FirstOrDefaultAsync(ct);
 
         if (workspace == null) return Result.Failure(WorkspaceError.NotFound);
 
-        // --- Apply Updates Inline ---
-        if (request.Name is not null || request.Description is not null)
+        // Update logic
+        var nameChanged = !string.IsNullOrEmpty(request.Name) && workspace.Name != request.Name;
+        if (nameChanged)
         {
-            var slug = request.Name != null ? SlugHelper.GenerateSlug(request.Name) : null;
-            workspace.UpdateBasicInfo(request.Name, slug, request.Description);
+            workspace.UpdateBasicInfo(request.Name, SlugHelper.GenerateSlug(request.Name!), request.Description);
+        }
+        else if (request.Description != null)
+        {
+            workspace.UpdateBasicInfo(workspace.Name, workspace.Slug, request.Description);
         }
 
-        if (request.Color is not null || request.Icon is not null) 
+        if (request.Color != null || request.Icon != null)
+        {
             workspace.UpdateCustomization(request.Color, request.Icon);
+        }
 
         if (request.Theme.HasValue) workspace.UpdateTheme(request.Theme.Value);
         if (request.StrictJoin.HasValue) workspace.UpdateStrictJoin(request.StrictJoin.Value);
-        if (request.IsArchived.HasValue)
-        {
-            if (request.IsArchived.Value) workspace.Archive();
-            else workspace.Unarchive();
-        }
-        if (request.RegenerateJoinCode) workspace.RegenerateJoinCode();
 
-        await _db.SaveChangesAsync(cancellationToken);
+        await db.SaveChangesAsync(ct);
 
-        // --- Side Effects ---
-        await _cache.RemoveByTagAsync(WorkspaceCacheKeys.WorkspaceListTag(currentUserId), cancellationToken);
-        
-        _ = _realtime.NotifyUserAsync(currentUserId, "WorkspaceUpdated", new { WorkspaceId = workspace.Id }, default);
-        _ = _realtime.NotifyWorkspaceAsync(workspace.Id, "WorkspaceSettingsUpdated", new { WorkspaceId = workspace.Id }, default);
+        // Cache Invalidation
+        await cache.RemoveByTagAsync(WorkspaceCacheKeys.WorkspaceListTag(context.CurrentMember.UserId), ct);
+        await cache.RemoveByTagAsync(CacheConstants.Tags.WorkspaceMembers(workspace.Id), ct);
+
+        _ = realtime.NotifyUserAsync(context.CurrentMember.UserId, "WorkspaceUpdated", new { WorkspaceId = workspace.Id }, ct);
 
         return Result.Success();
     }

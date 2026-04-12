@@ -1,51 +1,33 @@
+using Application.Common.Errors;
+using Application.Common.Interfaces;
+using Application.Common.Results;
 using Application.Helpers;
 using Application.Interfaces.Data;
-using Application.Common.Results;
-using Application.Common.Errors;
 using Domain.Entities.ProjectEntities;
-using Domain.Enums.RelationShip;
-using Microsoft.EntityFrameworkCore;
-using server.Application.Interfaces;
+using Domain.Enums;
 
 namespace Application.Features.ViewFeatures.CreateView;
 
-public class CreateViewHandler : ICommandHandler<CreateViewCommand, Guid>
+public class CreateViewHandler(IDataBase db, WorkspaceContext context) : ICommandHandler<CreateViewCommand, Guid>
 {
-    private readonly IDataBase _db;
-    private readonly ICurrentUserService _currentUserService;
-
-    public CreateViewHandler(IDataBase db, ICurrentUserService currentUserService)
-    {
-        _db = db;
-        _currentUserService = currentUserService;
-    }
-
     public async Task<Result<Guid>> Handle(CreateViewCommand request, CancellationToken ct)
     {
-        // 1. Layer Existence Validation
-        var error = request.LayerType switch
+        if (context.CurrentMember.Role < Role.Admin)
+            return Result<Guid>.Failure(MemberError.DontHavePermission);
+
+        var view = new View
         {
-            EntityLayerType.ProjectWorkspace => await _db.Workspaces.AnyAsync(x => x.Id == request.LayerId, ct) ? null : WorkspaceError.NotFound,
-            EntityLayerType.ProjectSpace => await _db.Spaces.AnyAsync(x => x.Id == request.LayerId, ct) ? null : SpaceError.NotFound,
-            EntityLayerType.ProjectFolder => await _db.Folders.AnyAsync(x => x.Id == request.LayerId, ct) ? null : FolderError.NotFound,
-            _ => Error.Validation("Layer.Invalid", "Invalid layer type.")
+            Id = Guid.NewGuid(),
+            Name = "New View",
+            LayerId = request.LayerId,
+            LayerType = request.LayerType,
+            ViewType = ViewType.List,
+            CreatorId = context.CurrentMember.Id
         };
 
-        if (error != null) return error;
+        db.Views.Add(view);
+        await db.SaveChangesAsync(ct);
 
-        var currentUserId = _currentUserService.CurrentUserId();
-
-        var view = ViewDefinition.Create(
-            request.LayerId, 
-            request.LayerType, 
-            request.Name, 
-            request.ViewType,
-            currentUserId,
-            request.IsDefault);
-
-        await _db.Views.AddAsync(view, ct);
-        await _db.SaveChangesAsync(ct);
-        
-        return view.Id;
+        return Result<Guid>.Success(view.Id);
     }
 }

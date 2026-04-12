@@ -1,38 +1,32 @@
 using Application.Common.Errors;
-using Application.Interfaces.Data;
-using Application.Helpers;
+using Application.Common.Interfaces;
 using Application.Common.Results;
+using Application.Helpers;
+using Application.Interfaces.Data;
 using Domain.Entities.ProjectEntities;
+using Domain.Enums;
 using Microsoft.EntityFrameworkCore;
-using server.Application.Interfaces;
 
 namespace Application.Features.SpaceFeatures.SelfManagement.UpdateSpace;
 
-public class UpdateSpaceHandler : ICommandHandler<UpdateSpaceCommand>
+public class UpdateSpaceHandler(IDataBase db, WorkspaceContext context) : ICommandHandler<UpdateSpaceCommand>
 {
-    private readonly IDataBase _db;
-    private readonly ICurrentUserService _currentUserService;
-    private readonly WorkspaceContext _workspaceContext;
-
-    public UpdateSpaceHandler(IDataBase db, ICurrentUserService currentUserService, WorkspaceContext workspaceContext)
-    {
-        _db = db;
-        _currentUserService = currentUserService;
-        _workspaceContext = workspaceContext;
-    }
-
     public async Task<Result> Handle(UpdateSpaceCommand request, CancellationToken ct)
     {
-        var space = await _db.Spaces
+        var space = await db.Spaces
             .ById(request.SpaceId)
             .FirstOrDefaultAsync(ct);
 
         if (space == null) return Result.Failure(SpaceError.NotFound);
 
-        var workspaceIdResult = _workspaceContext.TryGetWorkspaceId();
-        if (workspaceIdResult.IsFailure) return workspaceIdResult;
+        // Security Resolve
+        if (space.ProjectWorkspaceId != context.workspaceId)
+            return Result.Failure(MemberError.DontHavePermission);
 
-        // 3. Apply Updates
+        if (context.CurrentMember.Role > Role.Admin && space.CreatorId != context.CurrentMember.Id)
+            return Result.Failure(MemberError.DontHavePermission);
+
+        // Apply Updates
         if (request.Name is not null || request.Description is not null)
         {
             var slug = request.Name != null ? SlugHelper.GenerateSlug(request.Name) : null;
@@ -45,8 +39,7 @@ public class UpdateSpaceHandler : ICommandHandler<UpdateSpaceCommand>
         if (request.IsPrivate.HasValue) 
             space.UpdatePrivate(request.IsPrivate.Value);
 
-        await _db.SaveChangesAsync(ct);
+        await db.SaveChangesAsync(ct);
         return Result.Success();
     }
 }
-

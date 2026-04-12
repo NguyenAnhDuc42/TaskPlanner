@@ -1,18 +1,19 @@
+using Application.Common.Interfaces;
 using Domain.Enums;
 using MediatR;
 
 namespace Application.Features.WorkspaceFeatures.HierarchyManagement.GetHierarchy;
 
-public record class GetHierarchyQuery(Guid WorkspaceId) : IQueryRequest<WorkspaceHierarchyDto>;
+public record GetHierarchyQuery(Guid WorkspaceId) : IQueryRequest<WorkspaceHierarchyDto>, IAuthorizedWorkspaceRequest;
 
-public record class WorkspaceHierarchyDto
+public record WorkspaceHierarchyDto
 {
     public Guid Id { get; init; }
     public string Name { get; init; } = null!;
     public List<SpaceHierarchyDto> Spaces { get; init; } = new();
 }
 
-public record class SpaceHierarchyDto
+public record SpaceHierarchyDto
 {
     public Guid Id { get; init; }
     public string Name { get; init; } = null!;
@@ -24,7 +25,7 @@ public record class SpaceHierarchyDto
     public List<TaskHierarchyDto> Tasks { get; init; } = new();
 }
 
-public record class FolderHierarchyDto
+public record FolderHierarchyDto
 {
     public Guid Id { get; init; }
     public string Name { get; init; } = null!;
@@ -35,7 +36,7 @@ public record class FolderHierarchyDto
     public List<TaskHierarchyDto> Tasks { get; init; } = new();
 }
 
-public record class TaskHierarchyDto
+public record TaskHierarchyDto
 {
     public Guid Id { get; init; }
     public string Name { get; init; } = null!;
@@ -48,16 +49,16 @@ public record class TaskHierarchyDto
 
 // ── GetNodeTasks (lazy task loading on expand) ──────────────────────────
 
-public record class GetNodeTasksQuery(
+public record GetNodeTasksQuery(
     Guid WorkspaceId,
     Guid ParentId,
     string ParentType,       // "Folder" or "Space"
     string? CursorOrderKey,  // null on first page
     string? CursorTaskId,    // null on first page
     int PageSize = 50
-) : IQueryRequest<NodeTasksDto>;
+) : IQueryRequest<NodeTasksDto>, IAuthorizedWorkspaceRequest;
 
-public record class NodeTasksDto
+public record NodeTasksDto
 {
     public List<TaskHierarchyDto> Tasks { get; init; } = new();
     public string? NextCursorOrderKey { get; init; }

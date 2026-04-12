@@ -1,9 +1,7 @@
 using Application.Common.Errors;
 using Application.Common.Interfaces;
 using Application.Common.Results;
-using Application.Features;
 using Application.Helpers;
-using Application.Interfaces;
 using Application.Interfaces.Data;
 using Domain.Entities.ProjectEntities;
 using Domain.Entities.ProjectEntities.ValueObject;
@@ -12,24 +10,16 @@ using server.Application.Interfaces;
 
 namespace Application.Features.WorkspaceFeatures.SelfManagement.CreateWorkspace;
 
-public class CreateWorkspaceHandler : ICommandHandler<CreateWorkspaceCommand, Guid>
+public class CreateWorkspaceHandler(
+    IDataBase db, 
+    ICurrentUserService currentUserService, 
+    HybridCache cache, 
+    IRealtimeService realtime
+) : ICommandHandler<CreateWorkspaceCommand, Guid>
 {
-    private readonly IDataBase _db;
-    private readonly ICurrentUserService _currentUserService;
-    private readonly HybridCache _cache;
-    private readonly IRealtimeService _realtime;
-
-    public CreateWorkspaceHandler(IDataBase db, ICurrentUserService currentUserService, HybridCache cache, IRealtimeService realtime)
+    public async Task<Result<Guid>> Handle(CreateWorkspaceCommand request, CancellationToken ct)
     {
-        _db = db;
-        _currentUserService = currentUserService;
-        _cache = cache;
-        _realtime = realtime;
-    }
-
-    public async Task<Result<Guid>> Handle(CreateWorkspaceCommand request, CancellationToken cancellationToken)
-    {
-        var currentUserId = _currentUserService.CurrentUserId();
+        var currentUserId = currentUserService.CurrentUserId();
         if (currentUserId == Guid.Empty) 
             return Result.Failure<Guid>(Error.Unauthorized("User.NotAuthenticated", "User not authenticated."));
 
@@ -44,12 +34,12 @@ public class CreateWorkspaceHandler : ICommandHandler<CreateWorkspaceCommand, Gu
             strictJoin: request.StrictJoin
         );
 
-        await _db.Workspaces.AddAsync(workspace, cancellationToken);
-        await _db.SaveChangesAsync(cancellationToken);
+        await db.Workspaces.AddAsync(workspace, ct);
+        await db.SaveChangesAsync(ct);
         
-        await _cache.RemoveByTagAsync(WorkspaceCacheKeys.WorkspaceListTag(currentUserId), cancellationToken);
+        await cache.RemoveByTagAsync(WorkspaceCacheKeys.WorkspaceListTag(currentUserId), ct);
 
-        _ = _realtime.NotifyUserAsync(currentUserId, "WorkspaceCreated", new { WorkspaceId = workspace.Id }, default);
+        _ = realtime.NotifyUserAsync(currentUserId, "WorkspaceCreated", new { WorkspaceId = workspace.Id }, ct);
 
         return Result.Success(workspace.Id);
     }

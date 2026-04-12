@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Application.Common.Filters;
 using Application.Common.Results;
 using Application.Features.WorkspaceFeatures.SelfManagement;
@@ -6,82 +7,65 @@ using Application.Helper;
 using Application.Helpers;
 using Application.Interfaces;
 using Application.Interfaces.Data;
+using Domain.Enums;
+using Domain.Enums.RelationShip;
 using Microsoft.Extensions.Caching.Hybrid;
 using Microsoft.Extensions.Logging;
 using server.Application.Interfaces;
-using System.Text.Json;
-using Domain.Enums;
-using Domain.Enums.RelationShip;
 
 namespace Application.Features.WorkspaceFeatures.GetWorkspaceList;
 
-public class GetWorkspaceListHandler : IQueryHandler<GetWorksapceListQuery, PagedResult<WorkspaceSummaryDto>>
+public class GetWorkspaceListHandler(
+    IDataBase db,
+    ICurrentUserService currentUserService,
+    CursorHelper cursorHelper,
+    HybridCache cache,
+    ILogger<GetWorkspaceListHandler> logger
+) : IQueryHandler<GetWorksapceListQuery, PagedResult<WorkspaceSummaryDto>>
 {
-    private readonly IDataBase _db;
-    private readonly ICurrentUserService _currentUserService;
-    private readonly CursorHelper _cursorHelper;
-    private readonly HybridCache _cache;
-    private readonly ILogger<GetWorkspaceListHandler> _logger;
-
-    public GetWorkspaceListHandler(
-        IDataBase db,
-        ICurrentUserService currentUserService,
-        CursorHelper cursorHelper,
-        HybridCache cache,
-        ILogger<GetWorkspaceListHandler> logger)
+    public async Task<Result<PagedResult<WorkspaceSummaryDto>>> Handle(GetWorksapceListQuery request, CancellationToken ct)
     {
-        _db = db;
-        _currentUserService = currentUserService;
-        _cursorHelper = cursorHelper;
-        _cache = cache;
-        _logger = logger;
-    }
+        var currentUserId = currentUserService.CurrentUserId();
+        if (currentUserId == Guid.Empty) 
+            return Result.Failure<PagedResult<WorkspaceSummaryDto>>(Error.Unauthorized("User.NotAuthenticated", "User not authenticated."));
 
-    public async Task<Result<PagedResult<WorkspaceSummaryDto>>> Handle(GetWorksapceListQuery request, CancellationToken cancellationToken)
-    {
-        var currentUserId = _currentUserService.CurrentUserId();
         var cacheKey = WorkspaceCacheKeys.WorkspaceList(currentUserId, request);
-        _logger.LogDebug("Workspace list cache lookup. UserId={UserId}, CacheKey={CacheKey}", currentUserId, cacheKey);
+        
+        var result = await cache.GetOrCreateAsync(cacheKey, async token =>
+        {
+            var pageSize = request.Pagination.PageSize;
 
-        var result = await _cache.GetOrCreateAsync(cacheKey, async token =>
+            DecodeCursor(request.Pagination.Cursor, out var cursorTs, out var cursorId);
+
+            var sql = request.Pagination.Direction == SortDirection.Ascending
+                ? GetWorkspaceListSQL.Asc
+                : GetWorkspaceListSQL.Desc;
+
+            var rows = (await db.QueryAsync<WorkspaceRow>(sql, new
             {
-                _logger.LogDebug("Workspace list cache miss. UserId={UserId}", currentUserId);
-                var pageSize = request.Pagination.PageSize;
+                currentUserId,
+                name = request.filter.Name,
+                owned = request.filter.Owned,
+                IsArchived = request.filter.isArchived,
+                cursorTimestamp = cursorTs,
+                cursorId,
+                PageSizePLusOne = pageSize + 1
+            }, cancellationToken: token)).ToList();
 
-                DecodeCursor(request.Pagination.Cursor, out var cursorTs, out var cursorId);
+            var hasMore = rows.Count > pageSize;
+            if (hasMore) rows.RemoveAt(rows.Count - 1);
 
-                var sql = request.Pagination.Direction == SortDirection.Ascending
-                    ? GetWorkspaceListSQL.Asc
-                    : GetWorkspaceListSQL.Desc;
+            var items = Map(rows);
 
-                var rows = (await _db.QueryAsync<WorkspaceRow>(sql, new
-                {
-                    currentUserId,
-                    name = request.filter.Name,
-                    owned = request.filter.Owned,
-                    IsArchived = request.filter.isArchived,
-                    cursorTimestamp = cursorTs,
-                    cursorId,
-                    PageSizePLusOne = pageSize + 1
-                }, cancellationToken: token)).ToList();
+            var nextCursor = hasMore && rows.Count > 0
+                ? EncodeNextCursor(rows[^1])
+                : null;
 
-                _logger.LogInformation("[Diagnostic] Workspace SQL returned {Count} rows for UserId={UserId}. Filters: Name={Name}, Owned={Owned}, Archived={Archived}", 
-                    rows.Count, currentUserId, request.filter.Name, request.filter.Owned, request.filter.isArchived);
-
-                var hasMore = rows.Count > pageSize;
-                if (hasMore) rows.RemoveAt(rows.Count - 1);
-
-                var items = Map(rows);
-
-                var nextCursor = hasMore && rows.Count > 0
-                    ? EncodeNextCursor(rows[^1])
-                    : null;
-
-                return new PagedResult<WorkspaceSummaryDto>(items, nextCursor, hasMore);
-            },
-            new HybridCacheEntryOptions { Expiration = TimeSpan.FromMinutes(5) },
-            new[] { $"user:{currentUserId}:workspaces" },
-            cancellationToken);
+            return new PagedResult<WorkspaceSummaryDto>(items, nextCursor, hasMore);
+        },
+        new HybridCacheEntryOptions { Expiration = TimeSpan.FromMinutes(5) },
+        new[] { $"user:{currentUserId}:workspaces" },
+        ct);
 
         return Result.Success(result);
     }
@@ -92,8 +76,7 @@ public class GetWorkspaceListHandler : IQueryHandler<GetWorksapceListQuery, Page
         id = null;
         if (string.IsNullOrEmpty(cursor)) return;
 
-        var data = _cursorHelper.DecodeCursor(cursor);
-
+        var data = cursorHelper.DecodeCursor(cursor);
         if (data?.Values == null) return;
 
         if (data.Values.TryGetValue("Timestamp", out var tsObj))
@@ -141,65 +124,6 @@ public class GetWorkspaceListHandler : IQueryHandler<GetWorksapceListQuery, Page
             { "Id", last.Id }
         });
 
-        return _cursorHelper.EncodeCursor(cursorData);
+        return cursorHelper.EncodeCursor(cursorData);
     }
-
-
-    //public async Task<PagedResult<WorkspaceSummaryDto>> Handle(GetWorksapceListQuery request, CancellationToken cancellationToken)
-    //{
-    //    var currentUserId = _currentUserService.CurrentUserId();
-    //    var pageSize = request.Pagination.PageSize;
-
-    //    var query = _unitOfWork.Set<ProjectWorkspace>()
-    //        .Where(w => w.Members.Any(m => m.UserId == currentUserId));
-
-    //    var baseQuery = query
-    //        .ApplyFilter(request.filter, currentUserId)
-    //        .ApplyCursor(request.Pagination, _cursorHelper)
-    //        .ApplySort(request.Pagination);
-
-    //    var rawItems = await baseQuery
-    //        .Take(pageSize + 1) // fetch one extra to determine hasMore
-    //        .Select(w => new    
-    //        {
-    //            Workspace = w,
-    //            Role = w.Members.Where(m => m.UserId == currentUserId).Select(m => m.Role).Single(),
-    //            MemberCount = w.Members.Count()
-    //        })
-    //        .AsNoTracking()
-    //        .ToListAsync(cancellationToken);
-
-    //    var hasMore = rawItems.Count > pageSize;
-    //    if (hasMore) rawItems.RemoveAt(rawItems.Count - 1); // drop the extra
-
-    //    // Map to DTOs (no UpdatedAt on DTO)
-    //    var dtos = rawItems.Select(x => new WorkspaceSummaryDto
-    //    {
-    //        Id = x.Workspace.Id,
-    //        Name = x.Workspace.Name,
-    //        Icon = x.Workspace.Customization.Icon,
-    //        Color = x.Workspace.Customization.Color,
-    //        Description = x.Workspace.Description,
-    //        Variant = x.Workspace.Variant,
-    //        Role = x.Role,
-    //        MemberCount = x.MemberCount
-    //    }).ToList();
-
-    //    // Build next cursor using the last workspace's UpdatedAt + Id (matches your contract)
-    //    string? nextCursor = null;
-    //    if (hasMore && rawItems.Count > 0)
-    //    {
-    //        var lastWorkspace = rawItems.Last().Workspace;
-    //        nextCursor = _cursorHelper.EncodeCursor(new CursorData(new Dictionary<string, object>
-    //        {
-    //            { "Id", lastWorkspace.Id },
-    //            { "Timestamp", lastWorkspace.UpdatedAt }
-    //        }));
-    //    }
-
-    //    return new PagedResult<WorkspaceSummaryDto>(dtos, nextCursor, hasMore);
-    //}
-
 }
-
-

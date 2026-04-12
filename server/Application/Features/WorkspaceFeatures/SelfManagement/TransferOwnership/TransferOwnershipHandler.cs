@@ -1,48 +1,30 @@
-using System.ComponentModel.DataAnnotations;
 using Application.Common.Errors;
 using Application.Common.Interfaces;
 using Application.Common.Results;
-using Application.Features;
-using Application.Interfaces;
+using Application.Helpers;
 using Application.Interfaces.Data;
-using Domain.Entities.ProjectEntities;
-using Domain.Entities.Relationship;
 using Microsoft.EntityFrameworkCore;
 
 namespace Application.Features.WorkspaceFeatures.SelfManagement.TransferOwnership;
 
-public class TransferOwnershipHandler : ICommandHandler<TransferOwnershipCommand>
+public class TransferOwnershipHandler(IDataBase db, WorkspaceContext context) : ICommandHandler<TransferOwnershipCommand>
 {
-    private readonly IDataBase _db;
-    private readonly ICurrentUserService _currentUserService;
-
-    public TransferOwnershipHandler(IDataBase db, ICurrentUserService currentUserService) {
-        _db = db;
-        _currentUserService = currentUserService;
-    }
-
     public async Task<Result> Handle(TransferOwnershipCommand request, CancellationToken ct)
     {
-        var currentUserId = _currentUserService.CurrentUserId();
-        if (currentUserId == Guid.Empty) 
-            return Result.Failure(Error.Unauthorized("User.NotAuthenticated", "User not authenticated."));
+        // Only Owner can transfer ownership
+        if (context.CurrentMember.Role != Domain.Enums.Role.Owner)
+            return Result.Failure(Error.Forbidden("Workspace.Forbidden", "Only the workspace owner can transfer ownership"));
 
-        var workspace = await _db.Workspaces
-            .ById(request.WorkspaceId)
+        if (request.NewOwnerId == context.CurrentMember.UserId)
+            return Result.Failure(Error.Validation("Workspace.TransferSameUser", "Cannot transfer ownership to yourself"));
+
+        var workspace = await db.Workspaces
+            .ById(context.workspaceId)
             .FirstOrDefaultAsync(ct);
 
         if (workspace == null) return Result.Failure(WorkspaceError.NotFound);
 
-        // Extra check: Only current owner can transfer ownership (Role.Owner)
-        if (workspace.CreatorId != currentUserId) return Result.Failure(Error.Forbidden("Workspace.Forbidden", "Only the workspace owner can transfer ownership"));
-
-        // Cannot transfer to self
-        if (request.NewOwnerId == currentUserId) return Result.Failure(Error.Validation("Workspace.TransferSameUser", "Cannot transfer ownership to yourself"));
-
-        // Load members for tracking
-        await _db.Members.Where(wm => wm.ProjectWorkspaceId == request.WorkspaceId).LoadAsync(cancellationToken);
-
-        try 
+        try
         {
             workspace.TransferOwnership(request.NewOwnerId);
         }
@@ -51,8 +33,7 @@ public class TransferOwnershipHandler : ICommandHandler<TransferOwnershipCommand
             return Result.Failure(Error.ConditionNotMet with { Description = ex.Message });
         }
 
-        await _db.SaveChangesAsync(cancellationToken);
-
+        await db.SaveChangesAsync(ct);
         return Result.Success();
     }
 }

@@ -2,32 +2,29 @@ using Application.Helpers;
 using Application.Interfaces.Data;
 using Application.Common.Results;
 using Application.Common.Errors;
+using Application.Common.Interfaces;
 using Domain.Entities.ProjectEntities;
 using Domain.Entities.Relationship;
+using Domain.Enums;
 using Microsoft.EntityFrameworkCore;
 using server.Application.Interfaces;
 using Dapper;
 
 namespace Application.Features.TaskFeatures.SelfManagement.UpdateTask;
 
-public class UpdateTaskHandler : ICommandHandler<UpdateTaskCommand, TaskDto>
+public class UpdateTaskHandler(IDataBase db, WorkspaceContext context) : ICommandHandler<UpdateTaskCommand, TaskDto>
 {
-    private readonly IDataBase _db;
-    private readonly ICurrentUserService _currentUserService;
-
-    public UpdateTaskHandler(IDataBase db, ICurrentUserService currentUserService)
-    {
-        _db = db;
-        _currentUserService = currentUserService;
-    }
-
     public async Task<Result<TaskDto>> Handle(UpdateTaskCommand request, CancellationToken ct)
     {
-        var task = await _db.Tasks
+        var task = await db.Tasks
             .Include(t => t.Assignees)
             .FirstOrDefaultAsync(t => t.Id == request.TaskId, ct);
-        
-        if (task == null) return TaskError.NotFound;
+
+        if (task == null) return Result<TaskDto>.Failure(TaskError.NotFound);
+
+        // Permission: Admin/Owner or the task creator
+        if (context.CurrentMember.Role > Role.Admin && task.CreatorId != context.CurrentMember.UserId)
+            return Result<TaskDto>.Failure(MemberError.DontHavePermission);
 
         ApplyBasicDetails(task, request);
         await ApplyStatusUpdate(task, request, ct);
@@ -36,7 +33,7 @@ public class UpdateTaskHandler : ICommandHandler<UpdateTaskCommand, TaskDto>
         ApplyEstimationUpdate(task, request);
         await ApplyAssigneeUpdate(task, request, ct);
 
-        await _db.SaveChangesAsync(ct);
+        await db.SaveChangesAsync(ct);
         return await BuildTaskDto(task, ct);
     }
 
@@ -50,8 +47,8 @@ public class UpdateTaskHandler : ICommandHandler<UpdateTaskCommand, TaskDto>
     private async Task ApplyStatusUpdate(ProjectTask task, UpdateTaskCommand request, CancellationToken ct)
     {
         if (!request.StatusId.HasValue || request.StatusId.Value == task.StatusId) return;
-        
-        var isValid = await _db.Connection.QuerySingleOrDefaultAsync<int>(@"
+
+        var isValid = await db.Connection.QuerySingleOrDefaultAsync<int>(@"
             SELECT COUNT(1) 
             FROM   statuses s
             JOIN   workflows w ON s.workflow_id = w.id
@@ -83,27 +80,26 @@ public class UpdateTaskHandler : ICommandHandler<UpdateTaskCommand, TaskDto>
     {
         if (request.AssigneeIds == null) return;
 
-        var currentUserId = _currentUserService.CurrentUserId();
-        var memberIds = await _db.WorkspaceMembers
+        var memberIds = await db.WorkspaceMembers
             .Where(wm => wm.ProjectWorkspaceId == task.ProjectWorkspaceId && request.AssigneeIds.Contains(wm.UserId))
             .Select(wm => wm.Id)
             .ToListAsync(ct);
 
         var currentMemberIds = task.Assignees.Select(a => a.WorkspaceMemberId).ToHashSet();
-        
+
         var toRemove = task.Assignees.Where(a => !memberIds.Contains(a.WorkspaceMemberId)).ToList();
         task.RemoveAsignees(toRemove.Select(a => a.WorkspaceMemberId).ToList());
 
         var toAdd = memberIds
             .Where(id => !currentMemberIds.Contains(id))
-            .Select(id => TaskAssignment.Create(task.Id, id, currentUserId))
+            .Select(id => TaskAssignment.Create(task.Id, id, context.CurrentMember.UserId))
             .ToList();
         task.AddAsignees(toAdd);
     }
 
-    private async Task<TaskDto> BuildTaskDto(ProjectTask task, CancellationToken ct)
+    private async Task<Result<TaskDto>> BuildTaskDto(ProjectTask task, CancellationToken ct)
     {
-        var assigneeDtos = await _db.Connection.QueryAsync<AssigneeDto>(@"
+        var assigneeDtos = await db.Connection.QueryAsync<AssigneeDto>(@"
             SELECT u.id AS Id, u.name AS Name, NULL AS AvatarUrl
             FROM   task_assignments ta
             JOIN   workspace_members wm ON ta.workspace_member_id = wm.id
@@ -111,23 +107,22 @@ public class UpdateTaskHandler : ICommandHandler<UpdateTaskCommand, TaskDto>
             WHERE  ta.task_id = @TaskId
               AND  ta.deleted_at IS NULL", new { TaskId = task.Id });
 
-        return new TaskDto
-        {
-            Id = task.Id,
-            ProjectWorkspaceId = task.ProjectWorkspaceId,
-            ProjectSpaceId = task.ProjectSpaceId,
-            ProjectFolderId = task.ProjectFolderId,
-            Name = task.Name,
-            Description = task.Description,
-            StatusId = task.StatusId,
-            Priority = task.Priority,
-            StartDate = task.StartDate,
-            DueDate = task.DueDate,
-            StoryPoints = task.StoryPoints,
-            TimeEstimate = task.TimeEstimate,
-            OrderKey = task.OrderKey,
-            CreatedAt = task.CreatedAt,
-            Assignees = assigneeDtos.ToList()
-        };
+        return Result<TaskDto>.Success(new TaskDto(
+            task.Id,
+            task.ProjectWorkspaceId,
+            task.ProjectSpaceId,
+            task.ProjectFolderId,
+            task.Name,
+            task.Description,
+            task.StatusId,
+            task.Priority,
+            task.StartDate,
+            task.DueDate,
+            task.StoryPoints,
+            task.TimeEstimate,
+            task.OrderKey,
+            task.CreatedAt,
+            assigneeDtos.ToList()
+        ));
     }
 }

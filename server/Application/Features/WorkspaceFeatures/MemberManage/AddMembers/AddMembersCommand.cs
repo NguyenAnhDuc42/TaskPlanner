@@ -3,7 +3,11 @@ using Domain.Enums;
 
 namespace Application.Features.WorkspaceFeatures.MemberManage.AddMembers;
 
-public record class AddMembersCommand(Guid workspaceId, List<MemberValue> members,bool? enableEmail,string? message) : ICommandRequest<Guid>;
+public record AddMembersCommand(
+    Guid workspaceId, 
+    List<MemberValue> members, 
+    bool? enableEmail, 
+    string? message
+) : ICommandRequest, IAuthorizedWorkspaceRequest;
 
-public record class MemberValue(string email, Role role);
-
+public record MemberValue(string email, Role role);

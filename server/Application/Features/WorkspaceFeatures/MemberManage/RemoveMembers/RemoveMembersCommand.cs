@@ -1,6 +1,8 @@
 using Application.Common.Interfaces;
-using MediatR;
 
 namespace Application.Features.WorkspaceFeatures.MemberManage.RemoveMembers;
 
-public record class RemoveMembersCommand(Guid workspaceId, List<Guid> memberIds) : ICommandRequest<Guid>;
+public record RemoveMembersCommand(
+    Guid workspaceId, 
+    List<Guid> memberIds
+) : ICommandRequest<Guid>, IAuthorizedWorkspaceRequest;

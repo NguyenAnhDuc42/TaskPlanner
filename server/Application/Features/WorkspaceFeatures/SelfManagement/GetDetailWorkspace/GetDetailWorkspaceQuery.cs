@@ -1,9 +1,8 @@
-using Domain.Enums;
-using MediatR;
+using Application.Common.Interfaces;
 
 namespace Application.Features.WorkspaceFeatures.SelfManagement.GetDetailWorkspace;
 
-public record class GetDetailWorkspaceQuery(Guid WorkspaceId) : IQueryRequest<WorkspaceSecurityContextDto>;
+public record class GetDetailWorkspaceQuery(Guid WorkspaceId) : IQueryRequest<WorkspaceSecurityContextDto>, IAuthorizedWorkspaceRequest;
 
 public record WorkspaceSecurityContextDto(
     Guid WorkspaceId,

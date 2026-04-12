@@ -4,4 +4,5 @@ using MediatR;
 
 namespace Application.Features.DashboardFeatures.CreateWidget;
 
+[Obsolete("Dashboard features are legacy and will be removed in favor of modernized Functional Views.")]
 public record class CreateWidgetCommand(Guid dashboardId, WidgetType widgetType, int Col, int Row, int Width, int Height) : ICommand<Guid>;

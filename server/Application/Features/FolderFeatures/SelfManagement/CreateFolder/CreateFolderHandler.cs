@@ -1,31 +1,33 @@
-using Domain.Entities;
-using Microsoft.EntityFrameworkCore;
-using server.Application.Interfaces;
+using Application.Common.Errors;
+using Application.Common.Interfaces;
+using Application.Common.Results;
+using Application.Helpers;
 using Application.Interfaces.Data;
+using Domain.Entities.ProjectEntities;
+using Domain.Entities.ProjectEntities.ValueObject;
+using Domain.Enums;
+using Microsoft.EntityFrameworkCore;
 
 namespace Application.Features.FolderFeatures.SelfManagement.CreateFolder;
 
-public class CreateFolderHandler : ICommandHandler<CreateFolderCommand, Guid>
+public class CreateFolderHandler(IDataBase db, WorkspaceContext context) : ICommandHandler<CreateFolderCommand, Guid>
 {
-    private readonly IDataBase _db;
-    private readonly ICurrentUserService _currentUserService;
-    private readonly WorkspaceContext _workspaceContext;
-
-    public CreateFolderHandler(IDataBase db, ICurrentUserService currentUserService, WorkspaceContext workspaceContext)
-    {
-        _db = db;
-        _currentUserService = currentUserService;
-        _workspaceContext = workspaceContext;
-    }
-
     public async Task<Result<Guid>> Handle(CreateFolderCommand request, CancellationToken ct)
     {
-        var space = await _db.Spaces.ById(request.spaceId).FirstOrDefaultAsync(ct);
-        if (space == null) return Result.Failure<Guid>(SpaceError.NotFound);
+        var space = await db.Spaces.ById(request.spaceId).FirstOrDefaultAsync(ct);
+        if (space == null) return Result<Guid>.Failure(SpaceError.NotFound);
+
+        // Security: Ensure space belongs to the authorized workspace
+        if (space.ProjectWorkspaceId != context.workspaceId)
+            return Result<Guid>.Failure(MemberError.DontHavePermission);
+
+        // Permission: Admin or Owner to create folders
+        if (context.CurrentMember.Role > Role.Admin)
+            return Result<Guid>.Failure(MemberError.DontHavePermission);
         
         var customization = Customization.Create(request.color, request.icon);
 
-        var maxKey = await _db.Folders
+        var maxKey = await db.Folders
             .AsNoTracking()
             .BySpace(request.spaceId)
             .WhereNotDeleted()
@@ -41,15 +43,15 @@ public class CreateFolderHandler : ICommandHandler<CreateFolderCommand, Guid>
             description: request.description,
             orderKey: orderKey,
             isPrivate: request.isPrivate,
-            creatorId: _currentUserService.CurrentUserId(),
+            creatorId: context.CurrentMember.Id, // MemberId
             customization: customization,
             startDate: request.startDate,
             dueDate: request.dueDate
         );
 
-        await _db.Folders.AddAsync(folder, ct);
-        await _db.SaveChangesAsync(ct);
+        await db.Folders.AddAsync(folder, ct);
+        await db.SaveChangesAsync(ct);
         
-        return folder.Id;
+        return Result<Guid>.Success(folder.Id);
     }
 }

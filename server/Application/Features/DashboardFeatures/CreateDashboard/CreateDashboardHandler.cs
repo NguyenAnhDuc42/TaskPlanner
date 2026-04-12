@@ -12,6 +12,7 @@ using Domain.Enums.RelationShip;
 
 namespace Application.Features.DashboardFeatures.CreateDashboard;
 
+[Obsolete("Dashboard features are legacy and will be removed in favor of modernized Functional Views.")]
 public class CreateDashboardHandler : BaseFeatureHandler, IRequestHandler<CreateDashboardCommand, Guid>
 {
     private readonly HybridCache _cache;

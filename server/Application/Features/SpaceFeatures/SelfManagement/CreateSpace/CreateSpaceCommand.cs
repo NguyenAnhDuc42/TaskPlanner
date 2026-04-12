@@ -1,9 +1,8 @@
 using Application.Common.Interfaces;
-using MediatR;
 
 namespace Application.Features.SpaceFeatures.SelfManagement.CreateSpace;
 
-public record class CreateSpaceCommand(
+public record CreateSpaceCommand(
     Guid workspaceId,
     string name,
     string? description,
@@ -11,4 +10,4 @@ public record class CreateSpaceCommand(
     string icon,
     bool isPrivate,
     List<Guid>? memberIdsToInvite = null
-) : ICommandRequest<Guid>;
+) : ICommandRequest<Guid>, IAuthorizedWorkspaceRequest;

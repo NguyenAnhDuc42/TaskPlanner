@@ -1,47 +1,32 @@
-using System.Text.Json;
 using Application.Common;
 using Application.Common.Filters;
 using Application.Common.Results;
-using Application.Features;
 using Application.Helper;
 using Application.Helpers;
 using Application.Interfaces;
 using Application.Interfaces.Data;
-using Domain.Entities;
-using Domain.Entities.Relationship;
 using Microsoft.Extensions.Caching.Hybrid;
 using Microsoft.Extensions.Logging;
+using System.Text.Json;
 
 namespace Application.Features.WorkspaceFeatures.MemberManage.GetMembers;
 
-public class GetMembersHandler : IQueryHandler<GetMembersQuery, PagedResult<MemberDto>>
+public class GetMembersHandler(
+    IDataBase db,
+    WorkspaceContext context,
+    CursorHelper cursorHelper,
+    HybridCache cache,
+    ILogger<GetMembersHandler> logger
+) : IQueryHandler<GetMembersQuery, PagedResult<MemberDto>>
 {
-    private readonly IDataBase _db;
-    private readonly ICurrentUserService _currentUserService;
-    private readonly CursorHelper _cursorHelper;
-    private readonly HybridCache _cache;
-    private readonly ILogger<GetMembersHandler> _logger;
-
-    public GetMembersHandler(IDataBase db, ICurrentUserService currentUserService, CursorHelper cursorHelper, HybridCache cache, ILogger<GetMembersHandler> logger) {
-        _db = db;
-        _currentUserService = currentUserService;
-        _cursorHelper = cursorHelper;
-        _cache = cache;
-        _logger = logger;
-    }
-
-    public async Task<Result<PagedResult<MemberDto>>> Handle(GetMembersQuery request, CancellationToken cancellationToken)
+    public async Task<Result<PagedResult<MemberDto>>> Handle(GetMembersQuery request, CancellationToken ct)
     {
-        var workspaceId = request.WorkspaceId;
+        // Any workspace member can view members — PermissionDecorator guarantees context.CurrentMember
+        var workspaceId = context.workspaceId;
         var cacheKey = WorkspaceCacheKeys.MemberList(workspaceId, request);
-        _logger.LogDebug(
-            "Workspace member list cache lookup. WorkspaceId={WorkspaceId}, CacheKey={CacheKey}",
-            workspaceId,
-            cacheKey);
 
-        var result = await _cache.GetOrCreateAsync(cacheKey, async token =>
+        var result = await cache.GetOrCreateAsync(cacheKey, async token =>
         {
-            _logger.LogDebug("Workspace member list cache miss. WorkspaceId={WorkspaceId}", workspaceId);
             var pageSize = request.pagination.PageSize;
             DecodeCursor(request.pagination.Cursor, out var cursorTimestamp, out var cursorId);
 
@@ -49,7 +34,7 @@ public class GetMembersHandler : IQueryHandler<GetMembersQuery, PagedResult<Memb
                 ? GetMembersSQL.Asc
                 : GetMembersSQL.Desc;
 
-            var rows = (await _db.QueryAsync<MemberRow>(sql, new
+            var rows = (await db.QueryAsync<MemberRow>(sql, new
             {
                 WorkspaceId = workspaceId,
                 name = request.filter.Name,
@@ -72,9 +57,9 @@ public class GetMembersHandler : IQueryHandler<GetMembersQuery, PagedResult<Memb
         },
         new HybridCacheEntryOptions { Expiration = TimeSpan.FromMinutes(5) },
         new[] { CacheConstants.Tags.WorkspaceMembers(workspaceId) },
-        cancellationToken);
+        ct);
 
-        return Result.Success(result);
+        return Result<PagedResult<MemberDto>>.Success(result);
     }
 
     private void DecodeCursor(string? cursor, out DateTimeOffset? ts, out Guid? id)
@@ -83,7 +68,7 @@ public class GetMembersHandler : IQueryHandler<GetMembersQuery, PagedResult<Memb
         id = null;
         if (string.IsNullOrEmpty(cursor)) return;
 
-        var data = _cursorHelper.DecodeCursor(cursor);
+        var data = cursorHelper.DecodeCursor(cursor);
         if (data?.Values == null) return;
 
         if (data.Values.TryGetValue("Timestamp", out var tsObj))
@@ -102,17 +87,16 @@ public class GetMembersHandler : IQueryHandler<GetMembersQuery, PagedResult<Memb
 
     private static List<MemberDto> Map(List<MemberRow> rows)
     {
-        return rows.Select(x => new MemberDto
-        {
-            Id = x.Id,
-            WorkspaceMemberId = x.WorkspaceMemberId,
-            Name = x.Name,
-            Email = x.Email,
-            AvatarUrl = x.AvatarUrl,
-            Role = x.Role,
-            CreatedAt = x.CreatedAt,
-            JoinedAt = x.JoinedAt
-        }).ToList();
+        return rows.Select(x => new MemberDto(
+            x.Id,
+            x.WorkspaceMemberId,
+            x.Name,
+            x.Email,
+            x.AvatarUrl,
+            x.Role,
+            x.CreatedAt,
+            x.JoinedAt
+        )).ToList();
     }
 
     private string EncodeNextCursor(MemberRow last)
@@ -122,7 +106,6 @@ public class GetMembersHandler : IQueryHandler<GetMembersQuery, PagedResult<Memb
             { "Timestamp", last.CreatedAt },
             { "Id", last.Id }
         });
-        return _cursorHelper.EncodeCursor(cursorData);
+        return cursorHelper.EncodeCursor(cursorData);
     }
 }
-

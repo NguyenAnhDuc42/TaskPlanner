@@ -11,6 +11,7 @@ using server.Application.Interfaces;
 
 namespace Application.Features.DashboardFeatures.SaveDashboardLayout;
 
+[Obsolete("Dashboard features are legacy and will be removed in favor of modernized Functional Views.")]
 public class SaveDashboardLayoutHandler : BaseFeatureHandler, IRequestHandler<SaveDashboardLayoutCommand, bool>
 {
     private readonly HybridCache _cache;

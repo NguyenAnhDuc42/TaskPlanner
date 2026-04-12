@@ -12,6 +12,7 @@ using server.Application.Interfaces;
 
 namespace Application.Features.DashboardFeatures.CreateWidget;
 
+[Obsolete("Dashboard features are legacy and will be removed in favor of modernized Functional Views.")]
 public class CreateWidgetHandler : BaseFeatureHandler, IRequestHandler<CreateWidgetCommand, Guid>
 {
     private readonly HybridCache _cache;

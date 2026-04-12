@@ -1,29 +1,30 @@
 using Application.Helpers;
 using Application.Common.Errors;
 using Application.Common.Results;
-using Domain.Entities.ProjectEntities;
-using server.Application.Interfaces;
+using Application.Common.Interfaces;
 using Application.Interfaces.Data;
+using Domain.Enums;
+using Microsoft.EntityFrameworkCore;
 
 namespace Application.Features.TaskFeatures.SelfManagement.DeleteTask;
 
-public class DeleteTaskHandler : ICommandHandler<DeleteTaskCommand>
+public class DeleteTaskHandler(IDataBase db, WorkspaceContext context) : ICommandHandler<DeleteTaskCommand>
 {
-    private readonly IDataBase _db;
-
-    public DeleteTaskHandler(IDataBase db)
-    {
-        _db = db;
-    }
-
     public async Task<Result> Handle(DeleteTaskCommand request, CancellationToken ct)
     {
-        var task = await _db.Tasks.FindAsync(request.TaskId, ct);
-        if (task == null) return TaskError.NotFound;
+        var task = await db.Tasks
+            .ById(request.TaskId)
+            .FirstOrDefaultAsync(ct);
+
+        if (task == null) return Result.Failure(TaskError.NotFound);
+
+        // Permission: Admin/Owner or the task creator
+        if (context.CurrentMember.Role > Role.Admin && task.CreatorId != context.CurrentMember.UserId)
+            return Result.Failure(MemberError.DontHavePermission);
 
         task.SoftDelete();
-        await _db.SaveChangesAsync(ct);
-        
+        await db.SaveChangesAsync(ct);
+
         return Result.Success();
     }
 }
