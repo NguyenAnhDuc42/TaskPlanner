@@ -1,13 +1,12 @@
 using Domain.Common;
 using Domain.Entities.ProjectEntities.ValueObject;
-using Domain.Entities.Relationship;
 using Domain.Enums;
 using Domain.Enums.RelationShip;
 using Domain.Enums.Workspace;
 using Domain.Events.Membership;
 using Domain.Exceptions;
 
-namespace Domain.Entities.ProjectEntities;
+namespace Domain.Entities;
 
 public sealed class ProjectWorkspace : Entity
 {

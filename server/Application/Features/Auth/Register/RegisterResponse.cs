@@ -1,5 +1,3 @@
-using System;
-
 namespace Application.Features.Auth.Register;
 
-public record RegisterResponse(Guid Id, string Username, string Email);
+public record RegisterResponse(Guid id, string name, string email);

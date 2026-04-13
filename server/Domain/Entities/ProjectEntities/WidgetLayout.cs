@@ -1,6 +1,6 @@
 using System;
 
-namespace Domain.Entities.ProjectEntities;
+namespace Domain.Entities;
 
 public record WidgetLayout
 {

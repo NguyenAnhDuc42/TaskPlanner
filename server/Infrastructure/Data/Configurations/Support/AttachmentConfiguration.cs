@@ -1,8 +1,9 @@
-using Domain.Entities.Support.ValueObject;
+using Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using System.Text.Json;
+
 
 namespace Infrastructure.Data.Configurations.Support;
 
@@ -14,31 +15,12 @@ public class AttachmentConfiguration : EntityConfiguration<Attachment>
 
         builder.ToTable("attachments");
 
-        // 1. Storage Info
-        // Renamed from ContentId to StorageKey to match our Entity
-        builder.Property(x => x.StorageKey)
-            .HasColumnName("storage_key")
-            .HasMaxLength(512);
-
-        builder.Property(x => x.StorageProvider)
-            .HasConversion<string>()
-            .HasColumnName("storage_provider")
-            .HasMaxLength(64)
-            .IsRequired();
-
-        builder.Property(x => x.StoragePath)
-            .HasColumnName("storage_path")
-            .HasMaxLength(2000);
-
-        // 2. Visible Metadata
-        builder.Property(x => x.FileName)
-            .HasColumnName("file_name")
-            .HasMaxLength(512)
-            .IsRequired();
-
-        builder.Property(x => x.ContentType)
-            .HasColumnName("content_type")
-            .HasMaxLength(256);
+        builder.Property(x => x.FileName).IsRequired().HasMaxLength(256).HasColumnName("file_name");
+        builder.Property(x => x.ContentType).IsRequired().HasMaxLength(128).HasColumnName("content_type");
+        builder.Property(x => x.Type).HasConversion<string>().HasMaxLength(50).IsRequired().HasColumnName("type");
+        builder.Property(x => x.SizeBytes).IsRequired().HasColumnName("size_bytes");
+        builder.Property(x => x.Checksum).IsRequired().HasMaxLength(64).HasColumnName("checksum");
+        builder.Property(x => x.ChecksumAlgorithm).IsRequired().HasMaxLength(20).HasDefaultValue("SHA256").HasColumnName("checksum_algorithm");
 
         builder.Property(x => x.Type)
             .HasConversion<int>() // Store as SmallInt/Int for performance

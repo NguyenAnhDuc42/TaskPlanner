@@ -6,10 +6,11 @@ using Application.Features.WorkspaceFeatures.DeleteWorkspace;
 using Application.Helpers;
 using Application.Interfaces;
 using Application.Interfaces.Data;
-using Domain.Entities.ProjectEntities;
+using Domain.Entities;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Hybrid;
 using Microsoft.Extensions.Logging;
-using server.Application.Interfaces;
+
 
 namespace Application.Features.WorkspaceFeatures.SelfManagement.DeleteWorkspace;
 

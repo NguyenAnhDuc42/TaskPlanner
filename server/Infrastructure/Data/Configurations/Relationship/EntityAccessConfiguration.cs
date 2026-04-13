@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
-using Domain.Entities.Relationship;
+using Domain.Entities;
 
 namespace Infrastructure.Data.Configurations.Relationship;
 

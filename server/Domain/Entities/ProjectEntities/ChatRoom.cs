@@ -1,8 +1,7 @@
 using Domain.Common;
-using Domain.Entities.Relationship;
 using Domain.Enums.Workspace;
 
-namespace Domain.Entities.ProjectEntities;
+namespace Domain.Entities;
 
 public class ChatRoom : Entity
 {

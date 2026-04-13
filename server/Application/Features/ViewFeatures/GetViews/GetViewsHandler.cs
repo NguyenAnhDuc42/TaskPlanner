@@ -2,6 +2,7 @@ using Application.Common.Interfaces;
 using Application.Common.Results;
 using Application.Helpers;
 using Application.Interfaces.Data;
+using Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 
 namespace Application.Features.ViewFeatures.GetViews;
@@ -10,7 +11,7 @@ public class GetViewsHandler(IDataBase db, WorkspaceContext context) : IQueryHan
 {
     public async Task<Result<List<ViewDto>>> Handle(GetViewsQuery request, CancellationToken ct)
     {
-        var views = await db.Views
+        var views = await db.ViewDefinitions
             .AsNoTracking()
             .ByLayer(request.LayerId, request.LayerType)
             .Select(v => new ViewDto(

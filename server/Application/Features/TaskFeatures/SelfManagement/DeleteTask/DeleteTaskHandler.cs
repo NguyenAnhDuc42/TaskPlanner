@@ -3,6 +3,7 @@ using Application.Common.Errors;
 using Application.Common.Results;
 using Application.Common.Interfaces;
 using Application.Interfaces.Data;
+using Domain.Entities;
 using Domain.Enums;
 using Microsoft.EntityFrameworkCore;
 
@@ -16,10 +17,11 @@ public class DeleteTaskHandler(IDataBase db, WorkspaceContext context) : IComman
             .ById(request.TaskId)
             .FirstOrDefaultAsync(ct);
 
-        if (task == null) return Result.Failure(TaskError.NotFound);
+        if (task == null) 
+            return Result.Failure(TaskError.NotFound);
 
-        // Permission: Admin/Owner or the task creator
-        if (context.CurrentMember.Role > Role.Admin && task.CreatorId != context.CurrentMember.UserId)
+        // AUTHORIZATION: Only Admin/Owner or the task creator (MemberId) can delete tasks
+        if (context.CurrentMember.Role > Role.Admin && task.CreatorId != context.CurrentMember.Id)
             return Result.Failure(MemberError.DontHavePermission);
 
         task.SoftDelete();

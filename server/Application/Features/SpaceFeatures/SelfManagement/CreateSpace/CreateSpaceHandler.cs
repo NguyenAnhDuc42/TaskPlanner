@@ -3,9 +3,10 @@ using Application.Common.Interfaces;
 using Application.Common.Results;
 using Application.Helpers;
 using Application.Interfaces.Data;
-using Domain.Entities.ProjectEntities;
+using Domain.Entities;
 using Domain.Entities.ProjectEntities.ValueObject;
 using Domain.Enums;
+using Domain.Common;
 using Microsoft.EntityFrameworkCore;
 
 namespace Application.Features.SpaceFeatures.SelfManagement.CreateSpace;
@@ -14,11 +15,10 @@ public class CreateSpaceHandler(IDataBase db, WorkspaceContext context) : IComma
 {
     public async Task<Result<Guid>> Handle(CreateSpaceCommand request, CancellationToken ct)
     {
-        // 1. Permission Check
+        // AUTHORIZATION: Only Admin or Owner can create spaces
         if (context.CurrentMember.Role > Role.Admin)
             return Result<Guid>.Failure(MemberError.DontHavePermission);
 
-        // 2. Fractional Index Calculation
         var maxKey = await db.Spaces
             .AsNoTracking()
             .ByWorkspace(context.workspaceId)
@@ -30,7 +30,6 @@ public class CreateSpaceHandler(IDataBase db, WorkspaceContext context) : IComma
         var slug = SlugHelper.GenerateSlug(request.name);
         var customization = Customization.Create(request.color, request.icon);
 
-        // 3. Create Space
         var space = ProjectSpace.Create(
             projectWorkspaceId: context.workspaceId,
             name: request.name,
@@ -38,7 +37,7 @@ public class CreateSpaceHandler(IDataBase db, WorkspaceContext context) : IComma
             description: request.description,
             customization: customization,
             isPrivate: request.isPrivate,
-            creatorId: context.CurrentMember.Id,
+            creatorId: context.CurrentMember.Id, // REVERTED: Using MemberId
             orderKey: orderKey
         );
 

@@ -1,6 +1,7 @@
 using Domain.Common;
-using Domain.Entities.Support.ValueObject;
 using Domain.Enums;
+
+namespace Domain.Entities;
 
 public class Attachment : Entity
 {

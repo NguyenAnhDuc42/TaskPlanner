@@ -1,14 +1,12 @@
-using Application.Features.DashboardFeatures.WidgetDataHelper;
-using Application.Pipeline;
 using FluentValidation;
-using MediatR;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Application.Helper;
 using Application.Helpers;
-using Application.Features.ViewFeatures.FeatureHelpers;
 using Application.Common.Interfaces;
 using Application.Features;
+using Application.Behaviors;
+using Application.Common;
 
 namespace Application.Dependencies;
 
@@ -16,12 +14,7 @@ public static class DependencyInjection
 {
     public static IServiceCollection AddApplication(this IServiceCollection services, IConfiguration config)
     {
-        services.AddValidatorsFromAssemblyContaining<ApplicationAssemblyMarker>();
-        services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(typeof(ApplicationAssemblyMarker).Assembly));
-        services.AddTransient(typeof(IPipelineBehavior<,>), typeof(ValidationBehavior<,>));
-        services.AddTransient(typeof(IPipelineBehavior<,>), typeof(TransactionBehavior<,>));
-
-        services.Scan(scan => scan.FromAssembliesOf<ApplicationAssemblyMarker>()
+        services.Scan(scan => scan.FromAssemblyOf<ApplicationAssemblyMarker>() // Using CursorHelper as a marker for the assembly
             .AddClasses(classes => classes.AssignableTo(typeof(ICommandHandler<>)), publicOnly: false)
                 .AsImplementedInterfaces()
                 .WithScopedLifetime()
@@ -36,7 +29,7 @@ public static class DependencyInjection
                 .WithScopedLifetime()
         );
 
-        // Decorators for the NEW Custom Handlers (Running parallel with old MediatR pipelines)
+        // Decorators for the Custom Handlers
         services.Decorate(typeof(ICommandHandler<>), typeof(Application.Behaviors.ValidationDecorator.CommandBaseHandler<>));
         services.Decorate(typeof(ICommandHandler<,>), typeof(Application.Behaviors.ValidationDecorator.CommandHandler<,>));
         services.Decorate(typeof(IQueryHandler<,>), typeof(Application.Behaviors.ValidationDecorator.QueryHandler<,>));
@@ -49,9 +42,6 @@ public static class DependencyInjection
         services.Decorate(typeof(ICommandHandler<,>), typeof(LoggingDecorator.CommandHandler<,>));
         services.Decorate(typeof(IQueryHandler<,>), typeof(LoggingDecorator.QueryHandler<,>));
 
-        // Widget Tools
-        services.AddScoped<WidgetBuilder>();
-
         // Cursor Helper
         services.Configure<CursorEncryptionOptions>(config.GetSection(CursorEncryptionOptions.SectionName));
         services.AddSingleton<CursorHelper>();
@@ -59,11 +49,8 @@ public static class DependencyInjection
         // Workspace Context
         services.AddScoped<WorkspaceContext>();
 
-        // Handler Dispatcher
+        // Handler Dispatcher - Using explicit registration to resolve CS0246
         services.AddScoped<IHandler, HandlerDispatcher>();
-
-        // View Engine
-        services.AddScoped<ViewBuilder>();
 
         return services;
     }

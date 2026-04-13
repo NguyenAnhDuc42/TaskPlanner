@@ -1,27 +1,28 @@
+using Application.Common.Results;
+using Application.Common.Interfaces;
 using Application.Helpers;
-using Application.Interfaces.Repositories;
-using Domain.Entities.ProjectEntities;
-using MediatR;
+using Application.Interfaces.Data;
 using Microsoft.EntityFrameworkCore;
-using server.Application.Interfaces;
 
 namespace Application.Features.ChatRoomFeatures.GetChatRooms;
 
-public class GetChatRoomsHandler : BaseFeatureHandler, IRequestHandler<GetChatRoomsQuery, List<ChatRoomDto>>
+public class GetChatRoomsHandler(IDataBase db, WorkspaceContext context) : IQueryHandler<GetChatRoomsQuery, List<ChatRoomDto>>
 {
-    public GetChatRoomsHandler(IUnitOfWork unitOfWork, ICurrentUserService currentUserService, WorkspaceContext workspaceContext) : base(unitOfWork, currentUserService, workspaceContext)
+    public async Task<Result<List<ChatRoomDto>>> Handle(GetChatRoomsQuery request, CancellationToken ct)
     {
-    }
-
-    public async Task<List<ChatRoomDto>> Handle(GetChatRoomsQuery request, CancellationToken cancellationToken)
-    {
-        var chatRooms = await UnitOfWork.Set<ChatRoom>()
+        var chatRooms = await db.ChatRooms
             .AsNoTracking()
             .Where(x => x.ProjectWorkspaceId == request.workspaceId && x.DeletedAt == null)
             .OrderBy(x => x.CreatedAt)
-            .Select(x => new ChatRoomDto(x.Id, x.Name, x.AvatarUrl, x.IsPrivate, x.IsArchived, x.CreatedAt.DateTime)) // Convert DateTimeOffset to DateTime
-            .ToListAsync(cancellationToken);
+            .Select(x => new ChatRoomDto(
+                x.Id, 
+                x.Name, 
+                x.AvatarUrl, 
+                x.IsPrivate, 
+                x.IsArchived, 
+                x.CreatedAt.DateTime))
+            .ToListAsync(ct);
 
-        return chatRooms;
+        return Result<List<ChatRoomDto>>.Success(chatRooms);
     }
 }

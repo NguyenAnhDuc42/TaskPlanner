@@ -4,6 +4,7 @@ using Application.Common.Results;
 using Application.Helpers;
 using Application.Interfaces.Data;
 using Domain.Enums;
+using Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 
 namespace Application.Features.WorkspaceFeatures.SelfManagement.GetDetailWorkspace;

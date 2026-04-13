@@ -1,6 +1,7 @@
 using System.Text.Json;
 using Application.Common.Filters;
 using Application.Common.Results;
+using Application.Common.Errors;
 using Application.Features.WorkspaceFeatures.SelfManagement;
 using Application.Features.WorkspaceFeatures.SelfManagement.GetWorkspaceList;
 using Application.Helper;
@@ -11,7 +12,6 @@ using Domain.Enums;
 using Domain.Enums.RelationShip;
 using Microsoft.Extensions.Caching.Hybrid;
 using Microsoft.Extensions.Logging;
-using server.Application.Interfaces;
 
 namespace Application.Features.WorkspaceFeatures.GetWorkspaceList;
 
@@ -27,7 +27,7 @@ public class GetWorkspaceListHandler(
     {
         var currentUserId = currentUserService.CurrentUserId();
         if (currentUserId == Guid.Empty) 
-            return Result.Failure<PagedResult<WorkspaceSummaryDto>>(Error.Unauthorized("User.NotAuthenticated", "User not authenticated."));
+            return Result<PagedResult<WorkspaceSummaryDto>>.Failure(UserError.NotFound);
 
         var cacheKey = WorkspaceCacheKeys.WorkspaceList(currentUserId, request);
         
@@ -67,7 +67,7 @@ public class GetWorkspaceListHandler(
         new[] { $"user:{currentUserId}:workspaces" },
         ct);
 
-        return Result.Success(result);
+        return Result<PagedResult<WorkspaceSummaryDto>>.Success(result);
     }
 
     private void DecodeCursor(string? cursor, out DateTimeOffset? ts, out Guid? id)
@@ -96,24 +96,23 @@ public class GetWorkspaceListHandler(
     private static List<WorkspaceSummaryDto> Map(List<WorkspaceRow> rows)
     {
         var jsonOptions = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
-        return rows.Select(x => new WorkspaceSummaryDto
-        {
-            Id = x.Id,
-            Name = x.Name,
-            Icon = x.Icon,
-            Color = x.Color,
-            Description = x.Description,
-            Role = x.Role,
-            MemberCount = x.MemberCount,
-            IsArchived = x.IsArchived,
-            IsPinned = x.IsPinned,
-            CanUpdateWorkspace = x.MembershipStatus == MembershipStatus.Active && (x.Role == Role.Owner || x.Role == Role.Admin),
-            CanManageMembers = x.MembershipStatus == MembershipStatus.Active && (x.Role == Role.Owner || x.Role == Role.Admin),
-            CanPinWorkspace = x.MembershipStatus == MembershipStatus.Active,
-            Members = string.IsNullOrEmpty(x.MembersJson) 
+        return rows.Select(x => new WorkspaceSummaryDto(
+            Id: x.Id,
+            Name: x.Name,
+            Icon: x.Icon,
+            Color: x.Color,
+            Description: x.Description,
+            Role: x.Role,
+            MemberCount: x.MemberCount,
+            IsArchived: x.IsArchived,
+            IsPinned: x.IsPinned,
+            CanUpdateWorkspace: x.MembershipStatus == MembershipStatus.Active && (x.Role == Role.Owner || x.Role == Role.Admin),
+            CanManageMembers: x.MembershipStatus == MembershipStatus.Active && (x.Role == Role.Owner || x.Role == Role.Admin),
+            CanPinWorkspace: x.MembershipStatus == MembershipStatus.Active,
+            Members: string.IsNullOrEmpty(x.MembersJson) 
                 ? new List<WorkspaceMemberSummaryDto>() 
                 : JsonSerializer.Deserialize<List<WorkspaceMemberSummaryDto>>(x.MembersJson, jsonOptions) ?? new()
-        }).ToList();
+        )).ToList();
     }
 
     private string EncodeNextCursor(WorkspaceRow last)

@@ -4,6 +4,7 @@ using Application.Common.Results;
 using Application.Helpers;
 using Application.Interfaces.Data;
 using Microsoft.EntityFrameworkCore;
+using Domain.Entities;
 
 namespace Application.Features.WorkspaceFeatures.HierarchyManagement.GetHierarchy;
 

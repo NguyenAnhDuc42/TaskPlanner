@@ -1,11 +1,11 @@
 using Application.Features.ViewFeatures.CreateView;
 using Application.Features.ViewFeatures.DeleteView;
-using Application.Features.ViewFeatures.GetViewData;
 using Application.Features.ViewFeatures.GetViews;
 using Application.Features.ViewFeatures.UpdateView;
 using Domain.Enums.RelationShip;
 using Microsoft.AspNetCore.Mvc;
 using Application.Common.Interfaces;
+using Api.Extensions;
 
 namespace Api.Controllers;
 
@@ -27,13 +27,6 @@ public class ViewsController : ControllerBase
         CancellationToken ct)
     {
         var result = await _handler.QueryAsync<GetViewsQuery, List<ViewDto>>(new GetViewsQuery(layerId, layerType), ct);
-        return result.ToActionResult();
-    }
-
-    [HttpGet("{id:guid}/data")]
-    public async Task<IActionResult> GetViewData(Guid id, CancellationToken ct)
-    {
-        var result = await _handler.QueryAsync<GetViewDataQuery, BaseViewResult>(new GetViewDataQuery(id), ct);
         return result.ToActionResult();
     }
 

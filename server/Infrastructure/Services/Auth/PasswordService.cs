@@ -1,5 +1,5 @@
 using System;
-using server.Application.Interfaces;
+using Application.Interfaces;
 
 namespace Infrastructure.Auth;
 

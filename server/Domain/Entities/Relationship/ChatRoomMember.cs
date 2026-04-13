@@ -2,7 +2,7 @@ using Domain.Common;
 using Domain.Entities.ProjectEntities;
 using Domain.Enums.Workspace;
 
-namespace Domain.Entities.Relationship;
+namespace Domain.Entities;
 
 public class ChatRoomMember : Composite
 {

@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
-using Domain.Entities.ProjectEntities;
+using Domain.Entities;
 
 namespace Infrastructure.Data.Configurations.ProjectEntities;
 

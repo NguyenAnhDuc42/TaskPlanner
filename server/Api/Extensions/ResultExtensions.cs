@@ -10,11 +10,11 @@ public static class ResultExtensions
     public static IActionResult ToActionResult<T>(this Result<T> result)
         => result switch
         {
-            Result<T>.Success success => 
+            Result<T>.SuccessResult success => 
                 new OkObjectResult(success.Value),
 
-            Result<T>.Failure failure => 
-                CreateProblemDetails(failure.Error),
+            Result<T>.FailureResult failure => 
+                CreateProblemDetails(failure.Error!),
 
             _ => new StatusCodeResult(500)
         };
@@ -22,16 +22,18 @@ public static class ResultExtensions
     public static IActionResult ToActionResult(this Result result)
         => result switch
         {
-            Result.Success => new NoContentResult(),
+            Result.SuccessResult => new NoContentResult(),
 
-            Result.Failure failure =>
-                CreateProblemDetails(failure.Error),
+            Result.FailureResult failure =>
+                CreateProblemDetails(failure.Error!),
 
             _ => new StatusCodeResult(500)
         };
 
     private static ObjectResult CreateProblemDetails(Error error)
     {
+        if (error == null) throw new ArgumentNullException(nameof(error));
+
         var statusCode = MapErrorTypeToStatusCode(error.Type);
         
         var problemDetails = new ProblemDetails

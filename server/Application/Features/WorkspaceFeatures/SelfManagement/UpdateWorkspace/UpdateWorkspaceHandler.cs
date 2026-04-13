@@ -1,12 +1,14 @@
 using Application.Common.Errors;
 using Application.Common.Interfaces;
 using Application.Common.Results;
+using Application.Common;
 using Application.Helpers;
 using Application.Interfaces.Data;
 using Domain.Enums;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Hybrid;
-using server.Application.Interfaces;
+using Application.Interfaces;
+using Domain.Entities;
 
 namespace Application.Features.WorkspaceFeatures.SelfManagement.UpdateWorkspace;
 

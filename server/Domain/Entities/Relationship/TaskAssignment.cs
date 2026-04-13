@@ -1,6 +1,6 @@
 using Domain.Common;
 
-namespace Domain.Entities.Relationship;
+namespace Domain.Entities;
 
 public class TaskAssignment : Entity
 {

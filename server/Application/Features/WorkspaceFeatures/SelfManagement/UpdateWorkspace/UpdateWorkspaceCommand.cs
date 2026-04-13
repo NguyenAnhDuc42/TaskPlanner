@@ -1,7 +1,7 @@
 using Application.Common.Interfaces;
 using Domain.Enums.Workspace;
 
-namespace Application.Features.WorkspaceFeatures.UpdateWorkspace;
+namespace Application.Features.WorkspaceFeatures.SelfManagement.UpdateWorkspace;
 
 public record UpdateWorkspaceCommand(
     Guid Id,

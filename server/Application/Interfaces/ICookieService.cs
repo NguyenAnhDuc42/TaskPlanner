@@ -1,8 +1,7 @@
-
 using Application.Features.Auth.DTOs;
 using Microsoft.AspNetCore.Http;
 
-namespace server.Application.Interfaces
+namespace Application.Interfaces
 {
     public interface ICookieService
     {
@@ -12,4 +11,3 @@ namespace server.Application.Interfaces
         void ClearAuthCookies(HttpContext context);
     }
 }
-

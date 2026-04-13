@@ -4,6 +4,7 @@ using Application.Common.Results;
 using Application.Helpers;
 using Application.Interfaces.Data;
 using Microsoft.EntityFrameworkCore;
+using Domain.Entities;
 
 namespace Application.Features.WorkspaceFeatures.SelfManagement.TransferOwnership;
 
@@ -26,7 +27,7 @@ public class TransferOwnershipHandler(IDataBase db, WorkspaceContext context) : 
 
         try
         {
-            workspace.TransferOwnership(request.NewOwnerId);
+            workspace.TransferOwnership(request.NewOwnerId, context.CurrentMember.UserId);
         }
         catch (InvalidOperationException ex)
         {

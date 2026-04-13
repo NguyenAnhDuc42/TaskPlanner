@@ -2,7 +2,7 @@ using Domain.Common;
 using Domain.Entities.ProjectEntities.ValueObject;
 using Domain.Exceptions;
 
-namespace Domain.Entities.ProjectEntities;
+namespace Domain.Entities;
 
 public sealed class ProjectSpace : Entity
 {

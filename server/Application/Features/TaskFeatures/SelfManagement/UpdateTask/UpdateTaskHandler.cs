@@ -3,11 +3,10 @@ using Application.Interfaces.Data;
 using Application.Common.Results;
 using Application.Common.Errors;
 using Application.Common.Interfaces;
-using Domain.Entities.ProjectEntities;
-using Domain.Entities.Relationship;
+using Domain.Entities;
 using Domain.Enums;
 using Microsoft.EntityFrameworkCore;
-using server.Application.Interfaces;
+using Application.Interfaces;
 using Dapper;
 
 namespace Application.Features.TaskFeatures.SelfManagement.UpdateTask;
@@ -20,10 +19,11 @@ public class UpdateTaskHandler(IDataBase db, WorkspaceContext context) : IComman
             .Include(t => t.Assignees)
             .FirstOrDefaultAsync(t => t.Id == request.TaskId, ct);
 
-        if (task == null) return Result<TaskDto>.Failure(TaskError.NotFound);
+        if (task == null) 
+            return Result<TaskDto>.Failure(TaskError.NotFound);
 
-        // Permission: Admin/Owner or the task creator
-        if (context.CurrentMember.Role > Role.Admin && task.CreatorId != context.CurrentMember.UserId)
+        // AUTHORIZATION: Only Admin/Owner or the task creator (MemberId) can update tasks
+        if (context.CurrentMember.Role > Role.Admin && task.CreatorId != context.CurrentMember.Id)
             return Result<TaskDto>.Failure(MemberError.DontHavePermission);
 
         ApplyBasicDetails(task, request);
@@ -92,7 +92,7 @@ public class UpdateTaskHandler(IDataBase db, WorkspaceContext context) : IComman
 
         var toAdd = memberIds
             .Where(id => !currentMemberIds.Contains(id))
-            .Select(id => TaskAssignment.Create(task.Id, id, context.CurrentMember.UserId))
+            .Select(id => TaskAssignment.Create(task.Id, id, context.CurrentMember.Id))
             .ToList();
         task.AddAsignees(toAdd);
     }

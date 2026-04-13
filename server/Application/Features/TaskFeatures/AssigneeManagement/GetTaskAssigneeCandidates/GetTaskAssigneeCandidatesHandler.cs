@@ -1,7 +1,7 @@
 using Application.Common.Errors;
 using Application.Common.Results;
 using Domain.Entities.ProjectEntities;
-using server.Application.Interfaces;
+using Application.Interfaces;
 using Application.Interfaces.Data;
 using Dapper;
 

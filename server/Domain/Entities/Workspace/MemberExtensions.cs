@@ -1,6 +1,5 @@
 using System;
 using System.Linq;
-using Domain.Entities.Relationship;
 using Domain.Enums;
 using Domain.Enums.RelationShip;
 

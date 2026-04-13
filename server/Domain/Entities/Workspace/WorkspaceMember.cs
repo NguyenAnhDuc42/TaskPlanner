@@ -5,7 +5,7 @@ using Domain.Enums;
 using Domain.Enums.RelationShip;
 using Domain.Events.Membership;
 
-namespace Domain.Entities.Relationship;
+namespace Domain.Entities;
 
 public class WorkspaceMember : Entity
 {
@@ -19,7 +19,7 @@ public class WorkspaceMember : Entity
     public DateTimeOffset? SuspendedAt { get; private set; }
     public Guid? SuspendedBy { get; private set; }
     public string? JoinMethod { get; private set; } = string.Empty; // "Invite", "Request", "Code"
-    internal WorkspaceMember(Guid userId, Guid projectWorkspaceId, Role role, MembershipStatus status, Guid creatorId, string? joinMethod)
+    public WorkspaceMember(Guid userId, Guid projectWorkspaceId, Role role, MembershipStatus status, Guid creatorId, string? joinMethod)
     {
         UserId = userId;
         ProjectWorkspaceId = projectWorkspaceId;
@@ -31,13 +31,13 @@ public class WorkspaceMember : Entity
         JoinMethod = joinMethod;
     }
 
-    internal static WorkspaceMember Create(Guid userId, Guid workspaceId, Role role, MembershipStatus status, Guid createdBy, string? joinMethod)
+    public static WorkspaceMember Create(Guid userId, Guid workspaceId, Role role, MembershipStatus status, Guid createdBy, string? joinMethod)
       => new(userId, workspaceId, role, status, createdBy, joinMethod);
 
-    internal static WorkspaceMember CreateOwner(Guid userId, Guid projectWorkspaceId, Guid createdBy)
+    public static WorkspaceMember CreateOwner(Guid userId, Guid projectWorkspaceId, Guid createdBy)
         => new(userId, projectWorkspaceId, Role.Owner, MembershipStatus.Active, createdBy, "Created");
 
-    internal static List<WorkspaceMember> AddBulk(List<(Guid UserId, Role Role, MembershipStatus Status, string? JoinMethod)> memberSpecs, Guid projectWorkspaceId, Guid createdBy)
+    public static List<WorkspaceMember> AddBulk(List<(Guid UserId, Role Role, MembershipStatus Status, string? JoinMethod)> memberSpecs, Guid projectWorkspaceId, Guid createdBy)
     {
         return memberSpecs
             .Select(spec => new WorkspaceMember(
@@ -123,4 +123,3 @@ public class WorkspaceMember : Entity
         JoinByCode(strictJoin);
     }
 }
-

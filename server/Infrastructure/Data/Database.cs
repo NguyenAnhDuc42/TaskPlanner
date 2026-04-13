@@ -2,16 +2,13 @@ using Application.Interfaces.Data;
 using Application.Interfaces.Repositories;
 using Application.Interfaces;
 using Domain.Entities;
-using Domain.Entities.ProjectEntities;
-using Domain.Entities.Relationship;
-using Domain.Entities.Support;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
 using System.Data;
 using Infrastructure.Events.Extensions;
 using Hangfire;
-using Background.Jobs;
+using Dapper;
 
 namespace Infrastructure.Data;
 
@@ -35,17 +32,28 @@ public class Database : IDataBase
     public IDbConnection Connection => _context.Database.GetDbConnection();
 
     public DbSet<User> Users => _context.Set<User>();
+    public DbSet<Session> Sessions => _context.Set<Session>();
     public DbSet<ProjectWorkspace> Workspaces => _context.Set<ProjectWorkspace>();
     public DbSet<ProjectSpace> Spaces => _context.Set<ProjectSpace>();
     public DbSet<ProjectFolder> Folders => _context.Set<ProjectFolder>();
     public DbSet<ProjectTask> Tasks => _context.Set<ProjectTask>();
-    public DbSet<WorkspaceMember> Members => _context.Set<WorkspaceMember>();
+    public DbSet<Workflow> Workflows => _context.Set<Workflow>();
+    public DbSet<WorkspaceMember> WorkspaceMembers => _context.Set<WorkspaceMember>();
     public DbSet<EntityAccess> Access => _context.Set<EntityAccess>();
     public DbSet<Status> Statuses => _context.Set<Status>();
     public DbSet<Comment> Comments => _context.Set<Comment>();
     public DbSet<Document> Documents => _context.Set<Document>();
     public DbSet<Dashboard> Dashboards => _context.Set<Dashboard>();
-    public DbSet<Workflow> Workflows => _context.Set<Workflow>();
+    public DbSet<ViewDefinition> ViewDefinitions => _context.Set<ViewDefinition>();
+    public DbSet<ChatRoom> ChatRooms => _context.Set<ChatRoom>();
+    public DbSet<ChatRoomMember> ChatRoomMembers => _context.Set<ChatRoomMember>();
+    public DbSet<ChatMessage> ChatMessages => _context.Set<ChatMessage>();
+    public DbSet<Attachment> Attachments => _context.Set<Attachment>();
+    public DbSet<AttachmentLink> AttachmentLinks => _context.Set<AttachmentLink>();
+    public DbSet<TaskAssignment> TaskAssignments => _context.Set<TaskAssignment>();
+    public DbSet<Widget> Widgets => _context.Set<Widget>();
+    public DbSet<OutboxMessage> OutboxMessages => _context.Set<OutboxMessage>();
+    public DbSet<PasswordResetToken> PasswordResetTokens => _context.Set<PasswordResetToken>();
 
     public DbSet<T> Set<T>() where T : class => _context.Set<T>();
     public bool HasActiveTransaction => _currentTransaction != null;
@@ -112,11 +120,24 @@ public class Database : IDataBase
 
         var totalChanges = await _context.SaveChangesAsync(cancellationToken);
 
-        if (domainEvents.Any())
-        {
-            _backgroundJobClient.Enqueue<ProcessOutboxJob>(job => job.RunAsync());
-        }
+        // NOTE: Circular dependency prevented direct trigger here. 
+        // The Background job worker should poll or be triggered via a separate service in Application layer.
 
         return totalChanges;
+    }
+
+    public async Task<IEnumerable<T>> QueryAsync<T>(string sql, object? param = null, CancellationToken cancellationToken = default)
+    {
+        return await Connection.QueryAsync<T>(new CommandDefinition(sql, param, cancellationToken: cancellationToken));
+    }
+
+    public async Task<T?> QuerySingleOrDefaultAsync<T>(string sql, object? param = null, CancellationToken cancellationToken = default)
+    {
+        return await Connection.QuerySingleOrDefaultAsync<T>(new CommandDefinition(sql, param, cancellationToken: cancellationToken));
+    }
+
+    public async Task<int> ExecuteAsync(string sql, object? param = null, CancellationToken cancellationToken = default)
+    {
+        return await Connection.ExecuteAsync(new CommandDefinition(sql, param, cancellationToken: cancellationToken));
     }
 }

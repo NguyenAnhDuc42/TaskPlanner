@@ -3,9 +3,11 @@ using Application.Common.Interfaces;
 using Application.Common.Results;
 using Application.Helpers;
 using Application.Interfaces.Data;
+using Domain.Common;
 using Domain.Entities.ProjectEntities;
 using Domain.Entities.ProjectEntities.ValueObject;
 using Domain.Enums;
+using Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 
 namespace Application.Features.FolderFeatures.SelfManagement.CreateFolder;
@@ -15,13 +17,12 @@ public class CreateFolderHandler(IDataBase db, WorkspaceContext context) : IComm
     public async Task<Result<Guid>> Handle(CreateFolderCommand request, CancellationToken ct)
     {
         var space = await db.Spaces.ById(request.spaceId).FirstOrDefaultAsync(ct);
-        if (space == null) return Result<Guid>.Failure(SpaceError.NotFound);
+        if (space == null) 
+            return Result<Guid>.Failure(SpaceError.NotFound);
 
-        // Security: Ensure space belongs to the authorized workspace
         if (space.ProjectWorkspaceId != context.workspaceId)
             return Result<Guid>.Failure(MemberError.DontHavePermission);
 
-        // Permission: Admin or Owner to create folders
         if (context.CurrentMember.Role > Role.Admin)
             return Result<Guid>.Failure(MemberError.DontHavePermission);
         
@@ -43,7 +44,7 @@ public class CreateFolderHandler(IDataBase db, WorkspaceContext context) : IComm
             description: request.description,
             orderKey: orderKey,
             isPrivate: request.isPrivate,
-            creatorId: context.CurrentMember.Id, // MemberId
+            creatorId: context.CurrentMember.Id, // Correctly Using WorkspaceMemberId from context
             customization: customization,
             startDate: request.startDate,
             dueDate: request.dueDate

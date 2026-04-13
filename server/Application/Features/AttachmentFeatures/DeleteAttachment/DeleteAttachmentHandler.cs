@@ -1,10 +1,28 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
+using Application.Common.Errors;
+using Application.Common.Results;
+using Application.Common.Interfaces;
+using Application.Helpers;
+using Application.Interfaces.Data;
+using Domain.Enums;
+using Microsoft.EntityFrameworkCore;
 
-namespace Application.Features.AttachmentFeatures.DeleteAttachment
+namespace Application.Features.AttachmentFeatures.DeleteAttachment;
+
+public class DeleteAttachmentHandler(IDataBase db, WorkspaceContext context) : ICommandHandler<DeleteAttachmentCommand>
 {
-    internal class DeleteAttachmentHandler
+    public async Task<Result> Handle(DeleteAttachmentCommand request, CancellationToken ct)
     {
+        var attachment = await db.Attachments.FirstOrDefaultAsync(x => x.Id == request.AttachmentId, ct);
+        if (attachment == null) 
+            return Result.Failure(AttachmentError.NotFound);
+
+        // AUTHORIZATION: Only Admin/Owner or the attachment creator (MemberId) can delete
+        if (context.CurrentMember.Role > Role.Admin && attachment.CreatorId != context.CurrentMember.Id)
+            return Result.Failure(MemberError.DontHavePermission);
+        
+        attachment.SoftDelete();
+        await db.SaveChangesAsync(ct);
+        
+        return Result.Success();
     }
 }

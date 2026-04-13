@@ -1,7 +1,7 @@
-using MediatR;
+using Application.Common.Interfaces;
 
 namespace Application.Features.ChatRoomFeatures.GetChatRooms;
 
-public record class GetChatRoomsQuery(Guid workspaceId) : IRequest<List<ChatRoomDto>>;
+public record GetChatRoomsQuery(Guid workspaceId) : IQueryRequest<List<ChatRoomDto>>;
 
-public record class ChatRoomDto(Guid id, string name, string? avatarUrl, bool isPrivate, bool isArchived, DateTime createdAt);
+public record ChatRoomDto(Guid id, string name, string? avatarUrl, bool isPrivate, bool isArchived, DateTime createdAt);

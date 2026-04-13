@@ -1,11 +1,12 @@
 using Application.Features.Auth.Login;
 using Application.Common.Results;
+using Application.Common.Errors;
 using Application.Interfaces.Data;
 using Application.Interfaces.Services;
 using Domain.Entities;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
-using server.Application.Interfaces;
+using Application.Interfaces;
 
 namespace Application.Features.Auth.OAuth;
 

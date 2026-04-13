@@ -1,9 +1,10 @@
 using Application.Interfaces.Data;
 using Application.Common.Results;
+using Application.Common.Errors;
 using Domain.Entities;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
-using server.Application.Interfaces;
+using Application.Interfaces;
 
 namespace Application.Features.Auth.RefreshToken;
 

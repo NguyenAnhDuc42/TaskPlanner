@@ -10,7 +10,7 @@ using Domain.Entities.ProjectEntities.ValueObject;
 using Domain.Enums;
 using Domain.Enums.RelationShip;
 using Microsoft.EntityFrameworkCore;
-using server.Application.Interfaces;
+using Application.Interfaces;
 using Dapper;
 
 namespace Application.Features.TaskFeatures.SelfManagement.CreateTask;
@@ -19,7 +19,8 @@ public class CreateTaskHandler(IDataBase db, WorkspaceContext context) : IComman
 {
     public async Task<Result<TaskDto>> Handle(CreateTaskCommand request, CancellationToken ct)
     {
-        if (context.CurrentMember.Role > Role.Admin)
+        // AUTHORIZATION: Only Member or above can create tasks
+        if (context.CurrentMember.Role > Role.Member)
             return Result<TaskDto>.Failure(MemberError.DontHavePermission);
 
         var ancestors = await HierarchyHelper.GetAncestorChain(db, request.ParentId, request.ParentType, ct);
@@ -35,26 +36,26 @@ public class CreateTaskHandler(IDataBase db, WorkspaceContext context) : IComman
 
         var slug = SlugHelper.GenerateSlug(request.Name);
         var task = ProjectTask.Create(
-            ancestors.ProjectWorkspaceId,
-            ancestors.ProjectSpaceId,
-            ancestors.ProjectFolderId,
-            request.Name,
-            slug,
-            request.Description,
-            null,
-            context.CurrentMember.UserId,
-            statusId,
-            request.Priority,
-            orderKey,
-            request.StartDate,
-            request.DueDate,
-            request.StoryPoints,
-            request.TimeEstimate
+            projectWorkspaceId: ancestors.ProjectWorkspaceId,
+            projectSpaceId: ancestors.ProjectSpaceId,
+            projectFolderId: ancestors.ProjectFolderId,
+            name: request.Name,
+            slug: slug,
+            description: request.Description,
+            customization: null,
+            creatorId: context.CurrentMember.Id,
+            statusId: statusId,
+            priority: request.Priority,
+            startDate: request.StartDate,
+            dueDate: request.DueDate,
+            storyPoints: request.StoryPoints,
+            timeEstimate: request.TimeEstimate,
+            orderKey: orderKey
         );
 
         await db.Tasks.AddAsync(task, ct);
 
-        // 5. Assignments
+        // Assignments
         var assignees = new List<AssigneeDto>();
         if (request.AssigneeIds?.Any() == true)
         {
@@ -118,7 +119,7 @@ public class CreateTaskHandler(IDataBase db, WorkspaceContext context) : IComman
             .Select(wm => wm.Id)
             .ToListAsync(ct);
 
-        var assignments = memberIds.Select(memberId => TaskAssignment.Create(task.Id, memberId, context.CurrentMember.UserId)).ToList();
+        var assignments = memberIds.Select(memberId => TaskAssignment.Create(task.Id, memberId, context.CurrentMember.Id)).ToList();
         task.AddAsignees(assignments);
 
         var details = await db.Connection.QueryAsync<AssigneeDto>(@"

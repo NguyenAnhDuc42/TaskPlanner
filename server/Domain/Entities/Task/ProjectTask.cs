@@ -1,11 +1,9 @@
 using Domain.Common;
-using Domain.Entities.ProjectEntities.Enums;
 using Domain.Entities.ProjectEntities.ValueObject;
-using Domain.Entities.Relationship;
 using Domain.Enums;
 using Domain.Exceptions;
 
-namespace Domain.Entities.ProjectEntities;
+namespace Domain.Entities;
 
 public class ProjectTask : Entity
 {
@@ -136,6 +134,11 @@ public class ProjectTask : Entity
     public void Archive() { if (IsArchived) return; IsArchived = true; UpdateTimestamp(); }
     public void Unarchive() { if (!IsArchived) return; IsArchived = false; UpdateTimestamp(); }
 
+
+    private void EnsureNotArchived()
+    {
+        if (IsArchived) throw new BusinessRuleException("Cannot modify an archived task.");
+    }
 
     private static void ValidateBasicInfo(string name, string slug, string? description)
     {

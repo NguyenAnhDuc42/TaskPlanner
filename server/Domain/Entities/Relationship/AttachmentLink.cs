@@ -1,6 +1,8 @@
 using Domain.Common;
 using Domain.Enums;
 
+namespace Domain.Entities;
+
 public class AttachmentLink : Entity
 {
     public Guid AttachmentId { get; private set; }

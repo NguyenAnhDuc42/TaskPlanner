@@ -3,12 +3,13 @@ using Application.Common.Interfaces;
 using Application.Common.Results;
 using Application.Helpers;
 using Application.Interfaces.Data;
-using Domain.Entities.Relationship;
+using Domain.Entities;
 using Domain.Enums;
 using Domain.Enums.RelationShip;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Hybrid;
-using server.Application.Interfaces;
+using Application.Interfaces;
+using Application.Features;
 
 namespace Application.Features.WorkspaceFeatures.SelfManagement.JoinWorkspaceByCode;
 
@@ -23,7 +24,7 @@ public class JoinWorkspaceByCodeHandler(
     {
         var currentUserId = currentUserService.CurrentUserId();
         if (currentUserId == Guid.Empty) 
-            return Result.Failure<JoinWorkspaceByCodeResult>(Error.Unauthorized("User.NotAuthenticated", "User not authenticated."));
+            return Result<JoinWorkspaceByCodeResult>.Failure(Error.Unauthorized("User.NotAuthenticated", "User not authenticated."));
 
         var normalizedCode = request.JoinCode.Trim().ToUpperInvariant();
         var workspace = await db.Workspaces
@@ -31,8 +32,8 @@ public class JoinWorkspaceByCodeHandler(
             .WhereNotDeleted()
             .FirstOrDefaultAsync(ct);
             
-        if (workspace == null) return Result.Failure<JoinWorkspaceByCodeResult>(Error.Validation("Workspace.InvalidJoinCode", "Invalid join code."));
-        if (workspace.IsArchived) return Result.Failure<JoinWorkspaceByCodeResult>(Error.Validation("Workspace.Archived", "Cannot join an archived workspace."));
+        if (workspace == null) return Result<JoinWorkspaceByCodeResult>.Failure(Error.Validation("Workspace.InvalidJoinCode", "Invalid join code."));
+        if (workspace.IsArchived) return Result<JoinWorkspaceByCodeResult>.Failure(Error.Validation("Workspace.Archived", "Cannot join an archived workspace."));
 
         var existingMember = await db.WorkspaceMembers.IgnoreQueryFilters()
             .ByWorkspace(workspace.Id)
@@ -43,19 +44,18 @@ public class JoinWorkspaceByCodeHandler(
         if (existingMember is null)
         {
             var status = workspace.StrictJoin ? MembershipStatus.Pending : MembershipStatus.Active;
-            var member = WorkspaceMember.Create(currentUserId, workspace.Id, Role.Member, status, currentUserId, "Code");
-            workspace.AddMember(member, currentUserId);
+            workspace.AddMember(currentUserId, Role.Member, currentUserId, "Code");
             dataResult = new JoinWorkspaceByCodeResult(workspace.Id, status.ToString(), true);
         }
         else if (existingMember.DeletedAt != null)
         {
             existingMember.RestoreForJoinByCode(workspace.StrictJoin);
-            dataResult = new JoinWorkspaceByCodeResult(workspace.Id, existingMember.MembershipStatus.ToString(), false);
+            dataResult = new JoinWorkspaceByCodeResult(workspace.Id, existingMember.Status.ToString(), false);
         }
         else
         {
             existingMember.JoinByCode(workspace.StrictJoin);
-            dataResult = new JoinWorkspaceByCodeResult(workspace.Id, existingMember.MembershipStatus.ToString(), false);
+            dataResult = new JoinWorkspaceByCodeResult(workspace.Id, existingMember.Status.ToString(), false);
         }
 
         await db.SaveChangesAsync(ct);
@@ -64,6 +64,6 @@ public class JoinWorkspaceByCodeHandler(
         
         _ = realtime.NotifyUserAsync(currentUserId, "WorkspaceJoined", new { WorkspaceId = workspace.Id }, ct);
 
-        return Result.Success(dataResult);
+        return Result<JoinWorkspaceByCodeResult>.Success(dataResult);
     }
 }

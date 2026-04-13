@@ -1,10 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
+using Application.Common.Interfaces;
 
-namespace Application.Features.AttachmentFeatures.DeleteAttachment
-{
-    internal class DeleteAttachmentCommand
-    {
-    }
-}
+namespace Application.Features.AttachmentFeatures.DeleteAttachment;
+
+public record DeleteAttachmentCommand(Guid AttachmentId) : ICommandRequest;

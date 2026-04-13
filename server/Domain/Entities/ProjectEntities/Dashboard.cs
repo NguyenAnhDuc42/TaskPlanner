@@ -2,7 +2,7 @@ using Domain.Common;
 using Domain.Enums.RelationShip;
 using Domain.Enums.Widget;
 
-namespace Domain.Entities.ProjectEntities;
+namespace Domain.Entities;
 
 public class Dashboard : Entity
 {

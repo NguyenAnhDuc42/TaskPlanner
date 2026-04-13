@@ -3,8 +3,9 @@ using Domain.Entities.ProjectEntities.ValueObject;
 using Domain.Enums;
 using static Domain.Common.ColorValidator;
 using Domain.Common.Interfaces;
+using Domain.Exceptions;
 
-namespace Domain.Entities.ProjectEntities;
+namespace Domain.Entities;
 
 public sealed class ProjectFolder : Entity
 {

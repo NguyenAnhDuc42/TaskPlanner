@@ -1,4 +1,7 @@
-using Domain.Entities.Relationship;
+using Microsoft.AspNetCore.Http;
+using Application.Common.Results;
+using Application.Common.Errors;
+using Domain.Entities;
 
 namespace Application.Helpers;
 
@@ -22,6 +25,6 @@ public class WorkspaceContext
         if (!id.HasValue || id == Guid.Empty)
             return Result<Guid>.Failure(Error.Failure("Workspace.NotFound", "Workspace ID not found in context."));
 
-        return id.Value;
+        return Result<Guid>.Success(id.Value);
     }
 }

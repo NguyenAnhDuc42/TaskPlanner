@@ -10,8 +10,9 @@ using Application.Features.Auth.GetCurrentUser;
 using Application.Features.Auth.UpdateProfile;
 using Application.Common.Interfaces;
 using Microsoft.AspNetCore.Mvc;
+using Api.Extensions;
 
-namespace server.Api.Controllers;
+namespace Api.Controllers;
 
 [Route("api/[controller]")]
 [ApiController]
@@ -29,48 +30,44 @@ public class AuthController : ControllerBase
     {
         var command = new LoginCommand(request.Email, request.Password);
         var result = await _handler.SendAsync<LoginCommand, LoginResponse>(command, cancellationToken);
-        return Ok(result);
+        return result.ToActionResult();
     }
 
     [HttpPost("logout")]
     public async Task<IActionResult> Logout(CancellationToken cancellationToken)
     {
         var result = await _handler.SendAsync(new LogoutCommand(), cancellationToken);
-        return Ok(result);
+        return result.ToActionResult();
     }
 
     [HttpPost("register")]
     public async Task<IActionResult> Register([FromBody] RegisterRequest request, CancellationToken cancellationToken)
     {
         var command = new RegisterCommand(request.UserName, request.Email, request.Password);
-        var result = await _handler.SendAsync(command, cancellationToken);
-        return Ok(result);
+        var result = await _handler.SendAsync<RegisterCommand, RegisterResponse>(command, cancellationToken);
+        return result.ToActionResult();
     }
 
     [HttpPost("refresh")]
     public async Task<IActionResult> Refresh(CancellationToken cancellationToken)
     {
         var result = await _handler.SendAsync<RefreshTokenCommand, RefreshTokenResponse>(new RefreshTokenCommand(), cancellationToken);
-        return Ok(result);
+        return result.ToActionResult();
     }
 
     [HttpPost("forgot-password")]
     public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordRequest request, CancellationToken cancellationToken)
     {
         var result = await _handler.SendAsync<ForgotPasswordCommand, string?>(new ForgotPasswordCommand(request.Email), cancellationToken);
-        
-        if (result.Value == null)
-            return Ok(new { message = "If the email exists, a reset token has been generated." });
-
-        return Ok(new { message = "Reset token generated.", token = result.Value });
+        return result.ToActionResult();
     }
 
     [HttpPost("reset-password")]
     public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordRequest request, CancellationToken cancellationToken)
     {
         var command = new ResetPasswordCommand(request.Token, request.NewPassword);
-        await _handler.SendAsync(command, cancellationToken);
-        return Ok(new { message = "Password reset successfully." });
+        var result = await _handler.SendAsync(command, cancellationToken);
+        return result.ToActionResult();
     }
 
     [HttpPost("external-login")]
@@ -78,7 +75,7 @@ public class AuthController : ControllerBase
     {
         var command = new ExternalLoginCommand(request.Provider, request.Token);
         var result = await _handler.SendAsync<ExternalLoginCommand, LoginResponse>(command, cancellationToken);
-        return Ok(result);
+        return result.ToActionResult();
     }
 
     [HttpPost("change-password")]
@@ -86,8 +83,8 @@ public class AuthController : ControllerBase
     public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordRequest request, CancellationToken cancellationToken)
     {
         var command = new ChangePasswordCommand(request.CurrentPassword, request.NewPassword);
-        await _handler.SendAsync(command, cancellationToken);
-        return Ok(new { message = "Password changed successfully." });
+        var result = await _handler.SendAsync(command, cancellationToken);
+        return result.ToActionResult();
     }
 
     [HttpGet("me")]
@@ -95,7 +92,7 @@ public class AuthController : ControllerBase
     public async Task<IActionResult> GetCurrentUser(CancellationToken cancellationToken)
     {
         var result = await _handler.QueryAsync<GetCurrentUserQuery, GetCurrentUserDto>(new GetCurrentUserQuery(), cancellationToken);
-        return Ok(result);
+        return result.ToActionResult();
     }
 
     [HttpPut("profile")]
@@ -104,7 +101,7 @@ public class AuthController : ControllerBase
     {
         var command = new UpdateProfileCommand(request.Name, request.Email);
         var result = await _handler.SendAsync<UpdateProfileCommand, UpdateProfileDto>(command, cancellationToken);
-        return Ok(result);
+        return result.ToActionResult();
     }
 }
 

@@ -1,55 +1,57 @@
 using Application.Helpers;
-using Application.Interfaces.Repositories;
+using Application.Common.Results;
+using Application.Common.Errors;
+using Application.Common.Interfaces;
+using Application.Interfaces.Data;
+using Domain.Entities;
+using Domain.Entities.Support;
 using Domain.Enums;
-using MediatR;
-using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
-using server.Application.Interfaces;
-using System;
-using System.Collections.Generic;
-using System.Text;
+using Application.Interfaces;
 
 namespace Application.Features.AttachmentFeatures.UploadAttachment;
 
-public class UploadAttachmentHandler : BaseFeatureHandler, IRequestHandler<UploadAttachmentCommand, Unit>
+public class UploadAttachmentHandler(IDataBase db, WorkspaceContext context) : ICommandHandler<UploadAttachmentCommand>
 {
-    public UploadAttachmentHandler(IUnitOfWork unitOfWork, ICurrentUserService currentUserService, WorkspaceContext workspaceContext) 
-        : base(unitOfWork, currentUserService, workspaceContext)
+    public async Task<Result> Handle(UploadAttachmentCommand request, CancellationToken ct)
     {
-    }
+        // AUTHORIZATION: Only Members or above can upload attachments
+        if (context.CurrentMember.Role > Role.Member)
+            return Result.Failure(MemberError.DontHavePermission);
 
-    public async Task<Unit> Handle(UploadAttachmentCommand request, CancellationToken cancellationToken)
-    {
-        Attachment attachment = request.Type switch
+        try
         {
-            AttachmentType.File => await CreateFileAttachmentAsync(request),
-            AttachmentType.Media => await CreateMediaAttachmentAsync(request),
-            AttachmentType.Link => CreateLinkAttachment(request),
-            AttachmentType.Embed => CreateEmbedAttachment(request),
-            _ => throw new ArgumentException("Invalid Attachment Type")
-        };
+            var attachment = request.Type switch
+            {
+                AttachmentType.File => await CreateFileAttachmentAsync(request),
+                AttachmentType.Media => await CreateMediaAttachmentAsync(request),
+                AttachmentType.Link => CreateLinkAttachment(request),
+                AttachmentType.Embed => CreateEmbedAttachment(request),
+                _ => throw new ArgumentException("Invalid Attachment Type")
+            };
 
-        // 2. Persist Metadata
-        UnitOfWork.Set<Attachment>().Add(attachment);
+            // 1. Persist Metadata
+            await db.Attachments.AddAsync(attachment, ct);
 
-        // 3. Create the Relation (The Link)
-        var link = AttachmentLink.Create(
-            attachment.Id,
-            request.ParentEntityId,
-            request.EntityType,
-            CurrentUserId);
+            // 2. Create the Relation (The Link)
+            var link = AttachmentLink.Create(
+                attachment.Id,
+                request.ParentEntityId,
+                request.EntityType,
+                context.CurrentMember.Id); // REVERTED: Using MemberId
 
-        UnitOfWork.Set<AttachmentLink>().Add(link);
+            await db.AttachmentLinks.AddAsync(link, ct);
+            await db.SaveChangesAsync(ct);
 
-
-        // 4. Trigger Background Processing if needed
-        //if (attachment.Type is AttachmentType.File or AttachmentType.Media)
-        //{
-        //    _backgroundJobs.Enqueue<IUploadJob>(j => j.ProcessAsync(attachment.Id, request.File));
-        //}
-
-        return Unit.Value;
+            // TODO: Move background processing (e.g. image resizing, virus scan) to a Domain Event / Outbox pattern
+            return Result.Success();
+        }
+        catch (Exception)
+        {
+            return Result.Failure(AttachmentError.UploadFailed);
+        }
     }
+
     private async Task<Attachment> CreateFileAttachmentAsync(UploadAttachmentCommand req)
     {
         if (req.File == null) throw new ArgumentNullException(nameof(req.File));
@@ -59,31 +61,30 @@ public class UploadAttachmentHandler : BaseFeatureHandler, IRequestHandler<Uploa
             req.File.ContentType,
             req.File.Length,
             checksum,
-            CurrentUserId);
+            context.CurrentMember.Id); // REVERTED: Using MemberId
     }
 
     private async Task<Attachment> CreateMediaAttachmentAsync(UploadAttachmentCommand req)
     {
         if (req.File == null) throw new ArgumentNullException(nameof(req.File));
         var checksum = await CalculateChecksumAsync(req.File.OpenReadStream());
-        // Media starts as Pending; the Background Job will update Width/Height later
+        
         return Attachment.CreateMedia(
             req.File.FileName,
             req.File.ContentType,
             req.File.Length,
             checksum,
-            CurrentUserId);
+            context.CurrentMember.Id); // REVERTED: Using MemberId
     }
 
     private Attachment CreateLinkAttachment(UploadAttachmentCommand req)
     {
-        // For Links, we expect Url and Title in the Command
         return Attachment.CreateLink(
             req.Url!,
             req.Title,
             req.Description,
             req.ImageUrl,
-            CurrentUserId);
+            context.CurrentMember.Id); // REVERTED: Using MemberId
     }
 
     private Attachment CreateEmbedAttachment(UploadAttachmentCommand req)
@@ -92,7 +93,7 @@ public class UploadAttachmentHandler : BaseFeatureHandler, IRequestHandler<Uploa
             req.Url!,
             req.Provider ?? "Unknown",
             req.Title,
-            CurrentUserId);
+            context.CurrentMember.Id); // REVERTED: Using MemberId
     }
 
     private async Task<string> CalculateChecksumAsync(Stream stream)
@@ -102,5 +103,4 @@ public class UploadAttachmentHandler : BaseFeatureHandler, IRequestHandler<Uploa
         stream.Position = 0;
         return BitConverter.ToString(hash).Replace("-", "").ToLowerInvariant();
     }
-
 }

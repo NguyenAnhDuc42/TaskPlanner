@@ -1,6 +1,6 @@
 using Application.Common.Results;
 using Application.Features;
-using server.Application.Interfaces;
+using Application.Interfaces;
 
 namespace Application.Features.Auth.GetCurrentUser;
 
@@ -17,10 +17,10 @@ public class GetCurrentUserHandler : IQueryHandler<GetCurrentUserQuery, GetCurre
     {
         var user = await _currentUserService.CurrentUserAsync(ct);
         
-        return new GetCurrentUserDto(
+        return Result<GetCurrentUserDto>.Success(new GetCurrentUserDto(
             Id: user.Id,
             Name: user.Name,
             Email: user.Email
-        );
+        ));
     }
 }

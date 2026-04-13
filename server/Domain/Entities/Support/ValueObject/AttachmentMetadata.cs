@@ -1,7 +1,7 @@
 ﻿using Domain.Enums;
 using System.Text.Json;
 
-namespace Domain.Entities.Support.ValueObject;
+namespace Domain.Entities;
 
 
 public record AttachmentMetadata

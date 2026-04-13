@@ -3,9 +3,11 @@ using Application.Common.Interfaces;
 using Application.Common.Results;
 using Application.Helpers;
 using Application.Interfaces.Data;
+using Application.Interfaces;
+using Application.Features;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Hybrid;
-using server.Application.Interfaces;
+using Domain.Entities;  
 
 namespace Application.Features.WorkspaceFeatures.SelfManagement.SetWorkspacePin;
 
@@ -38,7 +40,6 @@ public class SetWorkspacePinHandler(
             return Result.Failure(Error.Forbidden("Workspace.Forbidden", "Only active members can pin workspaces."));
 
         // 2. Logic execution
-        // We need an instance to update - reload if necessary (though the member above might be tracked if not AsNoTracking)
         var memberEntity = await db.WorkspaceMembers
             .FirstOrDefaultAsync(m => m.Id == member.Id, ct);
 

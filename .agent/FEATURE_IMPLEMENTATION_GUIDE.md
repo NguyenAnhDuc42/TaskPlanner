@@ -4,89 +4,129 @@ This document defines the **Project Mindset**, the **Flow of Code**, and the **A
 
 ---
 
-## 💎 1. THE ARCHITECTURAL TENETS (The Mindset)
+## 🏗️ 1. THE ARCHITECTURAL LAYERS
 
-### 🔄 A. Aggressive Centralization
-If any logic—be it a recursive SQL check, a validation rule, or a security boundary—is required by more than one feature, it MUST be centralized. 
-- **Rule**: Never repeat "patch-up" code. Move it to the most central layer suitable (e.g., `WorkspaceContext`, `IDomainService`, or a `Decorator`).
-- **Goal**: One change in a centralized rule must propagate throughout the entire system.
+TaskPlanner follows a high-performance **Layered Vertical Slice Architecture**. Each layer has a strict responsibility:
 
-### 🚫 B. Expected Failures as Data (Explicit Errors)
-We treat foreseeable failures (NotFound, Unauthorized, Validation) as **Data**, not as **System Exceptions**.
-- **Rule**: Mandatory usage of the `Result` and `Result<T>` system. 
-- **Exceptions**: Reserved strictly for catastrophic system failures (e.g., Database Connection lost).
-- **Enforcement**: If you see a `throw new Exception` for business logic, refactor it to a `Result.Failure`.
-
-### 🎭 C. Pure Handler Responsibility
-A Command/Query Handler should focus 100% on the **"Perfect Path"** logic of the business feature.
-- **Rule**: Cross-cutting concerns (Validation, Security Context, Logging, Transaction Management) MUST be handled by **Decorators** or **Pipeline Behaviors**.
-- **Result**: Handlers remain lean, readable, and easy to test.
-
----
-
-## 🏗️ 2. THE ANATOMY OF A SLICE (Vertical Slice Architecture)
-
-We organize code by **what it does**, not **what type of file it is**.
-
-- **The Single File Rule**: A feature slice (e.g., `GetHierarchy.cs`) SHOULD contain the Command/Query record, the DTOs, SQL Query, and the Handler logic in one cohesive unit.
-- **Organization**: Group slices by feature module: `Application/Features/[Module]/[SubModule]/[Feature]/`.
+- **Domain Layer** (`server/Domain`): The heart of the system.
+  - **Entities & Value Objects**: Pure business models with state and factory methods (e.g., `ProjectWorkspace.Create`).
+  - **IQueryable Extensions**: Centralized query logic (e.g., `ByWorkspace`, `WhereNotDeleted`) to ensure consistency and facilitate future SQL optimization (Dapper/Raw SQL).
+  - **Domain Events**: Internal signals indicating side effects need to happen.
+- **Application Layer** (`server/Application`): The orchestration layer.
+  - **Feature Slices**: Organized by folder, containing `Command/Query`, `Handler`, and `Validator`.
+  - **Event Handlers**: Subscribers to Domain Events for async side effects (e.g., seeding data).
+  - **Interfaces & Helpers**: Definition for data access (`IDataBase`) and identity (`WorkspaceContext`).
+- **Infrastructure Layer** (`server/Infrastructure`): The implementation layer.
+  - **Persistence**: EF Core implementation of `IDataBase`, Configuration, and Migrations.
+  - **Services**: Implementations for `IRealtimeService` (SignalR) and `HybridCache`.
+- **Background Layer** (`server/Background`): The out-of-process layer.
+  - **Jobs & Workers**: Hangfire jobs (e.g., `ProcessOutboxJob`) and cleanup workers.
 
 ---
 
-## 🛡️ 3. THE EXECUTION FLOW (The Life of a Request)
+## 📂 2. THE ANATOMY OF A SLICE
 
-### Step 1: Resolution (The Context Entry)
-The request enters the API. The **Security Boundary** (e.g., `WorkspaceContext`) resolves the "Truth" of the request:
-- *Who* is the user? 
-- *Which* Workspace are they in? 
-- *What* is their Member identity? 
-- **Rule**: All security resolution happens here. Handlers receive resolved IDs, not raw HttpContext.
+We organize code by **feature capability**, using a **Feature Folder** pattern instead of type-based folders.
 
-### Step 2: Validation & Guarding (The Decorator Layer)
-The request is validated via FluentValidation and guarded by context-checks (e.g., `ValidationDecorator`). If failed, a `Result.Failure` is returned immediately.
+- **The Folder-per-Feature Rule**: Each feature lives in its own directory:
+  `Application/Features/[Module]/[SubModule]/[Feature]/`
+- **Standard Components**:
+  - `[Feature]Command.cs` / `[Feature]Query.cs`: The request record implementation.
+  - `[Feature]Handler.cs`: The core execution logic.
+  - `[Feature]Validator.cs`: FluentValidation rules for the request.
+- **One Class Per File**: DO NOT merge Commands, Responses, or Handlers into a single file. Each component must reside in its own dedicated `.cs` file.
+- **DTOs**: Shared DTOs should be placed in a `Common` or `Response` folder within the parent module if reused across slices.
 
-### Step 3: Execution (The Pure Handler)
-The Handler executes the business logic using the settled IDs from the Context.
-- Uses `IDataBase` named properties.
-- Uses **Domain Extensions** (`WhereNotDeleted()`, `ByWorkspace()`) for data operations.
+---
 
-### Step 4: Persistence & Side-Effects (Option B)
-The Handler calls `_db.SaveChangesAsync()`. 
+## 🛡️ 3. THE EXECUTION FLOW (Life of a Request)
+
+### Step 1: Resolution & Context Entry
+The request enters the API. `WorkspaceContext` resolves the "Truth" (Who is the user? Which workspace? What is their role?).
+- **Rule**: Access `context.CurrentMember` for permission checks.
+
+### Step 2: Validation & Execution
+The request is validated via FluentValidation. The Handler executes business logic using:
+- **Domain Extensions**: Use `_db.Entities.ByWorkspace(id).WhereNotDeleted()` for safe access.
+- **Entity Factories**: Create entities via static `Entity.Create(...)` methods.
+
+### Step 3: Performance & Side-Effects
+- **Caching**: Use `HybridCache` to invalidate tags or update shared state.
+- **Real-time**: Notify clients immediately using `IRealtimeService`.
+
+### Step 4: Persistence & Outbox
+The handler calls `_db.SaveChangesAsync()`.
+- **Domain Events** are collected and saved as `OutboxMessages` in the same DB transaction.
 - CORE data is committed.
-- Domain Events are captured in the **Outbox**.
-- **Background Jobs** (Seeding, Cleanup, Real-time) are enqueued immediately.
+
+### Step 5: Background Processing (The Jobs Layer)
+The **Background Layer** picks up the Outbox messages.
+- `ProcessOutboxJob` enqueues handlers of `IDomainEventHandler<TEvent>`.
+- Side effects (e.g., seeding, cascading updates) happen asynchronously.
 
 ---
 
-## 📝 4. REFERENCE ANATOMY (The "Perfect" Query Slice)
+## 🔑 4. IDENTITY & TENANCY RULES (CRITICAL)
 
+Strict adherence to workspace tenancy is non-negotiable.
+
+- **MemberId vs UserId**: 
+  - All workspace-bound entities (Tasks, Folders, ChatRooms, Attachments, etc.) MUST be owned by a **WorkspaceMember**. 
+  - Use `context.CurrentMember.Id` (The Member ID) for `creatorId` and authorization.
+  - Global `UserId` (`context.CurrentMember.UserId`) should ONLY be used for identity-level operations (Sessions, Login) or cross-workspace lookup.
+- **Tenancy Enforcement**: 
+  - Any operation involving a list of users (e.g., inviting to a ChatRoom, assigning a Task) MUST validate that those users are already members of the relevant workspace. 
+  - Validate against `db.Members.ByWorkspace(workspaceId)` before creating relations.
+
+---
+
+## ⚙️ 5. TYPE & LOGIC PRESERVATION
+
+- **NO Logic-Altering Refactors**: Standardization passes MUST NOT change underlying business logic or data types.
+- **DateTimeOffset**: Always use `DateTimeOffset` for timestamps. DO NOT "clean up" `DateTimeOffset` into `DateTime`.
+- **Query Simplicity**: Only use `.Include(...)` if the logic explicitly requires accessing related entity properties. Do not add them for "future use" or "safety" if not needed.
+
+---
+
+## 📝 6. REFERENCE ANATOMY (The "Perfect" Feature Slice)
+
+### 1. Folder Structure
+```text
+Application/Features/SpaceFeatures/SelfManagement/CreateSpace/
+├── CreateSpaceCommand.cs
+├── CreateSpaceHandler.cs
+└── CreateSpaceValidator.cs
+```
+
+### 2. The Handler (CreateSpaceHandler.cs)
 ```csharp
-namespace Application.Features.WorkspaceFeatures.HierarchyManagement;
-
-// 1. DTOs and Logic live together
-public record WorkspaceHierarchyDto(Guid Id, string Name, List<SpaceDto> Spaces);
-public record SpaceDto(Guid Id, string Name, string Color);
-
-// 2. The Query Request
-public record GetHierarchyQuery(Guid WorkspaceId) : IQueryRequest<WorkspaceHierarchyDto>;
-
-// 3. The Handler (Focused strictly on data retrieval)
-public class GetHierarchyHandler : IQueryHandler<GetHierarchyQuery, WorkspaceHierarchyDto>
+public class CreateSpaceHandler(IDataBase db, WorkspaceContext context, HybridCache cache) 
+    : ICommandHandler<CreateSpaceCommand, Guid>
 {
-    private readonly IDataBase _db;
-
-    public GetHierarchyHandler(IDataBase db) => _db = db;
-
-    public async Task<Result<WorkspaceHierarchyDto>> Handle(GetHierarchyQuery request, CancellationToken ct)
+    public async Task<Result<Guid>> Handle(CreateSpaceCommand request, CancellationToken ct)
     {
-        // Use Domain Extensions for safe, centralized logic
-        var workspace = await _db.Workspaces
-            .AsNoTracking()
-            .WhereNotDeleted()
-            .ProjectToDto() // Centralized projection
-            .FirstOrDefaultAsync(w => w.Id == request.WorkspaceId, ct);
+        // 1. Permission Check via Context
+        if (context.CurrentMember.Role > Role.Admin)
+            return Result<Guid>.Failure(MemberError.DontHavePermission);
 
-        return workspace ?? Error.NotFound("Workspace.NotFound", "Workspace not found.");
+        // 2. Business Logic with Domain Extensions
+        var orderKey = await db.Spaces.ByWorkspace(context.workspaceId).GetNextOrderKey(ct);
+        
+        var space = ProjectSpace.Create(
+            context.workspaceId,
+            request.name,
+            context.CurrentMember.Id, // MemberId, NOT UserId
+            orderKey
+        );
+
+        // 3. Persistence & Outbox (Events are internal to entity)
+        await db.Spaces.AddAsync(space, ct);
+        await db.SaveChangesAsync(ct);
+        
+        // 4. Performance: Cache Invalidation
+        await cache.RemoveByTagAsync(SpaceCacheKeys.WorkspaceSpaceTag(context.workspaceId), ct);
+
+        return Result<Guid>.Success(space.Id);
     }
 }
 ```

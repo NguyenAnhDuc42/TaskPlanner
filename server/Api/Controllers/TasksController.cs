@@ -3,9 +3,11 @@ using Application.Features.TaskFeatures.AssigneeManagement.GetTaskAssigneeCandid
 using Application.Features.TaskFeatures.AssigneeManagement.GetTaskAssignees;
 using Application.Features.TaskFeatures.SelfManagement.DeleteTask;
 using Application.Features.TaskFeatures.SelfManagement.UpdateTask;
+using Application.Features.TaskFeatures.SelfManagement;
 using Domain.Enums;
 using Microsoft.AspNetCore.Mvc;
 using Application.Common.Interfaces;
+using Api.Extensions;
 
 namespace Api.Controllers;
 
@@ -23,7 +25,7 @@ public class TasksController : ControllerBase
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] CreateTaskCommand command, CancellationToken ct)
     {
-        var result = await _handler.SendAsync<CreateTaskCommand, Guid>(command, ct);
+        var result = await _handler.SendAsync<CreateTaskCommand, TaskDto>(command, ct);
         return result.ToActionResult();
     }
 
@@ -43,7 +45,7 @@ public class TasksController : ControllerBase
             AssigneeIds: request.AssigneeIds
         );
 
-        var result = await _handler.SendAsync(command, ct);
+        var result = await _handler.SendAsync<UpdateTaskCommand, TaskDto>(command, ct);
         return result.ToActionResult();
     }
 

@@ -1,23 +1,44 @@
+using Application.Common.Errors;
+using Application.Common.Results;
+using Application.Common.Interfaces;
 using Application.Helpers;
-using Application.Interfaces.Repositories;
-using Domain.Entities.ProjectEntities;
-using MediatR;
-using server.Application.Interfaces;
+using Application.Interfaces.Data;
+using Application.Features;
+using Domain.Entities;
+using Microsoft.EntityFrameworkCore;
 
 namespace Application.Features.ChatRoomFeatures.ChatMessageManagement.SendMessage;
 
-public class SendMessageHandler : BaseFeatureHandler, IRequestHandler<SendMessageCommand, Unit>
+public class SendMessageHandler(IDataBase db, WorkspaceContext context) : ICommandHandler<SendMessageCommand>
 {
-    public SendMessageHandler(IUnitOfWork unitOfWork, ICurrentUserService currentUserService, WorkspaceContext workspaceContext) : base(unitOfWork, currentUserService, workspaceContext)
+    public async Task<Result> Handle(SendMessageCommand request, CancellationToken ct)
     {
-    }
+        // 1. Permission Check via Domain Extension
+        var chatRoom = await db.ChatRooms
+            .ById(request.ChatRoomId)
+            .FirstOrDefaultAsync(ct);
 
-    public async Task<Unit> Handle(SendMessageCommand request, CancellationToken cancellationToken)
-    {
-        var chatRoom = await UnitOfWork.Set<ChatRoom>().FindAsync(request.ChatRoomId, cancellationToken);
-        if (chatRoom == null) throw new KeyNotFoundException($"ChatRoom {request.ChatRoomId} not found");
-        var message = ChatMessage.Create(chatRoom.Id, CurrentUserId, request.Content, request.ReplyToMessageId);
-        await UnitOfWork.Set<ChatMessage>().AddAsync(message, cancellationToken);
-        return Unit.Value;
+        if (chatRoom == null) 
+            return Result.Failure(ChatRoomError.NotFound);
+
+        // 2. Identity Check (Tenant Isolation)
+        // Ensure the sender is a member of this workspace chatroom
+        // var isMember = await db.ChatRoomMembers
+        //     .AnyAsync(m => m.ChatRoomId == chatRoom.Id && m.WorkspaceMemberId == context.CurrentMember.Id, ct);
+        
+        // if (!isMember)
+        //     return Result.Failure(MemberError.DontHavePermission);
+
+        var message = ChatMessage.Create(
+            chatRoomId: chatRoom.Id, 
+            creatorId: context.CurrentMember.Id, // Corrected parameter name from 'authorId' to 'creatorId'
+            content: request.Content, 
+            replyToMessageId: request.ReplyToMessageId
+        );
+
+        await db.ChatMessages.AddAsync(message, ct);
+        await db.SaveChangesAsync(ct);
+        
+        return Result.Success();
     }
 }

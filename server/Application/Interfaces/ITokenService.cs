@@ -3,7 +3,7 @@ using Application.Features.Auth.DTOs;
 
 using Domain.Entities;
 
-namespace server.Application.Interfaces
+namespace Application.Interfaces
 {
     public interface ITokenService
     {

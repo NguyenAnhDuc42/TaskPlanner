@@ -1,4 +1,4 @@
-namespace server.Application.Interfaces
+namespace Application.Interfaces
 {
     public interface IPasswordService
     {

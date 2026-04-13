@@ -1,7 +1,10 @@
 using Application.Common.Errors;
 using Application.Common.Results;
+using Application.Interfaces.Data;
+using Application.Interfaces.Services;
+using Application.Interfaces;
+using Application.Features;
 using Domain.Entities;
-using server.Application.Interfaces;
 
 namespace Application.Features.Auth.ChangePassword;
 

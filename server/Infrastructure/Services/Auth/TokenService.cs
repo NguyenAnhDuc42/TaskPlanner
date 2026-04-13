@@ -5,7 +5,7 @@ using System.IdentityModel.Tokens.Jwt;
 using Domain.Entities;
 using Microsoft.Extensions.Logging;
 using Microsoft.IdentityModel.Tokens;
-using server.Application.Interfaces;
+using Application.Interfaces;
 using System.Security.Cryptography;
 using Microsoft.Extensions.Options;
 using Application.Features.Auth.DTOs;

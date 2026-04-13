@@ -60,22 +60,6 @@ public class ExceptionHandlingMiddleware
 
                 };
                 break;
-            case ForbiddenAccessException forbiddenEx:
-                problem = new ProblemDetails
-                {
-                    Title = "Forbidden",
-                    Detail = forbiddenEx.Message,
-                    Status = StatusCodes.Status403Forbidden
-                };
-                break;
-            case DuplicateEmailException duplicateEx:
-                problem = new ProblemDetails
-                {
-                    Title = "Conflict",
-                    Detail = duplicateEx.Message,
-                    Status = StatusCodes.Status409Conflict
-                };
-                break;
             case InvalidTokenException invalidTokenEx:
                 problem = new ProblemDetails
                 {

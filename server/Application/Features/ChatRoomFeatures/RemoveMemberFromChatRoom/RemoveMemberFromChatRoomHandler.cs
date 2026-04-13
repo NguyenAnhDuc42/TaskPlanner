@@ -1,30 +1,39 @@
+using Application.Common.Errors;
+using Application.Common.Results;
+using Application.Common.Interfaces;
 using Application.Helpers;
-using Application.Interfaces.Repositories;
-using Domain.Entities.Relationship;
-using Domain.Entities.ProjectEntities;
-using MediatR;
+using Application.Interfaces.Data;
+using Domain.Enums;
 using Microsoft.EntityFrameworkCore;
-using server.Application.Interfaces;
 
 namespace Application.Features.ChatRoomFeatures.RemoveMemberFromChatRoom;
 
-public class RemoveMemberFromChatRoomHandler : BaseFeatureHandler, IRequestHandler<RemoveMembersFromChatRoomCommand, Unit>
+public class RemoveMemberFromChatRoomHandler(IDataBase db, WorkspaceContext context) : ICommandHandler<RemoveMembersFromChatRoomCommand>
 {
-    public RemoveMemberFromChatRoomHandler(IUnitOfWork unitOfWork, ICurrentUserService currentUserService, WorkspaceContext workspaceContext) : base(unitOfWork, currentUserService, workspaceContext)
+    public async Task<Result> Handle(RemoveMembersFromChatRoomCommand request, CancellationToken ct)
     {
-    }
+        // AUTHORIZATION: Only Admin or Owner can remove members from chat rooms
+        if (context.CurrentMember.Role > Role.Admin)
+            return Result.Failure(MemberError.DontHavePermission);
 
-    public async Task<Unit> Handle(RemoveMembersFromChatRoomCommand request, CancellationToken cancellationToken)
-    {
-        var chatRoom = await UnitOfWork.Set<ChatRoom>().FindAsync(request.chatRoomId, cancellationToken);
-        if (chatRoom == null) throw new KeyNotFoundException($"ChatRoom {request.chatRoomId} not found");
+        var chatRoom = await db.ChatRooms.FirstOrDefaultAsync(x => x.Id == request.chatRoomId, ct);
+        if (chatRoom == null) 
+            return Result.Failure(ChatRoomError.NotFound);
         
-        var membersToRemove = await UnitOfWork.Set<ChatRoomMember>()
+        // Security Resolve: Ensure chat room belongs to authorized workspace
+        if (chatRoom.ProjectWorkspaceId != context.workspaceId)
+            return Result.Failure(MemberError.DontHavePermission);
+        
+        var membersToRemove = await db.ChatRoomMembers
             .Where(x => x.ChatRoomId == chatRoom.Id && request.memberIds.Contains(x.UserId))
-            .ToListAsync(cancellationToken);
+            .ToListAsync(ct);
 
-        UnitOfWork.Set<ChatRoomMember>().RemoveRange(membersToRemove);
+        if (membersToRemove.Any())
+        {
+            db.ChatRoomMembers.RemoveRange(membersToRemove);
+            await db.SaveChangesAsync(ct);
+        }
 
-        return Unit.Value;
+        return Result.Success();
     }
 }

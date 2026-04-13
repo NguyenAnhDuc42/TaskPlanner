@@ -3,10 +3,11 @@ using Application.Common.Interfaces;
 using Application.Common.Results;
 using Application.Helpers;
 using Application.Interfaces.Data;
-using Domain.Entities.ProjectEntities;
+using Domain.Entities;
 using Domain.Entities.ProjectEntities.ValueObject;
 using Microsoft.Extensions.Caching.Hybrid;
-using server.Application.Interfaces;
+using Application.Interfaces;
+using Application.Features;
 
 namespace Application.Features.WorkspaceFeatures.SelfManagement.CreateWorkspace;
 
@@ -21,7 +22,7 @@ public class CreateWorkspaceHandler(
     {
         var currentUserId = currentUserService.CurrentUserId();
         if (currentUserId == Guid.Empty) 
-            return Result.Failure<Guid>(Error.Unauthorized("User.NotAuthenticated", "User not authenticated."));
+            return Result<Guid>.Failure(UserError.NotFound);
 
         var workspace = ProjectWorkspace.Create(
             name: request.Name,
@@ -41,6 +42,6 @@ public class CreateWorkspaceHandler(
 
         _ = realtime.NotifyUserAsync(currentUserId, "WorkspaceCreated", new { WorkspaceId = workspace.Id }, ct);
 
-        return Result.Success(workspace.Id);
+        return Result<Guid>.Success(workspace.Id);
     }
 }

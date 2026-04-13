@@ -3,7 +3,7 @@ using Application.Common.Results;
 using Domain.Entities;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
-using server.Application.Interfaces;
+using Application.Interfaces;
 using Microsoft.EntityFrameworkCore;
 
 namespace Application.Features.Auth.Logout;

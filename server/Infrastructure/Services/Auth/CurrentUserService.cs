@@ -4,7 +4,7 @@ using Domain.Entities;
 using Infrastructure.Data;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
-using server.Application.Interfaces;
+using Application.Interfaces;
 
 namespace Infrastructure.Auth;
 

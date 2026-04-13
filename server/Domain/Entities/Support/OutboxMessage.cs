@@ -1,7 +1,7 @@
 using Domain.Common;
 using Domain.Enums;
 
-namespace Domain.Entities.Support;
+namespace Domain.Entities;
 
 public class OutboxMessage : Composite
 {

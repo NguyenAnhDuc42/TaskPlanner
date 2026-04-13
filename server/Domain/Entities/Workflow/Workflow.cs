@@ -1,7 +1,7 @@
 using Domain.Common;
 using System.ComponentModel.DataAnnotations;
 
-namespace Domain.Entities.ProjectEntities;
+namespace Domain.Entities;
 
 public class Workflow : Entity
 {
@@ -34,7 +34,7 @@ public class Workflow : Entity
     public Workflow Clone(Guid creatorId)
     {
         var newWorkflowId = Guid.NewGuid();
-        var cloned = new Workflow(newWorkflowId, ProjectWorkspaceId, $"{Name} (Copy)", Description, creatorId);
+        var cloned = new Workflow(newWorkflowId, ProjectWorkspaceId, SpaceId, FolderId, $"{Name} (Copy)", Description, creatorId);
         
         foreach (var status in Statuses)
         {

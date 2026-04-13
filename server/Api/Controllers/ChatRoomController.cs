@@ -5,53 +5,61 @@ using Application.Features.ChatRoomFeatures.DeleteChatRoom;
 using Application.Features.ChatRoomFeatures.EditChatRoom;
 using Application.Features.ChatRoomFeatures.GetChatRooms;
 using Application.Features.ChatRoomFeatures.InviteMemberToChatRoom;
-using MediatR;
 using Microsoft.AspNetCore.Mvc;
+using Application.Common.Interfaces;
+using Api.Extensions;
 
 namespace Api.Controllers;
+
 [Route("api/[controller]")]
 [ApiController]
 public class ChatRoomController : ControllerBase
 {
-    private readonly IMediator _mediator;
-    public ChatRoomController(IMediator mediator)
+    private readonly IHandler _handler;
+
+    public ChatRoomController(IHandler handler)
     {
-        _mediator = mediator;
+        _handler = handler;
     }
 
     [HttpGet("workspaces/{workspaceId:guid}/chat-rooms")]
     public async Task<IActionResult> GetChatRooms(Guid workspaceId, CancellationToken cancellationToken)
     {
         var query = new GetChatRoomsQuery(workspaceId);
-        return await SendRequest(query, cancellationToken);
+        var result = await _handler.QueryAsync<GetChatRoomsQuery, List<ChatRoomDto>>(query, cancellationToken);
+        return result.ToActionResult();
     }
 
     [HttpPost("workspaces/{workspaceId:guid}/chat-rooms")]
     public async Task<IActionResult> CreateChatRoom(Guid workspaceId, [FromBody] CreateChatRoomRequest request, CancellationToken cancellationToken)
     {
         var command = new CreateChatRoomCommand(workspaceId, request.Name, request.AvatarUrl, request.InviteMembersInWorkspace, request.MemberIds);
-        return await SendRequest(command, cancellationToken);
+        var result = await _handler.SendAsync(command, cancellationToken);
+        return result.ToActionResult();
     }
 
     [HttpDelete("chat-rooms/{chatRoomId:guid}")]
     public async Task<IActionResult> DeleteChatRoom(Guid chatRoomId, CancellationToken cancellationToken)
     {
         var command = new DeleteChatRoomCommand(chatRoomId);
-        return await SendRequest(command, cancellationToken);
+        var result = await _handler.SendAsync(command, cancellationToken);
+        return result.ToActionResult();
     }
 
     [HttpPut("chat-rooms/{chatRoomId:guid}")]
     public async Task<IActionResult> EditChatRoom(Guid chatRoomId, [FromBody] EditChatRoomRequest request, CancellationToken cancellationToken)
     {
-        var command = new EditChatRoomCommand(chatRoomId, request.NewName, request.AvatarUrl, request.IsPrivate, request.IsArchived, request.TurnOffNotifications);
-        return await SendRequest(command, cancellationToken);
+        var command = new EditChatRoomCommand(chatRoomId, request.NewName, request.AvatarUrl, request.IsPrivate, request.IsAchived, request.TurnOffNotifications);
+        var result = await _handler.SendAsync(command, cancellationToken);
+        return result.ToActionResult();
     }
 
     [HttpPost("chat-rooms/{chatRoomId:guid}/members")]
     public async Task<IActionResult> InviteMembers(Guid chatRoomId, [FromBody] InviteMembersRequest request, CancellationToken cancellationToken)
     {
         var command = new InviteMembersToChatRoomCommand(chatRoomId, request.MemberIds);
-        return await SendRequest(command, cancellationToken);
+        var result = await _handler.SendAsync(command, cancellationToken);
+        return result.ToActionResult();
     }
 
 
@@ -63,26 +71,21 @@ public class ChatRoomController : ControllerBase
         CancellationToken cancellationToken = default)
     {
         var query = new GetMessagesQuery(chatRoomId, limit, beforeMessageId);
-        return await SendRequest(query, cancellationToken);
+        var result = await _handler.QueryAsync<GetMessagesQuery, List<MessageDto>>(query, cancellationToken);
+        return result.ToActionResult();
     }
 
     [HttpPost("chat-rooms/{chatRoomId:guid}/messages")]
     public async Task<IActionResult> SendMessage(Guid chatRoomId, [FromBody] SendMessageRequest request, CancellationToken cancellationToken)
     {
         var command = new SendMessageCommand(chatRoomId, request.Content, request.ReplyToMessageId);
-        return await SendRequest(command, cancellationToken);
-    }
-
-    // Helper
-    private async Task<IActionResult> SendRequest<T>(IRequest<T> request, CancellationToken cancellationToken)
-    {
-        var result = await _mediator.Send(request, cancellationToken);
-        return Ok(result);
+        var result = await _handler.SendAsync(command, cancellationToken);
+        return result.ToActionResult();
     }
 }
 
 // Request Models
 public record CreateChatRoomRequest(string Name, string? AvatarUrl, bool InviteMembersInWorkspace, List<Guid>? MemberIds);
-public record EditChatRoomRequest(string? NewName, string? AvatarUrl, bool IsPrivate, bool IsArchived, bool TurnOffNotifications);
+public record EditChatRoomRequest(string? NewName, string? AvatarUrl, bool IsPrivate, bool IsAchived, bool TurnOffNotifications);
 public record InviteMembersRequest(List<Guid> MemberIds);
 public record SendMessageRequest(string Content, Guid? ReplyToMessageId);

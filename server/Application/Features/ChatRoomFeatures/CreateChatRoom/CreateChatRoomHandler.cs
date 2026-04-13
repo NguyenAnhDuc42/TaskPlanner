@@ -1,47 +1,67 @@
+using Application.Common.Errors;
+using Application.Common.Results;
+using Application.Common.Interfaces;
 using Application.Helpers;
-using Application.Interfaces.Repositories;
-using Domain.Entities.ProjectEntities;
-using Domain.Entities.Relationship;
+using Application.Interfaces.Data;
+using Application.Features;
+using Domain.Entities;
 using Domain.Enums;
-using Domain.Enums.RelationShip;
-using Domain.Enums.Workspace;
-using MediatR;
-using server.Application.Interfaces;
+using Microsoft.EntityFrameworkCore;
 
 namespace Application.Features.ChatRoomFeatures.CreateChatRoom;
 
-public class CreateChatRoomHandler : BaseFeatureHandler, IRequestHandler<CreateChatRoomCommand, Unit>
+public class CreateChatRoomHandler(IDataBase db, WorkspaceContext context) : ICommandHandler<CreateChatRoomCommand>
 {
-    public CreateChatRoomHandler(IUnitOfWork unitOfWork, ICurrentUserService currentUserService, WorkspaceContext workspaceContext) : base(unitOfWork, currentUserService, workspaceContext)
+    public async Task<Result> Handle(CreateChatRoomCommand request, CancellationToken ct)
     {
-    }
+        // AUTHORIZATION: Only Members or above can create chat rooms
+        if (context.CurrentMember.Role > Role.Member)
+            return Result.Failure(MemberError.DontHavePermission);
 
-    public async Task<Unit> Handle(CreateChatRoomCommand request, CancellationToken cancellationToken)
-    {
-        var workspace = await UnitOfWork.Set<ProjectWorkspace>().FindAsync(request.workspaceId, cancellationToken);
-        if (workspace == null) throw new KeyNotFoundException($"Workspace {request.workspaceId} not found");
+        var workspace = await db.Workspaces
+            .ById(request.workspaceId)
+            .FirstOrDefaultAsync(ct);
+
+        if (workspace == null) 
+            return Result.Failure(WorkspaceError.NotFound);
         
         var chatRoom = ChatRoom.Create(
             name: request.name, 
             projectWorkspaceId: workspace.Id, 
-            creatorId: CurrentUserId,
-            isPrivate: request.inviteMembersInWorkspace, // This seems to be mapped to inviteMembersInWorkspace in command? check consistency
+            creatorId: context.CurrentMember.Id, // MemberId
+            isPrivate: request.inviteMembersInWorkspace, 
             avatarUrl: request.avatarUrl
         );
         
-        await UnitOfWork.Set<ChatRoom>().AddAsync(chatRoom, cancellationToken);
+        await db.ChatRooms.AddAsync(chatRoom, ct);
         
-        // creator is added as owner inside ChatRoom.Create via navigation property
-
+        // Handle initial members - they MUST be members of this workspace
         if (request.memberIds != null && request.memberIds.Any())
         {
-            var chatRoomMembers = request.memberIds
-                .Where(id => id != CurrentUserId)
-                .Select(x => ChatRoomMember.AddMember(chatRoom.Id, x, CurrentUserId));
+            // Verify that all invited users are actually members of this workspace using Domain Extensions
+            var validWorkspaceMembers = await db.WorkspaceMembers
+                .ByWorkspace(workspace.Id)
+                .Where(m => request.memberIds.Contains(m.UserId))
+                .Select(m => m.UserId)
+                .ToListAsync(ct);
+
+            var chatRoomMembers = validWorkspaceMembers
+                .Where(userId => userId != context.CurrentMember.UserId)
+                .Select(userId => ChatRoomMember.AddMember(chatRoom.Id, userId, context.CurrentMember.Id))
+                .ToList();
                 
-            await UnitOfWork.Set<ChatRoomMember>().AddRangeAsync(chatRoomMembers, cancellationToken);
+            if (chatRoomMembers.Any())
+            {
+                await db.ChatRoomMembers.AddRangeAsync(chatRoomMembers, ct);
+            }
         }
 
-        return Unit.Value;
+        // Add the creator as the owner/member as well
+        var creatorMembership = ChatRoomMember.AddOwner(chatRoom.Id, context.CurrentMember.UserId, context.CurrentMember.Id);
+        await db.ChatRoomMembers.AddAsync(creatorMembership, ct);
+
+        await db.SaveChangesAsync(ct);
+        
+        return Result.Success();
     }
 }

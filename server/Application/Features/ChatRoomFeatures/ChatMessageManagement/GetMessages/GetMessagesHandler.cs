@@ -1,27 +1,22 @@
+using Application.Common.Results;
+using Application.Common.Interfaces;
 using Application.Helpers;
-using Application.Interfaces.Repositories;
-using Domain.Entities.ProjectEntities;
-using MediatR;
+using Application.Interfaces.Data;
 using Microsoft.EntityFrameworkCore;
-using server.Application.Interfaces;
 
 namespace Application.Features.ChatRoomFeatures.ChatMessageManagement.GetMessages;
 
-public class GetMessagesHandler : BaseFeatureHandler, IRequestHandler<GetMessagesQuery, List<MessageDto>>
+public class GetMessagesHandler(IDataBase db, WorkspaceContext context) : IQueryHandler<GetMessagesQuery, List<MessageDto>>
 {
-    public GetMessagesHandler(IUnitOfWork unitOfWork, ICurrentUserService currentUserService, WorkspaceContext workspaceContext) : base(unitOfWork, currentUserService, workspaceContext)
+    public async Task<Result<List<MessageDto>>> Handle(GetMessagesQuery request, CancellationToken ct)
     {
-    }
-
-    public async Task<List<MessageDto>> Handle(GetMessagesQuery request, CancellationToken cancellationToken)
-    {
-        var query = UnitOfWork.Set<ChatMessage>()
+        var query = db.ChatMessages
             .AsNoTracking()
             .Where(x => x.ChatRoomId == request.ChatRoomId);
 
         if (request.BeforeMessageId.HasValue)
         {
-            var beforeMessage = await UnitOfWork.Set<ChatMessage>().AsNoTracking().FirstOrDefaultAsync(x => x.Id == request.BeforeMessageId, cancellationToken);
+            var beforeMessage = await db.ChatMessages.AsNoTracking().FirstOrDefaultAsync(x => x.Id == request.BeforeMessageId, ct);
             if (beforeMessage != null)
             {
                 query = query.Where(x => x.CreatedAt < beforeMessage.CreatedAt);
@@ -31,9 +26,9 @@ public class GetMessagesHandler : BaseFeatureHandler, IRequestHandler<GetMessage
         var messages = await query
             .OrderByDescending(x => x.CreatedAt)
             .Take(request.Limit)
-            .Select(x => new MessageDto(x.Id, x.CreatorId ?? Guid.Empty, x.Content, x.CreatedAt.DateTime, x.ReplyToMessageId)) // Use CreatorId and convert to DateTime
-            .ToListAsync(cancellationToken);
+            .Select(x => new MessageDto(x.Id, x.CreatorId ?? Guid.Empty, x.Content, x.CreatedAt.DateTime, x.ReplyToMessageId))
+            .ToListAsync(ct);
 
-        return messages;
+        return Result<List<MessageDto>>.Success(messages);
     }
 }

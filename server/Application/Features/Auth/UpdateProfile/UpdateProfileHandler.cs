@@ -1,8 +1,10 @@
 using Application.Common.Errors;
 using Application.Common.Results;
+using Application.Interfaces.Data;
+using Application.Interfaces;
+using Application.Features;
 using Domain.Entities;
 using Microsoft.EntityFrameworkCore;
-using server.Application.Interfaces;
 
 namespace Application.Features.Auth.UpdateProfile;
 
@@ -45,7 +47,6 @@ public class UpdateProfileHandler : ICommandHandler<UpdateProfileCommand, Update
 
         await _db.SaveChangesAsync(ct);
 
-        return new UpdateProfileDto(user.Id, user.Name, user.Email);
+        return Result<UpdateProfileDto>.Success(new UpdateProfileDto(user.Id, user.Name, user.Email));
     }
 }
-

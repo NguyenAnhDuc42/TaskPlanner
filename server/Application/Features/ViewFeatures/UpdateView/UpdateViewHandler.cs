@@ -1,9 +1,10 @@
 using Application.Common.Errors;
-using Application.Common.Interfaces;
 using Application.Common.Results;
+using Application.Common.Interfaces;
 using Application.Helpers;
 using Application.Interfaces.Data;
 using Domain.Enums;
+using Microsoft.EntityFrameworkCore;
 
 namespace Application.Features.ViewFeatures.UpdateView;
 
@@ -11,13 +12,15 @@ public class UpdateViewHandler(IDataBase db, WorkspaceContext context) : IComman
 {
     public async Task<Result> Handle(UpdateViewCommand request, CancellationToken ct)
     {
-        var view = await db.Views.FindAsync([request.Id], ct);
-        if (view == null) return ViewError.NotFound;
+        var view = await db.ViewDefinitions.FirstOrDefaultAsync(v => v.Id == request.Id, ct);
+        if (view == null) 
+            return Result.Failure(ViewError.NotFound);
 
-        if (context.CurrentMember.Role < Role.Admin && view.CreatorId != context.CurrentMember.Id)
-            return MemberError.DontHavePermission;
+        // AUTHORIZATION: Only Admin/Owner can update any view, Members can only update their own (MemberId)
+        if (context.CurrentMember.Role > Role.Admin && view.CreatorId != context.CurrentMember.Id)
+            return Result.Failure(MemberError.DontHavePermission);
 
-        view.Name = request.Name;
+        view.Update(request.Name, null);
         await db.SaveChangesAsync(ct);
 
         return Result.Success();

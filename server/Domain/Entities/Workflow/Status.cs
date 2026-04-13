@@ -3,7 +3,7 @@ using Domain.Common;
 using Domain.Enums;
 using Domain.Enums.RelationShip;
 
-namespace Domain.Entities.ProjectEntities;
+namespace Domain.Entities;
 
 public class Status : Entity
 {

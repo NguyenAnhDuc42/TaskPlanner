@@ -5,7 +5,7 @@ using Infrastructure.Auth.Types;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using server.Application.Interfaces;
+using Application.Interfaces;
 
 namespace Infrastructure.Auth;
 

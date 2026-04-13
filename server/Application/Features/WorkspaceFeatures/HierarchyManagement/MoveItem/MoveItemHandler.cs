@@ -4,7 +4,7 @@ using Application.Common.Results;
 using Application.Helpers;
 using Application.Interfaces.Data;
 using Domain.Common;
-using Domain.Entities.ProjectEntities;
+using Domain.Entities;
 using Domain.Enums.RelationShip;
 using Domain.Enums;
 using Microsoft.EntityFrameworkCore;

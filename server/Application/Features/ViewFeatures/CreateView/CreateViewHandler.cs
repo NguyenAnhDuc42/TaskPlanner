@@ -3,8 +3,9 @@ using Application.Common.Interfaces;
 using Application.Common.Results;
 using Application.Helpers;
 using Application.Interfaces.Data;
-using Domain.Entities.ProjectEntities;
+using Domain.Entities;
 using Domain.Enums;
+using Microsoft.EntityFrameworkCore;
 
 namespace Application.Features.ViewFeatures.CreateView;
 
@@ -12,20 +13,20 @@ public class CreateViewHandler(IDataBase db, WorkspaceContext context) : IComman
 {
     public async Task<Result<Guid>> Handle(CreateViewCommand request, CancellationToken ct)
     {
-        if (context.CurrentMember.Role < Role.Admin)
+        // AUTHORIZATION: Only Admin/Owner can create views
+        if (context.CurrentMember.Role > Role.Admin)
             return Result<Guid>.Failure(MemberError.DontHavePermission);
 
-        var view = new View
-        {
-            Id = Guid.NewGuid(),
-            Name = "New View",
-            LayerId = request.LayerId,
-            LayerType = request.LayerType,
-            ViewType = ViewType.List,
-            CreatorId = context.CurrentMember.Id
-        };
+        // CORRECTED: Fixed the botched argument order and missing parameters
+        var view = ViewDefinition.Create(
+            request.LayerId,
+            request.LayerType,
+            request.Name,
+            request.ViewType,
+            context.CurrentMember.Id // Using MemberId for workspace-bound entities
+        );
 
-        db.Views.Add(view);
+        await db.ViewDefinitions.AddAsync(view, ct);
         await db.SaveChangesAsync(ct);
 
         return Result<Guid>.Success(view.Id);

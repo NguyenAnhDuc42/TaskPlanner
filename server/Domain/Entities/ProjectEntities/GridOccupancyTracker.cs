@@ -1,4 +1,4 @@
-namespace Domain.Entities.ProjectEntities;
+namespace Domain.Entities;
 //legacy code, not worth the effort to make it more efficient with bit manipulation or similar techniques.
 //This is only used for layout of widgets on a project canvas,
 //so the dimensions are small and performance is not critical. The main goal is to keep it simple and easy to understand.

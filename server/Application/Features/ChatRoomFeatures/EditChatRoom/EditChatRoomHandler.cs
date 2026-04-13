@@ -1,36 +1,38 @@
+using Application.Common.Errors;
+using Application.Common.Results;
+using Application.Common.Interfaces;
 using Application.Helpers;
-using Application.Interfaces.Repositories;
-using Domain.Entities.ProjectEntities;
-using MediatR;
+using Application.Interfaces.Data;
+using Domain.Enums;
 using Microsoft.EntityFrameworkCore;
-using server.Application.Interfaces;
 
 namespace Application.Features.ChatRoomFeatures.EditChatRoom;
 
-public class EditChatRoomHandler : BaseFeatureHandler, IRequestHandler<EditChatRoomCommand, Unit>
+public class EditChatRoomHandler(IDataBase db, WorkspaceContext context) : ICommandHandler<EditChatRoomCommand>
 {
-    public EditChatRoomHandler(IUnitOfWork unitOfWork, ICurrentUserService currentUserService, WorkspaceContext workspaceContext) 
-        : base(unitOfWork, currentUserService, workspaceContext)
+    public async Task<Result> Handle(EditChatRoomCommand request, CancellationToken ct)
     {
-    }
+        // AUTHORIZATION: Only Admin or Owner can edit chat room settings globally
+        if (context.CurrentMember.Role > Role.Admin)
+            return Result.Failure(MemberError.DontHavePermission);
 
-    public async Task<Unit> Handle(EditChatRoomCommand request, CancellationToken cancellationToken)
-    {
-        var chatRoom = await UnitOfWork.Set<ChatRoom>().Include(c => c.Members)
-            .FirstOrDefaultAsync(c => c.Id == request.ChatRoomId, cancellationToken);
+        var chatRoom = await db.ChatRooms.Include(c => c.Members)
+            .FirstOrDefaultAsync(c => c.Id == request.ChatRoomId, ct);
             
-        if (chatRoom == null) throw new KeyNotFoundException($"ChatRoom {request.ChatRoomId} not found");
+        if (chatRoom == null) 
+            return Result.Failure(ChatRoomError.NotFound);
 
         chatRoom.Update(request.NewName, request.AvatarUrl, request.IsPrivate, request.IsArchived);
 
-        // Update notification preference for current user
-        var member = chatRoom.Members.FirstOrDefault(m => m.UserId == CurrentUserId);
+        // Update notification preference for current user (MemberId)
+        var member = chatRoom.Members.FirstOrDefault(m => m.UserId == context.CurrentMember.UserId);
         if (member != null)
         {
             if (request.TurnOffNotifications) member.MuteUntil(DateTimeOffset.MaxValue);
             else member.UnMute();
         }
 
-        return Unit.Value;
+        await db.SaveChangesAsync(ct);
+        return Result.Success();
     }
 }

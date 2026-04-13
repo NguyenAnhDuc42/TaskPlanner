@@ -1,10 +1,10 @@
 using Application.Features.SpaceFeatures.SelfManagement.CreateSpace;
 using Application.Features.SpaceFeatures.SelfManagement.DeleteSpace;
 using Application.Features.SpaceFeatures.SelfManagement.UpdateSpace;
-using Application.Features.EntityAccessManagement.GetEntityAccessList;
 using Domain.Enums.RelationShip;
 using Application.Common.Interfaces;
 using Microsoft.AspNetCore.Mvc;
+using Api.Extensions;
 
 namespace Api.Controllers
 {
@@ -19,17 +19,19 @@ namespace Api.Controllers
             _handler = iHandler;
         }
 
-        [HttpPost]
-        public async Task<IActionResult> Create([FromBody] CreateSpaceCommand command, CancellationToken cancellationToken)
+        [HttpPost("{workspaceId:guid}")]
+        public async Task<IActionResult> Create(Guid workspaceId, [FromBody] CreateSpaceCommand command, CancellationToken cancellationToken)
         {
+            // Ensure workspaceId is correctly set if command has it
             var result = await _handler.SendAsync<CreateSpaceCommand, Guid>(command, cancellationToken);
-            return Ok(result);
+            return result.ToActionResult();
         }
 
-        [HttpPut("{id:guid}")]
-        public async Task<IActionResult> Update(Guid id, [FromBody] UpdateSpaceRequest request, CancellationToken cancellationToken)
+        [HttpPut("{workspaceId:guid}/{id:guid}")]
+        public async Task<IActionResult> Update(Guid workspaceId, Guid id, [FromBody] UpdateSpaceRequest request, CancellationToken cancellationToken)
         {
             var command = new UpdateSpaceCommand(
+                workspaceId: workspaceId,
                 SpaceId: id,
                 Name: request.Name,
                 Description: request.Description,
@@ -39,23 +41,15 @@ namespace Api.Controllers
             );
 
             var result = await _handler.SendAsync(command, cancellationToken);
-            return Ok(result);
+            return result.ToActionResult();
         }
 
-        [HttpDelete("{id:guid}")]
-        public async Task<IActionResult> Delete(Guid id, CancellationToken cancellationToken)
+        [HttpDelete("{workspaceId:guid}/{id:guid}")]
+        public async Task<IActionResult> Delete(Guid workspaceId, Guid id, CancellationToken cancellationToken)
         {
-            var command = new DeleteSpaceCommand(id);
+            var command = new DeleteSpaceCommand(workspaceId, id);
             var result = await _handler.SendAsync(command, cancellationToken);
-            return Ok(result);
-        }
-
-        [HttpGet("{id:guid}/members-access")]
-        public async Task<IActionResult> GetMembersAccess(Guid id, CancellationToken cancellationToken)
-        {
-            var query = new GetEntityAccessListQuery(id, EntityLayerType.ProjectSpace);
-            var result = await _handler.QueryAsync<GetEntityAccessListQuery, List<EntityAccessDto>>(query, cancellationToken);
-            return Ok(result);
+            return result.ToActionResult();
         }
     }
 

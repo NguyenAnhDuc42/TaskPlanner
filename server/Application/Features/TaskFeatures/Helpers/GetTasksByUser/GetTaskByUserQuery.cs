@@ -2,6 +2,6 @@ using Application.Common.Interfaces;
 
 namespace Application.Features.TaskFeatures.Helpers.GetTasksByUser;
 
-public record GetTasksByUserQuery(Guid workspaceMemberId) : IQuery<List<AssignedTaskDto>>;
+public record GetTasksByUserQuery(Guid MemberId) : IQueryRequest<List<TaskSummaryDto>>;
 
-public record AssignedTaskDto(Guid TaskId,string Name);
+public record TaskSummaryDto(Guid TaskId, string Name);

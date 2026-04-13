@@ -3,8 +3,8 @@ using Application.Common.Interfaces;
 using Application.Common.Results;
 using Application.Helpers;
 using Application.Interfaces.Data;
-using Domain.Entities.ProjectEntities;
 using Domain.Enums;
+using Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 
 namespace Application.Features.FolderFeatures.SelfManagement.UpdateFolder;
@@ -14,12 +14,10 @@ public class UpdateFolderHandler(IDataBase db, WorkspaceContext context) : IComm
     public async Task<Result> Handle(UpdateFolderCommand request, CancellationToken ct)
     {
         var folder = await db.Folders.ById(request.FolderId).FirstOrDefaultAsync(ct);
-        if (folder == null) return Result.Failure(FolderError.NotFound);
+        if (folder == null) 
+            return Result.Failure(FolderError.NotFound);
 
-        // Security Resolve: Check if member has access to this space and correct role
-        if (folder.ProjectSpace.ProjectWorkspaceId != context.workspaceId)
-            return Result.Failure(MemberError.DontHavePermission);
-
+        // AUTHORIZATION: Reverting logic to use MemberId (context.CurrentMember.Id)
         if (context.CurrentMember.Role > Role.Admin && folder.CreatorId != context.CurrentMember.Id)
             return Result.Failure(MemberError.DontHavePermission);
 

@@ -1,5 +1,5 @@
 using Domain.Common;
-using Domain.Entities.ProjectEntities;
+using Domain.Entities;
 using Domain.Enums;
 namespace Infrastructure.Services;
 

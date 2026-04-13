@@ -24,7 +24,7 @@ public class ForgotPasswordHandler : ICommandHandler<ForgotPasswordCommand, stri
         if (user == null)
         {
             _logger.LogWarning("Password reset requested for non-existent email: {Email}", request.Email);
-            return Result.Success<string?>(null);
+            return Result<string?>.Success(null);
         }
 
         var token = Guid.NewGuid().ToString("N");
@@ -34,6 +34,6 @@ public class ForgotPasswordHandler : ICommandHandler<ForgotPasswordCommand, stri
         await _db.SaveChangesAsync(ct);
 
         _logger.LogInformation("Password reset token generated for {Email}: {Token}", user.Email, token);
-        return token;
+        return Result<string?>.Success(token);
     }
 }

@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.IdentityModel.Tokens;
-using server.Application.Interfaces;
+using Application.Interfaces;
 using System.IdentityModel.Tokens.Jwt;
 
 namespace Infrastructure.Dependencies.Registrations;

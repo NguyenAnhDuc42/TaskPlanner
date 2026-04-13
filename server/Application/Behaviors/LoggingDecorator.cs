@@ -1,8 +1,14 @@
+using Application.Common.Interfaces;
+using Application.Common.Results;
+using Application.Features;
+using Microsoft.Extensions.Logging;
+using Serilog.Context;
 
+namespace Application.Behaviors;
 
 public static class LoggingDecorator
 {
-    internal class QueryHandler<TQuery, TResponse> : IQueryHandler<TQuery,TResponse> 
+    internal class QueryHandler<TQuery, TResponse> : IQueryHandler<TQuery, TResponse> 
         where TQuery : IQueryRequest<TResponse>
     {
         private readonly IQueryHandler<TQuery, TResponse> _inner;
@@ -25,7 +31,7 @@ public static class LoggingDecorator
             }
             else
             {
-                using (LogContext.PushProperty("Error" , result.Error,true))
+                using (LogContext.PushProperty("Error", result.Error, true))
                 {
                     _logger.LogError("Query failed: {RequestName}", requestName);
                 }
@@ -33,7 +39,8 @@ public static class LoggingDecorator
             return result;
         }
     }
-    internal class CommandHandler<TCommand, TResponse> : ICommandHandler<TCommand,TResponse> 
+
+    internal class CommandHandler<TCommand, TResponse> : ICommandHandler<TCommand, TResponse> 
         where TCommand : ICommandRequest<TResponse>
     {
         private readonly ICommandHandler<TCommand, TResponse> _inner;
@@ -56,7 +63,7 @@ public static class LoggingDecorator
             }
             else
             {
-                using (LogContext.PushProperty("Error" , result.Error,true))
+                using (LogContext.PushProperty("Error", result.Error, true))
                 {
                     _logger.LogError("Command failed: {RequestName}", requestName);
                 }
@@ -64,6 +71,7 @@ public static class LoggingDecorator
             return result;
         }
     }
+
     internal class CommandBaseHandler<TCommand> : ICommandHandler<TCommand> 
         where TCommand : ICommandRequest
     {
@@ -87,7 +95,7 @@ public static class LoggingDecorator
             }
             else
             {
-                using (LogContext.PushProperty("Error" , result.Error,true))
+                using (LogContext.PushProperty("Error", result.Error, true))
                 {
                     _logger.LogError("Command failed: {RequestName}", requestName);
                 }

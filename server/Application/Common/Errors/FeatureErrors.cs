@@ -29,6 +29,7 @@ public static class TaskError
 {
     public static readonly Error NotFound = Error.NotFound("Task.NotFound", "The task with the specified identifier was not found.");
 }
+
 public static class AuthError
 {
     public static readonly Error InvalidCredentials = Error.Unauthorized("Auth.InvalidCredentials", "The email or password provided is incorrect.");
@@ -42,4 +43,18 @@ public static class ViewError
 public static class MemberError
 {
     public static readonly Error DontHavePermission = Error.Forbidden("Member.DontHavePermission", "You do not have permission to perform this action.");
+    public static readonly Error NotFound = Error.NotFound("Member.NotFound", "The member with the specified identifier was not found.");
+}
+
+public static class ChatRoomError
+{
+    public static readonly Error NotFound = Error.NotFound("ChatRoom.NotFound", "The chat room with the specified identifier was not found.");
+    public static readonly Error MemberAlreadyInChatRoom = Error.Conflict("ChatRoom.MemberAlreadyInChatRoom", "One or more members are already in this chat room.");
+    public static readonly Error NoValidMembersToInvite = Error.Failure("ChatRoom.NoValidMembersToInvite", "There are no valid members to invite to this chat room.");
+}
+
+public static class AttachmentError
+{
+    public static readonly Error NotFound = Error.NotFound("Attachment.NotFound", "The attachment with the specified identifier was not found.");
+    public static readonly Error UploadFailed = Error.Failure("Attachment.UploadFailed", "Failed to upload attachment.");
 }

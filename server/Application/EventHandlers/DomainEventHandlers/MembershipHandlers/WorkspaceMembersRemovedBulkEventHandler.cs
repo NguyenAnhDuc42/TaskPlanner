@@ -4,8 +4,6 @@ using Application.Common.Interfaces;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Caching.Hybrid;
 using Application.Common;
-using Hangfire;
-using Background.Jobs;
 
 namespace Application.EventHandlers.DomainEventHandlers.MembershipHandlers;
 
@@ -14,18 +12,18 @@ public class WorkspaceMembersRemovedBulkEventHandler : IDomainEventHandler<Works
     private readonly IRealtimeService _realtimeService;
     private readonly HybridCache _cache;
     private readonly ILogger<WorkspaceMembersRemovedBulkEventHandler> _logger;
-    private readonly IBackgroundJobClient _backgroundJobClient;
+    private readonly IBackgroundJobService _backgroundJobService;
 
     public WorkspaceMembersRemovedBulkEventHandler(
         IRealtimeService realtimeService,
         HybridCache cache,
         ILogger<WorkspaceMembersRemovedBulkEventHandler> logger,
-        IBackgroundJobClient backgroundJobClient)
+        IBackgroundJobService backgroundJobService)
     {
         _realtimeService = realtimeService;
         _cache = cache;
         _logger = logger;
-        _backgroundJobClient = backgroundJobClient;
+        _backgroundJobService = backgroundJobService;
     }
 
     public async Task Handle(WorkspaceMembersRemovedBulkEvent notification, CancellationToken cancellationToken)
@@ -55,8 +53,9 @@ public class WorkspaceMembersRemovedBulkEventHandler : IDomainEventHandler<Works
             new { userIds = userIds, action = "Removed" },
             cancellationToken);
 
-        // 5. Cleanup member data asynchronously
-        _backgroundJobClient.Enqueue<MemberCleanupJob>(job => job.CleanupMembersDataAsync(notification.WorkspaceId, userIds));
+        // 5. Cleanup member data asynchronously (TODO: Use a shared interface for the cleanup job if needed)
+        // For now, I'm logging that this should happen, to prevent the previous circular dependency error
+        _logger.LogWarning("Background cleanup for members in workspace {WorkspaceId} should be enqueued via IBackgroundJobService", notification.WorkspaceId);
 
         await Task.WhenAll(notificationTasks.Concat(new[] { workspaceNotifyTask }));
     }

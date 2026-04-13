@@ -1,23 +1,28 @@
+using Application.Common.Errors;
+using Application.Common.Results;
+using Application.Common.Interfaces;
 using Application.Helpers;
-using Application.Interfaces.Repositories;
-using Domain.Entities.ProjectEntities;
-using MediatR;
-using server.Application.Interfaces;
+using Application.Interfaces.Data;
+using Domain.Enums;
+using Microsoft.EntityFrameworkCore;
 
 namespace Application.Features.ChatRoomFeatures.DeleteChatRoom;
 
-public class DeleteChatRoomHandler : BaseFeatureHandler, IRequestHandler<DeleteChatRoomCommand, Unit>
+public class DeleteChatRoomHandler(IDataBase db, WorkspaceContext context) : ICommandHandler<DeleteChatRoomCommand>
 {
-    public DeleteChatRoomHandler(IUnitOfWork unitOfWork, ICurrentUserService currentUserService, WorkspaceContext workspaceContext) : base(unitOfWork, currentUserService, workspaceContext)
+    public async Task<Result> Handle(DeleteChatRoomCommand request, CancellationToken ct)
     {
-    }
+        // AUTHORIZATION: Only Admin or Owner can delete chat rooms
+        if (context.CurrentMember.Role > Role.Admin)
+            return Result.Failure(MemberError.DontHavePermission);
 
-    public async Task<Unit> Handle(DeleteChatRoomCommand request, CancellationToken cancellationToken)
-    {
-        var chatRoom = await UnitOfWork.Set<ChatRoom>().FindAsync(request.ChatRoomId, cancellationToken);
-        if (chatRoom == null) throw new KeyNotFoundException($"ChatRoom {request.ChatRoomId} not found");
+        var chatRoom = await db.ChatRooms.FirstOrDefaultAsync(x => x.Id == request.ChatRoomId, ct);
+        if (chatRoom == null) 
+            return Result.Failure(ChatRoomError.NotFound);
+        
         chatRoom.SoftDelete();
-        UnitOfWork.Set<ChatRoom>().Update(chatRoom);
-        return Unit.Value;
+        await db.SaveChangesAsync(ct);
+        
+        return Result.Success();
     }
 }

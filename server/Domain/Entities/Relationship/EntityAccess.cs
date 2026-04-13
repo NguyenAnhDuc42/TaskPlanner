@@ -4,7 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 
-namespace Domain.Entities.Relationship;
+namespace Domain.Entities;
 
 public class EntityAccess : Entity
 {

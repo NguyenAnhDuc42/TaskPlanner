@@ -1,10 +1,8 @@
 using Microsoft.EntityFrameworkCore;
 using System.Reflection; 
 using Domain.Entities;
-using Domain.Entities.Relationship;
-using Domain.Entities.ProjectEntities;
 using Domain.Common;
-using Domain.Entities.Support;
+
 namespace Infrastructure.Data;
 
 public class TaskPlanDbContext : DbContext
@@ -30,6 +28,7 @@ public class TaskPlanDbContext : DbContext
     public DbSet<EntityAccess> EntityAccesses { get; set; }
     public DbSet<ChatRoomMember> ChatRoomMembers { get; set; }
     public DbSet<TaskAssignment> TaskAssignments { get; set; } 
+    public DbSet<AttachmentLink> AttachmentLinks { get; set; }
 
     // Support Entities
     public DbSet<Attachment> Attachments { get; set; }
@@ -43,16 +42,9 @@ public class TaskPlanDbContext : DbContext
     
     public DbSet<OutboxMessage> OutboxMessages { get; set; }
     
-
-
-
-
-
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-
         modelBuilder.ApplyConfigurationsFromAssembly(Assembly.GetExecutingAssembly());
-
         base.OnModelCreating(modelBuilder);
     }
 }

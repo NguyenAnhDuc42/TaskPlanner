@@ -1,7 +1,8 @@
 using FluentValidation;
-using Domain.Common; // Assuming ColorValidator is here
+using Application.Helpers;
+using Domain.Common;
 
-namespace Application.Features.WorkspaceFeatures.UpdateWorkspace;
+namespace Application.Features.WorkspaceFeatures.SelfManagement.UpdateWorkspace;
 
 public class UpdateWorkspaceValidator : AbstractValidator<UpdateWorkspaceCommand>
 {
@@ -26,4 +27,4 @@ public class UpdateWorkspaceValidator : AbstractValidator<UpdateWorkspaceCommand
             .NotEmpty().WithMessage("Icon cannot be empty if provided.")
             .When(x => !string.IsNullOrWhiteSpace(x.Icon)); // Only run if Icon was provided
     }
-}
+}

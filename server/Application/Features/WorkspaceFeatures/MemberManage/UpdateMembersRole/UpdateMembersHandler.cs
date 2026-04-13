@@ -32,7 +32,7 @@ public class UpdateMembersHandler(IDataBase db, WorkspaceContext context) : ICom
             {
                 memberEntity.UpdateMembershipDetails(
                     update.role ?? memberEntity.Role,
-                    update.status ?? memberEntity.MembershipStatus
+                    update.status ?? memberEntity.Status
                 );
             }
         }

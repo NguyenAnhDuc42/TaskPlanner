@@ -1,4 +1,4 @@
-﻿using Application.Common.Interfaces;
+using Application.Common.Interfaces;
 using Domain.Enums;
 using MediatR;
 using Microsoft.AspNetCore.Http;
@@ -16,4 +16,4 @@ public record UploadAttachmentCommand
     string? Description,
     string? ImageUrl,
     string? Provider 
-) : ICommand<Unit>;
+) : ICommandRequest;

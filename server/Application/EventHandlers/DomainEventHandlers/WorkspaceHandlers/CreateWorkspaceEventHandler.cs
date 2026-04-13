@@ -1,7 +1,6 @@
 using Application.Interfaces.Data;
 using Domain.Common;
-using Domain.Entities.ProjectEntities;
-using Domain.Entities.Relationship;
+using Domain.Entities;
 using Domain.Events.Workspace;
 using Application.Common.Interfaces;
 using Microsoft.Extensions.Logging;
@@ -34,7 +33,7 @@ public class CreateWorkspaceEventHandler : IDomainEventHandler<CreatedWorkspaceE
     private async Task CreateOwnerProfile(CreatedWorkspaceEvent notification, CancellationToken cancellationToken)
     {
         var workspaceMember = WorkspaceMember.CreateOwner(notification.userId, notification.workspaceId, notification.userId);
-        await _db.Members.AddAsync(workspaceMember, cancellationToken);
+        await _db.WorkspaceMembers.AddAsync(workspaceMember, cancellationToken);
     }
 
     private async Task<ProjectSpace> SeedWelcomeSpace(CreatedWorkspaceEvent notification, CancellationToken cancellationToken)
@@ -42,6 +41,7 @@ public class CreateWorkspaceEventHandler : IDomainEventHandler<CreatedWorkspaceE
         var space = ProjectSpace.Create(
             notification.workspaceId,
             "Welcome Space",
+            "welcome-space",
             "Initial space for your project.",
             null,
             isPrivate: false,
@@ -57,11 +57,12 @@ public class CreateWorkspaceEventHandler : IDomainEventHandler<CreatedWorkspaceE
         var folder = ProjectFolder.Create(
             spaceId,
             "Getting Started",
-            "#6366f1",
-            "Folder",
+            "getting-started",
+            "Initial folder for your tasks.",
+            FractionalIndex.Start(),
             isPrivate: false,
             creatorId: notification.userId,
-            orderKey: FractionalIndex.Start()
+            customization: null
         );
         await _db.Folders.AddAsync(folder, cancellationToken);
         return folder;
@@ -86,6 +87,7 @@ public class CreateWorkspaceEventHandler : IDomainEventHandler<CreatedWorkspaceE
             projectSpaceId: spaceId,
             projectFolderId: folderId,
             name: "Explore the hierarchy",
+            slug: "explore-hierarchy",
             description: "Notice how this task is nested under the 'Getting Started' folder.",
             customization: null,
             creatorId: notification.userId,
@@ -98,6 +100,7 @@ public class CreateWorkspaceEventHandler : IDomainEventHandler<CreatedWorkspaceE
             projectSpaceId: spaceId,
             projectFolderId: null,
             name: "Standalone Task",
+            slug: "standalone-task",
             description: "This task lives directly under the space.",
             customization: null,
             creatorId: notification.userId,

@@ -1,10 +1,11 @@
 using Application.Common.Interfaces;
 using Application.Common.Results;
+using Application.Common.Errors;
 using Application.Features;
 using Application.Helpers;
 using Application.Interfaces.Data;
 using Microsoft.EntityFrameworkCore;
-using server.Application.Interfaces;
+using Application.Interfaces;
 using Domain.Entities;
 
 namespace Application.Behaviors;
@@ -17,7 +18,7 @@ public static class PermissionDecorator
             return null;
 
         var workspaceIdResult = workspaceContext.TryGetWorkspaceId();
-        if (workspaceIdResult.IsFailure) return workspaceIdResult.Error;
+        if (workspaceIdResult.IsFailure) return Result.Failure(workspaceIdResult.Error!);
 
         var userId = currentUserService.CurrentUserId();
         var workspaceId = workspaceIdResult.Value;
@@ -28,7 +29,7 @@ public static class PermissionDecorator
             .FirstOrDefaultAsync(ct);
 
         if (member == null)
-            return MemberError.DontHavePermission;
+            return Result.Failure(MemberError.DontHavePermission);
 
         workspaceContext.CurrentMember = member;
         return null;
@@ -53,7 +54,7 @@ public static class PermissionDecorator
         public async Task<Result<TResponse>> Handle(TQuery query, CancellationToken ct)
         {
             var authResult = await AuthorizeAsync(query, _workspaceContext, _currentUserService, _db, ct);
-            if (authResult is not null) return authResult.Value;
+            if (authResult is not null) return Result<TResponse>.Failure(authResult.Error!);
 
             return await _inner.Handle(query, ct);
         }
@@ -78,7 +79,7 @@ public static class PermissionDecorator
         public async Task<Result<TResponse>> Handle(TCommand command, CancellationToken ct)
         {
             var authResult = await AuthorizeAsync(command, _workspaceContext, _currentUserService, _db, ct);
-            if (authResult is not null) return authResult.Value;
+            if (authResult is not null) return Result<TResponse>.Failure(authResult.Error!);
 
             return await _inner.Handle(command, ct);
         }
