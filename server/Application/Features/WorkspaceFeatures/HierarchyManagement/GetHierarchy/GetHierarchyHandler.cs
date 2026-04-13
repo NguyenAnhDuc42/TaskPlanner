@@ -26,38 +26,44 @@ public class GetHierarchyHandler(IDataBase db, WorkspaceContext context) : IQuer
             UserId = context.CurrentMember.UserId 
         }, cancellationToken: ct)).ToList();
 
+        // PERFORMANCE OPTIMIZATION: Build a lookup for folders (O(N) instead of O(N^2))
+        var folderLookup = rawItems
+            .Where(i => i.ItemType == "Folder")
+            .ToLookup(i => i.ParentId);
+
         var dto = new WorkspaceHierarchyDto
         {
             Id = workspace.Id,
             Name = workspace.Name,
-            Spaces = MapSpaces(rawItems)
+            Spaces = MapSpaces(rawItems, folderLookup)
         };
 
         return Result<WorkspaceHierarchyDto>.Success(dto);
     }
 
-    private List<SpaceHierarchyDto> MapSpaces(List<HierarchyRawItem> allItems)
+    private List<SpaceHierarchyDto> MapSpaces(List<HierarchyRawItem> allItems, ILookup<Guid, HierarchyRawItem> folderLookup)
     {
-        var spaces = allItems.Where(i => i.ItemType == "Space").OrderBy(i => i.OrderKey).ThenBy(i => i.Id);
-        var folders = allItems.Where(i => i.ItemType == "Folder").ToList();
-
-        return spaces.Select(s => new SpaceHierarchyDto
-        {
-            Id = s.Id,
-            Name = s.Name,
-            Color = s.Color ?? "",
-            Icon = s.Icon ?? "",
-            IsPrivate = s.IsPrivate,
-            OrderKey = s.OrderKey,
-            Folders = MapFolders(s.Id, folders),
-            Tasks = new List<TaskHierarchyDto>() // populated on expand via GetNodeTasks
-        }).ToList();
+        return allItems
+            .Where(i => i.ItemType == "Space")
+            .OrderBy(i => i.OrderKey)
+            .ThenBy(i => i.Id)
+            .Select(s => new SpaceHierarchyDto
+            {
+                Id = s.Id,
+                Name = s.Name,
+                Color = s.Color ?? "",
+                Icon = s.Icon ?? "",
+                IsPrivate = s.IsPrivate,
+                OrderKey = s.OrderKey,
+                Folders = MapFolders(s.Id, folderLookup),
+                Tasks = new List<TaskHierarchyDto>() // populated on expand via GetNodeTasks
+            }).ToList();
     }
 
-    private List<FolderHierarchyDto> MapFolders(Guid spaceId, List<HierarchyRawItem> folders)
+    private List<FolderHierarchyDto> MapFolders(Guid spaceId, ILookup<Guid, HierarchyRawItem> folderLookup)
     {
-        return folders
-            .Where(f => Guid.Parse(f.ParentId) == spaceId)
+        // PERFORMANCE: O(1) lookup vs O(N) scan
+        return folderLookup[spaceId]
             .OrderBy(f => f.OrderKey)
             .ThenBy(f => f.Id)
             .Select(f => new FolderHierarchyDto
@@ -76,7 +82,7 @@ public class GetHierarchyHandler(IDataBase db, WorkspaceContext context) : IQuer
     {
         public string ItemType { get; set; } = null!;
         public Guid Id { get; set; }
-        public string ParentId { get; set; } = null!;
+        public Guid ParentId { get; set; } // Native Guid instead of string
         public string Name { get; set; } = null!;
         public string? Color { get; set; }
         public string? Icon { get; set; }

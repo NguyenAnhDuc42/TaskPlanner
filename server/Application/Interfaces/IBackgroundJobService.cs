@@ -17,4 +17,10 @@ public interface IBackgroundJobService
     /// Schedule a job to run after a delay.
     /// </summary>
     void Schedule<T>(Expression<Func<T, Task>> methodCall, TimeSpan delay);
+
+    /// <summary>
+    /// Immediate trigger for the Outbox Processor.
+    /// Used to bypass polling delays for high-concurrency/real-time flows.
+    /// </summary>
+    void TriggerOutbox();
 }

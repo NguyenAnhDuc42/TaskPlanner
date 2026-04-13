@@ -187,6 +187,12 @@ public sealed class ProjectWorkspace : Entity
         UpdateTimestamp();
     }
 
+    public void Delete()
+    {
+        SoftDelete();
+        AddDomainEvent(new Domain.Events.Workspace.WorkspaceDeletedEvent(Id));
+    }
+
     public void Archive()
     {
         if (IsArchived) return;

@@ -49,7 +49,7 @@ public class Database : IDataBase
     public DbSet<ChatRoomMember> ChatRoomMembers => _context.Set<ChatRoomMember>();
     public DbSet<ChatMessage> ChatMessages => _context.Set<ChatMessage>();
     public DbSet<Attachment> Attachments => _context.Set<Attachment>();
-    public DbSet<AttachmentLink> AttachmentLinks => _context.Set<AttachmentLink>();
+    public DbSet<EntityAssetLink> EntityAssetLinks => _context.Set<EntityAssetLink>();
     public DbSet<TaskAssignment> TaskAssignments => _context.Set<TaskAssignment>();
     public DbSet<Widget> Widgets => _context.Set<Widget>();
     public DbSet<OutboxMessage> OutboxMessages => _context.Set<OutboxMessage>();

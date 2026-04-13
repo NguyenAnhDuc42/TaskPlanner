@@ -5,6 +5,8 @@ namespace Domain.Entities;
 
 public class Attachment : Entity
 {
+    public Guid ProjectWorkspaceId { get; private set; }
+    
     // Storage Info
     public string StorageKey { get; private set; } = "";
     public StorageProvider StorageProvider { get; private set; }
@@ -31,10 +33,11 @@ public class Attachment : Entity
 
     // --- Explicit Factory Methods ---
 
-    public static Attachment CreateFile(string fileName, string contentType, long sizeBytes, string checksum, Guid creatorId, bool isPublic = false)
+    public static Attachment CreateFile(Guid projectWorkspaceId, string fileName, string contentType, long sizeBytes, string checksum, Guid creatorId, bool isPublic = false)
     {
         return new Attachment
         {
+            ProjectWorkspaceId = projectWorkspaceId,
             Type = AttachmentType.File,
             FileName = fileName,
             ContentType = contentType,
@@ -47,10 +50,11 @@ public class Attachment : Entity
         };
     }
 
-    public static Attachment CreateMedia(string fileName, string contentType, long sizeBytes, string checksum, Guid creatorId, bool isPublic = false)
+    public static Attachment CreateMedia(Guid projectWorkspaceId, string fileName, string contentType, long sizeBytes, string checksum, Guid creatorId, bool isPublic = false)
     {
         return new Attachment
         {
+            ProjectWorkspaceId = projectWorkspaceId,
             Type = AttachmentType.Media,
             FileName = fileName,
             ContentType = contentType,
@@ -63,10 +67,11 @@ public class Attachment : Entity
         };
     }
 
-    public static Attachment CreateLink(string url, string? title, string? description, string? imageUrl, Guid creatorId, bool isPublic = false)
+    public static Attachment CreateLink(Guid projectWorkspaceId, string url, string? title, string? description, string? imageUrl, Guid creatorId, bool isPublic = false)
     {
         return new Attachment
         {
+            ProjectWorkspaceId = projectWorkspaceId,
             Type = AttachmentType.Link,
             FileName = title ?? url,
             StoragePath = url,
@@ -78,10 +83,11 @@ public class Attachment : Entity
         };
     }
 
-    public static Attachment CreateEmbed(string embedUrl, string provider, string? title, Guid creatorId, bool isPublic = false)
+    public static Attachment CreateEmbed(Guid projectWorkspaceId, string embedUrl, string provider, string? title, Guid creatorId, bool isPublic = false)
     {
         return new Attachment
         {
+            ProjectWorkspaceId = projectWorkspaceId,
             Type = AttachmentType.Embed,
             FileName = title ?? provider,
             StoragePath = embedUrl,

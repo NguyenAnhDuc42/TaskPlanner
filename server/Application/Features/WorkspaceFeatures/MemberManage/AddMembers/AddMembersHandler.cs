@@ -17,7 +17,8 @@ public class AddMembersHandler(
     IDataBase db, 
     WorkspaceContext context,
     HybridCache cache, 
-    IRealtimeService realtime
+    IRealtimeService realtime,
+    IBackgroundJobService backgroundJob
 ) : ICommandHandler<AddMembersCommand>
 {
     public async Task<Result> Handle(AddMembersCommand request, CancellationToken ct)
@@ -32,48 +33,29 @@ public class AddMembersHandler(
 
         if (workspace == null) return Result.Failure(WorkspaceError.NotFound);
 
-        // 2. Logic - Invite by Email (MemberValue objects)
-        foreach (var memberSpec in request.members)
+        // 2. PERFORMANCE: Resolve all users in one batch query
+        var emails = request.members.Select(m => m.email).ToList();
+        var users = await db.Users.Where(u => emails.Contains(u.Email)).ToListAsync(ct);
+        var userMap = users.ToDictionary(u => u.Email);
+
+        // 3. LOGIC: Add members using the bulk domain method
+        var membersToInvite = request.members
+            .Where(m => userMap.ContainsKey(m.email))
+            .Select(m => (userMap[m.email].Id, m.role))
+            .ToList();
+
+        if (membersToInvite.Any())
         {
-            // Note: In this architecture, adding by email often results in a pending invite or look up existing user.
-            // For now, we align with the established domain signature: AddMember(userId, role, actorId, joinMethod)
-            // If we only have email, we'd normally resolve the UserId first. 
-            // Assuming for this build fix that the command meant to provide valid Specs or we resolve them.
-            // BUT, the error said: 'AddMembersCommand' does not contain 'userIds'. It contains 'members'.
-            
-            // To fix the Build error immediately without changing Command definition yet:
-            // This is a placeholder for actual user resolution if needed, but fixing the signature in handler:
-            // workspace.AddMember(userId, memberSpec.role, context.CurrentMember.Id, "Email");
-        }
-        
-        // Re-reading the Command definition from Turn 210:
-        // public record AddMembersCommand(Guid workspaceId, List<MemberValue> members, bool? enableEmail, string? message)
-        // public record MemberValue(string email, Role role);
-        
-        // The previous code was trying to use request.userIds. 
-        // I will fix the build by adjusting the logic to match the Command fields.
-        
-        foreach (var memberSpec in request.members)
-        {
-            // Placeholder: resolve email to user. (Assuming user exists for this restoration step)
-            var user = await db.Users.FirstOrDefaultAsync(u => u.Email == memberSpec.email, ct);
-            if (user != null)
-            {
-                workspace.AddMember(user.Id, memberSpec.role, context.CurrentMember.Id, "Email");
-            }
+            workspace.AddMembers(membersToInvite, context.CurrentMember.Id);
         }
 
         await db.SaveChangesAsync(ct);
 
-        // 3. Notifications - Fix NotifyUsersAsync (plural) which is missing in IRealtimeService
-        foreach (var memberSpec in request.members)
-        {
-             var user = await db.Users.FirstOrDefaultAsync(u => u.Email == memberSpec.email, ct);
-             if (user != null)
-             {
-                 _ = realtime.NotifyUserAsync(user.Id, "AddedToWorkspace", new { WorkspaceId = workspace.Id }, ct);
-             }
-        }
+        // 4. Instant Trigger for Member Notifications
+        backgroundJob.TriggerOutbox();
+
+        // STAGE: All SignalR notifications and emails are now handled by 
+        // WorkspaceMembersAddedBulkEventHandler in the background.
 
         return Result.Success();
     }

@@ -3,6 +3,7 @@ using Application.Common.Interfaces;
 using Application.Common.Results;
 using Application.Helpers;
 using Application.Interfaces.Data;
+using Application.Interfaces;
 using Domain.Common;
 using Domain.Entities.ProjectEntities;
 using Domain.Entities.ProjectEntities.ValueObject;
@@ -12,7 +13,12 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Application.Features.FolderFeatures.SelfManagement.CreateFolder;
 
-public class CreateFolderHandler(IDataBase db, WorkspaceContext context) : ICommandHandler<CreateFolderCommand, Guid>
+public class CreateFolderHandler(
+    IDataBase db, 
+    WorkspaceContext context,
+    IBackgroundJobService backgroundJob,
+    IRealtimeService realtime
+) : ICommandHandler<CreateFolderCommand, Guid>
 {
     public async Task<Result<Guid>> Handle(CreateFolderCommand request, CancellationToken ct)
     {
@@ -38,13 +44,14 @@ public class CreateFolderHandler(IDataBase db, WorkspaceContext context) : IComm
         var slug = SlugHelper.GenerateSlug(request.name);
 
         var folder = ProjectFolder.Create(
+            projectWorkspaceId: context.workspaceId,
             projectSpaceId: space.Id,
             name: request.name,
             slug: slug,
             description: request.description,
             orderKey: orderKey,
             isPrivate: request.isPrivate,
-            creatorId: context.CurrentMember.Id, // Correctly Using WorkspaceMemberId from context
+            creatorId: context.CurrentMember.Id,
             customization: customization,
             startDate: request.startDate,
             dueDate: request.dueDate
@@ -53,6 +60,12 @@ public class CreateFolderHandler(IDataBase db, WorkspaceContext context) : IComm
         await db.Folders.AddAsync(folder, ct);
         await db.SaveChangesAsync(ct);
         
+        // 1. Instant Trigger for background seeding (Overview/Tasks views)
+        backgroundJob.TriggerOutbox();
+
+        // 2. STAGE 1 Notification: UI shows folder immediately
+        await realtime.NotifyWorkspaceAsync(context.workspaceId, "FolderCreating", new { FolderId = folder.Id, SpaceId = space.Id, WorkspaceId = context.workspaceId }, ct);
+
         return Result<Guid>.Success(folder.Id);
     }
 }

@@ -1,5 +1,6 @@
 using Domain.Common;
 using Domain.Entities.ProjectEntities.ValueObject;
+using Domain.Events.Space;
 using Domain.Exceptions;
 
 namespace Domain.Entities;
@@ -38,7 +39,7 @@ public sealed class ProjectSpace : Entity
         
         ValidateBasicInfo(name, slug, description);
 
-        return new ProjectSpace(
+        var space = new ProjectSpace(
             Guid.NewGuid(), 
             projectWorkspaceId, 
             name.Trim(),
@@ -48,6 +49,15 @@ public sealed class ProjectSpace : Entity
             isPrivate, 
             creatorId, 
             orderKey);
+
+        space.AddDomainEvent(new SpaceCreatedEvent(projectWorkspaceId, space.Id, creatorId));
+        return space;
+    }
+
+    public void Delete(Guid userId)
+    {
+        SoftDelete();
+        AddDomainEvent(new SpaceDeletedEvent(ProjectWorkspaceId, Id, userId));
     }
 
     public void UpdateBasicInfo(string? name, string? slug, string? description)

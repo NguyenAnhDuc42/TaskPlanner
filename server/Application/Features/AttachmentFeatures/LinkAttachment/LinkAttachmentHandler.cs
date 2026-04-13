@@ -21,13 +21,14 @@ public class LinkAttachmentHandler(IDataBase db, WorkspaceContext context) : ICo
         if (attachment == null) 
             return Result.Failure(AttachmentError.NotFound);
         
-        var link = AttachmentLink.Create(
+        var link = EntityAssetLink.Create(
             attachment.Id,
+            AssetType.Attachment,
             request.ParentEntityId,
             request.ParentEntityType,
-            context.CurrentMember.Id); // CORRECTED: Using MemberId (not UserId)
+            context.CurrentMember.Id);
 
-        await db.AttachmentLinks.AddAsync(link, ct);
+        await db.EntityAssetLinks.AddAsync(link, ct);
         await db.SaveChangesAsync(ct);
         
         return Result.Success();

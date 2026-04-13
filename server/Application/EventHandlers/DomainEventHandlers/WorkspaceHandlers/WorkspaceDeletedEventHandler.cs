@@ -7,58 +7,55 @@ using Domain.Entities;
 
 namespace Application.EventHandlers.DomainEventHandlers.WorkspaceHandlers;
 
-public class WorkspaceDeletedEventHandler : IDomainEventHandler<WorkspaceDeletedEvent>
+public class WorkspaceDeletedEventHandler(
+    IDataBase db, 
+    ILogger<WorkspaceDeletedEventHandler> logger, 
+    IRealtimeService realtime
+) : IDomainEventHandler<WorkspaceDeletedEvent>
 {
-    private readonly IDataBase _db;
-    private readonly ILogger<WorkspaceDeletedEventHandler> _logger;
-
-    public WorkspaceDeletedEventHandler(IDataBase db, ILogger<WorkspaceDeletedEventHandler> logger)
-    {
-        _db = db;
-        _logger = logger;
-    }
-
     public async Task Handle(WorkspaceDeletedEvent notification, CancellationToken cancellationToken)
     {
         var evt = notification;
-        _logger.LogInformation("Handling WorkspaceDeletedEvent for WorkspaceId: {WorkspaceId}", evt.WorkspaceId);
+        logger.LogInformation("Handling deep cleanup for WorkspaceId: {WorkspaceId}", evt.WorkspaceId);
 
-        var spaceIds = await _db.Spaces
+        // 1. Cascading Soft-Delete for Spaces
+        var spaceDeletedCount = await db.Spaces
             .Where(s => s.ProjectWorkspaceId == evt.WorkspaceId)
-            .Select(s => s.Id)
-            .ToListAsync(cancellationToken);
-
-        var folderIds = await _db.Folders
-            .Where(f => spaceIds.Contains(f.ProjectSpaceId))
-            .Select(f => f.Id)
-            .ToListAsync(cancellationToken);
-
-        var allEntityIds = spaceIds.Concat(folderIds).ToList();
-
-        // 1. Clean up EntityAccess for nested entities
-        // if (allEntityIds.Any())
-        // {
-        //     var accessDeletedCount = await _db.Access
-        //         .Where(ea => allEntityIds.Contains(ea.EntityId))
-        //         .WhereNotDeleted()
-        //         .ExecuteUpdateAsync(updates =>
-        //             updates.SetProperty(e => e.DeletedAt, DateTimeOffset.UtcNow)
-        //                    .SetProperty(e => e.UpdatedAt, DateTimeOffset.UtcNow),
-        //             cancellationToken: cancellationToken);
-        //      _logger.LogInformation("Soft-deleted {EntityAccessCount} EntityAccess records for workspace {WorkspaceId}", accessDeletedCount, evt.WorkspaceId);
-        // }
-
-        // 2. Clean up Statuses (Linked via Workflow -> Workspace)
-        var statusesDeletedCount = await _db.Statuses
-            .Where(s => _db.Workflows.Any(w => w.Id == s.WorkflowId && w.ProjectWorkspaceId == evt.WorkspaceId))
             .WhereNotDeleted()
             .ExecuteUpdateAsync(updates =>
                 updates.SetProperty(e => e.DeletedAt, DateTimeOffset.UtcNow)
                        .SetProperty(e => e.UpdatedAt, DateTimeOffset.UtcNow),
                 cancellationToken: cancellationToken);
 
-        // 3. Clean up Workflows (Workspace-level)
-        var workflowsDeletedCount = await _db.Workflows
+        // 2. Cascading Soft-Delete for Folders
+        var folderDeletedCount = await db.Folders
+            .Where(f => db.Spaces.Any(s => s.Id == f.ProjectSpaceId && s.ProjectWorkspaceId == evt.WorkspaceId))
+            .WhereNotDeleted()
+            .ExecuteUpdateAsync(updates =>
+                updates.SetProperty(e => e.DeletedAt, DateTimeOffset.UtcNow)
+                       .SetProperty(e => e.UpdatedAt, DateTimeOffset.UtcNow),
+                cancellationToken: cancellationToken);
+
+        // 3. Cascading Soft-Delete for Tasks
+        var taskDeletedCount = await db.Tasks
+            .Where(t => t.ProjectWorkspaceId == evt.WorkspaceId)
+            .WhereNotDeleted()
+            .ExecuteUpdateAsync(updates =>
+                updates.SetProperty(e => e.DeletedAt, DateTimeOffset.UtcNow)
+                       .SetProperty(e => e.UpdatedAt, DateTimeOffset.UtcNow),
+                cancellationToken: cancellationToken);
+
+        // 4. Clean up Statuses (Linked via Workflow -> Workspace)
+        var statusesDeletedCount = await db.Statuses
+            .Where(s => db.Workflows.Any(w => w.Id == s.WorkflowId && w.ProjectWorkspaceId == evt.WorkspaceId))
+            .WhereNotDeleted()
+            .ExecuteUpdateAsync(updates =>
+                updates.SetProperty(e => e.DeletedAt, DateTimeOffset.UtcNow)
+                       .SetProperty(e => e.UpdatedAt, DateTimeOffset.UtcNow),
+                cancellationToken: cancellationToken);
+
+        // 5. Clean up Workflows (Workspace-level)
+        var workflowsDeletedCount = await db.Workflows
             .Where(w => w.ProjectWorkspaceId == evt.WorkspaceId)
             .WhereNotDeleted()
             .ExecuteUpdateAsync(updates =>
@@ -66,16 +63,10 @@ public class WorkspaceDeletedEventHandler : IDomainEventHandler<WorkspaceDeleted
                        .SetProperty(e => e.UpdatedAt, DateTimeOffset.UtcNow),
                 cancellationToken: cancellationToken);
 
-        // 4. Clean up Dashboards (Workspace-level)
-        // var dashboardsDeletedCount = await _db.Dashboards
-        //     .Where(d => d.LayerId == evt.WorkspaceId && d.LayerType == Domain.Enums.RelationShip.EntityLayerType.ProjectWorkspace)
-        //     .WhereNotDeleted()
-        //     .ExecuteUpdateAsync(updates =>
-        //         updates.SetProperty(e => e.DeletedAt, DateTimeOffset.UtcNow)
-        //                .SetProperty(e => e.UpdatedAt, DateTimeOffset.UtcNow),
-        //         cancellationToken: cancellationToken);
+        logger.LogInformation("Cleanup complete for workspace {WorkspaceId}: {SpaceCount} Spaces, {FolderCount} Folders, {TaskCount} Tasks, {StatusCount} Statuses, {WorkflowCount} Workflows",
+            evt.WorkspaceId, spaceDeletedCount, folderDeletedCount, taskDeletedCount, statusesDeletedCount, workflowsDeletedCount);
 
-        _logger.LogInformation("Cleanup complete for workspace {WorkspaceId}: {StatusCount} Statuses, {WorkflowCount} Workflows, {DashboardCount} Dashboards",
-            evt.WorkspaceId, statusesDeletedCount, workflowsDeletedCount, 0);
+        // STAGE 2 Notification: Deep cleanup complete
+        await realtime.NotifyWorkspaceAsync(evt.WorkspaceId, "WorkspacePermanentlyDeleted", new { WorkspaceId = evt.WorkspaceId }, cancellationToken);
     }
 }

@@ -15,7 +15,8 @@ public class CreateWorkspaceHandler(
     IDataBase db, 
     ICurrentUserService currentUserService, 
     HybridCache cache, 
-    IRealtimeService realtime
+    IRealtimeService realtime,
+    IBackgroundJobService backgroundJob
 ) : ICommandHandler<CreateWorkspaceCommand, Guid>
 {
     public async Task<Result<Guid>> Handle(CreateWorkspaceCommand request, CancellationToken ct)
@@ -38,9 +39,13 @@ public class CreateWorkspaceHandler(
         await db.Workspaces.AddAsync(workspace, ct);
         await db.SaveChangesAsync(ct);
         
+        // 1. Instant Trigger for Background Seeding
+        backgroundJob.TriggerOutbox();
+
         await cache.RemoveByTagAsync(WorkspaceCacheKeys.WorkspaceListTag(currentUserId), ct);
 
-        _ = realtime.NotifyUserAsync(currentUserId, "WorkspaceCreated", new { WorkspaceId = workspace.Id }, ct);
+        // 2. STAGE 1 Notification: Workspace record exists, but seeding is starting in background
+        await realtime.NotifyUserAsync(currentUserId, "WorkspaceCreating", new { WorkspaceId = workspace.Id }, ct);
 
         return Result<Guid>.Success(workspace.Id);
     }

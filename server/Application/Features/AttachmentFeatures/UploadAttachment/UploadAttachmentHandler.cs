@@ -30,20 +30,20 @@ public class UploadAttachmentHandler(IDataBase db, WorkspaceContext context) : I
                 _ => throw new ArgumentException("Invalid Attachment Type")
             };
 
-            // 1. Persist Metadata
+            // 1. Persist Master Asset (Workspace Pool)
             await db.Attachments.AddAsync(attachment, ct);
 
-            // 2. Create the Relation (The Link)
-            var link = AttachmentLink.Create(
+            // 2. Create the Relation (The Universal Link)
+            var link = EntityAssetLink.Create(
                 attachment.Id,
+                AssetType.Attachment,
                 request.ParentEntityId,
                 request.EntityType,
-                context.CurrentMember.Id); // REVERTED: Using MemberId
+                context.CurrentMember.Id);
 
-            await db.AttachmentLinks.AddAsync(link, ct);
+            await db.EntityAssetLinks.AddAsync(link, ct);
             await db.SaveChangesAsync(ct);
 
-            // TODO: Move background processing (e.g. image resizing, virus scan) to a Domain Event / Outbox pattern
             return Result.Success();
         }
         catch (Exception)
@@ -57,11 +57,13 @@ public class UploadAttachmentHandler(IDataBase db, WorkspaceContext context) : I
         if (req.File == null) throw new ArgumentNullException(nameof(req.File));
         var checksum = await CalculateChecksumAsync(req.File.OpenReadStream());
         return Attachment.CreateFile(
+            context.workspaceId,
             req.File.FileName,
             req.File.ContentType,
             req.File.Length,
             checksum,
-            context.CurrentMember.Id); // REVERTED: Using MemberId
+            context.CurrentMember.Id,
+            isPublic: false);
     }
 
     private async Task<Attachment> CreateMediaAttachmentAsync(UploadAttachmentCommand req)
@@ -70,30 +72,36 @@ public class UploadAttachmentHandler(IDataBase db, WorkspaceContext context) : I
         var checksum = await CalculateChecksumAsync(req.File.OpenReadStream());
         
         return Attachment.CreateMedia(
+            context.workspaceId,
             req.File.FileName,
             req.File.ContentType,
             req.File.Length,
             checksum,
-            context.CurrentMember.Id); // REVERTED: Using MemberId
+            context.CurrentMember.Id,
+            isPublic: false);
     }
 
     private Attachment CreateLinkAttachment(UploadAttachmentCommand req)
     {
         return Attachment.CreateLink(
+            context.workspaceId,
             req.Url!,
             req.Title,
             req.Description,
             req.ImageUrl,
-            context.CurrentMember.Id); // REVERTED: Using MemberId
+            context.CurrentMember.Id,
+            isPublic: false);
     }
 
     private Attachment CreateEmbedAttachment(UploadAttachmentCommand req)
     {
         return Attachment.CreateEmbed(
+            context.workspaceId,
             req.Url!,
             req.Provider ?? "Unknown",
             req.Title,
-            context.CurrentMember.Id); // REVERTED: Using MemberId
+            context.CurrentMember.Id,
+            isPublic: false);
     }
 
     private async Task<string> CalculateChecksumAsync(Stream stream)

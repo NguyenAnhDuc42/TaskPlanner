@@ -28,7 +28,7 @@ public class TaskPlanDbContext : DbContext
     public DbSet<EntityAccess> EntityAccesses { get; set; }
     public DbSet<ChatRoomMember> ChatRoomMembers { get; set; }
     public DbSet<TaskAssignment> TaskAssignments { get; set; } 
-    public DbSet<AttachmentLink> AttachmentLinks { get; set; }
+    public DbSet<EntityAssetLink> EntityAssetLinks { get; set; }
 
     // Support Entities
     public DbSet<Attachment> Attachments { get; set; }

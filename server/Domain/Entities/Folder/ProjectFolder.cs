@@ -4,6 +4,7 @@ using Domain.Enums;
 using static Domain.Common.ColorValidator;
 using Domain.Common.Interfaces;
 using Domain.Exceptions;
+using Domain.Events.Folder;
 
 namespace Domain.Entities;
 
@@ -38,7 +39,7 @@ public sealed class ProjectFolder : Entity
         DueDate = dueDate;
     }
 
-    public static ProjectFolder Create(Guid projectSpaceId, string name, string slug, string? description, string orderKey, bool isPrivate, Guid creatorId, Customization? customization = null, DateTimeOffset? startDate = null, DateTimeOffset? dueDate = null)
+    public static ProjectFolder Create(Guid projectWorkspaceId, Guid projectSpaceId, string name, string slug, string? description, string orderKey, bool isPrivate, Guid creatorId, Customization? customization = null, DateTimeOffset? startDate = null, DateTimeOffset? dueDate = null)
     {
         if (creatorId == Guid.Empty) throw new BusinessRuleException("CreatorId cannot be empty.");
         if (string.IsNullOrWhiteSpace(orderKey)) throw new BusinessRuleException("OrderKey cannot be empty.");
@@ -47,7 +48,7 @@ public sealed class ProjectFolder : Entity
         if (startDate.HasValue && dueDate.HasValue && startDate > dueDate) 
             throw new BusinessRuleException("Start date cannot be later than due date.");
         
-        return new ProjectFolder(
+        var folder = new ProjectFolder(
             Guid.NewGuid(), 
             projectSpaceId, 
             name.Trim(),
@@ -59,6 +60,15 @@ public sealed class ProjectFolder : Entity
             customization ?? Customization.CreateDefault(), 
             startDate, 
             dueDate);
+
+        folder.AddDomainEvent(new FolderCreatedEvent(projectWorkspaceId, projectSpaceId, folder.Id, creatorId));
+        return folder;
+    }
+
+    public void Delete(Guid workspaceId, Guid userId)
+    {
+        SoftDelete();
+        AddDomainEvent(new FolderDeletedEvent(workspaceId, ProjectSpaceId, Id, userId));
     }
 
     public void UpdateBasicInfo(string? name, string? slug, string? description)

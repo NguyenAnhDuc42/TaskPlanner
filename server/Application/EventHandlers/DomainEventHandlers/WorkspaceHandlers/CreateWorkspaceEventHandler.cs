@@ -7,33 +7,27 @@ using Microsoft.Extensions.Logging;
 
 namespace Application.EventHandlers.DomainEventHandlers.WorkspaceHandlers;
 
-public class CreateWorkspaceEventHandler : IDomainEventHandler<CreatedWorkspaceEvent>
+public class CreateWorkspaceEventHandler(
+    ILogger<CreateWorkspaceEventHandler> logger, 
+    IDataBase db, 
+    IRealtimeService realtime, 
+    HybridCache cache
+) : IDomainEventHandler<CreatedWorkspaceEvent>
 {
-    private readonly ILogger<CreateWorkspaceEventHandler> _logger;
-    private readonly IDataBase _db;
-    
-    public CreateWorkspaceEventHandler(ILogger<CreateWorkspaceEventHandler> logger, IDataBase db)
-    {
-        _logger = logger;
-        _db = db;
-    }
-
     public async Task Handle(CreatedWorkspaceEvent notification, CancellationToken cancellationToken)
     {
-        _logger.LogInformation("Seeding initial hierarchy for WorkspaceId: {WorkspaceId}", notification.workspaceId);
+        logger.LogInformation("Seeding initial hierarchy for WorkspaceId: {WorkspaceId}", notification.workspaceId);
 
-        await CreateOwnerProfile(notification, cancellationToken);
+        // Removed: Owner member is now handled directly in the ProjectWorkspace.Create factory method.
+        
         var statuses = await SeedWorkflowAndStatuses(notification, cancellationToken);
         var space = await SeedWelcomeSpace(notification, cancellationToken);
         var folder = await SeedGettingStartedFolder(notification, space.Id, cancellationToken);
         
         await SeedInitialTasks(notification, space.Id, folder.Id, statuses, cancellationToken);
-    }
 
-    private async Task CreateOwnerProfile(CreatedWorkspaceEvent notification, CancellationToken cancellationToken)
-    {
-        var workspaceMember = WorkspaceMember.CreateOwner(notification.userId, notification.workspaceId, notification.userId);
-        await _db.WorkspaceMembers.AddAsync(workspaceMember, cancellationToken);
+        // STAGE 2 Notification: Background seeding is complete
+        await realtime.NotifyUserAsync(notification.userId, "WorkspaceReady", new { WorkspaceId = notification.workspaceId }, cancellationToken);
     }
 
     private async Task<ProjectSpace> SeedWelcomeSpace(CreatedWorkspaceEvent notification, CancellationToken cancellationToken)
@@ -48,7 +42,7 @@ public class CreateWorkspaceEventHandler : IDomainEventHandler<CreatedWorkspaceE
             creatorId: notification.userId,
             orderKey: FractionalIndex.Start()
         );
-        await _db.Spaces.AddAsync(space, cancellationToken);
+        await db.Spaces.AddAsync(space, cancellationToken);
         return space;
     }
 
@@ -64,17 +58,17 @@ public class CreateWorkspaceEventHandler : IDomainEventHandler<CreatedWorkspaceE
             creatorId: notification.userId,
             customization: null
         );
-        await _db.Folders.AddAsync(folder, cancellationToken);
+        await db.Folders.AddAsync(folder, cancellationToken);
         return folder;
     }
 
     private async Task<List<Status>> SeedWorkflowAndStatuses(CreatedWorkspaceEvent notification, CancellationToken cancellationToken)
     {
         var workflow = Workflow.Create(notification.workspaceId, "Default Workflow", null, notification.userId);
-        await _db.Workflows.AddAsync(workflow, cancellationToken);
+        await db.Workflows.AddAsync(workflow, cancellationToken);
         
         var statuses = Status.CreateStarterSet(notification.workspaceId, workflow.Id, notification.userId);
-        await _db.Statuses.AddRangeAsync(statuses, cancellationToken);
+        await db.Statuses.AddRangeAsync(statuses, cancellationToken);
         return statuses;
     }
 
@@ -108,8 +102,8 @@ public class CreateWorkspaceEventHandler : IDomainEventHandler<CreatedWorkspaceE
             orderKey: FractionalIndex.After(FractionalIndex.Start())
         );
 
-        await _db.Tasks.AddAsync(folderTask, cancellationToken);
-        await _db.Tasks.AddAsync(spaceTask, cancellationToken);
-        await _db.SaveChangesAsync(cancellationToken);
+        await db.Tasks.AddAsync(folderTask, cancellationToken);
+        await db.Tasks.AddAsync(spaceTask, cancellationToken);
+        await db.SaveChangesAsync(cancellationToken);
     }
 }

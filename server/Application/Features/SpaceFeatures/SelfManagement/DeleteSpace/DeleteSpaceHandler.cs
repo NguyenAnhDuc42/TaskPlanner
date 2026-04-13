@@ -3,13 +3,19 @@ using Application.Common.Interfaces;
 using Application.Common.Results;
 using Application.Helpers;
 using Application.Interfaces.Data;
+using Application.Interfaces;
 using Domain.Enums;
 using Microsoft.EntityFrameworkCore;
 using Domain.Entities;
 
 namespace Application.Features.SpaceFeatures.SelfManagement.DeleteSpace;
 
-public class DeleteSpaceHandler(IDataBase db, WorkspaceContext context) : ICommandHandler<DeleteSpaceCommand>
+public class DeleteSpaceHandler(
+    IDataBase db, 
+    WorkspaceContext context,
+    IBackgroundJobService backgroundJob,
+    IRealtimeService realtime
+) : ICommandHandler<DeleteSpaceCommand>
 {
     public async Task<Result> Handle(DeleteSpaceCommand request, CancellationToken ct)
     {
@@ -28,9 +34,17 @@ public class DeleteSpaceHandler(IDataBase db, WorkspaceContext context) : IComma
         if (context.CurrentMember.Role > Role.Admin && space.CreatorId != context.CurrentMember.Id)
             return Result.Failure(MemberError.DontHavePermission);
 
-        space.SoftDelete();
+        // 1. Logic: Use formal domain method to trigger background cleanup
+        space.Delete(context.CurrentMember.Id);
         
         await db.SaveChangesAsync(ct);
+
+        // 2. Instant Trigger for background cleanup (Folders, Tasks, Views)
+        backgroundJob.TriggerOutbox();
+
+        // 3. STAGE 1 Notification: UI hides the space immediately
+        await realtime.NotifyWorkspaceAsync(context.workspaceId, "SpaceDeleting", new { SpaceId = request.SpaceId, WorkspaceId = context.workspaceId }, ct);
+
         return Result.Success();
     }
 }

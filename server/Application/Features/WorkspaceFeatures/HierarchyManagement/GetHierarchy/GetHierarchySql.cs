@@ -64,7 +64,7 @@ public static class GetHierarchySql
         SELECT 
             'Space' as item_type,
             id,
-            project_workspace_id::text as parent_id,
+            project_workspace_id as parent_id,
             name,
             custom_color as color,
             custom_icon as icon,
@@ -77,7 +77,7 @@ public static class GetHierarchySql
         SELECT 
             'Folder' as item_type,
             id,
-            project_space_id::text as parent_id,
+            project_space_id as parent_id,
             name,
             custom_color as color,
             custom_icon as icon,
