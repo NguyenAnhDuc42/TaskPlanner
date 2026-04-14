@@ -45,6 +45,7 @@ public class ProjectFolderConfiguration : EntityConfiguration<ProjectFolder>
 
         builder.Property(f => f.OrderKey)
             .HasColumnName("order_key")
+            .IsRequired()
             .HasColumnOrder(6);
 
         builder.Property(f => f.IsPrivate)

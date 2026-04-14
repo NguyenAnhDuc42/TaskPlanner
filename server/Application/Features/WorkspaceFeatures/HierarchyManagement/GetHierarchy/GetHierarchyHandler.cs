@@ -28,7 +28,7 @@ public class GetHierarchyHandler(IDataBase db, WorkspaceContext context) : IQuer
 
         // PERFORMANCE OPTIMIZATION: Build a lookup for folders (O(N) instead of O(N^2))
         var folderLookup = rawItems
-            .Where(i => i.ItemType == "Folder")
+            .Where(i => i.ItemType == "ProjectFolder")
             .ToLookup(i => i.ParentId);
 
         var dto = new WorkspaceHierarchyDto
@@ -44,7 +44,7 @@ public class GetHierarchyHandler(IDataBase db, WorkspaceContext context) : IQuer
     private List<SpaceHierarchyDto> MapSpaces(List<HierarchyRawItem> allItems, ILookup<Guid, HierarchyRawItem> folderLookup)
     {
         return allItems
-            .Where(i => i.ItemType == "Space")
+            .Where(i => i.ItemType == "ProjectSpace")
             .OrderBy(i => i.OrderKey)
             .ThenBy(i => i.Id)
             .Select(s => new SpaceHierarchyDto

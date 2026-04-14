@@ -11,10 +11,10 @@ public static class ResultExtensions
         => result switch
         {
             Result<T>.SuccessResult success => 
-                new OkObjectResult(success.Value),
+                new OkObjectResult(success.DataValue),
 
             Result<T>.FailureResult failure => 
-                CreateProblemDetails(failure.Error!),
+                CreateProblemDetails(failure.ErrorValue!),
 
             _ => new StatusCodeResult(500)
         };
@@ -25,7 +25,7 @@ public static class ResultExtensions
             Result.SuccessResult => new NoContentResult(),
 
             Result.FailureResult failure =>
-                CreateProblemDetails(failure.Error!),
+                CreateProblemDetails(failure.ErrorValue!),
 
             _ => new StatusCodeResult(500)
         };

@@ -42,10 +42,13 @@ export function useHierarchyDnd({ filteredHierarchy, moveItem }: UseHierarchyDnd
   );
 
   const handleDragStart = (event: DragStartEvent) => {
+    const data = event.active.data.current;
+    if (!data) return;
+
     setActiveItem({
       id: event.active.id as string,
-      type: event.active.data.current?.type as EntityLayerType,
-      data: event.active.data.current
+      type: data.type as EntityLayerType,
+      data: data as any
     });
   };
 
@@ -93,17 +96,26 @@ export function useHierarchyDnd({ filteredHierarchy, moveItem }: UseHierarchyDnd
     } 
     // 2. MOVING/REORDERING FOLDERS
     else if (itemType === EntityLayerConst.ProjectFolder) {
-      let targetSpace: SpaceHierarchy | undefined;
+      let targetSpaceId: string | undefined;
 
       // Vertical move within same or other space
       if (overData?.type === EntityLayerConst.ProjectSpace) {
-        targetSpace = filteredHierarchy?.spaces.find(s => s.id === overData.id);
+        targetSpaceId = overData.id;
       } else if (overData?.type === EntityLayerConst.ProjectFolder) {
-        targetSpace = filteredHierarchy?.spaces.find(s => s.folders.some(f => f.id === overData.id));
+        targetSpaceId = overData.parentId;
+      } else if (overData?.type === EntityLayerConst.ProjectTask) {
+        // If dropped over a task, find the task's parent space
+        const targetParent = overData.parentType === EntityLayerConst.ProjectSpace 
+          ? overData.parentId 
+          : filteredHierarchy?.spaces.find(s => s.folders.some(f => f.id === overData.parentId))?.id;
+        targetSpaceId = targetParent;
       }
 
+      if (!targetSpaceId) return;
+      targetParentId = targetSpaceId;
+
+      const targetSpace = filteredHierarchy?.spaces.find(s => s.id === targetSpaceId);
       if (!targetSpace) return;
-      targetParentId = targetSpace.id;
 
       const folders = targetSpace.folders;
       const oldIndex = folders.findIndex(f => f.id === activeData.id);
@@ -133,18 +145,26 @@ export function useHierarchyDnd({ filteredHierarchy, moveItem }: UseHierarchyDnd
         newOrderKey
       });
     }
-    // 3. REORDERING TASKS
+    // 3. MOVING/REORDERING TASKS
     else if (itemType === EntityLayerConst.ProjectTask) {
-      if (overData?.type !== EntityLayerConst.ProjectTask) return;
+      let targetId: string | undefined;
       
-      // For now tasks only reorder within their current parent
-      prevKey = overData.orderKey;
-      newOrderKey = fractionalAfter(prevKey); // Simple strategy for now
+      if (overData?.type === EntityLayerConst.ProjectTask) {
+        targetId = overData.parentId;
+        prevKey = overData.orderKey; // Use current item as reference
+      } else if (overData?.type === EntityLayerConst.ProjectFolder || overData?.type === EntityLayerConst.ProjectSpace) {
+        targetId = overData.id;
+        prevKey = undefined; // Move to beginning
+      }
+
+      if (!targetId) return;
+      targetParentId = targetId;
+      newOrderKey = prevKey ? fractionalAfter(prevKey) : fractionalAfter(null);
       
       moveItem.mutate({
         itemId: activeData.id,
         itemType: EntityLayerConst.ProjectTask,
-        targetParentId: activeData?.parentId,
+        targetParentId,
         previousItemOrderKey: prevKey,
         newOrderKey
       });

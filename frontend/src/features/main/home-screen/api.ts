@@ -11,7 +11,7 @@ import { api } from "@/lib/api-client";
 import { workspaceKeys } from "../query-keys";
 
 import { toast } from "sonner";
-import { isAxiosError } from "axios";
+import type { ApiError } from "@/types/api-error";
 import type { PagedResult } from "@/types/paged-result";
 import { useNavigate, useSearch } from "@tanstack/react-router";
 import React from "react";
@@ -32,15 +32,8 @@ export function useCreateWorkspace() {
       await queryClient.invalidateQueries({ queryKey: workspaceKeys.list() });
       toast.success("Workspace created successfully");
     },
-    onError: (error) => {
-      if (isAxiosError(error) && error.response?.data) {
-        const data = error.response.data;
-        const message =
-          data.detail || data.title || "Failed to create workspace";
-        toast.error(message);
-      } else {
-        toast.error("An unexpected error occurred");
-      }
+    onError: (error: ApiError) => {
+      toast.error(error.message);
     },
   });
 }
@@ -99,8 +92,8 @@ export function useSetWorkspacePin() {
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: workspaceKeys.list() });
     },
-    onError: () => {
-      toast.error("Failed to update workspace pin");
+    onError: (error: ApiError) => {
+      toast.error(error.message);
     },
   });
 }
@@ -125,14 +118,8 @@ export function useJoinWorkspaceByCode() {
         toast.success("Joined workspace successfully");
       }
     },
-    onError: (error) => {
-      if (isAxiosError(error) && error.response?.data) {
-        const data = error.response.data;
-        const message = data.detail || data.title || "Failed to join workspace";
-        toast.error(message);
-      } else {
-        toast.error("Failed to join workspace");
-      }
+    onError: (error: ApiError) => {
+      toast.error(error.message);
     },
   });
 }

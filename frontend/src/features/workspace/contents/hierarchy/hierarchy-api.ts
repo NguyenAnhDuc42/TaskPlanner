@@ -1,7 +1,7 @@
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo } from "react";
 import { type EntityLayerType } from "@/types/entity-layer-type";
-import type { CreateFolderRequest, CreateSpaceRequest, CreateTaskRequest, FolderHierarchy, MoveItemRequest, NodeTasksResponse, UpdateFolderRequest, UpdateSpaceRequest, WorkspaceHierarchy } from "./hierarchy-type";
+import type { CreateFolderRequest, CreateSpaceRequest, CreateTaskRequest, FolderHierarchy, MoveItemRequest, NodeTasksResponse, TaskHierarchy, UpdateFolderRequest, UpdateSpaceRequest, UpdateTaskRequest, WorkspaceHierarchy } from "./hierarchy-type";
 import { hierarchyKeys } from "./hierarchy-keys";
 import { api } from "@/lib/api-client";
 
@@ -47,7 +47,7 @@ export function useNodeTasks(workspaceId: string, nodeId: string, parentType: En
 export function useCreateSpace(workspaceId: string) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (data: CreateSpaceRequest) => api.post(`/spaces`, data),
+    mutationFn: (data: CreateSpaceRequest) => api.post(`/spaces/${workspaceId}`, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: hierarchyKeys.detail(workspaceId) });
     },
@@ -57,7 +57,7 @@ export function useCreateSpace(workspaceId: string) {
 export function useUpdateSpace(workspaceId: string) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (data: UpdateSpaceRequest) => api.patch(`/spaces/${data.spaceId}`, data),
+    mutationFn: (data: UpdateSpaceRequest) => api.put(`/spaces/${workspaceId}/${data.spaceId}`, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: hierarchyKeys.detail(workspaceId) });
     },
@@ -89,9 +89,19 @@ export function useCreateTask(workspaceId: string) {
 export function useUpdateFolder(workspaceId: string) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (data: UpdateFolderRequest) => api.patch(`/workspaces/${workspaceId}/folders/${data.folderId}`, data),
+    mutationFn: (data: UpdateFolderRequest) => api.put(`/folders/${data.folderId}`, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: hierarchyKeys.detail(workspaceId) });
+    },
+  });
+}
+
+export function useUpdateTask(workspaceId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: UpdateTaskRequest) => api.put(`/tasks/${data.taskId}`, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: hierarchyKeys.all });
     },
   });
 }
@@ -159,6 +169,65 @@ export function useMoveItem(workspaceId: string) {
                 
                 // Final sort consistency within target space
                 targetSpace.folders = targetFolders.sort((a, b) => a.orderKey.localeCompare(b.orderKey));
+              }
+            }
+          }
+          else if (itemType === "ProjectTask") {
+            let taskToMove: TaskHierarchy | null = null;
+            
+            // 1. Remove task from current source
+            for (const space of newHierarchy.spaces) {
+              // Check space-level tasks
+              const spaceTasks = space.tasks || [];
+              const sIdx = spaceTasks.findIndex(t => t.id === itemId);
+              if (sIdx !== -1) {
+                [taskToMove] = spaceTasks.splice(sIdx, 1);
+                break;
+              }
+              
+              // Check folder-level tasks
+              for (const folder of space.folders) {
+                const folderTasks = folder.tasks || [];
+                const fIdx = folderTasks.findIndex(t => t.id === itemId);
+                if (fIdx !== -1) {
+                  [taskToMove] = folderTasks.splice(fIdx, 1);
+                  break;
+                }
+              }
+              if (taskToMove) break;
+            }
+
+            // 2. Insert into target
+            if (taskToMove && targetParentId) {
+              if (newOrderKey) taskToMove.orderKey = newOrderKey;
+
+              // Try insert into target Folder
+              let inserted = false;
+              for (const space of newHierarchy.spaces) {
+                const targetFolder = space.folders.find(f => f.id === targetParentId);
+                if (targetFolder) {
+                  const tasks = targetFolder.tasks || [];
+                  const overIndex = nextItemOrderKey 
+                    ? tasks.findIndex(t => t.orderKey === nextItemOrderKey) 
+                    : tasks.length;
+                  tasks.splice(overIndex === -1 ? tasks.length : overIndex, 0, taskToMove);
+                  targetFolder.tasks = tasks.sort((a, b) => a.orderKey.localeCompare(b.orderKey));
+                  inserted = true;
+                  break;
+                }
+              }
+
+              // Try insert into target Space if not found in folders
+              if (!inserted) {
+                const targetSpace = newHierarchy.spaces.find(s => s.id === targetParentId);
+                if (targetSpace) {
+                  const tasks = targetSpace.tasks || [];
+                  const overIndex = nextItemOrderKey 
+                    ? tasks.findIndex(t => t.orderKey === nextItemOrderKey) 
+                    : tasks.length;
+                  tasks.splice(overIndex === -1 ? tasks.length : overIndex, 0, taskToMove);
+                  targetSpace.tasks = tasks.sort((a, b) => a.orderKey.localeCompare(b.orderKey));
+                }
               }
             }
           }

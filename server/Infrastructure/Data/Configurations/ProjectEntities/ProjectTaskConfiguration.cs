@@ -60,6 +60,7 @@ public class ProjectTaskConfiguration : EntityConfiguration<ProjectTask>
 
         builder.Property(t => t.OrderKey)
             .HasColumnName("order_key")
+            .IsRequired()
             .HasColumnOrder(9);
 
         builder.Property(t => t.StartDate)

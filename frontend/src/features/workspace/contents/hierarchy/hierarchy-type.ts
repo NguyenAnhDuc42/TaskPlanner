@@ -98,6 +98,19 @@ export interface UpdateFolderRequest {
   isPrivate?: boolean;
 }
 
+export interface UpdateTaskRequest {
+  taskId: string;
+  name?: string;
+  description?: string;
+  statusId?: string;
+  priority?: number;
+  startDate?: string;
+  dueDate?: string;
+  storyPoints?: number;
+  timeEstimate?: number;
+  assigneeIds?: string[];
+}
+
 // Access DTOs (Preserved Space/Folder/Task, Purged List)
 export interface EntityAccessMember {
   workspaceMemberId: string;

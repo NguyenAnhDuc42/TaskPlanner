@@ -27,15 +27,17 @@ export function TaskItem({ task, parentId, parentType }: TaskItemProps) {
     <SortableItem
       id={`task-${task.id}`}
       data={{
-        ...task, // Entire object for high-fidelity DragOverlay
+        ...task,
         type: EntityLayerConst.ProjectTask,
         id: task.id,
         orderKey: task.orderKey,
+        parentId,
+        parentType,
       }}
     >
       <div
         className={cn(
-          "flex items-center w-full px-1 py-0.5 rounded-sm transition-colors cursor-pointer mb-px pl-6 group",
+          "flex items-center w-full px-1 py-0.5 rounded-sm transition-colors cursor-pointer mb-px pl-2 group",
           isActive
             ? "text-primary bg-primary/10"
             : "text-muted-foreground hover:bg-muted hover:text-foreground",
@@ -44,7 +46,7 @@ export function TaskItem({ task, parentId, parentType }: TaskItemProps) {
           navigate({ to: `/workspaces/${workspaceId}/tasks/${task.id}` })
         }
       >
-        <CheckSquare className="h-3.5 w-3.5 flex-shrink-0 opacity-60 mr-1.5" />
+        <CheckSquare className="h-3.5 w-4 flex-shrink-0 opacity-60 mr-1.5" />
         <span className="truncate text-[11px] font-semibold flex-1 leading-tight">
           {clampName(task.name)}
         </span>

@@ -1,5 +1,5 @@
 import { createContext, useContext, type ReactNode } from "react";
-import { useWorkspaceDetail, useWorkspaceStatuses, type WorkspaceSecurityContext } from "../api";
+import { useWorkspaceDetail, type WorkspaceSecurityContext } from "../api";
 import type { StatusDto } from "../contents/hierarchy/views/views-type";
 
 interface WorkspaceContextType {
@@ -28,18 +28,12 @@ interface WorkspaceProviderProps {
 export function WorkspaceProvider({ workspaceId, children }: WorkspaceProviderProps) {
   const { 
     data: workspace, 
-    isLoading: isWorkspaceLoading, 
-    error: workspaceError 
+    isLoading, 
+    error 
   } = useWorkspaceDetail(workspaceId);
 
-  const { 
-    data: statuses = [], 
-    isLoading: isStatusesLoading, 
-    error: statusesError 
-  } = useWorkspaceStatuses();
-
-  const isLoading = isWorkspaceLoading || isStatusesLoading;
-  const error = workspaceError || statusesError;
+  // Statuses are now resolved at the Space/Folder level 
+  const statuses: StatusDto[] = [];
 
   return (
     <WorkspaceContext.Provider

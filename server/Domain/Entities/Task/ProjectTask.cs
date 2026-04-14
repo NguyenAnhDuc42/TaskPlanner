@@ -20,7 +20,7 @@ public class ProjectTask : TenantEntity
     public DateTimeOffset? DueDate { get; private set; }
     public int? StoryPoints { get; private set; }
     public long? TimeEstimate { get; private set; }
-    public string? OrderKey { get; private set; }
+    public string OrderKey { get; private set; } = FractionalIndex.Start();
 
     private readonly List<TaskAssignment> _assignees = new();
     public virtual IReadOnlyCollection<TaskAssignment> Assignees => _assignees.AsReadOnly();    

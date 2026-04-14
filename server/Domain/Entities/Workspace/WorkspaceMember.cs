@@ -19,7 +19,7 @@ public class WorkspaceMember : Entity
     public DateTimeOffset? SuspendedAt { get; private set; }
     public Guid? SuspendedBy { get; private set; }
     public string? JoinMethod { get; private set; } = string.Empty; // "Invite", "Request", "Code"
-    public WorkspaceMember(Guid userId, Guid projectWorkspaceId, Role role, MembershipStatus status, Guid creatorId, string? joinMethod)
+    public WorkspaceMember(Guid userId, Guid projectWorkspaceId, Role role, MembershipStatus status, Guid? creatorId, string? joinMethod)
     {
         UserId = userId;
         ProjectWorkspaceId = projectWorkspaceId;

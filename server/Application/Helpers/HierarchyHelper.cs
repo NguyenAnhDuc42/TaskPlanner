@@ -3,11 +3,21 @@ using Domain.Enums.RelationShip;
 
 namespace Application.Helpers;
 
-public record AncestorChain(
-    Guid ProjectWorkspaceId,
-    Guid? ProjectSpaceId,
-    Guid? ProjectFolderId
-);
+public class AncestorChain
+{
+    public Guid ProjectWorkspaceId { get; set; }
+    public Guid? ProjectSpaceId { get; set; }
+    public Guid? ProjectFolderId { get; set; }
+
+    public AncestorChain() { }
+
+    public AncestorChain(Guid projectWorkspaceId, Guid? projectSpaceId, Guid? projectFolderId)
+    {
+        ProjectWorkspaceId = projectWorkspaceId;
+        ProjectSpaceId = projectSpaceId;
+        ProjectFolderId = projectFolderId;
+    }
+}
 
 public static class HierarchyHelper
 {
@@ -25,8 +35,6 @@ public static class HierarchyHelper
             _ => throw new ArgumentException("Invalid layer type for hierarchy resolution.")
         };
     }
-
-
 
     private static async Task<AncestorChain> GetFromFolder(IUnitOfWork unitOfWork, Guid id, CancellationToken ct)
     {
@@ -49,7 +57,7 @@ public static class HierarchyHelper
             SELECT 
                 project_workspace_id AS ProjectWorkspaceId,
                 id                   AS ProjectSpaceId,
-                NULL                   AS ProjectFolderId
+                NULL::uuid           AS ProjectFolderId
             FROM  project_spaces
             WHERE id = @Id";
 

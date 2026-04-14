@@ -11,7 +11,7 @@ export function InnerSidebar({ className }: { className?: string }) {
   const { isInnerSidebarOpen, toggleInnerSidebar } = useSidebarContext();
 
   const segments = location.pathname.split("/");
-  const activeContent = (segments[3] || "dashboard") as ContentPage;
+  const activeContent = (segments[3] || "projects") as ContentPage;
 
   const displayTitle =
     activeContent === "projects" ? "Projects" :
@@ -29,7 +29,7 @@ export function InnerSidebar({ className }: { className?: string }) {
       <div className="flex-1 min-h-0 bg-background border border-border rounded-md h-full flex flex-col shadow-sm overflow-hidden">
 
         {/* Header */}
-        <div className="flex items-center justify-between px-2 py-2 flex-shrink-0 border-b border-border">
+        <div className="flex items-center justify-between px-4 py-2 flex-shrink-0 border-b border-border">
           <h2 className="font-black text-sm uppercase tracking-widest text-foreground">
             {displayTitle}
           </h2>

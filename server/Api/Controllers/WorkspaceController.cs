@@ -79,7 +79,7 @@ namespace Api.Controllers
         }
 
         [HttpGet]
-        public async Task<ActionResult<PagedResult<WorkspaceSummaryDto>>> GetWorkspaces(
+        public async Task<IActionResult> GetWorkspaces(
             [FromQuery] string? cursor,
             [FromQuery] string? name,
             [FromQuery] int pageSize = 10,
@@ -93,19 +93,19 @@ namespace Api.Controllers
             var query = new GetWorksapceListQuery(pagination, filter);
 
             var result = await _handler.QueryAsync<GetWorksapceListQuery, PagedResult<WorkspaceSummaryDto>>(query, cancellationToken);
-            return Ok(result);
+            return result.ToActionResult();
         }
 
         [HttpGet("{id:guid}/hierarchy")]
-        public async Task<ActionResult<WorkspaceHierarchyDto>> GetHierarchy(Guid id, CancellationToken cancellationToken)
+        public async Task<IActionResult> GetHierarchy(Guid id, CancellationToken cancellationToken)
         {
             var query = new GetHierarchyQuery(id);
             var result = await _handler.QueryAsync<GetHierarchyQuery, WorkspaceHierarchyDto>(query, cancellationToken);
-            return Ok(result);
+            return result.ToActionResult();
         }
 
         [HttpGet("{id:guid}/hierarchy/nodes/{nodeId}/tasks")]
-        public async Task<ActionResult<NodeTasksDto>> GetNodeTasks(
+        public async Task<IActionResult> GetNodeTasks(
             Guid id,
             Guid nodeId,
             [FromQuery] string parentType,
@@ -116,20 +116,20 @@ namespace Api.Controllers
         {
             var query = new GetNodeTasksQuery(id, nodeId, parentType, cursorOrderKey, cursorTaskId, pageSize);
             var result = await _handler.QueryAsync<GetNodeTasksQuery, NodeTasksDto>(query, cancellationToken);
-            return Ok(result);
+            return result.ToActionResult();
         }
 
         [HttpGet("{id:guid}/me/permissions")]
-        public async Task<ActionResult<WorkspaceSecurityContextDto>> GetMyWorkspacePermissions(
+        public async Task<IActionResult> GetMyWorkspacePermissions(
             Guid id,
             CancellationToken cancellationToken)
         {
             var result = await _handler.QueryAsync<GetDetailWorkspaceQuery, WorkspaceSecurityContextDto>(new GetDetailWorkspaceQuery(id), cancellationToken);
-            return Ok(result);
+            return result.ToActionResult();
         }
 
         [HttpGet("{id:guid}/members")]
-        public async Task<ActionResult<PagedResult<MemberDto>>> GetMembers(
+        public async Task<IActionResult> GetMembers(
             Guid id,
             [FromQuery] string? cursor,
             [FromQuery] string? name,
@@ -145,7 +145,7 @@ namespace Api.Controllers
             var query = new GetMembersQuery(pagination, id, filter);
 
             var result = await _handler.QueryAsync<GetMembersQuery, PagedResult<MemberDto>>(query, cancellationToken);
-            return Ok(result);
+            return result.ToActionResult();
         }
 
         [HttpPost("{id:guid}/members")]

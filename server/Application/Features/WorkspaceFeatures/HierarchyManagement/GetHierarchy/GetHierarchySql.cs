@@ -62,7 +62,7 @@ public static class GetHierarchySql
               )
         )
         SELECT 
-            'Space' as item_type,
+            'ProjectSpace' as item_type,
             id,
             project_workspace_id as parent_id,
             name,
@@ -75,7 +75,7 @@ public static class GetHierarchySql
         UNION ALL
 
         SELECT 
-            'Folder' as item_type,
+            'ProjectFolder' as item_type,
             id,
             project_space_id as parent_id,
             name,
@@ -101,17 +101,17 @@ public static class GetHierarchySql
             t.project_folder_id,
             t.project_space_id,
             CASE 
-                WHEN t.project_folder_id IS NOT NULL THEN 'Folder'
-                ELSE 'Space'
+                WHEN t.project_folder_id IS NOT NULL THEN 'ProjectFolder'
+                ELSE 'ProjectSpace'
             END as parent_type
         FROM project_tasks t
         WHERE t.project_workspace_id = @WorkspaceId
           AND t.deleted_at IS NULL
           AND t.is_archived = false
           AND (
-              (@ParentType = 'Folder' AND t.project_folder_id = @ParentId)
+              (@ParentType = 'ProjectFolder' AND t.project_folder_id = @ParentId)
               OR
-              (@ParentType = 'Space' AND t.project_space_id = @ParentId AND t.project_folder_id IS NULL)
+              (@ParentType = 'ProjectSpace' AND t.project_space_id = @ParentId AND t.project_folder_id IS NULL)
           )
           AND (
               @CursorOrderKey IS NULL

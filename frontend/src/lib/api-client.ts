@@ -1,6 +1,8 @@
 import axios from "axios";
 import { queryClient } from "@/main";
 import { authKeys } from "@/features/auth/api";
+import { ApiError } from "@/types/api-error";
+import { toast } from "sonner";
 
 export const api = axios.create({
   baseURL: "/api",
@@ -45,25 +47,21 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
-// Response Interceptor: Reactive Refresh on 401
+/**
+ * Normalization & Specialized Global Handlers
+ */
 api.interceptors.response.use(
   (response) => response,
   async (error: any) => {
     const originalRequest = error.config;
 
-    // Skip refresh for auth guest/action failures
+    // --- 1. Reactive Refresh on 401 ---
     const isAuthAction =
       originalRequest?.url?.includes("/auth/") &&
       !originalRequest?.url?.includes("/auth/me");
 
-    if (isAuthAction) {
-      return Promise.reject(error);
-    }
-
-    if (error.response?.status === 401 && !originalRequest._retry) {
-      console.log("[API] 401 detected on:", originalRequest.url);
+    if (error.response?.status === 401 && !originalRequest._retry && !isAuthAction) {
       if (isRefreshing) {
-        console.log("[API] Already refreshing, queuing request.");
         return new Promise((resolve, reject) => {
           failedQueue.push({ resolve, reject });
         })
@@ -75,22 +73,39 @@ api.interceptors.response.use(
       isRefreshing = true;
 
       try {
-        console.log("[API] Attempting reactive refresh...");
         await api.post("/auth/refresh");
         queryClient.invalidateQueries({ queryKey: authKeys.me() });
         processQueue(null);
-        console.log("[API] Refresh successful, retrying original request.");
         return api(originalRequest);
       } catch (refreshError) {
         processQueue(refreshError);
-        console.error("[API] Reactive refresh failed, redirecting to sign-in.");
         if (!window.location.pathname.includes("/auth/")) {
           window.location.href = "/auth/sign-in";
         }
-        return Promise.reject(refreshError);
+        return Promise.reject(new ApiError(error));
       } finally {
         isRefreshing = false;
       }
+    }
+
+    // --- 2. Membership Access Denial (403 on Workspaces) ---
+    if (
+      error.response?.status === 403 &&
+      originalRequest?.url?.includes("/workspaces/")
+    ) {
+      toast.error("You do not have access to this workspace.");
+      window.location.href = "/";
+      return Promise.reject(new ApiError(error));
+    }
+
+    // --- 3. Global Toast for Server Errors (500+) ---
+    if (error.response?.status >= 500) {
+      toast.error("A server error occurred. Please try again later.");
+    }
+
+    // --- 4. Normalize to ApiError ---
+    if (axios.isAxiosError(error)) {
+      return Promise.reject(new ApiError(error));
     }
 
     return Promise.reject(error);

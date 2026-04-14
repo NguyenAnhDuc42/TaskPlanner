@@ -49,11 +49,12 @@ public class ProjectSpaceConfiguration : EntityConfiguration<ProjectSpace>
             .HasColumnName("is_private")
             .HasColumnOrder(7);
 
-        builder.Property(s => s.IsArchived)
-            .HasColumnName("is_archived")
+        builder.Property(s => s.OrderKey)
+            .HasColumnName("order_key")
+            .IsRequired()
             .HasColumnOrder(8);
 
-        builder.Property(w => w.IsArchived)
+        builder.Property(s => s.IsArchived)
             .HasColumnName("is_archived")
             .HasColumnOrder(9);
 

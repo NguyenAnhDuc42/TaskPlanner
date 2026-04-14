@@ -6,18 +6,16 @@ import { InnerSidebar } from "@/features/workspace/components/inner-sidebar";
 import { ContentDisplayer } from "@/features/workspace/components/content-displayer";
 import { z } from "zod";
 import { cn } from "@/lib/utils";
+import { Loader2 } from "lucide-react";
+import { useSidebarContext } from "@/features/workspace/components/sidebar-provider";
 
-export const workspaceSearchSchema = z.object({
-  dashboardId: z.uuid().optional(),
-});
+export const workspaceSearchSchema = z.object({});
 
 export const Route = createFileRoute("/workspaces/$workspaceId")({
   validateSearch: (search) => workspaceSearchSchema.parse(search),
   component: WorkspaceLayout,
 });
 
-import { Loader2 } from "lucide-react";
-import { useSidebarContext } from "@/features/workspace/components/sidebar-provider";
 
 function WorkspaceLayout() {
   const { workspaceId } = Route.useParams();
