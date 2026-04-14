@@ -1,5 +1,5 @@
 using Domain.Common;
-using Domain.Entities.ProjectEntities.ValueObject;
+using Domain.Entities.ProjectEntities;
 using Domain.Enums;
 using static Domain.Common.ColorValidator;
 using Domain.Common.Interfaces;
@@ -8,7 +8,7 @@ using Domain.Events.Folder;
 
 namespace Domain.Entities;
 
-public sealed class ProjectFolder : Entity
+public sealed class ProjectFolder : TenantEntity
 {
     public Guid ProjectSpaceId { get; private set; }
     public string Name { get; private set; } = null!;
@@ -20,12 +20,14 @@ public sealed class ProjectFolder : Entity
     public bool IsArchived { get; private set; }
     public DateTimeOffset? StartDate { get; private set; }
     public DateTimeOffset? DueDate { get; private set; }
+    public Guid? WorkflowId { get; private set; }
+    public Guid? StatusId { get; private set; }
 
     private ProjectFolder() { }
 
-    private ProjectFolder(Guid id, Guid projectSpaceId, string name, string slug, string? description, string orderKey, bool isPrivate, Guid creatorId, Customization customization, DateTimeOffset? startDate = null, DateTimeOffset? dueDate = null)
+    private ProjectFolder(Guid id, Guid projectWorkspaceId, Guid projectSpaceId, string name, string slug, string? description, string orderKey, bool isPrivate, Guid creatorId, Customization customization, DateTimeOffset? startDate = null, DateTimeOffset? dueDate = null)
+        : base(id, projectWorkspaceId)
     {
-        Id = id;
         ProjectSpaceId = projectSpaceId;
         Name = name ?? throw new ArgumentNullException(nameof(name));
         Slug = slug ?? throw new ArgumentNullException(nameof(slug));
@@ -50,6 +52,7 @@ public sealed class ProjectFolder : Entity
         
         var folder = new ProjectFolder(
             Guid.NewGuid(), 
+            projectWorkspaceId,
             projectSpaceId, 
             name.Trim(),
             slug.Trim().ToLowerInvariant(),
@@ -61,6 +64,7 @@ public sealed class ProjectFolder : Entity
             startDate, 
             dueDate);
 
+        folder.WorkflowId = null; // Default to inheriting from Space
         folder.AddDomainEvent(new FolderCreatedEvent(projectWorkspaceId, projectSpaceId, folder.Id, creatorId));
         return folder;
     }
@@ -133,6 +137,22 @@ public sealed class ProjectFolder : Entity
         if (string.IsNullOrWhiteSpace(orderKey)) throw new BusinessRuleException("OrderKey cannot be empty.");
         if (OrderKey == orderKey) return;
         OrderKey = orderKey;
+        UpdateTimestamp();
+    }
+
+    public void UpdateWorkflow(Guid? workflowId)
+    {
+        EnsureNotArchived();
+        if (WorkflowId == workflowId) return;
+        WorkflowId = workflowId;
+        UpdateTimestamp();
+    }
+
+    public void UpdateStatus(Guid? statusId)
+    {
+        EnsureNotArchived();
+        if (StatusId == statusId) return;
+        StatusId = statusId;
         UpdateTimestamp();
     }
 

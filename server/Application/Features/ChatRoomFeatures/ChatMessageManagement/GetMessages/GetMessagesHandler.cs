@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Application.Features.ChatRoomFeatures.ChatMessageManagement.GetMessages;
 
-public class GetMessagesHandler(IDataBase db, WorkspaceContext context) : IQueryHandler<GetMessagesQuery, List<MessageDto>>
+public class GetMessagesHandler(IDataBase db) : IQueryHandler<GetMessagesQuery, List<MessageDto>>
 {
     public async Task<Result<List<MessageDto>>> Handle(GetMessagesQuery request, CancellationToken ct)
     {

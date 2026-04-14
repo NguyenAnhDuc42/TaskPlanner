@@ -7,7 +7,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Application.Features.ViewFeatures.GetViews;
 
-public class GetViewsHandler(IDataBase db, WorkspaceContext context) : IQueryHandler<GetViewsQuery, List<ViewDto>>
+public class GetViewsHandler(IDataBase db) : IQueryHandler<GetViewsQuery, List<ViewDto>>
 {
     public async Task<Result<List<ViewDto>>> Handle(GetViewsQuery request, CancellationToken ct)
     {

@@ -4,14 +4,15 @@ using Domain.Entities;
 using Domain.Events.Workspace;
 using Application.Common.Interfaces;
 using Microsoft.Extensions.Logging;
+using Application.Interfaces;
+using Microsoft.Extensions.Caching.Hybrid;
 
 namespace Application.EventHandlers.DomainEventHandlers.WorkspaceHandlers;
 
 public class CreateWorkspaceEventHandler(
     ILogger<CreateWorkspaceEventHandler> logger, 
     IDataBase db, 
-    IRealtimeService realtime, 
-    HybridCache cache
+    IRealtimeService realtime
 ) : IDomainEventHandler<CreatedWorkspaceEvent>
 {
     public async Task Handle(CreatedWorkspaceEvent notification, CancellationToken cancellationToken)
@@ -49,14 +50,15 @@ public class CreateWorkspaceEventHandler(
     private async Task<ProjectFolder> SeedGettingStartedFolder(CreatedWorkspaceEvent notification, Guid spaceId, CancellationToken cancellationToken)
     {
         var folder = ProjectFolder.Create(
+            notification.workspaceId,
             spaceId,
             "Getting Started",
             "getting-started",
             "Initial folder for your tasks.",
             FractionalIndex.Start(),
-            isPrivate: false,
-            creatorId: notification.userId,
-            customization: null
+            false,
+            notification.userId,
+            null
         );
         await db.Folders.AddAsync(folder, cancellationToken);
         return folder;

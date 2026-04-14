@@ -2,7 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Domain.Entities;
 
-namespace Infrastructure.Data.Configurations.ProjectEntities;
+namespace Infrastructure.Data.Configurations;
 
 public class DashboardConfiguration : EntityConfiguration<Dashboard>
 {
@@ -11,6 +11,9 @@ public class DashboardConfiguration : EntityConfiguration<Dashboard>
         base.Configure(builder);
 
         builder.ToTable("dashboards");
+
+        builder.Property(x => x.ProjectWorkspaceId).HasColumnName("project_workspace_id").IsRequired();
+        builder.HasIndex(x => x.ProjectWorkspaceId);
 
         builder.Property(x => x.LayerType).HasColumnName("layer_type").HasConversion<string>().HasMaxLength(50).IsRequired();
         builder.Property(x => x.LayerId).HasColumnName("layer_id").IsRequired();

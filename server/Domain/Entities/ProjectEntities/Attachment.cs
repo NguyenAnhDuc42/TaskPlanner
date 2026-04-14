@@ -3,10 +3,8 @@ using Domain.Enums;
 
 namespace Domain.Entities;
 
-public class Attachment : Entity
+public class Attachment : TenantEntity
 {
-    public Guid ProjectWorkspaceId { get; private set; }
-    
     // Storage Info
     public string StorageKey { get; private set; } = "";
     public StorageProvider StorageProvider { get; private set; }
@@ -31,24 +29,26 @@ public class Attachment : Entity
 
     protected Attachment() { }
 
+    private Attachment(Guid id, Guid projectWorkspaceId, string fileName, string contentType, long sizeBytes, string checksum, Guid creatorId, bool isPublic)
+        : base(id, projectWorkspaceId)
+    {
+        FileName = fileName;
+        ContentType = contentType;
+        SizeBytes = sizeBytes;
+        Checksum = checksum;
+        CreatorId = creatorId;
+        IsPublic = isPublic;
+        Type = AttachmentType.File; // Default for this constructor
+        ProcessingState = AttachmentProcessingState.Processing;
+    }
+
     // --- Explicit Factory Methods ---
 
     public static Attachment CreateFile(Guid projectWorkspaceId, string fileName, string contentType, long sizeBytes, string checksum, Guid creatorId, bool isPublic = false)
     {
-        return new Attachment
-        {
-            ProjectWorkspaceId = projectWorkspaceId,
-            Type = AttachmentType.File,
-            FileName = fileName,
-            ContentType = contentType,
-            SizeBytes = sizeBytes,
-            Checksum = checksum,
-            ProcessingState = AttachmentProcessingState.Uploading,
-            IsPublic = isPublic,
-            CreatorId = creatorId,
-            Metadata = new FileMetadata(Path.GetExtension(fileName))
-        };
+        return new Attachment(Guid.NewGuid(), projectWorkspaceId, fileName, contentType, sizeBytes, checksum, creatorId, isPublic);
     }
+
 
     public static Attachment CreateMedia(Guid projectWorkspaceId, string fileName, string contentType, long sizeBytes, string checksum, Guid creatorId, bool isPublic = false)
     {

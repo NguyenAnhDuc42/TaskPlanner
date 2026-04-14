@@ -7,10 +7,11 @@ using Domain.Enums;
 
 namespace Application.Features.WorkspaceFeatures.HierarchyManagement.GetHierarchy;
 
-public class GetNodeTasksHandler(IDataBase db, WorkspaceContext context) : IQueryHandler<GetNodeTasksQuery, NodeTasksDto>
+public class GetNodeTasksHandler(IDataBase db) : IQueryHandler<GetNodeTasksQuery, NodeTasksDto>
 {
     public async Task<Result<NodeTasksDto>> Handle(GetNodeTasksQuery request, CancellationToken ct)
     {
+        
         var rawTasks = (await db.QueryAsync<TaskRawItem>(GetHierarchySql.TasksQuery, new
         {
             WorkspaceId = request.WorkspaceId,

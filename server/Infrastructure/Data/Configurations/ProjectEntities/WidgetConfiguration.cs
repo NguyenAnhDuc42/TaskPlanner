@@ -3,7 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 
-namespace Infrastructure.Data.Configurations.ProjectEntities;
+namespace Infrastructure.Data.Configurations;
 
 public class WidgetConfiguration : EntityConfiguration<Widget>
 {

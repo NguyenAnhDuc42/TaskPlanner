@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Application.Features.ChatRoomFeatures.GetChatRooms;
 
-public class GetChatRoomsHandler(IDataBase db, WorkspaceContext context) : IQueryHandler<GetChatRoomsQuery, List<ChatRoomDto>>
+public class GetChatRoomsHandler(IDataBase db) : IQueryHandler<GetChatRoomsQuery, List<ChatRoomDto>>
 {
     public async Task<Result<List<ChatRoomDto>>> Handle(GetChatRoomsQuery request, CancellationToken ct)
     {

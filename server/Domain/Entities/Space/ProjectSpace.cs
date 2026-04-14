@@ -1,13 +1,12 @@
 using Domain.Common;
-using Domain.Entities.ProjectEntities.ValueObject;
+using Domain.Entities.ProjectEntities;
 using Domain.Events.Space;
 using Domain.Exceptions;
 
 namespace Domain.Entities;
 
-public sealed class ProjectSpace : Entity
+public sealed class ProjectSpace : TenantEntity
 {
-    public Guid ProjectWorkspaceId { get; private set; }
     public string Name { get; private set; } = null!;
     public string Slug { get; private set; } = null!;
     public string? Description { get; private set; }
@@ -15,13 +14,14 @@ public sealed class ProjectSpace : Entity
     public bool IsPrivate { get; private set; } = true;
     public bool IsArchived { get; private set; }
     public string OrderKey { get; private set; } = FractionalIndex.Start();
+    public Guid? WorkflowId { get; private set; }
+    public Guid? StatusId { get; private set; }
 
     private ProjectSpace() { }
 
     private ProjectSpace(Guid id, Guid projectWorkspaceId, string name, string slug, string? description, Customization customization, bool isPrivate, Guid creatorId, string orderKey)
+        : base(id, projectWorkspaceId)
     {
-        Id = id;
-        ProjectWorkspaceId = projectWorkspaceId;
         Name = name ?? throw new ArgumentNullException(nameof(name));
         Slug = slug ?? throw new ArgumentNullException(nameof(slug));
         Description = string.IsNullOrWhiteSpace(description) ? null : description;
@@ -50,6 +50,7 @@ public sealed class ProjectSpace : Entity
             creatorId, 
             orderKey);
 
+        space.WorkflowId = null; // Default to inheriting from Workspace
         space.AddDomainEvent(new SpaceCreatedEvent(projectWorkspaceId, space.Id, creatorId));
         return space;
     }
@@ -111,6 +112,22 @@ public sealed class ProjectSpace : Entity
         if (string.IsNullOrWhiteSpace(orderKey)) throw new BusinessRuleException("OrderKey cannot be empty.");
         if (OrderKey == orderKey) return;
         OrderKey = orderKey;
+        UpdateTimestamp();
+    }
+
+    public void UpdateWorkflow(Guid? workflowId)
+    {
+        EnsureNotArchived();
+        if (WorkflowId == workflowId) return;
+        WorkflowId = workflowId;
+        UpdateTimestamp();
+    }
+
+    public void UpdateStatus(Guid? statusId)
+    {
+        EnsureNotArchived();
+        if (StatusId == statusId) return;
+        StatusId = statusId;
         UpdateTimestamp();
     }
 

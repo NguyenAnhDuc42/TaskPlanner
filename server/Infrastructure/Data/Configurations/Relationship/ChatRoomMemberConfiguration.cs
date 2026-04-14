@@ -2,9 +2,9 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Domain.Entities;
 
-namespace Infrastructure.Data.Configurations.Relationship;
+namespace Infrastructure.Data.Configurations;
 
-public class ChatRoomMemberConfiguration : CompositeConfiguration<ChatRoomMember>
+public class ChatRoomMemberConfiguration : EntityConfiguration<ChatRoomMember>
 {
     public override void Configure(EntityTypeBuilder<ChatRoomMember> builder)
     {
@@ -12,8 +12,7 @@ public class ChatRoomMemberConfiguration : CompositeConfiguration<ChatRoomMember
 
         builder.ToTable("chat_room_members");
 
-        // Composite PK: ChatRoomId + UserId
-        builder.HasKey(x => new { x.ChatRoomId, x.UserId });
+        builder.Property(x => x.Id).HasColumnName("id").HasColumnOrder(0);
 
         builder.Property(x => x.ChatRoomId).HasColumnName("chat_room_id").IsRequired();
         builder.Property(x => x.UserId).HasColumnName("user_id").IsRequired();

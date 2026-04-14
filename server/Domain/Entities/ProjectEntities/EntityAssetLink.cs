@@ -3,7 +3,7 @@ using Domain.Enums;
 
 namespace Domain.Entities;
 
-public class EntityAssetLink : Entity
+public class EntityAssetLink : TenantEntity
 {
     public Guid AssetId { get; private set; }
     public AssetType AssetType { get; private set; }
@@ -13,7 +13,8 @@ public class EntityAssetLink : Entity
 
     private EntityAssetLink() { }
 
-    private EntityAssetLink(Guid assetId, AssetType assetType, Guid parentEntityId, EntityType parentEntityType, Guid creatorId)
+    private EntityAssetLink(Guid projectWorkspaceId, Guid assetId, AssetType assetType, Guid parentEntityId, EntityType parentEntityType, Guid creatorId)
+        : base(Guid.NewGuid(), projectWorkspaceId)
     {
         AssetId = assetId;
         AssetType = assetType;
@@ -22,8 +23,8 @@ public class EntityAssetLink : Entity
         CreatorId = creatorId;
     }
 
-    public static EntityAssetLink Create(Guid assetId, AssetType assetType, Guid parentEntityId, EntityType parentEntityType, Guid creatorId)
+    public static EntityAssetLink Create(Guid projectWorkspaceId, Guid assetId, AssetType assetType, Guid parentEntityId, EntityType parentEntityType, Guid creatorId)
     {
-        return new EntityAssetLink(assetId, assetType, parentEntityId, parentEntityType, creatorId);
+        return new EntityAssetLink(projectWorkspaceId, assetId, assetType, parentEntityId, parentEntityType, creatorId);
     }
 }

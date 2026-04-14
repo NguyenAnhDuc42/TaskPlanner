@@ -2,10 +2,10 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Domain.Entities;
 
-namespace Infrastructure.Data.Configurations.ProjectEntities;
+namespace Infrastructure.Data.Configurations;
 
 public class ProjectTaskConfiguration : EntityConfiguration<ProjectTask>
-{
+{   
     public override void Configure(EntityTypeBuilder<ProjectTask> builder)
     {
         base.Configure(builder);

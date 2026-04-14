@@ -2,15 +2,17 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Domain.Entities;
 
-namespace Infrastructure.Data.Configurations.Support;
+namespace Infrastructure.Data.Configurations;
 
-public class OutboxMessageConfiguration : CompositeConfiguration<OutboxMessage>
+public class OutboxMessageConfiguration : EntityConfiguration<OutboxMessage>
 {
     public override void Configure(EntityTypeBuilder<OutboxMessage> builder)
     {
         base.Configure(builder);
 
         builder.ToTable("outbox_messages");
+
+        builder.Property(x => x.Id).HasColumnName("id").HasColumnOrder(0);
 
         builder.Property(x => x.Type).IsRequired().HasMaxLength(256).HasColumnName("type");
         builder.Property(x => x.Content).IsRequired().HasColumnType("text").HasColumnName("content");

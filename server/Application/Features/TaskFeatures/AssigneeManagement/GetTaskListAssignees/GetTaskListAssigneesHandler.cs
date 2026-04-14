@@ -26,8 +26,7 @@ public class GetTaskListAssigneesHandler : IQueryHandler<GetTaskListAssigneesQue
             JOIN users u ON wm.user_id = u.id
             WHERE wm.project_workspace_id = @WorkspaceId
               AND wm.deleted_at IS NULL
-            ORDER BY u.name", new { WorkspaceId = folder.ProjectSpaceId != null ? 
-                (await _db.Connection.QuerySingleAsync<Guid>("SELECT project_workspace_id FROM project_spaces WHERE id = @Id", new { Id = folder.ProjectSpaceId })) : folder.Id });
+            ORDER BY u.name", new { WorkspaceId = (await _db.Connection.QuerySingleAsync<Guid>("SELECT project_workspace_id FROM project_spaces WHERE id = @Id", new { Id = folder.ProjectSpaceId })) });
         // NOTE: Above workspace resolution is a bit manual because folder doesn't directly store workspaceId in some schemas. 
         // But for simplicity of this bypass, I'll just check the workspace.
 

@@ -6,7 +6,6 @@ using Application.Interfaces.Data;
 using Application.Interfaces;
 using Domain.Common;
 using Domain.Entities.ProjectEntities;
-using Domain.Entities.ProjectEntities.ValueObject;
 using Domain.Enums;
 using Domain.Entities;
 using Microsoft.EntityFrameworkCore;

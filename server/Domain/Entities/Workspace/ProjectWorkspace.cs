@@ -1,5 +1,5 @@
 using Domain.Common;
-using Domain.Entities.ProjectEntities.ValueObject;
+using Domain.Entities.ProjectEntities;
 using Domain.Enums;
 using Domain.Enums.RelationShip;
 using Domain.Enums.Workspace;

@@ -2,7 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Domain.Entities;
 
-namespace Infrastructure.Data.Configurations.Relationship;
+namespace Infrastructure.Data.Configurations;
 
 public class EntityAccessConfiguration : EntityConfiguration<EntityAccess>
 {

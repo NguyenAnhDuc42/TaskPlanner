@@ -5,7 +5,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using System.Text.Json;
 
 
-namespace Infrastructure.Data.Configurations.Support;
+namespace Infrastructure.Data.Configurations;
 
 public class AttachmentConfiguration : EntityConfiguration<Attachment>
 {
@@ -14,6 +14,13 @@ public class AttachmentConfiguration : EntityConfiguration<Attachment>
         base.Configure(builder);
 
         builder.ToTable("attachments");
+
+        builder.Property(x => x.ProjectWorkspaceId)
+            .HasColumnName("project_workspace_id")
+            .IsRequired()
+            .HasColumnOrder(1);
+
+        builder.HasIndex(x => x.ProjectWorkspaceId);
 
         builder.Property(x => x.FileName).IsRequired().HasMaxLength(256).HasColumnName("file_name");
         builder.Property(x => x.ContentType).IsRequired().HasMaxLength(128).HasColumnName("content_type");

@@ -4,6 +4,7 @@ using Application.Common.Interfaces;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Domain.Entities;
+using Application.Interfaces;
 
 namespace Application.EventHandlers.DomainEventHandlers.WorkspaceHandlers;
 

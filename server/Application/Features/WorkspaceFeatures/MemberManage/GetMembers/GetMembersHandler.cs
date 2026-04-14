@@ -15,8 +15,7 @@ public class GetMembersHandler(
     IDataBase db,
     WorkspaceContext context,
     CursorHelper cursorHelper,
-    HybridCache cache,
-    ILogger<GetMembersHandler> logger
+    HybridCache cache
 ) : IQueryHandler<GetMembersQuery, PagedResult<MemberDto>>
 {
     public async Task<Result<PagedResult<MemberDto>>> Handle(GetMembersQuery request, CancellationToken ct)

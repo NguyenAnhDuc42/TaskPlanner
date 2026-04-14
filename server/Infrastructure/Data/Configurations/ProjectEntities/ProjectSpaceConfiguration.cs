@@ -2,7 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Domain.Entities;
 
-namespace Infrastructure.Data.Configurations.ProjectEntities;
+namespace Infrastructure.Data.Configurations;
 
 public class ProjectSpaceConfiguration : EntityConfiguration<ProjectSpace>
 {
@@ -53,14 +53,25 @@ public class ProjectSpaceConfiguration : EntityConfiguration<ProjectSpace>
             .HasColumnName("is_archived")
             .HasColumnOrder(8);
 
-        builder.Property(s => s.OrderKey)
-            .HasColumnName("order_key")
+        builder.Property(w => w.IsArchived)
+            .HasColumnName("is_archived")
             .HasColumnOrder(9);
 
+        builder.Property(w => w.WorkflowId)
+            .HasColumnName("workflow_id")
+            .HasColumnOrder(10);
+
+        builder.Property(w => w.StatusId)
+            .HasColumnName("status_id")
+            .HasColumnOrder(11);
+
+        builder.HasIndex(w => w.WorkflowId);
+        builder.HasIndex(w => w.StatusId);
+
         // Auditing (Overrides from base to set order)
-        builder.Property(s => s.CreatedAt).HasColumnOrder(10);
-        builder.Property(s => s.UpdatedAt).HasColumnOrder(11);
-        builder.Property(s => s.DeletedAt).HasColumnOrder(12);
-        builder.Property(s => s.CreatorId).HasColumnOrder(13);
+        builder.Property(w => w.CreatedAt).HasColumnOrder(12);
+        builder.Property(w => w.UpdatedAt).HasColumnOrder(13);
+        builder.Property(w => w.DeletedAt).HasColumnOrder(14);
+        builder.Property(w => w.CreatorId).HasColumnOrder(15);
     }
 }

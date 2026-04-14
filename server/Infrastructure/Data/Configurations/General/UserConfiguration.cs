@@ -3,7 +3,7 @@ using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Domain.Entities; // For User
 using Domain.Enums; // For Role
 
-namespace Infrastructure.Data.Configurations.General;
+namespace Infrastructure.Data.Configurations;
 
 public class UserConfiguration : IEntityTypeConfiguration<User>
 {

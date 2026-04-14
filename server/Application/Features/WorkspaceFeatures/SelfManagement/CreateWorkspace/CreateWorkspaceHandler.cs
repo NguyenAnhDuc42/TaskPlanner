@@ -4,7 +4,7 @@ using Application.Common.Results;
 using Application.Helpers;
 using Application.Interfaces.Data;
 using Domain.Entities;
-using Domain.Entities.ProjectEntities.ValueObject;
+using Domain.Entities.ProjectEntities;
 using Microsoft.Extensions.Caching.Hybrid;
 using Application.Interfaces;
 using Application.Features;

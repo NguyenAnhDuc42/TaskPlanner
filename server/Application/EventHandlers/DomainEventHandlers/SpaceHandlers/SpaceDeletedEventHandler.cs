@@ -2,6 +2,7 @@ using Application.Interfaces.Data;
 using Domain.Events.Space;
 using Application.Common.Interfaces;
 using Application.Interfaces;
+using Domain.Entities;
 using Microsoft.Extensions.Logging;
 using Microsoft.EntityFrameworkCore;
 

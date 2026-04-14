@@ -4,7 +4,6 @@ using Application.Common.Errors;
 using Application.Common.Interfaces;
 using Application.Interfaces.Data;
 using Domain.Entities;
-using Domain.Entities.Support;
 using Domain.Enums;
 using Microsoft.EntityFrameworkCore;
 using Application.Interfaces;
@@ -35,6 +34,7 @@ public class UploadAttachmentHandler(IDataBase db, WorkspaceContext context) : I
 
             // 2. Create the Relation (The Universal Link)
             var link = EntityAssetLink.Create(
+                context.workspaceId,
                 attachment.Id,
                 AssetType.Attachment,
                 request.ParentEntityId,

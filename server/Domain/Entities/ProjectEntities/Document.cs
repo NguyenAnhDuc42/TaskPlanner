@@ -2,17 +2,16 @@ using Domain.Common;
 
 namespace Domain.Entities;
 
-public class Document : Entity
+public class Document : TenantEntity
 {
-    public Guid ProjectWorkspaceId { get; private set; }
     public string Name { get; private set; } = null!;
     public string Content { get; private set; } = string.Empty;
 
     private Document() { }
 
     private Document(Guid workspaceId, string name, string content, Guid creatorId)
+        : base(Guid.NewGuid(), workspaceId)
     {
-        ProjectWorkspaceId = workspaceId;
         Name = name;
         Content = content;
         CreatorId = creatorId;

@@ -1,4 +1,4 @@
-namespace Domain.Entities.ProjectEntities.ValueObject;
+namespace Domain.Entities.ProjectEntities;
 
 public record class Customization
 {

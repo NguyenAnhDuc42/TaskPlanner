@@ -7,7 +7,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Application.Features.TaskFeatures.Helpers.GetTasksByUser;
 
-public class GetTasksByUserHandler(IDataBase db, WorkspaceContext context) : IQueryHandler<GetTasksByUserQuery, List<TaskSummaryDto>>
+public class GetTasksByUserHandler(IDataBase db) : IQueryHandler<GetTasksByUserQuery, List<TaskSummaryDto>>
 {
     public async Task<Result<List<TaskSummaryDto>>> Handle(GetTasksByUserQuery request, CancellationToken ct)
     {

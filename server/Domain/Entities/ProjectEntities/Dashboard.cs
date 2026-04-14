@@ -4,7 +4,7 @@ using Domain.Enums.Widget;
 
 namespace Domain.Entities;
 
-public class Dashboard : Entity
+public class Dashboard : TenantEntity
 {
     public EntityLayerType LayerType { get; private set; }
     public Guid LayerId { get; private set; }
@@ -17,8 +17,8 @@ public class Dashboard : Entity
 
     private Dashboard() { }
 
-    private Dashboard(Guid id, EntityLayerType layerType, Guid layerId, string name, bool isShared, Guid creatorId, bool isMain = false)
-        : base(id)
+    private Dashboard(Guid id, Guid projectWorkspaceId, EntityLayerType layerType, Guid layerId, string name, bool isShared, Guid creatorId, bool isMain = false)
+        : base(id, projectWorkspaceId)
     {
         LayerType = layerType;
         LayerId = layerId;
@@ -32,16 +32,16 @@ public class Dashboard : Entity
     {
         if (creatorId == Guid.Empty) throw new ArgumentException("CreatorId cannot be empty.", nameof(creatorId));
 
-        return new(Guid.NewGuid(), EntityLayerType.ProjectWorkspace, workspaceId, name, isShared, creatorId, isMain);
+        return new(Guid.NewGuid(), workspaceId, EntityLayerType.ProjectWorkspace, workspaceId, name, isShared, creatorId, isMain);
     }
 
-    public static Dashboard CreateScopedDashboard( EntityLayerType layerType, Guid layerId, Guid creatorId, string name, bool isShared = false, bool isMain = false)
+    public static Dashboard CreateScopedDashboard(Guid projectWorkspaceId, EntityLayerType layerType, Guid layerId, Guid creatorId, string name, bool isShared = false, bool isMain = false)
     {
         if (layerType == EntityLayerType.ProjectWorkspace) throw new ArgumentException("Use CreateWorkspaceDashboard for workspace scope.", nameof(layerType));
         if (layerId == Guid.Empty) throw new ArgumentException("LayerId cannot be empty.", nameof(layerId));
         if (creatorId == Guid.Empty) throw new ArgumentException("CreatorId cannot be empty.", nameof(creatorId));
 
-        return new(Guid.NewGuid(), layerType, layerId, name, isShared, creatorId, isMain);
+        return new(Guid.NewGuid(), projectWorkspaceId, layerType, layerId, name, isShared, creatorId, isMain);
     }
 
     public void AddWidget(WidgetType widgetType, string configJson, int col, int row, int width, int height, Guid creatorId)

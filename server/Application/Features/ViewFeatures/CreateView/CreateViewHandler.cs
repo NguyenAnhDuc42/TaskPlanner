@@ -19,6 +19,7 @@ public class CreateViewHandler(IDataBase db, WorkspaceContext context) : IComman
 
         // CORRECTED: Fixed the botched argument order and missing parameters
         var view = ViewDefinition.Create(
+            context.workspaceId,
             request.LayerId,
             request.LayerType,
             request.Name,

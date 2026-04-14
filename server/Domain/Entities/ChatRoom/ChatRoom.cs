@@ -3,10 +3,9 @@ using Domain.Enums.Workspace;
 
 namespace Domain.Entities;
 
-public class ChatRoom : Entity
+public class ChatRoom : TenantEntity
 {
     public string Name { get; private set; } = null!;
-    public Guid ProjectWorkspaceId { get; private set; }
     public ChatRoomType Type { get; private set; } = ChatRoomType.PublicGroup;
     public string? AvatarUrl { get; private set; }
     public bool IsPrivate { get; private set; } = false;
@@ -22,9 +21,9 @@ public class ChatRoom : Entity
     private ChatRoom() { }
 
     private ChatRoom(string name, Guid projectWorkspaceId, Guid creatorId, bool isPrivate = false, string? avatarUrl = null)
+        : base(Guid.NewGuid(), projectWorkspaceId)
     {
         Name = name;
-        ProjectWorkspaceId = projectWorkspaceId;
         Type = ChatRoomType.PublicGroup;
         IsPrivate = isPrivate;
         AvatarUrl = avatarUrl;

@@ -4,7 +4,7 @@ using Domain.Enums.Workspace;
 
 namespace Domain.Entities;
 
-public class ChatRoomMember : Composite
+public class ChatRoomMember : Entity
 {
     public Guid ChatRoomId { get; private set; }
     public Guid UserId { get; private set; }

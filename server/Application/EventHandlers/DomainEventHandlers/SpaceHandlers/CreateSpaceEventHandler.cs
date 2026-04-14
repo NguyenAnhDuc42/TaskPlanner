@@ -13,8 +13,7 @@ namespace Application.EventHandlers.DomainEventHandlers.SpaceHandlers;
 public class CreateSpaceEventHandler(
     ILogger<CreateSpaceEventHandler> logger, 
     IDataBase db, 
-    IRealtimeService realtime, 
-    HybridCache cache
+    IRealtimeService realtime
 ) : IDomainEventHandler<SpaceCreatedEvent>
 {
     public async Task Handle(SpaceCreatedEvent notification, CancellationToken cancellationToken)
@@ -22,6 +21,7 @@ public class CreateSpaceEventHandler(
         logger.LogInformation("Seeding default views (Overview & Tasks) for SpaceId: {SpaceId}", notification.SpaceId);
 
         var overviewView = ViewDefinition.Create(
+            notification.WorkspaceId,
             notification.SpaceId,
             EntityLayerType.ProjectSpace,
             "Overview",
@@ -31,6 +31,7 @@ public class CreateSpaceEventHandler(
         );
 
         var tasksView = ViewDefinition.Create(
+            notification.WorkspaceId,
             notification.SpaceId,
             EntityLayerType.ProjectSpace,
             "Tasks",

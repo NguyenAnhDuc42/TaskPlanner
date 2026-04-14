@@ -13,8 +13,7 @@ namespace Application.EventHandlers.DomainEventHandlers.FolderHandlers;
 public class CreateFolderEventHandler(
     ILogger<CreateFolderEventHandler> logger, 
     IDataBase db, 
-    IRealtimeService realtime, 
-    HybridCache cache
+    IRealtimeService realtime
 ) : IDomainEventHandler<FolderCreatedEvent>
 {
     public async Task Handle(FolderCreatedEvent notification, CancellationToken cancellationToken)
@@ -22,6 +21,7 @@ public class CreateFolderEventHandler(
         logger.LogInformation("Seeding default views (Overview & Tasks) for FolderId: {FolderId}", notification.FolderId);
 
         var overviewView = ViewDefinition.Create(
+            notification.WorkspaceId,
             notification.FolderId,
             EntityLayerType.ProjectFolder,
             "Overview",
@@ -31,6 +31,7 @@ public class CreateFolderEventHandler(
         );
 
         var tasksView = ViewDefinition.Create(
+            notification.WorkspaceId,
             notification.FolderId,
             EntityLayerType.ProjectFolder,
             "Tasks",

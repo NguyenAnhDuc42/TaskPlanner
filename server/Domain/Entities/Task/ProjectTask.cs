@@ -1,13 +1,12 @@
 using Domain.Common;
-using Domain.Entities.ProjectEntities.ValueObject;
+using Domain.Entities.ProjectEntities;
 using Domain.Enums;
 using Domain.Exceptions;
 
 namespace Domain.Entities;
 
-public class ProjectTask : Entity
+public class ProjectTask : TenantEntity
 {
-    public Guid ProjectWorkspaceId { get; private set; }
     public Guid? ProjectSpaceId { get; private set; }
     public Guid? ProjectFolderId { get; private set; }
     public string Name { get; private set; } = null!;
@@ -30,9 +29,8 @@ public class ProjectTask : Entity
     private ProjectTask() { }
 
     private ProjectTask(Guid id, Guid projectWorkspaceId, Guid? projectSpaceId, Guid? projectFolderId, string name, string slug, string? description, Customization customization, Guid creatorId, Guid? statusId, Priority priority, DateTimeOffset? startDate, DateTimeOffset? dueDate, int? storyPoints, long? timeEstimate, string orderKey)
+        : base(id, projectWorkspaceId)
     {
-        Id = id;
-        ProjectWorkspaceId = projectWorkspaceId;
         ProjectSpaceId = projectSpaceId;
         ProjectFolderId = projectFolderId;
         Name = name ?? throw new ArgumentNullException(nameof(name));

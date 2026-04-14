@@ -1,5 +1,6 @@
 using Application.Features.ViewFeatures.CreateView;
 using Application.Features.ViewFeatures.DeleteView;
+using Application.Features.ViewFeatures.GetViewData;
 using Application.Features.ViewFeatures.GetViews;
 using Application.Features.ViewFeatures.UpdateView;
 using Domain.Enums.RelationShip;
@@ -49,6 +50,13 @@ public class ViewsController : ControllerBase
     public async Task<IActionResult> DeleteView(Guid id, CancellationToken ct)
     {
         var result = await _handler.SendAsync(new DeleteViewCommand(id), ct);
+        return result.ToActionResult();
+    }
+
+    [HttpGet("{id:guid}/data")]
+    public async Task<IActionResult> GetData(Guid id, [FromQuery] int page = 1, [FromQuery] int pageSize = 100, CancellationToken ct = default)
+    {
+        var result = await _handler.QueryAsync<GetViewDataQuery, ViewDataResponse>(new GetViewDataQuery(id, page, pageSize), ct);
         return result.ToActionResult();
     }
 }

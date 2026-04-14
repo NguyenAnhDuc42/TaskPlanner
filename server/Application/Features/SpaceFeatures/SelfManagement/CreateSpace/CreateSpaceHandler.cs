@@ -5,7 +5,7 @@ using Application.Helpers;
 using Application.Interfaces.Data;
 using Application.Interfaces;
 using Domain.Entities;
-using Domain.Entities.ProjectEntities.ValueObject;
+using Domain.Entities.ProjectEntities;
 using Domain.Enums;
 using Domain.Common;
 using Microsoft.EntityFrameworkCore;

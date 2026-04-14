@@ -3,7 +3,7 @@ using Domain.Enums;
 
 namespace Domain.Entities;
 
-public class OutboxMessage : Composite
+public class OutboxMessage : Entity
 {
     public string Type { get; private set; } = null!;
     public string Content { get; private set; } = null!;

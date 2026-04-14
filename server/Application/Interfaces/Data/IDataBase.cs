@@ -2,7 +2,6 @@ using Microsoft.EntityFrameworkCore;
 using System.Data;
 using Application.Interfaces.Repositories;
 using Domain.Entities;
-using Domain.Entities.Support;
 
 namespace Application.Interfaces.Data;
 

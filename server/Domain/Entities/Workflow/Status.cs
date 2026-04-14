@@ -5,9 +5,8 @@ using Domain.Enums.RelationShip;
 
 namespace Domain.Entities;
 
-public class Status : Entity
+public class Status : TenantEntity
 {
-    public Guid ProjectWorkspaceId { get; private set; }
     public Guid WorkflowId { get; private set; }
     public string Name { get; private set; } = null!;
     public string Color { get; private set; } = null!;
@@ -16,14 +15,13 @@ public class Status : Entity
     private Status() { } // EF Core
 
     private Status(Guid id, Guid projectWorkspaceId, Guid workflowId, string name, string color, StatusCategory category, Guid creatorId)
-        : base(id)
+        : base(id, projectWorkspaceId)
     {
         if (string.IsNullOrWhiteSpace(name)) throw new ArgumentException("Status name cannot be empty.", nameof(name));
         if (string.IsNullOrWhiteSpace(color)) throw new ArgumentException("Status color cannot be empty.", nameof(color));
         if (projectWorkspaceId == Guid.Empty) throw new ArgumentException(nameof(projectWorkspaceId));
         if (workflowId == Guid.Empty) throw new ArgumentException(nameof(workflowId));
 
-        ProjectWorkspaceId = projectWorkspaceId;
         WorkflowId = workflowId;
         Name = name.Trim();
         Color = color.Trim();

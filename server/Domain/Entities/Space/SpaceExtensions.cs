@@ -21,7 +21,4 @@ public static class SpaceExtensions
 
     public static IQueryable<ProjectSpace> BySlug(this IQueryable<ProjectSpace> query, string slug) => 
         query.Where(space => space.Slug == slug.ToLower().Trim());
-
-    public static IQueryable<ProjectSpace> WhereNotDeleted(this IQueryable<ProjectSpace> query) => 
-        query.Where(space => space.DeletedAt == null);
 }

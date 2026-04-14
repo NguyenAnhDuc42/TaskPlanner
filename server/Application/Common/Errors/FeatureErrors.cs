@@ -58,3 +58,8 @@ public static class AttachmentError
     public static readonly Error NotFound = Error.NotFound("Attachment.NotFound", "The attachment with the specified identifier was not found.");
     public static readonly Error UploadFailed = Error.Failure("Attachment.UploadFailed", "Failed to upload attachment.");
 }
+public static class WorkflowError
+{
+    public static readonly Error NotFound = Error.NotFound("Workflow.NotFound", "The workflow with the specified identifier was not found.");
+    public static readonly Error IntegrityViolation = Error.Failure("Workflow.IntegrityViolation", "The workflow must have at least one status in each completion category.");
+}

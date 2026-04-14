@@ -26,7 +26,4 @@ public static class TaskExtensions
 
     public static IQueryable<ProjectTask> BySlug(this IQueryable<ProjectTask> query, string slug)
         => query.Where(t => t.Slug == slug);
-
-    public static IQueryable<ProjectTask> WhereNotDeleted(this IQueryable<ProjectTask> query) => 
-        query.Where(task => task.DeletedAt == null);
 }

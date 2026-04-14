@@ -2,6 +2,7 @@ using Application.Common.Errors;
 
 namespace Application.Common.Results;
 
+#pragma warning disable CS8907
 public abstract record Result
 {
     public sealed record SuccessResult : Result;
@@ -33,3 +34,4 @@ public abstract record Result<TValue>
     public static implicit operator Result<TValue>(TValue value) => new SuccessResult(value);
     public static implicit operator Result<TValue>(Error error) => new FailureResult(error);
 }
+#pragma warning restore CS8907

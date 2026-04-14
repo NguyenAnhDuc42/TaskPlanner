@@ -4,7 +4,7 @@ using Domain.Enums.RelationShip;
 
 namespace Domain.Entities;
 
-public class ViewDefinition : Entity
+public class ViewDefinition : TenantEntity
 {
     public EntityLayerType LayerType { get; private set; }
     public Guid LayerId { get; private set; }
@@ -12,19 +12,21 @@ public class ViewDefinition : Entity
     public ViewType ViewType { get; private set; }
     public bool IsDefault { get; private set; }
     
-    // Shared configurations stored as JSON for flexibility
-    public string? FilterConfigJson { get; private set; }
-    public string? DisplayConfigJson { get; private set; }
+    // Shared configurations stored as JSON in DB but typed in Domain
+    public ViewFilterConfig FilterConfig { get; private set; } = ViewFilterConfig.CreateDefault();
+    public string? DisplayConfigJson { get; private set; } // TODO: Make this type-safe later
 
     private ViewDefinition() { }
 
     private ViewDefinition(
+        Guid projectWorkspaceId,
         Guid layerId,
         EntityLayerType layerType,
         string name,
         ViewType viewType,
         bool isDefault,
         Guid creatorId)
+        : base(Guid.NewGuid(), projectWorkspaceId)
     {
         LayerId = layerId;
         LayerType = layerType;
@@ -35,6 +37,7 @@ public class ViewDefinition : Entity
     }
 
     public static ViewDefinition Create(
+        Guid projectWorkspaceId,
         Guid layerId,
         EntityLayerType layerType,
         string name,
@@ -42,7 +45,7 @@ public class ViewDefinition : Entity
         Guid creatorId,
         bool isDefault = false)
     {
-        return new ViewDefinition(layerId, layerType, name, viewType, isDefault, creatorId);
+        return new ViewDefinition(projectWorkspaceId, layerId, layerType, name, viewType, isDefault, creatorId);
     }
 
     public void Update(string? name, bool? isDefault)
@@ -52,10 +55,10 @@ public class ViewDefinition : Entity
         UpdateTimestamp();
     }
 
-    public void UpdateConfigs(string? filterConfigJson, string? displayConfigJson)
+    public void UpdateConfigs(ViewFilterConfig? filterConfig, string? displayConfigJson)
     {
-        FilterConfigJson = filterConfigJson;
-        DisplayConfigJson = displayConfigJson;
+        if (filterConfig != null) FilterConfig = filterConfig;
+        if (displayConfigJson != null) DisplayConfigJson = displayConfigJson;
         UpdateTimestamp();
     }
 

@@ -16,8 +16,6 @@ namespace Application.Features.WorkspaceFeatures.MemberManage.AddMembers;
 public class AddMembersHandler(
     IDataBase db, 
     WorkspaceContext context,
-    HybridCache cache, 
-    IRealtimeService realtime,
     IBackgroundJobService backgroundJob
 ) : ICommandHandler<AddMembersCommand>
 {

@@ -19,8 +19,7 @@ public class GetWorkspaceListHandler(
     IDataBase db,
     ICurrentUserService currentUserService,
     CursorHelper cursorHelper,
-    HybridCache cache,
-    ILogger<GetWorkspaceListHandler> logger
+    HybridCache cache
 ) : IQueryHandler<GetWorksapceListQuery, PagedResult<WorkspaceSummaryDto>>
 {
     public async Task<Result<PagedResult<WorkspaceSummaryDto>>> Handle(GetWorksapceListQuery request, CancellationToken ct)

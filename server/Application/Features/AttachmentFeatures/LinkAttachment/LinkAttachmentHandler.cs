@@ -22,6 +22,7 @@ public class LinkAttachmentHandler(IDataBase db, WorkspaceContext context) : ICo
             return Result.Failure(AttachmentError.NotFound);
         
         var link = EntityAssetLink.Create(
+            context.workspaceId,
             attachment.Id,
             AssetType.Attachment,
             request.ParentEntityId,
