@@ -26,67 +26,79 @@ public class GetHierarchyHandler(IDataBase db, WorkspaceContext context) : IQuer
             UserId = context.CurrentMember.UserId 
         }, cancellationToken: ct)).ToList();
 
-        // PERFORMANCE OPTIMIZATION: Build a lookup for folders (O(N) instead of O(N^2))
-        var folderLookup = rawItems
-            .Where(i => i.ItemType == "ProjectFolder")
-            .ToLookup(i => i.ParentId);
-
         var dto = new WorkspaceHierarchyDto
         {
             Id = workspace.Id,
             Name = workspace.Name,
-            Spaces = MapSpaces(rawItems, folderLookup)
+            Spaces = BuildHierarchy(rawItems)
         };
 
         return Result<WorkspaceHierarchyDto>.Success(dto);
     }
 
-    private List<SpaceHierarchyDto> MapSpaces(List<HierarchyRawItem> allItems, ILookup<Guid, HierarchyRawItem> folderLookup)
+    private static List<SpaceHierarchyDto> BuildHierarchy(List<HierarchyRawItem> rawItems)
     {
-        return allItems
-            .Where(i => i.ItemType == "ProjectSpace")
-            .OrderBy(i => i.OrderKey)
-            .ThenBy(i => i.Id)
-            .Select(s => new SpaceHierarchyDto
+        var spaces = new List<SpaceHierarchyDto>();
+        var foldersBySpace = new Dictionary<Guid, List<FolderHierarchyDto>>();
+
+        // PERFORMANCE: Single pass O(N) mapping. 
+        // SQL query already orders by OrderKey and Id, so insertion order guarantees perfectly sorted lists without any .Sort() calls.
+        foreach (var item in rawItems)
+        {
+            if (item.ItemType == "ProjectSpace")
             {
-                Id = s.Id,
-                Name = s.Name,
-                Color = s.Color ?? "",
-                Icon = s.Icon ?? "",
-                IsPrivate = s.IsPrivate,
-                OrderKey = s.OrderKey,
-                Folders = MapFolders(s.Id, folderLookup),
-                Tasks = new List<TaskHierarchyDto>() // populated on expand via GetNodeTasks
-            }).ToList();
+                spaces.Add(new SpaceHierarchyDto
+                {
+                    Id = item.Id,
+                    Name = item.Name,
+                    Color = item.Color ?? "",
+                    Icon = item.Icon ?? "",
+                    IsPrivate = item.IsPrivate,
+                    OrderKey = item.OrderKey,
+                    Folders = new(),
+                    Tasks = new()
+                });
+            }
+            else if (item.ItemType == "ProjectFolder")
+            {
+                if (!foldersBySpace.TryGetValue(item.ParentId, out var folderList))
+                {
+                    folderList = new List<FolderHierarchyDto>();
+                    foldersBySpace[item.ParentId] = folderList;
+                }
+
+                folderList.Add(new FolderHierarchyDto
+                {
+                    Id = item.Id,
+                    Name = item.Name,
+                    Color = item.Color ?? "",
+                    Icon = item.Icon ?? "",
+                    IsPrivate = item.IsPrivate,
+                    OrderKey = item.OrderKey,
+                    Tasks = new()
+                });
+            }
+        }
+
+        // Attach folders to spaces
+        foreach (var space in spaces)
+        {
+            if (foldersBySpace.TryGetValue(space.Id, out var spaceFolders))
+                space.Folders.AddRange(spaceFolders);
+        }
+
+        return spaces;
     }
 
-    private List<FolderHierarchyDto> MapFolders(Guid spaceId, ILookup<Guid, HierarchyRawItem> folderLookup)
+    private record HierarchyRawItem
     {
-        // PERFORMANCE: O(1) lookup vs O(N) scan
-        return folderLookup[spaceId]
-            .OrderBy(f => f.OrderKey)
-            .ThenBy(f => f.Id)
-            .Select(f => new FolderHierarchyDto
-            {
-                Id = f.Id,
-                Name = f.Name,
-                Color = f.Color ?? "",
-                Icon = f.Icon ?? "",
-                IsPrivate = f.IsPrivate,
-                OrderKey = f.OrderKey,
-                Tasks = new List<TaskHierarchyDto>() // populated on expand via GetNodeTasks
-            }).ToList();
-    }
-
-    private class HierarchyRawItem
-    {
-        public string ItemType { get; set; } = null!;
-        public Guid Id { get; set; }
-        public Guid ParentId { get; set; } // Native Guid instead of string
-        public string Name { get; set; } = null!;
-        public string? Color { get; set; }
-        public string? Icon { get; set; }
-        public bool IsPrivate { get; set; }
-        public string OrderKey { get; set; } = null!;
+        public string ItemType { get; init; } = null!;
+        public Guid Id { get; init; }
+        public Guid ParentId { get; init; } // Native Guid instead of string
+        public string Name { get; init; } = null!;
+        public string? Color { get; init; }
+        public string? Icon { get; init; }
+        public bool IsPrivate { get; init; }
+        public string OrderKey { get; init; } = null!;
     }
 }

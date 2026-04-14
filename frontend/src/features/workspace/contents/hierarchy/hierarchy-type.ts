@@ -141,3 +141,10 @@ export interface MoveItemRequest {
   nextItemOrderKey?: string;
   newOrderKey?: string;
 }
+
+export type HierarchyDndData = (SpaceHierarchy | FolderHierarchy | TaskHierarchy) & {
+  id: string;
+  type: EntityLayerType;
+  parentId?: string;
+  parentType?: EntityLayerType;
+};

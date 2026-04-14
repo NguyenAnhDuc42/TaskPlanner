@@ -47,13 +47,13 @@ public class GetNodeTasksHandler(IDataBase db) : IQueryHandler<GetNodeTasksQuery
         });
     }
 
-    private class TaskRawItem
+    private record TaskRawItem
     {
-        public Guid Id { get; set; }
-        public string Name { get; set; } = null!;
-        public Guid? StatusId { get; set; }
-        public Priority Priority { get; set; }
-        public string? OrderKey { get; set; }
-        public string ParentType { get; set; } = null!;
+        public Guid Id { get; init; }
+        public string Name { get; init; } = null!;
+        public Guid? StatusId { get; init; }
+        public Priority Priority { get; init; }
+        public string? OrderKey { get; init; }
+        public string ParentType { get; init; } = null!;
     }
 }

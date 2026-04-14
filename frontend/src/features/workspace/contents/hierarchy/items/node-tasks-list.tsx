@@ -1,3 +1,4 @@
+import React from "react";
 import { useWorkspace } from "@/features/workspace/context/workspace-provider";
 import { useNodeTasks } from "../hierarchy-api";
 import { EntityLayerType } from "@/types/entity-layer-type";
@@ -5,7 +6,7 @@ import { Loader2, Plus } from "lucide-react";
 import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { TaskItem } from "./task-item";
 
-export function NodeTasksList({nodeId, parentType, isExpanded,}: {nodeId: string; parentType: EntityLayerType; isExpanded: boolean;}) {
+export const NodeTasksList = React.memo(function NodeTasksList({nodeId, parentType, isExpanded,}: {nodeId: string; parentType: EntityLayerType; isExpanded: boolean;}) {
   const { workspaceId } = useWorkspace();
   const {
     data,
@@ -59,4 +60,4 @@ export function NodeTasksList({nodeId, parentType, isExpanded,}: {nodeId: string
       )}
     </SortableContext>
   );
-}
+});

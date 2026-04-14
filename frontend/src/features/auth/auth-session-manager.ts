@@ -76,10 +76,17 @@ class AuthSessionManager {
       await api.post("/auth/refresh");
       queryClient.invalidateQueries({ queryKey: authKeys.me() });
       console.log("[AuthManager] Refresh Success.");
+      this.scheduleNextCheck();
     } catch (error) {
       console.error("[AuthManager] Refresh Failed:", error);
-    } finally {
-      this.scheduleNextCheck();
+      // FATAL: If refresh fails, do NOT blindly schedule again immediately, 
+      // or it will infinite-loop if the cookie is expired/missing.
+      this.stop();
+      
+      // Force user out if session is irreparably broken (unless they are already on login)
+      if (!window.location.pathname.includes("/auth/")) {
+        window.location.href = "/auth/sign-in";
+      }
     }
   }
 }

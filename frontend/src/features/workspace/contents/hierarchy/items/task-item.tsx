@@ -1,3 +1,4 @@
+import React from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { useWorkspace } from "@/features/workspace/context/workspace-provider";
 import { cn } from "@/lib/utils";
@@ -17,7 +18,7 @@ interface TaskItemProps {
   parentType: EntityLayerType;
 }
 
-export function TaskItem({ task, parentId, parentType }: TaskItemProps) {
+export const TaskItem = React.memo(function TaskItem({ task, parentId, parentType }: TaskItemProps) {
   const navigate = useNavigate();
   const { workspaceId } = useWorkspace();
   const location = useLocation();
@@ -63,4 +64,4 @@ export function TaskItem({ task, parentId, parentType }: TaskItemProps) {
       </div>
     </SortableItem>
   );
-}
+});

@@ -13,7 +13,8 @@ import type {
   WorkspaceHierarchy, 
   MoveItemRequest, 
   FolderHierarchy, 
-  TaskHierarchy 
+  TaskHierarchy,
+  HierarchyDndData
 } from "../hierarchy-type";
 import { useState } from "react";
 import { fractionalAfter, fractionalBetween } from "../utils/fractional-index";
@@ -29,7 +30,7 @@ export function useHierarchyDnd({ filteredHierarchy, moveItem }: UseHierarchyDnd
   const [activeItem, setActiveItem] = useState<{ 
     id: string, 
     type: EntityLayerType, 
-    data: SpaceHierarchy | FolderHierarchy | TaskHierarchy 
+    data: HierarchyDndData 
   } | null>(null);
 
   const sensors = useSensors(
@@ -48,7 +49,7 @@ export function useHierarchyDnd({ filteredHierarchy, moveItem }: UseHierarchyDnd
     setActiveItem({
       id: event.active.id as string,
       type: data.type as EntityLayerType,
-      data: data as any
+      data: data as HierarchyDndData
     });
   };
 

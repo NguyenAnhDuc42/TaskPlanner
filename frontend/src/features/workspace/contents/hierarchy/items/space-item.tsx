@@ -32,7 +32,7 @@ interface SpaceItemProps {
   isForcedOpen?: boolean;
 }
 
-export function SpaceItem({ space, isForcedOpen }: SpaceItemProps) {
+export const SpaceItem = React.memo(function SpaceItem({ space, isForcedOpen }: SpaceItemProps) {
   const [isOpen, setIsOpen] = React.useState(false);
   const { workspaceId } = useWorkspace();
   const navigate = useNavigate();
@@ -171,4 +171,4 @@ export function SpaceItem({ space, isForcedOpen }: SpaceItemProps) {
       </CollapsibleContent>
     </Collapsible>
   );
-}
+});

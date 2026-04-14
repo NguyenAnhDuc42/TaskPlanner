@@ -1,4 +1,4 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import * as Icons from "lucide-react";
 import { ChevronRight, Plus, MoreHorizontal } from "lucide-react";
 import { useNavigate, useLocation } from "@tanstack/react-router";
@@ -21,7 +21,7 @@ interface FolderItemProps {
   spaceId: string;
 }
 
-export function FolderItem({ folder, spaceId }: FolderItemProps) {
+export const FolderItem = React.memo(function FolderItem({ folder, spaceId }: FolderItemProps) {
   const [isOpen, setIsOpen] = useState(false);
   const IconComponent = (Icons as any)[folder.icon] || Icons.Folder;
   const location = useLocation();
@@ -101,4 +101,4 @@ export function FolderItem({ folder, spaceId }: FolderItemProps) {
       </CollapsibleContent>
     </Collapsible>
   );
-}
+});
