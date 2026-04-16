@@ -16,9 +16,10 @@ interface TaskItemProps {
   task: TaskHierarchy;
   parentId: string;
   parentType: EntityLayerType;
+  spaceId: string;
 }
 
-export const TaskItem = React.memo(function TaskItem({ task, parentId, parentType }: TaskItemProps) {
+export const TaskItem = React.memo(function TaskItem({ task, parentId, parentType, spaceId }: TaskItemProps) {
   const navigate = useNavigate();
   const { workspaceId } = useWorkspace();
   const location = useLocation();
@@ -33,6 +34,7 @@ export const TaskItem = React.memo(function TaskItem({ task, parentId, parentTyp
         id: task.id,
         parentId,
         parentType,
+        spaceId,
       }}
     >
       <div

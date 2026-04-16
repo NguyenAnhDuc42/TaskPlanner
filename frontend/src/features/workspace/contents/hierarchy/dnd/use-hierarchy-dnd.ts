@@ -13,29 +13,32 @@ import type {
   WorkspaceHierarchy, 
   MoveItemRequest, 
   FolderHierarchy, 
-  TaskHierarchy,
-  HierarchyDndData
+  TaskHierarchy 
 } from "../hierarchy-type";
 import { useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import { hierarchyKeys } from "../hierarchy-keys";
 import { fractionalAfter, fractionalBetween } from "../utils/fractional-index";
 
 interface UseHierarchyDndProps {
+  workspaceId: string;
   filteredHierarchy: WorkspaceHierarchy | undefined;
   moveItem: {
     mutate: (data: MoveItemRequest) => void;
   };
 }
 
-export function useHierarchyDnd({ filteredHierarchy, moveItem }: UseHierarchyDndProps) {
+export function useHierarchyDnd({ workspaceId, filteredHierarchy, moveItem }: UseHierarchyDndProps) {
+  const queryClient = useQueryClient();
   const [activeItem, setActiveItem] = useState<{ 
     id: string, 
     type: EntityLayerType, 
-    data: HierarchyDndData 
+    data: SpaceHierarchy | FolderHierarchy | TaskHierarchy | any
   } | null>(null);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
-      activationConstraint: { distance: 4 }, // Instant-feel drag start
+      activationConstraint: { distance: 8 }, // Sharp, instant drag start
     }),
     useSensor(KeyboardSensor, {
       coordinateGetter: sortableKeyboardCoordinates,
@@ -49,7 +52,7 @@ export function useHierarchyDnd({ filteredHierarchy, moveItem }: UseHierarchyDnd
     setActiveItem({
       id: event.active.id as string,
       type: data.type as EntityLayerType,
-      data: data as HierarchyDndData
+      data: data as any
     });
   };
 
@@ -66,7 +69,6 @@ export function useHierarchyDnd({ filteredHierarchy, moveItem }: UseHierarchyDnd
 
     const itemType = activeData.type as EntityLayerType;
 
-    // Movement context
     let prevKey: string | undefined;
     let nextKey: string | undefined;
     let newOrderKey: string | undefined;
@@ -99,13 +101,11 @@ export function useHierarchyDnd({ filteredHierarchy, moveItem }: UseHierarchyDnd
     else if (itemType === EntityLayerConst.ProjectFolder) {
       let targetSpaceId: string | undefined;
 
-      // Vertical move within same or other space
       if (overData?.type === EntityLayerConst.ProjectSpace) {
         targetSpaceId = overData.id;
       } else if (overData?.type === EntityLayerConst.ProjectFolder) {
         targetSpaceId = overData.parentId;
       } else if (overData?.type === EntityLayerConst.ProjectTask) {
-        // If dropped over a task, find the task's parent space
         const targetParent = overData.parentType === EntityLayerConst.ProjectSpace 
           ? overData.parentId 
           : filteredHierarchy?.spaces.find(s => s.folders.some(f => f.id === overData.parentId))?.id;
@@ -115,21 +115,19 @@ export function useHierarchyDnd({ filteredHierarchy, moveItem }: UseHierarchyDnd
       if (!targetSpaceId) return;
       targetParentId = targetSpaceId;
 
-      const targetSpace = filteredHierarchy?.spaces.find(s => s.id === targetSpaceId);
-      if (!targetSpace) return;
+      const folders = queryClient.getQueryData<FolderHierarchy[]>(
+        [...hierarchyKeys.detail(workspaceId), targetParentId, "folders"]
+      ) || filteredHierarchy?.spaces.find(s => s.id === targetSpaceId)?.folders || [];
 
-      const folders = targetSpace.folders;
       const oldIndex = folders.findIndex(f => f.id === activeData.id);
       const newIndex = folders.findIndex(f => f.id === overData.id);
 
-      // Reordering within same space
       if (oldIndex !== -1) {
         const moved = arrayMove(folders, oldIndex, newIndex === -1 ? 0 : newIndex);
         const finalIdx = newIndex === -1 ? 0 : newIndex;
         prevKey = finalIdx > 0 ? moved[finalIdx - 1]?.orderKey : undefined;
         nextKey = finalIdx < moved.length - 1 ? moved[finalIdx + 1]?.orderKey : undefined;
       } else {
-        // Move to new space (append or insert)
         const finalIdx = newIndex === -1 ? 0 : newIndex;
         prevKey = finalIdx > 0 ? folders[finalIdx - 1]?.orderKey : undefined;
         nextKey = finalIdx < folders.length ? folders[finalIdx]?.orderKey : undefined;
@@ -152,21 +150,47 @@ export function useHierarchyDnd({ filteredHierarchy, moveItem }: UseHierarchyDnd
       
       if (overData?.type === EntityLayerConst.ProjectTask) {
         targetId = overData.parentId;
-        prevKey = overData.orderKey; // Use current item as reference
       } else if (overData?.type === EntityLayerConst.ProjectFolder || overData?.type === EntityLayerConst.ProjectSpace) {
         targetId = overData.id;
-        prevKey = undefined; // Move to beginning
       }
 
-      if (!targetId) return;
+      if (!targetId) targetId = activeData.parentId; 
       targetParentId = targetId;
-      newOrderKey = prevKey ? fractionalAfter(prevKey) : fractionalAfter(null);
+
+      if (targetId) {
+        // Use query cache for specific index boundaries to support UP and DOWN dragging directions
+        const tasksResponse = queryClient.getQueryData<any>(
+          hierarchyKeys.nodeTasks(workspaceId, targetId)
+        );
+        const tasks: TaskHierarchy[] = tasksResponse?.pages.flatMap((p: any) => p.tasks || []) || [];
+        
+        const oldIndex = tasks.findIndex((t: any) => t.id === activeData.id);
+        const newIndex = tasks.findIndex((t: any) => t.id === overData.id);
+
+        if (oldIndex !== -1 && newIndex !== -1) {
+          // Reordering within the SAME folder (ArrayMove naturally handles UP vs DOWN)
+          const moved = arrayMove(tasks, oldIndex, newIndex);
+          prevKey = newIndex > 0 ? moved[newIndex - 1]?.orderKey : undefined;
+          nextKey = newIndex < moved.length - 1 ? moved[newIndex + 1]?.orderKey : undefined;
+        } else if (newIndex !== -1) {
+          // Moving from another folder, inserting AT specific position
+          prevKey = newIndex > 0 ? tasks[newIndex - 1]?.orderKey : undefined;
+          nextKey = newIndex < tasks.length ? tasks[newIndex]?.orderKey : undefined;
+        } else {
+          // Dropped onto a generic empty folder/space container, append to top
+          prevKey = undefined;
+          nextKey = tasks.length > 0 ? tasks[0]?.orderKey : undefined;
+        }
+      }
+
+      newOrderKey = fractionalBetween(prevKey, nextKey);
       
       moveItem.mutate({
         itemId: activeData.id,
         itemType: EntityLayerConst.ProjectTask,
         targetParentId,
         previousItemOrderKey: prevKey,
+        nextItemOrderKey: nextKey, // Provided for precise optimistic update sorting
         newOrderKey
       });
     }

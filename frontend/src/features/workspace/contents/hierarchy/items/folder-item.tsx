@@ -35,6 +35,7 @@ export const FolderItem = React.memo(function FolderItem({ folder, spaceId }: Fo
   const queryClient = useQueryClient();
   const { active } = useDndContext();
 
+
   // New: Auto-collapse if folder becomes empty
   React.useEffect(() => {
     if (isOpen && !folder.hasTasks) {
@@ -51,6 +52,7 @@ export const FolderItem = React.memo(function FolderItem({ folder, spaceId }: Fo
           type: EntityLayerConst.ProjectFolder,
           id: folder.id,
           parentId: spaceId,
+          spaceId: spaceId,
         }}
       >
         <div
@@ -66,21 +68,15 @@ export const FolderItem = React.memo(function FolderItem({ folder, spaceId }: Fo
             onMouseEnter={() => {
               if (isOpen || !workspaceId || !folder.hasTasks || !!active) return;
               
-              const timeout = setTimeout(() => {
-                if (!!active) return;
-                prefetchNodeTasks(queryClient, workspaceId, folder.id, EntityLayerConst.ProjectFolder);
-              }, 50);
-
-              const clear = () => clearTimeout(timeout);
-              const element = document.getElementById(`folder-expand-${folder.id}`);
-              element?.addEventListener('mouseleave', clear, { once: true });
+              // Eager prefetch: Start immediately on hover
+              prefetchNodeTasks(queryClient, workspaceId, folder.id, EntityLayerConst.ProjectFolder);
             }}
             id={`folder-expand-${folder.id}`}
             onClick={(e) => {
-              if (!folder.hasTasks) return;
-              e.stopPropagation(); 
-              setIsOpen(!isOpen);
-            }}
+            if (!folder.hasTasks) return;
+            e.stopPropagation(); 
+            setIsOpen(!isOpen);
+          }}
           >
             <IconComponent className={cn("h-3.5 w-3.5 absolute transition-opacity", folder.hasTasks && "group-hover/icon:opacity-0")} style={{ color: folder.color }}/>
             {folder.hasTasks && (
@@ -125,11 +121,14 @@ export const FolderItem = React.memo(function FolderItem({ folder, spaceId }: Fo
       </SortableItem>
       <CollapsibleContent className="overflow-hidden data-[state=open]:animate-collapsible-down data-[state=closed]:animate-collapsible-up">
         <div className="ml-3 pl-1 border-l border-border mt-0.5 flex flex-col">
-          <NodeTasksList 
-            nodeId={folder.id} 
-            parentType={EntityLayerConst.ProjectFolder} 
-            isExpanded={isOpen} 
-          />
+          {isOpen && !folder.hasTasks ? null : (
+            <NodeTasksList 
+              nodeId={folder.id} 
+              parentType={EntityLayerConst.ProjectFolder} 
+              isExpanded={isOpen} 
+              spaceId={spaceId}
+            />
+          )}
         </div>
       </CollapsibleContent>
     </Collapsible>

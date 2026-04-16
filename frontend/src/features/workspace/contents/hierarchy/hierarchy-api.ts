@@ -155,134 +155,107 @@ export function useMoveItem(workspaceId: string) {
   return useMutation({
     mutationFn: (data: MoveItemRequest) => api.post(`/workspaces/${workspaceId}/hierarchy/move`, data),
     onMutate: async (moveRequest) => {
-      // Cancel any outgoing refetches (so they don't overwrite our optimistic update)
+      const { itemId, itemType, targetParentId, nextItemOrderKey, newOrderKey } = moveRequest;
+
+      // 1. Cancel related queries
       await queryClient.cancelQueries({ queryKey: hierarchyKeys.detail(workspaceId) });
+      await queryClient.cancelQueries({ queryKey: hierarchyKeys.all });
 
-      // Snapshot the previous value
+      // 2. Snapshot current state
       const previousHierarchy = queryClient.getQueryData<WorkspaceHierarchy>(hierarchyKeys.detail(workspaceId));
+      
+      // 3. OPTIMISTIC UPDATES (Partitioned - Crucial for lazy loading visibility)
+      if (itemType === "ProjectFolder" && targetParentId) {
+        const parentId = targetParentId;
+        
+        // Find and remove from the old list (if any)
+        let movedItem: FolderHierarchy | undefined;
+        queryClient.setQueriesData<FolderHierarchy[]>({ queryKey: [...hierarchyKeys.detail(workspaceId)] }, (old) => {
+          if (!old || !Array.isArray(old)) return old; // Guard against WorkspaceHierarchy object
+          const newFolders = [...old];
+          const activeIdx = newFolders.findIndex(f => f.id === itemId);
+          if (activeIdx !== -1) {
+            [movedItem] = newFolders.splice(activeIdx, 1);
+            return newFolders;
+          }
+          return old;
+        });
 
-      // Optimistically update to the new value
+        // Add to the new list if we found it (cross-space or same-space)
+        if (movedItem) {
+          queryClient.setQueryData<FolderHierarchy[]>([...hierarchyKeys.detail(workspaceId), parentId, "folders"], (old) => {
+            if (!old) return old;
+            const newFolders = [...old];
+            if (newOrderKey) movedItem!.orderKey = newOrderKey;
+            
+            // Just add to end and sort, since fractional keys handle exact placement
+            newFolders.push(movedItem!);
+            return newFolders.sort((a, b) => a.orderKey.localeCompare(b.orderKey));
+          });
+        }
+      }
+
+      if (itemType === "ProjectTask" && targetParentId) {
+        const nodeId = targetParentId;
+        
+        let movedTask: any = undefined;
+        
+        // Remove from any task list
+        queryClient.setQueriesData<{ pages: NodeTasksResponse[], pageParams: any[] }>({ queryKey: [...hierarchyKeys.detail(workspaceId)] }, (old) => {
+          if (!old || !old.pages) return old; // Guard against WorkspaceHierarchy or Folders
+          const newPages = old.pages.map((page) => {
+            const newTasks = [...(page.tasks || [])];
+            const activeIdx = newTasks.findIndex((t) => t.id === itemId);
+            if (activeIdx !== -1) {
+              [movedTask] = newTasks.splice(activeIdx, 1);
+              return { ...page, tasks: newTasks };
+            }
+            return page;
+          });
+          return { ...old, pages: newPages };
+        });
+
+        // Add to the new task list
+        if (movedTask) {
+          queryClient.setQueryData<{ pages: NodeTasksResponse[], pageParams: any[] }>(hierarchyKeys.nodeTasks(workspaceId, nodeId), (old) => {
+            if (!old) return old;
+            const newPages = [...old.pages];
+            if (newPages.length > 0) {
+              const newTasks = [...(newPages[0].tasks || [])];
+              if (newOrderKey) movedTask.orderKey = newOrderKey;
+              newTasks.push(movedTask);
+              newPages[0] = { ...newPages[0], tasks: newTasks.sort((a, b) => a.orderKey.localeCompare(b.orderKey)) };
+            }
+            return { ...old, pages: newPages };
+          });
+        }
+      }
+
+      // 4. MAIN HIERARCHY UPDATE (Fallback/Global)
       if (previousHierarchy) {
-        queryClient.setQueryData<WorkspaceHierarchy>(hierarchyKeys.detail(workspaceId), (old) => {
+        queryClient.setQueryData<WorkspaceHierarchy>(hierarchyKeys.detail(workspaceId), (old: WorkspaceHierarchy | undefined) => {
           if (!old) return old;
-          
           const newHierarchy = JSON.parse(JSON.stringify(old)) as WorkspaceHierarchy;
-          const { itemId, itemType, targetParentId, nextItemOrderKey, newOrderKey } = moveRequest;
-
           if (itemType === "ProjectSpace") {
             const spaces = newHierarchy.spaces || [];
             const activeIndex = spaces.findIndex(s => s.id === itemId);
             if (activeIndex !== -1) {
               const [removed] = spaces.splice(activeIndex, 1);
               if (newOrderKey) removed.orderKey = newOrderKey;
-
-              const overIndex = nextItemOrderKey 
+              const overIdx = nextItemOrderKey 
                 ? spaces.findIndex(s => s.orderKey === nextItemOrderKey) 
                 : spaces.length;
-              spaces.splice(overIndex === -1 ? spaces.length : overIndex, 0, removed);
-              
-              // Final sort consistency
+              spaces.splice(overIdx === -1 ? spaces.length : overIdx, 0, removed);
               newHierarchy.spaces = spaces.sort((a, b) => a.orderKey.localeCompare(b.orderKey));
             }
-          } 
-          else if (itemType === "ProjectFolder") {
-            let folderToMove: FolderHierarchy | null = null;
-            const spaces = newHierarchy.spaces || [];
-            
-            // 1. Remove from source
-            for (const space of spaces) {
-              const folders = space.folders || [];
-              const idx = folders.findIndex(f => f.id === itemId);
-              if (idx !== -1) {
-                [folderToMove] = folders.splice(idx, 1);
-                break;
-              }
-            }
-            
-            // 2. Insert into target
-            if (folderToMove && targetParentId) {
-              const targetSpace = (newHierarchy.spaces || []).find(s => s.id === targetParentId);
-              if (targetSpace) {
-                const targetFolders = targetSpace.folders || [];
-                if (newOrderKey) folderToMove.orderKey = newOrderKey;
-
-                const overIndex = nextItemOrderKey 
-                  ? targetFolders.findIndex(f => f.orderKey === nextItemOrderKey) 
-                  : targetFolders.length;
-                targetFolders.splice(overIndex === -1 ? targetFolders.length : overIndex, 0, folderToMove);
-                
-                // Final sort consistency within target space
-                targetSpace.folders = targetFolders.sort((a, b) => a.orderKey.localeCompare(b.orderKey));
-              }
-            }
           }
-          else if (itemType === "ProjectTask") {
-            let taskToMove: TaskHierarchy | null = null;
-            
-            // 1. Remove task from current source
-            for (const space of newHierarchy.spaces) {
-              // Check space-level tasks
-              const spaceTasks = space.tasks || [];
-              const sIdx = spaceTasks.findIndex(t => t.id === itemId);
-              if (sIdx !== -1) {
-                [taskToMove] = spaceTasks.splice(sIdx, 1);
-                break;
-              }
-              
-              // Check folder-level tasks
-              for (const folder of space.folders) {
-                const folderTasks = folder.tasks || [];
-                const fIdx = folderTasks.findIndex(t => t.id === itemId);
-                if (fIdx !== -1) {
-                  [taskToMove] = folderTasks.splice(fIdx, 1);
-                  break;
-                }
-              }
-              if (taskToMove) break;
-            }
-
-            // 2. Insert into target
-            if (taskToMove && targetParentId) {
-              if (newOrderKey) taskToMove.orderKey = newOrderKey;
-
-              // Try insert into target Folder
-              let inserted = false;
-              for (const space of newHierarchy.spaces) {
-                const targetFolder = space.folders.find(f => f.id === targetParentId);
-                if (targetFolder) {
-                  const tasks = targetFolder.tasks || [];
-                  const overIndex = nextItemOrderKey 
-                    ? tasks.findIndex(t => t.orderKey === nextItemOrderKey) 
-                    : tasks.length;
-                  tasks.splice(overIndex === -1 ? tasks.length : overIndex, 0, taskToMove);
-                  targetFolder.tasks = tasks.sort((a, b) => a.orderKey.localeCompare(b.orderKey));
-                  inserted = true;
-                  break;
-                }
-              }
-
-              // Try insert into target Space if not found in folders
-              if (!inserted) {
-                const targetSpace = newHierarchy.spaces.find(s => s.id === targetParentId);
-                if (targetSpace) {
-                  const tasks = targetSpace.tasks || [];
-                  const overIndex = nextItemOrderKey 
-                    ? tasks.findIndex(t => t.orderKey === nextItemOrderKey) 
-                    : tasks.length;
-                  tasks.splice(overIndex === -1 ? tasks.length : overIndex, 0, taskToMove);
-                  targetSpace.tasks = tasks.sort((a, b) => a.orderKey.localeCompare(b.orderKey));
-                }
-              }
-            }
-          }
-
           return newHierarchy;
         });
       }
 
       return { previousHierarchy };
     },
-    onError: (_err, _newTodo, context) => {
+    onError: (_err, _variables, context) => {
       if (context?.previousHierarchy) {
         queryClient.setQueryData(hierarchyKeys.detail(workspaceId), context.previousHierarchy);
       }

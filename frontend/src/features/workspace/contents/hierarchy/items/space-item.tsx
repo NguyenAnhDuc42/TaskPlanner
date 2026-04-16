@@ -25,7 +25,7 @@ import {
   SortableContext,
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
-import { prefetchNodeTasks } from "../hierarchy-api";
+import { prefetchNodeFolders, prefetchNodeTasks, useNodeFolders } from "../hierarchy-api";
 import type { SpaceHierarchy } from "../hierarchy-type";
 import { useQueryClient } from "@tanstack/react-query";
 import { SortableItem } from "../dnd/sortable-item";
@@ -35,8 +35,12 @@ interface SpaceItemProps {
   isForcedOpen?: boolean;
 }
 
-export const SpaceItem = React.memo(function SpaceItem({ space, isForcedOpen }: SpaceItemProps) {
+export const SpaceItem = React.memo(function SpaceItem({
+  space,
+  isForcedOpen,
+}: SpaceItemProps) {
   const [isOpen, setIsOpen] = React.useState(false);
+  const [showSkeleton, setShowSkeleton] = React.useState(false);
   const { workspaceId } = useWorkspace();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
@@ -46,8 +50,25 @@ export const SpaceItem = React.memo(function SpaceItem({ space, isForcedOpen }: 
   const spaceColor = space.color || "var(--primary)";
   const effectiveOpen = isForcedOpen || isOpen;
   const { active } = useDndContext();
-  
+
   const hasChildren = space.hasFolders || space.hasTasks;
+
+  const { data: spaceFolders = [], isLoading: isLoadingFolders } = useNodeFolders(
+    workspaceId || "", 
+    space.id,
+    effectiveOpen
+  );
+
+  // Perception Play: Only show skeleton if loading takes > 100ms, but show immediately on click
+  React.useEffect(() => {
+    let timeout: ReturnType<typeof setTimeout>;
+    if (isLoadingFolders && effectiveOpen) {
+      timeout = setTimeout(() => setShowSkeleton(true), 100);
+    } else {
+      setShowSkeleton(false);
+    }
+    return () => clearTimeout(timeout);
+  }, [isLoadingFolders, effectiveOpen]);
 
   return (
     <Collapsible
@@ -58,7 +79,7 @@ export const SpaceItem = React.memo(function SpaceItem({ space, isForcedOpen }: 
       <SortableItem
         id={`space-${space.id}`}
         data={{
-          ...space, 
+          ...space,
           type: EntityLayerConst.ProjectSpace,
           id: space.id,
           orderKey: space.orderKey,
@@ -80,14 +101,9 @@ export const SpaceItem = React.memo(function SpaceItem({ space, isForcedOpen }: 
             onMouseEnter={() => {
               if (effectiveOpen || !workspaceId || !hasChildren || !!active) return;
               
-              const timeout = setTimeout(() => {
-                if (!!active) return;
-                prefetchNodeTasks(queryClient, workspaceId, space.id, EntityLayerConst.ProjectSpace);
-              }, 50);
-
-              const clear = () => clearTimeout(timeout);
-              const element = document.getElementById(`space-expand-${space.id}`);
-              element?.addEventListener('mouseleave', clear, { once: true });
+              // Eager prefetch: Start immediately on hover for maximum speed
+              prefetchNodeFolders(queryClient, workspaceId, space.id);
+              prefetchNodeTasks(queryClient, workspaceId, space.id, EntityLayerConst.ProjectSpace);
             }}
             id={`space-expand-${space.id}`}
             onClick={(e) => {
@@ -99,7 +115,7 @@ export const SpaceItem = React.memo(function SpaceItem({ space, isForcedOpen }: 
             <IconComponent
               className={cn(
                 "h-3.5 w-3.5 absolute transition-opacity",
-                hasChildren && "group-hover/icon:opacity-0"
+                hasChildren && "group-hover/icon:opacity-0",
               )}
               style={{ color: isActive ? spaceColor : undefined }}
             />
@@ -180,18 +196,30 @@ export const SpaceItem = React.memo(function SpaceItem({ space, isForcedOpen }: 
 
       <CollapsibleContent className="overflow-hidden data-[state=open]:animate-collapsible-down data-[state=closed]:animate-collapsible-up">
         <div className="ml-3 pl-1 border-l border-border mt-0.5 flex flex-col">
-          <SortableContext
-            items={space.folders.map((f) => `folder-${f.id}`)}
-            strategy={verticalListSortingStrategy}
-          >
-            {space.folders.map((folder) => (
-              <FolderItem key={folder.id} folder={folder} spaceId={space.id} />
-            ))}
-          </SortableContext>
+          {showSkeleton ? (
+            <div className="flex flex-col gap-1 py-1">
+              <div className="h-5 w-32 bg-muted/40 animate-pulse rounded-sm ml-2" />
+              <div className="h-5 w-24 bg-muted/40 animate-pulse rounded-sm ml-2" />
+            </div>
+          ) : (
+            <>
+              {spaceFolders.length > 0 && (
+                <SortableContext
+                  items={spaceFolders.map((f) => `folder-${f.id}`)}
+                  strategy={verticalListSortingStrategy}
+                >
+                  {spaceFolders.map((folder) => (
+                    <FolderItem key={folder.id} folder={folder} spaceId={space.id} />
+                  ))}
+                </SortableContext>
+              )}
+            </>
+          )}
           <NodeTasksList
             nodeId={space.id}
             parentType={EntityLayerConst.ProjectSpace}
             isExpanded={effectiveOpen}
+            spaceId={space.id}
           />
         </div>
       </CollapsibleContent>

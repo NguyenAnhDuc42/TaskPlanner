@@ -13,7 +13,7 @@ const TaskSkeleton = () => (
   </div>
 );
 
-export const NodeTasksList = React.memo(function NodeTasksList({nodeId, parentType, isExpanded,}: {nodeId: string; parentType: EntityLayerType; isExpanded: boolean;}) {
+export const NodeTasksList = React.memo(function NodeTasksList({nodeId, parentType, isExpanded, spaceId,}: {nodeId: string; parentType: EntityLayerType; isExpanded: boolean; spaceId: string;}) {
   const { workspaceId } = useWorkspace();
   const {
     data,
@@ -39,7 +39,7 @@ export const NodeTasksList = React.memo(function NodeTasksList({nodeId, parentTy
     <SortableContext items={allTasks.map(t => `task-${t.id}`)} strategy={verticalListSortingStrategy}>
       <div className="flex flex-col">
         {allTasks.map((task) => (
-          <TaskItem key={task.id} task={task} parentId={nodeId} parentType={parentType} />
+          <TaskItem key={task.id} task={task} parentId={nodeId} parentType={parentType} spaceId={spaceId} />
         ))}
       </div>
       {hasNextPage && (

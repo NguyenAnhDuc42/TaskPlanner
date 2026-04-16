@@ -7,6 +7,7 @@ import { Loader2, Plus, Search, ChevronDown, FileText, Clock } from "lucide-reac
 import { 
   DndContext, 
   rectIntersection, 
+  closestCenter,
   DragOverlay,
   PointerSensor,
   useSensor,
@@ -18,7 +19,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { cn } from "@/lib/utils";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useState, useMemo, useDeferredValue } from "react";
-import type { SpaceHierarchy, FolderHierarchy, TaskHierarchy } from "./hierarchy-type";
+import type { SpaceHierarchy, FolderHierarchy, TaskHierarchy, WorkspaceHierarchy } from "./hierarchy-type";
 
 // Modularized Components & Hooks
 import { useHierarchyDnd } from "./dnd/use-hierarchy-dnd";
@@ -55,7 +56,11 @@ export function HierarchySidebar() {
     return { ...hierarchy, spaces: filteredSpaces };
   }, [hierarchy, deferredSearchQuery]);
 
-  const { sensors, handleDragStart, handleDragEnd, activeItem } = useHierarchyDnd({ filteredHierarchy, moveItem });
+  const { sensors, handleDragStart, handleDragEnd, activeItem } = useHierarchyDnd({ 
+    workspaceId: workspaceId || "",
+    filteredHierarchy, 
+    moveItem 
+  });
 
   if (isLoading) {
     return (
@@ -126,7 +131,7 @@ export function HierarchySidebar() {
               <div className="px-2 pt-0.5 pb-2 flex flex-col gap-0.5">
                 <DndContext 
                   sensors={sensors} 
-                  collisionDetection={rectIntersection} 
+                  collisionDetection={closestCenter} 
                   onDragStart={handleDragStart}
                   onDragEnd={handleDragEnd} 
                   modifiers={[restrictToVerticalAxis]}
@@ -144,10 +149,10 @@ export function HierarchySidebar() {
                           <SpaceItem space={activeItem.data as SpaceHierarchy} isForcedOpen={false} />
                         )}
                         {activeItem.type === EntityLayerConst.ProjectFolder && (
-                          <FolderItem folder={activeItem.data as FolderHierarchy} spaceId={activeItem.data.parentId || ""} />
+                          <FolderItem folder={activeItem.data as FolderHierarchy} spaceId={(activeItem.data as any).spaceId || ""} />
                         )}
                         {activeItem.type === EntityLayerConst.ProjectTask && (
-                          <TaskItem task={activeItem.data as TaskHierarchy} parentId={activeItem.data.parentId || ""} parentType={activeItem.data.parentType as EntityLayerConst || EntityLayerConst.ProjectFolder} />
+                          <TaskItem task={activeItem.data as TaskHierarchy} parentId={activeItem.data.parentId || ""} parentType={activeItem.data.parentType as EntityLayerConst || EntityLayerConst.ProjectFolder} spaceId={(activeItem.data as any).spaceId || ""} />
                         )}
                       </div>
                     ) : null}
