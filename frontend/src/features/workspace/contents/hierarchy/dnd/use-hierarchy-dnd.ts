@@ -35,7 +35,7 @@ export function useHierarchyDnd({ filteredHierarchy, moveItem }: UseHierarchyDnd
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
-      activationConstraint: { distance: 8 }, // Sharp, instant drag start
+      activationConstraint: { distance: 4 }, // Instant-feel drag start
     }),
     useSensor(KeyboardSensor, {
       coordinateGetter: sortableKeyboardCoordinates,

@@ -12,93 +12,53 @@ public class GetHierarchyHandler(IDataBase db, WorkspaceContext context) : IQuer
 {
     public async Task<Result<WorkspaceHierarchyDto>> Handle(GetHierarchyQuery request, CancellationToken ct)
     {
+        // Don't load the full entity, just the metadata we need
         var workspace = await db.Workspaces
             .AsNoTracking()
             .WhereNotDeleted()
+            .Select(x => new { x.Id, x.Name })
             .FirstOrDefaultAsync(x => x.Id == request.WorkspaceId, ct);
 
         if (workspace == null) 
             return Result<WorkspaceHierarchyDto>.Failure(Error.NotFound("Workspace.NotFound", $"Workspace {request.WorkspaceId} not found"));
 
-        var rawItems = (await db.QueryAsync<HierarchyRawItem>(GetHierarchySql.StructureQuery, new 
-        { 
-            WorkspaceId = request.WorkspaceId, 
-            UserId = context.CurrentMember.UserId 
-        }, cancellationToken: ct)).ToList();
+        // Fetch ONLY spaces now. Folders are lazy-loaded on expansion.
+        var spaces = (await db.QueryAsync<SpaceRaw>(
+            GetHierarchySql.GetSpacesOnlyQuery, 
+            new { WorkspaceId = request.WorkspaceId }, 
+            cancellationToken: ct)).ToList();
 
-        var dto = new WorkspaceHierarchyDto
+        return Result<WorkspaceHierarchyDto>.Success(BuildHierarchy(workspace.Name, spaces));
+    }
+
+    private static WorkspaceHierarchyDto BuildHierarchy(string workspaceName, List<SpaceRaw> spaces)
+    {
+        // Pre-size based exactly on the Space count
+        var spaceDtos = new List<SpaceHierarchyDto>(spaces.Count);
+
+        foreach (var s in spaces)
         {
-            Id = workspace.Id,
-            Name = workspace.Name,
-            Spaces = BuildHierarchy(rawItems)
+            spaceDtos.Add(new SpaceHierarchyDto
+            {
+                Id = s.Id,
+                Name = s.Name,
+                Color = s.Color ?? string.Empty,
+                Icon = s.Icon ?? string.Empty,
+                IsPrivate = s.IsPrivate,
+                OrderKey = s.OrderKey,
+                HasFolders = s.HasFolders != 0,
+                HasTasks = s.HasTasks != 0,
+                Folders = new List<FolderHierarchyDto>(0), // Start empty, lazy-loaded
+                Tasks = new()
+            });
+        }
+
+        return new WorkspaceHierarchyDto
+        {
+            Name = workspaceName,
+            Spaces = spaceDtos
         };
-
-        return Result<WorkspaceHierarchyDto>.Success(dto);
     }
 
-    private static List<SpaceHierarchyDto> BuildHierarchy(List<HierarchyRawItem> rawItems)
-    {
-        var spaces = new List<SpaceHierarchyDto>();
-        var foldersBySpace = new Dictionary<Guid, List<FolderHierarchyDto>>();
-
-        // PERFORMANCE: Single pass O(N) mapping. 
-        // SQL query already orders by OrderKey and Id, so insertion order guarantees perfectly sorted lists without any .Sort() calls.
-        foreach (var item in rawItems)
-        {
-            if (item.ItemType == "ProjectSpace")
-            {
-                spaces.Add(new SpaceHierarchyDto
-                {
-                    Id = item.Id,
-                    Name = item.Name,
-                    Color = item.Color ?? "",
-                    Icon = item.Icon ?? "",
-                    IsPrivate = item.IsPrivate,
-                    OrderKey = item.OrderKey,
-                    Folders = new(),
-                    Tasks = new()
-                });
-            }
-            else if (item.ItemType == "ProjectFolder")
-            {
-                if (!foldersBySpace.TryGetValue(item.ParentId, out var folderList))
-                {
-                    folderList = new List<FolderHierarchyDto>();
-                    foldersBySpace[item.ParentId] = folderList;
-                }
-
-                folderList.Add(new FolderHierarchyDto
-                {
-                    Id = item.Id,
-                    Name = item.Name,
-                    Color = item.Color ?? "",
-                    Icon = item.Icon ?? "",
-                    IsPrivate = item.IsPrivate,
-                    OrderKey = item.OrderKey,
-                    Tasks = new()
-                });
-            }
-        }
-
-        // Attach folders to spaces
-        foreach (var space in spaces)
-        {
-            if (foldersBySpace.TryGetValue(space.Id, out var spaceFolders))
-                space.Folders.AddRange(spaceFolders);
-        }
-
-        return spaces;
-    }
-
-    private record HierarchyRawItem
-    {
-        public string ItemType { get; init; } = null!;
-        public Guid Id { get; init; }
-        public Guid ParentId { get; init; } // Native Guid instead of string
-        public string Name { get; init; } = null!;
-        public string? Color { get; init; }
-        public string? Icon { get; init; }
-        public bool IsPrivate { get; init; }
-        public string OrderKey { get; init; } = null!;
-    }
+    private record SpaceRaw(Guid Id, string Name, string? Color, string? Icon, bool IsPrivate, string OrderKey, int HasFolders, int HasTasks);
 }

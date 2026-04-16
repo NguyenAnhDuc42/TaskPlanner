@@ -16,8 +16,8 @@ import { DropdownWrapper } from "@/components/dropdown-wrapper";
 import { FolderForm } from "../hierarchy-components/creation-form/folder-form";
 import { TaskForm } from "../hierarchy-components/creation-form/task-form";
 import { SpaceMenu } from "../hierarchy-components/dropdown/space-menu";
-import { SortableItem } from "../dnd/sortable-item";
 import { FolderItem } from "./folder-item";
+import { useDndContext } from "@dnd-kit/core";
 import { NodeTasksList } from "./node-tasks-list";
 import { clampName } from "../utils/name-utils";
 import { EntityLayerType as EntityLayerConst } from "@/types/entity-layer-type";
@@ -25,7 +25,10 @@ import {
   SortableContext,
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
+import { prefetchNodeTasks } from "../hierarchy-api";
 import type { SpaceHierarchy } from "../hierarchy-type";
+import { useQueryClient } from "@tanstack/react-query";
+import { SortableItem } from "../dnd/sortable-item";
 
 interface SpaceItemProps {
   space: SpaceHierarchy;
@@ -35,12 +38,16 @@ interface SpaceItemProps {
 export const SpaceItem = React.memo(function SpaceItem({ space, isForcedOpen }: SpaceItemProps) {
   const [isOpen, setIsOpen] = React.useState(false);
   const { workspaceId } = useWorkspace();
+  const queryClient = useQueryClient();
   const navigate = useNavigate();
   const location = useLocation();
   const isActive = location.pathname.includes(`/spaces/${space.id}`);
   const IconComponent = (Icons as any)[space.icon] || Icons.LayoutGrid;
   const spaceColor = space.color || "var(--primary)";
   const effectiveOpen = isForcedOpen || isOpen;
+  const { active } = useDndContext();
+  
+  const hasChildren = space.hasFolders || space.hasTasks;
 
   return (
     <Collapsible
@@ -51,7 +58,7 @@ export const SpaceItem = React.memo(function SpaceItem({ space, isForcedOpen }: 
       <SortableItem
         id={`space-${space.id}`}
         data={{
-          ...space, // Entire object for high-fidelity DragOverlay
+          ...space, 
           type: EntityLayerConst.ProjectSpace,
           id: space.id,
           orderKey: space.orderKey,
@@ -70,21 +77,40 @@ export const SpaceItem = React.memo(function SpaceItem({ space, isForcedOpen }: 
         >
           <div
             className="relative flex items-center justify-center w-5 h-5 flex-shrink-0 cursor-pointer rounded-sm hover:bg-background/50 group/icon mr-0.5"
+            onMouseEnter={() => {
+              if (effectiveOpen || !workspaceId || !hasChildren || !!active) return;
+              
+              const timeout = setTimeout(() => {
+                if (!!active) return;
+                prefetchNodeTasks(queryClient, workspaceId, space.id, EntityLayerConst.ProjectSpace);
+              }, 50);
+
+              const clear = () => clearTimeout(timeout);
+              const element = document.getElementById(`space-expand-${space.id}`);
+              element?.addEventListener('mouseleave', clear, { once: true });
+            }}
+            id={`space-expand-${space.id}`}
             onClick={(e) => {
+              if (!hasChildren) return;
               e.stopPropagation();
               setIsOpen(!isOpen);
             }}
           >
             <IconComponent
-              className="h-3.5 w-3.5 absolute transition-opacity group-hover/icon:opacity-0"
+              className={cn(
+                "h-3.5 w-3.5 absolute transition-opacity",
+                hasChildren && "group-hover/icon:opacity-0"
+              )}
               style={{ color: isActive ? spaceColor : undefined }}
             />
-            <ChevronRight
-              className={cn(
-                "h-4 w-4 absolute opacity-0 transition-all text-muted-foreground group-hover/icon:opacity-100",
-                isOpen && "rotate-90",
-              )}
-            />
+            {hasChildren && (
+              <ChevronRight
+                className={cn(
+                  "h-4 w-4 absolute opacity-0 transition-all text-muted-foreground group-hover/icon:opacity-100",
+                  isOpen && "rotate-90",
+                )}
+              />
+            )}
           </div>
           <span className="truncate text-[11px] font-bold flex-1">
             {clampName(space.name)}

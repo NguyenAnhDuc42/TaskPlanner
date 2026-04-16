@@ -119,6 +119,14 @@ namespace Api.Controllers
             return result.ToActionResult();
         }
 
+        [HttpGet("{id:guid}/hierarchy/nodes/{nodeId:guid}/folders")]
+        public async Task<IActionResult> GetNodeFolders(Guid id, Guid nodeId, CancellationToken cancellationToken)
+        {
+            var query = new Application.Features.WorkspaceFeatures.HierarchyManagement.GetHierarchy.GetNodeFoldersQuery(id, nodeId);
+            var result = await _handler.QueryAsync<Application.Features.WorkspaceFeatures.HierarchyManagement.GetHierarchy.GetNodeFoldersQuery, List<FolderHierarchyDto>>(query, cancellationToken);
+            return result.ToActionResult();
+        }
+
         [HttpGet("{id:guid}/me/permissions")]
         public async Task<IActionResult> GetMyWorkspacePermissions(
             Guid id,

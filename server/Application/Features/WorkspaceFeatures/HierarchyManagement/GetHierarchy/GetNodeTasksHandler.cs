@@ -12,7 +12,7 @@ public class GetNodeTasksHandler(IDataBase db) : IQueryHandler<GetNodeTasksQuery
     public async Task<Result<NodeTasksDto>> Handle(GetNodeTasksQuery request, CancellationToken ct)
     {
         
-        var rawTasks = (await db.QueryAsync<TaskRawItem>(GetHierarchySql.TasksQuery, new
+        var rawTasks = (await db.QueryAsync<TaskRawItem>(GetNodeTasksSql.TasksQuery, new
         {
             WorkspaceId = request.WorkspaceId,
             ParentId = request.ParentId,

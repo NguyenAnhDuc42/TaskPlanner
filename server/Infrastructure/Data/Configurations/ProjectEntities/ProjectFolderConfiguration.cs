@@ -87,7 +87,8 @@ public class ProjectFolderConfiguration : EntityConfiguration<ProjectFolder>
         builder.Property(f => f.DeletedAt).HasColumnName("deleted_at").HasColumnOrder(17);
         builder.Property(f => f.CreatorId).HasColumnName("creator_id").HasColumnOrder(18);
 
-        builder.HasIndex(x => x.ProjectWorkspaceId);
-        builder.HasIndex(x => x.ProjectSpaceId);
+        builder.HasIndex(f => new { f.ProjectWorkspaceId, f.ProjectSpaceId, f.OrderKey, f.Id })
+            .HasFilter("\"deleted_at\" IS NULL AND \"is_archived\" = false")
+            .IncludeProperties(f => new { f.Name, f.IsPrivate });
     }
 }

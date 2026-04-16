@@ -31,7 +31,6 @@ export const TaskItem = React.memo(function TaskItem({ task, parentId, parentTyp
         ...task,
         type: EntityLayerConst.ProjectTask,
         id: task.id,
-        orderKey: task.orderKey,
         parentId,
         parentType,
       }}

@@ -21,6 +21,8 @@ public record SpaceHierarchyDto
     public string Icon { get; init; } = null!;
     public bool IsPrivate { get; init; }
     public string OrderKey { get; init; } = null!;
+    public bool HasFolders { get; init; }
+    public bool HasTasks { get; init; }
     public List<FolderHierarchyDto> Folders { get; init; } = new();
     public List<TaskHierarchyDto> Tasks { get; init; } = new();
 }
@@ -33,6 +35,7 @@ public record FolderHierarchyDto
     public string Icon { get; init; } = null!;
     public bool IsPrivate { get; init; }
     public string OrderKey { get; init; } = null!;
+    public bool HasTasks { get; init; }
     public List<TaskHierarchyDto> Tasks { get; init; } = new();
 }
 

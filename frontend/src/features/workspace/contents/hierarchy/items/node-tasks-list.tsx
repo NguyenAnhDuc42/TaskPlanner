@@ -6,6 +6,13 @@ import { Loader2, Plus } from "lucide-react";
 import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { TaskItem } from "./task-item";
 
+const TaskSkeleton = () => (
+  <div className="flex items-center gap-2 pl-2 py-1 opacity-20 animate-pulse">
+    <div className="h-3.5 w-4 bg-muted-foreground/30 rounded-sm" />
+    <div className="h-2.5 w-24 bg-muted-foreground/30 rounded-full" />
+  </div>
+);
+
 export const NodeTasksList = React.memo(function NodeTasksList({nodeId, parentType, isExpanded,}: {nodeId: string; parentType: EntityLayerType; isExpanded: boolean;}) {
   const { workspaceId } = useWorkspace();
   const {
@@ -20,11 +27,8 @@ export const NodeTasksList = React.memo(function NodeTasksList({nodeId, parentTy
 
   if (isLoading) {
     return (
-      <div className="flex items-center gap-2 pl-6 py-1 opacity-50">
-        <Loader2 className="h-3 w-3 animate-spin" />
-        <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-          Loading Tasks...
-        </span>
+      <div className="flex flex-col gap-0.5 mt-0.5">
+        {[1, 2, 3].map((i) => <TaskSkeleton key={i} />)}
       </div>
     );
   }
@@ -33,9 +37,11 @@ export const NodeTasksList = React.memo(function NodeTasksList({nodeId, parentTy
 
   return (
     <SortableContext items={allTasks.map(t => `task-${t.id}`)} strategy={verticalListSortingStrategy}>
-      {allTasks.map((task) => (
-        <TaskItem key={task.id} task={task} parentId={nodeId} parentType={parentType} />
-      ))}
+      <div className="flex flex-col">
+        {allTasks.map((task) => (
+          <TaskItem key={task.id} task={task} parentId={nodeId} parentType={parentType} />
+        ))}
+      </div>
       {hasNextPage && (
         <button
           onClick={(e) => {

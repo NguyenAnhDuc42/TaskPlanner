@@ -17,6 +17,8 @@ export interface SpaceHierarchy {
   icon: string;
   isPrivate: boolean;
   orderKey: string;
+  hasFolders: boolean;
+  hasTasks: boolean;
   folders: FolderHierarchy[];
   tasks: TaskHierarchy[];
 }
@@ -30,6 +32,7 @@ export interface FolderHierarchy {
   icon: string;
   isPrivate: boolean;
   orderKey: string;
+  hasTasks: boolean;
   tasks: TaskHierarchy[];
 }
 

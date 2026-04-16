@@ -3,6 +3,7 @@ using System;
 using Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Infrastructure.Migrations
 {
     [DbContext(typeof(TaskPlanDbContext))]
-    partial class TaskPlanDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260416134635_AddCompositeHierarchyIndexes")]
+    partial class AddCompositeHierarchyIndexes
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -868,6 +871,10 @@ namespace Infrastructure.Migrations
 
                     b.HasIndex("CreatorId");
 
+                    b.HasIndex("ProjectSpaceId");
+
+                    b.HasIndex("ProjectWorkspaceId");
+
                     b.HasIndex("StatusId");
 
                     b.HasIndex("WorkflowId");
@@ -875,10 +882,7 @@ namespace Infrastructure.Migrations
                     b.HasIndex("ProjectSpaceId", "Slug")
                         .IsUnique();
 
-                    b.HasIndex("ProjectWorkspaceId", "ProjectSpaceId", "OrderKey", "Id")
-                        .HasFilter("\"deleted_at\" IS NULL AND \"is_archived\" = false");
-
-                    NpgsqlIndexBuilderExtensions.IncludeProperties(b.HasIndex("ProjectWorkspaceId", "ProjectSpaceId", "OrderKey", "Id"), new[] { "Name", "IsPrivate" });
+                    b.HasIndex("ProjectWorkspaceId", "ProjectSpaceId", "OrderKey", "Id");
 
                     b.ToTable("project_folders", (string)null);
                 });
@@ -973,10 +977,7 @@ namespace Infrastructure.Migrations
                     b.HasIndex("ProjectWorkspaceId", "Slug")
                         .IsUnique();
 
-                    b.HasIndex("ProjectWorkspaceId", "OrderKey", "Id")
-                        .HasFilter("\"deleted_at\" IS NULL AND \"is_archived\" = false");
-
-                    NpgsqlIndexBuilderExtensions.IncludeProperties(b.HasIndex("ProjectWorkspaceId", "OrderKey", "Id"), new[] { "Name", "IsPrivate" });
+                    b.HasIndex("ProjectWorkspaceId", "OrderKey", "Id");
 
                     b.ToTable("project_spaces", (string)null);
                 });

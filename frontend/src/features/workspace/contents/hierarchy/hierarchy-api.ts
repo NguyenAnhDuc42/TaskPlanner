@@ -18,6 +18,50 @@ export function useHierarchy(workspaceId: string) {
   });
 }
 
+export function useNodeFolders(workspaceId: string, nodeId: string, enabled: boolean = true) {
+  return useQuery({
+    queryKey: [...hierarchyKeys.detail(workspaceId), nodeId, "folders"],
+    queryFn: async () => {
+      const { data } = await api.get<FolderHierarchy[]>(`/workspaces/${workspaceId}/hierarchy/nodes/${nodeId}/folders`);
+      return data;
+    },
+    enabled: !!workspaceId && !!nodeId && enabled,
+    staleTime: 1000 * 60 * 5,
+  });
+}
+
+export const prefetchNodeFolders = async (queryClient: any, workspaceId: string, nodeId: string) => {
+  await queryClient.prefetchQuery({
+    queryKey: [...hierarchyKeys.detail(workspaceId), nodeId, "folders"],
+    queryFn: async () => {
+      const { data } = await api.get<FolderHierarchy[]>(`/workspaces/${workspaceId}/hierarchy/nodes/${nodeId}/folders`);
+      return data;
+    },
+    staleTime: 1000 * 60 * 5,
+  });
+};
+
+export const prefetchNodeTasks = async (queryClient: any, workspaceId: string, nodeId: string, parentType: EntityLayerType) => {
+  await queryClient.prefetchInfiniteQuery({
+    queryKey: hierarchyKeys.nodeTasks(workspaceId, nodeId),
+    queryFn: async () => {
+      const { data } = await api.get<NodeTasksResponse>(
+        `/workspaces/${workspaceId}/hierarchy/nodes/${nodeId}/tasks`,
+        {
+          params: {
+            parentType,
+            cursorOrderKey: null,
+            cursorTaskId: null,
+          },
+        }
+      );
+      return data;
+    },
+    initialPageParam: null,
+    staleTime: 1000 * 60 * 5,
+  });
+};
+
 export function useNodeTasks(workspaceId: string, nodeId: string, parentType: EntityLayerType) {
   return useInfiniteQuery({
     queryKey: hierarchyKeys.nodeTasks(workspaceId, nodeId),

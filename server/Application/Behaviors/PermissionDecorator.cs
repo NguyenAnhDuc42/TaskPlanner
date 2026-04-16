@@ -23,6 +23,9 @@ public static class PermissionDecorator
         var userId = currentUserService.CurrentUserId();
         var workspaceId = workspaceIdResult.Value;
 
+        if (workspaceContext.CurrentMember != null && workspaceContext.CurrentMember.UserId == userId)
+            return null;
+
         var member = await db.WorkspaceMembers
             .AsNoTracking()
             .ByMember(workspaceId, userId)

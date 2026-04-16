@@ -98,6 +98,8 @@ public class ProjectTaskConfiguration : EntityConfiguration<ProjectTask>
         builder.HasIndex(x => x.ProjectWorkspaceId);
         builder.HasIndex(x => x.ProjectSpaceId);
         builder.HasIndex(x => x.ProjectFolderId);
+        builder.HasIndex(x => new { x.ProjectSpaceId, x.OrderKey, x.Id });
+        builder.HasIndex(x => new { x.ProjectFolderId, x.OrderKey, x.Id });
         builder.HasIndex(x => new { x.ProjectSpaceId, x.StatusId });
         builder.HasIndex(x => x.DueDate);
     }

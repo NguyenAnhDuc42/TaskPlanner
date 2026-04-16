@@ -68,6 +68,10 @@ public class ProjectSpaceConfiguration : EntityConfiguration<ProjectSpace>
 
         builder.HasIndex(w => w.WorkflowId);
         builder.HasIndex(w => w.StatusId);
+        builder.HasIndex(s => s.ProjectWorkspaceId);
+        builder.HasIndex(s => new { s.ProjectWorkspaceId, s.OrderKey, s.Id })
+            .HasFilter("\"deleted_at\" IS NULL AND \"is_archived\" = false")
+            .IncludeProperties(s => new { s.Name, s.IsPrivate });
 
         // Auditing (Overrides from base to set order)
         builder.Property(w => w.CreatedAt).HasColumnOrder(12);

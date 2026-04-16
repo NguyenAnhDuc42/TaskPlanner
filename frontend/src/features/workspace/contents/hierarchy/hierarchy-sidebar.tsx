@@ -6,8 +6,11 @@ import { SpaceForm } from "./hierarchy-components/creation-form/space-form";
 import { Loader2, Plus, Search, ChevronDown, FileText, Clock } from "lucide-react";
 import { 
   DndContext, 
-  closestCorners, 
+  rectIntersection, 
   DragOverlay,
+  PointerSensor,
+  useSensor,
+  useSensors,
 } from "@dnd-kit/core";
 import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { restrictToVerticalAxis } from "@dnd-kit/modifiers";
@@ -123,7 +126,7 @@ export function HierarchySidebar() {
               <div className="px-2 pt-0.5 pb-2 flex flex-col gap-0.5">
                 <DndContext 
                   sensors={sensors} 
-                  collisionDetection={closestCorners} 
+                  collisionDetection={rectIntersection} 
                   onDragStart={handleDragStart}
                   onDragEnd={handleDragEnd} 
                   modifiers={[restrictToVerticalAxis]}
@@ -134,9 +137,9 @@ export function HierarchySidebar() {
                     ))}
                   </SortableContext>
 
-                  <DragOverlay adjustScale={false}>
+                  <DragOverlay adjustScale={false} zIndex={1000}>
                     {activeItem ? (
-                      <div className="opacity-80 scale-105 transition-transform pointer-events-none">
+                      <div className="opacity-80 scale-105 transition-transform pointer-events-none shadow-2xl rounded-sm overflow-hidden ring-1 ring-primary/20">
                         {activeItem.type === EntityLayerConst.ProjectSpace && (
                           <SpaceItem space={activeItem.data as SpaceHierarchy} isForcedOpen={false} />
                         )}

@@ -1,4 +1,4 @@
-import React from "react";
+
 
 export function MockItem({
   icon: Icon,
