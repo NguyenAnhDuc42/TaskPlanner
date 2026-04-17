@@ -50,6 +50,14 @@ public record TaskHierarchyDto
     public string? OrderKey { get; init; }
 }
 
+// ── GetNodeFolders (lazy folder loading on expand) ──────────────────────────
+
+public record GetNodeFoldersQuery(
+    Guid WorkspaceId,
+    Guid NodeId
+) : IQueryRequest<List<FolderHierarchyDto>>, IAuthorizedWorkspaceRequest;
+
+
 // ── GetNodeTasks (lazy task loading on expand) ──────────────────────────
 
 public record GetNodeTasksQuery(

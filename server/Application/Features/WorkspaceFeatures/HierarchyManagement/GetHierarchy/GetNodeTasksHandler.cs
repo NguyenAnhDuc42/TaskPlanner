@@ -4,6 +4,7 @@ using Application.Common.Results;
 using Application.Helpers;
 using Application.Interfaces.Data;
 using Domain.Enums;
+using Dapper;
 
 namespace Application.Features.WorkspaceFeatures.HierarchyManagement.GetHierarchy;
 
@@ -12,7 +13,7 @@ public class GetNodeTasksHandler(IDataBase db) : IQueryHandler<GetNodeTasksQuery
     public async Task<Result<NodeTasksDto>> Handle(GetNodeTasksQuery request, CancellationToken ct)
     {
         
-        var rawTasks = (await db.QueryAsync<TaskRawItem>(GetNodeTasksSql.TasksQuery, new
+        var rawTasks = (await db.QueryAsync<TaskRawItem>(GetHierarchySql.TasksQuery, new
         {
             WorkspaceId = request.WorkspaceId,
             ParentId = request.ParentId,
@@ -20,21 +21,25 @@ public class GetNodeTasksHandler(IDataBase db) : IQueryHandler<GetNodeTasksQuery
             CursorOrderKey = request.CursorOrderKey,
             CursorTaskId = request.CursorTaskId,
             PageSize = request.PageSize + 1
-        }, cancellationToken: ct)).ToList();
+        }, cancellationToken: ct)).AsList();
 
         var hasMore = rawTasks.Count > request.PageSize;
         if (hasMore) rawTasks.RemoveAt(rawTasks.Count - 1);
 
-        var tasks = rawTasks.Select(t => new TaskHierarchyDto
+        var tasks = new List<TaskHierarchyDto>(rawTasks.Count);
+        foreach (var t in rawTasks)
         {
-            Id = t.Id,
-            Name = t.Name,
-            StatusId = t.StatusId,
-            Priority = t.Priority,
-            OrderKey = t.OrderKey,
-            Color = "",
-            Icon = ""
-        }).ToList();
+            tasks.Add(new TaskHierarchyDto
+            {
+                Id = t.Id,
+                Name = t.Name,
+                StatusId = t.StatusId,
+                Priority = t.Priority,
+                OrderKey = t.OrderKey,
+                Color = "",
+                Icon = ""
+            });
+        }
 
         var last = rawTasks.LastOrDefault();
 

@@ -11,13 +11,10 @@ import { useNavigate, useLocation } from "@tanstack/react-router";
 import { useWorkspace } from "@/features/workspace/context/workspace-provider";
 import { cn } from "@/lib/utils";
 import { Collapsible, CollapsibleContent } from "@/components/ui/collapsible";
-import { DialogFormWrapper } from "@/components/dialog-form-wrapper";
 import { DropdownWrapper } from "@/components/dropdown-wrapper";
-import { FolderForm } from "../hierarchy-components/creation-form/folder-form";
-import { TaskForm } from "../hierarchy-components/creation-form/task-form";
+
 import { SpaceMenu } from "../hierarchy-components/dropdown/space-menu";
 import { FolderItem } from "./folder-item";
-import { useDndContext } from "@dnd-kit/core";
 import { NodeTasksList } from "./node-tasks-list";
 import { clampName } from "../utils/name-utils";
 import { EntityLayerType as EntityLayerConst } from "@/types/entity-layer-type";
@@ -25,7 +22,7 @@ import {
   SortableContext,
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
-import { prefetchNodeFolders, prefetchNodeTasks, useNodeFolders } from "../hierarchy-api";
+import { prefetchNodeFolders, prefetchNodeTasks, useNodeFolders, useCreateFolder, useCreateTask } from "../hierarchy-api";
 import type { SpaceHierarchy } from "../hierarchy-type";
 import { useQueryClient } from "@tanstack/react-query";
 import { SortableItem } from "../dnd/sortable-item";
@@ -40,16 +37,16 @@ export const SpaceItem = React.memo(function SpaceItem({
   isForcedOpen,
 }: SpaceItemProps) {
   const [isOpen, setIsOpen] = React.useState(false);
-  const [showSkeleton, setShowSkeleton] = React.useState(false);
   const { workspaceId } = useWorkspace();
   const queryClient = useQueryClient();
+  const createFolder = useCreateFolder(workspaceId || "");
+  const createTask = useCreateTask(workspaceId || "");
   const navigate = useNavigate();
   const location = useLocation();
   const isActive = location.pathname.includes(`/spaces/${space.id}`);
   const IconComponent = (Icons as any)[space.icon] || Icons.LayoutGrid;
   const spaceColor = space.color || "var(--primary)";
   const effectiveOpen = isForcedOpen || isOpen;
-  const { active } = useDndContext();
 
   const hasChildren = space.hasFolders || space.hasTasks;
 
@@ -59,16 +56,6 @@ export const SpaceItem = React.memo(function SpaceItem({
     effectiveOpen
   );
 
-  // Perception Play: Only show skeleton if loading takes > 100ms, but show immediately on click
-  React.useEffect(() => {
-    let timeout: ReturnType<typeof setTimeout>;
-    if (isLoadingFolders && effectiveOpen) {
-      timeout = setTimeout(() => setShowSkeleton(true), 100);
-    } else {
-      setShowSkeleton(false);
-    }
-    return () => clearTimeout(timeout);
-  }, [isLoadingFolders, effectiveOpen]);
 
   return (
     <Collapsible
@@ -99,7 +86,7 @@ export const SpaceItem = React.memo(function SpaceItem({
           <div
             className="relative flex items-center justify-center w-5 h-5 flex-shrink-0 cursor-pointer rounded-sm hover:bg-background/50 group/icon mr-0.5"
             onMouseEnter={() => {
-              if (effectiveOpen || !workspaceId || !hasChildren || !!active) return;
+              if (effectiveOpen || !workspaceId || !hasChildren) return;
               
               // Eager prefetch: Start immediately on hover for maximum speed
               prefetchNodeFolders(queryClient, workspaceId, space.id);
@@ -132,46 +119,29 @@ export const SpaceItem = React.memo(function SpaceItem({
             {clampName(space.name)}
           </span>
           <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1">
-            <DialogFormWrapper
-              title="Create New Folder"
-              trigger={
-                <button
-                  className="h-4 w-4 p-0.5 flex items-center justify-center rounded-sm hover:bg-muted-foreground/10 text-muted-foreground hover:text-primary transition-colors"
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  <FolderPlus className="h-3.5 w-3.5" />
-                </button>
-              }
-              contentClassName="sm:max-w-[800px] p-0 overflow-hidden border-none shadow-2xl rounded-2xl bg-background outline-none ring-1 ring-border/50"
+            <button
+              className="h-4 w-4 p-0.5 flex items-center justify-center rounded-sm hover:bg-muted-foreground/10 text-muted-foreground hover:text-primary transition-colors disabled:opacity-50"
+              onClick={(e) => {
+                e.stopPropagation();
+                createFolder.mutate({ spaceId: space.id, name: "New Folder" });
+                setIsOpen(true);
+              }}
+              disabled={createFolder.isPending}
             >
-              <FolderForm
-                workspaceId={workspaceId || ""}
-                spaceId={space.id}
-                onSubmitSuccess={() => {}}
-                onCancel={() => {}}
-              />
-            </DialogFormWrapper>
+              {createFolder.isPending ? <Icons.Loader2 className="h-3 w-3 animate-spin"/> : <FolderPlus className="h-3.5 w-3.5" />}
+            </button>
 
-            <DialogFormWrapper
-              title="Create New Task"
-              trigger={
-                <button
-                  className="h-4 w-4 p-0.5 flex items-center justify-center rounded-sm hover:bg-muted-foreground/10 text-muted-foreground hover:text-primary transition-colors"
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  <Plus className="h-3.5 w-3.5" />
-                </button>
-              }
-              contentClassName="max-w-3xl p-0 overflow-hidden border-none shadow-2xl rounded-2xl bg-background outline-none ring-1 ring-border/50"
+            <button
+              className="h-4 w-4 p-0.5 flex items-center justify-center rounded-sm hover:bg-muted-foreground/10 text-muted-foreground hover:text-primary transition-colors disabled:opacity-50"
+              onClick={(e) => {
+                e.stopPropagation();
+                createTask.mutate({ parentId: space.id, parentType: EntityLayerConst.ProjectSpace, name: "New Task" });
+                setIsOpen(true);
+              }}
+              disabled={createTask.isPending}
             >
-              <TaskForm
-                workspaceId={workspaceId || ""}
-                parentId={space.id}
-                parentType={EntityLayerConst.ProjectSpace}
-                onSubmitSuccess={() => {}}
-                onCancel={() => {}}
-              />
-            </DialogFormWrapper>
+              {createTask.isPending ? <Icons.Loader2 className="h-3 w-3 animate-spin"/> : <Plus className="h-3.5 w-3.5" />}
+            </button>
 
             <DropdownWrapper
               align="start"
@@ -196,7 +166,7 @@ export const SpaceItem = React.memo(function SpaceItem({
 
       <CollapsibleContent className="overflow-hidden data-[state=open]:animate-collapsible-down data-[state=closed]:animate-collapsible-up">
         <div className="ml-3 pl-1 border-l border-border mt-0.5 flex flex-col">
-          {showSkeleton ? (
+          {isLoadingFolders ? (
             <div className="flex flex-col gap-1 py-1">
               <div className="h-5 w-32 bg-muted/40 animate-pulse rounded-sm ml-2" />
               <div className="h-5 w-24 bg-muted/40 animate-pulse rounded-sm ml-2" />

@@ -1,6 +1,7 @@
 using Application.Common.Interfaces;
 using Application.Common.Results;
 using Application.Interfaces.Data;
+using Dapper;
 
 namespace Application.Features.WorkspaceFeatures.HierarchyManagement.GetHierarchy;
 
@@ -12,7 +13,7 @@ public class GetNodeFoldersHandler(IDataBase db) : IQueryHandler<GetNodeFoldersQ
         var rawFolders = (await db.QueryAsync<FolderRaw>(
             GetHierarchySql.GetFoldersBySpaceQuery, 
             new { SpaceId = request.NodeId }, 
-            cancellationToken: ct)).ToList();
+            cancellationToken: ct)).AsList();
 
         var dtos = new List<FolderHierarchyDto>(rawFolders.Count);
         foreach (var f in rawFolders)
@@ -25,7 +26,7 @@ public class GetNodeFoldersHandler(IDataBase db) : IQueryHandler<GetNodeFoldersQ
                 Icon = f.Icon ?? string.Empty,
                 IsPrivate = f.IsPrivate,
                 OrderKey = f.OrderKey,
-                HasTasks = f.HasTasks != 0,
+                HasTasks = f.HasTasks,
                 Tasks = new()
             });
         }
@@ -33,5 +34,5 @@ public class GetNodeFoldersHandler(IDataBase db) : IQueryHandler<GetNodeFoldersQ
         return Result<List<FolderHierarchyDto>>.Success(dtos);
     }
 
-    private record FolderRaw(Guid Id, Guid ParentId, string Name, string? Color, string? Icon, bool IsPrivate, string OrderKey, int HasTasks);
+    private record FolderRaw(Guid Id, Guid ParentId, string Name, string? Color, string? Icon, bool IsPrivate, string OrderKey, bool HasTasks);
 }
