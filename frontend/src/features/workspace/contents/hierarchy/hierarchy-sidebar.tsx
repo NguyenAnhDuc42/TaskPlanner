@@ -1,17 +1,13 @@
 import { useWorkspace } from "@/features/workspace/context/workspace-provider";
-import { useHierarchy, useMoveItem } from "./hierarchy-api";
+import { useHierarchy, useMoveItem, } from "./hierarchy-api";
 import { EntityLayerType as EntityLayerConst } from "@/types/entity-layer-type";
 import { DialogFormWrapper } from "@/components/dialog-form-wrapper";
 import { SpaceForm } from "./hierarchy-components/creation-form/space-form";
 import { Loader2, Plus, Search, ChevronDown, FileText, Clock } from "lucide-react";
 import { 
   DndContext, 
-  rectIntersection, 
   closestCenter,
   DragOverlay,
-  PointerSensor,
-  useSensor,
-  useSensors,
 } from "@dnd-kit/core";
 import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { restrictToVerticalAxis } from "@dnd-kit/modifiers";
@@ -19,7 +15,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { cn } from "@/lib/utils";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useState, useMemo, useDeferredValue } from "react";
-import type { SpaceHierarchy, FolderHierarchy, TaskHierarchy, WorkspaceHierarchy } from "./hierarchy-type";
+import type { SpaceHierarchy, FolderHierarchy, TaskHierarchy,} from "./hierarchy-type";
 
 // Modularized Components & Hooks
 import { useHierarchyDnd } from "./dnd/use-hierarchy-dnd";
@@ -118,7 +114,7 @@ export function HierarchySidebar() {
             <div onClick={(e) => e.stopPropagation()}>
               <DialogFormWrapper
                 title="Create New Space"
-                trigger={<Plus className="h-3 w-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity hover:text-primary cursor-pointer" />}
+                trigger={<Plus className="h-3 w-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-none hover:text-primary cursor-pointer" />}
                 contentClassName="sm:max-w-[800px] p-0 overflow-hidden border-none shadow-2xl rounded-2xl bg-background outline-none ring-1 ring-border/50"
               >
                 <SpaceForm workspaceId={workspaceId || ""} onSubmitSuccess={() => {}} onCancel={() => {}} />
@@ -138,7 +134,7 @@ export function HierarchySidebar() {
                 >
                   <SortableContext items={filteredHierarchy?.spaces.map(s => `space-${s.id}`) || []} strategy={verticalListSortingStrategy}>
                     {filteredHierarchy?.spaces.map((space) => (
-                      <SpaceItem key={space.id} space={space} isForcedOpen={!!searchQuery} />
+                      <SpaceItem key={space.id} space={space} isForcedOpen={!!deferredSearchQuery} />
                     ))}
                   </SortableContext>
 

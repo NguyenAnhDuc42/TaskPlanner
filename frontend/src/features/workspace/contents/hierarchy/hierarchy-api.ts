@@ -190,7 +190,7 @@ export function useMoveItem(workspaceId: string) {
             
             // Just add to end and sort, since fractional keys handle exact placement
             newFolders.push(movedItem!);
-            return newFolders.sort((a, b) => a.orderKey.localeCompare(b.orderKey));
+            return newFolders.sort((a, b) => (a.orderKey < b.orderKey ? -1 : a.orderKey > b.orderKey ? 1 : 0));
           });
         }
       }
@@ -224,7 +224,7 @@ export function useMoveItem(workspaceId: string) {
               const newTasks = [...(newPages[0].tasks || [])];
               if (newOrderKey) movedTask.orderKey = newOrderKey;
               newTasks.push(movedTask);
-              newPages[0] = { ...newPages[0], tasks: newTasks.sort((a, b) => a.orderKey.localeCompare(b.orderKey)) };
+              newPages[0] = { ...newPages[0], tasks: newTasks.sort((a, b) => (a.orderKey < b.orderKey ? -1 : a.orderKey > b.orderKey ? 1 : 0)) };
             }
             return { ...old, pages: newPages };
           });
@@ -246,7 +246,7 @@ export function useMoveItem(workspaceId: string) {
                 ? spaces.findIndex(s => s.orderKey === nextItemOrderKey) 
                 : spaces.length;
               spaces.splice(overIdx === -1 ? spaces.length : overIdx, 0, removed);
-              newHierarchy.spaces = spaces.sort((a, b) => a.orderKey.localeCompare(b.orderKey));
+              newHierarchy.spaces = spaces.sort((a, b) => (a.orderKey < b.orderKey ? -1 : a.orderKey > b.orderKey ? 1 : 0));
             }
           }
           return newHierarchy;

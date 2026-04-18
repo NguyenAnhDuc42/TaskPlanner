@@ -22,7 +22,7 @@ import {
   SortableContext,
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
-import { prefetchNodeFolders, prefetchNodeTasks, useNodeFolders, useCreateFolder, useCreateTask } from "../hierarchy-api";
+import { prefetchNodeFolders, prefetchNodeTasks, useNodeFolders } from "../hierarchy-api";
 import type { SpaceHierarchy } from "../hierarchy-type";
 import { useQueryClient } from "@tanstack/react-query";
 import { SortableItem } from "../dnd/sortable-item";
@@ -39,8 +39,6 @@ export const SpaceItem = React.memo(function SpaceItem({
   const [isOpen, setIsOpen] = React.useState(false);
   const { workspaceId } = useWorkspace();
   const queryClient = useQueryClient();
-  const createFolder = useCreateFolder(workspaceId || "");
-  const createTask = useCreateTask(workspaceId || "");
   const navigate = useNavigate();
   const location = useLocation();
   const isActive = location.pathname.includes(`/spaces/${space.id}`);
@@ -101,7 +99,7 @@ export const SpaceItem = React.memo(function SpaceItem({
           >
             <IconComponent
               className={cn(
-                "h-3.5 w-3.5 absolute transition-opacity",
+                "h-3.5 w-3.5 absolute transition-none",
                 hasChildren && "group-hover/icon:opacity-0",
               )}
               style={{ color: isActive ? spaceColor : undefined }}
@@ -109,7 +107,7 @@ export const SpaceItem = React.memo(function SpaceItem({
             {hasChildren && (
               <ChevronRight
                 className={cn(
-                  "h-4 w-4 absolute opacity-0 transition-all text-muted-foreground group-hover/icon:opacity-100",
+                  "h-4 w-4 absolute opacity-0 text-muted-foreground group-hover/icon:opacity-100 transition-none",
                   isOpen && "rotate-90",
                 )}
               />
@@ -119,29 +117,7 @@ export const SpaceItem = React.memo(function SpaceItem({
             {clampName(space.name)}
           </span>
           <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1">
-            <button
-              className="h-4 w-4 p-0.5 flex items-center justify-center rounded-sm hover:bg-muted-foreground/10 text-muted-foreground hover:text-primary transition-colors disabled:opacity-50"
-              onClick={(e) => {
-                e.stopPropagation();
-                createFolder.mutate({ spaceId: space.id, name: "New Folder" });
-                setIsOpen(true);
-              }}
-              disabled={createFolder.isPending}
-            >
-              {createFolder.isPending ? <Icons.Loader2 className="h-3 w-3 animate-spin"/> : <FolderPlus className="h-3.5 w-3.5" />}
-            </button>
 
-            <button
-              className="h-4 w-4 p-0.5 flex items-center justify-center rounded-sm hover:bg-muted-foreground/10 text-muted-foreground hover:text-primary transition-colors disabled:opacity-50"
-              onClick={(e) => {
-                e.stopPropagation();
-                createTask.mutate({ parentId: space.id, parentType: EntityLayerConst.ProjectSpace, name: "New Task" });
-                setIsOpen(true);
-              }}
-              disabled={createTask.isPending}
-            >
-              {createTask.isPending ? <Icons.Loader2 className="h-3 w-3 animate-spin"/> : <Plus className="h-3.5 w-3.5" />}
-            </button>
 
             <DropdownWrapper
               align="start"
@@ -164,7 +140,7 @@ export const SpaceItem = React.memo(function SpaceItem({
         </div>
       </SortableItem>
 
-      <CollapsibleContent className="overflow-hidden data-[state=open]:animate-collapsible-down data-[state=closed]:animate-collapsible-up">
+      <CollapsibleContent className="overflow-hidden">
         <div className="ml-3 pl-1 border-l border-border mt-0.5 flex flex-col">
           {isLoadingFolders ? (
             <div className="flex flex-col gap-1 py-1">

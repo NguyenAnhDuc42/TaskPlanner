@@ -13,7 +13,7 @@ import { clampName } from "../utils/name-utils";
 import { EntityLayerType as EntityLayerConst } from "@/types/entity-layer-type";
 import type { FolderHierarchy } from "../hierarchy-type";
 import { useQueryClient } from "@tanstack/react-query";
-import { prefetchNodeTasks, useCreateTask } from "../hierarchy-api";
+import { prefetchNodeTasks } from "../hierarchy-api";
 
 
 
@@ -30,7 +30,6 @@ export const FolderItem = React.memo(function FolderItem({ folder, spaceId }: Fo
   const navigate = useNavigate();
   const { workspaceId } = useWorkspace();
   const queryClient = useQueryClient();
-  const createTask = useCreateTask(workspaceId || "");
 
 
   // New: Auto-collapse if folder becomes empty
@@ -75,27 +74,15 @@ export const FolderItem = React.memo(function FolderItem({ folder, spaceId }: Fo
             setIsOpen(!isOpen);
           }}
           >
-            <IconComponent className={cn("h-3.5 w-3.5 absolute transition-opacity", folder.hasTasks && "group-hover/icon:opacity-0")} style={{ color: folder.color }}/>
+            <IconComponent className={cn("h-3.5 w-3.5 absolute transition-none", folder.hasTasks && "group-hover/icon:opacity-0")} style={{ color: folder.color }}/>
             {folder.hasTasks && (
-              <ChevronRight className={cn("h-4 w-4 absolute opacity-0 transition-all text-muted-foreground group-hover/icon:opacity-100", isOpen && "rotate-90")}/>
+              <ChevronRight className={cn("h-4 w-4 absolute opacity-0 text-muted-foreground group-hover/icon:opacity-100 transition-none", isOpen && "rotate-90")}/>
             )}
           </div>
           <span className="truncate text-[11px] font-semibold flex-1">
             {clampName(folder.name)}
           </span>
           <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1">
-            <button 
-              className="h-4 w-4 p-0.5 flex items-center justify-center rounded-sm hover:bg-muted-foreground/10 text-muted-foreground hover:text-primary transition-colors disabled:opacity-50"
-              onClick={(e) => {
-                e.stopPropagation();
-                createTask.mutate({ parentId: folder.id, parentType: EntityLayerConst.ProjectFolder, name: "New Task" });
-                setIsOpen(true);
-              }}
-              disabled={createTask.isPending}
-            >
-              {createTask.isPending ? <Icons.Loader2 className="h-3 w-3 animate-spin"/> : <Plus className="h-3.5 w-3.5" />}
-            </button>
-
             <DropdownWrapper align="start" side="right" trigger={
                 <button className="h-4 w-4 p-0.5 flex items-center justify-center rounded-sm hover:bg-muted-foreground/10 text-muted-foreground hover:text-primary transition-colors" onClick={(e) => e.stopPropagation()}>
                   <MoreHorizontal className="h-3.5 w-3.5" />
@@ -107,7 +94,7 @@ export const FolderItem = React.memo(function FolderItem({ folder, spaceId }: Fo
           </div>
         </div>
       </SortableItem>
-      <CollapsibleContent className="overflow-hidden data-[state=open]:animate-collapsible-down data-[state=closed]:animate-collapsible-up">
+      <CollapsibleContent className="overflow-hidden">
         <div className="ml-3 pl-1 border-l border-border mt-0.5 flex flex-col">
           {isOpen && !folder.hasTasks ? null : (
             <NodeTasksList 
