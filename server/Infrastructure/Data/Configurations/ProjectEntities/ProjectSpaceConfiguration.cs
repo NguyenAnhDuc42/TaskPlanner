@@ -37,6 +37,10 @@ public class ProjectSpaceConfiguration : EntityConfiguration<ProjectSpace>
         builder.Property(s => s.Description)
             .HasColumnName("description")
             .HasColumnType("jsonb")
+            .HasConversion(
+                v => v == null ? null : System.Text.Json.JsonSerializer.Serialize(v, (System.Text.Json.JsonSerializerOptions)null!),
+                v => v == null ? null : System.Text.Json.JsonSerializer.Deserialize<string>(v, (System.Text.Json.JsonSerializerOptions)null!)
+            )
             .HasColumnOrder(4);
 
         builder.OwnsOne(s => s.Customization, c =>

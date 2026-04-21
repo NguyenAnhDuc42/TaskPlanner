@@ -141,7 +141,7 @@ export const SpaceItem = React.memo(function SpaceItem({
       </SortableItem>
 
       <CollapsibleContent className="overflow-hidden">
-        <div className="ml-3 pl-1 border-l border-border mt-0.5 flex flex-col">
+        <div className="ml-3 pl-1 border-l border-border mt-0.5  flex flex-col ">
           {isLoadingFolders ? (
             <div className="flex flex-col gap-1 py-1">
               <div className="h-5 w-32 bg-muted/40 animate-pulse rounded-sm ml-2" />

@@ -33,6 +33,10 @@ public class ProjectWorkspaceConfiguration : EntityConfiguration<ProjectWorkspac
         builder.Property(w => w.Description)
             .HasColumnName("description")
             .HasColumnType("jsonb")
+            .HasConversion(
+                v => v == null ? null : System.Text.Json.JsonSerializer.Serialize(v, (System.Text.Json.JsonSerializerOptions)null!),
+                v => v == null ? null : System.Text.Json.JsonSerializer.Deserialize<string>(v, (System.Text.Json.JsonSerializerOptions)null!)
+            )
             .HasColumnOrder(3);
 
         builder.Property(w => w.JoinCode)

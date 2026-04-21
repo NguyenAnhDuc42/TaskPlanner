@@ -39,9 +39,6 @@ public class GetViewDataHandler(IDataBase db)
             case ViewType.Overview: // Context & Info
                 data = await FetchOverviewContextData(view, workflow, ct);
                 break;
-            case ViewType.Documents: // Asset Explorer (Docs + Attachments)
-                data = await FetchAssetExplorerData(view, ct);
-                break;
             default:
                 return Result<ViewDataResponse>.Failure(Error.Validation("View.InvalidType", "Unsupported view type."));
         }
@@ -138,7 +135,20 @@ public class GetViewDataHandler(IDataBase db)
             .FirstOrDefaultAsync(ct);
 
         // 3. Aggregate Quick Stats
-        var taskCount = await db.Tasks.CountAsync(t => t.ProjectWorkspaceId == view.ProjectWorkspaceId && !t.IsArchived, ct);
+        var taskQuery = db.Tasks.Where(t => t.ProjectWorkspaceId == view.ProjectWorkspaceId && !t.IsArchived);
+        
+        int folderCount = 0;
+        if (view.LayerType == EntityLayerType.ProjectSpace)
+        {
+            taskQuery = taskQuery.Where(t => t.ProjectSpaceId == view.LayerId);
+            folderCount = await db.Folders.CountAsync(f => f.ProjectSpaceId == view.LayerId && !f.IsArchived, ct);
+        }
+        else if (view.LayerType == EntityLayerType.ProjectFolder)
+        {
+            taskQuery = taskQuery.Where(t => t.ProjectFolderId == view.LayerId);
+        }
+
+        var taskCount = await taskQuery.CountAsync(ct);
 
         return new OverviewViewData(
             view.LayerId, 
@@ -149,23 +159,6 @@ public class GetViewDataHandler(IDataBase db)
             chatRoomId == Guid.Empty ? null : chatRoomId, 
             creatorId, 
             createdAt, 
-            new OverviewStats(taskCount, 0));
-    }
-
-    private async Task<AssetViewData> FetchAssetExplorerData(ViewDefinition view, CancellationToken ct)
-    {
-        var documents = await db.Documents.AsNoTracking()
-            .Where(d => d.ProjectWorkspaceId == view.ProjectWorkspaceId)
-            .Select(d => new AssetItemDto(d.Id, d.Name, "Document", ".doc", (long)d.Content.Length, d.CreatorId ?? Guid.Empty, d.CreatedAt))
-            .ToListAsync(ct);
-
-        var attachments = await db.EntityAssetLinks.AsNoTracking()
-            .Where(l => l.ParentEntityId == view.LayerId && l.AssetType == AssetType.Attachment)
-            .Join(db.Attachments, l => l.AssetId, a => a.Id, (l, a) => a)
-            .Select(a => new AssetItemDto(a.Id, a.FileName, a.Type.ToString(), System.IO.Path.GetExtension(a.FileName), a.SizeBytes, a.CreatorId ?? Guid.Empty, a.CreatedAt))
-            .ToListAsync(ct);
-
-        var combined = documents.Concat(attachments).OrderByDescending(a => a.CreatedAt).ToList();
-        return new AssetViewData(combined, combined.Count);
+            new OverviewStats(taskCount, folderCount));
     }
 }

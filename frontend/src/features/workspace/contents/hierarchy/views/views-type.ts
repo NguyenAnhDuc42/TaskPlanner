@@ -1,69 +1,96 @@
+import type { Priority } from "@/types/priority";
+import type { StatusCategory } from "@/types/status-category";
 import { ViewType } from "@/types/view-type";
-import type { TaskDto, StatusDto } from "../../tasks/tasks-type";
 
-export type { TaskDto, StatusDto };
+// ==========================================
+// Shared Enums (matching backend)
+// ==========================================
+
+
+
 
 // ==========================================
 // Entities
 // ==========================================
 
-export interface DocumentDto {
+export interface TaskItemDto {
   id: string;
-  layerId: string;
   name: string;
-  content: string;
+  createdAt: string;
+  statusId?: string;
+  priority?: Priority;
+  dueDate?: string;
 }
 
-// StatusDto is now imported from tasks-type for consistency
+export interface FolderItemDto {
+  id: string;
+  name: string;
+  createdAt: string;
+  workflowId?: string;
+  statusId?: string;
+}
+
+export interface ExplorerStatusGroupDto {
+  statusId: string;
+  statusName: string;
+  category: StatusCategory;
+  color: string;
+  folders: FolderItemDto[];
+  tasks: TaskItemDto[];
+}
+
+export interface DocumentDto {
+  id: string;
+  name: string;
+  type?: string;
+  extension?: string;
+  sizeBytes?: number;
+  createdAt: string;
+}
 
 // ==========================================
 // View Definition & Configuration
 // ==========================================
-export interface DisplayConfig {
-  groupBy?: string;
-  sortBy?: string;
-  visibleColumns?: string[];
-}
-
-export interface FilterConfig {
-  filters?: { field: string; operator: string; value: unknown }[];
-}
 
 export interface ViewDto {
   id: string;
   name: string;
-  viewType: ViewType;
+  viewType:ViewType; // Matching backend ViewType enum
   isDefault: boolean;
   filterConfigJson?: string;
   displayConfigJson?: string;
 }
 
 // ==========================================
-// Polymorphic View Results
+// View Data Responses
 // ==========================================
-export interface BaseViewResult {
-  viewType: ViewType;
+
+export interface TaskViewData {
+  groups: ExplorerStatusGroupDto[];
 }
 
-export interface TaskListViewResult extends BaseViewResult {
-  viewType: typeof ViewType.List;
-  tasks: TaskDto[];
-  statuses: StatusDto[];
+export interface AssetViewData {
+  items: DocumentDto[];
+  totalCount: number;
 }
 
-export interface TasksBoardViewResult extends BaseViewResult {
-  viewType: typeof ViewType.Board;
-  tasks: TaskDto[];
-  statuses: StatusDto[];
+export interface OverviewViewData {
+  id: string;
+  name: string;
+  description?: string;
+  statusId?: string;
+  workflowId?: string;
+  chatRoomId?: string;
+  creatorId: string;
+  createdAt: string;
+  stats: {
+    totalTasks: number;
+    totalFolders: number;
+  };
 }
 
-export interface DocumentListResult extends BaseViewResult {
-  viewType: typeof ViewType.Doc;
-  documents: DocumentDto[];
-  statuses: StatusDto[];
+export interface ViewResponse {
+  viewId: string;
+  viewType: string;
+  data: TaskViewData | AssetViewData | OverviewViewData;
 }
-
-export type ViewResponse =
-  | TaskListViewResult
-  | TasksBoardViewResult
-  | DocumentListResult;

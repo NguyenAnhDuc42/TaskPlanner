@@ -26,7 +26,11 @@ public static class DependencyInjection
                 });
         });
 
-        // API = client only
+        // Enable Hangfire Server so jobs are actually processed locally instead of sitting pending permanently.
+        services.AddHangfireServer(options => {
+            options.WorkerCount = Environment.ProcessorCount * 2;
+        });
+
         services.AddSingleton<IBackgroundJobClient, BackgroundJobClient>();
         services.AddSingleton<IRecurringJobManager, RecurringJobManager>();
 

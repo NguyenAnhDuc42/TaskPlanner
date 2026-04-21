@@ -87,6 +87,8 @@ public class ProcessOutboxJob
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error processing outbox message {Id}", message.Id);
+                _dbContext.ChangeTracker.Clear();
+                _dbContext.OutboxMessages.Attach(message);
                 message.MarkAsFailed(ex.Message);
             }
         }

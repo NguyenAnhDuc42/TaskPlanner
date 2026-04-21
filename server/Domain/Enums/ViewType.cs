@@ -6,6 +6,5 @@ namespace Domain.Enums;
 public enum ViewType
 {
     Overview,
-    Tasks,
-    Documents
+    Tasks
 }
