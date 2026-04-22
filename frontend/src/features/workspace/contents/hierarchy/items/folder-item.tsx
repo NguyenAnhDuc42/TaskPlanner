@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import * as Icons from "lucide-react";
-import { ChevronRight, Plus, MoreHorizontal } from "lucide-react";
+import { ChevronRight, MoreHorizontal } from "lucide-react";
 import { useNavigate, useLocation } from "@tanstack/react-router";
 import { useWorkspace } from "@/features/workspace/context/workspace-provider";
 import { cn } from "@/lib/utils";
@@ -95,7 +95,7 @@ export const FolderItem = React.memo(function FolderItem({ folder, spaceId }: Fo
         </div>
       </SortableItem>
       <CollapsibleContent className="overflow-hidden">
-        <div className="ml-3 pl-1 border-l border-border mt-0.5 flex flex-col">
+        <div className="ml-3 pl-2 border-l border-border flex flex-col">
           {isOpen && !folder.hasTasks ? null : (
             <NodeTasksList 
               nodeId={folder.id} 

@@ -51,7 +51,7 @@ function WorkspaceThemeLayout({ workspace }: { workspace: any }) {
 
   return (
     <div className={cn(
-      "relative flex h-screen w-full overflow-hidden p-3 transition-colors duration-500 bg-background", 
+      "relative flex h-screen w-full overflow-hidden p-4 transition-colors duration-500 bg-background", 
       themeClass
     )}>
       {/* Column 1: Outer Sidebar */}

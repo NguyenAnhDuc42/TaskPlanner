@@ -3,7 +3,10 @@ import { useWorkspace } from "@/features/workspace/context/workspace-provider";
 import { useNodeTasks } from "../hierarchy-api";
 import { EntityLayerType } from "@/types/entity-layer-type";
 import { Loader2, Plus } from "lucide-react";
-import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
+import {
+  SortableContext,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
 import { TaskItem } from "./task-item";
 
 const TaskSkeleton = () => (
@@ -13,22 +16,29 @@ const TaskSkeleton = () => (
   </div>
 );
 
-export const NodeTasksList = React.memo(function NodeTasksList({nodeId, parentType, isExpanded, spaceId,}: {nodeId: string; parentType: EntityLayerType; isExpanded: boolean; spaceId: string;}) {
+export const NodeTasksList = React.memo(function NodeTasksList({
+  nodeId,
+  parentType,
+  isExpanded,
+  spaceId,
+}: {
+  nodeId: string;
+  parentType: EntityLayerType;
+  isExpanded: boolean;
+  spaceId: string;
+}) {
   const { workspaceId } = useWorkspace();
-  const {
-    data,
-    fetchNextPage,
-    hasNextPage,
-    isFetchingNextPage,
-    isLoading,
-  } = useNodeTasks(workspaceId, nodeId, parentType);
+  const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isLoading } =
+    useNodeTasks(workspaceId, nodeId, parentType);
 
   if (!isExpanded) return null;
 
   if (isLoading) {
     return (
-      <div className="flex flex-col gap-0.5 mt-0.5">
-        {[1, 2, 3].map((i) => <TaskSkeleton key={i} />)}
+      <div className="flex flex-col gap-0.5">
+        {[1, 2, 3].map((i) => (
+          <TaskSkeleton key={i} />
+        ))}
       </div>
     );
   }
@@ -36,10 +46,19 @@ export const NodeTasksList = React.memo(function NodeTasksList({nodeId, parentTy
   const allTasks = data?.pages.flatMap((page) => page.tasks) || [];
 
   return (
-    <SortableContext items={allTasks.map(t => `task-${t.id}`)} strategy={verticalListSortingStrategy}>
+    <SortableContext
+      items={allTasks.map((t) => `task-${t.id}`)}
+      strategy={verticalListSortingStrategy}
+    >
       <div className="flex flex-col">
         {allTasks.map((task) => (
-          <TaskItem key={task.id} task={task} parentId={nodeId} parentType={parentType} spaceId={spaceId} />
+          <TaskItem
+            key={task.id}
+            task={task}
+            parentId={nodeId}
+            parentType={parentType}
+            spaceId={spaceId}
+          />
         ))}
       </div>
       {hasNextPage && (

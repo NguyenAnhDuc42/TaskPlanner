@@ -11,6 +11,7 @@ public class ViewDefinition : TenantEntity
     public string Name { get; private set; } = null!;
     public ViewType ViewType { get; private set; }
     public bool IsDefault { get; private set; }
+    public int SortOrder { get; private set; }
     
     // Shared configurations stored as JSON in DB but typed in Domain
     public ViewFilterConfig FilterConfig { get; private set; } = ViewFilterConfig.CreateDefault();
@@ -25,6 +26,7 @@ public class ViewDefinition : TenantEntity
         string name,
         ViewType viewType,
         bool isDefault,
+        int sortOrder,
         Guid creatorId)
         : base(Guid.NewGuid(), projectWorkspaceId)
     {
@@ -33,6 +35,7 @@ public class ViewDefinition : TenantEntity
         Name = name;
         ViewType = viewType;
         IsDefault = isDefault;
+        SortOrder = sortOrder;
         CreatorId = creatorId;
     }
 
@@ -43,9 +46,10 @@ public class ViewDefinition : TenantEntity
         string name,
         ViewType viewType,
         Guid creatorId,
-        bool isDefault = false)
+        bool isDefault = false,
+        int sortOrder = 0)
     {
-        return new ViewDefinition(projectWorkspaceId, layerId, layerType, name, viewType, isDefault, creatorId);
+        return new ViewDefinition(projectWorkspaceId, layerId, layerType, name, viewType, isDefault, sortOrder, creatorId);
     }
 
     public void Update(string? name, bool? isDefault)

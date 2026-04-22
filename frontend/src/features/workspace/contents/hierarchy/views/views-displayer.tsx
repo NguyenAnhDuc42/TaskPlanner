@@ -23,8 +23,29 @@ export function ViewsDisplayer({
   const entityInfo = useEntityInfo(workspaceId, entityId);
   const [isContextOpen, setIsContextOpen] = useState(true);
 
-  const { data: views, isLoading: isLoadingViews } = useViews(entityId, layerType);
+  const { data: views, isLoading: isLoadingViews, refetch: refetchViews } = useViews(entityId, layerType);
   const [activeViewId, setActiveViewId] = useState<string | null>(null);
+
+  useEffect(() => {
+    const handleReady = (data: any) => {
+      if (data.SpaceId === entityId || data.FolderId === entityId) {
+        refetchViews();
+      }
+    };
+
+    const signalR = import("@/lib/signalr-service").then(m => {
+      m.signalRService.on("SpaceReady", handleReady);
+      m.signalRService.on("FolderReady", handleReady);
+      return m.signalRService;
+    });
+
+    return () => {
+      signalR.then(s => {
+        s.off("SpaceReady", handleReady);
+        s.off("FolderReady", handleReady);
+      });
+    };
+  }, [entityId, refetchViews]);
 
   useEffect(() => {
     if (views && views.length > 0) {
@@ -50,6 +71,7 @@ export function ViewsDisplayer({
     <ViewHeader
       entityName={entityInfo.name}
       entityType={entityInfo.type}
+      parentName={(entityInfo as any).parentName}
       views={views}
       activeViewId={activeViewId}
       onViewChange={setActiveViewId}

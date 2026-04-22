@@ -39,7 +39,7 @@ export const TaskItem = React.memo(function TaskItem({ task, parentId, parentTyp
     >
       <div
         className={cn(
-          "flex items-center w-full px-1 py-0.5 rounded-sm transition-colors cursor-pointer mb-px pl-2 group",
+          "flex items-center w-full px-1 py-0.5 rounded-sm transition-colors cursor-pointer mb-px group",
           isActive
             ? "text-primary bg-primary/10"
             : "text-muted-foreground hover:bg-muted hover:text-foreground",
@@ -48,7 +48,9 @@ export const TaskItem = React.memo(function TaskItem({ task, parentId, parentTyp
           navigate({ to: `/workspaces/${workspaceId}/tasks/${task.id}` })
         }
       >
-        <CheckSquare className="h-3.5 w-4 flex-shrink-0 opacity-60 mr-1.5" />
+        <div className="w-5 h-5 flex items-center justify-center flex-shrink-0 mr-1.5">
+          <CheckSquare className="h-3.5 w-3.5 opacity-60" />
+        </div>
         <span className="truncate text-[11px] font-semibold flex-1 leading-tight">
           {clampName(task.name)}
         </span>

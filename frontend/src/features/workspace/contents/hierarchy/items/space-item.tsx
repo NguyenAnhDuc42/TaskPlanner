@@ -2,8 +2,6 @@ import React from "react";
 import * as Icons from "lucide-react";
 import {
   ChevronRight,
-  FolderPlus,
-  Plus,
   MoreHorizontal,
   Lock,
 } from "lucide-react";
@@ -22,7 +20,11 @@ import {
   SortableContext,
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
-import { prefetchNodeFolders, prefetchNodeTasks, useNodeFolders } from "../hierarchy-api";
+import {
+  prefetchNodeFolders,
+  prefetchNodeTasks,
+  useNodeFolders,
+} from "../hierarchy-api";
 import type { SpaceHierarchy } from "../hierarchy-type";
 import { useQueryClient } from "@tanstack/react-query";
 import { SortableItem } from "../dnd/sortable-item";
@@ -48,12 +50,8 @@ export const SpaceItem = React.memo(function SpaceItem({
 
   const hasChildren = space.hasFolders || space.hasTasks;
 
-  const { data: spaceFolders = [], isLoading: isLoadingFolders } = useNodeFolders(
-    workspaceId || "", 
-    space.id,
-    effectiveOpen
-  );
-
+  const { data: spaceFolders = [], isLoading: isLoadingFolders } =
+    useNodeFolders(workspaceId || "", space.id, effectiveOpen);
 
   return (
     <Collapsible
@@ -85,10 +83,15 @@ export const SpaceItem = React.memo(function SpaceItem({
             className="relative flex items-center justify-center w-5 h-5 flex-shrink-0 cursor-pointer rounded-sm hover:bg-background/50 group/icon mr-0.5"
             onMouseEnter={() => {
               if (effectiveOpen || !workspaceId || !hasChildren) return;
-              
+
               // Eager prefetch: Start immediately on hover for maximum speed
               prefetchNodeFolders(queryClient, workspaceId, space.id);
-              prefetchNodeTasks(queryClient, workspaceId, space.id, EntityLayerConst.ProjectSpace);
+              prefetchNodeTasks(
+                queryClient,
+                workspaceId,
+                space.id,
+                EntityLayerConst.ProjectSpace,
+              );
             }}
             id={`space-expand-${space.id}`}
             onClick={(e) => {
@@ -117,8 +120,6 @@ export const SpaceItem = React.memo(function SpaceItem({
             {clampName(space.name)}
           </span>
           <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1">
-
-
             <DropdownWrapper
               align="start"
               side="right"
@@ -141,7 +142,7 @@ export const SpaceItem = React.memo(function SpaceItem({
       </SortableItem>
 
       <CollapsibleContent className="overflow-hidden">
-        <div className="ml-3 pl-1 border-l border-border mt-0.5  flex flex-col ">
+        <div className="ml-3 pl-2 border-l border-border flex flex-col">
           {isLoadingFolders ? (
             <div className="flex flex-col gap-1 py-1">
               <div className="h-5 w-32 bg-muted/40 animate-pulse rounded-sm ml-2" />
@@ -155,7 +156,11 @@ export const SpaceItem = React.memo(function SpaceItem({
                   strategy={verticalListSortingStrategy}
                 >
                   {spaceFolders.map((folder) => (
-                    <FolderItem key={folder.id} folder={folder} spaceId={space.id} />
+                    <FolderItem
+                      key={folder.id}
+                      folder={folder}
+                      spaceId={space.id}
+                    />
                   ))}
                 </SortableContext>
               )}

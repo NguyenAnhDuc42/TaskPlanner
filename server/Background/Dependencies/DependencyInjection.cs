@@ -19,14 +19,13 @@ public static class DependencyInjection
                 .SetDataCompatibilityLevel(CompatibilityLevel.Version_180)
                 .UseSimpleAssemblyNameTypeSerializer()
                 .UseRecommendedSerializerSettings()
-                .UsePostgreSqlStorage(options =>
-                {
-                    options.UseNpgsqlConnection(
-                        config.GetConnectionString("Hangfire"));
-                });
+                .UsePostgreSqlStorage(
+                    c => c.UseNpgsqlConnection(config.GetConnectionString("TaskPlannerHangfire")),
+                    new PostgreSqlStorageOptions
+                    {
+                        QueuePollInterval = TimeSpan.FromMinutes(1)
+                    });
         });
-
-        // Enable Hangfire Server so jobs are actually processed locally instead of sitting pending permanently.
         services.AddHangfireServer(options => {
             options.WorkerCount = Environment.ProcessorCount * 2;
         });

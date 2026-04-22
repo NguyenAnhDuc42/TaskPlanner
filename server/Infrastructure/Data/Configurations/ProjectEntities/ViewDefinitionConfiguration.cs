@@ -20,6 +20,7 @@ public class ViewDefinitionConfiguration : EntityConfiguration<ViewDefinition>
         builder.Property(x => x.Name).HasColumnName("name").HasMaxLength(100).IsRequired();
         builder.Property(x => x.ViewType).HasColumnName("view_type").HasConversion<string>().HasMaxLength(50).IsRequired();
         builder.Property(x => x.IsDefault).HasColumnName("is_default").IsRequired();
+        builder.Property(x => x.SortOrder).HasColumnName("sort_order").IsRequired();
         
         builder.Property(x => x.FilterConfig)
             .HasColumnName("filter_config_json")

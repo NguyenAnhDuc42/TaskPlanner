@@ -27,7 +27,8 @@ public class CreateSpaceEventHandler(
             "Overview",
             ViewType.Overview,
             notification.UserId,
-            isDefault: true
+            isDefault: true,
+            sortOrder: 0
         );
 
         var tasksView = ViewDefinition.Create(
@@ -37,7 +38,8 @@ public class CreateSpaceEventHandler(
             "Tasks",
             ViewType.Tasks,
             notification.UserId,
-            isDefault: true
+            isDefault: false,
+            sortOrder: 1
         );
 
         await db.ViewDefinitions.AddRangeAsync(new[] { overviewView, tasksView }, cancellationToken);

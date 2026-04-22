@@ -6,6 +6,7 @@ import type { ViewDto } from "../../views-type";
 interface ViewHeaderProps {
   entityName: string;
   entityType: string;
+  parentName?: string;
   views?: ViewDto[];
   activeViewId: string | null;
   onViewChange: (id: string) => void;
@@ -16,6 +17,7 @@ interface ViewHeaderProps {
 export function ViewHeader({
   entityName,
   entityType,
+  parentName,
   views,
   activeViewId,
   onViewChange,
@@ -26,7 +28,7 @@ export function ViewHeader({
     <div className="flex flex-col flex-shrink-0 z-30 pt-3 px-6 pb-0 border-b border-border/40">
       {/* BREADCRUMB BAR */}
       <div className="flex items-center gap-2 text-muted-foreground/50 text-[11px] font-medium tracking-wide cursor-default mb-3">
-         <span className="hover:text-foreground transition-colors cursor-pointer">Projects</span>
+         <span className="hover:text-foreground transition-colors cursor-pointer">{parentName || "Projects"}</span>
          <ChevronRight className="h-3 w-3 opacity-50" />
          <span className="text-foreground font-semibold">{entityName}</span>
       </div>

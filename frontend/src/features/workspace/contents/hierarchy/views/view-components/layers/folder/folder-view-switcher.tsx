@@ -46,6 +46,7 @@ export function FolderViewSwitcher({
         <FolderOverviewMain 
           name={overviewData.name} 
           description={overviewData.description} 
+          stats={overviewData.stats}
         />
       );
     }

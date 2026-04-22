@@ -268,20 +268,26 @@ export function useMoveItem(workspaceId: string) {
 
 export function useEntityInfo(workspaceId: string, entityId: string | undefined) {
   const { data: hierarchy } = useHierarchy(workspaceId);
+  const queryClient = useQueryClient();
 
   return useMemo(() => {
     if (!entityId || !hierarchy) return null;
 
-    // Search Spaces
     const space = hierarchy.spaces.find((s) => s.id === entityId);
-    if (space) return { id: space.id, name: space.name, icon: space.icon, color: space.color, type: "space" };
+    if (space) return { id: space.id, name: space.name, icon: space.icon, color: space.color, type: "space", parentName: "Projects" };
 
-    // Search Folders
     for (const s of hierarchy.spaces) {
       const folder = s.folders.find((f) => f.id === entityId);
-      if (folder) return { id: folder.id, name: folder.name, icon: folder.icon, color: folder.color, type: "folder" };
+      if (folder) return { id: folder.id, name: folder.name, icon: folder.icon, color: folder.color, type: "folder", parentName: s.name };
+      const cachedFolders = queryClient.getQueryData<FolderHierarchy[]>(
+        [...hierarchyKeys.detail(workspaceId), s.id, "folders"]
+      );
+      if (cachedFolders) {
+        const cachedFolder = cachedFolders.find((f) => f.id === entityId);
+        if (cachedFolder) return { id: cachedFolder.id, name: cachedFolder.name, icon: cachedFolder.icon, color: cachedFolder.color, type: "folder", parentName: s.name };
+      }
     }
 
     return null;
-  }, [hierarchy, entityId]);
+  }, [hierarchy, entityId, queryClient, workspaceId]);
 }

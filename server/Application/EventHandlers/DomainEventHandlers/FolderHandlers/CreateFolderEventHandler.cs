@@ -27,7 +27,8 @@ public class CreateFolderEventHandler(
             "Overview",
             ViewType.Overview,
             notification.UserId,
-            isDefault: true
+            isDefault: true,
+            sortOrder: 0
         );
 
         var tasksView = ViewDefinition.Create(
@@ -37,7 +38,8 @@ public class CreateFolderEventHandler(
             "Tasks",
             ViewType.Tasks,
             notification.UserId,
-            isDefault: true // Based on user preference for 'Tasks' view as well
+            isDefault: false,
+            sortOrder: 1
         );
 
         await db.ViewDefinitions.AddRangeAsync(new[] { overviewView, tasksView }, cancellationToken);
