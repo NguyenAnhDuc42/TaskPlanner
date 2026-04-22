@@ -17,6 +17,6 @@ public  class HangfireJobScheduler
         _recurringJobManager.AddOrUpdate<ProcessOutboxJob>(
             "process-outbox",
             job => job.RunAsync(),
-            Cron.Minutely);
+            Cron.MinuteInterval(15)); // Safety net only — real processing is event-driven via IOutboxTrigger
     }
 }

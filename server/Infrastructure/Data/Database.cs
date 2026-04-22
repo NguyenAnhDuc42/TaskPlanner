@@ -7,6 +7,7 @@ using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
 using System.Data;
 using Infrastructure.Events.Extensions;
+using Infrastructure.Interfaces;
 using Hangfire;
 using Dapper;
 
@@ -17,16 +18,19 @@ public class Database : IDataBase
     private readonly TaskPlanDbContext _context;
     private readonly IDomainEventDispatcher _domainDispatcher;
     private readonly IBackgroundJobClient _backgroundJobClient;
+    private readonly IOutboxTrigger? _outboxTrigger;
     private IDbContextTransaction? _currentTransaction;
 
     public Database(
         TaskPlanDbContext context, 
         IDomainEventDispatcher domainDispatcher,
-        IBackgroundJobClient backgroundJobClient)
+        IBackgroundJobClient backgroundJobClient,
+        IOutboxTrigger? outboxTrigger = null)
     {
         _context = context;
         _domainDispatcher = domainDispatcher;
         _backgroundJobClient = backgroundJobClient;
+        _outboxTrigger = outboxTrigger;
     }
 
     public IDbConnection Connection => _context.Database.GetDbConnection();
@@ -106,8 +110,9 @@ public class Database : IDataBase
     {
         _context.ChangeTracker.DetectChanges();
         var domainEvents = _context.ChangeTracker.CollectDomainEvents();
+        var hasOutboxWork = domainEvents.Any();
         
-        if (domainEvents.Any())
+        if (hasOutboxWork)
         {
             var outboxMessages = domainEvents.Select(domainEvent => new OutboxMessage(
                 domainEvent.GetType().Name,
@@ -119,9 +124,11 @@ public class Database : IDataBase
         }
 
         var totalChanges = await _context.SaveChangesAsync(cancellationToken);
-
-        // NOTE: Circular dependency prevented direct trigger here. 
-        // The Background job worker should poll or be triggered via a separate service in Application layer.
+        //trigger outbox stuff imideately
+        if (hasOutboxWork)
+        {
+            _outboxTrigger?.Trigger();
+        }
 
         return totalChanges;
     }

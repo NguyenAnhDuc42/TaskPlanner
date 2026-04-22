@@ -38,7 +38,6 @@ export const SpaceItem = React.memo(function SpaceItem({
   space,
   isForcedOpen,
 }: SpaceItemProps) {
-  const [isOpen, setIsOpen] = React.useState(false);
   const { workspaceId } = useWorkspace();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
@@ -46,12 +45,33 @@ export const SpaceItem = React.memo(function SpaceItem({
   const isActive = location.pathname.includes(`/spaces/${space.id}`);
   const IconComponent = (Icons as any)[space.icon] || Icons.LayoutGrid;
   const spaceColor = space.color || "var(--primary)";
+
+  // Extract folderId from URL if present (e.g. /folders/abc-123)
+  const activeFolderIdFromUrl = React.useMemo(() => {
+    const match = location.pathname.match(/\/folders\/([^/]+)/);
+    return match ? match[1] : null;
+  }, [location.pathname]);
+
+  const [isOpen, setIsOpen] = React.useState(false);
   const effectiveOpen = isForcedOpen || isOpen;
 
   const hasChildren = space.hasFolders || space.hasTasks;
 
+  // Eagerly load folders if a folderId is in the URL (to check ownership)
+  const shouldLoadFolders = effectiveOpen || (!!activeFolderIdFromUrl && space.hasFolders);
+
   const { data: spaceFolders = [], isLoading: isLoadingFolders } =
-    useNodeFolders(workspaceId || "", space.id, effectiveOpen);
+    useNodeFolders(workspaceId || "", space.id, shouldLoadFolders);
+
+  // Auto-expand this space if it owns the folder in the URL
+  React.useEffect(() => {
+    if (activeFolderIdFromUrl && spaceFolders.length > 0) {
+      const ownsFolder = spaceFolders.some(f => f.id === activeFolderIdFromUrl);
+      if (ownsFolder && !isOpen) {
+        setIsOpen(true);
+      }
+    }
+  }, [activeFolderIdFromUrl, spaceFolders]);
 
   return (
     <Collapsible

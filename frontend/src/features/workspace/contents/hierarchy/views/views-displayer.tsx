@@ -2,10 +2,7 @@ import { EntityLayerType } from "@/types/entity-layer-type";
 import { useEntityInfo } from "../hierarchy-api";
 import { useViews, useViewData } from "./views-api";
 import { useState, useMemo, useEffect } from "react";
-import { Loader2 } from "lucide-react";
-
 import { ViewHeader } from "./view-components/layout/view-header";
-import { SplitView } from "./view-components/layout/split-view";
 import { SpaceViewSwitcher } from "./view-components/layers/space/space-view-switcher";
 import { FolderViewSwitcher } from "./view-components/layers/folder/folder-view-switcher";
 
@@ -65,13 +62,11 @@ export function ViewsDisplayer({
     [views, activeViewId],
   );
 
-  if (!entityInfo) return null;
-
   const viewHeader = (
     <ViewHeader
-      entityName={entityInfo.name}
-      entityType={entityInfo.type}
-      parentName={(entityInfo as any).parentName}
+      entityName={entityInfo?.name || ""}
+      entityType={entityInfo?.type || ""}
+      parentName={(entityInfo as any)?.parentName}
       views={views}
       activeViewId={activeViewId}
       onViewChange={setActiveViewId}
@@ -80,48 +75,20 @@ export function ViewsDisplayer({
     />
   );
 
-  if (isLoadingViews || (isLoadingData && !viewResponse)) {
-    return (
-      <SplitView
-        left={
-          <div className="flex flex-col h-full w-full">
-            {viewHeader}
-            <div className="flex-1 flex items-center justify-center">
-              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground/30" />
-            </div>
-          </div>
-        }
-        right={null}
-        isRightOpen={false}
-      />
-    );
-  }
+  const isLoading = isLoadingViews || (isLoadingData && !viewResponse);
 
-  if (!activeView || !viewResponse) {
-    return (
-      <SplitView
-        left={
-          <div className="flex flex-col h-full w-full">
-            {viewHeader}
-            <div className="flex-1 flex items-center justify-center text-muted-foreground/40 text-[12px] uppercase font-semibold tracking-wider">
-              No Active View Content
-            </div>
-          </div>
-        }
-        right={null}
-        isRightOpen={false}
-      />
-    );
-  }
-
+  // We use a internal switcher to handle the SplitView logic
+  // but we keep the header inside the Left side
+  
   if (layerType === EntityLayerType.ProjectSpace) {
     return (
       <SpaceViewSwitcher 
         workspaceId={workspaceId} 
         entityId={entityId} 
-        view={activeView} 
-        data={viewResponse.data as any} 
+        view={activeView || null} 
+        data={viewResponse?.data as any} 
         viewHeader={viewHeader}
+        isLoading={isLoading}
         isContextOpen={isContextOpen}
         setIsContextOpen={setIsContextOpen}
       />
@@ -133,9 +100,10 @@ export function ViewsDisplayer({
       <FolderViewSwitcher 
         workspaceId={workspaceId} 
         entityId={entityId} 
-        view={activeView} 
-        data={viewResponse.data as any} 
+        view={activeView || null} 
+        data={viewResponse?.data as any} 
         viewHeader={viewHeader}
+        isLoading={isLoading}
         isContextOpen={isContextOpen}
         setIsContextOpen={setIsContextOpen}
       />

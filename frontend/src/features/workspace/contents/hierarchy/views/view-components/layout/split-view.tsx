@@ -13,7 +13,7 @@ export function SplitView({
   left,
   right,
   isRightOpen,
-  rightWidth = "380px",
+  rightWidth = "320px",
   className,
 }: SplitViewProps) {
   return (
