@@ -51,6 +51,37 @@ public class ProjectTask : TenantEntity
     public static ProjectTask Create(Guid projectWorkspaceId, Guid? projectSpaceId, Guid? projectFolderId, string name, string slug, string? description, Customization? customization, Guid creatorId, Guid? statusId = null, Priority priority = Priority.Low, DateTimeOffset? startDate = null, DateTimeOffset? dueDate = null, int? storyPoints = null, long? timeEstimate = null, string? orderKey = null)
         => new ProjectTask(Guid.NewGuid(), projectWorkspaceId, projectSpaceId, projectFolderId, name?.Trim() ?? throw new ArgumentNullException(nameof(name)), slug?.Trim().ToLowerInvariant() ?? throw new ArgumentNullException(nameof(slug)), string.IsNullOrWhiteSpace(description) ? null : description?.Trim(), customization ?? Customization.CreateDefault(), creatorId, statusId, priority, startDate, dueDate, storyPoints, timeEstimate, orderKey ?? FractionalIndex.Start());
 
+    public static List<ProjectTask> CreateDefaults(Guid projectWorkspaceId, Guid spaceId, Guid folderId, Guid statusId, Guid creatorId)
+    {
+        return new List<ProjectTask>
+        {
+            Create(
+                projectWorkspaceId: projectWorkspaceId,
+                projectSpaceId: spaceId,
+                projectFolderId: folderId,
+                name: "Explore the hierarchy",
+                slug: "explore-hierarchy",
+                description: "Notice how this task is nested under the 'Getting Started' folder.",
+                customization: null,
+                creatorId: creatorId,
+                statusId: statusId,
+                orderKey: FractionalIndex.Start()
+            ),
+            Create(
+                projectWorkspaceId: projectWorkspaceId,
+                projectSpaceId: spaceId,
+                projectFolderId: null,
+                name: "Standalone Task",
+                slug: "standalone-task",
+                description: "This task lives directly under the space.",
+                customization: null,
+                creatorId: creatorId,
+                statusId: statusId,
+                orderKey: FractionalIndex.After(FractionalIndex.Start())
+            )
+        };
+    }
+
     public void UpdateBasicInfo(string? name, string? slug, string? description)
     {
         EnsureNotArchived();

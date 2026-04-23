@@ -5,8 +5,10 @@ using Application.Helpers;
 using Application.Interfaces.Data;
 using Domain.Entities;
 using Domain.Entities.ProjectEntities;
+using Domain.Enums;
+using Domain.Enums.RelationShip;
+using Domain.Common;
 using Microsoft.Extensions.Caching.Hybrid;
-using Application.Interfaces;
 using Application.Features;
 
 namespace Application.Features.WorkspaceFeatures.SelfManagement.CreateWorkspace;
@@ -15,8 +17,7 @@ public class CreateWorkspaceHandler(
     IDataBase db, 
     ICurrentUserService currentUserService, 
     HybridCache cache, 
-    IRealtimeService realtime,
-    IBackgroundJobService backgroundJob
+    IRealtimeService realtime
 ) : ICommandHandler<CreateWorkspaceCommand, Guid>
 {
     public async Task<Result<Guid>> Handle(CreateWorkspaceCommand request, CancellationToken ct)
@@ -35,17 +36,30 @@ public class CreateWorkspaceHandler(
             theme: request.Theme,
             strictJoin: request.StrictJoin
         );
-
         await db.Workspaces.AddAsync(workspace, ct);
+
+        var workflow = Workflow.Create(workspace.Id, "Default Workflow", null, currentUserId);
+        await db.Workflows.AddAsync(workflow, ct);
+        var statuses = Status.CreateStarterSet(workspace.Id, workflow.Id, currentUserId);
+        await db.Statuses.AddRangeAsync(statuses, ct);
+
+        var space = ProjectSpace.CreateDefault(workspace.Id, currentUserId);
+        await db.Spaces.AddAsync(space, ct);
+        db.ViewDefinitions.AddRange(
+            ViewDefinition.CreateDefaults(workspace.Id, space.Id, EntityLayerType.ProjectSpace, currentUserId));
+
+        var folder = ProjectFolder.CreateDefault(workspace.Id, space.Id, currentUserId);
+        await db.Folders.AddAsync(folder, ct);
+        db.ViewDefinitions.AddRange(
+            ViewDefinition.CreateDefaults(workspace.Id, folder.Id, EntityLayerType.ProjectFolder, currentUserId));
+
+        var firstStatus = statuses.First(s => s.Category == StatusCategory.NotStarted);
+        var tasks = ProjectTask.CreateDefaults(workspace.Id, space.Id, folder.Id, firstStatus.Id, currentUserId);
+        await db.Tasks.AddRangeAsync(tasks, ct);
+
         await db.SaveChangesAsync(ct);
-        
-        // 1. Instant Trigger for Background Seeding
-        backgroundJob.TriggerOutbox();
-
         await cache.RemoveByTagAsync(WorkspaceCacheKeys.WorkspaceListTag(currentUserId), ct);
-
-        // 2. STAGE 1 Notification: Workspace record exists, but seeding is starting in background
-        await realtime.NotifyUserAsync(currentUserId, "WorkspaceCreating", new { WorkspaceId = workspace.Id }, ct);
+        await realtime.NotifyUserAsync(currentUserId, "WorkspaceCreated", new { WorkspaceId = workspace.Id }, ct);
 
         return Result<Guid>.Success(workspace.Id);
     }

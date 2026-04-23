@@ -64,9 +64,22 @@ public sealed class ProjectFolder : TenantEntity
             startDate, 
             dueDate);
 
-        folder.WorkflowId = null; // Default to inheriting from Space
-        folder.AddDomainEvent(new FolderCreatedEvent(projectWorkspaceId, projectSpaceId, folder.Id, creatorId));
+        folder.WorkflowId = null;
         return folder;
+    }
+
+    public static ProjectFolder CreateDefault(Guid projectWorkspaceId, Guid projectSpaceId, Guid creatorId)
+    {
+        return Create(
+            projectWorkspaceId,
+            projectSpaceId,
+            "Getting Started",
+            "getting-started",
+            "Initial folder for your tasks.",
+            FractionalIndex.Start(),
+            isPrivate: false,
+            creatorId: creatorId
+        );
     }
 
     public void Delete(Guid workspaceId, Guid userId)

@@ -1,6 +1,7 @@
 using Domain.Common;
 using Domain.Enums;
 using Domain.Enums.RelationShip;
+using System.Collections.Generic;
 
 namespace Domain.Entities;
 
@@ -50,6 +51,15 @@ public class ViewDefinition : TenantEntity
         int sortOrder = 0)
     {
         return new ViewDefinition(projectWorkspaceId, layerId, layerType, name, viewType, isDefault, sortOrder, creatorId);
+    }
+
+    public static List<ViewDefinition> CreateDefaults(Guid projectWorkspaceId, Guid layerId, EntityLayerType layerType, Guid creatorId)
+    {
+        return new List<ViewDefinition>
+        {
+            Create(projectWorkspaceId, layerId, layerType, "Overview", ViewType.Overview, creatorId, isDefault: true, sortOrder: 0),
+            Create(projectWorkspaceId, layerId, layerType, "Tasks", ViewType.Tasks, creatorId, isDefault: false, sortOrder: 1)
+        };
     }
 
     public void Update(string? name, bool? isDefault)

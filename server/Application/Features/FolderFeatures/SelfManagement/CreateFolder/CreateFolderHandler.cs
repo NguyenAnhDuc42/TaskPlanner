@@ -3,10 +3,10 @@ using Application.Common.Interfaces;
 using Application.Common.Results;
 using Application.Helpers;
 using Application.Interfaces.Data;
-using Application.Interfaces;
 using Domain.Common;
 using Domain.Entities.ProjectEntities;
 using Domain.Enums;
+using Domain.Enums.RelationShip;
 using Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 
@@ -15,7 +15,6 @@ namespace Application.Features.FolderFeatures.SelfManagement.CreateFolder;
 public class CreateFolderHandler(
     IDataBase db, 
     WorkspaceContext context,
-    IBackgroundJobService backgroundJob,
     IRealtimeService realtime
 ) : ICommandHandler<CreateFolderCommand, Guid>
 {
@@ -57,13 +56,14 @@ public class CreateFolderHandler(
         );
 
         await db.Folders.AddAsync(folder, ct);
-        await db.SaveChangesAsync(ct);
-        
-        // 1. Instant Trigger for background seeding (Overview/Tasks views)
-        backgroundJob.TriggerOutbox();
 
-        // 2. STAGE 1 Notification: UI shows folder immediately
-        await realtime.NotifyWorkspaceAsync(context.workspaceId, "FolderCreating", new { FolderId = folder.Id, SpaceId = space.Id, WorkspaceId = context.workspaceId }, ct);
+        // Inline view creation — no outbox needed
+        db.ViewDefinitions.AddRange(
+            ViewDefinition.CreateDefaults(context.workspaceId, folder.Id, EntityLayerType.ProjectFolder, context.CurrentMember.Id));
+
+        await db.SaveChangesAsync(ct);
+
+        await realtime.NotifyWorkspaceAsync(context.workspaceId, "FolderCreated", new { FolderId = folder.Id, SpaceId = space.Id, WorkspaceId = context.workspaceId }, ct);
 
         return Result<Guid>.Success(folder.Id);
     }

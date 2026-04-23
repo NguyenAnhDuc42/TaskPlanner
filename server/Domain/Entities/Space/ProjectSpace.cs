@@ -50,9 +50,22 @@ public sealed class ProjectSpace : TenantEntity
             creatorId, 
             orderKey);
 
-        space.WorkflowId = null; // Default to inheriting from Workspace
-        space.AddDomainEvent(new SpaceCreatedEvent(projectWorkspaceId, space.Id, creatorId));
+        space.WorkflowId = null;
         return space;
+    }
+
+    public static ProjectSpace CreateDefault(Guid projectWorkspaceId, Guid creatorId)
+    {
+        return Create(
+            projectWorkspaceId,
+            "Welcome Space",
+            "welcome-space",
+            "Initial space for your project.",
+            null,
+            isPrivate: false,
+            creatorId: creatorId,
+            orderKey: FractionalIndex.Start()
+        );
     }
 
     public void Delete(Guid userId)

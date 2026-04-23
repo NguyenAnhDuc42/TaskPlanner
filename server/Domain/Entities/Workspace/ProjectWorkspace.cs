@@ -57,7 +57,6 @@ public sealed class ProjectWorkspace : Entity
         var owner = WorkspaceMember.CreateOwner(creatorId, workspace.Id, creatorId);
         workspace._members.Add(owner);
         
-        workspace.AddDomainEvent(new Domain.Events.Workspace.CreatedWorkspaceEvent(creatorId, workspace.Id));
         return workspace;
     }
 

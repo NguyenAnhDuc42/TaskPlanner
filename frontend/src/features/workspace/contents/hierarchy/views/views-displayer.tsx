@@ -24,22 +24,22 @@ export function ViewsDisplayer({
   const [activeViewId, setActiveViewId] = useState<string | null>(null);
 
   useEffect(() => {
-    const handleReady = (data: any) => {
+    const handleCreated = (data: any) => {
       if (data.SpaceId === entityId || data.FolderId === entityId) {
         refetchViews();
       }
     };
 
     const signalR = import("@/lib/signalr-service").then(m => {
-      m.signalRService.on("SpaceReady", handleReady);
-      m.signalRService.on("FolderReady", handleReady);
+      m.signalRService.on("SpaceCreated", handleCreated);
+      m.signalRService.on("FolderCreated", handleCreated);
       return m.signalRService;
     });
 
     return () => {
       signalR.then(s => {
-        s.off("SpaceReady", handleReady);
-        s.off("FolderReady", handleReady);
+        s.off("SpaceCreated", handleCreated);
+        s.off("FolderCreated", handleCreated);
       });
     };
   }, [entityId, refetchViews]);
