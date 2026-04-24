@@ -11,7 +11,7 @@ using Microsoft.Extensions.Caching.Hybrid;
 using Application.Interfaces;
 using Application.Features;
 
-namespace Application.Features.WorkspaceFeatures.SelfManagement.JoinWorkspaceByCode;
+namespace Application.Features.WorkspaceFeatures;
 
 public class JoinWorkspaceByCodeHandler(
     IDataBase db, 

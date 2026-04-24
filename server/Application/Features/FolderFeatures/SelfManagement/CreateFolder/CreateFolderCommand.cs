@@ -1,6 +1,6 @@
 using Application.Common.Interfaces;
 
-namespace Application.Features.FolderFeatures.SelfManagement.CreateFolder;
+namespace Application.Features.FolderFeatures;
 
 public record class CreateFolderCommand(
     Guid spaceId,

@@ -6,9 +6,9 @@ using Application.Features;
 using Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 
-namespace Application.Features.Auth.UpdateProfile;
+namespace Application.Features.Auth;
 
-public class UpdateProfileHandler : ICommandHandler<UpdateProfileCommand, UpdateProfileDto>
+public class UpdateProfileHandler : ICommandHandler<UpdateProfileCommand>
 {
     private readonly IDataBase _db;
     private readonly ICurrentUserService _currentUserService;
@@ -19,7 +19,7 @@ public class UpdateProfileHandler : ICommandHandler<UpdateProfileCommand, Update
         _currentUserService = currentUserService;
     }
 
-    public async Task<Result<UpdateProfileDto>> Handle(UpdateProfileCommand request, CancellationToken ct)
+    public async Task<Result> Handle(UpdateProfileCommand request, CancellationToken ct)
     {
         var userId = _currentUserService.CurrentUserId();
         var user = await _db.Users.FirstOrDefaultAsync(u => u.Id == userId, ct);
@@ -47,6 +47,6 @@ public class UpdateProfileHandler : ICommandHandler<UpdateProfileCommand, Update
 
         await _db.SaveChangesAsync(ct);
 
-        return Result<UpdateProfileDto>.Success(new UpdateProfileDto(user.Id, user.Name, user.Email));
+        return Result.Success();
     }
 }

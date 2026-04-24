@@ -3,7 +3,7 @@ using Application.Common.Interfaces;
 using Application.Common.Results;
 using Domain.Enums;
 
-namespace Application.Features.WorkspaceFeatures.MemberManage.GetMembers;
+namespace Application.Features.WorkspaceFeatures;
 
 public record class GetMembersQuery(
     CursorPaginationRequest pagination, 

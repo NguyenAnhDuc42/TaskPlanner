@@ -6,7 +6,7 @@ using Application.Interfaces;
 using Application.Features;
 using Domain.Entities;
 
-namespace Application.Features.Auth.ChangePassword;
+namespace Application.Features.Auth;
 
 public class ChangePasswordHandler : ICommandHandler<ChangePasswordCommand>
 {

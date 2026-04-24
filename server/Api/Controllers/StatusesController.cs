@@ -1,6 +1,4 @@
-using Application.Features.WorkflowFeatures.GetAvailableStatuses;
-using Application.Features.WorkflowFeatures.UpdateWorkflowStatuses;
-using Application.Features.WorkflowFeatures.Common;
+using Application.Features.WorkflowFeatures;
 using Microsoft.AspNetCore.Mvc;
 using Application.Common.Interfaces;
 using Api.Extensions;

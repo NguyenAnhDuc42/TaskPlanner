@@ -1,5 +1,5 @@
 using System.Security.Claims;
-using Application.Features.Auth.DTOs;
+using Application.Features.Auth;
 
 using Domain.Entities;
 

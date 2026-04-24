@@ -7,7 +7,7 @@ using Domain.Enums;
 using Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 
-namespace Application.Features.FolderFeatures.SelfManagement.UpdateFolder;
+namespace Application.Features.FolderFeatures;
 
 public class UpdateFolderHandler(IDataBase db, WorkspaceContext context) : ICommandHandler<UpdateFolderCommand>
 {

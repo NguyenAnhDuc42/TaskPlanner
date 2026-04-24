@@ -1,7 +1,7 @@
 using Application.Common.Interfaces;
 using Domain.Enums;
 
-namespace Application.Features.WorkspaceFeatures.MemberManage.AddMembers;
+namespace Application.Features.WorkspaceFeatures;
 
 public record AddMembersCommand(
     Guid workspaceId, 

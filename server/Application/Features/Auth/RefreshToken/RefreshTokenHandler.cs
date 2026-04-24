@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Application.Interfaces;
 
-namespace Application.Features.Auth.RefreshToken;
+namespace Application.Features.Auth;
 
 public class RefreshTokenHandler : ICommandHandler<RefreshTokenCommand, RefreshTokenResponse>
 {

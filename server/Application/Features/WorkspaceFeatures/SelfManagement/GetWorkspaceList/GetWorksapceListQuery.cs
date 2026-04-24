@@ -3,7 +3,7 @@ using Application.Common.Interfaces;
 using Application.Common.Results;
 using Domain.Enums;
 
-namespace Application.Features.WorkspaceFeatures.SelfManagement.GetWorkspaceList;
+namespace Application.Features.WorkspaceFeatures;
 
 public record class GetWorksapceListQuery(CursorPaginationRequest Pagination, WorkspaceFilter filter) : IQueryRequest<PagedResult<WorkspaceSummaryDto>>;
 

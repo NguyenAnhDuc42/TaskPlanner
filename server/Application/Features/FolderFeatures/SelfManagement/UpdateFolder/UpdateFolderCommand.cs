@@ -1,6 +1,6 @@
 using Application.Common.Interfaces;
 
-namespace Application.Features.FolderFeatures.SelfManagement.UpdateFolder;
+namespace Application.Features.FolderFeatures;
 
 public record UpdateFolderCommand(
     Guid FolderId,

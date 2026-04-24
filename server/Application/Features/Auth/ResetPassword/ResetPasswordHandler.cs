@@ -6,7 +6,7 @@ using Application.Features;
 using Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 
-namespace Application.Features.Auth.ResetPassword;
+namespace Application.Features.Auth;
 
 public class ResetPasswordHandler : ICommandHandler<ResetPasswordCommand>
 {

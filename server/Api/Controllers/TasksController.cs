@@ -1,9 +1,4 @@
-using Application.Features.TaskFeatures.SelfManagement.CreateTask;
-using Application.Features.TaskFeatures.AssigneeManagement.GetTaskAssigneeCandidates;
-using Application.Features.TaskFeatures.AssigneeManagement.GetTaskAssignees;
-using Application.Features.TaskFeatures.SelfManagement.DeleteTask;
-using Application.Features.TaskFeatures.SelfManagement.UpdateTask;
-using Application.Features.TaskFeatures.SelfManagement;
+using Application.Features.TaskFeatures;
 using Domain.Enums;
 using Microsoft.AspNetCore.Mvc;
 using Application.Common.Interfaces;
@@ -45,7 +40,7 @@ public class TasksController : ControllerBase
             AssigneeIds: request.AssigneeIds
         );
 
-        var result = await _handler.SendAsync<UpdateTaskCommand, TaskDto>(command, ct);
+        var result = await _handler.SendAsync(command, ct);
         return result.ToActionResult();
     }
 

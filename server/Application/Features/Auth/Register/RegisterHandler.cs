@@ -7,7 +7,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
-namespace Application.Features.Auth.Register;
+namespace Application.Features.Auth;
 
 public class RegisterHandler(
     IDataBase db, 

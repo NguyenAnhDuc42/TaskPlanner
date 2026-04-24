@@ -7,7 +7,7 @@ using Microsoft.EntityFrameworkCore;
 using Domain.Entities;
 using Dapper;
 
-namespace Application.Features.WorkspaceFeatures.HierarchyManagement.GetHierarchy;
+namespace Application.Features.WorkspaceFeatures;
 
 public class GetHierarchyHandler(IDataBase db, WorkspaceContext context) : IQueryHandler<GetHierarchyQuery, WorkspaceHierarchyDto>
 {

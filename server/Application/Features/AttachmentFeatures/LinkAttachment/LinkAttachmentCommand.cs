@@ -1,7 +1,7 @@
 using Application.Common.Interfaces;
 using Domain.Enums;
 
-namespace Application.Features.AttachmentFeatures.LinkAttachment;
+namespace Application.Features.AttachmentFeatures;
 
 public record LinkAttachmentCommand(
     Guid AttachmentId, 

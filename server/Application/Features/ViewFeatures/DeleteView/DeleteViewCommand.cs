@@ -1,5 +1,5 @@
 using Application.Common.Interfaces;
 
-namespace Application.Features.ViewFeatures.DeleteView;
+namespace Application.Features.ViewFeatures;
 
 public record DeleteViewCommand(Guid Id) : ICommandRequest, IAuthorizedWorkspaceRequest;

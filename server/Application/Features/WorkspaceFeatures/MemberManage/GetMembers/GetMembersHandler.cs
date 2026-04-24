@@ -9,7 +9,7 @@ using Microsoft.Extensions.Caching.Hybrid;
 using Microsoft.Extensions.Logging;
 using System.Text.Json;
 
-namespace Application.Features.WorkspaceFeatures.MemberManage.GetMembers;
+namespace Application.Features.WorkspaceFeatures;
 
 public class GetMembersHandler(
     IDataBase db,

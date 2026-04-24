@@ -6,7 +6,7 @@ using Domain.Entities;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 
-namespace Application.Features.Auth.Login;
+namespace Application.Features.Auth;
 
 public class LoginHandler(
     IDataBase db, 

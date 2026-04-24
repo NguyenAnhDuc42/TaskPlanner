@@ -8,7 +8,7 @@ using Domain.Enums;
 using Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 
-namespace Application.Features.SpaceFeatures.SelfManagement.UpdateSpace;
+namespace Application.Features.SpaceFeatures;
 
 public class UpdateSpaceHandler(IDataBase db, WorkspaceContext context) : ICommandHandler<UpdateSpaceCommand>
 {

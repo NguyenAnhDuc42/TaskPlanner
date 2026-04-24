@@ -1,6 +1,6 @@
 using FluentValidation;
 
-namespace Application.Features.WorkspaceFeatures.SelfManagement.JoinWorkspaceByCode;
+namespace Application.Features.WorkspaceFeatures;
 
 public class JoinWorkspaceByCodeValidator : AbstractValidator<JoinWorkspaceByCodeCommand>
 {

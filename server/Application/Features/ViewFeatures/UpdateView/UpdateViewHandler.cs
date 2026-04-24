@@ -6,7 +6,7 @@ using Application.Interfaces.Data;
 using Domain.Enums;
 using Microsoft.EntityFrameworkCore;
 
-namespace Application.Features.ViewFeatures.UpdateView;
+namespace Application.Features.ViewFeatures;
 
 public class UpdateViewHandler(IDataBase db, WorkspaceContext context) : ICommandHandler<UpdateViewCommand>
 {

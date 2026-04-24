@@ -1,10 +1,9 @@
 using Application.Common.Interfaces;
 using Application.Common.Results;
-using Application.Features.WorkflowFeatures.Common;
 using Application.Helpers;
 using Application.Interfaces.Data;
 
-namespace Application.Features.WorkflowFeatures.GetAvailableStatuses;
+namespace Application.Features.WorkflowFeatures;
 
 public class GetAvailableStatusesHandler(IDataBase db, WorkspaceContext context) 
     : IQueryHandler<GetAvailableStatusesQuery, List<StatusResponse>>

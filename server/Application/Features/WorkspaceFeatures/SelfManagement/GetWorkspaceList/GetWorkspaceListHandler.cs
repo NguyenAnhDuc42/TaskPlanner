@@ -2,8 +2,6 @@ using System.Text.Json;
 using Application.Common.Filters;
 using Application.Common.Results;
 using Application.Common.Errors;
-using Application.Features.WorkspaceFeatures.SelfManagement;
-using Application.Features.WorkspaceFeatures.SelfManagement.GetWorkspaceList;
 using Application.Helper;
 using Application.Helpers;
 using Application.Interfaces;
@@ -13,7 +11,7 @@ using Domain.Enums.RelationShip;
 using Microsoft.Extensions.Caching.Hybrid;
 using Microsoft.Extensions.Logging;
 
-namespace Application.Features.WorkspaceFeatures.GetWorkspaceList;
+namespace Application.Features.WorkspaceFeatures;
 
 public class GetWorkspaceListHandler(
     IDataBase db,

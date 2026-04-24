@@ -1,10 +1,9 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Text;
 
-namespace Application.Features.AttachmentFeatures.DeleteAttachment
+namespace Application.Features.AttachmentFeatures;
+
+internal class DeleteAttachmentValidator
 {
-    internal class DeleteAttachmentValidator
-    {
-    }
 }

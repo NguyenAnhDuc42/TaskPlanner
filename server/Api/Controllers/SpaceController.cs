@@ -1,6 +1,4 @@
-using Application.Features.SpaceFeatures.SelfManagement.CreateSpace;
-using Application.Features.SpaceFeatures.SelfManagement.DeleteSpace;
-using Application.Features.SpaceFeatures.SelfManagement.UpdateSpace;
+using Application.Features.SpaceFeatures;
 using Domain.Enums.RelationShip;
 using Application.Common.Interfaces;
 using Microsoft.AspNetCore.Mvc;

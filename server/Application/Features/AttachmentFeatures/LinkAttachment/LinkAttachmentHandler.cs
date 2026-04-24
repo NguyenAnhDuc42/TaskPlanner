@@ -7,7 +7,7 @@ using Domain.Entities;
 using Domain.Enums;
 using Microsoft.EntityFrameworkCore;
 
-namespace Application.Features.AttachmentFeatures.LinkAttachment;
+namespace Application.Features.AttachmentFeatures;
 
 public class LinkAttachmentHandler(IDataBase db, WorkspaceContext context) : ICommandHandler<LinkAttachmentCommand>
 {

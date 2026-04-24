@@ -1,6 +1,6 @@
 using FluentValidation;
 
-namespace Application.Features.WorkspaceFeatures.SelfManagement.SetWorkspacePin;
+namespace Application.Features.WorkspaceFeatures;
 
 public class SetWorkspacePinValidator : AbstractValidator<SetWorkspacePinCommand>
 {

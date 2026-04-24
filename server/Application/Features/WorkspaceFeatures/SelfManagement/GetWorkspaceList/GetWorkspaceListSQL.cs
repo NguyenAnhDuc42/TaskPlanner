@@ -1,7 +1,7 @@
 using Domain.Enums;
 using Domain.Enums.RelationShip;
 
-namespace Application.Features.WorkspaceFeatures.SelfManagement.GetWorkspaceList;
+namespace Application.Features.WorkspaceFeatures;
 
 public class WorkspaceRow
 {

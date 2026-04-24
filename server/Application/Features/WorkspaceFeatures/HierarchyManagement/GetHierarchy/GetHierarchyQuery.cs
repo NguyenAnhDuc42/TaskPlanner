@@ -2,7 +2,7 @@ using Application.Common.Interfaces;
 using Domain.Enums;
 using MediatR;
 
-namespace Application.Features.WorkspaceFeatures.HierarchyManagement.GetHierarchy;
+namespace Application.Features.WorkspaceFeatures;
 
 public record GetHierarchyQuery(Guid WorkspaceId) : IQueryRequest<WorkspaceHierarchyDto>, IAuthorizedWorkspaceRequest;
 

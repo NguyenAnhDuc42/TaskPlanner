@@ -5,7 +5,7 @@ using Application.Interfaces;
 using Application.Interfaces.Data;
 using Dapper;
 
-namespace Application.Features.TaskFeatures.AssigneeManagement.GetTaskAssigneeCandidates;
+namespace Application.Features.TaskFeatures;
 
 public class GetTaskAssigneeCandidatesHandler
     : IQueryHandler<GetTaskAssigneeCandidatesQuery, List<TaskAssigneeCandidateDto>>

@@ -6,7 +6,7 @@ using Application.Interfaces.Data;
 using Microsoft.EntityFrameworkCore;
 using Domain.Entities;
 
-namespace Application.Features.WorkspaceFeatures.SelfManagement.TransferOwnership;
+namespace Application.Features.WorkspaceFeatures;
 
 public class TransferOwnershipHandler(IDataBase db, WorkspaceContext context) : ICommandHandler<TransferOwnershipCommand>
 {

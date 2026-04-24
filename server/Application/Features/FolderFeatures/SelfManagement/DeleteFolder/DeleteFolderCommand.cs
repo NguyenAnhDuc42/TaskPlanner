@@ -1,5 +1,5 @@
 using Application.Common.Interfaces;
 
-namespace Application.Features.FolderFeatures.SelfManagement.DeleteFolder;
+namespace Application.Features.FolderFeatures;
 
 public record DeleteFolderCommand(Guid FolderId) : ICommandRequest, IAuthorizedWorkspaceRequest;

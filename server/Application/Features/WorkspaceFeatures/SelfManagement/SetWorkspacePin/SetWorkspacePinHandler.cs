@@ -9,7 +9,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Hybrid;
 using Domain.Entities;  
 
-namespace Application.Features.WorkspaceFeatures.SelfManagement.SetWorkspacePin;
+namespace Application.Features.WorkspaceFeatures;
 
 public class SetWorkspacePinHandler(
     IDataBase db, 

@@ -9,7 +9,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Dapper;
 
-namespace Application.Features.WorkspaceFeatures.HierarchyManagement.GetHierarchy;
+namespace Application.Features.WorkspaceFeatures;
 
 public record GetNodeFoldersBatchQuery(Guid WorkspaceId, IEnumerable<Guid> SpaceIds)
     : IQueryRequest<Dictionary<Guid, List<FolderHierarchyDto>>>, IAuthorizedWorkspaceRequest;

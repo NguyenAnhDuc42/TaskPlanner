@@ -1,7 +1,7 @@
 using Application.Common.Interfaces;
 using Domain.Enums;
 
-namespace Application.Features.WorkflowFeatures.UpdateWorkflowStatuses;
+namespace Application.Features.WorkflowFeatures;
 
 public record UpdateWorkflowStatusesCommand(
     Guid WorkflowId,

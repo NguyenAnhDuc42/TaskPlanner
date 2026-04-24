@@ -1,6 +1,6 @@
 using FluentValidation;
 
-namespace Application.Features.ViewFeatures.DeleteView;
+namespace Application.Features.ViewFeatures;
 
 public class DeleteViewValidator : AbstractValidator<DeleteViewCommand>
 {

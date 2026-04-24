@@ -3,7 +3,7 @@ using Application.Common.Interfaces;
 using Domain.Enums.RelationShip;
 using MediatR;
 
-namespace Application.Features.SpaceFeatures.SelfManagement.UpdateSpace;
+namespace Application.Features.SpaceFeatures;
 
 public record UpdateSpaceCommand(
     Guid workspaceId,

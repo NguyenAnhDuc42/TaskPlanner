@@ -1,7 +1,7 @@
-using Application.Features.TaskFeatures.SelfManagement;
+using Application.Features.TaskFeatures;
 using Domain.Enums;
 
-namespace Application.Features.ViewFeatures.GetViewData;
+namespace Application.Features.ViewFeatures;
 
 public record ViewDataResponse(
     Guid ViewId,

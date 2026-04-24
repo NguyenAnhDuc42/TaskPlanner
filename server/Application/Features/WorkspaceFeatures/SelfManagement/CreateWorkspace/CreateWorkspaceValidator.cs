@@ -2,7 +2,7 @@ using FluentValidation;
 using Domain.Common;
 using Domain.Enums;
 
-namespace Application.Features.WorkspaceFeatures.SelfManagement.CreateWorkspace;
+namespace Application.Features.WorkspaceFeatures;
 
 public class CreateWorkspaceValidator : AbstractValidator<CreateWorkspaceCommand>
 {

@@ -1,8 +1,4 @@
-using Application.Features.ViewFeatures.CreateView;
-using Application.Features.ViewFeatures.DeleteView;
-using Application.Features.ViewFeatures.GetViewData;
-using Application.Features.ViewFeatures.GetViews;
-using Application.Features.ViewFeatures.UpdateView;
+using Application.Features.ViewFeatures;
 using Domain.Enums.RelationShip;
 using Microsoft.AspNetCore.Mvc;
 using Application.Common.Interfaces;

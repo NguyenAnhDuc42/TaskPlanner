@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using Domain.Enums;
 using MediatR;
 
-namespace Application.Features.WorkspaceFeatures.SelfManagement.CreateWorkspace;
+namespace Application.Features.WorkspaceFeatures;
 
 public record CreateWorkspaceCommand(
     string Name,

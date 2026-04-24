@@ -1,4 +1,3 @@
-using Application.Features.Auth.Login;
 using Application.Common.Results;
 using Application.Common.Errors;
 using Application.Interfaces.Data;
@@ -8,7 +7,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Application.Interfaces;
 
-namespace Application.Features.Auth.OAuth;
+namespace Application.Features.Auth;
 
 public class ExternalLoginHandler : ICommandHandler<ExternalLoginCommand, LoginResponse>
 {

@@ -11,7 +11,7 @@ using Domain.Enums.RelationShip;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Hybrid;
 
-namespace Application.Features.WorkspaceFeatures.MemberManage.AddMembers;
+namespace Application.Features.WorkspaceFeatures;
 
 public class AddMembersHandler(
     IDataBase db, 

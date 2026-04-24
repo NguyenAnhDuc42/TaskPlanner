@@ -1,6 +1,4 @@
-using Application.Features.FolderFeatures.SelfManagement.CreateFolder;
-using Application.Features.FolderFeatures.SelfManagement.DeleteFolder;
-using Application.Features.FolderFeatures.SelfManagement.UpdateFolder;
+using Application.Features.FolderFeatures;
 using Microsoft.AspNetCore.Mvc;
 using Application.Common.Interfaces;
 using Api.Extensions;

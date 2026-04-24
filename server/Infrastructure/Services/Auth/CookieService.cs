@@ -1,6 +1,6 @@
 using System;
 using System.IdentityModel.Tokens.Jwt;
-using Application.Features.Auth.DTOs;
+using Application.Features.Auth;
 using Infrastructure.Auth.Types;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;

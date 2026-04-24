@@ -2,7 +2,7 @@ using FluentValidation;
 using Application.Helpers;
 using Domain.Common;
 
-namespace Application.Features.WorkspaceFeatures.SelfManagement.UpdateWorkspace;
+namespace Application.Features.WorkspaceFeatures;
 
 public class UpdateWorkspaceValidator : AbstractValidator<UpdateWorkspaceCommand>
 {

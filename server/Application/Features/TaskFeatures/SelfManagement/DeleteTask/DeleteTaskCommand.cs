@@ -1,5 +1,5 @@
 using Application.Common.Interfaces;
 
-namespace Application.Features.TaskFeatures.SelfManagement.DeleteTask;
+namespace Application.Features.TaskFeatures;
 
 public record DeleteTaskCommand(Guid TaskId) : ICommandRequest, IAuthorizedWorkspaceRequest;

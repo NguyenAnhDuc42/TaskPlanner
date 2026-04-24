@@ -6,7 +6,7 @@ using Application.Interfaces.Data;
 using Domain.Enums;
 using Microsoft.EntityFrameworkCore;
 
-namespace Application.Features.AttachmentFeatures.DeleteAttachment;
+namespace Application.Features.AttachmentFeatures;
 
 public class DeleteAttachmentHandler(IDataBase db, WorkspaceContext context) : ICommandHandler<DeleteAttachmentCommand>
 {

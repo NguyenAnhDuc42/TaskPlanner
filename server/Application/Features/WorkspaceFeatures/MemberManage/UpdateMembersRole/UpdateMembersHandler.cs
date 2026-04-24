@@ -6,7 +6,7 @@ using Application.Interfaces.Data;
 using Domain.Enums;
 using Microsoft.EntityFrameworkCore;
 
-namespace Application.Features.WorkspaceFeatures.MemberManage.UpdateMembersRole;
+namespace Application.Features.WorkspaceFeatures;
 
 public class UpdateMembersHandler(IDataBase db, WorkspaceContext context) : ICommandHandler<UpdateMembersCommand, Guid>
 {

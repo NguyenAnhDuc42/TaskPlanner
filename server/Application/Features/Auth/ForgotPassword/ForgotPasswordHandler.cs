@@ -4,7 +4,7 @@ using Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
-namespace Application.Features.Auth.ForgotPassword;
+namespace Application.Features.Auth;
 
 public class ForgotPasswordHandler : ICommandHandler<ForgotPasswordCommand, string?>
 {

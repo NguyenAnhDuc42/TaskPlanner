@@ -1,7 +1,7 @@
 using Application.Features;
 using Application.Common.Interfaces;
 
-namespace Application.Features.ViewFeatures.GetViewData;
+namespace Application.Features.ViewFeatures;
 
 public record GetViewDataQuery(
     Guid ViewId,

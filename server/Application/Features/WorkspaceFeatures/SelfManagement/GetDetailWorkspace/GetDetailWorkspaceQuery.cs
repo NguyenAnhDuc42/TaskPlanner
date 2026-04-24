@@ -1,7 +1,7 @@
 using Application.Common.Interfaces;
 using Domain.Enums;
 
-namespace Application.Features.WorkspaceFeatures.SelfManagement.GetDetailWorkspace;
+namespace Application.Features.WorkspaceFeatures;
 
 public record class GetDetailWorkspaceQuery(Guid WorkspaceId) : IQueryRequest<WorkspaceSecurityContextDto>, IAuthorizedWorkspaceRequest;
 

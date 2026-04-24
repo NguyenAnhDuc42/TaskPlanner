@@ -1,13 +1,4 @@
-using Application.Features.Auth.Login;
-using Application.Features.Auth.Logout;
-using Application.Features.Auth.RefreshToken;
-using Application.Features.Auth.Register;
-using Application.Features.Auth.ForgotPassword;
-using Application.Features.Auth.ResetPassword;
-using Application.Features.Auth.OAuth;
-using Application.Features.Auth.ChangePassword;
-using Application.Features.Auth.GetCurrentUser;
-using Application.Features.Auth.UpdateProfile;
+using Application.Features.Auth;
 using Application.Common.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 using Api.Extensions;
@@ -100,7 +91,7 @@ public class AuthController : ControllerBase
     public async Task<IActionResult> UpdateProfile([FromBody] UpdateProfileRequest request, CancellationToken cancellationToken)
     {
         var command = new UpdateProfileCommand(request.Name, request.Email);
-        var result = await _handler.SendAsync<UpdateProfileCommand, UpdateProfileDto>(command, cancellationToken);
+        var result = await _handler.SendAsync(command, cancellationToken);
         return result.ToActionResult();
     }
 }

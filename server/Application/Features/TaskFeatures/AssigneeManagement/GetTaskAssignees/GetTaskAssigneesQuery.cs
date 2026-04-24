@@ -1,6 +1,6 @@
 using Application.Common.Interfaces;
 
-namespace Application.Features.TaskFeatures.AssigneeManagement.GetTaskAssignees;
+namespace Application.Features.TaskFeatures;
 
 public record GetTaskAssigneesQuery(Guid TaskId) : IQueryRequest<List<TaskAssigneeDto>>;
 

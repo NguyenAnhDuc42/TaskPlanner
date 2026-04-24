@@ -1,8 +1,7 @@
 using Application.Common.Interfaces;
 using Domain.Enums;
-using Application.Features.TaskFeatures.SelfManagement;
 
-namespace Application.Features.TaskFeatures.SelfManagement.UpdateTask;
+namespace Application.Features.TaskFeatures;
 
 public record UpdateTaskCommand(
     Guid TaskId,
@@ -15,4 +14,4 @@ public record UpdateTaskCommand(
     int? StoryPoints,
     long? TimeEstimate,
     List<Guid>? AssigneeIds = null
-) : ICommandRequest<TaskDto>, IAuthorizedWorkspaceRequest;
+) : ICommandRequest, IAuthorizedWorkspaceRequest;

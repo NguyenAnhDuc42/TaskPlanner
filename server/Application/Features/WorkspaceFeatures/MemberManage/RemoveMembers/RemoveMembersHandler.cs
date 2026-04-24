@@ -5,7 +5,7 @@ using Application.Helpers;
 using Application.Interfaces.Data;
 using Domain.Enums;
 
-namespace Application.Features.WorkspaceFeatures.MemberManage.RemoveMembers;
+namespace Application.Features.WorkspaceFeatures;
 
 public class RemoveMembersHandler(IDataBase db, WorkspaceContext context) : ICommandHandler<RemoveMembersCommand, Guid>
 {

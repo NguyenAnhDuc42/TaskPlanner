@@ -6,7 +6,7 @@ using Application.Interfaces.Data;
 using Domain.Enums;
 using Microsoft.EntityFrameworkCore;
 
-namespace Application.Features.ViewFeatures.DeleteView;
+namespace Application.Features.ViewFeatures;
 
 public class DeleteViewHandler(IDataBase db, WorkspaceContext context) : ICommandHandler<DeleteViewCommand>
 {

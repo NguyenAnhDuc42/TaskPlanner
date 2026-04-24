@@ -1,4 +1,4 @@
-namespace Application.Features.WorkspaceFeatures.HierarchyManagement.GetHierarchy;
+namespace Application.Features.WorkspaceFeatures;
 
 public static class GetHierarchySql
 {

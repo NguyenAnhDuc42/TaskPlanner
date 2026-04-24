@@ -5,7 +5,7 @@ using Application.Interfaces.Data;
 using Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 
-namespace Application.Features.ViewFeatures.GetViews;
+namespace Application.Features.ViewFeatures;
 
 public class GetViewsHandler(IDataBase db) : IQueryHandler<GetViewsQuery, List<ViewDto>>
 {

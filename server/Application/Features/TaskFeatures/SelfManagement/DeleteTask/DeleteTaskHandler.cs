@@ -7,7 +7,7 @@ using Domain.Entities;
 using Domain.Enums;
 using Microsoft.EntityFrameworkCore;
 
-namespace Application.Features.TaskFeatures.SelfManagement.DeleteTask;
+namespace Application.Features.TaskFeatures;
 
 public class DeleteTaskHandler(IDataBase db, WorkspaceContext context) : ICommandHandler<DeleteTaskCommand>
 {
@@ -20,7 +20,6 @@ public class DeleteTaskHandler(IDataBase db, WorkspaceContext context) : IComman
         if (task == null) 
             return Result.Failure(TaskError.NotFound);
 
-        // AUTHORIZATION: Only Admin/Owner or the task creator (MemberId) can delete tasks
         if (context.CurrentMember.Role > Role.Admin && task.CreatorId != context.CurrentMember.Id)
             return Result.Failure(MemberError.DontHavePermission);
 

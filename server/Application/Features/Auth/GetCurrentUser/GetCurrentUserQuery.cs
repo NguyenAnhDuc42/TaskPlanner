@@ -1,6 +1,6 @@
 using Application.Common.Interfaces;
 
-namespace Application.Features.Auth.GetCurrentUser;
+namespace Application.Features.Auth;
 
 public record GetCurrentUserQuery : IQueryRequest<GetCurrentUserDto>;
 

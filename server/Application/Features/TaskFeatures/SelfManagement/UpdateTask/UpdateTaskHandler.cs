@@ -9,22 +9,20 @@ using Microsoft.EntityFrameworkCore;
 using Application.Interfaces;
 using Dapper;
 
-namespace Application.Features.TaskFeatures.SelfManagement.UpdateTask;
+namespace Application.Features.TaskFeatures;
 
-public class UpdateTaskHandler(IDataBase db, WorkspaceContext context) : ICommandHandler<UpdateTaskCommand, TaskDto>
+public class UpdateTaskHandler(IDataBase db, WorkspaceContext context) : ICommandHandler<UpdateTaskCommand>
 {
-    public async Task<Result<TaskDto>> Handle(UpdateTaskCommand request, CancellationToken ct)
+    public async Task<Result> Handle(UpdateTaskCommand request, CancellationToken ct)
     {
         var task = await db.Tasks
             .Include(t => t.Assignees)
             .FirstOrDefaultAsync(t => t.Id == request.TaskId, ct);
 
-        if (task == null) 
-            return Result<TaskDto>.Failure(TaskError.NotFound);
+        if (task == null) return Result.Failure(TaskError.NotFound);
 
-        // AUTHORIZATION: Only Admin/Owner or the task creator (MemberId) can update tasks
         if (context.CurrentMember.Role > Role.Admin && task.CreatorId != context.CurrentMember.Id)
-            return Result<TaskDto>.Failure(MemberError.DontHavePermission);
+            return Result.Failure(MemberError.DontHavePermission);
 
         ApplyBasicDetails(task, request);
         await ApplyStatusUpdate(task, request, ct);
@@ -34,7 +32,7 @@ public class UpdateTaskHandler(IDataBase db, WorkspaceContext context) : IComman
         await ApplyAssigneeUpdate(task, request, ct);
 
         await db.SaveChangesAsync(ct);
-        return await BuildTaskDto(task, ct);
+        return Result.Success();
     }
 
     private static void ApplyBasicDetails(ProjectTask task, UpdateTaskCommand request)
@@ -97,32 +95,5 @@ public class UpdateTaskHandler(IDataBase db, WorkspaceContext context) : IComman
         task.AddAsignees(toAdd);
     }
 
-    private async Task<Result<TaskDto>> BuildTaskDto(ProjectTask task, CancellationToken ct)
-    {
-        var assigneeDtos = await db.Connection.QueryAsync<AssigneeDto>(@"
-            SELECT u.id AS Id, u.name AS Name, NULL AS AvatarUrl
-            FROM   task_assignments ta
-            JOIN   workspace_members wm ON ta.workspace_member_id = wm.id
-            JOIN   users u             ON wm.user_id = u.id
-            WHERE  ta.task_id = @TaskId
-              AND  ta.deleted_at IS NULL", new { TaskId = task.Id });
 
-        return Result<TaskDto>.Success(new TaskDto(
-            task.Id,
-            task.ProjectWorkspaceId,
-            task.ProjectSpaceId,
-            task.ProjectFolderId,
-            task.Name,
-            task.Description,
-            task.StatusId,
-            task.Priority,
-            task.StartDate,
-            task.DueDate,
-            task.StoryPoints,
-            task.TimeEstimate,
-            task.OrderKey,
-            task.CreatedAt,
-            assigneeDtos.ToList()
-        ));
-    }
 }

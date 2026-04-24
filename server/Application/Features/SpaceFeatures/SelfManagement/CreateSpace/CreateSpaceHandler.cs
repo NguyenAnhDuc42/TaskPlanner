@@ -11,7 +11,7 @@ using Domain.Common;
 using Microsoft.EntityFrameworkCore;
 using Application.Interfaces;
 
-namespace Application.Features.SpaceFeatures.SelfManagement.CreateSpace;
+namespace Application.Features.SpaceFeatures;
 
 public class CreateSpaceHandler(
     IDataBase db, 

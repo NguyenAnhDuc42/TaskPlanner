@@ -2,7 +2,7 @@ using Application.Common.Interfaces;
 using Domain.Enums;
 using Domain.Enums.RelationShip;
 
-namespace Application.Features.ViewFeatures.CreateView;
+namespace Application.Features.ViewFeatures;
 
 public record CreateViewCommand(
     string Name, 

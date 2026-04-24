@@ -1,7 +1,7 @@
 using Application.Common.Errors;
 using Application.Common.Interfaces;
 using Application.Common.Results;
-using Application.Features.TaskFeatures.SelfManagement;
+using Application.Features.TaskFeatures;
 using Application.Helpers;
 using Application.Interfaces.Data;
 using Domain.Entities;
@@ -9,7 +9,7 @@ using Domain.Enums;
 using Domain.Enums.RelationShip;
 using Microsoft.EntityFrameworkCore;
 
-namespace Application.Features.ViewFeatures.GetViewData;
+namespace Application.Features.ViewFeatures;
 
 public class GetViewDataHandler(IDataBase db) 
     : IQueryHandler<GetViewDataQuery, ViewDataResponse>

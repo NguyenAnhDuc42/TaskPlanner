@@ -1,6 +1,6 @@
 using Application.Common.Interfaces;
 
-namespace Application.Features.SpaceFeatures.SelfManagement.CreateSpace;
+namespace Application.Features.SpaceFeatures;
 
 public record CreateSpaceCommand(
     Guid workspaceId,

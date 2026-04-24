@@ -8,7 +8,7 @@ using Domain.Entities;
 using Domain.Enums;
 using Microsoft.EntityFrameworkCore;
 
-namespace Application.Features.FolderFeatures.SelfManagement.DeleteFolder;
+namespace Application.Features.FolderFeatures;
 
 public class DeleteFolderHandler(
     IDataBase db, 

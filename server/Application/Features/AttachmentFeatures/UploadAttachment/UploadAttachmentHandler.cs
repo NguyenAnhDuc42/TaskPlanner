@@ -8,7 +8,7 @@ using Domain.Enums;
 using Microsoft.EntityFrameworkCore;
 using Application.Interfaces;
 
-namespace Application.Features.AttachmentFeatures.UploadAttachment;
+namespace Application.Features.AttachmentFeatures;
 
 public class UploadAttachmentHandler(IDataBase db, WorkspaceContext context) : ICommandHandler<UploadAttachmentCommand>
 {

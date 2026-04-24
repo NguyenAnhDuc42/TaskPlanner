@@ -2,7 +2,6 @@ using Application.Common.Errors;
 using Application.Common.Interfaces;
 using Application.Common.Results;
 using Application.Features;
-using Application.Features.WorkspaceFeatures.DeleteWorkspace;
 using Application.Helpers;
 using Application.Interfaces;
 using Application.Interfaces.Data;
@@ -12,7 +11,7 @@ using Microsoft.Extensions.Caching.Hybrid;
 using Microsoft.Extensions.Logging;
 
 
-namespace Application.Features.WorkspaceFeatures.SelfManagement.DeleteWorkspace;
+namespace Application.Features.WorkspaceFeatures;
 
 public class DeleteWorkspaceHandler(
     IDataBase db, 

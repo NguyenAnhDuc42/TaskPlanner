@@ -12,7 +12,7 @@ using Microsoft.EntityFrameworkCore;
 using Application.Interfaces;
 using Dapper;
 
-namespace Application.Features.TaskFeatures.SelfManagement.CreateTask;
+namespace Application.Features.TaskFeatures;
 
 public class CreateTaskHandler(IDataBase db, WorkspaceContext context) : ICommandHandler<CreateTaskCommand, TaskDto>
 {

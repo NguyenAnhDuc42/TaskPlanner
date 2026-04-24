@@ -1,22 +1,11 @@
 using Application.Common.Filters;
 using Application.Common.Results;
-using Application.Features.WorkspaceFeatures.SelfManagement.CreateWorkspace;
-using Application.Features.WorkspaceFeatures.SelfManagement.GetWorkspaceList;
+using Application.Features.WorkspaceFeatures;
 using Microsoft.AspNetCore.Mvc;
 using Domain.Enums;
 using Microsoft.AspNetCore.Authorization;
-using Application.Features.WorkspaceFeatures.MemberManage.GetMembers;
-using Application.Features.WorkspaceFeatures.MemberManage.AddMembers;
-using Application.Features.WorkspaceFeatures.HierarchyManagement.GetHierarchy;
-using Application.Features.WorkspaceFeatures.MemberManage.UpdateMembersRole;
-using Application.Features.WorkspaceFeatures.SelfManagement.GetDetailWorkspace;
-using Application.Features.WorkspaceFeatures.SelfManagement.SetWorkspacePin;
-using Application.Features.WorkspaceFeatures.SelfManagement.JoinWorkspaceByCode;
-using Application.Features.WorkspaceFeatures.SelfManagement.UpdateWorkspace;
 using Api.Extensions;
 using Application.Common.Interfaces;
-using Application.Features.WorkspaceFeatures.MemberManage.RemoveMembers;
-using Application.Features.WorkspaceFeatures.HierarchyManagement.MoveItem;
 
 namespace Api.Controllers
 {
@@ -121,8 +110,8 @@ namespace Api.Controllers
         [HttpGet("{id:guid}/hierarchy/nodes/{nodeId:guid}/folders")]
         public async Task<IActionResult> GetNodeFolders(Guid id, Guid nodeId, CancellationToken cancellationToken)
         {
-            var query = new Application.Features.WorkspaceFeatures.HierarchyManagement.GetHierarchy.GetNodeFoldersQuery(id, nodeId);
-            var result = await _handler.QueryAsync<Application.Features.WorkspaceFeatures.HierarchyManagement.GetHierarchy.GetNodeFoldersQuery, List<FolderHierarchyDto>>(query, cancellationToken);
+            var query = new GetNodeFoldersQuery(id, nodeId);
+            var result = await _handler.QueryAsync<GetNodeFoldersQuery, List<FolderHierarchyDto>>(query, cancellationToken);
             return result.ToActionResult();
         }
 

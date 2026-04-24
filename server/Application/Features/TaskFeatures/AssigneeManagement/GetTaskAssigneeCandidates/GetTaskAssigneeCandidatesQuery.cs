@@ -1,6 +1,6 @@
 using Application.Common.Interfaces;
 
-namespace Application.Features.TaskFeatures.AssigneeManagement.GetTaskAssigneeCandidates;
+namespace Application.Features.TaskFeatures;
 
 public record GetTaskAssigneeCandidatesQuery(
     Guid TaskId,

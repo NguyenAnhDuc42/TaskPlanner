@@ -1,6 +1,6 @@
 using FluentValidation;
 
-namespace Application.Features.ViewFeatures.CreateView;
+namespace Application.Features.ViewFeatures;
 
 public class CreateViewValidator : AbstractValidator<CreateViewCommand>
 {

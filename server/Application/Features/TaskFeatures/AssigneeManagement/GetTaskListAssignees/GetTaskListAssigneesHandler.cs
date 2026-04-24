@@ -4,7 +4,7 @@ using Application.Common.Errors;
 using Domain.Entities.ProjectEntities;
 using Dapper;
 
-namespace Application.Features.TaskFeatures.AssigneeManagement.GetTaskListAssignees;
+namespace Application.Features.TaskFeatures;
 
 public class GetTaskListAssigneesHandler : IQueryHandler<GetTaskListAssigneesQuery, List<TaskAssigneeOptionDto>>
 {

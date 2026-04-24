@@ -6,7 +6,7 @@ using Microsoft.Extensions.Logging;
 using Application.Interfaces;
 using Microsoft.EntityFrameworkCore;
 
-namespace Application.Features.Auth.Logout;
+namespace Application.Features.Auth;
 
 public class LogoutHandler : ICommandHandler<LogoutCommand>
 {

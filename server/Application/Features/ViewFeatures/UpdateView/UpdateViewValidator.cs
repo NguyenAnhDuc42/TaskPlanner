@@ -1,6 +1,6 @@
 using FluentValidation;
 
-namespace Application.Features.ViewFeatures.UpdateView;
+namespace Application.Features.ViewFeatures;
 
 public class UpdateViewValidator : AbstractValidator<UpdateViewCommand>
 {

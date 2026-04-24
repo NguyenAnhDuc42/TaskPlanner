@@ -6,7 +6,7 @@ using Application.Interfaces.Data;
 using Microsoft.EntityFrameworkCore;
 using Domain.Entities;
 
-namespace Application.Features.WorkspaceFeatures.SelfManagement.LeaveWorkspace;
+namespace Application.Features.WorkspaceFeatures;
 
 public class LeaveWorkspaceHandler(IDataBase db, WorkspaceContext context) : ICommandHandler<LeaveWorkspaceCommand>
 {

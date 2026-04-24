@@ -10,7 +10,7 @@ using Microsoft.Extensions.Caching.Hybrid;
 using Application.Interfaces;
 using Domain.Entities;
 
-namespace Application.Features.WorkspaceFeatures.SelfManagement.UpdateWorkspace;
+namespace Application.Features.WorkspaceFeatures;
 
 public class UpdateWorkspaceHandler(
     IDataBase db, 

@@ -3,7 +3,7 @@ using Application.Common.Results;
 using Application.Interfaces.Data;
 using Dapper;
 
-namespace Application.Features.WorkspaceFeatures.HierarchyManagement.GetHierarchy;
+namespace Application.Features.WorkspaceFeatures;
 
 public class GetNodeFoldersHandler(IDataBase db) : IQueryHandler<GetNodeFoldersQuery, List<FolderHierarchyDto>>
 {

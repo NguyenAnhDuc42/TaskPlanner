@@ -1,8 +1,7 @@
 using Application.Common.Interfaces;
-using Application.Features.WorkflowFeatures.Common;
 using Application.Common.Results;
 
-namespace Application.Features.WorkflowFeatures.GetAvailableStatuses;
+namespace Application.Features.WorkflowFeatures;
 
 public record GetAvailableStatusesQuery(
     Guid? SpaceId = null,

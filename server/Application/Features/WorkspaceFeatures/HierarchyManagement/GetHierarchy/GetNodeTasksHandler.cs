@@ -6,7 +6,7 @@ using Application.Interfaces.Data;
 using Domain.Enums;
 using Dapper;
 
-namespace Application.Features.WorkspaceFeatures.HierarchyManagement.GetHierarchy;
+namespace Application.Features.WorkspaceFeatures;
 
 public class GetNodeTasksHandler(IDataBase db) : IQueryHandler<GetNodeTasksQuery, NodeTasksDto>
 {

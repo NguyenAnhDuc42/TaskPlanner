@@ -2,7 +2,7 @@ using FluentValidation;
 using Domain.Enums;
 using Domain.Enums.RelationShip;
 
-namespace Application.Features.WorkspaceFeatures.MemberManage.UpdateMembersRole;
+namespace Application.Features.WorkspaceFeatures;
 
 public class UpdateMembersValidator : AbstractValidator<UpdateMembersCommand>
 {

@@ -1,6 +1,6 @@
 using Application.Common.Interfaces;
 
-namespace Application.Features.WorkspaceFeatures.MemberManage.RemoveMembers;
+namespace Application.Features.WorkspaceFeatures;
 
 public record RemoveMembersCommand(
     Guid workspaceId, 

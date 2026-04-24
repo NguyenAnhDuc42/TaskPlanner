@@ -1,6 +1,6 @@
 using Application.Common.Interfaces;
 
-namespace Application.Features.WorkspaceFeatures.SelfManagement.JoinWorkspaceByCode;
+namespace Application.Features.WorkspaceFeatures;
 
 public record JoinWorkspaceByCodeCommand(string JoinCode) : ICommandRequest<JoinWorkspaceByCodeResult>;
 

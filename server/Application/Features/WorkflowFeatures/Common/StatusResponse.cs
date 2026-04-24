@@ -1,6 +1,6 @@
 using Domain.Enums;
 
-namespace Application.Features.WorkflowFeatures.Common;
+namespace Application.Features.WorkflowFeatures;
 
 public record StatusResponse(
     Guid Id,

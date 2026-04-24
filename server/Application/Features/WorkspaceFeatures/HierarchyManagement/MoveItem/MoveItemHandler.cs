@@ -9,7 +9,7 @@ using Domain.Enums.RelationShip;
 using Domain.Enums;
 using Microsoft.EntityFrameworkCore;
 
-namespace Application.Features.WorkspaceFeatures.HierarchyManagement.MoveItem;
+namespace Application.Features.WorkspaceFeatures;
 
 public class MoveItemHandler(IDataBase db, WorkspaceContext context) : ICommandHandler<MoveItemCommand>
 {

@@ -1,6 +1,6 @@
 using FluentValidation;
 
-namespace Application.Features.WorkspaceFeatures.MemberManage.RemoveMembers;
+namespace Application.Features.WorkspaceFeatures;
 
 public class RemoveMembersValidator : AbstractValidator<RemoveMembersCommand>
 {

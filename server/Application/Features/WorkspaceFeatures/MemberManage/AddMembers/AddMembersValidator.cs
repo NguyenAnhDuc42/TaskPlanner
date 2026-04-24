@@ -1,9 +1,9 @@
-﻿using FluentValidation;
+using FluentValidation;
 using System;
 using System.Collections.Generic;
 using System.Text;
 
-namespace Application.Features.WorkspaceFeatures.MemberManage.AddMembers;
+namespace Application.Features.WorkspaceFeatures;
 
 public class AddMembersValidator : AbstractValidator<AddMembersCommand>
 {

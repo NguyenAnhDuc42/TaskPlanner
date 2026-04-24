@@ -7,7 +7,7 @@ using Domain.Entities;
 using Domain.Enums;
 using Microsoft.EntityFrameworkCore;
 
-namespace Application.Features.ViewFeatures.CreateView;
+namespace Application.Features.ViewFeatures;
 
 public class CreateViewHandler(IDataBase db, WorkspaceContext context) : ICommandHandler<CreateViewCommand, Guid>
 {

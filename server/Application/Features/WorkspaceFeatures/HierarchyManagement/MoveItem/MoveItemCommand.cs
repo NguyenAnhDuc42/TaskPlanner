@@ -1,7 +1,7 @@
 using Application.Common.Interfaces;
 using Domain.Enums.RelationShip;
 
-namespace Application.Features.WorkspaceFeatures.HierarchyManagement.MoveItem;
+namespace Application.Features.WorkspaceFeatures;
 
 public record MoveItemCommand(
     Guid ItemId,

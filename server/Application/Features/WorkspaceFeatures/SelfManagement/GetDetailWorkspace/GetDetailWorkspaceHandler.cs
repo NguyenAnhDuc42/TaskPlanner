@@ -7,7 +7,7 @@ using Domain.Enums;
 using Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 
-namespace Application.Features.WorkspaceFeatures.SelfManagement.GetDetailWorkspace;
+namespace Application.Features.WorkspaceFeatures;
 
 public class GetDetailWorkspaceHandler(IDataBase db, WorkspaceContext context) : IQueryHandler<GetDetailWorkspaceQuery, WorkspaceSecurityContextDto>
 {

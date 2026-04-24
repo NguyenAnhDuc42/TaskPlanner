@@ -1,6 +1,6 @@
 using FluentValidation;
 
-namespace Application.Features.WorkspaceFeatures.DeleteWorkspace;
+namespace Application.Features.WorkspaceFeatures;
 
 public class DeleteWorkspaceValidator : AbstractValidator<DeleteWorkspaceCommand>
 {

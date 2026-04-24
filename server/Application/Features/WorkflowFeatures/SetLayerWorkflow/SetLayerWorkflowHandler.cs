@@ -6,7 +6,7 @@ using Application.Interfaces.Data;
 using Domain.Enums;
 using Microsoft.EntityFrameworkCore;
 
-namespace Application.Features.WorkflowFeatures.SetLayerWorkflow;
+namespace Application.Features.WorkflowFeatures;
 
 public class SetLayerWorkflowHandler(IDataBase db, WorkspaceContext context) 
     : ICommandHandler<SetLayerWorkflowCommand>

@@ -2,7 +2,7 @@ using Application.Common.Interfaces;
 using Domain.Enums.RelationShip;
 using Domain.Enums;
 
-namespace Application.Features.ViewFeatures.GetViews;
+namespace Application.Features.ViewFeatures;
 
 public record GetViewsQuery(Guid LayerId, EntityLayerType LayerType) : IQueryRequest<List<ViewDto>>, IAuthorizedWorkspaceRequest;
 

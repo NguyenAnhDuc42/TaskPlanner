@@ -8,7 +8,6 @@ namespace Application.Behaviors;
 
 public static class ValidationDecorator
 {
-    // The biggest perk of our new Result system: We can return Failures instead of throwing Exceptions!
     private static Result<TResponse>? Validate<TRequest, TResponse>(IEnumerable<IValidator<TRequest>> validators, TRequest request)
     {
         if (!validators.Any()) return null;
@@ -64,7 +63,7 @@ public static class ValidationDecorator
         public async Task<Result<TResponse>> Handle(TQuery query, CancellationToken cancellationToken)
         {
             var validationResult = Validate<TQuery, TResponse>(_validators, query);
-            if (validationResult is not null) return validationResult; // Return exactly 400 Bad Request instantly
+            if (validationResult is not null) return validationResult; 
 
             return await _inner.Handle(query, cancellationToken);
         }

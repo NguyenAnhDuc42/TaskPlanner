@@ -3,7 +3,7 @@ using Domain.Enums;
 using MediatR;
 using Microsoft.AspNetCore.Http;
 
-namespace Application.Features.AttachmentFeatures.UploadAttachment;
+namespace Application.Features.AttachmentFeatures;
 
 public record UploadAttachmentCommand 
 (   

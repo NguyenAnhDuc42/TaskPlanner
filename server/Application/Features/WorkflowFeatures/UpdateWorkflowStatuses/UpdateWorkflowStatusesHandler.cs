@@ -7,7 +7,7 @@ using Domain.Entities;
 using Domain.Enums;
 using Microsoft.EntityFrameworkCore;
 
-namespace Application.Features.WorkflowFeatures.UpdateWorkflowStatuses;
+namespace Application.Features.WorkflowFeatures;
 
 public class UpdateWorkflowStatusesHandler(IDataBase db, WorkspaceContext context) 
     : ICommandHandler<UpdateWorkflowStatusesCommand>

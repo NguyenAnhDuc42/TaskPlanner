@@ -2,7 +2,7 @@ using Application.Common.Results;
 using Application.Features;
 using Application.Interfaces;
 
-namespace Application.Features.Auth.GetCurrentUser;
+namespace Application.Features.Auth;
 
 public class GetCurrentUserHandler : IQueryHandler<GetCurrentUserQuery, GetCurrentUserDto>
 {

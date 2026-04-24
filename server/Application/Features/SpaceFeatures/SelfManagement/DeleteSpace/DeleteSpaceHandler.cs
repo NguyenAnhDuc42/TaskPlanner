@@ -8,7 +8,7 @@ using Domain.Enums;
 using Microsoft.EntityFrameworkCore;
 using Domain.Entities;
 
-namespace Application.Features.SpaceFeatures.SelfManagement.DeleteSpace;
+namespace Application.Features.SpaceFeatures;
 
 public class DeleteSpaceHandler(
     IDataBase db, 

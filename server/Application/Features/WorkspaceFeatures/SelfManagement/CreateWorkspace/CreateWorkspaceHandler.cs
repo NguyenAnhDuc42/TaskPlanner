@@ -12,7 +12,7 @@ using Microsoft.Extensions.Caching.Hybrid;
 using Application.Features;
 using Application.Interfaces;
 
-namespace Application.Features.WorkspaceFeatures.SelfManagement.CreateWorkspace;
+namespace Application.Features.WorkspaceFeatures;
 
 public class CreateWorkspaceHandler(
     IDataBase db, 

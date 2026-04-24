@@ -1,9 +1,9 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Text;
 using Domain.Enums;
 
-namespace Application.Features.WorkspaceFeatures.MemberManage.GetMembers;
+namespace Application.Features.WorkspaceFeatures;
 
 public class MemberRow
 {

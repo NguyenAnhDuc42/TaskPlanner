@@ -1,4 +1,4 @@
-using Application.Features.Auth.DTOs;
+using Application.Features.Auth;
 using Microsoft.AspNetCore.Http;
 
 namespace Application.Interfaces

@@ -8,7 +8,7 @@ using Microsoft.IdentityModel.Tokens;
 using Application.Interfaces;
 using System.Security.Cryptography;
 using Microsoft.Extensions.Options;
-using Application.Features.Auth.DTOs;
+using Application.Features.Auth;
 using Microsoft.EntityFrameworkCore;
 
 namespace Infrastructure.Auth;
