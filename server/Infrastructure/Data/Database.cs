@@ -49,9 +49,6 @@ public class Database : IDataBase
     public DbSet<Document> Documents => _context.Set<Document>();
     public DbSet<Dashboard> Dashboards => _context.Set<Dashboard>();
     public DbSet<ViewDefinition> ViewDefinitions => _context.Set<ViewDefinition>();
-    public DbSet<ChatRoom> ChatRooms => _context.Set<ChatRoom>();
-    public DbSet<ChatRoomMember> ChatRoomMembers => _context.Set<ChatRoomMember>();
-    public DbSet<ChatMessage> ChatMessages => _context.Set<ChatMessage>();
     public DbSet<Attachment> Attachments => _context.Set<Attachment>();
     public DbSet<EntityAssetLink> EntityAssetLinks => _context.Set<EntityAssetLink>();
     public DbSet<TaskAssignment> TaskAssignments => _context.Set<TaskAssignment>();

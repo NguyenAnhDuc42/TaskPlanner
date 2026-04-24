@@ -21,7 +21,6 @@ public class UpdateWorkspaceHandler(
 {
     public async Task<Result> Handle(UpdateWorkspaceCommand request, CancellationToken ct)
     {
-        // Permission Check: Redundant null check removed; PermissionDecorator guarantees context.CurrentMember
         if (context.CurrentMember.Role > Role.Admin)
             return Result.Failure(MemberError.DontHavePermission);
 
@@ -31,7 +30,6 @@ public class UpdateWorkspaceHandler(
 
         if (workspace == null) return Result.Failure(WorkspaceError.NotFound);
 
-        // Update logic
         var nameChanged = !string.IsNullOrEmpty(request.Name) && workspace.Name != request.Name;
         if (nameChanged)
         {
@@ -47,7 +45,7 @@ public class UpdateWorkspaceHandler(
             workspace.UpdateCustomization(request.Color, request.Icon);
         }
 
-        if (request.Theme.HasValue) workspace.UpdateTheme(request.Theme.Value);
+        if (request.Theme.HasValue) context.CurrentMember.UpdateTheme(request.Theme.Value);
         if (request.StrictJoin.HasValue) workspace.UpdateStrictJoin(request.StrictJoin.Value);
 
         await db.SaveChangesAsync(ct);

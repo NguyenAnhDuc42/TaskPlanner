@@ -15,27 +15,29 @@ public class WorkspaceMember : Entity
     public Role Role { get; private set; }
     public MembershipStatus Status { get; private set; } // Pending, Active, Invited, Suspended
     public bool IsPinned { get; private set; }
+    public Theme Theme { get; private set; }
     public DateTimeOffset? JoinedAt { get; private set; }
     public DateTimeOffset? SuspendedAt { get; private set; }
     public Guid? SuspendedBy { get; private set; }
     public string? JoinMethod { get; private set; } = string.Empty; // "Invite", "Request", "Code"
-    public WorkspaceMember(Guid userId, Guid projectWorkspaceId, Role role, MembershipStatus status, Guid? creatorId, string? joinMethod)
+    public WorkspaceMember(Guid userId, Guid projectWorkspaceId, Role role, MembershipStatus status, Guid? creatorId, string? joinMethod, Theme theme = Theme.Dark)
     {
         UserId = userId;
         ProjectWorkspaceId = projectWorkspaceId;
         Role = role;
         Status = status;
         IsPinned = false;
+        Theme = theme;
         CreatorId = creatorId;
         JoinedAt = status == MembershipStatus.Active ? DateTimeOffset.UtcNow : null;
         JoinMethod = joinMethod;
     }
 
-    public static WorkspaceMember Create(Guid userId, Guid workspaceId, Role role, MembershipStatus status, Guid createdBy, string? joinMethod)
-      => new(userId, workspaceId, role, status, createdBy, joinMethod);
+    public static WorkspaceMember Create(Guid userId, Guid workspaceId, Role role, MembershipStatus status, Guid createdBy, string? joinMethod, Theme theme = Theme.Dark)
+      => new(userId, workspaceId, role, status, createdBy, joinMethod, theme);
 
-    public static WorkspaceMember CreateOwner(Guid userId, Guid projectWorkspaceId, Guid createdBy)
-        => new(userId, projectWorkspaceId, Role.Owner, MembershipStatus.Active, createdBy, "Created");
+    public static WorkspaceMember CreateOwner(Guid userId, Guid projectWorkspaceId, Guid createdBy, Theme theme = Theme.Dark)
+        => new(userId, projectWorkspaceId, Role.Owner, MembershipStatus.Active, createdBy, "Created", theme);
 
     public static List<WorkspaceMember> AddBulk(List<(Guid UserId, Role Role, MembershipStatus Status, string? JoinMethod)> memberSpecs, Guid projectWorkspaceId, Guid createdBy)
     {
@@ -121,5 +123,12 @@ public class WorkspaceMember : Entity
     {
         DeletedAt = null;
         JoinByCode(strictJoin);
+    }
+
+    public void UpdateTheme(Theme theme)
+    {
+        if (Theme == theme) return;
+        Theme = theme;
+        UpdateTimestamp();
     }
 }

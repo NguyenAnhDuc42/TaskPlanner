@@ -22,7 +22,7 @@ public class LoginHandler(
         if (httpContext is null) 
             return Result<LoginResponse>.Failure(Error.Failure("Auth.ContextError", "Unable to get HttpContext."));
 
-        var user = await db.Users.FirstOrDefaultAsync(u => u.Email == request.email, ct);
+        var user = await db.Users.ByEmail(request.email).AsNoTracking().FirstOrDefaultAsync(ct);
         
         if (user is null || !passwordService.VerifyPassword(request.password, user.PasswordHash!)) 
             return Result<LoginResponse>.Failure(AuthError.InvalidCredentials);

@@ -22,7 +22,7 @@ public class RegisterHandler(
     {
         logger.LogInformation("Registering new user: {Email}", request.email);
 
-        var exists = await db.Users.AnyAsync(u => u.Email == request.email, ct);
+        var exists = await db.Users.ByEmail(request.email).AsNoTracking().AnyAsync(ct);
         if (exists)
         {
             logger.LogWarning("Registration failed: Email {Email} already exists", request.email);
@@ -33,12 +33,13 @@ public class RegisterHandler(
         var user = User.Create(request.username, request.email, passwordHash);
         
         await db.Users.AddAsync(user, ct);
-        await db.SaveChangesAsync(ct);
 
-        // Auto-login flow
         var httpContext = httpContextAccessor.HttpContext;
         if (httpContext is null) 
+        {
+            await db.SaveChangesAsync(ct);
             return Result<RegisterResponse>.Failure(Error.Failure("Auth.ContextError", "No HttpContext available for registration login."));
+        }
 
         var userAgent = httpContext.Request.Headers["User-Agent"].ToString();
         var ipAddress = httpContext.Connection.RemoteIpAddress?.ToString() ?? "Unknown IP";
@@ -46,7 +47,6 @@ public class RegisterHandler(
         var tokens = tokenService.GenerateTokens(user, userAgent, ipAddress);
         cookieService.SetAuthCookies(httpContext, tokens);
 
-        // Standardized record usage while preserving original DateTimeOffset types in sessions
         var session = Session.Create(user.Id, tokens.RefreshToken, tokens.ExpirationRefreshToken, userAgent, ipAddress);
         await db.Sessions.AddAsync(session, ct);
 

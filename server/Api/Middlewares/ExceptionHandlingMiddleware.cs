@@ -22,23 +22,17 @@ public class ExceptionHandlingMiddleware
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Unhandled exception: {Message}", ex.Message);
+            _logger.LogError(ex, "Unhandled exception on {RequestPath}: {Message}", context.Request.Path, ex.Message);
             await HandleExceptionAsync(context, ex);
         }
     }
 
     private static Task HandleExceptionAsync(HttpContext context, Exception ex)
     {
-        var exceptionType = ex.GetType().FullName;
-        var isFluentValidation = ex is ValidationException;
-        Console.WriteLine($"Exception Type: {exceptionType}");
-        Console.WriteLine($"Is FluentValidation.ValidationException: {isFluentValidation}");
-
         ProblemDetails problem = new ProblemDetails();
         switch (ex)
         {
             case ValidationException validationEx:
-                Console.WriteLine("MATCHED ValidationException case");
                 problem = new ProblemDetails
                 {
                     Title = "Validation failed",

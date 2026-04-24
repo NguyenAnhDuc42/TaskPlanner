@@ -2,7 +2,6 @@ using Application.Common.Filters;
 using Application.Common.Results;
 using Application.Features.WorkspaceFeatures.SelfManagement.CreateWorkspace;
 using Application.Features.WorkspaceFeatures.SelfManagement.GetWorkspaceList;
-using Domain.Enums.Workspace;
 using Microsoft.AspNetCore.Mvc;
 using Domain.Enums;
 using Microsoft.AspNetCore.Authorization;

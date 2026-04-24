@@ -2,7 +2,6 @@ using Domain.Common;
 using Domain.Entities.ProjectEntities;
 using Domain.Enums;
 using Domain.Enums.RelationShip;
-using Domain.Enums.Workspace;
 using Domain.Events.Membership;
 using Domain.Exceptions;
 
@@ -15,7 +14,6 @@ public sealed class ProjectWorkspace : Entity
     public string? Description { get; private set; }
     public string JoinCode { get; private set; } = null!;
     public Customization Customization { get; private set; } = Customization.CreateDefault();
-    public Theme Theme { get; private set; } = Theme.Dark;
     public bool StrictJoin { get; private set; } = false;
     public bool IsArchived { get; private set; }
 
@@ -24,7 +22,7 @@ public sealed class ProjectWorkspace : Entity
 
     private ProjectWorkspace() { }
 
-    private ProjectWorkspace(Guid id, string name, string slug, string? description, string joinCode, Customization customization, Theme theme, bool strictJoin, Guid creatorId)
+    private ProjectWorkspace(Guid id, string name, string slug, string? description, string joinCode, Customization customization, bool strictJoin, Guid creatorId)
     {
         Id = id;
         Name = name ?? throw new ArgumentNullException(nameof(name));
@@ -32,7 +30,6 @@ public sealed class ProjectWorkspace : Entity
         Description = string.IsNullOrWhiteSpace(description) ? null : description;
         JoinCode = joinCode ?? throw new ArgumentNullException(nameof(joinCode));
         Customization = customization ?? Customization.CreateDefault();
-        Theme = theme;
         StrictJoin = strictJoin;
         CreatorId = creatorId;
         IsArchived = false;
@@ -49,38 +46,38 @@ public sealed class ProjectWorkspace : Entity
             string.IsNullOrWhiteSpace(description) ? null : description.Trim(),
             string.IsNullOrWhiteSpace(joinCode) ? Guid.NewGuid().ToString("N")[..8].ToUpperInvariant() : joinCode.Trim(),
             customization ?? Customization.CreateDefault(), 
-            theme, 
             strictJoin, 
             creatorId);
         
-        // Add creator as the first owner
-        var owner = WorkspaceMember.CreateOwner(creatorId, workspace.Id, creatorId);
+        // Add creator as the first owner with their chosen theme
+        var owner = WorkspaceMember.CreateOwner(creatorId, workspace.Id, creatorId, theme);
         workspace._members.Add(owner);
         
+        workspace.AddDomainEvent(new Domain.Events.Workspace.CreatedWorkspaceEvent(creatorId, workspace.Id));
         return workspace;
     }
 
     #region Member Management
 
-    public void AddMember(Guid userId, Role role, Guid actorId, string? joinMethod = "Manual")
+    public void AddMember(Guid userId, Role role, Guid actorId, string? joinMethod = "Manual", Theme theme = Theme.Dark)
     {
         EnsureNotArchived();
         
-        var newMember = WorkspaceMember.Create(userId, this.Id, role, MembershipStatus.Active, actorId, joinMethod);
+        var newMember = WorkspaceMember.Create(userId, this.Id, role, MembershipStatus.Active, actorId, joinMethod, theme);
         _members.Add(newMember);
         
         AddDomainEvent(new WorkspaceMembersAddedBulkEvent(Id, new[] { new AddedMemberRecord(userId, role) }));
         UpdateTimestamp();
     }
 
-    public void AddMembers(IEnumerable<(Guid UserId, Role Role)> memberSpecs, Guid actorId)
+    public void AddMembers(IEnumerable<(Guid UserId, Role Role)> memberSpecs, Guid actorId, Theme theme = Theme.Dark)
     {
         EnsureNotArchived();
         
         var addedRecords = new List<AddedMemberRecord>();
         foreach (var spec in memberSpecs)
         {
-            var newMember = WorkspaceMember.Create(spec.UserId, this.Id, spec.Role, MembershipStatus.Active, actorId, "Bulk");
+            var newMember = WorkspaceMember.Create(spec.UserId, this.Id, spec.Role, MembershipStatus.Active, actorId, "Bulk", theme);
             _members.Add(newMember);
             addedRecords.Add(new AddedMemberRecord(spec.UserId, spec.Role));
         }
@@ -170,13 +167,6 @@ public sealed class ProjectWorkspace : Entity
         }
     }
 
-    public void UpdateTheme(Theme theme)
-    {
-        EnsureNotArchived();
-        if (Theme == theme) return;
-        Theme = theme;
-        UpdateTimestamp();
-    }
 
     public void UpdateStrictJoin(bool strictJoin)
     {

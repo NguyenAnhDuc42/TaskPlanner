@@ -9,6 +9,7 @@ using Domain.Enums;
 using Domain.Enums.RelationShip;
 using Domain.Common;
 using Microsoft.EntityFrameworkCore;
+using Application.Interfaces;
 
 namespace Application.Features.SpaceFeatures.SelfManagement.CreateSpace;
 

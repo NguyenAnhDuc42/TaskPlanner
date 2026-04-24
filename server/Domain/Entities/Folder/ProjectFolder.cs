@@ -65,6 +65,7 @@ public sealed class ProjectFolder : TenantEntity
             dueDate);
 
         folder.WorkflowId = null;
+        folder.AddDomainEvent(new FolderCreatedEvent(projectWorkspaceId, projectSpaceId, folder.Id, creatorId));
         return folder;
     }
 

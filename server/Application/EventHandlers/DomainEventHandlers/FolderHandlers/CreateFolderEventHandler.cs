@@ -18,34 +18,8 @@ public class CreateFolderEventHandler(
 {
     public async Task Handle(FolderCreatedEvent notification, CancellationToken cancellationToken)
     {
-        logger.LogInformation("Seeding default views (Overview & Tasks) for FolderId: {FolderId}", notification.FolderId);
-
-        var overviewView = ViewDefinition.Create(
-            notification.WorkspaceId,
-            notification.FolderId,
-            EntityLayerType.ProjectFolder,
-            "Overview",
-            ViewType.Overview,
-            notification.UserId,
-            isDefault: true,
-            sortOrder: 0
-        );
-
-        var tasksView = ViewDefinition.Create(
-            notification.WorkspaceId,
-            notification.FolderId,
-            EntityLayerType.ProjectFolder,
-            "Tasks",
-            ViewType.Tasks,
-            notification.UserId,
-            isDefault: false,
-            sortOrder: 1
-        );
-
-        await db.ViewDefinitions.AddRangeAsync(new[] { overviewView, tasksView }, cancellationToken);
-        await db.SaveChangesAsync(cancellationToken);
-
-        // STAGE 2 Notification: Background seeding is complete
-        await realtime.NotifyWorkspaceAsync(notification.WorkspaceId, "FolderReady", new { FolderId = notification.FolderId, SpaceId = notification.SpaceId, WorkspaceId = notification.WorkspaceId }, cancellationToken);
+        // View seeding is now handled inline in CreateFolderHandler and CreateWorkspaceHandler.
+        // This handler is preserved for future asynchronous side effects.
+        await Task.CompletedTask;
     }
 }

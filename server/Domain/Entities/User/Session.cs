@@ -12,6 +12,8 @@ public class Session : Entity
     public string UserAgent { get; private set; } = string.Empty;
     public string IpAddress { get; private set; } = string.Empty;
     public DateTimeOffset? LastTokenRotationAt { get; private set; }
+    
+    public virtual User User { get; private set; } = null!;
 
     public bool IsActive => !RevokedAt.HasValue && ExpiresAt > DateTimeOffset.UtcNow;
 

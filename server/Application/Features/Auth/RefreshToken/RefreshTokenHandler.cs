@@ -37,12 +37,16 @@ public class RefreshTokenHandler : ICommandHandler<RefreshTokenCommand, RefreshT
         if (string.IsNullOrEmpty(refreshToken)) 
             return Error.Unauthorized("Auth.MissingToken", "Refresh token missing.");
 
-        var session = await _db.Sessions.FirstOrDefaultAsync(s => s.RefreshToken == refreshToken, ct);
+        var session = await _db.Sessions
+            .ByRefreshToken(refreshToken)
+            .Include(s => s.User)
+            .AsNoTracking()
+            .FirstOrDefaultAsync(ct);
         
         if (session is null || !session.IsActive) 
             return Error.Unauthorized("Auth.InvalidSession", "Invalid or expired session.");
 
-        var user = await _db.Users.FirstOrDefaultAsync(u => u.Id == session.UserId, ct);
+        var user = session.User;
         if (user is null) 
             return Error.Unauthorized("Auth.UserNotFound", "User associated with session not found.");
 

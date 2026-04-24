@@ -1,7 +1,6 @@
 using Application.Common.Interfaces;
 using System.Collections.Generic;
 using Domain.Enums;
-using Domain.Enums.Workspace;
 using MediatR;
 
 namespace Application.Features.WorkspaceFeatures.SelfManagement.CreateWorkspace;

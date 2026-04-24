@@ -26,7 +26,6 @@ public class TaskPlanDbContext : DbContext
     // Relationship Entities
     public DbSet<WorkspaceMember> WorkspaceMembers { get; set; }
     public DbSet<EntityAccess> EntityAccesses { get; set; }
-    public DbSet<ChatRoomMember> ChatRoomMembers { get; set; }
     public DbSet<TaskAssignment> TaskAssignments { get; set; } 
     public DbSet<EntityAssetLink> EntityAssetLinks { get; set; }
 
@@ -34,8 +33,6 @@ public class TaskPlanDbContext : DbContext
     public DbSet<Attachment> Attachments { get; set; }
     public DbSet<Comment> Comments { get; set; }
     public DbSet<Status> Statuses { get; set; }
-    public DbSet<ChatRoom> ChatRooms { get; set; }
-    public DbSet<ChatMessage> ChatMessages { get; set; }
 
     public DbSet<Widget> Widgets { get; set; }
     public DbSet<Dashboard> Dashboards { get; set; }

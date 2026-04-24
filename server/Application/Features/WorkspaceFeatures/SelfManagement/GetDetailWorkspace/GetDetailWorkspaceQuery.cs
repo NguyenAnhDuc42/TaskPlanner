@@ -1,4 +1,5 @@
 using Application.Common.Interfaces;
+using Domain.Enums;
 
 namespace Application.Features.WorkspaceFeatures.SelfManagement.GetDetailWorkspace;
 
@@ -8,7 +9,7 @@ public record WorkspaceSecurityContextDto(
     Guid WorkspaceId,
     string CurrentRole,
     bool IsOwned,
-    Domain.Enums.Workspace.Theme Theme,
+    Theme Theme,
     string Color,
     string Icon,
     bool CanEdit,

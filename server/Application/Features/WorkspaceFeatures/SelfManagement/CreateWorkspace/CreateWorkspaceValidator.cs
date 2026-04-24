@@ -1,6 +1,6 @@
 using FluentValidation;
 using Domain.Common;
-using Domain.Enums.Workspace;
+using Domain.Enums;
 
 namespace Application.Features.WorkspaceFeatures.SelfManagement.CreateWorkspace;
 

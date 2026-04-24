@@ -51,11 +51,6 @@ public class ProjectWorkspaceConfiguration : EntityConfiguration<ProjectWorkspac
             c.Property(cust => cust.Icon).HasColumnName("custom_icon").HasColumnOrder(6);
         });
 
-        builder.Property(w => w.Theme)
-            .HasColumnName("theme")
-            .HasConversion<string>()
-            .HasMaxLength(50)
-            .HasColumnOrder(7);
 
         builder.Property(w => w.StrictJoin)
             .HasColumnName("strict_join")

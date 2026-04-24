@@ -51,6 +51,7 @@ public sealed class ProjectSpace : TenantEntity
             orderKey);
 
         space.WorkflowId = null;
+        space.AddDomainEvent(new SpaceCreatedEvent(projectWorkspaceId, space.Id, creatorId));
         return space;
     }
 

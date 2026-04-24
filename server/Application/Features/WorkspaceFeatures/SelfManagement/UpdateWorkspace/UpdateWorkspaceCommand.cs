@@ -1,5 +1,5 @@
 using Application.Common.Interfaces;
-using Domain.Enums.Workspace;
+using Domain.Enums;
 
 namespace Application.Features.WorkspaceFeatures.SelfManagement.UpdateWorkspace;
 

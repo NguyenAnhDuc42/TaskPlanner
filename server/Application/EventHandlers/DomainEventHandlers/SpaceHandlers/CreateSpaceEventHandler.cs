@@ -18,34 +18,8 @@ public class CreateSpaceEventHandler(
 {
     public async Task Handle(SpaceCreatedEvent notification, CancellationToken cancellationToken)
     {
-        logger.LogInformation("Seeding default views (Overview & Tasks) for SpaceId: {SpaceId}", notification.SpaceId);
-
-        var overviewView = ViewDefinition.Create(
-            notification.WorkspaceId,
-            notification.SpaceId,
-            EntityLayerType.ProjectSpace,
-            "Overview",
-            ViewType.Overview,
-            notification.UserId,
-            isDefault: true,
-            sortOrder: 0
-        );
-
-        var tasksView = ViewDefinition.Create(
-            notification.WorkspaceId,
-            notification.SpaceId,
-            EntityLayerType.ProjectSpace,
-            "Tasks",
-            ViewType.Tasks,
-            notification.UserId,
-            isDefault: false,
-            sortOrder: 1
-        );
-
-        await db.ViewDefinitions.AddRangeAsync(new[] { overviewView, tasksView }, cancellationToken);
-        await db.SaveChangesAsync(cancellationToken);
-
-        // STAGE 2 Notification: Background seeding is complete
-        await realtime.NotifyWorkspaceAsync(notification.WorkspaceId, "SpaceReady", new { SpaceId = notification.SpaceId, WorkspaceId = notification.WorkspaceId }, cancellationToken);
+        // View seeding is now handled inline in CreateSpaceHandler and CreateWorkspaceHandler.
+        // This handler is preserved for future asynchronous side effects.
+        await Task.CompletedTask;
     }
 }

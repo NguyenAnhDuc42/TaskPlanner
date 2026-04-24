@@ -2,7 +2,6 @@ using Application.Common.Filters;
 using Application.Common.Interfaces;
 using Application.Common.Results;
 using Domain.Enums;
-using Domain.Enums.Workspace;
 
 namespace Application.Features.WorkspaceFeatures.SelfManagement.GetWorkspaceList;
 

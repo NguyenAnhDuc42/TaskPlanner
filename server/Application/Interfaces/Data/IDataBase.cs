@@ -23,9 +23,6 @@ public interface IDataBase : IUnitOfWork
     DbSet<Document> Documents { get; }
     DbSet<Dashboard> Dashboards { get; }
     DbSet<ViewDefinition> ViewDefinitions { get; }
-    DbSet<ChatRoom> ChatRooms { get; }
-    DbSet<ChatRoomMember> ChatRoomMembers { get; }
-    DbSet<ChatMessage> ChatMessages { get; }
     DbSet<Attachment> Attachments { get; }
     DbSet<EntityAssetLink> EntityAssetLinks { get; }
     DbSet<TaskAssignment> TaskAssignments { get; }

@@ -1,106 +1,129 @@
 using Application.Common.Interfaces;
 using Application.Common.Results;
 using Application.Features;
+using Application.Helpers;
 using Microsoft.Extensions.Logging;
 using Serilog.Context;
+using System.Diagnostics;
 
 namespace Application.Behaviors;
 
 public static class LoggingDecorator
 {
-    internal class QueryHandler<TQuery, TResponse> : IQueryHandler<TQuery, TResponse> 
+    internal class QueryHandler<TQuery, TResponse>(
+        IQueryHandler<TQuery, TResponse> inner, 
+        ILogger<IQueryHandler<TQuery, TResponse>> logger,
+        WorkspaceContext context) : IQueryHandler<TQuery, TResponse> 
         where TQuery : IQueryRequest<TResponse>
     {
-        private readonly IQueryHandler<TQuery, TResponse> _inner;
-        private readonly ILogger<IQueryHandler<TQuery, TResponse>> _logger;
-
-        public QueryHandler(IQueryHandler<TQuery, TResponse> inner, ILogger<IQueryHandler<TQuery, TResponse>> logger)
-        {
-            _inner = inner;
-            _logger = logger;
-        }
-
         public async Task<Result<TResponse>> Handle(TQuery request, CancellationToken cancellationToken)
         {
-            string requestName = typeof(TQuery).Name;
-            _logger.LogInformation("Executing query: {Query}", requestName);
-            var result = await _inner.Handle(request, cancellationToken);
-            if (result.IsSuccess)
+            var requestName = typeof(TQuery).Name;
+            var userId = context.CurrentMember?.UserId;
+            var workspaceId = context.TryGetWorkspaceId().IsSuccess ? context.workspaceId : (Guid?)null;
+
+            using (LogContext.PushProperty("UserId", userId))
+            using (LogContext.PushProperty("WorkspaceId", workspaceId))
             {
-                _logger.LogInformation("Query executed: {RequestName}", requestName);
-            }
-            else
-            {
-                using (LogContext.PushProperty("Error", result.Error, true))
+                logger.LogInformation("Executing query {RequestName}", requestName);
+                
+                var sw = Stopwatch.StartNew();
+                var result = await inner.Handle(request, cancellationToken);
+                sw.Stop();
+
+                if (result.IsSuccess)
                 {
-                    _logger.LogError("Query failed: {RequestName}", requestName);
+                    logger.LogInformation("Query {RequestName} executed successfully in {ElapsedMilliseconds}ms", 
+                        requestName, sw.ElapsedMilliseconds);
                 }
+                else
+                {
+                    using (LogContext.PushProperty("Error", result.Error, true))
+                    {
+                        logger.LogError("Query {RequestName} failed in {ElapsedMilliseconds}ms", 
+                            requestName, sw.ElapsedMilliseconds);
+                    }
+                }
+                return result;
             }
-            return result;
         }
     }
 
-    internal class CommandHandler<TCommand, TResponse> : ICommandHandler<TCommand, TResponse> 
+    internal class CommandHandler<TCommand, TResponse>(
+        ICommandHandler<TCommand, TResponse> inner, 
+        ILogger<ICommandHandler<TCommand, TResponse>> logger,
+        WorkspaceContext context) : ICommandHandler<TCommand, TResponse> 
         where TCommand : ICommandRequest<TResponse>
     {
-        private readonly ICommandHandler<TCommand, TResponse> _inner;
-        private readonly ILogger<ICommandHandler<TCommand, TResponse>> _logger;
-
-        public CommandHandler(ICommandHandler<TCommand, TResponse> inner, ILogger<ICommandHandler<TCommand, TResponse>> logger)
-        {
-            _inner = inner;
-            _logger = logger;
-        }
-
         public async Task<Result<TResponse>> Handle(TCommand request, CancellationToken cancellationToken)
         {
-            string requestName = typeof(TCommand).Name;
-            _logger.LogInformation("Executing command: {requestName}", requestName);
-            var result = await _inner.Handle(request, cancellationToken);
-            if (result.IsSuccess)
+            var requestName = typeof(TCommand).Name;
+            var userId = context.CurrentMember?.UserId;
+            var workspaceId = context.TryGetWorkspaceId().IsSuccess ? context.workspaceId : (Guid?)null;
+
+            using (LogContext.PushProperty("UserId", userId))
+            using (LogContext.PushProperty("WorkspaceId", workspaceId))
             {
-                _logger.LogInformation("Command executed: {RequestName}", requestName);
-            }
-            else
-            {
-                using (LogContext.PushProperty("Error", result.Error, true))
+                logger.LogInformation("Executing command {RequestName}", requestName);
+                
+                var sw = Stopwatch.StartNew();
+                var result = await inner.Handle(request, cancellationToken);
+                sw.Stop();
+
+                if (result.IsSuccess)
                 {
-                    _logger.LogError("Command failed: {RequestName}", requestName);
+                    logger.LogInformation("Command {RequestName} executed successfully in {ElapsedMilliseconds}ms", 
+                        requestName, sw.ElapsedMilliseconds);
                 }
+                else
+                {
+                    using (LogContext.PushProperty("Error", result.Error, true))
+                    {
+                        logger.LogError("Command {RequestName} failed in {ElapsedMilliseconds}ms", 
+                            requestName, sw.ElapsedMilliseconds);
+                    }
+                }
+                return result;
             }
-            return result;
         }
     }
 
-    internal class CommandBaseHandler<TCommand> : ICommandHandler<TCommand> 
+    internal class CommandBaseHandler<TCommand>(
+        ICommandHandler<TCommand> inner, 
+        ILogger<ICommandHandler<TCommand>> logger,
+        WorkspaceContext context) : ICommandHandler<TCommand> 
         where TCommand : ICommandRequest
     {
-        private readonly ICommandHandler<TCommand> _inner;
-        private readonly ILogger<ICommandHandler<TCommand>> _logger;
-
-        public CommandBaseHandler(ICommandHandler<TCommand> inner, ILogger<ICommandHandler<TCommand>> logger)
-        {
-            _inner = inner;
-            _logger = logger;
-        }
-
         public async Task<Result> Handle(TCommand request, CancellationToken cancellationToken)
         {
-            string requestName = typeof(TCommand).Name;
-            _logger.LogInformation("Executing command: {requestName}", requestName);
-            var result = await _inner.Handle(request, cancellationToken);
-            if (result.IsSuccess)
+            var requestName = typeof(TCommand).Name;
+            var userId = context.CurrentMember?.UserId;
+            var workspaceId = context.TryGetWorkspaceId().IsSuccess ? context.workspaceId : (Guid?)null;
+
+            using (LogContext.PushProperty("UserId", userId))
+            using (LogContext.PushProperty("WorkspaceId", workspaceId))
             {
-                _logger.LogInformation("Command executed: {RequestName}", requestName);
-            }
-            else
-            {
-                using (LogContext.PushProperty("Error", result.Error, true))
+                logger.LogInformation("Executing command {RequestName}", requestName);
+                
+                var sw = Stopwatch.StartNew();
+                var result = await inner.Handle(request, cancellationToken);
+                sw.Stop();
+
+                if (result.IsSuccess)
                 {
-                    _logger.LogError("Command failed: {RequestName}", requestName);
+                    logger.LogInformation("Command {RequestName} executed successfully in {ElapsedMilliseconds}ms", 
+                        requestName, sw.ElapsedMilliseconds);
                 }
+                else
+                {
+                    using (LogContext.PushProperty("Error", result.Error, true))
+                    {
+                        logger.LogError("Command {RequestName} failed in {ElapsedMilliseconds}ms", 
+                            requestName, sw.ElapsedMilliseconds);
+                    }
+                }
+                return result;
             }
-            return result;
         }
     }
 }

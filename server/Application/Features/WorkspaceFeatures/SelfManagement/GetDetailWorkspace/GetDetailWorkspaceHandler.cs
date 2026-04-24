@@ -27,7 +27,7 @@ public class GetDetailWorkspaceHandler(IDataBase db, WorkspaceContext context) :
             WorkspaceId: context.workspaceId,
             CurrentRole: role.ToString(),
             IsOwned: role == Role.Owner,
-            Theme: workspace.Theme,
+            Theme: context.CurrentMember.Theme,
             Color: workspace.Customization.Color,
             Icon: workspace.Customization.Icon,
             CanEdit: role == Role.Owner || role == Role.Admin,

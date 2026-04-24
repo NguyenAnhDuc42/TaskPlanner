@@ -15,10 +15,7 @@ public enum EntityType
     Status,
     Priority,
     Comment,
-    ChatRoom,
-    ChatMessage,
     WorkspaceMember,
-    ChatRoomMember,
     User,
     Unknown
 

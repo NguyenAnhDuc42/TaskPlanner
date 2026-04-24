@@ -1,6 +1,5 @@
 using System;
 using Domain.Enums;
-using Domain.Enums.Workspace;
 
 namespace Domain.Events.Membership;
 

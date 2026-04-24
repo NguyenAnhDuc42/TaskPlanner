@@ -1,5 +1,5 @@
 using System.Text.Json.Serialization;
-namespace Domain.Enums.Workspace;
+namespace Domain.Enums;
 
 [JsonConverter(typeof(JsonStringEnumConverter))]
 public enum Theme

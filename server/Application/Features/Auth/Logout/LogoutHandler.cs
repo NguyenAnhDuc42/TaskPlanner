@@ -39,7 +39,7 @@ public class LogoutHandler : ICommandHandler<LogoutCommand>
         if (string.IsNullOrWhiteSpace(refreshToken))
             return Result.Success();
 
-        var session = await _db.Sessions.FirstOrDefaultAsync(s => s.RefreshToken == refreshToken, ct);
+        var session = await _db.Sessions.ByRefreshToken(refreshToken).FirstOrDefaultAsync(ct);
 
         if (session != null)
         {
