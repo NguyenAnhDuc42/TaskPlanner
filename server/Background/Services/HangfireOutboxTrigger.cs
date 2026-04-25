@@ -1,5 +1,5 @@
 using Background.Jobs;
-using Infrastructure.Interfaces;
+using Background.Interfaces;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
@@ -28,7 +28,6 @@ public class HangfireOutboxTrigger : IOutboxTrigger
 
         if (Interlocked.CompareExchange(ref _lastTriggerTicks, now, last) == last)
         {
-            // Process outbox directly on a background thread — no queue delay
             _ = Task.Run(async () =>
             {
                 try

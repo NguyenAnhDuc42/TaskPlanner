@@ -8,20 +8,16 @@ using Application.Features;
 using Domain.Entities;
 using Domain.Enums;
 using Domain.Enums.RelationShip;
+using Dapper;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Hybrid;
 
 namespace Application.Features.WorkspaceFeatures;
 
-public class AddMembersHandler(
-    IDataBase db, 
-    WorkspaceContext context,
-    IBackgroundJobService backgroundJob
-) : ICommandHandler<AddMembersCommand>
+public class AddMembersHandler(IDataBase db, WorkspaceContext context,IBackgroundJobService backgroundJob) : ICommandHandler<AddMembersCommand>
 {
     public async Task<Result> Handle(AddMembersCommand request, CancellationToken ct)
     {
-        // 1. Permission Check
         if (context.CurrentMember.Role > Role.Admin)
             return Result.Failure(MemberError.DontHavePermission);
 
@@ -31,29 +27,19 @@ public class AddMembersHandler(
 
         if (workspace == null) return Result.Failure(WorkspaceError.NotFound);
 
-        // 2. PERFORMANCE: Resolve all users in one batch query
-        var emails = request.members.Select(m => m.email).ToList();
-        var users = await db.Users.Where(u => emails.Contains(u.Email)).ToListAsync(ct);
-        var userMap = users.ToDictionary(u => u.Email);
+        var members = request.members;
+        if (!members.Any()) return Result.Success();
 
-        // 3. LOGIC: Add members using the bulk domain method
-        var membersToInvite = request.members
-            .Where(m => userMap.ContainsKey(m.email))
-            .Select(m => (userMap[m.email].Id, m.role))
-            .ToList();
-
-        if (membersToInvite.Any())
+        await db.Connection.ExecuteAsync(AddMembersSQL.BulkAddMembers, new
         {
-            workspace.AddMembers(membersToInvite, context.CurrentMember.Id);
-        }
+            WorkspaceId = workspace.Id,
+            CreatorId = context.CurrentMember.Id,
+            Emails = members.Select(m => m.email).ToArray(),
+            Roles = members.Select(m => m.role.ToString()).ToArray(),
+            Theme = Domain.Enums.Theme.Dark.ToString()
+        });
 
-        await db.SaveChangesAsync(ct);
-
-        // 4. Instant Trigger for Member Notifications
         backgroundJob.TriggerOutbox();
-
-        // STAGE: All SignalR notifications and emails are now handled by 
-        // WorkspaceMembersAddedBulkEventHandler in the background.
 
         return Result.Success();
     }

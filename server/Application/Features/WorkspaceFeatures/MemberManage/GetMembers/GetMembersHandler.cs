@@ -5,6 +5,7 @@ using Application.Helper;
 using Application.Helpers;
 using Application.Interfaces;
 using Application.Interfaces.Data;
+using Dapper;
 using Microsoft.Extensions.Caching.Hybrid;
 using Microsoft.Extensions.Logging;
 using System.Text.Json;
@@ -20,7 +21,6 @@ public class GetMembersHandler(
 {
     public async Task<Result<PagedResult<MemberDto>>> Handle(GetMembersQuery request, CancellationToken ct)
     {
-        // Any workspace member can view members — PermissionDecorator guarantees context.CurrentMember
         var workspaceId = context.workspaceId;
         var cacheKey = WorkspaceCacheKeys.MemberList(workspaceId, request);
 
@@ -33,7 +33,7 @@ public class GetMembersHandler(
                 ? GetMembersSQL.Asc
                 : GetMembersSQL.Desc;
 
-            var rows = (await db.QueryAsync<MemberRow>(sql, new
+            var rows = (await db.Connection.QueryAsync<MemberRow>(new CommandDefinition(sql, new
             {
                 WorkspaceId = workspaceId,
                 name = request.filter.Name,
@@ -42,7 +42,7 @@ public class GetMembersHandler(
                 cursorTimestamp,
                 cursorId,
                 pageSizePLusOne = pageSize + 1
-            }, cancellationToken: token)).ToList();
+            }, cancellationToken: token))).ToList();
 
             var hasMore = rows.Count > pageSize;
             if (hasMore) rows.RemoveAt(rows.Count - 1);

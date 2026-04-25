@@ -1,5 +1,4 @@
 using Application.Interfaces.Data;
-using Application.Interfaces.Repositories;
 using Application.Interfaces;
 using Domain.Entities;
 using Microsoft.EntityFrameworkCore;
@@ -7,65 +6,47 @@ using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
 using System.Data;
 using Infrastructure.Events.Extensions;
-using Infrastructure.Interfaces;
-using Hangfire;
 using Dapper;
 
 namespace Infrastructure.Data;
 
-public class Database : IDataBase
+public class Database(TaskPlanDbContext context) : IDataBase
 {
-    private readonly TaskPlanDbContext _context;
-    private readonly IDomainEventDispatcher _domainDispatcher;
-    private readonly IBackgroundJobClient _backgroundJobClient;
-    private readonly IOutboxTrigger? _outboxTrigger;
     private IDbContextTransaction? _currentTransaction;
 
-    public Database(
-        TaskPlanDbContext context, 
-        IDomainEventDispatcher domainDispatcher,
-        IBackgroundJobClient backgroundJobClient,
-        IOutboxTrigger? outboxTrigger = null)
-    {
-        _context = context;
-        _domainDispatcher = domainDispatcher;
-        _backgroundJobClient = backgroundJobClient;
-        _outboxTrigger = outboxTrigger;
-    }
+    public IDbConnection Connection => context.Database.GetDbConnection();
 
-    public IDbConnection Connection => _context.Database.GetDbConnection();
+    public DbSet<User> Users => context.Set<User>();
+    public DbSet<Session> Sessions => context.Set<Session>();
+    public DbSet<ProjectWorkspace> Workspaces => context.Set<ProjectWorkspace>();
+    public DbSet<ProjectSpace> Spaces => context.Set<ProjectSpace>();
+    public DbSet<ProjectFolder> Folders => context.Set<ProjectFolder>();
+    public DbSet<ProjectTask> Tasks => context.Set<ProjectTask>();
+    public DbSet<Workflow> Workflows => context.Set<Workflow>();
+    public DbSet<WorkspaceMember> WorkspaceMembers => context.Set<WorkspaceMember>();
+    public DbSet<EntityAccess> Access => context.Set<EntityAccess>();
+    public DbSet<Status> Statuses => context.Set<Status>();
+    public DbSet<Comment> Comments => context.Set<Comment>();
+    public DbSet<Document> Documents => context.Set<Document>();
+    public DbSet<Dashboard> Dashboards => context.Set<Dashboard>();
+    public DbSet<ViewDefinition> ViewDefinitions => context.Set<ViewDefinition>();
+    public DbSet<Attachment> Attachments => context.Set<Attachment>();
+    public DbSet<EntityAssetLink> EntityAssetLinks => context.Set<EntityAssetLink>();
+    public DbSet<TaskAssignment> TaskAssignments => context.Set<TaskAssignment>();
+    public DbSet<Widget> Widgets => context.Set<Widget>();
+    public DbSet<OutboxMessage> OutboxMessages => context.Set<OutboxMessage>();
+    public DbSet<PasswordResetToken> PasswordResetTokens => context.Set<PasswordResetToken>();
 
-    public DbSet<User> Users => _context.Set<User>();
-    public DbSet<Session> Sessions => _context.Set<Session>();
-    public DbSet<ProjectWorkspace> Workspaces => _context.Set<ProjectWorkspace>();
-    public DbSet<ProjectSpace> Spaces => _context.Set<ProjectSpace>();
-    public DbSet<ProjectFolder> Folders => _context.Set<ProjectFolder>();
-    public DbSet<ProjectTask> Tasks => _context.Set<ProjectTask>();
-    public DbSet<Workflow> Workflows => _context.Set<Workflow>();
-    public DbSet<WorkspaceMember> WorkspaceMembers => _context.Set<WorkspaceMember>();
-    public DbSet<EntityAccess> Access => _context.Set<EntityAccess>();
-    public DbSet<Status> Statuses => _context.Set<Status>();
-    public DbSet<Comment> Comments => _context.Set<Comment>();
-    public DbSet<Document> Documents => _context.Set<Document>();
-    public DbSet<Dashboard> Dashboards => _context.Set<Dashboard>();
-    public DbSet<ViewDefinition> ViewDefinitions => _context.Set<ViewDefinition>();
-    public DbSet<Attachment> Attachments => _context.Set<Attachment>();
-    public DbSet<EntityAssetLink> EntityAssetLinks => _context.Set<EntityAssetLink>();
-    public DbSet<TaskAssignment> TaskAssignments => _context.Set<TaskAssignment>();
-    public DbSet<Widget> Widgets => _context.Set<Widget>();
-    public DbSet<OutboxMessage> OutboxMessages => _context.Set<OutboxMessage>();
-    public DbSet<PasswordResetToken> PasswordResetTokens => _context.Set<PasswordResetToken>();
-
-    public DbSet<T> Set<T>() where T : class => _context.Set<T>();
+    public DbSet<T> Set<T>() where T : class => context.Set<T>();
     public bool HasActiveTransaction => _currentTransaction != null;
-    public ChangeTracker ChangeTracker => _context.ChangeTracker;
+    public ChangeTracker ChangeTracker => context.ChangeTracker;
 
-    public IExecutionStrategy CreateExecutionStrategy() => _context.Database.CreateExecutionStrategy();
+    public IExecutionStrategy CreateExecutionStrategy() => context.Database.CreateExecutionStrategy();
 
     public async Task<IDbContextTransaction> BeginTransactionAsync(CancellationToken cancellationToken = default)
     {
         if (_currentTransaction != null) return _currentTransaction;
-        _currentTransaction = await _context.Database.BeginTransactionAsync(IsolationLevel.ReadCommitted, cancellationToken);
+        _currentTransaction = await context.Database.BeginTransactionAsync(IsolationLevel.ReadCommitted, cancellationToken);
         return _currentTransaction;
     }
 
@@ -105,8 +86,8 @@ public class Database : IDataBase
 
     public async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {
-        _context.ChangeTracker.DetectChanges();
-        var domainEvents = _context.ChangeTracker.CollectDomainEvents();
+        context.ChangeTracker.DetectChanges();
+        var domainEvents = context.ChangeTracker.CollectDomainEvents();
         var hasOutboxWork = domainEvents.Any();
         
         if (hasOutboxWork)
@@ -116,32 +97,11 @@ public class Database : IDataBase
                 System.Text.Json.JsonSerializer.Serialize(domainEvent, domainEvent.GetType()),
                 DateTimeOffset.UtcNow)).ToList();
 
-            _context.Set<OutboxMessage>().AddRange(outboxMessages);
-            _context.ChangeTracker.ClearDomainEvents();
+            context.Set<OutboxMessage>().AddRange(outboxMessages);
+            context.ChangeTracker.ClearDomainEvents();
         }
 
-        var totalChanges = await _context.SaveChangesAsync(cancellationToken);
-        //trigger outbox stuff imideately
-        if (hasOutboxWork)
-        {
-            _outboxTrigger?.Trigger();
-        }
-
-        return totalChanges;
+        return await context.SaveChangesAsync(cancellationToken);
     }
 
-    public async Task<IEnumerable<T>> QueryAsync<T>(string sql, object? param = null, CancellationToken cancellationToken = default)
-    {
-        return await Connection.QueryAsync<T>(new CommandDefinition(sql, param, cancellationToken: cancellationToken));
-    }
-
-    public async Task<T?> QuerySingleOrDefaultAsync<T>(string sql, object? param = null, CancellationToken cancellationToken = default)
-    {
-        return await Connection.QuerySingleOrDefaultAsync<T>(new CommandDefinition(sql, param, cancellationToken: cancellationToken));
-    }
-
-    public async Task<int> ExecuteAsync(string sql, object? param = null, CancellationToken cancellationToken = default)
-    {
-        return await Connection.ExecuteAsync(new CommandDefinition(sql, param, cancellationToken: cancellationToken));
-    }
 }

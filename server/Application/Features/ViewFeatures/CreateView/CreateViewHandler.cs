@@ -13,18 +13,16 @@ public class CreateViewHandler(IDataBase db, WorkspaceContext context) : IComman
 {
     public async Task<Result<Guid>> Handle(CreateViewCommand request, CancellationToken ct)
     {
-        // AUTHORIZATION: Only Admin/Owner can create views
         if (context.CurrentMember.Role > Role.Admin)
             return Result<Guid>.Failure(MemberError.DontHavePermission);
 
-        // CORRECTED: Fixed the botched argument order and missing parameters
         var view = ViewDefinition.Create(
             context.workspaceId,
             request.LayerId,
             request.LayerType,
             request.Name,
             request.ViewType,
-            context.CurrentMember.Id // Using MemberId for workspace-bound entities
+            context.CurrentMember.Id 
         );
 
         await db.ViewDefinitions.AddAsync(view, ct);

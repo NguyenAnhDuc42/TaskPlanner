@@ -16,7 +16,6 @@ public class UpdateViewHandler(IDataBase db, WorkspaceContext context) : IComman
         if (view == null) 
             return Result.Failure(ViewError.NotFound);
 
-        // AUTHORIZATION: Only Admin/Owner can update any view, Members can only update their own (MemberId)
         if (context.CurrentMember.Role > Role.Admin && view.CreatorId != context.CurrentMember.Id)
             return Result.Failure(MemberError.DontHavePermission);
 

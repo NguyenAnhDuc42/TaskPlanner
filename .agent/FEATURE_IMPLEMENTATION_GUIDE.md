@@ -4,23 +4,25 @@ This document defines the **Project Mindset**, the **Flow of Code**, and the **A
 
 ---
 
-## 🏗️ 1. THE ARCHITECTURAL LAYERS
+## 🏗️ 1. THE ARCHITECTURAL LAYERS (Pragmatic Dependency Inversion)
 
-TaskPlanner follows a high-performance **Layered Vertical Slice Architecture**. Each layer has a strict responsibility:
+TaskPlanner follows a high-performance **Layered Vertical Slice Architecture**. We take a pragmatic approach to layering, favoring explicit "demands" via interfaces rather than dogmatic Clean Architecture constraints:
 
 - **Domain Layer** (`server/Domain`): The heart of the system.
-  - **Entities & Value Objects**: Pure business models with state and factory methods (e.g., `ProjectWorkspace.Create`).
-  - **IQueryable Extensions**: Centralized query logic (e.g., `ByWorkspace`, `WhereNotDeleted`) to ensure consistency and facilitate future SQL optimization (Dapper/Raw SQL).
+  - **Entities & Value Objects**: Pure business models with state and factory methods.
   - **Domain Events**: Internal signals indicating side effects need to happen.
-- **Application Layer** (`server/Application`): The orchestration layer.
-  - **Feature Slices**: Organized by folder, containing `Command/Query`, `Handler`, and `Validator`.
-  - **Event Handlers**: Subscribers to Domain Events for async side effects (e.g., seeding data).
-  - **Interfaces & Helpers**: Definition for data access (`IDataBase`) and identity (`WorkspaceContext`).
-- **Infrastructure Layer** (`server/Infrastructure`): The implementation layer.
-  - **Persistence**: EF Core implementation of `IDataBase`, Configuration, and Migrations.
-  - **Services**: Implementations for `IRealtimeService` (SignalR) and `HybridCache`.
-- **Background Layer** (`server/Background`): The out-of-process layer.
-  - **Jobs & Workers**: Hangfire jobs (e.g., `ProcessOutboxJob`) and cleanup workers.
+
+- **Application Layer** (`server/Application`): The "Toppest" Execution Layer.
+  - **Responsibility**: Orchestrates features and needs to use Infrastructure and Background capabilities.
+  - **Pragmatic Rule**: Because it needs these capabilities, it *defines the interfaces* (e.g., `IDataBase`, `IBackgroundJobService`). It does not implement them. 
+
+- **Background Layer** (`server/Background`): The Out-of-Process Layer.
+  - **Responsibility**: Executes Hangfire jobs, heavy database operations, and external API calls.
+  - **Pragmatic Rule**: It defines its own interfaces to demand capabilities from Infrastructure. **Crucially, it cannot call or rely on interfaces defined in the Application layer.** It operates entirely parallel to the Application layer.
+
+- **Infrastructure Layer** (`server/Infrastructure`): The "Lowest" Implementation Layer.
+  - **Responsibility**: This is where the upper layers go to get what they demand.
+  - **Pragmatic Rule**: Because it is the lowest layer, it has the freedom to reference the `Application` and `Background` layers in order to *implement* their interfaces (e.g., EF Core DbContext implementing `IDataBase`, or a concrete service implementing a Background interface).
 
 ---
 
@@ -34,7 +36,8 @@ We organize code by **feature capability**, using a **Feature Folder** pattern i
   - `[Feature]Command.cs` / `[Feature]Query.cs`: The request record implementation.
   - `[Feature]Handler.cs`: The core execution logic.
   - `[Feature]Validator.cs`: FluentValidation rules for the request.
-- **One Class Per File**: DO NOT merge Commands, Responses, or Handlers into a single file. Each component must reside in its own dedicated `.cs` file.
+  - `[Feature]SQL.cs`: (Required for Queries and Bulk Actions) Contains raw SQL strings or Dapper logic.
+- **One Class Per File**: Each component (Command/Query, Handler, Validator, SQL) must reside in its own dedicated `.cs` file. DTOs should be defined within the Command/Query file if they are specific to that feature.
 - **DTOs**: Shared DTOs should be placed in a `Common` or `Response` folder within the parent module if reused across slices.
 
 ---

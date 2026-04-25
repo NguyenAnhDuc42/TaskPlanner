@@ -2,7 +2,7 @@ using Application.Interfaces;
 using Background.Services;
 using Hangfire;
 using Hangfire.PostgreSql;
-using Infrastructure.Interfaces;
+using Background.Interfaces;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -10,9 +10,7 @@ namespace Background.Dependencies;
 
 public static class DependencyInjection
 {
-    public static IServiceCollection AddBackground(
-        this IServiceCollection services,
-        IConfiguration config)
+    public static IServiceCollection AddBackground(this IServiceCollection services, IConfiguration config)
     {
         services.AddHangfire(cfg =>
         {

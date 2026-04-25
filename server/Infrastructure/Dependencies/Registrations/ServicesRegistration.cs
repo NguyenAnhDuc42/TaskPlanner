@@ -22,8 +22,11 @@ public static class ServicesRegistration
 
         services.AddHttpContextAccessor();
 
-
         services.AddSingleton<IPasswordService, PasswordService>();
+
+        services.AddTransient<Background.Interfaces.IBackgroundOutboxAccessor, Infrastructure.Services.Background.BackgroundOutboxAccessor>();
+        services.AddTransient<Background.Interfaces.IBackgroundEventDispatcher, Infrastructure.Services.Background.BackgroundEventDispatcher>();
+        services.AddTransient<Background.Interfaces.IBackgroundMemberCleanupStore, Infrastructure.Services.Background.BackgroundMemberCleanupStore>();
 
 
         return services;

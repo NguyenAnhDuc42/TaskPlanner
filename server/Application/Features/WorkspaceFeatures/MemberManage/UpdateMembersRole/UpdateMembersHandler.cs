@@ -4,6 +4,7 @@ using Application.Common.Results;
 using Application.Helpers;
 using Application.Interfaces.Data;
 using Domain.Enums;
+using Dapper;
 using Microsoft.EntityFrameworkCore;
 
 namespace Application.Features.WorkspaceFeatures;
@@ -12,32 +13,20 @@ public class UpdateMembersHandler(IDataBase db, WorkspaceContext context) : ICom
 {
     public async Task<Result<Guid>> Handle(UpdateMembersCommand request, CancellationToken ct)
     {
-        // Permission: Only Admin/Owner can update member roles
         if (context.CurrentMember.Role > Role.Admin)
             return Result<Guid>.Failure(MemberError.DontHavePermission);
 
-        var userIds = request.members.Select(m => m.userId).ToList();
+        var members = request.members;
+        if (members.Count == 0) return Result<Guid>.Success(context.workspaceId);
 
-        var membersToUpdate = await db.WorkspaceMembers
-            .Where(m => m.ProjectWorkspaceId == context.workspaceId && userIds.Contains(m.UserId))
-            .ToListAsync(ct);
-
-        if (membersToUpdate.Count == 0) return Result<Guid>.Success(context.workspaceId);
-
-        var memberMap = request.members.ToDictionary(m => m.userId);
-
-        foreach (var memberEntity in membersToUpdate)
+        await db.Connection.ExecuteAsync(UpdateMembersSQL.UpdateMemberRoles, new
         {
-            if (memberMap.TryGetValue(memberEntity.UserId, out var update))
-            {
-                memberEntity.UpdateMembershipDetails(
-                    update.role ?? memberEntity.Role,
-                    update.status ?? memberEntity.Status
-                );
-            }
-        }
+            UserIds = members.Select(m => m.userId).ToArray(),
+            Roles = members.Select(m => m.role?.ToString() ?? string.Empty).ToArray(),
+            Statuses = members.Select(m => m.status?.ToString() ?? string.Empty).ToArray(),
+            WorkspaceId = context.workspaceId
+        });
 
-        await db.SaveChangesAsync(ct);
         return Result<Guid>.Success(context.workspaceId);
     }
 }

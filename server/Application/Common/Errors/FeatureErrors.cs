@@ -46,18 +46,12 @@ public static class MemberError
     public static readonly Error NotFound = Error.NotFound("Member.NotFound", "The member with the specified identifier was not found.");
 }
 
-public static class ChatRoomError
-{
-    public static readonly Error NotFound = Error.NotFound("ChatRoom.NotFound", "The chat room with the specified identifier was not found.");
-    public static readonly Error MemberAlreadyInChatRoom = Error.Conflict("ChatRoom.MemberAlreadyInChatRoom", "One or more members are already in this chat room.");
-    public static readonly Error NoValidMembersToInvite = Error.Failure("ChatRoom.NoValidMembersToInvite", "There are no valid members to invite to this chat room.");
-}
-
 public static class AttachmentError
 {
     public static readonly Error NotFound = Error.NotFound("Attachment.NotFound", "The attachment with the specified identifier was not found.");
     public static readonly Error UploadFailed = Error.Failure("Attachment.UploadFailed", "Failed to upload attachment.");
 }
+
 public static class WorkflowError
 {
     public static readonly Error NotFound = Error.NotFound("Workflow.NotFound", "The workflow with the specified identifier was not found.");

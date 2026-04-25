@@ -9,11 +9,9 @@ public class GetNodeFoldersHandler(IDataBase db) : IQueryHandler<GetNodeFoldersQ
 {
     public async Task<Result<List<FolderHierarchyDto>>> Handle(GetNodeFoldersQuery request, CancellationToken ct)
     {
-        // PERFORMANCE: Using the specialized covering index idx_folders_workspace_space_order
-        var rawFolders = (await db.QueryAsync<FolderRaw>(
+        var rawFolders = (await db.Connection.QueryAsync<FolderRaw>(
             GetHierarchySql.GetFoldersBySpaceQuery, 
-            new { SpaceId = request.NodeId }, 
-            cancellationToken: ct)).AsList();
+            new { SpaceId = request.NodeId })).AsList();
 
         var dtos = new List<FolderHierarchyDto>(rawFolders.Count);
         foreach (var f in rawFolders)

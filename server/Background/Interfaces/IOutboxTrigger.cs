@@ -1,5 +1,4 @@
-namespace Infrastructure.Interfaces;
-
+namespace Background.Interfaces;
 
 public interface IOutboxTrigger
 {

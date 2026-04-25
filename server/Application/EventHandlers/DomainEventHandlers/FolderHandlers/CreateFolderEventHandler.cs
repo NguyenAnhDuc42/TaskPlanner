@@ -10,16 +10,10 @@ using Microsoft.Extensions.Caching.Hybrid;
 
 namespace Application.EventHandlers.DomainEventHandlers.FolderHandlers;
 
-public class CreateFolderEventHandler(
-    ILogger<CreateFolderEventHandler> logger, 
-    IDataBase db, 
-    IRealtimeService realtime
-) : IDomainEventHandler<FolderCreatedEvent>
+public class CreateFolderEventHandler() : IDomainEventHandler<FolderCreatedEvent>
 {
     public async Task Handle(FolderCreatedEvent notification, CancellationToken cancellationToken)
     {
-        // View seeding is now handled inline in CreateFolderHandler and CreateWorkspaceHandler.
-        // This handler is preserved for future asynchronous side effects.
         await Task.CompletedTask;
     }
 }

@@ -15,8 +15,7 @@ public class DeleteViewHandler(IDataBase db, WorkspaceContext context) : IComman
         var view = await db.ViewDefinitions.FirstOrDefaultAsync(v => v.Id == request.Id, ct);
         if (view == null) 
             return Result.Failure(ViewError.NotFound);
-
-        // AUTHORIZATION: Only Admin/Owner can delete any view, Members can only delete their own (MemberId)
+            
         if (context.CurrentMember.Role > Role.Admin && view.CreatorId != context.CurrentMember.Id)
             return Result.Failure(MemberError.DontHavePermission);
 

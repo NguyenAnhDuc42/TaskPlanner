@@ -6,6 +6,7 @@ using Application.Interfaces.Data;
 using Domain.Enums;
 using Domain.Entities;
 using Microsoft.EntityFrameworkCore;
+using Dapper;
 
 namespace Application.Features.WorkspaceFeatures;
 
@@ -13,26 +14,23 @@ public class GetDetailWorkspaceHandler(IDataBase db, WorkspaceContext context) :
 {
     public async Task<Result<WorkspaceSecurityContextDto>> Handle(GetDetailWorkspaceQuery request, CancellationToken ct)
     {
-        // PermissionDecorator guarantees context.CurrentMember is set
-        var workspace = await db.Workspaces
-            .AsNoTracking()
-            .ById(context.workspaceId)
-            .FirstOrDefaultAsync(ct);
+        var row = await db.Connection.QuerySingleOrDefaultAsync<WorkspaceDetailRow>(
+            GetDetailWorkspaceSQL.GetDetail, 
+            new { WorkspaceId = request.WorkspaceId, UserId = context.CurrentMember.UserId });
 
-        if (workspace == null) return Result<WorkspaceSecurityContextDto>.Failure(WorkspaceError.NotFound);
-
-        var role = context.CurrentMember.Role;
+        if (row == null) 
+            return Result<WorkspaceSecurityContextDto>.Failure(WorkspaceError.NotFound);
 
         var dto = new WorkspaceSecurityContextDto(
-            WorkspaceId: context.workspaceId,
-            CurrentRole: role.ToString(),
-            IsOwned: role == Role.Owner,
-            Theme: context.CurrentMember.Theme,
-            Color: workspace.Customization.Color,
-            Icon: workspace.Customization.Icon,
-            CanEdit: role == Role.Owner || role == Role.Admin,
-            CanInvite: role == Role.Owner || role == Role.Admin,
-            CanManageMembers: role == Role.Owner || role == Role.Admin,
+            WorkspaceId: row.WorkspaceId,
+            CurrentRole: row.Role,
+            IsOwned: row.Role == Role.Owner.ToString(),
+            Theme: Enum.Parse<Theme>(row.Theme),
+            Color: row.Color,
+            Icon: row.Icon,
+            CanEdit: row.Role == Role.Owner.ToString() || row.Role == Role.Admin.ToString(),
+            CanInvite: row.Role == Role.Owner.ToString() || row.Role == Role.Admin.ToString(),
+            CanManageMembers: row.Role == Role.Owner.ToString() || row.Role == Role.Admin.ToString(),
             IsDashboardEnabled: false
         );
 

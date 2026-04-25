@@ -1,22 +1,20 @@
-
-using Infrastructure.Data;
-using Microsoft.EntityFrameworkCore;
+using Background.Interfaces;
 using Microsoft.Extensions.Logging;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
 
 namespace Background.Jobs;
 
-/// <summary>
-/// Background job for cleaning up member data when they leave a workspace.
-/// Soft-deletes EntityMembers, TaskAssignments, etc.
-/// </summary>
 public class MemberCleanupJob
 {
-    private readonly TaskPlanDbContext _context;
+    private readonly IBackgroundMemberCleanupStore _store;
     private readonly ILogger<MemberCleanupJob> _logger;
 
-    public MemberCleanupJob(TaskPlanDbContext context, ILogger<MemberCleanupJob> logger)
+    public MemberCleanupJob(IBackgroundMemberCleanupStore store, ILogger<MemberCleanupJob> logger)
     {
-        _context = context;
+        _store = store;
         _logger = logger;
     }
 
@@ -28,12 +26,8 @@ public class MemberCleanupJob
         _logger.LogInformation("Starting bulk cleanup for {Count} users in workspace {WorkspaceId}", 
             userList.Count, workspaceId);
 
-        // Find all WorkspaceMemberIds for these users
-        var memberIds = await _context.WorkspaceMembers
-            .AsNoTracking()
-            .Where(wm => userList.Contains(wm.UserId) && wm.ProjectWorkspaceId == workspaceId)
-            .Select(wm => wm.Id)
-            .ToListAsync();
+        // Find all WorkspaceMemberIds for these users via store
+        var memberIds = await _store.GetMemberIdsForUsersAsync(workspaceId, userList);
 
         if (!memberIds.Any())
         {
@@ -41,21 +35,8 @@ public class MemberCleanupJob
             return;
         }
 
-        var deletedAt = DateTimeOffset.UtcNow;
-
-        // 1. Soft-delete EntityAccess for these members
-        var entityAccessDeleted = await _context.EntityAccesses
-            .Where(ea => ea.ProjectWorkspaceId == workspaceId && memberIds.Contains(ea.WorkspaceMemberId) && ea.DeletedAt == null)
-            .ExecuteUpdateAsync(s => s
-                .SetProperty(e => e.DeletedAt, deletedAt)
-                .SetProperty(e => e.UpdatedAt, deletedAt));
-
-        // 2. Soft-delete TaskAssignments for these members
-        var assignmentsDeleted = await _context.TaskAssignments
-            .Where(a => memberIds.Contains(a.WorkspaceMemberId) && a.DeletedAt == null)
-            .ExecuteUpdateAsync(s => s
-                .SetProperty(a => a.DeletedAt, deletedAt)
-                .SetProperty(a => a.UpdatedAt, deletedAt));
+        // Perform cleanup via store
+        var (entityAccessDeleted, assignmentsDeleted) = await _store.CleanupMemberDataAsync(workspaceId, memberIds);
 
         _logger.LogInformation(
             "Bulk cleanup complete for workspace {WorkspaceId}: {EntityAccessCount} EntityAccess records, {Assignments} TaskAssignments",

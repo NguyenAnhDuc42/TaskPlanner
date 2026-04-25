@@ -1,6 +1,5 @@
 using Application.Common.Interfaces;
 using Domain.Enums;
-using MediatR;
 
 namespace Application.Features.WorkspaceFeatures;
 
@@ -63,9 +62,9 @@ public record GetNodeFoldersQuery(
 public record GetNodeTasksQuery(
     Guid WorkspaceId,
     Guid ParentId,
-    string ParentType,       // "Folder" or "Space"
-    string? CursorOrderKey,  // null on first page
-    string? CursorTaskId,    // null on first page
+    string ParentType,
+    string? CursorOrderKey,
+    string? CursorTaskId,
     int PageSize = 50
 ) : IQueryRequest<NodeTasksDto>, IAuthorizedWorkspaceRequest;
 

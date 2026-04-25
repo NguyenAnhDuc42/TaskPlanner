@@ -13,7 +13,7 @@ public class GetNodeTasksHandler(IDataBase db) : IQueryHandler<GetNodeTasksQuery
     public async Task<Result<NodeTasksDto>> Handle(GetNodeTasksQuery request, CancellationToken ct)
     {
         
-        var rawTasks = (await db.QueryAsync<TaskRawItem>(GetHierarchySql.TasksQuery, new
+        var rawTasks = (await db.Connection.QueryAsync<TaskRawItem>(GetHierarchySql.TasksQuery, new
         {
             WorkspaceId = request.WorkspaceId,
             ParentId = request.ParentId,
@@ -21,7 +21,7 @@ public class GetNodeTasksHandler(IDataBase db) : IQueryHandler<GetNodeTasksQuery
             CursorOrderKey = request.CursorOrderKey,
             CursorTaskId = request.CursorTaskId,
             PageSize = request.PageSize + 1
-        }, cancellationToken: ct)).AsList();
+        })).AsList();
 
         var hasMore = rawTasks.Count > request.PageSize;
         if (hasMore) rawTasks.RemoveAt(rawTasks.Count - 1);

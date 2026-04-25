@@ -9,16 +9,13 @@ using Dapper;
 
 namespace Application.Features.WorkspaceFeatures;
 
-public class GetHierarchyHandler(IDataBase db, WorkspaceContext context) : IQueryHandler<GetHierarchyQuery, WorkspaceHierarchyDto>
+public class GetHierarchyHandler(IDataBase db) : IQueryHandler<GetHierarchyQuery, WorkspaceHierarchyDto>
 {
     public async Task<Result<WorkspaceHierarchyDto>> Handle(GetHierarchyQuery request, CancellationToken ct)
     {
-        // FIX: One query instead of two separate DB round-trips.
-        // The workspace name comes back on every row; we read it once.
-        var rows = (await db.QueryAsync<SpaceRow>(
+        var rows = (await db.Connection.QueryAsync<SpaceRow>(
             GetHierarchySql.GetSpacesAndWorkspaceQuery,
-            new { WorkspaceId = request.WorkspaceId },
-            cancellationToken: ct)).AsList();
+            new { WorkspaceId = request.WorkspaceId })).AsList();
 
         if (rows.Count == 0)
             return Result<WorkspaceHierarchyDto>.Failure(
@@ -56,7 +53,6 @@ public class GetHierarchyHandler(IDataBase db, WorkspaceContext context) : IQuer
         };
     }
 
-    // WorkspaceName comes back on every row — tiny overhead, huge simplification.
     private record SpaceRow(
         string WorkspaceName,
         Guid Id, string Name, string? Color, string? Icon,

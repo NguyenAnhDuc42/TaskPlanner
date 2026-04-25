@@ -1,6 +1,5 @@
 using Application.Common.Interfaces;
 using Domain.Enums;
-using MediatR;
 using Microsoft.AspNetCore.Http;
 
 namespace Application.Features.AttachmentFeatures;

@@ -17,14 +17,8 @@ public static class CacheConstants
     {
         public static string WorkspaceMemberRole(Guid userId, Guid workspaceId) 
             => $"workspaces:{workspaceId}:user:{userId}:perm";
-            
+
         public static string EntityAccessLevel(Guid userId, Guid workspaceId, Guid entityId, string entityType) 
             => $"workspaces:{workspaceId}:user:{userId}:entity:{entityId}:perm";
-            
-        public static string ChatRoomRole(Guid userId, Guid workspaceId, Guid chatRoomId) 
-            => $"workspaces:{workspaceId}:user:{userId}:chat:{chatRoomId}:perm";
-            
-        public static string ChatMemberStatus(Guid userId, Guid workspaceId, Guid chatRoomId) 
-            => $"workspaces:{workspaceId}:user:{userId}:chat:{chatRoomId}:status";
     }
 }

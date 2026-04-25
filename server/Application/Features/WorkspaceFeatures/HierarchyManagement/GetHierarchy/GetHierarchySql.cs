@@ -2,8 +2,6 @@ namespace Application.Features.WorkspaceFeatures;
 
 public static class GetHierarchySql
 {
-    // FIX 1: Merge the workspace name fetch into the spaces query — zero extra round-trip.
-    // FIX 2: Replace LEFT JOIN on DISTINCT derived tables with EXISTS — short-circuits at first match.
     public const string GetSpacesAndWorkspaceQuery = @"
         SELECT 
             w.name         AS workspace_name,
@@ -37,7 +35,6 @@ public static class GetHierarchySql
           AND w.deleted_at IS NULL
         ORDER BY s.order_key, s.id;";
 
-    // FIX 3: Query all folders for the whole workspace at once instead of per-space.
     public const string GetFoldersByWorkspaceQuery = @"
         SELECT 
             f.id,
@@ -60,7 +57,6 @@ public static class GetHierarchySql
           AND f.is_archived = false
         ORDER BY f.project_space_id, f.order_key, f.id;";
 
-    // Keep the old one for backward compat if anything else uses it
     public const string GetFoldersBySpaceQuery = @"
         SELECT 
             f.id,
@@ -83,7 +79,6 @@ public static class GetHierarchySql
           AND f.is_archived = false
         ORDER BY f.order_key, f.id;";
 
-    // FIX 4: Expand the row-value cursor into an explicit OR so Postgres can use a composite index
     public const string TasksQuery = @"
         SELECT 
             t.id,

@@ -1,31 +1,26 @@
-using Application.Interfaces;
+using Background.Interfaces;
 using Domain.Common.Interfaces;
-using Domain.Enums;
-using MediatR;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Linq;
 using System.Text.Json;
 using System.Threading.Tasks;
-using Infrastructure.Data;
-using Domain.Common;
 using Domain.Events;
 
 namespace Background.Jobs;
 
 public class ProcessOutboxJob
 {
-    private readonly TaskPlanDbContext _dbContext;
-    private readonly IDomainEventDispatcher _domainDispatcher;
+    private readonly IBackgroundOutboxAccessor _outboxAccessor;
+    private readonly IBackgroundEventDispatcher _domainDispatcher;
     private readonly ILogger<ProcessOutboxJob> _logger;
 
     public ProcessOutboxJob(
-        TaskPlanDbContext dbContext,
-        IDomainEventDispatcher domainDispatcher,
+        IBackgroundOutboxAccessor outboxAccessor,
+        IBackgroundEventDispatcher domainDispatcher,
         ILogger<ProcessOutboxJob> logger)
     {
-        _dbContext = dbContext;
+        _outboxAccessor = outboxAccessor;
         _domainDispatcher = domainDispatcher;
         _logger = logger;
     }
@@ -55,11 +50,7 @@ public class ProcessOutboxJob
     {
         LoadTypes();
 
-        var messages = await _dbContext.OutboxMessages
-            .Where(m => m.State == OutboxState.Pending)
-            .OrderBy(m => m.OccurredOnUtc)
-            .Take(50)
-            .ToListAsync();
+        var messages = await _outboxAccessor.GetPendingMessagesAsync(50);
 
         if (!messages.Any()) return;
 
@@ -87,12 +78,11 @@ public class ProcessOutboxJob
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error processing outbox message {Id}", message.Id);
-                _dbContext.ChangeTracker.Clear();
-                _dbContext.OutboxMessages.Attach(message);
+                _outboxAccessor.ResetTracking(message);
                 message.MarkAsFailed(ex.Message);
             }
         }
 
-        await _dbContext.SaveChangesAsync();
+        await _outboxAccessor.SaveChangesAsync();
     }
 }

@@ -8,6 +8,7 @@ using Application.Interfaces;
 using Application.Interfaces.Data;
 using Domain.Enums;
 using Domain.Enums.RelationShip;
+using Dapper;
 using Microsoft.Extensions.Caching.Hybrid;
 using Microsoft.Extensions.Logging;
 
@@ -38,7 +39,7 @@ public class GetWorkspaceListHandler(
                 ? GetWorkspaceListSQL.Asc
                 : GetWorkspaceListSQL.Desc;
 
-            var rows = (await db.QueryAsync<WorkspaceRow>(sql, new
+            var rows = (await db.Connection.QueryAsync<WorkspaceRow>(new CommandDefinition(sql, new
             {
                 currentUserId,
                 name = request.filter.Name,
@@ -47,7 +48,7 @@ public class GetWorkspaceListHandler(
                 cursorTimestamp = cursorTs,
                 cursorId,
                 PageSizePLusOne = pageSize + 1
-            }, cancellationToken: token)).ToList();
+            }, cancellationToken: token))).ToList();
 
             var hasMore = rows.Count > pageSize;
             if (hasMore) rows.RemoveAt(rows.Count - 1);

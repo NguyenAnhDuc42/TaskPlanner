@@ -4,9 +4,6 @@ using Hangfire;
 
 namespace Background.Services;
 
-/// <summary>
-/// Hangfire implementation of IBackgroundJobService.
-/// </summary>
 public class HangfireBackgroundJobService : IBackgroundJobService
 {
     public void Enqueue<T>(Expression<Func<T, Task>> methodCall)

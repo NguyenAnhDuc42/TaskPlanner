@@ -9,7 +9,7 @@ public record UpdateWorkflowStatusesCommand(
 ) : ICommandRequest;
 
 public record StatusUpdateDto(
-    Guid? Id, // If null, create new status
+    Guid? Id, 
     string Name,
     string Color,
     StatusCategory Category

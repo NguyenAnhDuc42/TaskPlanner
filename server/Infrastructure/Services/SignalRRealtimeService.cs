@@ -4,44 +4,19 @@ using Microsoft.AspNetCore.SignalR;
 
 namespace Infrastructure.Services;
 
-/// <summary>
-/// SignalR implementation of IRealtimeService.
-/// Pushes events to connected clients via WorkspaceHub.
-/// </summary>
-public class SignalRRealtimeService : IRealtimeService
+public class SignalRRealtimeService(IHubContext<WorkspaceHub> HubContext) : IRealtimeService
 {
-    private readonly IHubContext<WorkspaceHub> _hubContext;
-
-    public SignalRRealtimeService(IHubContext<WorkspaceHub> hubContext)
-    {
-        _hubContext = hubContext;
-    }
-
     public async Task NotifyWorkspaceAsync(Guid workspaceId, string eventName, object data, CancellationToken ct = default)
     {
-        await _hubContext.Clients
+        await HubContext.Clients
             .Group($"workspace:{workspaceId}")
             .SendAsync(eventName, data, ct);
     }
 
     public async Task NotifyUserAsync(Guid userId, string eventName, object data, CancellationToken ct = default)
     {
-        await _hubContext.Clients
+        await HubContext.Clients
             .Group($"user:{userId}")
-            .SendAsync(eventName, data, ct);
-    }
-
-    public async Task NotifyDashboardAsync(Guid dashboardId, string eventName, object data, CancellationToken ct = default)
-    {
-        await _hubContext.Clients
-            .Group($"dashboard:{dashboardId}")
-            .SendAsync(eventName, data, ct);
-    }
-
-    public async Task NotifyChatRoomAsync(Guid chatRoomId, string eventName, object data, CancellationToken ct = default)
-    {
-        await _hubContext.Clients
-            .Group($"chat:{chatRoomId}")
             .SendAsync(eventName, data, ct);
     }
 }

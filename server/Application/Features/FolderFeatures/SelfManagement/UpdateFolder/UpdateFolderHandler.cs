@@ -17,7 +17,6 @@ public class UpdateFolderHandler(IDataBase db, WorkspaceContext context) : IComm
         if (folder == null) 
             return Result.Failure(FolderError.NotFound);
 
-        // AUTHORIZATION: Reverting logic to use MemberId (context.CurrentMember.Id)
         if (context.CurrentMember.Role > Role.Admin && folder.CreatorId != context.CurrentMember.Id)
             return Result.Failure(MemberError.DontHavePermission);
 

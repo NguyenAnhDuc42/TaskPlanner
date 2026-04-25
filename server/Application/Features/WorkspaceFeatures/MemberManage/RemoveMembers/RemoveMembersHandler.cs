@@ -4,6 +4,7 @@ using Application.Common.Results;
 using Application.Helpers;
 using Application.Interfaces.Data;
 using Domain.Enums;
+using Dapper;
 
 namespace Application.Features.WorkspaceFeatures;
 
@@ -16,19 +17,11 @@ public class RemoveMembersHandler(IDataBase db, WorkspaceContext context) : ICom
 
         if (request.memberIds.Any())
         {
-            var sql = @"
-                UPDATE workspace_members 
-                SET deleted_at = NOW(), 
-                    updated_at = NOW() 
-                WHERE project_workspace_id = @WorkspaceId 
-                  AND user_id = ANY(@UserIds)
-                  AND deleted_at IS NULL";
-
-            await db.ExecuteAsync(sql, new
+            await db.Connection.ExecuteAsync(RemoveMembersSQL.RemoveMembers, new
             {
                 WorkspaceId = context.workspaceId,
                 UserIds = request.memberIds.ToArray()
-            }, cancellationToken: ct);
+            });
         }
 
         return Result<Guid>.Success(context.workspaceId);

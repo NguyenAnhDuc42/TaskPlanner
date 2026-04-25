@@ -14,29 +14,24 @@ public class UpdateWorkflowStatusesHandler(IDataBase db, WorkspaceContext contex
 {
     public async Task<Result> Handle(UpdateWorkflowStatusesCommand request, CancellationToken ct)
     {
-        // 1. Permission Check
         if (context.CurrentMember.Role > Role.Admin)
             return Result.Failure(MemberError.DontHavePermission);
 
-        // 2. Load Workflow
         var workflow = await db.Workflows
             .Include(w => w.Statuses)
             .FirstOrDefaultAsync(w => w.Id == request.WorkflowId, ct);
 
         if (workflow == null) return Result.Failure(WorkflowError.NotFound);
 
-        // 3. Process Statuses
         var incomingStatusIds = request.Statuses.Where(s => s.Id.HasValue).Select(s => s.Id!.Value).ToList();
         var existingStatusIds = workflow.Statuses.Select(s => s.Id).ToList();
 
-        // 3a. Remove deleted statuses
         var idsToRemove = existingStatusIds.Except(incomingStatusIds).ToList();
         foreach (var id in idsToRemove)
         {
             workflow.RemoveStatus(id);
         }
 
-        // 3b. Update or Add
         foreach (var statusDto in request.Statuses)
         {
             if (statusDto.Id.HasValue)
@@ -61,17 +56,8 @@ public class UpdateWorkflowStatusesHandler(IDataBase db, WorkspaceContext contex
             }
         }
 
-        // 4. Validate Integrity
-        try
-        {
-            workflow.ValidateIntegrity();
-        }
-        catch (Domain.Exceptions.BusinessRuleException)
-        {
-            return Result.Failure(WorkflowError.IntegrityViolation);
-        }
+        workflow.ValidateIntegrity();
 
-        // 5. Persist
         await db.SaveChangesAsync(ct);
 
         return Result.Success();

@@ -10,7 +10,6 @@ public class GetAvailableStatusesHandler(IDataBase db, WorkspaceContext context)
 {
     public async Task<Result<List<StatusResponse>>> Handle(GetAvailableStatusesQuery request, CancellationToken ct)
     {
-        // 1. Resolve statuses via bubbling logic in WorkflowHelper
         var statuses = await WorkflowHelper.GetActiveStatuses(
             db, 
             context.workspaceId, 
@@ -18,7 +17,6 @@ public class GetAvailableStatusesHandler(IDataBase db, WorkspaceContext context)
             request.FolderId, 
             ct);
 
-        // 2. Map to Response
         var response = statuses
             .Select(s => new StatusResponse(s.Id, s.Name, s.Color, s.Category))
             .ToList();

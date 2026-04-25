@@ -1,11 +1,10 @@
 using Microsoft.EntityFrameworkCore;
 using System.Data;
-using Application.Interfaces.Repositories;
 using Domain.Entities;
 
 namespace Application.Interfaces.Data;
 
-public interface IDataBase : IUnitOfWork
+public interface IDataBase 
 {
     IDbConnection Connection { get; }
     
@@ -29,4 +28,6 @@ public interface IDataBase : IUnitOfWork
     DbSet<Widget> Widgets { get; }
     DbSet<OutboxMessage> OutboxMessages { get; }
     DbSet<PasswordResetToken> PasswordResetTokens { get; }
+
+    Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }
