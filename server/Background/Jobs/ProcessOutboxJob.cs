@@ -2,6 +2,7 @@ using Background.Interfaces;
 using Domain.Common.Interfaces;
 using Microsoft.Extensions.Logging;
 using System;
+using System.Collections.Concurrent;
 using System.Linq;
 using System.Text.Json;
 using System.Threading.Tasks;
@@ -25,7 +26,7 @@ public class ProcessOutboxJob
         _logger = logger;
     }
 
-    private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, Type?> TypeCache = new();
+    private static readonly ConcurrentDictionary<string, Type?> TypeCache = new();
     private static readonly object TypeLock = new();
     private static bool _typesLoaded = false;
 

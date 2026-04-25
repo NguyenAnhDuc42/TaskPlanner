@@ -10,7 +10,7 @@ using Domain.Entities;
 
 namespace Application.Features.SpaceFeatures;
 
-public class DeleteSpaceHandler(IDataBase db, WorkspaceContext context, IBackgroundJobService backgroundJob, IRealtimeService realtime) 
+public class DeleteSpaceHandler(IDataBase db, WorkspaceContext context, IRealtimeService realtime) 
     : ICommandHandler<DeleteSpaceCommand>
 {
     public async Task<Result> Handle(DeleteSpaceCommand request, CancellationToken ct)
@@ -31,7 +31,6 @@ public class DeleteSpaceHandler(IDataBase db, WorkspaceContext context, IBackgro
         space.Delete(context.CurrentMember.Id);
         
         await db.SaveChangesAsync(ct);
-        backgroundJob.TriggerOutbox();
         await realtime.NotifyWorkspaceAsync(context.workspaceId, "SpaceDeleting", new { SpaceId = request.SpaceId, WorkspaceId = context.workspaceId }, ct);
 
         return Result.Success();

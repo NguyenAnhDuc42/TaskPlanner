@@ -16,8 +16,7 @@ public class ExternalAuthService : IExternalAuthService
 
     public Task<ExternalUser> ValidateAsync(string provider, string token)
     {
-        // STUB IMPLEMENTATION
-        // In a real app, this would use Google.Apis.Auth or Octokit (GitHub) to validate the token.
+    
         
         _logger.LogInformation("Validating external token for provider: {Provider}", provider);
 

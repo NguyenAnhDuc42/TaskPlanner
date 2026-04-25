@@ -13,7 +13,6 @@ namespace Application.Features.FolderFeatures;
 public class DeleteFolderHandler(
     IDataBase db, 
     WorkspaceContext context,
-    IBackgroundJobService backgroundJob,
     IRealtimeService realtime
 ) : ICommandHandler<DeleteFolderCommand>
 {
@@ -23,19 +22,13 @@ public class DeleteFolderHandler(
         if (folder == null) 
             return Result.Failure(FolderError.NotFound);
 
-        // AUTHORIZATION: Only Admin/Owner or the folder creator (MemberId) can delete a folder
         if (context.CurrentMember.Role > Role.Admin && folder.CreatorId != context.CurrentMember.Id)
             return Result.Failure(MemberError.DontHavePermission);
-
-        // 1. Logic: Use formal domain method to trigger background cleanup
+            
         folder.Delete(context.workspaceId, context.CurrentMember.Id);
 
         await db.SaveChangesAsync(ct);
-        
-        // 2. Instant Trigger for background cleanup (Tasks, Views)
-        backgroundJob.TriggerOutbox();
-
-        // 3. STAGE 1 Notification: UI hides the folder immediately
+ 
         await realtime.NotifyWorkspaceAsync(context.workspaceId, "FolderDeleting", new { FolderId = request.FolderId, SpaceId = folder.ProjectSpaceId, WorkspaceId = context.workspaceId }, ct);
 
         return Result.Success();

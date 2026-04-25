@@ -13,16 +13,16 @@ TaskPlanner follows a high-performance **Layered Vertical Slice Architecture**. 
   - **Domain Events**: Internal signals indicating side effects need to happen.
 
 - **Application Layer** (`server/Application`): The "Toppest" Execution Layer.
-  - **Responsibility**: Orchestrates features and needs to use Infrastructure and Background capabilities.
-  - **Pragmatic Rule**: Because it needs these capabilities, it *defines the interfaces* (e.g., `IDataBase`, `IBackgroundJobService`). It does not implement them. 
+  - **Responsibility**: Orchestrates features and defines what it needs from the lower layers.
+  - **Pragmatic Rule**: Defines interfaces like `IDataBase` (which exposes a raw `IDbConnection` for Dapper) and `IBackgroundJobService`. It does not handle implementation details.
 
 - **Background Layer** (`server/Background`): The Out-of-Process Layer.
-  - **Responsibility**: Executes Hangfire jobs, heavy database operations, and external API calls.
-  - **Pragmatic Rule**: It defines its own interfaces to demand capabilities from Infrastructure. **Crucially, it cannot call or rely on interfaces defined in the Application layer.** It operates entirely parallel to the Application layer.
+  - **Responsibility**: Executes Hangfire jobs, heavy cleanup operations, and external API calls.
+  - **Pragmatic Rule**: It defines its own interfaces (`Background.Interfaces`) to demand what it needs. **Crucially, it has ZERO reference to the Infrastructure project.** It cannot call interfaces from Application.
 
 - **Infrastructure Layer** (`server/Infrastructure`): The "Lowest" Implementation Layer.
-  - **Responsibility**: This is where the upper layers go to get what they demand.
-  - **Pragmatic Rule**: Because it is the lowest layer, it has the freedom to reference the `Application` and `Background` layers in order to *implement* their interfaces (e.g., EF Core DbContext implementing `IDataBase`, or a concrete service implementing a Background interface).
+  - **Responsibility**: Fulfills the demands of all upper layers.
+  - **Pragmatic Rule**: Because it is the lowest, it can reference `Application` and `Background` to implement their contracts. It contains the raw `Database` implementation, SignalR services, and the local worker that triggers the outbox.
 
 ---
 
@@ -48,24 +48,18 @@ We organize code by **feature capability**, using a **Feature Folder** pattern i
 The request enters the API. `WorkspaceContext` resolves the "Truth" (Who is the user? Which workspace? What is their role?).
 - **Rule**: Access `context.CurrentMember` for permission checks.
 
-### Step 2: Validation & Execution
-The request is validated via FluentValidation. The Handler executes business logic using:
-- **Domain Extensions**: Use `_db.Entities.ByWorkspace(id).WhereNotDeleted()` for safe access.
-- **Entity Factories**: Create entities via static `Entity.Create(...)` methods.
+### Step 2: Validation & Logic
+The request is validated via FluentValidation. The Handler executes logic.
+- **Pragmatic Rule**: Use `db.Connection` (Dapper) for all reads and bulk writes. Use `db.SaveChangesAsync()` only for complex entity state changes.
 
-### Step 3: Performance & Side-Effects
-- **Caching**: Use `HybridCache` to invalidate tags or update shared state.
-- **Real-time**: Notify clients immediately using `IRealtimeService`.
+### Step 3: Persistence & Instant Outbox
+- **EF ChangeTracker**: Automatically collects domain events during `SaveChangesAsync`.
+- **Instant Signal**: `Database.cs` sends an in-memory signal (via a .NET Channel) to the `LocalOutboxWorker` the moment the transaction commits. **NO POLLING DELAY.**
 
-### Step 4: Persistence & Outbox
-The handler calls `_db.SaveChangesAsync()`.
-- **Domain Events** are collected and saved as `OutboxMessages` in the same DB transaction.
-- CORE data is committed.
-
-### Step 5: Background Processing (The Jobs Layer)
-The **Background Layer** picks up the Outbox messages.
-- `ProcessOutboxJob` enqueues handlers of `IDomainEventHandler<TEvent>`.
-- Side effects (e.g., seeding, cascading updates) happen asynchronously.
+### Step 4: Background Processing
+The **Local Worker** (in Infrastructure) wakes up instantly and calls the `ProcessOutboxJob` (in Background).
+- Side effects (emails, notifications, cascading deletes) run out-of-process.
+- **Hangfire**: Acts as a safety net (set to 30m+ intervals) to catch any missed messages if the server restarts.
 
 ---
 

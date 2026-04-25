@@ -30,4 +30,5 @@ public interface IDataBase
     DbSet<PasswordResetToken> PasswordResetTokens { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
+    void TriggerOutbox();
 }

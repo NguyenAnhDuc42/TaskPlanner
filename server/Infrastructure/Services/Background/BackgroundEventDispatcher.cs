@@ -32,18 +32,13 @@ public class BackgroundEventDispatcher : IBackgroundEventDispatcher
             if (domainEvent is null) continue;
 
             var eventType = domainEvent.GetType();
-            // Make IDomainEventHandler<TExactEvent> dynamically
             var handlerType = typeof(IDomainEventHandler<>).MakeGenericType(eventType);
-            
-            // Get all registered handlers for this specific event
             var handlers = _serviceProvider.GetServices(handlerType);
 
-            // Trigger them
             foreach (var handler in handlers)
             {
                 if (handler != null)
                 {
-                    // Get or add method to cache
                     var handleMethod = MethodCache.GetOrAdd((handlerType, eventType), key => 
                         key.HandlerType.GetMethod("Handle", new[] { key.EventType, typeof(CancellationToken) })!);
 

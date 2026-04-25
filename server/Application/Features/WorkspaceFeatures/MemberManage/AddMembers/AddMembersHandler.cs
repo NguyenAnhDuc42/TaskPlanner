@@ -14,7 +14,7 @@ using Microsoft.Extensions.Caching.Hybrid;
 
 namespace Application.Features.WorkspaceFeatures;
 
-public class AddMembersHandler(IDataBase db, WorkspaceContext context,IBackgroundJobService backgroundJob) : ICommandHandler<AddMembersCommand>
+public class AddMembersHandler(IDataBase db, WorkspaceContext context) : ICommandHandler<AddMembersCommand>
 {
     public async Task<Result> Handle(AddMembersCommand request, CancellationToken ct)
     {
@@ -39,7 +39,7 @@ public class AddMembersHandler(IDataBase db, WorkspaceContext context,IBackgroun
             Theme = Domain.Enums.Theme.Dark.ToString()
         });
 
-        backgroundJob.TriggerOutbox();
+        db.TriggerOutbox();
 
         return Result.Success();
     }

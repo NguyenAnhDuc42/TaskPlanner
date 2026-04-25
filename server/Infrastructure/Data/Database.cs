@@ -7,14 +7,20 @@ using Microsoft.EntityFrameworkCore.ChangeTracking;
 using System.Data;
 using Infrastructure.Events.Extensions;
 using Dapper;
+using System.Threading.Channels;
 
 namespace Infrastructure.Data;
 
-public class Database(TaskPlanDbContext context) : IDataBase
+public class Database(TaskPlanDbContext context, Channel<bool> signalChannel) : IDataBase
 {
     private IDbContextTransaction? _currentTransaction;
 
     public IDbConnection Connection => context.Database.GetDbConnection();
+
+    public void TriggerOutbox()
+    {
+        signalChannel.Writer.TryWrite(true);
+    }
 
     public DbSet<User> Users => context.Set<User>();
     public DbSet<Session> Sessions => context.Set<Session>();
@@ -37,7 +43,6 @@ public class Database(TaskPlanDbContext context) : IDataBase
     public DbSet<OutboxMessage> OutboxMessages => context.Set<OutboxMessage>();
     public DbSet<PasswordResetToken> PasswordResetTokens => context.Set<PasswordResetToken>();
 
-    public DbSet<T> Set<T>() where T : class => context.Set<T>();
     public bool HasActiveTransaction => _currentTransaction != null;
     public ChangeTracker ChangeTracker => context.ChangeTracker;
 
@@ -101,7 +106,14 @@ public class Database(TaskPlanDbContext context) : IDataBase
             context.ChangeTracker.ClearDomainEvents();
         }
 
-        return await context.SaveChangesAsync(cancellationToken);
+        var result = await context.SaveChangesAsync(cancellationToken);
+        
+        if (hasOutboxWork)
+        {
+            TriggerOutbox();
+        }
+
+        return result;
     }
 
 }

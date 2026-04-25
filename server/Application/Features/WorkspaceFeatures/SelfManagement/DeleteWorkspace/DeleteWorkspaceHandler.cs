@@ -18,8 +18,7 @@ public class DeleteWorkspaceHandler(
     ICurrentUserService currentUserService, 
     HybridCache cache, 
     IRealtimeService realtime, 
-    ILogger<DeleteWorkspaceHandler> logger,
-    IBackgroundJobService backgroundJob
+    ILogger<DeleteWorkspaceHandler> logger
 ) : ICommandHandler<DeleteWorkspaceCommand>
 {
     public async Task<Result> Handle(DeleteWorkspaceCommand request, CancellationToken ct)
@@ -39,9 +38,6 @@ public class DeleteWorkspaceHandler(
         // 1. Logic: Use formal domain method to trigger background cleanup
         workspace.Delete();
         await db.SaveChangesAsync(ct);
-
-        // 2. Instant Trigger for Background Cleanup
-        backgroundJob.TriggerOutbox();
 
         // --- Side Effects ---
         await cache.RemoveByTagAsync(WorkspaceCacheKeys.WorkspaceListTag(currentUserId), ct);

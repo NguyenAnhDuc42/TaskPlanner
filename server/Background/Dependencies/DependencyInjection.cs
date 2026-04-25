@@ -22,20 +22,20 @@ public static class DependencyInjection
                     c => c.UseNpgsqlConnection(config.GetConnectionString("TaskPlannerHangfire")),
                     new PostgreSqlStorageOptions
                     {
-                        QueuePollInterval = TimeSpan.FromSeconds(30)
+                        QueuePollInterval = TimeSpan.FromMinutes(40)
                     });
         });
         services.AddHangfireServer(options => {
             options.WorkerCount = 2;
-            options.SchedulePollingInterval = TimeSpan.FromMinutes(5);
-            options.ServerCheckInterval = TimeSpan.FromMinutes(5);
+            options.SchedulePollingInterval = TimeSpan.FromMinutes(40);
+            options.ServerCheckInterval = TimeSpan.FromMinutes(40);
         });
 
         services.AddSingleton<IBackgroundJobClient, BackgroundJobClient>();
         services.AddSingleton<IRecurringJobManager, RecurringJobManager>();
 
         services.AddSingleton<IBackgroundJobService, HangfireBackgroundJobService>();
-        services.AddSingleton<IOutboxTrigger, HangfireOutboxTrigger>();
+        services.AddScoped<Background.Jobs.ProcessOutboxJob>();
         services.AddSingleton<HangfireJobScheduler>();
 
         return services;
