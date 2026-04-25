@@ -34,9 +34,9 @@ export function RichTextEditor({ value, onChange, placeholder }: RichTextEditorP
   if (!editor) return null;
 
   return (
-    <div className="flex flex-col border border-border/40 rounded-xl overflow-hidden bg-background/50 focus-within:border-primary/30 focus-within:shadow-[0_0_0_1px_rgba(var(--primary),0.1)] transition-all">
+    <div className="flex flex-col transition-all">
       {/* Toolbar */}
-      <div className="flex items-center gap-1 p-2 border-b border-border/40 bg-muted/20">
+      <div className="flex items-center gap-1 py-1 px-0 border-b border-border/10 mb-4 opacity-20 hover:opacity-100 focus-within:opacity-100 transition-opacity">
         <button
           onClick={() => editor.chain().focus().toggleBold().run()}
           className={cn(
@@ -88,7 +88,7 @@ export function RichTextEditor({ value, onChange, placeholder }: RichTextEditorP
       </div>
 
       {/* Editor Content */}
-      <div className="p-4 cursor-text bg-transparent">
+      <div className="cursor-text bg-transparent">
         <EditorContent editor={editor} />
       </div>
     </div>

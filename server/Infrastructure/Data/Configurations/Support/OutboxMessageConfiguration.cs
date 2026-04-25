@@ -20,8 +20,11 @@ public class OutboxMessageConfiguration : EntityConfiguration<OutboxMessage>
         builder.Property(x => x.ProcessedOnUtc).HasColumnName("processed_on_utc");
         builder.Property(x => x.Error).HasColumnType("text").HasColumnName("error");
         builder.Property(x => x.State).HasConversion<string>().HasMaxLength(50).HasColumnName("state").IsRequired();
+        builder.Property(x => x.ErrorCount).HasDefaultValue(0).HasColumnName("error_count");
+        builder.Property(x => x.ScheduledAtUtc).HasColumnName("scheduled_at_utc");
 
         builder.HasIndex(x => x.State);
         builder.HasIndex(x => x.OccurredOnUtc);
+        builder.HasIndex(x => x.ScheduledAtUtc);
     }
 }

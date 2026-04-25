@@ -91,6 +91,8 @@ export function FolderViewSwitcher({
         >
           <FolderOverviewMain 
             name={overviewData.name} 
+            icon={overviewData.icon}
+            color={overviewData.color}
             description={overviewData.description} 
             stats={overviewData.stats}
           />

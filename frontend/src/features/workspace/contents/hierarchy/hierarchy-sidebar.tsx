@@ -124,7 +124,7 @@ export function HierarchySidebar() {
           
           <CollapsibleContent className="flex-1 min-h-0 overflow-hidden data-[state=open]:flex data-[state=closed]:hidden">
             <ScrollArea className="h-full w-full">
-              <div className="px-2 pt-0.5 pb-2 flex flex-col">
+              <div className="px-1 pt-0.5 pb-2 flex flex-col">
                 <DndContext 
                   sensors={sensors} 
                   collisionDetection={closestCenter} 
@@ -155,7 +155,7 @@ export function HierarchySidebar() {
                             <div className="w-5 h-5 flex items-center justify-center flex-shrink-0 mr-0.5">
                               <Plus className="h-3.5 w-3.5" />
                             </div>
-                            <span className="text-[10px] font-bold uppercase tracking-widest">Add Space</span>
+                            <span className="text-[10px] font-bold uppercase tracking-widest">Add Item</span>
                           </button>
                         }
                         contentClassName="sm:max-w-[800px] p-0 overflow-hidden border-none shadow-2xl rounded-2xl bg-background outline-none ring-1 ring-border/50"

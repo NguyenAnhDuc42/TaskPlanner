@@ -97,6 +97,8 @@ export function SpaceViewSwitcher({
         >
           <SpaceOverviewMain 
             name={overviewData.name} 
+            icon={overviewData.icon}
+            color={overviewData.color}
             description={overviewData.description} 
           />
         </motion.div>

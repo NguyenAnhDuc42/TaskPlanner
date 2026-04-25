@@ -1,10 +1,5 @@
-using System;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Linq;
-using System.Reflection;
-using System.Threading;
-using System.Threading.Tasks;
+using System.Linq.Expressions;
 using Application.Common.Interfaces;
 using Background.Interfaces;
 using Domain.Common.Interfaces;
@@ -12,43 +7,54 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace Infrastructure.Services.Background;
 
-public class BackgroundEventDispatcher : IBackgroundEventDispatcher
+public class BackgroundEventDispatcher(IServiceProvider serviceProvider) : IBackgroundEventDispatcher
 {
-    private readonly IServiceProvider _serviceProvider;
-    private static readonly ConcurrentDictionary<(Type HandlerType, Type EventType), MethodInfo> MethodCache = new();
-
-    public BackgroundEventDispatcher(IServiceProvider serviceProvider)
-    {
-        _serviceProvider = serviceProvider ?? throw new ArgumentNullException(nameof(serviceProvider));
-    }
+    private static readonly ConcurrentDictionary<(Type HandlerType, Type EventType), Func<object, object, CancellationToken, Task>> DelegateCache = new();
+    private static readonly ConcurrentDictionary<Type, Type> GenericHandlerTypeCache = new();
 
     public async Task DispatchAsync(IEnumerable<IDomainEvent> domainEvents, CancellationToken cancellationToken = default)
     {
         if (domainEvents is null) throw new ArgumentNullException(nameof(domainEvents));
-        if (!domainEvents.Any()) return;
-
+        
         foreach (var domainEvent in domainEvents)
         {
             if (domainEvent is null) continue;
 
             var eventType = domainEvent.GetType();
-            var handlerType = typeof(IDomainEventHandler<>).MakeGenericType(eventType);
-            var handlers = _serviceProvider.GetServices(handlerType);
+            
+            var handlerType = GenericHandlerTypeCache.GetOrAdd(eventType, 
+                t => typeof(IDomainEventHandler<>).MakeGenericType(t));
+            
+            var handlers = serviceProvider.GetServices(handlerType);
 
             foreach (var handler in handlers)
             {
-                if (handler != null)
-                {
-                    var handleMethod = MethodCache.GetOrAdd((handlerType, eventType), key => 
-                        key.HandlerType.GetMethod("Handle", new[] { key.EventType, typeof(CancellationToken) })!);
+                if (handler == null) continue;
 
-                    if (handleMethod != null)
-                    {
-                        var task = (Task)handleMethod.Invoke(handler, new object[] { domainEvent, cancellationToken })!;
-                        await task.ConfigureAwait(false);
-                    }
-                }
+                var action = DelegateCache.GetOrAdd((handler.GetType(), eventType), key => 
+                    CompileHandlerDelegate(key.HandlerType, key.EventType));
+
+                await action(handler, domainEvent, cancellationToken);
             }
         }
+    }
+
+    private static Func<object, object, CancellationToken, Task> CompileHandlerDelegate(Type handlerType, Type eventType)
+    {
+        var handlerParam = Expression.Parameter(typeof(object), "handler");
+        var eventParam = Expression.Parameter(typeof(object), "event");
+        var tokenParam = Expression.Parameter(typeof(CancellationToken), "token");
+
+        var method = handlerType.GetMethod("Handle", [eventType, typeof(CancellationToken)])
+                     ?? throw new InvalidOperationException($"Handle method not found on {handlerType.Name}");
+
+        var call = Expression.Call(
+            Expression.Convert(handlerParam, handlerType),
+            method,
+            Expression.Convert(eventParam, eventType),
+            tokenParam
+        );
+
+        return Expression.Lambda<Func<object, object, CancellationToken, Task>>(call, handlerParam, eventParam, tokenParam).Compile();
     }
 }

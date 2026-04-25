@@ -11,6 +11,8 @@ public class OutboxMessage : Entity
     public DateTimeOffset? ProcessedOnUtc { get; private set; }
     public string? Error { get; private set; }
     public OutboxState State { get; private set; }
+    public int ErrorCount { get; private set; }
+    public DateTimeOffset? ScheduledAtUtc { get; private set; }
 
     private OutboxMessage() { } // EF
 
@@ -21,6 +23,7 @@ public class OutboxMessage : Entity
         Content = content;
         OccurredOnUtc = occurredOnUtc;
         State = OutboxState.Pending;
+        ErrorCount = 0;
     }
 
     public void MarkAsProcessed()
@@ -33,7 +36,25 @@ public class OutboxMessage : Entity
     public void MarkAsFailed(string error)
     {
         Error = error;
-        State = OutboxState.DeadLetter;
+        ErrorCount++;
+
+        if (ErrorCount >= 5) 
+        {
+            State = OutboxState.DeadLetter;
+        }
+        else
+        {
+            var delaySeconds = ErrorCount switch
+            {
+                1 => 10,
+                2 => 60,
+                3 => 300,
+                _ => 900
+            };
+            ScheduledAtUtc = DateTimeOffset.UtcNow.AddSeconds(delaySeconds);
+            State = OutboxState.Pending;
+        }
+        
         UpdateTimestamp();
     }
 }

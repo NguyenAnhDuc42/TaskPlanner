@@ -32,10 +32,13 @@ public class LocalOutboxWorker : BackgroundService
 
                 _logger.LogTrace("Local Outbox Worker triggered.");
 
-                using var scope = _serviceProvider.CreateScope();
-                var job = scope.ServiceProvider.GetRequiredService<ProcessOutboxJob>();
-                
-                await job.RunAsync();
+                bool hasMore;
+                do
+                {
+                    using var scope = _serviceProvider.CreateScope();
+                    var job = scope.ServiceProvider.GetRequiredService<ProcessOutboxJob>();
+                    hasMore = await job.RunAsync();
+                } while (hasMore && !stoppingToken.IsCancellationRequested);
             }
             catch (OperationCanceledException)
             {

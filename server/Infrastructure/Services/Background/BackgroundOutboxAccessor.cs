@@ -21,8 +21,9 @@ public class BackgroundOutboxAccessor : IBackgroundOutboxAccessor
 
     public async Task<List<OutboxMessage>> GetPendingMessagesAsync(int batchSize, CancellationToken cancellationToken = default)
     {
+        var now = DateTimeOffset.UtcNow;
         return await _dbContext.OutboxMessages
-            .Where(m => m.State == OutboxState.Pending)
+            .Where(m => m.State == OutboxState.Pending && (m.ScheduledAtUtc == null || m.ScheduledAtUtc <= now))
             .OrderBy(m => m.OccurredOnUtc)
             .Take(batchSize)
             .ToListAsync(cancellationToken);

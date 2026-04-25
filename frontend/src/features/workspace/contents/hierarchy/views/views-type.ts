@@ -77,6 +77,8 @@ export interface AssetViewData {
 export interface OverviewViewData {
   id: string;
   name: string;
+  icon?: string;
+  color?: string;
   description?: string;
   statusId?: string;
   workflowId?: string;

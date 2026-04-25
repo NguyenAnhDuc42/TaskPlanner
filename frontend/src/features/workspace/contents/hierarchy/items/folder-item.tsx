@@ -95,7 +95,7 @@ export const FolderItem = React.memo(function FolderItem({ folder, spaceId }: Fo
         </div>
       </SortableItem>
       <CollapsibleContent className="overflow-hidden">
-        <div className="ml-3 pl-2 border-l border-border flex flex-col">
+        <div className="ml-3.5 pl-2 border-l border-border flex flex-col">
           {isOpen && !folder.hasTasks ? null : (
             <NodeTasksList 
               nodeId={folder.id} 
