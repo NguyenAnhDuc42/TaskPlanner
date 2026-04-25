@@ -12,7 +12,10 @@
     <PackageReference Include="Hangfire.PostgreSql" />
     <PackageReference Include="MassTransit" />
     <PackageReference Include="Microsoft.Extensions.Hosting" />
-	<PackageReference Include="Microsoft.Build.Tasks.Core" />
+	  <PackageReference Include="Microsoft.Build.Tasks.Core" />
+    <PackageReference Include="System.Security.Cryptography.Xml" />
+    <PackageReference Include="Newtonsoft.Json" />
+    <PackageReference Include="BCrypt.Net-Next" />
   </ItemGroup>
 
 </Project>
