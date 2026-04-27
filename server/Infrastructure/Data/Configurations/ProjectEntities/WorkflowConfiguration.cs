@@ -1,10 +1,11 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Domain.Entities;
+using Domain.Common;
 
 namespace Infrastructure.Data.Configurations;
 
-public class WorkflowConfiguration : EntityConfiguration<Workflow>
+public class WorkflowConfiguration : TenantEntityConfiguration<Workflow>
 {
     public override void Configure(EntityTypeBuilder<Workflow> builder)
     {
@@ -12,11 +13,20 @@ public class WorkflowConfiguration : EntityConfiguration<Workflow>
 
         builder.ToTable("workflows");
 
-        builder.Property(x => x.ProjectWorkspaceId).HasColumnName("project_workspace_id").IsRequired();
-        builder.Property(x => x.Name).HasColumnName("name").HasMaxLength(100).IsRequired();
-        builder.Property(x => x.Description).HasColumnName("description").HasMaxLength(500);
-    
-        builder.HasIndex(x => x.ProjectWorkspaceId);
+        builder.Property(w => w.SpaceId)
+            .HasColumnName("space_id");
+
+        builder.Property(w => w.FolderId)
+            .HasColumnName("folder_id");
+
+        builder.Property(x => x.Name)
+            .HasColumnName("name")
+            .HasMaxLength(100)
+            .IsRequired();
+
+        builder.Property(x => x.Description)
+            .HasColumnName("description")
+            .HasMaxLength(500);
             
         builder.HasMany(x => x.Statuses)
             .WithOne()

@@ -24,9 +24,6 @@ public static class DependencyInjection
             .AddClasses(classes => classes.AssignableTo(typeof(IQueryHandler<,>)), publicOnly: false)
                 .AsImplementedInterfaces()
                 .WithScopedLifetime()
-            .AddClasses(classes => classes.AssignableTo(typeof(Application.Common.Interfaces.IDomainEventHandler<>)), publicOnly: false)
-                .AsImplementedInterfaces()
-                .WithScopedLifetime()
         );
 
         // Decorators for the Custom Handlers

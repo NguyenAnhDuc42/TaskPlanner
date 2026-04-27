@@ -39,7 +39,6 @@ public class AddMembersHandler(IDataBase db, WorkspaceContext context) : IComman
             Theme = Domain.Enums.Theme.Dark.ToString()
         });
 
-        db.TriggerOutbox();
 
         return Result.Success();
     }

@@ -5,6 +5,7 @@ using Application.Helpers;
 using Application.Interfaces.Data;
 using Domain.Entities;
 using Domain.Enums;
+using Domain.Enums.RelationShip;
 using Microsoft.EntityFrameworkCore;
 
 namespace Application.Features.ViewFeatures;
@@ -16,13 +17,16 @@ public class CreateViewHandler(IDataBase db, WorkspaceContext context) : IComman
         if (context.CurrentMember.Role > Role.Admin)
             return Result<Guid>.Failure(MemberError.DontHavePermission);
 
+        Guid? spaceId = request.LayerType == EntityLayerType.ProjectSpace ? request.LayerId : null;
+        Guid? folderId = request.LayerType == EntityLayerType.ProjectFolder ? request.LayerId : null;
+
         var view = ViewDefinition.Create(
             context.workspaceId,
-            request.LayerId,
-            request.LayerType,
+            spaceId,
+            folderId,
             request.Name,
             request.ViewType,
-            context.CurrentMember.Id 
+            context.CurrentMember.Id
         );
 
         await db.ViewDefinitions.AddAsync(view, ct);

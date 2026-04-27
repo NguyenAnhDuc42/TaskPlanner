@@ -20,6 +20,7 @@ public class Session : Entity
     private Session() { } // EF Core
 
     private Session(Guid userId, string refreshToken, DateTimeOffset expiresAt, string userAgent, string ipAddress)
+        : base(Guid.NewGuid())
     {
         UserId = userId;
         RefreshToken = refreshToken;

@@ -3,10 +3,7 @@ using Application.Common.Interfaces;
 using Application.Common.Results;
 using Application.Helpers;
 using Application.Interfaces.Data;
-using Domain.Common;
-using Domain.Entities.ProjectEntities;
 using Domain.Enums;
-using Domain.Enums.RelationShip;
 using Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 using Application.Interfaces;
@@ -31,13 +28,12 @@ public class CreateFolderHandler(
         if (context.CurrentMember.Role > Role.Admin)
             return Result<Guid>.Failure(MemberError.DontHavePermission);
         
-        var customization = Customization.Create(request.color, request.icon);
 
         var maxKey = await db.Folders
             .AsNoTracking()
             .BySpace(request.spaceId)
             .WhereNotDeleted()
-            .MaxAsync(f => (string?)f.OrderKey, ct);
+            .MaxAsync(f => f.OrderKey, ct);
         
         var orderKey = maxKey is null ? FractionalIndex.Start() : FractionalIndex.After(maxKey);
         var slug = SlugHelper.GenerateSlug(request.name);
@@ -47,20 +43,21 @@ public class CreateFolderHandler(
             projectSpaceId: space.Id,
             name: request.name,
             slug: slug,
-            description: request.description,
+            description: request.description ?? string.Empty,
             orderKey: orderKey,
             isPrivate: request.isPrivate,
             creatorId: context.CurrentMember.Id,
-            customization: customization,
+            color: request.color,
+            icon: request.icon,
             startDate: request.startDate,
             dueDate: request.dueDate
         );
 
         await db.Folders.AddAsync(folder, ct);
 
-        // Inline view creation — no outbox needed
+        // Inline view creation
         db.ViewDefinitions.AddRange(
-            ViewDefinition.CreateDefaults(context.workspaceId, folder.Id, EntityLayerType.ProjectFolder, context.CurrentMember.Id));
+            ViewDefinition.CreateDefaults(context.workspaceId, space.Id, folder.Id, context.CurrentMember.Id));
 
         await db.SaveChangesAsync(ct);
 

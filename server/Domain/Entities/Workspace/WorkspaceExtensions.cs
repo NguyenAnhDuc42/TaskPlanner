@@ -1,5 +1,4 @@
 using System.Linq;
-using Domain.Entities.ProjectEntities;
 
 namespace Domain.Entities;
 
@@ -14,6 +13,9 @@ public static class WorkspaceExtensions
 
     public static IQueryable<ProjectWorkspace> WhereActive(this IQueryable<ProjectWorkspace> query) => 
         query.Where(workspace => !workspace.IsArchived);
+
+    public static IQueryable<ProjectWorkspace> WhereNotDeleted(this IQueryable<ProjectWorkspace> query) => 
+        query.Where(workspace => workspace.DeletedAt == null);
 
     public static IQueryable<ProjectWorkspace> BySlug(this IQueryable<ProjectWorkspace> query, string slug) => 
         query.Where(workspace => workspace.Slug == slug.ToLower().Trim());

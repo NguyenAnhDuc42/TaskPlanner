@@ -32,5 +32,7 @@ public class TaskAssignmentConfiguration : EntityConfiguration<TaskAssignment>
             .WithMany(pt => pt.Assignees)
             .HasForeignKey(x => x.ProjectTaskId)
             .OnDelete(DeleteBehavior.Cascade);
+
+        // Auditing mapping
     }
 }

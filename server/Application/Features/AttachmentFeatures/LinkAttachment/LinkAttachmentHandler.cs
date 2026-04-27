@@ -25,8 +25,10 @@ public class LinkAttachmentHandler(IDataBase db, WorkspaceContext context) : ICo
             context.workspaceId,
             attachment.Id,
             AssetType.Attachment,
-            request.ParentEntityId,
-            request.ParentEntityType,
+            request.ParentEntityType == EntityType.ProjectSpace ? request.ParentEntityId : null,
+            request.ParentEntityType == EntityType.ProjectFolder ? request.ParentEntityId : null,
+            request.ParentEntityType == EntityType.ProjectTask ? request.ParentEntityId : null,
+            request.ParentEntityType == EntityType.Comment ? request.ParentEntityId : null,
             context.CurrentMember.Id);
 
         await db.EntityAssetLinks.AddAsync(link, ct);

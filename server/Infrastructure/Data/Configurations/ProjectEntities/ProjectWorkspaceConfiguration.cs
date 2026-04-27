@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Domain.Entities;
+using Domain.Common;
 
 namespace Infrastructure.Data.Configurations;
 
@@ -12,58 +13,43 @@ public class ProjectWorkspaceConfiguration : EntityConfiguration<ProjectWorkspac
 
         builder.ToTable("project_workspaces");
 
-        builder.Property(w => w.Id)
-            .HasColumnName("id")
-            .HasColumnOrder(0);
-
         builder.Property(w => w.Name)
             .HasColumnName("name")
             .IsRequired()
-            .HasMaxLength(150)
-            .HasColumnOrder(1);
+            .HasMaxLength(150);
 
         builder.Property(w => w.Slug)
             .HasColumnName("slug")
             .IsRequired()
-            .HasMaxLength(100)
-            .HasColumnOrder(2);
+            .HasMaxLength(100);
         
         builder.HasIndex(w => w.Slug).IsUnique();
 
         builder.Property(w => w.Description)
-            .HasColumnName("description")
-            .HasColumnType("jsonb")
-            .HasConversion(
-                v => v == null ? null : System.Text.Json.JsonSerializer.Serialize(v, (System.Text.Json.JsonSerializerOptions)null!),
-                v => v == null ? null : System.Text.Json.JsonSerializer.Deserialize<string>(v, (System.Text.Json.JsonSerializerOptions)null!)
-            )
-            .HasColumnOrder(3);
+            .HasColumnName("description");
 
         builder.Property(w => w.JoinCode)
             .HasColumnName("join_code")
             .IsRequired()
-            .HasMaxLength(32)
-            .HasColumnOrder(4);
+            .HasMaxLength(32);
 
-        builder.OwnsOne(w => w.Customization, c =>
-        {
-            c.Property(cust => cust.Color).HasColumnName("custom_color").HasColumnOrder(5);
-            c.Property(cust => cust.Icon).HasColumnName("custom_icon").HasColumnOrder(6);
-        });
+        builder.Property(w => w.Color)
+            .HasColumnName("custom_color")
+            .HasMaxLength(16);
 
+        builder.Property(w => w.Icon)
+            .HasColumnName("custom_icon")
+            .HasMaxLength(64);
 
         builder.Property(w => w.StrictJoin)
-            .HasColumnName("strict_join")
-            .HasColumnOrder(8);
+            .HasColumnName("strict_join");
 
         builder.Property(w => w.IsArchived)
-            .HasColumnName("is_archived")
-            .HasColumnOrder(9);
+            .HasColumnName("is_archived");
 
-        // Auditing (Overrides from base to set order)
-        builder.Property(w => w.CreatedAt).HasColumnOrder(10);
-        builder.Property(w => w.UpdatedAt).HasColumnOrder(11);
-        builder.Property(w => w.DeletedAt).HasColumnOrder(12);
-        builder.Property(w => w.CreatorId).HasColumnOrder(13);
+        builder.HasMany(w => w.Members)
+            .WithOne()
+            .HasForeignKey(m => m.ProjectWorkspaceId)
+            .OnDelete(DeleteBehavior.Cascade);
     }
 }

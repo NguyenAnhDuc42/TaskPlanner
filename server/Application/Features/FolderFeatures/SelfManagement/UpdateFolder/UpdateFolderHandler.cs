@@ -20,24 +20,25 @@ public class UpdateFolderHandler(IDataBase db, WorkspaceContext context) : IComm
         if (context.CurrentMember.Role > Role.Admin && folder.CreatorId != context.CurrentMember.Id)
             return Result.Failure(MemberError.DontHavePermission);
 
-        if (request.Name is not null || request.Description is not null)
+        if (request.Name is not null)
         {
-            var slug = request.Name != null ? SlugHelper.GenerateSlug(request.Name) : null;
-            folder.UpdateBasicInfo(request.Name, slug, request.Description);
+            folder.UpdateName(request.Name);
+            folder.UpdateSlug(SlugHelper.GenerateSlug(request.Name));
+        }
+        
+        if (request.Description is not null)
+        {
+            folder.UpdateDescription(request.Description);
         }
 
-        if (request.Color is not null || request.Icon is not null) 
-            folder.UpdateCustomization(request.Color, request.Icon);
+        if (request.Color is not null) folder.UpdateColor(request.Color);
+        if (request.Icon is not null) folder.UpdateIcon(request.Icon);
 
         if (request.IsPrivate.HasValue) 
             folder.UpdatePrivate(request.IsPrivate.Value);
 
-        if (request.StartDate != null || request.DueDate != null)
-        {
-            folder.UpdateDates(
-                request.StartDate ?? folder.StartDate,
-                request.DueDate ?? folder.DueDate);
-        }
+        if (request.StartDate != null) folder.UpdateStartDate(request.StartDate.Value);
+        if (request.DueDate != null) folder.UpdateDueDate(request.DueDate.Value);
 
         await db.SaveChangesAsync(ct);
         return Result.Success();

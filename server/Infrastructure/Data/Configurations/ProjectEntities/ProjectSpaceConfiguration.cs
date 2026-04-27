@@ -1,10 +1,11 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Domain.Entities;
+using Domain.Common;
 
 namespace Infrastructure.Data.Configurations;
 
-public class ProjectSpaceConfiguration : EntityConfiguration<ProjectSpace>
+public class ProjectSpaceConfiguration : TenantEntityConfiguration<ProjectSpace>
 {
     public override void Configure(EntityTypeBuilder<ProjectSpace> builder)
     {
@@ -13,74 +14,62 @@ public class ProjectSpaceConfiguration : EntityConfiguration<ProjectSpace>
         builder.ToTable("project_spaces");
 
         builder.Property(s => s.Id)
-            .HasColumnName("id")
-            .HasColumnOrder(0);
+            .HasColumnName("id");
 
         builder.Property(s => s.ProjectWorkspaceId)
-            .HasColumnName("project_workspace_id")
-            .HasColumnOrder(1);
+            .HasColumnName("project_workspace_id");
 
         builder.Property(s => s.Name)
             .HasColumnName("name")
             .IsRequired()
-            .HasMaxLength(150)
-            .HasColumnOrder(2);
+            .HasMaxLength(150);
 
         builder.Property(s => s.Slug)
             .HasColumnName("slug")
             .IsRequired()
-            .HasMaxLength(100)
-            .HasColumnOrder(3);
+            .HasMaxLength(100);
 
         builder.HasIndex(s => new { s.ProjectWorkspaceId, s.Slug }).IsUnique();
 
         builder.Property(s => s.Description)
-            .HasColumnName("description")
-            .HasColumnType("jsonb")
-            .HasConversion(
-                v => v == null ? null : System.Text.Json.JsonSerializer.Serialize(v, (System.Text.Json.JsonSerializerOptions)null!),
-                v => v == null ? null : System.Text.Json.JsonSerializer.Deserialize<string>(v, (System.Text.Json.JsonSerializerOptions)null!)
-            )
-            .HasColumnOrder(4);
+            .HasColumnName("description");
 
-        builder.OwnsOne(s => s.Customization, c =>
-        {
-            c.Property(cust => cust.Color).HasColumnName("custom_color").HasColumnOrder(5);
-            c.Property(cust => cust.Icon).HasColumnName("custom_icon").HasColumnOrder(6);
-        });
+        builder.Property(s => s.Color)
+            .HasColumnName("custom_color")
+            .HasMaxLength(16);
+
+        builder.Property(s => s.Icon)
+            .HasColumnName("custom_icon")
+            .HasMaxLength(64);
 
         builder.Property(s => s.IsPrivate)
-            .HasColumnName("is_private")
-            .HasColumnOrder(7);
+            .HasColumnName("is_private");
 
         builder.Property(s => s.OrderKey)
             .HasColumnName("order_key")
-            .IsRequired()
-            .HasColumnOrder(8);
+            .IsRequired();
 
         builder.Property(s => s.IsArchived)
-            .HasColumnName("is_archived")
-            .HasColumnOrder(9);
+            .HasColumnName("is_archived");
 
         builder.Property(w => w.WorkflowId)
-            .HasColumnName("workflow_id")
-            .HasColumnOrder(10);
+            .HasColumnName("workflow_id");
 
         builder.Property(w => w.StatusId)
-            .HasColumnName("status_id")
-            .HasColumnOrder(11);
+            .HasColumnName("status_id");
+
+        // Foreign Keys
+        builder.HasOne<Workflow>()
+            .WithMany()
+            .HasForeignKey(w => w.WorkflowId)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        builder.HasOne<Status>()
+            .WithMany()
+            .HasForeignKey(w => w.StatusId)
+            .OnDelete(DeleteBehavior.SetNull);
 
         builder.HasIndex(w => w.WorkflowId);
         builder.HasIndex(w => w.StatusId);
-        builder.HasIndex(s => s.ProjectWorkspaceId);
-        builder.HasIndex(s => new { s.ProjectWorkspaceId, s.OrderKey, s.Id })
-            .HasFilter("\"deleted_at\" IS NULL AND \"is_archived\" = false")
-            .IncludeProperties(s => new { s.Name, s.IsPrivate });
-
-        // Auditing (Overrides from base to set order)
-        builder.Property(w => w.CreatedAt).HasColumnOrder(12);
-        builder.Property(w => w.UpdatedAt).HasColumnOrder(13);
-        builder.Property(w => w.DeletedAt).HasColumnOrder(14);
-        builder.Property(w => w.CreatorId).HasColumnOrder(15);
     }
 }

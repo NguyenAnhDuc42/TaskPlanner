@@ -1,4 +1,3 @@
-using System;
 using Domain.Common;
 
 namespace Domain.Entities;
@@ -15,15 +14,13 @@ public class Comment : Entity
     private Comment(Guid id, string content, Guid creatorId, Guid projectTaskId, Guid? parentCommentId = null)
         : base(id)
     {
-        if (string.IsNullOrWhiteSpace(content)) throw new ArgumentException("Comment content cannot be empty.", nameof(content));
-        if (creatorId == Guid.Empty) throw new ArgumentException("CreatorId cannot be empty.", nameof(creatorId));
-        if (projectTaskId == Guid.Empty) throw new ArgumentException("ProjectTaskId cannot be empty.", nameof(projectTaskId));
-
-        Content = content.Trim();
-        CreatorId = creatorId;
+        Content = content;
         ProjectTaskId = projectTaskId;
         ParentCommentId = parentCommentId;
         IsEdited = false;
+        
+        // Audit is initialized in base constructor
+        InitializeAudit(creatorId);
     }
 
     public static Comment Create(string content, Guid creatorId, Guid projectTaskId, Guid? parentCommentId = null)
@@ -31,10 +28,7 @@ public class Comment : Entity
 
     public void UpdateContent(string newContent)
     {
-        if (string.IsNullOrWhiteSpace(newContent)) throw new ArgumentException("Comment content cannot be empty.", nameof(newContent));
-        if (Content == newContent.Trim()) return;
-
-        Content = newContent.Trim();
+        Content = newContent;
         IsEdited = true;
         UpdateTimestamp();
     }

@@ -1,6 +1,5 @@
 using Domain.Common;
 using System.Text.RegularExpressions;
-using Domain.Events.UserEvents;
 
 namespace Domain.Entities;
 
@@ -15,8 +14,8 @@ public class User : Entity
     private User() { } // EF Core
 
     private User(Guid id, string name, string email, string? passwordHash)
+        : base(id)
     {
-        Id = id;
         Name = name;
         Email = email;
         PasswordHash = passwordHash;
@@ -32,7 +31,6 @@ public class User : Entity
             throw new ArgumentException("Invalid email format.", nameof(email));
 
         var user = new User(Guid.NewGuid(), name, email, passwordHash);
-        user.AddDomainEvent(new UserRegisteredEvent(user.Id, user.Email, user.Name, DateTimeOffset.UtcNow));
         return user;
     }
 
@@ -48,7 +46,6 @@ public class User : Entity
             AuthProvider = provider,
             ExternalId = externalId
         };
-        user.AddDomainEvent(new UserRegisteredEvent(user.Id, user.Email, user.Name, DateTimeOffset.UtcNow));
         return user;
     }
 

@@ -5,7 +5,7 @@ namespace Domain.Entities;
 public class Document : TenantEntity
 {
     public string Name { get; private set; } = null!;
-    public string Content { get; private set; } = string.Empty;
+    public string Content { get; private set; } = null!;
 
     private Document() { }
 
@@ -14,7 +14,9 @@ public class Document : TenantEntity
     {
         Name = name;
         Content = content;
-        CreatorId = creatorId;
+        
+        // Audit is initialized in base constructor
+        InitializeAudit(creatorId);
     }
 
     public static Document Create(Guid workspaceId, string name, string content, Guid creatorId)
@@ -22,9 +24,14 @@ public class Document : TenantEntity
         return new Document(workspaceId, name, content, creatorId);
     }
 
-    public void Update(string name, string content)
+    public void UpdateName(string name)
     {
         Name = name;
+        UpdateTimestamp();
+    }
+
+    public void UpdateContent(string content)
+    {
         Content = content;
         UpdateTimestamp();
     }

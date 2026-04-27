@@ -20,15 +20,11 @@ public interface IDataBase
     DbSet<Status> Statuses { get; }
     DbSet<Comment> Comments { get; }
     DbSet<Document> Documents { get; }
-    DbSet<Dashboard> Dashboards { get; }
     DbSet<ViewDefinition> ViewDefinitions { get; }
     DbSet<Attachment> Attachments { get; }
     DbSet<EntityAssetLink> EntityAssetLinks { get; }
     DbSet<TaskAssignment> TaskAssignments { get; }
-    DbSet<Widget> Widgets { get; }
-    DbSet<OutboxMessage> OutboxMessages { get; }
     DbSet<PasswordResetToken> PasswordResetTokens { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
-    void TriggerOutbox();
 }

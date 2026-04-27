@@ -39,7 +39,9 @@ public class UpdateWorkflowStatusesHandler(IDataBase db, WorkspaceContext contex
                 var existing = workflow.Statuses.FirstOrDefault(s => s.Id == statusDto.Id.Value);
                 if (existing != null)
                 {
-                    existing.UpdateDetails(statusDto.Name, statusDto.Color, statusDto.Category);
+                    existing.UpdateName(statusDto.Name);
+                    existing.UpdateColor(statusDto.Color!);
+                    existing.UpdateCategory(statusDto.Category);
                 }
             }
             else
@@ -48,7 +50,7 @@ public class UpdateWorkflowStatusesHandler(IDataBase db, WorkspaceContext contex
                     workflow.ProjectWorkspaceId, 
                     workflow.Id, 
                     statusDto.Name, 
-                    statusDto.Color, 
+                    statusDto.Color!, 
                     statusDto.Category, 
                     context.CurrentMember.Id);
                 

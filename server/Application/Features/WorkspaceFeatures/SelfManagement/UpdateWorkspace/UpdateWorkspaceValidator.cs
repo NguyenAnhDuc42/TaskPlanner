@@ -1,6 +1,5 @@
 using FluentValidation;
 using Application.Helpers;
-using Domain.Common;
 
 namespace Application.Features.WorkspaceFeatures;
 
@@ -20,7 +19,7 @@ public class UpdateWorkspaceValidator : AbstractValidator<UpdateWorkspaceCommand
             .When(x => !string.IsNullOrWhiteSpace(x.Description)); // Only run if Description was provided
 
         RuleFor(x => x.Color)
-            .Must(ColorValidator.IsValidColorCode).WithMessage("Invalid color format.")
+            .Matches(@"^#(?:[0-9a-fA-F]{3,4}){1,2}$").WithMessage("Invalid color format.")
             .When(x => !string.IsNullOrWhiteSpace(x.Color)); // Only run if Color was provided
 
         RuleFor(x => x.Icon)

@@ -3,11 +3,11 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using System.Text.Json;
-
+using Domain.Common;
 
 namespace Infrastructure.Data.Configurations;
 
-public class AttachmentConfiguration : EntityConfiguration<Attachment>
+public class AttachmentConfiguration : TenantEntityConfiguration<Attachment>
 {
     public override void Configure(EntityTypeBuilder<Attachment> builder)
     {
@@ -15,42 +15,39 @@ public class AttachmentConfiguration : EntityConfiguration<Attachment>
 
         builder.ToTable("attachments");
 
-        builder.Property(x => x.ProjectWorkspaceId)
-            .HasColumnName("project_workspace_id")
+        builder.Property(x => x.FileName)
+            .HasColumnName("file_name")
             .IsRequired()
-            .HasColumnOrder(1);
+            .HasMaxLength(256);
 
-        builder.HasIndex(x => x.ProjectWorkspaceId);
-
-        builder.Property(x => x.FileName).IsRequired().HasMaxLength(256).HasColumnName("file_name");
-        builder.Property(x => x.ContentType).IsRequired().HasMaxLength(128).HasColumnName("content_type");
-        builder.Property(x => x.Type).HasConversion<string>().HasMaxLength(50).IsRequired().HasColumnName("type");
-        builder.Property(x => x.SizeBytes).IsRequired().HasColumnName("size_bytes");
-        builder.Property(x => x.Checksum).IsRequired().HasMaxLength(64).HasColumnName("checksum");
-        builder.Property(x => x.ChecksumAlgorithm).IsRequired().HasMaxLength(20).HasDefaultValue("SHA256").HasColumnName("checksum_algorithm");
-
-        builder.Property(x => x.Type)
-            .HasConversion<int>() // Store as SmallInt/Int for performance
-            .HasColumnName("attachment_type")
-            .IsRequired();
+        builder.Property(x => x.ContentType)
+            .HasColumnName("content_type")
+            .IsRequired()
+            .HasMaxLength(128);
 
         builder.Property(x => x.SizeBytes)
             .HasColumnName("size_bytes")
             .IsRequired();
 
-        // 3. Integrity
         builder.Property(x => x.Checksum)
             .HasColumnName("checksum")
-            .HasMaxLength(256);
+            .IsRequired()
+            .HasMaxLength(64);
 
         builder.Property(x => x.ChecksumAlgorithm)
             .HasColumnName("checksum_algorithm")
-            .HasMaxLength(64);
+            .IsRequired()
+            .HasMaxLength(20)
+            .HasDefaultValue("SHA256");
 
-        // 4. Lifecycle & State
-        builder.Property(x => x.ProcessingState)
+        builder.Property(x => x.Type)
+            .HasColumnName("attachment_type")
             .HasConversion<string>()
+            .IsRequired();
+
+        builder.Property(x => x.ProcessingState)
             .HasColumnName("processing_state")
+            .HasConversion<string>()
             .HasMaxLength(64)
             .IsRequired();
 
@@ -58,16 +55,13 @@ public class AttachmentConfiguration : EntityConfiguration<Attachment>
             .HasColumnName("is_public")
             .IsRequired();
 
-        // 5. The Polymorphic Metadata (JSONB)
-        // This maps the Metadata Value Object to the JSON column in Postgres
         builder.Property(x => x.Metadata)
             .HasColumnName("metadata")
             .HasColumnType("jsonb")
             .HasConversion(new MetadataJsonConverter());
 
-        // 6. Indexes
-        builder.HasIndex(x => x.StorageKey); // Removed Unique because multiple links can point to one key
-        builder.HasIndex(x => x.Checksum);   // Critical for the de-duplication check
+        builder.HasIndex(x => x.StorageKey);
+        builder.HasIndex(x => x.Checksum);
         builder.HasIndex(x => x.ProcessingState);
         builder.HasIndex(x => x.Type);
     }
@@ -87,8 +81,6 @@ public class AttachmentConfiguration : EntityConfiguration<Attachment>
             using var doc = JsonDocument.Parse(json);
             var root = doc.RootElement;
 
-            // Easiest Trick: Look for a unique property in the JSON to determine the type
-            // This avoids needing the 'Type' column from the DB row.
             if (root.TryGetProperty("embedUrl", out _)) return EmbedMetadata.FromJson(json);
             if (root.TryGetProperty("url", out _)) return LinkMetadata.FromJson(json);
             if (root.TryGetProperty("width", out _)) return MediaMetaData.FromJson(json);

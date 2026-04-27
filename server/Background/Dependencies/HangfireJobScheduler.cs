@@ -1,5 +1,4 @@
 using Hangfire;
-using Background.Jobs;
 
 namespace Background.Dependencies;
 
@@ -14,9 +13,5 @@ public  class HangfireJobScheduler
 
     public void Schedule()
     {
-        _recurringJobManager.AddOrUpdate<ProcessOutboxJob>(
-            "process-outbox",
-            job => job.RunAsync(),
-            Cron.MinuteInterval(15)); // Safety net only — real processing is event-driven via IOutboxTrigger
     }
 }

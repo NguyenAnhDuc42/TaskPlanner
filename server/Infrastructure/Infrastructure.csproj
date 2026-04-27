@@ -31,7 +31,7 @@
     <PackageReference Include="Microsoft.Extensions.Caching.Hybrid" />
     <PackageReference Include="Microsoft.Extensions.Caching.StackExchangeRedis" />
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
-	<PackageReference Include="System.Security.Cryptography.Xml" />
+    <PackageReference Include="System.Security.Cryptography.Xml" />
     <PackageReference Include="Scrutor" />
     <PackageReference Include="SendGrid" />
     <PackageReference Include="Serilog.AspNetCore" />

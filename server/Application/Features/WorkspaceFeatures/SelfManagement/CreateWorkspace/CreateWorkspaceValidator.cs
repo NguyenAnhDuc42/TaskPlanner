@@ -1,5 +1,4 @@
 using FluentValidation;
-using Domain.Common;
 using Domain.Enums;
 
 namespace Application.Features.WorkspaceFeatures;
@@ -18,7 +17,7 @@ public class CreateWorkspaceValidator : AbstractValidator<CreateWorkspaceCommand
 
         RuleFor(x => x.Color)
             .NotEmpty().WithMessage("Color is required.")
-            .Must(ColorValidator.IsValidColorCode)
+            .Matches(@"^#(?:[0-9a-fA-F]{3,4}){1,2}$")
             .WithMessage("Color must be a valid hex code.");
 
         RuleFor(x => x.Icon)

@@ -30,20 +30,19 @@ public class UpdateWorkspaceHandler(
 
         if (workspace == null) return Result.Failure(WorkspaceError.NotFound);
 
-        var nameChanged = !string.IsNullOrEmpty(request.Name) && workspace.Name != request.Name;
-        if (nameChanged)
+        if (!string.IsNullOrEmpty(request.Name))
         {
-            workspace.UpdateBasicInfo(request.Name, SlugHelper.GenerateSlug(request.Name!), request.Description);
+            workspace.UpdateName(request.Name);
+            workspace.UpdateSlug(SlugHelper.GenerateSlug(request.Name));
         }
-        else if (request.Description != null)
+        
+        if (request.Description != null)
         {
-            workspace.UpdateBasicInfo(workspace.Name, workspace.Slug, request.Description);
+            workspace.UpdateDescription(request.Description);
         }
 
-        if (request.Color != null || request.Icon != null)
-        {
-            workspace.UpdateCustomization(request.Color, request.Icon);
-        }
+        if (request.Color != null) workspace.UpdateColor(request.Color);
+        if (request.Icon != null) workspace.UpdateIcon(request.Icon);
 
         if (request.Theme.HasValue) context.CurrentMember.UpdateTheme(request.Theme.Value);
         if (request.StrictJoin.HasValue) workspace.UpdateStrictJoin(request.StrictJoin.Value);

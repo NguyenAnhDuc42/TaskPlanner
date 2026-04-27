@@ -37,9 +37,16 @@ public class UpdateTaskHandler(IDataBase db, WorkspaceContext context) : IComman
 
     private static void ApplyBasicDetails(ProjectTask task, UpdateTaskCommand request)
     {
-        if (request.Name == null && request.Description == null) return;
-        var slug = request.Name != null ? SlugHelper.GenerateSlug(request.Name) : null;
-        task.UpdateBasicInfo(request.Name, slug, request.Description);
+        if (request.Name != null)
+        {
+            task.UpdateName(request.Name);
+            task.UpdateSlug(SlugHelper.GenerateSlug(request.Name));
+        }
+        
+        if (request.Description != null)
+        {
+            task.UpdateDescription(request.Description);
+        }
     }
 
     private async Task ApplyStatusUpdate(ProjectTask task, UpdateTaskCommand request, CancellationToken ct)
@@ -64,14 +71,14 @@ public class UpdateTaskHandler(IDataBase db, WorkspaceContext context) : IComman
 
     private static void ApplyDateUpdate(ProjectTask task, UpdateTaskCommand request)
     {
-        if (request.StartDate.HasValue || request.DueDate.HasValue)
-            task.UpdateDates(request.StartDate ?? task.StartDate, request.DueDate ?? task.DueDate);
+        if (request.StartDate.HasValue) task.UpdateStartDate(request.StartDate.Value);
+        if (request.DueDate.HasValue) task.UpdateDueDate(request.DueDate.Value);
     }
 
     private static void ApplyEstimationUpdate(ProjectTask task, UpdateTaskCommand request)
     {
-        if (request.StoryPoints.HasValue || request.TimeEstimate.HasValue)
-            task.UpdateEstimation(request.StoryPoints ?? task.StoryPoints, request.TimeEstimate ?? task.TimeEstimate);
+        if (request.StoryPoints.HasValue) task.UpdateStoryPoints(request.StoryPoints.Value);
+        if (request.TimeEstimate.HasValue) task.UpdateTimeEstimate(request.TimeEstimate.Value);
     }
 
     private async Task ApplyAssigneeUpdate(ProjectTask task, UpdateTaskCommand request, CancellationToken ct)
@@ -94,6 +101,4 @@ public class UpdateTaskHandler(IDataBase db, WorkspaceContext context) : IComman
             .ToList();
         task.AddAsignees(toAdd);
     }
-
-
 }

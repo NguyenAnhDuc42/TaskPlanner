@@ -4,7 +4,6 @@ using Application.Interfaces.Services;
 using Infrastructure.Auth;
 using Infrastructure.Data;
 using Infrastructure.Services;
-using Infrastructure.Services.Background;
 
 using Microsoft.Extensions.DependencyInjection;
 
@@ -24,13 +23,6 @@ public static class ServicesRegistration
         services.AddHttpContextAccessor();
 
         services.AddSingleton<IPasswordService, PasswordService>();
-
-        services.AddTransient<Background.Interfaces.IBackgroundOutboxAccessor, Infrastructure.Services.Background.BackgroundOutboxAccessor>();
-        services.AddTransient<Background.Interfaces.IBackgroundEventDispatcher, Infrastructure.Services.Background.BackgroundEventDispatcher>();
-        services.AddTransient<Background.Interfaces.IBackgroundMemberCleanupStore, Infrastructure.Services.Background.BackgroundMemberCleanupStore>();
-        
-        services.AddSingleton(System.Threading.Channels.Channel.CreateUnbounded<bool>());
-        services.AddHostedService<LocalOutboxWorker>();
 
         return services;
     }

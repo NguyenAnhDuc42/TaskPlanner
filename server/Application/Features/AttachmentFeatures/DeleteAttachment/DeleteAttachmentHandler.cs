@@ -16,7 +16,6 @@ public class DeleteAttachmentHandler(IDataBase db, WorkspaceContext context) : I
         if (attachment == null) 
             return Result.Failure(AttachmentError.NotFound);
 
-        // AUTHORIZATION: Only Admin/Owner or the attachment creator (MemberId) can delete
         if (context.CurrentMember.Role > Role.Admin && attachment.CreatorId != context.CurrentMember.Id)
             return Result.Failure(MemberError.DontHavePermission);
         

@@ -11,7 +11,6 @@ public static class ViewQueryHelper
     /// </summary>
     public static IQueryable<ProjectTask> ApplyFilters(this IQueryable<ProjectTask> query, ViewFilterConfig filter)
     {
-        if (filter == null) return query;
 
         // 1. Status Filter
         if (filter.StatusIds.Any())

@@ -3,6 +3,7 @@ using Application.Common.Results;
 using Application.Common.Interfaces;
 using Application.Helpers;
 using Application.Interfaces.Data;
+using Domain.Entities;
 using Domain.Enums;
 using Microsoft.EntityFrameworkCore;
 

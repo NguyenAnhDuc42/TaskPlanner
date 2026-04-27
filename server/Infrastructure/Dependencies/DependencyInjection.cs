@@ -16,8 +16,7 @@ public static class DependencyInjection
             .AddDbContextInfrastructure(connectionString)
             .AddServices()
             .AddCache()
-            .AddJwtAuthentication(config)
-            .AddDomainEvents();
+            .AddJwtAuthentication(config);
 
         return services;
     }

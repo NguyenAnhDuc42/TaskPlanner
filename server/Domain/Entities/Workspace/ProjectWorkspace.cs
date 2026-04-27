@@ -1,8 +1,6 @@
 using Domain.Common;
-using Domain.Entities.ProjectEntities;
 using Domain.Enums;
 using Domain.Enums.RelationShip;
-using Domain.Events.Membership;
 using Domain.Exceptions;
 
 namespace Domain.Entities;
@@ -11,9 +9,10 @@ public sealed class ProjectWorkspace : Entity
 {
     public string Name { get; private set; } = null!;
     public string Slug { get; private set; } = null!;
-    public string? Description { get; private set; }
+    public string Description { get; private set; } = null!;
     public string JoinCode { get; private set; } = null!;
-    public Customization Customization { get; private set; } = Customization.CreateDefault();
+    public string Color { get; private set; } = "#FFFFFF";
+    public string? Icon { get; private set; }
     public bool StrictJoin { get; private set; } = false;
     public bool IsArchived { get; private set; }
 
@@ -22,30 +21,32 @@ public sealed class ProjectWorkspace : Entity
 
     private ProjectWorkspace() { }
 
-    private ProjectWorkspace(Guid id, string name, string slug, string? description, string joinCode, Customization customization, bool strictJoin, Guid creatorId)
+    private ProjectWorkspace(Guid id, string name, string slug, string description, string joinCode, string color, string? icon, bool strictJoin, Guid creatorId)
+        : base(id)
     {
-        Id = id;
-        Name = name ?? throw new ArgumentNullException(nameof(name));
-        Slug = slug ?? throw new ArgumentNullException(nameof(slug));
-        Description = string.IsNullOrWhiteSpace(description) ? null : description;
-        JoinCode = joinCode ?? throw new ArgumentNullException(nameof(joinCode));
-        Customization = customization ?? Customization.CreateDefault();
+        Name = name;
+        Slug = slug;
+        Description = description;
+        JoinCode = joinCode;
+        Color = color;
+        Icon = icon;
         StrictJoin = strictJoin;
-        CreatorId = creatorId;
         IsArchived = false;
+        
+        // Audit is initialized in base constructor
+        InitializeAudit(creatorId);
     }
 
-    public static ProjectWorkspace Create(string name, string slug, string? description, string? joinCode, Customization? customization, Guid creatorId, Theme theme = Theme.Dark, bool strictJoin = false)
+    public static ProjectWorkspace Create(string name, string slug, string description, string? joinCode, string? color, string? icon, Guid creatorId, Theme theme = Theme.Dark, bool strictJoin = false)
     {
-        ValidateBasicInfo(name, slug, description);
-        
         var workspace = new ProjectWorkspace(
             Guid.NewGuid(), 
-            name.Trim(),
-            slug.Trim().ToLowerInvariant(),
-            string.IsNullOrWhiteSpace(description) ? null : description.Trim(),
-            string.IsNullOrWhiteSpace(joinCode) ? Guid.NewGuid().ToString("N")[..8].ToUpperInvariant() : joinCode.Trim(),
-            customization ?? Customization.CreateDefault(), 
+            name,
+            slug,
+            description,
+            string.IsNullOrWhiteSpace(joinCode) ? Guid.NewGuid().ToString("N")[..8] : joinCode,
+            color ?? "#FFFFFF",
+            icon,
             strictJoin, 
             creatorId);
         
@@ -53,7 +54,6 @@ public sealed class ProjectWorkspace : Entity
         var owner = WorkspaceMember.CreateOwner(creatorId, workspace.Id, creatorId, theme);
         workspace._members.Add(owner);
         
-        workspace.AddDomainEvent(new Domain.Events.Workspace.CreatedWorkspaceEvent(creatorId, workspace.Id));
         return workspace;
     }
 
@@ -66,7 +66,6 @@ public sealed class ProjectWorkspace : Entity
         var newMember = WorkspaceMember.Create(userId, this.Id, role, MembershipStatus.Active, actorId, joinMethod, theme);
         _members.Add(newMember);
         
-        AddDomainEvent(new WorkspaceMembersAddedBulkEvent(Id, new[] { new AddedMemberRecord(userId, role) }));
         UpdateTimestamp();
     }
 
@@ -74,19 +73,13 @@ public sealed class ProjectWorkspace : Entity
     {
         EnsureNotArchived();
         
-        var addedRecords = new List<AddedMemberRecord>();
         foreach (var spec in memberSpecs)
         {
             var newMember = WorkspaceMember.Create(spec.UserId, this.Id, spec.Role, MembershipStatus.Active, actorId, "Bulk", theme);
             _members.Add(newMember);
-            addedRecords.Add(new AddedMemberRecord(spec.UserId, spec.Role));
         }
 
-        if (addedRecords.Any())
-        {
-            AddDomainEvent(new WorkspaceMembersAddedBulkEvent(Id, addedRecords));
-            UpdateTimestamp();
-        }
+        UpdateTimestamp();
     }
 
     public void RemoveMembers(IEnumerable<Guid> userIds)
@@ -98,7 +91,6 @@ public sealed class ProjectWorkspace : Entity
 
         if (removedCount > 0)
         {
-            AddDomainEvent(new WorkspaceMembersRemovedBulkEvent(Id, idsToRemove));
             UpdateTimestamp();
         }
     }
@@ -115,14 +107,11 @@ public sealed class ProjectWorkspace : Entity
             throw new MembershipException("New owner must be an active member of the workspace.");
         }
 
-        var currentOwnerId = CreatorId ?? throw new BusinessRuleException("Workspace has no active owner.");
-        var currentOwnerMember = _members.FirstOrDefault(m => m.UserId == currentOwnerId);
-
-        // Technical transfer
-        CreatorId = newOwnerId;
+        // We can't easily "transfer" CreatorId
+        // but we can update the ownership role.
         
-        // Role transfer
         newOwnerMember.UpdateRole(Role.Owner);
+        var currentOwnerMember = _members.FirstOrDefault(m => m.UserId == CreatorId);
         currentOwnerMember?.UpdateRole(Role.Admin);
 
         UpdateTimestamp();
@@ -132,39 +121,42 @@ public sealed class ProjectWorkspace : Entity
 
     #region Update Methods
 
-    public void UpdateBasicInfo(string? name, string? slug, string? description)
+    public void UpdateName(string name)
     {
         EnsureNotArchived();
-
-        var candidateName = name?.Trim() ?? Name;
-        var candidateSlug = slug?.Trim().ToLowerInvariant() ?? Slug;
-        var candidateDescription = description?.Trim() ?? Description;
-
-        if (candidateName == Name && candidateSlug == Slug && candidateDescription == Description) return;
-
-        ValidateBasicInfo(candidateName, candidateSlug, candidateDescription);
-
-        Name = candidateName;
-        Slug = candidateSlug;
-        Description = string.IsNullOrWhiteSpace(candidateDescription) ? null : candidateDescription;
-
+        Name = name;
         UpdateTimestamp();
     }
 
-    public void UpdateCustomization(string? color, string? icon)
+    public void UpdateSlug(string slug)
     {
         EnsureNotArchived();
-        if (color is null && icon is null) return;
+        if (Slug == slug) return;
+        Slug = slug;
+        UpdateTimestamp();
+    }
 
-        var newColor = color?.Trim() ?? Customization.Color;
-        var newIcon = icon?.Trim() ?? Customization.Icon;
-        var newCustomization = Customization.Create(newColor, newIcon);
+    public void UpdateDescription(string description)
+    {
+        EnsureNotArchived();
+        Description = description;
+        UpdateTimestamp();
+    }
 
-        if (!newCustomization.Equals(Customization))
-        {
-            Customization = newCustomization;
-            UpdateTimestamp();
-        }
+    public void UpdateColor(string color)
+    {
+        EnsureNotArchived();
+        if (Color == color) return;
+        Color = color;
+        UpdateTimestamp();
+    }
+
+    public void UpdateIcon(string? icon)
+    {
+        EnsureNotArchived();
+        if (Icon == icon) return;
+        Icon = icon;
+        UpdateTimestamp();
     }
 
 
@@ -179,7 +171,6 @@ public sealed class ProjectWorkspace : Entity
     public void Delete()
     {
         SoftDelete();
-        AddDomainEvent(new Domain.Events.Workspace.WorkspaceDeletedEvent(Id));
     }
 
     public void Archive()
@@ -199,7 +190,7 @@ public sealed class ProjectWorkspace : Entity
     public void RegenerateJoinCode()
     {
         EnsureNotArchived();
-        JoinCode = GenerateRandomCode();
+        JoinCode = Guid.NewGuid().ToString("N")[..8];
         UpdateTimestamp();
     }
 
@@ -210,26 +201,6 @@ public sealed class ProjectWorkspace : Entity
     private void EnsureNotArchived()
     {
         if (IsArchived) throw new BusinessRuleException("Cannot modify an archived workspace.");
-    }
-
-    private static string GenerateRandomCode(int length = 8)
-    {
-        const string chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-        return new string(Enumerable.Range(0, length)
-            .Select(_ => chars[Random.Shared.Next(chars.Length)])
-            .ToArray());
-    }
-
-    private static void ValidateBasicInfo(string name, string slug, string? description)
-    {
-        if (string.IsNullOrWhiteSpace(name))
-            throw new BusinessRuleException("Workspace name cannot be empty.");
-        if (name.Length > 100)
-            throw new BusinessRuleException("Workspace name cannot exceed 100 characters.");
-        if (string.IsNullOrWhiteSpace(slug))
-            throw new BusinessRuleException("Slug cannot be empty.");
-        if (description?.Length > 500)
-            throw new BusinessRuleException("Workspace description cannot exceed 500 characters.");
     }
 
     #endregion

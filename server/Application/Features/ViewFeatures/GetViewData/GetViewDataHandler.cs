@@ -8,6 +8,7 @@ using Domain.Entities;
 using Domain.Enums;
 using Domain.Enums.RelationShip;
 using Microsoft.EntityFrameworkCore;
+using Application.Interfaces;
 
 namespace Application.Features.ViewFeatures;
 
@@ -20,15 +21,12 @@ public class GetViewDataHandler(IDataBase db)
         if (view == null) return Result<ViewDataResponse>.Failure(Error.NotFound("View.NotFound", "View definition not found."));
 
         var workflow = await WorkflowHelper.GetActiveWorkflow(db, view.ProjectWorkspaceId, 
-            view.LayerType == EntityLayerType.ProjectSpace ? view.LayerId : null, 
-            view.LayerType == EntityLayerType.ProjectFolder ? view.LayerId : null, ct);
+            view.ProjectSpaceId, 
+            view.ProjectFolderId, ct);
 
         object data;
         switch (view.ViewType)
         {
-            case ViewType.Tasks when view.LayerType == EntityLayerType.ProjectSpace:
-                data = await FetchTaskBoardData(view, workflow, ct);
-                break;
             case ViewType.Tasks:
                 data = await FetchTaskBoardData(view, workflow, ct);
                 break;
@@ -45,20 +43,26 @@ public class GetViewDataHandler(IDataBase db)
     private async Task<TaskViewData> FetchTaskBoardData(ViewDefinition view, Workflow workflow, CancellationToken ct)
     {
         var folders = new List<FolderItemDto>();
-        if (view.LayerType == EntityLayerType.ProjectSpace)
+        if (view.ProjectSpaceId != null && view.ProjectFolderId == null)
         {
+            var spaceId = view.ProjectSpaceId.Value;
             folders = await db.Folders
                 .AsNoTracking()
-                .Where(f => f.ProjectSpaceId == view.LayerId && !f.IsArchived)
+                .Where(f => f.ProjectSpaceId == spaceId && f.DeletedAt == null && !f.IsArchived)
                 .Select(f => new FolderItemDto(f.Id, f.Name, f.CreatedAt, f.WorkflowId, f.StatusId))
                 .ToListAsync(ct);
         }
 
-        var tasksQuery = db.Tasks.AsNoTracking().Where(t => t.ProjectWorkspaceId == view.ProjectWorkspaceId && !t.IsArchived);
-        if (view.LayerType == EntityLayerType.ProjectSpace)
-            tasksQuery = tasksQuery.Where(t => t.ProjectSpaceId == view.LayerId && t.ProjectFolderId == null);
-        else if (view.LayerType == EntityLayerType.ProjectFolder)
-            tasksQuery = tasksQuery.Where(t => t.ProjectFolderId == view.LayerId);
+        var tasksQuery = db.Tasks.AsNoTracking().Where(t => t.ProjectWorkspaceId == view.ProjectWorkspaceId && t.DeletedAt == null && !t.IsArchived);
+        
+        if (view.ProjectFolderId != null)
+        {
+            tasksQuery = tasksQuery.Where(t => t.ProjectFolderId == view.ProjectFolderId);
+        }
+        else if (view.ProjectSpaceId != null)
+        {
+            tasksQuery = tasksQuery.Where(t => t.ProjectSpaceId == view.ProjectSpaceId && t.ProjectFolderId == null);
+        }
 
         tasksQuery = tasksQuery.ApplyFilters(view.FilterConfig);
 
@@ -94,47 +98,49 @@ public class GetViewDataHandler(IDataBase db)
         Guid creatorId = Guid.Empty;
         DateTimeOffset createdAt = DateTimeOffset.Now;
 
-        if (view.LayerType == EntityLayerType.ProjectSpace)
+        if (view.ProjectFolderId != null)
         {
-            var space = await db.Spaces.FirstOrDefaultAsync(s => s.Id == view.LayerId, ct);
-            if (space != null)
-            {
-                name = space.Name;
-                description = space.Description;
-                statusId = space.StatusId;
-                creatorId = space.CreatorId ?? Guid.Empty;
-                createdAt = space.CreatedAt;
-            }
-        }
-        else if (view.LayerType == EntityLayerType.ProjectFolder)
-        {
-            var folder = await db.Folders.FirstOrDefaultAsync(f => f.Id == view.LayerId, ct);
+            var folder = await db.Folders.FirstOrDefaultAsync(f => f.Id == view.ProjectFolderId, ct);
             if (folder != null)
             {
                 name = folder.Name;
                 description = folder.Description;
                 statusId = folder.StatusId;
-                creatorId = folder.CreatorId ?? Guid.Empty;
+                creatorId = folder.CreatorId.GetValueOrDefault();
                 createdAt = folder.CreatedAt;
             }
         }
-
-        var taskQuery = db.Tasks.Where(t => t.ProjectWorkspaceId == view.ProjectWorkspaceId && !t.IsArchived);
-        int folderCount = 0;
-        if (view.LayerType == EntityLayerType.ProjectSpace)
+        else if (view.ProjectSpaceId != null)
         {
-            taskQuery = taskQuery.Where(t => t.ProjectSpaceId == view.LayerId);
-            folderCount = await db.Folders.CountAsync(f => f.ProjectSpaceId == view.LayerId && !f.IsArchived, ct);
+            var space = await db.Spaces.FirstOrDefaultAsync(s => s.Id == view.ProjectSpaceId, ct);
+            if (space != null)
+            {
+                name = space.Name;
+                description = space.Description;
+                statusId = space.StatusId;
+                creatorId = space.CreatorId.GetValueOrDefault();
+                createdAt = space.CreatedAt;
+            }
         }
-        else if (view.LayerType == EntityLayerType.ProjectFolder)
+
+        var taskQuery = db.Tasks.Where(t => t.ProjectWorkspaceId == view.ProjectWorkspaceId && t.DeletedAt == null && !t.IsArchived);
+        int folderCount = 0;
+        
+        if (view.ProjectFolderId != null)
         {
-            taskQuery = taskQuery.Where(t => t.ProjectFolderId == view.LayerId);
+            taskQuery = taskQuery.Where(t => t.ProjectFolderId == view.ProjectFolderId);
+        }
+        else if (view.ProjectSpaceId != null)
+        {
+            var spaceId = view.ProjectSpaceId.Value;
+            taskQuery = taskQuery.Where(t => t.ProjectSpaceId == spaceId);
+            folderCount = await db.Folders.CountAsync(f => f.ProjectSpaceId == spaceId && f.DeletedAt == null && !f.IsArchived, ct);
         }
 
         var taskCount = await taskQuery.CountAsync(ct);
 
         return new OverviewViewData(
-            view.LayerId, 
+            view.ProjectFolderId ?? view.ProjectSpaceId ?? Guid.Empty, 
             name, 
             description, 
             statusId, 

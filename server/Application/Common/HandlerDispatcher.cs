@@ -34,4 +34,5 @@ public class HandlerDispatcher : IHandler
         var handler = _serviceProvider.GetRequiredService<IQueryHandler<TQuery, TResponse>>();
         return await handler.Handle(query, ct);
     }
+
 }

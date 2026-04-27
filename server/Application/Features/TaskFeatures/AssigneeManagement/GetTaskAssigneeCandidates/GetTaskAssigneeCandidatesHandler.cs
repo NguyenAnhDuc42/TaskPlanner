@@ -1,6 +1,6 @@
 using Application.Common.Errors;
 using Application.Common.Results;
-using Domain.Entities.ProjectEntities;
+using Domain.Entities;
 using Application.Interfaces;
 using Application.Interfaces.Data;
 using Dapper;

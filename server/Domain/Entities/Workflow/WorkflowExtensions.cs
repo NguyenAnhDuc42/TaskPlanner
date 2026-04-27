@@ -1,3 +1,5 @@
+using System.Linq;
+
 namespace Domain.Entities;
 
 public static class WorkflowExtensions

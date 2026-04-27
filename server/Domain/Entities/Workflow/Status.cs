@@ -1,4 +1,3 @@
-using System;
 using Domain.Common;
 using Domain.Enums;
 using Domain.Enums.RelationShip;
@@ -17,16 +16,13 @@ public class Status : TenantEntity
     private Status(Guid id, Guid projectWorkspaceId, Guid workflowId, string name, string color, StatusCategory category, Guid creatorId)
         : base(id, projectWorkspaceId)
     {
-        if (string.IsNullOrWhiteSpace(name)) throw new ArgumentException("Status name cannot be empty.", nameof(name));
-        if (string.IsNullOrWhiteSpace(color)) throw new ArgumentException("Status color cannot be empty.", nameof(color));
-        if (projectWorkspaceId == Guid.Empty) throw new ArgumentException(nameof(projectWorkspaceId));
-        if (workflowId == Guid.Empty) throw new ArgumentException(nameof(workflowId));
-
         WorkflowId = workflowId;
-        Name = name.Trim();
-        Color = color.Trim();
+        Name = name;
+        Color = color;
         Category = category;
-        CreatorId = creatorId;
+        
+        // Audit is initialized in base constructor
+        InitializeAudit(creatorId);
     }
 
     public static Status Create(Guid projectWorkspaceId, Guid workflowId, string name, string color, StatusCategory category, Guid creatorId)
@@ -42,17 +38,24 @@ public class Status : TenantEntity
         };
     }
 
-    public void UpdateDetails(string newName, string newColor, StatusCategory? newCategory = null)
+    public void UpdateName(string name)
     {
-        if (string.IsNullOrWhiteSpace(newName)) throw new ArgumentException("Status name cannot be empty.", nameof(newName));
-        if (string.IsNullOrWhiteSpace(newColor)) throw new ArgumentException("Status color cannot be empty.", nameof(newColor));
+        Name = name;
+        UpdateTimestamp();
+    }
 
-        var changed = false;
-        if (Name != newName.Trim()) { Name = newName.Trim(); changed = true; }
-        if (Color != newColor.Trim()) { Color = newColor.Trim(); changed = true; }
-        if (newCategory.HasValue && Category != newCategory.Value) { Category = newCategory.Value; changed = true; }
+    public void UpdateColor(string color)
+    {
+        if (Color == color) return;
+        Color = color;
+        UpdateTimestamp();
+    }
 
-        if (changed) UpdateTimestamp();
+    public void UpdateCategory(StatusCategory category)
+    {
+        if (Category == category) return;
+        Category = category;
+        UpdateTimestamp();
     }
 
     public void SetWorkflow(Guid workflowId)

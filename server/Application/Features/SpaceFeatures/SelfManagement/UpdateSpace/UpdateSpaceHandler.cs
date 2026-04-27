@@ -3,9 +3,8 @@ using Application.Common.Interfaces;
 using Application.Common.Results;
 using Application.Helpers;
 using Application.Interfaces.Data;
-using Domain.Entities.ProjectEntities;
-using Domain.Enums;
 using Domain.Entities;
+using Domain.Enums;
 using Microsoft.EntityFrameworkCore;
 
 namespace Application.Features.SpaceFeatures;
@@ -30,14 +29,19 @@ public class UpdateSpaceHandler(IDataBase db, WorkspaceContext context) : IComma
             return Result.Failure(MemberError.DontHavePermission);
 
         // Apply Updates preserving domain logic
-        if (request.Name is not null || request.Description is not null)
+        if (request.Name is not null)
         {
-            var slug = request.Name != null ? SlugHelper.GenerateSlug(request.Name) : null;
-            space.UpdateBasicInfo(request.Name, slug, request.Description);
+            space.UpdateName(request.Name);
+            space.UpdateSlug(SlugHelper.GenerateSlug(request.Name));
+        }
+        
+        if (request.Description is not null)
+        {
+            space.UpdateDescription(request.Description);
         }
 
-        if (request.Color is not null || request.Icon is not null) 
-            space.UpdateCustomization(request.Color, request.Icon);
+        if (request.Color is not null) space.UpdateColor(request.Color);
+        if (request.Icon is not null) space.UpdateIcon(request.Icon);
 
         if (request.IsPrivate.HasValue) 
             space.UpdatePrivate(request.IsPrivate.Value);

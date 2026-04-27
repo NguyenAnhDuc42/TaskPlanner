@@ -14,12 +14,15 @@ public class TaskAssignment : Entity
     private TaskAssignment() { }
 
     private TaskAssignment(Guid projectTaskId, Guid workspaceMemberId, Guid creatorId, string? notes = null, int? estimatedHours = null)
+        : base(Guid.NewGuid())
     {
         ProjectTaskId = projectTaskId;
         WorkspaceMemberId = workspaceMemberId;
-        CreatorId = creatorId;
         Notes = notes;
         EstimatedHours = estimatedHours;
+        
+        // Audit is initialized in base constructor
+        InitializeAudit(creatorId);
     }
 
     public static TaskAssignment Create(Guid projectTaskId, Guid workspaceMemberId, Guid creatorId, string? notes = null, int? estimatedHours = null) =>

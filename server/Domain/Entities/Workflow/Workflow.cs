@@ -1,5 +1,4 @@
 using Domain.Common;
-using System.ComponentModel.DataAnnotations;
 
 namespace Domain.Entities;
 
@@ -8,24 +7,26 @@ public class Workflow : TenantEntity
     public Guid? SpaceId { get; private set; }
     public Guid? FolderId { get; private set; }
     public string Name { get; private set; } = null!;
-    public string? Description { get; private set; }
+    public string Description { get; private set; } = null!;
 
     private readonly List<Status> _statuses = new();
     public virtual IReadOnlyCollection<Status> Statuses => _statuses.AsReadOnly();
 
     private Workflow() { }
 
-    private Workflow(Guid id, Guid projectWorkspaceId, Guid? spaceId, Guid? folderId, string name, string? description, Guid creatorId) 
+    private Workflow(Guid id, Guid projectWorkspaceId, Guid? spaceId, Guid? folderId, string name, string description, Guid creatorId) 
         : base(id, projectWorkspaceId)
     {
         SpaceId = spaceId;
         FolderId = folderId;
-        Name = name?.Trim() ?? throw new ArgumentNullException(nameof(name));
-        Description = description?.Trim();
-        CreatorId = creatorId;
+        Name = name;
+        Description = description;
+        
+        // Audit is initialized in base constructor
+        InitializeAudit(creatorId);
     }
 
-    public static Workflow Create(Guid projectWorkspaceId, string name, string? description, Guid creatorId, Guid? spaceId = null, Guid? folderId = null)
+    public static Workflow Create(Guid projectWorkspaceId, string name, string description, Guid creatorId, Guid? spaceId = null, Guid? folderId = null)
     {
         return new Workflow(Guid.NewGuid(), projectWorkspaceId, spaceId, folderId, name, description, creatorId);
     }
@@ -66,16 +67,16 @@ public class Workflow : TenantEntity
         }
     }
 
-    public void UpdateDetails(string name, string? description)
+    public void UpdateName(string name)
     {
-        var candidateName = name.Trim() == string.Empty ? throw new ArgumentException("Name cannot be empty.") : name.Trim();
-        var candidateDescription = string.IsNullOrWhiteSpace(description) ? null : description.Trim();
+        Name = name;
+        UpdateTimestamp();
+    }
 
-        var changed = false;
-        if (Name != candidateName) { Name = candidateName; changed = true; }
-        if (Description != candidateDescription) { Description = candidateDescription; changed = true; }
-
-        if (changed) UpdateTimestamp();
+    public void UpdateDescription(string description)
+    {
+        Description = description;
+        UpdateTimestamp();
     }
 
     public void ValidateIntegrity()

@@ -6,19 +6,27 @@ namespace Domain.Entities;
 public class AttachmentLink : Entity
 {
     public Guid AttachmentId { get; private set; }
-    public Guid ParentEntityId { get; private set; }
-    public EntityType ParentEntityType { get; private set; }
+    public Guid? ProjectSpaceId { get; private set; }
+    public Guid? ProjectFolderId { get; private set; }
+    public Guid? ProjectTaskId { get; private set; }
+    public Guid? CommentId { get; private set; }
 
     private AttachmentLink() { }
 
-    public static AttachmentLink Create(Guid attachmentId, Guid entityId, EntityType entityType, Guid creatorId)
+    private AttachmentLink(Guid attachmentId, Guid? projectSpaceId, Guid? projectFolderId, Guid? projectTaskId, Guid? commentId, Guid creatorId)
+        : base(Guid.NewGuid())
     {
-        return new AttachmentLink
-        {
-            AttachmentId = attachmentId,
-            ParentEntityId = entityId,
-            ParentEntityType = entityType,
-            CreatorId = creatorId
-        };
+        AttachmentId = attachmentId;
+        ProjectSpaceId = projectSpaceId;
+        ProjectFolderId = projectFolderId;
+        ProjectTaskId = projectTaskId;
+        CommentId = commentId;
+        // Audit is initialized in base constructor
+        InitializeAudit(creatorId);
+    }
+
+    public static AttachmentLink Create(Guid attachmentId, Guid? projectSpaceId, Guid? projectFolderId, Guid? projectTaskId, Guid? commentId, Guid creatorId)
+    {
+        return new AttachmentLink(attachmentId, projectSpaceId, projectFolderId, projectTaskId, commentId, creatorId);
     }
 }

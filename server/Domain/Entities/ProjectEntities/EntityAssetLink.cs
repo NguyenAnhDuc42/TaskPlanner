@@ -8,23 +8,27 @@ public class EntityAssetLink : TenantEntity
     public Guid AssetId { get; private set; }
     public AssetType AssetType { get; private set; }
     
-    public Guid ParentEntityId { get; private set; }
-    public EntityType ParentEntityType { get; private set; }
+    public Guid? ProjectSpaceId { get; private set; }
+    public Guid? ProjectFolderId { get; private set; }
+    public Guid? ProjectTaskId { get; private set; }
+    public Guid? CommentId { get; private set; }
 
     private EntityAssetLink() { }
 
-    private EntityAssetLink(Guid projectWorkspaceId, Guid assetId, AssetType assetType, Guid parentEntityId, EntityType parentEntityType, Guid creatorId)
+    private EntityAssetLink(Guid projectWorkspaceId, Guid assetId, AssetType assetType, Guid? projectSpaceId, Guid? projectFolderId, Guid? projectTaskId, Guid? commentId, Guid creatorId)
         : base(Guid.NewGuid(), projectWorkspaceId)
     {
         AssetId = assetId;
         AssetType = assetType;
-        ParentEntityId = parentEntityId;
-        ParentEntityType = parentEntityType;
-        CreatorId = creatorId;
+        ProjectSpaceId = projectSpaceId;
+        ProjectFolderId = projectFolderId;
+        ProjectTaskId = projectTaskId;
+        CommentId = commentId;
+        InitializeAudit(creatorId);
     }
 
-    public static EntityAssetLink Create(Guid projectWorkspaceId, Guid assetId, AssetType assetType, Guid parentEntityId, EntityType parentEntityType, Guid creatorId)
+    public static EntityAssetLink Create(Guid projectWorkspaceId, Guid assetId, AssetType assetType, Guid? projectSpaceId, Guid? projectFolderId, Guid? projectTaskId, Guid? commentId, Guid creatorId)
     {
-        return new EntityAssetLink(projectWorkspaceId, assetId, assetType, parentEntityId, parentEntityType, creatorId);
+        return new EntityAssetLink(projectWorkspaceId, assetId, assetType, projectSpaceId, projectFolderId, projectTaskId, commentId, creatorId);
     }
 }

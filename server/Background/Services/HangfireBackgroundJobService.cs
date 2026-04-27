@@ -15,9 +15,4 @@ public class HangfireBackgroundJobService : IBackgroundJobService
     {
         BackgroundJob.Schedule(methodCall, delay);
     }
-
-    public void TriggerOutbox()
-    {
-        BackgroundJob.Enqueue<Jobs.ProcessOutboxJob>(x => x.RunAsync());
-    }
 }

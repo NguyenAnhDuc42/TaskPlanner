@@ -3,9 +3,7 @@ using Application.Interfaces.Data;
 using Application.Common.Results;
 using Application.Common.Errors;
 using Application.Common.Interfaces;
-using Domain.Common;
 using Domain.Entities;
-using Domain.Entities.ProjectEntities;
 using Domain.Enums;
 using Domain.Enums.RelationShip;
 using Microsoft.EntityFrameworkCore;
@@ -40,15 +38,16 @@ public class CreateTaskHandler(IDataBase db, WorkspaceContext context) : IComman
             projectFolderId: ancestors.ProjectFolderId,
             name: request.Name,
             slug: slug,
-            description: request.Description,
-            customization: null,
+            description: request.Description ?? string.Empty,
+            color: null,
+            icon: null,
             creatorId: context.CurrentMember.Id,
             statusId: statusId,
             priority: request.Priority,
             startDate: request.StartDate,
             dueDate: request.DueDate,
             storyPoints: request.StoryPoints,
-            timeEstimate: request.TimeEstimate,
+            timeEstimateSeconds: request.TimeEstimate,
             orderKey: orderKey
         );
 
@@ -75,7 +74,7 @@ public class CreateTaskHandler(IDataBase db, WorkspaceContext context) : IComman
             task.StartDate,
             task.DueDate,
             task.StoryPoints,
-            task.TimeEstimate,
+            task.TimeEstimateSeconds,
             task.OrderKey,
             task.CreatedAt,
             assignees

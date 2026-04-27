@@ -3,11 +3,11 @@ using Application.Common.Interfaces;
 using Application.Common.Results;
 using Application.Helpers;
 using Application.Interfaces.Data;
-using Domain.Common;
 using Domain.Entities;
 using Domain.Enums.RelationShip;
 using Domain.Enums;
 using Microsoft.EntityFrameworkCore;
+using Application.Interfaces;
 
 namespace Application.Features.WorkspaceFeatures;
 
@@ -55,20 +55,20 @@ public class MoveItemHandler(IDataBase db, WorkspaceContext context) : ICommandH
         return request.ItemType switch
         {
             EntityLayerType.ProjectSpace => await db.Spaces
-                                .AsNoTracking()
-                                .ByWorkspace(context.workspaceId)
-                                .MaxAsync(s => (string?)s.OrderKey, ct),
+                                 .AsNoTracking()
+                                 .ByWorkspace(context.workspaceId)
+                                 .MaxAsync(s => s.OrderKey, ct),
 
             EntityLayerType.ProjectFolder => await db.Folders
-                                .AsNoTracking()
-                                .BySpace(request.TargetParentId.GetValueOrDefault())
-                                .MaxAsync(f => (string?)f.OrderKey, ct),
+                                 .AsNoTracking()
+                                 .BySpace(request.TargetParentId.GetValueOrDefault())
+                                 .MaxAsync(f => f.OrderKey, ct),
 
             EntityLayerType.ProjectTask => await db.Tasks
-                                .AsNoTracking()
-                                .Where(t => (request.TargetParentId.HasValue && t.ProjectFolderId == request.TargetParentId) ||
-                                           (!request.TargetParentId.HasValue && t.ProjectSpaceId == request.ItemId && t.ProjectFolderId == null)) // ItemId is parent for Space moves
-                                .MaxAsync(t => (string?)t.OrderKey, ct),
+                                 .AsNoTracking()
+                                 .Where(t => (request.TargetParentId.HasValue && t.ProjectFolderId == request.TargetParentId) ||
+                                            (!request.TargetParentId.HasValue && t.ProjectSpaceId == request.ItemId && t.ProjectFolderId == null)) // ItemId is parent for Space moves
+                                 .MaxAsync(t => t.OrderKey, ct),
 
             _ => null
         };
@@ -76,7 +76,6 @@ public class MoveItemHandler(IDataBase db, WorkspaceContext context) : ICommandH
 
     private async Task<Result> MoveSpace(Guid spaceId, string newOrderKey, CancellationToken ct)
     {
-        // PERFORMANCE: Single SQL UPDATE, zero entity allocations
         var affected = await db.Spaces
             .Where(s => s.Id == spaceId && s.ProjectWorkspaceId == context.workspaceId)
             .ExecuteUpdateAsync(u => u.SetProperty(s => s.OrderKey, newOrderKey)
@@ -100,23 +99,22 @@ public class MoveItemHandler(IDataBase db, WorkspaceContext context) : ICommandH
 
     private async Task<Result> MoveTask(Guid taskId, Guid? targetParentId, string newOrderKey, CancellationToken ct)
     {
-        // 1. Resolve Layer Context: We need to know if TargetParent is a Space or Folder
-        // PERFORMANCE: Small allocation but necessary for Task cross-layer movements
         Guid? resolvedSpaceId = null;
         Guid? resolvedFolderId = null;
 
         if (targetParentId.HasValue)
         {
+            var targetGuid = targetParentId.Value;
             var targetInfo = await db.Spaces
-                .Where(s => s.Id == targetParentId.Value)
+                .Where(s => s.Id == targetGuid)
                 .Select(s => new { Id = s.Id, Type = "ProjectSpace" })
-                .Union(db.Folders.Where(f => f.Id == targetParentId.Value).Select(f => new { Id = f.ProjectSpaceId, Type = "ProjectFolder" }))
+                .Union(db.Folders.Where(f => f.Id == targetGuid).Select(f => new { Id = f.ProjectSpaceId, Type = "ProjectFolder" }))
                 .FirstOrDefaultAsync(ct);
 
             if (targetInfo == null) return Result.Failure(Error.Validation("MoveTask.InvalidTarget", "Target parent not found."));
             
-            if (targetInfo.Type == "ProjectSpace") resolvedSpaceId = targetParentId;
-            else { resolvedFolderId = targetParentId; resolvedSpaceId = targetInfo.Id; }
+            if (targetInfo.Type == "ProjectSpace") resolvedSpaceId = targetGuid;
+            else { resolvedFolderId = targetGuid; resolvedSpaceId = targetInfo.Id; }
         }
 
         if (resolvedSpaceId == null) return Result.Failure(Error.Validation("MoveTask.InvalidTarget", "No valid target space resolved."));

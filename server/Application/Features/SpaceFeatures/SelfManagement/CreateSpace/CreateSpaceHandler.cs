@@ -4,10 +4,8 @@ using Application.Common.Results;
 using Application.Helpers;
 using Application.Interfaces.Data;
 using Domain.Entities;
-using Domain.Entities.ProjectEntities;
 using Domain.Enums;
 using Domain.Enums.RelationShip;
-using Domain.Common;
 using Microsoft.EntityFrameworkCore;
 using Application.Interfaces;
 
@@ -28,19 +26,18 @@ public class CreateSpaceHandler(
             .AsNoTracking()
             .ByWorkspace(context.workspaceId)
             .WhereNotDeleted()
-            .MaxAsync(s => (string?)s.OrderKey, ct);
+            .MaxAsync(s => s.OrderKey, ct);
         
         var orderKey = maxKey is null ? FractionalIndex.Start() : FractionalIndex.After(maxKey);
-
         var slug = SlugHelper.GenerateSlug(request.name);
-        var customization = Customization.Create(request.color, request.icon);
 
         var space = ProjectSpace.Create(
             projectWorkspaceId: context.workspaceId,
             name: request.name,
             slug: slug,
-            description: request.description,
-            customization: customization,
+            description: request.description ?? string.Empty,
+            color: request.color,
+            icon: request.icon,
             isPrivate: request.isPrivate,
             creatorId: context.CurrentMember.Id,
             orderKey: orderKey
@@ -49,7 +46,7 @@ public class CreateSpaceHandler(
         await db.Spaces.AddAsync(space, ct);
 
         db.ViewDefinitions.AddRange(
-            ViewDefinition.CreateDefaults(context.workspaceId, space.Id, EntityLayerType.ProjectSpace, context.CurrentMember.Id));
+            ViewDefinition.CreateDefaults(context.workspaceId, space.Id, null, context.CurrentMember.Id));
 
         await db.SaveChangesAsync(ct);
 

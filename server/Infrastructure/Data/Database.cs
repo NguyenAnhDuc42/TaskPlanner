@@ -5,22 +5,14 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
 using System.Data;
-using Infrastructure.Events.Extensions;
-using Dapper;
-using System.Threading.Channels;
+using Domain.Common;
 
 namespace Infrastructure.Data;
 
-public class Database(TaskPlanDbContext context, Channel<bool> signalChannel) : IDataBase
+public class Database(TaskPlanDbContext context) : IDataBase
 {
     private IDbContextTransaction? _currentTransaction;
-
     public IDbConnection Connection => context.Database.GetDbConnection();
-
-    public void TriggerOutbox()
-    {
-        signalChannel.Writer.TryWrite(true);
-    }
 
     public DbSet<User> Users => context.Set<User>();
     public DbSet<Session> Sessions => context.Set<Session>();
@@ -34,13 +26,10 @@ public class Database(TaskPlanDbContext context, Channel<bool> signalChannel) : 
     public DbSet<Status> Statuses => context.Set<Status>();
     public DbSet<Comment> Comments => context.Set<Comment>();
     public DbSet<Document> Documents => context.Set<Document>();
-    public DbSet<Dashboard> Dashboards => context.Set<Dashboard>();
     public DbSet<ViewDefinition> ViewDefinitions => context.Set<ViewDefinition>();
     public DbSet<Attachment> Attachments => context.Set<Attachment>();
     public DbSet<EntityAssetLink> EntityAssetLinks => context.Set<EntityAssetLink>();
     public DbSet<TaskAssignment> TaskAssignments => context.Set<TaskAssignment>();
-    public DbSet<Widget> Widgets => context.Set<Widget>();
-    public DbSet<OutboxMessage> OutboxMessages => context.Set<OutboxMessage>();
     public DbSet<PasswordResetToken> PasswordResetTokens => context.Set<PasswordResetToken>();
 
     public bool HasActiveTransaction => _currentTransaction != null;
@@ -92,28 +81,7 @@ public class Database(TaskPlanDbContext context, Channel<bool> signalChannel) : 
     public async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {
         context.ChangeTracker.DetectChanges();
-        var domainEvents = context.ChangeTracker.CollectDomainEvents();
-        var hasOutboxWork = domainEvents.Any();
-        
-        if (hasOutboxWork)
-        {
-            var outboxMessages = domainEvents.Select(domainEvent => new OutboxMessage(
-                domainEvent.GetType().Name,
-                System.Text.Json.JsonSerializer.Serialize(domainEvent, domainEvent.GetType()),
-                DateTimeOffset.UtcNow)).ToList();
-
-            context.Set<OutboxMessage>().AddRange(outboxMessages);
-            context.ChangeTracker.ClearDomainEvents();
-        }
-
-        var result = await context.SaveChangesAsync(cancellationToken);
-        
-        if (hasOutboxWork)
-        {
-            TriggerOutbox();
-        }
-
-        return result;
+        return await context.SaveChangesAsync(cancellationToken);
     }
 
 }

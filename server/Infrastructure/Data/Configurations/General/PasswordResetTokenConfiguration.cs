@@ -4,14 +4,13 @@ using Domain.Entities;
 
 namespace Infrastructure.Data.Configurations;
 
-public class PasswordResetTokenConfiguration : IEntityTypeConfiguration<PasswordResetToken>
+public class PasswordResetTokenConfiguration : EntityConfiguration<PasswordResetToken>
 {
-    public void Configure(EntityTypeBuilder<PasswordResetToken> builder)
+    public override void Configure(EntityTypeBuilder<PasswordResetToken> builder)
     {
-        builder.ToTable("password_reset_tokens");
+        base.Configure(builder);
 
-        builder.HasKey(p => p.Id);
-        builder.Property(p => p.Id).HasColumnName("id");
+        builder.ToTable("password_reset_tokens");
 
         builder.Property(p => p.UserId)
             .HasColumnName("user_id")
@@ -33,19 +32,10 @@ public class PasswordResetTokenConfiguration : IEntityTypeConfiguration<Password
         builder.Property(p => p.UsedAt)
             .HasColumnName("used_at");
 
-        builder.Property(p => p.CreatedAt)
-            .HasColumnName("created_at")
-            .IsRequired();
-
-        builder.Property(p => p.UpdatedAt)
-            .HasColumnName("updated_at")
-            .IsRequired();
-
         // Indexes
         builder.HasIndex(p => p.UserId);
         builder.HasIndex(p => p.Token).IsUnique();
         builder.HasIndex(p => new { p.UserId, p.IsUsed, p.ExpiresAt });
 
-        builder.Ignore(p => p.CreatorId);
     }
 }

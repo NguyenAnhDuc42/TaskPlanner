@@ -1,7 +1,7 @@
 using Application.Interfaces.Data;
 using Application.Common.Results;
 using Application.Common.Errors;
-using Domain.Entities.ProjectEntities;
+using Domain.Entities;
 using Dapper;
 
 namespace Application.Features.TaskFeatures;

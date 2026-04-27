@@ -1,4 +1,3 @@
-using System;
 using System.Linq;
 
 namespace Domain.Entities;
@@ -14,6 +13,9 @@ public static class TaskExtensions
 
     public static IQueryable<ProjectTask> ById(this IQueryable<ProjectTask> query, Guid id)
         => query.Where(t => t.Id == id);
+
+    public static IQueryable<ProjectTask> WhereNotDeleted(this IQueryable<ProjectTask> query) => 
+        query.Where(task => task.DeletedAt == null);
 
     public static IQueryable<ProjectTask> ByWorkspace(this IQueryable<ProjectTask> query, Guid workspaceId)
         => query.Where(t => t.ProjectWorkspaceId == workspaceId);

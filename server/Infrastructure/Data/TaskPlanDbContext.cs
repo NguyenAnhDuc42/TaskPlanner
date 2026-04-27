@@ -14,6 +14,7 @@ public class TaskPlanDbContext : DbContext
     // DbSet properties for entities
     public DbSet<User> Users { get; set; }
     public DbSet<Session> Sessions { get; set; }
+    public DbSet<PasswordResetToken> PasswordResetTokens { get; set; }
 
     public DbSet<ProjectWorkspace> ProjectWorkspaces { get; set; }
     public DbSet<ProjectSpace> ProjectSpaces { get; set; }
@@ -28,20 +29,25 @@ public class TaskPlanDbContext : DbContext
     public DbSet<EntityAccess> EntityAccesses { get; set; }
     public DbSet<TaskAssignment> TaskAssignments { get; set; } 
     public DbSet<EntityAssetLink> EntityAssetLinks { get; set; }
+    public DbSet<AttachmentLink> AttachmentLinks { get; set; }
 
     // Support Entities
     public DbSet<Attachment> Attachments { get; set; }
     public DbSet<Comment> Comments { get; set; }
     public DbSet<Status> Statuses { get; set; }
-
-    public DbSet<Widget> Widgets { get; set; }
-    public DbSet<Dashboard> Dashboards { get; set; }
-    
-    public DbSet<OutboxMessage> OutboxMessages { get; set; }
     
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.ApplyConfigurationsFromAssembly(Assembly.GetExecutingAssembly());
         base.OnModelCreating(modelBuilder);
+    }
+
+    protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder)
+    {
+        // Globally map all Enums to strings
+        configurationBuilder.Properties<Enum>().HaveConversion<string>();
+        
+        // Globally map all DateTimeOffset to UTC for PostgreSQL
+        configurationBuilder.Properties<DateTimeOffset>().HaveConversion<DateTimeOffset>();
     }
 }

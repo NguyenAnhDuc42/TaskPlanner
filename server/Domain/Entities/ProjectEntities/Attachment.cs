@@ -36,10 +36,12 @@ public class Attachment : TenantEntity
         ContentType = contentType;
         SizeBytes = sizeBytes;
         Checksum = checksum;
-        CreatorId = creatorId;
         IsPublic = isPublic;
         Type = AttachmentType.File; // Default for this constructor
         ProcessingState = AttachmentProcessingState.Processing;
+
+        // Audit is initialized in base constructor
+        InitializeAudit(creatorId);
     }
 
     // --- Explicit Factory Methods ---
@@ -52,51 +54,31 @@ public class Attachment : TenantEntity
 
     public static Attachment CreateMedia(Guid projectWorkspaceId, string fileName, string contentType, long sizeBytes, string checksum, Guid creatorId, bool isPublic = false)
     {
-        return new Attachment
-        {
-            ProjectWorkspaceId = projectWorkspaceId,
-            Type = AttachmentType.Media,
-            FileName = fileName,
-            ContentType = contentType,
-            SizeBytes = sizeBytes,
-            Checksum = checksum,
-            ProcessingState = AttachmentProcessingState.Uploading,
-            IsPublic = isPublic,
-            CreatorId = creatorId,
-            Metadata = new MediaMetaData(null, null, null)
-        };
+        var attachment = new Attachment(Guid.NewGuid(), projectWorkspaceId, fileName, contentType, sizeBytes, checksum, creatorId, isPublic);
+        attachment.Type = AttachmentType.Media;
+        attachment.ProcessingState = AttachmentProcessingState.Uploading;
+        attachment.Metadata = new MediaMetaData(null, null, null);
+        return attachment;
     }
 
-    public static Attachment CreateLink(Guid projectWorkspaceId, string url, string? title, string? description, string? imageUrl, Guid creatorId, bool isPublic = false)
+    public static Attachment CreateLink(Guid projectWorkspaceId, string url, string title, string description, string? imageUrl, Guid creatorId, bool isPublic = false)
     {
-        return new Attachment
-        {
-            ProjectWorkspaceId = projectWorkspaceId,
-            Type = AttachmentType.Link,
-            FileName = title ?? url,
-            StoragePath = url,
-            ContentType = "text/uri-list",
-            ProcessingState = AttachmentProcessingState.Ready,
-            Metadata = new LinkMetadata(url, title, description, imageUrl),
-            IsPublic = isPublic,
-            CreatorId = creatorId
-        };
+        var attachment = new Attachment(Guid.NewGuid(), projectWorkspaceId, string.IsNullOrWhiteSpace(title) ? url : title, "text/uri-list", 0, "", creatorId, isPublic);
+        attachment.Type = AttachmentType.Link;
+        attachment.StoragePath = url;
+        attachment.ProcessingState = AttachmentProcessingState.Ready;
+        attachment.Metadata = new LinkMetadata(url, title, description, imageUrl);
+        return attachment;
     }
 
-    public static Attachment CreateEmbed(Guid projectWorkspaceId, string embedUrl, string provider, string? title, Guid creatorId, bool isPublic = false)
+    public static Attachment CreateEmbed(Guid projectWorkspaceId, string embedUrl, string provider, string title, Guid creatorId, bool isPublic = false)
     {
-        return new Attachment
-        {
-            ProjectWorkspaceId = projectWorkspaceId,
-            Type = AttachmentType.Embed,
-            FileName = title ?? provider,
-            StoragePath = embedUrl,
-            ContentType = "text/html",
-            ProcessingState = AttachmentProcessingState.Ready,
-            Metadata = new EmbedMetadata(embedUrl, provider),
-            IsPublic = isPublic,
-            CreatorId = creatorId
-        };
+        var attachment = new Attachment(Guid.NewGuid(), projectWorkspaceId, string.IsNullOrWhiteSpace(title) ? provider : title, "text/html", 0, "", creatorId, isPublic);
+        attachment.Type = AttachmentType.Embed;
+        attachment.StoragePath = embedUrl;
+        attachment.ProcessingState = AttachmentProcessingState.Ready;
+        attachment.Metadata = new EmbedMetadata(embedUrl, provider);
+        return attachment;
     }
 
 
@@ -104,8 +86,8 @@ public class Attachment : TenantEntity
 
     public void MarkReady(string storageKey, string storagePath, StorageProvider provider, AttachmentMetadata? finalMetadata = null)
     {
-        if (ProcessingState != AttachmentProcessingState.Uploading)
-            throw new InvalidOperationException("Only uploading attachments can be marked ready.");
+        if (ProcessingState != AttachmentProcessingState.Uploading && ProcessingState != AttachmentProcessingState.Processing)
+            throw new InvalidOperationException("Invalid processing state for transition to Ready.");
 
         StorageKey = storageKey;
         StoragePath = storagePath;
@@ -113,10 +95,12 @@ public class Attachment : TenantEntity
         ProcessingState = AttachmentProcessingState.Ready;
 
         if (finalMetadata != null) Metadata = finalMetadata;
+        UpdateTimestamp();
     }
 
     public void MarkFailed()
     {
         ProcessingState = AttachmentProcessingState.Failed;
+        UpdateTimestamp();
     }
-}
+}

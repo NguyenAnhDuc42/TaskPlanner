@@ -33,12 +33,19 @@ public class UploadAttachmentHandler(IDataBase db, WorkspaceContext context) : I
             await db.Attachments.AddAsync(attachment, ct);
 
             // 2. Create the Relation (The Universal Link)
+            Guid? spaceId = request.EntityType == EntityType.ProjectSpace ? request.ParentEntityId : null;
+            Guid? folderId = request.EntityType == EntityType.ProjectFolder ? request.ParentEntityId : null;
+            Guid? taskId = request.EntityType == EntityType.ProjectTask ? request.ParentEntityId : null;
+            Guid? commentId = request.EntityType == EntityType.Comment ? request.ParentEntityId : null;
+
             var link = EntityAssetLink.Create(
                 context.workspaceId,
                 attachment.Id,
                 AssetType.Attachment,
-                request.ParentEntityId,
-                request.EntityType,
+                spaceId,
+                folderId,
+                taskId,
+                commentId,
                 context.CurrentMember.Id);
 
             await db.EntityAssetLinks.AddAsync(link, ct);
@@ -86,8 +93,8 @@ public class UploadAttachmentHandler(IDataBase db, WorkspaceContext context) : I
         return Attachment.CreateLink(
             context.workspaceId,
             req.Url!,
-            req.Title,
-            req.Description,
+            req.Title ?? "Untitled Link",
+            req.Description ?? string.Empty,
             req.ImageUrl,
             context.CurrentMember.Id,
             isPublic: false);
@@ -99,7 +106,7 @@ public class UploadAttachmentHandler(IDataBase db, WorkspaceContext context) : I
             context.workspaceId,
             req.Url!,
             req.Provider ?? "Unknown",
-            req.Title,
+            req.Title ?? "Untitled Embed",
             context.CurrentMember.Id,
             isPublic: false);
     }

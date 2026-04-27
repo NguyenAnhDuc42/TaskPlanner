@@ -12,16 +12,18 @@ public class AttachmentLinkConfiguration : EntityConfiguration<AttachmentLink>
 
         builder.ToTable("attachment_links");
 
-        // Composite PK to avoid duplicate links: (AttachmentId, ParentEntityType, ParentEntityId)
-        builder.HasKey(x => new { x.AttachmentId, x.ParentEntityType, x.ParentEntityId });
-
         builder.Property(x => x.AttachmentId).HasColumnName("attachment_id").IsRequired();
-        builder.Property(x => x.ParentEntityId).HasColumnName("parent_entity_id").IsRequired();
-        builder.Property(x => x.ParentEntityType).HasColumnName("parent_entity_type").HasConversion<string>().HasMaxLength(100).IsRequired();
+        builder.Property(x => x.ProjectSpaceId).HasColumnName("project_space_id");
+        builder.Property(x => x.ProjectFolderId).HasColumnName("project_folder_id");
+        builder.Property(x => x.ProjectTaskId).HasColumnName("project_task_id");
+        builder.Property(x => x.CommentId).HasColumnName("comment_id");
 
-        // Indexes for common queries (list attachments for an owner; find links for garbage collection)
-        builder.HasIndex(x => new { x.ParentEntityType, x.ParentEntityId });
+        // Indexes for common queries
         builder.HasIndex(x => x.AttachmentId);
+        builder.HasIndex(x => x.ProjectSpaceId);
+        builder.HasIndex(x => x.ProjectFolderId);
+        builder.HasIndex(x => x.ProjectTaskId);
+        builder.HasIndex(x => x.CommentId);
 
     }
 }

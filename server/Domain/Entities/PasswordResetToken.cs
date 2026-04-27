@@ -13,6 +13,7 @@ public class PasswordResetToken : Entity
     private PasswordResetToken() { } // EF Core
 
     private PasswordResetToken(Guid userId, string token, DateTimeOffset expiresAt)
+        : base(Guid.NewGuid())
     {
         UserId = userId;
         Token = token;

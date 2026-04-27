@@ -1,5 +1,4 @@
 using Domain.Common;
-using Domain.Entities.ProjectEntities;
 using Domain.Enums;
 using Domain.Exceptions;
 
@@ -11,16 +10,17 @@ public class ProjectTask : TenantEntity
     public Guid? ProjectFolderId { get; private set; }
     public string Name { get; private set; } = null!;
     public string Slug { get; private set; } = null!;
-    public string? Description { get; private set; }
-    public Customization Customization { get; private set; } = Customization.CreateDefault();
+    public string Description { get; private set; } = null!;
+    public string Color { get; private set; } = "#FFFFFF";
+    public string? Icon { get; private set; }
     public Guid? StatusId { get; private set; }
     public bool IsArchived { get; private set; }
     public Priority Priority { get; private set; } = Priority.Low;
     public DateTimeOffset? StartDate { get; private set; }
     public DateTimeOffset? DueDate { get; private set; }
     public int? StoryPoints { get; private set; }
-    public long? TimeEstimate { get; private set; }
-    public string OrderKey { get; private set; } = FractionalIndex.Start();
+    public long? TimeEstimateSeconds { get; private set; }
+    public string OrderKey { get; private set; } = null!;
 
     private readonly List<TaskAssignment> _assignees = new();
     public virtual IReadOnlyCollection<TaskAssignment> Assignees => _assignees.AsReadOnly();    
@@ -28,31 +28,54 @@ public class ProjectTask : TenantEntity
     // EF Core
     private ProjectTask() { }
 
-    private ProjectTask(Guid id, Guid projectWorkspaceId, Guid? projectSpaceId, Guid? projectFolderId, string name, string slug, string? description, Customization customization, Guid creatorId, Guid? statusId, Priority priority, DateTimeOffset? startDate, DateTimeOffset? dueDate, int? storyPoints, long? timeEstimate, string orderKey)
+    private ProjectTask(Guid id, Guid projectWorkspaceId, Guid? projectSpaceId, Guid? projectFolderId, string name, string slug, string description, string color, string? icon, Guid creatorId, Guid? statusId, Priority priority, DateTimeOffset? startDate, DateTimeOffset? dueDate, int? storyPoints, long? timeEstimateSeconds, string orderKey)
         : base(id, projectWorkspaceId)
     {
         ProjectSpaceId = projectSpaceId;
         ProjectFolderId = projectFolderId;
-        Name = name ?? throw new ArgumentNullException(nameof(name));
-        Slug = slug ?? throw new ArgumentNullException(nameof(slug));
-        Description = string.IsNullOrWhiteSpace(description) ? null : description;
-        Customization = customization ?? Customization.CreateDefault();
-        CreatorId = creatorId;
+        Name = name;
+        Slug = slug;
+        Description = description;
+        Color = color;
+        Icon = icon;
         StatusId = statusId;
         Priority = priority;
         StartDate = startDate;
         DueDate = dueDate;
         StoryPoints = storyPoints;
+        TimeEstimateSeconds = timeEstimateSeconds;
         OrderKey = orderKey;
-        TimeEstimate = timeEstimate;
         IsArchived = false;
+
+        // Audit is initialized in base constructor
+        InitializeAudit(creatorId);
     }
 
-    public static ProjectTask Create(Guid projectWorkspaceId, Guid? projectSpaceId, Guid? projectFolderId, string name, string slug, string? description, Customization? customization, Guid creatorId, Guid? statusId = null, Priority priority = Priority.Low, DateTimeOffset? startDate = null, DateTimeOffset? dueDate = null, int? storyPoints = null, long? timeEstimate = null, string? orderKey = null)
-        => new ProjectTask(Guid.NewGuid(), projectWorkspaceId, projectSpaceId, projectFolderId, name?.Trim() ?? throw new ArgumentNullException(nameof(name)), slug?.Trim().ToLowerInvariant() ?? throw new ArgumentNullException(nameof(slug)), string.IsNullOrWhiteSpace(description) ? null : description?.Trim(), customization ?? Customization.CreateDefault(), creatorId, statusId, priority, startDate, dueDate, storyPoints, timeEstimate, orderKey ?? FractionalIndex.Start());
+    public static ProjectTask Create(Guid projectWorkspaceId, Guid? projectSpaceId, Guid? projectFolderId, string name, string slug, string description, string? color, string? icon, Guid creatorId, Guid? statusId = null, Priority priority = Priority.Low, DateTimeOffset? startDate = null, DateTimeOffset? dueDate = null, int? storyPoints = null, long? timeEstimateSeconds = null, string? orderKey = null)
+    {
+        return new ProjectTask(
+            Guid.NewGuid(), 
+            projectWorkspaceId, 
+            projectSpaceId, 
+            projectFolderId, 
+            name, 
+            slug, 
+            description, 
+            color ?? "#FFFFFF", 
+            icon,
+            creatorId, 
+            statusId, 
+            priority, 
+            startDate, 
+            dueDate, 
+            storyPoints, 
+            timeEstimateSeconds, 
+            orderKey ?? FractionalIndex.Start());
+    }
 
     public static List<ProjectTask> CreateDefaults(Guid projectWorkspaceId, Guid spaceId, Guid folderId, Guid statusId, Guid creatorId)
     {
+        var start = FractionalIndex.Start();
         return new List<ProjectTask>
         {
             Create(
@@ -62,10 +85,11 @@ public class ProjectTask : TenantEntity
                 name: "Explore the hierarchy",
                 slug: "explore-hierarchy",
                 description: "Notice how this task is nested under the 'Getting Started' folder.",
-                customization: null,
+                color: null,
+                icon: null,
                 creatorId: creatorId,
                 statusId: statusId,
-                orderKey: FractionalIndex.Start()
+                orderKey: start
             ),
             Create(
                 projectWorkspaceId: projectWorkspaceId,
@@ -74,30 +98,50 @@ public class ProjectTask : TenantEntity
                 name: "Standalone Task",
                 slug: "standalone-task",
                 description: "This task lives directly under the space.",
-                customization: null,
+                color: null,
+                icon: null,
                 creatorId: creatorId,
                 statusId: statusId,
-                orderKey: FractionalIndex.After(FractionalIndex.Start())
+                orderKey: FractionalIndex.After(start)
             )
         };
     }
 
-    public void UpdateBasicInfo(string? name, string? slug, string? description)
+    public void UpdateName(string name)
     {
         EnsureNotArchived();
+        Name = name;
+        UpdateTimestamp();
+    }
 
-        var candidateName = name?.Trim() ?? Name;
-        var candidateSlug = slug?.Trim().ToLowerInvariant() ?? Slug;
-        var candidateDescription = description?.Trim() ?? Description;
+    public void UpdateSlug(string slug)
+    {
+        EnsureNotArchived();
+        if (Slug == slug) return;
+        Slug = slug;
+        UpdateTimestamp();
+    }
 
-        if (candidateName == Name && candidateSlug == Slug && candidateDescription == Description) return;
+    public void UpdateDescription(string description)
+    {
+        EnsureNotArchived();
+        Description = description;
+        UpdateTimestamp();
+    }
 
-        ValidateBasicInfo(candidateName, candidateSlug, candidateDescription);
+    public void UpdateColor(string color)
+    {
+        EnsureNotArchived();
+        if (Color == color) return;
+        Color = color;
+        UpdateTimestamp();
+    }
 
-        Name = candidateName;
-        Slug = candidateSlug;
-        Description = string.IsNullOrWhiteSpace(candidateDescription) ? null : candidateDescription;
-
+    public void UpdateIcon(string? icon)
+    {
+        EnsureNotArchived();
+        if (Icon == icon) return;
+        Icon = icon;
         UpdateTimestamp();
     }
 
@@ -121,25 +165,35 @@ public class ProjectTask : TenantEntity
         }
     }
 
-    public void UpdateDates(DateTimeOffset? startDate, DateTimeOffset? dueDate)
+    public void UpdateStartDate(DateTimeOffset? startDate)
     {
         EnsureNotArchived();
-        ValidateSchedule(startDate, dueDate);
-        var changed = false;
-        if (StartDate != startDate) { StartDate = startDate; changed = true; }
-        if (DueDate != dueDate) { DueDate = dueDate; changed = true; }
-        if (changed) UpdateTimestamp();
+        if (StartDate == startDate) return;
+        StartDate = startDate;
+        UpdateTimestamp();
+    }
+    public void UpdateDueDate(DateTimeOffset? dueDate)
+    {
+        EnsureNotArchived();
+        if (DueDate == dueDate) return;
+        DueDate = dueDate;
+        UpdateTimestamp();
+    }
+    public void UpdateStoryPoints(int? storyPoints)
+    {
+        EnsureNotArchived();
+        if (StoryPoints == storyPoints) return;
+        StoryPoints = storyPoints;
+        UpdateTimestamp();
+    }
+    public void UpdateTimeEstimate(long? timeEstimateSeconds)
+    {
+        EnsureNotArchived();
+        if (TimeEstimateSeconds == timeEstimateSeconds) return;
+        TimeEstimateSeconds = timeEstimateSeconds;
+        UpdateTimestamp();
     }
 
-    public void UpdateEstimation(int? storyPoints, long? timeEstimate)
-    {
-        EnsureNotArchived();
-        ValidateEstimation(storyPoints, timeEstimate);
-        var changed = false;
-        if (StoryPoints != storyPoints) { StoryPoints = storyPoints; changed = true; }
-        if (TimeEstimate != timeEstimate) { TimeEstimate = timeEstimate; changed = true; }
-        if (changed) UpdateTimestamp();
-    }
     public void AddAsignees(List<TaskAssignment> newAssignments)
     {
         EnsureNotArchived();
@@ -163,29 +217,8 @@ public class ProjectTask : TenantEntity
     public void Archive() { if (IsArchived) return; IsArchived = true; UpdateTimestamp(); }
     public void Unarchive() { if (!IsArchived) return; IsArchived = false; UpdateTimestamp(); }
 
-
     private void EnsureNotArchived()
     {
         if (IsArchived) throw new BusinessRuleException("Cannot modify an archived task.");
-    }
-
-    private static void ValidateBasicInfo(string name, string slug, string? description)
-    {
-        if (string.IsNullOrWhiteSpace(name)) throw new BusinessRuleException("Task name cannot be empty.");
-        if (name.Length > 200) throw new BusinessRuleException("Task name cannot exceed 200 characters.");
-        if (string.IsNullOrWhiteSpace(slug)) throw new BusinessRuleException("Slug cannot be empty.");
-        if (description?.Length > 2000) throw new BusinessRuleException("Task description cannot exceed 2000 characters.");
-    }
-
-    private static void ValidateSchedule(DateTimeOffset? startDate, DateTimeOffset? dueDate)
-    {
-        if (startDate.HasValue && dueDate.HasValue && startDate > dueDate) 
-            throw new BusinessRuleException("Start date cannot be later than due date.");
-    }
-
-    private static void ValidateEstimation(int? storyPoints, long? timeEstimateSeconds)
-    {
-        if (storyPoints.HasValue && storyPoints < 0) throw new BusinessRuleException("Story points cannot be negative.");
-        if (timeEstimateSeconds.HasValue && timeEstimateSeconds < 0) throw new BusinessRuleException("Time estimate cannot be negative.");
     }
 }

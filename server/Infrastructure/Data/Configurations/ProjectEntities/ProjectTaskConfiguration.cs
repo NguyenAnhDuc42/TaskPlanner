@@ -1,11 +1,12 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Domain.Entities;
+using Domain.Common;
 
 namespace Infrastructure.Data.Configurations;
 
-public class ProjectTaskConfiguration : EntityConfiguration<ProjectTask>
-{   
+public class ProjectTaskConfiguration : TenantEntityConfiguration<ProjectTask>
+{
     public override void Configure(EntityTypeBuilder<ProjectTask> builder)
     {
         base.Configure(builder);
@@ -13,98 +14,75 @@ public class ProjectTaskConfiguration : EntityConfiguration<ProjectTask>
         builder.ToTable("project_tasks");
 
         builder.Property(t => t.Id)
-            .HasColumnName("id")
-            .HasColumnOrder(0);
+            .HasColumnName("id");
 
         builder.Property(t => t.ProjectWorkspaceId)
-            .HasColumnName("project_workspace_id")
-            .IsRequired()
-            .HasColumnOrder(1);
+            .HasColumnName("project_workspace_id");
 
         builder.Property(t => t.ProjectSpaceId)
-            .HasColumnName("project_space_id")
-            .HasColumnOrder(2);
+            .HasColumnName("project_space_id");
 
         builder.Property(t => t.ProjectFolderId)
-            .HasColumnName("project_folder_id")
-            .HasColumnOrder(3);
+            .HasColumnName("project_folder_id");
 
         builder.Property(t => t.Name)
             .HasColumnName("name")
             .IsRequired()
-            .HasMaxLength(255)
-            .HasColumnOrder(4);
+            .HasMaxLength(255);
 
         builder.Property(t => t.Slug)
             .HasColumnName("slug")
             .IsRequired()
-            .HasMaxLength(100)
-            .HasColumnOrder(5);
-
-        builder.HasIndex(t => new { t.ProjectWorkspaceId, t.Slug }).IsUnique();
+            .HasMaxLength(100);
 
         builder.Property(t => t.Description)
-            .HasColumnName("description")
-            .HasColumnType("jsonb")
-            .HasConversion(
-                v => v == null ? null : System.Text.Json.JsonSerializer.Serialize(v, (System.Text.Json.JsonSerializerOptions)null!),
-                v => v == null ? null : System.Text.Json.JsonSerializer.Deserialize<string>(v, (System.Text.Json.JsonSerializerOptions)null!)
-            )
-            .HasColumnOrder(6);
+            .HasColumnName("description");
+
+        builder.Property(t => t.Color)
+            .HasColumnName("custom_color")
+            .HasMaxLength(16);
+
+        builder.Property(t => t.Icon)
+            .HasColumnName("custom_icon")
+            .HasMaxLength(64);
 
         builder.Property(t => t.StatusId)
-            .HasColumnName("status_id")
-            .HasColumnOrder(7);
+            .HasColumnName("status_id");
+
+        builder.Property(t => t.IsArchived)
+            .HasColumnName("is_archived");
 
         builder.Property(t => t.Priority)
-            .HasColumnName("priority")
-            .HasConversion<string>()
-            .HasMaxLength(50)
-            .HasColumnOrder(8);
+            .HasColumnName("priority");
+
+        builder.Property(t => t.StartDate).HasColumnName("start_date");
+        builder.Property(t => t.DueDate).HasColumnName("due_date");
+
+        builder.Property(t => t.StoryPoints).HasColumnName("story_points");
+        builder.Property(t => t.TimeEstimateSeconds).HasColumnName("time_estimate_seconds");
 
         builder.Property(t => t.OrderKey)
             .HasColumnName("order_key")
-            .IsRequired()
-            .HasColumnOrder(9);
+            .IsRequired();
 
-        builder.Property(t => t.StartDate)
-            .HasColumnName("start_date")
-            .HasColumnOrder(10);
+        // Foreign Keys
+        builder.HasOne<ProjectSpace>()
+            .WithMany()
+            .HasForeignKey(t => t.ProjectSpaceId)
+            .OnDelete(DeleteBehavior.SetNull);
 
-        builder.Property(t => t.DueDate)
-            .HasColumnName("due_date")
-            .HasColumnOrder(11);
+        builder.HasOne<ProjectFolder>()
+            .WithMany()
+            .HasForeignKey(t => t.ProjectFolderId)
+            .OnDelete(DeleteBehavior.SetNull);
 
-        builder.Property(t => t.StoryPoints)
-            .HasColumnName("story_points")
-            .HasColumnOrder(12);
+        builder.HasOne<Status>()
+            .WithMany()
+            .HasForeignKey(t => t.StatusId)
+            .OnDelete(DeleteBehavior.SetNull);
 
-        builder.Property(t => t.TimeEstimate)
-            .HasColumnName("time_estimate")
-            .HasColumnOrder(13);
-
-        builder.Property(t => t.IsArchived)
-            .HasColumnName("is_archived")
-            .HasColumnOrder(14);
-
-        // Auditing (Overrides from base to set order)
-        builder.Property(t => t.CreatedAt).HasColumnOrder(15);
-        builder.Property(t => t.UpdatedAt).HasColumnOrder(16);
-        builder.Property(t => t.DeletedAt).HasColumnOrder(17);
-        builder.Property(t => t.CreatorId).HasColumnOrder(18);
-
-        builder.OwnsOne(x => x.Customization, cb =>
-        {
-            cb.Property(p => p.Color).HasColumnName("custom_color").IsRequired().HasColumnOrder(19);
-            cb.Property(p => p.Icon).HasColumnName("custom_icon").IsRequired().HasColumnOrder(20);
-        });
-
-        builder.HasIndex(x => x.ProjectWorkspaceId);
-        builder.HasIndex(x => x.ProjectSpaceId);
-        builder.HasIndex(x => x.ProjectFolderId);
-        builder.HasIndex(x => new { x.ProjectSpaceId, x.OrderKey, x.Id });
-        builder.HasIndex(x => new { x.ProjectFolderId, x.OrderKey, x.Id });
-        builder.HasIndex(x => new { x.ProjectSpaceId, x.StatusId });
-        builder.HasIndex(x => x.DueDate);
+        builder.HasIndex(t => t.StatusId);
+        builder.HasIndex(t => t.ProjectSpaceId);
+        builder.HasIndex(t => t.ProjectFolderId);
     }
 }

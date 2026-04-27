@@ -22,5 +22,4 @@ public interface IBackgroundJobService
     /// Immediate trigger for the Outbox Processor.
     /// Used to bypass polling delays for high-concurrency/real-time flows.
     /// </summary>
-    void TriggerOutbox();
 }

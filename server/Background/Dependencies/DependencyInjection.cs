@@ -35,8 +35,6 @@ public static class DependencyInjection
         services.AddSingleton<IRecurringJobManager, RecurringJobManager>();
 
         services.AddSingleton<IBackgroundJobService, HangfireBackgroundJobService>();
-        services.AddSingleton<DomainEventTypeProvider>();
-        services.AddScoped<Background.Jobs.ProcessOutboxJob>();
         services.AddSingleton<HangfireJobScheduler>();
 
         return services;

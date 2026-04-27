@@ -3,6 +3,7 @@ using Application.Common.Results;
 using Application.Common.Interfaces;
 using Application.Helpers;
 using Application.Interfaces.Data;
+using Domain.Entities;
 using Domain.Enums;
 using Microsoft.EntityFrameworkCore;
 
@@ -19,7 +20,11 @@ public class UpdateViewHandler(IDataBase db, WorkspaceContext context) : IComman
         if (context.CurrentMember.Role > Role.Admin && view.CreatorId != context.CurrentMember.Id)
             return Result.Failure(MemberError.DontHavePermission);
 
-        view.Update(request.Name, null);
+        if (!string.IsNullOrEmpty(request.Name))
+        {
+            view.UpdateName(request.Name);
+        }
+        
         await db.SaveChangesAsync(ct);
 
         return Result.Success();
