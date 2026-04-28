@@ -18,6 +18,7 @@ interface FolderViewSwitcherProps {
   isLoading?: boolean;
   isContextOpen: boolean;
   setIsContextOpen: (open: boolean) => void;
+  entityInfo: any;
 }
 
 export function FolderViewSwitcher({
@@ -27,6 +28,7 @@ export function FolderViewSwitcher({
   isLoading,
   isContextOpen,
   setIsContextOpen,
+  entityInfo,
 }: FolderViewSwitcherProps) {
   const [selection, setSelection] = useState<{
     id: string;
@@ -94,7 +96,7 @@ export function FolderViewSwitcher({
             icon={overviewData.icon}
             color={overviewData.color}
             description={overviewData.description} 
-            stats={overviewData.stats}
+            entityInfo={entityInfo}
           />
         </motion.div>
       );

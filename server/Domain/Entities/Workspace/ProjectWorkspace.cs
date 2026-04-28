@@ -15,6 +15,14 @@ public sealed class ProjectWorkspace : Entity
     public string? Icon { get; private set; }
     public bool StrictJoin { get; private set; } = false;
     public bool IsArchived { get; private set; }
+    public bool IsInitialized { get; private set; } = false;
+
+    public void MarkAsInitialized()
+    {
+        if (IsInitialized) return;
+        IsInitialized = true;
+        UpdateTimestamp();
+    }
 
     private readonly List<WorkspaceMember> _members = new();
     public IReadOnlyCollection<WorkspaceMember> Members => _members.AsReadOnly();

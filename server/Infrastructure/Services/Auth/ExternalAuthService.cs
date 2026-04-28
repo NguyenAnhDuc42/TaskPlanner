@@ -1,57 +1,13 @@
-using System;
-using System.Threading.Tasks;
-using Application.Interfaces.Services;
-using Microsoft.Extensions.Logging;
+using Application.Interfaces;
 
-namespace Infrastructure.Services;
+namespace Infrastructure.Auth;
 
 public class ExternalAuthService : IExternalAuthService
 {
-    private readonly ILogger<ExternalAuthService> _logger;
-
-    public ExternalAuthService(ILogger<ExternalAuthService> logger)
+    public Task<ExternalUserDto> ValidateAsync(string provider, string token)
     {
-        _logger = logger;
-    }
-
-    public Task<ExternalUser> ValidateAsync(string provider, string token)
-    {
-    
-        
-        _logger.LogInformation("Validating external token for provider: {Provider}", provider);
-
-        if (string.IsNullOrWhiteSpace(token) || token == "invalid")
-        {
-            throw new Exception("Invalid external token.");
-        }
-
-        // Simulate successful validation based on Provider
-        string externalId;
-        string email;
-        string name;
-
-        switch (provider.ToLower())
-        {
-            case "google":
-                externalId = $"google_{token.GetHashCode()}";
-                email = $"user.google.{token.GetHashCode()}@gmail.com";
-                name = "Google User";
-                break;
-            case "github":
-                externalId = $"github_{token.GetHashCode()}";
-                email = $"dev.github.{token.GetHashCode()}@users.noreply.github.com";
-                name = "GitHub Developer";
-                break;
-            default:
-                // Generic fallback for other providers
-                externalId = $"ext_{provider}_{token.GetHashCode()}";
-                email = $"user_{provider}_{token.GetHashCode()}@test.com";
-                name = $"User {provider}";
-                break;
-        }
-
-        _logger.LogInformation("Stub: Validated {Provider} user {Email}", provider, email);
-
-        return Task.FromResult(new ExternalUser(provider, externalId, email, name));
+        // TODO: Implement actual OAuth validation logic for Google/GitHub etc.
+        // For now, we return a mock or placeholder to allow the project to build.
+        throw new NotImplementedException("External Authentication validation is not yet implemented.");
     }
 }

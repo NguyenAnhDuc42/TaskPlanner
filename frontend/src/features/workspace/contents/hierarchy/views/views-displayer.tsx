@@ -91,6 +91,7 @@ export function ViewsDisplayer({
         isLoading={isLoading}
         isContextOpen={isContextOpen}
         setIsContextOpen={setIsContextOpen}
+        entityInfo={entityInfo}
       />
     );
   }

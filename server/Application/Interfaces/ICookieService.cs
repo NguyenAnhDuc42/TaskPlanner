@@ -1,13 +1,11 @@
 using Application.Features.Auth;
-using Microsoft.AspNetCore.Http;
 
-namespace Application.Interfaces
+namespace Application.Interfaces;
+
+public interface ICookieService
 {
-    public interface ICookieService
-    {
-        void SetAuthCookies(HttpContext context, JwtTokens tokens);
-        JwtTokens? GetAuthTokensFromCookies(HttpContext context);
-        string? GetRefreshTokenFromCookies(HttpContext context);
-        void ClearAuthCookies(HttpContext context);
-    }
+    void SetAuthCookies(JwtTokens tokens);
+    void ClearAuthCookies();
+    string? GetRefreshTokenFromCookies();
+    JwtTokens? GetAuthTokensFromCookies();
 }

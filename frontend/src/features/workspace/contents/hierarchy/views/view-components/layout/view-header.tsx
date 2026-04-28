@@ -25,25 +25,17 @@ export function ViewHeader({
   onContextToggle,
 }: ViewHeaderProps) {
   return (
-    <div className="flex flex-col flex-shrink-0 z-30 pt-2 px-6 pb-0 border-b border-border/40">
-      {/* BREADCRUMB BAR */}
-      <div className="flex items-center gap-2 text-muted-foreground/50 text-[10px] font-bold uppercase tracking-widest cursor-default mb-1.5">
-        <span className="hover:text-foreground transition-colors cursor-pointer">
-          {parentName || "Projects"}
-        </span>
-        <ChevronRight className="h-2.5 w-2.5 opacity-50" />
-        <span className="text-foreground">{entityName}</span>
-      </div>
+    <div className="h-12 flex flex-col flex-shrink-0 z-30 px-6 border-b border-border/40">
 
       {/* VIEW TABS & ACTIONS */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
+      <div className="flex-1 flex items-center justify-between h-full">
+        <div className="flex items-center gap-3 h-full">
           {views?.map((v) => (
             <button
               key={v.id}
               onClick={() => onViewChange(v.id)}
               className={cn(
-                "pb-2 text-[11px] font-black uppercase tracking-wider transition-all relative",
+                "h-full px-1 text-[11px] font-black uppercase tracking-wider transition-all relative",
                 activeViewId === v.id
                   ? "text-foreground"
                   : "text-muted-foreground hover:text-foreground",
@@ -55,13 +47,13 @@ export function ViewHeader({
               )}
             </button>
           ))}
-          <button className="pb-2 text-muted-foreground hover:text-foreground transition-colors">
+          <button className="h-full px-1 text-muted-foreground hover:text-foreground transition-colors">
             <Plus className="h-3.5 w-3.5" />
           </button>
         </div>
 
         {/* RIGHT ACTIONS */}
-        <div className="flex items-center pb-2">
+        <div className="flex items-center h-full">
           <Button
             variant="ghost"
             size="icon"

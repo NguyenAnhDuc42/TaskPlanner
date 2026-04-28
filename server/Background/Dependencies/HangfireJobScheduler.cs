@@ -1,3 +1,4 @@
+using Background.Services;
 using Hangfire;
 
 namespace Background.Dependencies;
@@ -13,5 +14,10 @@ public  class HangfireJobScheduler
 
     public void Schedule()
     {
+        _recurringJobManager.AddOrUpdate<DatabaseKeepAliveService>(
+            "database-keep-alive",
+            service => service.KeepAlive(),
+            "*/5 * * * *" 
+        );
     }
 }

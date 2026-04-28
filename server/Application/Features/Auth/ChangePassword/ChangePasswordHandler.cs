@@ -1,7 +1,6 @@
 using Application.Common.Errors;
 using Application.Common.Results;
 using Application.Interfaces.Data;
-using Application.Interfaces.Services;
 using Application.Interfaces;
 using Application.Features;
 using Domain.Entities;

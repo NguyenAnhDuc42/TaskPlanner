@@ -5,7 +5,6 @@ using Application.Interfaces;
 using Domain.Entities;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging;
 
 namespace Application.Features.Auth;
 
@@ -14,45 +13,31 @@ public class RegisterHandler(
     IPasswordService passwordService, 
     ITokenService tokenService, 
     ICookieService cookieService, 
-    IHttpContextAccessor httpContextAccessor, 
-    ILogger<RegisterHandler> logger
+    IHttpContextAccessor httpContextAccessor
 ) : ICommandHandler<RegisterCommand, RegisterResponse>
 {
     public async Task<Result<RegisterResponse>> Handle(RegisterCommand request, CancellationToken ct)
     {
-        logger.LogInformation("Registering new user: {Email}", request.email);
-
         var exists = await db.Users.ByEmail(request.email).AsNoTracking().AnyAsync(ct);
-        if (exists)
-        {
-            logger.LogWarning("Registration failed: Email {Email} already exists", request.email);
-            return Result<RegisterResponse>.Failure(UserError.DuplicateEmail);
-        }
+        if (exists) return Result<RegisterResponse>.Failure(UserError.DuplicateEmail);
 
         var passwordHash = passwordService.HashPassword(request.password);
         var user = User.Create(request.username, request.email, passwordHash);
         
         await db.Users.AddAsync(user, ct);
 
+        // Best Practice: Automatically log in the user after registration
         var httpContext = httpContextAccessor.HttpContext;
-        if (httpContext is null) 
-        {
-            await db.SaveChangesAsync(ct);
-            return Result<RegisterResponse>.Failure(Error.Failure("Auth.ContextError", "No HttpContext available for registration login."));
-        }
-
-        var userAgent = httpContext.Request.Headers["User-Agent"].ToString();
-        var ipAddress = httpContext.Connection.RemoteIpAddress?.ToString() ?? "Unknown IP";
+        var userAgent = httpContext?.Request.Headers["User-Agent"].ToString() ?? "Unknown";
+        var ipAddress = httpContext?.Connection.RemoteIpAddress?.ToString() ?? "Unknown";
 
         var tokens = tokenService.GenerateTokens(user, userAgent, ipAddress);
-        cookieService.SetAuthCookies(httpContext, tokens);
-
         var session = Session.Create(user.Id, tokens.RefreshToken, tokens.ExpirationRefreshToken, userAgent, ipAddress);
+        
         await db.Sessions.AddAsync(session, ct);
-
         await db.SaveChangesAsync(ct);
 
-        logger.LogInformation("User registered and logged in: {UserId}, {Email}", user.Id, user.Email);
+        cookieService.SetAuthCookies(tokens);
 
         return Result<RegisterResponse>.Success(new RegisterResponse(user.Id, user.Name, user.Email));
     }

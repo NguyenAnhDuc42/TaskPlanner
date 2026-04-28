@@ -51,14 +51,14 @@ function WorkspaceThemeLayout({ workspace }: { workspace: any }) {
 
   return (
     <div className={cn(
-      "relative flex h-screen w-full overflow-hidden p-4 transition-colors duration-500 bg-background", 
+      "relative flex h-screen w-full overflow-hidden p-2 transition-colors duration-500 bg-background", 
       themeClass
     )}>
       {/* Column 1: Outer Sidebar */}
-      <OuterSidebar className="flex-shrink-0 mr-3" />
+      <OuterSidebar className="flex-shrink-0 mr-2" />
 
       {/* Column 2: Contextual Inner Sidebar */}
-      <InnerSidebar className={cn("flex-shrink-0 transition-all duration-300", isInnerSidebarOpen ? "mr-3" : "mr-0")} />
+      <InnerSidebar className={cn("flex-shrink-0 transition-all duration-300", isInnerSidebarOpen ? "mr-2" : "mr-0")} />
 
       {/* Column 3: The Main Canvas */}
       <div className="flex-1 min-w-0 h-full">

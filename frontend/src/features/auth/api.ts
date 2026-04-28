@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api-client";
-import { getCookie } from "@/lib/get-cookie";
+import { getCookie } from "@/lib/cookie-utils";
 import type { User } from "./types";
 
 export const authKeys = {

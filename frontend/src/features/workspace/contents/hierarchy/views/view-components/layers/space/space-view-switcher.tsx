@@ -19,6 +19,7 @@ interface SpaceViewSwitcherProps {
   isLoading?: boolean;
   isContextOpen: boolean;
   setIsContextOpen: (open: boolean) => void;
+  entityInfo: any;
 }
 
 export function SpaceViewSwitcher({
@@ -28,6 +29,7 @@ export function SpaceViewSwitcher({
   isLoading,
   isContextOpen,
   setIsContextOpen,
+  entityInfo,
 }: SpaceViewSwitcherProps) {
   const [selection, setSelection] = useState<{
     id: string;
@@ -100,6 +102,7 @@ export function SpaceViewSwitcher({
             icon={overviewData.icon}
             color={overviewData.color}
             description={overviewData.description} 
+            entityInfo={entityInfo}
           />
         </motion.div>
       );

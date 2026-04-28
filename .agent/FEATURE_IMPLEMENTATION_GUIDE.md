@@ -9,20 +9,16 @@ This document defines the **Project Mindset**, the **Flow of Code**, and the **A
 TaskPlanner follows a high-performance **Layered Vertical Slice Architecture**. We take a pragmatic approach to layering, favoring explicit "demands" via interfaces rather than dogmatic Clean Architecture constraints:
 
 - **Domain Layer** (`server/Domain`): The heart of the system.
-  - **Entities & Value Objects**: Pure business models with state and factory methods.
-  - **Domain Events**: Internal signals indicating side effects need to happen.
+  - **Entities**: Pure business models with state and factory methods. We favor direct properties (primitives) over complex Value Objects where possible.
+  - **Pragmatic Rule**: No Domain Events or Outbox patterns. Side effects are handled explicitly in the Application layer.
 
 - **Application Layer** (`server/Application`): The "Toppest" Execution Layer.
   - **Responsibility**: Orchestrates features and defines what it needs from the lower layers.
-  - **Pragmatic Rule**: Defines interfaces like `IDataBase` (which exposes a raw `IDbConnection` for Dapper) and `IBackgroundJobService`. It does not handle implementation details.
-
-- **Background Layer** (`server/Background`): The Out-of-Process Layer.
-  - **Responsibility**: Executes Hangfire jobs, heavy cleanup operations, and external API calls.
-  - **Pragmatic Rule**: It defines its own interfaces (`Background.Interfaces`) to demand what it needs. **Crucially, it has ZERO reference to the Infrastructure project.** It cannot call interfaces from Application.
+  - **Pragmatic Rule**: Defines interfaces like `IDataBase` (which exposes a raw `IDbConnection` for Dapper). It does not handle implementation details.
 
 - **Infrastructure Layer** (`server/Infrastructure`): The "Lowest" Implementation Layer.
   - **Responsibility**: Fulfills the demands of all upper layers.
-  - **Pragmatic Rule**: Because it is the lowest, it can reference `Application` and `Background` to implement their contracts. It contains the raw `Database` implementation, SignalR services, and the local worker that triggers the outbox.
+  - **Pragmatic Rule**: Because it is the lowest, it can reference `Application` to implement its contracts. It contains the raw `Database` implementation, SignalR services, and EF Core configurations.
 
 ---
 
@@ -50,16 +46,12 @@ The request enters the API. `WorkspaceContext` resolves the "Truth" (Who is the 
 
 ### Step 2: Validation & Logic
 The request is validated via FluentValidation. The Handler executes logic.
-- **Pragmatic Rule**: Use `db.Connection` (Dapper) for all reads and bulk writes. Use `db.SaveChangesAsync()` only for complex entity state changes.
+- **Pragmatic Rule**: Use `db.Connection` (Dapper) for all reads and bulk writes. Use `db.SaveChangesAsync()` for entity state changes.
 
-### Step 3: Persistence & Instant Outbox
-- **EF ChangeTracker**: Automatically collects domain events during `SaveChangesAsync`.
-- **Instant Signal**: `Database.cs` sends an in-memory signal (via a .NET Channel) to the `LocalOutboxWorker` the moment the transaction commits. **NO POLLING DELAY.**
-
-### Step 4: Background Processing
-The **Local Worker** (in Infrastructure) wakes up instantly and calls the `ProcessOutboxJob` (in Background).
-- Side effects (emails, notifications, cascading deletes) run out-of-process.
-- **Hangfire**: Acts as a safety net (set to 30m+ intervals) to catch any missed messages if the server restarts.
+### Step 3: Explicit Side Effects
+Side effects (notifications, real-time updates) are called **explicitly** within the Handler after persistence.
+- **Real-time**: Use `IRealtimeService` to notify users/workspaces immediately.
+- **No Async/Outbox**: We favor immediate execution or direct service calls over event-driven background processing for core feature logic.
 
 ---
 
@@ -80,8 +72,9 @@ Strict adherence to workspace tenancy is non-negotiable.
 ## ⚙️ 5. TYPE & LOGIC PRESERVATION
 
 - **NO Logic-Altering Refactors**: Standardization passes MUST NOT change underlying business logic or data types.
+- **Primitive Favoritism**: Avoid custom Value Objects (e.g., `EntityName`, `HexColor`, `AuditInfo`). Use primitives (`string`, `Guid`, `DateTimeOffset`) directly on entities.
 - **DateTimeOffset**: Always use `DateTimeOffset` for timestamps. DO NOT "clean up" `DateTimeOffset` into `DateTime`.
-- **Query Simplicity**: Only use `.Include(...)` if the logic explicitly requires accessing related entity properties. Do not add them for "future use" or "safety" if not needed.
+- **Query Simplicity**: Only use `.Include(...)` if the logic explicitly requires accessing related entity properties.
 
 ---
 
@@ -97,7 +90,7 @@ Application/Features/SpaceFeatures/SelfManagement/CreateSpace/
 
 ### 2. The Handler (CreateSpaceHandler.cs)
 ```csharp
-public class CreateSpaceHandler(IDataBase db, WorkspaceContext context, HybridCache cache) 
+public class CreateSpaceHandler(IDataBase db, WorkspaceContext context, IRealtimeService realtime) 
     : ICommandHandler<CreateSpaceCommand, Guid>
 {
     public async Task<Result<Guid>> Handle(CreateSpaceCommand request, CancellationToken ct)
@@ -106,22 +99,24 @@ public class CreateSpaceHandler(IDataBase db, WorkspaceContext context, HybridCa
         if (context.CurrentMember.Role > Role.Admin)
             return Result<Guid>.Failure(MemberError.DontHavePermission);
 
-        // 2. Business Logic with Domain Extensions
+        // 2. Business Logic
+        var slug = SlugHelper.GenerateSlug(request.name);
         var orderKey = await db.Spaces.ByWorkspace(context.workspaceId).GetNextOrderKey(ct);
         
         var space = ProjectSpace.Create(
             context.workspaceId,
             request.name,
-            context.CurrentMember.Id, // MemberId, NOT UserId
+            slug,
+            context.CurrentMember.Id,
             orderKey
         );
 
-        // 3. Persistence & Outbox (Events are internal to entity)
+        // 3. Persistence
         await db.Spaces.AddAsync(space, ct);
         await db.SaveChangesAsync(ct);
         
-        // 4. Performance: Cache Invalidation
-        await cache.RemoveByTagAsync(SpaceCacheKeys.WorkspaceSpaceTag(context.workspaceId), ct);
+        // 4. Explicit Side Effects (Real-time)
+        await realtime.NotifyWorkspaceAsync(context.workspaceId, "SpaceCreated", new { space.Id }, ct);
 
         return Result<Guid>.Success(space.Id);
     }

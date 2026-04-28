@@ -1,6 +1,5 @@
 using Application.Interfaces;
 using Application.Interfaces.Data;
-using Application.Interfaces.Services;
 using Infrastructure.Auth;
 using Infrastructure.Data;
 using Infrastructure.Services;
@@ -23,6 +22,7 @@ public static class ServicesRegistration
         services.AddHttpContextAccessor();
 
         services.AddSingleton<IPasswordService, PasswordService>();
+        services.AddHostedService<DbContextPreWarmer>();
 
         return services;
     }

@@ -33,6 +33,7 @@ public static class TaskError
 public static class AuthError
 {
     public static readonly Error InvalidCredentials = Error.Unauthorized("Auth.InvalidCredentials", "The email or password provided is incorrect.");
+    public static readonly Error InvalidSession = Error.Unauthorized("Auth.InvalidSession", "Invalid or expired session.");
 }
 
 public static class ViewError

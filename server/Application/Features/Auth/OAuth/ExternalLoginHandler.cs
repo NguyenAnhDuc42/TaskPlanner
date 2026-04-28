@@ -1,7 +1,6 @@
 using Application.Common.Results;
 using Application.Common.Errors;
 using Application.Interfaces.Data;
-using Application.Interfaces.Services;
 using Domain.Entities;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
@@ -55,19 +54,18 @@ public class ExternalLoginHandler : ICommandHandler<ExternalLoginCommand, LoginR
 
         // 3. Generate Tokens and Create Session
         var httpContext = _httpContextAccessor.HttpContext;
-        if (httpContext is null) 
-            return Error.Failure("Auth.ContextError", "No HttpContext available for external login.");
-
-        var userAgent = httpContext.Request.Headers["User-Agent"].ToString();
-        var ipAddress = httpContext.Connection.RemoteIpAddress?.ToString() ?? "Unknown IP";
+        var userAgent = httpContext?.Request.Headers["User-Agent"].ToString() ?? "Unknown";
+        var ipAddress = httpContext?.Connection.RemoteIpAddress?.ToString() ?? "Unknown";
 
         var tokens = _tokenService.GenerateTokens(user, userAgent, ipAddress);
-        _cookieService.SetAuthCookies(httpContext, tokens);
-
+        
         var session = Session.Create(user.Id, tokens.RefreshToken, tokens.ExpirationRefreshToken, userAgent, ipAddress);
         await _db.Sessions.AddAsync(session, ct);
         await _db.SaveChangesAsync(ct);
 
-        return new LoginResponse(tokens.ExpirationAccessToken, tokens.ExpirationRefreshToken);
+        // Update Cookies
+        _cookieService.SetAuthCookies(tokens);
+
+        return Result<LoginResponse>.Success(new LoginResponse(tokens.ExpirationAccessToken, tokens.ExpirationRefreshToken));
     }
 }

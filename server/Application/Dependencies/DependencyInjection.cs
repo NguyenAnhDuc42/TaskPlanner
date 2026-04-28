@@ -5,6 +5,7 @@ using Application.Helper;
 using Application.Helpers;
 using Application.Common.Interfaces;
 using Application.Features;
+using Application.Features.WorkspaceFeatures;
 using Application.Behaviors;
 using Application.Common;
 
@@ -26,18 +27,10 @@ public static class DependencyInjection
                 .WithScopedLifetime()
         );
 
-        // Decorators for the Custom Handlers
-        services.Decorate(typeof(ICommandHandler<>), typeof(Application.Behaviors.ValidationDecorator.CommandBaseHandler<>));
-        services.Decorate(typeof(ICommandHandler<,>), typeof(Application.Behaviors.ValidationDecorator.CommandHandler<,>));
-        services.Decorate(typeof(IQueryHandler<,>), typeof(Application.Behaviors.ValidationDecorator.QueryHandler<,>));
-
-        services.Decorate(typeof(ICommandHandler<>), typeof(Application.Behaviors.PermissionDecorator.CommandBaseHandler<>));
-        services.Decorate(typeof(ICommandHandler<,>), typeof(Application.Behaviors.PermissionDecorator.CommandHandler<,>));
-        services.Decorate(typeof(IQueryHandler<,>), typeof(Application.Behaviors.PermissionDecorator.QueryHandler<,>));
-
-        services.Decorate(typeof(ICommandHandler<>), typeof(LoggingDecorator.CommandBaseHandler<>));
-        services.Decorate(typeof(ICommandHandler<,>), typeof(LoggingDecorator.CommandHandler<,>));
-        services.Decorate(typeof(IQueryHandler<,>), typeof(LoggingDecorator.QueryHandler<,>));
+        // Consolidated Pipeline Decorator (Logging + Validation + Permission)
+        services.Decorate(typeof(ICommandHandler<>), typeof(PipelineDecorator.CommandBaseHandler<>));
+        services.Decorate(typeof(ICommandHandler<,>), typeof(PipelineDecorator.CommandHandler<,>));
+        services.Decorate(typeof(IQueryHandler<,>), typeof(PipelineDecorator.QueryHandler<,>));
 
         // Cursor Helper
         services.Configure<CursorEncryptionOptions>(config.GetSection(CursorEncryptionOptions.SectionName));
@@ -45,6 +38,7 @@ public static class DependencyInjection
 
         // Workspace Context
         services.AddScoped<WorkspaceContext>();
+        services.AddScoped<WorkspaceService>();
 
         // Handler Dispatcher - Using explicit registration to resolve CS0246
         services.AddScoped<IHandler, HandlerDispatcher>();

@@ -45,7 +45,7 @@ public static class AuthenticationRegistration
                         {
                             var cookieService = context.HttpContext.RequestServices
                                 .GetRequiredService<ICookieService>();
-                            var tokens = cookieService.GetAuthTokensFromCookies(context.HttpContext);
+                            var tokens = cookieService.GetAuthTokensFromCookies();
                             context.Token = tokens?.AccessToken;
                         }
                         return Task.CompletedTask;

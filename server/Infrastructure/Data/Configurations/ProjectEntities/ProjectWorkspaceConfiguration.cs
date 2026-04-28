@@ -47,6 +47,9 @@ public class ProjectWorkspaceConfiguration : EntityConfiguration<ProjectWorkspac
         builder.Property(w => w.IsArchived)
             .HasColumnName("is_archived");
 
+        builder.Property(w => w.IsInitialized)
+            .HasColumnName("is_initialized");
+
         builder.HasMany(w => w.Members)
             .WithOne()
             .HasForeignKey(m => m.ProjectWorkspaceId)
