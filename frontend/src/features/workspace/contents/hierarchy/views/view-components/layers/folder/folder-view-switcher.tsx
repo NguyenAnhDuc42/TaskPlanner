@@ -135,7 +135,7 @@ export function FolderViewSwitcher({
 
   const rightSide = useMemo(() => {
     if (isOverview && !selection) {
-      return <FolderOverviewContext />;
+      return <FolderOverviewContext data={overviewData} />;
     }
 
     if (selection?.type === "Task") {
@@ -147,7 +147,7 @@ export function FolderViewSwitcher({
       );
     }
 
-    return <FolderOverviewContext />;
+    return <FolderOverviewContext data={overviewData} />;
   }, [isOverview, selection]);
 
   return (

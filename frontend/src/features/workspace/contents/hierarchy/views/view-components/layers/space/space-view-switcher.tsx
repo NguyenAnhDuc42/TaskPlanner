@@ -102,7 +102,6 @@ export function SpaceViewSwitcher({
             icon={overviewData.icon}
             color={overviewData.color}
             description={overviewData.description} 
-            entityInfo={entityInfo}
           />
         </motion.div>
       );
@@ -142,7 +141,7 @@ export function SpaceViewSwitcher({
 
   const rightSide = useMemo(() => {
     if (isOverview && !selection) {
-      return <SpaceOverviewContext />;
+      return <SpaceOverviewContext data={overviewData} />;
     }
 
     if (selection?.type === "Folder") {
@@ -164,7 +163,7 @@ export function SpaceViewSwitcher({
       );
     }
 
-    return <SpaceOverviewContext />;
+    return <SpaceOverviewContext data={overviewData} />;
   }, [isOverview, selection]);
 
   return (

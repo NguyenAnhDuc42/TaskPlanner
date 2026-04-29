@@ -58,6 +58,12 @@ public class ProjectSpaceConfiguration : TenantEntityConfiguration<ProjectSpace>
         builder.Property(w => w.StatusId)
             .HasColumnName("status_id");
 
+        builder.Property(s => s.StartDate)
+            .HasColumnName("start_date");
+
+        builder.Property(s => s.DueDate)
+            .HasColumnName("due_date");
+
         // Foreign Keys
         builder.HasOne<Workflow>()
             .WithMany()

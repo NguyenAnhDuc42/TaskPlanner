@@ -3,13 +3,6 @@ import type { StatusCategory } from "@/types/status-category";
 import { ViewType } from "@/types/view-type";
 
 // ==========================================
-// Shared Enums (matching backend)
-// ==========================================
-
-
-
-
-// ==========================================
 // Entities
 // ==========================================
 
@@ -20,23 +13,23 @@ export interface TaskItemDto {
   statusId?: string;
   priority?: Priority;
   dueDate?: string;
+  startDate?: string;
 }
 
 export interface FolderItemDto {
   id: string;
   name: string;
   createdAt: string;
-  workflowId?: string;
   statusId?: string;
+  startDate?: string;
+  dueDate?: string;
 }
 
-export interface ExplorerStatusGroupDto {
+export interface TaskItemStatusDto {
   statusId: string;
-  statusName: string;
-  category: StatusCategory;
+  name: string;
   color: string;
-  folders: FolderItemDto[];
-  tasks: TaskItemDto[];
+  category: StatusCategory;
 }
 
 export interface DocumentDto {
@@ -55,10 +48,59 @@ export interface DocumentDto {
 export interface ViewDto {
   id: string;
   name: string;
-  viewType:ViewType; // Matching backend ViewType enum
+  viewType: ViewType;
   isDefault: boolean;
   filterConfigJson?: string;
   displayConfigJson?: string;
+}
+
+// ==========================================
+// Overview Specific Data
+// ==========================================
+
+export interface OverviewStatusDto {
+  name: string;
+  category: string;
+  color: string;
+}
+
+export interface OverviewProgressDto {
+  completedTasks: number;
+  totalTasks: number;
+}
+
+export interface OverviewActivityDto {
+  id: string;
+  content: string;
+  type: string;
+  timestamp: string;
+}
+
+export interface OverviewTimeDto {
+  timeEstimate?: string;
+  timeLogged?: string;
+  remainingTime?: string;
+}
+
+export interface OverviewStatsDto {
+  totalTasks: number;
+  totalFolders: number;
+}
+
+export interface OverviewViewData {
+  id: string;
+  name: string;
+  color?: string;
+  icon?: string;
+  description?: string;
+  status?: OverviewStatusDto;
+  workflowName?: string;
+  progress: OverviewProgressDto;
+  recentActivity: OverviewActivityDto[];
+  stats: OverviewStatsDto;
+  startDate?: string;
+  dueDate?: string;
+  timeStats?: OverviewTimeDto;
 }
 
 // ==========================================
@@ -66,7 +108,9 @@ export interface ViewDto {
 // ==========================================
 
 export interface TaskViewData {
-  groups: ExplorerStatusGroupDto[];
+  folders: FolderItemDto[];
+  tasks: TaskItemDto[];
+  statuses: TaskItemStatusDto[];
 }
 
 export interface AssetViewData {
@@ -74,25 +118,8 @@ export interface AssetViewData {
   totalCount: number;
 }
 
-export interface OverviewViewData {
-  id: string;
-  name: string;
-  icon?: string;
-  color?: string;
-  description?: string;
-  statusId?: string;
-  workflowId?: string;
-  chatRoomId?: string;
-  creatorId: string;
-  createdAt: string;
-  stats: {
-    totalTasks: number;
-    totalFolders: number;
-  };
-}
-
 export interface ViewResponse {
   viewId: string;
-  viewType: string;
+  viewType: ViewType;
   data: TaskViewData | AssetViewData | OverviewViewData;
 }
