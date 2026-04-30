@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect } from "react";
 import { SplitView } from "../../layout/split-view";
 import { SpaceOverviewMain } from "./overview-view/space-overview-main";
-import { SpaceOverviewContext } from "./overview-view/space-overview-context";
+import { EntityOverviewContext } from "../shared/overview-view/entity-overview-context";
 import { SpaceTasksMain } from "./tasks-view/space-tasks-main";
 import { FolderDrillContext } from "./tasks-view/folder-drill-context";
 import { SpaceTaskFocusContext } from "./tasks-view/space-task-focus-context";
@@ -23,6 +23,7 @@ interface SpaceViewSwitcherProps {
 }
 
 export function SpaceViewSwitcher({
+  entityId,
   view,
   data,
   viewHeader,
@@ -141,7 +142,13 @@ export function SpaceViewSwitcher({
 
   const rightSide = useMemo(() => {
     if (isOverview && !selection) {
-      return <SpaceOverviewContext data={overviewData} />;
+      return (
+        <EntityOverviewContext 
+          data={overviewData} 
+          entityId={entityId}
+          entityType={entityInfo?.type === "space" ? "space" : "folder"}
+        />
+      );
     }
 
     if (selection?.type === "Folder") {
@@ -163,8 +170,14 @@ export function SpaceViewSwitcher({
       );
     }
 
-    return <SpaceOverviewContext data={overviewData} />;
-  }, [isOverview, selection]);
+    return (
+      <EntityOverviewContext 
+        data={overviewData} 
+        entityId={entityId}
+        entityType={entityInfo?.type === "space" ? "space" : "folder"}
+      />
+    );
+  }, [isOverview, selection, overviewData, entityId, entityInfo]);
 
   return (
     <SplitView left={leftSide} right={rightSide} isRightOpen={isContextOpen} />

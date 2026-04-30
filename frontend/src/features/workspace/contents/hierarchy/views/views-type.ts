@@ -64,6 +64,13 @@ export interface OverviewStatusDto {
   color: string;
 }
 
+export interface OverviewStatusOptionDto {
+  id: string;
+  name: string;
+  category: string;
+  color: string;
+}
+
 export interface OverviewProgressDto {
   completedTasks: number;
   totalTasks: number;
@@ -100,6 +107,7 @@ export interface OverviewViewData {
   stats: OverviewStatsDto;
   startDate?: string;
   dueDate?: string;
+  availableStatuses: OverviewStatusOptionDto[];
   timeStats?: OverviewTimeDto;
 }
 

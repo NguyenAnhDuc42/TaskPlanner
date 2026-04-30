@@ -1,7 +1,7 @@
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   FileText,
-  Calendar,
+  Calendar as CalendarIcon,
   Layers,
   ChevronDown,
   Layout,
@@ -20,17 +20,23 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { useParams } from "@tanstack/react-router";
 
-interface SpaceOverviewContextProps {
+interface EntityOverviewContextProps {
   data?: OverviewViewData | null;
   entityId: string;
   entityType: "space" | "folder";
 }
 
-export function SpaceOverviewContext({ data, entityId, entityType }: SpaceOverviewContextProps) {
+export function EntityOverviewContext({ data, entityId, entityType }: EntityOverviewContextProps) {
   const { workspaceId } = useParams({ from: "/workspaces/$workspaceId" });
   const updateSpace = useUpdateSpace(workspaceId);
   const updateFolder = useUpdateFolder(workspaceId);
@@ -40,13 +46,27 @@ export function SpaceOverviewContext({ data, entityId, entityType }: SpaceOvervi
   const handleStatusUpdate = async (status: OverviewStatusOptionDto) => {
     try {
       if (entityType === "space") {
-        await updateSpace.mutateAsync({ spaceId: entityId, statusId: status.id } as any);
+        await updateSpace.mutateAsync({ spaceId: entityId, statusId: status.id });
       } else {
-        await updateFolder.mutateAsync({ folderId: entityId, statusId: status.id } as any);
+        await updateFolder.mutateAsync({ folderId: entityId, statusId: status.id });
       }
       toast.success(`Status updated to ${status.name}`);
     } catch (error) {
       toast.error("Failed to update status");
+    }
+  };
+
+  const handleDateUpdate = async (field: "startDate" | "dueDate", date: Date | undefined) => {
+    try {
+      const dateString = date?.toISOString();
+      if (entityType === "space") {
+        await updateSpace.mutateAsync({ spaceId: entityId, [field]: dateString });
+      } else {
+        await updateFolder.mutateAsync({ folderId: entityId, [field]: dateString });
+      }
+      toast.success(`${field === "startDate" ? "Start date" : "Due date"} updated`);
+    } catch (error) {
+      toast.error(`Failed to update ${field}`);
     }
   };
 
@@ -137,16 +157,52 @@ export function SpaceOverviewContext({ data, entityId, entityType }: SpaceOvervi
                 </PropertyRow>
               )}
 
-              <PropertyRow icon={Calendar} label="Start Date">
-                <span className="font-semibold text-foreground/80">
-                  {data.startDate ? format(new Date(data.startDate), "MMM d, yyyy") : "None"}
-                </span>
+              <PropertyRow icon={CalendarIcon} label="Start Date">
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <div className="flex items-center gap-2 cursor-pointer hover:bg-foreground/[0.05] -ml-1.5 px-1.5 py-0.5 rounded-md transition-colors group/date">
+                      <span className={cn(
+                        "font-semibold transition-colors",
+                        data.startDate ? "text-foreground/80" : "text-muted-foreground/40 italic"
+                      )}>
+                        {data.startDate ? format(new Date(data.startDate), "MMM d, yyyy") : "No start date"}
+                      </span>
+                      <ChevronDown className="h-3 w-3 opacity-0 group-hover/date:opacity-30 transition-opacity" />
+                    </div>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0 border-border/40 shadow-2xl rounded-xl overflow-hidden" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={data.startDate ? new Date(data.startDate) : undefined}
+                      onSelect={(date) => handleDateUpdate("startDate", date)}
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
               </PropertyRow>
 
               <PropertyRow icon={Clock} label="Due Date">
-                <span className="font-semibold text-foreground/80">
-                  {data.dueDate ? format(new Date(data.dueDate), "MMM d, yyyy") : "None"}
-                </span>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <div className="flex items-center gap-2 cursor-pointer hover:bg-foreground/[0.05] -ml-1.5 px-1.5 py-0.5 rounded-md transition-colors group/date">
+                      <span className={cn(
+                        "font-semibold transition-colors",
+                        data.dueDate ? "text-foreground/80" : "text-muted-foreground/40 italic"
+                      )}>
+                        {data.dueDate ? format(new Date(data.dueDate), "MMM d, yyyy") : "No due date"}
+                      </span>
+                      <ChevronDown className="h-3 w-3 opacity-0 group-hover/date:opacity-30 transition-opacity" />
+                    </div>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0 border-border/40 shadow-2xl rounded-xl overflow-hidden" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={data.dueDate ? new Date(data.dueDate) : undefined}
+                      onSelect={(date) => handleDateUpdate("dueDate", date)}
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
               </PropertyRow>
             </div>
 

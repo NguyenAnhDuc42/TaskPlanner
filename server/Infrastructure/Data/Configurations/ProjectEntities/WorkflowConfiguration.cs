@@ -14,10 +14,10 @@ public class WorkflowConfiguration : TenantEntityConfiguration<Workflow>
         builder.ToTable("workflows");
 
         builder.Property(w => w.SpaceId)
-            .HasColumnName("space_id");
+            .HasColumnName("project_space_id");
 
         builder.Property(w => w.FolderId)
-            .HasColumnName("folder_id");
+            .HasColumnName("project_folder_id");
 
         builder.Property(x => x.Name)
             .HasColumnName("name")

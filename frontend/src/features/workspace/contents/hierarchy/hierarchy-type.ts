@@ -91,6 +91,9 @@ export interface UpdateSpaceRequest {
   color?: string;
   icon?: string;
   isPrivate?: boolean;
+  statusId?: string;
+  startDate?: string;
+  dueDate?: string;
 }
 
 export interface UpdateFolderRequest {
@@ -99,6 +102,9 @@ export interface UpdateFolderRequest {
   color?: string;
   icon?: string;
   isPrivate?: boolean;
+  statusId?: string;
+  startDate?: string;
+  dueDate?: string;
 }
 
 export interface UpdateTaskRequest {

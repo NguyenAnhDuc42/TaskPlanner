@@ -17,35 +17,34 @@ namespace Api.Controllers
             _handler = iHandler;
         }
 
-        [HttpPost("{workspaceId:guid}")]
-        public async Task<IActionResult> Create(Guid workspaceId, [FromBody] CreateSpaceCommand command, CancellationToken cancellationToken)
+        [HttpPost]
+        public async Task<IActionResult> Create([FromBody] CreateSpaceCommand command, CancellationToken cancellationToken)
         {
-            // Ensure workspaceId is correctly set if command has it
             var result = await _handler.SendAsync<CreateSpaceCommand, Guid>(command, cancellationToken);
             return result.ToActionResult();
         }
 
-        [HttpPut("{workspaceId:guid}/{id:guid}")]
-        public async Task<IActionResult> Update(Guid workspaceId, Guid id, [FromBody] UpdateSpaceRequest request, CancellationToken cancellationToken)
+        [HttpPut("{id:guid}")]
+        public async Task<IActionResult> Update(Guid id, [FromBody] UpdateSpaceRequest request, CancellationToken cancellationToken)
         {
             var command = new UpdateSpaceCommand(
-                workspaceId: workspaceId,
                 SpaceId: id,
                 Name: request.Name,
                 Description: request.Description,
                 Color: request.Color,
                 Icon: request.Icon,
-                IsPrivate: request.IsPrivate
+                IsPrivate: request.IsPrivate,
+                StatusId: request.StatusId
             );
 
             var result = await _handler.SendAsync(command, cancellationToken);
             return result.ToActionResult();
         }
 
-        [HttpDelete("{workspaceId:guid}/{id:guid}")]
-        public async Task<IActionResult> Delete(Guid workspaceId, Guid id, CancellationToken cancellationToken)
+        [HttpDelete("{id:guid}")]
+        public async Task<IActionResult> Delete(Guid id, CancellationToken cancellationToken)
         {
-            var command = new DeleteSpaceCommand(workspaceId, id);
+            var command = new DeleteSpaceCommand(id);
             var result = await _handler.SendAsync(command, cancellationToken);
             return result.ToActionResult();
         }
@@ -56,6 +55,7 @@ namespace Api.Controllers
         string? Description,
         string? Color,
         string? Icon,
-        bool? IsPrivate
+        bool? IsPrivate,
+        Guid? StatusId
     );
 }

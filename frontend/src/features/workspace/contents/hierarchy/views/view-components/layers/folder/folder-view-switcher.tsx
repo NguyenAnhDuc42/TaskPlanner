@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect } from "react";
 import { SplitView } from "../../layout/split-view";
 import { FolderOverviewMain } from "./overview-view/folder-overview-main";
-import { FolderOverviewContext } from "./overview-view/folder-overview-context";
+import { EntityOverviewContext } from "../shared/overview-view/entity-overview-context";
 import { FolderTasksMain } from "./tasks-view/folder-tasks-main";
 import { TaskFocusContext } from "./tasks-view/task-focus-context";
 import type { TaskViewData, OverviewViewData, ViewDto, TaskItemDto } from "../../../views-type";
@@ -22,6 +22,7 @@ interface FolderViewSwitcherProps {
 }
 
 export function FolderViewSwitcher({
+  entityId,
   view,
   data,
   viewHeader,
@@ -135,7 +136,7 @@ export function FolderViewSwitcher({
 
   const rightSide = useMemo(() => {
     if (isOverview && !selection) {
-      return <FolderOverviewContext data={overviewData} />;
+      return <EntityOverviewContext data={overviewData} entityId={entityId} entityType="folder" />;
     }
 
     if (selection?.type === "Task") {
@@ -147,8 +148,8 @@ export function FolderViewSwitcher({
       );
     }
 
-    return <FolderOverviewContext data={overviewData} />;
-  }, [isOverview, selection]);
+    return <EntityOverviewContext data={overviewData} entityId={entityId} entityType="folder" />;
+  }, [isOverview, selection, overviewData, entityId]);
 
   return (
     <SplitView left={leftSide} right={rightSide} isRightOpen={isContextOpen} />

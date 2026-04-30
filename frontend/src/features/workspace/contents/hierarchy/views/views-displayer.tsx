@@ -5,6 +5,9 @@ import { useState, useMemo, useEffect } from "react";
 import { ViewHeader } from "./view-components/layout/view-header";
 import { SpaceViewSwitcher } from "./view-components/layers/space/space-view-switcher";
 import { FolderViewSwitcher } from "./view-components/layers/folder/folder-view-switcher";
+import { useQueryClient } from "@tanstack/react-query";
+import { viewsKeys } from "./views-keys";
+import { hierarchyKeys } from "../hierarchy-keys";
 
 interface ViewsDisplayerProps {
   workspaceId: string;
@@ -17,6 +20,7 @@ export function ViewsDisplayer({
   entityId,
   layerType,
 }: ViewsDisplayerProps) {
+  const queryClient = useQueryClient();
   const entityInfo = useEntityInfo(workspaceId, entityId);
   const [isContextOpen, setIsContextOpen] = useState(true);
 
@@ -30,9 +34,22 @@ export function ViewsDisplayer({
       }
     };
 
+    const handleUpdated = (data: any) => {
+      // Invalidate views data
+      queryClient.invalidateQueries({ queryKey: viewsKeys.all });
+      
+      // If it's the current entity, we might need to refresh entity info too
+      if (data.SpaceId === entityId || data.FolderId === entityId || data.TaskId === entityId) {
+         queryClient.invalidateQueries({ queryKey: hierarchyKeys.detail(workspaceId) });
+      }
+    };
+
     const signalR = import("@/lib/signalr-service").then(m => {
       m.signalRService.on("SpaceCreated", handleCreated);
       m.signalRService.on("FolderCreated", handleCreated);
+      m.signalRService.on("SpaceUpdated", handleUpdated);
+      m.signalRService.on("FolderUpdated", handleUpdated);
+      m.signalRService.on("TaskUpdated", handleUpdated);
       return m.signalRService;
     });
 
@@ -40,9 +57,12 @@ export function ViewsDisplayer({
       signalR.then(s => {
         s.off("SpaceCreated", handleCreated);
         s.off("FolderCreated", handleCreated);
+        s.off("SpaceUpdated", handleUpdated);
+        s.off("FolderUpdated", handleUpdated);
+        s.off("TaskUpdated", handleUpdated);
       });
     };
-  }, [entityId, refetchViews]);
+  }, [entityId, refetchViews, queryClient, workspaceId]);
 
   useEffect(() => {
     if (views && views.length > 0) {
@@ -107,6 +127,7 @@ export function ViewsDisplayer({
         isLoading={isLoading}
         isContextOpen={isContextOpen}
         setIsContextOpen={setIsContextOpen}
+        entityInfo={entityInfo}
       />
     );
   }

@@ -6,11 +6,13 @@ using Domain.Enums.RelationShip;
 namespace Application.Features.SpaceFeatures;
 
 public record UpdateSpaceCommand(
-    Guid workspaceId,
     Guid SpaceId,
     string? Name,
     string? Description,
     string? Color,
     string? Icon,
-    bool? IsPrivate
+    bool? IsPrivate,
+    DateTimeOffset? StartDate = null,
+    DateTimeOffset? DueDate = null,
+    Guid? StatusId = null
 ) : ICommandRequest, IAuthorizedWorkspaceRequest;

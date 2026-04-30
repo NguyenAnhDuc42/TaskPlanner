@@ -8,7 +8,7 @@ namespace Application.Features.ViewFeatures;
 
 public partial class GetViewDataHandler
 {
-    private async Task<OverviewViewData> FetchOverviewContextData(IDataBase db, ViewDefinition view, Workflow workflow, CancellationToken ct)
+    private async Task<OverviewViewData> FetchOverviewContextData(IDataBase db, ViewDefinition view, Workflow parentWorkflow, Workflow activeWorkflow, CancellationToken ct)
     {
         var connection = db.Connection;
 
@@ -65,11 +65,11 @@ public partial class GetViewDataHandler
         DateTimeOffset? startDate = entity?.startdate;
         DateTimeOffset? dueDate = entity?.duedate;
 
-        // Map Status
+        // Map Status (Status comes from Parent Workflow)
         OverviewStatusDto? statusDto = null;
         if (statusId != null)
         {
-            var status = workflow.Statuses.FirstOrDefault(s => s.Id == statusId);
+            var status = parentWorkflow.Statuses.FirstOrDefault(s => s.Id == statusId);
             if (status != null)
             {
                 statusDto = new OverviewStatusDto(status.Name, status.Category.ToString(), status.Color);
@@ -100,12 +100,13 @@ public partial class GetViewDataHandler
             icon,
             description, 
             statusDto, 
-            workflow.Name, 
+            activeWorkflow.Name, 
             new OverviewProgressDto(completedTasks, totalTasks),
             new List<OverviewActivityDto>(),
             new OverviewStats(totalTasks, folderCount),
             startDate,
             dueDate,
+            parentWorkflow.Statuses.Select(s => new OverviewStatusItemDto(s.Id, s.Name, s.Category.ToString(), s.Color)).ToList(),
             view.ProjectSpaceId != null ? new OverviewTimeDto("0h", "0h", "0h") : null
         );
     }
@@ -124,7 +125,15 @@ public record OverviewViewData(
     OverviewStats Stats,
     DateTimeOffset? StartDate = null,
     DateTimeOffset? DueDate = null,
+    List<OverviewStatusItemDto> AvailableStatuses = null!,
     OverviewTimeDto? TimeStats = null
+);
+
+public record OverviewStatusItemDto(
+    Guid Id,
+    string Name,
+    string Category,
+    string Color
 );
 
 public record OverviewStatusDto(

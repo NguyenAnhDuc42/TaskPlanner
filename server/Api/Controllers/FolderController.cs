@@ -34,7 +34,8 @@ public class FoldersController : ControllerBase
             Icon: request.Icon,
             IsPrivate: request.IsPrivate,
             StartDate: request.StartDate,
-            DueDate: request.DueDate
+            DueDate: request.DueDate,
+            StatusId: request.StatusId
         );
 
         var result = await _handler.SendAsync(command, ct);
@@ -56,5 +57,6 @@ public record UpdateFolderRequest(
     string? Icon,
     bool? IsPrivate,
     DateTimeOffset? StartDate,
-    DateTimeOffset? DueDate
+    DateTimeOffset? DueDate,
+    Guid? StatusId
 );

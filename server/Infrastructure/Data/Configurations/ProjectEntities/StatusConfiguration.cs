@@ -33,6 +33,12 @@ public class StatusConfiguration : TenantEntityConfiguration<Status>
             .HasMaxLength(50)
             .IsRequired();
 
+        builder.Property(s => s.OrderKey)
+            .HasColumnName("order_key")
+            .IsRequired();
+
+        builder.HasIndex(s => new { s.WorkflowId, s.OrderKey });
+
         // Foreign Keys
         builder.HasOne<Workflow>()
             .WithMany(w => w.Statuses)

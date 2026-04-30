@@ -1,6 +1,7 @@
-import { createContext, useContext, type ReactNode } from "react";
+import { createContext, useContext, useEffect, type ReactNode } from "react";
 import { useWorkspaceDetail, type WorkspaceSecurityContext } from "../api";
-import type { StatusDto } from "../contents/hierarchy/views/views-type";
+import { signalRService } from "@/lib/signalr-service";
+import type { StatusDto } from "@/types/status";
 
 interface WorkspaceContextType {
   workspaceId: string;
@@ -31,6 +32,23 @@ export function WorkspaceProvider({ workspaceId, children }: WorkspaceProviderPr
     isLoading, 
     error 
   } = useWorkspaceDetail(workspaceId);
+
+  useEffect(() => {
+    const manageConnection = async () => {
+      try {
+        await signalRService.startConnection();
+        await signalRService.invoke("JoinWorkspace", workspaceId);
+      } catch (err) {
+        console.error("[SignalR] Failed to join workspace group:", err);
+      }
+    };
+
+    manageConnection();
+
+    return () => {
+      signalRService.invoke("LeaveWorkspace", workspaceId).catch(() => {});
+    };
+  }, [workspaceId]);
 
   // Statuses are now resolved at the Space/Folder level 
   const statuses: StatusDto[] = [];

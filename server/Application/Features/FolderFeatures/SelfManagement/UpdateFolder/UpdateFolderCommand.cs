@@ -10,5 +10,6 @@ public record UpdateFolderCommand(
     string? Icon,
     bool? IsPrivate,
     DateTimeOffset? StartDate = null,
-    DateTimeOffset? DueDate = null
+    DateTimeOffset? DueDate = null,
+    Guid? StatusId = null
 ) : ICommandRequest, IAuthorizedWorkspaceRequest;

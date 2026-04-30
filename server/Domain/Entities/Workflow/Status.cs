@@ -10,31 +10,34 @@ public class Status : TenantEntity
     public string Name { get; private set; } = null!;
     public string Color { get; private set; } = null!;
     public StatusCategory Category { get; private set; }
+    public string OrderKey { get; private set; } = null!;
 
     private Status() { } // EF Core
 
-    private Status(Guid id, Guid projectWorkspaceId, Guid workflowId, string name, string color, StatusCategory category, Guid creatorId)
+    private Status(Guid id, Guid projectWorkspaceId, Guid workflowId, string name, string color, StatusCategory category, Guid creatorId, string orderKey)
         : base(id, projectWorkspaceId)
     {
         WorkflowId = workflowId;
         Name = name;
         Color = color;
         Category = category;
+        OrderKey = orderKey;
         
         // Audit is initialized in base constructor
         InitializeAudit(creatorId);
     }
 
-    public static Status Create(Guid projectWorkspaceId, Guid workflowId, string name, string color, StatusCategory category, Guid creatorId)
-        => new Status(Guid.NewGuid(), projectWorkspaceId, workflowId, name, color, category, creatorId);
+    public static Status Create(Guid projectWorkspaceId, Guid workflowId, string name, string color, StatusCategory category, Guid creatorId, string? orderKey = null)
+        => new Status(Guid.NewGuid(), projectWorkspaceId, workflowId, name, color, category, creatorId, orderKey ?? FractionalIndex.Start());
 
     public static List<Status> CreateStarterSet(Guid projectWorkspaceId, Guid workflowId, Guid creatorId)
     {
+        var start = FractionalIndex.Start();
         return new List<Status>
         {
-            new Status(Guid.NewGuid(), projectWorkspaceId, workflowId, "To Do", "#808080", StatusCategory.NotStarted, creatorId),
-            new Status(Guid.NewGuid(), projectWorkspaceId, workflowId, "In Progress", "#1e90ff", StatusCategory.Active, creatorId),
-            new Status(Guid.NewGuid(), projectWorkspaceId, workflowId, "Complete", "#008000", StatusCategory.Done, creatorId)
+            new Status(Guid.NewGuid(), projectWorkspaceId, workflowId, "To Do", "#808080", StatusCategory.NotStarted, creatorId, start),
+            new Status(Guid.NewGuid(), projectWorkspaceId, workflowId, "In Progress", "#1e90ff", StatusCategory.Active, creatorId, FractionalIndex.After(start)),
+            new Status(Guid.NewGuid(), projectWorkspaceId, workflowId, "Complete", "#008000", StatusCategory.Done, creatorId, FractionalIndex.After(FractionalIndex.After(start)))
         };
     }
 
@@ -55,6 +58,13 @@ public class Status : TenantEntity
     {
         if (Category == category) return;
         Category = category;
+        UpdateTimestamp();
+    }
+
+    public void UpdateOrderKey(string orderKey)
+    {
+        if (OrderKey == orderKey) return;
+        OrderKey = orderKey;
         UpdateTimestamp();
     }
 

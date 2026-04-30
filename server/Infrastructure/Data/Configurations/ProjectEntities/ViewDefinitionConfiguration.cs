@@ -14,10 +14,10 @@ public class ViewDefinitionConfiguration : TenantEntityConfiguration<ViewDefinit
         builder.ToTable("view_definitions");
 
         builder.Property(x => x.ProjectSpaceId)
-            .HasColumnName("space_id");
+            .HasColumnName("project_space_id");
 
         builder.Property(x => x.ProjectFolderId)
-            .HasColumnName("folder_id");
+            .HasColumnName("project_folder_id");
 
         builder.Property(x => x.Name)
             .HasColumnName("name")
@@ -34,8 +34,8 @@ public class ViewDefinitionConfiguration : TenantEntityConfiguration<ViewDefinit
             .HasColumnName("is_default")
             .IsRequired();
 
-        builder.Property(x => x.SortOrder)
-            .HasColumnName("sort_order")
+        builder.Property(x => x.OrderKey)
+            .HasColumnName("order_key")
             .IsRequired();
         
         builder.Property(x => x.FilterConfig)

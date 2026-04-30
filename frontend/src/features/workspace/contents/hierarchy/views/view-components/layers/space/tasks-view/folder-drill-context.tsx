@@ -3,7 +3,9 @@ import { Loader2 } from "lucide-react";
 import { StatusGroup } from "../../../item-components/status-group";
 import { TaskItem } from "../../../item-components/task-item";
 import type { TaskItemDto, TaskViewData } from "../../../../views-type";
-import { useViewData } from "../../../../views-api";
+import { useViewData, useViews } from "../../../../views-api";
+import { useMemo } from "react";
+import { ViewType } from "@/types/view-type";
 
 
 interface FolderDrillContextProps {
@@ -17,7 +19,30 @@ export function FolderDrillContext({
   folderName,
   onTaskSelect,
 }: FolderDrillContextProps) {
-  const { data, isLoading } = useViewData(folderId);
+  // 1. Fetch views for this folder to find the default Tasks view
+  const { data: views } = useViews(folderId, "ProjectFolder" as any);
+  
+  const tasksViewId = useMemo(() => {
+    return views?.find(v => v.viewType === ViewType.Task)?.id;
+  }, [views]);
+
+  // 2. Fetch data for that view
+  const { data, isLoading } = useViewData(tasksViewId || "");
+
+  const viewData = data?.data as TaskViewData | undefined;
+
+  const groups = useMemo(() => {
+    if (!viewData) return [];
+
+    const { tasks, statuses } = viewData;
+
+    return statuses.map(status => ({
+      statusId: status.statusId,
+      statusName: status.name,
+      color: status.color,
+      tasks: tasks.filter(t => t.statusId === status.statusId)
+    }));
+  }, [viewData]);
 
   if (isLoading) {
     return (
@@ -26,8 +51,6 @@ export function FolderDrillContext({
       </div>
     );
   }
-
-  const viewData = data?.data as TaskViewData | undefined;
 
   return (
     <div className="flex-1 flex flex-col h-full bg-muted/5">
@@ -42,7 +65,7 @@ export function FolderDrillContext({
 
       <ScrollArea className="flex-1">
         <div className="p-6 space-y-8">
-           {viewData?.groups?.map((group) => (
+           {groups?.map((group) => (
              <StatusGroup
                key={group.statusId}
                statusName={group.statusName}
@@ -59,7 +82,7 @@ export function FolderDrillContext({
              </StatusGroup>
            ))}
 
-           {(!viewData?.groups || viewData.groups.length === 0) && (
+           {(!groups || groups.length === 0) && !isLoading && (
               <div className="py-20 flex flex-col items-center justify-center gap-2">
                  <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/10">
                     No Tasks In Folder

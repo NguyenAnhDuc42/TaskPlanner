@@ -11,7 +11,7 @@ using Dapper;
 
 namespace Application.Features.TaskFeatures;
 
-public class UpdateTaskHandler(IDataBase db, WorkspaceContext context) : ICommandHandler<UpdateTaskCommand>
+public class UpdateTaskHandler(IDataBase db, WorkspaceContext context, IRealtimeService realtime) : ICommandHandler<UpdateTaskCommand>
 {
     public async Task<Result> Handle(UpdateTaskCommand request, CancellationToken ct)
     {
@@ -32,6 +32,9 @@ public class UpdateTaskHandler(IDataBase db, WorkspaceContext context) : IComman
         await ApplyAssigneeUpdate(task, request, ct);
 
         await db.SaveChangesAsync(ct);
+
+        await realtime.NotifyWorkspaceAsync(context.workspaceId, "TaskUpdated", new { TaskId = task.Id, WorkspaceId = context.workspaceId }, ct);
+
         return Result.Success();
     }
 

@@ -17,7 +17,13 @@ public partial class GetViewDataHandler(IDataBase db)
         var view = await db.ViewDefinitions.FirstOrDefaultAsync(v => v.Id == request.ViewId, ct);
         if (view == null) return Result<ViewDataResponse>.Failure(Error.NotFound("View.NotFound", "View definition not found."));
 
-        var workflow = await WorkflowHelper.GetActiveWorkflow(db, view.ProjectWorkspaceId, 
+        // 1. Resolve Parent Workflow (for entity status)
+        var parentWorkflow = await WorkflowHelper.GetActiveWorkflow(db, view.ProjectWorkspaceId, 
+            view.ProjectFolderId != null ? view.ProjectSpaceId : null, 
+            null, ct);
+
+        // 2. Resolve Active Workflow (for child items)
+        var activeWorkflow = await WorkflowHelper.GetActiveWorkflow(db, view.ProjectWorkspaceId, 
             view.ProjectSpaceId, 
             view.ProjectFolderId, ct);
 
@@ -25,10 +31,10 @@ public partial class GetViewDataHandler(IDataBase db)
         switch (view.ViewType)
         {
             case ViewType.Tasks:
-                data = await FetchTaskBoardData(db, view, workflow, ct);
+                data = await FetchTaskBoardData(db, view, activeWorkflow, ct);
                 break;
             case ViewType.Overview:
-                data = await FetchOverviewContextData(db, view, workflow, ct);
+                data = await FetchOverviewContextData(db, view, parentWorkflow, activeWorkflow, ct);
                 break;
             default:
                 return Result<ViewDataResponse>.Failure(Error.Validation("View.InvalidType", "Unsupported view type."));

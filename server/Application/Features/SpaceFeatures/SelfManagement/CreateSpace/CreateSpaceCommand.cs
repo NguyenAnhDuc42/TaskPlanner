@@ -3,7 +3,6 @@ using Application.Common.Interfaces;
 namespace Application.Features.SpaceFeatures;
 
 public record CreateSpaceCommand(
-    Guid workspaceId,
     string name,
     string? description,
     string color,

@@ -2,6 +2,7 @@ using Application.Common.Errors;
 using Application.Common.Interfaces;
 using Application.Common.Results;
 using Application.Helpers;
+using Application.Interfaces;
 using Application.Interfaces.Data;
 using Domain.Enums;
 using Domain.Entities;
@@ -9,7 +10,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Application.Features.FolderFeatures;
 
-public class UpdateFolderHandler(IDataBase db, WorkspaceContext context) : ICommandHandler<UpdateFolderCommand>
+public class UpdateFolderHandler(IDataBase db, WorkspaceContext context, IRealtimeService realtime) : ICommandHandler<UpdateFolderCommand>
 {
     public async Task<Result> Handle(UpdateFolderCommand request, CancellationToken ct)
     {
@@ -39,8 +40,14 @@ public class UpdateFolderHandler(IDataBase db, WorkspaceContext context) : IComm
 
         if (request.StartDate != null) folder.UpdateStartDate(request.StartDate.Value);
         if (request.DueDate != null) folder.UpdateDueDate(request.DueDate.Value);
+        
+        if (request.StatusId.HasValue)
+            folder.UpdateStatus(request.StatusId.Value);
 
         await db.SaveChangesAsync(ct);
+
+        await realtime.NotifyWorkspaceAsync(context.workspaceId, "FolderUpdated", new { FolderId = folder.Id, SpaceId = folder.ProjectSpaceId, WorkspaceId = context.workspaceId }, ct);
+
         return Result.Success();
     }
 }

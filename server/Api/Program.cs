@@ -38,6 +38,7 @@ builder.Services.AddInfrastructure(connectionString, builder.Configuration);
 builder.Services.AddApplication(builder.Configuration);
 
 
+/* 
 builder.Services.AddBackground(builder.Configuration);
 
 var app = builder.Build();
@@ -49,6 +50,8 @@ using (var scope = app.Services.CreateScope())
 
     scheduler.Schedule();
 }
+*/
+var app = builder.Build();
 
 // --- 3. Aspire Endpoints & Monitoring ---
 app.MapDefaultEndpoints(); // Standardizes /health and /alive across all containers

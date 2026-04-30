@@ -12,7 +12,7 @@ public class ViewDefinition : TenantEntity
     public string Name { get; private set; } = null!;
     public ViewType ViewType { get; private set; }
     public bool IsDefault { get; private set; }
-    public string SortOrder { get; private set; } = null!;
+    public string OrderKey { get; private set; } = null!;
     
     // Shared configurations stored as JSON in DB but typed in Domain
     public ViewFilterConfig FilterConfig { get; private set; } = ViewFilterConfig.CreateDefault();
@@ -28,7 +28,7 @@ public class ViewDefinition : TenantEntity
         string name,
         ViewType viewType,
         bool isDefault,
-        string sortOrder,
+        string orderKey,
         Guid creatorId)
         : base(id, projectWorkspaceId)
     {
@@ -37,7 +37,7 @@ public class ViewDefinition : TenantEntity
         Name = name;
         ViewType = viewType;
         IsDefault = isDefault;
-        SortOrder = sortOrder;
+        OrderKey = orderKey;
         
         // Audit is initialized in base constructor
         InitializeAudit(creatorId);
@@ -51,9 +51,9 @@ public class ViewDefinition : TenantEntity
         ViewType viewType,
         Guid creatorId,
         bool isDefault = false,
-        string? sortOrder = null)
+        string? orderKey = null)
     {
-        return new ViewDefinition(Guid.NewGuid(), projectWorkspaceId, projectSpaceId, projectFolderId, name, viewType, isDefault, sortOrder ?? FractionalIndex.Start(), creatorId);
+        return new ViewDefinition(Guid.NewGuid(), projectWorkspaceId, projectSpaceId, projectFolderId, name, viewType, isDefault, orderKey ?? FractionalIndex.Start(), creatorId);
     }
 
     public static List<ViewDefinition> CreateDefaults(Guid projectWorkspaceId, Guid? projectSpaceId, Guid? projectFolderId, Guid creatorId)
@@ -61,8 +61,8 @@ public class ViewDefinition : TenantEntity
         var start = FractionalIndex.Start();
         return new List<ViewDefinition>
         {
-            Create(projectWorkspaceId, projectSpaceId, projectFolderId, "Overview", ViewType.Overview, creatorId, isDefault: true, sortOrder: start),
-            Create(projectWorkspaceId, projectSpaceId, projectFolderId, "Tasks", ViewType.Tasks, creatorId, isDefault: false, sortOrder: FractionalIndex.After(start))
+            Create(projectWorkspaceId, projectSpaceId, projectFolderId, "Overview", ViewType.Overview, creatorId, isDefault: true, orderKey: start),
+            Create(projectWorkspaceId, projectSpaceId, projectFolderId, "Tasks", ViewType.Tasks, creatorId, isDefault: false, orderKey: FractionalIndex.After(start))
         };
     }
 
@@ -86,9 +86,9 @@ public class ViewDefinition : TenantEntity
         UpdateTimestamp();
     }
 
-    public void SetDefault(bool isDefault)
+    public void UpdateOrderKey(string orderKey)
     {
-        IsDefault = isDefault;
+        OrderKey = orderKey;
         UpdateTimestamp();
     }
 }

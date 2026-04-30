@@ -91,7 +91,7 @@ export function useNodeTasks(workspaceId: string, nodeId: string, parentType: En
 export function useCreateSpace(workspaceId: string) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (data: CreateSpaceRequest) => api.post(`/spaces/${workspaceId}`, data),
+    mutationFn: (data: CreateSpaceRequest) => api.post(`/spaces`, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: hierarchyKeys.detail(workspaceId) });
     },
@@ -101,9 +101,10 @@ export function useCreateSpace(workspaceId: string) {
 export function useUpdateSpace(workspaceId: string) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (data: UpdateSpaceRequest) => api.put(`/spaces/${workspaceId}/${data.spaceId}`, data),
+    mutationFn: (data: UpdateSpaceRequest) => api.put(`/spaces/${data.spaceId}`, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: hierarchyKeys.detail(workspaceId) });
+      queryClient.invalidateQueries({ queryKey: ["views"] });
     },
   });
 }
@@ -136,6 +137,7 @@ export function useUpdateFolder(workspaceId: string) {
     mutationFn: (data: UpdateFolderRequest) => api.put(`/folders/${data.folderId}`, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: hierarchyKeys.detail(workspaceId) });
+      queryClient.invalidateQueries({ queryKey: ["views"] });
     },
   });
 }
@@ -146,6 +148,7 @@ export function useUpdateTask(workspaceId: string) {
     mutationFn: (data: UpdateTaskRequest) => api.put(`/tasks/${data.taskId}`, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: hierarchyKeys.all });
+      queryClient.invalidateQueries({ queryKey: ["views"] });
     },
   });
 }
