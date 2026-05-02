@@ -26,6 +26,18 @@ public class RegisterHandler(
         
         await db.Users.AddAsync(user, ct);
 
+        // Automatically create a default workspace for the new user
+        var defaultWorkspace = ProjectWorkspace.Create(
+            name: $"{user.Name}'s Workspace",
+            slug: $"{user.Name.ToLower().Replace(" ", "-")}-{Guid.NewGuid().ToString("N")[..4]}",
+            description: "Your personal default workspace.",
+            joinCode: null,
+            color: null,
+            icon: null,
+            creatorId: user.Id
+        );
+        await db.Workspaces.AddAsync(defaultWorkspace, ct);
+
         // Best Practice: Automatically log in the user after registration
         var httpContext = httpContextAccessor.HttpContext;
         var userAgent = httpContext?.Request.Headers["User-Agent"].ToString() ?? "Unknown";

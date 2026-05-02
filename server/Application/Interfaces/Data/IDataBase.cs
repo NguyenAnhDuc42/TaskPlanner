@@ -9,6 +9,7 @@ public interface IDataBase
     IDbConnection Connection { get; }
     
     DbSet<User> Users { get; }
+    DbSet<UserPreference> UserPreferences { get; }
     DbSet<Session> Sessions { get; }
     DbSet<ProjectWorkspace> Workspaces { get; }
     DbSet<ProjectSpace> Spaces { get; }
@@ -20,6 +21,7 @@ public interface IDataBase
     DbSet<Status> Statuses { get; }
     DbSet<Comment> Comments { get; }
     DbSet<Document> Documents { get; }
+    DbSet<DocumentBlock> DocumentBlocks { get; }
     DbSet<ViewDefinition> ViewDefinitions { get; }
     DbSet<Attachment> Attachments { get; }
     DbSet<EntityAssetLink> EntityAssetLinks { get; }
