@@ -22,63 +22,83 @@ public class CreateTaskHandler(IDataBase db, WorkspaceContext context) : IComman
 
         var ancestors = await HierarchyHelper.GetAncestorChain(db, request.ParentId, request.ParentType, ct);
 
-        string orderKey = request.ParentType switch
+        await db.BeginTransactionAsync(ct);
+
+        try
         {
-            EntityLayerType.ProjectFolder => await ResolveFolderOrderKey(request.ParentId, ct),
-            EntityLayerType.ProjectSpace => await ResolveSpaceOrderKey(request.ParentId, ct),
-            _ => FractionalIndex.Start()
-        };
+            string orderKey = request.ParentType switch
+            {
+                EntityLayerType.ProjectFolder => await ResolveFolderOrderKey(request.ParentId, ct),
+                EntityLayerType.ProjectSpace => await ResolveSpaceOrderKey(request.ParentId, ct),
+                _ => FractionalIndex.Start()
+            };
 
-        var statusId = await ResolveStatusId(ancestors.ProjectWorkspaceId, request.StatusId);
+            var statusId = await ResolveStatusId(ancestors.ProjectWorkspaceId, request.StatusId);
 
-        var slug = SlugHelper.GenerateSlug(request.Name);
-        var task = ProjectTask.Create(
-            projectWorkspaceId: ancestors.ProjectWorkspaceId,
-            projectSpaceId: ancestors.ProjectSpaceId,
-            projectFolderId: ancestors.ProjectFolderId,
-            name: request.Name,
-            slug: slug,
-            description: request.Description ?? string.Empty,
-            color: null,
-            icon: null,
-            creatorId: context.CurrentMember.Id,
-            statusId: statusId,
-            priority: request.Priority,
-            startDate: request.StartDate,
-            dueDate: request.DueDate,
-            storyPoints: request.StoryPoints,
-            timeEstimateSeconds: request.TimeEstimate,
-            orderKey: orderKey
-        );
+            var slug = SlugHelper.GenerateSlug(request.Name);
 
-        await db.Tasks.AddAsync(task, ct);
+            // 1. Create the primary document for this task
+            var document = Document.Create(
+                ancestors.ProjectWorkspaceId,
+                request.Name, // Doc name matches task name initially
+                context.CurrentMember.Id
+            );
+            await db.Documents.AddAsync(document, ct);
 
-        // Assignments
-        var assignees = new List<AssigneeDto>();
-        if (request.AssigneeIds?.Any() == true)
-        {
-            assignees = await HandleAssignments(task, ancestors.ProjectWorkspaceId, request.AssigneeIds, ct);
+            // 2. Create the task linked to the document
+            var task = ProjectTask.Create(
+                projectWorkspaceId: ancestors.ProjectWorkspaceId,
+                projectSpaceId: ancestors.ProjectSpaceId,
+                projectFolderId: ancestors.ProjectFolderId,
+                name: request.Name,
+                slug: slug,
+                defaultDocumentId: document.Id,
+                color: null,
+                icon: null,
+                creatorId: context.CurrentMember.Id,
+                statusId: statusId,
+                priority: request.Priority,
+                startDate: request.StartDate,
+                dueDate: request.DueDate,
+                storyPoints: request.StoryPoints,
+                timeEstimateSeconds: request.TimeEstimate,
+                orderKey: orderKey
+            );
+
+            await db.Tasks.AddAsync(task, ct);
+
+            // Assignments
+            var assignees = new List<AssigneeDto>();
+            if (request.AssigneeIds?.Any() == true)
+            {
+                assignees = await HandleAssignments(task, ancestors.ProjectWorkspaceId, request.AssigneeIds, ct);
+            }
+
+            await db.CommitTransactionAsync(ct);
+
+            return Result<TaskDto>.Success(new TaskDto(
+                task.Id,
+                task.ProjectWorkspaceId,
+                task.ProjectSpaceId,
+                task.ProjectFolderId,
+                task.Name,
+                task.DefaultDocumentId,
+                task.StatusId,
+                task.Priority,
+                task.StartDate,
+                task.DueDate,
+                task.StoryPoints,
+                task.TimeEstimateSeconds,
+                task.OrderKey,
+                task.CreatedAt,
+                assignees
+            ));
         }
-
-        await db.SaveChangesAsync(ct);
-
-        return Result<TaskDto>.Success(new TaskDto(
-            task.Id,
-            task.ProjectWorkspaceId,
-            task.ProjectSpaceId,
-            task.ProjectFolderId,
-            task.Name,
-            task.Description,
-            task.StatusId,
-            task.Priority,
-            task.StartDate,
-            task.DueDate,
-            task.StoryPoints,
-            task.TimeEstimateSeconds,
-            task.OrderKey,
-            task.CreatedAt,
-            assignees
-        ));
+        catch
+        {
+            await db.RollbackTransactionAsync(ct);
+            throw;
+        }
     }
 
     private async Task<string> ResolveFolderOrderKey(Guid folderId, CancellationToken ct)

@@ -15,6 +15,7 @@ public class Database(TaskPlanDbContext context) : IDataBase
     public IDbConnection Connection => context.Database.GetDbConnection();
 
     public DbSet<User> Users => context.Set<User>();
+    public DbSet<UserPreference> UserPreferences => context.Set<UserPreference>();
     public DbSet<Session> Sessions => context.Set<Session>();
     public DbSet<ProjectWorkspace> Workspaces => context.Set<ProjectWorkspace>();
     public DbSet<ProjectSpace> Spaces => context.Set<ProjectSpace>();
@@ -26,6 +27,7 @@ public class Database(TaskPlanDbContext context) : IDataBase
     public DbSet<Status> Statuses => context.Set<Status>();
     public DbSet<Comment> Comments => context.Set<Comment>();
     public DbSet<Document> Documents => context.Set<Document>();
+    public DbSet<DocumentBlock> DocumentBlocks => context.Set<DocumentBlock>();
     public DbSet<ViewDefinition> ViewDefinitions => context.Set<ViewDefinition>();
     public DbSet<Attachment> Attachments => context.Set<Attachment>();
     public DbSet<EntityAssetLink> EntityAssetLinks => context.Set<EntityAssetLink>();
@@ -37,11 +39,10 @@ public class Database(TaskPlanDbContext context) : IDataBase
 
     public IExecutionStrategy CreateExecutionStrategy() => context.Database.CreateExecutionStrategy();
 
-    public async Task<IDbContextTransaction> BeginTransactionAsync(CancellationToken cancellationToken = default)
+    public async Task BeginTransactionAsync(CancellationToken cancellationToken = default)
     {
-        if (_currentTransaction != null) return _currentTransaction;
+        if (_currentTransaction != null) return;
         _currentTransaction = await context.Database.BeginTransactionAsync(IsolationLevel.ReadCommitted, cancellationToken);
-        return _currentTransaction;
     }
 
     public async Task CommitTransactionAsync(CancellationToken cancellationToken = default)

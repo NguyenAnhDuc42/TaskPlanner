@@ -8,7 +8,7 @@ public sealed class ProjectFolder : TenantEntity
     public Guid ProjectSpaceId { get; private set; }
     public string Name { get; private set; } = null!;
     public string Slug { get; private set; } = null!;
-    public string Description { get; private set; } = null!;
+    public Guid DefaultDocumentId { get; private set; }
     public string Color { get; private set; } = "#FFFFFF";
     public string? Icon { get; private set; }
     public string OrderKey { get; private set; } = null!;
@@ -20,13 +20,13 @@ public sealed class ProjectFolder : TenantEntity
     public Guid? StatusId { get; private set; }
 
     private ProjectFolder() { }
-    private ProjectFolder(Guid id, Guid projectWorkspaceId, Guid projectSpaceId, string name, string slug, string description, string orderKey, bool isPrivate, Guid creatorId, string color, string? icon, DateTimeOffset? startDate, DateTimeOffset? dueDate)
+    private ProjectFolder(Guid id, Guid projectWorkspaceId, Guid projectSpaceId, string name, string slug, Guid defaultDocumentId, string orderKey, bool isPrivate, Guid creatorId, string color, string? icon, DateTimeOffset? startDate, DateTimeOffset? dueDate)
         : base(id, projectWorkspaceId)
     {
         ProjectSpaceId = projectSpaceId;
         Name = name;
         Slug = slug;
-        Description = description;
+        DefaultDocumentId = defaultDocumentId;
         OrderKey = orderKey;
         IsPrivate = isPrivate;
         Color = color;
@@ -39,7 +39,7 @@ public sealed class ProjectFolder : TenantEntity
         InitializeAudit(creatorId);
     }
 
-    public static ProjectFolder Create(Guid projectWorkspaceId, Guid projectSpaceId, string name, string slug, string description, string orderKey, bool isPrivate, Guid creatorId, string? color = null, string? icon = null, DateTimeOffset? startDate = null, DateTimeOffset? dueDate = null)
+    public static ProjectFolder Create(Guid projectWorkspaceId, Guid projectSpaceId, string name, string slug, Guid defaultDocumentId, string orderKey, bool isPrivate, Guid creatorId, string? color = null, string? icon = null, DateTimeOffset? startDate = null, DateTimeOffset? dueDate = null)
     {
         var folder = new ProjectFolder(
             Guid.NewGuid(), 
@@ -47,7 +47,7 @@ public sealed class ProjectFolder : TenantEntity
             projectSpaceId, 
             name,
             slug,
-            description, 
+            defaultDocumentId, 
             orderKey, 
             isPrivate, 
             creatorId, 
@@ -60,14 +60,14 @@ public sealed class ProjectFolder : TenantEntity
         return folder;
     }
 
-    public static ProjectFolder CreateDefault(Guid projectWorkspaceId, Guid projectSpaceId, Guid creatorId)
+    public static ProjectFolder CreateDefault(Guid projectWorkspaceId, Guid projectSpaceId, Guid defaultDocumentId, Guid creatorId)
     {
         return Create(
             projectWorkspaceId,
             projectSpaceId,
             "Getting Started",
             "getting-started",
-            "Initial folder for your tasks.",
+            defaultDocumentId,
             FractionalIndex.Start(),
             isPrivate: false,
             creatorId: creatorId
@@ -91,13 +91,6 @@ public sealed class ProjectFolder : TenantEntity
         EnsureNotArchived();
         if (Slug == slug) return;
         Slug = slug;
-        UpdateTimestamp();
-    }
-
-    public void UpdateDescription(string description)
-    {
-        EnsureNotArchived();
-        Description = description;
         UpdateTimestamp();
     }
 

@@ -34,8 +34,7 @@ public static class ViewQueryHelper
         if (!string.IsNullOrWhiteSpace(filter.SearchQuery))
         {
             var search = filter.SearchQuery.Trim().ToLower();
-            query = query.Where(t => t.Name.ToLower().Contains(search) || 
-                                    (t.Description != null && t.Description.ToLower().Contains(search)));
+            query = query.Where(t => t.Name.ToLower().Contains(search));
         }
 
         // 5. Date Range Filters

@@ -30,7 +30,6 @@ public class TasksController : ControllerBase
         var command = new UpdateTaskCommand(
             TaskId: id,
             Name: request.Name,
-            Description: request.Description,
             StatusId: request.StatusId,
             Priority: request.Priority,
             StartDate: request.StartDate,
@@ -73,7 +72,6 @@ public class TasksController : ControllerBase
 
 public record UpdateTaskRequest(
     string? Name,
-    string? Description,
     Guid? StatusId,
     Priority? Priority,
     DateTimeOffset? StartDate,

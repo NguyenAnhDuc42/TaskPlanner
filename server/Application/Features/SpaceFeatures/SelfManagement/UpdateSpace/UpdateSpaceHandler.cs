@@ -35,11 +35,6 @@ public class UpdateSpaceHandler(IDataBase db, WorkspaceContext context, IRealtim
             space.UpdateName(request.Name);
             space.UpdateSlug(SlugHelper.GenerateSlug(request.Name));
         }
-        
-        if (request.Description is not null)
-        {
-            space.UpdateDescription(request.Description);
-        }
 
         if (request.Color is not null) space.UpdateColor(request.Color);
         if (request.Icon is not null) space.UpdateIcon(request.Icon);

@@ -17,10 +17,5 @@ public class DocumentConfiguration : TenantEntityConfiguration<Document>
             .HasColumnName("name")
             .HasMaxLength(200)
             .IsRequired();
-
-        builder.Property(x => x.Content)
-            .HasColumnName("content")
-            .HasColumnType("jsonb")
-            .IsRequired();
     }
 }

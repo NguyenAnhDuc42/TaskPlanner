@@ -31,8 +31,9 @@ public class ProjectSpaceConfiguration : TenantEntityConfiguration<ProjectSpace>
 
         builder.HasIndex(s => new { s.ProjectWorkspaceId, s.Slug }).IsUnique();
 
-        builder.Property(s => s.Description)
-            .HasColumnName("description");
+        builder.Property(s => s.DefaultDocumentId)
+            .HasColumnName("default_document_id")
+            .IsRequired();
 
         builder.Property(s => s.Color)
             .HasColumnName("custom_color")

@@ -27,42 +27,61 @@ public class CreateFolderHandler(
 
         if (context.CurrentMember.Role > Role.Admin)
             return Result<Guid>.Failure(MemberError.DontHavePermission);
-        
 
-        var maxKey = await db.Folders
-            .AsNoTracking()
-            .BySpace(request.spaceId)
-            .WhereNotDeleted()
-            .MaxAsync(f => f.OrderKey, ct);
-        
-        var orderKey = maxKey is null ? FractionalIndex.Start() : FractionalIndex.After(maxKey);
-        var slug = SlugHelper.GenerateSlug(request.name);
+        await db.BeginTransactionAsync(ct);
 
-        var folder = ProjectFolder.Create(
-            projectWorkspaceId: context.workspaceId,
-            projectSpaceId: space.Id,
-            name: request.name,
-            slug: slug,
-            description: request.description ?? string.Empty,
-            orderKey: orderKey,
-            isPrivate: request.isPrivate,
-            creatorId: context.CurrentMember.Id,
-            color: request.color,
-            icon: request.icon,
-            startDate: request.startDate,
-            dueDate: request.dueDate
-        );
+        try
+        {
+            var maxKey = await db.Folders
+                .AsNoTracking()
+                .BySpace(request.spaceId)
+                .WhereNotDeleted()
+                .MaxAsync(f => f.OrderKey, ct);
+            
+            var orderKey = maxKey is null ? FractionalIndex.Start() : FractionalIndex.After(maxKey);
+            var slug = SlugHelper.GenerateSlug(request.name);
 
-        await db.Folders.AddAsync(folder, ct);
+            // 1. Create the primary document for this folder
+            var document = Document.Create(
+                context.workspaceId,
+                request.name, 
+                context.CurrentMember.Id
+            );
+            await db.Documents.AddAsync(document, ct);
 
-        // Inline view creation
-        db.ViewDefinitions.AddRange(
-            ViewDefinition.CreateDefaults(context.workspaceId, space.Id, folder.Id, context.CurrentMember.Id));
+            // 2. Create the folder linked to the document
+            var folder = ProjectFolder.Create(
+                projectWorkspaceId: context.workspaceId,
+                projectSpaceId: space.Id,
+                name: request.name,
+                slug: slug,
+                defaultDocumentId: document.Id,
+                orderKey: orderKey,
+                isPrivate: request.isPrivate,
+                creatorId: context.CurrentMember.Id,
+                color: request.color,
+                icon: request.icon,
+                startDate: request.startDate,
+                dueDate: request.dueDate
+            );
 
-        await db.SaveChangesAsync(ct);
+            await db.Folders.AddAsync(folder, ct);
 
-        await realtime.NotifyWorkspaceAsync(context.workspaceId, "FolderCreated", new { FolderId = folder.Id, SpaceId = space.Id, WorkspaceId = context.workspaceId }, ct);
+            // Inline view creation
+            db.ViewDefinitions.AddRange(
+                ViewDefinition.CreateDefaults(context.workspaceId, space.Id, folder.Id, context.CurrentMember.Id));
 
-        return Result<Guid>.Success(folder.Id);
+            await db.CommitTransactionAsync(ct);
+
+            await realtime.NotifyWorkspaceAsync(context.workspaceId, "FolderCreated", new { FolderId = folder.Id, SpaceId = space.Id, WorkspaceId = context.workspaceId }, ct);
+
+            return Result<Guid>.Success(folder.Id);
+        }
+        catch
+        {
+            await db.RollbackTransactionAsync(ct);
+            throw;
+        }
     }
 }
+

@@ -39,14 +39,20 @@ public class WorkspaceService(
                 await db.Statuses.AddRangeAsync(statuses);
 
                 // 2. Create Default Space
-                var space = ProjectSpace.CreateDefault(workspace.Id, creatorId);
+                var spaceDoc = Document.Create(workspace.Id, "Personal Space", creatorId);
+                await db.Documents.AddAsync(spaceDoc);
+
+                var space = ProjectSpace.CreateDefault(workspace.Id, spaceDoc.Id, creatorId);
                 await db.Spaces.AddAsync(space);
                 
                 db.ViewDefinitions.AddRange(
                     ViewDefinition.CreateDefaults(workspace.Id, space.Id, null, creatorId));
 
                 // 3. Create Default Folder
-                var folder = ProjectFolder.CreateDefault(workspace.Id, space.Id, creatorId);
+                var folderDoc = Document.Create(workspace.Id, "Getting Started", creatorId);
+                await db.Documents.AddAsync(folderDoc);
+
+                var folder = ProjectFolder.CreateDefault(workspace.Id, space.Id, folderDoc.Id, creatorId);
                 await db.Folders.AddAsync(folder);
                 
                 db.ViewDefinitions.AddRange(
@@ -54,7 +60,12 @@ public class WorkspaceService(
 
                 // 4. Create Starter Tasks
                 var firstStatus = statuses.First(s => s.Category == StatusCategory.NotStarted);
-                var tasks = ProjectTask.CreateDefaults(workspace.Id, space.Id, folder.Id, firstStatus.Id, creatorId);
+                
+                var exploreDoc = Document.Create(workspace.Id, "Explore the hierarchy", creatorId);
+                var standaloneDoc = Document.Create(workspace.Id, "Standalone Task", creatorId);
+                await db.Documents.AddRangeAsync(exploreDoc, standaloneDoc);
+
+                var tasks = ProjectTask.CreateDefaults(workspace.Id, space.Id, folder.Id, firstStatus.Id, creatorId, exploreDoc.Id, standaloneDoc.Id);
                 await db.Tasks.AddRangeAsync(tasks);
 
                 // 5. Finalize

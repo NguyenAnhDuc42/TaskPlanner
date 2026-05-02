@@ -26,11 +26,6 @@ public class UpdateFolderHandler(IDataBase db, WorkspaceContext context, IRealti
             folder.UpdateName(request.Name);
             folder.UpdateSlug(SlugHelper.GenerateSlug(request.Name));
         }
-        
-        if (request.Description is not null)
-        {
-            folder.UpdateDescription(request.Description);
-        }
 
         if (request.Color is not null) folder.UpdateColor(request.Color);
         if (request.Icon is not null) folder.UpdateIcon(request.Icon);

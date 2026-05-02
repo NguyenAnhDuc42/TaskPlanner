@@ -35,8 +35,9 @@ public class ProjectTaskConfiguration : TenantEntityConfiguration<ProjectTask>
             .IsRequired()
             .HasMaxLength(100);
 
-        builder.Property(t => t.Description)
-            .HasColumnName("description");
+        builder.Property(t => t.DefaultDocumentId)
+            .HasColumnName("default_document_id")
+            .IsRequired();
 
         builder.Property(t => t.Color)
             .HasColumnName("custom_color")

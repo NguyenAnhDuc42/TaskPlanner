@@ -7,7 +7,6 @@ public sealed class ProjectSpace : TenantEntity
 {
     public string Name { get; private set; } = null!;
     public string Slug { get; private set; } = null!;
-    public string Description { get; private set; } = null!;
     public string Color { get; private set; } = "#FFFFFF";
     public string? Icon { get; private set; }
     public bool IsPrivate { get; private set; } = true;
@@ -15,17 +14,18 @@ public sealed class ProjectSpace : TenantEntity
     public string OrderKey { get; private set; } = null!;
     public Guid? WorkflowId { get; private set; }
     public Guid? StatusId { get; private set; }
+    public Guid DefaultDocumentId { get; private set; }
     public DateTimeOffset? StartDate { get; private set; }
     public DateTimeOffset? DueDate { get; private set; }
 
     private ProjectSpace() { }
 
-    private ProjectSpace(Guid id, Guid projectWorkspaceId, string name, string slug, string description, string color, string? icon, bool isPrivate, Guid creatorId, string orderKey)
+    private ProjectSpace(Guid id, Guid projectWorkspaceId, string name, string slug, Guid defaultDocumentId, string color, string? icon, bool isPrivate, Guid creatorId, string orderKey)
         : base(id, projectWorkspaceId)
     {
         Name = name;
         Slug = slug;
-        Description = description;
+        DefaultDocumentId = defaultDocumentId;
         Color = color;
         Icon = icon;
         IsPrivate = isPrivate;
@@ -36,14 +36,14 @@ public sealed class ProjectSpace : TenantEntity
         InitializeAudit(creatorId);
     }
 
-    public static ProjectSpace Create(Guid projectWorkspaceId, string name, string slug, string description, string? color, string? icon, bool isPrivate, Guid creatorId, string orderKey)
+    public static ProjectSpace Create(Guid projectWorkspaceId, string name, string slug, Guid defaultDocumentId, string? color, string? icon, bool isPrivate, Guid creatorId, string orderKey)
     {
         var space = new ProjectSpace(
             Guid.NewGuid(), 
             projectWorkspaceId, 
             name,
             slug,
-            description, 
+            defaultDocumentId, 
             color ?? "#FFFFFF", 
             icon,
             isPrivate, 
@@ -54,13 +54,13 @@ public sealed class ProjectSpace : TenantEntity
         return space;
     }
 
-    public static ProjectSpace CreateDefault(Guid projectWorkspaceId, Guid creatorId)
+    public static ProjectSpace CreateDefault(Guid projectWorkspaceId, Guid defaultDocumentId, Guid creatorId)
     {
         return Create(
             projectWorkspaceId,
             "Welcome Space",
             "welcome-space",
-            "Initial space for your project.",
+            defaultDocumentId,
             null,
             null,
             isPrivate: false,
@@ -86,13 +86,6 @@ public sealed class ProjectSpace : TenantEntity
         EnsureNotArchived();
         if (Slug == slug) return;
         Slug = slug;
-        UpdateTimestamp();
-    }
-
-    public void UpdateDescription(string description)
-    {
-        EnsureNotArchived();
-        Description = description;
         UpdateTimestamp();
     }
 

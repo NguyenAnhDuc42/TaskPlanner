@@ -34,8 +34,9 @@ public class ProjectFolderConfiguration : TenantEntityConfiguration<ProjectFolde
 
         builder.HasIndex(f => new { f.ProjectSpaceId, f.Slug }).IsUnique();
 
-        builder.Property(f => f.Description)
-            .HasColumnName("description");
+        builder.Property(f => f.DefaultDocumentId)
+            .HasColumnName("default_document_id")
+            .IsRequired();
 
         builder.Property(f => f.OrderKey)
             .HasColumnName("order_key")

@@ -45,11 +45,6 @@ public class UpdateTaskHandler(IDataBase db, WorkspaceContext context, IRealtime
             task.UpdateName(request.Name);
             task.UpdateSlug(SlugHelper.GenerateSlug(request.Name));
         }
-        
-        if (request.Description != null)
-        {
-            task.UpdateDescription(request.Description);
-        }
     }
 
     private async Task ApplyStatusUpdate(ProjectTask task, UpdateTaskCommand request, CancellationToken ct)

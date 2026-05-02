@@ -30,7 +30,6 @@ namespace Api.Controllers
             var command = new UpdateSpaceCommand(
                 SpaceId: id,
                 Name: request.Name,
-                Description: request.Description,
                 Color: request.Color,
                 Icon: request.Icon,
                 IsPrivate: request.IsPrivate,
@@ -52,7 +51,6 @@ namespace Api.Controllers
 
     public record UpdateSpaceRequest(
         string? Name,
-        string? Description,
         string? Color,
         string? Icon,
         bool? IsPrivate,

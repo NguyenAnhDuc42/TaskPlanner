@@ -8,7 +8,6 @@ namespace Application.Features.SpaceFeatures;
 public record UpdateSpaceCommand(
     Guid SpaceId,
     string? Name,
-    string? Description,
     string? Color,
     string? Icon,
     bool? IsPrivate,

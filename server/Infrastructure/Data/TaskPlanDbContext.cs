@@ -13,6 +13,7 @@ public class TaskPlanDbContext : DbContext
 
     // DbSet properties for entities
     public DbSet<User> Users { get; set; }
+    public DbSet<UserPreference> UserPreferences { get; set; }
     public DbSet<Session> Sessions { get; set; }
     public DbSet<PasswordResetToken> PasswordResetTokens { get; set; }
 
@@ -23,6 +24,7 @@ public class TaskPlanDbContext : DbContext
     public DbSet<Workflow> Workflows { get; set; }
     public DbSet<ViewDefinition> ViewDefinitions { get; set; }
     public DbSet<Document> Documents { get; set; }
+    public DbSet<DocumentBlock> DocumentBlocks { get; set; }
 
     // Relationship Entities
     public DbSet<WorkspaceMember> WorkspaceMembers { get; set; }

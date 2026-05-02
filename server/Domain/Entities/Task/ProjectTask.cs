@@ -10,7 +10,7 @@ public class ProjectTask : TenantEntity
     public Guid? ProjectFolderId { get; private set; }
     public string Name { get; private set; } = null!;
     public string Slug { get; private set; } = null!;
-    public string Description { get; private set; } = null!;
+    public Guid DefaultDocumentId { get; private set; }
     public string Color { get; private set; } = "#FFFFFF";
     public string? Icon { get; private set; }
     public Guid? StatusId { get; private set; }
@@ -28,14 +28,14 @@ public class ProjectTask : TenantEntity
     // EF Core
     private ProjectTask() { }
 
-    private ProjectTask(Guid id, Guid projectWorkspaceId, Guid? projectSpaceId, Guid? projectFolderId, string name, string slug, string description, string color, string? icon, Guid creatorId, Guid? statusId, Priority priority, DateTimeOffset? startDate, DateTimeOffset? dueDate, int? storyPoints, long? timeEstimateSeconds, string orderKey)
+    private ProjectTask(Guid id, Guid projectWorkspaceId, Guid? projectSpaceId, Guid? projectFolderId, string name, string slug, Guid defaultDocumentId, string color, string? icon, Guid creatorId, Guid? statusId, Priority priority, DateTimeOffset? startDate, DateTimeOffset? dueDate, int? storyPoints, long? timeEstimateSeconds, string orderKey)
         : base(id, projectWorkspaceId)
     {
         ProjectSpaceId = projectSpaceId;
         ProjectFolderId = projectFolderId;
         Name = name;
         Slug = slug;
-        Description = description;
+        DefaultDocumentId = defaultDocumentId;
         Color = color;
         Icon = icon;
         StatusId = statusId;
@@ -51,7 +51,7 @@ public class ProjectTask : TenantEntity
         InitializeAudit(creatorId);
     }
 
-    public static ProjectTask Create(Guid projectWorkspaceId, Guid? projectSpaceId, Guid? projectFolderId, string name, string slug, string description, string? color, string? icon, Guid creatorId, Guid? statusId = null, Priority priority = Priority.Low, DateTimeOffset? startDate = null, DateTimeOffset? dueDate = null, int? storyPoints = null, long? timeEstimateSeconds = null, string? orderKey = null)
+    public static ProjectTask Create(Guid projectWorkspaceId, Guid? projectSpaceId, Guid? projectFolderId, string name, string slug, Guid defaultDocumentId, string? color, string? icon, Guid creatorId, Guid? statusId = null, Priority priority = Priority.Low, DateTimeOffset? startDate = null, DateTimeOffset? dueDate = null, int? storyPoints = null, long? timeEstimateSeconds = null, string? orderKey = null)
     {
         return new ProjectTask(
             Guid.NewGuid(), 
@@ -60,7 +60,7 @@ public class ProjectTask : TenantEntity
             projectFolderId, 
             name, 
             slug, 
-            description, 
+            defaultDocumentId, 
             color ?? "#FFFFFF", 
             icon,
             creatorId, 
@@ -73,7 +73,7 @@ public class ProjectTask : TenantEntity
             orderKey ?? FractionalIndex.Start());
     }
 
-    public static List<ProjectTask> CreateDefaults(Guid projectWorkspaceId, Guid spaceId, Guid folderId, Guid statusId, Guid creatorId)
+    public static List<ProjectTask> CreateDefaults(Guid projectWorkspaceId, Guid spaceId, Guid folderId, Guid statusId, Guid creatorId, Guid exploreDocId, Guid standaloneDocId)
     {
         var start = FractionalIndex.Start();
         return new List<ProjectTask>
@@ -84,7 +84,7 @@ public class ProjectTask : TenantEntity
                 projectFolderId: folderId,
                 name: "Explore the hierarchy",
                 slug: "explore-hierarchy",
-                description: "Notice how this task is nested under the 'Getting Started' folder.",
+                defaultDocumentId: exploreDocId,
                 color: null,
                 icon: null,
                 creatorId: creatorId,
@@ -97,7 +97,7 @@ public class ProjectTask : TenantEntity
                 projectFolderId: null,
                 name: "Standalone Task",
                 slug: "standalone-task",
-                description: "This task lives directly under the space.",
+                defaultDocumentId: standaloneDocId,
                 color: null,
                 icon: null,
                 creatorId: creatorId,
@@ -119,13 +119,6 @@ public class ProjectTask : TenantEntity
         EnsureNotArchived();
         if (Slug == slug) return;
         Slug = slug;
-        UpdateTimestamp();
-    }
-
-    public void UpdateDescription(string description)
-    {
-        EnsureNotArchived();
-        Description = description;
         UpdateTimestamp();
     }
 

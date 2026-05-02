@@ -29,7 +29,6 @@ public class FoldersController : ControllerBase
         var command = new UpdateFolderCommand(
             FolderId: id,
             Name: request.Name,
-            Description: request.Description,
             Color: request.Color,
             Icon: request.Icon,
             IsPrivate: request.IsPrivate,
@@ -52,7 +51,6 @@ public class FoldersController : ControllerBase
 
 public record UpdateFolderRequest(
     string? Name,
-    string? Description,
     string? Color,
     string? Icon,
     bool? IsPrivate,
