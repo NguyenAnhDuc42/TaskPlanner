@@ -1,4 +1,5 @@
 ﻿using System;
+using Domain.Entities;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
@@ -6,7 +7,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace Infrastructure.Migrations
 {
     /// <inheritdoc />
-    public partial class FlattenAuditAndInit : Migration
+    public partial class UpdateUserPreferencesSchema : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -138,6 +139,23 @@ namespace Infrastructure.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "user_preferences",
+                columns: table => new
+                {
+                    id = table.Column<Guid>(type: "uuid", nullable: false),
+                    user_id = table.Column<Guid>(type: "uuid", nullable: false),
+                    setting = table.Column<UserSetting>(type: "jsonb", nullable: false),
+                    created_at = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
+                    updated_at = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
+                    creator_id = table.Column<Guid>(type: "uuid", nullable: true),
+                    deleted_at = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_user_preferences", x => x.id);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "users",
                 columns: table => new
                 {
@@ -192,12 +210,37 @@ namespace Infrastructure.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "document_blocks",
+                columns: table => new
+                {
+                    id = table.Column<Guid>(type: "uuid", nullable: false),
+                    document_id = table.Column<Guid>(type: "uuid", nullable: false),
+                    type = table.Column<string>(type: "text", nullable: false),
+                    content = table.Column<string>(type: "jsonb", nullable: false),
+                    order_key = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false),
+                    created_at = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
+                    updated_at = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
+                    creator_id = table.Column<Guid>(type: "uuid", nullable: true),
+                    deleted_at = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true),
+                    project_workspace_id = table.Column<Guid>(type: "uuid", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_document_blocks", x => x.id);
+                    table.ForeignKey(
+                        name: "FK_document_blocks_project_workspaces_project_workspace_id",
+                        column: x => x.project_workspace_id,
+                        principalTable: "project_workspaces",
+                        principalColumn: "id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "documents",
                 columns: table => new
                 {
                     id = table.Column<Guid>(type: "uuid", nullable: false),
                     name = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: false),
-                    content = table.Column<string>(type: "jsonb", nullable: false),
                     created_at = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
                     updated_at = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
                     creator_id = table.Column<Guid>(type: "uuid", nullable: true),
@@ -220,12 +263,12 @@ namespace Infrastructure.Migrations
                 columns: table => new
                 {
                     id = table.Column<Guid>(type: "uuid", nullable: false),
-                    space_id = table.Column<Guid>(type: "uuid", nullable: true),
-                    folder_id = table.Column<Guid>(type: "uuid", nullable: true),
+                    project_space_id = table.Column<Guid>(type: "uuid", nullable: true),
+                    project_folder_id = table.Column<Guid>(type: "uuid", nullable: true),
                     name = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
                     view_type = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false),
                     is_default = table.Column<bool>(type: "boolean", nullable: false),
-                    sort_order = table.Column<string>(type: "text", nullable: false),
+                    order_key = table.Column<string>(type: "text", nullable: false),
                     filter_config_json = table.Column<string>(type: "jsonb", nullable: false),
                     display_config_json = table.Column<string>(type: "jsonb", nullable: true),
                     created_at = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
@@ -250,8 +293,8 @@ namespace Infrastructure.Migrations
                 columns: table => new
                 {
                     id = table.Column<Guid>(type: "uuid", nullable: false),
-                    space_id = table.Column<Guid>(type: "uuid", nullable: true),
-                    folder_id = table.Column<Guid>(type: "uuid", nullable: true),
+                    project_space_id = table.Column<Guid>(type: "uuid", nullable: true),
+                    project_folder_id = table.Column<Guid>(type: "uuid", nullable: true),
                     name = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
                     description = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: false),
                     created_at = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
@@ -345,6 +388,7 @@ namespace Infrastructure.Migrations
                     name = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
                     color = table.Column<string>(type: "character varying(32)", maxLength: 32, nullable: false),
                     category = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false),
+                    order_key = table.Column<string>(type: "text", nullable: false),
                     created_at = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
                     updated_at = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
                     creator_id = table.Column<Guid>(type: "uuid", nullable: true),
@@ -375,7 +419,6 @@ namespace Infrastructure.Migrations
                     id = table.Column<Guid>(type: "uuid", nullable: false),
                     name = table.Column<string>(type: "character varying(150)", maxLength: 150, nullable: false),
                     slug = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
-                    description = table.Column<string>(type: "text", nullable: false),
                     custom_color = table.Column<string>(type: "character varying(16)", maxLength: 16, nullable: false),
                     custom_icon = table.Column<string>(type: "character varying(64)", maxLength: 64, nullable: true),
                     is_private = table.Column<bool>(type: "boolean", nullable: false),
@@ -383,6 +426,9 @@ namespace Infrastructure.Migrations
                     order_key = table.Column<string>(type: "text", nullable: false),
                     workflow_id = table.Column<Guid>(type: "uuid", nullable: true),
                     status_id = table.Column<Guid>(type: "uuid", nullable: true),
+                    default_document_id = table.Column<Guid>(type: "uuid", nullable: false),
+                    start_date = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true),
+                    due_date = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true),
                     created_at = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
                     updated_at = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
                     creator_id = table.Column<Guid>(type: "uuid", nullable: true),
@@ -420,7 +466,7 @@ namespace Infrastructure.Migrations
                     project_space_id = table.Column<Guid>(type: "uuid", nullable: false),
                     name = table.Column<string>(type: "character varying(150)", maxLength: 150, nullable: false),
                     slug = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
-                    description = table.Column<string>(type: "text", nullable: false),
+                    default_document_id = table.Column<Guid>(type: "uuid", nullable: false),
                     custom_color = table.Column<string>(type: "character varying(16)", maxLength: 16, nullable: false),
                     custom_icon = table.Column<string>(type: "character varying(64)", maxLength: 64, nullable: true),
                     order_key = table.Column<string>(type: "text", nullable: false),
@@ -474,7 +520,7 @@ namespace Infrastructure.Migrations
                     project_folder_id = table.Column<Guid>(type: "uuid", nullable: true),
                     name = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: false),
                     slug = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
-                    description = table.Column<string>(type: "text", nullable: false),
+                    default_document_id = table.Column<Guid>(type: "uuid", nullable: false),
                     custom_color = table.Column<string>(type: "character varying(16)", maxLength: 16, nullable: false),
                     custom_icon = table.Column<string>(type: "character varying(64)", maxLength: 64, nullable: true),
                     status_id = table.Column<Guid>(type: "uuid", nullable: true),
@@ -607,6 +653,11 @@ namespace Infrastructure.Migrations
                 name: "IX_comments_project_task_id",
                 table: "comments",
                 column: "project_task_id");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_document_blocks_project_workspace_id",
+                table: "document_blocks",
+                column: "project_workspace_id");
 
             migrationBuilder.CreateIndex(
                 name: "IX_documents_project_workspace_id",
@@ -779,6 +830,11 @@ namespace Infrastructure.Migrations
                 column: "workflow_id");
 
             migrationBuilder.CreateIndex(
+                name: "IX_statuses_workflow_id_order_key",
+                table: "statuses",
+                columns: new[] { "workflow_id", "order_key" });
+
+            migrationBuilder.CreateIndex(
                 name: "IX_task_assignments_project_task_id",
                 table: "task_assignments",
                 column: "project_task_id");
@@ -787,6 +843,12 @@ namespace Infrastructure.Migrations
                 name: "IX_task_assignments_workspace_member_id",
                 table: "task_assignments",
                 column: "workspace_member_id");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_user_preferences_user_id",
+                table: "user_preferences",
+                column: "user_id",
+                unique: true);
 
             migrationBuilder.CreateIndex(
                 name: "IX_users_auth_provider_external_id",
@@ -801,19 +863,19 @@ namespace Infrastructure.Migrations
                 unique: true);
 
             migrationBuilder.CreateIndex(
-                name: "IX_view_definitions_folder_id",
+                name: "IX_view_definitions_project_folder_id",
                 table: "view_definitions",
-                column: "folder_id");
+                column: "project_folder_id");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_view_definitions_project_space_id",
+                table: "view_definitions",
+                column: "project_space_id");
 
             migrationBuilder.CreateIndex(
                 name: "IX_view_definitions_project_workspace_id",
                 table: "view_definitions",
                 column: "project_workspace_id");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_view_definitions_space_id",
-                table: "view_definitions",
-                column: "space_id");
 
             migrationBuilder.CreateIndex(
                 name: "IX_workflows_project_workspace_id",
@@ -849,6 +911,9 @@ namespace Infrastructure.Migrations
                 name: "comments");
 
             migrationBuilder.DropTable(
+                name: "document_blocks");
+
+            migrationBuilder.DropTable(
                 name: "documents");
 
             migrationBuilder.DropTable(
@@ -865,6 +930,9 @@ namespace Infrastructure.Migrations
 
             migrationBuilder.DropTable(
                 name: "task_assignments");
+
+            migrationBuilder.DropTable(
+                name: "user_preferences");
 
             migrationBuilder.DropTable(
                 name: "view_definitions");

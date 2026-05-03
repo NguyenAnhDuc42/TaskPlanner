@@ -1,5 +1,7 @@
 import { createContext, useContext, useEffect, type ReactNode } from "react";
+import { useNavigate } from "@tanstack/react-router";
 import { useWorkspaceDetail, type WorkspaceSecurityContext } from "../api";
+import { useUpdateUserPreference } from "@/features/main/user-preference-api";
 import { signalRService } from "@/lib/signalr-service";
 import type { StatusDto } from "@/types/status";
 
@@ -27,11 +29,34 @@ interface WorkspaceProviderProps {
 }
 
 export function WorkspaceProvider({ workspaceId, children }: WorkspaceProviderProps) {
-  const { 
-    data: workspace, 
-    isLoading, 
-    error 
+  const navigate = useNavigate();
+  const {
+    data: workspace,
+    isLoading,
+    error,
+    isError,
   } = useWorkspaceDetail(workspaceId);
+  const { mutate: updatePreferences } = useUpdateUserPreference();
+
+  // Save this as the user's last active workspace
+  useEffect(() => {
+    if (workspace && !isError) {
+      updatePreferences({ lastWorkspaceId: workspaceId });
+    }
+  }, [workspaceId, workspace, isError, updatePreferences]);
+
+  // Handle edge case: workspace doesn't exist or user got kicked
+  useEffect(() => {
+    if (isError && error) {
+      const status = (error as any)?.response?.status;
+      if (status === 403 || status === 404) {
+        console.warn(`[WorkspaceProvider] Access denied or workspace not found (${status}). Redirecting to home.`);
+        // Clear lastWorkspaceId so we don't redirect back here
+        updatePreferences({ clearLastWorkspaceId: true } as any);
+        navigate({ to: "/" });
+      }
+    }
+  }, [isError, error, navigate, updatePreferences]);
 
   useEffect(() => {
     const manageConnection = async () => {
@@ -50,8 +75,16 @@ export function WorkspaceProvider({ workspaceId, children }: WorkspaceProviderPr
     };
   }, [workspaceId]);
 
-  // Statuses are now resolved at the Space/Folder level 
+  // Statuses are now resolved at the Space/Folder level
   const statuses: StatusDto[] = [];
+
+  // Don't render children if access denied
+  if (isError) {
+    const status = (error as any)?.response?.status;
+    if (status === 403 || status === 404) {
+      return null;
+    }
+  }
 
   return (
     <WorkspaceContext.Provider

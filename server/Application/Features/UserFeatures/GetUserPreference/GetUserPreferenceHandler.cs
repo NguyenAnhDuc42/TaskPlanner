@@ -1,8 +1,9 @@
 using Application.Common.Interfaces;
 using Application.Common.Results;
+using Application.Interfaces;
 using Application.Interfaces.Data;
 using Domain.Entities;
-using Domain.Enums.Workspace;
+using Domain.Enums;
 using Microsoft.EntityFrameworkCore;
 
 namespace Application.Features.UserFeatures;
@@ -34,12 +35,12 @@ public class GetUserPreferenceHandler(IDataBase db, ICurrentUserService currentU
 
         return Result<UserPreferenceDto>.Success(new UserPreferenceDto(
             preference.UserId,
-            preference.Settings.Theme,
-            preference.Settings.LastWorkspaceId,
-            preference.Settings.SidebarWidth,
-            preference.Settings.SidebarCollapsed,
-            preference.Settings.LayoutData,
-            preference.Settings.WorkspaceSettings
+            preference.Setting.Theme,
+            preference.Setting.LastWorkspaceId,
+            preference.Setting.SidebarWidth,
+            preference.Setting.SidebarCollapsed,
+            preference.Setting.LayoutData,
+            preference.Setting.WorkspaceSettings
         ));
     }
 }

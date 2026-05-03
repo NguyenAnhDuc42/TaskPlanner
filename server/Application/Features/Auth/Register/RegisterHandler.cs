@@ -37,6 +37,13 @@ public class RegisterHandler(
             creatorId: user.Id
         );
         await db.Workspaces.AddAsync(defaultWorkspace, ct);
+ 
+        // Automatically set the new workspace as the last active one
+        var userPreference = UserPreference.Create(user.Id, new UserSetting 
+        { 
+            LastWorkspaceId = defaultWorkspace.Id 
+        });
+        await db.UserPreferences.AddAsync(userPreference, ct);
 
         // Best Practice: Automatically log in the user after registration
         var httpContext = httpContextAccessor.HttpContext;

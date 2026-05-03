@@ -1,6 +1,6 @@
 using Application.Common.Interfaces;
 using Domain.Entities;
-using Domain.Enums.Workspace;
+using Domain.Enums;
 
 namespace Application.Features.UserFeatures;
 

@@ -1,4 +1,4 @@
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { signUpSchema } from "./type"; // This is likely still ./type in sign-up folder? Check list_dir
 import z from "zod";
 import { api } from "@/lib/api-client";
@@ -8,6 +8,8 @@ import type { RegisterResponse } from "../types";
 type SignUpValues = z.infer<typeof signUpSchema>;
 
 export function useRegister() {
+  const queryClient = useQueryClient();
+ 
   return useMutation({
     mutationFn: async (values: SignUpValues) => {
       const { data } = await api.post<RegisterResponse>("/auth/register", {
@@ -15,6 +17,9 @@ export function useRegister() {
         userName: values.name,
       });
       return data;
+    },
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["user-preference"] });
     },
   });
 }

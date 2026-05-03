@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using Npgsql;
 using System.Text.Json.Serialization;
 using Api.Middlewares;
 using Application.Dependencies;
@@ -39,17 +40,7 @@ builder.Services.AddApplication(builder.Configuration);
 
 
 /* 
-builder.Services.AddBackground(builder.Configuration);
 
-var app = builder.Build();
-
-using (var scope = app.Services.CreateScope())
-{
-    var scheduler = scope.ServiceProvider
-        .GetRequiredService<HangfireJobScheduler>();
-
-    scheduler.Schedule();
-}
 */
 var app = builder.Build();
 

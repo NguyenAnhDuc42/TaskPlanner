@@ -17,6 +17,7 @@ export function useLogin() {
     },
     onSuccess: async () => {
       await queryClient.refetchQueries({ queryKey: authKeys.me() });
+      await queryClient.invalidateQueries({ queryKey: ["user-preference"] });
     },
   });
 }

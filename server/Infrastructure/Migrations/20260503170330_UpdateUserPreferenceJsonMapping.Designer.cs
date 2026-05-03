@@ -12,8 +12,8 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Infrastructure.Migrations
 {
     [DbContext(typeof(TaskPlanDbContext))]
-    [Migration("20260429111939_AddSpaceDates")]
-    partial class AddSpaceDates
+    [Migration("20260503170330_UpdateUserPreferenceJsonMapping")]
+    partial class UpdateUserPreferenceJsonMapping
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -236,11 +236,6 @@ namespace Infrastructure.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
-                    b.Property<string>("Content")
-                        .IsRequired()
-                        .HasColumnType("jsonb")
-                        .HasColumnName("content");
-
                     b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_at");
@@ -272,6 +267,59 @@ namespace Infrastructure.Migrations
                     b.HasIndex("ProjectWorkspaceId");
 
                     b.ToTable("documents", (string)null);
+                });
+
+            modelBuilder.Entity("Domain.Entities.DocumentBlock", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("Content")
+                        .IsRequired()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("content");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid?>("CreatorId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("creator_id");
+
+                    b.Property<DateTimeOffset?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("deleted_at");
+
+                    b.Property<Guid>("DocumentId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("document_id");
+
+                    b.Property<string>("OrderKey")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("order_key");
+
+                    b.Property<Guid>("ProjectWorkspaceId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("project_workspace_id");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("type");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ProjectWorkspaceId");
+
+                    b.ToTable("document_blocks", (string)null);
                 });
 
             modelBuilder.Entity("Domain.Entities.EntityAccess", b =>
@@ -480,14 +528,13 @@ namespace Infrastructure.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("creator_id");
 
+                    b.Property<Guid>("DefaultDocumentId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("default_document_id");
+
                     b.Property<DateTimeOffset?>("DeletedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("deleted_at");
-
-                    b.Property<string>("Description")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("description");
 
                     b.Property<DateTimeOffset?>("DueDate")
                         .HasColumnType("timestamp with time zone")
@@ -586,14 +633,13 @@ namespace Infrastructure.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("creator_id");
 
+                    b.Property<Guid>("DefaultDocumentId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("default_document_id");
+
                     b.Property<DateTimeOffset?>("DeletedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("deleted_at");
-
-                    b.Property<string>("Description")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("description");
 
                     b.Property<DateTimeOffset?>("DueDate")
                         .HasColumnType("timestamp with time zone")
@@ -683,14 +729,13 @@ namespace Infrastructure.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("creator_id");
 
+                    b.Property<Guid>("DefaultDocumentId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("default_document_id");
+
                     b.Property<DateTimeOffset?>("DeletedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("deleted_at");
-
-                    b.Property<string>("Description")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("description");
 
                     b.Property<DateTimeOffset?>("DueDate")
                         .HasColumnType("timestamp with time zone")
@@ -949,6 +994,11 @@ namespace Infrastructure.Migrations
                         .HasColumnType("character varying(100)")
                         .HasColumnName("name");
 
+                    b.Property<string>("OrderKey")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("order_key");
+
                     b.Property<Guid>("ProjectWorkspaceId")
                         .HasColumnType("uuid")
                         .HasColumnName("project_workspace_id");
@@ -966,6 +1016,8 @@ namespace Infrastructure.Migrations
                     b.HasIndex("ProjectWorkspaceId");
 
                     b.HasIndex("WorkflowId");
+
+                    b.HasIndex("WorkflowId", "OrderKey");
 
                     b.ToTable("statuses", (string)null);
                 });
@@ -1086,6 +1138,45 @@ namespace Infrastructure.Migrations
                     b.ToTable("users", (string)null);
                 });
 
+            modelBuilder.Entity("Domain.Entities.UserPreference", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid?>("CreatorId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("creator_id");
+
+                    b.Property<DateTimeOffset?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("deleted_at");
+
+                    b.Property<string>("Setting")
+                        .IsRequired()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("setting");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("user_id");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId")
+                        .IsUnique();
+
+                    b.ToTable("user_preferences", (string)null);
+                });
+
             modelBuilder.Entity("Domain.Entities.ViewDefinition", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1123,22 +1214,22 @@ namespace Infrastructure.Migrations
                         .HasColumnType("character varying(100)")
                         .HasColumnName("name");
 
+                    b.Property<string>("OrderKey")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("order_key");
+
                     b.Property<Guid?>("ProjectFolderId")
                         .HasColumnType("uuid")
-                        .HasColumnName("folder_id");
+                        .HasColumnName("project_folder_id");
 
                     b.Property<Guid?>("ProjectSpaceId")
                         .HasColumnType("uuid")
-                        .HasColumnName("space_id");
+                        .HasColumnName("project_space_id");
 
                     b.Property<Guid>("ProjectWorkspaceId")
                         .HasColumnType("uuid")
                         .HasColumnName("project_workspace_id");
-
-                    b.Property<string>("SortOrder")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("sort_order");
 
                     b.Property<DateTimeOffset>("UpdatedAt")
                         .HasColumnType("timestamp with time zone")
@@ -1187,7 +1278,7 @@ namespace Infrastructure.Migrations
 
                     b.Property<Guid?>("FolderId")
                         .HasColumnType("uuid")
-                        .HasColumnName("folder_id");
+                        .HasColumnName("project_folder_id");
 
                     b.Property<string>("Name")
                         .IsRequired()
@@ -1201,7 +1292,7 @@ namespace Infrastructure.Migrations
 
                     b.Property<Guid?>("SpaceId")
                         .HasColumnType("uuid")
-                        .HasColumnName("space_id");
+                        .HasColumnName("project_space_id");
 
                     b.Property<DateTimeOffset>("UpdatedAt")
                         .HasColumnType("timestamp with time zone")
@@ -1306,6 +1397,15 @@ namespace Infrastructure.Migrations
                 });
 
             modelBuilder.Entity("Domain.Entities.Document", b =>
+                {
+                    b.HasOne("Domain.Entities.ProjectWorkspace", null)
+                        .WithMany()
+                        .HasForeignKey("ProjectWorkspaceId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Domain.Entities.DocumentBlock", b =>
                 {
                     b.HasOne("Domain.Entities.ProjectWorkspace", null)
                         .WithMany()

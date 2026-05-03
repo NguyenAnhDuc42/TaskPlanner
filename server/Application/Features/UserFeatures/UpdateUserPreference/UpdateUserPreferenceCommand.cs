@@ -1,5 +1,5 @@
 using Application.Common.Interfaces;
-using Domain.Enums.Workspace;
+using Domain.Enums;
 
 using Domain.Entities;
 
@@ -11,5 +11,6 @@ public record UpdateUserPreferenceCommand(
     int? SidebarWidth,
     bool? SidebarCollapsed,
     string? LayoutData,
-    Dictionary<Guid, WorkspaceSetting>? WorkspaceSettings
+    Dictionary<Guid, WorkspaceSetting>? WorkspaceSettings,
+    bool ClearLastWorkspaceId = false
 ) : ICommandRequest;

@@ -1,4 +1,7 @@
+using Application.Interfaces.Data;
 using Domain.Entities;
+using Microsoft.EntityFrameworkCore;
+using System.Linq;
 
 namespace Application.Helper;
 
@@ -7,7 +10,7 @@ public class DocumentHelper(IDataBase db)
 {
     public async Task EditDocument(Guid workspaceId, Guid documentId, List<DocumentBlock> blocks, Guid creatorId) 
     {
-        var existinbBlocks = await db.DocumentBlocks.ByDocumentid(documentId).ToListAsync();
+        var existinbBlocks = await db.DocumentBlocks.Where(b => b.DocumentId == documentId).ToListAsync();
         foreach (var block in blocks) 
         {
             if (existinbBlocks.Exists(b => b.Id == block.Id))

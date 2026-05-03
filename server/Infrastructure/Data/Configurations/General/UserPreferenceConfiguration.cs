@@ -19,7 +19,10 @@ public class UserPreferenceConfiguration : EntityConfiguration<UserPreference>
         builder.Property(x => x.Setting)
             .HasColumnName("setting")
             .HasColumnType("jsonb")
-            .IsRequired();
+            .HasConversion(
+                v => System.Text.Json.JsonSerializer.Serialize(v, (System.Text.Json.JsonSerializerOptions)null),
+                v => System.Text.Json.JsonSerializer.Deserialize<UserSetting>(v, (System.Text.Json.JsonSerializerOptions)null) ?? new UserSetting()
+            );
         
         builder.HasIndex(x => x.UserId)
             .IsUnique();
