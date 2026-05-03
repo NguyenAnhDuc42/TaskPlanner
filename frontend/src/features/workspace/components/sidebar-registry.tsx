@@ -38,6 +38,7 @@ export function SidebarRegistry({ page }: { page: ContentPage }) {
       return <MembersSidebar />;
     case "settings":
       return <SettingsSidebar />;
+    case "command-center":
     case "projects":
       return <HierarchySidebar />;
     case "spaces":

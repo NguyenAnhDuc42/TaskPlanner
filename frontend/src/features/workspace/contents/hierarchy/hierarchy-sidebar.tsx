@@ -67,7 +67,8 @@ export function HierarchySidebar() {
     );
   }
 
-  if (error) return null;
+  const hasData = !isLoading && !error && filteredHierarchy?.spaces && filteredHierarchy.spaces.length > 0;
+  const showEmptyState = !hasData;
 
   return (
     <div className="h-full flex flex-col bg-background overflow-hidden select-none">
@@ -132,18 +133,12 @@ export function HierarchySidebar() {
                   onDragEnd={handleDragEnd} 
                   modifiers={[restrictToVerticalAxis]}
                 >
-                  {filteredHierarchy?.spaces && filteredHierarchy.spaces.length > 0 ? (
+                  {!showEmptyState && filteredHierarchy?.spaces && (
                     <SortableContext items={filteredHierarchy.spaces.map(s => `space-${s.id}`)} strategy={verticalListSortingStrategy}>
                       {filteredHierarchy.spaces.map((space) => (
                         <SpaceItem key={space.id} space={space} isForcedOpen={!!deferredSearchQuery} />
                       ))}
                     </SortableContext>
-                  ) : (
-                    <div className="flex flex-col items-center justify-center py-8 px-4 text-center mt-2 mx-1 rounded-lg border border-dashed border-border/50 bg-muted/10">
-                      <span className="text-[10px] font-bold tracking-widest uppercase text-muted-foreground/50 mb-3">
-                        {searchQuery ? "No matching spaces" : "No spaces yet"}
-                      </span>
-                    </div>
                   )}
 
                   {!searchQuery && (

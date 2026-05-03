@@ -3,7 +3,6 @@ import {
   WorkspaceProvider,
   useWorkspace,
 } from "@/features/workspace/context/workspace-provider";
-import { WorkspaceSessionProvider } from "@/features/workspace/context/workspace-session-provider";
 import { WorkspaceLayout } from "@/features/workspace/components/workspace-layout";
 import { z } from "zod";
 import { Loader2 } from "lucide-react";
@@ -26,7 +25,7 @@ function WorkspaceRoot() {
 }
 
 function WorkspaceContent() {
-  const { isLoading, workspaceId } = useWorkspace();
+  const { isLoading } = useWorkspace();
 
   if (isLoading) {
     return (
@@ -36,9 +35,5 @@ function WorkspaceContent() {
     );
   }
 
-  return (
-    <WorkspaceSessionProvider workspaceId={workspaceId}>
-      <WorkspaceLayout />
-    </WorkspaceSessionProvider>
-  );
+  return <WorkspaceLayout />;
 }

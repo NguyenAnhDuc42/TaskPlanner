@@ -1,61 +1,65 @@
 import { Suspense } from "react";
 import { useLocation, useNavigate, Outlet } from "@tanstack/react-router";
-import { useWorkspaceSession } from "../context/workspace-session";
+import { useWorkspace } from "../context/workspace-provider";
 import { SidebarRegistry } from "./sidebar-registry";
 import { IconRail } from "./icon-rail";
 import { ContextPanelRenderer } from "./context-panel-renderer";
 import { useResize } from "@/hooks/use-resize";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { ChevronLeft, X } from "lucide-react";
 import type { ContentPage } from "../type";
 
 export function WorkspaceLayout() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { state, actions } = useWorkspaceSession();
+  const { workspaceId, ui, actions } = useWorkspace();
 
-  // Context panel data from router search state
+  // ─── Context Panel (from router search) ──────────────
   const contextData = (location.search as any)?.contextPanel;
   const isContextOpen = !!contextData;
 
+  // ─── Navigation Handlers ────────────────────────────
   const handleSelectIcon = (icon: ContentPage) => {
-    actions.selectIcon(icon);
+    const targetRoute = icon === "projects" ? "" : icon;
     (navigate as any)({
-      to: `/workspaces/$workspaceId/${icon}`,
-      params: { workspaceId: (location as any).params?.workspaceId },
-      search: {},
-    });
-  };
-
-  const handleCommandCenter = () => {
-    // Clear active icon, close sidebar, navigate to workspace home
-    actions.selectIcon(null);
-    (navigate as any)({
-      to: "/workspaces/$workspaceId",
-      params: { workspaceId: (location as any).params?.workspaceId },
-      search: {},
+      to: `/workspaces/$workspaceId/${targetRoute}`,
+      params: { workspaceId },
+      search: {}, // Close context panel when switching icons
     });
   };
 
   const handleCloseContextPanel = () => {
-    const newSearch = { ...(location.search as Record<string, unknown>) };
-    delete newSearch.contextPanel;
-    (navigate as any)({ search: newSearch });
+    navigate({
+      to: location.pathname,
+      search: (prev: any) => {
+        const { contextPanel, ...rest } = prev;
+        return rest;
+      },
+    });
   };
 
+  // ─── Resize Handlers ────────────────────────────────
   const {
     width: sidebarWidth,
     isResizing: isResizingSidebar,
     startResizing: startResizingSidebar,
   } = useResize({
-    initialWidth: state.sidebarWidth,
-    minWidth: 200,
+    initialWidth: ui.sidebarWidth,
+    minWidth: 50,
     maxWidth: 500,
     direction: "left",
-    offset: 60,
-    onResizeEnd: (newWidth) => actions.updateSidebarWidth(newWidth),
+    onResize: (newWidth) => {
+      if (newWidth === 0 && ui.isInnerSidebarOpen) {
+        actions.setSidebarOpenLocal(false);
+      } else if (newWidth > 0 && !ui.isInnerSidebarOpen) {
+        actions.setSidebarOpenLocal(true);
+      }
+      actions.setSidebarWidthLocal(newWidth);
+    },
+    onResizeEnd: (newWidth) => {
+      actions.updateSidebarWidth(newWidth);
+    },
   });
 
   const {
@@ -63,63 +67,67 @@ export function WorkspaceLayout() {
     isResizing: isResizingContext,
     startResizing: startResizingContext,
   } = useResize({
-    initialWidth: state.contextWidth,
-    minWidth: 250,
+    initialWidth: ui.contextWidth,
+    minWidth: 50,
     maxWidth: 800,
     direction: "right",
-    offset: 16,
-    onResizeEnd: (newWidth) => actions.updateContextWidth(newWidth),
+    onResize: (newWidth) => {
+      actions.setContextWidthLocal(newWidth);
+    },
+    onResizeEnd: (newWidth) => {
+      actions.updateContextWidth(newWidth);
+    },
   });
 
+  const handleCommandCenter = () => {
+    navigate({
+      to: "/workspaces/$workspaceId/command-center",
+      params: { workspaceId },
+    });
+  };
+
   return (
-    <div className="relative flex h-screen w-full overflow-hidden p-2 gap-2 bg-background">
+    <div className="relative flex h-screen w-full overflow-hidden p-2 gap-2 bg-background font-sans">
       {/* ═══════════════════════════════════════════════════
           COLUMN 1: Icon Rail
       ═══════════════════════════════════════════════════ */}
-      <IconRail
-        onSelectIcon={handleSelectIcon}
-        onCommandCenter={handleCommandCenter}
-      />
+      <IconRail onSelectIcon={handleSelectIcon} onCommandCenter={handleCommandCenter} />
 
-      {/* Hover Peek Frame */}
-      {state.hoveredIcon && !state.isInnerSidebarOpen && (
+      {/* ─── Hover Peek Frame ───────────────────────────── */}
+      {ui.hoveredIcon && !ui.isInnerSidebarOpen && (
         <div
           className="absolute top-2 left-[60px] h-[calc(100%-16px)] w-64 z-50 animate-in fade-in slide-in-from-left-2 duration-200"
-          onMouseEnter={() => actions.setHoveredIcon(state.hoveredIcon)}
+          onMouseEnter={() => actions.setHoveredIcon(ui.hoveredIcon)}
           onMouseLeave={() => actions.setHoveredIcon(null)}
         >
           <div className="h-full w-full bg-background border border-border rounded-md shadow-xl flex flex-col overflow-hidden">
-            <div className="flex items-center justify-between px-2 py-2 flex-shrink-0 border-b border-border">
-              <h2 className="font-black text-sm uppercase tracking-widest text-foreground">
-                {state.hoveredIcon}
+            <div className="flex items-center justify-between px-3 py-2 flex-shrink-0 border-b border-border bg-muted/30">
+              <h2 className="font-black text-[10px] uppercase tracking-widest text-foreground/70">
+                Quick Look: {ui.hoveredIcon}
               </h2>
             </div>
-            <ScrollArea className="flex-1 min-h-0">
-              <div className="flex-1 p-1 min-h-0 flex flex-col overflow-hidden">
-                <SidebarRegistry page={state.hoveredIcon} />
-              </div>
-            </ScrollArea>
+            <div className="flex-1 min-h-0 overflow-hidden p-1">
+              <SidebarRegistry page={ui.hoveredIcon} />
+            </div>
           </div>
         </div>
       )}
 
       {/* ═══════════════════════════════════════════════════
-          COLUMN 2: Inner Sidebar
+          COLUMN 2: Inner Sidebar (resizable)
       ═══════════════════════════════════════════════════ */}
-      {state.activeIcon && (
+      {ui.isInnerSidebarOpen && (
         <div
-          style={{ width: state.isInnerSidebarOpen ? sidebarWidth : 0 }}
+          style={{ width: isResizingSidebar ? sidebarWidth : ui.sidebarWidth }}
           className={cn(
-            "transition-all duration-300 flex flex-col h-full flex-shrink-0 relative overflow-hidden",
+            "flex flex-col h-full flex-shrink-0 relative overflow-hidden",
             "bg-background border border-border rounded-md shadow-sm",
-            state.isInnerSidebarOpen
-              ? "opacity-100"
-              : "opacity-0 pointer-events-none",
+            !isResizingSidebar && "transition-all duration-300",
           )}
         >
-          <div className="h-12 flex items-center justify-between px-4 flex-shrink-0 border-b border-border">
+          <div className="h-12 flex items-center justify-between px-4 flex-shrink-0 border-b border-border bg-muted/10">
             <h2 className="font-black text-[11px] uppercase tracking-widest text-foreground">
-              {state.activeIcon}
+              {ui.activeIcon}
             </h2>
             <Button
               size="icon"
@@ -132,20 +140,23 @@ export function WorkspaceLayout() {
           </div>
 
           <div className="flex-1 p-1 min-h-0 overflow-hidden">
-            <SidebarRegistry page={state.activeIcon} />
+            <SidebarRegistry page={ui.activeIcon} />
           </div>
 
           {/* Resize Handle */}
           <div
             onMouseDown={startResizingSidebar}
-            className="absolute top-0 right-0 w-3 h-full cursor-col-resize z-50 group flex justify-end"
+            className={cn(
+              "absolute top-0 right-0 w-1.5 h-full cursor-col-resize z-50 group touch-none",
+              isResizingSidebar && "z-[100]",
+            )}
           >
             <div
               className={cn(
-                "h-full w-0.5 transition-colors",
+                "h-full w-[2px] mx-auto transition-colors duration-200",
                 isResizingSidebar
                   ? "bg-primary"
-                  : "bg-transparent group-hover:bg-primary/50",
+                  : "group-hover:bg-primary/40 bg-transparent",
               )}
             />
           </div>
@@ -155,10 +166,10 @@ export function WorkspaceLayout() {
       {/* ═══════════════════════════════════════════════════
           COLUMN 3: Main Canvas
       ═══════════════════════════════════════════════════ */}
-      <div className="flex-1 min-w-0 h-full flex flex-col relative">
+      <div className="flex-1 min-w-0 h-full flex flex-col relative bg-background border border-border rounded-md shadow-sm">
         <Suspense
           fallback={
-            <div className="flex m-6 p-8 items-center justify-center text-sm font-mono tracking-widest uppercase text-muted-foreground/60 w-full animate-pulse rounded-md">
+            <div className="flex h-full w-full items-center justify-center text-sm font-mono tracking-widest uppercase text-muted-foreground/60 animate-pulse">
               Synchronizing Nodes...
             </div>
           }
@@ -168,14 +179,18 @@ export function WorkspaceLayout() {
       </div>
 
       {/* ═══════════════════════════════════════════════════
-          COLUMN 4: Context Panel (from router search state)
+          COLUMN 4: Context Panel (resizable)
       ═══════════════════════════════════════════════════ */}
       {isContextOpen && (
         <div
-          style={{ width: contextWidth }}
-          className="transition-all duration-300 flex flex-col h-full flex-shrink-0 relative overflow-hidden bg-background border border-border rounded-md shadow-sm"
+          style={{ width: isResizingContext ? contextWidth : ui.contextWidth }}
+          className={cn(
+            "flex flex-col h-full flex-shrink-0 relative overflow-hidden",
+            "bg-background border border-border rounded-md shadow-sm",
+            !isResizingContext && "transition-all duration-300",
+          )}
         >
-          <div className="h-12 flex items-center justify-between px-4 flex-shrink-0 border-b border-border">
+          <div className="h-12 flex items-center justify-between px-4 flex-shrink-0 border-b border-border bg-muted/10">
             <h2 className="font-black text-[11px] uppercase tracking-widest text-foreground">
               Details
             </h2>

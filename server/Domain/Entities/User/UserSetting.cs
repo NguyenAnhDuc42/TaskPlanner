@@ -1,4 +1,7 @@
+using System;
+using System.Collections.Generic;
 using Domain.Enums;
+using System.Text.Json.Serialization;
 
 namespace Domain.Entities;
 
@@ -14,8 +17,15 @@ public class UserSetting
 
 public class WorkspaceSetting
 {
+    [JsonPropertyName("sideBarWidth")]
     public int? SideBarWidth { get; set; }
+
+    [JsonPropertyName("mainContentWidth")]
     public int? MainContentWidth { get; set; }
+
+    [JsonPropertyName("contextContentWidth")]
     public int? ContextContentWidth { get; set; }  
+
+    [JsonPropertyName("isSidebarOpen")]
     public bool IsSidebarOpen { get; set; } = true;
 }

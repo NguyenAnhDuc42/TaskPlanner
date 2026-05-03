@@ -10,7 +10,8 @@ export type ContentPage =
   | "calendar"
   | "members"
   | "communications"
-  | "settings";
+  | "settings"
+  | "command-center";
 
 export interface SidebarContextType {
   isInnerSidebarOpen: boolean;
@@ -34,6 +35,7 @@ export interface NavItem {
 
 export const getNavigationItems = (contentType: ContentPage): NavItem[] => {
   switch (contentType) {
+    case "command-center":
     case "projects":
       return [
         { id: "all-tasks", icon: FileText, label: "All Tasks" },

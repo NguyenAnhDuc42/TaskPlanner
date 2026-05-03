@@ -41,6 +41,9 @@ public class UpdateUserPreferenceHandler(IDataBase db, ICurrentUserService curre
             }
         }
 
+        // Inform EF Core that the entity has changed (since it's a JSONB converted column)
+        db.UserPreferences.Update(preference);
+
         await db.SaveChangesAsync(ct);
         return Result.Success();
     }

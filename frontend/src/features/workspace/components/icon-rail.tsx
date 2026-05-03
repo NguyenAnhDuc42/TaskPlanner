@@ -18,7 +18,7 @@ import {
 } from "lucide-react";
 import { useNavigate } from "@tanstack/react-router";
 import { useAuth } from "@/features/auth/auth-context";
-import { useWorkspaceSession } from "../context/workspace-session";
+import { useWorkspaceSession } from "../context/workspace-provider";
 import type { ContentPage } from "../type";
 
 const NAV_ICONS: { id: ContentPage; icon: React.ElementType; label: string }[] =
@@ -69,11 +69,11 @@ export function IconRail({ onSelectIcon, onCommandCenter }: IconRailProps) {
           <Tooltip>
             <TooltipTrigger asChild>
               <Button
-                variant={state.activeIcon === null ? "default" : "ghost"}
+                variant={state.activeIcon === "command-center" ? "default" : "ghost"}
                 size="icon"
                 className={cn(
                   "w-8 h-8 rounded-md transition-all duration-200",
-                  state.activeIcon === null
+                  state.activeIcon === "command-center"
                     ? "theme-selected scale-105"
                     : "text-[var(--theme-text-normal)] hover:bg-[var(--theme-item-hover)] hover:text-[var(--theme-text-hover)]",
                 )}
@@ -94,7 +94,12 @@ export function IconRail({ onSelectIcon, onCommandCenter }: IconRailProps) {
           {/* Projects, Members */}
           {NAV_ICONS.map((item) => {
             const Icon = item.icon;
-            const isActive = state.activeIcon === item.id;
+            
+            // Projects icon should be active for projects, spaces, folders, and tasks
+            const isActive = item.id === "projects" 
+              ? ["projects", "spaces", "folders", "tasks"].includes(state.activeIcon || "")
+              : state.activeIcon === item.id;
+
             return (
               <Tooltip key={item.id}>
                 <TooltipTrigger asChild>
@@ -113,6 +118,7 @@ export function IconRail({ onSelectIcon, onCommandCenter }: IconRailProps) {
                         actions.setHoveredIcon(item.id);
                       }
                     }}
+                    onMouseLeave={() => actions.setHoveredIcon(null)}
                   >
                     <Icon className="h-5 w-5" />
                   </Button>
@@ -197,7 +203,7 @@ export function IconRail({ onSelectIcon, onCommandCenter }: IconRailProps) {
               sideOffset={10}
               className="font-mono text-[10px] uppercase tracking-wider font-bold"
             >
-              Profile
+              {user?.name || "Profile"}
             </TooltipContent>
           </Tooltip>
 
