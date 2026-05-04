@@ -4,7 +4,6 @@ export interface WorkspaceHierarchy {
   id: string;
   name: string;
   slug: string;
-  description?: any; // JSONB
   spaces: SpaceHierarchy[];
 }
 
@@ -12,7 +11,6 @@ export interface SpaceHierarchy {
   id: string;
   name: string;
   slug: string;
-  description?: any; // JSONB
   color: string;
   icon: string;
   isPrivate: boolean;
@@ -27,7 +25,6 @@ export interface FolderHierarchy {
   id: string;
   name: string;
   slug: string;
-  description?: any; // JSONB
   color: string;
   icon: string;
   isPrivate: boolean;
@@ -40,7 +37,6 @@ export interface TaskHierarchy {
   id: string;
   name: string;
   slug: string;
-  description?: any; // JSONB
   statusId?: string;
   priority: number;
   color?: string;
@@ -59,7 +55,6 @@ export interface NodeTasksResponse {
 export interface CreateSpaceRequest {
   workspaceId: string;
   name: string;
-  description?: string;
   color?: string;
   icon?: string;
   isPrivate?: boolean;
@@ -78,11 +73,12 @@ export interface CreateTaskRequest {
   parentId: string;
   parentType: EntityLayerType;
   name: string;
-  description?: string;
   statusId?: string;
   priority?: number;
   startDate?: string;
   dueDate?: string;
+  color?: string;
+  icon?: string;
 }
 
 export interface UpdateSpaceRequest {
@@ -110,7 +106,6 @@ export interface UpdateFolderRequest {
 export interface UpdateTaskRequest {
   taskId: string;
   name?: string;
-  description?: string;
   statusId?: string;
   priority?: number;
   startDate?: string;

@@ -11,15 +11,16 @@ import {
   Users
 } from "lucide-react"
 import { DialogFormWrapper } from "@/components/dialog-form-wrapper"
-import { SpaceForm } from "../creation-form/space-form"
-import { FolderForm } from "../creation-form/folder-form"
-import { TaskForm } from "../creation-form/task-form"
-import { useSidebarContext } from "@/features/workspace/components/sidebar-provider"
+import { useWorkspace } from "@/features/workspace/context/workspace-provider"
 import { useState } from "react"
 import { EntityLayerType } from "@/types/entity-layer-type"
+import { SpaceForm } from "../creation-form/space-form"
+import { CreateSpaceForm } from "@/features/workspace/components/forms/create-space-form"
+import { CreateFolderForm } from "@/features/workspace/components/forms/create-folder-form"
+import { CreateTaskForm } from "@/features/workspace/components/forms/create-task-form"
 
 export function SpaceMenu({ spaceId, onAction }: { spaceId: string, onAction?: (action: string) => void }) {
-  const { workspaceId } = useSidebarContext()
+  const { workspaceId } = useWorkspace()
   const [activeForm, setActiveForm] = useState<"space" | "folder" | "task" | null>(null)
 
   return (
@@ -38,9 +39,8 @@ export function SpaceMenu({ spaceId, onAction }: { spaceId: string, onAction?: (
         }
         contentClassName="sm:max-w-[800px] p-0 overflow-hidden border-none shadow-2xl rounded-2xl bg-background outline-none ring-1 ring-border/50"
       >
-        <SpaceForm 
-          workspaceId={workspaceId || ""}
-          onSubmitSuccess={() => setActiveForm(null)}
+        <CreateSpaceForm 
+          onSuccess={() => setActiveForm(null)}
           onCancel={() => setActiveForm(null)}
         />
       </DialogFormWrapper>
@@ -56,10 +56,9 @@ export function SpaceMenu({ spaceId, onAction }: { spaceId: string, onAction?: (
         }
         contentClassName="sm:max-w-[800px] p-0 overflow-hidden border-none shadow-2xl rounded-2xl bg-background outline-none ring-1 ring-border/50"
       >
-        <FolderForm 
-          workspaceId={workspaceId || ""}
+        <CreateFolderForm 
           spaceId={spaceId}
-          onSubmitSuccess={() => setActiveForm(null)}
+          onSuccess={() => setActiveForm(null)}
           onCancel={() => setActiveForm(null)}
         />
       </DialogFormWrapper>
@@ -76,11 +75,10 @@ export function SpaceMenu({ spaceId, onAction }: { spaceId: string, onAction?: (
         }
         contentClassName="max-w-3xl p-0 overflow-hidden border-none shadow-2xl rounded-2xl bg-background outline-none ring-1 ring-border/50"
       >
-        <TaskForm 
-          workspaceId={workspaceId || ""}
+        <CreateTaskForm 
           parentId={spaceId}
           parentType={EntityLayerType.ProjectSpace}
-          onSubmitSuccess={() => setActiveForm(null)}
+          onSuccess={() => setActiveForm(null)}
           onCancel={() => setActiveForm(null)}
         />
       </DialogFormWrapper>

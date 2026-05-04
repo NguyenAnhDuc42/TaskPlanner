@@ -85,4 +85,23 @@ public class Database(TaskPlanDbContext context) : IDataBase
         return await context.SaveChangesAsync(cancellationToken);
     }
 
+    public async Task<T> ExecuteInTransactionAsync<T>(Func<Task<T>> action, CancellationToken cancellationToken = default)
+    {
+        var strategy = CreateExecutionStrategy();
+        return await strategy.ExecuteAsync(async () =>
+        {
+            await BeginTransactionAsync(cancellationToken);
+            try
+            {
+                var result = await action();
+                await CommitTransactionAsync(cancellationToken);
+                return result;
+            }
+            catch
+            {
+                await RollbackTransactionAsync(cancellationToken);
+                throw;
+            }
+        });
+    }
 }

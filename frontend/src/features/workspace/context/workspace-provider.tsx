@@ -108,42 +108,35 @@ export function WorkspaceProvider({ workspaceId, children }: WorkspaceProviderPr
     return icon as ContentPage;
   }, [location.pathname]);
 
-  // 4. Persistence Actions
-  const isValidGuid = useCallback((id: string) => {
-    return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
-  }, []);
+
 
   const updateSidebarWidth = useCallback((newWidth: number) => {
     setSidebarWidth(newWidth);
     const shouldBeOpen = newWidth > 0;
     setIsInnerSidebarOpen(shouldBeOpen);
 
-    if (isValidGuid(workspaceId)) {
-      updatePreferences({
-        workspaceSettings: {
-          [workspaceId]: {
-            ...wsSettings,
-            sideBarWidth: newWidth,
-            isSidebarOpen: shouldBeOpen,
-          }
+    updatePreferences({
+      workspaceSettings: {
+        [workspaceId]: {
+          ...wsSettings,
+          sideBarWidth: newWidth,
+          isSidebarOpen: shouldBeOpen,
         }
-      } as any);
-    }
-  }, [workspaceId, wsSettings, updatePreferences, isValidGuid]);
+      }
+    } as any);
+  }, [workspaceId, wsSettings, updatePreferences]);
 
   const updateContextWidth = useCallback((newWidth: number) => {
     setContextWidth(newWidth);
-    if (isValidGuid(workspaceId)) {
-      updatePreferences({
-        workspaceSettings: {
-          [workspaceId]: {
-            ...wsSettings,
-            contextContentWidth: newWidth,
-          }
+    updatePreferences({
+      workspaceSettings: {
+        [workspaceId]: {
+          ...wsSettings,
+          contextContentWidth: newWidth,
         }
-      } as any);
-    }
-  }, [workspaceId, wsSettings, updatePreferences, isValidGuid]);
+      }
+    } as any);
+  }, [workspaceId, wsSettings, updatePreferences]);
 
   const toggleInnerSidebar = useCallback(() => {
     const nextOpen = !isInnerSidebarOpen;
@@ -155,25 +148,23 @@ export function WorkspaceProvider({ workspaceId, children }: WorkspaceProviderPr
       setSidebarWidth(targetWidth);
     }
 
-    if (isValidGuid(workspaceId)) {
-      updatePreferences({
-        workspaceSettings: {
-          [workspaceId]: {
-            ...wsSettings,
-            isSidebarOpen: nextOpen,
-            sideBarWidth: targetWidth
-          }
+    updatePreferences({
+      workspaceSettings: {
+        [workspaceId]: {
+          ...wsSettings,
+          isSidebarOpen: nextOpen,
+          sideBarWidth: targetWidth
         }
-      } as any);
-    }
-  }, [workspaceId, wsSettings, isInnerSidebarOpen, sidebarWidth, updatePreferences, isValidGuid]);
+      }
+    } as any);
+  }, [workspaceId, wsSettings, isInnerSidebarOpen, sidebarWidth, updatePreferences]);
 
   // 5. Lifecycle Effects (SignalR, Redirects)
   useEffect(() => {
-    if (workspace && !isError && isValidGuid(workspaceId)) {
+    if (workspace && !isError) {
       updatePreferences({ lastWorkspaceId: workspaceId });
     }
-  }, [workspaceId, workspace, isError, updatePreferences, isValidGuid]);
+  }, [workspaceId, workspace, isError, updatePreferences]);
 
   useEffect(() => {
     if (isError && error) {
@@ -185,8 +176,6 @@ export function WorkspaceProvider({ workspaceId, children }: WorkspaceProviderPr
   }, [isError, error, navigate]);
 
   useEffect(() => {
-    if (!isValidGuid(workspaceId)) return;
-    
     const manageConnection = async () => {
       try {
         await signalRService.startConnection();
@@ -199,7 +188,7 @@ export function WorkspaceProvider({ workspaceId, children }: WorkspaceProviderPr
     return () => {
       signalRService.invoke("LeaveWorkspace", workspaceId).catch(() => {});
     };
-  }, [workspaceId, isValidGuid]);
+  }, [workspaceId]);
 
   // 6. Memoized Context Value
   const value = useMemo(() => ({

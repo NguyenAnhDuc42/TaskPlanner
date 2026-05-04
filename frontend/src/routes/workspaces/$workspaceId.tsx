@@ -10,6 +10,9 @@ import { Loader2 } from "lucide-react";
 export const workspaceSearchSchema = z.object({});
 
 export const Route = createFileRoute("/workspaces/$workspaceId")({
+  parseParams: (params) => ({
+    workspaceId: z.uuid().parse(params.workspaceId),
+  }),
   validateSearch: (search) => workspaceSearchSchema.parse(search),
   component: WorkspaceRoot,
 });

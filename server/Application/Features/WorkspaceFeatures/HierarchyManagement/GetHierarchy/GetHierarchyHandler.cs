@@ -27,20 +27,22 @@ public class GetHierarchyHandler(IDataBase db) : IQueryHandler<GetHierarchyQuery
 
     private static WorkspaceHierarchyDto BuildHierarchy(List<SpaceRow> rows)
     {
-        var spaces = new List<SpaceHierarchyDto>(rows.Count);
+        var spaces = new List<SpaceHierarchyDto>();
 
         foreach (var s in rows)
         {
+            if (s.Id == null) continue;
+
             spaces.Add(new SpaceHierarchyDto
             {
-                Id        = s.Id,
-                Name      = s.Name,
+                Id        = s.Id.Value,
+                Name      = s.Name ?? string.Empty,
                 Color     = s.Color  ?? string.Empty,
                 Icon      = s.Icon   ?? string.Empty,
-                IsPrivate = s.IsPrivate,
-                OrderKey  = s.OrderKey,
-                HasFolders = s.HasFolders,
-                HasTasks   = s.HasTasks,
+                IsPrivate = s.IsPrivate ?? false,
+                OrderKey  = s.OrderKey ?? string.Empty,
+                HasFolders = s.HasFolders ?? false,
+                HasTasks   = s.HasTasks ?? false,
                 Folders   = new List<FolderHierarchyDto>(0),
                 Tasks     = new List<TaskHierarchyDto>(0)
             });
@@ -55,7 +57,7 @@ public class GetHierarchyHandler(IDataBase db) : IQueryHandler<GetHierarchyQuery
 
     private record SpaceRow(
         string WorkspaceName,
-        Guid Id, string Name, string? Color, string? Icon,
-        bool IsPrivate, string OrderKey,
-        bool HasFolders, bool HasTasks);
+        Guid? Id, string? Name, string? Color, string? Icon,
+        bool? IsPrivate, string? OrderKey,
+        bool? HasFolders, bool? HasTasks);
 }

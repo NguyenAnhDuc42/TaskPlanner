@@ -22,9 +22,7 @@ public class CreateSpaceHandler(
         if (context.CurrentMember.Role > Role.Admin)
             return Result<Guid>.Failure(MemberError.DontHavePermission);
 
-        await db.BeginTransactionAsync(ct);
-
-        try
+        return await db.ExecuteInTransactionAsync(async () =>
         {
             var maxKey = await db.Spaces
                 .AsNoTracking()
@@ -61,17 +59,10 @@ public class CreateSpaceHandler(
             db.ViewDefinitions.AddRange(
                 ViewDefinition.CreateDefaults(context.workspaceId, space.Id, null, context.CurrentMember.Id));
 
-            await db.CommitTransactionAsync(ct);
-
             await realtime.NotifyWorkspaceAsync(context.workspaceId, "SpaceCreated", new { SpaceId = space.Id, WorkspaceId = context.workspaceId }, ct);
 
             return Result<Guid>.Success(space.Id);
-        }
-        catch
-        {
-            await db.RollbackTransactionAsync(ct);
-            throw;
-        }
+        }, ct);
     }
 }
 

@@ -18,11 +18,12 @@ import {
   Settings,
 } from "lucide-react"
 import { DialogFormWrapper } from "@/components/dialog-form-wrapper"
-import { TaskForm } from "../creation-form/task-form"
-import { useSidebarContext } from "@/features/workspace/components/sidebar-provider"
-import * as React from "react"
-
 import { type EntityLayerType, EntityLayerType as EntityLayerConst } from "@/types/entity-layer-type"
+
+import { useWorkspace } from "@/features/workspace/context/workspace-provider"
+import { TaskForm } from "../creation-form/task-form"
+import React from "react"
+import { CreateTaskForm } from "@/features/workspace/components/forms/create-task-form"
 
 export function TaskMenu({ taskId, parentId, parentType, onAction }: { 
   taskId: string, 
@@ -30,7 +31,7 @@ export function TaskMenu({ taskId, parentId, parentType, onAction }: {
   parentType: EntityLayerType,
   onAction?: (action: string) => void 
 }) {
-  const { workspaceId } = useSidebarContext()
+  const { workspaceId } = useWorkspace()
   const [isCreatingTask, setIsCreatingTask] = React.useState(false)
 
   return (
@@ -49,11 +50,10 @@ export function TaskMenu({ taskId, parentId, parentType, onAction }: {
         }
         contentClassName="sm:max-w-[800px] p-0 overflow-hidden border-none shadow-2xl rounded-2xl bg-background outline-none ring-1 ring-border/50"
       >
-        <TaskForm 
-          workspaceId={workspaceId || ""}
+        <CreateTaskForm 
           parentId={parentId}
           parentType={parentType}
-          onSubmitSuccess={() => setIsCreatingTask(false)}
+          onSuccess={() => setIsCreatingTask(false)}
           onCancel={() => setIsCreatingTask(false)}
         />
       </DialogFormWrapper>

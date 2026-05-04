@@ -1,6 +1,5 @@
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   Tooltip,
   TooltipContent,
@@ -8,12 +7,12 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import {
-  Command,
-  CheckSquare,
+  LayoutGrid,
+  Inbox,
+  Folder,
   Users,
   Settings,
   PanelLeftOpen,
-  Briefcase,
   LogOut,
 } from "lucide-react";
 import { useNavigate } from "@tanstack/react-router";
@@ -23,8 +22,9 @@ import type { ContentPage } from "../type";
 
 const NAV_ICONS: { id: ContentPage; icon: React.ElementType; label: string }[] =
   [
-    { id: "projects", icon: CheckSquare, label: "Projects" },
+    { id: "projects", icon: Folder, label: "Projects" },
     { id: "members", icon: Users, label: "Members" },
+    { id: "inbox", icon: Inbox, label: "Inbox" },
   ];
 
 interface IconRailProps {
@@ -39,30 +39,33 @@ export function IconRail({ onSelectIcon, onCommandCenter }: IconRailProps) {
 
   return (
     <TooltipProvider delayDuration={100}>
-      <div className="flex flex-col gap-2 h-full w-fit flex-shrink-0">
+      <div className="flex flex-col gap-0.5 h-full w-fit flex-shrink-0">
         {/* Top Card */}
-        <div className="flex flex-col items-center gap-1.5 shrink-0 bg-background border border-border rounded-md shadow-sm p-1.5">
+        <div className="flex flex-col items-center gap-0.5 shrink-0 bg-background border border-border rounded-md shadow-sm p-1">
           {/* Expand — only when inner sidebar is closed */}
           {!state.isInnerSidebarOpen && (
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="w-8 h-8 rounded-md text-[var(--theme-text-normal)] hover:text-[var(--theme-text-hover)] hover:bg-[var(--theme-item-hover)] transition-all duration-200"
-                  onClick={actions.toggleInnerSidebar}
+            <>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="w-7 h-7 rounded-md text-[var(--theme-text-normal)] hover:text-[var(--theme-text-hover)] hover:bg-[var(--theme-item-hover)] transition-all duration-200"
+                    onClick={actions.toggleInnerSidebar}
+                  >
+                    <PanelLeftOpen className="h-[18px] w-[18px]" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent
+                  side="right"
+                  sideOffset={10}
+                  className="font-mono text-[10px] uppercase tracking-wider font-bold"
                 >
-                  <PanelLeftOpen className="h-5 w-5" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent
-                side="right"
-                sideOffset={10}
-                className="font-mono text-[10px] uppercase tracking-wider font-bold"
-              >
-                Expand
-              </TooltipContent>
-            </Tooltip>
+                  Expand
+                </TooltipContent>
+              </Tooltip>
+              <div className="w-4 h-px bg-border/60 my-0.5" />
+            </>
           )}
 
           {/* Command Center */}
@@ -72,14 +75,14 @@ export function IconRail({ onSelectIcon, onCommandCenter }: IconRailProps) {
                 variant={state.activeIcon === "command-center" ? "default" : "ghost"}
                 size="icon"
                 className={cn(
-                  "w-8 h-8 rounded-md transition-all duration-200",
+                  "w-7 h-7 rounded-md transition-all duration-200",
                   state.activeIcon === "command-center"
                     ? "theme-selected scale-105"
                     : "text-[var(--theme-text-normal)] hover:bg-[var(--theme-item-hover)] hover:text-[var(--theme-text-hover)]",
                 )}
                 onClick={onCommandCenter}
               >
-                <Command className="h-5 w-5" />
+                <LayoutGrid className="h-[18px] w-[18px]" />
               </Button>
             </TooltipTrigger>
             <TooltipContent
@@ -107,7 +110,7 @@ export function IconRail({ onSelectIcon, onCommandCenter }: IconRailProps) {
                     variant={isActive ? "default" : "ghost"}
                     size="icon"
                     className={cn(
-                      "w-8 h-8 rounded-md transition-all duration-200",
+                      "w-7 h-7 rounded-md transition-all duration-200",
                       isActive
                         ? "theme-selected scale-105"
                         : "text-[var(--theme-text-normal)] hover:bg-[var(--theme-item-hover)] hover:text-[var(--theme-text-hover)]",
@@ -120,7 +123,7 @@ export function IconRail({ onSelectIcon, onCommandCenter }: IconRailProps) {
                     }}
                     onMouseLeave={() => actions.setHoveredIcon(null)}
                   >
-                    <Icon className="h-5 w-5" />
+                    <Icon className="h-[18px] w-[18px]" />
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent
@@ -134,6 +137,14 @@ export function IconRail({ onSelectIcon, onCommandCenter }: IconRailProps) {
             );
           })}
 
+          {/* Settings removed from here */}
+        </div>
+
+        {/* Spacer */}
+        <div className="flex-1" />
+
+        {/* Bottom Card — Settings & Exit */}
+        <div className="flex flex-col items-center gap-0.5 bg-background border border-border rounded-md shadow-sm p-1">
           {/* Settings */}
           <Tooltip>
             <TooltipTrigger asChild>
@@ -141,7 +152,7 @@ export function IconRail({ onSelectIcon, onCommandCenter }: IconRailProps) {
                 variant={state.activeIcon === "settings" ? "default" : "ghost"}
                 size="icon"
                 className={cn(
-                  "w-8 h-8 rounded-md transition-all duration-200",
+                  "w-7 h-7 rounded-md transition-all duration-200",
                   state.activeIcon === "settings"
                     ? "theme-selected scale-105"
                     : "text-[var(--theme-text-normal)] hover:bg-[var(--theme-item-hover)] hover:text-[var(--theme-text-hover)]",
@@ -159,76 +170,27 @@ export function IconRail({ onSelectIcon, onCommandCenter }: IconRailProps) {
               Settings
             </TooltipContent>
           </Tooltip>
-        </div>
 
-        {/* Spacer */}
-        <div className="flex-1" />
-
-        {/* Bottom Card — Workspaces, User, Exit */}
-        <div className="flex flex-col items-center gap-2 bg-background border border-border rounded-md shadow-sm p-1.5">
-          {/* Workspaces */}
+          {/* Exit */}
           <Tooltip>
             <TooltipTrigger asChild>
               <Button
                 variant="ghost"
                 size="icon"
-                className="w-8 h-8 rounded-md hover:bg-[var(--theme-item-hover)] hover:text-[var(--theme-text-hover)] text-[var(--theme-text-normal)] transition-all duration-200"
+                className="w-7 h-7 rounded-md hover:bg-destructive/10 hover:text-destructive text-[var(--theme-text-normal)] transition-colors opacity-40 hover:opacity-100"
+                onClick={() => navigate({ to: "/" })}
               >
-                <Briefcase className="h-4 w-4" />
+                <LogOut className="h-4 w-4" />
               </Button>
             </TooltipTrigger>
             <TooltipContent
               side="right"
               sideOffset={10}
-              className="font-mono text-[10px] uppercase tracking-wider font-bold"
+              className="font-mono text-[10px] uppercase tracking-wider font-bold text-destructive"
             >
-              Workspaces
+              Exit
             </TooltipContent>
           </Tooltip>
-
-          {/* User */}
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Avatar className="h-8 w-8 border border-border shadow-sm hover:scale-110 transition-transform cursor-pointer rounded-md overflow-hidden bg-muted">
-                <AvatarImage src="" />
-                <AvatarFallback className="text-[10px] font-bold">
-                  {user?.name?.substring(0, 2).toUpperCase() || (
-                    <Users className="h-4 w-4" />
-                  )}
-                </AvatarFallback>
-              </Avatar>
-            </TooltipTrigger>
-            <TooltipContent
-              side="right"
-              sideOffset={10}
-              className="font-mono text-[10px] uppercase tracking-wider font-bold"
-            >
-              {user?.name || "Profile"}
-            </TooltipContent>
-          </Tooltip>
-
-          {/* Exit */}
-          <div className="pt-1">
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="w-8 h-8 rounded-md hover:bg-destructive/10 hover:text-destructive text-[var(--theme-text-normal)] transition-colors opacity-40 hover:opacity-100"
-                  onClick={() => navigate({ to: "/" })}
-                >
-                  <LogOut className="h-4 w-4" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent
-                side="right"
-                sideOffset={10}
-                className="font-mono text-[10px] uppercase tracking-wider font-bold text-destructive"
-              >
-                Exit
-              </TooltipContent>
-            </Tooltip>
-          </div>
         </div>
       </div>
     </TooltipProvider>

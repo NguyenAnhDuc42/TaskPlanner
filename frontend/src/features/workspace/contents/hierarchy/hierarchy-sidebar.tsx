@@ -2,8 +2,8 @@ import { useWorkspace } from "@/features/workspace/context/workspace-provider";
 import { useHierarchy, useMoveItem, } from "./hierarchy-api";
 import { EntityLayerType as EntityLayerConst } from "@/types/entity-layer-type";
 import { DialogFormWrapper } from "@/components/dialog-form-wrapper";
-import { SpaceForm } from "./hierarchy-components/creation-form/space-form";
-import { Loader2, Plus, Search, ChevronDown, FileText, Clock } from "lucide-react";
+
+import { Loader2, Plus, Search, ChevronDown } from "lucide-react";
 import { 
   DndContext, 
   closestCenter,
@@ -22,7 +22,7 @@ import { useHierarchyDnd } from "./dnd/use-hierarchy-dnd";
 import { SpaceItem } from "./items/space-item";
 import { FolderItem } from "./items/folder-item";
 import { TaskItem } from "./items/task-item";
-import { MockItem } from "./items/mock-item";
+import { CreateSpaceForm } from "../../components/forms/create-space-form";
 
 export function HierarchySidebar() {
   const { workspaceId } = useWorkspace();
@@ -92,7 +92,7 @@ export function HierarchySidebar() {
             trigger={<Plus className="h-4 w-4 text-muted-foreground hover:text-foreground cursor-pointer" />}
             contentClassName="sm:max-w-[800px] p-0 overflow-hidden border-none shadow-2xl rounded-2xl bg-background outline-none ring-1 ring-border/50"
           >
-            <SpaceForm workspaceId={workspaceId || ""} onSubmitSuccess={() => {}} onCancel={() => {}} />
+            <CreateSpaceForm onSuccess={() => {}} onCancel={() => {}} />
           </DialogFormWrapper>
         </div>
       </div>
@@ -118,7 +118,7 @@ export function HierarchySidebar() {
                 trigger={<Plus className="h-3 w-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-none hover:text-primary cursor-pointer" />}
                 contentClassName="sm:max-w-[800px] p-0 overflow-hidden border-none shadow-2xl rounded-2xl bg-background outline-none ring-1 ring-border/50"
               >
-                <SpaceForm workspaceId={workspaceId || ""} onSubmitSuccess={() => {}} onCancel={() => {}} />
+                <CreateSpaceForm onSuccess={() => {}} onCancel={() => {}} />
               </DialogFormWrapper>
             </div>
           </CollapsibleTrigger>
@@ -155,7 +155,7 @@ export function HierarchySidebar() {
                         }
                         contentClassName="sm:max-w-[800px] p-0 overflow-hidden border-none shadow-2xl rounded-2xl bg-background outline-none ring-1 ring-border/50"
                       >
-                        <SpaceForm workspaceId={workspaceId || ""} onSubmitSuccess={() => {}} onCancel={() => {}} />
+                        <CreateSpaceForm onSuccess={() => {}} onCancel={() => {}} />
                       </DialogFormWrapper>
                     </div>
                   )}
@@ -202,9 +202,7 @@ export function HierarchySidebar() {
           <CollapsibleContent className="flex-1 min-h-0 overflow-hidden data-[state=open]:flex data-[state=closed]:hidden">
             <ScrollArea className="h-full w-full">
               <div className="px-2 pt-0.5 pb-2 flex flex-col">
-                <MockItem icon={FileText} label="Product Roadmap" count={3} />
-                <MockItem icon={FileText} label="Design Systems" count={12} />
-                <MockItem icon={Clock} label="Recent Tasks" />
+                {/* Future Stuff */}
               </div>
             </ScrollArea>
           </CollapsibleContent>

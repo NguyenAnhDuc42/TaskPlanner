@@ -28,9 +28,7 @@ public class CreateFolderHandler(
         if (context.CurrentMember.Role > Role.Admin)
             return Result<Guid>.Failure(MemberError.DontHavePermission);
 
-        await db.BeginTransactionAsync(ct);
-
-        try
+        return await db.ExecuteInTransactionAsync(async () =>
         {
             var maxKey = await db.Folders
                 .AsNoTracking()
@@ -71,17 +69,10 @@ public class CreateFolderHandler(
             db.ViewDefinitions.AddRange(
                 ViewDefinition.CreateDefaults(context.workspaceId, space.Id, folder.Id, context.CurrentMember.Id));
 
-            await db.CommitTransactionAsync(ct);
-
             await realtime.NotifyWorkspaceAsync(context.workspaceId, "FolderCreated", new { FolderId = folder.Id, SpaceId = space.Id, WorkspaceId = context.workspaceId }, ct);
 
             return Result<Guid>.Success(folder.Id);
-        }
-        catch
-        {
-            await db.RollbackTransactionAsync(ct);
-            throw;
-        }
+        }, ct);
     }
 }
 

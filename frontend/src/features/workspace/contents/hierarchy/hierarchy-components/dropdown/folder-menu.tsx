@@ -10,14 +10,16 @@ import {
   Type
 } from "lucide-react"
 import { DialogFormWrapper } from "@/components/dialog-form-wrapper"
-import { FolderForm } from "../creation-form/folder-form"
-import { TaskForm } from "../creation-form/task-form"
-import { useSidebarContext } from "@/features/workspace/components/sidebar-provider"
+
+import { useWorkspace } from "@/features/workspace/context/workspace-provider"
 import { useState } from "react"
 import { EntityLayerType } from "@/types/entity-layer-type"
+import { CreateTaskForm } from "@/features/workspace/components/forms/create-task-form"
+import { CreateFolderForm } from "@/features/workspace/components/forms/create-folder-form"
+import { FolderForm } from "../creation-form/folder-form"
 
 export function FolderMenu({ folderId, spaceId, onAction }: { folderId: string, spaceId: string, onAction?: (action: string) => void }) {
-  const { workspaceId } = useSidebarContext()
+  const { workspaceId } = useWorkspace()
   const [activeForm, setActiveForm] = useState<"folder" | "task" | null>(null)
 
   return (
@@ -36,10 +38,9 @@ export function FolderMenu({ folderId, spaceId, onAction }: { folderId: string, 
         }
         contentClassName="sm:max-w-[800px] p-0 overflow-hidden border-none shadow-2xl rounded-2xl bg-background outline-none ring-1 ring-border/50"
       >
-        <FolderForm 
-          workspaceId={workspaceId || ""}
+        <CreateFolderForm 
           spaceId={spaceId}
-          onSubmitSuccess={() => setActiveForm(null)}
+          onSuccess={() => setActiveForm(null)}
           onCancel={() => setActiveForm(null)}
         />
       </DialogFormWrapper>
@@ -55,11 +56,10 @@ export function FolderMenu({ folderId, spaceId, onAction }: { folderId: string, 
         }
         contentClassName="sm:max-w-[800px] p-0 overflow-hidden border-none shadow-2xl rounded-2xl bg-background outline-none ring-1 ring-border/50"
       >
-        <TaskForm 
-          workspaceId={workspaceId || ""}
+        <CreateTaskForm 
           parentId={folderId}
           parentType={EntityLayerType.ProjectFolder}
-          onSubmitSuccess={() => setActiveForm(null)}
+          onSuccess={() => setActiveForm(null)}
           onCancel={() => setActiveForm(null)}
         />
       </DialogFormWrapper>

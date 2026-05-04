@@ -22,9 +22,7 @@ public class CreateTaskHandler(IDataBase db, WorkspaceContext context) : IComman
 
         var ancestors = await HierarchyHelper.GetAncestorChain(db, request.ParentId, request.ParentType, ct);
 
-        await db.BeginTransactionAsync(ct);
-
-        try
+        return await db.ExecuteInTransactionAsync(async () =>
         {
             string orderKey = request.ParentType switch
             {
@@ -74,8 +72,6 @@ public class CreateTaskHandler(IDataBase db, WorkspaceContext context) : IComman
                 assignees = await HandleAssignments(task, ancestors.ProjectWorkspaceId, request.AssigneeIds, ct);
             }
 
-            await db.CommitTransactionAsync(ct);
-
             return Result<TaskDto>.Success(new TaskDto(
                 task.Id,
                 task.ProjectWorkspaceId,
@@ -93,12 +89,7 @@ public class CreateTaskHandler(IDataBase db, WorkspaceContext context) : IComman
                 task.CreatedAt,
                 assignees
             ));
-        }
-        catch
-        {
-            await db.RollbackTransactionAsync(ct);
-            throw;
-        }
+        }, ct);
     }
 
     private async Task<string> ResolveFolderOrderKey(Guid folderId, CancellationToken ct)

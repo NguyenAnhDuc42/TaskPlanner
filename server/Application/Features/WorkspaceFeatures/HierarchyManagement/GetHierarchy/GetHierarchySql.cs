@@ -27,7 +27,7 @@ public static class GetHierarchySql
                 LIMIT 1
             ) AS has_tasks
         FROM project_workspaces w
-        JOIN project_spaces s
+        LEFT JOIN project_spaces s
             ON s.project_workspace_id = w.id
            AND s.deleted_at IS NULL
            AND s.is_archived = false
