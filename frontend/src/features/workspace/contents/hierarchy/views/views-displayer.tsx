@@ -1,5 +1,5 @@
 import { EntityLayerType } from "@/types/entity-layer-type";
-import { useEntityInfo } from "../hierarchy-api";
+import { useEntityInfo, useHierarchy } from "../hierarchy-api";
 import { useViews, useViewData } from "./views-api";
 import { useState, useMemo, useEffect } from "react";
 import { ViewHeader } from "./view-components/layout/view-header";
@@ -8,6 +8,8 @@ import { FolderViewSwitcher } from "./view-components/layers/folder/folder-view-
 import { useQueryClient } from "@tanstack/react-query";
 import { viewsKeys } from "./views-keys";
 import { hierarchyKeys } from "../hierarchy-keys";
+import CommandCenterIndex from "../../command-center/command-center-index";
+
 
 interface ViewsDisplayerProps {
   workspaceId: string;
@@ -21,6 +23,7 @@ export function ViewsDisplayer({
   layerType,
 }: ViewsDisplayerProps) {
   const queryClient = useQueryClient();
+  const { isLoading: isLoadingHierarchy, isFetched: isHierarchyFetched } = useHierarchy(workspaceId);
   const entityInfo = useEntityInfo(workspaceId, entityId);
   const [isContextOpen, setIsContextOpen] = useState(true);
 
@@ -35,10 +38,7 @@ export function ViewsDisplayer({
     };
 
     const handleUpdated = (data: any) => {
-      // Invalidate views data
       queryClient.invalidateQueries({ queryKey: viewsKeys.all });
-      
-      // If it's the current entity, we might need to refresh entity info too
       if (data.SpaceId === entityId || data.FolderId === entityId || data.TaskId === entityId) {
          queryClient.invalidateQueries({ queryKey: hierarchyKeys.detail(workspaceId) });
       }
@@ -74,13 +74,20 @@ export function ViewsDisplayer({
     }
   }, [views, activeViewId]);
 
-  // Real View Data
   const { data: viewResponse, isLoading: isLoadingData } = useViewData(activeViewId || "");
 
   const activeView = useMemo(
     () => views?.find((v) => v.id === activeViewId),
     [views, activeViewId],
   );
+
+  const isLoading = isLoadingHierarchy || isLoadingViews || (isLoadingData && !viewResponse);
+
+  // --- Fallback Check ---
+  // If hierarchy is loaded but entityInfo is null, it's a 404
+  if (isHierarchyFetched && !entityInfo && !isLoadingHierarchy) {
+    return <CommandCenterIndex isFallback={true} />;
+  }
 
   const viewHeader = (
     <ViewHeader
@@ -95,11 +102,6 @@ export function ViewsDisplayer({
     />
   );
 
-  const isLoading = isLoadingViews || (isLoadingData && !viewResponse);
-
-  // We use a internal switcher to handle the SplitView logic
-  // but we keep the header inside the Left side
-  
   if (layerType === EntityLayerType.ProjectSpace) {
     return (
       <SpaceViewSwitcher 

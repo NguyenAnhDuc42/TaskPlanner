@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { CommandCenterView } from "@/features/workspace/contents/command-center/command-center-view";
+import CommandCenterIndex from "@/features/workspace/contents/command-center/command-center-index";
 
 export const Route = createFileRoute("/workspaces/$workspaceId/command-center")({
-  component: CommandCenterView,
+  component: CommandCenterIndex,
 });

@@ -36,7 +36,6 @@ export function FolderMenu({ folderId, spaceId, onAction }: { folderId: string, 
             <span>Create Folder</span>
           </DropdownMenuItem>
         }
-        contentClassName="sm:max-w-[800px] p-0 overflow-hidden border-none shadow-2xl rounded-2xl bg-background outline-none ring-1 ring-border/50"
       >
         <CreateFolderForm 
           spaceId={spaceId}
@@ -54,7 +53,6 @@ export function FolderMenu({ folderId, spaceId, onAction }: { folderId: string, 
             <span>Create Task</span>
           </DropdownMenuItem>
         }
-        contentClassName="sm:max-w-[800px] p-0 overflow-hidden border-none shadow-2xl rounded-2xl bg-background outline-none ring-1 ring-border/50"
       >
         <CreateTaskForm 
           parentId={folderId}

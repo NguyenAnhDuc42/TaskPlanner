@@ -37,7 +37,6 @@ export function SpaceMenu({ spaceId, onAction }: { spaceId: string, onAction?: (
             <span>Create Space</span>
           </DropdownMenuItem>
         }
-        contentClassName="sm:max-w-[800px] p-0 overflow-hidden border-none shadow-2xl rounded-2xl bg-background outline-none ring-1 ring-border/50"
       >
         <CreateSpaceForm 
           onSuccess={() => setActiveForm(null)}
@@ -54,7 +53,6 @@ export function SpaceMenu({ spaceId, onAction }: { spaceId: string, onAction?: (
             <span>Create Folder</span>
           </DropdownMenuItem>
         }
-        contentClassName="sm:max-w-[800px] p-0 overflow-hidden border-none shadow-2xl rounded-2xl bg-background outline-none ring-1 ring-border/50"
       >
         <CreateFolderForm 
           spaceId={spaceId}
@@ -73,7 +71,6 @@ export function SpaceMenu({ spaceId, onAction }: { spaceId: string, onAction?: (
             <span>Create Task</span>
           </DropdownMenuItem>
         }
-        contentClassName="max-w-3xl p-0 overflow-hidden border-none shadow-2xl rounded-2xl bg-background outline-none ring-1 ring-border/50"
       >
         <CreateTaskForm 
           parentId={spaceId}

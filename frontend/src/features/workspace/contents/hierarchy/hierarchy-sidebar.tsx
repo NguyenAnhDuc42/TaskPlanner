@@ -90,7 +90,6 @@ export function HierarchySidebar() {
           <DialogFormWrapper
             title="Create New Space"
             trigger={<Plus className="h-4 w-4 text-muted-foreground hover:text-foreground cursor-pointer" />}
-            contentClassName="sm:max-w-[800px] p-0 overflow-hidden border-none shadow-2xl rounded-2xl bg-background outline-none ring-1 ring-border/50"
           >
             <CreateSpaceForm onSuccess={() => {}} onCancel={() => {}} />
           </DialogFormWrapper>
@@ -116,7 +115,6 @@ export function HierarchySidebar() {
               <DialogFormWrapper
                 title="Create New Space"
                 trigger={<Plus className="h-3 w-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-none hover:text-primary cursor-pointer" />}
-                contentClassName="sm:max-w-[800px] p-0 overflow-hidden border-none shadow-2xl rounded-2xl bg-background outline-none ring-1 ring-border/50"
               >
                 <CreateSpaceForm onSuccess={() => {}} onCancel={() => {}} />
               </DialogFormWrapper>
@@ -153,7 +151,6 @@ export function HierarchySidebar() {
                             <span className="text-[10px] font-bold uppercase tracking-widest">Add Item</span>
                           </button>
                         }
-                        contentClassName="sm:max-w-[800px] p-0 overflow-hidden border-none shadow-2xl rounded-2xl bg-background outline-none ring-1 ring-border/50"
                       >
                         <CreateSpaceForm onSuccess={() => {}} onCancel={() => {}} />
                       </DialogFormWrapper>

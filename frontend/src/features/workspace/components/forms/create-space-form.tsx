@@ -1,10 +1,10 @@
 import { useState } from "react";
 import { useCreateSpace } from "../../contents/hierarchy/hierarchy-api";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { useWorkspace } from "../../context/workspace-provider";
 import { toast } from "sonner";
-import { PrivacyToggle, IconColorPicker } from "./form-elements";
+import { PrivacyToggle, IconColorPicker, AttributeButton } from "./form-elements";
+import * as Icons from "lucide-react";
 
 interface CreateSpaceFormProps {
   onSuccess?: (id: string) => void;
@@ -39,33 +39,46 @@ export function CreateSpaceForm({ onSuccess, onCancel }: CreateSpaceFormProps) {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="p-4 space-y-4 max-w-sm">
-      <div className="flex items-center gap-2">
-        <IconColorPicker 
-          icon={icon} 
-          color={color} 
-          onChange={(i, c) => { setIcon(i); setColor(c); }} 
-        />
-        <Input
-          placeholder="Space Name"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          className="h-8 bg-muted/20 border-border/50 focus-visible:ring-primary/40 text-xs font-bold"
-          autoFocus
-        />
+    <form onSubmit={handleSubmit} className="flex flex-col w-full">
+      {/* Main Header / Input Section */}
+      <div className="px-3 pt-4 pb-2">
+        <div className="flex items-center gap-3">
+          <IconColorPicker 
+            icon={icon} 
+            color={color} 
+            onChange={(i, c) => { setIcon(i); setColor(c); }} 
+          />
+          <input
+            placeholder="Space name"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            className="flex-1 bg-transparent border-none focus:ring-0 text-[13px] font-semibold placeholder:text-muted-foreground/30 py-0 outline-none tracking-tight"
+            autoFocus
+          />
+        </div>
       </div>
 
-      <div className="flex items-center justify-between">
+      {/* Attribute Strip */}
+      <div className="px-3 py-1.5 flex flex-wrap items-center gap-1.5 border-t border-border/5">
         <PrivacyToggle isPrivate={isPrivate} onChange={setIsPrivate} />
+        
+        <AttributeButton icon={Icons.Circle}>
+          Status
+        </AttributeButton>
+
+        <AttributeButton icon={Icons.Calendar}>
+          Schedule
+        </AttributeButton>
       </div>
 
-      <div className="flex items-center justify-end gap-2 pt-2 border-t border-border/30">
+      {/* Footer */}
+      <div className="px-3 py-1.5 bg-background flex items-center justify-end gap-2 border-t border-border/10">
         <Button
           type="button"
           variant="ghost"
           size="sm"
           onClick={onCancel}
-          className="h-8 text-[9px] font-black uppercase tracking-widest opacity-50 hover:opacity-100"
+          className="h-7 px-2.5 text-[10px] font-medium text-muted-foreground hover:text-foreground"
         >
           Cancel
         </Button>
@@ -73,9 +86,9 @@ export function CreateSpaceForm({ onSuccess, onCancel }: CreateSpaceFormProps) {
           type="submit"
           size="sm"
           disabled={!name.trim() || createSpace.isPending}
-          className="h-8 px-4 text-[9px] font-black uppercase tracking-widest rounded-md"
+          className="h-7 px-4 text-[10px] font-semibold bg-primary hover:bg-primary/90 text-primary-foreground shadow-sm rounded-md transition-all active:scale-95"
         >
-          {createSpace.isPending ? "..." : "Create"}
+          {createSpace.isPending ? "Creating..." : "Create Space"}
         </Button>
       </div>
     </form>

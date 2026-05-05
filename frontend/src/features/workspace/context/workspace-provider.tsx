@@ -9,13 +9,10 @@ import {
 } from "react";
 import { useNavigate, useLocation } from "@tanstack/react-router";
 import { useWorkspaceDetail, type WorkspaceSecurityContext } from "../api";
-import { 
-  useUserPreference, 
-  useUpdateUserPreference 
-} from "@/features/main/user-preference-api";
 import { signalRService } from "@/lib/signalr-service";
 import type { StatusDto } from "@/types/status";
 import type { ContentPage } from "../type";
+import { useLocalStorage } from "@/hooks/use-local-storage";
 
 // ─── Types ───────────────────────────────────────────────
 
@@ -73,8 +70,6 @@ interface WorkspaceProviderProps {
 export function WorkspaceProvider({ workspaceId, children }: WorkspaceProviderProps) {
   const navigate = useNavigate();
   const location = useLocation();
-  const { data: preferences, isLoading: isPrefsLoading } = useUserPreference();
-  const { mutate: updatePreferences } = useUpdateUserPreference();
 
   // 1. Fetch Workspace Data
   const {
@@ -84,22 +79,11 @@ export function WorkspaceProvider({ workspaceId, children }: WorkspaceProviderPr
     isError,
   } = useWorkspaceDetail(workspaceId);
 
-  // 2. Local UI State (Initialized from preferences cache if available)
-  const wsSettings = preferences?.workspaceSettings?.[workspaceId];
-
-  const [sidebarWidth, setSidebarWidth] = useState(() => wsSettings?.sideBarWidth ?? 260);
-  const [contextWidth, setContextWidth] = useState(() => wsSettings?.contextContentWidth ?? 350);
-  const [isInnerSidebarOpen, setIsInnerSidebarOpen] = useState(() => wsSettings?.isSidebarOpen ?? true);
+  // 2. Local UI State (Managed via LocalStorage)
+  const [sidebarWidth, setSidebarWidth] = useLocalStorage(`ws-${workspaceId}-sidebar-width`, 260);
+  const [contextWidth, setContextWidth] = useLocalStorage(`ws-${workspaceId}-context-width`, 350);
+  const [isInnerSidebarOpen, setIsInnerSidebarOpen] = useLocalStorage(`ws-${workspaceId}-sidebar-open`, true);
   const [hoveredIcon, setHoveredIcon] = useState<ContentPage | null>(null);
-
-  // Sync preferences when they load OR when workspace switches
-  useEffect(() => {
-    if (!isPrefsLoading && wsSettings) {
-      if (wsSettings.sideBarWidth !== undefined) setSidebarWidth(wsSettings.sideBarWidth);
-      if (wsSettings.contextContentWidth !== undefined) setContextWidth(wsSettings.contextContentWidth);
-      if (wsSettings.isSidebarOpen !== undefined) setIsInnerSidebarOpen(wsSettings.isSidebarOpen);
-    }
-  }, [workspaceId, isPrefsLoading, wsSettings]); // Now includes wsSettings for real-time sync if needed
 
   // 3. Derive Active Icon from URL (Source of Truth)
   const activeIcon = useMemo(() => {
@@ -112,64 +96,34 @@ export function WorkspaceProvider({ workspaceId, children }: WorkspaceProviderPr
 
   const updateSidebarWidth = useCallback((newWidth: number) => {
     setSidebarWidth(newWidth);
-    const shouldBeOpen = newWidth > 0;
-    setIsInnerSidebarOpen(shouldBeOpen);
-
-    updatePreferences({
-      workspaceSettings: {
-        [workspaceId]: {
-          ...wsSettings,
-          sideBarWidth: newWidth,
-          isSidebarOpen: shouldBeOpen,
-        }
-      }
-    } as any);
-  }, [workspaceId, wsSettings, updatePreferences]);
+    setIsInnerSidebarOpen(newWidth > 0);
+  }, [setSidebarWidth, setIsInnerSidebarOpen]);
 
   const updateContextWidth = useCallback((newWidth: number) => {
     setContextWidth(newWidth);
-    updatePreferences({
-      workspaceSettings: {
-        [workspaceId]: {
-          ...wsSettings,
-          contextContentWidth: newWidth,
-        }
-      }
-    } as any);
-  }, [workspaceId, wsSettings, updatePreferences]);
+  }, [setContextWidth]);
 
   const toggleInnerSidebar = useCallback(() => {
     const nextOpen = !isInnerSidebarOpen;
     setIsInnerSidebarOpen(nextOpen);
     
-    let targetWidth = sidebarWidth;
     if (nextOpen && sidebarWidth < 10) {
-      targetWidth = 260;
-      setSidebarWidth(targetWidth);
+      setSidebarWidth(260);
     }
-
-    updatePreferences({
-      workspaceSettings: {
-        [workspaceId]: {
-          ...wsSettings,
-          isSidebarOpen: nextOpen,
-          sideBarWidth: targetWidth
-        }
-      }
-    } as any);
-  }, [workspaceId, wsSettings, isInnerSidebarOpen, sidebarWidth, updatePreferences]);
+  }, [isInnerSidebarOpen, sidebarWidth, setIsInnerSidebarOpen, setSidebarWidth]);
 
   // 5. Lifecycle Effects (SignalR, Redirects)
   useEffect(() => {
     if (workspace && !isError) {
-      updatePreferences({ lastWorkspaceId: workspaceId });
+      localStorage.setItem("lastWorkspaceId", workspaceId);
     }
-  }, [workspaceId, workspace, isError, updatePreferences]);
+  }, [workspaceId, workspace, isError]);
 
   useEffect(() => {
     if (isError && error) {
       const status = (error as any)?.response?.status;
       if (status === 403 || status === 404) {
+        localStorage.removeItem("lastWorkspaceId");
         navigate({ to: "/" });
       }
     }
@@ -195,7 +149,7 @@ export function WorkspaceProvider({ workspaceId, children }: WorkspaceProviderPr
     workspaceId,
     workspace,
     statuses: [],
-    isLoading: isWorkspaceLoading || isPrefsLoading,
+    isLoading: isWorkspaceLoading,
     isError,
     error,
     ui: {
@@ -218,7 +172,6 @@ export function WorkspaceProvider({ workspaceId, children }: WorkspaceProviderPr
     workspaceId, 
     workspace, 
     isWorkspaceLoading, 
-    isPrefsLoading, 
     isError, 
     error,
     activeIcon,

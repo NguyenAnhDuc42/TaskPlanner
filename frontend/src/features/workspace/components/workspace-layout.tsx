@@ -99,7 +99,7 @@ export function WorkspaceLayout() {
         </div>
 
         {/* Centered Search Bar */}
-        <div className="relative w-full max-w-md rounded-md">
+        <div className="relative w-full max-w-md rounded-sm">
           <span className="absolute inset-y-0 left-0 flex items-center pl-2.5 pointer-events-none">
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -119,7 +119,7 @@ export function WorkspaceLayout() {
           <input
             type="text"
             placeholder="Search tasks, docs, members... (⌘K)"
-            className="w-full h-7 bg-muted/20 hover:bg-muted/40 focus:bg-background border-none rounded-md pl-8 pr-3 text-[11px] font-medium placeholder:text-muted-foreground/40 transition-all outline-none ring-1 ring-border/20 focus:ring-primary/40 shadow-inner"
+            className="w-full h-7 bg-muted/20 hover:bg-muted/40 focus:bg-background border-none rounded-sm pl-8 pr-3 text-[11px] font-medium placeholder:text-muted-foreground/40 transition-all outline-none ring-1 ring-border/20 focus:ring-primary/40 shadow-inner"
           />
         </div>
 
@@ -194,20 +194,20 @@ export function WorkspaceLayout() {
               <SidebarRegistry page={ui.activeIcon} />
             </div>
 
-            {/* Resize Handle */}
+            {/* Resize Handle - Sit on the absolute edge */}
             <div
               onMouseDown={startResizingSidebar}
               className={cn(
-                "absolute top-0 right-0 w-1.5 h-full cursor-col-resize z-50 group touch-none",
+                "absolute top-0 -right-[3px] w-[6px] h-full cursor-col-resize z-50 group touch-none",
                 isResizingSidebar && "z-[100]",
               )}
             >
               <div
                 className={cn(
-                  "h-full w-[2px] mx-auto transition-colors duration-200",
+                  "h-full w-[1.5px] mx-auto transition-colors duration-200",
                   isResizingSidebar
                     ? "bg-primary"
-                    : "group-hover:bg-primary/40 bg-transparent",
+                    : "group-hover:bg-primary/50 bg-transparent",
                 )}
               />
             </div>
@@ -217,7 +217,7 @@ export function WorkspaceLayout() {
         {/* ═══════════════════════════════════════════════════
             COLUMN 3: Main Canvas
         ═══════════════════════════════════════════════════ */}
-        <div className="flex-1 min-w-0 h-full flex flex-col relative bg-background border border-border rounded-md shadow-sm">
+        <div className="flex-1 min-w-0 h-full flex flex-col relative bg-background border border-border rounded-md shadow-sm overflow-hidden">
           <Suspense
             fallback={
               <div className="flex h-full w-full items-center justify-center text-sm font-mono tracking-widest uppercase text-muted-foreground/60 animate-pulse">
@@ -243,7 +243,7 @@ export function WorkspaceLayout() {
           >
             <div className="h-12 flex items-center justify-between px-4 flex-shrink-0 border-b border-border bg-muted/10">
               <h2 className="font-black text-[11px] uppercase tracking-widest text-foreground">
-                Details
+                {ui.activeIcon}
               </h2>
               <Button
                 size="icon"
@@ -259,14 +259,14 @@ export function WorkspaceLayout() {
               <ContextPanelRenderer data={contextData} />
             </div>
 
-            {/* Resize Handle */}
+            {/* Resize Handle - Sit on the absolute left edge */}
             <div
               onMouseDown={startResizingContext}
-              className="absolute top-0 left-0 w-3 h-full cursor-col-resize z-50 group flex justify-start"
+              className="absolute top-0 -left-[3px] w-[6px] h-full cursor-col-resize z-50 group touch-none flex justify-center"
             >
               <div
                 className={cn(
-                  "h-full w-0.5 transition-colors",
+                  "h-full w-[1.5px] transition-colors duration-200",
                   isResizingContext
                     ? "bg-primary"
                     : "bg-transparent group-hover:bg-primary/50",

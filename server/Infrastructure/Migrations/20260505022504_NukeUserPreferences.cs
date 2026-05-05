@@ -1,5 +1,4 @@
 ﻿using System;
-using Domain.Entities;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
@@ -7,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace Infrastructure.Migrations
 {
     /// <inheritdoc />
-    public partial class UpdateUserPreferencesSchema : Migration
+    public partial class NukeUserPreferences : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -136,23 +135,6 @@ namespace Infrastructure.Migrations
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_project_workspaces", x => x.id);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "user_preferences",
-                columns: table => new
-                {
-                    id = table.Column<Guid>(type: "uuid", nullable: false),
-                    user_id = table.Column<Guid>(type: "uuid", nullable: false),
-                    setting = table.Column<UserSetting>(type: "jsonb", nullable: false),
-                    created_at = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
-                    updated_at = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
-                    creator_id = table.Column<Guid>(type: "uuid", nullable: true),
-                    deleted_at = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_user_preferences", x => x.id);
                 });
 
             migrationBuilder.CreateTable(
@@ -845,12 +827,6 @@ namespace Infrastructure.Migrations
                 column: "workspace_member_id");
 
             migrationBuilder.CreateIndex(
-                name: "IX_user_preferences_user_id",
-                table: "user_preferences",
-                column: "user_id",
-                unique: true);
-
-            migrationBuilder.CreateIndex(
                 name: "IX_users_auth_provider_external_id",
                 table: "users",
                 columns: new[] { "auth_provider", "external_id" },
@@ -930,9 +906,6 @@ namespace Infrastructure.Migrations
 
             migrationBuilder.DropTable(
                 name: "task_assignments");
-
-            migrationBuilder.DropTable(
-                name: "user_preferences");
 
             migrationBuilder.DropTable(
                 name: "view_definitions");

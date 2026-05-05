@@ -9,6 +9,7 @@ interface Props {
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
   contentClassName?: string;
+  hideHeader?: boolean;
 }
 
 export function DialogFormWrapper({
@@ -18,6 +19,7 @@ export function DialogFormWrapper({
   open: controlledOpen,
   onOpenChange: setControlledOpen,
   contentClassName,
+  hideHeader = false,
 }: Props) {
   const [internalOpen, setInternalOpen] = useState(false);
 
@@ -26,19 +28,22 @@ export function DialogFormWrapper({
 
   const handleOpenChange = (newOpen: boolean) => {
     if (!isControlled) setInternalOpen(newOpen);
-
     setControlledOpen?.(newOpen);
   };
 
   return (
     <>
-      <div onClick={() => handleOpenChange(true)}>{trigger}</div>
+      {isControlled ? trigger : (
+        <div className="contents" onClick={() => handleOpenChange(true)}>{trigger}</div>
+      )}
 
       <Dialog open={open} onOpenChange={handleOpenChange}>
-        <DialogContent className={cn("sm:max-w-[800px] w-full p-0 overflow-hidden border-none shadow-2xl rounded-2xl bg-background outline-none ring-1 ring-border/50", contentClassName)}>
-          <DialogHeader className="px-6 py-4 border-b border-border/50">
-            <DialogTitle className="text-sm font-black uppercase tracking-[0.2em] opacity-70">{title}</DialogTitle>
-          </DialogHeader>
+        <DialogContent className={cn("sm:max-w-[440px] w-full p-0 overflow-hidden border border-border/50 shadow-2xl rounded-xl bg-background outline-none", contentClassName)}>
+          {!hideHeader && (
+            <DialogHeader className="px-4 py-2.5 border-b border-border/5">
+              <DialogTitle className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/40">{title}</DialogTitle>
+            </DialogHeader>
+          )}
           <div className="w-full">
             {children}
           </div>

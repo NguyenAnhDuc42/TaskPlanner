@@ -15,7 +15,6 @@ public class Database(TaskPlanDbContext context) : IDataBase
     public IDbConnection Connection => context.Database.GetDbConnection();
 
     public DbSet<User> Users => context.Set<User>();
-    public DbSet<UserPreference> UserPreferences => context.Set<UserPreference>();
     public DbSet<Session> Sessions => context.Set<Session>();
     public DbSet<ProjectWorkspace> Workspaces => context.Set<ProjectWorkspace>();
     public DbSet<ProjectSpace> Spaces => context.Set<ProjectSpace>();

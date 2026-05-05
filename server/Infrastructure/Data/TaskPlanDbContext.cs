@@ -13,7 +13,6 @@ public class TaskPlanDbContext : DbContext
 
     // DbSet properties for entities
     public DbSet<User> Users { get; set; }
-    public DbSet<UserPreference> UserPreferences { get; set; }
     public DbSet<Session> Sessions { get; set; }
     public DbSet<PasswordResetToken> PasswordResetTokens { get; set; }
 

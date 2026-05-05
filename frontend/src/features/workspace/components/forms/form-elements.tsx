@@ -4,42 +4,73 @@ import {
   Calendar as CalendarIcon, 
 } from "lucide-react";
 import * as Icons from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import { UniversalPicker } from "@/components/universal-picker";
 
+// --- ATTRIBUTE BUTTON ---
+export function AttributeButton({ 
+  children, 
+  icon: Icon, 
+  className,
+  active,
+  onClick 
+}: { 
+  children: React.ReactNode; 
+  icon?: any; 
+  className?: string;
+  active?: boolean;
+  onClick?: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        "flex items-center gap-1.5 px-2 h-6 rounded-md border border-transparent",
+        "text-[10px] font-medium transition-all duration-200 whitespace-nowrap",
+        "bg-muted/30 hover:bg-muted/50",
+        active ? "text-foreground bg-muted/60 border-border/20" : "text-muted-foreground",
+        className
+      )}
+    >
+      {Icon && <Icon className="h-3 w-3 shrink-0" />}
+      {children}
+    </button>
+  );
+}
+
 // --- PRIVACY TOGGLE ---
 export function PrivacyToggle({ isPrivate, onChange }: { isPrivate: boolean; onChange: (v: boolean) => void }) {
   return (
-    <div className="flex bg-muted/30 p-0.5 rounded-lg border border-border/50 w-fit">
+    <div className="flex bg-muted/20 p-0.5 rounded-lg border border-border/10 w-fit">
       <button
         type="button"
         onClick={() => onChange(false)}
         className={cn(
-          "flex items-center gap-1.5 px-3 py-1 rounded-md text-[10px] font-bold uppercase tracking-tight transition-all",
-          !isPrivate ? "bg-background shadow-sm text-primary" : "text-muted-foreground hover:text-foreground"
+          "flex items-center gap-1.5 px-2 h-5 rounded-[5px] text-[9px] font-medium transition-all",
+          !isPrivate ? "bg-background shadow-sm text-foreground ring-1 ring-border/20" : "text-muted-foreground hover:text-foreground"
         )}
       >
-        <Globe className="h-3 w-3" />
+        <Globe className="h-2.5 w-2.5" />
         Public
       </button>
       <button
         type="button"
         onClick={() => onChange(true)}
         className={cn(
-          "flex items-center gap-1.5 px-3 py-1 rounded-md text-[10px] font-bold uppercase tracking-tight transition-all",
-          isPrivate ? "bg-background shadow-sm text-primary" : "text-muted-foreground hover:text-foreground"
+          "flex items-center gap-1.5 px-2 h-5 rounded-[5px] text-[9px] font-medium transition-all",
+          isPrivate ? "bg-background shadow-sm text-foreground ring-1 ring-border/20" : "text-muted-foreground hover:text-foreground"
         )}
       >
-        <Lock className="h-3 w-3" />
+        <Lock className="h-2.5 w-2.5" />
         Private
       </button>
     </div>
   );
 }
 
-// --- ICON & COLOR PICKER (Wrapper for UniversalPicker) ---
+// --- ICON & COLOR PICKER ---
 export function IconColorPicker({ 
   icon, 
   color, 
@@ -54,16 +85,15 @@ export function IconColorPicker({
   return (
     <Popover>
       <PopoverTrigger asChild>
-        <Button 
-          variant="ghost" 
-          size="icon" 
-          className="h-8 w-8 rounded-md bg-muted/30 hover:bg-muted/50 border border-border/50 shrink-0"
+        <button 
+          type="button"
+          className="h-6 w-6 rounded-md hover:bg-muted/50 flex items-center justify-center transition-colors shrink-0"
           style={{ color: color }}
         >
           <SelectedIcon className="h-4 w-4" />
-        </Button>
+        </button>
       </PopoverTrigger>
-      <PopoverContent className="w-fit p-0 border-none shadow-none bg-transparent" align="start">
+      <PopoverContent className="w-fit p-0 border border-border/50 shadow-xl rounded-xl bg-background overflow-hidden" align="start" sideOffset={8}>
         <UniversalPicker 
           selectedIcon={icon} 
           selectedColor={color} 
@@ -74,16 +104,11 @@ export function IconColorPicker({
   );
 }
 
-// --- DATE PICKER (Mock for now) ---
+// --- DATE PICKER ---
 export function SimpleDatePicker({ value, onChange }: { value?: Date; onChange: (d: Date) => void }) {
   return (
-    <Button 
-      variant="ghost" 
-      size="sm" 
-      className="h-8 px-3 rounded-md bg-muted/30 hover:bg-muted/50 border border-border/50 text-[10px] font-bold uppercase tracking-tight text-muted-foreground"
-    >
-      <CalendarIcon className="h-3 w-3 mr-2" />
-      {value ? value.toLocaleDateString() : "Schedule"}
-    </Button>
+    <AttributeButton icon={CalendarIcon} active={!!value}>
+      {value ? value.toLocaleDateString() : "Due Date"}
+    </AttributeButton>
   );
 }

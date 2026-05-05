@@ -1,6 +1,7 @@
-import { useParams } from "@tanstack/react-router";
 import { EntityLayerType } from "@/types/entity-layer-type";
 import { ViewsDisplayer } from "./views/views-displayer";
+import CommandCenterIndex from "../command-center/command-center-index";
+import { useParams } from "@tanstack/react-router";
 
 export function HierarchyLayerIndex() {
   const params = useParams({ strict: false }) as any;
@@ -15,7 +16,7 @@ export function HierarchyLayerIndex() {
       : EntityLayerType.ProjectSpace;
 
   return (
-    <div className="flex-1 flex overflow-hidden bg-background/50 h-full">
+    <div className="flex-1 flex overflow-hidden bg-background h-full">
       {activeEntityId ? (
         <ViewsDisplayer
           workspaceId={workspaceId || ""}
@@ -23,14 +24,7 @@ export function HierarchyLayerIndex() {
           layerType={activeLayerType}
         />
       ) : (
-        <div className="flex-1 flex items-center justify-center opacity-10 select-none">
-          <div className="flex flex-col items-center gap-4">
-            <div className="h-24 w-24 rounded-full border-4 border-dashed border-foreground/50" />
-            <span className="text-xl font-black uppercase tracking-widest">
-              Select Layer
-            </span>
-          </div>
-        </div>
+        <CommandCenterIndex />
       )}
     </div>
   );

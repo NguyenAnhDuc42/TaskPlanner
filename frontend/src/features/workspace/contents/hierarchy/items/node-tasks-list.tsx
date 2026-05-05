@@ -78,11 +78,6 @@ export const NodeTasksList = React.memo(function NodeTasksList({
           Load More
         </button>
       )}
-      {allTasks.length === 0 && !isLoading && (
-        <div className="pl-6 py-1 text-[10px] font-semibold text-muted-foreground/40 italic">
-          No tasks
-        </div>
-      )}
     </SortableContext>
   );
 });
