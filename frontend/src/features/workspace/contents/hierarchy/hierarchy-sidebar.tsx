@@ -73,26 +73,18 @@ export function HierarchySidebar() {
   return (
     <div className="h-full flex flex-col bg-background overflow-hidden select-none">
       {/* Search & Actions */}
-      <div className="px-1 pb-1 pt-0 border-b border-border flex-shrink-0 flex items-center gap-1">
-        <div className="flex items-center gap-2 px-2 h-7 rounded-sm bg-muted border border-border focus-within:border-primary/60 transition-colors group flex-1">
-          <Search className="h-3 w-3 text-muted-foreground flex-shrink-0" />
+      <div className="h-8 px-1 flex items-center border-b border-border flex-shrink-0">
+        <div className="flex items-center gap-2 px-2 h-6 rounded-sm bg-muted/40 border border-border/10 focus-within:border-primary/30 focus-within:bg-muted/60 transition-all group flex-1">
+          <Search className="h-3 w-3 text-muted-foreground/40 group-focus-within:text-primary transition-colors flex-shrink-0" />
           <input
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search..."
-            className="flex-1 bg-transparent border-none outline-none text-[10px] font-semibold text-foreground placeholder:text-muted-foreground"
+            className="flex-1 bg-transparent border-none outline-none text-[10px] font-medium text-foreground placeholder:text-muted-foreground/30 transition-all"
           />
           {searchQuery && (
-            <button onClick={() => setSearchQuery("")} className="text-xs text-muted-foreground hover:text-foreground transition-colors">✕</button>
+            <button onClick={() => setSearchQuery("")} className="text-[10px] text-muted-foreground/40 hover:text-foreground transition-colors">✕</button>
           )}
-        </div>
-        <div className="flex-shrink-0 flex items-center justify-center p-1 border-l border-border">
-          <DialogFormWrapper
-            title="Create New Space"
-            trigger={<Plus className="h-4 w-4 text-muted-foreground hover:text-foreground cursor-pointer" />}
-          >
-            <CreateSpaceForm onSuccess={() => {}} onCancel={() => {}} />
-          </DialogFormWrapper>
         </div>
       </div>
 
@@ -107,10 +99,10 @@ export function HierarchySidebar() {
           className="flex flex-col h-full overflow-hidden"
         >
           <CollapsibleTrigger 
-            className="w-full flex items-center gap-2 px-1 py-1.5 hover:bg-muted/50 transition-colors group flex-none bg-background sticky top-0 z-10"
+            className="w-full h-8 flex items-center gap-2 px-1 hover:bg-muted/50 transition-colors group flex-none bg-background sticky top-0 z-10"
           >
             <ChevronDown className={cn("h-3 w-3 text-muted-foreground transition-transform duration-200", !isHierarchyOpen && "-rotate-90")} />
-            <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider flex-1 text-left">Navigation</span>
+            <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider flex-1 text-left">Items</span>
             <div onClick={(e) => e.stopPropagation()}>
               <DialogFormWrapper
                 title="Create New Space"
@@ -190,7 +182,7 @@ export function HierarchySidebar() {
           className="flex flex-col h-full overflow-hidden"
         >
           <CollapsibleTrigger 
-            className="w-full flex items-center gap-2 px-1 py-1.5 hover:bg-muted/50 transition-colors group flex-none bg-background sticky top-0 z-10"
+            className="w-full flex items-center gap-2 px-1 py-1 hover:bg-muted/50 transition-colors group flex-none bg-background sticky top-0 z-10"
           >
             <ChevronDown className={cn("h-3 w-3 text-muted-foreground transition-transform duration-200", !isDocsOpen && "-rotate-90")} />
             <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider text-left">Docs & Tasks</span>

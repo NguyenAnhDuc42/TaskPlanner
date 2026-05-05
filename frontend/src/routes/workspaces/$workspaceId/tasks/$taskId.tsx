@@ -1,10 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { HierarchyLayerIndex } from "@/features/workspace/contents/hierarchy/hierarchy-layer-index";
+import { LayerDetailIndex } from "@/features/workspace/contents/layer-detail/layer-detail-index";
 
 export const Route = createFileRoute("/workspaces/$workspaceId/tasks/$taskId")({
   component: TaskContent,
 });
 
 function TaskContent() {
-  return <HierarchyLayerIndex />;
+  return <LayerDetailIndex />;
 }

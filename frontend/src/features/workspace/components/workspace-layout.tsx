@@ -176,9 +176,9 @@ export function WorkspaceLayout() {
               !isResizingSidebar && "transition-all duration-300",
             )}
           >
-            <div className="h-12 flex items-center justify-between px-4 flex-shrink-0 border-b border-border bg-muted/10">
-              <h2 className="font-black text-[11px] uppercase tracking-widest text-foreground">
-                {ui.activeIcon}
+            <div className="h-8 flex items-center justify-between pl-3 pr-1 flex-shrink-0 border-b border-border bg-muted/10">
+              <h2 className="font-black text-[10px] uppercase tracking-[0.15em] text-foreground/70">
+                {["projects", "spaces", "folders", "tasks"].includes(ui.activeIcon || "") ? "PROJECTS" : ui.activeIcon}
               </h2>
               <Button
                 size="icon"
@@ -190,7 +190,7 @@ export function WorkspaceLayout() {
               </Button>
             </div>
 
-            <div className="flex-1 p-1 min-h-0 overflow-hidden">
+            <div className="flex-1 min-h-0 overflow-hidden">
               <SidebarRegistry page={ui.activeIcon} />
             </div>
 
@@ -241,7 +241,7 @@ export function WorkspaceLayout() {
               !isResizingContext && "transition-all duration-300",
             )}
           >
-            <div className="h-12 flex items-center justify-between px-4 flex-shrink-0 border-b border-border bg-muted/10">
+            <div className="h-9 flex items-center justify-between px-4 flex-shrink-0 border-b border-border bg-muted/10">
               <h2 className="font-black text-[11px] uppercase tracking-widest text-foreground">
                 {ui.activeIcon}
               </h2>

@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { HierarchyLayerIndex } from "@/features/workspace/contents/hierarchy/hierarchy-layer-index";
+import { LayerDetailIndex } from "@/features/workspace/contents/layer-detail/layer-detail-index";
+import { EntityLayerType } from "@/types/entity-layer-type";
 
 export const Route = createFileRoute(
   "/workspaces/$workspaceId/folders/$folderId",
@@ -8,5 +9,5 @@ export const Route = createFileRoute(
 });
 
 function FolderContent() {
-  return <HierarchyLayerIndex />;
+  return <LayerDetailIndex forcedLayerType={EntityLayerType.ProjectFolder} />;
 }
