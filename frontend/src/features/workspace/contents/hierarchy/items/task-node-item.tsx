@@ -7,19 +7,27 @@ import { DropdownWrapper } from "@/components/dropdown-wrapper";
 import { TaskMenu } from "../hierarchy-components/dropdown/task-menu";
 import { SortableItem } from "../dnd/sortable-item";
 import { clampName } from "../utils/name-utils";
-import { EntityLayerType, EntityLayerType as EntityLayerConst } from "@/types/entity-layer-type";
+import {
+  EntityLayerType,
+  EntityLayerType as EntityLayerConst,
+} from "@/types/entity-layer-type";
 
 import { useLocation } from "@tanstack/react-router";
 import type { TaskHierarchy } from "../hierarchy-type";
 
-interface TaskItemProps {
+interface TaskNodeItemProps {
   task: TaskHierarchy;
   parentId: string;
   parentType: EntityLayerType;
   spaceId: string;
 }
 
-export const TaskItem = React.memo(function TaskItem({ task, parentId, parentType, spaceId }: TaskItemProps) {
+export const TaskNodeItem = React.memo(function TaskNodeItem({
+  task,
+  parentId,
+  parentType,
+  spaceId,
+}: TaskNodeItemProps) {
   const navigate = useNavigate();
   const { workspaceId } = useWorkspace();
   const location = useLocation();
@@ -48,20 +56,30 @@ export const TaskItem = React.memo(function TaskItem({ task, parentId, parentTyp
           navigate({ to: `/workspaces/${workspaceId}/tasks/${task.id}` })
         }
       >
-        <div className="w-5 h-5 flex items-center justify-center flex-shrink-0 mr-1.5">
+        <div className="w-5 h-5 flex items-center justify-center flex-shrink-0 mr-2">
           <CheckSquare className="h-3.5 w-3.5 opacity-60" />
         </div>
         <span className="truncate text-[11px] font-semibold flex-1 leading-tight">
           {clampName(task.name)}
         </span>
         <div className="opacity-0 group-hover:opacity-100 transition-opacity">
-          <DropdownWrapper align="start" side="right" trigger={
-              <button className="h-4 w-4 p-0.5 flex items-center justify-center rounded-sm hover:bg-muted-foreground/10 text-muted-foreground hover:text-primary transition-colors" onClick={(e) => e.stopPropagation()}>
+          <DropdownWrapper
+            align="start"
+            side="right"
+            trigger={
+              <button
+                className="h-4 w-4 p-0.5 flex items-center justify-center rounded-sm hover:bg-muted-foreground/10 text-muted-foreground hover:text-primary transition-colors"
+                onClick={(e) => e.stopPropagation()}
+              >
                 <MoreHorizontal className="h-3.5 w-3.5" />
               </button>
             }
           >
-            <TaskMenu taskId={task.id} parentId={parentId} parentType={parentType} />
+            <TaskMenu
+              taskId={task.id}
+              parentId={parentId}
+              parentType={parentType}
+            />
           </DropdownWrapper>
         </div>
       </div>

@@ -15,14 +15,15 @@ import type { FolderHierarchy } from "../hierarchy-type";
 import { useQueryClient } from "@tanstack/react-query";
 import { prefetchNodeTasks } from "../hierarchy-api";
 
-
-
-interface FolderItemProps {
+interface FolderNodeItemProps {
   folder: FolderHierarchy;
   spaceId: string;
 }
 
-export const FolderItem = React.memo(function FolderItem({ folder, spaceId }: FolderItemProps) {
+export const FolderNodeItem = React.memo(function FolderNodeItem({
+  folder,
+  spaceId,
+}: FolderNodeItemProps) {
   const [isOpen, setIsOpen] = useState(false);
   const IconComponent = (Icons as any)[folder.icon] || Icons.Folder;
   const location = useLocation();
@@ -30,7 +31,6 @@ export const FolderItem = React.memo(function FolderItem({ folder, spaceId }: Fo
   const navigate = useNavigate();
   const { workspaceId } = useWorkspace();
   const queryClient = useQueryClient();
-
 
   // New: Auto-collapse if folder becomes empty
   React.useEffect(() => {
@@ -58,33 +58,58 @@ export const FolderItem = React.memo(function FolderItem({ folder, spaceId }: Fo
               ? "bg-primary/10 text-foreground"
               : "text-muted-foreground hover:bg-muted hover:text-foreground",
           )}
-          onClick={() => navigate({ to: `/workspaces/${workspaceId}/folders/${folder.id}` })}
+          onClick={() =>
+            navigate({ to: `/workspaces/${workspaceId}/folders/${folder.id}` })
+          }
         >
-          <div className="relative flex items-center justify-center w-5 h-5 flex-shrink-0 cursor-pointer rounded-sm hover:bg-background/50 group/icon mr-0.5" 
+          <div
+            className="relative flex items-center justify-center w-5 h-5 flex-shrink-0 cursor-pointer rounded-sm hover:bg-background/50 group/icon mr-1.5"
             onMouseEnter={() => {
               if (isOpen || !workspaceId || !folder.hasTasks) return;
-              
+
               // Eager prefetch: Start immediately on hover
-              prefetchNodeTasks(queryClient, workspaceId, folder.id, EntityLayerConst.ProjectFolder);
+              prefetchNodeTasks(
+                queryClient,
+                workspaceId,
+                folder.id,
+                EntityLayerConst.ProjectFolder,
+              );
             }}
             id={`folder-expand-${folder.id}`}
             onClick={(e) => {
-            if (!folder.hasTasks) return;
-            e.stopPropagation(); 
-            setIsOpen(!isOpen);
-          }}
+              if (!folder.hasTasks) return;
+              e.stopPropagation();
+              setIsOpen(!isOpen);
+            }}
           >
-            <IconComponent className={cn("h-3.5 w-3.5 absolute transition-none", folder.hasTasks && "group-hover/icon:opacity-0")} style={{ color: folder.color }}/>
+            <IconComponent
+              className={cn(
+                "h-3.5 w-3.5 absolute transition-none",
+                folder.hasTasks && "group-hover/icon:opacity-0",
+              )}
+              style={{ color: folder.color }}
+            />
             {folder.hasTasks && (
-              <ChevronRight className={cn("h-4 w-4 absolute opacity-0 text-muted-foreground group-hover/icon:opacity-100 transition-none", isOpen && "rotate-90")}/>
+              <ChevronRight
+                className={cn(
+                  "h-4 w-4 absolute opacity-0 text-muted-foreground group-hover/icon:opacity-100 transition-none",
+                  isOpen && "rotate-90",
+                )}
+              />
             )}
           </div>
           <span className="truncate text-[11px] font-semibold flex-1">
             {clampName(folder.name)}
           </span>
           <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1">
-            <DropdownWrapper align="start" side="right" trigger={
-                <button className="h-4 w-4 p-0.5 flex items-center justify-center rounded-sm hover:bg-muted-foreground/10 text-muted-foreground hover:text-primary transition-colors" onClick={(e) => e.stopPropagation()}>
+            <DropdownWrapper
+              align="start"
+              side="right"
+              trigger={
+                <button
+                  className="h-4 w-4 p-0.5 flex items-center justify-center rounded-sm hover:bg-muted-foreground/10 text-muted-foreground hover:text-primary transition-colors"
+                  onClick={(e) => e.stopPropagation()}
+                >
                   <MoreHorizontal className="h-3.5 w-3.5" />
                 </button>
               }
@@ -97,10 +122,10 @@ export const FolderItem = React.memo(function FolderItem({ folder, spaceId }: Fo
       <CollapsibleContent className="overflow-hidden">
         <div className="ml-3.5 pl-2 border-l border-border flex flex-col">
           {isOpen && !folder.hasTasks ? null : (
-            <NodeTasksList 
-              nodeId={folder.id} 
-              parentType={EntityLayerConst.ProjectFolder} 
-              isExpanded={isOpen} 
+            <NodeTasksList
+              nodeId={folder.id}
+              parentType={EntityLayerConst.ProjectFolder}
+              isExpanded={isOpen}
               spaceId={spaceId}
             />
           )}

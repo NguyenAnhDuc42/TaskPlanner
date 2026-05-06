@@ -7,7 +7,7 @@ import {
   SortableContext,
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
-import { TaskItem } from "./task-item";
+import { TaskNodeItem } from "./task-node-item";
 
 const TaskSkeleton = () => (
   <div className="flex items-center gap-2 pl-2 py-1 opacity-20 animate-pulse">
@@ -52,7 +52,7 @@ export const NodeTasksList = React.memo(function NodeTasksList({
     >
       <div className="flex flex-col">
         {allTasks.map((task) => (
-          <TaskItem
+          <TaskNodeItem
             key={task.id}
             task={task}
             parentId={nodeId}

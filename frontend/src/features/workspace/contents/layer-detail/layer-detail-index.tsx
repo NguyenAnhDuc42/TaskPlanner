@@ -3,9 +3,7 @@ import { useParams } from "@tanstack/react-router";
 import { LayerView } from "./layer-view";
 import CommandCenterIndex from "../command-center/command-center-index";
 import { useEntityInfo } from "../hierarchy/hierarchy-api";
-import { useViews, useViewData } from "../hierarchy/views/views-api";
-import { useMemo, useState } from "react";
-import { ViewType } from "@/types/view-type";
+import { useMemo } from "react";
 
 interface LayerDetailIndexProps {
   forcedLayerType?: EntityLayerType;
@@ -24,15 +22,27 @@ export function LayerDetailIndex({ forcedLayerType }: LayerDetailIndexProps) {
       : EntityLayerType.ProjectSpace);
 
   const entityInfo = useEntityInfo(workspaceId || "", activeEntityId);
-  const { data: views } = useViews(activeEntityId, activeLayerType);
   
-  // We need to decide which view's data to fetch. 
-  // For the standard 'Items' tab, we want the first non-overview view.
-  const itemsView = useMemo(() => 
-    views?.find(v => v.viewType !== ViewType.Overview) || views?.[0], 
-  [views]);
-
-  const { data: viewResponse, isLoading: isLoadingData } = useViewData(itemsView?.id || "");
+  // Mock ViewData for the new high-density Overview
+  const mockViewData = useMemo(() => ({
+    status: { name: "In Progress", color: "#3b82f6" },
+    priority: "High",
+    startDate: new Date().toISOString(),
+    dueDate: new Date(Date.now() + 86400000 * 7).toISOString(), // 7 days from now
+    workflowName: "Standard Development",
+    storyPoints: 8,
+    timeEstimate: 480, // 8 hours
+    progress: { completedTasks: 12, totalTasks: 20 },
+    assignees: [
+      { id: "1", name: "Duc" },
+      { id: "2", name: "Gemini" }
+    ],
+    recentActivity: [
+      { id: "1", content: "Updated operational scope", timestamp: new Date().toISOString() },
+      { id: "2", content: "Attached System_Architecture.png", timestamp: new Date(Date.now() - 3600000).toISOString() },
+      { id: "3", content: "Changed status to In Progress", timestamp: new Date(Date.now() - 7200000).toISOString() },
+    ]
+  }), []);
 
   if (!activeEntityId) {
     return <CommandCenterIndex />;
@@ -45,9 +55,9 @@ export function LayerDetailIndex({ forcedLayerType }: LayerDetailIndexProps) {
         entityId={activeEntityId}
         layerType={activeLayerType}
         entityInfo={entityInfo}
-        views={views || []}
-        viewData={viewResponse?.data}
-        isLoading={isLoadingData}
+        views={[]} // Views are now decoupled or legacy
+        viewData={mockViewData}
+        isLoading={false}
       />
     </div>
   );

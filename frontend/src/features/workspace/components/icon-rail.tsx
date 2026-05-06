@@ -10,6 +10,7 @@ import {
   LayoutGrid,
   Inbox,
   Folder,
+  FolderOpen,
   Users,
   Settings,
   PanelLeftOpen,
@@ -96,12 +97,12 @@ export function IconRail({ onSelectIcon, onCommandCenter }: IconRailProps) {
 
           {/* Projects, Members */}
           {NAV_ICONS.map((item) => {
-            const Icon = item.icon;
-            
             // Projects icon should be active for projects, spaces, folders, and tasks
             const isActive = item.id === "projects" 
               ? ["projects", "spaces", "folders", "tasks"].includes(state.activeIcon || "")
               : state.activeIcon === item.id;
+
+            const Icon = (item.id === "projects" && isActive) ? FolderOpen : item.icon;
 
             return (
               <Tooltip key={item.id}>
@@ -110,9 +111,9 @@ export function IconRail({ onSelectIcon, onCommandCenter }: IconRailProps) {
                     variant={isActive ? "default" : "ghost"}
                     size="icon"
                     className={cn(
-                      "w-7 h-7 rounded-md transition-all duration-200",
+                      "w-7 h-7 rounded-md transition-all duration-300",
                       isActive
-                        ? "theme-selected scale-105"
+                        ? "bg-primary/10 text-primary scale-110 shadow-sm shadow-primary/5"
                         : "text-[var(--theme-text-normal)] hover:bg-[var(--theme-item-hover)] hover:text-[var(--theme-text-hover)]",
                     )}
                     onClick={() => onSelectIcon(item.id)}
@@ -123,7 +124,7 @@ export function IconRail({ onSelectIcon, onCommandCenter }: IconRailProps) {
                     }}
                     onMouseLeave={() => actions.setHoveredIcon(null)}
                   >
-                    <Icon className="h-[18px] w-[18px]" />
+                    <Icon className={cn("h-[18px] w-[18px]", isActive && "stroke-[2.5px]")} />
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent

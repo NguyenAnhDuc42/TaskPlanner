@@ -1,10 +1,6 @@
 import React from "react";
 import * as Icons from "lucide-react";
-import {
-  ChevronRight,
-  MoreHorizontal,
-  Lock,
-} from "lucide-react";
+import { ChevronRight, MoreHorizontal, Lock } from "lucide-react";
 import { useNavigate, useLocation } from "@tanstack/react-router";
 import { useWorkspace } from "@/features/workspace/context/workspace-provider";
 import { cn } from "@/lib/utils";
@@ -12,7 +8,7 @@ import { Collapsible, CollapsibleContent } from "@/components/ui/collapsible";
 import { DropdownWrapper } from "@/components/dropdown-wrapper";
 
 import { SpaceMenu } from "../hierarchy-components/dropdown/space-menu";
-import { FolderItem } from "./folder-item";
+
 import { NodeTasksList } from "./node-tasks-list";
 import { clampName } from "../utils/name-utils";
 import { EntityLayerType as EntityLayerConst } from "@/types/entity-layer-type";
@@ -28,16 +24,17 @@ import {
 import type { SpaceHierarchy } from "../hierarchy-type";
 import { useQueryClient } from "@tanstack/react-query";
 import { SortableItem } from "../dnd/sortable-item";
+import { FolderNodeItem } from "./folder-node-item";
 
-interface SpaceItemProps {
+interface SpaceNodeItemProps {
   space: SpaceHierarchy;
   isForcedOpen?: boolean;
 }
 
-export const SpaceItem = React.memo(function SpaceItem({
+export const SpaceNodeItem = React.memo(function SpaceNodeItem({
   space,
   isForcedOpen,
-}: SpaceItemProps) {
+}: SpaceNodeItemProps) {
   const { workspaceId } = useWorkspace();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
@@ -58,7 +55,8 @@ export const SpaceItem = React.memo(function SpaceItem({
   const hasChildren = space.hasFolders || space.hasTasks;
 
   // Eagerly load folders if a folderId is in the URL (to check ownership)
-  const shouldLoadFolders = effectiveOpen || (!!activeFolderIdFromUrl && space.hasFolders);
+  const shouldLoadFolders =
+    effectiveOpen || (!!activeFolderIdFromUrl && space.hasFolders);
 
   const { data: spaceFolders = [], isLoading: isLoadingFolders } =
     useNodeFolders(workspaceId || "", space.id, shouldLoadFolders);
@@ -66,7 +64,9 @@ export const SpaceItem = React.memo(function SpaceItem({
   // Auto-expand this space if it owns the folder in the URL
   React.useEffect(() => {
     if (activeFolderIdFromUrl && spaceFolders.length > 0) {
-      const ownsFolder = spaceFolders.some(f => f.id === activeFolderIdFromUrl);
+      const ownsFolder = spaceFolders.some(
+        (f) => f.id === activeFolderIdFromUrl,
+      );
       if (ownsFolder && !isOpen) {
         setIsOpen(true);
       }
@@ -100,7 +100,7 @@ export const SpaceItem = React.memo(function SpaceItem({
           }
         >
           <div
-            className="relative flex items-center justify-center w-5 h-5 flex-shrink-0 cursor-pointer rounded-sm hover:bg-background/50 group/icon mr-0.5"
+            className="relative flex items-center justify-center w-5 h-5 flex-shrink-0 cursor-pointer rounded-sm hover:bg-background/50 group/icon mr-1.5"
             onMouseEnter={() => {
               if (effectiveOpen || !workspaceId || !hasChildren) return;
 
@@ -162,7 +162,7 @@ export const SpaceItem = React.memo(function SpaceItem({
       </SortableItem>
 
       <CollapsibleContent className="overflow-hidden">
-        <div className="ml-3.5 pl-2 border-l border-border flex flex-col">
+        <div className="ml-[13px] pl-2 border-l border-border flex flex-col">
           {isLoadingFolders ? (
             <div className="flex flex-col gap-1 py-1">
               <div className="h-5 w-32 bg-muted/40 animate-pulse rounded-sm ml-2" />
@@ -176,7 +176,7 @@ export const SpaceItem = React.memo(function SpaceItem({
                   strategy={verticalListSortingStrategy}
                 >
                   {spaceFolders.map((folder) => (
-                    <FolderItem
+                    <FolderNodeItem
                       key={folder.id}
                       folder={folder}
                       spaceId={space.id}
