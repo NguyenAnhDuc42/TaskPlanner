@@ -13,7 +13,9 @@ import {
 import { format } from "date-fns";
 import { EntityLayerType } from "@/types/entity-layer-type";
 import { cn } from "@/lib/utils";
-import { useState } from "react";
+import { useState, useEffect, useMemo } from "react";
+import { StatusBadge } from "@/components/status-badge";
+import { useWorkspace } from "@/features/workspace/context/workspace-provider";
 
 interface PropertySidebarProps {
   layerType: EntityLayerType;
@@ -21,19 +23,23 @@ interface PropertySidebarProps {
 }
 
 export function PropertySidebar({ layerType, viewData }: PropertySidebarProps) {
+  const { registry } = useWorkspace();
   const [isPrivate, setIsPrivate] = useState(viewData?.isPrivate || false);
   
+  useEffect(() => {
+    setIsPrivate(viewData?.isPrivate || false);
+  }, [viewData?.isPrivate]);
+
   if (!viewData) return null;
 
   const isSpace = layerType === EntityLayerType.ProjectSpace;
   const isTask = layerType === EntityLayerType.ProjectTask;
 
-  // Timeline logic with requested format: xx/xx/xxxx => xx/xx/xxxx
-  const timelineValue = viewData.startDate && viewData.dueDate 
-    ? `${format(new Date(viewData.startDate), "MM/dd/yyyy")} => ${format(new Date(viewData.dueDate), "MM/dd/yyyy")}`
-    : viewData.dueDate 
-      ? format(new Date(viewData.dueDate), "MM/dd/yyyy")
-      : "No schedule set";
+  // Find workflow name from registry if it's a space/folder
+  const workflowName = useMemo(() => {
+    if (!viewData.workflowId) return null;
+    return registry.workflows.find(w => w.id === viewData.workflowId)?.name;
+  }, [viewData.workflowId, registry.workflows]);
 
   return (
     <div className="space-y-8">
@@ -41,7 +47,7 @@ export function PropertySidebar({ layerType, viewData }: PropertySidebarProps) {
         <h3 className="text-[10px] font-black uppercase tracking-[0.2em] pl-1 text-muted-foreground/30">Properties</h3>
 
         <div className="space-y-1.5">
-           {/* 0. Visibility (Stretched Row on top of Status) */}
+           {/* 0. Visibility */}
            <div className=" py-1">
              <div className="flex bg-muted/20 p-0.5 rounded-md border border-border/10 w-full">
                 <button
@@ -68,26 +74,27 @@ export function PropertySidebar({ layerType, viewData }: PropertySidebarProps) {
            </div>
 
            {/* 1. Status */}
-           <PropertyRow 
-            icon={Layers} 
-            label="Status" 
-            value={viewData.status?.name || "None"} 
-            color={viewData.status?.color} 
-           />
+           <div className="flex items-center justify-between py-2 px-1 hover:bg-muted/30 rounded-lg transition-all group cursor-pointer border border-transparent hover:border-border/10">
+              <div className="flex items-center gap-2.5 text-muted-foreground/40 group-hover:text-muted-foreground/80">
+                <Layers className="h-3.5 w-3.5" />
+                <span className="text-[10px] font-bold uppercase tracking-wider">Status</span>
+              </div>
+              <StatusBadge status={viewData.status} />
+           </div>
 
            {/* 2. Workflow */}
-           {isSpace && viewData.workflowName && (
-             <PropertyRow icon={CheckCircle2} label="Workflow" value={viewData.workflowName} />
+           {(isSpace || layerType === EntityLayerType.ProjectFolder) && workflowName && (
+             <PropertyRow icon={CheckCircle2} label="Workflow" value={workflowName} />
            )}
 
            {/* 3. Members */}
            <PropertyRow 
             icon={Users} 
-            label="Members" 
-            value={viewData.assignees?.length > 0 ? `${viewData.assignees.length} Users` : "No Members"} 
+            label={isTask ? "Assignees" : "Members"} 
+            value={viewData.members?.length > 0 ? `${viewData.members.length} Users` : "No Members"} 
            />
 
-           {/* 4. Schedule (Combined & Stretched) */}
+           {/* 4. Schedule */}
            <div className="group flex flex-col gap-2.5 py-3 px-1 hover:bg-muted/30 rounded-lg transition-all border border-transparent hover:border-border/10">
               <div className="flex items-center gap-2.5 text-muted-foreground/40 group-hover:text-muted-foreground/80">
                 <CalendarIcon className="h-3.5 w-3.5" />
@@ -116,12 +123,12 @@ export function PropertySidebar({ layerType, viewData }: PropertySidebarProps) {
                <PropertyRow 
                 icon={Flag} 
                 label="Priority" 
-                value={viewData.priority || "Medium"} 
+                value={getPriorityLabel(viewData.priority)} 
                 color={getPriorityColor(viewData.priority)} 
                />
                <PropertyRow icon={Hash} label="Points" value={viewData.storyPoints?.toString() || "0"} />
-               {viewData.timeEstimate && (
-                 <PropertyRow icon={Clock} label="Estimate" value={formatDuration(viewData.timeEstimate)} />
+               {viewData.timeEstimateSeconds && (
+                 <PropertyRow icon={Clock} label="Estimate" value={formatSeconds(viewData.timeEstimateSeconds)} />
                )}
              </>
            )}
@@ -179,19 +186,31 @@ function ActivityRow({ label, time }: { label: string, time: string }) {
   );
 }
 
-function getPriorityColor(priority?: string) {
-  switch (priority?.toLowerCase()) {
-    case 'urgent': return '#ef4444';
-    case 'high': return '#f97316';
-    case 'medium': return '#eab308';
-    case 'low': return '#3b82f6';
+function getPriorityLabel(priority?: number) {
+  switch (priority) {
+    case 4: return 'Urgent';
+    case 3: return 'High';
+    case 2: return 'Medium';
+    case 1: return 'Low';
+    default: return 'None';
+  }
+}
+
+function getPriorityColor(priority?: number) {
+  switch (priority) {
+    case 4: return '#ef4444'; // Urgent
+    case 3: return '#f97316'; // High
+    case 2: return '#eab308'; // Medium
+    case 1: return '#3b82f6'; // Low
     default: return undefined;
   }
 }
 
-function formatDuration(minutes: number) {
+function formatSeconds(seconds: number) {
+  if (seconds < 60) return `${seconds}s`;
+  const minutes = Math.floor(seconds / 60);
   if (minutes < 60) return `${minutes}m`;
   const hours = Math.floor(minutes / 60);
-  const remaining = minutes % 60;
-  return remaining > 0 ? `${hours}h ${remaining}m` : `${hours}h`;
+  const remainingMinutes = minutes % 60;
+  return remainingMinutes > 0 ? `${hours}h ${remainingMinutes}m` : `${hours}h`;
 }

@@ -100,16 +100,16 @@ export function CreateTaskForm({
 
         <Select value={priority} onValueChange={(v) => setPriority(v as Priority)}>
           <SelectTrigger asChild>
-             <AttributeButton 
-               icon={Flag} 
-               className={cn(
-                 priority === Priority.Urgent && "text-destructive hover:text-destructive",
-                 priority === Priority.High && "text-orange-500 hover:text-orange-500",
-                 priority === Priority.Normal && "text-primary hover:text-primary"
-               )}
-             >
-               {priority}
-             </AttributeButton>
+            <AttributeButton
+              icon={Flag}
+              className={cn(
+                priority === Priority.Urgent && "text-destructive hover:text-destructive",
+                priority === Priority.High && "text-orange-500 hover:text-orange-500",
+                priority === Priority.Normal && "text-primary hover:text-primary",
+              )}
+            >
+              {priority}
+            </AttributeButton>
           </SelectTrigger>
           <SelectContent className="border-border/50 shadow-xl rounded-lg">
             <SelectItem value={Priority.Low} className="text-xs">Low</SelectItem>

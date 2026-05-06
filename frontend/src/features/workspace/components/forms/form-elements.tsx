@@ -1,3 +1,4 @@
+import React, { forwardRef } from "react";
 import { 
   Globe, 
   Lock, 
@@ -9,21 +10,19 @@ import { cn } from "@/lib/utils";
 import { UniversalPicker } from "@/components/universal-picker";
 
 // --- ATTRIBUTE BUTTON ---
-export function AttributeButton({ 
-  children, 
-  icon: Icon, 
-  className,
-  active,
-  onClick 
-}: { 
-  children: React.ReactNode; 
-  icon?: any; 
-  className?: string;
-  active?: boolean;
-  onClick?: () => void;
-}) {
+export const AttributeButton = forwardRef<
+  HTMLButtonElement,
+  { 
+    children: React.ReactNode; 
+    icon?: any; 
+    className?: string;
+    active?: boolean;
+    onClick?: () => void;
+  }
+>(({ children, icon: Icon, className, active, onClick, ...props }, ref) => {
   return (
     <button
+      ref={ref}
       type="button"
       onClick={onClick}
       className={cn(
@@ -33,12 +32,14 @@ export function AttributeButton({
         active ? "text-foreground bg-muted/60 border-border/20" : "text-muted-foreground",
         className
       )}
+      {...props}
     >
       {Icon && <Icon className="h-3 w-3 shrink-0" />}
       {children}
     </button>
   );
-}
+});
+AttributeButton.displayName = "AttributeButton";
 
 // --- PRIVACY TOGGLE ---
 export function PrivacyToggle({ isPrivate, onChange }: { isPrivate: boolean; onChange: (v: boolean) => void }) {

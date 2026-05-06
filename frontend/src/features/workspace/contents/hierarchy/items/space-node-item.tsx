@@ -5,9 +5,7 @@ import { useNavigate, useLocation } from "@tanstack/react-router";
 import { useWorkspace } from "@/features/workspace/context/workspace-provider";
 import { cn } from "@/lib/utils";
 import { Collapsible, CollapsibleContent } from "@/components/ui/collapsible";
-import { DropdownWrapper } from "@/components/dropdown-wrapper";
-
-import { SpaceMenu } from "../hierarchy-components/dropdown/space-menu";
+import { EntityContextMenu, EntityMenuTrigger } from "../hierarchy-components/entity-context-menu";
 
 import { NodeTasksList } from "./node-tasks-list";
 import { clampName } from "../utils/name-utils";
@@ -88,77 +86,75 @@ export const SpaceNodeItem = React.memo(function SpaceNodeItem({
           orderKey: space.orderKey,
         }}
       >
-        <div
-          className={cn(
-            "flex items-center w-full px-1 py-0.5 rounded-sm transition-colors cursor-pointer mb-px group",
-            isActive
-              ? "bg-primary/10 text-primary"
-              : "text-foreground hover:bg-muted",
-          )}
-          onClick={() =>
-            navigate({ to: `/workspaces/${workspaceId}/spaces/${space.id}` })
-          }
+        <EntityContextMenu
+          entityId={space.id}
+          entityType={EntityLayerConst.ProjectSpace}
+          entityName={space.name}
         >
           <div
-            className="relative flex items-center justify-center w-5 h-5 flex-shrink-0 cursor-pointer rounded-sm hover:bg-background/50 group/icon mr-1.5"
-            onMouseEnter={() => {
-              if (effectiveOpen || !workspaceId || !hasChildren) return;
-
-              // Eager prefetch: Start immediately on hover for maximum speed
-              prefetchNodeFolders(queryClient, workspaceId, space.id);
-              prefetchNodeTasks(
-                queryClient,
-                workspaceId,
-                space.id,
-                EntityLayerConst.ProjectSpace,
-              );
-            }}
-            id={`space-expand-${space.id}`}
-            onClick={(e) => {
-              if (!hasChildren) return;
-              e.stopPropagation();
-              setIsOpen(!isOpen);
-            }}
-          >
-            <IconComponent
-              className={cn(
-                "h-3.5 w-3.5 absolute transition-none",
-                hasChildren && "group-hover/icon:opacity-0",
-              )}
-              style={{ color: isActive ? spaceColor : undefined }}
-            />
-            {hasChildren && (
-              <ChevronRight
-                className={cn(
-                  "h-4 w-4 absolute opacity-0 text-muted-foreground group-hover/icon:opacity-100 transition-none",
-                  isOpen && "rotate-90",
-                )}
-              />
+            className={cn(
+              "flex items-center w-full px-1 py-0.5 rounded-sm transition-colors cursor-pointer mb-px group",
+              isActive
+                ? "bg-primary/10 text-primary"
+                : "text-foreground hover:bg-muted",
             )}
-          </div>
-          <span className="truncate text-[11px] font-bold flex-1">
-            {clampName(space.name)}
-          </span>
-          <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1">
-            <DropdownWrapper
-              align="start"
-              side="right"
-              trigger={
-                <button
-                  className="h-4 w-4 p-0.5 flex items-center justify-center rounded-sm hover:bg-muted-foreground/10 text-muted-foreground hover:text-primary transition-colors"
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  <MoreHorizontal className="h-3.5 w-3.5" />
-                </button>
-              }
+            onClick={() =>
+              navigate({ to: `/workspaces/${workspaceId}/spaces/${space.id}` })
+            }
+          >
+            <div
+              className="relative flex items-center justify-center w-5 h-5 flex-shrink-0 cursor-pointer rounded-sm hover:bg-background/50 group/icon mr-1.5"
+              onMouseEnter={() => {
+                if (effectiveOpen || !workspaceId || !hasChildren) return;
+                prefetchNodeFolders(queryClient, workspaceId, space.id);
+                prefetchNodeTasks(queryClient, workspaceId, space.id, EntityLayerConst.ProjectSpace);
+              }}
+              onClick={(e) => {
+                if (!hasChildren) return;
+                e.stopPropagation();
+                setIsOpen(!isOpen);
+              }}
             >
-              <SpaceMenu spaceId={space.id} />
-            </DropdownWrapper>
+              <IconComponent
+                className={cn(
+                  "h-3.5 w-3.5 absolute transition-none",
+                  hasChildren && "group-hover/icon:opacity-0",
+                )}
+                style={{ color: isActive ? spaceColor : "var(--muted-foreground)" }}
+              />
+              {hasChildren && (
+                <ChevronRight
+                  className={cn(
+                    "h-4 w-4 absolute opacity-0 text-muted-foreground group-hover/icon:opacity-100 transition-none",
+                    isOpen && "rotate-90",
+                  )}
+                />
+              )}
+            </div>
+            
+            <span className="truncate text-[11px] font-bold flex-1">
+              {clampName(space.name)}
+            </span>
+
+            {/* Action Area: Lock and 3-dots */}
+            <div className="flex items-center gap-0.5 min-w-fit">
+              {space.isPrivate && (
+                <Lock className="h-3 w-3 text-muted-foreground/40 flex-shrink-0" />
+              )}
+              
+              <div className="w-0 group-hover:w-4 overflow-hidden opacity-0 group-hover:opacity-100 transition-all duration-300 ease-in-out">
+                <EntityMenuTrigger>
+                  <button
+                    className="h-4 w-4 p-0.5 flex items-center justify-center rounded-sm hover:bg-muted-foreground/10 text-muted-foreground hover:text-primary transition-colors"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <MoreHorizontal className="h-3.5 w-3.5" />
+                  </button>
+                </EntityMenuTrigger>
+              </div>
+            </div>
           </div>
-          {space.isPrivate && (
-            <Lock className="h-3 w-3 text-muted-foreground flex-shrink-0 opacity-40 ml-1" />
-          )}
-        </div>
+        </EntityContextMenu>
       </SortableItem>
 
       <CollapsibleContent className="overflow-hidden">

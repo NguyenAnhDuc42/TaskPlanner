@@ -9,6 +9,14 @@ namespace Api.Controllers;
 [ApiController]
 public class WorkflowsController(IHandler handler) : ControllerBase
 {
+    [HttpGet]
+    public async Task<IActionResult> GetWorkspaceWorkflows(CancellationToken ct)
+    {
+        var query = new GetWorkspaceWorkflowsQuery();
+        var result = await handler.QueryAsync<GetWorkspaceWorkflowsQuery, List<WorkflowDto>>(query, ct);
+        return result.ToActionResult();
+    }
+
     [HttpPost("set-layer")]
     public async Task<IActionResult> SetLayerWorkflow([FromBody] SetLayerWorkflowCommand command, CancellationToken ct)
     {

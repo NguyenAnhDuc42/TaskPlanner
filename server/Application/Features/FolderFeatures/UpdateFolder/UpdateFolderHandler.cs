@@ -18,9 +18,6 @@ public class UpdateFolderHandler(IDataBase db, WorkspaceContext context, IRealti
         if (folder == null) 
             return Result.Failure(FolderError.NotFound);
 
-        if (context.CurrentMember.Role > Role.Admin && folder.CreatorId != context.CurrentMember.Id)
-            return Result.Failure(MemberError.DontHavePermission);
-
         if (request.Name is not null)
         {
             folder.UpdateName(request.Name);

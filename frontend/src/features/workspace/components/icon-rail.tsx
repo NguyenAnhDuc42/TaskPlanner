@@ -17,7 +17,6 @@ import {
   LogOut,
 } from "lucide-react";
 import { useNavigate } from "@tanstack/react-router";
-import { useAuth } from "@/features/auth/auth-context";
 import { useWorkspaceSession } from "../context/workspace-provider";
 import type { ContentPage } from "../type";
 
@@ -35,7 +34,6 @@ interface IconRailProps {
 
 export function IconRail({ onSelectIcon, onCommandCenter }: IconRailProps) {
   const navigate = useNavigate();
-  const { user } = useAuth();
   const { state, actions } = useWorkspaceSession();
 
   return (

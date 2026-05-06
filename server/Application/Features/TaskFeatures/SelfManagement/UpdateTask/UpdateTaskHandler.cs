@@ -21,9 +21,6 @@ public class UpdateTaskHandler(IDataBase db, WorkspaceContext context, IRealtime
 
         if (task == null) return Result.Failure(TaskError.NotFound);
 
-        if (context.CurrentMember.Role > Role.Admin && task.CreatorId != context.CurrentMember.Id)
-            return Result.Failure(MemberError.DontHavePermission);
-
         ApplyBasicDetails(task, request);
         await ApplyStatusUpdate(task, request, ct);
         ApplyPriorityUpdate(task, request);

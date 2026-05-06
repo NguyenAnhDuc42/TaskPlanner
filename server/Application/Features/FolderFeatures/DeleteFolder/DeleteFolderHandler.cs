@@ -22,9 +22,6 @@ public class DeleteFolderHandler(
         if (folder == null) 
             return Result.Failure(FolderError.NotFound);
 
-        if (context.CurrentMember.Role > Role.Admin && folder.CreatorId != context.CurrentMember.Id)
-            return Result.Failure(MemberError.DontHavePermission);
-            
         folder.Delete();
 
         await db.SaveChangesAsync(ct);

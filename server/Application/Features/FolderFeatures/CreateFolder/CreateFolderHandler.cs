@@ -25,9 +25,6 @@ public class CreateFolderHandler(
         if (space.ProjectWorkspaceId != context.workspaceId)
             return Result<Guid>.Failure(MemberError.DontHavePermission);
 
-        if (context.CurrentMember.Role > Role.Admin)
-            return Result<Guid>.Failure(MemberError.DontHavePermission);
-
         return await db.ExecuteInTransactionAsync(async () =>
         {
             var maxKey = await db.Folders

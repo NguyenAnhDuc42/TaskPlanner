@@ -20,9 +20,6 @@ public class DeleteTaskHandler(IDataBase db, WorkspaceContext context) : IComman
         if (task == null) 
             return Result.Failure(TaskError.NotFound);
 
-        if (context.CurrentMember.Role > Role.Admin && task.CreatorId != context.CurrentMember.Id)
-            return Result.Failure(MemberError.DontHavePermission);
-
         task.SoftDelete();
         await db.SaveChangesAsync(ct);
 

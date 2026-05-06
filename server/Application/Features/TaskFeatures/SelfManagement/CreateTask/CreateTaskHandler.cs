@@ -16,10 +16,6 @@ public class CreateTaskHandler(IDataBase db, WorkspaceContext context) : IComman
 {
     public async Task<Result<TaskDto>> Handle(CreateTaskCommand request, CancellationToken ct)
     {
-        // AUTHORIZATION: Only Member or above can create tasks
-        if (context.CurrentMember.Role > Role.Member)
-            return Result<TaskDto>.Failure(MemberError.DontHavePermission);
-
         var ancestors = await HierarchyHelper.GetAncestorChain(db, request.ParentId, request.ParentType, ct);
 
         return await db.ExecuteInTransactionAsync(async () =>

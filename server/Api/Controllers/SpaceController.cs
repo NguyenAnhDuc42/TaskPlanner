@@ -24,6 +24,14 @@ namespace Api.Controllers
             return result.ToActionResult();
         }
 
+        [HttpGet("{id:guid}")]
+        public async Task<IActionResult> GetDetail(Guid id, CancellationToken cancellationToken)
+        {
+            var query = new GetSpaceDetailQuery(id);
+            var result = await _handler.QueryAsync<GetSpaceDetailQuery, SpaceDetailDto>(query, cancellationToken);
+            return result.ToActionResult();
+        }
+
         [HttpPut("{id:guid}")]
         public async Task<IActionResult> Update(Guid id, [FromBody] UpdateSpaceRequest request, CancellationToken cancellationToken)
         {

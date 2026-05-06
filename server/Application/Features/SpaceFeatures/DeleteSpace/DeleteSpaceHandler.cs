@@ -25,9 +25,6 @@ public class DeleteSpaceHandler(IDataBase db, WorkspaceContext context, IRealtim
         if (space.ProjectWorkspaceId != context.workspaceId) 
             return Result.Failure(MemberError.DontHavePermission);
 
-        if (context.CurrentMember.Role > Role.Admin && space.CreatorId != context.CurrentMember.Id)
-            return Result.Failure(MemberError.DontHavePermission);
-
         space.Delete();
         
         await db.SaveChangesAsync(ct);

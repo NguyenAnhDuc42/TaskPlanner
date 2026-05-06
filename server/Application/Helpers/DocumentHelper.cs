@@ -8,27 +8,64 @@ namespace Application.Helper;
 
 public class DocumentHelper(IDataBase db) 
 {
-    public async Task EditDocument(Guid workspaceId, Guid documentId, List<DocumentBlock> blocks, Guid creatorId) 
+    public async Task EditDocument(
+    Guid workspaceId, 
+    Guid documentId, 
+    List<(Guid? Id, string? Content, string? OrderKey, BlockType? BlockType, bool IsDeleted)> incomingBlocks, 
+    Guid creatorId) 
     {
-        var existinbBlocks = await db.DocumentBlocks.Where(b => b.DocumentId == documentId).ToListAsync();
-        foreach (var block in blocks) 
+    // 1. CATEGORIZE: Split the incoming list into three buckets
+    var toDeleteIds = incomingBlocks
+        .Where(b => b.IsDeleted && b.Id.HasValue && b.Id != Guid.Empty)
+        .Select(b => b.Id!.Value)
+        .ToList();
+
+    var toUpdateItems = incomingBlocks
+        .Where(b => !b.IsDeleted && b.Id.HasValue && b.Id != Guid.Empty)
+        .ToList();
+
+    var toAddItems = incomingBlocks
+        .Where(b => !b.IsDeleted && (!b.Id.HasValue || b.Id == Guid.Empty))
+        .ToList();
+
+    // 2. FETCH: Get all existing entities needed for Update/Delete in ONE query
+    var idsToFetch = toDeleteIds.Concat(toUpdateItems.Select(x => x.Id!.Value)).Distinct().ToList();
+    var existingBlocksMap = await db.DocumentBlocks
+        .Where(b => idsToFetch.Contains(b.Id))
+        .ToDictionaryAsync(b => b.Id);
+
+    // 3. EXECUTE DELETES
+    var blocksToRemove = toDeleteIds
+        .Where(id => existingBlocksMap.ContainsKey(id))
+        .Select(id => existingBlocksMap[id])
+        .ToList();
+    
+    if (blocksToRemove.Any()) db.DocumentBlocks.RemoveRange(blocksToRemove);
+
+    // 4. EXECUTE UPDATES
+    foreach (var item in toUpdateItems)
+    {
+        if (existingBlocksMap.TryGetValue(item.Id!.Value, out var existing))
         {
-            if (existinbBlocks.Exists(b => b.Id == block.Id))
-            {
-                var existingBlock = existinbBlocks.First(b => b.Id == block.Id);
-                if (block.Content != existingBlock.Content || block.OrderKey != existingBlock.OrderKey || block.Type != existingBlock.Type)
-                {
-                    existingBlock.UpdateContent(block.Content);
-                    existingBlock.UpdateOrderKey(block.OrderKey);
-                    existingBlock.UpdateType(block.Type);
-                }
-            }
-            else 
-            {
-                var newBlock = DocumentBlock.Create(workspaceId, documentId, block.Type, block.Content, block.OrderKey,creatorId);
-                db.DocumentBlocks.Add(newBlock);
-            }
+            existing.UpdateContent(item.Content ?? string.Empty);
+            existing.UpdateOrderKey(item.OrderKey ?? string.Empty);
+            if (item.BlockType.HasValue) existing.UpdateType(item.BlockType.Value);
         }
-        await db.SaveChangesAsync();
+    }
+
+    // 5. EXECUTE ADDS
+    var newBlocks = toAddItems.Select(item => DocumentBlock.Create(
+        workspaceId, 
+        documentId, 
+        item.BlockType ?? BlockType.Paragraph, 
+        item.Content ?? string.Empty, 
+        item.OrderKey ?? string.Empty, 
+        creatorId
+    )).ToList();
+
+    if (newBlocks.Any()) db.DocumentBlocks.AddRange(newBlocks);
+
+    // 6. SAVE: One trip to the DB for everything
+    await db.SaveChangesAsync();
     }
 }

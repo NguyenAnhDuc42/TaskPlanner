@@ -21,12 +21,7 @@ public class UpdateSpaceHandler(IDataBase db, WorkspaceContext context, IRealtim
         if (space == null) 
             return Result.Failure(SpaceError.NotFound);
 
-        // Security Resolve: Direct workspace bound check
         if (space.ProjectWorkspaceId != context.workspaceId)
-            return Result.Failure(MemberError.DontHavePermission);
-
-        // AUTHORIZATION: Only Admin/Owner or the space creator (MemberId) can update space settings
-        if (context.CurrentMember.Role > Role.Admin && space.CreatorId != context.CurrentMember.Id)
             return Result.Failure(MemberError.DontHavePermission);
 
         // Apply Updates preserving domain logic

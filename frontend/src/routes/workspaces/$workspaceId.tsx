@@ -7,6 +7,8 @@ import { WorkspaceLayout } from "@/features/workspace/components/workspace-layou
 import { z } from "zod";
 import { Loader2 } from "lucide-react";
 
+import { workspaceQueryOptions } from "@/features/workspace/api";
+
 export const workspaceSearchSchema = z.object({});
 
 export const Route = createFileRoute("/workspaces/$workspaceId")({
@@ -14,6 +16,11 @@ export const Route = createFileRoute("/workspaces/$workspaceId")({
     workspaceId: z.uuid().parse(params.workspaceId),
   }),
   validateSearch: (search) => workspaceSearchSchema.parse(search),
+  loader: ({ context: { queryClient }, params: { workspaceId } }) => {
+    queryClient.ensureQueryData(workspaceQueryOptions.workflows(workspaceId));
+    queryClient.ensureQueryData(workspaceQueryOptions.members(workspaceId));
+    queryClient.ensureQueryData(workspaceQueryOptions.detail(workspaceId));
+  },
   component: WorkspaceRoot,
 });
 

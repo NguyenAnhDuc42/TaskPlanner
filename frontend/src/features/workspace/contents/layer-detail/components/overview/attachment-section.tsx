@@ -1,6 +1,5 @@
 import { Paperclip, Plus, File, FileImage, FileText, Download, Trash2, Loader2 } from "lucide-react";
 import { useState } from "react";
-import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 
 interface Attachment {

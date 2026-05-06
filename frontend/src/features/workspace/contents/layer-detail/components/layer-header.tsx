@@ -9,7 +9,7 @@ import {
   Paperclip,
   Folder
 } from "lucide-react";
-import * as Icons from "lucide-react";
+import { DynamicIcon } from "@/components/dynamic-icon";
 import { Button } from "@/components/ui/button";
 import type { MainViewTab, ItemsViewMode } from "../layer-detail-types";
 import type { RightPanelType } from "../layer-view";
@@ -23,7 +23,7 @@ import {
 import { cn } from "@/lib/utils";
 
 interface LayerHeaderProps {
-  entityInfo: any;
+  viewData: any;
   activeTab: MainViewTab;
   viewMode: ItemsViewMode;
   onViewModeChange: (mode: ItemsViewMode) => void;
@@ -32,16 +32,14 @@ interface LayerHeaderProps {
 }
 
 export function LayerHeader({
-  entityInfo,
+  viewData,
   activeTab,
   viewMode,
   onViewModeChange,
   rightPanelType,
   onToggleRightPanel,
 }: LayerHeaderProps) {
-  if (!entityInfo) return null;
-
-  const IconComponent = (Icons as any)[entityInfo.icon] || Folder;
+  if (!viewData) return null;
 
   return (
     <div className="flex items-center justify-between px-4 h-8 bg-background/80 backdrop-blur-md border-b border-border/40 flex-shrink-0 select-none">
@@ -51,8 +49,8 @@ export function LayerHeader({
         <span className="hover:text-foreground transition-colors cursor-pointer">Workspace</span>
         <ChevronRight className="h-2.5 w-2.5 opacity-40 mx-0.5" />
         <div className="flex items-center gap-0.5 text-foreground/70">
-           <IconComponent className="h-3 w-3 stroke-[2.5]" style={{ color: entityInfo.color }} />
-           <span className="truncate max-w-[200px] font-black">{entityInfo.name}</span>
+           <DynamicIcon name={viewData.icon || "Folder"} size={12} color={viewData.color} className="stroke-[2.5]" />
+           <span className="truncate max-w-[200px] font-black">{viewData.name}</span>
         </div>
       </div>
 

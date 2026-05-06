@@ -39,7 +39,7 @@ export function LayerView({
     <div className="flex-1 flex flex-col h-full bg-background overflow-hidden relative">
       {/* Row 1: Header (Breadcrumbs + Actions) */}
       <LayerHeader 
-        entityInfo={entityInfo}
+        viewData={viewData}
         activeTab={activeTab}
         viewMode={viewMode}
         onViewModeChange={setViewMode}

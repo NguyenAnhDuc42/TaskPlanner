@@ -23,6 +23,14 @@ public class FoldersController : ControllerBase
         return result.ToActionResult();
     }
 
+    [HttpGet("{id:guid}")]
+    public async Task<IActionResult> GetDetail(Guid id, CancellationToken ct)
+    {
+        var query = new GetFolderDetailQuery(id);
+        var result = await _handler.QueryAsync<GetFolderDetailQuery, FolderDetailDto>(query, ct);
+        return result.ToActionResult();
+    }
+
     [HttpPut("{id:guid}")]
     public async Task<IActionResult> Update(Guid id, [FromBody] UpdateFolderRequest request, CancellationToken ct)
     {

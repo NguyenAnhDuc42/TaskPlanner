@@ -3,8 +3,7 @@ import { useNavigate } from "@tanstack/react-router";
 import { useWorkspace } from "@/features/workspace/context/workspace-provider";
 import { cn } from "@/lib/utils";
 import { CheckSquare, MoreHorizontal } from "lucide-react";
-import { DropdownWrapper } from "@/components/dropdown-wrapper";
-import { TaskMenu } from "../hierarchy-components/dropdown/task-menu";
+import { EntityContextMenu, EntityMenuTrigger } from "../hierarchy-components/entity-context-menu";
 import { SortableItem } from "../dnd/sortable-item";
 import { clampName } from "../utils/name-utils";
 import {
@@ -45,44 +44,46 @@ export const TaskNodeItem = React.memo(function TaskNodeItem({
         spaceId,
       }}
     >
-      <div
-        className={cn(
-          "flex items-center w-full px-1 py-0.5 rounded-sm transition-colors cursor-pointer mb-px group",
-          isActive
-            ? "text-primary bg-primary/10"
-            : "text-muted-foreground hover:bg-muted hover:text-foreground",
-        )}
-        onClick={() =>
-          navigate({ to: `/workspaces/${workspaceId}/tasks/${task.id}` })
-        }
+      <EntityContextMenu
+        entityId={task.id}
+        entityType={EntityLayerConst.ProjectTask}
+        entityName={task.name}
+        spaceId={spaceId}
       >
-        <div className="w-5 h-5 flex items-center justify-center flex-shrink-0 mr-2">
-          <CheckSquare className="h-3.5 w-3.5 opacity-60" />
+        <div
+          className={cn(
+            "flex items-center w-full px-1 py-0.5 rounded-sm transition-colors cursor-pointer mb-px group",
+            isActive
+              ? "text-primary bg-primary/10"
+              : "text-muted-foreground hover:bg-muted hover:text-foreground",
+          )}
+          onClick={() =>
+            navigate({ to: `/workspaces/${workspaceId}/tasks/${task.id}` })
+          }
+        >
+          <div className="w-5 h-5 flex items-center justify-center flex-shrink-0 mr-2">
+            <CheckSquare className="h-3.5 w-3.5 opacity-60" />
+          </div>
+          <span className="truncate text-[11px] font-semibold flex-1 leading-tight">
+            {clampName(task.name)}
+          </span>
+          {/* Action Area: Lock and 3-dots */}
+          <div className="flex items-center gap-0.5 min-w-fit">
+            {/* Task-specific private check could go here if implemented */}
+            
+            <div className="w-0 group-hover:w-4 overflow-hidden opacity-0 group-hover:opacity-100 transition-all duration-300 ease-in-out">
+              <EntityMenuTrigger>
+                <button
+                  className="h-4 w-4 p-0.5 flex items-center justify-center rounded-sm hover:bg-muted-foreground/10 text-muted-foreground hover:text-primary transition-colors"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <MoreHorizontal className="h-3.5 w-3.5" />
+                </button>
+              </EntityMenuTrigger>
+            </div>
+          </div>
         </div>
-        <span className="truncate text-[11px] font-semibold flex-1 leading-tight">
-          {clampName(task.name)}
-        </span>
-        <div className="opacity-0 group-hover:opacity-100 transition-opacity">
-          <DropdownWrapper
-            align="start"
-            side="right"
-            trigger={
-              <button
-                className="h-4 w-4 p-0.5 flex items-center justify-center rounded-sm hover:bg-muted-foreground/10 text-muted-foreground hover:text-primary transition-colors"
-                onClick={(e) => e.stopPropagation()}
-              >
-                <MoreHorizontal className="h-3.5 w-3.5" />
-              </button>
-            }
-          >
-            <TaskMenu
-              taskId={task.id}
-              parentId={parentId}
-              parentType={parentType}
-            />
-          </DropdownWrapper>
-        </div>
-      </div>
+      </EntityContextMenu>
     </SortableItem>
   );
 });

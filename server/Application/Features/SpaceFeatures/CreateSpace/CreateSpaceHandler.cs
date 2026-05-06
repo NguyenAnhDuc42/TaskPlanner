@@ -19,9 +19,6 @@ public class CreateSpaceHandler(
 {
     public async Task<Result<Guid>> Handle(CreateSpaceCommand request, CancellationToken ct)
     {
-        if (context.CurrentMember.Role > Role.Admin)
-            return Result<Guid>.Failure(MemberError.DontHavePermission);
-
         return await db.ExecuteInTransactionAsync(async () =>
         {
             var maxKey = await db.Spaces

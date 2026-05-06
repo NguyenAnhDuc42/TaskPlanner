@@ -48,12 +48,14 @@ function SelectTrigger({
         className
       )}
       {...props}
-    >
-      {children}
-      <SelectPrimitive.Icon asChild>
-        <IconSelector className="text-muted-foreground size-4 pointer-events-none" />
-      </SelectPrimitive.Icon>
-    </SelectPrimitive.Trigger>
+    >{props.asChild ? children : (
+      <>
+        {children}
+        <SelectPrimitive.Icon asChild>
+          <IconSelector className="text-muted-foreground size-4 pointer-events-none" />
+        </SelectPrimitive.Icon>
+      </>
+    )}</SelectPrimitive.Trigger>
   )
 }
 
