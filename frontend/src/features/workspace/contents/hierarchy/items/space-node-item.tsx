@@ -120,7 +120,7 @@ export const SpaceNodeItem = React.memo(function SpaceNodeItem({
                   "h-3.5 w-3.5 absolute transition-none",
                   hasChildren && "group-hover/icon:opacity-0",
                 )}
-                style={{ color: isActive ? spaceColor : "var(--muted-foreground)" }}
+                style={{ color: spaceColor }}
               />
               {hasChildren && (
                 <ChevronRight
