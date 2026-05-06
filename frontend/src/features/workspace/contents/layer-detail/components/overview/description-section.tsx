@@ -1,6 +1,7 @@
 import { RichTextEditor } from "@/components/rich-text-editor";
 import { Save } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
+import { useDebounce } from "@/hooks/use-debounce";
 
 interface DescriptionSectionProps {
   initialValue?: string;
@@ -9,23 +10,42 @@ interface DescriptionSectionProps {
 
 export function DescriptionSection({ initialValue = "", onSave }: DescriptionSectionProps) {
   const [content, setContent] = useState(initialValue);
+  const debouncedContent = useDebounce(content, 2000);
   const [isSaving, setIsSaving] = useState(false);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
+  
+  // Use ref for onSave to keep it out of dependency arrays and avoid loops
+  const onSaveRef = useRef(onSave);
+  onSaveRef.current = onSave;
 
+  // Sync from props only when the value actually changes from external source
+  // and we are not currently "dirty" (editing)
+  const isFirstRender = useRef(true);
   useEffect(() => {
-    if (content === initialValue) return;
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      return;
+    }
+    // Only sync if the new initialValue is different from our current content
+    // and the server value just changed (e.g. from a refetch)
+    if (initialValue !== content) {
+      setContent(initialValue);
+    }
+  }, [initialValue]);
 
+  // Handle Auto-save
+  useEffect(() => {
+    if (debouncedContent === initialValue) return;
+
+    setIsSaving(true);
     const timer = setTimeout(() => {
-      setIsSaving(true);
-      setTimeout(() => {
-        setIsSaving(false);
-        setLastSaved(new Date());
-        onSave?.(content);
-      }, 800);
-    }, 2000);
+      onSaveRef.current?.(debouncedContent);
+      setIsSaving(false);
+      setLastSaved(new Date());
+    }, 500);
 
     return () => clearTimeout(timer);
-  }, [content, initialValue, onSave]);
+  }, [debouncedContent, initialValue]);
 
   return (
     <div className="relative group">

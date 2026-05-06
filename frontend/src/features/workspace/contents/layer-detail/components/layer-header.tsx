@@ -45,11 +45,16 @@ export function LayerHeader({
     <div className="flex items-center justify-between px-4 h-8 bg-background/80 backdrop-blur-md border-b border-border/40 flex-shrink-0 select-none">
       
       {/* --- Left: Breadcrumbs --- */}
-      <div className="flex items-center gap-0.5 text-[10px] font-bold text-muted-foreground/60 uppercase tracking-widest">
+      <div className="flex items-center gap-0.5 text-[10px] font-bold text-muted-foreground/60 uppercase tracking-widest h-full">
         <span className="hover:text-foreground transition-colors cursor-pointer">Workspace</span>
         <ChevronRight className="h-2.5 w-2.5 opacity-40 mx-0.5" />
-        <div className="flex items-center gap-0.5 text-foreground/70">
-           <DynamicIcon name={viewData.icon || "Folder"} size={12} color={viewData.color} className="stroke-[2.5]" />
+        <div className="flex items-center gap-1 text-foreground/70 h-full">
+           <DynamicIcon 
+             name={viewData.icon || "Folder"} 
+             size={12} 
+             color={viewData.color} 
+             className="stroke-[2.5]" 
+           />
            <span className="truncate max-w-[200px] font-black">{viewData.name}</span>
         </div>
       </div>

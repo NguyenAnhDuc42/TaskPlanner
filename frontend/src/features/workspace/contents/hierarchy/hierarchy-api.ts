@@ -4,6 +4,8 @@ import { type EntityLayerType } from "@/types/entity-layer-type";
 import type { CreateFolderRequest, CreateSpaceRequest, CreateTaskRequest, FolderHierarchy, MoveItemRequest, NodeTasksResponse, TaskHierarchy, UpdateFolderRequest, UpdateSpaceRequest, UpdateTaskRequest, WorkspaceHierarchy } from "./hierarchy-type";
 import { hierarchyKeys } from "./hierarchy-keys";
 import { api } from "@/lib/api-client";
+import { workspaceKeys } from "@/features/main/query-keys";
+
 
 export function useHierarchy(workspaceId: string) {
   return useQuery({
@@ -102,7 +104,46 @@ export function useUpdateSpace(workspaceId: string) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (data: UpdateSpaceRequest) => api.put(`/spaces/${data.spaceId}`, data),
-    onSuccess: () => {
+    onMutate: async (updates) => {
+      await queryClient.cancelQueries({ queryKey: [...workspaceKeys.all, "space", updates.spaceId] });
+      await queryClient.cancelQueries({ queryKey: hierarchyKeys.detail(workspaceId) });
+
+      const previousDetail = queryClient.getQueryData([...workspaceKeys.all, "space", updates.spaceId]);
+      const previousHierarchy = queryClient.getQueryData(hierarchyKeys.detail(workspaceId));
+
+      // 1. Update Detail View
+      if (previousDetail) {
+        queryClient.setQueryData([...workspaceKeys.all, "space", updates.spaceId], (old: any) => ({
+          ...old,
+          ...updates
+        }));
+      }
+
+      // 2. Update Hierarchy
+      if (previousHierarchy) {
+        queryClient.setQueryData(hierarchyKeys.detail(workspaceId), (old: any) => {
+          if (!old) return old;
+          const newHierarchy = JSON.parse(JSON.stringify(old));
+          const space = newHierarchy.spaces.find((s: any) => s.id === updates.spaceId);
+          if (space) {
+            Object.assign(space, updates);
+          }
+          return newHierarchy;
+        });
+      }
+
+      return { previousDetail, previousHierarchy };
+    },
+    onError: (_err, updates, context) => {
+      if (context?.previousDetail) {
+        queryClient.setQueryData([...workspaceKeys.all, "space", updates.spaceId], context.previousDetail);
+      }
+      if (context?.previousHierarchy) {
+        queryClient.setQueryData(hierarchyKeys.detail(workspaceId), context.previousHierarchy);
+      }
+    },
+    onSettled: (_data, _error, updates) => {
+      queryClient.invalidateQueries({ queryKey: [...workspaceKeys.all, "space", updates.spaceId] });
       queryClient.invalidateQueries({ queryKey: hierarchyKeys.detail(workspaceId) });
       queryClient.invalidateQueries({ queryKey: ["views"] });
     },
@@ -118,6 +159,7 @@ export function useCreateFolder(workspaceId: string) {
     },
   });
 }
+
 export function useCreateTask(workspaceId: string) {
   const queryClient = useQueryClient();
   return useMutation({
@@ -135,7 +177,49 @@ export function useUpdateFolder(workspaceId: string) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (data: UpdateFolderRequest) => api.put(`/folders/${data.folderId}`, data),
-    onSuccess: () => {
+    onMutate: async (updates) => {
+      await queryClient.cancelQueries({ queryKey: [...workspaceKeys.all, "folder", updates.folderId] });
+      await queryClient.cancelQueries({ queryKey: hierarchyKeys.detail(workspaceId) });
+
+      const previousDetail = queryClient.getQueryData([...workspaceKeys.all, "folder", updates.folderId]);
+      const previousHierarchy = queryClient.getQueryData(hierarchyKeys.detail(workspaceId));
+
+      // 1. Update Detail View
+      if (previousDetail) {
+        queryClient.setQueryData([...workspaceKeys.all, "folder", updates.folderId], (old: any) => ({
+          ...old,
+          ...updates
+        }));
+      }
+
+      // 2. Update Hierarchy
+      if (previousHierarchy) {
+        queryClient.setQueryData(hierarchyKeys.detail(workspaceId), (old: any) => {
+          if (!old) return old;
+          const newHierarchy = JSON.parse(JSON.stringify(old));
+          for (const s of newHierarchy.spaces) {
+            const folder = s.folders.find((f: any) => f.id === updates.folderId);
+            if (folder) {
+              Object.assign(folder, updates);
+              break;
+            }
+          }
+          return newHierarchy;
+        });
+      }
+
+      return { previousDetail, previousHierarchy };
+    },
+    onError: (_err, updates, context) => {
+      if (context?.previousDetail) {
+        queryClient.setQueryData([...workspaceKeys.all, "folder", updates.folderId], context.previousDetail);
+      }
+      if (context?.previousHierarchy) {
+        queryClient.setQueryData(hierarchyKeys.detail(workspaceId), context.previousHierarchy);
+      }
+    },
+    onSettled: (_data, _error, updates) => {
+      queryClient.invalidateQueries({ queryKey: [...workspaceKeys.all, "folder", updates.folderId] });
       queryClient.invalidateQueries({ queryKey: hierarchyKeys.detail(workspaceId) });
       queryClient.invalidateQueries({ queryKey: ["views"] });
     },
@@ -146,7 +230,27 @@ export function useUpdateTask(workspaceId: string) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (data: UpdateTaskRequest) => api.put(`/tasks/${data.taskId}`, data),
-    onSuccess: () => {
+    onMutate: async (updates) => {
+      await queryClient.cancelQueries({ queryKey: [...workspaceKeys.all, "task", updates.taskId] });
+
+      const previousDetail = queryClient.getQueryData([...workspaceKeys.all, "task", updates.taskId]);
+
+      if (previousDetail) {
+        queryClient.setQueryData([...workspaceKeys.all, "task", updates.taskId], (old: any) => ({
+          ...old,
+          ...updates
+        }));
+      }
+
+      return { previousDetail };
+    },
+    onError: (_err, updates, context) => {
+      if (context?.previousDetail) {
+        queryClient.setQueryData([...workspaceKeys.all, "task", updates.taskId], context.previousDetail);
+      }
+    },
+    onSettled: (_data, _error, updates) => {
+      queryClient.invalidateQueries({ queryKey: [...workspaceKeys.all, "task", updates.taskId] });
       queryClient.invalidateQueries({ queryKey: hierarchyKeys.all });
       queryClient.invalidateQueries({ queryKey: ["views"] });
     },

@@ -29,7 +29,7 @@ export function LayerView({
 }: LayerViewProps) {
   const [activeTab, setActiveTab] = useState<MainViewTab>("overview");
   const [viewMode, setViewMode] = useState<ItemsViewMode>("board");
-  const [rightPanelType, setRightPanelType] = useState<RightPanelType>(null);
+  const [rightPanelType, setRightPanelType] = useState<RightPanelType>("properties");
 
   const toggleRightPanel = (type: RightPanelType) => {
     setRightPanelType(prev => prev === type ? null : type);
