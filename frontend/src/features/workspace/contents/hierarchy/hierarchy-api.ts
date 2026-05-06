@@ -1,30 +1,50 @@
-import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useMemo } from "react";
+import {
+  useInfiniteQuery,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
 import { type EntityLayerType } from "@/types/entity-layer-type";
-import type { CreateFolderRequest, CreateSpaceRequest, CreateTaskRequest, FolderHierarchy, MoveItemRequest, NodeTasksResponse, TaskHierarchy, UpdateFolderRequest, UpdateSpaceRequest, UpdateTaskRequest, WorkspaceHierarchy } from "./hierarchy-type";
+import type {
+  CreateFolderRequest,
+  CreateSpaceRequest,
+  CreateTaskRequest,
+  FolderHierarchy,
+  NodeTasksResponse,
+  WorkspaceHierarchy,
+  MoveItemRequest,
+} from "./hierarchy-type";
 import { hierarchyKeys } from "./hierarchy-keys";
 import { api } from "@/lib/api-client";
-import { workspaceKeys } from "@/features/main/query-keys";
 
+// --- Structure Queries (Sidebar) ---
 
 export function useHierarchy(workspaceId: string) {
   return useQuery({
     queryKey: hierarchyKeys.detail(workspaceId),
     queryFn: async () => {
-      const { data } = await api.get<WorkspaceHierarchy>(`/workspaces/${workspaceId}/hierarchy`);
+      const { data } = await api.get<WorkspaceHierarchy>(
+        `/workspaces/${workspaceId}/hierarchy`,
+      );
       return data;
     },
     enabled: !!workspaceId,
-    staleTime: 1000 * 60 * 5, // 5 minutes
-    gcTime: 1000 * 60 * 30, // 30 minutes
+    staleTime: 1000 * 60 * 5,
+    gcTime: 1000 * 60 * 30,
   });
 }
 
-export function useNodeFolders(workspaceId: string, nodeId: string, enabled: boolean = true) {
+export function useNodeFolders(
+  workspaceId: string,
+  nodeId: string,
+  enabled: boolean = true,
+) {
   return useQuery({
-    queryKey: [...hierarchyKeys.detail(workspaceId), nodeId, "folders"],
+    queryKey: hierarchyKeys.nodeFolders(workspaceId, nodeId),
     queryFn: async () => {
-      const { data } = await api.get<FolderHierarchy[]>(`/workspaces/${workspaceId}/hierarchy/nodes/${nodeId}/folders`);
+      const { data } = await api.get<FolderHierarchy[]>(
+        `/workspaces/${workspaceId}/hierarchy/nodes/${nodeId}/folders`,
+      );
       return data;
     },
     enabled: !!workspaceId && !!nodeId && enabled,
@@ -32,39 +52,11 @@ export function useNodeFolders(workspaceId: string, nodeId: string, enabled: boo
   });
 }
 
-export const prefetchNodeFolders = async (queryClient: any, workspaceId: string, nodeId: string) => {
-  await queryClient.prefetchQuery({
-    queryKey: [...hierarchyKeys.detail(workspaceId), nodeId, "folders"],
-    queryFn: async () => {
-      const { data } = await api.get<FolderHierarchy[]>(`/workspaces/${workspaceId}/hierarchy/nodes/${nodeId}/folders`);
-      return data;
-    },
-    staleTime: 1000 * 60 * 5,
-  });
-};
-
-export const prefetchNodeTasks = async (queryClient: any, workspaceId: string, nodeId: string, parentType: EntityLayerType) => {
-  await queryClient.prefetchInfiniteQuery({
-    queryKey: hierarchyKeys.nodeTasks(workspaceId, nodeId),
-    queryFn: async () => {
-      const { data } = await api.get<NodeTasksResponse>(
-        `/workspaces/${workspaceId}/hierarchy/nodes/${nodeId}/tasks`,
-        {
-          params: {
-            parentType,
-            cursorOrderKey: null,
-            cursorTaskId: null,
-          },
-        }
-      );
-      return data;
-    },
-    initialPageParam: null,
-    staleTime: 1000 * 60 * 5,
-  });
-};
-
-export function useNodeTasks(workspaceId: string, nodeId: string, parentType: EntityLayerType) {
+export function useNodeTasks(
+  workspaceId: string,
+  nodeId: string,
+  parentType: EntityLayerType,
+) {
   return useInfiniteQuery({
     queryKey: hierarchyKeys.nodeTasks(workspaceId, nodeId),
     queryFn: async ({ pageParam }) => {
@@ -76,76 +68,36 @@ export function useNodeTasks(workspaceId: string, nodeId: string, parentType: En
             cursorOrderKey: pageParam?.orderKey,
             cursorTaskId: pageParam?.taskId,
           },
-        }
+        },
       );
       return data;
     },
-    initialPageParam: null as { orderKey: string, taskId: string } | null,
+    initialPageParam: null as { orderKey: string; taskId: string } | null,
     getPreviousPageParam: () => undefined,
-    getNextPageParam: (lastPage) => 
-      lastPage.hasMore ? { orderKey: lastPage.nextCursorOrderKey!, taskId: lastPage.nextCursorTaskId! } : undefined,
+    getNextPageParam: (lastPage) =>
+      lastPage.hasMore
+        ? {
+            orderKey: lastPage.nextCursorOrderKey!,
+            taskId: lastPage.nextCursorTaskId!,
+          }
+        : undefined,
     enabled: !!nodeId && !!workspaceId,
-    staleTime: 1000 * 60 * 5, // 5 minutes
-    gcTime: 1000 * 60 * 30, // 30 minutes
+    staleTime: 1000 * 60 * 5,
+    gcTime: 1000 * 60 * 30,
   });
 }
+
+// --- Creation Mutations ---
 
 export function useCreateSpace(workspaceId: string) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (data: CreateSpaceRequest) => api.post(`/spaces`, data),
+    mutationFn: (data: CreateSpaceRequest) => 
+      api.post(`/spaces`, data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: hierarchyKeys.detail(workspaceId) });
-    },
-  });
-}
-
-export function useUpdateSpace(workspaceId: string) {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (data: UpdateSpaceRequest) => api.put(`/spaces/${data.spaceId}`, data),
-    onMutate: async (updates) => {
-      await queryClient.cancelQueries({ queryKey: [...workspaceKeys.all, "space", updates.spaceId] });
-      await queryClient.cancelQueries({ queryKey: hierarchyKeys.detail(workspaceId) });
-
-      const previousDetail = queryClient.getQueryData([...workspaceKeys.all, "space", updates.spaceId]);
-      const previousHierarchy = queryClient.getQueryData(hierarchyKeys.detail(workspaceId));
-
-      // 1. Update Detail View
-      if (previousDetail) {
-        queryClient.setQueryData([...workspaceKeys.all, "space", updates.spaceId], (old: any) => ({
-          ...old,
-          ...updates
-        }));
-      }
-
-      // 2. Update Hierarchy
-      if (previousHierarchy) {
-        queryClient.setQueryData(hierarchyKeys.detail(workspaceId), (old: any) => {
-          if (!old) return old;
-          const newHierarchy = JSON.parse(JSON.stringify(old));
-          const space = newHierarchy.spaces.find((s: any) => s.id === updates.spaceId);
-          if (space) {
-            Object.assign(space, updates);
-          }
-          return newHierarchy;
-        });
-      }
-
-      return { previousDetail, previousHierarchy };
-    },
-    onError: (_err, updates, context) => {
-      if (context?.previousDetail) {
-        queryClient.setQueryData([...workspaceKeys.all, "space", updates.spaceId], context.previousDetail);
-      }
-      if (context?.previousHierarchy) {
-        queryClient.setQueryData(hierarchyKeys.detail(workspaceId), context.previousHierarchy);
-      }
-    },
-    onSettled: (_data, _error, updates) => {
-      queryClient.invalidateQueries({ queryKey: [...workspaceKeys.all, "space", updates.spaceId] });
-      queryClient.invalidateQueries({ queryKey: hierarchyKeys.detail(workspaceId) });
-      queryClient.invalidateQueries({ queryKey: ["views"] });
+      queryClient.invalidateQueries({
+        queryKey: hierarchyKeys.detail(workspaceId),
+      });
     },
   });
 }
@@ -153,9 +105,12 @@ export function useUpdateSpace(workspaceId: string) {
 export function useCreateFolder(workspaceId: string) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (data: CreateFolderRequest) => api.post(`/folders`, data),
+    mutationFn: (data: CreateFolderRequest) => 
+      api.post(`/folders`, data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: hierarchyKeys.detail(workspaceId) });
+      queryClient.invalidateQueries({
+        queryKey: hierarchyKeys.detail(workspaceId),
+      });
     },
   });
 }
@@ -163,186 +118,40 @@ export function useCreateFolder(workspaceId: string) {
 export function useCreateTask(workspaceId: string) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (data: CreateTaskRequest) => api.post(`/tasks`, data),
+    mutationFn: (data: CreateTaskRequest) => 
+      api.post(`/tasks`, data),
     onSuccess: (_, variables) => {
-      // Invalidate the parent's task list
-      queryClient.invalidateQueries({ queryKey: hierarchyKeys.nodeTasks(workspaceId, variables.parentId) });
-      // Also invalidate hierarchy to update task counts if any
-      queryClient.invalidateQueries({ queryKey: hierarchyKeys.detail(workspaceId) });
+      queryClient.invalidateQueries({
+        queryKey: hierarchyKeys.nodeTasks(workspaceId, variables.parentId),
+      });
+      queryClient.invalidateQueries({
+        queryKey: hierarchyKeys.detail(workspaceId),
+      });
     },
   });
 }
 
-export function useUpdateFolder(workspaceId: string) {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (data: UpdateFolderRequest) => api.put(`/folders/${data.folderId}`, data),
-    onMutate: async (updates) => {
-      await queryClient.cancelQueries({ queryKey: [...workspaceKeys.all, "folder", updates.folderId] });
-      await queryClient.cancelQueries({ queryKey: hierarchyKeys.detail(workspaceId) });
-
-      const previousDetail = queryClient.getQueryData([...workspaceKeys.all, "folder", updates.folderId]);
-      const previousHierarchy = queryClient.getQueryData(hierarchyKeys.detail(workspaceId));
-
-      // 1. Update Detail View
-      if (previousDetail) {
-        queryClient.setQueryData([...workspaceKeys.all, "folder", updates.folderId], (old: any) => ({
-          ...old,
-          ...updates
-        }));
-      }
-
-      // 2. Update Hierarchy
-      if (previousHierarchy) {
-        queryClient.setQueryData(hierarchyKeys.detail(workspaceId), (old: any) => {
-          if (!old) return old;
-          const newHierarchy = JSON.parse(JSON.stringify(old));
-          for (const s of newHierarchy.spaces) {
-            const folder = s.folders.find((f: any) => f.id === updates.folderId);
-            if (folder) {
-              Object.assign(folder, updates);
-              break;
-            }
-          }
-          return newHierarchy;
-        });
-      }
-
-      return { previousDetail, previousHierarchy };
-    },
-    onError: (_err, updates, context) => {
-      if (context?.previousDetail) {
-        queryClient.setQueryData([...workspaceKeys.all, "folder", updates.folderId], context.previousDetail);
-      }
-      if (context?.previousHierarchy) {
-        queryClient.setQueryData(hierarchyKeys.detail(workspaceId), context.previousHierarchy);
-      }
-    },
-    onSettled: (_data, _error, updates) => {
-      queryClient.invalidateQueries({ queryKey: [...workspaceKeys.all, "folder", updates.folderId] });
-      queryClient.invalidateQueries({ queryKey: hierarchyKeys.detail(workspaceId) });
-      queryClient.invalidateQueries({ queryKey: ["views"] });
-    },
-  });
-}
-
-export function useUpdateTask(workspaceId: string) {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (data: UpdateTaskRequest) => api.put(`/tasks/${data.taskId}`, data),
-    onMutate: async (updates) => {
-      await queryClient.cancelQueries({ queryKey: [...workspaceKeys.all, "task", updates.taskId] });
-
-      const previousDetail = queryClient.getQueryData([...workspaceKeys.all, "task", updates.taskId]);
-
-      if (previousDetail) {
-        queryClient.setQueryData([...workspaceKeys.all, "task", updates.taskId], (old: any) => ({
-          ...old,
-          ...updates
-        }));
-      }
-
-      return { previousDetail };
-    },
-    onError: (_err, updates, context) => {
-      if (context?.previousDetail) {
-        queryClient.setQueryData([...workspaceKeys.all, "task", updates.taskId], context.previousDetail);
-      }
-    },
-    onSettled: (_data, _error, updates) => {
-      queryClient.invalidateQueries({ queryKey: [...workspaceKeys.all, "task", updates.taskId] });
-      queryClient.invalidateQueries({ queryKey: hierarchyKeys.all });
-      queryClient.invalidateQueries({ queryKey: ["views"] });
-    },
-  });
-}
+// --- Movement Logic (PREMIUM OPTIMISTIC) ---
 
 export function useMoveItem(workspaceId: string) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (data: MoveItemRequest) => api.post(`/workspaces/${workspaceId}/hierarchy/move`, data),
+    mutationFn: (data: MoveItemRequest) =>
+      api.post(`/workspaces/${workspaceId}/hierarchy/move`, data),
     onMutate: async (moveRequest) => {
       const { itemId, itemType, targetParentId, nextItemOrderKey, newOrderKey } = moveRequest;
 
-      // 1. Cancel related queries
       await queryClient.cancelQueries({ queryKey: hierarchyKeys.detail(workspaceId) });
       await queryClient.cancelQueries({ queryKey: hierarchyKeys.all });
 
-      // 2. Snapshot current state
       const previousHierarchy = queryClient.getQueryData<WorkspaceHierarchy>(hierarchyKeys.detail(workspaceId));
       
-      // 3. OPTIMISTIC UPDATES (Partitioned - Crucial for lazy loading visibility)
-      if (itemType === "ProjectFolder" && targetParentId) {
-        const parentId = targetParentId;
-        
-        // Find and remove from the old list (if any)
-        let movedItem: FolderHierarchy | undefined;
-        queryClient.setQueriesData<FolderHierarchy[]>({ queryKey: [...hierarchyKeys.detail(workspaceId)] }, (old) => {
-          if (!old || !Array.isArray(old)) return old; // Guard against WorkspaceHierarchy object
-          const newFolders = [...old];
-          const activeIdx = newFolders.findIndex(f => f.id === itemId);
-          if (activeIdx !== -1) {
-            [movedItem] = newFolders.splice(activeIdx, 1);
-            return newFolders;
-          }
-          return old;
-        });
-
-        // Add to the new list if we found it (cross-space or same-space)
-        if (movedItem) {
-          queryClient.setQueryData<FolderHierarchy[]>([...hierarchyKeys.detail(workspaceId), parentId, "folders"], (old) => {
-            if (!old) return old;
-            const newFolders = [...old];
-            if (newOrderKey) movedItem!.orderKey = newOrderKey;
-            
-            // Just add to end and sort, since fractional keys handle exact placement
-            newFolders.push(movedItem!);
-            return newFolders.sort((a, b) => (a.orderKey < b.orderKey ? -1 : a.orderKey > b.orderKey ? 1 : 0));
-          });
-        }
-      }
-
-      if (itemType === "ProjectTask" && targetParentId) {
-        const nodeId = targetParentId;
-        
-        let movedTask: any = undefined;
-        
-        // Remove from any task list
-        queryClient.setQueriesData<{ pages: NodeTasksResponse[], pageParams: any[] }>({ queryKey: [...hierarchyKeys.detail(workspaceId)] }, (old) => {
-          if (!old || !old.pages) return old; // Guard against WorkspaceHierarchy or Folders
-          const newPages = old.pages.map((page) => {
-            const newTasks = [...(page.tasks || [])];
-            const activeIdx = newTasks.findIndex((t) => t.id === itemId);
-            if (activeIdx !== -1) {
-              [movedTask] = newTasks.splice(activeIdx, 1);
-              return { ...page, tasks: newTasks };
-            }
-            return page;
-          });
-          return { ...old, pages: newPages };
-        });
-
-        // Add to the new task list
-        if (movedTask) {
-          queryClient.setQueryData<{ pages: NodeTasksResponse[], pageParams: any[] }>(hierarchyKeys.nodeTasks(workspaceId, nodeId), (old) => {
-            if (!old) return old;
-            const newPages = [...old.pages];
-            if (newPages.length > 0) {
-              const newTasks = [...(newPages[0].tasks || [])];
-              if (newOrderKey) movedTask.orderKey = newOrderKey;
-              newTasks.push(movedTask);
-              newPages[0] = { ...newPages[0], tasks: newTasks.sort((a, b) => (a.orderKey < b.orderKey ? -1 : a.orderKey > b.orderKey ? 1 : 0)) };
-            }
-            return { ...old, pages: newPages };
-          });
-        }
-      }
-
-      // 4. MAIN HIERARCHY UPDATE (Fallback/Global)
+      // Optimistic updates for structural changes
       if (previousHierarchy) {
-        queryClient.setQueryData<WorkspaceHierarchy>(hierarchyKeys.detail(workspaceId), (old: WorkspaceHierarchy | undefined) => {
+        queryClient.setQueryData<WorkspaceHierarchy>(hierarchyKeys.detail(workspaceId), (old) => {
           if (!old) return old;
           const newHierarchy = JSON.parse(JSON.stringify(old)) as WorkspaceHierarchy;
+          
           if (itemType === "ProjectSpace") {
             const spaces = newHierarchy.spaces || [];
             const activeIndex = spaces.findIndex(s => s.id === itemId);
@@ -356,6 +165,8 @@ export function useMoveItem(workspaceId: string) {
               newHierarchy.spaces = spaces.sort((a, b) => (a.orderKey < b.orderKey ? -1 : a.orderKey > b.orderKey ? 1 : 0));
             }
           }
+          // Note: Folder/Task moves across nodes are handled by onSettled invalidation 
+          // because they often involve cross-query updates (NodeFolders, NodeTasks).
           return newHierarchy;
         });
       }
@@ -373,28 +184,41 @@ export function useMoveItem(workspaceId: string) {
   });
 }
 
-export function useEntityInfo(workspaceId: string, entityId: string | undefined) {
-  const { data: hierarchy } = useHierarchy(workspaceId);
-  const queryClient = useQueryClient();
+// --- Prefetch Helpers ---
 
-  return useMemo(() => {
-    if (!entityId || !hierarchy) return null;
-
-    const space = hierarchy.spaces.find((s) => s.id === entityId);
-    if (space) return { id: space.id, name: space.name, icon: space.icon, color: space.color, type: "space", parentName: "Projects" };
-
-    for (const s of hierarchy.spaces) {
-      const folder = s.folders.find((f) => f.id === entityId);
-      if (folder) return { id: folder.id, name: folder.name, icon: folder.icon, color: folder.color, type: "folder", parentName: s.name };
-      const cachedFolders = queryClient.getQueryData<FolderHierarchy[]>(
-        [...hierarchyKeys.detail(workspaceId), s.id, "folders"]
+export const prefetchNodeFolders = async (
+  queryClient: any,
+  workspaceId: string,
+  nodeId: string,
+) => {
+  await queryClient.prefetchQuery({
+    queryKey: hierarchyKeys.nodeFolders(workspaceId, nodeId),
+    queryFn: async () => {
+      const { data } = await api.get<FolderHierarchy[]>(
+        `/workspaces/${workspaceId}/hierarchy/nodes/${nodeId}/folders`,
       );
-      if (cachedFolders) {
-        const cachedFolder = cachedFolders.find((f) => f.id === entityId);
-        if (cachedFolder) return { id: cachedFolder.id, name: cachedFolder.name, icon: cachedFolder.icon, color: cachedFolder.color, type: "folder", parentName: s.name };
-      }
-    }
+      return data;
+    },
+    staleTime: 1000 * 60 * 5,
+  });
+};
 
-    return null;
-  }, [hierarchy, entityId, queryClient, workspaceId]);
-}
+export const prefetchNodeTasks = async (
+  queryClient: any,
+  workspaceId: string,
+  nodeId: string,
+  parentType: EntityLayerType,
+) => {
+  await queryClient.prefetchInfiniteQuery({
+    queryKey: hierarchyKeys.nodeTasks(workspaceId, nodeId),
+    queryFn: async () => {
+      const { data } = await api.get<NodeTasksResponse>(
+        `/workspaces/${workspaceId}/hierarchy/nodes/${nodeId}/tasks`,
+        { params: { parentType, cursorOrderKey: null, cursorTaskId: null } },
+      );
+      return data;
+    },
+    initialPageParam: null,
+    staleTime: 1000 * 60 * 5,
+  });
+};

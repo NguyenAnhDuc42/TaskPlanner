@@ -12,7 +12,7 @@ public sealed class ProjectSpace : TenantEntity
     public bool IsPrivate { get; private set; } = true;
     public bool IsArchived { get; private set; }
     public string OrderKey { get; private set; } = null!;
-    public Guid? WorkflowId { get; private set; }
+    public bool IsInheritingWorkflow { get; private set; } = true;
     public Guid? StatusId { get; private set; }
     public Guid DefaultDocumentId { get; private set; }
     public DateTimeOffset? StartDate { get; private set; }
@@ -31,6 +31,7 @@ public sealed class ProjectSpace : TenantEntity
         IsPrivate = isPrivate;
         OrderKey = orderKey;
         IsArchived = false;
+        IsInheritingWorkflow = true;
 
         // Audit is initialized in base constructor
         InitializeAudit(creatorId);
@@ -50,7 +51,6 @@ public sealed class ProjectSpace : TenantEntity
             creatorId, 
             orderKey);
 
-        space.WorkflowId = null;
         return space;
     }
 
@@ -123,11 +123,11 @@ public sealed class ProjectSpace : TenantEntity
         UpdateTimestamp();
     }
 
-    public void UpdateWorkflow(Guid? workflowId)
+    public void UpdateInheritWorkflow(bool isInherit)
     {
         EnsureNotArchived();
-        if (WorkflowId == workflowId) return;
-        WorkflowId = workflowId;
+        if (IsInheritingWorkflow == isInherit) return;
+        IsInheritingWorkflow = isInherit;
         UpdateTimestamp();
     }
 

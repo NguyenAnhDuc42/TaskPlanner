@@ -53,6 +53,21 @@ public class CreateSpaceHandler(
 
             await db.Spaces.AddAsync(space, ct);
 
+            // 3. Create Default Workflow for the space
+            var workflow = Workflow.Create(
+                context.workspaceId, 
+                $"{request.name} Workflow", 
+                $"Default workflow for {request.name} space", 
+                context.CurrentMember.Id, 
+                projectSpaceId: space.Id
+            );
+            await db.Workflows.AddAsync(workflow, ct);
+
+            // 4. Create Starter Statuses
+            var statuses = Status.CreateStarterSet(context.workspaceId, workflow.Id, context.CurrentMember.Id);
+            await db.Statuses.AddRangeAsync(statuses, ct);
+
+            // 5. Create Default Views
             db.ViewDefinitions.AddRange(
                 ViewDefinition.CreateDefaults(context.workspaceId, space.Id, null, context.CurrentMember.Id));
 
@@ -62,4 +77,3 @@ public class CreateSpaceHandler(
         }, ct);
     }
 }
-

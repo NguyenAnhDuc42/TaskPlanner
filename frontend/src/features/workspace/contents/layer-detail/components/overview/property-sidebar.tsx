@@ -29,7 +29,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
-import { useUpdateFolder, useUpdateSpace, useUpdateTask } from "../../../hierarchy/hierarchy-api";
+import { useUpdateFolder, useUpdateSpace, useUpdateTask } from "../../layer-api";
 
 interface PropertySidebarProps {
   layerType: EntityLayerType;

@@ -1,12 +1,16 @@
 import { cn } from "@/lib/utils";
+import { EntityLayerType } from "@/types/entity-layer-type";
 import type { MainViewTab } from "../layer-detail-types";
 
 interface LayerTabsProps {
   activeTab: MainViewTab;
   onTabChange: (tab: MainViewTab) => void;
+  layerType: EntityLayerType;
 }
 
-export function LayerTabs({ activeTab, onTabChange }: LayerTabsProps) {
+export function LayerTabs({ activeTab, onTabChange, layerType }: LayerTabsProps) {
+  const isTask = layerType === EntityLayerType.ProjectTask;
+
   return (
     <div className="flex items-center gap-1 px-4 h-8 bg-background/50 border-b border-border/40 select-none">
       <TabButton 
@@ -14,11 +18,13 @@ export function LayerTabs({ activeTab, onTabChange }: LayerTabsProps) {
         onClick={() => onTabChange("overview")} 
         label="Overview" 
       />
-      <TabButton 
-        active={activeTab === "items"} 
-        onClick={() => onTabChange("items")} 
-        label="Items" 
-      />
+      {!isTask && (
+        <TabButton 
+          active={activeTab === "items"} 
+          onClick={() => onTabChange("items")} 
+          label="Items" 
+        />
+      )}
     </div>
   );
 }

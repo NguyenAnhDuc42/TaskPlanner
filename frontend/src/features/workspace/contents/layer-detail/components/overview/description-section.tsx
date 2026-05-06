@@ -35,11 +35,14 @@ export function DescriptionSection({ initialValue = "", onSave }: DescriptionSec
 
   // Handle Auto-save
   useEffect(() => {
-    if (debouncedContent === initialValue) return;
+    const normalizedCurrent = debouncedContent || "";
+    const normalizedInitial = initialValue || "";
+    
+    if (normalizedCurrent === normalizedInitial) return;
 
     setIsSaving(true);
     const timer = setTimeout(() => {
-      onSaveRef.current?.(debouncedContent);
+      onSaveRef.current?.(normalizedCurrent);
       setIsSaving(false);
       setLastSaved(new Date());
     }, 500);

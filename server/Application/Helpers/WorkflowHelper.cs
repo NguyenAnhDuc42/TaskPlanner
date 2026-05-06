@@ -7,51 +7,49 @@ namespace Application.Helpers;
 public static class WorkflowHelper
 {
     /// <summary>
-    /// Resolves the active workflow for a target layer, bubbling up from Folder -> Space -> Workspace.
+    /// Resolves the active workflow for a target layer, bubbling up from Folder -> Space -> Workspace based on inheritance rules.
     /// </summary>
     public static async Task<Workflow> GetActiveWorkflow(IDataBase db, Guid workspaceId, Guid? spaceId, Guid? folderId, CancellationToken ct)
     {
-        Guid? activeWorkflowId = null;
-
-        // 1. Check Folder Level
+        // 1. Check Folder Level (if not inheriting)
         if (folderId.HasValue)
         {
-            activeWorkflowId = await db.Folders
-                .ById(folderId.Value)
-                .Select(f => f.WorkflowId)
-                .FirstOrDefaultAsync(ct);
+            var folder = await db.Folders.ById(folderId.Value).FirstOrDefaultAsync(ct);
+            if (folder != null && !folder.IsInheritingWorkflow)
+            {
+                var workflow = await db.Workflows
+                    .Include(w => w.Statuses)
+                    .FirstOrDefaultAsync(w => w.ProjectFolderId == folder.Id, ct);
+                
+                if (workflow != null) return workflow;
+            }
+            
+            // If inheriting or no specific workflow found, use the spaceId from the folder
+            spaceId ??= folder?.ProjectSpaceId;
         }
 
-        // 2. Bubble up to Space Level
-        if (activeWorkflowId == null && spaceId.HasValue)
+        // 2. Check Space Level (if not inheriting)
+        if (spaceId.HasValue)
         {
-            activeWorkflowId = await db.Spaces
-                .ById(spaceId.Value)
-                .Select(s => s.WorkflowId)
-                .FirstOrDefaultAsync(ct);
+            var space = await db.Spaces.ById(spaceId.Value).FirstOrDefaultAsync(ct);
+            if (space != null && !space.IsInheritingWorkflow)
+            {
+                var workflow = await db.Workflows
+                    .Include(w => w.Statuses)
+                    .FirstOrDefaultAsync(w => w.ProjectSpaceId == space.Id && w.ProjectFolderId == null, ct);
+                
+                if (workflow != null) return workflow;
+            }
         }
 
-        // 3. Resolve the Workflow Entity (or default to Workspace)
-        Workflow? workflow = null;
+        // 3. Fallback: Default Workspace Workflow (where ProjectSpaceId and ProjectFolderId are null)
+        var workspaceWorkflow = await db.Workflows
+            .Include(w => w.Statuses)
+            .FirstOrDefaultAsync(w => w.ProjectWorkspaceId == workspaceId && 
+                                      w.ProjectSpaceId == null && 
+                                      w.ProjectFolderId == null, ct);
 
-        if (activeWorkflowId.HasValue)
-        {
-            workflow = await db.Workflows
-                .Include(w => w.Statuses)
-                .FirstOrDefaultAsync(w => w.Id == activeWorkflowId, ct);
-        }
-
-        // Fallback: Default Workspace Workflow (where SpaceId and FolderId are null)
-        if (workflow == null)
-        {
-            workflow = await db.Workflows
-                .Include(w => w.Statuses)
-                .FirstOrDefaultAsync(w => w.ProjectWorkspaceId == workspaceId && 
-                                          w.SpaceId == null && 
-                                          w.FolderId == null, ct);
-        }
-
-        return workflow ?? throw new InvalidOperationException("Default workspace workflow not found. Please ensure workspace seeding is complete.");
+        return workspaceWorkflow ?? throw new InvalidOperationException("Default workspace workflow not found. Please ensure workspace seeding is complete.");
     }
 
     /// <summary>

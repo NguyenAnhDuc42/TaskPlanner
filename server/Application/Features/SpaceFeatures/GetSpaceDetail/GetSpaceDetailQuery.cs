@@ -13,7 +13,8 @@ public record SpaceDetailDto
     public string Color { get; init; } = null!;
     public string? Icon { get; init; }
     public bool IsPrivate { get; init; }
-    public bool IsArchived { get; init; }
+    public bool IsInheritingWorkflow { get; init; }
+    public Guid? ParentWorkflowId { get; init; }
     public Guid? WorkflowId { get; init; }
     public Guid? StatusId { get; init; }
     public Guid DefaultDocumentId { get; init; }

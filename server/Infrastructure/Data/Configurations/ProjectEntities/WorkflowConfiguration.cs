@@ -13,10 +13,10 @@ public class WorkflowConfiguration : TenantEntityConfiguration<Workflow>
 
         builder.ToTable("workflows");
 
-        builder.Property(w => w.SpaceId)
+        builder.Property(w => w.ProjectSpaceId)
             .HasColumnName("project_space_id");
 
-        builder.Property(w => w.FolderId)
+        builder.Property(w => w.ProjectFolderId)
             .HasColumnName("project_folder_id");
 
         builder.Property(x => x.Name)
@@ -31,6 +31,16 @@ public class WorkflowConfiguration : TenantEntityConfiguration<Workflow>
         builder.HasMany(x => x.Statuses)
             .WithOne()
             .HasForeignKey(x => x.WorkflowId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.HasOne<ProjectSpace>()
+            .WithMany()
+            .HasForeignKey(w => w.ProjectSpaceId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.HasOne<ProjectFolder>()
+            .WithMany()
+            .HasForeignKey(w => w.ProjectFolderId)
             .OnDelete(DeleteBehavior.Cascade);
     }
 }

@@ -3,6 +3,7 @@ using System;
 using Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Infrastructure.Migrations
 {
     [DbContext(typeof(TaskPlanDbContext))]
-    partial class TaskPlanDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260506150555_AddWorkflowInheritedFlag")]
+    partial class AddWorkflowInheritedFlag
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -593,6 +596,10 @@ namespace Infrastructure.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("updated_at");
 
+                    b.Property<Guid?>("WorkflowId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("workflow_id");
+
                     b.HasKey("Id");
 
                     b.HasIndex("ProjectSpaceId");
@@ -600,6 +607,8 @@ namespace Infrastructure.Migrations
                     b.HasIndex("ProjectWorkspaceId");
 
                     b.HasIndex("StatusId");
+
+                    b.HasIndex("WorkflowId");
 
                     b.HasIndex("ProjectSpaceId", "Slug")
                         .IsUnique();
@@ -694,11 +703,17 @@ namespace Infrastructure.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("updated_at");
 
+                    b.Property<Guid?>("WorkflowId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("workflow_id");
+
                     b.HasKey("Id");
 
                     b.HasIndex("ProjectWorkspaceId");
 
                     b.HasIndex("StatusId");
+
+                    b.HasIndex("WorkflowId");
 
                     b.HasIndex("ProjectWorkspaceId", "Slug")
                         .IsUnique();
@@ -1234,33 +1249,29 @@ namespace Infrastructure.Migrations
                         .HasColumnType("character varying(500)")
                         .HasColumnName("description");
 
+                    b.Property<Guid?>("FolderId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("project_folder_id");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)")
                         .HasColumnName("name");
 
-                    b.Property<Guid?>("ProjectFolderId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("project_folder_id");
-
-                    b.Property<Guid?>("ProjectSpaceId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("project_space_id");
-
                     b.Property<Guid>("ProjectWorkspaceId")
                         .HasColumnType("uuid")
                         .HasColumnName("project_workspace_id");
+
+                    b.Property<Guid?>("SpaceId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("project_space_id");
 
                     b.Property<DateTimeOffset>("UpdatedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("updated_at");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("ProjectFolderId");
-
-                    b.HasIndex("ProjectSpaceId");
 
                     b.HasIndex("ProjectWorkspaceId");
 
@@ -1394,6 +1405,11 @@ namespace Infrastructure.Migrations
                         .WithMany()
                         .HasForeignKey("StatusId")
                         .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("Domain.Entities.Workflow", null)
+                        .WithMany()
+                        .HasForeignKey("WorkflowId")
+                        .OnDelete(DeleteBehavior.SetNull);
                 });
 
             modelBuilder.Entity("Domain.Entities.ProjectSpace", b =>
@@ -1407,6 +1423,11 @@ namespace Infrastructure.Migrations
                     b.HasOne("Domain.Entities.Status", null)
                         .WithMany()
                         .HasForeignKey("StatusId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("Domain.Entities.Workflow", null)
+                        .WithMany()
+                        .HasForeignKey("WorkflowId")
                         .OnDelete(DeleteBehavior.SetNull);
                 });
 
@@ -1486,16 +1507,6 @@ namespace Infrastructure.Migrations
 
             modelBuilder.Entity("Domain.Entities.Workflow", b =>
                 {
-                    b.HasOne("Domain.Entities.ProjectFolder", null)
-                        .WithMany()
-                        .HasForeignKey("ProjectFolderId")
-                        .OnDelete(DeleteBehavior.Cascade);
-
-                    b.HasOne("Domain.Entities.ProjectSpace", null)
-                        .WithMany()
-                        .HasForeignKey("ProjectSpaceId")
-                        .OnDelete(DeleteBehavior.Cascade);
-
                     b.HasOne("Domain.Entities.ProjectWorkspace", null)
                         .WithMany()
                         .HasForeignKey("ProjectWorkspaceId")

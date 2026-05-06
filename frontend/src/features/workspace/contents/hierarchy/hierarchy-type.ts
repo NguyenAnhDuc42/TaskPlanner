@@ -51,7 +51,7 @@ export interface NodeTasksResponse {
   hasMore: boolean;
 }
 
-// Request DTOs (Preserved Space/Folder, Purged List)
+// Request DTOs (Preserved Space/Folder/Task for Sidebar Creation)
 export interface CreateSpaceRequest {
   workspaceId: string;
   name: string;
@@ -79,62 +79,6 @@ export interface CreateTaskRequest {
   dueDate?: string;
   color?: string;
   icon?: string;
-}
-
-export interface UpdateSpaceRequest {
-  spaceId: string;
-  name?: string;
-  color?: string;
-  icon?: string;
-  isPrivate?: boolean;
-  statusId?: string;
-  startDate?: string;
-  dueDate?: string;
-}
-
-export interface UpdateFolderRequest {
-  folderId: string;
-  name?: string;
-  color?: string;
-  icon?: string;
-  isPrivate?: boolean;
-  statusId?: string;
-  startDate?: string;
-  dueDate?: string;
-}
-
-export interface UpdateTaskRequest {
-  taskId: string;
-  name?: string;
-  statusId?: string;
-  priority?: number;
-  startDate?: string;
-  dueDate?: string;
-  storyPoints?: number;
-  timeEstimate?: number;
-  assigneeIds?: string[];
-}
-
-// Access DTOs (Preserved Space/Folder/Task, Purged List)
-export interface EntityAccessMember {
-  workspaceMemberId: string;
-  fullName: string;
-  avatarUrl?: string;
-  email: string;
-  explicitAccess: string | null;
-  effectiveAccess: string;
-  isCreator: boolean;
-  isInherited: boolean;
-}
-
-export interface UpdateEntityAccessBulkRequest {
-  entityId: string;
-  layerType: number; // 1: Space, 2: Folder, 4: Task (List is dead)
-  members: {
-    workspaceMemberId: string;
-    accessLevel?: string;
-    isRemove: boolean;
-  }[];
 }
 
 export interface MoveItemRequest {

@@ -62,7 +62,21 @@ public class CreateFolderHandler(
 
             await db.Folders.AddAsync(folder, ct);
 
-            // Inline view creation
+            // 3. Create Default Workflow for the folder
+            var workflow = Workflow.Create(
+                context.workspaceId, 
+                $"{request.name} Workflow", 
+                $"Default workflow for {request.name} folder", 
+                context.CurrentMember.Id, 
+                projectFolderId: folder.Id
+            );
+            await db.Workflows.AddAsync(workflow, ct);
+
+            // 4. Create Starter Statuses
+            var statuses = Status.CreateStarterSet(context.workspaceId, workflow.Id, context.CurrentMember.Id);
+            await db.Statuses.AddRangeAsync(statuses, ct);
+
+            // 5. Create Default Views
             db.ViewDefinitions.AddRange(
                 ViewDefinition.CreateDefaults(context.workspaceId, space.Id, folder.Id, context.CurrentMember.Id));
 
@@ -72,4 +86,3 @@ public class CreateFolderHandler(
         }, ct);
     }
 }
-

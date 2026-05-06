@@ -2,9 +2,10 @@ import { EntityLayerType } from "@/types/entity-layer-type";
 import { useParams } from "@tanstack/react-router";
 import { LayerView } from "./layer-view";
 import CommandCenterIndex from "../command-center/command-center-index";
-import { useEntityInfo } from "../hierarchy/hierarchy-api";
-import { useEntityDetail } from "../../hooks/use-entity-detail";
+import { useEntityDetail } from "./layer-api";
+
 import { Loader2 } from "lucide-react";
+import { useLayerRealtime } from "./hooks/use-layer-realtime";
 
 interface LayerDetailIndexProps {
   forcedLayerType?: EntityLayerType;
@@ -14,7 +15,7 @@ export function LayerDetailIndex({ forcedLayerType }: LayerDetailIndexProps) {
   const params = useParams({ strict: false }) as any;
   const { workspaceId, spaceId, folderId, taskId } = params;
 
-  // Determine active entity and layer type from route
+  // 1. Resolve Active Entity State
   const activeEntityId = (taskId || folderId || spaceId || "") as string;
   const activeLayerType = forcedLayerType || (taskId
     ? EntityLayerType.ProjectTask
@@ -22,8 +23,11 @@ export function LayerDetailIndex({ forcedLayerType }: LayerDetailIndexProps) {
       ? EntityLayerType.ProjectFolder
       : EntityLayerType.ProjectSpace);
 
+  // 2. Fetch Core Data (Single API Fetch)
   const { data: viewData, isLoading, isError } = useEntityDetail(workspaceId || "", activeEntityId, activeLayerType);
-  const entityInfo = useEntityInfo(workspaceId || "", activeEntityId);
+  
+  // 3. Register Local SignalR Listeners
+  useLayerRealtime(workspaceId || "");
   
   if (!activeEntityId) {
     return <CommandCenterIndex />;
@@ -48,11 +52,11 @@ export function LayerDetailIndex({ forcedLayerType }: LayerDetailIndexProps) {
   return (
     <div className="flex-1 flex overflow-hidden bg-background h-full">
       <LayerView
+        key={activeEntityId} 
         workspaceId={workspaceId || ""}
         entityId={activeEntityId}
         layerType={activeLayerType}
-        entityInfo={entityInfo}
-        views={[]} // Views are now decoupled or legacy
+        views={[]} 
         viewData={viewData}
         isLoading={isLoading}
       />

@@ -14,6 +14,7 @@ public record TaskDetailDto
     public string? Description { get; init; }
     public string Color { get; init; } = null!;
     public string? Icon { get; init; }
+    public Guid? ParentWorkflowId { get; init; }
     public Guid? StatusId { get; init; }
     public bool IsArchived { get; init; }
     public Priority Priority { get; init; }

@@ -53,8 +53,9 @@ public class ProjectSpaceConfiguration : TenantEntityConfiguration<ProjectSpace>
         builder.Property(s => s.IsArchived)
             .HasColumnName("is_archived");
 
-        builder.Property(w => w.WorkflowId)
-            .HasColumnName("workflow_id");
+        builder.Property(w => w.IsInheritingWorkflow)
+            .HasColumnName("is_inheriting_workflow")
+            .HasDefaultValue(true);
 
         builder.Property(w => w.StatusId)
             .HasColumnName("status_id");
@@ -66,17 +67,11 @@ public class ProjectSpaceConfiguration : TenantEntityConfiguration<ProjectSpace>
             .HasColumnName("due_date");
 
         // Foreign Keys
-        builder.HasOne<Workflow>()
-            .WithMany()
-            .HasForeignKey(w => w.WorkflowId)
-            .OnDelete(DeleteBehavior.SetNull);
-
         builder.HasOne<Status>()
             .WithMany()
             .HasForeignKey(w => w.StatusId)
             .OnDelete(DeleteBehavior.SetNull);
 
-        builder.HasIndex(w => w.WorkflowId);
         builder.HasIndex(w => w.StatusId);
     }
 }

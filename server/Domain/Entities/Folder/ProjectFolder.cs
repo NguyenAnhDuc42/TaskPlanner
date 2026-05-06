@@ -16,7 +16,7 @@ public sealed class ProjectFolder : TenantEntity
     public bool IsArchived { get; private set; }
     public DateTimeOffset? StartDate { get; private set; }
     public DateTimeOffset? DueDate { get; private set; }
-    public Guid? WorkflowId { get; private set; }
+    public bool IsInheritingWorkflow { get; private set; } = true;
     public Guid? StatusId { get; private set; }
 
     private ProjectFolder() { }
@@ -34,6 +34,7 @@ public sealed class ProjectFolder : TenantEntity
         IsArchived = false;
         StartDate = startDate;
         DueDate = dueDate;
+        IsInheritingWorkflow = true;
 
         // Audit is initialized in base constructor
         InitializeAudit(creatorId);
@@ -56,7 +57,6 @@ public sealed class ProjectFolder : TenantEntity
             startDate,
             dueDate);
 
-        folder.WorkflowId = null;
         return folder;
     }
 
@@ -141,11 +141,11 @@ public sealed class ProjectFolder : TenantEntity
         UpdateTimestamp();
     }
 
-    public void UpdateWorkflow(Guid? workflowId)
+    public void UpdateInheritWorkflow(bool isInherit)
     {
         EnsureNotArchived();
-        if (WorkflowId == workflowId) return;
-        WorkflowId = workflowId;
+        if (IsInheritingWorkflow == isInherit) return;
+        IsInheritingWorkflow = isInherit;
         UpdateTimestamp();
     }
 

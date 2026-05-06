@@ -59,8 +59,9 @@ public class ProjectFolderConfiguration : TenantEntityConfiguration<ProjectFolde
             .HasColumnName("custom_icon")
             .HasMaxLength(64);
 
-        builder.Property(f => f.WorkflowId)
-            .HasColumnName("workflow_id");
+        builder.Property(f => f.IsInheritingWorkflow)
+            .HasColumnName("is_inheriting_workflow")
+            .HasDefaultValue(true);
 
         builder.Property(f => f.StatusId)
             .HasColumnName("status_id");
@@ -71,18 +72,12 @@ public class ProjectFolderConfiguration : TenantEntityConfiguration<ProjectFolde
             .HasForeignKey(f => f.ProjectSpaceId)
             .OnDelete(DeleteBehavior.Cascade);
 
-        builder.HasOne<Workflow>()
-            .WithMany()
-            .HasForeignKey(f => f.WorkflowId)
-            .OnDelete(DeleteBehavior.SetNull);
-
         builder.HasOne<Status>()
             .WithMany()
             .HasForeignKey(f => f.StatusId)
             .OnDelete(DeleteBehavior.SetNull);
 
         builder.HasIndex(f => f.ProjectSpaceId);
-        builder.HasIndex(f => f.WorkflowId);
         builder.HasIndex(f => f.StatusId);
 
         builder.HasIndex(f => new { f.ProjectWorkspaceId, f.ProjectSpaceId, f.OrderKey, f.Id })

@@ -11,10 +11,10 @@ public static class WorkflowExtensions
         => query.Where(w => w.ProjectWorkspaceId == workspaceId);
 
     public static IQueryable<Workflow> BySpace(this IQueryable<Workflow> query, Guid spaceId)
-        => query.Where(w => w.SpaceId == spaceId);
+        => query.Where(w => w.ProjectSpaceId == spaceId);
 
     public static IQueryable<Workflow> ByFolder(this IQueryable<Workflow> query, Guid folderId)
-        => query.Where(w => w.FolderId == folderId);
+        => query.Where(w => w.ProjectFolderId == folderId);
 
     public static IQueryable<Workflow> WhereNotDeleted(this IQueryable<Workflow> query) => 
         query.Where(s => s.DeletedAt == null);

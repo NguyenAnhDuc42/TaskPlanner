@@ -29,30 +29,7 @@ export const workspaceQueryOptions = {
       return data;
     },
     enabled: !!workspaceId,
-  }),
-  spaceDetail: (workspaceId: string, spaceId: string, enabled = true) => ({
-    queryKey: [...workspaceKeys.all, "space", spaceId],
-    queryFn: async () => {
-      const { data } = await api.get(`/spaces/${spaceId}`);
-      return data;
-    },
-    enabled: !!workspaceId && !!spaceId && enabled,
-  }),
-  folderDetail: (workspaceId: string, folderId: string, enabled = true) => ({
-    queryKey: [...workspaceKeys.all, "folder", folderId],
-    queryFn: async () => {
-      const { data } = await api.get(`/folders/${folderId}`);
-      return data;
-    },
-    enabled: !!workspaceId && !!folderId && enabled,
-  }),
-  taskDetail: (workspaceId: string, taskId: string, enabled = true) => ({
-    queryKey: [...workspaceKeys.all, "task", taskId],
-    queryFn: async () => {
-      const { data } = await api.get(`/tasks/${taskId}`);
-      return data;
-    },
-    enabled: !!workspaceId && !!taskId && enabled,
+    staleTime: 1000 * 60 * 10,
   }),
   members: (workspaceId: string) => ({
     queryKey: [...workspaceKeys.all, "members", workspaceId],
@@ -61,6 +38,7 @@ export const workspaceQueryOptions = {
       return data;
     },
     enabled: !!workspaceId,
+    staleTime: 1000 * 60 * 5,
   }),
 };
 
@@ -74,16 +52,4 @@ export function useWorkspaceWorkflows(workspaceId: string) {
 
 export function useWorkspaceMembers(workspaceId: string) {
   return useQuery(workspaceQueryOptions.members(workspaceId));
-}
-
-export function useSpaceDetail(workspaceId: string, spaceId: string, enabled = true) {
-  return useQuery(workspaceQueryOptions.spaceDetail(workspaceId, spaceId, enabled));
-}
-
-export function useFolderDetail(workspaceId: string, folderId: string, enabled = true) {
-  return useQuery(workspaceQueryOptions.folderDetail(workspaceId, folderId, enabled));
-}
-
-export function useTaskDetail(workspaceId: string, taskId: string, enabled = true) {
-  return useQuery(workspaceQueryOptions.taskDetail(workspaceId, taskId, enabled));
 }

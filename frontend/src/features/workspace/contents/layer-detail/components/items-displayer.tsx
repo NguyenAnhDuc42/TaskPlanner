@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import { useNavigate, useParams } from "@tanstack/react-router";
 
 import { StatusGroup } from "./status-group";
 import { TaskItem } from "./task-item";
@@ -19,6 +20,9 @@ interface StatusGroupData {
 }
 
 export function ItemsDisplayer({ viewData, viewMode }: ItemsDisplayerProps) {
+  const navigate = useNavigate();
+  const { workspaceId } = useParams({ strict: false }) as any;
+
   const groups = useMemo<StatusGroupData[]>(() => {
     if (!viewData) return [];
     const { tasks = [], statuses = [], folders = [] } = viewData;
@@ -31,6 +35,14 @@ export function ItemsDisplayer({ viewData, viewMode }: ItemsDisplayerProps) {
       folders: folders.filter((f: any) => f.statusId === status.statusId),
     }));
   }, [viewData]);
+
+  const handleFolderClick = (folderId: string) => {
+    navigate({ to: "/workspaces/$workspaceId/folders/$folderId", params: { workspaceId, folderId } });
+  };
+
+  const handleTaskClick = (taskId: string) => {
+    navigate({ to: "/workspaces/$workspaceId/tasks/$taskId", params: { workspaceId, taskId } });
+  };
 
   if (!viewData) return null;
 
@@ -48,11 +60,15 @@ export function ItemsDisplayer({ viewData, viewMode }: ItemsDisplayerProps) {
               <FolderItem
                 key={folder.id}
                 folder={folder}
-                onClick={() => {}}
+                onClick={() => handleFolderClick(folder.id)}
               />
             ))}
             {group.tasks.map((task: any) => (
-              <TaskItem key={task.id} task={task} onClick={() => {}} />
+              <TaskItem 
+                key={task.id} 
+                task={task} 
+                onClick={() => handleTaskClick(task.id)} 
+              />
             ))}
           </StatusGroup>
         ))}
@@ -79,10 +95,18 @@ export function ItemsDisplayer({ viewData, viewMode }: ItemsDisplayerProps) {
             </div>
             <div className="space-y-px border border-border/40 rounded-lg overflow-hidden bg-muted/5 shadow-sm">
               {group.folders.map((folder: any) => (
-                <FolderListRow key={folder.id} folder={folder} />
+                <FolderListRow 
+                  key={folder.id} 
+                  folder={folder} 
+                  onClick={() => handleFolderClick(folder.id)}
+                />
               ))}
               {group.tasks.map((task: any) => (
-                <TaskListRow key={task.id} task={task} />
+                <TaskListRow 
+                  key={task.id} 
+                  task={task} 
+                  onClick={() => handleTaskClick(task.id)}
+                />
               ))}
             </div>
           </section>
@@ -92,9 +116,12 @@ export function ItemsDisplayer({ viewData, viewMode }: ItemsDisplayerProps) {
   );
 }
 
-function TaskListRow({ task }: { task: any }) {
+function TaskListRow({ task, onClick }: { task: any; onClick: () => void }) {
   return (
-    <div className="h-10 px-4 flex items-center gap-4 hover:bg-muted/40 transition-colors cursor-pointer group border-b border-border/5 last:border-none">
+    <div 
+      onClick={onClick}
+      className="h-10 px-4 flex items-center gap-4 hover:bg-muted/40 transition-colors cursor-pointer group border-b border-border/5 last:border-none"
+    >
       <div className="h-4 w-4 flex-shrink-0 flex items-center justify-center">
         <div className="h-2 w-2 rounded-full border border-muted-foreground/30" />
       </div>
@@ -105,9 +132,12 @@ function TaskListRow({ task }: { task: any }) {
   );
 }
 
-function FolderListRow({ folder }: { folder: any }) {
+function FolderListRow({ folder, onClick }: { folder: any; onClick: () => void }) {
   return (
-    <div className="h-10 px-4 flex items-center gap-4 hover:bg-muted/40 transition-colors cursor-pointer group border-b border-border/5 last:border-none bg-primary/[0.02]">
+    <div 
+      onClick={onClick}
+      className="h-10 px-4 flex items-center gap-4 hover:bg-muted/40 transition-colors cursor-pointer group border-b border-border/5 last:border-none bg-primary/[0.02]"
+    >
       <div className="h-4 w-4 flex-shrink-0 flex items-center justify-center text-primary/60">
         <span className="text-[10px] font-black">{folder.icon || "F"}</span>
       </div>

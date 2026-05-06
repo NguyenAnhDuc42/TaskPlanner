@@ -19,13 +19,12 @@ import type { StatusDto } from "@/types/status";
 import type { ContentPage } from "../type";
 import { useLocalStorage } from "@/hooks/use-local-storage";
 import { WorkspaceContext } from "./workspace-context";
-import type { 
-  WorkspaceRegistry, 
-  WorkspaceUIState, 
+import type {
+  WorkspaceRegistry,
+  WorkspaceUIState,
   WorkspaceUIActions,
-  WorkspaceContextType 
+  WorkspaceContextType,
 } from "./workspace-context";
-
 
 export function useWorkspace() {
   const context = useContext(WorkspaceContext);
@@ -37,7 +36,7 @@ export function useWorkspace() {
 
 export function useWorkspaceSession() {
   const context = useContext(WorkspaceContext);
-  
+
   // Resilient fallback to prevent "useWorkspace must be used within a WorkspaceProvider" crash
   if (!context) {
     return {
@@ -63,12 +62,12 @@ export function useWorkspaceSession() {
     };
   }
 
-  return { 
-    state: context.ui, 
-    actions: context.actions, 
-    workspaceId: context.workspaceId, 
-    isLoading: context.isLoading, 
-    registry: context.registry 
+  return {
+    state: context.ui,
+    actions: context.actions,
+    workspaceId: context.workspaceId,
+    isLoading: context.isLoading,
+    registry: context.registry,
   };
 }
 

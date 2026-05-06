@@ -1,5 +1,6 @@
 import { Priority } from "@/types/priority";
 import { StatusCategory } from "@/types/status-category";
+import { type EntityLayerType } from "@/types/entity-layer-type";
 
 export type MainViewTab = "overview" | "items";
 export type ItemsViewMode = "board" | "list";
@@ -53,3 +54,111 @@ export interface TaskViewData {
   };
   workflowName?: string;
 }
+
+// --- Hierarchy Types for Layer Logic (Decoupled) ---
+
+export interface LayerFolderItem {
+  id: string;
+  name: string;
+  icon: string;
+  color: string;
+}
+
+export interface LayerSpaceItem {
+  id: string;
+  name: string;
+  icon: string;
+  color: string;
+  folders: LayerFolderItem[];
+}
+
+export interface LayerHierarchy {
+  spaces: LayerSpaceItem[];
+}
+
+// --- Request DTOs ---
+
+export interface CreateSpaceRequest {
+  workspaceId: string;
+  name: string;
+  color?: string;
+  icon?: string;
+  isPrivate?: boolean;
+  memberIdsToInvite?: string[];
+}
+
+export interface CreateFolderRequest {
+  spaceId: string;
+  name: string;
+  color?: string;
+  icon?: string;
+  isPrivate?: boolean;
+}
+
+export interface CreateTaskRequest {
+  parentId: string;
+  parentType: EntityLayerType;
+  name: string;
+  statusId?: string;
+  priority?: number;
+  startDate?: string;
+  dueDate?: string;
+  color?: string;
+  icon?: string;
+}
+
+export interface UpdateSpaceRequest {
+  spaceId: string;
+  name?: string;
+  color?: string;
+  icon?: string;
+  isPrivate?: boolean;
+  statusId?: string;
+  startDate?: string;
+  dueDate?: string;
+}
+
+export interface UpdateFolderRequest {
+  folderId: string;
+  name?: string;
+  color?: string;
+  icon?: string;
+  isPrivate?: boolean;
+  statusId?: string;
+  startDate?: string;
+  dueDate?: string;
+}
+
+export interface UpdateTaskRequest {
+  taskId: string;
+  name?: string;
+  statusId?: string;
+  priority?: number;
+  startDate?: string;
+  dueDate?: string;
+  storyPoints?: number;
+  timeEstimate?: number;
+  assigneeIds?: string[];
+}
+
+export interface EntityAccessMember {
+  workspaceMemberId: string;
+  fullName: string;
+  avatarUrl?: string;
+  email: string;
+  explicitAccess: string | null;
+  effectiveAccess: string;
+  isCreator: boolean;
+  isInherited: boolean;
+}
+
+export interface UpdateEntityAccessBulkRequest {
+  entityId: string;
+  layerType: number; 
+  members: {
+    workspaceMemberId: string;
+    accessLevel?: string;
+    isRemove: boolean;
+  }[];
+}
+
