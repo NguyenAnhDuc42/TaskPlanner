@@ -59,6 +59,7 @@ export const SpaceNodeItem = React.memo(function SpaceNodeItem({
   const { data: spaceFolders = [], isLoading: isLoadingFolders } =
     useNodeFolders(workspaceId || "", space.id, shouldLoadFolders);
 
+
   // Auto-expand this space if it owns the folder in the URL
   React.useEffect(() => {
     if (activeFolderIdFromUrl && spaceFolders.length > 0) {

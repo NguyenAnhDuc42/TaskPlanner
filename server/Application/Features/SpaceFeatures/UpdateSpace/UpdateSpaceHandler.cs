@@ -51,7 +51,18 @@ public class UpdateSpaceHandler(IDataBase db, WorkspaceContext context, IRealtim
 
         await db.SaveChangesAsync(ct);
 
-        await realtime.NotifyWorkspaceAsync(context.workspaceId, "SpaceUpdated", new { SpaceId = space.Id, WorkspaceId = context.workspaceId }, ct);
+        await realtime.NotifyWorkspaceAsync(context.workspaceId, "SpaceUpdated", new { 
+            SpaceId = space.Id, 
+            WorkspaceId = context.workspaceId,
+            Name = space.Name,
+            Icon = space.Icon,
+            Color = space.Color,
+            Description = space.Description,
+            StatusId = space.StatusId,
+            IsPrivate = space.IsPrivate,
+            StartDate = space.StartDate,
+            DueDate = space.DueDate
+        }, ct);
 
         return Result.Success();
     }

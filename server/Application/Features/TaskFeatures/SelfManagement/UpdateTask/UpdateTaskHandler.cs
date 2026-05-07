@@ -30,7 +30,17 @@ public class UpdateTaskHandler(IDataBase db, WorkspaceContext context, IRealtime
 
         await db.SaveChangesAsync(ct);
 
-        await realtime.NotifyWorkspaceAsync(context.workspaceId, "TaskUpdated", new { TaskId = task.Id, WorkspaceId = context.workspaceId }, ct);
+        await realtime.NotifyWorkspaceAsync(context.workspaceId, "TaskUpdated", new { 
+            TaskId = task.Id, 
+            WorkspaceId = context.workspaceId,
+            Name = task.Name,
+            StatusId = task.StatusId,
+            Priority = task.Priority,
+            StoryPoints = task.StoryPoints,
+            TimeEstimate = task.TimeEstimate,
+            StartDate = task.StartDate,
+            DueDate = task.DueDate
+        }, ct);
 
         return Result.Success();
     }

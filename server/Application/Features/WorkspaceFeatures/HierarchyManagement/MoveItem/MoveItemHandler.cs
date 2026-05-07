@@ -11,7 +11,7 @@ using Application.Interfaces;
 
 namespace Application.Features.WorkspaceFeatures;
 
-public class MoveItemHandler(IDataBase db, WorkspaceContext context) : ICommandHandler<MoveItemCommand>
+public class MoveItemHandler(IDataBase db, WorkspaceContext context, IRealtimeService realtime) : ICommandHandler<MoveItemCommand>
 {
     public async Task<Result> Handle(MoveItemCommand request, CancellationToken ct)
     {
@@ -23,13 +23,25 @@ public class MoveItemHandler(IDataBase db, WorkspaceContext context) : ICommandH
         var newOrderKey = request.NewOrderKey ?? await ResolveOrderKey(request, ct);
 
         // 3. PERFORMANCE: Branch to optimized direct updates
-        return request.ItemType switch
+        var result = request.ItemType switch
         {
             EntityLayerType.ProjectSpace => await MoveSpace(request.ItemId, newOrderKey, ct),
             EntityLayerType.ProjectFolder => await MoveFolder(request.ItemId, request.TargetParentId, newOrderKey, ct),
             EntityLayerType.ProjectTask => await MoveTask(request.ItemId, request.TargetParentId, newOrderKey, ct),
             _ => Result.Failure(Error.Validation("Item.UnknownType", $"Unknown item type: {request.ItemType}"))
         };
+
+        if (result.IsSuccess)
+        {
+            await realtime.NotifyWorkspaceAsync(context.workspaceId, "HierarchyChanged", new { 
+                request.ItemId, 
+                request.ItemType, 
+                request.TargetParentId, 
+                NewOrderKey = newOrderKey 
+            }, ct);
+        }
+
+        return result;
     }
 
     private async Task<string> ResolveOrderKey(MoveItemCommand request, CancellationToken ct)

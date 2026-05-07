@@ -1,9 +1,9 @@
 export const hierarchyKeys = {
   all: ["hierarchy"] as const,
-  detail: (workspaceId: string) => [...hierarchyKeys.all, workspaceId, "structure"] as const,
-  nodeFolders: (workspaceId: string, nodeId: string) => [...hierarchyKeys.all, workspaceId, "node", nodeId, "folders"] as const,
-  nodeTasks: (workspaceId: string, nodeId: string) => [...hierarchyKeys.all, workspaceId, "node", nodeId, "tasks"] as const,
-  nodeBase: (workspaceId: string) => [...hierarchyKeys.all, workspaceId, "node"] as const,
+  detail: (workspaceId: string) => [...hierarchyKeys.all, workspaceId.toLowerCase(), "structure"] as const,
+  nodeFolders: (workspaceId: string, nodeId: string) => [...hierarchyKeys.all, workspaceId.toLowerCase(), "node", nodeId.toLowerCase(), "folders"] as const,
+  nodeTasks: (workspaceId: string, nodeId: string) => [...hierarchyKeys.all, workspaceId.toLowerCase(), "node", nodeId.toLowerCase(), "tasks"] as const,
+  nodeBase: (workspaceId: string) => [...hierarchyKeys.all, workspaceId.toLowerCase(), "node"] as const,
   membersAccess: (
     layerType: "space" | "folder",
     layerId: string,
@@ -13,7 +13,7 @@ export const hierarchyKeys = {
       ...hierarchyKeys.all,
       "members-access",
       layerType,
-      layerId,
+      layerId.toLowerCase(),
       isManagementMode,
     ] as const,
 };

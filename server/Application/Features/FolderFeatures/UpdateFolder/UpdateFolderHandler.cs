@@ -41,7 +41,20 @@ public class UpdateFolderHandler(IDataBase db, WorkspaceContext context, IRealti
 
         await db.SaveChangesAsync(ct);
 
-        await realtime.NotifyWorkspaceAsync(context.workspaceId, "FolderUpdated", new { FolderId = folder.Id, SpaceId = folder.ProjectSpaceId, WorkspaceId = context.workspaceId }, ct);
+        await realtime.NotifyWorkspaceAsync(context.workspaceId, "FolderUpdated", new { 
+            FolderId = folder.Id, 
+            SpaceId = folder.ProjectSpaceId, 
+            WorkspaceId = context.workspaceId,
+            Name = folder.Name,
+            Icon = folder.Icon,
+            Color = folder.Color,
+            Description = folder.Description,
+            StatusId = folder.StatusId,
+            Priority = folder.Priority,
+            IsPrivate = folder.IsPrivate,
+            StartDate = folder.StartDate,
+            DueDate = folder.DueDate
+        }, ct);
 
         return Result.Success();
     }

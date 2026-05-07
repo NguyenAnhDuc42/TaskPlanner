@@ -68,7 +68,7 @@ export function useEntityDetail(workspaceId: string, entityId: string, type: Ent
 
 // --- Mutations ---
 
-export function useUpdateSpace(workspaceId: string) {
+export function useUpdateSpace(workspaceId: string, onSuccess?: () => void) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (data: UpdateSpaceRequest) => api.put(`/spaces/${data.spaceId}`, data),
@@ -83,19 +83,21 @@ export function useUpdateSpace(workspaceId: string) {
       }
       return { previousDetail };
     },
+    onSuccess: () => {
+      onSuccess?.();
+    },
     onError: (_err, updates, context) => {
       if (context?.previousDetail) {
         queryClient.setQueryData([...workspaceKeys.all, "space", updates.spaceId], context.previousDetail);
       }
     },
-    onSettled: (_data, _error, updates) => {
-      // Trust SignalR & Optimistic Update for detail. Only invalidate hierarchy root if name/icon/color changed.
-      queryClient.invalidateQueries({ queryKey: hierarchyKeys.detail(workspaceId) });
+    onSettled: () => {
+      // Trust SignalR
     },
   });
 }
 
-export function useUpdateFolder(workspaceId: string) {
+export function useUpdateFolder(workspaceId: string, onSuccess?: () => void) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (data: UpdateFolderRequest) => api.put(`/folders/${data.folderId}`, data),
@@ -110,18 +112,21 @@ export function useUpdateFolder(workspaceId: string) {
       }
       return { previousDetail };
     },
+    onSuccess: () => {
+      onSuccess?.();
+    },
     onError: (_err, updates, context) => {
       if (context?.previousDetail) {
         queryClient.setQueryData([...workspaceKeys.all, "folder", updates.folderId], context.previousDetail);
       }
     },
     onSettled: () => {
-      // Trust SignalR for detail and node refresh.
+      // Trust SignalR
     },
   });
 }
 
-export function useUpdateTask(workspaceId: string) {
+export function useUpdateTask(workspaceId: string, onSuccess?: () => void) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (data: UpdateTaskRequest) => api.put(`/tasks/${data.taskId}`, data),
@@ -136,13 +141,16 @@ export function useUpdateTask(workspaceId: string) {
       }
       return { previousDetail };
     },
+    onSuccess: () => {
+      onSuccess?.();
+    },
     onError: (_err, updates, context) => {
       if (context?.previousDetail) {
         queryClient.setQueryData([...workspaceKeys.all, "task", updates.taskId], context.previousDetail);
       }
     },
     onSettled: () => {
-      // Trust SignalR for detail and node refresh.
+      // Trust SignalR
     },
   });
 }

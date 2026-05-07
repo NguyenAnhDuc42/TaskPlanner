@@ -8,83 +8,135 @@ export function useLayerRealtime(workspaceId: string) {
   const queryClient = useQueryClient();
 
   useEffect(() => {
+    console.log(`📡 useLayerRealtime Hook Init for Workspace: ${workspaceId}`);
     if (!workspaceId) return;
 
-    // Helper to update an entity in any node list (Folders or Tasks)
-    const updateInNodeLists = (entityId: string, updates: any, type: "folders" | "tasks") => {
-      queryClient.setQueriesData({ queryKey: hierarchyKeys.nodeBase(workspaceId) }, (old: any) => {
-        if (!old) return old;
-        
-        // Handle InfiniteQuery data structure (for tasks)
-        if (type === "tasks" && old.pages) {
-          return {
-            ...old,
-            pages: old.pages.map((page: any) => ({
-              ...page,
-              items: page.items?.map((item: any) => 
-                item.id === entityId ? { ...item, ...updates } : item
-              )
-            }))
-          };
-        }
+    // --- Normalization Helper ---
+    const normalizePayload = (raw: any) => {
+      const normalized: any = {};
 
-        // Handle regular Array data structure (for folders)
-        if (type === "folders" && Array.isArray(old)) {
-          return old.map((item: any) => 
-            item.id === entityId ? { ...item, ...updates } : item
-          );
-        }
+      // Mapping PascalCase (SignalR) to camelCase (Frontend)
+      const mappings: Record<string, string> = {
+        Name: "name",
+        Icon: "icon",
+        Color: "color",
+        Description: "description",
+        IsPrivate: "isPrivate",
+        StatusId: "statusId",
+        Priority: "priority",
+        StartDate: "startDate",
+        DueDate: "dueDate",
+        OrderKey: "orderKey",
+      };
 
-        return old;
+      // Apply mappings
+      Object.keys(raw).forEach((key) => {
+        const normalizedKey =
+          mappings[key] || key.charAt(0).toLowerCase() + key.slice(1);
+        if (raw[key] !== undefined) {
+          normalized[normalizedKey] = raw[key];
+        }
       });
+
+      return normalized;
+    };
+
+    // --- Smart Cache Invalidator ---
+    const invalidateHierarchy = (
+      type: "space" | "folder" | "task",
+      id: string,
+      parentId?: string,
+    ) => {
+      // 1. Only invalidate the structure tree for SPACE updates
+      if (type === "space") {
+        queryClient.invalidateQueries({
+          queryKey: [...hierarchyKeys.all, workspaceId, "structure"],
+          exact: true,
+        });
+      }
+
+      // 2. Target specific node lists for FOLDERS (Space is the parent)
+      if (type === "folder" && parentId) {
+        queryClient.invalidateQueries({
+          queryKey: [
+            ...hierarchyKeys.all,
+            workspaceId,
+            "node",
+            parentId,
+            "folders",
+          ],
+          exact: true,
+        });
+      }
+
+      // 3. Target specific node lists for TASKS (Space or Folder is the parent)
+      if (type === "task" && parentId) {
+        queryClient.invalidateQueries({
+          queryKey: [
+            ...hierarchyKeys.all,
+            workspaceId,
+            "node",
+            parentId,
+            "tasks",
+          ],
+          exact: true,
+        });
+      }
     };
 
     const onSpaceUpdated = (data: any) => {
-      const id = data.spaceId || data.id;
-      queryClient.setQueryData([...workspaceKeys.all, "space", id], (old: any) => old ? { ...old, ...data } : data);
-      
-      // Update in Root Hierarchy (Spaces)
-      queryClient.setQueryData(hierarchyKeys.detail(workspaceId), (old: any) => {
-        if (!old?.spaces) return old;
-        return {
-          ...old,
-          spaces: old.spaces.map((s: any) => s.id === id ? { ...s, ...data } : s)
-        };
-      });
+      const spaceData = normalizePayload(data.space || data);
+      const id = spaceData.spaceId || spaceData.id;
+
+      queryClient.setQueryData(
+        [...workspaceKeys.all, "space", id],
+        (old: any) => (old ? { ...old, ...spaceData } : spaceData),
+      );
+      invalidateHierarchy("space", id);
     };
 
     const onFolderUpdated = (data: any) => {
-      const id = data.folderId || data.id;
-      queryClient.setQueryData([...workspaceKeys.all, "folder", id], (old: any) => old ? { ...old, ...data } : data);
-      
-      // Update in any expanded node list
-      updateInNodeLists(id, data, "folders");
+      const folderData = normalizePayload(data.folder || data);
+      const id = folderData.folderId || folderData.id;
+      const spaceId = folderData.spaceId;
+
+      queryClient.setQueryData(
+        [...workspaceKeys.all, "folder", id],
+        (old: any) => (old ? { ...old, ...folderData } : folderData),
+      );
+      invalidateHierarchy("folder", id, spaceId);
     };
 
     const onTaskUpdated = (data: any) => {
-      const id = data.taskId || data.id;
-      queryClient.setQueryData([...workspaceKeys.all, "task", id], (old: any) => old ? { ...old, ...data } : data);
-      
-      // Update in any expanded task list
-      updateInNodeLists(id, data, "tasks");
+      const taskData = normalizePayload(data.task || data);
+      const id = taskData.taskId || taskData.id;
+      const parentId = taskData.folderId || taskData.spaceId;
+
+      queryClient.setQueryData(
+        [...workspaceKeys.all, "task", id],
+        (old: any) => (old ? { ...old, ...taskData } : taskData),
+      );
+      invalidateHierarchy("task", id, parentId);
     };
 
-    const onHierarchyChanged = () => {
-      // Structural changes (moves, deletes, adds) still need a refresh
-      queryClient.invalidateQueries({ queryKey: hierarchyKeys.detail(workspaceId) });
-      queryClient.invalidateQueries({ queryKey: hierarchyKeys.nodeBase(workspaceId) });
+    const onHierarchyChanged = (data: any) => {
+      queryClient.invalidateQueries({ queryKey: hierarchyKeys.all });
     };
 
-    // Register Listeners
+    // Register Listeners (Adding both FolderUpdated and ProjectFolderUpdated for safety)
     signalRService.on("SpaceUpdated", onSpaceUpdated);
     signalRService.on("FolderUpdated", onFolderUpdated);
+    signalRService.on("ProjectFolderUpdated", onFolderUpdated);
     signalRService.on("TaskUpdated", onTaskUpdated);
+    signalRService.on("ProjectTaskUpdated", onTaskUpdated);
     signalRService.on("HierarchyChanged", onHierarchyChanged);
 
     return () => {
       signalRService.off("SpaceUpdated", onSpaceUpdated);
       signalRService.off("FolderUpdated", onFolderUpdated);
+      signalRService.off("ProjectFolderUpdated", onFolderUpdated);
       signalRService.off("TaskUpdated", onTaskUpdated);
+      signalRService.off("ProjectTaskUpdated", onTaskUpdated);
       signalRService.off("HierarchyChanged", onHierarchyChanged);
     };
   }, [workspaceId, queryClient]);

@@ -5,10 +5,16 @@ import {
   LogLevel,
 } from "@microsoft/signalr";
 
+type SignalRListener = {
+  eventName: string;
+  callback: (...args: any[]) => void;
+};
+
 class SignalRService {
   private connection: HubConnection | null = null;
   private startPromise: Promise<void> | null = null;
   private url: string = "https://localhost:7285/hubs/workspace";
+  private pendingListeners: SignalRListener[] = [];
 
   public async startConnection(): Promise<void> {
     // If already connected, return
@@ -29,6 +35,9 @@ class SignalRService {
       .configureLogging(LogLevel.Information)
       .build();
 
+    // Register any listeners that were queued before the connection existed
+    this.flushPendingListeners();
+
     this.startPromise = (async () => {
       try {
         await this.connection!.start();
@@ -46,18 +55,32 @@ class SignalRService {
     return this.startPromise;
   }
 
+  private flushPendingListeners(): void {
+    if (!this.connection) return;
+    
+    this.pendingListeners.forEach(({ eventName, callback }) => {
+      this.connection!.on(eventName, callback);
+    });
+    this.pendingListeners = [];
+  }
+
   public on(eventName: string, callback: (...args: any[]) => void): void {
     if (!this.connection) {
-      console.warn(
-        "[SignalR] Cannot register listener, connection not initialized",
-      );
+      // Queue it up for when the connection is built
+      this.pendingListeners.push({ eventName, callback });
       return;
     }
     this.connection.on(eventName, callback);
   }
 
   public off(eventName: string, callback: (...args: any[]) => void): void {
-    if (!this.connection) return;
+    if (!this.connection) {
+      // Remove from pending if it's there
+      this.pendingListeners = this.pendingListeners.filter(
+        l => !(l.eventName === eventName && l.callback === callback)
+      );
+      return;
+    }
     this.connection.off(eventName, callback);
   }
 
@@ -72,6 +95,7 @@ class SignalRService {
     if (this.connection) {
       await this.connection.stop();
       this.connection = null;
+      this.pendingListeners = [];
     }
   }
 }

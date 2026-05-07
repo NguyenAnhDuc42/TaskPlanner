@@ -4,32 +4,40 @@ import { type StatusDto } from "@/types/status";
 interface StatusBadgeProps {
   status?: StatusDto | null;
   className?: string;
-  showDot?: boolean;
+  showIcon?: boolean;
 }
 
-export function StatusBadge({ status, className, showDot = true }: StatusBadgeProps) {
+export function StatusBadge({ status, className, showIcon = true }: StatusBadgeProps) {
   if (!status) {
     return (
-      <div className={cn("inline-flex items-center gap-2", className)}>
-        {showDot && <div className="h-1.5 w-1.5 rounded-full bg-muted-foreground/20" />}
-        <span className="text-[11px] font-black text-muted-foreground/40 uppercase tracking-tighter">
+      <div className={cn("inline-flex items-center gap-1.5 px-2 py-1 rounded-md bg-muted/10 border border-border/5", className)}>
+        <div className="h-2 w-2 rounded-[2px] bg-muted-foreground/20" />
+        <span className="text-[9px] font-black text-muted-foreground/40 uppercase tracking-widest">
           No Status
         </span>
       </div>
     );
   }
 
+  const statusColor = status.color || "#888";
+
   return (
-    <div className={cn("inline-flex items-center gap-2", className)}>
-      {showDot && (
+    <div 
+      className={cn("inline-flex items-center gap-2 px-2 py-1 rounded-md transition-all duration-300", className)}
+      style={{ 
+        backgroundColor: `${statusColor}15`,
+        border: `1px solid ${statusColor}15`
+      }}
+    >
+      {showIcon && (
         <div 
-          className="h-1.5 w-1.5 rounded-full shadow-[0_0_8px_rgba(0,0,0,0.1)]" 
-          style={{ backgroundColor: status.color || '#888' }} 
+          className="h-2 w-2 rounded-[2px] shadow-sm transition-transform group-hover:scale-110" 
+          style={{ backgroundColor: statusColor }} 
         />
       )}
       <span 
-        className="text-[11px] font-black tracking-tight transition-colors"
-        style={{ color: status.color || 'inherit' }}
+        className="text-[9px] font-black tracking-widest uppercase"
+        style={{ color: statusColor }}
       >
         {status.name}
       </span>

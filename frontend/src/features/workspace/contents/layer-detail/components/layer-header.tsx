@@ -7,7 +7,6 @@ import {
   Filter,
   Check,
   Paperclip,
-  Folder,
 } from "lucide-react";
 import { DynamicIcon } from "@/components/dynamic-icon";
 import { Button } from "@/components/ui/button";
@@ -21,9 +20,13 @@ import {
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
+import { SyncIndicator } from "@/components/sync-indicator";
 
 interface LayerHeaderProps {
   viewData: any;
+  draft: any;
+  isSaving: boolean;
+  isDirty: boolean;
   activeTab: MainViewTab;
   viewMode: ItemsViewMode;
   onViewModeChange: (mode: ItemsViewMode) => void;
@@ -33,6 +36,9 @@ interface LayerHeaderProps {
 
 export function LayerHeader({
   viewData,
+  draft,
+  isSaving,
+  isDirty,
   activeTab,
   viewMode,
   onViewModeChange,
@@ -42,28 +48,34 @@ export function LayerHeader({
   if (!viewData) return null;
 
   return (
-    <div className="flex items-center justify-between px-4 h-8 bg-background/80 backdrop-blur-md border-b border-border/40 flex-shrink-0 select-none">
+    <div className="flex items-center justify-between px-4 h-9 bg-background/80 backdrop-blur-md border-b border-border/40 flex-shrink-0 select-none">
       {/* --- Left: Breadcrumbs --- */}
       <div className="flex items-center gap-0.5 text-[10px] font-bold text-muted-foreground/60 uppercase tracking-widest h-full">
         <span className="hover:text-foreground transition-colors cursor-pointer">
           Workspace
         </span>
         <ChevronRight className="h-2.5 w-2.5 opacity-40 mx-0.5" />
-        <div className="flex items-center gap-1 text-foreground/70 h-full">
+        <div className="flex items-center gap-1.5 text-foreground/70 h-full">
           <DynamicIcon
-            name={viewData.icon || "Folder"}
+            name={draft.icon || viewData.icon || "Folder"}
             size={12}
-            color={viewData.color}
+            color={draft.color || viewData.color}
             className="stroke-[2.5]"
           />
-          <span className="truncate max-w-[200px] font-black">
-            {viewData.name}
+          <span className="truncate max-w-[200px] font-black tracking-tight text-foreground/90">
+            {draft.name || viewData.name}
           </span>
         </div>
       </div>
 
       {/* --- Right: Global Actions --- */}
       <div className="flex items-center gap-0.5">
+        
+        {/* Sync Indicator (Moved to Right) */}
+        <SyncIndicator isSaving={isSaving} isDirty={isDirty} className="mr-3" />
+
+        <div className="h-4 w-px bg-border/40 mx-1" />
+
         {/* View Mode Dropdown (Only in Items tab) */}
         {activeTab === "items" && (
           <DropdownMenu>
@@ -125,9 +137,8 @@ export function LayerHeader({
           </DropdownMenu>
         )}
 
-        <div className="h-4 w-px bg-border/40 mx-1" />
+        <div className="h-4 w-px bg-border/40 mx-1 mr-1.5" />
 
-        {/* New Trigger Buttons for Right Panel */}
         <Button
           variant="ghost"
           size="icon"

@@ -1,5 +1,5 @@
 import { Loader2 } from "lucide-react";
-import { ItemsDisplayer } from "../components/items-displayer";
+import { ItemsDisplayer } from "../components/items/items-displayer";
 import { EntityLayerType } from "@/types/entity-layer-type";
 import type { ItemsViewMode, TaskViewData } from "../layer-detail-types";
 

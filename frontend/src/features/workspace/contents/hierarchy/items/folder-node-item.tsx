@@ -31,6 +31,7 @@ export const FolderNodeItem = React.memo(function FolderNodeItem({
   const { workspaceId } = useWorkspace();
   const queryClient = useQueryClient();
 
+
   // New: Auto-collapse if folder becomes empty
   React.useEffect(() => {
     if (isOpen && !folder.hasTasks) {

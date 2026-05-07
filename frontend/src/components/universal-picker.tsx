@@ -27,7 +27,7 @@ const POPULAR_ICONS = [
   "Smartphone", "Laptop", "Monitor", "Headphones", "Camera", "Mic", "Music", "Video", 
   "Image", "Paintbrush", "PenTool", "Brush", "Eraser", "Scissors", "Link", "Paperclip", 
   "Mail", "Send", "Share2", "ExternalLink", "Download", "Upload", "Globe", "Map", 
-  "Compass", "Navigation", "Sun", "Moon", "Cloud", "Zap", "Wind", "Umbrella", 
+  "Compass", "Navigation", "Sun", "Moon", "Wind", "Umbrella", 
   "ShoppingBag", "ShoppingCart", "CreditCard", "Briefcase", "Building", "Home", 
   "Key", "Lock", "Unlock", "Shield", "Eye", "EyeOff", "Trash2", "Archive", 
   "Plus", "Minus", "X", "Check", "ChevronRight", "ChevronDown", "MoreHorizontal"
@@ -49,7 +49,7 @@ export function UniversalPicker({ selectedIcon, selectedColor, onSelect }: Unive
   }, [searchQuery])
 
   return (
-    <div className="w-80 flex flex-col gap-4 p-3 bg-background border border-border shadow-xl rounded-xl">
+    <div className="w-80 flex flex-col gap-4 p-3 bg-background border border-border shadow-xl rounded-xl" onClick={(e) => e.stopPropagation()}>
       <Tabs defaultValue="icons" className="w-full">
         <TabsList className="grid w-full grid-cols-2 p-1 bg-muted/50 h-9 rounded-lg">
           <TabsTrigger value="icons" className="text-[11px] font-bold uppercase tracking-wider rounded-md data-[state=active]:bg-background data-[state=active]:shadow-sm">Icons</TabsTrigger>
@@ -70,7 +70,6 @@ export function UniversalPicker({ selectedIcon, selectedColor, onSelect }: Unive
                 onClick={() => onSelect(selectedIcon, color)}
               />
             ))}
-            <button className="w-6 h-6 rounded-full bg-[conic-gradient(from_0deg,red,yellow,lime,aqua,blue,magenta,red)] ring-1 ring-border flex-shrink-0 hover:scale-110 transition-transform" />
           </div>
 
           <TabsContent value="icons" className="mt-0 flex flex-col gap-3">
