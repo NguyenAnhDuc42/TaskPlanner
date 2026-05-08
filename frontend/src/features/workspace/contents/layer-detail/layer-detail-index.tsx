@@ -54,9 +54,7 @@ export function LayerDetailIndex({ forcedLayerType }: LayerDetailIndexProps) {
       <LayerView
         key={activeEntityId} 
         workspaceId={workspaceId || ""}
-        entityId={activeEntityId}
         layerType={activeLayerType}
-        views={[]} 
         viewData={viewData}
         isLoading={isLoading}
       />

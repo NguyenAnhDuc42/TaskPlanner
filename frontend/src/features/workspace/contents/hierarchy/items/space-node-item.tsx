@@ -5,10 +5,13 @@ import { useNavigate, useLocation } from "@tanstack/react-router";
 import { useWorkspace } from "@/features/workspace/context/workspace-provider";
 import { cn } from "@/lib/utils";
 import { Collapsible, CollapsibleContent } from "@/components/ui/collapsible";
-import { EntityContextMenu, EntityMenuTrigger } from "../hierarchy-components/entity-context-menu";
+import {
+  EntityContextMenu,
+  EntityMenuTrigger,
+} from "../hierarchy-components/entity-context-menu";
+import { FadeTruncate } from "@/components/fade-truncate";
 
 import { NodeTasksList } from "./node-tasks-list";
-import { clampName } from "../utils/name-utils";
 import { EntityLayerType as EntityLayerConst } from "@/types/entity-layer-type";
 import {
   SortableContext,
@@ -59,7 +62,6 @@ export const SpaceNodeItem = React.memo(function SpaceNodeItem({
   const { data: spaceFolders = [], isLoading: isLoadingFolders } =
     useNodeFolders(workspaceId || "", space.id, shouldLoadFolders);
 
-
   // Auto-expand this space if it owns the folder in the URL
   React.useEffect(() => {
     if (activeFolderIdFromUrl && spaceFolders.length > 0) {
@@ -108,7 +110,12 @@ export const SpaceNodeItem = React.memo(function SpaceNodeItem({
               onMouseEnter={() => {
                 if (effectiveOpen || !workspaceId || !hasChildren) return;
                 prefetchNodeFolders(queryClient, workspaceId, space.id);
-                prefetchNodeTasks(queryClient, workspaceId, space.id, EntityLayerConst.ProjectSpace);
+                prefetchNodeTasks(
+                  queryClient,
+                  workspaceId,
+                  space.id,
+                  EntityLayerConst.ProjectSpace,
+                );
               }}
               onClick={(e) => {
                 if (!hasChildren) return;
@@ -132,17 +139,18 @@ export const SpaceNodeItem = React.memo(function SpaceNodeItem({
                 />
               )}
             </div>
-            
-            <span className="truncate text-[11px] font-bold flex-1">
-              {clampName(space.name)}
-            </span>
+
+            <FadeTruncate
+              text={space.name}
+              className="text-[11px] font-bold flex-1"
+            />
 
             {/* Action Area: Lock and 3-dots */}
             <div className="flex items-center gap-0.5 min-w-fit">
               {space.isPrivate && (
                 <Lock className="h-3 w-3 text-muted-foreground/40 flex-shrink-0" />
               )}
-              
+
               <div className="w-0 group-hover:w-4 overflow-hidden opacity-0 group-hover:opacity-100 transition-all duration-300 ease-in-out">
                 <EntityMenuTrigger>
                   <button

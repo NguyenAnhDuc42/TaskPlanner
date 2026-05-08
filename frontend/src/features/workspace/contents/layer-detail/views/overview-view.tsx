@@ -1,5 +1,4 @@
 import * as Icons from "lucide-react";
-import { EntityLayerType } from "@/types/entity-layer-type";
 import { DescriptionSection } from "../components/overview/description-section";
 import { UniversalPicker } from "@/components/universal-picker";
 import {
@@ -10,12 +9,11 @@ import {
 
 interface OverviewViewProps {
   viewData: any;
-  layerType: EntityLayerType;
   draft: any;
   onChange: (updates: any) => void;
 }
 
-export function OverviewView({ viewData, layerType, draft, onChange }: OverviewViewProps) {
+export function OverviewView({ viewData, draft, onChange }: OverviewViewProps) {
   if (!viewData) return null;
 
   const IconComponent = (Icons as any)[draft.icon] || Icons.LayoutGrid;
@@ -64,8 +62,7 @@ export function OverviewView({ viewData, layerType, draft, onChange }: OverviewV
         {/* --- CONTENT AREA --- */}
         <div className="pl-1">
           <DescriptionSection
-            initialValue={draft.description}
-            onChange={(val) => onChange({ description: val })}
+            documentId={viewData.defaultDocumentId}
           />
         </div>
 

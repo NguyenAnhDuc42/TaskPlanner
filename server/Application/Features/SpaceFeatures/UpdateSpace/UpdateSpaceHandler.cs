@@ -57,7 +57,6 @@ public class UpdateSpaceHandler(IDataBase db, WorkspaceContext context, IRealtim
             Name = space.Name,
             Icon = space.Icon,
             Color = space.Color,
-            Description = space.Description,
             StatusId = space.StatusId,
             IsPrivate = space.IsPrivate,
             StartDate = space.StartDate,

@@ -5,10 +5,13 @@ import { useNavigate, useLocation } from "@tanstack/react-router";
 import { useWorkspace } from "@/features/workspace/context/workspace-provider";
 import { cn } from "@/lib/utils";
 import { Collapsible, CollapsibleContent } from "@/components/ui/collapsible";
-import { EntityContextMenu, EntityMenuTrigger } from "../hierarchy-components/entity-context-menu";
+import {
+  EntityContextMenu,
+  EntityMenuTrigger,
+} from "../hierarchy-components/entity-context-menu";
 import { SortableItem } from "../dnd/sortable-item";
 import { NodeTasksList } from "./node-tasks-list";
-import { clampName } from "../utils/name-utils";
+import { FadeTruncate } from "@/components/fade-truncate";
 import { EntityLayerType as EntityLayerConst } from "@/types/entity-layer-type";
 import type { FolderHierarchy } from "../hierarchy-type";
 import { useQueryClient } from "@tanstack/react-query";
@@ -30,7 +33,6 @@ export const FolderNodeItem = React.memo(function FolderNodeItem({
   const navigate = useNavigate();
   const { workspaceId } = useWorkspace();
   const queryClient = useQueryClient();
-
 
   // New: Auto-collapse if folder becomes empty
   React.useEffect(() => {
@@ -65,14 +67,21 @@ export const FolderNodeItem = React.memo(function FolderNodeItem({
                 : "text-muted-foreground hover:bg-muted hover:text-foreground",
             )}
             onClick={() =>
-              navigate({ to: `/workspaces/${workspaceId}/folders/${folder.id}` })
+              navigate({
+                to: `/workspaces/${workspaceId}/folders/${folder.id}`,
+              })
             }
           >
             <div
               className="relative flex items-center justify-center w-5 h-5 flex-shrink-0 cursor-pointer rounded-sm hover:bg-background/50 group/icon mr-1.5"
               onMouseEnter={() => {
                 if (isOpen || !workspaceId || !folder.hasTasks) return;
-                prefetchNodeTasks(queryClient, workspaceId, folder.id, EntityLayerConst.ProjectFolder);
+                prefetchNodeTasks(
+                  queryClient,
+                  workspaceId,
+                  folder.id,
+                  EntityLayerConst.ProjectFolder,
+                );
               }}
               onClick={(e) => {
                 if (!folder.hasTasks) return;
@@ -96,16 +105,17 @@ export const FolderNodeItem = React.memo(function FolderNodeItem({
                 />
               )}
             </div>
-            <span className="truncate text-[11px] font-semibold flex-1">
-              {clampName(folder.name)}
-            </span>
+            <FadeTruncate
+              text={folder.name}
+              className="text-[11px] font-semibold flex-1"
+            />
 
             {/* Action Area: Lock and 3-dots */}
             <div className="flex items-center gap-0.5 min-w-fit">
               {folder.isPrivate && (
                 <Lock className="h-3 w-3 text-muted-foreground/40 flex-shrink-0" />
               )}
-              
+
               <div className="w-0 group-hover:w-4 overflow-hidden opacity-0 group-hover:opacity-100 transition-all duration-300 ease-in-out">
                 <EntityMenuTrigger>
                   <button

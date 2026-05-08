@@ -37,7 +37,7 @@ public class UpdateTaskHandler(IDataBase db, WorkspaceContext context, IRealtime
             StatusId = task.StatusId,
             Priority = task.Priority,
             StoryPoints = task.StoryPoints,
-            TimeEstimate = task.TimeEstimate,
+            TimeEstimate = task.TimeEstimateSeconds,
             StartDate = task.StartDate,
             DueDate = task.DueDate
         }, ct);

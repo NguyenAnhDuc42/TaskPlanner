@@ -20,18 +20,16 @@ interface LayerViewProps {
   viewData: any;
   isLoading: boolean;
   workspaceId: string;
-  entityId: string;
 }
 
 export type RightPanelType = "properties" | "attachments" | null;
 
-export function LayerView({ viewData, isLoading, layerType, workspaceId, entityId }: LayerViewProps) {
+export function LayerView({ viewData, isLoading, layerType, workspaceId }: LayerViewProps) {
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState<MainViewTab>("overview");
   const [viewMode, setViewMode] = useState<ItemsViewMode>("board");
   const [rightPanelType, setRightPanelType] = useState<RightPanelType>("properties");
 
-  const isTask = layerType === EntityLayerType.ProjectTask;
 
   // 1. Unified Draft State
   const [draft, setDraft] = useState({
@@ -102,9 +100,9 @@ export function LayerView({ viewData, isLoading, layerType, workspaceId, entityI
     serverTruth.current = { ...serverTruth.current, ...lastSentDraft.current };
   }, []);
 
-  const updateSpace = useUpdateSpace(workspaceId, onMutationSettled);
-  const updateFolder = useUpdateFolder(workspaceId, onMutationSettled);
-  const updateTask = useUpdateTask(workspaceId, onMutationSettled);
+  const updateSpace = useUpdateSpace(onMutationSettled);
+  const updateFolder = useUpdateFolder(onMutationSettled);
+  const updateTask = useUpdateTask(onMutationSettled);
 
   const isSaving = updateSpace.isPending || updateFolder.isPending || updateTask.isPending;
   useEffect(() => { isSavingRef.current = isSaving; }, [isSaving]);
@@ -129,7 +127,9 @@ export function LayerView({ viewData, isLoading, layerType, workspaceId, entityI
     [layerType, viewData?.id, mutateSpace, mutateFolder, mutateTask]
   );
 
-  // 4. IMMEDIATE Sync for UI
+  // 4. IMMEDIATE Sync for UI (Debounced to prevent INP spikes)
+  const fastDebouncedDraft = useDebounce(draft, 300);
+
   useEffect(() => {
     if (!viewData || !isDirty.current) return;
 
@@ -138,10 +138,15 @@ export function LayerView({ viewData, isLoading, layerType, workspaceId, entityI
     
     queryClient.setQueryData([...workspaceKeys.all, keyType, viewData.id], (old: any) => ({
       ...old,
-      ...draft
+      ...fastDebouncedDraft
     }));
 
-    const hUpdates = { name: draft.name, icon: draft.icon, color: draft.color, statusId: draft.statusId };
+    const hUpdates = { 
+      name: fastDebouncedDraft.name, 
+      icon: fastDebouncedDraft.icon, 
+      color: fastDebouncedDraft.color, 
+      statusId: fastDebouncedDraft.statusId 
+    };
 
     // Update Root Hierarchy (Sidebar - Only for Spaces)
     if (layerType === EntityLayerType.ProjectSpace) {
@@ -171,9 +176,9 @@ export function LayerView({ viewData, isLoading, layerType, workspaceId, entityI
       }
       return old;
     });
-  }, [draft, viewData?.id, layerType, workspaceId, queryClient]);
+  }, [fastDebouncedDraft, viewData?.id, layerType, workspaceId, queryClient]);
 
-  // 5. DEBOUNCED Save
+  // 5. DEBOUNCED Save (Server Update)
   const debouncedDraft = useDebounce(draft, 4000);
 
   useEffect(() => {
@@ -196,6 +201,31 @@ export function LayerView({ viewData, isLoading, layerType, workspaceId, entityI
       performUpdate(updates, debouncedDraft);
     }
   }, [debouncedDraft, performUpdate]);
+
+  // 6. Save on unmount if dirty
+  useEffect(() => {
+    return () => {
+      if (isDirty.current && !isSavingRef.current) {
+        const st = serverTruth.current;
+        const d = draftRef.current;
+        if (!st) return;
+
+        const updates: any = {};
+        if (d.name !== st.name) updates.name = d.name;
+        if (d.icon !== st.icon) updates.icon = d.icon;
+        if (d.color !== st.color) updates.color = d.color;
+        if (d.description !== st.description) updates.description = d.description;
+        if (d.statusId !== st.statusId) updates.statusId = d.statusId;
+        if (d.isPrivate !== st.isPrivate) updates.isPrivate = d.isPrivate;
+        if (d.startDate !== st.startDate) updates.startDate = d.startDate;
+        if (d.dueDate !== st.dueDate) updates.dueDate = d.dueDate;
+
+        if (Object.keys(updates).length > 0) {
+          performUpdate(updates, d);
+        }
+      }
+    };
+  }, [performUpdate]);
 
   const onDraftChange = (updates: Partial<typeof draft>) => {
     isDirty.current = true;
@@ -238,7 +268,6 @@ export function LayerView({ viewData, isLoading, layerType, workspaceId, entityI
             ) : (
               <OverviewView 
                 viewData={viewData} 
-                layerType={layerType} 
                 draft={draft} 
                 onChange={onDraftChange} 
               />

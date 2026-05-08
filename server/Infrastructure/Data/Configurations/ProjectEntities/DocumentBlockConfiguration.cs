@@ -24,7 +24,6 @@ public class DocumentBlockConfiguration : TenantEntityConfiguration<DocumentBloc
 
         builder.Property(x => x.Content)
             .HasColumnName("content")
-            .HasColumnType("jsonb")
             .IsRequired();
 
         builder.Property(x => x.OrderKey)

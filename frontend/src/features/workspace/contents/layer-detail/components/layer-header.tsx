@@ -9,6 +9,7 @@ import {
   Paperclip,
 } from "lucide-react";
 import { DynamicIcon } from "@/components/dynamic-icon";
+import { FadeTruncate } from "@/components/fade-truncate";
 import { Button } from "@/components/ui/button";
 import type { MainViewTab, ItemsViewMode } from "../layer-detail-types";
 import type { RightPanelType } from "../layer-view";
@@ -62,9 +63,10 @@ export function LayerHeader({
             color={draft.color || viewData.color}
             className="stroke-[2.5]"
           />
-          <span className="truncate max-w-[200px] font-black tracking-tight text-foreground/90">
-            {draft.name || viewData.name}
-          </span>
+          <FadeTruncate 
+            text={draft.name || viewData.name}
+            className="max-w-[200px] font-black tracking-tight text-foreground/90"
+          />
         </div>
       </div>
 

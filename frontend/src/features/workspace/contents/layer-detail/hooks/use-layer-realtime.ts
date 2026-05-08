@@ -44,7 +44,6 @@ export function useLayerRealtime(workspaceId: string) {
     // --- Smart Cache Invalidator ---
     const invalidateHierarchy = (
       type: "space" | "folder" | "task",
-      id: string,
       parentId?: string,
     ) => {
       // 1. Only invalidate the structure tree for SPACE updates
@@ -92,7 +91,7 @@ export function useLayerRealtime(workspaceId: string) {
         [...workspaceKeys.all, "space", id],
         (old: any) => (old ? { ...old, ...spaceData } : spaceData),
       );
-      invalidateHierarchy("space", id);
+      invalidateHierarchy("space");
     };
 
     const onFolderUpdated = (data: any) => {
@@ -104,7 +103,7 @@ export function useLayerRealtime(workspaceId: string) {
         [...workspaceKeys.all, "folder", id],
         (old: any) => (old ? { ...old, ...folderData } : folderData),
       );
-      invalidateHierarchy("folder", id, spaceId);
+      invalidateHierarchy("folder", spaceId);
     };
 
     const onTaskUpdated = (data: any) => {
@@ -116,10 +115,10 @@ export function useLayerRealtime(workspaceId: string) {
         [...workspaceKeys.all, "task", id],
         (old: any) => (old ? { ...old, ...taskData } : taskData),
       );
-      invalidateHierarchy("task", id, parentId);
+      invalidateHierarchy("task", parentId);
     };
 
-    const onHierarchyChanged = (data: any) => {
+    const onHierarchyChanged = () => {
       queryClient.invalidateQueries({ queryKey: hierarchyKeys.all });
     };
 

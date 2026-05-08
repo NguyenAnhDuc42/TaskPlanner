@@ -1,7 +1,6 @@
 import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { useMemo } from "react";
 import { api } from "@/lib/api-client";
-import { hierarchyKeys } from "../hierarchy/hierarchy-keys";
 import { workspaceKeys } from "@/features/main/query-keys";
 import { EntityLayerType } from "@/types/entity-layer-type";
 import { useWorkspace } from "../../context/workspace-provider";
@@ -68,7 +67,7 @@ export function useEntityDetail(workspaceId: string, entityId: string, type: Ent
 
 // --- Mutations ---
 
-export function useUpdateSpace(workspaceId: string, onSuccess?: () => void) {
+export function useUpdateSpace(onSuccess?: () => void) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (data: UpdateSpaceRequest) => api.put(`/spaces/${data.spaceId}`, data),
@@ -97,7 +96,7 @@ export function useUpdateSpace(workspaceId: string, onSuccess?: () => void) {
   });
 }
 
-export function useUpdateFolder(workspaceId: string, onSuccess?: () => void) {
+export function useUpdateFolder(onSuccess?: () => void) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (data: UpdateFolderRequest) => api.put(`/folders/${data.folderId}`, data),
@@ -126,7 +125,7 @@ export function useUpdateFolder(workspaceId: string, onSuccess?: () => void) {
   });
 }
 
-export function useUpdateTask(workspaceId: string, onSuccess?: () => void) {
+export function useUpdateTask(onSuccess?: () => void) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (data: UpdateTaskRequest) => api.put(`/tasks/${data.taskId}`, data),
@@ -154,3 +153,28 @@ export function useUpdateTask(workspaceId: string, onSuccess?: () => void) {
     },
   });
 }
+
+export function useDocumentBlocks(documentId: string) {
+  return useQuery({
+    queryKey: [...workspaceKeys.all, "document-blocks", documentId],
+    queryFn: async () => {
+      const { data } = await api.get(`/documents/${documentId}/blocks`);
+      return data;
+    },
+    enabled: !!documentId,
+    staleTime: 5000,
+  });
+}
+
+export function useUpdateDocumentBlocks(onSuccess?: () => void) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: { documentId: string; blocks: any[] }) => 
+      api.put(`/documents/${data.documentId}/blocks`, data.blocks),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: [...workspaceKeys.all, "document-blocks", variables.documentId] });
+      onSuccess?.();
+    },
+  });
+}
+

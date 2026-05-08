@@ -1,5 +1,4 @@
 import * as Icons from "lucide-react";
-import { EntityLayerType } from "@/types/entity-layer-type";
 import { DescriptionSection } from "../components/overview/description-section";
 import { UniversalPicker } from "@/components/universal-picker";
 import {
@@ -167,8 +166,7 @@ export function TaskDetailView({ viewData, draft, onChange }: TaskDetailViewProp
           </div>
           <div className="pl-1 min-h-[200px]">
             <DescriptionSection
-              initialValue={draft.description}
-              onChange={(val) => onChange({ description: val })}
+              documentId={viewData.defaultDocumentId}
             />
           </div>
         </div>

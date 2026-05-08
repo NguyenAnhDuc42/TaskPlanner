@@ -46,13 +46,7 @@ export function OverviewPanel({ entityInfo, onClose }: OverviewPanelProps) {
           </div>
         </section>
 
-        {/* --- Description --- */}
-        <section className="space-y-4">
-          <h4 className="text-[9px] font-black uppercase tracking-[0.2em] text-muted-foreground/30">Operational Brief</h4>
-          <div className="text-[11px] text-muted-foreground leading-relaxed bg-muted/5 p-3 rounded border border-border/20 italic">
-            {entityInfo.description || "No strategic overview provided for this operational node."}
-          </div>
-        </section>
+
 
         {/* --- Hierarchy Link --- */}
         <section className="space-y-4">
@@ -84,3 +78,5 @@ function PropRow({ icon: Icon, label, value }: { icon: any, label: string, value
     </div>
   );
 }
+
+
