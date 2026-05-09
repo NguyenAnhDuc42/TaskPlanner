@@ -1,17 +1,18 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { LayerDetailIndex } from "@/features/workspace/contents/layer-detail/layer-detail-index";
-import { EntityLayerType } from "@/types/entity-layer-type";
-import { entityQueryOptions } from "@/features/workspace/contents/layer-detail/layer-api";
+import { createFileRoute, useParams } from "@tanstack/react-router";
+import { folderQueryOptions } from "@/features/workspace/contents/layer-detail/views/folder/folder-api";
+import { FolderView } from "@/features/workspace/contents/layer-detail/views/folder/folder-view";
 
 export const Route = createFileRoute(
   "/workspaces/$workspaceId/folders/$folderId",
 )({
   loader: ({ context: { queryClient }, params: { workspaceId, folderId } }) => {
-    queryClient.ensureQueryData(entityQueryOptions.detail(workspaceId, folderId, EntityLayerType.ProjectFolder));
+    queryClient.ensureQueryData(folderQueryOptions.detail(workspaceId, folderId));
   },
   component: FolderContent,
 });
 
 function FolderContent() {
-  return <LayerDetailIndex forcedLayerType={EntityLayerType.ProjectFolder} />;
+  const params = useParams({ strict: false }) as any;
+  const { workspaceId, folderId } = params;
+  return <FolderView workspaceId={workspaceId} folderId={folderId} />;
 }

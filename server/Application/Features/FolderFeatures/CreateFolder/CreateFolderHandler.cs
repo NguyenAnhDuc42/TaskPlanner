@@ -73,7 +73,7 @@ public class CreateFolderHandler(
             await db.Workflows.AddAsync(workflow, ct);
 
             // 4. Create Starter Statuses
-            var statuses = Status.CreateStarterSet(context.workspaceId, workflow.Id, context.CurrentMember.Id);
+            var statuses = Status.CreateFolderStarterSet(context.workspaceId, workflow.Id, context.CurrentMember.Id);
             await db.Statuses.AddRangeAsync(statuses, ct);
 
             // 5. Create Default Views

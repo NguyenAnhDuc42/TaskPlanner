@@ -46,8 +46,7 @@ public class UpdateSpaceHandler(IDataBase db, WorkspaceContext context, IRealtim
         if (request.StatusId.HasValue)
             space.UpdateStatus(request.StatusId.Value);
 
-        if (request.IsInheritingWorkflow.HasValue)
-            space.UpdateInheritWorkflow(request.IsInheritingWorkflow.Value);
+
 
         await db.SaveChangesAsync(ct);
 

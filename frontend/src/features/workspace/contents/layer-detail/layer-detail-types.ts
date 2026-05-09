@@ -33,6 +33,55 @@ export interface StatusDto {
   category: StatusCategory;
 }
 
+export interface FolderDetailDto {
+  id: string;
+  projectSpaceId: string;
+  name: string;
+  color?: string;
+  icon?: string;
+  isPrivate: boolean;
+  isArchived: boolean;
+  parentWorkflowId?: string;
+  workflowId?: string;
+  statusId?: string;
+  defaultDocumentId?: string;
+  startDate?: string;
+  dueDate?: string;
+  description?: string;
+  memberIds: string[];
+}
+
+export interface SpaceDetailDto {
+  id: string;
+  projectWorkspaceId: string;
+  name: string;
+  slug: string;
+  color?: string;
+  icon?: string;
+  isPrivate: boolean;
+  workflowId?: string;
+  statusId?: string;
+  defaultDocumentId?: string;
+  startDate?: string;
+  dueDate?: string;
+  description?: string;
+  memberIds: string[];
+}
+
+export interface TaskDetailDto {
+  id: string;
+  projectFolderId: string;
+  name: string;
+  statusId?: string;
+  priority?: number;
+  startDate?: string;
+  dueDate?: string;
+  description?: string;
+  icon?: string;
+  color?: string;
+  assigneeIds: string[];
+}
+
 export interface TaskViewData {
   folders: FolderItemDto[];
   tasks: TaskItemDto[];

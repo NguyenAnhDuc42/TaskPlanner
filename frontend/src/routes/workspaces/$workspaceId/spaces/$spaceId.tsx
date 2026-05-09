@@ -1,16 +1,15 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { LayerDetailIndex } from "@/features/workspace/contents/layer-detail/layer-detail-index";
-import { EntityLayerType } from "@/types/entity-layer-type";
-
-import { entityQueryOptions } from "@/features/workspace/contents/layer-detail/layer-api";
+import { createFileRoute, useParams } from "@tanstack/react-router";
+import { SpaceView } from "@/features/workspace/contents/layer-detail/views/space/space-view";
+import { spaceQueryOptions } from "@/features/workspace/contents/layer-detail/views/space/space-api";
 
 export const Route = createFileRoute("/workspaces/$workspaceId/spaces/$spaceId")({
   loader: ({ context: { queryClient }, params: { workspaceId, spaceId } }) => {
-    queryClient.ensureQueryData(entityQueryOptions.detail(workspaceId, spaceId, EntityLayerType.ProjectSpace));
+    queryClient.ensureQueryData(spaceQueryOptions.detail(workspaceId, spaceId));
   },
   component: SpaceContent,
 });
 
 function SpaceContent() {
-  return <LayerDetailIndex forcedLayerType={EntityLayerType.ProjectSpace} />;
+  const { workspaceId, spaceId } = useParams({ from: "/workspaces/$workspaceId/spaces/$spaceId" });
+  return <SpaceView workspaceId={workspaceId} spaceId={spaceId} />;
 }

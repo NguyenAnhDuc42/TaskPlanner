@@ -11,8 +11,7 @@ import {
 import { DynamicIcon } from "@/components/dynamic-icon";
 import { FadeTruncate } from "@/components/fade-truncate";
 import { Button } from "@/components/ui/button";
-import type { MainViewTab, ItemsViewMode } from "../layer-detail-types";
-import type { RightPanelType } from "../layer-view";
+import type { MainViewTab, ItemsViewMode } from "../../layer-detail-types";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -22,20 +21,23 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 import { SyncIndicator } from "@/components/sync-indicator";
+import type { EnrichedTaskDetailDto } from "./task-types";
 
-interface LayerHeaderProps {
-  viewData: any;
+export type RightPanelType = "properties" | "attachments" | null;
+
+interface TaskHeaderProps {
+  viewData: EnrichedTaskDetailDto;
   draft: any;
   isSaving: boolean;
   isDirty: boolean;
   activeTab: MainViewTab;
   viewMode: ItemsViewMode;
   onViewModeChange: (mode: ItemsViewMode) => void;
-  rightPanelType: RightPanelType;
+  rightPanelType: RightPanelType;  
   onToggleRightPanel: (type: RightPanelType) => void;
 }
 
-export function LayerHeader({
+export function TaskHeader({
   viewData,
   draft,
   isSaving,
@@ -45,7 +47,7 @@ export function LayerHeader({
   onViewModeChange,
   rightPanelType,
   onToggleRightPanel,
-}: LayerHeaderProps) {
+}: TaskHeaderProps) {
   if (!viewData) return null;
 
   return (
@@ -58,13 +60,13 @@ export function LayerHeader({
         <ChevronRight className="h-2.5 w-2.5 opacity-40 mx-0.5" />
         <div className="flex items-center gap-1.5 text-foreground/70 h-full">
           <DynamicIcon
-            name={draft.icon || viewData.icon || "Folder"}
+            name={draft?.icon || viewData?.icon || "Folder"}
             size={12}
-            color={draft.color || viewData.color}
+            color={draft?.color || viewData?.color}
             className="stroke-[2.5]"
           />
           <FadeTruncate 
-            text={draft.name || viewData.name}
+            text={draft?.name || viewData?.name}
             className="max-w-[200px] font-black tracking-tight text-foreground/90"
           />
         </div>

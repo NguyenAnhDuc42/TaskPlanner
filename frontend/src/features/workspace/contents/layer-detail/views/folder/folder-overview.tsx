@@ -1,5 +1,5 @@
 import * as Icons from "lucide-react";
-import { DescriptionSection } from "../components/overview/description-section";
+import { DescriptionSection } from "../../components/overview/description-section";
 import { UniversalPicker } from "@/components/universal-picker";
 import {
   Popover,
@@ -7,17 +7,18 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 
-interface OverviewViewProps {
+interface FolderOverviewProps {
   viewData: any;
   draft: any;
   onChange: (updates: any) => void;
 }
 
-export function OverviewView({ viewData, draft, onChange }: OverviewViewProps) {
+export function FolderOverview({ viewData, draft, onChange }: FolderOverviewProps) {
   if (!viewData) return null;
 
-  const IconComponent = (Icons as any)[draft.icon] || Icons.LayoutGrid;
-  const entityColor = draft.color;
+  // Use optional chaining to prevent crash when draft is null on first load
+  const IconComponent = (Icons as any)[draft?.icon || viewData?.icon] || Icons.LayoutGrid;
+  const entityColor = draft?.color || viewData?.color;
 
   return (
     <div className="h-full overflow-y-auto no-scrollbar bg-background selection:bg-primary/20">
@@ -43,15 +44,15 @@ export function OverviewView({ viewData, draft, onChange }: OverviewViewProps) {
               align="start"
             >
               <UniversalPicker
-                selectedIcon={draft.icon}
-                selectedColor={draft.color}
+                selectedIcon={draft?.icon || viewData?.icon}
+                selectedColor={draft?.color || viewData?.color}
                 onSelect={(icon, color) => onChange({ icon, color })}
               />
             </PopoverContent>
           </Popover>
 
           <input
-            value={draft.name}
+            value={draft?.name ?? viewData?.name ?? ""}
             onChange={(e) => onChange({ name: e.target.value })}
             className="flex-1 bg-transparent border-none outline-none text-4xl font-black tracking-tight text-foreground placeholder:text-muted-foreground/10"
             placeholder="Untitled"

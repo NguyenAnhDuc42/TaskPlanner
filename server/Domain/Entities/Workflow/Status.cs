@@ -41,6 +41,38 @@ public class Status : TenantEntity
         };
     }
 
+    public static List<Status> CreateSpaceStarterSet(Guid projectWorkspaceId, Guid workflowId, Guid creatorId)
+    {
+        var start = FractionalIndex.Start();
+        var key2 = FractionalIndex.After(start);
+        var key3 = FractionalIndex.After(key2);
+        var key4 = FractionalIndex.After(key3);
+
+        return new List<Status>
+        {
+            new Status(Guid.NewGuid(), projectWorkspaceId, workflowId, "Planned", "#808080", StatusCategory.NotStarted, creatorId, start),
+            new Status(Guid.NewGuid(), projectWorkspaceId, workflowId, "In Progress", "#1e90ff", StatusCategory.Active, creatorId, key2),
+            new Status(Guid.NewGuid(), projectWorkspaceId, workflowId, "Paused", "#ff8c00", StatusCategory.Active, creatorId, key3),
+            new Status(Guid.NewGuid(), projectWorkspaceId, workflowId, "Completed", "#008000", StatusCategory.Done, creatorId, key4)
+        };
+    }
+
+    public static List<Status> CreateFolderStarterSet(Guid projectWorkspaceId, Guid workflowId, Guid creatorId)
+    {
+        var start = FractionalIndex.Start();
+        var key2 = FractionalIndex.After(start);
+        var key3 = FractionalIndex.After(key2);
+        var key4 = FractionalIndex.After(key3);
+
+        return new List<Status>
+        {
+            new Status(Guid.NewGuid(), projectWorkspaceId, workflowId, "Backlog", "#a9a9a9", StatusCategory.NotStarted, creatorId, start),
+            new Status(Guid.NewGuid(), projectWorkspaceId, workflowId, "Todo", "#808080", StatusCategory.NotStarted, creatorId, key2),
+            new Status(Guid.NewGuid(), projectWorkspaceId, workflowId, "In Progress", "#1e90ff", StatusCategory.Active, creatorId, key3),
+            new Status(Guid.NewGuid(), projectWorkspaceId, workflowId, "Done", "#008000", StatusCategory.Done, creatorId, key4)
+        };
+    }
+
     public void UpdateName(string name)
     {
         Name = name;

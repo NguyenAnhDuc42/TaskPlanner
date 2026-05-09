@@ -88,15 +88,6 @@ public class Workflow : TenantEntity
 
     public void ValidateIntegrity()
     {
-        var categories = Statuses.Select(s => s.Category).Distinct().ToList();
-        var requiredCategories = Enum.GetValues<Domain.Enums.StatusCategory>();
-
-        foreach (var category in requiredCategories)
-        {
-            if (!categories.Contains(category))
-            {
-                throw new Domain.Exceptions.BusinessRuleException($"Workflow '{Name}' must have at least one status in the '{category}' category.");
-            }
-        }
+        // Rule removed to allow different layers (like Folders) to have workflows with only specific categories.
     }
 }

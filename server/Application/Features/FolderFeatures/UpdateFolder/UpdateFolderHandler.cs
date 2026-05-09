@@ -36,8 +36,7 @@ public class UpdateFolderHandler(IDataBase db, WorkspaceContext context, IRealti
         if (request.StatusId.HasValue)
             folder.UpdateStatus(request.StatusId.Value);
 
-        if (request.IsInheritingWorkflow.HasValue)
-            folder.UpdateInheritWorkflow(request.IsInheritingWorkflow.Value);
+
 
         await db.SaveChangesAsync(ct);
 

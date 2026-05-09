@@ -17,7 +17,7 @@ public class GetFolderDetailHandler(IDataBase db, WorkspaceContext workspaceCont
                 f.id AS Id, f.project_space_id AS ProjectSpaceId, f.name AS Name, 
                 f.custom_color AS Color, f.custom_icon AS Icon, f.is_private AS IsPrivate, 
                 f.is_archived AS IsArchived, 
-                f.is_inheriting_workflow AS IsInheritingWorkflow,
+
                 (SELECT wf.id FROM workflows wf WHERE wf.project_space_id = f.project_space_id AND wf.project_folder_id IS NULL LIMIT 1) AS ParentWorkflowId,
                 (SELECT wf.id FROM workflows wf WHERE wf.project_folder_id = f.id LIMIT 1) AS WorkflowId,
                 f.status_id AS StatusId, 

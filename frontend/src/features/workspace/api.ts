@@ -29,7 +29,7 @@ export const workspaceQueryOptions = {
       return data;
     },
     enabled: !!workspaceId,
-    staleTime: 1000 * 60 * 10,
+    staleTime: 0, // Always refetch to keep multi-user in sync
   }),
   members: (workspaceId: string) => ({
     queryKey: [...workspaceKeys.all, "members", workspaceId],

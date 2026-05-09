@@ -31,13 +31,6 @@ public class WorkspaceService(
                 if (workspace == null || workspace.IsInitialized)
                     return;
 
-                // 1. Create Workflow & Statuses
-                var workflow = Workflow.Create(workspace.Id, "Default Workflow", "", creatorId);
-                await db.Workflows.AddAsync(workflow);
-                
-                var statuses = Status.CreateStarterSet(workspace.Id, workflow.Id, creatorId);
-                await db.Statuses.AddRangeAsync(statuses);
-
                 // 2. Create Default Space
                 var spaceDoc = Document.Create(workspace.Id, "Personal Space", creatorId);
                 await db.Documents.AddAsync(spaceDoc);
@@ -45,6 +38,13 @@ public class WorkspaceService(
                 var space = ProjectSpace.CreateDefault(workspace.Id, spaceDoc.Id, creatorId);
                 await db.Spaces.AddAsync(space);
                 
+                // Create Workflow for the Default Space!
+                var spaceWorkflow = Workflow.Create(workspace.Id, "Personal Space Workflow", "", creatorId, projectSpaceId: space.Id);
+                await db.Workflows.AddAsync(spaceWorkflow);
+                
+                var spaceStatuses = Status.CreateSpaceStarterSet(workspace.Id, spaceWorkflow.Id, creatorId);
+                await db.Statuses.AddRangeAsync(spaceStatuses);
+
                 db.ViewDefinitions.AddRange(
                     ViewDefinition.CreateDefaults(workspace.Id, space.Id, null, creatorId));
 
@@ -59,7 +59,7 @@ public class WorkspaceService(
                     ViewDefinition.CreateDefaults(workspace.Id, space.Id, folder.Id, creatorId));
 
                 // 4. Create Starter Tasks
-                var firstStatus = statuses.First(s => s.Category == StatusCategory.NotStarted);
+                var firstStatus = spaceStatuses.First(s => s.Category == StatusCategory.NotStarted);
                 
                 var exploreDoc = Document.Create(workspace.Id, "Explore the hierarchy", creatorId);
                 var standaloneDoc = Document.Create(workspace.Id, "Standalone Task", creatorId);

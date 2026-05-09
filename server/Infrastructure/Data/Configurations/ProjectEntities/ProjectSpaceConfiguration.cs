@@ -53,9 +53,7 @@ public class ProjectSpaceConfiguration : TenantEntityConfiguration<ProjectSpace>
         builder.Property(s => s.IsArchived)
             .HasColumnName("is_archived");
 
-        builder.Property(w => w.IsInheritingWorkflow)
-            .HasColumnName("is_inheriting_workflow")
-            .HasDefaultValue(true);
+
 
         builder.Property(w => w.StatusId)
             .HasColumnName("status_id");

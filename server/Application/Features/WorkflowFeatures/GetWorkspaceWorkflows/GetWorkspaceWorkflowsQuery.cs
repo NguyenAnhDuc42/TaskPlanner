@@ -9,8 +9,8 @@ public record WorkflowDto
 {
     public Guid Id { get; init; }
     public string Name { get; init; } = null!;
-    public Guid? SpaceId { get; init; }
-    public Guid? FolderId { get; init; }
+    public Guid? ProjectSpaceId { get; init; }
+    public Guid? ProjectFolderId { get; init; }
     public List<StatusDto> Statuses { get; init; } = new();
 }
 

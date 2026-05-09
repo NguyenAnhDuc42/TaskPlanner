@@ -10,6 +10,5 @@ public record UpdateFolderCommand(
     bool? IsPrivate,
     DateTimeOffset? StartDate = null,
     DateTimeOffset? DueDate = null,
-    Guid? StatusId = null,
-    bool? IsInheritingWorkflow = null
+    Guid? StatusId = null
 ) : ICommandRequest, IAuthorizedWorkspaceRequest;

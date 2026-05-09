@@ -18,7 +18,7 @@ public class GetSpaceDetailHandler(IDataBase db, WorkspaceContext workspaceConte
                 s.id AS Id, s.project_workspace_id AS ProjectWorkspaceId, s.name AS Name, 
                 s.custom_color AS Color, s.custom_icon AS Icon, 
                 s.is_private AS IsPrivate, s.is_archived AS IsArchived, 
-                s.is_inheriting_workflow AS IsInheritingWorkflow,
+
                 (SELECT wf.id FROM workflows wf WHERE wf.project_workspace_id = s.project_workspace_id AND wf.project_space_id IS NULL AND wf.project_folder_id IS NULL LIMIT 1) AS ParentWorkflowId,
                 (SELECT wf.id FROM workflows wf WHERE wf.project_space_id = s.id AND wf.project_folder_id IS NULL LIMIT 1) AS WorkflowId,
                 s.status_id AS StatusId, 

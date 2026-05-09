@@ -59,9 +59,7 @@ public class ProjectFolderConfiguration : TenantEntityConfiguration<ProjectFolde
             .HasColumnName("custom_icon")
             .HasMaxLength(64);
 
-        builder.Property(f => f.IsInheritingWorkflow)
-            .HasColumnName("is_inheriting_workflow")
-            .HasDefaultValue(true);
+
 
         builder.Property(f => f.StatusId)
             .HasColumnName("status_id");

@@ -13,7 +13,7 @@ public class GetWorkspaceWorkflowsHandler(IDataBase db, WorkspaceContext workspa
     {
         const string sql = @"
             SELECT 
-                w.id AS Id, w.name AS Name, w.project_space_id AS SpaceId, w.project_folder_id AS FolderId,
+                w.id AS Id, w.name AS Name, w.project_space_id AS ProjectSpaceId, w.project_folder_id AS ProjectFolderId,
                 s.id AS Id, s.name AS Name, s.color AS Color, s.category AS Category
             FROM workflows w
             LEFT JOIN statuses s ON w.id = s.workflow_id

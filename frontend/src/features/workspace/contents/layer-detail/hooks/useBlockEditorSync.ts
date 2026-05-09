@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef } from "react";
-import { useDocumentBlocks, useUpdateDocumentBlocks } from "../layer-api";
+import { useDocumentBlocks, useUpdateDocumentBlocks } from "../views/document-api";
 import type { DocumentBlockDto, DocumentBlockValue, TiptapDoc } from "../types/document-types";
 import { BlockType } from "@/types/block-type";
 

@@ -1,5 +1,5 @@
 import * as Icons from "lucide-react";
-import { DescriptionSection } from "../components/overview/description-section";
+import { DescriptionSection } from "../../components/overview/description-section";
 import { UniversalPicker } from "@/components/universal-picker";
 import {
   Popover,
@@ -16,8 +16,10 @@ import {
   Layers, 
   Flag, 
   Box,
-  ChevronRight
+  ChevronRight,
+  Plus
 } from "lucide-react";
+
 
 interface TaskDetailViewProps {
   viewData: any;
@@ -30,11 +32,12 @@ export function TaskDetailView({ viewData, draft, onChange }: TaskDetailViewProp
   
   if (!viewData) return null;
 
-  const IconComponent = (Icons as any)[draft.icon] || Icons.CheckCircle2;
-  const entityColor = draft.color || "var(--primary)";
+  // Use optional chaining to prevent crash when draft is null on first load
+  const IconComponent = (Icons as any)[draft?.icon || viewData?.icon] || Icons.CheckCircle2;
+  const entityColor = draft?.color || viewData?.color || "var(--primary)";
 
   // Resolve status and parent info
-  const currentStatus = registry.statusMap[draft.statusId] || viewData.status;
+  const currentStatus = registry.statusMap[draft?.statusId] || viewData.status;
   const parentName = viewData.parentFolderName || viewData.parentSpaceName || "Unknown";
 
   return (
@@ -71,15 +74,15 @@ export function TaskDetailView({ viewData, draft, onChange }: TaskDetailViewProp
               align="start"
             >
               <UniversalPicker
-                selectedIcon={draft.icon}
-                selectedColor={draft.color}
+                selectedIcon={draft?.icon || viewData?.icon}
+                selectedColor={draft?.color || viewData?.color}
                 onSelect={(icon, color) => onChange({ icon, color })}
               />
             </PopoverContent>
           </Popover>
 
           <textarea
-            value={draft.name}
+            value={draft?.name ?? viewData?.name ?? ""}
             onChange={(e) => onChange({ name: e.target.value })}
             className="flex-1 bg-transparent border-none outline-none text-4xl font-black tracking-tight text-foreground placeholder:text-muted-foreground/10 resize-none min-h-[48px] overflow-hidden"
             placeholder="What needs to be done?"
@@ -113,11 +116,11 @@ export function TaskDetailView({ viewData, draft, onChange }: TaskDetailViewProp
             <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-background/50 border border-border/10 text-[10px] font-bold text-foreground/70 hover:bg-background transition-colors cursor-pointer w-fit">
               <div className={cn(
                 "h-1.5 w-1.5 rounded-full",
-                draft.priority >= 4 ? "bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.5)]" :
-                draft.priority >= 3 ? "bg-amber-500" :
-                draft.priority >= 2 ? "bg-blue-500" : "bg-slate-400"
+                (draft?.priority ?? viewData?.priority ?? 0) >= 4 ? "bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.5)]" :
+                (draft?.priority ?? viewData?.priority ?? 0) >= 3 ? "bg-amber-500" :
+                (draft?.priority ?? viewData?.priority ?? 0) >= 2 ? "bg-blue-500" : "bg-slate-400"
               )} />
-              {draft.priority === 4 ? "Urgent" : draft.priority === 3 ? "High" : draft.priority === 2 ? "Medium" : "Low"}
+              {(draft?.priority ?? viewData?.priority) === 4 ? "Urgent" : (draft?.priority ?? viewData?.priority) === 3 ? "High" : (draft?.priority ?? viewData?.priority) === 2 ? "Medium" : "Low"}
             </div>
           </div>
 
@@ -153,7 +156,7 @@ export function TaskDetailView({ viewData, draft, onChange }: TaskDetailViewProp
               Schedule
             </label>
             <div className="text-[10px] font-black font-mono tracking-tight text-foreground/80 flex items-center gap-1.5 cursor-pointer hover:text-primary transition-colors">
-              {draft.dueDate ? format(new Date(draft.dueDate), "MMM dd, yyyy") : "No Due Date"}
+              {draft?.dueDate ? format(new Date(draft.dueDate), "MMM dd, yyyy") : "No Due Date"}
             </div>
           </div>
         </div>
@@ -174,8 +177,4 @@ export function TaskDetailView({ viewData, draft, onChange }: TaskDetailViewProp
       </div>
     </div>
   );
-}
-
-function Plus({ className }: { className?: string }) {
-  return <Icons.Plus className={className} />;
 }

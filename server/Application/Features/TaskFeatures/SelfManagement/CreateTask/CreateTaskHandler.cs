@@ -27,7 +27,7 @@ public class CreateTaskHandler(IDataBase db, WorkspaceContext context) : IComman
                 _ => FractionalIndex.Start()
             };
 
-            var statusId = await ResolveStatusId(ancestors.ProjectWorkspaceId, request.StatusId);
+            var statusId = await ResolveStatusId(ancestors.ProjectWorkspaceId, ancestors.ProjectSpaceId, request.StatusId);
 
             var slug = SlugHelper.GenerateSlug(request.Name);
 
@@ -100,7 +100,7 @@ public class CreateTaskHandler(IDataBase db, WorkspaceContext context) : IComman
         return maxKey is null ? FractionalIndex.Start() : FractionalIndex.After(maxKey);
     }
 
-    private async Task<Guid?> ResolveStatusId(Guid workspaceId, Guid? requestedStatusId)
+    private async Task<Guid?> ResolveStatusId(Guid workspaceId, Guid? spaceId, Guid? requestedStatusId)
     {
         if (requestedStatusId.HasValue)
         {
@@ -113,8 +113,10 @@ public class CreateTaskHandler(IDataBase db, WorkspaceContext context) : IComman
 
         return await db.Connection.QuerySingleOrDefaultAsync<Guid?>(@"
             SELECT s.id FROM statuses s JOIN workflows w ON s.workflow_id = w.id
-            WHERE w.project_workspace_id = @WorkspaceId AND s.deleted_at IS NULL
-            ORDER BY s.created_at ASC LIMIT 1", new { WorkspaceId = workspaceId });
+            WHERE (w.project_space_id = @SpaceId OR (w.project_space_id IS NULL AND w.project_workspace_id = @WorkspaceId)) 
+              AND s.deleted_at IS NULL
+            ORDER BY w.project_space_id DESC, s.created_at ASC LIMIT 1", 
+            new { SpaceId = spaceId, WorkspaceId = workspaceId });
     }
 
     private async Task<List<AssigneeDto>> HandleAssignments(ProjectTask task, Guid workspaceId, List<Guid> userIds, CancellationToken ct)

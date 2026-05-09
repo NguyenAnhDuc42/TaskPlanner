@@ -1,16 +1,16 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { LayerDetailIndex } from "@/features/workspace/contents/layer-detail/layer-detail-index";
-
-import { entityQueryOptions } from "@/features/workspace/contents/layer-detail/layer-api";
-import { EntityLayerType } from "@/types/entity-layer-type";
+import { createFileRoute, useParams } from "@tanstack/react-router";
+import { taskQueryOptions } from "@/features/workspace/contents/layer-detail/views/task/task-api";
+import { TaskView } from "@/features/workspace/contents/layer-detail/views/task/task-view";
 
 export const Route = createFileRoute("/workspaces/$workspaceId/tasks/$taskId")({
   loader: ({ context: { queryClient }, params: { workspaceId, taskId } }) => {
-    queryClient.ensureQueryData(entityQueryOptions.detail(workspaceId, taskId, EntityLayerType.ProjectTask));
+    queryClient.ensureQueryData(taskQueryOptions.detail(workspaceId, taskId));
   },
   component: TaskContent,
 });
 
 function TaskContent() {
-  return <LayerDetailIndex />;
+  const params = useParams({ strict: false }) as any;
+  const { workspaceId, taskId } = params;
+  return <TaskView workspaceId={workspaceId} taskId={taskId} />;
 }
