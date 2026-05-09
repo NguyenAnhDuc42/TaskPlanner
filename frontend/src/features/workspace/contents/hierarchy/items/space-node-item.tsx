@@ -6,7 +6,7 @@ import { useWorkspace } from "@/features/workspace/context/workspace-provider";
 import { cn } from "@/lib/utils";
 import { Collapsible, CollapsibleContent } from "@/components/ui/collapsible";
 import {
-  EntityContextMenu,
+  SpaceContextMenu,
   EntityMenuTrigger,
 } from "../hierarchy-components/entity-context-menu";
 import { FadeTruncate } from "@/components/fade-truncate";
@@ -89,10 +89,9 @@ export const SpaceNodeItem = React.memo(function SpaceNodeItem({
           orderKey: space.orderKey,
         }}
       >
-        <EntityContextMenu
-          entityId={space.id}
-          entityType={EntityLayerConst.ProjectSpace}
-          entityName={space.name}
+        <SpaceContextMenu
+          spaceId={space.id}
+          spaceName={space.name}
         >
           <div
             className={cn(
@@ -163,7 +162,7 @@ export const SpaceNodeItem = React.memo(function SpaceNodeItem({
               </div>
             </div>
           </div>
-        </EntityContextMenu>
+        </SpaceContextMenu>
       </SortableItem>
 
       <CollapsibleContent className="overflow-hidden">

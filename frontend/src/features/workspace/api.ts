@@ -16,16 +16,20 @@ export const workspaceQueryOptions = {
   detail: (workspaceId: string) => ({
     queryKey: [...workspaceKeys.all, "detail", workspaceId],
     queryFn: async () => {
-      const { data } = await api.get<WorkspaceSecurityContext>(`/workspaces/${workspaceId}/me/permissions`);
+      const { data } = await api.get<WorkspaceSecurityContext>(
+        `/workspaces/${workspaceId}/me/permissions`,
+      );
       return data;
     },
     enabled: !!workspaceId,
     staleTime: 1000 * 60 * 5, // 5 minutes
   }),
-  workflows: (workspaceId: string) => ({
-    queryKey: [...workspaceKeys.all, "workflows", workspaceId],
+  workflows: (workspaceId: string, layerId?: string, layerType?: string) => ({
+    queryKey: [...workspaceKeys.all, "workflows", workspaceId, layerId, layerType],
     queryFn: async () => {
-      const { data } = await api.get<any[]>(`/workflows`);
+      const { data } = await api.get<any[]>("/workflows", {
+        params: { layerId, layerType },
+      });
       return data;
     },
     enabled: !!workspaceId,
@@ -34,7 +38,9 @@ export const workspaceQueryOptions = {
   members: (workspaceId: string) => ({
     queryKey: [...workspaceKeys.all, "members", workspaceId],
     queryFn: async () => {
-      const { data } = await api.get(`/workspaces/${workspaceId}/members?pageSize=1000`);
+      const { data } = await api.get(
+        `/workspaces/${workspaceId}/members?pageSize=1000`,
+      );
       return data;
     },
     enabled: !!workspaceId,
@@ -46,8 +52,8 @@ export function useWorkspaceDetail(workspaceId: string) {
   return useQuery(workspaceQueryOptions.detail(workspaceId));
 }
 
-export function useWorkspaceWorkflows(workspaceId: string) {
-  return useQuery(workspaceQueryOptions.workflows(workspaceId));
+export function useWorkspaceWorkflows(workspaceId: string, layerId?: string, layerType?: string) {
+  return useQuery(workspaceQueryOptions.workflows(workspaceId, layerId, layerType));
 }
 
 export function useWorkspaceMembers(workspaceId: string) {

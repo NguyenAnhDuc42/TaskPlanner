@@ -131,6 +131,50 @@ export function useCreateTask(workspaceId: string) {
   });
 }
 
+// --- Delete Mutations ---
+
+export function useDeleteSpace(workspaceId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (spaceId: string) => 
+      api.delete(`/spaces/${spaceId}`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: hierarchyKeys.detail(workspaceId),
+      });
+    },
+  });
+}
+
+export function useDeleteFolder(workspaceId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (folderId: string) => 
+      api.delete(`/folders/${folderId}`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: hierarchyKeys.detail(workspaceId),
+      });
+    },
+  });
+}
+
+export function useDeleteTask(workspaceId: string, parentId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (taskId: string) => 
+      api.delete(`/tasks/${taskId}`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: hierarchyKeys.nodeTasks(workspaceId, parentId),
+      });
+      queryClient.invalidateQueries({
+        queryKey: hierarchyKeys.detail(workspaceId),
+      });
+    },
+  });
+}
+
 // --- Movement Logic (PREMIUM OPTIMISTIC) ---
 
 export function useMoveItem(workspaceId: string) {
@@ -139,7 +183,7 @@ export function useMoveItem(workspaceId: string) {
     mutationFn: (data: MoveItemRequest) =>
       api.post(`/workspaces/${workspaceId}/hierarchy/move`, data),
     onMutate: async (moveRequest) => {
-      const { itemId, itemType, targetParentId, nextItemOrderKey, newOrderKey } = moveRequest;
+      const { itemId, itemType, nextItemOrderKey, newOrderKey } = moveRequest;
 
       await queryClient.cancelQueries({ queryKey: hierarchyKeys.detail(workspaceId) });
       await queryClient.cancelQueries({ queryKey: hierarchyKeys.all });

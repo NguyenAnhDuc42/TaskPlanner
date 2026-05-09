@@ -8,6 +8,7 @@ import { AttachmentSection } from "../../components/overview/attachment-section"
 import type { MainViewTab, ItemsViewMode } from "../../layer-detail-types";
 import { cn } from "@/lib/utils";
 import { useSpaceDetail, useUpdateSpace } from "./space-api";
+import { useWorkspaceWorkflows } from "@/features/workspace/api";
 import { useDebounce } from "@/hooks/use-debounce";
 import { EntityLayerType } from "@/types/entity-layer-type";
 import { useSpaceRealtime } from "./space-realtime";
@@ -22,6 +23,7 @@ export type RightPanelType = "properties" | "attachments" | null;
 export function SpaceView({ workspaceId, spaceId }: SpaceViewProps) {
   const { data: viewData, isLoading, isError } = useSpaceDetail(workspaceId, spaceId);
   useSpaceRealtime(workspaceId);
+  useWorkspaceWorkflows(workspaceId);
   const [activeTab, setActiveTab] = useState<MainViewTab>("overview");
   const [viewMode, setViewMode] = useState<ItemsViewMode>("list");
   const [rightPanelType, setRightPanelType] = useState<RightPanelType>("properties");
@@ -79,10 +81,7 @@ export function SpaceView({ workspaceId, spaceId }: SpaceViewProps) {
     if (debouncedDraft.icon !== st.icon) updates.icon = debouncedDraft.icon;
     if (debouncedDraft.color !== st.color) updates.color = debouncedDraft.color;
     if (debouncedDraft.description !== st.description) updates.description = debouncedDraft.description;
-    if (debouncedDraft.statusId !== st.statusId) updates.statusId = debouncedDraft.statusId;
     if (debouncedDraft.isPrivate !== st.isPrivate) updates.isPrivate = debouncedDraft.isPrivate;
-    if (debouncedDraft.startDate !== st.startDate) updates.startDate = debouncedDraft.startDate;
-    if (debouncedDraft.dueDate !== st.dueDate) updates.dueDate = debouncedDraft.dueDate;
 
     if (Object.keys(updates).length > 0) {
       performUpdate(updates, debouncedDraft);

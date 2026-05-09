@@ -6,7 +6,7 @@ import { useWorkspace } from "@/features/workspace/context/workspace-provider";
 import { cn } from "@/lib/utils";
 import { Collapsible, CollapsibleContent } from "@/components/ui/collapsible";
 import {
-  EntityContextMenu,
+  FolderContextMenu,
   EntityMenuTrigger,
 } from "../hierarchy-components/entity-context-menu";
 import { SortableItem } from "../dnd/sortable-item";
@@ -53,10 +53,9 @@ export const FolderNodeItem = React.memo(function FolderNodeItem({
           spaceId: spaceId,
         }}
       >
-        <EntityContextMenu
-          entityId={folder.id}
-          entityType={EntityLayerConst.ProjectFolder}
-          entityName={folder.name}
+        <FolderContextMenu
+          folderId={folder.id}
+          folderName={folder.name}
           spaceId={spaceId}
         >
           <div
@@ -128,7 +127,7 @@ export const FolderNodeItem = React.memo(function FolderNodeItem({
               </div>
             </div>
           </div>
-        </EntityContextMenu>
+        </FolderContextMenu>
       </SortableItem>
       <CollapsibleContent className="overflow-hidden">
         <div className="ml-3.5 pl-2 border-l border-border flex flex-col">

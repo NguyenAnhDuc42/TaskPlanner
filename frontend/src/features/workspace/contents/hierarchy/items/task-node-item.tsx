@@ -4,7 +4,7 @@ import { useWorkspace } from "@/features/workspace/context/workspace-provider";
 import { cn } from "@/lib/utils";
 import { CheckSquare, MoreHorizontal } from "lucide-react";
 import {
-  EntityContextMenu,
+  TaskContextMenu,
   EntityMenuTrigger,
 } from "../hierarchy-components/entity-context-menu";
 import { SortableItem } from "../dnd/sortable-item";
@@ -47,11 +47,10 @@ export const TaskNodeItem = React.memo(function TaskNodeItem({
         spaceId,
       }}
     >
-      <EntityContextMenu
-        entityId={task.id}
-        entityType={EntityLayerConst.ProjectTask}
-        entityName={task.name}
-        spaceId={spaceId}
+      <TaskContextMenu
+        taskId={task.id}
+        taskName={task.name}
+        parentId={parentId}
       >
         <div
           className={cn(
@@ -87,7 +86,7 @@ export const TaskNodeItem = React.memo(function TaskNodeItem({
             </div>
           </div>
         </div>
-      </EntityContextMenu>
+      </TaskContextMenu>
     </SortableItem>
   );
 });

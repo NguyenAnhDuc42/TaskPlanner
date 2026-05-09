@@ -53,23 +53,5 @@ public class ProjectSpaceConfiguration : TenantEntityConfiguration<ProjectSpace>
         builder.Property(s => s.IsArchived)
             .HasColumnName("is_archived");
 
-
-
-        builder.Property(w => w.StatusId)
-            .HasColumnName("status_id");
-
-        builder.Property(s => s.StartDate)
-            .HasColumnName("start_date");
-
-        builder.Property(s => s.DueDate)
-            .HasColumnName("due_date");
-
-        // Foreign Keys
-        builder.HasOne<Status>()
-            .WithMany()
-            .HasForeignKey(w => w.StatusId)
-            .OnDelete(DeleteBehavior.SetNull);
-
-        builder.HasIndex(w => w.StatusId);
     }
 }

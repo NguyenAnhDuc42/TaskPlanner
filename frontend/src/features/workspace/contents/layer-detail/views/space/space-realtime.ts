@@ -55,12 +55,28 @@ export function useSpaceRealtime(workspaceId: string) {
       queryClient.invalidateQueries({ queryKey: hierarchyKeys.all });
     };
 
+    const onSpaceCreated = () => {
+      queryClient.invalidateQueries({
+        queryKey: hierarchyKeys.detail(workspaceId),
+      });
+    };
+
+    const onSpaceDeleting = () => {
+      queryClient.invalidateQueries({
+        queryKey: hierarchyKeys.detail(workspaceId),
+      });
+    };
+
     signalRService.on("SpaceUpdated", onSpaceUpdated);
     signalRService.on("HierarchyChanged", onHierarchyChanged);
+    signalRService.on("SpaceCreated", onSpaceCreated);
+    signalRService.on("SpaceDeleting", onSpaceDeleting);
 
     return () => {
       signalRService.off("SpaceUpdated", onSpaceUpdated);
       signalRService.off("HierarchyChanged", onHierarchyChanged);
+      signalRService.off("SpaceCreated", onSpaceCreated);
+      signalRService.off("SpaceDeleting", onSpaceDeleting);
     };
   }, [workspaceId, queryClient]);
 }

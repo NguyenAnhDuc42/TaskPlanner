@@ -37,14 +37,7 @@ public class UpdateSpaceHandler(IDataBase db, WorkspaceContext context, IRealtim
         if (request.IsPrivate.HasValue) 
             space.UpdatePrivate(request.IsPrivate.Value);
 
-        if (request.StartDate.HasValue)
-            space.UpdateStartDate(request.StartDate.Value);
 
-        if (request.DueDate.HasValue)
-            space.UpdateDueDate(request.DueDate.Value);
-
-        if (request.StatusId.HasValue)
-            space.UpdateStatus(request.StatusId.Value);
 
 
 
@@ -56,10 +49,7 @@ public class UpdateSpaceHandler(IDataBase db, WorkspaceContext context, IRealtim
             Name = space.Name,
             Icon = space.Icon,
             Color = space.Color,
-            StatusId = space.StatusId,
-            IsPrivate = space.IsPrivate,
-            StartDate = space.StartDate,
-            DueDate = space.DueDate
+            IsPrivate = space.IsPrivate
         }, ct);
 
         return Result.Success();

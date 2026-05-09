@@ -10,9 +10,9 @@ namespace Api.Controllers;
 public class WorkflowsController(IHandler handler) : ControllerBase
 {
     [HttpGet]
-    public async Task<IActionResult> GetWorkspaceWorkflows(CancellationToken ct)
+    public async Task<IActionResult> GetWorkspaceWorkflows([FromQuery] Guid? layerId, [FromQuery] string? layerType, CancellationToken ct)
     {
-        var query = new GetWorkspaceWorkflowsQuery();
+        var query = new GetWorkspaceWorkflowsQuery(layerId, layerType);
         var result = await handler.QueryAsync<GetWorkspaceWorkflowsQuery, List<WorkflowDto>>(query, ct);
         return result.ToActionResult();
     }

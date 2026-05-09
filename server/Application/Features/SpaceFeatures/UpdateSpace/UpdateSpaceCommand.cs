@@ -10,8 +10,5 @@ public record UpdateSpaceCommand(
     string? Name,
     string? Color,
     string? Icon,
-    bool? IsPrivate,
-    DateTimeOffset? StartDate = null,
-    DateTimeOffset? DueDate = null,
-    Guid? StatusId = null
+    bool? IsPrivate
 ) : ICommandRequest, IAuthorizedWorkspaceRequest;

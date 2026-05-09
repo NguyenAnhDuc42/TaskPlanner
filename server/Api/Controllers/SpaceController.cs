@@ -40,8 +40,7 @@ namespace Api.Controllers
                 Name: request.Name,
                 Color: request.Color,
                 Icon: request.Icon,
-                IsPrivate: request.IsPrivate,
-                StatusId: request.StatusId
+                IsPrivate: request.IsPrivate
             );
 
             var result = await _handler.SendAsync(command, cancellationToken);
@@ -61,7 +60,6 @@ namespace Api.Controllers
         string? Name,
         string? Color,
         string? Icon,
-        bool? IsPrivate,
-        Guid? StatusId
+        bool? IsPrivate
     );
 }

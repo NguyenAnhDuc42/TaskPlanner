@@ -12,10 +12,7 @@ public sealed class ProjectSpace : TenantEntity
     public bool IsPrivate { get; private set; } = true;
     public bool IsArchived { get; private set; }
     public string OrderKey { get; private set; } = null!;
-    public Guid? StatusId { get; private set; }
     public Guid DefaultDocumentId { get; private set; }
-    public DateTimeOffset? StartDate { get; private set; }
-    public DateTimeOffset? DueDate { get; private set; }
 
     private ProjectSpace() { }
 
@@ -118,30 +115,6 @@ public sealed class ProjectSpace : TenantEntity
         EnsureNotArchived();
         if (OrderKey == orderKey) return;
         OrderKey = orderKey;
-        UpdateTimestamp();
-    }
-
-    public void UpdateStatus(Guid? statusId)
-    {
-        EnsureNotArchived();
-        if (StatusId == statusId) return;
-        StatusId = statusId;
-        UpdateTimestamp();
-    }
-
-    public void UpdateStartDate(DateTimeOffset? startDate)
-    {
-        EnsureNotArchived();
-        if (StartDate == startDate) return;
-        StartDate = startDate;
-        UpdateTimestamp();
-    }
-
-    public void UpdateDueDate(DateTimeOffset? dueDate)
-    {
-        EnsureNotArchived();
-        if (DueDate == dueDate) return;
-        DueDate = dueDate;
         UpdateTimestamp();
     }
 

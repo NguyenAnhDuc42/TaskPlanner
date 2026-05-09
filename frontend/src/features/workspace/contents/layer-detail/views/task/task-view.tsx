@@ -7,6 +7,7 @@ import { AttachmentSection } from "../../components/overview/attachment-section"
 import type { MainViewTab, ItemsViewMode } from "../../layer-detail-types";
 import { cn } from "@/lib/utils";
 import { useTaskDetail, useUpdateTask } from "./task-api";
+import { useWorkspaceWorkflows } from "@/features/workspace/api";
 import { useDebounce } from "@/hooks/use-debounce";
 import { EntityLayerType } from "@/types/entity-layer-type";
 import { useTaskRealtime } from "./task-realtime";
@@ -21,6 +22,7 @@ export type RightPanelType = "properties" | "attachments" | null;
 export function TaskView({ workspaceId, taskId }: TaskViewProps) {
   const { data: viewData, isLoading, isError } = useTaskDetail(workspaceId, taskId);
   useTaskRealtime(workspaceId);
+  useWorkspaceWorkflows(workspaceId);
   const [activeTab, setActiveTab] = useState<MainViewTab>("overview");
   const [viewMode, setViewMode] = useState<ItemsViewMode>("list");
   const [rightPanelType, setRightPanelType] = useState<RightPanelType>("properties");

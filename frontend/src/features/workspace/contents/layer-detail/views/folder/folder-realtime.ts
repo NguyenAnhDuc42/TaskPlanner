@@ -53,10 +53,42 @@ export function useFolderRealtime(workspaceId: string) {
       }
     };
 
+    const onFolderCreated = (data: any) => {
+      const spaceId = data.spaceId || data.SpaceId;
+      if (spaceId) {
+        queryClient.invalidateQueries({
+          queryKey: hierarchyKeys.nodeFolders(workspaceId, spaceId),
+          exact: true,
+        });
+      }
+      // Also invalidate the main hierarchy tree
+      queryClient.invalidateQueries({
+        queryKey: hierarchyKeys.detail(workspaceId),
+      });
+    };
+
+    const onFolderDeleting = (data: any) => {
+      const spaceId = data.spaceId || data.SpaceId;
+      if (spaceId) {
+        queryClient.invalidateQueries({
+          queryKey: hierarchyKeys.nodeFolders(workspaceId, spaceId),
+          exact: true,
+        });
+      }
+      // Also invalidate the main hierarchy tree
+      queryClient.invalidateQueries({
+        queryKey: hierarchyKeys.detail(workspaceId),
+      });
+    };
+
     signalRService.on("FolderUpdated", onFolderUpdated);
+    signalRService.on("FolderCreated", onFolderCreated);
+    signalRService.on("FolderDeleting", onFolderDeleting);
 
     return () => {
       signalRService.off("FolderUpdated", onFolderUpdated);
+      signalRService.off("FolderCreated", onFolderCreated);
+      signalRService.off("FolderDeleting", onFolderDeleting);
     };
   }, [workspaceId, queryClient]);
 }

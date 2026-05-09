@@ -3,7 +3,7 @@ using Domain.Enums;
 
 namespace Application.Features.WorkflowFeatures;
 
-public record GetWorkspaceWorkflowsQuery() : IQueryRequest<List<WorkflowDto>>, IAuthorizedWorkspaceRequest;
+public record GetWorkspaceWorkflowsQuery(Guid? LayerId = null, string? LayerType = null) : IQueryRequest<List<WorkflowDto>>, IAuthorizedWorkspaceRequest;
 
 public record WorkflowDto
 {

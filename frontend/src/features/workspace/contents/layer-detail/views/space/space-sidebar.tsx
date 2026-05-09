@@ -8,9 +8,9 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState, useMemo } from "react";
-import { useWorkspace } from "@/features/workspace/context/workspace-provider";
 import { StatusBadge } from "@/components/status-badge";
 import type {  EnrichedSpaceDetailDto } from "./space-types";
+import { useWorkspaceWorkflows } from "@/features/workspace/api";
 
 interface SpaceSidebarProps {
   viewData: EnrichedSpaceDetailDto;
@@ -19,7 +19,7 @@ interface SpaceSidebarProps {
 }
 
 export function SpaceSidebar({ viewData, draft, onChange }: SpaceSidebarProps) {
-  const { registry } = useWorkspace();
+
   const [collapsed, setCollapsed] = useState({
     properties: false,
   });
@@ -31,26 +31,21 @@ export function SpaceSidebar({ viewData, draft, onChange }: SpaceSidebarProps) {
     setCollapsed(prev => ({ ...prev, [key]: !prev[key] }));
   };
 
-  const workflow = useMemo(() => {
-    const specificWf = registry.workflows.find((w: any) => w.projectSpaceId?.toLowerCase() === viewData.id?.toLowerCase() && !w.projectFolderId);
-    if (specificWf) return specificWf;
-
-    const wId = viewData.workflowId;
-    if (wId) return registry.workflows.find(w => w.id?.toLowerCase() === wId?.toLowerCase());
-    
-    return null;
-  }, [viewData.workflowId, viewData.id, registry.workflows]);
-
+  const { data: workflows = [] } = useWorkspaceWorkflows(viewData.projectWorkspaceId, viewData.id, "space");
+  const workflow = workflows[0];
   const statuses = workflow?.statuses || [];
+  
   const statusesByCategory = useMemo(() => {
-    const grouped: Record<string, any[]> = {};
-    statuses.forEach((status: any) => {
+    const grouped: Record<string, { id: string; name: string; color: string; category?: string }[]> = {};
+    statuses.forEach((status: { id: string; name: string; color: string; category?: string }) => {
       const cat = status.category || "Other";
       if (!grouped[cat]) grouped[cat] = [];
       grouped[cat].push(status);
     });
     return grouped;
   }, [statuses]);
+
+
 
   return (
     <div className="space-y-6">

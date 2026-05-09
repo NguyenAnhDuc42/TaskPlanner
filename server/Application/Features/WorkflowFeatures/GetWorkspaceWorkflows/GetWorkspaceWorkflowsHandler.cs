@@ -17,7 +17,11 @@ public class GetWorkspaceWorkflowsHandler(IDataBase db, WorkspaceContext workspa
                 s.id AS Id, s.name AS Name, s.color AS Color, s.category AS Category
             FROM workflows w
             LEFT JOIN statuses s ON w.id = s.workflow_id
-            WHERE w.project_workspace_id = @WorkspaceId AND w.deleted_at IS NULL AND (s.deleted_at IS NULL OR s.id IS NULL)
+            WHERE w.project_workspace_id = @WorkspaceId 
+              AND (@LayerId IS NULL OR 
+                  (@LayerType = 'space' AND w.project_space_id = @LayerId) OR 
+                  (@LayerType = 'folder' AND w.project_folder_id = @LayerId))
+              AND w.deleted_at IS NULL AND (s.deleted_at IS NULL OR s.id IS NULL)
             ORDER BY w.name, s.category, s.name;";
 
         var workflowDict = new Dictionary<Guid, WorkflowDto>();
@@ -39,7 +43,11 @@ public class GetWorkspaceWorkflowsHandler(IDataBase db, WorkspaceContext workspa
 
                 return workflowEntry;
             },
-            new { WorkspaceId = workspaceContext.workspaceId },
+            new { 
+                WorkspaceId = workspaceContext.workspaceId,
+                LayerId = request.LayerId,
+                LayerType = request.LayerType
+            },
             splitOn: "Id");
 
         return Result<List<WorkflowDto>>.Success(workflowDict.Values.ToList());

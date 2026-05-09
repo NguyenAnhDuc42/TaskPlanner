@@ -7,7 +7,6 @@ export function useBlockEditorSync(documentId: string) {
   const { data: blocks } = useDocumentBlocks(documentId);
   const { mutate: updateBlocks } = useUpdateDocumentBlocks();
   
-  const initialBlockIds = useRef<Set<string>>(new Set());
   const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Convert flat DB blocks to Tiptap JSON
