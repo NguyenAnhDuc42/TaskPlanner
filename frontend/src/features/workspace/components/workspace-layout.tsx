@@ -1,4 +1,4 @@
-import { Suspense } from "react";
+import { Suspense, useRef } from "react";
 import { useLocation, useNavigate, Outlet } from "@tanstack/react-router";
 import { useWorkspace } from "../context/workspace-provider";
 import { SidebarRegistry } from "./sidebar-registry";
@@ -15,6 +15,7 @@ export function WorkspaceLayout() {
   const navigate = useNavigate();
   const location = useLocation();
   const { workspaceId, ui, actions } = useWorkspace();
+  const hoverTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // ─── Context Panel (from router search) ──────────────
   const contextData = (location.search as any)?.contextPanel;
@@ -139,30 +140,49 @@ export function WorkspaceLayout() {
       </header>
 
       <div className="flex-1 flex gap-1 min-h-0 relative">
-        {/* ═══════════════════════════════════════════════════
-            COLUMN 1: Icon Rail
-        ═══════════════════════════════════════════════════ */}
-        <IconRail onSelectIcon={handleSelectIcon} onCommandCenter={handleCommandCenter} />
+        {/* Wrap Rail and Peek Frame to maintain hover state with timeout */}
+        <div 
+          className="relative h-full"
+          onMouseEnter={() => {
+            if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current);
+          }}
+          onMouseLeave={() => {
+            hoverTimeoutRef.current = setTimeout(() => {
+              actions.setHoveredIcon(null);
+            }, 300);
+          }}
+        >
+          {/* ═══════════════════════════════════════════════════
+              COLUMN 1: Icon Rail
+          ═══════════════════════════════════════════════════ */}
+          <IconRail onSelectIcon={handleSelectIcon} onCommandCenter={handleCommandCenter} />
 
-        {/* ─── Hover Peek Frame ───────────────────────────── */}
-        {ui.hoveredIcon && !ui.isInnerSidebarOpen && (
-          <div
-            className="absolute top-0 left-[44px] h-full w-64 z-50 animate-in fade-in slide-in-from-left-1 duration-200"
-            onMouseEnter={() => actions.setHoveredIcon(ui.hoveredIcon)}
-            onMouseLeave={() => actions.setHoveredIcon(null)}
-          >
-            <div className="h-full w-full bg-background border border-border rounded-md shadow-xl flex flex-col overflow-hidden">
-              <div className="flex items-center justify-between px-3 py-2 flex-shrink-0 border-b border-border bg-muted/30">
-                <h2 className="font-black text-[10px] uppercase tracking-widest text-foreground/70">
-                  Quick Look: {ui.hoveredIcon}
-                </h2>
-              </div>
-              <div className="flex-1 min-h-0 overflow-hidden p-1">
-                <SidebarRegistry page={ui.hoveredIcon} />
+          {/* ─── Hover Peek Frame ───────────────────────────── */}
+          {ui.hoveredIcon && !ui.isInnerSidebarOpen && (
+            <div
+              className="absolute top-0 left-[44px] h-full w-64 z-50 animate-in fade-in slide-in-from-left-1 duration-200"
+              onMouseEnter={() => {
+                if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current);
+              }}
+              onMouseLeave={() => {
+                hoverTimeoutRef.current = setTimeout(() => {
+                  actions.setHoveredIcon(null);
+                }, 300);
+              }}
+            >
+              <div className="h-full w-full bg-background border border-border rounded-md shadow-xl flex flex-col overflow-hidden">
+                <div className="flex items-center justify-between px-3 py-2 flex-shrink-0 border-b border-border bg-muted/30">
+                  <h2 className="font-black text-[10px] uppercase tracking-widest text-foreground/70">
+                    Quick Look: {ui.hoveredIcon}
+                  </h2>
+                </div>
+                <div className="flex-1 min-h-0 overflow-hidden p-1">
+                  <SidebarRegistry page={ui.hoveredIcon} />
+                </div>
               </div>
             </div>
-          </div>
-        )}
+          )}
+        </div>
 
         {/* ═══════════════════════════════════════════════════
             COLUMN 2: Inner Sidebar (resizable)

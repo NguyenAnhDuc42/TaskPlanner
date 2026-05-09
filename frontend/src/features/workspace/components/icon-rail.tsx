@@ -120,7 +120,6 @@ export function IconRail({ onSelectIcon, onCommandCenter }: IconRailProps) {
                         actions.setHoveredIcon(item.id);
                       }
                     }}
-                    onMouseLeave={() => actions.setHoveredIcon(null)}
                   >
                     <Icon className={cn("h-[18px] w-[18px]", isActive && "stroke-[2.5px]")} />
                   </Button>

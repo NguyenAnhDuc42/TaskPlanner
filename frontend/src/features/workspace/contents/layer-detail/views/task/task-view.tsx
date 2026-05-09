@@ -9,6 +9,7 @@ import { cn } from "@/lib/utils";
 import { useTaskDetail, useUpdateTask } from "./task-api";
 import { useDebounce } from "@/hooks/use-debounce";
 import { EntityLayerType } from "@/types/entity-layer-type";
+import { useTaskRealtime } from "./task-realtime";
 
 interface TaskViewProps {
   workspaceId: string;
@@ -19,12 +20,13 @@ export type RightPanelType = "properties" | "attachments" | null;
 
 export function TaskView({ workspaceId, taskId }: TaskViewProps) {
   const { data: viewData, isLoading, isError } = useTaskDetail(workspaceId, taskId);
+  useTaskRealtime(workspaceId);
   const [activeTab, setActiveTab] = useState<MainViewTab>("overview");
   const [viewMode, setViewMode] = useState<ItemsViewMode>("list");
   const [rightPanelType, setRightPanelType] = useState<RightPanelType>("properties");
 
   const [draft, setDraft] = useState<any>(null);
-  const isDirty = useRef(false);
+  const [isDirty, setIsDirty] = useState(false);
   const isSavingRef = useRef(false);
   const lastSentDraft = useRef<any>(null);
   const serverTruth = useRef<any>(null);
@@ -46,7 +48,7 @@ export function TaskView({ workspaceId, taskId }: TaskViewProps) {
     isSavingRef.current = false;
     const currentDraft = draftRef.current;
     if (lastSentDraft.current && JSON.stringify(lastSentDraft.current) === JSON.stringify(currentDraft)) {
-      isDirty.current = false;
+      setIsDirty(false);
     }
     serverTruth.current = { ...serverTruth.current, ...lastSentDraft.current };
   }, []);
@@ -64,10 +66,10 @@ export function TaskView({ workspaceId, taskId }: TaskViewProps) {
     [viewData?.id, updateTask]
   );
 
-  const debouncedDraft = useDebounce(draft, 300);
+  const debouncedDraft = useDebounce(draft, 3000);
 
   useEffect(() => {
-    if (!debouncedDraft || !isDirty.current) return;
+    if (!debouncedDraft || !isDirty) return;
     const st = serverTruth.current;
     if (!st) return;
 
@@ -87,7 +89,7 @@ export function TaskView({ workspaceId, taskId }: TaskViewProps) {
   }, [debouncedDraft, performUpdate]);
 
   const onDraftChange = (updates: Partial<any>) => {
-    isDirty.current = true;
+    setIsDirty(true);
     setDraft((prev: any) => ({ ...prev, ...updates }));
   };
 
@@ -105,7 +107,7 @@ export function TaskView({ workspaceId, taskId }: TaskViewProps) {
         viewData={viewData}
         draft={draft}
         isSaving={isSaving}
-        isDirty={isDirty.current}
+        isDirty={isDirty}
         activeTab={activeTab}
         viewMode={viewMode}
         onViewModeChange={setViewMode}
