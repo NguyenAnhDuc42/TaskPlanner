@@ -55,6 +55,13 @@ public class FoldersController : ControllerBase
         var result = await _handler.SendAsync(new DeleteFolderCommand(id), ct);
         return result.ToActionResult();
     }
+
+    [HttpGet("{id:guid}/items")]
+    public async Task<IActionResult> GetItems(Guid id, CancellationToken ct)
+    {
+        var result = await _handler.QueryAsync<GetFolderItemsQuery, Application.Features.ViewFeatures.TaskViewData>(new GetFolderItemsQuery(id), ct);
+        return result.ToActionResult();
+    }
 }
 
 public record UpdateFolderRequest(

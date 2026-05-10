@@ -2,7 +2,8 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { FolderHeader } from "./folder-header";
 import { LayerTabs } from "../../components/layer-tabs";
 import { FolderOverview } from "./folder-overview";
-import { ItemsView } from "../items-view";
+import { FolderBoardView } from "./folder-board-view";
+import { FolderListView } from "./folder-list-view";
 import { FolderSidebar } from "./folder-sidebar";
 import { AttachmentSection } from "../../components/overview/attachment-section";
 import type { MainViewTab, ItemsViewMode } from "../../layer-detail-types";
@@ -134,12 +135,11 @@ export function FolderView({ workspaceId, folderId }: FolderViewProps) {
             />
           )}
           {activeTab === "items" && (
-            <ItemsView
-              viewData={viewData}
-              isLoading={isLoading}
-              layerType={EntityLayerType.ProjectFolder}
-              viewMode={viewMode}
-            />
+            viewMode === "board" ? (
+              <FolderBoardView viewData={viewData} />
+            ) : (
+              <FolderListView viewData={viewData} />
+            )
           )}
         </div>
 

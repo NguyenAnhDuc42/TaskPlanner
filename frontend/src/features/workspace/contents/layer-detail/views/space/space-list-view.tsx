@@ -3,30 +3,17 @@ import { useNavigate, useParams } from "@tanstack/react-router";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { Hash, Layers, Clock, User, Folder as FolderIcon } from "lucide-react";
+import type { TaskViewData } from "../../layer-detail-types";
 
-import { StatusGroup } from "./status-group";
-import { TaskItem } from "./task-item";
-import { FolderItem } from "./folder-item";
-import type { ItemsViewMode, TaskViewData } from "../../layer-detail-types";
-
-interface ItemsDisplayerProps {
+interface SpaceListViewProps {
   viewData: TaskViewData;
-  viewMode: ItemsViewMode;
 }
 
-interface StatusGroupData {
-  statusId: string;
-  statusName: string;
-  color: string;
-  tasks: any[];
-  folders: any[];
-}
-
-export function ItemsDisplayer({ viewData, viewMode }: ItemsDisplayerProps) {
+export function SpaceListView({ viewData }: SpaceListViewProps) {
   const navigate = useNavigate();
   const { workspaceId } = useParams({ strict: false }) as any;
 
-  const groups = useMemo<StatusGroupData[]>(() => {
+  const groups = useMemo(() => {
     if (!viewData) return [];
     const { tasks = [], statuses = [], folders = [] } = viewData;
 
@@ -47,44 +34,11 @@ export function ItemsDisplayer({ viewData, viewMode }: ItemsDisplayerProps) {
     navigate({ to: "/workspaces/$workspaceId/tasks/$taskId", params: { workspaceId, taskId } });
   };
 
-  if (!viewData) return null;
-
-  if (viewMode === "board") {
-    return (
-      <div className="h-full flex gap-4 p-6 overflow-x-auto no-scrollbar animate-in fade-in slide-in-from-bottom-2 duration-500">
-        {groups.map((group) => (
-          <StatusGroup
-            key={group.statusId}
-            statusName={group.statusName}
-            color={group.color}
-            totalCount={group.tasks.length + group.folders.length}
-          >
-            {group.folders.map((folder: any) => (
-              <FolderItem
-                key={folder.id}
-                folder={folder}
-                onClick={() => handleFolderClick(folder.id)}
-              />
-            ))}
-            {group.tasks.map((task: any) => (
-              <TaskItem 
-                key={task.id} 
-                task={task} 
-                onClick={() => handleTaskClick(task.id)} 
-              />
-            ))}
-          </StatusGroup>
-        ))}
-      </div>
-    );
-  }
-
   return (
     <div className="h-full overflow-auto p-8 animate-in fade-in slide-in-from-bottom-2 duration-500">
       <div className="max-w-5xl mx-auto space-y-12">
         {groups.map((group) => (
           <section key={group.statusId} className="space-y-4">
-            {/* List Header */}
             <div className="flex items-center gap-3 px-2">
               <div
                 className="w-2 h-2 rounded-full"
@@ -98,7 +52,6 @@ export function ItemsDisplayer({ viewData, viewMode }: ItemsDisplayerProps) {
               </span>
             </div>
 
-            {/* List Table Body */}
             <div className="rounded-2xl border border-white/[0.03] overflow-hidden bg-[#080808]/40 backdrop-blur-sm shadow-2xl">
               {group.folders.map((folder: any, idx: number) => (
                 <FolderListRow 

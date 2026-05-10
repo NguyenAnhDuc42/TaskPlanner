@@ -28,10 +28,7 @@ export function ItemsView({ viewData, isLoading, viewMode }: ItemsViewProps) {
             No Items Found
           </div>
         ) : (
-          <ItemsDisplayer 
-            viewData={viewData} 
-            viewMode={viewMode} 
-          />
+          <ItemsDisplayer viewData={viewData} viewMode={viewMode} />
         )}
       </div>
     </div>

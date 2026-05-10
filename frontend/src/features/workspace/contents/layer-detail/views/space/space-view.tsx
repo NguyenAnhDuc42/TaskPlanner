@@ -2,7 +2,8 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { SpaceHeader } from "./space-header";
 import { LayerTabs } from "../../components/layer-tabs";
 import { SpaceOverview } from "./space-overview";
-import { ItemsView } from "../items-view";
+import { SpaceBoardView } from "./space-board-view";
+import { SpaceListView } from "./space-list-view";
 import { SpaceSidebar } from "./space-sidebar";
 import { AttachmentSection } from "../../components/overview/attachment-section";
 import type { MainViewTab, ItemsViewMode } from "../../layer-detail-types";
@@ -131,12 +132,11 @@ export function SpaceView({ workspaceId, spaceId }: SpaceViewProps) {
             />
           )}
           {activeTab === "items" && (
-            <ItemsView
-              viewData={viewData}
-              isLoading={isLoading}
-              layerType={EntityLayerType.ProjectSpace}
-              viewMode={viewMode}
-            />
+            viewMode === "board" ? (
+              <SpaceBoardView viewData={viewData} />
+            ) : (
+              <SpaceListView viewData={viewData} />
+            )
           )}
         </div>
 

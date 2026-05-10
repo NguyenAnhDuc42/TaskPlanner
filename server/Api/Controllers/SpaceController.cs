@@ -54,6 +54,13 @@ namespace Api.Controllers
             var result = await _handler.SendAsync(command, cancellationToken);
             return result.ToActionResult();
         }
+
+        [HttpGet("{id:guid}/items")]
+        public async Task<IActionResult> GetItems(Guid id, CancellationToken cancellationToken)
+        {
+            var result = await _handler.QueryAsync<GetSpaceItemsQuery, Application.Features.ViewFeatures.TaskViewData>(new GetSpaceItemsQuery(id), cancellationToken);
+            return result.ToActionResult();
+        }
     }
 
     public record UpdateSpaceRequest(
