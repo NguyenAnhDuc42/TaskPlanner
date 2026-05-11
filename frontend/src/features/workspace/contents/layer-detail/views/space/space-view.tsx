@@ -65,17 +65,16 @@ export function SpaceView({ workspaceId, spaceId }: SpaceViewProps) {
     serverTruth.current = { ...serverTruth.current, ...lastSentDraft.current };
   }, []);
 
-  const updateSpace = useUpdateSpace(onMutationSettled);
-  const isSaving = updateSpace.isPending;
+  const { mutate: mutateSpace, isPending: isSaving } = useUpdateSpace(onMutationSettled);
 
   const performUpdate = useCallback(
     (updates: any, targetDraft: any) => {
       if (!viewData?.id) return;
       isSavingRef.current = true;
       lastSentDraft.current = targetDraft;
-      updateSpace.mutate({ spaceId: viewData.id, ...updates });
+      mutateSpace({ spaceId: viewData.id, ...updates });
     },
-    [viewData?.id, updateSpace]
+    [viewData?.id, mutateSpace]
   );
 
   const debouncedDraft = useDebounce(draft, 3000);

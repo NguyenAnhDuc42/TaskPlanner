@@ -64,17 +64,16 @@ export function FolderView({ workspaceId, folderId }: FolderViewProps) {
     serverTruth.current = { ...serverTruth.current, ...lastSentDraft.current };
   }, []);
 
-  const updateFolder = useUpdateFolder(onMutationSettled);
-  const isSaving = updateFolder.isPending;
+  const { mutate: mutateFolder, isPending: isSaving } = useUpdateFolder(onMutationSettled);
 
   const performUpdate = useCallback(
     (updates: any, targetDraft: any) => {
       if (!viewData?.id) return;
       isSavingRef.current = true;
       lastSentDraft.current = targetDraft;
-      updateFolder.mutate({ folderId: viewData.id, ...updates });
+      mutateFolder({ folderId: viewData.id, ...updates });
     },
-    [viewData?.id, updateFolder]
+    [viewData?.id, mutateFolder]
   );
 
   const debouncedDraft = useDebounce(draft, 3000);
