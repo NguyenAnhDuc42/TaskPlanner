@@ -1,7 +1,11 @@
 import { useWorkspace } from "@/features/workspace/context/workspace-provider";
 import { useHierarchy, useMoveItem } from "./hierarchy-api";
-import { EntityLayerType as EntityLayerConst, EntityLayerType } from "@/types/entity-layer-type";
+import {
+  EntityLayerType as EntityLayerConst,
+  EntityLayerType,
+} from "@/types/entity-layer-type";
 import { DialogFormWrapper } from "@/components/dialog-form-wrapper";
+import { signalRService } from "@/lib/signalr-service";
 
 import { Loader2, Plus, Search, ChevronDown } from "lucide-react";
 import { DndContext, closestCenter, DragOverlay } from "@dnd-kit/core";
@@ -35,13 +39,23 @@ import { CreateSpaceForm } from "../../components/forms/create-space-form";
 export function HierarchySidebar() {
   const { workspaceId } = useWorkspace();
   const { data: hierarchy, isLoading, error } = useHierarchy(workspaceId);
-  const [localHierarchy, setLocalHierarchy] = useState<WorkspaceHierarchy | undefined>(undefined);
+  const [localHierarchy, setLocalHierarchy] = useState<
+    WorkspaceHierarchy | undefined
+  >(undefined);
 
   useEffect(() => {
     if (hierarchy) {
       setLocalHierarchy(hierarchy);
     }
   }, [hierarchy]);
+
+  useEffect(() => {
+    const onHierarchyChanged = () => {};
+    signalRService.on("hierarchychanged", onHierarchyChanged);
+    return () => {
+      signalRService.off("hierarchychanged", onHierarchyChanged);
+    };
+  }, []);
 
   const [isHierarchyOpen, setIsHierarchyOpen] = useState(true);
   const [isDocsOpen, setIsDocsOpen] = useState(true);
@@ -221,8 +235,7 @@ export function HierarchySidebar() {
                             task={activeItem.data as TaskHierarchy}
                             parentId={activeItem.data.parentId || ""}
                             parentType={
-                              (activeItem.data
-                                .parentType as EntityLayerType) ||
+                              (activeItem.data.parentType as EntityLayerType) ||
                               EntityLayerConst.ProjectFolder
                             }
                             spaceId={(activeItem.data as any).spaceId || ""}

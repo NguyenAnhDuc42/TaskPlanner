@@ -14,7 +14,6 @@ import type {
   MoveItemRequest, 
   FolderHierarchy, 
   TaskHierarchy,
-  NodeTasksResponse
 } from "../hierarchy-type";
 import { useState, useRef, useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";

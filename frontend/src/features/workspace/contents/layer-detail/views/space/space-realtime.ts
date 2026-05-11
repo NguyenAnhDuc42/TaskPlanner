@@ -51,11 +51,6 @@ export function useSpaceRealtime(workspaceId: string) {
       });
     };
 
-    const onHierarchyChanged = () => {
-      // Disabled because we handle targeted cache updates optimistically!
-      // queryClient.invalidateQueries({ queryKey: hierarchyKeys.all });
-    };
-
     const onSpaceCreated = () => {
       queryClient.invalidateQueries({
         queryKey: hierarchyKeys.detail(workspaceId),
@@ -68,14 +63,13 @@ export function useSpaceRealtime(workspaceId: string) {
       });
     };
 
+
     signalRService.on("SpaceUpdated", onSpaceUpdated);
-    signalRService.on("HierarchyChanged", onHierarchyChanged);
     signalRService.on("SpaceCreated", onSpaceCreated);
     signalRService.on("SpaceDeleting", onSpaceDeleting);
 
     return () => {
       signalRService.off("SpaceUpdated", onSpaceUpdated);
-      signalRService.off("HierarchyChanged", onHierarchyChanged);
       signalRService.off("SpaceCreated", onSpaceCreated);
       signalRService.off("SpaceDeleting", onSpaceDeleting);
     };
