@@ -22,12 +22,12 @@ export function StatusGroup({
   return (
     <div 
       className={cn(
-       "flex-shrink-0 flex flex-col bg-background rounded-md border border-white/[0.03] shadow-2xl overflow-hidden transition-all duration-300",
+       "flex-shrink-0 flex flex-col bg-transparent rounded-lg border border-border/40 overflow-hidden transition-all duration-300",
        className
       )}
     >
       {/* Column Header */}
-      <div className="flex items-center justify-between px-3 py-3 group/header border-b border-white/[0.02] bg-white/[0.01]">
+      <div className="flex items-center justify-between px-3 py-2 group/header border-b border-border/10 bg-transparent">
         <div className="flex items-center gap-3">
           <StatusBadge status={{ name: statusName, color: color } as any} />
           <span className="text-[9px] font-black text-muted-foreground/40 px-2 py-0.5 rounded-md bg-white/[0.02] border border-white/[0.03]">

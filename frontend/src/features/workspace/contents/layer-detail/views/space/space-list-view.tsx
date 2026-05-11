@@ -30,6 +30,7 @@ export function SpaceListView({ viewData }: SpaceListViewProps) {
   const isDraggingRef = useRef(false);
   const isDebouncingRef = useRef(false);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pendingMutationRef = useRef<(() => void) | null>(null);
 
   const { mutate: moveTaskToStatus, isPending: isMovingTask } =
     useMoveTaskToStatus();
@@ -41,6 +42,13 @@ export function SpaceListView({ viewData }: SpaceListViewProps) {
     setLocalTasks(viewData.tasks || []);
     setLocalFolders(viewData.folders || []);
   }, [viewData.tasks, viewData.folders, isMovingTask, isMovingFolder]);
+
+  useEffect(() => {
+    return () => {
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+      pendingMutationRef.current?.();
+    };
+  }, []);
 
   // Use the same buildColumns helper as the board!
   const columns = useMemo(() => {
@@ -114,8 +122,9 @@ export function SpaceListView({ viewData }: SpaceListViewProps) {
     isDebouncingRef.current = true;
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
     
-    timeoutRef.current = setTimeout(() => {
+    const persist = () => {
       isDebouncingRef.current = false;
+      pendingMutationRef.current = null;
       if (isTask) {
         moveTaskToStatus({
           taskId: draggableId,
@@ -131,7 +140,9 @@ export function SpaceListView({ viewData }: SpaceListViewProps) {
           nextItemOrderKey,
         });
       }
-    }, 1000);
+    };
+    pendingMutationRef.current = persist;
+    timeoutRef.current = setTimeout(persist, 1000);
   }
 
   const handleFolderClick = (folderId: string) => {

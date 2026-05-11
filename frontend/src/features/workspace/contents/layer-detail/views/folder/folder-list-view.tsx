@@ -1,5 +1,5 @@
 import { DragDropContext, Droppable, Draggable, type DropResult } from "@hello-pangea/dnd";
-import { useState, useEffect, useRef, useMemo } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate, useParams } from "@tanstack/react-router";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
@@ -25,6 +25,7 @@ export function FolderListView({ viewData }: FolderListViewProps) {
   const isDraggingRef = useRef(false);
   const isDebouncingRef = useRef(false);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pendingMutationRef = useRef<(() => void) | null>(null);
 
   const { mutate: moveTaskToStatus, isPending: isMovingTask } = useMoveTaskToStatus();
 
@@ -32,6 +33,13 @@ export function FolderListView({ viewData }: FolderListViewProps) {
     if (isDraggingRef.current || isMovingTask || isDebouncingRef.current) return;
     setColumns(buildColumns(viewData));
   }, [viewData, isMovingTask]);
+
+  useEffect(() => {
+    return () => {
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+      pendingMutationRef.current?.();
+    };
+  }, []);
 
   const statuses = viewData.statuses ?? [];
   const displayStatuses = [...statuses];
@@ -90,15 +98,18 @@ export function FolderListView({ viewData }: FolderListViewProps) {
     isDebouncingRef.current = true;
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
     
-    timeoutRef.current = setTimeout(() => {
+    const persist = () => {
       isDebouncingRef.current = false;
+      pendingMutationRef.current = null;
       moveTaskToStatus({
         taskId: draggableId,
         targetStatusId,
         previousItemOrderKey,
         nextItemOrderKey,
       });
-    }, 1000);
+    };
+    pendingMutationRef.current = persist;
+    timeoutRef.current = setTimeout(persist, 1000);
   }
 
   function handleTaskClick(taskId: string) {

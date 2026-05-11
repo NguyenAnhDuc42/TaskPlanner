@@ -10,22 +10,13 @@ import {
   EntityMenuTrigger,
 } from "../hierarchy-components/entity-context-menu";
 import { FadeTruncate } from "@/components/fade-truncate";
-
 import { NodeTasksList } from "./node-tasks-list";
 import { EntityLayerType as EntityLayerConst } from "@/types/entity-layer-type";
-import {
-  SortableContext,
-  verticalListSortingStrategy,
-} from "@dnd-kit/sortable";
-import {
-  prefetchNodeFolders,
-  prefetchNodeTasks,
-  useNodeFolders,
-} from "../hierarchy-api";
 import type { SpaceHierarchy } from "../hierarchy-type";
 import { useQueryClient } from "@tanstack/react-query";
 import { SortableItem } from "../dnd/sortable-item";
-import { FolderNodeItem } from "./folder-node-item";
+import { NodeFoldersList } from "./node-folders-list";
+import { prefetchNodeFolders, prefetchNodeTasks } from "../hierarchy-api";
 
 interface SpaceNodeItemProps {
   space: SpaceHierarchy;
@@ -44,35 +35,10 @@ export const SpaceNodeItem = React.memo(function SpaceNodeItem({
   const IconComponent = (Icons as any)[space.icon] || Icons.LayoutGrid;
   const spaceColor = space.color || "var(--primary)";
 
-  // Extract folderId from URL if present (e.g. /folders/abc-123)
-  const activeFolderIdFromUrl = React.useMemo(() => {
-    const match = location.pathname.match(/\/folders\/([^/]+)/);
-    return match ? match[1] : null;
-  }, [location.pathname]);
-
   const [isOpen, setIsOpen] = React.useState(false);
   const effectiveOpen = isForcedOpen || isOpen;
 
   const hasChildren = space.hasFolders || space.hasTasks;
-
-  // Eagerly load folders if a folderId is in the URL (to check ownership)
-  const shouldLoadFolders =
-    effectiveOpen || (!!activeFolderIdFromUrl && space.hasFolders);
-
-  const { data: spaceFolders = [], isLoading: isLoadingFolders } =
-    useNodeFolders(workspaceId || "", space.id, shouldLoadFolders);
-
-  // Auto-expand this space if it owns the folder in the URL
-  React.useEffect(() => {
-    if (activeFolderIdFromUrl && spaceFolders.length > 0) {
-      const ownsFolder = spaceFolders.some(
-        (f) => f.id === activeFolderIdFromUrl,
-      );
-      if (ownsFolder && !isOpen) {
-        setIsOpen(true);
-      }
-    }
-  }, [activeFolderIdFromUrl, spaceFolders]);
 
   return (
     <Collapsible
@@ -89,10 +55,7 @@ export const SpaceNodeItem = React.memo(function SpaceNodeItem({
           orderKey: space.orderKey,
         }}
       >
-        <SpaceContextMenu
-          spaceId={space.id}
-          spaceName={space.name}
-        >
+        <SpaceContextMenu spaceId={space.id} spaceName={space.name}>
           <div
             className={cn(
               "flex items-center w-full px-1 py-0.5 rounded-sm transition-colors cursor-pointer mb-px group",
@@ -167,29 +130,10 @@ export const SpaceNodeItem = React.memo(function SpaceNodeItem({
 
       <CollapsibleContent className="overflow-hidden">
         <div className="ml-[13px] pl-2 border-l border-border flex flex-col">
-          {isLoadingFolders ? (
-            <div className="flex flex-col gap-1 py-1">
-              <div className="h-5 w-32 bg-muted/40 animate-pulse rounded-sm ml-2" />
-              <div className="h-5 w-24 bg-muted/40 animate-pulse rounded-sm ml-2" />
-            </div>
-          ) : (
-            <>
-              {spaceFolders.length > 0 && (
-                <SortableContext
-                  items={spaceFolders.map((f) => `folder-${f.id}`)}
-                  strategy={verticalListSortingStrategy}
-                >
-                  {spaceFolders.map((folder) => (
-                    <FolderNodeItem
-                      key={folder.id}
-                      folder={folder}
-                      spaceId={space.id}
-                    />
-                  ))}
-                </SortableContext>
-              )}
-            </>
-          )}
+          <NodeFoldersList
+            spaceId={space.id}
+            isExpanded={effectiveOpen}
+          />
           <NodeTasksList
             nodeId={space.id}
             parentType={EntityLayerConst.ProjectSpace}

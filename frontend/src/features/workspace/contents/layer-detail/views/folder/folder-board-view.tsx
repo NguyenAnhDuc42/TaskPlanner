@@ -36,11 +36,11 @@ export function FolderBoardView({ viewData, folderId }: FolderBoardViewProps) {
   const isDraggingRef = useRef(false);
   const viewDataRef = useRef<TaskViewData | null>(null);
 
-  const { mutate: moveTaskToStatus, isPending: isMovingTask } =
-    useMoveTaskToStatus();
+  const { mutate: moveTaskToStatus, isPending: isMovingTask } = useMoveTaskToStatus();
 
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isDebouncingRef = useRef(false);
+  const pendingMutationRef = useRef<(() => void) | null>(null);
 
   useEffect(() => {
     if (isDraggingRef.current || isMovingTask || isDebouncingRef.current) return;
@@ -57,6 +57,13 @@ export function FolderBoardView({ viewData, folderId }: FolderBoardViewProps) {
     viewDataRef.current = viewData;
     setColumns(buildColumns(viewData));
   }, [viewData, isMovingTask]);
+
+  useEffect(() => {
+    return () => {
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+      pendingMutationRef.current?.();
+    };
+  }, []);
 
   function handleDragStart() {
     isDraggingRef.current = true;
@@ -132,15 +139,18 @@ export function FolderBoardView({ viewData, folderId }: FolderBoardViewProps) {
     isDebouncingRef.current = true;
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
     
-    timeoutRef.current = setTimeout(() => {
+    const persist = () => {
       isDebouncingRef.current = false;
+      pendingMutationRef.current = null;
       moveTaskToStatus({
         taskId: draggableId,
         targetStatusId,
         previousItemOrderKey,
         nextItemOrderKey,
       });
-    }, 1000);
+    };
+    pendingMutationRef.current = persist;
+    timeoutRef.current = setTimeout(persist, 1000);
   }
 
   function handleTaskClick(taskId: string) {

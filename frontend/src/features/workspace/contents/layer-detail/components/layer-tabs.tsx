@@ -12,7 +12,7 @@ export function LayerTabs({ activeTab, onTabChange, layerType }: LayerTabsProps)
   const isTask = layerType === EntityLayerType.ProjectTask;
 
   return (
-    <div className="flex items-center  gap-1  px-4 h-8 bg-background/50 border-b border-border/40 select-none">
+    <div className="flex items-center gap-1 px-4 h-8 bg-background/50 border-b border-border/40 select-none flex-shrink-0">
       <TabButton 
         active={activeTab === "overview"} 
         onClick={() => onTabChange("overview")} 

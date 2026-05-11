@@ -1,5 +1,6 @@
-import { MoreHorizontal, Folder as FolderIcon, Layers } from "lucide-react";
+import { Circle, Package, User } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { format } from "date-fns";
 import type { FolderItemDto } from "../../layer-detail-types";
 
 interface FolderItemProps {
@@ -15,82 +16,49 @@ export function FolderItem({ folder, onClick, isSelected }: FolderItemProps) {
     <div
       onClick={() => onClick(folder)}
       className={cn(
-        "group relative flex flex-col gap-3 p-3 rounded-md transition-all duration-300 cursor-pointer select-none active:scale-[0.98]",
-        "border bg-[#0a0a0a] hover:bg-[#0f0f0f] shadow-lg",
-        isSelected
-          ? "border-primary/40 bg-[#121212] ring-1 ring-primary/5"
-          : "border-white/[0.03] hover:border-white/[0.08] hover:shadow-primary/[0.02]"
+        "group relative flex flex-col gap-2 p-3 rounded-lg transition-all duration-200 cursor-pointer select-none",
+        "border bg-[#0d0d0e]/80 hover:bg-[#161618] border-border/20 hover:border-border/40",
+        isSelected && "border-primary/40 bg-[#121212]"
       )}
     >
-      {/* Top Metadata Row */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-1.5">
-           <div className="flex items-center gap-2 px-2 py-0.5 rounded-md bg-white/[0.03] border border-white/[0.05] text-[8px] font-black text-muted-foreground/40 tracking-widest uppercase group-hover:text-muted-foreground/60 transition-colors">
-              <Layers className="h-2 w-2" />
-              Folder
-           </div>
-           
-           {/* Color Indicator */}
-           <div 
-              className="h-1.5 w-1.5 rounded-full"
-              style={{ backgroundColor: folderColor, boxShadow: `0 0 8px ${folderColor}66` }}
-           />
+      {/* 1. ID and Avatar Row */}
+      <div className="flex items-center justify-between text-[11px] text-muted-foreground/40 font-medium">
+        <span>{`FLD-${folder.id.slice(0, 4).toUpperCase()}`}</span>
+        <div className="h-4 w-4 rounded-full bg-white/5 flex items-center justify-center border border-white/10">
+          <User className="h-2.5 w-2.5 opacity-40" />
         </div>
-        
-        <button className="p-1 opacity-0 group-hover:opacity-100 transition-all hover:bg-white/5 rounded-md">
-          <MoreHorizontal className="h-3 w-3 text-muted-foreground/40" />
-        </button>
       </div>
 
-      {/* Folder Identity Row */}
-      <div className="flex items-center gap-3">
+      {/* 2. Status & Title Row */}
+      <div className="flex items-center gap-2">
         <div 
-          className="shrink-0 h-9 w-9 rounded-md flex items-center justify-center border-2 shadow-2xl transition-transform group-hover:scale-105 duration-300"
-          style={{ 
-            backgroundColor: `${folderColor}08`,
-            borderColor: `${folderColor}20`,
-            color: folderColor,
-            boxShadow: `inset 0 0 12px ${folderColor}05`
-          }}
+          className="shrink-0 h-4 w-4 flex items-center justify-center"
+          style={{ color: folderColor }}
         >
           {folder.icon ? (
-            <span className="text-[14px] font-black drop-shadow-md">{folder.icon}</span>
+            <span className="text-[11px] font-bold">{folder.icon}</span>
           ) : (
-            <FolderIcon className="h-4 w-4 drop-shadow-md" strokeWidth={2.5} />
+            <Circle className="h-3 w-3" />
           )}
         </div>
-        <div className="flex flex-col gap-0.5 min-w-0">
-           <h4 className="text-[12px] font-black leading-tight text-foreground/90 group-hover:text-foreground transition-colors truncate">
-             {folder.name}
-           </h4>
-           <span className="text-[9px] font-bold text-muted-foreground/30 uppercase tracking-tight">
-              Collection
-           </span>
-        </div>
-      </div>
-      
-      {/* Footer Info / Progress */}
-      <div className="mt-1 pt-2 border-t border-white/[0.02] flex items-center justify-between">
-         <div className="flex items-center gap-1.5">
-            <div className="h-1 w-20 bg-white/[0.02] rounded-full overflow-hidden border border-white/[0.03]">
-               <div 
-                  className="h-full rounded-full transition-all duration-1000"
-                  style={{ backgroundColor: folderColor, width: "35%", opacity: 0.6 }} 
-               />
-            </div>
-            <span className="text-[8px] font-black text-muted-foreground/20 uppercase tracking-widest">35%</span>
-         </div>
-         
-         <div className="flex items-center gap-1 text-[8px] font-black text-muted-foreground/20 uppercase">
-            <span>12</span>
-            <span className="text-[6px] opacity-50">Tasks</span>
-         </div>
+        <h4 className="text-[12px] font-medium leading-tight text-foreground/90 group-hover:text-foreground transition-colors truncate">
+          {folder.name}
+        </h4>
       </div>
 
-      {/* Selection Glow */}
-      {isSelected && (
-        <div className="absolute inset-0 rounded-md bg-primary/[0.02] pointer-events-none" />
-      )}
+      {/* 3. Placeholders Row (Three dots & Box) */}
+      <div className="flex items-center gap-1.5 mt-0.5">
+        <div className="text-muted-foreground/30 text-[12px]">...</div>
+        <div className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-white/5 border border-white/5 text-muted-foreground/40 text-[10px]">
+          <Package className="h-2.5 w-2.5" />
+          <span>1</span>
+        </div>
+      </div>
+
+      {/* 4. Date Row */}
+      <div className="text-[10px] text-muted-foreground/30 mt-0.5">
+        {`Created ${format(new Date(folder.createdAt), "MMMM d")}`}
+      </div>
     </div>
   );
 }

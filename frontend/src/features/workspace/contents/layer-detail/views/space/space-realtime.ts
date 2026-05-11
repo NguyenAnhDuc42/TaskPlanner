@@ -52,7 +52,8 @@ export function useSpaceRealtime(workspaceId: string) {
     };
 
     const onHierarchyChanged = () => {
-      queryClient.invalidateQueries({ queryKey: hierarchyKeys.all });
+      // Disabled because we handle targeted cache updates optimistically!
+      // queryClient.invalidateQueries({ queryKey: hierarchyKeys.all });
     };
 
     const onSpaceCreated = () => {

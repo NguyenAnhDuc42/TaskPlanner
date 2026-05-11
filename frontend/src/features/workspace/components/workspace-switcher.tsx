@@ -6,7 +6,7 @@ import {
 } from "@/components/ui/popover";
 import { ChevronDown, Check, Plus, } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useWorkspace } from "../context/workspace-provider";
+
 
 interface Workspace {
   id: string;

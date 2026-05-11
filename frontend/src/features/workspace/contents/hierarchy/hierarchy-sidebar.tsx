@@ -17,11 +17,12 @@ import {
 } from "@/components/ui/collapsible";
 import { cn } from "@/lib/utils";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { useState, useMemo, useDeferredValue } from "react";
+import { useState, useMemo, useDeferredValue, useEffect } from "react";
 import type {
   SpaceHierarchy,
   FolderHierarchy,
   TaskHierarchy,
+  WorkspaceHierarchy,
 } from "./hierarchy-type";
 
 // Modularized Components & Hooks
@@ -34,6 +35,14 @@ import { CreateSpaceForm } from "../../components/forms/create-space-form";
 export function HierarchySidebar() {
   const { workspaceId } = useWorkspace();
   const { data: hierarchy, isLoading, error } = useHierarchy(workspaceId);
+  const [localHierarchy, setLocalHierarchy] = useState<WorkspaceHierarchy | undefined>(undefined);
+
+  useEffect(() => {
+    if (hierarchy) {
+      setLocalHierarchy(hierarchy);
+    }
+  }, [hierarchy]);
+
   const [isHierarchyOpen, setIsHierarchyOpen] = useState(true);
   const [isDocsOpen, setIsDocsOpen] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
@@ -42,9 +51,9 @@ export function HierarchySidebar() {
   const moveItem = useMoveItem(workspaceId || "");
 
   const filteredHierarchy = useMemo(() => {
-    if (!hierarchy || !deferredSearchQuery) return hierarchy;
+    if (!localHierarchy || !deferredSearchQuery) return localHierarchy;
     const query = deferredSearchQuery.toLowerCase();
-    const filteredSpaces = hierarchy.spaces
+    const filteredSpaces = localHierarchy.spaces
       .map((space) => {
         const folders = space.folders.filter((f) =>
           f.name.toLowerCase().includes(query),
@@ -56,13 +65,14 @@ export function HierarchySidebar() {
         return null;
       })
       .filter((s) => s !== null) as SpaceHierarchy[];
-    return { ...hierarchy, spaces: filteredSpaces };
-  }, [hierarchy, deferredSearchQuery]);
+    return { ...localHierarchy, spaces: filteredSpaces };
+  }, [localHierarchy, deferredSearchQuery]);
 
   const { sensors, handleDragStart, handleDragEnd, activeItem } =
     useHierarchyDnd({
       workspaceId: workspaceId || "",
       filteredHierarchy,
+      setLocalHierarchy,
       moveItem,
     });
 

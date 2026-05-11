@@ -222,8 +222,41 @@ export function useMoveItem(workspaceId: string) {
         queryClient.setQueryData(hierarchyKeys.detail(workspaceId), context.previousHierarchy);
       }
     },
-    onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: hierarchyKeys.all });
+    onSettled: (_data, _error, variables) => {
+      const { itemType, targetParentId } = variables;
+
+      // Read current hierarchy state from cache
+      const currentHierarchy = queryClient.getQueryData<WorkspaceHierarchy>(
+        hierarchyKeys.detail(workspaceId)
+      );
+
+      if (itemType === "ProjectFolder" && targetParentId) {
+        const targetSpace = currentHierarchy?.spaces.find(s => s.id === targetParentId);
+        
+        // ONLY invalidate hierarchy if the space was previously empty!
+        if (targetSpace && !targetSpace.hasFolders) {
+          queryClient.invalidateQueries({ queryKey: hierarchyKeys.detail(workspaceId) });
+        }
+
+        // Always invalidate the specific folders list to show the new folder
+        queryClient.invalidateQueries({ 
+          queryKey: hierarchyKeys.nodeFolders(workspaceId, targetParentId) 
+        });
+      }
+      
+      else if (itemType === "ProjectTask" && targetParentId) {
+        const targetSpace = currentHierarchy?.spaces.find(s => s.id === targetParentId);
+        
+        // ONLY invalidate hierarchy if the space was previously empty of tasks!
+        if (targetSpace && !targetSpace.hasTasks) {
+          queryClient.invalidateQueries({ queryKey: hierarchyKeys.detail(workspaceId) });
+        }
+
+        // Always invalidate the specific tasks list to show the new task
+        queryClient.invalidateQueries({ 
+          queryKey: hierarchyKeys.nodeTasks(workspaceId, targetParentId) 
+        });
+      }
     },
   });
 }

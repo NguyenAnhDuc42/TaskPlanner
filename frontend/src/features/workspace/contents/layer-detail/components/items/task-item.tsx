@@ -1,9 +1,9 @@
-import { Clock, MoreHorizontal, User, Hash } from "lucide-react";
+import { Circle, Package, User } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
-import { Priority } from "@/types/priority";
-import { PriorityBadge } from "../../../../../../components/priority-badge";
+import { PriorityBadge } from "@/components/priority-badge";
 import type { TaskItemDto } from "../../layer-detail-types";
+import { Priority } from "@/types/priority";
 
 interface TaskItemProps {
   task: TaskItemDto;
@@ -12,73 +12,47 @@ interface TaskItemProps {
 }
 
 export function TaskItem({ task, onClick, isSelected }: TaskItemProps) {
-  const displayId = `T-${task.id.slice(0, 4).toUpperCase()}`;
-
   return (
     <div
       onClick={() => onClick(task)}
       className={cn(
-        "group relative flex flex-col gap-3 p-3 rounded-md transition-all duration-300 cursor-pointer select-none active:scale-[0.98]",
-        "border bg-[#0a0a0a] hover:bg-[#0f0f0f] shadow-lg",
-        isSelected
-          ? "border-primary/40 bg-[#121212] ring-1 ring-primary/5"
-          : "border-white/[0.03] hover:border-white/[0.08] hover:shadow-primary/[0.02]",
+        "group relative flex flex-col gap-2 p-3 rounded-lg transition-all duration-200 cursor-pointer select-none",
+        "border bg-[#0d0d0e]/80 hover:bg-[#161618] border-border/20 hover:border-border/40",
+        isSelected && "border-primary/40 bg-[#121212]"
       )}
     >
-      {/* Top Metadata Row */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-1.5">
-          <div className="flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-white/[0.03] border border-white/[0.05] text-[8px] font-black text-muted-foreground/40 tracking-widest uppercase group-hover:text-muted-foreground/60 transition-colors">
-            <Hash className="h-2 w-2" />
-            {displayId}
-          </div>
-
-          <PriorityBadge priority={task.priority} />
-        </div>
-
-        <button className="p-1 opacity-0 group-hover:opacity-100 transition-all hover:bg-white/5 rounded-md">
-          <MoreHorizontal className="h-3 w-3 text-muted-foreground/40" />
-        </button>
-      </div>
-
-      {/* Task Name */}
-      <h4 className="text-[12px] font-bold leading-relaxed text-foreground/80 group-hover:text-foreground transition-colors line-clamp-2">
-        {task.name}
-      </h4>
-
-      {/* Bottom Context Row */}
-      <div className="flex items-center justify-between mt-1 pt-2 border-t border-white/[0.02]">
-        <div className="flex items-center gap-3">
-          {task.dueDate && (
-            <div className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-white/[0.02] border border-white/[0.03] text-muted-foreground/40 hover:text-muted-foreground/60 transition-colors">
-              <Clock className="h-2.5 w-2.5" />
-              <span className="text-[9px] font-black uppercase tracking-wider">
-                {format(new Date(task.dueDate), "MMM d")}
-              </span>
-            </div>
-          )}
-
-          {/* Placeholder for story points / estimate if needed */}
-          {(task as any).storyPoints && (
-            <div className="flex items-center gap-1 text-[9px] font-black text-primary/40">
-              <span>{(task as any).storyPoints}</span>
-              <span className="text-[7px] text-muted-foreground/20">SP</span>
-            </div>
-          )}
-        </div>
-
-        {/* Assignee Avatar */}
-        <div className="flex -space-x-1.5">
-          <div className="h-5 w-5 rounded-full bg-white/[0.03] border border-white/[0.08] flex items-center justify-center ring-2 ring-[#0a0a0a] group-hover:border-primary/30 transition-all overflow-hidden">
-            <User className="h-2.5 w-2.5 text-muted-foreground/20 group-hover:text-primary/40 transition-colors" />
+      {/* 1. ID and Avatar Row */}
+      <div className="flex items-center justify-between text-[11px] text-muted-foreground/40 font-medium">
+        <span>{`SOM-${task.id.slice(0, 4).toUpperCase()}`}</span>
+        <div className="flex items-center gap-2">
+          {task.priority && <PriorityBadge priority={task.priority as Priority} />}
+          <div className="h-4 w-4 rounded-full bg-white/5 flex items-center justify-center border border-white/10">
+            <User className="h-2.5 w-2.5 opacity-40" />
           </div>
         </div>
       </div>
 
-      {/* Selection Glow */}
-      {isSelected && (
-        <div className="absolute inset-0 rounded-md bg-primary/[0.02] pointer-events-none" />
-      )}
+      {/* 2. Status & Title Row */}
+      <div className="flex items-center gap-2">
+        <Circle className="h-3 w-3 text-muted-foreground/40 shrink-0" />
+        <h4 className="text-[12px] font-medium leading-tight text-foreground/90 group-hover:text-foreground transition-colors truncate">
+          {task.name}
+        </h4>
+      </div>
+
+      {/* 3. Placeholders Row (Three dots & Box) */}
+      <div className="flex items-center gap-1.5 mt-0.5">
+        <div className="text-muted-foreground/30 text-[12px]">...</div>
+        <div className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-white/5 border border-white/5 text-muted-foreground/40 text-[10px]">
+          <Package className="h-2.5 w-2.5" />
+          <span>1</span>
+        </div>
+      </div>
+
+      {/* 4. Date Row */}
+      <div className="text-[10px] text-muted-foreground/30 mt-0.5">
+        {`Created ${format(new Date(task.createdAt), "MMMM d")}`}
+      </div>
     </div>
   );
 }

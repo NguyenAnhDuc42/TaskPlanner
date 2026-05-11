@@ -13,18 +13,15 @@ import { TaskItem } from "../../components/items/task-item";
 import { FolderItem } from "../../components/items/folder-item";
 import type { TaskViewData } from "../../layer-detail-types";
 import { cn } from "@/lib/utils";
-import { buildColumns } from "./space-dnd-helpers";
+import { buildColumns, calculateOrderKeys } from "./space-dnd-helpers";
 import { useMoveTaskToStatus } from "../task/task-api";
 import { useMoveFolderToStatus } from "../folder/folder-api";
 import { StatusCategory } from "@/types/status-category";
-import { calculateOrderKeys } from "./space-dnd-helpers";
 
 interface SpaceBoardViewProps {
   viewData: TaskViewData;
   spaceId: string;
 }
-
-
 
 export function SpaceBoardView({ viewData, spaceId }: SpaceBoardViewProps) {
   const navigate = useNavigate();
@@ -49,6 +46,7 @@ export function SpaceBoardView({ viewData, spaceId }: SpaceBoardViewProps) {
 
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isDebouncingRef = useRef(false);
+  const pendingMutationRef = useRef<(() => void) | null>(null);
 
   useEffect(() => {
     if (isDraggingRef.current || isMovingTask || isMovingFolder || isDebouncingRef.current) return;
@@ -65,6 +63,13 @@ export function SpaceBoardView({ viewData, spaceId }: SpaceBoardViewProps) {
     viewDataRef.current = viewData;
     setColumns(buildColumns(viewData));
   }, [viewData, isMovingTask, isMovingFolder]);
+
+  useEffect(() => {
+    return () => {
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+      pendingMutationRef.current?.();
+    };
+  }, []);
 
   function handleDragStart() {
     isDraggingRef.current = true;
@@ -145,8 +150,9 @@ export function SpaceBoardView({ viewData, spaceId }: SpaceBoardViewProps) {
     isDebouncingRef.current = true;
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
     
-    timeoutRef.current = setTimeout(() => {
+    const persist = () => {
       isDebouncingRef.current = false;
+      pendingMutationRef.current = null;
       if (isTask) {
         moveTaskToStatus({
           taskId: draggableId,
@@ -162,7 +168,9 @@ export function SpaceBoardView({ viewData, spaceId }: SpaceBoardViewProps) {
           nextItemOrderKey,
         });
       }
-    }, 1000);
+    };
+    pendingMutationRef.current = persist;
+    timeoutRef.current = setTimeout(persist, 1000);
   }
 
   function handleFolderClick(folderId: string) {
