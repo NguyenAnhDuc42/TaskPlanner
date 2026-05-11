@@ -133,7 +133,7 @@ export function FolderView({ workspaceId, folderId }: FolderViewProps) {
       />
 
       <div className="flex-1 flex relative">
-        <div className="flex-1 relative">
+        <div className="flex-1 relative min-w-0">
           {activeTab === "overview" && (
             <FolderOverview 
               viewData={viewData} 

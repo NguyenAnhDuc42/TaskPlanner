@@ -36,10 +36,14 @@ export function FolderBoardView({ viewData, folderId }: FolderBoardViewProps) {
   const isDraggingRef = useRef(false);
   const viewDataRef = useRef<TaskViewData | null>(null);
 
-  const { mutate: moveTaskToStatus, isPending: isMovingTask } = useMoveTaskToStatus();
+  const { mutate: moveTaskToStatus, isPending: isMovingTask } =
+    useMoveTaskToStatus();
+
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isDebouncingRef = useRef(false);
 
   useEffect(() => {
-    if (isDraggingRef.current || isMovingTask) return;
+    if (isDraggingRef.current || isMovingTask || isDebouncingRef.current) return;
 
     const prev = viewDataRef.current;
     const hasChanged =
@@ -66,7 +70,8 @@ export function FolderBoardView({ viewData, folderId }: FolderBoardViewProps) {
     if (
       source.droppableId === destination.droppableId &&
       source.index === destination.index
-    ) return;
+    )
+      return;
 
     const srcColId = source.droppableId;
     const dstColId = destination.droppableId;
@@ -114,18 +119,28 @@ export function FolderBoardView({ viewData, folderId }: FolderBoardViewProps) {
                 ? { ...item, statusId: targetStatusId }
                 : item,
             );
-          return { ...old, tasks: patch(old.tasks), folders: patch(old.folders) };
+          return {
+            ...old,
+            tasks: patch(old.tasks),
+            folders: patch(old.folders),
+          };
         },
       );
     }
 
-    // 5. Persist — folder view only has tasks (no moveFolderToStatus needed)
-    moveTaskToStatus({
-      taskId: draggableId,
-      targetStatusId,
-      previousItemOrderKey,
-      nextItemOrderKey,
-    });
+    // 5. Persist (Debounced)
+    isDebouncingRef.current = true;
+    if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    
+    timeoutRef.current = setTimeout(() => {
+      isDebouncingRef.current = false;
+      moveTaskToStatus({
+        taskId: draggableId,
+        targetStatusId,
+        previousItemOrderKey,
+        nextItemOrderKey,
+      });
+    }, 1000);
   }
 
   function handleTaskClick(taskId: string) {
@@ -183,7 +198,9 @@ export function FolderBoardView({ viewData, folderId }: FolderBoardViewProps) {
                                 ...provided.draggableProps.style,
                                 opacity: snapshot.isDragging ? 0.8 : 1,
                               }}
-                              className={cn(snapshot.isDragging && "[&_*]:transition-none")}
+                              className={cn(
+                                snapshot.isDragging && "[&_*]:transition-none",
+                              )}
                             >
                               {isTask ? (
                                 <TaskItem

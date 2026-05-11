@@ -11,7 +11,6 @@ interface StatusGroupProps {
 }
 
 export function StatusGroup({
-  id,
   statusName,
   color,
   totalCount,

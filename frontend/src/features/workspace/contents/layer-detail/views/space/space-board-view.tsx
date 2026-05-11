@@ -52,7 +52,9 @@ function buildColumns(viewData: TaskViewData): Record<string, any[]> {
   );
 
   if (unclassifiedFolders.length > 0 || unclassifiedTasks.length > 0) {
-    cols["unclassified"] = [...unclassifiedFolders, ...unclassifiedTasks].sort(lexSort);
+    cols["unclassified"] = [...unclassifiedFolders, ...unclassifiedTasks].sort(
+      lexSort,
+    );
   }
 
   return cols;
@@ -74,11 +76,16 @@ export function SpaceBoardView({ viewData, spaceId }: SpaceBoardViewProps) {
   const isDraggingRef = useRef(false);
   const viewDataRef = useRef<TaskViewData | null>(null);
 
-  const { mutate: moveTaskToStatus, isPending: isMovingTask } = useMoveTaskToStatus();
-  const { mutate: moveFolderToStatus, isPending: isMovingFolder } = useMoveFolderToStatus();
+  const { mutate: moveTaskToStatus, isPending: isMovingTask } =
+    useMoveTaskToStatus();
+  const { mutate: moveFolderToStatus, isPending: isMovingFolder } =
+    useMoveFolderToStatus();
+
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isDebouncingRef = useRef(false);
 
   useEffect(() => {
-    if (isDraggingRef.current || isMovingTask || isMovingFolder) return;
+    if (isDraggingRef.current || isMovingTask || isMovingFolder || isDebouncingRef.current) return;
 
     const prev = viewDataRef.current;
     const hasChanged =
@@ -105,7 +112,8 @@ export function SpaceBoardView({ viewData, spaceId }: SpaceBoardViewProps) {
     if (
       source.droppableId === destination.droppableId &&
       source.index === destination.index
-    ) return;
+    )
+      return;
 
     const srcColId = source.droppableId;
     const dstColId = destination.droppableId;
@@ -158,27 +166,37 @@ export function SpaceBoardView({ viewData, spaceId }: SpaceBoardViewProps) {
                 ? { ...item, statusId: targetStatusId }
                 : item,
             );
-          return { ...old, tasks: patch(old.tasks), folders: patch(old.folders) };
+          return {
+            ...old,
+            tasks: patch(old.tasks),
+            folders: patch(old.folders),
+          };
         },
       );
     }
 
-    // 6. Persist
-    if (isTask) {
-      moveTaskToStatus({
-        taskId: draggableId,
-        targetStatusId,
-        previousItemOrderKey,
-        nextItemOrderKey,
-      });
-    } else {
-      moveFolderToStatus({
-        folderId: draggableId,
-        targetStatusId,
-        previousItemOrderKey,
-        nextItemOrderKey,
-      });
-    }
+    // 6. Persist (Debounced)
+    isDebouncingRef.current = true;
+    if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    
+    timeoutRef.current = setTimeout(() => {
+      isDebouncingRef.current = false;
+      if (isTask) {
+        moveTaskToStatus({
+          taskId: draggableId,
+          targetStatusId,
+          previousItemOrderKey,
+          nextItemOrderKey,
+        });
+      } else {
+        moveFolderToStatus({
+          folderId: draggableId,
+          targetStatusId,
+          previousItemOrderKey,
+          nextItemOrderKey,
+        });
+      }
+    }, 1000);
   }
 
   function handleFolderClick(folderId: string) {
@@ -243,7 +261,9 @@ export function SpaceBoardView({ viewData, spaceId }: SpaceBoardViewProps) {
                                 ...provided.draggableProps.style,
                                 opacity: snapshot.isDragging ? 0.8 : 1,
                               }}
-                              className={cn(snapshot.isDragging && "[&_*]:transition-none")}
+                              className={cn(
+                                snapshot.isDragging && "[&_*]:transition-none",
+                              )}
                             >
                               {isTask ? (
                                 <TaskItem

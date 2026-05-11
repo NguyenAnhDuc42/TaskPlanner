@@ -131,7 +131,7 @@ export function SpaceView({ workspaceId, spaceId }: SpaceViewProps) {
       />
 
       <div className="flex-1 flex relative">
-        <div className="flex-1 relative">
+        <div className="flex-1 relative min-w-0">
           {activeTab === "overview" && (
             <SpaceOverview 
               viewData={viewData} 
