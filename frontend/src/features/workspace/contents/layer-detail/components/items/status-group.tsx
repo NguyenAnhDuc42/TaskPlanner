@@ -1,6 +1,7 @@
 import { MoreHorizontal, Plus } from "lucide-react";
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
+import { StatusBadge } from "@/components/status-badge";
 
 interface StatusGroupProps {
   id: string;
@@ -8,6 +9,7 @@ interface StatusGroupProps {
   color: string;
   totalCount: number;
   children: ReactNode;
+  className?: string;
 }
 
 export function StatusGroup({
@@ -15,25 +17,19 @@ export function StatusGroup({
   color,
   totalCount,
   children,
+  className,
 }: StatusGroupProps) {
   return (
     <div 
       className={cn(
-       "w-[300px] flex-shrink-0 flex flex-col bg-background rounded-md border border-white/[0.03] shadow-2xl overflow-hidden transition-all duration-300"
+       "flex-shrink-0 flex flex-col bg-background rounded-md border border-white/[0.03] shadow-2xl overflow-hidden transition-all duration-300",
+       className
       )}
     >
       {/* Column Header */}
       <div className="flex items-center justify-between px-3 py-3 group/header border-b border-white/[0.02] bg-white/[0.01]">
         <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2 px-2 py-1 rounded-md bg-white/[0.03] border border-white/[0.05] shadow-sm">
-            <div
-              className="w-1.5 h-1.5 rounded-md"
-              style={{ backgroundColor: color, boxShadow: `0 0 10px ${color}88` }}
-            />
-            <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-foreground/80">
-              {statusName}
-            </h3>
-          </div>
+          <StatusBadge status={{ name: statusName, color: color } as any} />
           <span className="text-[9px] font-black text-muted-foreground/40 px-2 py-0.5 rounded-md bg-white/[0.02] border border-white/[0.03]">
             {totalCount}
           </span>

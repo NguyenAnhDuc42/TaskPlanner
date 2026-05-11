@@ -81,7 +81,6 @@ export interface MoveTaskToStatusRequest {
 }
 
 export function useMoveTaskToStatus() {
-  const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (data: MoveTaskToStatusRequest) => 
       api.post(`/tasks/${data.taskId}/move-status`, data),

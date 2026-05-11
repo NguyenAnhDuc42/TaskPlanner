@@ -1,13 +1,16 @@
-import { DndContext, type DragEndEvent, PointerSensor, useSensor, useSensors, DragOverlay } from "@dnd-kit/core";
-import { SortableContext, verticalListSortingStrategy, useSortable } from "@dnd-kit/sortable";
-import { CSS } from "@dnd-kit/utilities";
-import { useMemo, useState, useEffect } from "react";
+import { DragDropContext, Droppable, Draggable, type DropResult } from "@hello-pangea/dnd";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { useNavigate, useParams } from "@tanstack/react-router";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
-import { Clock, User, SignalLow, SignalMedium, SignalHigh, AlertTriangle, Circle } from "lucide-react";
+import { Clock, User } from "lucide-react";
 import type { TaskViewData } from "../../layer-detail-types";
-import { useUpdateTask } from "../task/task-api";
+import { useMoveTaskToStatus } from "../task/task-api";
+import { calculateOrderKeys, buildColumns } from "./folder-dnd-helpers";
+
+import { StatusGroup } from "../../components/items/status-group";
+import { Priority } from "@/types/priority";
+import { PriorityBadge } from "@/components/priority-badge";
 
 interface FolderListViewProps {
   viewData: TaskViewData;
@@ -17,140 +20,156 @@ export function FolderListView({ viewData }: FolderListViewProps) {
   const navigate = useNavigate();
   const { workspaceId } = useParams({ strict: false }) as any;
 
-  const [localTasks, setLocalTasks] = useState(viewData.tasks || []);
-  const [activeId, setActiveId] = useState<string | null>(null);
+  // Use columns state to track order per status group
+  const [columns, setColumns] = useState<Record<string, any[]>>(() => buildColumns(viewData));
+  const isDraggingRef = useRef(false);
+  const isDebouncingRef = useRef(false);
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const { mutate: moveTaskToStatus, isPending: isMovingTask } = useMoveTaskToStatus();
 
   useEffect(() => {
-    setLocalTasks(viewData.tasks || []);
-  }, [viewData.tasks]);
+    if (isDraggingRef.current || isMovingTask || isDebouncingRef.current) return;
+    setColumns(buildColumns(viewData));
+  }, [viewData, isMovingTask]);
 
-  const groups = useMemo(() => {
-    const { statuses = [] } = viewData;
-    const statusIds = statuses.map((s: any) => s.statusId);
+  const statuses = viewData.statuses ?? [];
+  const displayStatuses = [...statuses];
+  if ((columns["unclassified"]?.length ?? 0) > 0) {
+    displayStatuses.push({
+      statusId: "unclassified",
+      name: "Unclassified",
+      color: "#6b7280",
+    } as any);
+  }
 
-    const unclassifiedTasks = localTasks.filter((t: any) => !statusIds.includes(t.statusId));
+  function handleDragStart() {
+    isDraggingRef.current = true;
+  }
 
-    const mappedGroups = statuses.map((status: any) => ({
-      statusId: status.statusId,
-      statusName: status.name,
-      color: status.color,
-      tasks: localTasks.filter((t: any) => t.statusId === status.statusId),
-    }));
+  function handleDragEnd(result: DropResult) {
+    isDraggingRef.current = false;
+    const { source, destination, draggableId } = result;
+    if (!destination) return;
 
-    if (unclassifiedTasks.length > 0) {
-      mappedGroups.push({
-        statusId: "unclassified",
-        statusName: "Unclassified",
-        color: "#4a4b53",
-        tasks: unclassifiedTasks,
-      });
+    if (
+      source.droppableId === destination.droppableId &&
+      source.index === destination.index
+    ) return;
+
+    const srcColId = source.droppableId;
+    const dstColId = destination.droppableId;
+
+    const srcItems = [...(columns[srcColId] ?? [])];
+    const dstItems = srcColId === dstColId ? srcItems : [...(columns[dstColId] ?? [])];
+
+    const [movedItem] = srcItems.splice(source.index, 1);
+    const targetStatusId = dstColId === "unclassified" ? undefined : dstColId;
+    const updatedItem = { ...movedItem, statusId: targetStatusId };
+
+    dstItems.splice(destination.index, 0, updatedItem);
+
+    // Update local state immediately preserving order!
+    if (srcColId === dstColId) {
+      setColumns((prev) => ({ ...prev, [srcColId]: dstItems }));
+    } else {
+      setColumns((prev) => ({
+        ...prev,
+        [srcColId]: srcItems,
+        [dstColId]: dstItems,
+      }));
     }
 
-    return mappedGroups;
-  }, [viewData.statuses, localTasks]);
+    const { previousItemOrderKey, nextItemOrderKey } = calculateOrderKeys(
+      destination.index,
+      draggableId,
+      dstItems
+    );
 
-  const sensors = useSensors(
-    useSensor(PointerSensor, {
-      activationConstraint: {
-        distance: 8,
-      },
-    })
-  );
-
-  const { mutate: updateTask } = useUpdateTask();
-
-  function handleDragStart(event: any) {
-    setActiveId(event.active.id);
-  }
-
-  function handleDragEnd(event: DragEndEvent) {
-    setActiveId(null);
-    const { active, over } = event;
-    if (!over) return;
-
-    const taskId = active.id as string;
-    let newStatusId = over.id as string;
+    // Persist (Debounced)
+    isDebouncingRef.current = true;
+    if (timeoutRef.current) clearTimeout(timeoutRef.current);
     
-    const overTask = localTasks.find(t => t.id === newStatusId);
-    if (overTask) newStatusId = overTask.statusId || "unclassified";
-
-    const finalStatusId = newStatusId === "unclassified" ? undefined : newStatusId;
-
-    setLocalTasks(prev => prev.map(t => t.id === taskId ? { ...t, statusId: finalStatusId } : t));
-    updateTask({ taskId, statusId: finalStatusId });
+    timeoutRef.current = setTimeout(() => {
+      isDebouncingRef.current = false;
+      moveTaskToStatus({
+        taskId: draggableId,
+        targetStatusId,
+        previousItemOrderKey,
+        nextItemOrderKey,
+      });
+    }, 1000);
   }
 
-  const handleTaskClick = (taskId: string) => {
-    navigate({ to: "/workspaces/$workspaceId/tasks/$taskId", params: { workspaceId, taskId } });
-  };
-
-  const activeTask = localTasks.find(t => t.id === activeId);
+  function handleTaskClick(taskId: string) {
+    navigate({
+      to: "/workspaces/$workspaceId/tasks/$taskId",
+      params: { workspaceId, taskId },
+    });
+  }
 
   return (
-    <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
-      <div className="h-full overflow-auto bg-[#0c0c0d] text-[#f5f5f7] animate-in fade-in duration-500">
-        <div className="max-w-5xl mx-auto py-6 px-8 space-y-8">
-          {groups.map((group) => (
-            <section key={group.statusId} className="space-y-2">
-              {/* Header - Linear Style */}
-              <div className="flex items-center gap-2 px-2 py-1">
-                <div
-                  className="w-2.5 h-2.5 rounded-full"
-                  style={{ backgroundColor: group.color }}
-                />
-                <h3 className="text-xs font-semibold text-[#8a8b94]">
-                  {group.statusName}
-                </h3>
-                <span className="text-xs text-[#4a4b53]">
-                  {group.tasks.length}
-                </span>
-              </div>
-
-              {/* Table/List Container */}
-              <div className="border border-[#202127] rounded-lg bg-[#141416] overflow-hidden shadow-sm">
-                <SortableContext items={group.tasks.map(t => t.id)} strategy={verticalListSortingStrategy}>
-                  {group.tasks.map((task: any, idx: number) => (
-                    <SortableItem key={task.id} id={task.id}>
-                      <TaskListRow 
-                        task={task} 
-                        isFirst={idx === 0}
-                        onClick={() => handleTaskClick(task.id)}
-                      />
-                    </SortableItem>
-                  ))}
-                </SortableContext>
-                
-                {group.tasks.length === 0 && (
-                  <div className="h-12 flex items-center justify-center text-xs text-[#4a4b53]">
-                     No tasks in this section
-                  </div>
-                )}
-              </div>
-            </section>
-          ))}
+    <DragDropContext onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
+      <div className="h-full flex flex-col bg-[#0a0a0b] overflow-y-auto no-scrollbar">
+        <div className="p-6 space-y-8">
+          {displayStatuses.map((status) => {
+            const items = columns[status.statusId] ?? [];
+            return (
+              <StatusGroup
+                key={status.statusId}
+                id={status.statusId}
+                statusName={status.name}
+                color={status.color}
+                totalCount={items.length}
+                className="w-full"
+              >
+                <Droppable droppableId={status.statusId}>
+                  {(provided) => (
+                    <div 
+                      ref={provided.innerRef} 
+                      {...provided.droppableProps}
+                      className="flex flex-col min-h-[40px]"
+                    >
+                      {items.map((task: any, idx: number) => (
+                        <Draggable key={task.id} draggableId={task.id} index={idx}>
+                          {(provided, snapshot) => (
+                            <div
+                              ref={provided.innerRef}
+                              {...provided.draggableProps}
+                              {...provided.dragHandleProps}
+                              className={cn(
+                                snapshot.isDragging && "[&_*]:transition-none opacity-80"
+                              )}
+                            >
+                              <TaskListRow 
+                                task={task} 
+                                isFirst={idx === 0}
+                                onClick={() => handleTaskClick(task.id)}
+                              />
+                            </div>
+                          )}
+                        </Draggable>
+                      ))}
+                      {provided.placeholder}
+                      
+                      {items.length === 0 && (
+                        <div className="h-12 flex items-center justify-center text-xs text-[#4a4b53]">
+                           No tasks in this section
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </Droppable>
+              </StatusGroup>
+            );
+          })}
         </div>
       </div>
-      <DragOverlay>
-        {activeTask ? <TaskListRow task={activeTask} onClick={() => {}} /> : null}
-      </DragOverlay>
-    </DndContext>
+    </DragDropContext>
   );
 }
 
 function TaskListRow({ task, onClick, isFirst }: { task: any; onClick: () => void; isFirst?: boolean }) {
-  const displayId = `T-${task.id.slice(0, 4).toUpperCase()}`;
-  
-  // Priority Icon Mapping
-  const getPriorityIcon = (priority: string) => {
-    switch (priority) {
-      case "High": return <SignalHigh className="h-3.5 w-3.5 text-[#f5f5f7]" />;
-      case "Normal": return <SignalMedium className="h-3.5 w-3.5 text-[#8a8b94]" />;
-      case "Low": return <SignalLow className="h-3.5 w-3.5 text-[#4a4b53]" />;
-      case "Urgent": return <AlertTriangle className="h-3.5 w-3.5 text-[#e5484d]" />;
-      default: return <Circle className="h-3.5 w-3.5 text-[#4a4b53]" />;
-    }
-  };
-
   return (
     <div 
       onClick={onClick}
@@ -161,9 +180,9 @@ function TaskListRow({ task, onClick, isFirst }: { task: any; onClick: () => voi
     >
       {/* Priority & ID */}
       <div className="flex items-center gap-3 shrink-0">
-         {getPriorityIcon(task.priority)}
+         <PriorityBadge priority={task.priority as Priority} />
          <span className="text-xs font-medium text-[#4a4b53] tracking-wider min-w-[50px]">
-            {""}
+            {`T-${task.id.slice(0, 4).toUpperCase()}`}
          </span>
       </div>
 
@@ -187,22 +206,6 @@ function TaskListRow({ task, onClick, isFirst }: { task: any; onClick: () => voi
            <User className="h-3 w-3 text-[#8a8b94]" />
          </div>
       </div>
-    </div>
-  );
-}
-
-function SortableItem({ id, children }: { id: string; children: React.ReactNode }) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
-
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-    opacity: isDragging ? 0.5 : 1,
-  };
-
-  return (
-    <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
-      {children}
     </div>
   );
 }

@@ -173,13 +173,14 @@ export function FolderBoardView({ viewData, folderId }: FolderBoardViewProps) {
               statusName={status.name}
               color={status.color}
               totalCount={items.length}
+              className="w-[300px]"
             >
               <Droppable droppableId={status.statusId}>
                 {(provided) => (
                   <div
                     ref={provided.innerRef}
                     {...provided.droppableProps}
-                    className="flex flex-col gap-2 min-h-[50px] flex-1"
+                    className="flex flex-col min-h-[40px] max-h-[calc(100vh-250px)] overflow-y-auto no-scrollbar p-1"
                   >
                     {items.map((item: any, index: number) => {
                       const isTask = "priority" in item;

@@ -13,6 +13,7 @@ import { TaskItem } from "../../components/items/task-item";
 import { FolderItem } from "../../components/items/folder-item";
 import type { TaskViewData } from "../../layer-detail-types";
 import { cn } from "@/lib/utils";
+import { buildColumns } from "./space-dnd-helpers";
 import { useMoveTaskToStatus } from "../task/task-api";
 import { useMoveFolderToStatus } from "../folder/folder-api";
 import { StatusCategory } from "@/types/status-category";
@@ -23,42 +24,7 @@ interface SpaceBoardViewProps {
   spaceId: string;
 }
 
-function buildColumns(viewData: TaskViewData): Record<string, any[]> {
-  const cols: Record<string, any[]> = {};
-  const statuses = viewData.statuses ?? [];
 
-  const lexSort = (a: any, b: any) => {
-    const ak = a.orderKey ?? "";
-    const bk = b.orderKey ?? "";
-    return ak < bk ? -1 : ak > bk ? 1 : 0;
-  };
-
-  statuses.forEach((status) => {
-    const folders = (viewData.folders ?? []).filter(
-      (f) => f.statusId === status.statusId,
-    );
-    const tasks = (viewData.tasks ?? []).filter(
-      (t) => t.statusId === status.statusId,
-    );
-    cols[status.statusId] = [...folders, ...tasks].sort(lexSort);
-  });
-
-  const statusIds = statuses.map((s) => s.statusId);
-  const unclassifiedFolders = (viewData.folders ?? []).filter(
-    (f) => !f.statusId || !statusIds.includes(f.statusId as string),
-  );
-  const unclassifiedTasks = (viewData.tasks ?? []).filter(
-    (t) => !t.statusId || !statusIds.includes(t.statusId as string),
-  );
-
-  if (unclassifiedFolders.length > 0 || unclassifiedTasks.length > 0) {
-    cols["unclassified"] = [...unclassifiedFolders, ...unclassifiedTasks].sort(
-      lexSort,
-    );
-  }
-
-  return cols;
-}
 
 export function SpaceBoardView({ viewData, spaceId }: SpaceBoardViewProps) {
   const navigate = useNavigate();
@@ -236,13 +202,14 @@ export function SpaceBoardView({ viewData, spaceId }: SpaceBoardViewProps) {
               statusName={status.name}
               color={status.color}
               totalCount={items.length}
+              className="w-[300px]"
             >
               <Droppable droppableId={status.statusId}>
                 {(provided) => (
                   <div
                     ref={provided.innerRef}
                     {...provided.droppableProps}
-                    className="flex flex-col gap-2 min-h-[50px] flex-1"
+                    className="flex flex-col min-h-[40px] max-h-[calc(100vh-250px)] overflow-y-auto no-scrollbar p-1"
                   >
                     {items.map((item: any, index: number) => {
                       const isTask = "priority" in item;

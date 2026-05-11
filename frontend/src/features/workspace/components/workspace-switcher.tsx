@@ -4,9 +4,9 @@ import {
   PopoverContent, 
   PopoverTrigger 
 } from "@/components/ui/popover";
-import { Button } from "@/components/ui/button";
-import { ChevronDown, Check, Plus, LayoutGrid } from "lucide-react";
+import { ChevronDown, Check, Plus, } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useWorkspace } from "../context/workspace-provider";
 
 interface Workspace {
   id: string;

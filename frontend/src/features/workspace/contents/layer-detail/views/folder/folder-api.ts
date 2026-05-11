@@ -95,7 +95,6 @@ export interface MoveFolderToStatusRequest {
 }
 
 export function useMoveFolderToStatus() {
-  const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (data: MoveFolderToStatusRequest) => 
       api.post(`/folders/${data.folderId}/move-status`, data),
