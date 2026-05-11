@@ -2,17 +2,19 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { FolderHeader } from "./folder-header";
 import { LayerTabs } from "../../components/layer-tabs";
 import { FolderOverview } from "./folder-overview";
-import { FolderBoardView } from "./folder-board-view";
+
 import { FolderListView } from "./folder-list-view";
 import { FolderSidebar } from "./folder-sidebar";
 import { AttachmentSection } from "../../components/overview/attachment-section";
 import type { MainViewTab, ItemsViewMode } from "../../layer-detail-types";
 import { cn } from "@/lib/utils";
-import { useFolderDetail, useUpdateFolder } from "./folder-api";
+import { useFolderDetail, useUpdateFolder, useFolderItems } from "./folder-api";
 import { useWorkspaceWorkflows } from "@/features/workspace/api";
 import { useDebounce } from "@/hooks/use-debounce";
 import { EntityLayerType } from "@/types/entity-layer-type";
 import { useFolderRealtime } from "./folder-realtime";
+import { useTaskRealtime } from "../task/task-realtime";
+import { FolderBoardView } from "./folder-board-view";
 
 interface FolderViewProps {
   workspaceId: string;
@@ -23,11 +25,16 @@ export type RightPanelType = "properties" | "attachments" | null;
 
 export function FolderView({ workspaceId, folderId }: FolderViewProps) {
   const { data: viewData, isLoading, isError } = useFolderDetail(workspaceId, folderId);
+  const { data: itemsData, isLoading: itemsLoading } = useFolderItems(folderId);
   useFolderRealtime(workspaceId);
+  useTaskRealtime(workspaceId);
   useWorkspaceWorkflows(workspaceId);
-  const [activeTab, setActiveTab] = useState<MainViewTab>("overview");
-  const [viewMode, setViewMode] = useState<ItemsViewMode>("list");
+  const [activeTab, setActiveTab] = useState<MainViewTab>(() => (localStorage.getItem("folderTab") as MainViewTab) || "overview");
+  const [viewMode, setViewMode] = useState<ItemsViewMode>(() => (localStorage.getItem("folderViewMode") as ItemsViewMode) || "list");
   const [rightPanelType, setRightPanelType] = useState<RightPanelType>("properties");
+
+  useEffect(() => { localStorage.setItem("folderTab", activeTab); }, [activeTab]);
+  useEffect(() => { localStorage.setItem("folderViewMode", viewMode); }, [viewMode]);
 
   const [draft, setDraft] = useState<any>(null);
   const [isDirty, setIsDirty] = useState(false);
@@ -125,8 +132,8 @@ export function FolderView({ workspaceId, folderId }: FolderViewProps) {
         layerType={EntityLayerType.ProjectFolder}
       />
 
-      <div className="flex-1 flex overflow-hidden relative">
-        <div className="flex-1 overflow-hidden relative">
+      <div className="flex-1 flex relative">
+        <div className="flex-1 relative">
           {activeTab === "overview" && (
             <FolderOverview 
               viewData={viewData} 
@@ -135,10 +142,14 @@ export function FolderView({ workspaceId, folderId }: FolderViewProps) {
             />
           )}
           {activeTab === "items" && (
-            viewMode === "board" ? (
-              <FolderBoardView viewData={viewData} />
+            itemsLoading ? (
+              <div>Loading items...</div>
+            ) : !itemsData ? (
+              <div>No items found</div>
+            ) : viewMode === "board" ? (
+              <FolderBoardView viewData={itemsData} folderId={folderId} />
             ) : (
-              <FolderListView viewData={viewData} />
+              <FolderListView viewData={itemsData} />
             )
           )}
         </div>
@@ -150,7 +161,7 @@ export function FolderView({ workspaceId, folderId }: FolderViewProps) {
           )}
         >
           <div className="w-[320px] h-full p-1">
-            <div className="w-full h-full rounded-md border border-border/40 bg-muted/30 backdrop-blur-xl shadow-2xl overflow-hidden animate-in slide-in-from-right-4 duration-300">
+            <div className="w-full h-full rounded-md border border-border/40 bg-muted/30 backdrop-blur-xl shadow-2xl overflow-hidden duration-300">
               <div className="h-full overflow-y-auto no-scrollbar p-2 py-4">
                 {rightPanelType === "properties" && (
                   <FolderSidebar viewData={viewData} draft={draft} onChange={onDraftChange} />

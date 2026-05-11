@@ -7,6 +7,7 @@ export const Route = createFileRoute(
 )({
   loader: ({ context: { queryClient }, params: { workspaceId, folderId } }) => {
     queryClient.ensureQueryData(folderQueryOptions.detail(workspaceId, folderId));
+    queryClient.ensureQueryData(folderQueryOptions.items(folderId));
   },
   component: FolderContent,
 });

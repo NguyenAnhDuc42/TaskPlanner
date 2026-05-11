@@ -35,19 +35,21 @@ public class GetSpaceItemsHandler(IDataBase db, WorkspaceContext workspaceContex
             END;
 
             -- 2. Fetch Folders
-            SELECT id, name, created_at AS CreatedAt, status_id AS StatusId, start_date AS StartDate, due_date AS DueDate
+            SELECT id, name, created_at AS CreatedAt, status_id AS StatusId, start_date AS StartDate, due_date AS DueDate, order_key AS OrderKey
             FROM project_folders
             WHERE project_space_id = @SpaceId 
               AND deleted_at IS NULL 
-              AND is_archived = false;
+              AND is_archived = false
+            ORDER BY order_key;
 
             -- 3. Fetch Tasks
-            SELECT id, name, created_at AS CreatedAt, status_id AS StatusId, priority, due_date AS DueDate, start_date AS StartDate
+            SELECT id, name, created_at AS CreatedAt, status_id AS StatusId, priority, due_date AS DueDate, start_date AS StartDate, order_key AS OrderKey
             FROM project_tasks
             WHERE project_workspace_id = @WorkspaceId 
               AND deleted_at IS NULL 
               AND is_archived = false
-              AND project_space_id = @SpaceId AND project_folder_id IS NULL;";
+              AND project_space_id = @SpaceId AND project_folder_id IS NULL
+            ORDER BY order_key;";
 
         var parameters = new {
             WorkflowId = activeWorkflow.Id,

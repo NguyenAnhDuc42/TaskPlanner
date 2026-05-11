@@ -1,4 +1,4 @@
-import { StatusCategory } from "@/types/status-category";
+
 
 export interface SpaceDetailDto {
   id: string;

@@ -50,6 +50,11 @@ export function useFolderRealtime(workspaceId: string) {
           queryKey: hierarchyKeys.nodeFolders(workspaceId, spaceId),
           exact: true,
         });
+
+        // Also invalidate items view for the parent space!
+        queryClient.invalidateQueries({
+          queryKey: [...workspaceKeys.all, "space", spaceId, "items"],
+        });
       }
     };
 
@@ -81,14 +86,38 @@ export function useFolderRealtime(workspaceId: string) {
       });
     };
 
+    const onFolderStatusChanged = (data: any) => {
+      const spaceId = data.spaceId || data.SpaceId;
+      const folderId = data.folderId || data.FolderId;
+      const targetStatusId = data.targetStatusId || data.TargetStatusId;
+      const newOrderKey = data.newOrderKey || data.NewOrderKey;
+
+      if (spaceId) {
+        queryClient.setQueryData(
+          [...workspaceKeys.all, "space", spaceId, "items"],
+          (old: any) => {
+            if (!old) return old;
+            return {
+              ...old,
+              folders: old.folders.map((f: any) => 
+                f.id === folderId ? { ...f, statusId: targetStatusId, orderKey: newOrderKey } : f
+              )
+            };
+          }
+        );
+      }
+    };
+
     signalRService.on("FolderUpdated", onFolderUpdated);
     signalRService.on("FolderCreated", onFolderCreated);
     signalRService.on("FolderDeleting", onFolderDeleting);
+    signalRService.on("FolderStatusChanged", onFolderStatusChanged);
 
     return () => {
       signalRService.off("FolderUpdated", onFolderUpdated);
       signalRService.off("FolderCreated", onFolderCreated);
       signalRService.off("FolderDeleting", onFolderDeleting);
+      signalRService.off("FolderStatusChanged", onFolderStatusChanged);
     };
   }, [workspaceId, queryClient]);
 }

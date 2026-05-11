@@ -49,6 +49,21 @@ public class FoldersController : ControllerBase
         return result.ToActionResult();
     }
 
+    [HttpPost("{id:guid}/move-status")]
+    public async Task<IActionResult> MoveStatus(Guid id, [FromBody] MoveFolderToStatusRequest request, CancellationToken ct)
+    {
+        var command = new MoveFolderToStatusCommand(
+            FolderId: id,
+            TargetStatusId: request.TargetStatusId,
+            PreviousItemOrderKey: request.PreviousItemOrderKey,
+            NextItemOrderKey: request.NextItemOrderKey,
+            NewOrderKey: request.NewOrderKey
+        );
+
+        var result = await _handler.SendAsync(command, ct);
+        return result.ToActionResult();
+    }
+
     [HttpDelete("{id:guid}")]
     public async Task<IActionResult> Delete(Guid id, CancellationToken ct)
     {
@@ -72,4 +87,11 @@ public record UpdateFolderRequest(
     DateTimeOffset? StartDate,
     DateTimeOffset? DueDate,
     Guid? StatusId
+);
+
+public record MoveFolderToStatusRequest(
+    Guid? TargetStatusId,
+    string? PreviousItemOrderKey,
+    string? NextItemOrderKey,
+    string? NewOrderKey = null
 );

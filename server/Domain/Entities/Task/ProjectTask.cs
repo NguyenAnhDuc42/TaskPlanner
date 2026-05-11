@@ -148,6 +148,14 @@ public class ProjectTask : TenantEntity
         }
     }
 
+    public void UpdateOrderKey(string orderKey)
+    {
+        EnsureNotArchived();
+        if (OrderKey == orderKey) return;
+        OrderKey = orderKey;
+        UpdateTimestamp();
+    }
+
     public void UpdatePriority(Priority priority)
     {
         EnsureNotArchived();

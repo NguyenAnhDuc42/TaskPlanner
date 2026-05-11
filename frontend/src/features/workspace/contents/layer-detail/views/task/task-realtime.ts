@@ -52,12 +52,63 @@ export function useTaskRealtime(workspaceId: string) {
           exact: true,
         });
       }
+
+      // Invalidate items view for folder or space
+      if (taskData.folderId) {
+        queryClient.invalidateQueries({
+          queryKey: [...workspaceKeys.all, "folder", taskData.folderId, "items"],
+        });
+      }
+      if (taskData.spaceId) {
+        queryClient.invalidateQueries({
+          queryKey: [...workspaceKeys.all, "space", taskData.spaceId, "items"],
+        });
+      }
+    };
+
+    const onTaskStatusChanged = (data: any) => {
+      const spaceId = data.spaceId || data.SpaceId;
+      const folderId = data.folderId || data.FolderId;
+      const taskId = data.taskId || data.TaskId;
+      const targetStatusId = data.targetStatusId || data.TargetStatusId;
+      const newOrderKey = data.newOrderKey || data.NewOrderKey;
+      
+      if (folderId) {
+        queryClient.setQueryData(
+          [...workspaceKeys.all, "folder", folderId, "items"],
+          (old: any) => {
+            if (!old) return old;
+            return {
+              ...old,
+              tasks: old.tasks.map((t: any) => 
+                t.id === taskId ? { ...t, statusId: targetStatusId, orderKey: newOrderKey } : t
+              )
+            };
+          }
+        );
+      }
+      if (spaceId) {
+        queryClient.setQueryData(
+          [...workspaceKeys.all, "space", spaceId, "items"],
+          (old: any) => {
+            if (!old) return old;
+            return {
+              ...old,
+              tasks: old.tasks.map((t: any) => 
+                t.id === taskId ? { ...t, statusId: targetStatusId, orderKey: newOrderKey } : t
+              )
+            };
+          }
+        );
+      }
     };
 
     signalRService.on("TaskUpdated", onTaskUpdated);
+    signalRService.on("TaskStatusChanged", onTaskStatusChanged);
 
     return () => {
       signalRService.off("TaskUpdated", onTaskUpdated);
+      signalRService.off("TaskStatusChanged", onTaskStatusChanged);
     };
   }, [workspaceId, queryClient]);
 }

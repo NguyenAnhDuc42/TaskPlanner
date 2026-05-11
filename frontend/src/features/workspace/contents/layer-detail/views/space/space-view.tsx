@@ -8,11 +8,13 @@ import { SpaceSidebar } from "./space-sidebar";
 import { AttachmentSection } from "../../components/overview/attachment-section";
 import type { MainViewTab, ItemsViewMode } from "../../layer-detail-types";
 import { cn } from "@/lib/utils";
-import { useSpaceDetail, useUpdateSpace } from "./space-api";
+import { useSpaceDetail, useUpdateSpace, useSpaceItems } from "./space-api";
 import { useWorkspaceWorkflows } from "@/features/workspace/api";
 import { useDebounce } from "@/hooks/use-debounce";
 import { EntityLayerType } from "@/types/entity-layer-type";
 import { useSpaceRealtime } from "./space-realtime";
+import { useTaskRealtime } from "../task/task-realtime";
+import { useFolderRealtime } from "../folder/folder-realtime";
 
 interface SpaceViewProps {
   workspaceId: string;
@@ -23,11 +25,17 @@ export type RightPanelType = "properties" | "attachments" | null;
 
 export function SpaceView({ workspaceId, spaceId }: SpaceViewProps) {
   const { data: viewData, isLoading, isError } = useSpaceDetail(workspaceId, spaceId);
+  const { data: itemsData, isLoading: itemsLoading } = useSpaceItems(spaceId);
   useSpaceRealtime(workspaceId);
+  useFolderRealtime(workspaceId);
+  useTaskRealtime(workspaceId);
   useWorkspaceWorkflows(workspaceId);
-  const [activeTab, setActiveTab] = useState<MainViewTab>("overview");
-  const [viewMode, setViewMode] = useState<ItemsViewMode>("list");
+  const [activeTab, setActiveTab] = useState<MainViewTab>(() => (localStorage.getItem("spaceTab") as MainViewTab) || "overview");
+  const [viewMode, setViewMode] = useState<ItemsViewMode>(() => (localStorage.getItem("spaceViewMode") as ItemsViewMode) || "list");
   const [rightPanelType, setRightPanelType] = useState<RightPanelType>("properties");
+
+  useEffect(() => { localStorage.setItem("spaceTab", activeTab); }, [activeTab]);
+  useEffect(() => { localStorage.setItem("spaceViewMode", viewMode); }, [viewMode]);
 
   const [draft, setDraft] = useState<any>(null);
   const [isDirty, setIsDirty] = useState(false);
@@ -122,8 +130,8 @@ export function SpaceView({ workspaceId, spaceId }: SpaceViewProps) {
         layerType={EntityLayerType.ProjectSpace}
       />
 
-      <div className="flex-1 flex overflow-hidden relative">
-        <div className="flex-1 overflow-hidden relative">
+      <div className="flex-1 flex relative">
+        <div className="flex-1 relative">
           {activeTab === "overview" && (
             <SpaceOverview 
               viewData={viewData} 
@@ -132,10 +140,14 @@ export function SpaceView({ workspaceId, spaceId }: SpaceViewProps) {
             />
           )}
           {activeTab === "items" && (
-            viewMode === "board" ? (
-              <SpaceBoardView viewData={viewData} />
+            itemsLoading ? (
+              <div>Loading items...</div>
+            ) : !itemsData ? (
+              <div>No items found</div>
+            ) : viewMode === "board" ? (
+              <SpaceBoardView viewData={itemsData} spaceId={spaceId} />
             ) : (
-              <SpaceListView viewData={viewData} />
+              <SpaceListView viewData={itemsData} />
             )
           )}
         </div>
@@ -147,7 +159,7 @@ export function SpaceView({ workspaceId, spaceId }: SpaceViewProps) {
           )}
         >
           <div className="w-[320px] h-full p-1">
-            <div className="w-full h-full rounded-md border border-border/40 bg-muted/30 backdrop-blur-xl shadow-2xl overflow-hidden animate-in slide-in-from-right-4 duration-300">
+            <div className="w-full h-full rounded-md border border-border/40 bg-muted/30  shadow-2xl overflow-hidden duration-300">
               <div className="h-full overflow-y-auto no-scrollbar p-2 py-4">
                 {rightPanelType === "properties" && (
                   <SpaceSidebar viewData={viewData} draft={draft} onChange={onDraftChange} />

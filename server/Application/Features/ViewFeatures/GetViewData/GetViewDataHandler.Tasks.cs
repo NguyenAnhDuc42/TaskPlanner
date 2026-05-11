@@ -80,6 +80,7 @@ public record FolderItemDto
     public Guid? StatusId { get; init; }
     public DateTimeOffset? StartDate { get; init; }
     public DateTimeOffset? DueDate { get; init; }
+    public string? OrderKey { get; init; }
 }
 
 public record TaskItemDto
@@ -91,6 +92,7 @@ public record TaskItemDto
     public Priority? Priority { get; init; }
     public DateTimeOffset? StartDate { get; init; }
     public DateTimeOffset? DueDate { get; init; }
+    public string? OrderKey { get; init; }
 }
 
 public record TaskItemStatusDto

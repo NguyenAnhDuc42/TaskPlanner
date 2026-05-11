@@ -5,6 +5,7 @@ import { spaceQueryOptions } from "@/features/workspace/contents/layer-detail/vi
 export const Route = createFileRoute("/workspaces/$workspaceId/spaces/$spaceId")({
   loader: ({ context: { queryClient }, params: { workspaceId, spaceId } }) => {
     queryClient.ensureQueryData(spaceQueryOptions.detail(workspaceId, spaceId));
+    queryClient.ensureQueryData(spaceQueryOptions.items(spaceId));
   },
   component: SpaceContent,
 });

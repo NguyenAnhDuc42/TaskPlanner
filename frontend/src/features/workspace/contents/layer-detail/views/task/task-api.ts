@@ -71,3 +71,22 @@ export function useUpdateTask(onSuccess?: () => void) {
     },
   });
 }
+
+export interface MoveTaskToStatusRequest {
+  taskId: string;
+  targetStatusId?: string;
+  previousItemOrderKey?: string;
+  nextItemOrderKey?: string;
+  newOrderKey?: string;
+}
+
+export function useMoveTaskToStatus() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: MoveTaskToStatusRequest) => 
+      api.post(`/tasks/${data.taskId}/move-status`, data),
+    onSuccess: () => {
+      // SignalR will handle invalidation, but we can also invalidate here if needed
+    }
+  });
+}

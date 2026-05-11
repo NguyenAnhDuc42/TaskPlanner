@@ -4,6 +4,7 @@ import { api } from "@/lib/api-client";
 import { workspaceKeys } from "@/features/main/query-keys";
 import { useWorkspace } from "@/features/workspace/context/workspace-provider";
 import type { SpaceDetailDto, UpdateSpaceRequest } from "./space-types";
+import type { TaskViewData } from "../../layer-detail-types";
 
 export const spaceQueryOptions = {
   detail: (workspaceId: string, spaceId: string) => ({
@@ -13,6 +14,15 @@ export const spaceQueryOptions = {
       return data;
     },
     enabled: !!workspaceId && !!spaceId,
+    staleTime: 3000,
+  }),
+  items: (spaceId: string) => ({
+    queryKey: [...workspaceKeys.all, "space", spaceId, "items"],
+    queryFn: async () => {
+      const { data } = await api.get<TaskViewData>(`/spaces/${spaceId}/items`);
+      return data;
+    },
+    enabled: !!spaceId,
     staleTime: 3000,
   })
 };
@@ -44,6 +54,10 @@ export function useSpaceDetail(workspaceId: string, spaceId: string, enabled = t
     isError: query.isError,
     error: query.error
   };
+}
+
+export function useSpaceItems(spaceId: string) {
+  return useQuery(spaceQueryOptions.items(spaceId));
 }
 
 export function useUpdateSpace(onSuccess?: () => void) {

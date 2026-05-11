@@ -51,6 +51,21 @@ public class TasksController : ControllerBase
         return result.ToActionResult();
     }
 
+    [HttpPost("{id:guid}/move-status")]
+    public async Task<IActionResult> MoveStatus(Guid id, [FromBody] MoveTaskToStatusRequest request, CancellationToken ct)
+    {
+        var command = new MoveTaskToStatusCommand(
+            TaskId: id,
+            TargetStatusId: request.TargetStatusId,
+            PreviousItemOrderKey: request.PreviousItemOrderKey,
+            NextItemOrderKey: request.NextItemOrderKey,
+            NewOrderKey: request.NewOrderKey
+        );
+
+        var result = await _handler.SendAsync(command, ct);
+        return result.ToActionResult();
+    }
+
     [HttpDelete("{id:guid}")]
     public async Task<IActionResult> Delete(Guid id, CancellationToken ct)
     {
@@ -87,4 +102,11 @@ public record UpdateTaskRequest(
     int? StoryPoints,
     long? TimeEstimate,
     List<Guid>? AssigneeIds
+);
+
+public record MoveTaskToStatusRequest(
+    Guid? TargetStatusId,
+    string? PreviousItemOrderKey,
+    string? NextItemOrderKey,
+    string? NewOrderKey = null
 );

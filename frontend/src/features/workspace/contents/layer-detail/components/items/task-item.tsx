@@ -17,7 +17,7 @@ export function TaskItem({ task, onClick, isSelected }: TaskItemProps) {
     <div
       onClick={() => onClick(task)}
       className={cn(
-        "group relative flex flex-col gap-3 p-3 rounded-xl transition-all duration-300 cursor-pointer select-none active:scale-[0.98]",
+        "group relative flex flex-col gap-3 p-3 rounded-md transition-all duration-300 cursor-pointer select-none active:scale-[0.98]",
         "border bg-[#0a0a0a] hover:bg-[#0f0f0f] shadow-lg",
         isSelected
           ? "border-primary/40 bg-[#121212] ring-1 ring-primary/5"
@@ -64,7 +64,7 @@ export function TaskItem({ task, onClick, isSelected }: TaskItemProps) {
       <div className="flex items-center justify-between mt-1 pt-2 border-t border-white/[0.02]">
         <div className="flex items-center gap-3">
            {task.dueDate && (
-             <div className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-white/[0.02] border border-white/[0.03] text-muted-foreground/40 hover:text-muted-foreground/60 transition-colors">
+             <div className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-white/[0.02] border border-white/[0.03] text-muted-foreground/40 hover:text-muted-foreground/60 transition-colors">
                <Clock className="h-2.5 w-2.5" />
                <span className="text-[9px] font-black uppercase tracking-wider">{format(new Date(task.dueDate), "MMM d")}</span>
              </div>
@@ -89,7 +89,7 @@ export function TaskItem({ task, onClick, isSelected }: TaskItemProps) {
       
       {/* Selection Glow */}
       {isSelected && (
-        <div className="absolute inset-0 rounded-xl bg-primary/[0.02] pointer-events-none" />
+        <div className="absolute inset-0 rounded-md bg-primary/[0.02] pointer-events-none" />
       )}
     </div>
   );

@@ -13,6 +13,8 @@ export interface TaskItemDto {
   priority?: Priority;
   dueDate?: string;
   startDate?: string;
+  isPrivate?: boolean;
+  orderKey?: string;
 }
 
 export interface FolderItemDto {
@@ -22,6 +24,7 @@ export interface FolderItemDto {
   statusId?: string;
   startDate?: string;
   dueDate?: string;
+  orderKey?: string;
   icon?: string;
   color?: string;
 }
@@ -80,6 +83,7 @@ export interface TaskDetailDto {
   icon?: string;
   color?: string;
   assigneeIds: string[];
+  isPrivate?: boolean;
 }
 
 export interface TaskViewData {
@@ -173,7 +177,7 @@ export interface UpdateFolderRequest {
   color?: string;
   icon?: string;
   isPrivate?: boolean;
-  statusId?: string;
+  statusId?: string | null;
   startDate?: string;
   dueDate?: string;
 }

@@ -89,7 +89,7 @@ export function TaskSidebar({ viewData, draft, onChange }: TaskSidebarProps) {
                     onClick={() => onChange({ isPrivate: false })}
                     className={cn(
                       "flex-1 flex items-center justify-center gap-2 h-6 rounded-[4px] text-[10px] font-bold uppercase tracking-wider transition-all",
-                      !draft.isPrivate ? "bg-background shadow-sm text-foreground ring-1 ring-border/10" : "text-muted-foreground hover:text-foreground"
+                      !draft?.isPrivate ? "bg-background shadow-sm text-foreground ring-1 ring-border/10" : "text-muted-foreground hover:text-foreground"
                     )}
                   >
                     <Globe className="h-3 w-3" />
@@ -99,7 +99,7 @@ export function TaskSidebar({ viewData, draft, onChange }: TaskSidebarProps) {
                     onClick={() => onChange({ isPrivate: true })}
                     className={cn(
                       "flex-1 flex items-center justify-center gap-2 h-6 rounded-[4px] text-[10px] font-bold uppercase tracking-wider transition-all",
-                      draft.isPrivate ? "bg-background shadow-sm text-foreground ring-1 ring-border/10" : "text-muted-foreground hover:text-foreground"
+                      draft?.isPrivate ? "bg-background shadow-sm text-foreground ring-1 ring-border/10" : "text-muted-foreground hover:text-foreground"
                     )}
                   >
                     <Lock className="h-3 w-3" />
@@ -157,14 +157,14 @@ export function TaskSidebar({ viewData, draft, onChange }: TaskSidebarProps) {
                       <button className="flex flex-col text-left hover:opacity-70 transition-opacity">
                         <span className="text-[7px] font-black uppercase tracking-[0.2em] text-muted-foreground/30 mb-0">Start</span>
                         <span className="text-[10px] font-black text-foreground/80 font-mono tracking-tight">
-                          {draft.startDate ? format(new Date(draft.startDate), "MM/dd/yyyy") : "TBD"}
+                          {draft?.startDate ? format(new Date(draft.startDate), "MM/dd/yyyy") : "TBD"}
                         </span>
                       </button>
                     </PopoverTrigger>
                     <PopoverContent className="w-auto p-0" align="start">
                       <Calendar
                         mode="single"
-                        selected={draft.startDate ? new Date(draft.startDate) : undefined}
+                        selected={draft?.startDate ? new Date(draft.startDate) : undefined}
                         onSelect={(date) => onChange({ startDate: date?.toISOString() })}
                         initialFocus
                       />
@@ -179,14 +179,14 @@ export function TaskSidebar({ viewData, draft, onChange }: TaskSidebarProps) {
                       <button className="flex flex-col items-end text-right hover:opacity-70 transition-opacity">
                         <span className="text-[7px] font-black uppercase tracking-[0.2em] text-muted-foreground/30 mb-0">Due</span>
                         <span className="text-[10px] font-black text-foreground/80 font-mono tracking-tight">
-                          {draft.dueDate ? format(new Date(draft.dueDate), "MM/dd/yyyy") : "TBD"}
+                          {draft?.dueDate ? format(new Date(draft.dueDate), "MM/dd/yyyy") : "TBD"}
                         </span>
                       </button>
                     </PopoverTrigger>
                     <PopoverContent className="w-auto p-0" align="end">
                       <Calendar
                         mode="single"
-                        selected={draft.dueDate ? new Date(draft.dueDate) : undefined}
+                        selected={draft?.dueDate ? new Date(draft.dueDate) : undefined}
                         onSelect={(date) => onChange({ dueDate: date?.toISOString() })}
                         initialFocus
                       />

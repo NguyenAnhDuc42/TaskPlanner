@@ -4,6 +4,7 @@ import { api } from "@/lib/api-client";
 import { workspaceKeys } from "@/features/main/query-keys";
 import { useWorkspace } from "@/features/workspace/context/workspace-provider";
 import type { FolderDetailDto, UpdateFolderRequest } from "./folder-types";
+import type { TaskViewData } from "../../layer-detail-types";
 
 export const folderQueryOptions = {
   detail: (workspaceId: string, folderId: string) => ({
@@ -13,6 +14,15 @@ export const folderQueryOptions = {
       return data;
     },
     enabled: !!workspaceId && !!folderId,
+    staleTime: 3000,
+  }),
+  items: (folderId: string) => ({
+    queryKey: [...workspaceKeys.all, "folder", folderId, "items"],
+    queryFn: async () => {
+      const { data } = await api.get<TaskViewData>(`/folders/${folderId}/items`);
+      return data;
+    },
+    enabled: !!folderId,
     staleTime: 3000,
   })
 };
@@ -46,6 +56,10 @@ export function useFolderDetail(workspaceId: string, folderId: string, enabled =
   };
 }
 
+export function useFolderItems(folderId: string) {
+  return useQuery(folderQueryOptions.items(folderId));
+}
+
 export function useUpdateFolder(onSuccess?: () => void) {
   const queryClient = useQueryClient();
   return useMutation({
@@ -69,5 +83,24 @@ export function useUpdateFolder(onSuccess?: () => void) {
         queryClient.setQueryData([...workspaceKeys.all, "folder", updates.folderId], context.previousDetail);
       }
     },
+  });
+}
+
+export interface MoveFolderToStatusRequest {
+  folderId: string;
+  targetStatusId?: string;
+  previousItemOrderKey?: string;
+  nextItemOrderKey?: string;
+  newOrderKey?: string;
+}
+
+export function useMoveFolderToStatus() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: MoveFolderToStatusRequest) => 
+      api.post(`/folders/${data.folderId}/move-status`, data),
+    onSuccess: () => {
+      // SignalR will handle invalidation
+    }
   });
 }

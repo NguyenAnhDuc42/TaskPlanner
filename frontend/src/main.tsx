@@ -39,15 +39,20 @@ function InnerApp() {
 
 // Render the app
 const rootElement = document.getElementById("root")!;
-if (!rootElement.innerHTML) {
-  const root = ReactDOM.createRoot(rootElement);
-  root.render(
-    <StrictMode>
-      <QueryClientProvider client={queryClient}>
-        <AuthProvider>
-          <InnerApp />
-        </AuthProvider>
-      </QueryClientProvider>
-    </StrictMode>
-  );
+
+// Use a cached root to prevent "already been passed to createRoot()" warnings during Vite HMR
+let root = (window as any).__reactRoot;
+if (!root) {
+  root = ReactDOM.createRoot(rootElement);
+  (window as any).__reactRoot = root;
 }
+
+root.render(
+  <StrictMode>
+    <QueryClientProvider client={queryClient}>
+      <AuthProvider>
+        <InnerApp />
+      </AuthProvider>
+    </QueryClientProvider>
+  </StrictMode>
+);

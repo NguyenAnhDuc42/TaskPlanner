@@ -15,7 +15,7 @@ export function FolderItem({ folder, onClick, isSelected }: FolderItemProps) {
     <div
       onClick={() => onClick(folder)}
       className={cn(
-        "group relative flex flex-col gap-3 p-3 rounded-xl transition-all duration-300 cursor-pointer select-none active:scale-[0.98]",
+        "group relative flex flex-col gap-3 p-3 rounded-md transition-all duration-300 cursor-pointer select-none active:scale-[0.98]",
         "border bg-[#0a0a0a] hover:bg-[#0f0f0f] shadow-lg",
         isSelected
           ? "border-primary/40 bg-[#121212] ring-1 ring-primary/5"
@@ -45,7 +45,7 @@ export function FolderItem({ folder, onClick, isSelected }: FolderItemProps) {
       {/* Folder Identity Row */}
       <div className="flex items-center gap-3">
         <div 
-          className="shrink-0 h-9 w-9 rounded-xl flex items-center justify-center border-2 shadow-2xl transition-transform group-hover:scale-105 duration-300"
+          className="shrink-0 h-9 w-9 rounded-md flex items-center justify-center border-2 shadow-2xl transition-transform group-hover:scale-105 duration-300"
           style={{ 
             backgroundColor: `${folderColor}08`,
             borderColor: `${folderColor}20`,
@@ -89,7 +89,7 @@ export function FolderItem({ folder, onClick, isSelected }: FolderItemProps) {
 
       {/* Selection Glow */}
       {isSelected && (
-        <div className="absolute inset-0 rounded-xl bg-primary/[0.02] pointer-events-none" />
+        <div className="absolute inset-0 rounded-md bg-primary/[0.02] pointer-events-none" />
       )}
     </div>
   );

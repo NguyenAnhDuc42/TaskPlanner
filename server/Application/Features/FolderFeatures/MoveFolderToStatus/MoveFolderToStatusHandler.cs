@@ -18,6 +18,11 @@ public class MoveFolderToStatusHandler(IDataBase db, WorkspaceContext context, I
 
         var newOrderKey = request.NewOrderKey ?? await ResolveOrderKey(request, ct);
 
+        var spaceId = await db.Folders
+            .Where(f => f.Id == request.FolderId)
+            .Select(f => f.ProjectSpaceId)
+            .FirstOrDefaultAsync(ct);
+
         var affected = await db.Folders
             .Where(f => f.Id == request.FolderId)
             .ExecuteUpdateAsync(u => u
@@ -30,7 +35,8 @@ public class MoveFolderToStatusHandler(IDataBase db, WorkspaceContext context, I
             await realtime.NotifyWorkspaceAsync(context.workspaceId, "FolderStatusChanged", new { 
                 request.FolderId, 
                 request.TargetStatusId, 
-                NewOrderKey = newOrderKey 
+                NewOrderKey = newOrderKey,
+                SpaceId = spaceId
             }, ct);
             return Result.Success();
         }

@@ -36,8 +36,6 @@ public class UpdateFolderHandler(IDataBase db, WorkspaceContext context, IRealti
         if (request.StatusId.HasValue)
             folder.UpdateStatus(request.StatusId.Value);
 
-
-
         await db.SaveChangesAsync(ct);
 
         await realtime.NotifyWorkspaceAsync(context.workspaceId, "FolderUpdated", new { 

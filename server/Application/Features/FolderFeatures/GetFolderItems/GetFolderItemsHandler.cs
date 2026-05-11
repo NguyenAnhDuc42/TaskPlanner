@@ -43,17 +43,18 @@ public class GetFolderItemsHandler(IDataBase db, WorkspaceContext workspaceConte
             END;
 
             -- 2. Fetch Folders (Empty for folder level)
-            SELECT id, name, created_at AS CreatedAt, status_id AS StatusId, start_date AS StartDate, due_date AS DueDate
+            SELECT id, name, created_at AS CreatedAt, status_id AS StatusId, start_date AS StartDate, due_date AS DueDate, order_key AS OrderKey
             FROM project_folders
             WHERE 1=0;
 
             -- 3. Fetch Tasks
-            SELECT id, name, created_at AS CreatedAt, status_id AS StatusId, priority, due_date AS DueDate, start_date AS StartDate
+            SELECT id, name, created_at AS CreatedAt, status_id AS StatusId, priority, due_date AS DueDate, start_date AS StartDate, order_key AS OrderKey
             FROM project_tasks
             WHERE project_workspace_id = @WorkspaceId 
               AND deleted_at IS NULL 
               AND is_archived = false
-              AND project_folder_id = @FolderId;";
+              AND project_folder_id = @FolderId
+            ORDER BY order_key;";
 
         var parameters = new {
             WorkflowId = activeWorkflow.Id,

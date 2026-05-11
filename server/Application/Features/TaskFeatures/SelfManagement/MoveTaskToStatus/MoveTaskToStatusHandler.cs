@@ -18,6 +18,11 @@ public class MoveTaskToStatusHandler(IDataBase db, WorkspaceContext context, IRe
 
         var newOrderKey = request.NewOrderKey ?? await ResolveOrderKey(request, ct);
 
+        var taskData = await db.Tasks
+            .Where(t => t.Id == request.TaskId)
+            .Select(t => new { t.ProjectSpaceId, t.ProjectFolderId })
+            .FirstOrDefaultAsync(ct);
+
         var affected = await db.Tasks
             .Where(t => t.Id == request.TaskId)
             .ExecuteUpdateAsync(u => u
@@ -30,7 +35,9 @@ public class MoveTaskToStatusHandler(IDataBase db, WorkspaceContext context, IRe
             await realtime.NotifyWorkspaceAsync(context.workspaceId, "TaskStatusChanged", new { 
                 request.TaskId, 
                 request.TargetStatusId, 
-                NewOrderKey = newOrderKey 
+                NewOrderKey = newOrderKey,
+                SpaceId = taskData?.ProjectSpaceId,
+                FolderId = taskData?.ProjectFolderId
             }, ct);
             return Result.Success();
         }
