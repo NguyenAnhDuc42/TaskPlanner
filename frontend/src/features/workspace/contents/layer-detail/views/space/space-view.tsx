@@ -15,6 +15,9 @@ import { EntityLayerType } from "@/types/entity-layer-type";
 import { useSpaceRealtime } from "./space-realtime";
 import { useTaskRealtime } from "../task/task-realtime";
 import { useFolderRealtime } from "../folder/folder-realtime";
+import { LoadingComponent } from "@/components/loading-component";
+import { useNavigate } from "@tanstack/react-router";
+import { useDeleteSpace } from "@/features/workspace/contents/hierarchy/hierarchy-api";
 
 interface SpaceViewProps {
   workspaceId: string;
@@ -105,13 +108,26 @@ export function SpaceView({ workspaceId, spaceId }: SpaceViewProps) {
     setRightPanelType((prev) => (prev === type ? null : type));
   };
 
-  if (isLoading && !viewData) return <div>Loading...</div>;
+  const { mutate: deleteSpace } = useDeleteSpace(workspaceId);
+  const navigate = useNavigate();
+
+  const handleDelete = () => {
+    if (window.confirm("Are you sure you want to delete this space?")) {
+      deleteSpace(spaceId, {
+        onSuccess: () => {
+          navigate({ to: `/workspaces/${workspaceId}` });
+        },
+      });
+    }
+  };
+
   if (isError) return <div>Failed to load space</div>;
   if (!viewData) return null;
 
   return (
     <div className="flex-1 flex flex-col h-full bg-background overflow-hidden relative">
       <SpaceHeader
+        onDelete={handleDelete}
         viewData={viewData}
         draft={draft}
         isSaving={isSaving}
@@ -140,7 +156,7 @@ export function SpaceView({ workspaceId, spaceId }: SpaceViewProps) {
           )}
           {activeTab === "items" && (
             itemsLoading ? (
-              <div>Loading items...</div>
+              <LoadingComponent />
             ) : !itemsData ? (
               <div>No items found</div>
             ) : viewMode === "board" ? (
@@ -153,12 +169,12 @@ export function SpaceView({ workspaceId, spaceId }: SpaceViewProps) {
 
         <div
           className={cn(
-            "h-full transition-all duration-300 ease-in-out flex items-start overflow-hidden",
+            "absolute right-0 top-0 h-full transition-all duration-300 ease-in-out flex items-start overflow-hidden z-20",
             rightPanelType ? "w-[320px] opacity-100" : "w-0 opacity-0",
           )}
         >
           <div className="w-[320px] h-full p-1">
-            <div className="w-full h-full rounded-md border border-border/40 bg-muted/30  shadow-2xl overflow-hidden duration-300">
+            <div className="w-full h-full rounded-md border border-border/40 bg-background/95 backdrop-blur-md shadow-2xl overflow-hidden duration-300">
               <div className="h-full overflow-y-auto no-scrollbar p-2 py-4">
                 {rightPanelType === "properties" && (
                   <SpaceSidebar viewData={viewData} draft={draft} onChange={onDraftChange} />

@@ -8,6 +8,7 @@ import { WorkspaceSwitcher } from "./workspace-switcher";
 import { useResize } from "@/hooks/use-resize";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { LoadingComponent } from "@/components/loading-component";
 import { ChevronLeft, X } from "lucide-react";
 import type { ContentPage } from "../type";
 
@@ -238,13 +239,7 @@ export function WorkspaceLayout() {
             COLUMN 3: Main Canvas
         ═══════════════════════════════════════════════════ */}
         <div className="flex-1 min-w-0 h-full flex flex-col relative bg-background border border-border rounded-md shadow-sm overflow-hidden">
-          <Suspense
-            fallback={
-              <div className="flex h-full w-full items-center justify-center text-sm font-mono tracking-widest uppercase text-muted-foreground/60 animate-pulse">
-                Synchronizing Nodes...
-              </div>
-            }
-          >
+          <Suspense fallback={<LoadingComponent />}>
             <Outlet />
           </Suspense>
         </div>

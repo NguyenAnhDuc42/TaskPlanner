@@ -35,6 +35,7 @@ interface FolderHeaderProps {
   onViewModeChange: (mode: ItemsViewMode) => void;
   rightPanelType: RightPanelType;  
   onToggleRightPanel: (type: RightPanelType) => void;
+  onDelete?: () => void;
 }
 
 export function FolderHeader({
@@ -47,6 +48,7 @@ export function FolderHeader({
   onViewModeChange,
   rightPanelType,
   onToggleRightPanel,
+  onDelete,
 }: FolderHeaderProps) {
   if (!viewData) return null;
 
@@ -167,13 +169,22 @@ export function FolderHeader({
           <Info className="h-3.5 w-3.5" />
         </Button>
 
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-7 w-7 rounded-md text-muted-foreground hover:text-foreground"
-        >
-          <MoreHorizontal className="h-3.5 w-3.5" />
-        </Button>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7 rounded-md text-muted-foreground hover:text-foreground"
+            >
+              <MoreHorizontal className="h-3.5 w-3.5" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-40">
+            <DropdownMenuItem className="text-destructive focus:text-destructive cursor-pointer" onClick={onDelete}>
+              Delete Folder
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
     </div>
   );

@@ -2,6 +2,7 @@ import { MoreHorizontal, Plus } from "lucide-react";
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import { StatusBadge } from "@/components/status-badge";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface StatusGroupProps {
   id: string;
@@ -45,16 +46,9 @@ export function StatusGroup({
       </div>
 
       {/* Items Area */}
-      <div className="flex-1 px-2 pb-4 pt-3 no-scrollbar flex flex-col">
+      <div className="flex-1 px-2 pb-1 pt-3 flex flex-col min-h-0">
         {children}
       </div>
-      
-      <div 
-        className="h-0.5 w-full opacity-30"
-        style={{ 
-          background: `linear-gradient(90deg, transparent 0%, ${color} 50%, transparent 100%)` 
-        }} 
-      />
     </div>
   );
 }

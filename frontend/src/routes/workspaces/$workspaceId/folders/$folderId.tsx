@@ -1,6 +1,7 @@
 import { createFileRoute, useParams } from "@tanstack/react-router";
 import { folderQueryOptions } from "@/features/workspace/contents/layer-detail/views/folder/folder-api";
 import { FolderView } from "@/features/workspace/contents/layer-detail/views/folder/folder-view";
+import { LoadingComponent } from "@/components/loading-component";
 
 export const Route = createFileRoute(
   "/workspaces/$workspaceId/folders/$folderId",
@@ -10,6 +11,8 @@ export const Route = createFileRoute(
     queryClient.ensureQueryData(folderQueryOptions.items(folderId));
   },
   component: FolderContent,
+  pendingComponent: LoadingComponent,
+  pendingMs: 0,
 });
 
 function FolderContent() {

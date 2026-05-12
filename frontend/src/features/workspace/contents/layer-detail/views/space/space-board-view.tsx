@@ -32,17 +32,30 @@ export function SpaceBoardView({ viewData, spaceId }: SpaceBoardViewProps) {
     buildColumns(viewData),
   );
 
-  // Always-current snapshot — handleDragEnd reads this, not the stale closure
   const columnsRef = useRef(columns);
   columnsRef.current = columns;
 
   const isDraggingRef = useRef(false);
+  const containerRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+
+    const handleWheel = (e: WheelEvent) => {
+      if (e.deltaY !== 0) {
+        e.preventDefault();
+        el.scrollLeft += e.deltaY;
+      }
+    };
+
+    el.addEventListener("wheel", handleWheel, { passive: false });
+    return () => el.removeEventListener("wheel", handleWheel);
+  }, []);
   const viewDataRef = useRef<TaskViewData | null>(null);
 
-  const { mutate: moveTaskToStatus, isPending: isMovingTask } =
-    useMoveTaskToStatus();
-  const { mutate: moveFolderToStatus, isPending: isMovingFolder } =
-    useMoveFolderToStatus();
+  const { mutate: moveTaskToStatus, isPending: isMovingTask } = useMoveTaskToStatus();
+  const { mutate: moveFolderToStatus, isPending: isMovingFolder } = useMoveFolderToStatus();
 
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isDebouncingRef = useRef(false);
@@ -200,70 +213,86 @@ export function SpaceBoardView({ viewData, spaceId }: SpaceBoardViewProps) {
 
   return (
     <DragDropContext onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
-      <div className="h-full flex gap-4 p-6 overflow-x-auto overflow-y-auto no-scrollbar animate-in fade-in slide-in-from-bottom-2 duration-500">
-        {displayStatuses.map((status) => {
-          const items = columns[status.statusId] ?? [];
-          return (
-            <StatusGroup
-              key={status.statusId}
-              id={status.statusId}
-              statusName={status.name}
-              color={status.color}
-              totalCount={items.length}
-              className="w-[300px]"
-            >
-              <Droppable droppableId={status.statusId}>
-                {(provided) => (
-                  <div
-                    ref={provided.innerRef}
-                    {...provided.droppableProps}
-                    className="flex flex-col min-h-[40px] max-h-[calc(100vh-250px)] overflow-y-auto no-scrollbar p-1"
-                  >
-                    {items.map((item: any, index: number) => {
-                      const isTask = "priority" in item;
-                      return (
-                        <Draggable
-                          key={item.id}
-                          draggableId={item.id}
-                          index={index}
-                        >
-                          {(provided, snapshot) => (
-                            <div
-                              ref={provided.innerRef}
-                              {...provided.draggableProps}
-                              {...provided.dragHandleProps}
-                              style={{
-                                ...provided.draggableProps.style,
-                                opacity: snapshot.isDragging ? 0.8 : 1,
-                              }}
-                              className={cn(
-                                snapshot.isDragging && "[&_*]:transition-none",
-                              )}
+      <Droppable droppableId="all-columns" direction="horizontal" type="COLUMN">
+        {(provided) => (
+          <div
+            ref={(node) => {
+              provided.innerRef(node);
+              containerRef.current = node;
+            }}
+            {...provided.droppableProps}
+            className="h-full flex gap-4 p-6 overflow-x-auto overflow-y-hidden animate-in fade-in slide-in-from-bottom-2 duration-500 scrollbar-thin scrollbar-thumb-border/40 scrollbar-track-transparent"
+          >
+            {displayStatuses.map((status) => {
+              const items = columns[status.statusId] ?? [];
+              return (
+                <StatusGroup
+                  key={status.statusId}
+                  id={status.statusId}
+                  statusName={status.name}
+                  color={status.color}
+                  totalCount={items.length}
+                  className="w-[300px]"
+                >
+                  <Droppable droppableId={status.statusId}>
+                    {(provided, snapshot) => (
+                      <div
+                        ref={provided.innerRef}
+                        {...provided.droppableProps}
+                        className={cn(
+                          "flex flex-col h-[calc(100vh-250px)] overflow-y-auto p-1 gap-2 rounded-md transition-colors",
+                          "[&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-thumb]:bg-muted-foreground/10 hover:[&::-webkit-scrollbar-thumb]:bg-muted-foreground/30 [&::-webkit-scrollbar-track]:bg-transparent",
+                          snapshot.isDraggingOver ? "bg-white/[0.02] border border-dashed border-border/60" : "border border-transparent"
+                        )}
+                      >
+                        {items.map((item: any, index: number) => {
+                          const isTask = "priority" in item;
+                          return (
+                            <Draggable
+                              key={item.id}
+                              draggableId={item.id}
+                              index={index}
                             >
-                              {isTask ? (
-                                <TaskItem
-                                  task={item}
-                                  onClick={() => handleTaskClick(item.id)}
-                                />
-                              ) : (
-                                <FolderItem
-                                  folder={item}
-                                  onClick={() => handleFolderClick(item.id)}
-                                />
+                              {(provided, snapshot) => (
+                                <div
+                                  ref={provided.innerRef}
+                                  {...provided.draggableProps}
+                                  {...provided.dragHandleProps}
+                                  style={{
+                                    ...provided.draggableProps.style,
+                                    opacity: snapshot.isDragging ? 0.8 : 1,
+                                  }}
+                                  className={cn(
+                                    snapshot.isDragging && "[&_*]:transition-none",
+                                  )}
+                                >
+                                  {isTask ? (
+                                    <TaskItem
+                                      task={item}
+                                      onClick={() => handleTaskClick(item.id)}
+                                    />
+                                  ) : (
+                                    <FolderItem
+                                      folder={item}
+                                      onClick={() => handleFolderClick(item.id)}
+                                    />
+                                  )}
+                                </div>
                               )}
-                            </div>
-                          )}
-                        </Draggable>
-                      );
-                    })}
-                    {provided.placeholder}
-                  </div>
-                )}
-              </Droppable>
-            </StatusGroup>
-          );
-        })}
-      </div>
+                            </Draggable>
+                          );
+                        })}
+                        {provided.placeholder}
+                      </div>
+                    )}
+                  </Droppable>
+                </StatusGroup>
+              );
+            })}
+            {provided.placeholder}
+          </div>
+        )}
+      </Droppable>
     </DragDropContext>
   );
 }

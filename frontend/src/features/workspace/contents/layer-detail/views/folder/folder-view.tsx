@@ -8,6 +8,9 @@ import { FolderSidebar } from "./folder-sidebar";
 import { AttachmentSection } from "../../components/overview/attachment-section";
 import type { MainViewTab, ItemsViewMode } from "../../layer-detail-types";
 import { cn } from "@/lib/utils";
+import { LoadingComponent } from "@/components/loading-component";
+import { useNavigate } from "@tanstack/react-router";
+import { useDeleteFolder } from "@/features/workspace/contents/hierarchy/hierarchy-api";
 import { useFolderDetail, useUpdateFolder, useFolderItems } from "./folder-api";
 import { useWorkspaceWorkflows } from "@/features/workspace/api";
 import { useDebounce } from "@/hooks/use-debounce";
@@ -107,13 +110,26 @@ export function FolderView({ workspaceId, folderId }: FolderViewProps) {
     setRightPanelType((prev) => (prev === type ? null : type));
   };
 
-  if (isLoading && !viewData) return <div>Loading...</div>;
+  const { mutate: deleteFolder } = useDeleteFolder(workspaceId);
+  const navigate = useNavigate();
+
+  const handleDelete = () => {
+    if (window.confirm("Are you sure you want to delete this folder?")) {
+      deleteFolder(folderId, {
+        onSuccess: () => {
+          navigate({ to: `/workspaces/${workspaceId}` });
+        },
+      });
+    }
+  };
+
   if (isError) return <div>Failed to load folder</div>;
   if (!viewData) return null;
 
   return (
     <div className="flex-1 flex flex-col h-full bg-background overflow-hidden relative">
       <FolderHeader
+        onDelete={handleDelete}
         viewData={viewData}
         draft={draft}
         isSaving={isSaving}
@@ -142,7 +158,7 @@ export function FolderView({ workspaceId, folderId }: FolderViewProps) {
           )}
           {activeTab === "items" && (
             itemsLoading ? (
-              <div>Loading items...</div>
+              <LoadingComponent />
             ) : !itemsData ? (
               <div>No items found</div>
             ) : viewMode === "board" ? (
@@ -155,12 +171,12 @@ export function FolderView({ workspaceId, folderId }: FolderViewProps) {
 
         <div
           className={cn(
-            "h-full transition-all duration-300 ease-in-out flex items-start overflow-hidden",
+            "absolute right-0 top-0 h-full transition-all duration-300 ease-in-out flex items-start overflow-hidden z-20",
             rightPanelType ? "w-[320px] opacity-100" : "w-0 opacity-0",
           )}
         >
           <div className="w-[320px] h-full p-1">
-            <div className="w-full h-full rounded-md border border-border/40 bg-muted/30 backdrop-blur-xl shadow-2xl overflow-hidden duration-300">
+            <div className="w-full h-full rounded-md border border-border/40 bg-background/95 backdrop-blur-xl shadow-2xl overflow-hidden duration-300">
               <div className="h-full overflow-y-auto no-scrollbar p-2 py-4">
                 {rightPanelType === "properties" && (
                   <FolderSidebar viewData={viewData} draft={draft} onChange={onDraftChange} />
