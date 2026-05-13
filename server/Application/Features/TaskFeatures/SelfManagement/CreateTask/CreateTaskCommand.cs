@@ -14,7 +14,9 @@ public record CreateTaskCommand(
     DateTimeOffset? StartDate,
     DateTimeOffset? DueDate,
     int? StoryPoints,
-    long? TimeEstimate
+    long? TimeEstimate,
+    string? Icon = null,
+    string? Color = null
 ) : ICommandRequest<TaskDto>, IAuthorizedWorkspaceRequest;
 
 public record TaskDto(
@@ -32,7 +34,9 @@ public record TaskDto(
     long? TimeEstimate,
     string? OrderKey,
     DateTimeOffset CreatedAt,
-    List<AssigneeDto> Assignees
+    List<AssigneeDto> Assignees,
+    string? Icon = null,
+    string? Color = null
 );
 
 public record AssigneeDto(

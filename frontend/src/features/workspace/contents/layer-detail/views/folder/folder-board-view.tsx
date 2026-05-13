@@ -52,14 +52,16 @@ export function FolderBoardView({ viewData, folderId }: FolderBoardViewProps) {
   }, []);
   const viewDataRef = useRef<TaskViewData | null>(null);
 
-  const { mutate: moveTaskToStatus, isPending: isMovingTask } = useMoveTaskToStatus();
+  const { mutate: moveTaskToStatus, isPending: isMovingTask } =
+    useMoveTaskToStatus();
 
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isDebouncingRef = useRef(false);
   const pendingMutationRef = useRef<(() => void) | null>(null);
 
   useEffect(() => {
-    if (isDraggingRef.current || isMovingTask || isDebouncingRef.current) return;
+    if (isDraggingRef.current || isMovingTask || isDebouncingRef.current)
+      return;
 
     const prev = viewDataRef.current;
     const hasChanged =
@@ -154,7 +156,7 @@ export function FolderBoardView({ viewData, folderId }: FolderBoardViewProps) {
     // 5. Persist (Debounced)
     isDebouncingRef.current = true;
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
-    
+
     const persist = () => {
       isDebouncingRef.current = false;
       pendingMutationRef.current = null;
@@ -197,7 +199,7 @@ export function FolderBoardView({ viewData, folderId }: FolderBoardViewProps) {
               containerRef.current = node;
             }}
             {...provided.droppableProps}
-            className="h-full flex gap-4 p-6 overflow-x-auto overflow-y-hidden animate-in fade-in slide-in-from-bottom-2 duration-500 scrollbar-thin scrollbar-thumb-border/40 scrollbar-track-transparent"
+            className="h-full flex gap-4 p-6 overflow-x-auto overflow-y-hidden animate-in fade-in slide-in-from-bottom-2 duration-500 [&::-webkit-scrollbar]:h-1 [&::-webkit-scrollbar-thumb]:bg-muted-foreground/10 hover:[&::-webkit-scrollbar-thumb]:bg-muted-foreground/30 [&::-webkit-scrollbar-track]:bg-transparent"
           >
             {displayStatuses.map((status) => {
               const items = columns[status.statusId] ?? [];
@@ -218,7 +220,9 @@ export function FolderBoardView({ viewData, folderId }: FolderBoardViewProps) {
                         className={cn(
                           "flex flex-col h-[calc(100vh-250px)] overflow-y-auto p-1 gap-2 rounded-md transition-colors",
                           "[&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-thumb]:bg-muted-foreground/10 hover:[&::-webkit-scrollbar-thumb]:bg-muted-foreground/30 [&::-webkit-scrollbar-track]:bg-transparent",
-                          snapshot.isDraggingOver ? "bg-white/[0.02] border border-dashed border-border/60" : "border border-transparent"
+                          snapshot.isDraggingOver
+                            ? "bg-white/[0.02] border border-dashed border-border/60"
+                            : "border border-transparent",
                         )}
                       >
                         {items.map((item: any, index: number) => {
@@ -239,7 +243,8 @@ export function FolderBoardView({ viewData, folderId }: FolderBoardViewProps) {
                                     opacity: snapshot.isDragging ? 0.8 : 1,
                                   }}
                                   className={cn(
-                                    snapshot.isDragging && "[&_*]:transition-none",
+                                    snapshot.isDragging &&
+                                      "[&_*]:transition-none",
                                   )}
                                 >
                                   {isTask ? (

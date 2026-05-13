@@ -36,8 +36,8 @@ public class GetNodeTasksHandler(IDataBase db) : IQueryHandler<GetNodeTasksQuery
                 StatusId = t.StatusId,
                 Priority = t.Priority,
                 OrderKey = t.OrderKey,
-                Color = "",
-                Icon = ""
+                Color = t.Color ?? "#FFFFFF",
+                Icon = t.Icon ?? ""
             });
         }
 
@@ -60,5 +60,7 @@ public class GetNodeTasksHandler(IDataBase db) : IQueryHandler<GetNodeTasksQuery
         public Priority Priority { get; init; }
         public string? OrderKey { get; init; }
         public string ParentType { get; init; } = null!;
+        public string? Color { get; init; }
+        public string? Icon { get; init; }
     }
 }

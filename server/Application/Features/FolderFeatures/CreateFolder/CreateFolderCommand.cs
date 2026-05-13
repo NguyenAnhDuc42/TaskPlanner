@@ -8,6 +8,7 @@ public record class CreateFolderCommand(
     string color,
     string icon,
     bool isPrivate,
+    Guid? statusId = null,
     DateTimeOffset? startDate = null,
     DateTimeOffset? dueDate = null
 ) : ICommandRequest<Guid>, IAuthorizedWorkspaceRequest;

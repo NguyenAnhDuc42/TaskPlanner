@@ -106,10 +106,10 @@ export function IconColorPicker({
 }
 
 // --- DATE PICKER ---
-export function SimpleDatePicker({ value, onChange }: { value?: Date; onChange: (d: Date) => void }) {
+export function SimpleDatePicker({ value, onChange, label = "Due Date" }: { value?: Date; onChange: (d: Date) => void; label?: string }) {
   return (
     <AttributeButton icon={CalendarIcon} active={!!value}>
-      {value ? value.toLocaleDateString() : "Due Date"}
+      {value ? value.toLocaleDateString() : label}
     </AttributeButton>
   );
 }

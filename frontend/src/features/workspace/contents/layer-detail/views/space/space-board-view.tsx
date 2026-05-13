@@ -221,7 +221,7 @@ export function SpaceBoardView({ viewData, spaceId }: SpaceBoardViewProps) {
               containerRef.current = node;
             }}
             {...provided.droppableProps}
-            className="h-full flex gap-4 p-6 overflow-x-auto overflow-y-hidden animate-in fade-in slide-in-from-bottom-2 duration-500 scrollbar-thin scrollbar-thumb-border/40 scrollbar-track-transparent"
+            className="h-full flex gap-4 p-6 overflow-x-auto overflow-y-hidden animate-in fade-in slide-in-from-bottom-2 duration-500 [&::-webkit-scrollbar]:h-1 [&::-webkit-scrollbar-thumb]:bg-muted-foreground/10 hover:[&::-webkit-scrollbar-thumb]:bg-muted-foreground/30 [&::-webkit-scrollbar-track]:bg-transparent"
           >
             {displayStatuses.map((status) => {
               const items = columns[status.statusId] ?? [];

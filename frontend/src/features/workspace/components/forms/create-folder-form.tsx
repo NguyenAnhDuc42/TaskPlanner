@@ -1,10 +1,22 @@
-import { useState } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useCreateFolder } from "../../contents/hierarchy/hierarchy-api";
 import { Button } from "@/components/ui/button";
 import { useWorkspace } from "../../context/workspace-provider";
 import { toast } from "sonner";
-import { IconColorPicker, PrivacyToggle, AttributeButton } from "./form-elements";
+import {
+  IconColorPicker,
+  PrivacyToggle,
+  AttributeButton,
+} from "./form-elements";
 import * as Icons from "lucide-react";
+import { useRegistryStore } from "../../context/use-registry-store";
+import { useAvailableStatuses } from "../../api";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { StatusBadge } from "@/components/status-badge";
 
 interface CreateFolderFormProps {
   spaceId: string;
@@ -23,6 +35,30 @@ export function CreateFolderForm({
   const [isPrivate, setIsPrivate] = useState(false);
   const [icon, setIcon] = useState("Folder");
   const [color, setColor] = useState("#6366f1");
+  const [selectedStatusId, setSelectedStatusId] = useState<string | null>(null);
+
+  const { setStatuses, setSpaceStatuses } = useRegistryStore();
+
+  const { data: fetchedStatuses } = useAvailableStatuses(spaceId);
+
+  useEffect(() => {
+    if (fetchedStatuses) {
+      const currentIds =
+        useRegistryStore.getState().spaceStatuses[spaceId] || [];
+      const newIds = fetchedStatuses.map((s) => s.id);
+      if (JSON.stringify(currentIds) !== JSON.stringify(newIds)) {
+        setStatuses(fetchedStatuses);
+        setSpaceStatuses(spaceId, newIds);
+      }
+    }
+  }, [fetchedStatuses, spaceId, setStatuses, setSpaceStatuses]);
+
+  const statusIds = useRegistryStore((state) => state.spaceStatuses[spaceId]);
+  
+  const statuses = useMemo(() => {
+    const allStatuses = useRegistryStore.getState().statuses;
+    return (statusIds || []).map(id => allStatuses[id]).filter(Boolean);
+  }, [statusIds]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -35,6 +71,7 @@ export function CreateFolderForm({
         isPrivate,
         color,
         icon,
+        statusId: selectedStatusId,
       });
       toast.success("Folder created");
       onSuccess?.((result as any).data);
@@ -48,10 +85,13 @@ export function CreateFolderForm({
       {/* Main Header / Input Section */}
       <div className="px-3 pt-4 pb-2">
         <div className="flex items-center gap-3">
-          <IconColorPicker 
-            icon={icon} 
-            color={color} 
-            onChange={(i, c) => { setIcon(i); setColor(c); }} 
+          <IconColorPicker
+            icon={icon}
+            color={color}
+            onChange={(i, c) => {
+              setIcon(i);
+              setColor(c);
+            }}
           />
           <input
             placeholder="Folder name"
@@ -59,6 +99,11 @@ export function CreateFolderForm({
             onChange={(e) => setName(e.target.value)}
             className="flex-1 bg-transparent border-none focus:ring-0 text-[13px] font-semibold placeholder:text-muted-foreground/30 py-0 outline-none tracking-tight"
             autoFocus
+            onKeyDown={(e) => {
+              if (e.key === " ") {
+                e.stopPropagation();
+              }
+            }}
           />
         </div>
       </div>
@@ -66,14 +111,48 @@ export function CreateFolderForm({
       {/* Attribute Strip */}
       <div className="px-3 py-1.5 flex flex-wrap items-center gap-1.5 border-t border-border/5">
         <PrivacyToggle isPrivate={isPrivate} onChange={setIsPrivate} />
-        
-        <AttributeButton icon={Icons.Circle}>
-          Status
-        </AttributeButton>
 
-        <AttributeButton icon={Icons.Calendar}>
-          Schedule
-        </AttributeButton>
+        <Popover>
+          <PopoverTrigger asChild>
+            <AttributeButton icon={selectedStatusId ? undefined : Icons.Circle}>
+              {selectedStatusId ? (
+                <StatusBadge
+                  status={statuses.find((s) => s.id === selectedStatusId)}
+                  showIcon={true}
+                />
+              ) : (
+                "Status"
+              )}
+            </AttributeButton>
+          </PopoverTrigger>
+          <PopoverContent
+            className="w-48 p-1 bg-popover border border-border shadow-md rounded-md"
+            align="start"
+          >
+            <div className="flex flex-col gap-0.5">
+              {statuses.map((status) => (
+                <button
+                  key={status.id}
+                  type="button"
+                  className="px-1 py-1 text-xs text-left rounded-sm hover:bg-muted transition-colors flex items-center"
+                  onClick={() => setSelectedStatusId(status.id)}
+                >
+                  <StatusBadge
+                    status={status}
+                    className="w-full justify-start"
+                  />
+                </button>
+              ))}
+              {statuses.length === 0 && (
+                <span className="text-xs text-muted-foreground p-2">
+                  No statuses found
+                </span>
+              )}
+            </div>
+          </PopoverContent>
+        </Popover>
+
+        <AttributeButton icon={Icons.Calendar}>Schedule</AttributeButton>
       </div>
 
       {/* Footer */}

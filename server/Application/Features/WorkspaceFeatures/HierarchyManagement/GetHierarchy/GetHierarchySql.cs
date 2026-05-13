@@ -88,6 +88,8 @@ public static class GetHierarchySql
             t.order_key,
             t.project_folder_id,
             t.project_space_id,
+            t.custom_color AS color,
+            t.custom_icon AS icon,
             CASE 
                 WHEN t.project_folder_id IS NOT NULL THEN 'ProjectFolder'
                 ELSE 'ProjectSpace'

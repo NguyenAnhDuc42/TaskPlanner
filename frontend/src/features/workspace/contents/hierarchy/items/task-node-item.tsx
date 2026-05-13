@@ -16,6 +16,7 @@ import {
 
 import { useLocation } from "@tanstack/react-router";
 import type { TaskHierarchy } from "../hierarchy-type";
+import { DynamicIcon } from "@/components/dynamic-icon";
 
 interface TaskNodeItemProps {
   task: TaskHierarchy;
@@ -64,7 +65,11 @@ export const TaskNodeItem = React.memo(function TaskNodeItem({
           }
         >
           <div className="w-5 h-5 flex items-center justify-center flex-shrink-0 mr-2">
-            <CheckSquare className="h-3.5 w-3.5 opacity-60" />
+            {task.icon ? (
+              <DynamicIcon name={task.icon} color={task.color} size={14} />
+            ) : (
+              <CheckSquare className="h-3.5 w-3.5 opacity-60" />
+            )}
           </div>
           <FadeTruncate
             text={task.name}

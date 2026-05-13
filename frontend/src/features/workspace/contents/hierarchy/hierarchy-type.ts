@@ -67,6 +67,7 @@ export interface CreateFolderRequest {
   color?: string;
   icon?: string;
   isPrivate?: boolean;
+  statusId?: string | null;
 }
 
 export interface CreateTaskRequest {

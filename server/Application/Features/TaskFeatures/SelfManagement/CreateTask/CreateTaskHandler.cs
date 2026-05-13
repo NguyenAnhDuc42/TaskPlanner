@@ -47,8 +47,8 @@ public class CreateTaskHandler(IDataBase db, WorkspaceContext context) : IComman
                 name: request.Name,
                 slug: slug,
                 defaultDocumentId: document.Id,
-                color: null,
-                icon: null,
+                color: request.Color ?? "#FFFFFF",
+                icon: request.Icon,
                 creatorId: context.CurrentMember.Id,
                 statusId: statusId,
                 priority: request.Priority,
@@ -83,7 +83,9 @@ public class CreateTaskHandler(IDataBase db, WorkspaceContext context) : IComman
                 task.TimeEstimateSeconds,
                 task.OrderKey,
                 task.CreatedAt,
-                assignees
+                assignees,
+                task.Icon,
+                task.Color
             ));
         }, ct);
     }

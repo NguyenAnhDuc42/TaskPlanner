@@ -6,6 +6,7 @@ import {
 } from "@/types/entity-layer-type";
 import { DialogFormWrapper } from "@/components/dialog-form-wrapper";
 import { signalRService } from "@/lib/signalr-service";
+import { useHierarchyStore } from "./use-hierarchy-store";
 
 import { Loader2, Plus, Search, ChevronDown } from "lucide-react";
 import { DndContext, closestCenter, DragOverlay } from "@dnd-kit/core";
@@ -26,7 +27,6 @@ import type {
   SpaceHierarchy,
   FolderHierarchy,
   TaskHierarchy,
-  WorkspaceHierarchy,
 } from "./hierarchy-type";
 
 // Modularized Components & Hooks
@@ -39,15 +39,14 @@ import { CreateSpaceForm } from "../../components/forms/create-space-form";
 export function HierarchySidebar() {
   const { workspaceId } = useWorkspace();
   const { data: hierarchy, isLoading, error } = useHierarchy(workspaceId);
-  const [localHierarchy, setLocalHierarchy] = useState<
-    WorkspaceHierarchy | undefined
-  >(undefined);
+  const localHierarchy = useHierarchyStore((state) => state.hierarchy);
+  const setHierarchy = useHierarchyStore((state) => state.setHierarchy);
 
   useEffect(() => {
     if (hierarchy) {
-      setLocalHierarchy(hierarchy);
+      setHierarchy(hierarchy);
     }
-  }, [hierarchy]);
+  }, [hierarchy, setHierarchy]);
 
   useEffect(() => {
     const onHierarchyChanged = () => {};
@@ -86,7 +85,6 @@ export function HierarchySidebar() {
     useHierarchyDnd({
       workspaceId: workspaceId || "",
       filteredHierarchy,
-      setLocalHierarchy,
       moveItem,
     });
 

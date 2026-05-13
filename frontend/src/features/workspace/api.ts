@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api-client";
 import { workspaceKeys } from "../main/query-keys";
 import type { Theme } from "@/types/theme";
+import type { StatusDto } from "@/types/status";
 
 export interface WorkspaceSecurityContext {
   workspaceId: string;
@@ -46,6 +47,16 @@ export const workspaceQueryOptions = {
     enabled: !!workspaceId,
     staleTime: 1000 * 60 * 5,
   }),
+  availableStatuses: (spaceId?: string, folderId?: string) => ({
+    queryKey: [...workspaceKeys.all, "statuses", "available", spaceId, folderId],
+    queryFn: async () => {
+      const { data } = await api.get<StatusDto[]>("/statuses/available", {
+        params: { spaceId, folderId },
+      });
+      return data;
+    },
+    staleTime: 1000 * 60, // 1 minute
+  }),
 };
 
 export function useWorkspaceDetail(workspaceId: string) {
@@ -58,4 +69,8 @@ export function useWorkspaceWorkflows(workspaceId: string, layerId?: string, lay
 
 export function useWorkspaceMembers(workspaceId: string) {
   return useQuery(workspaceQueryOptions.members(workspaceId));
+}
+
+export function useAvailableStatuses(spaceId?: string, folderId?: string) {
+  return useQuery(workspaceQueryOptions.availableStatuses(spaceId, folderId));
 }

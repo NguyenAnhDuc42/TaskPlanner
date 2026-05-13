@@ -60,6 +60,11 @@ public class CreateFolderHandler(
                 dueDate: request.dueDate
             );
 
+            if (request.statusId != null)
+            {
+                folder.UpdateStatus(request.statusId);
+            }
+
             await db.Folders.AddAsync(folder, ct);
 
             // 3. Create Default Workflow for the folder

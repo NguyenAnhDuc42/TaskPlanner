@@ -33,20 +33,29 @@ export function DialogFormWrapper({
 
   return (
     <>
-      {isControlled ? trigger : (
-        <div className="contents" onClick={() => handleOpenChange(true)}>{trigger}</div>
+      {isControlled ? (
+        trigger
+      ) : (
+        <div className="contents" onClick={() => handleOpenChange(true)}>
+          {trigger}
+        </div>
       )}
 
       <Dialog open={open} onOpenChange={handleOpenChange}>
-        <DialogContent className={cn("sm:max-w-[440px] w-full p-0 overflow-hidden border border-border/50 shadow-2xl rounded-xl bg-background outline-none", contentClassName)}>
+        <DialogContent
+          className={cn(
+            "sm:max-w-[440px] w-full p-0 overflow-hidden border border-border/50 shadow-2xl rounded-xl bg-background outline-none",
+            contentClassName,
+          )}
+        >
           {!hideHeader && (
             <DialogHeader className="px-4 py-2.5 border-b border-border/5">
-              <DialogTitle className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/40">{title}</DialogTitle>
+              <DialogTitle className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/40">
+                {title}
+              </DialogTitle>
             </DialogHeader>
           )}
-          <div className="w-full">
-            {children}
-          </div>
+          <div className="w-full">{children}</div>
         </DialogContent>
       </Dialog>
     </>
