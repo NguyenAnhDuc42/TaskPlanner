@@ -8,6 +8,7 @@ import * as Icons from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import { UniversalPicker } from "@/components/universal-picker";
+import { Calendar } from "@/components/ui/calendar";
 
 // --- ATTRIBUTE BUTTON ---
 export const AttributeButton = forwardRef<
@@ -106,10 +107,22 @@ export function IconColorPicker({
 }
 
 // --- DATE PICKER ---
-export function SimpleDatePicker({ value, onChange, label = "Due Date" }: { value?: Date; onChange: (d: Date) => void; label?: string }) {
+export function SimpleDatePicker({ value, onChange, label = "Due Date" }: { value?: Date; onChange: (d: Date | undefined) => void; label?: string }) {
   return (
-    <AttributeButton icon={CalendarIcon} active={!!value}>
-      {value ? value.toLocaleDateString() : label}
-    </AttributeButton>
+    <Popover>
+      <PopoverTrigger asChild>
+        <AttributeButton icon={CalendarIcon} active={!!value}>
+          {value ? value.toLocaleDateString() : label}
+        </AttributeButton>
+      </PopoverTrigger>
+      <PopoverContent className="w-auto p-0 border border-border/50 shadow-xl rounded-xl bg-background overflow-hidden" align="start">
+        <Calendar
+          mode="single"
+          selected={value}
+          onSelect={onChange}
+          initialFocus
+        />
+      </PopoverContent>
+    </Popover>
   );
 }

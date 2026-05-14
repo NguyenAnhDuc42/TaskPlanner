@@ -29,6 +29,11 @@ import { CreateFolderForm } from "@/features/workspace/components/forms/create-f
 import { CreateSpaceForm } from "@/features/workspace/components/forms/create-space-form";
 
 import { useDeleteSpace, useDeleteFolder, useDeleteTask } from "../hierarchy-api";
+import { workspaceKeys } from "@/features/main/query-keys";
+import { useQueryClient } from "@tanstack/react-query";
+import { useHierarchyStore } from "../use-hierarchy-store";
+import { hierarchyKeys } from "../hierarchy-keys";
+import type { FolderHierarchy } from "../hierarchy-type";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 
 interface EntityMenuContextType {
@@ -92,6 +97,7 @@ export function SpaceContextMenu({
   children,
 }: SpaceContextMenuProps) {
   const { workspaceId } = useWorkspace();
+  const queryClient = useQueryClient();
   const [activeForm, setActiveForm] = useState<"task" | "folder" | "settings" | null>(null);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
 
@@ -165,7 +171,24 @@ export function SpaceContextMenu({
         <CreateTaskForm 
           parentId={spaceId}
           parentType={EntityLayerType.ProjectSpace}
-          onSuccess={() => setActiveForm(null)}
+          onSuccess={() => {
+            setActiveForm(null);
+            queryClient.invalidateQueries({
+              queryKey: [...workspaceKeys.all, "space", spaceId, "items"],
+            });
+            
+            // Update hasTasks flag in hierarchy store (for spaces)
+            useHierarchyStore.getState().updateHierarchy((prev) => {
+              if (!prev) return prev;
+              const newSpaces = prev.spaces.map((s) => {
+                if (s.id === spaceId) {
+                  return { ...s, hasTasks: true };
+                }
+                return s;
+              });
+              return { ...prev, spaces: newSpaces };
+            });
+          }}
           onCancel={() => setActiveForm(null)}
         />
       </DialogFormWrapper>
@@ -217,9 +240,11 @@ interface FolderContextMenuProps {
 export function FolderContextMenu({
   folderId,
   folderName,
+  spaceId,
   children,
 }: FolderContextMenuProps) {
   const { workspaceId } = useWorkspace();
+  const queryClient = useQueryClient();
   const [activeForm, setActiveForm] = useState<"task" | null>(null);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
 
@@ -283,7 +308,24 @@ export function FolderContextMenu({
         <CreateTaskForm 
           parentId={folderId}
           parentType={EntityLayerType.ProjectFolder}
-          onSuccess={() => setActiveForm(null)}
+          onSuccess={() => {
+            setActiveForm(null);
+            queryClient.invalidateQueries({
+              queryKey: [...workspaceKeys.all, "folder", folderId, "items"],
+            });
+            
+            // Patch folders cache to show chevron instantly!
+            const foldersKey = hierarchyKeys.nodeFolders(workspaceId || "", spaceId);
+            queryClient.setQueryData(foldersKey, (old: FolderHierarchy[] | undefined) => {
+              if (!old) return old;
+              return old.map((folder) => {
+                if (folder.id === folderId) {
+                  return { ...folder, hasTasks: true };
+                }
+                return folder;
+              });
+            });
+          }}
           onCancel={() => setActiveForm(null)}
         />
       </DialogFormWrapper>

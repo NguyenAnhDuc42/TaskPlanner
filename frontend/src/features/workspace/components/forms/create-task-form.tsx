@@ -116,18 +116,16 @@ export function CreateTaskForm({
   return (
     <form onSubmit={onSubmit} className="flex flex-col w-full">
       {/* Main Header / Input Section */}
-      <div className="px-3 pt-4 pb-2">
-        <div className="flex items-start gap-3">
-          <div className="mt-1">
-            <IconColorPicker
-              icon={icon}
-              color={color}
-              onChange={(i, c) => {
-                setIcon(i);
-                setColor(c);
-              }}
-            />
-          </div>
+      <div className="px-3 pt-2 pb-2">
+        <div className="flex items-center gap-3">
+          <IconColorPicker
+            icon={icon}
+            color={color}
+            onChange={(i, c) => {
+              setIcon(i);
+              setColor(c);
+            }}
+          />
           <textarea
             placeholder="Task title"
             value={name}
@@ -144,14 +142,6 @@ export function CreateTaskForm({
                 onSubmit();
               }
             }}
-          />
-        </div>
-
-        <div className="pl-9">
-          <textarea
-            placeholder="Add description..."
-            className="w-full bg-transparent border-none focus:ring-0 text-[12px] text-muted-foreground placeholder:text-muted-foreground/20 resize-none min-h-[18px] py-0 outline-none"
-            rows={1}
           />
         </div>
       </div>

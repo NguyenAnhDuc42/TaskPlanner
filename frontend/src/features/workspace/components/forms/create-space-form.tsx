@@ -61,14 +61,6 @@ export function CreateSpaceForm({ onSuccess, onCancel }: CreateSpaceFormProps) {
       {/* Attribute Strip */}
       <div className="px-3 py-1.5 flex flex-wrap items-center gap-1.5 border-t border-border/5">
         <PrivacyToggle isPrivate={isPrivate} onChange={setIsPrivate} />
-        
-        <AttributeButton icon={Icons.Circle}>
-          Status
-        </AttributeButton>
-
-        <AttributeButton icon={Icons.Calendar}>
-          Schedule
-        </AttributeButton>
       </div>
 
       {/* Footer */}

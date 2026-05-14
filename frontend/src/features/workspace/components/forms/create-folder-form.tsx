@@ -7,6 +7,7 @@ import {
   IconColorPicker,
   PrivacyToggle,
   AttributeButton,
+  SimpleDatePicker,
 } from "./form-elements";
 import * as Icons from "lucide-react";
 import { useRegistryStore } from "../../context/use-registry-store";
@@ -36,6 +37,8 @@ export function CreateFolderForm({
   const [icon, setIcon] = useState("Folder");
   const [color, setColor] = useState("#6366f1");
   const [selectedStatusId, setSelectedStatusId] = useState<string | null>(null);
+  const [startDate, setStartDate] = useState<Date | undefined>();
+  const [dueDate, setDueDate] = useState<Date | undefined>();
 
   const { setStatuses, setSpaceStatuses } = useRegistryStore();
 
@@ -72,6 +75,8 @@ export function CreateFolderForm({
         color,
         icon,
         statusId: selectedStatusId,
+        startDate: startDate?.toISOString(),
+        dueDate: dueDate?.toISOString(),
       });
       toast.success("Folder created");
       onSuccess?.((result as any).data);
@@ -152,7 +157,16 @@ export function CreateFolderForm({
           </PopoverContent>
         </Popover>
 
-        <AttributeButton icon={Icons.Calendar}>Schedule</AttributeButton>
+        <SimpleDatePicker
+          value={startDate}
+          onChange={setStartDate}
+          label="Start Date"
+        />
+        <SimpleDatePicker
+          value={dueDate}
+          onChange={setDueDate}
+          label="Due Date"
+        />
       </div>
 
       {/* Footer */}
