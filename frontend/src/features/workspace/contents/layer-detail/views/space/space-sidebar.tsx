@@ -10,7 +10,7 @@ import { cn } from "@/lib/utils";
 import { useState, useMemo } from "react";
 import { StatusBadge } from "@/components/status-badge";
 import type {  EnrichedSpaceDetailDto } from "./space-types";
-import { useWorkspaceWorkflows } from "@/features/workspace/api";
+import { useWorkspace } from "@/features/workspace/context/workspace-provider";
 
 interface SpaceSidebarProps {
   viewData: EnrichedSpaceDetailDto;
@@ -19,6 +19,7 @@ interface SpaceSidebarProps {
 }
 
 export function SpaceSidebar({ viewData, draft, onChange }: SpaceSidebarProps) {
+  const { registry } = useWorkspace();
 
   const [collapsed, setCollapsed] = useState({
     properties: false,
@@ -31,8 +32,15 @@ export function SpaceSidebar({ viewData, draft, onChange }: SpaceSidebarProps) {
     setCollapsed(prev => ({ ...prev, [key]: !prev[key] }));
   };
 
-  const { data: workflows = [] } = useWorkspaceWorkflows(viewData.projectWorkspaceId, viewData.id, "space");
-  const workflow = workflows[0];
+  const workflow = useMemo(() => {
+    if (viewData.workflowId) {
+      return registry.workflows.find((w: any) => 
+        w.id?.toLowerCase() === viewData.workflowId?.toLowerCase()
+      );
+    }
+    return null;
+  }, [viewData.workflowId, registry.workflows]);
+
   const statuses = workflow?.statuses || [];
   
   const statusesByCategory = useMemo(() => {

@@ -19,6 +19,15 @@ import {
   ChevronRight,
   Plus
 } from "lucide-react";
+import { Calendar } from "@/components/ui/calendar";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { PriorityBadge } from "@/components/priority-badge";
+import { Priority } from "@/types/priority";
 
 
 interface TaskDetailViewProps {
@@ -96,69 +105,90 @@ export function TaskDetailView({ viewData, draft, onChange }: TaskDetailViewProp
           />
         </header>
 
-        {/* --- QUICK ACTIONS / METADATA GRID --- */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 p-6 rounded-2xl bg-muted/20 border border-border/5">
+        {/* --- QUICK ACTIONS / METADATA ROW --- */}
+        <div className="flex items-center gap-1.5 flex-wrap mt-2">
           {/* Status */}
-          <div className="space-y-2">
-            <label className="text-[9px] font-black uppercase tracking-[0.2em] text-muted-foreground/40 flex items-center gap-2">
-              <Layers className="h-3 w-3" />
-              Status
-            </label>
-            <StatusBadge status={currentStatus} className="bg-background/50 hover:bg-background border-border/10 transition-colors cursor-pointer w-fit" />
-          </div>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <div className="cursor-pointer">
+                <StatusBadge status={currentStatus} className="text-[10px] font-bold" />
+              </div>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="w-48 p-1 bg-background/95 backdrop-blur-md border-border/40 shadow-2xl rounded-xl">
+              {registry.workflows.find((w: any) => 
+                w.id?.toLowerCase() === viewData.workflowId?.toLowerCase()
+              )?.statuses.map((status: any) => (
+                <DropdownMenuItem 
+                  key={status.id}
+                  onSelect={() => onChange({ statusId: status.id })}
+                  className="p-1 rounded-lg cursor-pointer transition-colors"
+                >
+                  <StatusBadge status={status} className="w-full justify-start border-none bg-transparent hover:bg-muted/20" />
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
 
           {/* Priority */}
-          <div className="space-y-2">
-            <label className="text-[9px] font-black uppercase tracking-[0.2em] text-muted-foreground/40 flex items-center gap-2">
-              <Flag className="h-3 w-3" />
-              Priority
-            </label>
-            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-background/50 border border-border/10 text-[10px] font-bold text-foreground/70 hover:bg-background transition-colors cursor-pointer w-fit">
-              <div className={cn(
-                "h-1.5 w-1.5 rounded-full",
-                (draft?.priority ?? viewData?.priority ?? 0) >= 4 ? "bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.5)]" :
-                (draft?.priority ?? viewData?.priority ?? 0) >= 3 ? "bg-amber-500" :
-                (draft?.priority ?? viewData?.priority ?? 0) >= 2 ? "bg-blue-500" : "bg-slate-400"
-              )} />
-              {(draft?.priority ?? viewData?.priority) === 4 ? "Urgent" : (draft?.priority ?? viewData?.priority) === 3 ? "High" : (draft?.priority ?? viewData?.priority) === 2 ? "Medium" : "Low"}
-            </div>
-          </div>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <div className="cursor-pointer">
+                <PriorityBadge priority={draft?.priority || viewData?.priority} className="text-[10px] font-bold px-2.5 py-1" />
+              </div>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="w-48 p-1 bg-background/95 backdrop-blur-md border-border/40 shadow-2xl rounded-xl">
+              {Object.values(Priority).map((p) => (
+                <DropdownMenuItem 
+                  key={p}
+                  onSelect={() => onChange({ priority: p })}
+                  className="p-1 rounded-lg cursor-pointer transition-colors"
+                >
+                  <PriorityBadge priority={p} className="w-full justify-start border-none bg-transparent hover:bg-muted/20" />
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
 
           {/* Assignees */}
-          <div className="space-y-2">
-            <label className="text-[9px] font-black uppercase tracking-[0.2em] text-muted-foreground/40 flex items-center gap-2">
-              <Users className="h-3 w-3" />
-              Assignees
-            </label>
-            <div className="flex -space-x-2">
-              {viewData.members?.length > 0 ? (
-                viewData.members.map((m: any, i: number) => (
-                  <div key={i} className="h-6 w-6 rounded-full border-2 border-background bg-muted flex items-center justify-center text-[8px] font-bold uppercase overflow-hidden shadow-sm ring-1 ring-border/5">
-                    {m.avatarUrl ? (
-                      <img src={m.avatarUrl} alt={m.name} className="h-full w-full object-cover" />
-                    ) : (
-                      <span>{m.name?.[0] || "?"}</span>
-                    )}
+          <Popover>
+            <PopoverTrigger asChild>
+              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-muted/50 border border-border/10 text-[10px] font-bold text-muted-foreground hover:bg-muted transition-colors cursor-pointer">
+                <Users className="h-3 w-3 stroke-[2.5px]" />
+                <span>{viewData.members?.length > 0 ? `${viewData.members.length} Users` : "No Members"}</span>
+              </div>
+            </PopoverTrigger>
+            <PopoverContent className="w-48 p-2 bg-background/95 border-border/40 shadow-2xl rounded-xl" align="start">
+              <div className="text-[10px] font-black uppercase tracking-wider text-muted-foreground/40 mb-2 px-1">Assignees</div>
+              <div className="space-y-1">
+                {viewData.members?.map((m: any, i: number) => (
+                  <div key={i} className="flex items-center gap-2 p-1 hover:bg-muted/50 rounded-md transition-colors">
+                    <div className="h-5 w-5 rounded-full bg-muted flex items-center justify-center text-[8px] font-bold uppercase overflow-hidden">
+                      {m.avatarUrl ? <img src={m.avatarUrl} alt={m.name} className="h-full w-full object-cover" /> : <span>{m.name?.[0] || "?"}</span>}
+                    </div>
+                    <span className="text-[10px] font-bold">{m.name}</span>
                   </div>
-                ))
-              ) : (
-                <div className="h-6 w-6 rounded-full border border-dashed border-muted-foreground/30 flex items-center justify-center text-muted-foreground/30 hover:border-primary/50 hover:text-primary transition-all cursor-pointer">
-                  <Plus className="h-3 w-3" />
-                </div>
-              )}
-            </div>
-          </div>
+                ))}
+              </div>
+            </PopoverContent>
+          </Popover>
 
           {/* Dates */}
-          <div className="space-y-2">
-            <label className="text-[9px] font-black uppercase tracking-[0.2em] text-muted-foreground/40 flex items-center gap-2">
-              <CalendarIcon className="h-3 w-3" />
-              Schedule
-            </label>
-            <div className="text-[10px] font-black font-mono tracking-tight text-foreground/80 flex items-center gap-1.5 cursor-pointer hover:text-primary transition-colors">
-              {draft?.dueDate ? format(new Date(draft.dueDate), "MMM dd, yyyy") : "No Due Date"}
-            </div>
-          </div>
+          <Popover>
+            <PopoverTrigger asChild>
+              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-muted/50 border border-border/10 text-[10px] font-bold text-muted-foreground hover:bg-muted transition-colors cursor-pointer">
+                <CalendarIcon className="h-3 w-3 stroke-[2.5px]" />
+                <span>{draft?.dueDate ? format(new Date(draft.dueDate), "MMM dd") : "No Due Date"}</span>
+              </div>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="start">
+              <Calendar
+                mode="single"
+                selected={draft?.dueDate ? new Date(draft.dueDate) : undefined}
+                onSelect={(date) => onChange({ dueDate: date?.toISOString() })}
+                initialFocus
+              />
+            </PopoverContent>
+          </Popover>
         </div>
 
         {/* --- DESCRIPTION AREA --- */}

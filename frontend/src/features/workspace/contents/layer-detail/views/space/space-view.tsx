@@ -19,6 +19,7 @@ import { LoadingComponent } from "@/components/loading-component";
 import { useNavigate } from "@tanstack/react-router";
 import { useDeleteSpace } from "@/features/workspace/contents/hierarchy/hierarchy-api";
 
+
 interface SpaceViewProps {
   workspaceId: string;
   spaceId: string;
@@ -27,7 +28,7 @@ interface SpaceViewProps {
 export type RightPanelType = "properties" | "attachments" | null;
 
 export function SpaceView({ workspaceId, spaceId }: SpaceViewProps) {
-  const { data: viewData, isLoading, isError } = useSpaceDetail(workspaceId, spaceId);
+  const { data: viewData, isError } = useSpaceDetail(workspaceId, spaceId);
   const { data: itemsData, isLoading: itemsLoading } = useSpaceItems(spaceId);
   useSpaceRealtime(workspaceId);
   useFolderRealtime(workspaceId);
@@ -122,6 +123,8 @@ export function SpaceView({ workspaceId, spaceId }: SpaceViewProps) {
   };
 
   if (isError) return <div>Failed to load space</div>;
+  
+
   if (!viewData) return null;
 
   return (
@@ -152,6 +155,7 @@ export function SpaceView({ workspaceId, spaceId }: SpaceViewProps) {
               viewData={viewData} 
               draft={draft} 
               onChange={onDraftChange} 
+              rightPanelType={rightPanelType}
             />
           )}
           {activeTab === "items" && (
@@ -169,8 +173,8 @@ export function SpaceView({ workspaceId, spaceId }: SpaceViewProps) {
 
         <div
           className={cn(
-            "absolute right-0 top-0 h-full transition-all duration-300 ease-in-out flex items-start overflow-hidden z-20",
-            rightPanelType ? "w-[320px] opacity-100" : "w-0 opacity-0",
+            "h-full transition-all duration-300 ease-in-out flex items-start overflow-hidden",
+            (rightPanelType && activeTab === "overview") ? "w-[320px] opacity-100" : "w-0 opacity-0",
           )}
         >
           <div className="w-[320px] h-full p-1">

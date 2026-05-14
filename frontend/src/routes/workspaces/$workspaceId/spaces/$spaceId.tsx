@@ -1,7 +1,7 @@
 import { createFileRoute, useParams } from "@tanstack/react-router";
 import { SpaceView } from "@/features/workspace/contents/layer-detail/views/space/space-view";
 import { spaceQueryOptions } from "@/features/workspace/contents/layer-detail/views/space/space-api";
-import { LoadingComponent } from "@/components/loading-component";
+import { ViewSkeleton } from "@/components/view-skeleton";
 
 export const Route = createFileRoute("/workspaces/$workspaceId/spaces/$spaceId")({
   loader: ({ context: { queryClient }, params: { workspaceId, spaceId } }) => {
@@ -9,7 +9,7 @@ export const Route = createFileRoute("/workspaces/$workspaceId/spaces/$spaceId")
     queryClient.ensureQueryData(spaceQueryOptions.items(spaceId));
   },
   component: SpaceContent,
-  pendingComponent: LoadingComponent,
+  pendingComponent: ViewSkeleton,
   pendingMs: 0,
 });
 

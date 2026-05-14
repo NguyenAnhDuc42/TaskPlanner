@@ -10,6 +10,7 @@ import type { MainViewTab, ItemsViewMode } from "../../layer-detail-types";
 import { cn } from "@/lib/utils";
 import { LoadingComponent } from "@/components/loading-component";
 import { useNavigate } from "@tanstack/react-router";
+import { ViewSkeleton } from "@/components/view-skeleton";
 import { useDeleteFolder } from "@/features/workspace/contents/hierarchy/hierarchy-api";
 import { useFolderDetail, useUpdateFolder, useFolderItems } from "./folder-api";
 import { useWorkspaceWorkflows } from "@/features/workspace/api";
@@ -27,7 +28,7 @@ interface FolderViewProps {
 export type RightPanelType = "properties" | "attachments" | null;
 
 export function FolderView({ workspaceId, folderId }: FolderViewProps) {
-  const { data: viewData, isLoading, isError } = useFolderDetail(workspaceId, folderId);
+  const { data: viewData, isError } = useFolderDetail(workspaceId, folderId);
   const { data: itemsData, isLoading: itemsLoading } = useFolderItems(folderId);
   useFolderRealtime(workspaceId);
   useTaskRealtime(workspaceId);
@@ -124,6 +125,9 @@ export function FolderView({ workspaceId, folderId }: FolderViewProps) {
   };
 
   if (isError) return <div>Failed to load folder</div>;
+  
+
+
   if (!viewData) return null;
 
   return (
@@ -154,6 +158,7 @@ export function FolderView({ workspaceId, folderId }: FolderViewProps) {
               viewData={viewData} 
               draft={draft} 
               onChange={onDraftChange} 
+              rightPanelType={rightPanelType}
             />
           )}
           {activeTab === "items" && (
@@ -171,8 +176,8 @@ export function FolderView({ workspaceId, folderId }: FolderViewProps) {
 
         <div
           className={cn(
-            "absolute right-0 top-0 h-full transition-all duration-300 ease-in-out flex items-start overflow-hidden z-20",
-            rightPanelType ? "w-[320px] opacity-100" : "w-0 opacity-0",
+            "h-full transition-all duration-300 ease-in-out flex items-start overflow-hidden",
+            (rightPanelType && activeTab === "overview") ? "w-[320px] opacity-100" : "w-0 opacity-0",
           )}
         >
           <div className="w-[320px] h-full p-1">

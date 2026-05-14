@@ -1,14 +1,14 @@
 import { createFileRoute, useParams } from "@tanstack/react-router";
 import { taskQueryOptions } from "@/features/workspace/contents/layer-detail/views/task/task-api";
 import { TaskView } from "@/features/workspace/contents/layer-detail/views/task/task-view";
-import { LoadingComponent } from "@/components/loading-component";
+import { ViewSkeleton } from "@/components/view-skeleton";
 
 export const Route = createFileRoute("/workspaces/$workspaceId/tasks/$taskId")({
   loader: ({ context: { queryClient }, params: { workspaceId, taskId } }) => {
     queryClient.ensureQueryData(taskQueryOptions.detail(workspaceId, taskId));
   },
   component: TaskContent,
-  pendingComponent: LoadingComponent,
+  pendingComponent: ViewSkeleton,
   pendingMs: 0,
 });
 

@@ -3,12 +3,15 @@ import {
   Calendar as CalendarIcon, 
   Users, 
   ArrowRight,
-  ChevronDown
+  ChevronDown,
+  Flag
 } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { useMemo, useState } from "react";
 import { StatusBadge } from "@/components/status-badge";
+import { PriorityBadge } from "@/components/priority-badge";
+import { Priority } from "@/types/priority";
 import { useWorkspace } from "@/features/workspace/context/workspace-provider";
 import {
   DropdownMenu,
@@ -136,7 +139,35 @@ export function TaskSidebar({ viewData, draft, onChange }: TaskSidebarProps) {
               </DropdownMenuContent>
             </DropdownMenu>
 
-            {/* 3. Members (Assignees) */}
+            {/* 3. Priority */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <div className="flex items-center justify-between py-1.5 px-1 hover:bg-muted/30 rounded-lg transition-all group cursor-pointer border border-transparent hover:border-border/10">
+                    <div className="flex items-center gap-2.5 text-muted-foreground/40 group-hover:text-muted-foreground/80">
+                      <Flag className="h-3.5 w-3.5" />
+                      <span className="text-[10px] font-bold uppercase tracking-wider">Priority</span>
+                    </div>
+                    <PriorityBadge priority={draft?.priority || viewData?.priority} className="px-2 py-1 text-[10px]" />
+                </div>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-48 p-1 bg-background/95 backdrop-blur-md border-border/40 shadow-2xl rounded-xl">
+                <div className="px-2 py-1.5 pb-2 border-b border-border/10 mb-1">
+                  <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/40">Select Priority</span>
+                </div>
+                
+                {Object.values(Priority).map((p) => (
+                  <DropdownMenuItem 
+                    key={p}
+                    onSelect={() => onChange({ priority: p })}
+                    className="p-1 rounded-lg cursor-pointer transition-colors"
+                  >
+                    <PriorityBadge priority={p} className="w-full justify-start border-none bg-transparent hover:bg-muted/20" />
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+
+            {/* 4. Members (Assignees) */}
             <PropertyRow 
               icon={Users} 
               label="Assignees" 
