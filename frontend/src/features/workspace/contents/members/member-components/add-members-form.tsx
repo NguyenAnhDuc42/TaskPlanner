@@ -134,30 +134,21 @@ export function AddMembersForm({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-xl p-0 overflow-hidden flex flex-col max-h-[90vh] rounded-sm">
-        <DialogHeader className="p-6 pb-2">
-          <div className="flex items-center gap-2 mb-1">
-            <div className="p-2 bg-primary/10 rounded-sm text-primary">
-              <UserPlus className="h-5 w-5" />
-            </div>
-            <DialogTitle className="text-xl">Invite Members</DialogTitle>
-          </div>
-          <DialogDescription className="text-xs text-muted-foreground">
-            Add people to your workspace. Invited members will disappear from
-            the list.
-          </DialogDescription>
+      <DialogContent className="max-w-xl p-1 overflow-hidden flex flex-col max-h-[90vh] rounded-sm">
+        <DialogHeader className="px-4 py-2 border-b border-border">
+          <DialogTitle className="text-xs font-black uppercase tracking-wider">Invite Members</DialogTitle>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="flex-1 flex flex-col min-h-0">
-          <ScrollArea className="flex-1 px-6">
-            <div className="space-y-6 py-4">
+          <ScrollArea className="flex-1 px-4">
+            <div className="space-y-3 py-1">
               <Field>
-                <FieldLabel className="mb-2 text-xs font-mono uppercase tracking-widest text-muted-foreground">
+                <FieldLabel className="mb-1 text-[10px] font-mono uppercase tracking-wider text-muted-foreground/70">
                   Emails
                 </FieldLabel>
                 <div className="relative group">
-                  <div className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground group-focus-within:text-primary transition-colors">
-                    <Mail className="h-4 w-4" />
+                  <div className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground group-focus-within:text-primary transition-colors">
+                    <Mail className="h-3.5 w-3.5" />
                   </div>
                   <Input
                     placeholder="john@example.com, sara@team.org..."
@@ -165,7 +156,7 @@ export function AddMembersForm({
                     onChange={(e) => setInputValue(e.target.value)}
                     onKeyDown={handleKeyDown}
                     onPaste={handlePaste}
-                    className="pl-10 h-10 bg-card border-border border-dashed focus:border-solid transition-all rounded-sm text-sm"
+                    className="pl-8 h-8 bg-card border-border border-dashed focus:border-solid transition-all rounded-sm text-[11px]"
                     disabled={isLoading}
                   />
                 </div>
@@ -264,8 +255,8 @@ export function AddMembersForm({
                 </div>
               )}
 
-              <div className="pt-4 border-t border-border space-y-4">
-                <div className="flex items-center gap-3 p-3 rounded-sm bg-primary/5 border border-primary/10">
+              <div className="pt-2 border-t border-border space-y-2">
+                <div className="flex items-center gap-3 p-1 rounded-sm bg-primary/5 border border-primary/10">
                   <Checkbox
                     id="enable-email"
                     checked={enableEmail}
@@ -283,7 +274,7 @@ export function AddMembersForm({
                 </div>
 
                 <Field>
-                  <FieldLabel className="mb-2 text-[10px] font-mono uppercase tracking-widest text-muted-foreground">
+                  <FieldLabel className=" text-[10px] font-mono uppercase tracking-widest text-muted-foreground">
                     Personal Message
                   </FieldLabel>
                   <Textarea
@@ -299,11 +290,11 @@ export function AddMembersForm({
             </div>
           </ScrollArea>
 
-          <div className="p-6 border-t border-border bg-card">
+          <div className="mt-2 p-1 border-t border-border bg-background">
             <Button
               type="submit"
               disabled={invites.length === 0 || isLoading}
-              className="w-full h-10 bg-primary hover:bg-primary/90 text-primary-foreground font-bold font-mono tracking-wider rounded-sm"
+              className="w-full h-8 bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-[10px] uppercase tracking-wider rounded-sm"
             >
               {isLoading
                 ? "SENDING..."

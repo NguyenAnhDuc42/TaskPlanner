@@ -6,7 +6,7 @@ import {
   useUpdateMembers,
   useRemoveMembers,
 } from "./members-api";
-import { MemberGridList } from "./member-components/member-grid-list";
+import { MemberList } from "./member-components/member-list";
 import { useMemo, useState } from "react";
 import { useParams } from "@tanstack/react-router";
 import { AddMembersForm } from "./member-components/add-members-form";
@@ -58,10 +58,9 @@ export default function MembersIndex() {
 
   return (
     <div className="h-full">
-      <MemberGridList
+      <MemberList
         members={members}
         onAddMember={() => setIsAddMemberOpen(true)}
-        onEditMember={(id, role) => handleBatchUpdate([id], role as Role)}
         onDeleteMember={(id) => handleRemoveMembers([id])}
         onBatchUpdate={handleBatchUpdate}
         onBatchDelete={handleRemoveMembers}

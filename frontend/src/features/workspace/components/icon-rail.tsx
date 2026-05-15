@@ -20,11 +20,11 @@ import { useNavigate } from "@tanstack/react-router";
 import { useWorkspaceSession } from "../context/workspace-provider";
 import type { ContentPage } from "../type";
 
-const NAV_ICONS: { id: ContentPage; icon: React.ElementType; label: string }[] =
+const NAV_ICONS: { id: ContentPage; icon: React.ElementType; label: string; hasSidebar?: boolean }[] =
   [
-    { id: "projects", icon: Folder, label: "Projects" },
-    { id: "members", icon: Users, label: "Members" },
-    { id: "inbox", icon: Inbox, label: "Inbox" },
+    { id: "projects", icon: Folder, label: "Projects", hasSidebar: true },
+    { id: "members", icon: Users, label: "Members", hasSidebar: false },
+    { id: "inbox", icon: Inbox, label: "Inbox", hasSidebar: false },
   ];
 
 interface IconRailProps {
@@ -71,7 +71,9 @@ export function IconRail({ onSelectIcon, onCommandCenter }: IconRailProps) {
           <Tooltip>
             <TooltipTrigger asChild>
               <Button
-                variant={state.activeIcon === "command-center" ? "default" : "ghost"}
+                variant={
+                  state.activeIcon === "command-center" ? "default" : "ghost"
+                }
                 size="icon"
                 className={cn(
                   "w-7 h-7 rounded-md transition-all duration-200",
@@ -96,11 +98,15 @@ export function IconRail({ onSelectIcon, onCommandCenter }: IconRailProps) {
           {/* Projects, Members */}
           {NAV_ICONS.map((item) => {
             // Projects icon should be active for projects, spaces, folders, and tasks
-            const isActive = item.id === "projects" 
-              ? ["projects", "spaces", "folders", "tasks"].includes(state.activeIcon || "")
-              : state.activeIcon === item.id;
+            const isActive =
+              item.id === "projects"
+                ? ["projects", "spaces", "folders", "tasks"].includes(
+                    state.activeIcon || "",
+                  )
+                : state.activeIcon === item.id;
 
-            const Icon = (item.id === "projects" && isActive) ? FolderOpen : item.icon;
+            const Icon =
+              item.id === "projects" && isActive ? FolderOpen : item.icon;
 
             return (
               <Tooltip key={item.id}>
@@ -116,12 +122,17 @@ export function IconRail({ onSelectIcon, onCommandCenter }: IconRailProps) {
                     )}
                     onClick={() => onSelectIcon(item.id)}
                     onMouseEnter={() => {
-                      if (!state.isInnerSidebarOpen) {
+                      if (!state.isInnerSidebarOpen && item.hasSidebar) {
                         actions.setHoveredIcon(item.id);
                       }
                     }}
                   >
-                    <Icon className={cn("h-[18px] w-[18px]", isActive && "stroke-[2.5px]")} />
+                    <Icon
+                      className={cn(
+                        "h-[18px] w-[18px]",
+                        isActive && "stroke-[2.5px]",
+                      )}
+                    />
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent

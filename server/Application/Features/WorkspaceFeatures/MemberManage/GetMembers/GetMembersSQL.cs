@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 using Domain.Enums;
+using Domain.Enums.RelationShip;
 
 namespace Application.Features.WorkspaceFeatures;
 
@@ -15,7 +16,9 @@ public class MemberRow
     public string Email { get; set; } = null!;
     public string? AvatarUrl { get; set; }
     public Role Role { get; set; }
+    public MembershipStatus Status { get; set; }
 }
+
 public static class GetMembersSQL
 {
     public const string Asc = @"
@@ -26,7 +29,8 @@ public static class GetMembersSQL
         wm.joined_at AS JoinedAt,
         u.name ,
         u.email AS Email,
-        wm.role AS Role
+        wm.role AS Role,
+        wm.status AS Status
     FROM 
         users u
     JOIN workspace_members wm 
@@ -39,15 +43,15 @@ public static class GetMembersSQL
         (
             @cursorTimestamp IS NULL OR
                 (
-                    wm.created_at > @cursorTimestamp OR 
-                    (wm.created_at = @cursorTimestamp AND u.id > @cursorId)
+                    COALESCE(wm.joined_at, wm.created_at) > @cursorTimestamp OR 
+                    (COALESCE(wm.joined_at, wm.created_at) = @cursorTimestamp AND u.id > @cursorId)
                 )
         )
     ORDER BY
-        wm.created_at ASC, u.id ASC
+        COALESCE(wm.joined_at, wm.created_at) ASC, u.id ASC
     LIMIT @PageSizePLusOne;
-
     ";
+
     public const string Desc = @"
     SELECT 
         u.id,
@@ -56,7 +60,8 @@ public static class GetMembersSQL
         wm.joined_at AS JoinedAt,
         u.name,
         u.email AS Email,
-        wm.role AS Role
+        wm.role AS Role,
+        wm.status AS Status
     FROM 
         users u
     JOIN workspace_members wm 
@@ -69,14 +74,12 @@ public static class GetMembersSQL
         (
             @cursorTimestamp IS NULL OR
                 (
-                    wm.created_at < @cursorTimestamp OR 
-                    (wm.created_at = @cursorTimestamp AND u.id < @cursorId)
+                    COALESCE(wm.joined_at, wm.created_at) < @cursorTimestamp OR 
+                    (COALESCE(wm.joined_at, wm.created_at) = @cursorTimestamp AND u.id < @cursorId)
                 )
         )
     ORDER BY
-        wm.created_at DESC, u.id DESC
+        COALESCE(wm.joined_at, wm.created_at) DESC, u.id DESC
     LIMIT @PageSizePLusOne;
-
     ";
 }
-

@@ -93,6 +93,7 @@ public class GetMembersHandler(
             x.Email,
             x.AvatarUrl,
             x.Role,
+            x.Status,
             x.CreatedAt,
             x.JoinedAt
         )).ToList();
@@ -102,7 +103,7 @@ public class GetMembersHandler(
     {
         var cursorData = new CursorData(new Dictionary<string, object>
         {
-            { "Timestamp", last.CreatedAt },
+            { "Timestamp", last.JoinedAt ?? last.CreatedAt },
             { "Id", last.Id }
         });
         return cursorHelper.EncodeCursor(cursorData);

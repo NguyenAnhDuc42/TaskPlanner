@@ -1,4 +1,5 @@
 import type { Role } from "@/types/role";
+import type { MembershipStatus } from "@/types/membership-status";
 import z from "zod";
 
 export interface MemberSummary {
@@ -8,6 +9,7 @@ export interface MemberSummary {
   email: string;
   avatarUrl: string;
   role: Role;
+  status?: MembershipStatus;
   createdAt: string;
   joinedAt: string;
 }
