@@ -1,35 +1,15 @@
 import * as React from "react";
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
-import { Input } from "@/components/ui/input";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Textarea } from "@/components/ui/textarea";
-import { cn } from "@/lib/utils";
-import { Plus } from "lucide-react";
-import type { WorkspaceVariant } from "@/types/workspace-variant";
-import type { Theme } from "@/types/theme";
-import { ColorPicker } from "@/components/color-picker";
-import IconPicker from "@/components/icon-picker";
-import { ScrollArea } from "@/components/ui/scroll-area";
-
-const VARIANTS: WorkspaceVariant[] = ["Personal", "Team", "Company"];
-const THEMES: Theme[] = ["Light", "Dark", "System", "Mars", "DeepSpace", "Boreal"];
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { AttributeButton, IconColorPicker } from "@/features/workspace/components/forms/form-elements";
+import { Lock, Globe } from "lucide-react";
 
 export type FormData = {
   name: string;
   description: string;
-  variant: WorkspaceVariant;
-  theme: Theme;
   color: string;
   icon: string;
+  strictJoin: boolean;
 };
 
 type Props = {
@@ -37,28 +17,20 @@ type Props = {
   isLoading?: boolean;
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
-  showTrigger?: boolean;
 };
 
 export function CreateWorkspaceForm({
   onSubmit,
   isLoading,
-  open: controlledOpen,
-  onOpenChange: controlledOnOpenChange,
-  showTrigger = true,
+  open,
+  onOpenChange,
 }: Props) {
-  const [uncontrolledOpen, setUncontrolledOpen] = React.useState(false);
-
-  const open = controlledOpen ?? uncontrolledOpen;
-  const setOpen = controlledOnOpenChange ?? setUncontrolledOpen;
-
   const [data, setData] = React.useState<FormData>({
     name: "",
     description: "",
-    variant: "Personal",
-    theme: "System",
     color: "#4f46e5",
     icon: "AppWindow",
+    strictJoin: false,
   });
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -67,161 +39,73 @@ export function CreateWorkspaceForm({
 
     onSubmit?.(data);
 
-    // Reseting state only if not controlled from outside might be better,
-    // but here we follow the current pattern.
+    // Reset state
     setData({
       name: "",
       description: "",
-      variant: "Personal",
-      theme: "System",
       color: "#4f46e5",
       icon: "AppWindow",
+      strictJoin: false,
     });
-    setOpen(false);
+    onOpenChange?.(false);
   };
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      {showTrigger && (
-        <DialogTrigger asChild>
-          <Button
-            disabled={isLoading}
-            className="flex items-center gap-2 h-9 px-4 bg-primary hover:bg-primary/90 text-primary-foreground border-0 font-mono text-sm "
-          >
-            <Plus className="h-4 w-4" />
-            Create
-          </Button>
-        </DialogTrigger>
-      )}
-
-      <DialogContent className="max-w-md p-0 overflow-hidden flex flex-col max-h-[90vh]">
-        <DialogHeader className="p-6 pb-0">
-          <DialogTitle>Create Workspace</DialogTitle>
-          <DialogDescription>
-            Set up a new workspace for your team
-          </DialogDescription>
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-md p-0 overflow-hidden bg-background border border-border/40 shadow-2xl rounded-md">
+        {/* Added Header */}
+        <DialogHeader className="p-4 border-b border-border/40">
+          <DialogTitle className="text-sm font-bold">Create Workspace</DialogTitle>
         </DialogHeader>
 
-        <form
-          onSubmit={handleSubmit}
-          className="flex-1 flex flex-col min-h-0"
-          noValidate
-        >
-          <ScrollArea className="flex-1 px-6">
-            <div className="space-y-6 py-6">
-              <FieldGroup>
-                {/* Name */}
-                <Field>
-                  <FieldLabel htmlFor="name">Workspace Name</FieldLabel>
-                  <Input
-                    id="name"
-                    placeholder="My Workspace"
-                    value={data.name}
-                    onChange={(e) => setData({ ...data, name: e.target.value })}
-                    required
-                    disabled={isLoading}
-                  />
-                </Field>
+        <form onSubmit={handleSubmit} className="flex flex-col w-full p-4 gap-4">
+          {/* Icon and Name on the same line with distinct boundary */}
+          <div className="flex items-center gap-3 bg-muted/20 p-3 rounded-md border border-border/10">
+            <IconColorPicker
+              icon={data.icon}
+              color={data.color}
+              onChange={(i, c) => setData({ ...data, icon: i, color: c })}
+            />
+            <input
+              placeholder="Workspace name"
+              value={data.name}
+              onChange={(e) => setData({ ...data, name: e.target.value })}
+              className="flex-1 bg-transparent border-none focus:ring-0 text-[13px] font-semibold placeholder:text-muted-foreground/30 py-0 outline-none"
+              autoFocus
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !e.shiftKey) {
+                  e.preventDefault();
+                  handleSubmit(e);
+                }
+              }}
+            />
+          </div>
 
-                {/* Description */}
-                <Field>
-                  <FieldLabel htmlFor="description">
-                    Description (Optional)
-                  </FieldLabel>
-                  <Textarea
-                    id="description"
-                    placeholder="Describe your workspace..."
-                    value={data.description}
-                    onChange={(e) =>
-                      setData({ ...data, description: e.target.value })
-                    }
-                    rows={2}
-                    disabled={isLoading}
-                  />
-                </Field>
+          {/* Description Underneath with distinct boundary */}
+          <div className="bg-muted/20 p-3 rounded-md border border-border/10">
+            <textarea
+              placeholder="Description (Optional)"
+              value={data.description}
+              onChange={(e) => setData({ ...data, description: e.target.value })}
+              className="w-full bg-transparent border-none focus:ring-0 text-xs text-muted-foreground placeholder:text-muted-foreground/30 py-0 outline-none resize-none min-h-[60px]"
+              rows={3}
+            />
+          </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <Field>
-                    <FieldLabel>Workspace Color</FieldLabel>
-                    <ColorPicker
-                      value={data.color}
-                      onChange={(color: string) => setData({ ...data, color })}
-                    />
-                  </Field>
+          {/* Attribute Strip separated at the bottom */}
+          <div className="flex items-center justify-between border-t border-border/10 pt-3">
+            <AttributeButton
+              icon={data.strictJoin ? Lock : Globe}
+              active={data.strictJoin}
+              onClick={() => setData({ ...data, strictJoin: !data.strictJoin })}
+            >
+              {data.strictJoin ? "Strict Join" : "Anyone can join"}
+            </AttributeButton>
 
-                  <Field>
-                    <FieldLabel>Workspace Icon</FieldLabel>
-                    <IconPicker
-                      value={data.icon}
-                      onChange={(icon: string) => setData({ ...data, icon })}
-                    />
-                  </Field>
-                </div>
-
-                {/* Variant - Tab-like Radio Group */}
-                <Field>
-                  <FieldLabel>Workspace Type</FieldLabel>
-                  <RadioGroup
-                    value={data.variant}
-                    disabled={isLoading}
-                    onValueChange={(variant) =>
-                      setData({ ...data, variant: variant as WorkspaceVariant })
-                    }
-                    className="grid grid-cols-3 gap-2"
-                  >
-                    {VARIANTS.map((variant) => (
-                      <label
-                        key={variant}
-                        className={cn(
-                          "flex items-center justify-center px-4 py-2 border border-border rounded cursor-pointer transition-all font-mono text-xs",
-                          data.variant === variant
-                            ? "bg-primary text-primary-foreground border-primary"
-                            : "bg-card hover:bg-card/80 text-foreground"
-                        )}
-                      >
-                        <RadioGroupItem value={variant} className="sr-only" />
-                        {variant}
-                      </label>
-                    ))}
-                  </RadioGroup>
-                </Field>
-
-                {/* Theme - Tab-like Radio Group */}
-                <Field>
-                  <FieldLabel>Theme Preference</FieldLabel>
-                  <RadioGroup
-                    value={data.theme}
-                    disabled={isLoading}
-                    onValueChange={(theme) =>
-                      setData({ ...data, theme: theme as Theme })
-                    }
-                    className="grid grid-cols-2 sm:grid-cols-3 gap-2"
-                  >
-                    {THEMES.map((theme) => (
-                      <label
-                        key={theme}
-                        className={cn(
-                          "flex items-center justify-center px-4 py-2 border border-border rounded cursor-pointer transition-all font-mono text-[10px] uppercase tracking-wider",
-                          data.theme === theme
-                            ? "bg-primary text-primary-foreground border-primary shadow-sm"
-                            : "bg-muted/50 hover:bg-muted text-muted-foreground hover:text-foreground"
-                        )}
-                      >
-                        <RadioGroupItem value={theme} className="sr-only" />
-                        {theme}
-                      </label>
-                    ))}
-                  </RadioGroup>
-                </Field>
-              </FieldGroup>
-            </div>
-          </ScrollArea>
-
-          <div className="p-6 pt-2 border-t border-border bg-card">
             <Button
               type="submit"
               disabled={!data.name.trim() || isLoading}
-              className="w-full bg-primary hover:bg-primary/90 text-primary-foreground border-0 font-mono"
+              className="h-8 px-4 bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-bold rounded-md"
             >
               {isLoading ? "Creating..." : "Create Workspace"}
             </Button>

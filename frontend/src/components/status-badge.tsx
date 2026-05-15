@@ -1,8 +1,8 @@
 import { cn } from "@/lib/utils";
-import { type StatusDto } from "@/types/status";
+import { type Status } from "@/types/status";
 
 interface StatusBadgeProps {
-  status?: StatusDto | null;
+  status?: Status | null;
   className?: string;
   showIcon?: boolean;
 }

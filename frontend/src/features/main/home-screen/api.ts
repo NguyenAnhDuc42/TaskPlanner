@@ -91,6 +91,7 @@ export function useSetWorkspacePin() {
     },
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: workspaceKeys.list() });
+      toast.success("Workspace pin updated!");
     },
     onError: (error: ApiError) => {
       toast.error(error.message);

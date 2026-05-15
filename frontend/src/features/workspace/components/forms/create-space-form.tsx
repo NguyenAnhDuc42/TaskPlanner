@@ -3,8 +3,7 @@ import { useCreateSpace } from "../../contents/hierarchy/hierarchy-api";
 import { Button } from "@/components/ui/button";
 import { useWorkspace } from "../../context/workspace-provider";
 import { toast } from "sonner";
-import { PrivacyToggle, IconColorPicker, AttributeButton } from "./form-elements";
-import * as Icons from "lucide-react";
+import { PrivacyToggle, IconColorPicker } from "./form-elements";
 
 interface CreateSpaceFormProps {
   onSuccess?: (id: string) => void;

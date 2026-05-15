@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api-client";
 import { workspaceKeys } from "../main/query-keys";
 import type { Theme } from "@/types/theme";
-import type { StatusDto } from "@/types/status";
+import type { Status } from "@/types/status";
 
 export interface WorkspaceSecurityContext {
   workspaceId: string;
@@ -50,7 +50,7 @@ export const workspaceQueryOptions = {
   availableStatuses: (spaceId?: string, folderId?: string) => ({
     queryKey: [...workspaceKeys.all, "statuses", "available", spaceId, folderId],
     queryFn: async () => {
-      const { data } = await api.get<StatusDto[]>("/statuses/available", {
+      const { data } = await api.get<Status[]>("/statuses/available", {
         params: { spaceId, folderId },
       });
       return data;

@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import { useCreateTask } from "../../contents/hierarchy/hierarchy-api";
 import { Button } from "@/components/ui/button";
 import { useWorkspace } from "../../context/workspace-provider";
+import { useWorkspaceDataStore } from "../../context/use-workspace-data-store";
 import { EntityLayerType } from "@/types/entity-layer-type";
 import { Priority } from "@/types/priority";
 import { Circle, Command, User } from "lucide-react";
@@ -12,7 +13,6 @@ import {
   SimpleDatePicker,
 } from "./form-elements";
 import { useAvailableStatuses } from "../../api";
-import { useRegistryStore } from "../../context/use-registry-store";
 import { StatusBadge } from "@/components/status-badge";
 import { PriorityBadge } from "@/components/priority-badge";
 import {
@@ -46,8 +46,7 @@ export function CreateTaskForm({
   const [startDate, setStartDate] = useState<Date | undefined>();
   const [dueDate, setDueDate] = useState<Date | undefined>();
 
-  const { setStatuses, setSpaceStatuses, setFolderStatuses } =
-    useRegistryStore();
+  const { setStatuses, setSpaceStatuses, setFolderStatuses } = useWorkspaceDataStore();
   const isSpace = parentType === "ProjectSpace";
 
   const { data: fetchedStatuses } = useAvailableStatuses(
@@ -57,7 +56,7 @@ export function CreateTaskForm({
 
   useEffect(() => {
     if (fetchedStatuses) {
-      const store = useRegistryStore.getState();
+      const store = useWorkspaceDataStore.getState();
       const currentIds = isSpace
         ? store.spaceStatuses[parentId]
         : store.folderStatuses[parentId];
@@ -81,14 +80,17 @@ export function CreateTaskForm({
     setFolderStatuses,
   ]);
 
-  const statusIds = useRegistryStore((state) => {
-    return isSpace ? state.spaceStatuses[parentId] : state.folderStatuses[parentId];
+  const statusIds = useWorkspaceDataStore((state) => {
+    return isSpace
+      ? state.spaceStatuses[parentId]
+      : state.folderStatuses[parentId];
   });
-  
+
+  const allStatuses = useWorkspaceDataStore((state) => state.statuses);
+
   const statuses = useMemo(() => {
-    const allStatuses = useRegistryStore.getState().statuses;
-    return (statusIds || []).map(id => allStatuses[id]).filter(Boolean);
-  }, [statusIds, isSpace, parentId]);
+    return (statusIds || []).map((id) => allStatuses[id]).filter(Boolean);
+  }, [statusIds, allStatuses]);
 
   const onSubmit = async (e?: React.FormEvent) => {
     e?.preventDefault();

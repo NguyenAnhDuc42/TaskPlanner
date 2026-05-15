@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import { useCreateFolder } from "../../contents/hierarchy/hierarchy-api";
 import { Button } from "@/components/ui/button";
 import { useWorkspace } from "../../context/workspace-provider";
+import { useWorkspaceDataStore } from "../../context/use-workspace-data-store";
 import { toast } from "sonner";
 import {
   IconColorPicker,
@@ -10,7 +11,6 @@ import {
   SimpleDatePicker,
 } from "./form-elements";
 import * as Icons from "lucide-react";
-import { useRegistryStore } from "../../context/use-registry-store";
 import { useAvailableStatuses } from "../../api";
 import {
   Popover,
@@ -40,14 +40,15 @@ export function CreateFolderForm({
   const [startDate, setStartDate] = useState<Date | undefined>();
   const [dueDate, setDueDate] = useState<Date | undefined>();
 
-  const { setStatuses, setSpaceStatuses } = useRegistryStore();
+  const { setStatuses, setSpaceStatuses } = useWorkspaceDataStore();
 
   const { data: fetchedStatuses } = useAvailableStatuses(spaceId);
 
   useEffect(() => {
     if (fetchedStatuses) {
+      const store = useWorkspaceDataStore.getState();
       const currentIds =
-        useRegistryStore.getState().spaceStatuses[spaceId] || [];
+        useWorkspaceDataStore.getState().spaceStatuses[spaceId] || [];
       const newIds = fetchedStatuses.map((s) => s.id);
       if (JSON.stringify(currentIds) !== JSON.stringify(newIds)) {
         setStatuses(fetchedStatuses);
@@ -56,12 +57,13 @@ export function CreateFolderForm({
     }
   }, [fetchedStatuses, spaceId, setStatuses, setSpaceStatuses]);
 
-  const statusIds = useRegistryStore((state) => state.spaceStatuses[spaceId]);
-  
+  const statusIds = useWorkspaceDataStore((state) => state.spaceStatuses[spaceId]);
+
+  const allStatuses = useWorkspaceDataStore((state) => state.statuses);
+
   const statuses = useMemo(() => {
-    const allStatuses = useRegistryStore.getState().statuses;
-    return (statusIds || []).map(id => allStatuses[id]).filter(Boolean);
-  }, [statusIds]);
+    return (statusIds || []).map((id) => allStatuses[id]).filter(Boolean);
+  }, [statusIds, allStatuses]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

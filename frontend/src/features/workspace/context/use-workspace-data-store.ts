@@ -1,32 +1,25 @@
 import { create } from 'zustand';
-import type { StatusDto } from '@/types/status';
+import type { Status } from '@/types/status';
 import type { MemberSummary } from '@/features/workspace/contents/members/members-type';
 
-interface RegistryState {
-  // Global lookups for helper data
-  statuses: Record<string, StatusDto>; // statusId -> Status
+interface WorkspaceDataState {
+  statuses: Record<string, Status>; // statusId -> Status
   spaceStatuses: Record<string, string[]>; // spaceId -> statusIds
   folderStatuses: Record<string, string[]>; // folderId -> statusIds
   members: Record<string, MemberSummary>; // memberId -> Member
   
-  // Tree state for fast sidebar operations
-  expandedNodes: Record<string, boolean>; // nodeId -> isOpen
-  
   // Actions
-  setStatuses: (statuses: StatusDto[]) => void;
+  setStatuses: (statuses: Status[]) => void;
   setSpaceStatuses: (spaceId: string, statusIds: string[]) => void;
   setFolderStatuses: (folderId: string, statusIds: string[]) => void;
   setMembers: (members: MemberSummary[]) => void;
-  toggleNodeExpand: (nodeId: string) => void;
-  setNodeExpand: (nodeId: string, isOpen: boolean) => void;
 }
 
-export const useRegistryStore = create<RegistryState>((set) => ({
+export const useWorkspaceDataStore = create<WorkspaceDataState>((set) => ({
   statuses: {},
   spaceStatuses: {},
   folderStatuses: {},
   members: {},
-  expandedNodes: {},
 
   setStatuses: (statuses) => set((state) => {
     const newStatuses = { ...state.statuses };
@@ -51,12 +44,4 @@ export const useRegistryStore = create<RegistryState>((set) => ({
     });
     return { members: newMembers };
   }),
-
-  toggleNodeExpand: (nodeId) => set((state) => ({
-    expandedNodes: { ...state.expandedNodes, [nodeId]: !state.expandedNodes[nodeId] }
-  })),
-
-  setNodeExpand: (nodeId, isOpen) => set((state) => ({
-    expandedNodes: { ...state.expandedNodes, [nodeId]: isOpen }
-  })),
 }));

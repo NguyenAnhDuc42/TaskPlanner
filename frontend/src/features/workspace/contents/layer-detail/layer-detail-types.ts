@@ -1,6 +1,6 @@
 import { Priority } from "@/types/priority";
-import { StatusCategory } from "@/types/status-category";
 import { type EntityLayerType } from "@/types/entity-layer-type";
+import type { Status } from "@/types/status";
 
 export type MainViewTab = "overview" | "items";
 export type ItemsViewMode = "board" | "list";
@@ -29,12 +29,6 @@ export interface FolderItemDto {
   color?: string;
 }
 
-export interface StatusDto {
-  statusId: string;
-  name: string;
-  color: string;
-  category: StatusCategory;
-}
 
 export interface FolderDetailDto {
   id: string;
@@ -89,7 +83,7 @@ export interface TaskDetailDto {
 export interface TaskViewData {
   folders: FolderItemDto[];
   tasks: TaskItemDto[];
-  statuses: StatusDto[];
+  statuses: Status[];
   progress: {
     completedTasks: number;
     totalTasks: number;
@@ -146,6 +140,9 @@ export interface CreateFolderRequest {
   color?: string;
   icon?: string;
   isPrivate?: boolean;
+  statusId?: string | null;
+  startDate?: string;
+  dueDate?: string;
 }
 
 export interface CreateTaskRequest {

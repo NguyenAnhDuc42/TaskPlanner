@@ -1,7 +1,8 @@
 import { createContext } from "react";
-import type { StatusDto } from "@/types/status";
-import type { ContentPage } from "../type";
 import type { WorkspaceSecurityContext } from "../api";
+import type { WorkspaceSummary } from "@/features/main/home-screen/type";
+import type { Status } from "@/types/status";
+import type { ContentPage } from "../type";
 
 export interface WorkspaceUIState {
   activeIcon: ContentPage;
@@ -22,7 +23,7 @@ export interface WorkspaceUIActions {
 }
 
 export interface WorkspaceRegistry {
-  statusMap: Record<string, StatusDto>;
+  statusMap: Record<string, Status>;
   memberMap: Record<string, any>;
   workflows: any[];
 }
@@ -30,6 +31,7 @@ export interface WorkspaceRegistry {
 export interface WorkspaceContextType {
   workspaceId: string;
   workspace: WorkspaceSecurityContext | undefined;
+  workspaces: WorkspaceSummary[];
   registry: WorkspaceRegistry;
   isLoading: boolean;
   isError: boolean;

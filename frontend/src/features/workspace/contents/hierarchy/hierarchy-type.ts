@@ -68,6 +68,8 @@ export interface CreateFolderRequest {
   icon?: string;
   isPrivate?: boolean;
   statusId?: string | null;
+  startDate?: string;
+  dueDate?: string;
 }
 
 export interface CreateTaskRequest {

@@ -5,7 +5,6 @@ import {
   EntityLayerType,
 } from "@/types/entity-layer-type";
 import { DialogFormWrapper } from "@/components/dialog-form-wrapper";
-import { signalRService } from "@/lib/signalr-service";
 import { useHierarchyStore } from "./use-hierarchy-store";
 
 import { Loader2, Plus, Search, ChevronDown } from "lucide-react";
@@ -48,13 +47,13 @@ export function HierarchySidebar() {
     }
   }, [hierarchy, setHierarchy]);
 
-  useEffect(() => {
-    const onHierarchyChanged = () => {};
-    signalRService.on("hierarchychanged", onHierarchyChanged);
-    return () => {
-      signalRService.off("hierarchychanged", onHierarchyChanged);
-    };
-  }, []);
+  // useEffect(() => {
+  //   const onHierarchyChanged = () => {};
+  //   signalRService.on("hierarchychanged", onHierarchyChanged);
+  //   return () => {
+  //     signalRService.off("hierarchychanged", onHierarchyChanged);
+  //   };
+  // }, []);
 
   const [isHierarchyOpen, setIsHierarchyOpen] = useState(true);
   const [isDocsOpen, setIsDocsOpen] = useState(true);

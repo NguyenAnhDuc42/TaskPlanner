@@ -1,6 +1,6 @@
 import { StatusCategory } from "./status-category";
 
-export interface StatusDto {
+export interface Status {
   id: string;
   name: string;
   color: string;
