@@ -7,7 +7,7 @@ import {
 import { DialogFormWrapper } from "@/components/dialog-form-wrapper";
 import { useHierarchyStore } from "./use-hierarchy-store";
 
-import { Loader2, Plus, Search, ChevronDown } from "lucide-react";
+import { Plus, Search, ChevronDown } from "lucide-react";
 import { DndContext, closestCenter, DragOverlay } from "@dnd-kit/core";
 import {
   SortableContext,
@@ -34,6 +34,7 @@ import { SpaceNodeItem } from "./items/space-node-item";
 import { FolderNodeItem } from "./items/folder-node-item";
 import { TaskNodeItem } from "./items/task-node-item";
 import { CreateSpaceForm } from "../../components/forms/create-space-form";
+import { HierarchySidebarSkeleton } from "./hierarchy-components/hierarchy-skeleton";
 
 export function HierarchySidebar() {
   const { workspaceId } = useWorkspace();
@@ -88,14 +89,7 @@ export function HierarchySidebar() {
     });
 
   if (isLoading) {
-    return (
-      <div className="flex flex-col items-center justify-center h-40 gap-3 text-muted-foreground">
-        <Loader2 className="h-4 w-4 animate-spin" />
-        <span className="text-[10px] font-bold uppercase tracking-widest">
-          Loading...
-        </span>
-      </div>
-    );
+    return <HierarchySidebarSkeleton />;
   }
 
   const hasData =
