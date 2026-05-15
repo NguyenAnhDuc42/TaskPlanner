@@ -6,7 +6,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { useWorkspace } from "@/features/workspace/context/workspace-provider";
+
 
 interface SpaceOverviewProps {
   viewData: any;
@@ -15,7 +15,7 @@ interface SpaceOverviewProps {
   rightPanelType: "properties" | "attachments" | null;
 }
 
-export function SpaceOverview({ viewData, draft, onChange, rightPanelType }: SpaceOverviewProps) {
+export function SpaceOverview({ viewData, draft, onChange, }: SpaceOverviewProps) {
   if (!viewData) return null;
 
   // Use optional chaining to prevent crash when draft is null on first load

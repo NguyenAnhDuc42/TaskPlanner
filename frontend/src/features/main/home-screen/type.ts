@@ -1,8 +1,4 @@
 import type { Role } from "@/types/role";
-import type { WorkspaceVariant } from "@/types/workspace-variant";
-
-// create-workspace.schema.ts
-
 import { z } from "zod";
 
 export const createWorkspaceSchema = z.object({
@@ -48,7 +44,6 @@ export interface WorkspaceSummary {
   icon: string;
   color: string;
   description: string;
-  variant: WorkspaceVariant;
   role: Role;
   memberCount: number;
   isArchived: boolean;

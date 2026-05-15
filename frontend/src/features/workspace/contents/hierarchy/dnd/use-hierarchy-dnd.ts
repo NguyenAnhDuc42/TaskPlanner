@@ -15,7 +15,7 @@ import type {
   FolderHierarchy, 
   TaskHierarchy,
 } from "../hierarchy-type";
-import { useState, useRef, useEffect } from "react";
+import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { hierarchyKeys } from "../hierarchy-keys";
 import { fractionalBetween } from "../utils/fractional-index";

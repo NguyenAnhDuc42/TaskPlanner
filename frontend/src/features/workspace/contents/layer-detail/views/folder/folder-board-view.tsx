@@ -15,6 +15,7 @@ import { cn } from "@/lib/utils";
 import { useMoveTaskToStatus } from "../task/task-api";
 import { buildColumns, calculateOrderKeys } from "./folder-dnd-helpers";
 import { StatusCategory } from "@/types/status-category";
+import { useEdgeScroll } from "../use-edge-scroll";
 
 interface FolderBoardViewProps {
   viewData: TaskViewData;
@@ -34,13 +35,17 @@ export function FolderBoardView({ viewData, folderId }: FolderBoardViewProps) {
   columnsRef.current = columns;
 
   const isDraggingRef = useRef(false);
+  const [isDragging, setIsDragging] = useState(false);
   const containerRef = useRef<HTMLDivElement | null>(null);
+
+  useEdgeScroll(containerRef, isDragging);
 
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
 
     const handleWheel = (e: WheelEvent) => {
+      if (isDraggingRef.current) return;
       if (e.deltaY !== 0) {
         e.preventDefault();
         el.scrollLeft += e.deltaY;
@@ -85,10 +90,12 @@ export function FolderBoardView({ viewData, folderId }: FolderBoardViewProps) {
 
   function handleDragStart() {
     isDraggingRef.current = true;
+    setIsDragging(true);
   }
 
   function handleDragEnd(result: DropResult) {
     isDraggingRef.current = false;
+    setIsDragging(false);
 
     const { source, destination, draggableId } = result;
     if (!destination) return;

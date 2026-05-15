@@ -8,16 +8,12 @@ import {
 } from "@/components/ui/popover";
 import { useWorkspace } from "@/features/workspace/context/workspace-provider";
 import { StatusBadge } from "@/components/status-badge";
-import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { 
   Calendar as CalendarIcon, 
   Users, 
-  Layers, 
-  Flag, 
   Box,
-  ChevronRight,
-  Plus
+  ChevronRight
 } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
 import {

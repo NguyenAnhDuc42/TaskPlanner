@@ -85,7 +85,7 @@ export function WorkspaceHomeScreen() {
                       {workspace.name}
                     </h3>
                     <p className="text-[10px] text-muted-foreground font-mono uppercase">
-                      {workspace.variant} • {workspace.memberCount} members
+                      {workspace.memberCount} members
                     </p>
                   </div>
                 </div>

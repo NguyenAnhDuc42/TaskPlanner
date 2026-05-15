@@ -25,7 +25,7 @@ interface FolderOverviewProps {
   rightPanelType: "properties" | "attachments" | null;
 }
 
-export function FolderOverview({ viewData, draft, onChange, rightPanelType }: FolderOverviewProps) {
+export function FolderOverview({ viewData, draft, onChange, }: FolderOverviewProps) {
   const { registry } = useWorkspace();
   
   const statuses = useMemo(() => {

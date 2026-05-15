@@ -24,7 +24,7 @@ export const useWorkspaceDataStore = create<WorkspaceDataState>((set) => ({
   setStatuses: (statuses) => set((state) => {
     const newStatuses = { ...state.statuses };
     statuses.forEach(s => {
-      newStatuses[s.id] = s;
+      newStatuses[s.statusId] = s;
     });
     return { statuses: newStatuses };
   }),

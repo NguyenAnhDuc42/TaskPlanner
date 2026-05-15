@@ -17,6 +17,7 @@ import { buildColumns, calculateOrderKeys } from "./space-dnd-helpers";
 import { useMoveTaskToStatus } from "../task/task-api";
 import { useMoveFolderToStatus } from "../folder/folder-api";
 import { StatusCategory } from "@/types/status-category";
+import { useEdgeScroll } from "../use-edge-scroll";
 
 interface SpaceBoardViewProps {
   viewData: TaskViewData;
@@ -36,13 +37,17 @@ export function SpaceBoardView({ viewData, spaceId }: SpaceBoardViewProps) {
   columnsRef.current = columns;
 
   const isDraggingRef = useRef(false);
+  const [isDragging, setIsDragging] = useState(false);
   const containerRef = useRef<HTMLDivElement | null>(null);
+
+  useEdgeScroll(containerRef, isDragging);
 
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
 
     const handleWheel = (e: WheelEvent) => {
+      if (isDraggingRef.current) return;
       if (e.deltaY !== 0) {
         e.preventDefault();
         el.scrollLeft += e.deltaY;
@@ -52,6 +57,7 @@ export function SpaceBoardView({ viewData, spaceId }: SpaceBoardViewProps) {
     el.addEventListener("wheel", handleWheel, { passive: false });
     return () => el.removeEventListener("wheel", handleWheel);
   }, []);
+
   const viewDataRef = useRef<TaskViewData | null>(null);
 
   const { mutate: moveTaskToStatus, isPending: isMovingTask } = useMoveTaskToStatus();
@@ -86,10 +92,12 @@ export function SpaceBoardView({ viewData, spaceId }: SpaceBoardViewProps) {
 
   function handleDragStart() {
     isDraggingRef.current = true;
+    setIsDragging(true);
   }
 
   function handleDragEnd(result: DropResult) {
     isDraggingRef.current = false;
+    setIsDragging(false);
 
     const { source, destination, draggableId } = result;
     if (!destination) return;

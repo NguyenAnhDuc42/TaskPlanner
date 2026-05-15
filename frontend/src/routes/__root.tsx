@@ -10,7 +10,6 @@ import "../index.css";
 
 import type { QueryClient } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/sonner";
-import { LoadingComponent } from "@/components/loading-component";
 
 interface RouterContext {
   auth: AuthContextType;

@@ -10,7 +10,6 @@ import type { MainViewTab, ItemsViewMode } from "../../layer-detail-types";
 import { cn } from "@/lib/utils";
 import { LoadingComponent } from "@/components/loading-component";
 import { useNavigate } from "@tanstack/react-router";
-import { ViewSkeleton } from "@/components/view-skeleton";
 import { useDeleteFolder } from "@/features/workspace/contents/hierarchy/hierarchy-api";
 import { useFolderDetail, useUpdateFolder, useFolderItems } from "./folder-api";
 import { useWorkspaceWorkflows } from "@/features/workspace/api";

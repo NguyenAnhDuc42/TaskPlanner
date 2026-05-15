@@ -70,10 +70,6 @@ export function WorkspaceItem({ workspaceSummary, onOpen, onPin, selected }: Pro
               <Users className="h-3.5 w-3.5" />
               <span className="text-[10px] font-bold uppercase tracking-wider">{workspaceSummary.memberCount}</span>
             </div>
-            <div className="flex items-center gap-1.5 transition-colors group-hover:text-foreground/70">
-              <div className="h-1 w-1 rounded-full bg-border" />
-              <span className="text-[10px] font-mono uppercase tracking-widest">{workspaceSummary.variant}</span>
-            </div>
           </div>
         </div>
 

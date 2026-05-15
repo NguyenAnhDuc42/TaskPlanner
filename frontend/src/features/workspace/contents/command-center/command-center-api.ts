@@ -1,5 +1,4 @@
 import { useQuery } from "@tanstack/react-query";
-import { api } from "@/lib/api-client";
 import { commandCenterKeys } from "./command-center-key";
 import type { CommandCenterStats } from "./command-center-type";
 

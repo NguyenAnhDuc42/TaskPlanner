@@ -46,10 +46,9 @@ export function CreateFolderForm({
 
   useEffect(() => {
     if (fetchedStatuses) {
-      const store = useWorkspaceDataStore.getState();
       const currentIds =
         useWorkspaceDataStore.getState().spaceStatuses[spaceId] || [];
-      const newIds = fetchedStatuses.map((s) => s.id);
+      const newIds = fetchedStatuses.map((s) => s.statusId);
       if (JSON.stringify(currentIds) !== JSON.stringify(newIds)) {
         setStatuses(fetchedStatuses);
         setSpaceStatuses(spaceId, newIds);
@@ -124,7 +123,7 @@ export function CreateFolderForm({
             <AttributeButton icon={selectedStatusId ? undefined : Icons.Circle}>
               {selectedStatusId ? (
                 <StatusBadge
-                  status={statuses.find((s) => s.id === selectedStatusId)}
+                  status={statuses.find((s) => s.statusId === selectedStatusId)}
                   showIcon={true}
                 />
               ) : (
@@ -139,10 +138,10 @@ export function CreateFolderForm({
             <div className="flex flex-col gap-0.5">
               {statuses.map((status) => (
                 <button
-                  key={status.id}
+                  key={status.statusId}
                   type="button"
                   className="px-1 py-1 text-xs text-left rounded-sm hover:bg-muted transition-colors flex items-center"
-                  onClick={() => setSelectedStatusId(status.id)}
+                  onClick={() => setSelectedStatusId(status.statusId)}
                 >
                   <StatusBadge
                     status={status}

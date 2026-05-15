@@ -131,7 +131,7 @@ export function WorkspaceProvider({
 
     workflows.forEach((wf: any) => {
       wf.statuses?.forEach((status: Status) => {
-        statusMap[status.id] = status;
+        statusMap[status.statusId] = status;
       });
     });
 
