@@ -10,6 +10,7 @@ import { useState, useMemo } from "react";
 import type {  EnrichedSpaceDetailDto } from "./space-types";
 import { useWorkspace } from "@/features/workspace/context/workspace-provider";
 import { CreateStatusForm } from "@/features/workspace/components/forms/create-status-form";
+import { useUpdateWorkflowStatuses } from "@/features/workspace/api";
 
 interface SpaceSidebarProps {
   viewData: EnrichedSpaceDetailDto;
@@ -23,6 +24,8 @@ export function SpaceSidebar({ viewData, draft, onChange }: SpaceSidebarProps) {
   const [collapsed, setCollapsed] = useState({
     properties: false,
   });
+
+  const { mutate: updateStatuses } = useUpdateWorkflowStatuses();
   
   if (!viewData) return null;
 
@@ -112,7 +115,6 @@ export function SpaceSidebar({ viewData, draft, onChange }: SpaceSidebarProps) {
           </div>
         )}
       </section>
-      {/* Create Status Form */}
       <CreateStatusForm
         isOpen={isStatusModalOpen}
         onClose={() => setIsStatusModalOpen(false)}
@@ -122,9 +124,18 @@ export function SpaceSidebar({ viewData, draft, onChange }: SpaceSidebarProps) {
           color: s.color,
           category: s.category,
         }))}
-        onCreateStatus={(data) => {
-          console.log("Create status:", data);
-          // TODO: Call API
+        onApplyChanges={(newStatuses) => {
+          if (!workflow?.id) return;
+          
+          updateStatuses({
+            workflowId: workflow.id,
+            statuses: newStatuses.map(s => ({
+              id: s.statusId.startsWith("temp-") ? null : s.statusId,
+              name: s.name,
+              color: s.color,
+              category: s.category
+            }))
+          });
         }}
       />
     </div>

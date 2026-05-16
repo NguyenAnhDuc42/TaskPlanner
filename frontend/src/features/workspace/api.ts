@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api-client";
 import { workspaceKeys } from "../main/query-keys";
 import type { Theme } from "@/types/theme";
@@ -73,4 +73,24 @@ export function useWorkspaceMembers(workspaceId: string) {
 
 export function useAvailableStatuses(spaceId?: string, folderId?: string) {
   return useQuery(workspaceQueryOptions.availableStatuses(spaceId, folderId));
+}
+
+export function useUpdateWorkflowStatuses() {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async (data: { workflowId: string; statuses: any[] }) => {
+      const { data: responseData } = await api.put(
+        `/statuses/workflow/${data.workflowId}`,
+        data.statuses
+      );
+      return responseData;
+    },
+    onSuccess: () => {
+      // Invalidate workflows to refresh statuses across the board
+      queryClient.invalidateQueries({
+        queryKey: workspaceKeys.all,
+      });
+    },
+  });
 }

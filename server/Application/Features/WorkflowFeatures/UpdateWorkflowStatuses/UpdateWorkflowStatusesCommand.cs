@@ -6,7 +6,7 @@ namespace Application.Features.WorkflowFeatures;
 public record UpdateWorkflowStatusesCommand(
     Guid WorkflowId,
     List<StatusUpdateDto> Statuses
-) : ICommandRequest;
+) : ICommandRequest, IAuthorizedWorkspaceRequest;
 
 public record StatusUpdateDto(
     Guid? Id, 

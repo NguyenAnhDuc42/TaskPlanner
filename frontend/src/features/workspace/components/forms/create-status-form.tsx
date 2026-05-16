@@ -16,17 +16,6 @@ interface CreateStatusFormProps {
   isOpen: boolean;
   onClose: () => void;
   currentStatuses: Status[];
-  onCreateStatus: (data: {
-    name: string;
-    color: string;
-    category: StatusCategory;
-  }) => void;
-  onUpdateStatus?: (data: {
-    statusId: string;
-    name: string;
-    color: string;
-    category: StatusCategory;
-  }) => void;
   onApplyChanges?: (statuses: Status[]) => void;
 }
 
@@ -47,80 +36,31 @@ export function CreateStatusForm({
   isOpen,
   onClose,
   currentStatuses,
-  onCreateStatus,
-  onUpdateStatus,
+  onApplyChanges,
 }: CreateStatusFormProps) {
   const [localStatuses, setLocalStatuses] = useState<Status[]>(currentStatuses);
-  const [selectedStatus, setSelectedStatus] = useState<Status | null>(null);
   const [name, setName] = useState("");
-  const [color, setColor] = useState(PRESET_COLORS[0]);
-  const [category, setCategory] = useState<StatusCategory>(
-    StatusCategory.NotStarted
-  );
   const [addingToCategory, setAddingToCategory] = useState<StatusCategory | null>(null);
 
   useEffect(() => {
     setLocalStatuses(currentStatuses);
   }, [currentStatuses]);
 
-  useEffect(() => {
-    if (selectedStatus) {
-      setName(selectedStatus.name);
-      setColor(selectedStatus.color);
-      setCategory(selectedStatus.category);
-      return;
-    }
-
-    setName("");
-    setColor(PRESET_COLORS[0]);
-    setCategory(StatusCategory.NotStarted);
-  }, [selectedStatus]);
-
   const groupedStatuses = {
     [StatusCategory.NotStarted]: localStatuses.filter(
       (s) => s.category === StatusCategory.NotStarted
     ),
-    [StatusCategory.Active]: currentStatuses.filter(
+    [StatusCategory.Active]: localStatuses.filter(
       (s) => s.category === StatusCategory.Active
     ),
-    [StatusCategory.Done]: currentStatuses.filter(
+    [StatusCategory.Done]: localStatuses.filter(
       (s) => s.category === StatusCategory.Done
     ),
-    [StatusCategory.Closed]: currentStatuses.filter(
+    [StatusCategory.Closed]: localStatuses.filter(
       (s) => s.category === StatusCategory.Closed
     ),
   };
 
-  function resetForm() {
-    setSelectedStatus(null);
-    setName("");
-    setColor(PRESET_COLORS[0]);
-    setCategory(StatusCategory.NotStarted);
-  }
-
-  function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-
-    if (!name.trim()) return;
-
-    if (selectedStatus) {
-      onUpdateStatus?.({
-        statusId: selectedStatus.statusId,
-        name,
-        color,
-        category,
-      });
-    } else {
-      onCreateStatus({
-        name,
-        color,
-        category,
-      });
-    }
-
-    resetForm();
-    onClose();
-  }
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -233,16 +173,7 @@ export function CreateStatusForm({
           <Button 
             className="h-8 text-xs gap-1.5 rounded-md" 
             onClick={() => {
-              // Loop over local statuses and create the new ones
-              localStatuses.forEach((s) => {
-                if (s.statusId.startsWith("temp-")) {
-                  onCreateStatus({
-                    name: s.name,
-                    color: s.color,
-                    category: s.category,
-                  });
-                }
-              });
+              onApplyChanges?.(localStatuses);
               onClose();
             }}
           >
