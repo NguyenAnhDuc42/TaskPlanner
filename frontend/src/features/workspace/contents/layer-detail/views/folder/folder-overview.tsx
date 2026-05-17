@@ -9,40 +9,53 @@ import {
 import { useWorkspace } from "@/features/workspace/context/workspace-provider";
 import { StatusBadge } from "@/components/status-badge";
 import { format } from "date-fns";
-import { useMemo } from "react";
 import { Calendar } from "@/components/ui/calendar";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { CreateStatusForm } from "@/features/workspace/components/forms/create-status-form";
+import { StatusSelect } from "@/components/status-select";
 
-interface FolderOverviewProps {
-  viewData: any;
-  draft: any;
-  onChange: (updates: any) => void;
-  rightPanelType: "properties" | "attachments" | null;
-}
+import { useEffect, useState, useMemo } from "react";
+import { useFolderEditor } from "./folder-editor-context";
 
-export function FolderOverview({ viewData, draft, onChange, }: FolderOverviewProps) {
+export function FolderOverview() {
   const { registry } = useWorkspace();
-  
-  const statuses = useMemo(() => {
-    if (viewData.parentWorkflowId) {
-      const workflow = registry.workflows.find((w: any) => 
-        w.id?.toLowerCase() === viewData.parentWorkflowId?.toLowerCase()
-      );
-      return workflow?.statuses || [];
+  const { folder, updateField } = useFolderEditor();
+  const [localName, setLocalName] = useState("");
+  const [isStatusModalOpen, setIsStatusModalOpen] = useState(false);
+
+  useEffect(() => {
+    if (folder) {
+      setLocalName(folder.name || "");
     }
-    return [];
-  }, [viewData.parentWorkflowId, registry.workflows]);
+  }, [folder?.name]);
 
-  if (!viewData) return null;
+  const folderWorkflow = useMemo(() => {
+    if (!folder) return null;
+    if (folder.workflowId) {
+      return registry.workflows.find((w: any) => 
+        w.id?.toLowerCase() === folder.workflowId?.toLowerCase()
+      );
+    }
+    return null;
+  }, [folder?.workflowId, registry.workflows]);
 
-  // Use optional chaining to prevent crash when draft is null on first load
-  const IconComponent = (Icons as any)[draft?.icon || viewData?.icon] || Icons.LayoutGrid;
-  const entityColor = draft?.color || viewData?.color;
+  if (!folder) return null;
+
+  const IconComponent = (Icons as any)[folder.icon || ""] || Icons.LayoutGrid;
+  const entityColor = folder.color || "var(--primary)";
+
+  const currentStatus = folder.statusId ? registry.statusMap[folder.statusId] : folder.status;
+
+  const handleNameBlur = () => {
+    if (localName.trim() !== folder.name) {
+      updateField({ name: localName.trim() });
+    }
+  };
+
+  const handleNameKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      e.currentTarget.blur();
+    }
+  };
 
   return (
     <div className="h-full overflow-y-auto no-scrollbar bg-background selection:bg-primary/20">
@@ -68,16 +81,18 @@ export function FolderOverview({ viewData, draft, onChange, }: FolderOverviewPro
               align="start"
             >
               <UniversalPicker
-                selectedIcon={draft?.icon || viewData?.icon}
-                selectedColor={draft?.color || viewData?.color}
-                onSelect={(icon, color) => onChange({ icon, color })}
+                selectedIcon={folder.icon || ""}
+                selectedColor={folder.color || ""}
+                onSelect={(icon, color) => updateField({ icon, color })}
               />
             </PopoverContent>
           </Popover>
 
           <input
-            value={draft?.name ?? viewData?.name ?? ""}
-            onChange={(e) => onChange({ name: e.target.value })}
+            value={localName}
+            onChange={(e) => setLocalName(e.target.value)}
+            onBlur={handleNameBlur}
+            onKeyDown={handleNameKeyDown}
             className="flex-1 bg-transparent border-none outline-none text-4xl font-black tracking-tight text-foreground placeholder:text-muted-foreground/10"
             placeholder="Untitled"
             spellCheck={false}
@@ -86,39 +101,31 @@ export function FolderOverview({ viewData, draft, onChange, }: FolderOverviewPro
 
         {/* --- PROPERTIES ROW --- */}
         <div className="flex items-center gap-1.5 flex-wrap mt-2">
-          {/* Status */}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
+          <StatusSelect
+            value={folder.statusId}
+            onChange={(statusId) => updateField({ statusId })}
+            workflowId={folder.parentWorkflowId}
+            align="start"
+            trigger={
               <div className="cursor-pointer">
-                <StatusBadge status={registry.statusMap[draft?.statusId] || viewData.status} className="text-[10px] font-bold" />
+                <StatusBadge status={currentStatus} className="text-[10px] font-bold" />
               </div>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="start" className="w-48 p-1 bg-background/95 backdrop-blur-md border-border/40 shadow-2xl rounded-xl">
-              {statuses.map((status: any) => (
-                <DropdownMenuItem 
-                  key={status.id}
-                  onSelect={() => onChange({ statusId: status.id })}
-                  className="p-1 rounded-lg cursor-pointer transition-colors"
-                >
-                  <StatusBadge status={status} className="w-full justify-start border-none bg-transparent hover:bg-muted/20" />
-                </DropdownMenuItem>
-              ))}
-            </DropdownMenuContent>
-          </DropdownMenu>
+            }
+          />
 
           {/* Start Date */}
           <Popover>
             <PopoverTrigger asChild>
               <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-muted/50 border border-border/10 text-[10px] font-bold text-muted-foreground hover:bg-muted transition-colors cursor-pointer">
                 <Icons.Calendar className="h-3 w-3 stroke-[2.5px]" />
-                <span>Start: {draft?.startDate ? format(new Date(draft.startDate), "MMM dd") : "TBD"}</span>
+                <span>Start: {folder.startDate ? format(new Date(folder.startDate), "MMM dd") : "TBD"}</span>
               </div>
             </PopoverTrigger>
             <PopoverContent className="w-auto p-0" align="start">
               <Calendar
                 mode="single"
-                selected={draft?.startDate ? new Date(draft.startDate) : undefined}
-                onSelect={(date) => onChange({ startDate: date?.toISOString() })}
+                selected={folder.startDate ? new Date(folder.startDate) : undefined}
+                onSelect={(date) => updateField({ startDate: date?.toISOString() })}
                 initialFocus
               />
             </PopoverContent>
@@ -129,28 +136,47 @@ export function FolderOverview({ viewData, draft, onChange, }: FolderOverviewPro
             <PopoverTrigger asChild>
               <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-muted/50 border border-border/10 text-[10px] font-bold text-muted-foreground hover:bg-muted transition-colors cursor-pointer">
                 <Icons.Calendar className="h-3 w-3 stroke-[2.5px]" />
-                <span>Due: {draft?.dueDate ? format(new Date(draft.dueDate), "MMM dd") : "TBD"}</span>
+                <span>Due: {folder.dueDate ? format(new Date(folder.dueDate), "MMM dd") : "TBD"}</span>
               </div>
             </PopoverTrigger>
             <PopoverContent className="w-auto p-0" align="start">
               <Calendar
                 mode="single"
-                selected={draft?.dueDate ? new Date(draft.dueDate) : undefined}
-                onSelect={(date) => onChange({ dueDate: date?.toISOString() })}
+                selected={folder.dueDate ? new Date(folder.dueDate) : undefined}
+                onSelect={(date) => updateField({ dueDate: date?.toISOString() })}
                 initialFocus
               />
             </PopoverContent>
           </Popover>
+
+          {/* Workflow Statuses */}
+          <div 
+            onClick={() => setIsStatusModalOpen(true)}
+            className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-muted/50 border border-border/10 text-[10px] font-bold text-muted-foreground hover:bg-muted transition-colors cursor-pointer animate-in fade-in duration-300"
+          >
+            <Icons.CheckCircle2 className="h-3 w-3 stroke-[2.5px]" />
+            <span>Workflow Statuses</span>
+          </div>
         </div>
 
         {/* --- CONTENT AREA --- */}
-        <div className="pl-1">
-          <DescriptionSection
-            documentId={viewData.defaultDocumentId}
-          />
-        </div>
+        {folder.defaultDocumentId && (
+          <div className="pl-1">
+            <DescriptionSection
+              documentId={folder.defaultDocumentId}
+            />
+          </div>
+        )}
 
       </div>
+
+      {folderWorkflow && (
+        <CreateStatusForm
+          isOpen={isStatusModalOpen}
+          onClose={() => setIsStatusModalOpen(false)}
+          workflowId={folderWorkflow.id}
+        />
+      )}
     </div>
   );
 }

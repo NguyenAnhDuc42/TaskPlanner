@@ -39,7 +39,9 @@ public class UpdateTaskHandler(IDataBase db, WorkspaceContext context, IRealtime
             StoryPoints = task.StoryPoints,
             TimeEstimate = task.TimeEstimateSeconds,
             StartDate = task.StartDate,
-            DueDate = task.DueDate
+            DueDate = task.DueDate,
+            Icon = task.Icon,
+            Color = task.Color
         }, ct);
 
         return Result.Success();
@@ -51,6 +53,14 @@ public class UpdateTaskHandler(IDataBase db, WorkspaceContext context, IRealtime
         {
             task.UpdateName(request.Name);
             task.UpdateSlug(SlugHelper.GenerateSlug(request.Name));
+        }
+        if (request.Icon != null)
+        {
+            task.UpdateIcon(request.Icon);
+        }
+        if (request.Color != null)
+        {
+            task.UpdateColor(request.Color);
         }
     }
 

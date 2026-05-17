@@ -44,7 +44,9 @@ public class TasksController : ControllerBase
             DueDate: request.DueDate,
             StoryPoints: request.StoryPoints,
             TimeEstimate: request.TimeEstimate,
-            AssigneeIds: request.AssigneeIds
+            AssigneeIds: request.AssigneeIds,
+            Icon: request.Icon,
+            Color: request.Color
         );
 
         var result = await _handler.SendAsync(command, ct);
@@ -101,7 +103,9 @@ public record UpdateTaskRequest(
     DateTimeOffset? DueDate,
     int? StoryPoints,
     long? TimeEstimate,
-    List<Guid>? AssigneeIds
+    List<Guid>? AssigneeIds,
+    string? Icon,
+    string? Color
 );
 
 public record MoveTaskToStatusRequest(

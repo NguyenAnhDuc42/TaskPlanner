@@ -216,6 +216,7 @@ export function SpaceBoardView({ viewData, spaceId }: SpaceBoardViewProps) {
       name: "Unclassified",
       color: "#6b7280",
       category: StatusCategory.NotStarted,
+      orderKey: "",
     });
   }
 

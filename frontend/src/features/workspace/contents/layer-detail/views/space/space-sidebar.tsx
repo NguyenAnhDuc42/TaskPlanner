@@ -7,40 +7,33 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState, useMemo } from "react";
-import type {  EnrichedSpaceDetailDto } from "./space-types";
 import { useWorkspace } from "@/features/workspace/context/workspace-provider";
 import { CreateStatusForm } from "@/features/workspace/components/forms/create-status-form";
-import { useUpdateWorkflowStatuses } from "@/features/workspace/api";
 
-interface SpaceSidebarProps {
-  viewData: EnrichedSpaceDetailDto;
-  draft: any;
-  onChange: (updates: any) => void;
-}
+import { useSpaceEditor } from "./space-editor-context";
 
-export function SpaceSidebar({ viewData, draft, onChange }: SpaceSidebarProps) {
+export function SpaceSidebar() {
   const { registry } = useWorkspace();
+  const { space, updateField } = useSpaceEditor();
 
   const [collapsed, setCollapsed] = useState({
     properties: false,
   });
-
-  const { mutate: updateStatuses } = useUpdateWorkflowStatuses();
   
-  if (!viewData) return null;
+  if (!space) return null;
 
   const toggleCollapse = (key: keyof typeof collapsed) => {
     setCollapsed(prev => ({ ...prev, [key]: !prev[key] }));
   };
 
   const workflow = useMemo(() => {
-    if (viewData.workflowId) {
+    if (space.workflowId) {
       return registry.workflows.find((w: any) => 
-        w.id?.toLowerCase() === viewData.workflowId?.toLowerCase()
+        w.id?.toLowerCase() === space.workflowId?.toLowerCase()
       );
     }
     return null;
-  }, [viewData.workflowId, registry.workflows]);
+  }, [space.workflowId, registry.workflows]);
 
   const statuses = workflow?.statuses || [];
   const [isStatusModalOpen, setIsStatusModalOpen] = useState(false);
@@ -65,20 +58,20 @@ export function SpaceSidebar({ viewData, draft, onChange }: SpaceSidebarProps) {
             <div className=" py-1">
               <div className="flex bg-muted/20 p-0.5 rounded-md border border-border/10 w-full">
                   <button
-                    onClick={() => onChange({ isPrivate: false })}
+                    onClick={() => updateField({ isPrivate: false })}
                     className={cn(
                       "flex-1 flex items-center justify-center gap-2 h-6 rounded-[4px] text-[10px] font-bold uppercase tracking-wider transition-all",
-                      !draft?.isPrivate ? "bg-background shadow-sm text-foreground ring-1 ring-border/10" : "text-muted-foreground hover:text-foreground"
+                      !space.isPrivate ? "bg-background shadow-sm text-foreground ring-1 ring-border/10" : "text-muted-foreground hover:text-foreground"
                     )}
                   >
                     <Globe className="h-3 w-3" />
                     Public
                   </button>
                   <button
-                    onClick={() => onChange({ isPrivate: true })}
+                    onClick={() => updateField({ isPrivate: true })}
                     className={cn(
                       "flex-1 flex items-center justify-center gap-2 h-6 rounded-[4px] text-[10px] font-bold uppercase tracking-wider transition-all",
-                      draft?.isPrivate ? "bg-background shadow-sm text-foreground ring-1 ring-border/10" : "text-muted-foreground hover:text-foreground"
+                      space.isPrivate ? "bg-background shadow-sm text-foreground ring-1 ring-border/10" : "text-muted-foreground hover:text-foreground"
                     )}
                   >
                     <Lock className="h-3 w-3" />
@@ -94,7 +87,7 @@ export function SpaceSidebar({ viewData, draft, onChange }: SpaceSidebarProps) {
             <PropertyRow 
               icon={Users} 
               label="Members" 
-              value={viewData.members?.length > 0 ? `${viewData.members.length} Users` : "No Members"} 
+              value={space.members?.length > 0 ? `${space.members.length} Users` : "No Members"} 
             />
 
             {/* Stronger Divider for Workflow */}
@@ -118,25 +111,7 @@ export function SpaceSidebar({ viewData, draft, onChange }: SpaceSidebarProps) {
       <CreateStatusForm
         isOpen={isStatusModalOpen}
         onClose={() => setIsStatusModalOpen(false)}
-        currentStatuses={statuses.map((s: any) => ({
-          statusId: s.statusId || s.id,
-          name: s.name,
-          color: s.color,
-          category: s.category,
-        }))}
-        onApplyChanges={(newStatuses) => {
-          if (!workflow?.id) return;
-          
-          updateStatuses({
-            workflowId: workflow.id,
-            statuses: newStatuses.map(s => ({
-              id: s.statusId.startsWith("temp-") ? null : s.statusId,
-              name: s.name,
-              color: s.color,
-              category: s.category
-            }))
-          });
-        }}
+        workflowId={workflow?.id}
       />
     </div>
   );

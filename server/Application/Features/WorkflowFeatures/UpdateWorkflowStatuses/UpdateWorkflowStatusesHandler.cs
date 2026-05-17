@@ -23,45 +23,73 @@ public class UpdateWorkflowStatusesHandler(IDataBase db, WorkspaceContext contex
 
         if (workflow == null) return Result.Failure(WorkflowError.NotFound);
 
-        var incomingStatusIds = request.Statuses.Where(s => s.Id.HasValue).Select(s => s.Id!.Value).ToList();
-        var existingStatusIds = workflow.Statuses.Select(s => s.Id).ToList();
-
-        var idsToRemove = existingStatusIds.Except(incomingStatusIds).ToList();
-        foreach (var id in idsToRemove)
-        {
-            workflow.RemoveStatus(id);
-        }
-
         foreach (var statusDto in request.Statuses)
         {
-            if (statusDto.Id.HasValue)
+            switch (statusDto.Action)
             {
-                var existing = workflow.Statuses.FirstOrDefault(s => s.Id == statusDto.Id.Value);
-                if (existing != null)
-                {
-                    existing.UpdateName(statusDto.Name);
-                    existing.UpdateColor(statusDto.Color!);
-                    existing.UpdateCategory(statusDto.Category);
-                }
-            }
-            else
-            {
-                var @new = Status.Create(
-                    workflow.ProjectWorkspaceId, 
-                    workflow.Id, 
-                    statusDto.Name, 
-                    statusDto.Color!, 
-                    statusDto.Category, 
-                    context.CurrentMember.Id);
-                
-                workflow.AddStatus(@new);
+                case RowAction.Delete:
+                    if (statusDto.Id.HasValue)
+                    {
+                        workflow.RemoveStatus(statusDto.Id.Value);
+                    }
+                    break;
+                    
+                case RowAction.Update:
+                    if (statusDto.Id.HasValue)
+                    {
+                        var existing = workflow.Statuses.FirstOrDefault(s => s.Id == statusDto.Id.Value);
+                        if (existing != null)
+                        {
+                            existing.UpdateName(statusDto.Name);
+                            existing.UpdateColor(statusDto.Color!);
+                            existing.UpdateCategory(statusDto.Category);
+                            
+                            if (statusDto.PreviousOrderKey != null || statusDto.NextOrderKey != null)
+                            {
+                                var resolvedKey = ResolveOrderKey(statusDto.PreviousOrderKey, statusDto.NextOrderKey);
+                                existing.UpdateOrderKey(resolvedKey);
+                            }
+                        }
+                    }
+                    break;
+                    
+                case RowAction.Create:
+                    var orderKey = (statusDto.PreviousOrderKey != null || statusDto.NextOrderKey != null)
+                        ? ResolveOrderKey(statusDto.PreviousOrderKey, statusDto.NextOrderKey)
+                        : null;
+                    
+                    var @new = Status.Create(
+                        workflow.ProjectWorkspaceId, 
+                        workflow.Id, 
+                        statusDto.Name, 
+                        statusDto.Color!, 
+                        statusDto.Category, 
+                        context.CurrentMember.Id,
+                        orderKey);
+                    
+                    workflow.AddStatus(@new);
+                    break;
             }
         }
-
-        workflow.ValidateIntegrity();
 
         await db.SaveChangesAsync(ct);
 
         return Result.Success();
+    }
+
+    private static string ResolveOrderKey(string? prevKey, string? nextKey)
+    {
+        if (prevKey != null && nextKey != null)
+        {
+            if (string.Compare(prevKey, nextKey, StringComparison.Ordinal) >= 0)
+                return FractionalIndex.After(prevKey);
+
+            return FractionalIndex.Between(prevKey, nextKey);
+        }
+
+        if (prevKey != null) return FractionalIndex.After(prevKey);
+        if (nextKey != null) return FractionalIndex.Before(nextKey);
+
+        return FractionalIndex.Start();
     }
 }

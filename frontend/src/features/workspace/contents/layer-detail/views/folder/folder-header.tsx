@@ -23,13 +23,11 @@ import { cn } from "@/lib/utils";
 import { SyncIndicator } from "@/components/sync-indicator";
 import type { EnrichedFolderDetailDto } from "./folder-types";
 
+import { useFolderEditor } from "./folder-editor-context";
+
 export type RightPanelType = "properties" | "attachments" | null;
 
 interface FolderHeaderProps {
-  viewData: EnrichedFolderDetailDto;
-  draft: any;
-  isSaving: boolean;
-  isDirty: boolean;
   activeTab: MainViewTab;
   viewMode: ItemsViewMode;
   onViewModeChange: (mode: ItemsViewMode) => void;
@@ -39,10 +37,6 @@ interface FolderHeaderProps {
 }
 
 export function FolderHeader({
-  viewData,
-  draft,
-  isSaving,
-  isDirty,
   activeTab,
   viewMode,
   onViewModeChange,
@@ -50,10 +44,10 @@ export function FolderHeader({
   onToggleRightPanel,
   onDelete,
 }: FolderHeaderProps) {
-  if (!viewData) return null;
+  const { folder, isSaving } = useFolderEditor();
 
   return (
-    <div className="flex items-center justify-between px-4 h-9 bg-background/80 backdrop-blur-md border-b border-border/40 flex-shrink-0 select-none">
+    <div className="w-full flex items-center justify-between px-4 h-9 bg-background/80 backdrop-blur-md border-b border-border/40 flex-shrink-0 select-none">
       {/* --- Left: Breadcrumbs --- */}
       <div className="flex items-center gap-0.5 text-[10px] font-bold text-muted-foreground/60 uppercase tracking-widest h-full">
         <span className="hover:text-foreground transition-colors cursor-pointer">
@@ -62,13 +56,13 @@ export function FolderHeader({
         <ChevronRight className="h-2.5 w-2.5 opacity-40 mx-0.5" />
         <div className="flex items-center gap-1.5 text-foreground/70 h-full">
           <DynamicIcon
-            name={draft?.icon || viewData?.icon || "Folder"}
+            name={folder.icon || "Folder"}
             size={12}
-            color={draft?.color || viewData?.color}
+            color={folder.color}
             className="stroke-[2.5]"
           />
           <FadeTruncate 
-            text={draft?.name || viewData?.name}
+            text={folder.name}
             className="max-w-[200px] font-black tracking-tight text-foreground/90"
           />
         </div>
@@ -78,7 +72,7 @@ export function FolderHeader({
       <div className="flex items-center gap-0.5">
         
         {/* Sync Indicator (Moved to Right) */}
-        <SyncIndicator isSaving={isSaving} isDirty={isDirty} className="mr-3" />
+        <SyncIndicator isSaving={isSaving} isDirty={false} className="mr-3" />
 
         <div className="h-4 w-px bg-border/40 mx-1" />
 

@@ -16,6 +16,7 @@ public record TaskDetailDto
     public string? Icon { get; init; }
     public Guid? ParentWorkflowId { get; init; }
     public Guid? StatusId { get; init; }
+    public Guid DefaultDocumentId { get; init; }
     public bool IsArchived { get; init; }
     public Priority Priority { get; init; }
     public DateTimeOffset? StartDate { get; init; }

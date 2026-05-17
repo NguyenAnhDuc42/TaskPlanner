@@ -12,5 +12,7 @@ public record UpdateTaskCommand(
     DateTimeOffset? DueDate,
     int? StoryPoints,
     long? TimeEstimate,
-    List<Guid>? AssigneeIds = null
+    List<Guid>? AssigneeIds = null,
+    string? Icon = null,
+    string? Color = null
 ) : ICommandRequest, IAuthorizedWorkspaceRequest;

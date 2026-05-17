@@ -85,9 +85,4 @@ public class Workflow : TenantEntity
         ProjectFolderId = projectFolderId;
         UpdateTimestamp();
     }
-
-    public void ValidateIntegrity()
-    {
-        // Rule removed to allow different layers (like Folders) to have workflows with only specific categories.
-    }
 }

@@ -75,11 +75,24 @@ export function useAvailableStatuses(spaceId?: string, folderId?: string) {
   return useQuery(workspaceQueryOptions.availableStatuses(spaceId, folderId));
 }
 
+export const RowAction = { Create: "Create", Update: "Update", Delete: "Delete" } as const;
+export type RowAction = (typeof RowAction)[keyof typeof RowAction];
+
+export interface StatusUpdatePayload {
+  id: string | null;
+  name: string;
+  color: string;
+  category: string;
+  previousOrderKey: string | null;
+  nextOrderKey: string | null;
+  action: RowAction;
+}
+
 export function useUpdateWorkflowStatuses() {
   const queryClient = useQueryClient();
   
   return useMutation({
-    mutationFn: async (data: { workflowId: string; statuses: any[] }) => {
+    mutationFn: async (data: { workflowId: string; statuses: StatusUpdatePayload[] }) => {
       const { data: responseData } = await api.put(
         `/statuses/workflow/${data.workflowId}`,
         data.statuses
@@ -87,9 +100,8 @@ export function useUpdateWorkflowStatuses() {
       return responseData;
     },
     onSuccess: () => {
-      // Invalidate workflows to refresh statuses across the board
       queryClient.invalidateQueries({
-        queryKey: workspaceKeys.all,
+        queryKey: [...workspaceKeys.all, "workflows"],
       });
     },
   });

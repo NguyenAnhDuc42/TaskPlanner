@@ -25,45 +25,38 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
-import { Globe, Lock } from "lucide-react";
+import { StatusSelect } from "@/components/status-select";
+import { useTaskEditor } from "./task-editor-context";
 
-import type { EnrichedTaskDetailDto } from "./task-types";
-
-interface TaskSidebarProps {
-  viewData: EnrichedTaskDetailDto;
-  draft: any;
-  onChange: (updates: any) => void;
-}
-
-export function TaskSidebar({ viewData, draft, onChange }: TaskSidebarProps) {
+export function TaskSidebar() {
   const { registry } = useWorkspace();
+  const { task, updateField } = useTaskEditor();
+  
   const [collapsed, setCollapsed] = useState({
     properties: false,
   });
   
-  if (!viewData) return null;
+  if (!task) return null;
 
   // Find workflow and its statuses
   const workflow = useMemo(() => {
-    if (viewData.projectFolderId) {
+    if (task.projectFolderId) {
       return registry.workflows.find((w: any) => 
-        w.projectFolderId?.toLowerCase() === viewData.projectFolderId?.toLowerCase()
+        w.projectFolderId?.toLowerCase() === task.projectFolderId?.toLowerCase()
       );
     }
-    if (viewData.projectSpaceId) {
+    if (task.projectSpaceId) {
       return registry.workflows.find((w: any) => 
-        w.projectSpaceId?.toLowerCase() === viewData.projectSpaceId?.toLowerCase() && !w.projectFolderId
+        w.projectSpaceId?.toLowerCase() === task.projectSpaceId?.toLowerCase() && !w.projectFolderId
       );
     }
     return null;
-  }, [viewData.projectFolderId, viewData.projectSpaceId, registry.workflows]);
-
-  const statuses = workflow?.statuses || [];
+  }, [task.projectFolderId, task.projectSpaceId, registry.workflows]);
   
-  // Resolve current status from draft
+  // Resolve current status from task context
   const currentStatus = useMemo(() => {
-    return registry.statusMap[draft?.statusId] || viewData.status;
-  }, [draft?.statusId, viewData.status, registry.statusMap]);
+    return registry.statusMap[task.statusId || ""] || task.status;
+  }, [task.statusId, task.status, registry.statusMap]);
 
   const toggleCollapse = (key: keyof typeof collapsed) => {
     setCollapsed(prev => ({ ...prev, [key]: !prev[key] }));
@@ -85,35 +78,12 @@ export function TaskSidebar({ viewData, draft, onChange }: TaskSidebarProps) {
 
         {!collapsed.properties && (
           <div className="space-y-1.5 animate-in slide-in-from-top-2 duration-300">
-            {/* 1. Visibility */}
-            <div className=" py-1">
-              <div className="flex bg-muted/20 p-0.5 rounded-md border border-border/10 w-full">
-                  <button
-                    onClick={() => onChange({ isPrivate: false })}
-                    className={cn(
-                      "flex-1 flex items-center justify-center gap-2 h-6 rounded-[4px] text-[10px] font-bold uppercase tracking-wider transition-all",
-                      !draft?.isPrivate ? "bg-background shadow-sm text-foreground ring-1 ring-border/10" : "text-muted-foreground hover:text-foreground"
-                    )}
-                  >
-                    <Globe className="h-3 w-3" />
-                    Public
-                  </button>
-                  <button
-                    onClick={() => onChange({ isPrivate: true })}
-                    className={cn(
-                      "flex-1 flex items-center justify-center gap-2 h-6 rounded-[4px] text-[10px] font-bold uppercase tracking-wider transition-all",
-                      draft?.isPrivate ? "bg-background shadow-sm text-foreground ring-1 ring-border/10" : "text-muted-foreground hover:text-foreground"
-                    )}
-                  >
-                    <Lock className="h-3 w-3" />
-                    Private
-                  </button>
-              </div>
-            </div>
-
-            {/* 2. Status Picker */}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
+            <StatusSelect
+              value={task.statusId}
+              onChange={(statusId) => updateField({ statusId })}
+              workflowId={workflow?.id}
+              align="end"
+              trigger={
                 <div className="flex items-center justify-between py-1.5 px-1 hover:bg-muted/30 rounded-lg transition-all group cursor-pointer border border-transparent hover:border-border/10">
                     <div className="flex items-center gap-2.5 text-muted-foreground/40 group-hover:text-muted-foreground/80">
                       <Layers className="h-3.5 w-3.5" />
@@ -121,23 +91,8 @@ export function TaskSidebar({ viewData, draft, onChange }: TaskSidebarProps) {
                     </div>
                     <StatusBadge status={currentStatus} />
                 </div>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-48 p-1 bg-background/95 backdrop-blur-md border-border/40 shadow-2xl rounded-xl">
-                <div className="px-2 py-1.5 pb-2 border-b border-border/10 mb-1">
-                  <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/40">Select Status</span>
-                </div>
-                
-                {statuses.map((status: any) => (
-                  <DropdownMenuItem 
-                    key={status.id}
-                    onSelect={() => onChange({ statusId: status.id })}
-                    className="p-1 rounded-lg cursor-pointer transition-colors"
-                  >
-                    <StatusBadge status={status} className="w-full justify-start border-none bg-transparent hover:bg-muted/20" />
-                  </DropdownMenuItem>
-                ))}
-              </DropdownMenuContent>
-            </DropdownMenu>
+              }
+            />
 
             {/* 3. Priority */}
             <DropdownMenu>
@@ -147,7 +102,7 @@ export function TaskSidebar({ viewData, draft, onChange }: TaskSidebarProps) {
                       <Flag className="h-3.5 w-3.5" />
                       <span className="text-[10px] font-bold uppercase tracking-wider">Priority</span>
                     </div>
-                    <PriorityBadge priority={draft?.priority || viewData?.priority} className="px-2 py-1 text-[10px]" />
+                    <PriorityBadge priority={task.priority} className="px-2 py-1 text-[10px]" />
                 </div>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-48 p-1 bg-background/95 backdrop-blur-md border-border/40 shadow-2xl rounded-xl">
@@ -158,7 +113,7 @@ export function TaskSidebar({ viewData, draft, onChange }: TaskSidebarProps) {
                 {Object.values(Priority).map((p) => (
                   <DropdownMenuItem 
                     key={p}
-                    onSelect={() => onChange({ priority: p })}
+                    onSelect={() => updateField({ priority: p })}
                     className="p-1 rounded-lg cursor-pointer transition-colors"
                   >
                     <PriorityBadge priority={p} className="w-full justify-start border-none bg-transparent hover:bg-muted/20" />
@@ -171,7 +126,7 @@ export function TaskSidebar({ viewData, draft, onChange }: TaskSidebarProps) {
             <PropertyRow 
               icon={Users} 
               label="Assignees" 
-              value={viewData.members?.length > 0 ? `${viewData.members.length} Users` : "No Members"} 
+              value={task.members?.length > 0 ? `${task.members.length} Users` : "No Members"} 
             />
 
             {/* 4. Schedule */}
@@ -188,15 +143,15 @@ export function TaskSidebar({ viewData, draft, onChange }: TaskSidebarProps) {
                       <button className="flex flex-col text-left hover:opacity-70 transition-opacity">
                         <span className="text-[7px] font-black uppercase tracking-[0.2em] text-muted-foreground/30 mb-0">Start</span>
                         <span className="text-[10px] font-black text-foreground/80 font-mono tracking-tight">
-                          {draft?.startDate ? format(new Date(draft.startDate), "MM/dd/yyyy") : "TBD"}
+                          {task.startDate ? format(new Date(task.startDate), "MM/dd/yyyy") : "TBD"}
                         </span>
                       </button>
                     </PopoverTrigger>
                     <PopoverContent className="w-auto p-0" align="start">
                       <Calendar
                         mode="single"
-                        selected={draft?.startDate ? new Date(draft.startDate) : undefined}
-                        onSelect={(date) => onChange({ startDate: date?.toISOString() })}
+                        selected={task.startDate ? new Date(task.startDate) : undefined}
+                        onSelect={(date) => updateField({ startDate: date?.toISOString() })}
                         initialFocus
                       />
                     </PopoverContent>
@@ -210,15 +165,15 @@ export function TaskSidebar({ viewData, draft, onChange }: TaskSidebarProps) {
                       <button className="flex flex-col items-end text-right hover:opacity-70 transition-opacity">
                         <span className="text-[7px] font-black uppercase tracking-[0.2em] text-muted-foreground/30 mb-0">Due</span>
                         <span className="text-[10px] font-black text-foreground/80 font-mono tracking-tight">
-                          {draft?.dueDate ? format(new Date(draft.dueDate), "MM/dd/yyyy") : "TBD"}
+                          {task.dueDate ? format(new Date(task.dueDate), "MM/dd/yyyy") : "TBD"}
                         </span>
                       </button>
                     </PopoverTrigger>
                     <PopoverContent className="w-auto p-0" align="end">
                       <Calendar
                         mode="single"
-                        selected={draft?.dueDate ? new Date(draft.dueDate) : undefined}
-                        onSelect={(date) => onChange({ dueDate: date?.toISOString() })}
+                        selected={task.dueDate ? new Date(task.dueDate) : undefined}
+                        onSelect={(date) => updateField({ dueDate: date?.toISOString() })}
                         initialFocus
                       />
                     </PopoverContent>

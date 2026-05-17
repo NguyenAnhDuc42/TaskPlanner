@@ -130,8 +130,10 @@ export function WorkspaceProvider({
     const memberMap: Record<string, any> = {};
 
     workflows.forEach((wf: any) => {
-      wf.statuses?.forEach((status: Status) => {
-        statusMap[status.statusId] = status;
+      wf.statuses?.forEach((status: any) => {
+        const sid = status.statusId || status.id;
+        status.statusId = sid; // ensure statusId is always populated
+        statusMap[sid] = status;
       });
     });
 

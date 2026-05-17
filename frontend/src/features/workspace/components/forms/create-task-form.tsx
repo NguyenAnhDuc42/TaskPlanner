@@ -1,8 +1,7 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { useCreateTask } from "../../contents/hierarchy/hierarchy-api";
 import { Button } from "@/components/ui/button";
 import { useWorkspace } from "../../context/workspace-provider";
-import { useWorkspaceDataStore } from "../../context/use-workspace-data-store";
 import { EntityLayerType } from "@/types/entity-layer-type";
 import { Priority } from "@/types/priority";
 import { Circle, Command, User } from "lucide-react";
@@ -12,9 +11,9 @@ import {
   IconColorPicker,
   SimpleDatePicker,
 } from "./form-elements";
-import { useAvailableStatuses } from "../../api";
 import { StatusBadge } from "@/components/status-badge";
 import { PriorityBadge } from "@/components/priority-badge";
+import { StatusSelect } from "@/components/status-select";
 import {
   Popover,
   PopoverContent,
@@ -34,7 +33,7 @@ export function CreateTaskForm({
   onSuccess,
   onCancel,
 }: CreateTaskFormProps) {
-  const { workspaceId } = useWorkspace();
+  const { workspaceId, registry } = useWorkspace();
   const createTask = useCreateTask(workspaceId);
   const [name, setName] = useState("");
   const [priority, setPriority] = useState<Priority>(Priority.Normal);
@@ -46,51 +45,20 @@ export function CreateTaskForm({
   const [startDate, setStartDate] = useState<Date | undefined>();
   const [dueDate, setDueDate] = useState<Date | undefined>();
 
-  const { setStatuses, setSpaceStatuses, setFolderStatuses } = useWorkspaceDataStore();
-  const isSpace = parentType === "ProjectSpace";
 
-  const { data: fetchedStatuses } = useAvailableStatuses(
-    isSpace ? parentId : undefined,
-    isSpace ? undefined : parentId,
-  );
-
-  useEffect(() => {
-    if (fetchedStatuses) {
-      const store = useWorkspaceDataStore.getState();
-      const currentIds = isSpace
-        ? store.spaceStatuses[parentId]
-        : store.folderStatuses[parentId];
-      const newIds = fetchedStatuses.map((s) => s.statusId);
-
-      if (JSON.stringify(currentIds || []) !== JSON.stringify(newIds)) {
-        setStatuses(fetchedStatuses);
-        if (isSpace) {
-          setSpaceStatuses(parentId, newIds);
-        } else {
-          setFolderStatuses(parentId, newIds);
-        }
-      }
+  const workflow = useMemo(() => {
+    if (parentType === "ProjectFolder") {
+      return registry.workflows.find((w: any) => 
+        w.projectFolderId?.toLowerCase() === parentId?.toLowerCase()
+      );
     }
-  }, [
-    fetchedStatuses,
-    parentId,
-    isSpace,
-    setStatuses,
-    setSpaceStatuses,
-    setFolderStatuses,
-  ]);
-
-  const statusIds = useWorkspaceDataStore((state) => {
-    return isSpace
-      ? state.spaceStatuses[parentId]
-      : state.folderStatuses[parentId];
-  });
-
-  const allStatuses = useWorkspaceDataStore((state) => state.statuses);
-
-  const statuses = useMemo(() => {
-    return (statusIds || []).map((id) => allStatuses[id]).filter(Boolean);
-  }, [statusIds, allStatuses]);
+    if (parentType === "ProjectSpace") {
+      return registry.workflows.find((w: any) => 
+        w.projectSpaceId?.toLowerCase() === parentId?.toLowerCase() && !w.projectFolderId
+      );
+    }
+    return null;
+  }, [parentId, parentType, registry.workflows]);
 
   const onSubmit = async (e?: React.FormEvent) => {
     e?.preventDefault();
@@ -150,44 +118,23 @@ export function CreateTaskForm({
 
       {/* Attribute Strip */}
       <div className="px-3 py-1.5 flex flex-wrap items-center gap-1.5 border-t border-border/5">
-        <Popover>
-          <PopoverTrigger asChild>
+        <StatusSelect
+          value={selectedStatusId || undefined}
+          onChange={(statusId) => setSelectedStatusId(statusId)}
+          workflowId={workflow?.id}
+          align="start"
+          trigger={
             <AttributeButton icon={selectedStatusId ? undefined : Circle}>
               {selectedStatusId ? (
                 <StatusBadge
-                  status={statuses.find((s) => s.statusId === selectedStatusId)}
+                  status={registry.statusMap[selectedStatusId]}
                 />
               ) : (
                 "Status"
               )}
             </AttributeButton>
-          </PopoverTrigger>
-          <PopoverContent
-            className="w-48 p-1 bg-popover border border-border shadow-md rounded-md"
-            align="start"
-          >
-            <div className="flex flex-col gap-0.5">
-              {statuses.map((status) => (
-                <button
-                  key={status.statusId}
-                  type="button"
-                  className="px-1 py-1 text-xs text-left rounded-sm hover:bg-muted transition-colors flex items-center"
-                  onClick={() => setSelectedStatusId(status.statusId)}
-                >
-                  <StatusBadge
-                    status={status}
-                    className="w-full justify-start"
-                  />
-                </button>
-              ))}
-              {statuses.length === 0 && (
-                <span className="text-xs text-muted-foreground p-2">
-                  No statuses found
-                </span>
-              )}
-            </div>
-          </PopoverContent>
-        </Popover>
+          }
+        />
 
         <Popover>
           <PopoverTrigger asChild>

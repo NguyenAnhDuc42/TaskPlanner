@@ -1,4 +1,5 @@
 import { type EntityLayerType } from "@/types/entity-layer-type";
+import { type Priority } from "@/types/priority";
 
 export interface WorkspaceHierarchy {
   id: string;
@@ -38,7 +39,7 @@ export interface TaskHierarchy {
   name: string;
   slug: string;
   statusId?: string;
-  priority: number;
+  priority: Priority;
   color?: string;
   icon?: string;
   orderKey: string;
@@ -77,7 +78,7 @@ export interface CreateTaskRequest {
   parentType: EntityLayerType;
   name: string;
   statusId?: string;
-  priority?: number;
+  priority?: Priority;
   startDate?: string;
   dueDate?: string;
   color?: string;

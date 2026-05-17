@@ -1,8 +1,7 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { useCreateFolder } from "../../contents/hierarchy/hierarchy-api";
 import { Button } from "@/components/ui/button";
 import { useWorkspace } from "../../context/workspace-provider";
-import { useWorkspaceDataStore } from "../../context/use-workspace-data-store";
 import { toast } from "sonner";
 import {
   IconColorPicker,
@@ -11,13 +10,8 @@ import {
   SimpleDatePicker,
 } from "./form-elements";
 import * as Icons from "lucide-react";
-import { useAvailableStatuses } from "../../api";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
 import { StatusBadge } from "@/components/status-badge";
+import { StatusSelect } from "@/components/status-select";
 
 interface CreateFolderFormProps {
   spaceId: string;
@@ -30,7 +24,7 @@ export function CreateFolderForm({
   onSuccess,
   onCancel,
 }: CreateFolderFormProps) {
-  const { workspaceId } = useWorkspace();
+  const { workspaceId, registry } = useWorkspace();
   const createFolder = useCreateFolder(workspaceId);
   const [name, setName] = useState("");
   const [isPrivate, setIsPrivate] = useState(false);
@@ -40,29 +34,11 @@ export function CreateFolderForm({
   const [startDate, setStartDate] = useState<Date | undefined>();
   const [dueDate, setDueDate] = useState<Date | undefined>();
 
-  const { setStatuses, setSpaceStatuses } = useWorkspaceDataStore();
-
-  const { data: fetchedStatuses } = useAvailableStatuses(spaceId);
-
-  useEffect(() => {
-    if (fetchedStatuses) {
-      const currentIds =
-        useWorkspaceDataStore.getState().spaceStatuses[spaceId] || [];
-      const newIds = fetchedStatuses.map((s) => s.statusId);
-      if (JSON.stringify(currentIds) !== JSON.stringify(newIds)) {
-        setStatuses(fetchedStatuses);
-        setSpaceStatuses(spaceId, newIds);
-      }
-    }
-  }, [fetchedStatuses, spaceId, setStatuses, setSpaceStatuses]);
-
-  const statusIds = useWorkspaceDataStore((state) => state.spaceStatuses[spaceId]);
-
-  const allStatuses = useWorkspaceDataStore((state) => state.statuses);
-
-  const statuses = useMemo(() => {
-    return (statusIds || []).map((id) => allStatuses[id]).filter(Boolean);
-  }, [statusIds, allStatuses]);
+  const spaceWorkflow = useMemo(() => {
+    return registry.workflows.find((w: any) => 
+      w.projectSpaceId?.toLowerCase() === spaceId?.toLowerCase() && !w.projectFolderId
+    );
+  }, [spaceId, registry.workflows]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -118,45 +94,24 @@ export function CreateFolderForm({
       <div className="px-3 py-1.5 flex flex-wrap items-center gap-1.5 border-t border-border/5">
         <PrivacyToggle isPrivate={isPrivate} onChange={setIsPrivate} />
 
-        <Popover>
-          <PopoverTrigger asChild>
+        <StatusSelect
+          value={selectedStatusId || undefined}
+          onChange={(statusId) => setSelectedStatusId(statusId)}
+          workflowId={spaceWorkflow?.id}
+          align="start"
+          trigger={
             <AttributeButton icon={selectedStatusId ? undefined : Icons.Circle}>
               {selectedStatusId ? (
                 <StatusBadge
-                  status={statuses.find((s) => s.statusId === selectedStatusId)}
+                  status={registry.statusMap[selectedStatusId]}
                   showIcon={true}
                 />
               ) : (
                 "Status"
               )}
             </AttributeButton>
-          </PopoverTrigger>
-          <PopoverContent
-            className="w-48 p-1 bg-popover border border-border shadow-md rounded-md"
-            align="start"
-          >
-            <div className="flex flex-col gap-0.5">
-              {statuses.map((status) => (
-                <button
-                  key={status.statusId}
-                  type="button"
-                  className="px-1 py-1 text-xs text-left rounded-sm hover:bg-muted transition-colors flex items-center"
-                  onClick={() => setSelectedStatusId(status.statusId)}
-                >
-                  <StatusBadge
-                    status={status}
-                    className="w-full justify-start"
-                  />
-                </button>
-              ))}
-              {statuses.length === 0 && (
-                <span className="text-xs text-muted-foreground p-2">
-                  No statuses found
-                </span>
-              )}
-            </div>
-          </PopoverContent>
-        </Popover>
+          }
+        />
 
         <SimpleDatePicker
           value={startDate}

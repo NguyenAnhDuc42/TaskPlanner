@@ -20,4 +20,5 @@ public record StatusDto
     public string Name { get; init; } = null!;
     public string Color { get; init; } = null!;
     public StatusCategory Category { get; init; }
+    public string OrderKey { get; init; } = null!;
 }

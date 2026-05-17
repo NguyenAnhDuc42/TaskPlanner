@@ -8,9 +8,14 @@ public record UpdateWorkflowStatusesCommand(
     List<StatusUpdateDto> Statuses
 ) : ICommandRequest, IAuthorizedWorkspaceRequest;
 
+
+
 public record StatusUpdateDto(
     Guid? Id, 
     string Name,
     string Color,
-    StatusCategory Category
+    StatusCategory Category,
+    string? PreviousOrderKey,
+    string? NextOrderKey,
+    RowAction Action
 );

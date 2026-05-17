@@ -21,15 +21,12 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 import { SyncIndicator } from "@/components/sync-indicator";
-import type { EnrichedSpaceDetailDto } from "./space-types";
+
+import { useSpaceEditor } from "./space-editor-context";
 
 export type RightPanelType = "properties" | "attachments" | null;
 
 interface SpaceHeaderProps {
-  viewData: EnrichedSpaceDetailDto;
-  draft: any;
-  isSaving: boolean;
-  isDirty: boolean;
   activeTab: MainViewTab;
   viewMode: ItemsViewMode;
   onViewModeChange: (mode: ItemsViewMode) => void;
@@ -39,10 +36,6 @@ interface SpaceHeaderProps {
 }
 
 export function SpaceHeader({
-  viewData,
-  draft,
-  isSaving,
-  isDirty,
   activeTab,
   viewMode,
   onViewModeChange,
@@ -50,10 +43,10 @@ export function SpaceHeader({
   onToggleRightPanel,
   onDelete,
 }: SpaceHeaderProps) {
-  if (!viewData) return null;
+  const { space, isSaving } = useSpaceEditor();
 
   return (
-    <div className="flex items-center justify-between px-4 h-9 bg-background/80 backdrop-blur-md border-b border-border/40 flex-shrink-0 select-none">
+    <div className="w-full flex items-center justify-between px-4 h-9 bg-background/80 backdrop-blur-md border-b border-border/40 flex-shrink-0 select-none">
       {/* --- Left: Breadcrumbs --- */}
       <div className="flex items-center gap-0.5 text-[10px] font-bold text-muted-foreground/60 uppercase tracking-widest h-full">
         <span className="hover:text-foreground transition-colors cursor-pointer">
@@ -62,13 +55,13 @@ export function SpaceHeader({
         <ChevronRight className="h-2.5 w-2.5 opacity-40 mx-0.5" />
         <div className="flex items-center gap-1.5 text-foreground/70 h-full">
           <DynamicIcon
-            name={draft?.icon || viewData?.icon || "Folder"}
+            name={space.icon || "Folder"}
             size={12}
-            color={draft?.color || viewData?.color}
+            color={space.color}
             className="stroke-[2.5]"
           />
           <FadeTruncate 
-            text={draft?.name || viewData?.name}
+            text={space.name}
             className="max-w-[200px] font-black tracking-tight text-foreground/90"
           />
         </div>
@@ -78,7 +71,7 @@ export function SpaceHeader({
       <div className="flex items-center gap-0.5">
         
         {/* Sync Indicator (Moved to Right) */}
-        <SyncIndicator isSaving={isSaving} isDirty={isDirty} className="mr-3" />
+        <SyncIndicator isSaving={isSaving} isDirty= {false} className="mr-3" />
 
         <div className="h-4 w-px bg-border/40 mx-1" />
 

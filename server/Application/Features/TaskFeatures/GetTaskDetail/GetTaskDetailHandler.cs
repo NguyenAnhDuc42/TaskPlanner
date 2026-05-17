@@ -15,6 +15,7 @@ public class GetTaskDetailHandler(IDataBase db, WorkspaceContext workspaceContex
             SELECT 
                 t.id AS Id, t.project_space_id AS ProjectSpaceId, t.project_folder_id AS ProjectFolderId,
                 t.name AS Name, t.custom_color AS Color, t.custom_icon AS Icon, 
+                t.default_document_id AS DefaultDocumentId,
                 t.is_archived AS IsArchived, t.priority AS Priority, 
                 t.story_points AS StoryPoints, t.time_estimate_seconds AS TimeEstimateSeconds,
                 t.status_id AS StatusId, 

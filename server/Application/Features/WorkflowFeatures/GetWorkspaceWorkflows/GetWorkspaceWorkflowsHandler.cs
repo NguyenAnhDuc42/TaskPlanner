@@ -14,7 +14,7 @@ public class GetWorkspaceWorkflowsHandler(IDataBase db, WorkspaceContext workspa
         const string sql = @"
             SELECT 
                 w.id AS Id, w.name AS Name, w.project_space_id AS ProjectSpaceId, w.project_folder_id AS ProjectFolderId,
-                s.id AS Id, s.name AS Name, s.color AS Color, s.category AS Category
+                s.id AS Id, s.name AS Name, s.color AS Color, s.category AS Category, s.order_key AS OrderKey
             FROM workflows w
             LEFT JOIN statuses s ON w.id = s.workflow_id
             WHERE w.project_workspace_id = @WorkspaceId 
@@ -22,7 +22,7 @@ public class GetWorkspaceWorkflowsHandler(IDataBase db, WorkspaceContext workspa
                   (@LayerType = 'space' AND w.project_space_id = @LayerId) OR 
                   (@LayerType = 'folder' AND w.project_folder_id = @LayerId))
               AND w.deleted_at IS NULL AND (s.deleted_at IS NULL OR s.id IS NULL)
-            ORDER BY w.name, s.category, s.name;";
+            ORDER BY w.name, s.category, s.order_key;";
 
         var workflowDict = new Dictionary<Guid, WorkflowDto>();
 

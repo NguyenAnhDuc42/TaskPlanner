@@ -5,4 +5,5 @@ export interface Status {
   name: string;
   color: string;
   category: StatusCategory;
+  orderKey: string;
 }

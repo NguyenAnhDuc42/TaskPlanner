@@ -70,7 +70,7 @@ export interface TaskDetailDto {
   projectFolderId: string;
   name: string;
   statusId?: string;
-  priority?: number;
+  priority?: Priority;
   startDate?: string;
   dueDate?: string;
   description?: string;
@@ -78,6 +78,7 @@ export interface TaskDetailDto {
   color?: string;
   assigneeIds: string[];
   isPrivate?: boolean;
+  defaultDocumentId: string;
 }
 
 export interface TaskViewData {
@@ -150,7 +151,7 @@ export interface CreateTaskRequest {
   parentType: EntityLayerType;
   name: string;
   statusId?: string;
-  priority?: number;
+  priority?: Priority;
   startDate?: string;
   dueDate?: string;
   color?: string;
@@ -183,12 +184,14 @@ export interface UpdateTaskRequest {
   taskId: string;
   name?: string;
   statusId?: string;
-  priority?: number;
+  priority?: Priority;
   startDate?: string;
   dueDate?: string;
   storyPoints?: number;
   timeEstimate?: number;
   assigneeIds?: string[];
+  icon?: string;
+  color?: string;
 }
 
 export interface EntityAccessMember {
