@@ -12,8 +12,8 @@ import { StatusGroup } from "../../components/items/status-group";
 import { TaskItem } from "../../components/items/task-item";
 import type { TaskViewData } from "../../layer-detail-types";
 import { cn } from "@/lib/utils";
-import { useMoveTaskToStatus } from "../task/task-api";
 import { buildColumns, calculateOrderKeys } from "./folder-dnd-helpers";
+import { useMoveTaskToStatus } from "../task/task-api";
 import { StatusCategory } from "@/types/status-category";
 import { useEdgeScroll } from "../use-edge-scroll";
 
@@ -55,18 +55,17 @@ export function FolderBoardView({ viewData, folderId }: FolderBoardViewProps) {
     el.addEventListener("wheel", handleWheel, { passive: false });
     return () => el.removeEventListener("wheel", handleWheel);
   }, []);
+
   const viewDataRef = useRef<TaskViewData | null>(null);
 
-  const { mutate: moveTaskToStatus, isPending: isMovingTask } =
-    useMoveTaskToStatus();
+  const { mutate: moveTaskToStatus, isPending: isMovingTask } = useMoveTaskToStatus();
 
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isDebouncingRef = useRef(false);
   const pendingMutationRef = useRef<(() => void) | null>(null);
 
   useEffect(() => {
-    if (isDraggingRef.current || isMovingTask || isDebouncingRef.current)
-      return;
+    if (isDraggingRef.current || isMovingTask || isDebouncingRef.current) return;
 
     const prev = viewDataRef.current;
     const hasChanged =
@@ -109,21 +108,18 @@ export function FolderBoardView({ viewData, folderId }: FolderBoardViewProps) {
     const dstColId = destination.droppableId;
     const targetStatusId = dstColId === "unclassified" ? undefined : dstColId;
 
-    // 1. Pre-move snapshot from ref
     const srcItems = [...(columnsRef.current[srcColId] ?? [])];
     const dstItems =
       srcColId === dstColId
         ? srcItems
         : [...(columnsRef.current[dstColId] ?? [])];
 
-    // 2. Keys from pre-move state
     const { previousItemOrderKey, nextItemOrderKey } = calculateOrderKeys(
       destination.index,
       draggableId,
       dstItems,
     );
 
-    // 3. Apply visual move
     const [movedItem] = srcItems.splice(source.index, 1);
     const updatedItem = { ...movedItem, statusId: targetStatusId };
 
@@ -139,7 +135,6 @@ export function FolderBoardView({ viewData, folderId }: FolderBoardViewProps) {
       }));
     }
 
-    // 4. Optimistic cache patch (cross-column only)
     if (srcColId !== dstColId) {
       queryClient.setQueryData(
         [...workspaceKeys.all, "folder", folderId, "items"],
@@ -160,10 +155,9 @@ export function FolderBoardView({ viewData, folderId }: FolderBoardViewProps) {
       );
     }
 
-    // 5. Persist (Debounced)
     isDebouncingRef.current = true;
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
-
+    
     const persist = () => {
       isDebouncingRef.current = false;
       pendingMutationRef.current = null;
@@ -193,6 +187,7 @@ export function FolderBoardView({ viewData, folderId }: FolderBoardViewProps) {
       name: "Unclassified",
       color: "#6b7280",
       category: StatusCategory.NotStarted,
+      orderKey: "",
     });
   }
 
@@ -227,48 +222,36 @@ export function FolderBoardView({ viewData, folderId }: FolderBoardViewProps) {
                         className={cn(
                           "flex flex-col h-[calc(100vh-250px)] overflow-y-auto p-1 gap-2 rounded-md transition-colors",
                           "[&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-thumb]:bg-muted-foreground/10 hover:[&::-webkit-scrollbar-thumb]:bg-muted-foreground/30 [&::-webkit-scrollbar-track]:bg-transparent",
-                          snapshot.isDraggingOver
-                            ? "bg-white/[0.02] border border-dashed border-border/60"
-                            : "border border-transparent",
+                          snapshot.isDraggingOver ? "bg-white/[0.02] border border-dashed border-border/60" : "border border-transparent"
                         )}
                       >
-                        {items.map((item: any, index: number) => {
-                          const isTask = "priority" in item;
-                          return (
-                            <Draggable
-                              key={item.id}
-                              draggableId={item.id}
-                              index={index}
-                            >
-                              {(provided, snapshot) => (
-                                <div
-                                  ref={provided.innerRef}
-                                  {...provided.draggableProps}
-                                  {...provided.dragHandleProps}
-                                  style={{
-                                    ...provided.draggableProps.style,
-                                    opacity: snapshot.isDragging ? 0.8 : 1,
-                                  }}
-                                  className={cn(
-                                    snapshot.isDragging &&
-                                      "[&_*]:transition-none",
-                                  )}
-                                >
-                                  {isTask ? (
-                                    <TaskItem
-                                      task={item}
-                                      onClick={() => handleTaskClick(item.id)}
-                                    />
-                                  ) : (
-                                    <div className="p-4 bg-card rounded-md border">
-                                      Folder: {item.name}
-                                    </div>
-                                  )}
-                                </div>
-                              )}
-                            </Draggable>
-                          );
-                        })}
+                        {items.map((item: any, index: number) => (
+                          <Draggable
+                            key={item.id}
+                            draggableId={item.id}
+                            index={index}
+                          >
+                            {(provided, snapshot) => (
+                              <div
+                                ref={provided.innerRef}
+                                {...provided.draggableProps}
+                                {...provided.dragHandleProps}
+                                style={{
+                                  ...provided.draggableProps.style,
+                                  opacity: snapshot.isDragging ? 0.8 : 1,
+                                }}
+                                className={cn(
+                                  snapshot.isDragging && "[&_*]:transition-none",
+                                )}
+                              >
+                                <TaskItem
+                                  task={item}
+                                  onClick={() => handleTaskClick(item.id)}
+                                />
+                              </div>
+                            )}
+                          </Draggable>
+                        ))}
                         {provided.placeholder}
                       </div>
                     )}

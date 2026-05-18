@@ -3,8 +3,8 @@ using Application.Common.Results;
 using Application.Helpers;
 using Application.Interfaces.Data;
 using Dapper;
-using Microsoft.EntityFrameworkCore;
 using Application.Features.ViewFeatures;
+using Application.Common.Errors;
 
 namespace Application.Features.FolderFeatures;
 
@@ -20,14 +20,14 @@ public class GetFolderItemsHandler(IDataBase db, WorkspaceContext workspaceConte
             new { request.FolderId });
 
         if (spaceId == null)
-            return Result<TaskViewData>.Failure(Application.Common.Errors.Error.NotFound("Folder.NotFound", "Folder not found"));
+            return Result<TaskViewData>.Failure(Error.NotFound("Folder.NotFound", "Folder not found"));
 
         var activeWorkflow = await WorkflowHelper.GetActiveWorkflow(db, workspaceId, 
             spaceId.Value, 
             request.FolderId, ct);
 
         if (activeWorkflow == null)
-            return Result<TaskViewData>.Failure(Application.Common.Errors.Error.NotFound("Workflow.NotFound", "Active workflow not found for this folder"));
+            return Result<TaskViewData>.Failure(Error.NotFound("Workflow.NotFound", "Active workflow not found for this folder"));
 
         const string sql = @"
             -- 1. Fetch Statuses
@@ -43,7 +43,7 @@ public class GetFolderItemsHandler(IDataBase db, WorkspaceContext workspaceConte
             END;
 
             -- 2. Fetch Folders (Empty for folder level)
-            SELECT id, name, created_at AS CreatedAt, status_id AS StatusId, start_date AS StartDate, due_date AS DueDate, order_key AS OrderKey
+            SELECT id, name, created_at AS CreatedAt, status_id AS StatusId, priority, start_date AS StartDate, due_date AS DueDate, order_key AS OrderKey
             FROM project_folders
             WHERE 1=0;
 

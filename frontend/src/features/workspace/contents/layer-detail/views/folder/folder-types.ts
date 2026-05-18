@@ -1,3 +1,5 @@
+import { Priority } from "@/types/priority";
+
 export interface FolderDetailDto {
   id: string;
   projectSpaceId: string;
@@ -6,6 +8,7 @@ export interface FolderDetailDto {
   icon?: string;
   isPrivate: boolean;
   isArchived: boolean;
+  priority?: Priority | "no-priority";
   parentWorkflowId?: string;
   workflowId?: string;
   statusId?: string;
@@ -23,6 +26,7 @@ export interface UpdateFolderRequest {
   icon?: string;
   isPrivate?: boolean;
   statusId?: string;
+  priority?: Priority | "no-priority";
   startDate?: string;
   dueDate?: string;
 }

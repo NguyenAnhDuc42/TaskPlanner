@@ -25,10 +25,19 @@ public class MoveTaskToStatusHandler(IDataBase db, WorkspaceContext context, IRe
 
         var affected = await db.Tasks
             .Where(t => t.Id == request.TaskId)
-            .ExecuteUpdateAsync(u => u
-                .SetProperty(t => t.StatusId, request.TargetStatusId)
-                .SetProperty(t => t.OrderKey, newOrderKey)
-                .SetProperty(t => t.UpdatedAt, DateTimeOffset.UtcNow), ct);
+            .ExecuteUpdateAsync(u => {
+                var calls = u
+                    .SetProperty(t => t.StatusId, request.TargetStatusId)
+                    .SetProperty(t => t.OrderKey, newOrderKey)
+                    .SetProperty(t => t.UpdatedAt, DateTimeOffset.UtcNow);
+
+                if (request.NewPriority.HasValue)
+                {
+                    calls = calls.SetProperty(t => t.Priority, request.NewPriority.Value);
+                }
+
+                return calls;
+            }, ct);
 
         if (affected > 0)
         {
@@ -36,6 +45,7 @@ public class MoveTaskToStatusHandler(IDataBase db, WorkspaceContext context, IRe
                 request.TaskId, 
                 request.TargetStatusId, 
                 NewOrderKey = newOrderKey,
+                NewPriority = request.NewPriority,
                 SpaceId = taskData?.ProjectSpaceId,
                 FolderId = taskData?.ProjectFolderId
             }, ct);

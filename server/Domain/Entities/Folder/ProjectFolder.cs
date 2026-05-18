@@ -1,5 +1,6 @@
 using Domain.Common;
 using Domain.Exceptions;
+using Domain.Enums;
 
 namespace Domain.Entities;
 
@@ -17,9 +18,10 @@ public sealed class ProjectFolder : TenantEntity
     public DateTimeOffset? StartDate { get; private set; }
     public DateTimeOffset? DueDate { get; private set; }
     public Guid? StatusId { get; private set; }
+    public Priority? Priority { get; private set; }
 
     private ProjectFolder() { }
-    private ProjectFolder(Guid id, Guid projectWorkspaceId, Guid projectSpaceId, string name, string slug, Guid defaultDocumentId, string orderKey, bool isPrivate, Guid creatorId, string color, string? icon, DateTimeOffset? startDate, DateTimeOffset? dueDate)
+    private ProjectFolder(Guid id, Guid projectWorkspaceId, Guid projectSpaceId, string name, string slug, Guid defaultDocumentId, string orderKey, bool isPrivate, Guid creatorId, string color, string? icon, DateTimeOffset? startDate, DateTimeOffset? dueDate, Priority? priority = null)
         : base(id, projectWorkspaceId)
     {
         ProjectSpaceId = projectSpaceId;
@@ -33,12 +35,13 @@ public sealed class ProjectFolder : TenantEntity
         IsArchived = false;
         StartDate = startDate;
         DueDate = dueDate;
+        Priority = priority;
 
         // Audit is initialized in base constructor
         InitializeAudit(creatorId);
     }
 
-    public static ProjectFolder Create(Guid projectWorkspaceId, Guid projectSpaceId, string name, string slug, Guid defaultDocumentId, string orderKey, bool isPrivate, Guid creatorId, string? color = null, string? icon = null, DateTimeOffset? startDate = null, DateTimeOffset? dueDate = null)
+    public static ProjectFolder Create(Guid projectWorkspaceId, Guid projectSpaceId, string name, string slug, Guid defaultDocumentId, string orderKey, bool isPrivate, Guid creatorId, string? color = null, string? icon = null, DateTimeOffset? startDate = null, DateTimeOffset? dueDate = null, Priority? priority = null)
     {
         var folder = new ProjectFolder(
             Guid.NewGuid(), 
@@ -53,7 +56,8 @@ public sealed class ProjectFolder : TenantEntity
             color ?? "#FFFFFF", 
             icon,
             startDate,
-            dueDate);
+            dueDate,
+            priority);
 
         return folder;
     }
@@ -144,6 +148,14 @@ public sealed class ProjectFolder : TenantEntity
         EnsureNotArchived();
         if (StatusId == statusId) return;
         StatusId = statusId;
+        UpdateTimestamp();
+    }
+
+    public void UpdatePriority(Priority? priority)
+    {
+        EnsureNotArchived();
+        if (Priority == priority) return;
+        Priority = priority;
         UpdateTimestamp();
     }
 

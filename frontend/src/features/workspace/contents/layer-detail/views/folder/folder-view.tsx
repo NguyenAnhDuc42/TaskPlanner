@@ -3,7 +3,7 @@ import { FolderHeader } from "./folder-header";
 import { LayerTabs } from "../../components/layer-tabs";
 import { FolderOverview } from "./folder-overview";
 
-import { FolderListView } from "./folder-list-view";
+import { FolderItemsView } from "./folder-items-view";
 import { FolderSidebar } from "./folder-sidebar";
 import { AttachmentSection } from "../../components/overview/attachment-section";
 import type { MainViewTab, ItemsViewMode } from "../../layer-detail-types";
@@ -17,7 +17,6 @@ import { useDebounce } from "@/hooks/use-debounce";
 import { EntityLayerType } from "@/types/entity-layer-type";
 import { useFolderRealtime } from "./folder-realtime";
 import { useTaskRealtime } from "../task/task-realtime";
-import { FolderBoardView } from "./folder-board-view";
 import { FolderEditorProvider, useFolderEditor } from "./folder-editor-context";
 
 interface FolderViewProps {
@@ -92,10 +91,12 @@ function FolderViewContent({ workspaceId, folderId }: FolderViewProps) {
               <LoadingComponent />
             ) : !itemsData ? (
               <div>No items found</div>
-            ) : viewMode === "board" ? (
-              <FolderBoardView viewData={itemsData} folderId={folderId} />
             ) : (
-              <FolderListView viewData={itemsData} />
+              <FolderItemsView
+                viewData={itemsData}
+                folderId={folderId}
+                viewMode={viewMode}
+              />
             )
           )}
         </div>

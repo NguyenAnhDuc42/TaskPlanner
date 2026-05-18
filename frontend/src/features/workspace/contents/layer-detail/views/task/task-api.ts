@@ -78,6 +78,7 @@ export interface MoveTaskToStatusRequest {
   previousItemOrderKey?: string;
   nextItemOrderKey?: string;
   newOrderKey?: string;
+  newPriority?: string;
 }
 
 export function useMoveTaskToStatus() {

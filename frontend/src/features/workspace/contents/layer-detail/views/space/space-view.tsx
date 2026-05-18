@@ -2,8 +2,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { SpaceHeader } from "./space-header";
 import { LayerTabs } from "../../components/layer-tabs";
 import { SpaceOverview } from "./space-overview";
-import { SpaceBoardView } from "./space-board-view";
-import { SpaceListView } from "./space-list-view";
+import { SpaceItemsView } from "./space-items-view";
 import { SpaceSidebar } from "./space-sidebar";
 import { AttachmentSection } from "../../components/overview/attachment-section";
 import type { MainViewTab, ItemsViewMode } from "../../layer-detail-types";
@@ -92,10 +91,12 @@ function SpaceViewContent({ workspaceId, spaceId }: SpaceViewProps) {
               <LoadingComponent />
             ) : !itemsData ? (
               <div>No items found</div>
-            ) : viewMode === "board" ? (
-              <SpaceBoardView viewData={itemsData} spaceId={spaceId} />
             ) : (
-              <SpaceListView viewData={itemsData} />
+              <SpaceItemsView
+                viewData={itemsData}
+                spaceId={spaceId}
+                viewMode={viewMode}
+              />
             )
           )}
         </div>

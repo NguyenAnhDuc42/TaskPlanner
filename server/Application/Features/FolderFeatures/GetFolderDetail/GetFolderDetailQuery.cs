@@ -1,4 +1,5 @@
 using Application.Common.Interfaces;
+using Domain.Enums;
 
 namespace Application.Features.FolderFeatures;
 
@@ -17,6 +18,7 @@ public record FolderDetailDto
     public Guid? ParentWorkflowId { get; init; }
     public Guid? WorkflowId { get; init; }
     public Guid? StatusId { get; init; }
+    public Priority? Priority { get; init; }
     public Guid DefaultDocumentId { get; init; }
     public DateTimeOffset? StartDate { get; init; }
     public DateTimeOffset? DueDate { get; init; }

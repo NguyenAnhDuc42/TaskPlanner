@@ -91,6 +91,7 @@ export function useFolderRealtime(workspaceId: string) {
       const folderId = data.folderId || data.FolderId;
       const targetStatusId = data.targetStatusId || data.TargetStatusId;
       const newOrderKey = data.newOrderKey || data.NewOrderKey;
+      const newPriority = data.newPriority || data.NewPriority;
 
       if (spaceId) {
         queryClient.setQueryData(
@@ -99,9 +100,14 @@ export function useFolderRealtime(workspaceId: string) {
             if (!old) return old;
             return {
               ...old,
-              folders: old.folders.map((f: any) => 
-                f.id === folderId ? { ...f, statusId: targetStatusId, orderKey: newOrderKey } : f
-              )
+              folders: old.folders.map((f: any) => {
+                if (f.id !== folderId) return f;
+                const updated = { ...f, statusId: targetStatusId, orderKey: newOrderKey };
+                if (newPriority !== undefined && newPriority !== null) {
+                  updated.priority = newPriority;
+                }
+                return updated;
+              })
             };
           }
         );

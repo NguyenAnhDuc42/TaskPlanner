@@ -92,6 +92,7 @@ export interface MoveFolderToStatusRequest {
   previousItemOrderKey?: string;
   nextItemOrderKey?: string;
   newOrderKey?: string;
+  newPriority?: string;
 }
 
 export function useMoveFolderToStatus() {

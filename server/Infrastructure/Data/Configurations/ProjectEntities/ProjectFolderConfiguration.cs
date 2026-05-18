@@ -51,6 +51,9 @@ public class ProjectFolderConfiguration : TenantEntityConfiguration<ProjectFolde
         builder.Property(f => f.StartDate).HasColumnName("start_date");
         builder.Property(f => f.DueDate).HasColumnName("due_date");
 
+        builder.Property(f => f.Priority)
+            .HasColumnName("priority");
+
         builder.Property(f => f.Color)
             .HasColumnName("custom_color")
             .HasMaxLength(16);

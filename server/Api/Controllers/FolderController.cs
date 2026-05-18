@@ -2,6 +2,7 @@ using Application.Features.FolderFeatures;
 using Microsoft.AspNetCore.Mvc;
 using Application.Common.Interfaces;
 using Api.Extensions;
+using Domain.Enums;
 
 namespace Api.Controllers;
 
@@ -42,7 +43,8 @@ public class FoldersController : ControllerBase
             IsPrivate: request.IsPrivate,
             StartDate: request.StartDate,
             DueDate: request.DueDate,
-            StatusId: request.StatusId
+            StatusId: request.StatusId,
+            Priority: request.Priority
         );
 
         var result = await _handler.SendAsync(command, ct);
@@ -57,7 +59,8 @@ public class FoldersController : ControllerBase
             TargetStatusId: request.TargetStatusId,
             PreviousItemOrderKey: request.PreviousItemOrderKey,
             NextItemOrderKey: request.NextItemOrderKey,
-            NewOrderKey: request.NewOrderKey
+            NewOrderKey: request.NewOrderKey,
+            NewPriority: request.NewPriority
         );
 
         var result = await _handler.SendAsync(command, ct);
@@ -86,12 +89,14 @@ public record UpdateFolderRequest(
     bool? IsPrivate,
     DateTimeOffset? StartDate,
     DateTimeOffset? DueDate,
-    Guid? StatusId
+    Guid? StatusId,
+    Priority? Priority
 );
 
 public record MoveFolderToStatusRequest(
     Guid? TargetStatusId,
     string? PreviousItemOrderKey,
     string? NextItemOrderKey,
-    string? NewOrderKey = null
+    string? NewOrderKey = null,
+    Priority? NewPriority = null
 );

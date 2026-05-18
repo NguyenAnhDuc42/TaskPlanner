@@ -61,7 +61,8 @@ public class TasksController : ControllerBase
             TargetStatusId: request.TargetStatusId,
             PreviousItemOrderKey: request.PreviousItemOrderKey,
             NextItemOrderKey: request.NextItemOrderKey,
-            NewOrderKey: request.NewOrderKey
+            NewOrderKey: request.NewOrderKey,
+            NewPriority: request.NewPriority
         );
 
         var result = await _handler.SendAsync(command, ct);
@@ -112,5 +113,6 @@ public record MoveTaskToStatusRequest(
     Guid? TargetStatusId,
     string? PreviousItemOrderKey,
     string? NextItemOrderKey,
-    string? NewOrderKey = null
+    string? NewOrderKey = null,
+    Priority? NewPriority = null
 );

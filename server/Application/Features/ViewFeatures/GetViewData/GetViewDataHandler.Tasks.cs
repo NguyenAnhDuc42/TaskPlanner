@@ -29,7 +29,7 @@ public partial class GetViewDataHandler
             END;
 
             -- 2. Fetch Folders (Only if at Space level)
-            SELECT id, name, created_at AS CreatedAt, status_id AS StatusId, start_date AS StartDate, due_date AS DueDate
+            SELECT id, name, created_at AS CreatedAt, status_id AS StatusId, priority, start_date AS StartDate, due_date AS DueDate, order_key AS OrderKey
             FROM project_folders
             WHERE project_space_id = @SpaceId 
               AND @FolderId IS NULL 
@@ -78,6 +78,7 @@ public record FolderItemDto
     public string Name { get; init; } = null!;
     public DateTimeOffset CreatedAt { get; init; }
     public Guid? StatusId { get; init; }
+    public Priority? Priority { get; init; }
     public DateTimeOffset? StartDate { get; init; }
     public DateTimeOffset? DueDate { get; init; }
     public string? OrderKey { get; init; }

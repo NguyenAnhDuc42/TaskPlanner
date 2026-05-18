@@ -7,5 +7,6 @@ public record MoveTaskToStatusCommand(
     Guid? TargetStatusId,
     string? PreviousItemOrderKey,
     string? NextItemOrderKey,
-    string? NewOrderKey = null
+    string? NewOrderKey = null,
+    Domain.Enums.Priority? NewPriority = null
 ) : ICommandRequest, IAuthorizedWorkspaceRequest;

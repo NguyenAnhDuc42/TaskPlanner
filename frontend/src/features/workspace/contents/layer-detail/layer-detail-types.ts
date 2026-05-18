@@ -22,6 +22,7 @@ export interface FolderItemDto {
   name: string;
   createdAt: string;
   statusId?: string;
+  priority?: Priority | "no-priority";
   startDate?: string;
   dueDate?: string;
   orderKey?: string;
@@ -38,6 +39,7 @@ export interface FolderDetailDto {
   icon?: string;
   isPrivate: boolean;
   isArchived: boolean;
+  priority?: Priority | "no-priority";
   parentWorkflowId?: string;
   workflowId?: string;
   statusId?: string;

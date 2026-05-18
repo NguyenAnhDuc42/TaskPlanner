@@ -38,7 +38,13 @@ export function SpaceListView({ viewData }: SpaceListViewProps) {
     useMoveFolderToStatus();
 
   useEffect(() => {
-    if (isDraggingRef.current || isMovingTask || isMovingFolder || isDebouncingRef.current) return;
+    if (
+      isDraggingRef.current ||
+      isMovingTask ||
+      isMovingFolder ||
+      isDebouncingRef.current
+    )
+      return;
     setLocalTasks(viewData.tasks || []);
     setLocalFolders(viewData.folders || []);
   }, [viewData.tasks, viewData.folders, isMovingTask, isMovingFolder]);
@@ -121,7 +127,7 @@ export function SpaceListView({ viewData }: SpaceListViewProps) {
     // Persist (Debounced)
     isDebouncingRef.current = true;
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
-    
+
     const persist = () => {
       isDebouncingRef.current = false;
       pendingMutationRef.current = null;

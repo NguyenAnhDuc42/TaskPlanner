@@ -1,4 +1,5 @@
 using Application.Common.Interfaces;
+using Domain.Enums;
 
 namespace Application.Features.FolderFeatures;
 
@@ -10,5 +11,6 @@ public record UpdateFolderCommand(
     bool? IsPrivate,
     DateTimeOffset? StartDate = null,
     DateTimeOffset? DueDate = null,
-    Guid? StatusId = null
+    Guid? StatusId = null,
+    Priority? Priority = null
 ) : ICommandRequest, IAuthorizedWorkspaceRequest;

@@ -21,6 +21,7 @@ public class GetFolderDetailHandler(IDataBase db, WorkspaceContext workspaceCont
                 (SELECT wf.id FROM workflows wf WHERE wf.project_space_id = f.project_space_id AND wf.project_folder_id IS NULL LIMIT 1) AS ParentWorkflowId,
                 (SELECT wf.id FROM workflows wf WHERE wf.project_folder_id = f.id LIMIT 1) AS WorkflowId,
                 f.status_id AS StatusId, 
+                f.priority AS Priority, 
                 f.default_document_id AS DefaultDocumentId, 
                 f.start_date AS StartDate, f.due_date AS DueDate, f.created_at AS CreatedAt,
                 (SELECT b.content FROM document_blocks b WHERE b.document_id = f.default_document_id ORDER BY b.order_key LIMIT 1) AS Description

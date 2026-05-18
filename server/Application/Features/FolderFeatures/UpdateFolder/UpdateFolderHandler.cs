@@ -36,6 +36,9 @@ public class UpdateFolderHandler(IDataBase db, WorkspaceContext context, IRealti
         if (request.StatusId.HasValue)
             folder.UpdateStatus(request.StatusId.Value);
 
+        if (request.Priority.HasValue)
+            folder.UpdatePriority(request.Priority.Value);
+
         await db.SaveChangesAsync(ct);
 
         await realtime.NotifyWorkspaceAsync(context.workspaceId, "FolderUpdated", new { 
@@ -46,6 +49,7 @@ public class UpdateFolderHandler(IDataBase db, WorkspaceContext context, IRealti
             Icon = folder.Icon,
             Color = folder.Color,
             StatusId = folder.StatusId,
+            Priority = folder.Priority,
             IsPrivate = folder.IsPrivate,
             StartDate = folder.StartDate,
             DueDate = folder.DueDate

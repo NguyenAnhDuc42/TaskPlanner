@@ -72,6 +72,16 @@ export function useTaskRealtime(workspaceId: string) {
       const taskId = data.taskId || data.TaskId;
       const targetStatusId = data.targetStatusId || data.TargetStatusId;
       const newOrderKey = data.newOrderKey || data.NewOrderKey;
+      const newPriority = data.newPriority || data.NewPriority;
+      
+      const patch = (t: any) => {
+        if (t.id !== taskId) return t;
+        const updated = { ...t, statusId: targetStatusId, orderKey: newOrderKey };
+        if (newPriority !== undefined && newPriority !== null) {
+          updated.priority = newPriority;
+        }
+        return updated;
+      };
       
       if (folderId) {
         queryClient.setQueryData(
@@ -80,9 +90,7 @@ export function useTaskRealtime(workspaceId: string) {
             if (!old) return old;
             return {
               ...old,
-              tasks: old.tasks.map((t: any) => 
-                t.id === taskId ? { ...t, statusId: targetStatusId, orderKey: newOrderKey } : t
-              )
+              tasks: old.tasks.map(patch)
             };
           }
         );
@@ -94,9 +102,7 @@ export function useTaskRealtime(workspaceId: string) {
             if (!old) return old;
             return {
               ...old,
-              tasks: old.tasks.map((t: any) => 
-                t.id === taskId ? { ...t, statusId: targetStatusId, orderKey: newOrderKey } : t
-              )
+              tasks: old.tasks.map(patch)
             };
           }
         );

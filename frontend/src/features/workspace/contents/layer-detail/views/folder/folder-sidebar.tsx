@@ -2,7 +2,11 @@ import {
   Layers, 
   Calendar as CalendarIcon, 
   ArrowRight,
-  ChevronDown
+  ChevronDown,
+  Flag,
+  Globe, 
+  Lock, 
+  CheckCircle2
 } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
@@ -16,8 +20,15 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
-import { Globe, Lock, CheckCircle2 } from "lucide-react";
 import { CreateStatusForm } from "@/features/workspace/components/forms/create-status-form";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { PriorityBadge } from "@/components/priority-badge";
+import { Priority } from "@/types/priority";
 
 import { useFolderEditor } from "./folder-editor-context";
 
@@ -105,6 +116,37 @@ export function FolderSidebar() {
                 </div>
               }
             />
+
+            {/* Priority Selector */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <div className="flex items-center justify-between py-1.5 px-1 hover:bg-muted/30 rounded-lg transition-all group cursor-pointer border border-transparent hover:border-border/10">
+                  <div className="flex items-center gap-2.5 text-muted-foreground/40 group-hover:text-muted-foreground/80">
+                    <Flag className="h-3.5 w-3.5" />
+                    <span className="text-[10px] font-bold uppercase tracking-wider">Priority</span>
+                  </div>
+                  <PriorityBadge priority={folder.priority as Priority} className="text-[10px] font-bold px-2 py-0.5" />
+                </div>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-48 p-1 bg-background/95 backdrop-blur-md border-border/40 shadow-2xl rounded-xl">
+                {Object.values(Priority).map((p) => (
+                  <DropdownMenuItem 
+                    key={p}
+                    onSelect={() => updateField({ priority: p })}
+                    className="p-1 rounded-lg cursor-pointer transition-colors"
+                  >
+                    <PriorityBadge priority={p} className="w-full justify-start border-none bg-transparent hover:bg-muted/20" />
+                  </DropdownMenuItem>
+                ))}
+                {/* Reset to no-priority */}
+                <DropdownMenuItem 
+                  onSelect={() => updateField({ priority: "no-priority" })}
+                  className="p-1 rounded-lg cursor-pointer transition-colors"
+                >
+                  <PriorityBadge priority={"no-priority" as any} className="w-full justify-start border-none bg-transparent hover:bg-muted/20" />
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
 
             {/* Subtle Divider */}
             <div className="border-b border-border/5 my-1" />

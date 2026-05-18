@@ -1,6 +1,8 @@
 import { Circle, Package, User } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
+import { PriorityBadge } from "@/components/priority-badge";
+import { Priority } from "@/types/priority";
 import type { FolderItemDto } from "../../layer-detail-types";
 
 interface FolderItemProps {
@@ -24,8 +26,13 @@ export function FolderItem({ folder, onClick, isSelected }: FolderItemProps) {
       {/* 1. ID and Avatar Row */}
       <div className="flex items-center justify-between text-[11px] text-muted-foreground/40 font-medium">
         <span>{`FLD-${folder.id.slice(0, 4).toUpperCase()}`}</span>
-        <div className="h-4 w-4 rounded-full bg-white/5 flex items-center justify-center border border-white/10">
-          <User className="h-2.5 w-2.5 opacity-40" />
+        <div className="flex items-center gap-2">
+          {folder.priority && folder.priority !== "no-priority" && (
+            <PriorityBadge priority={folder.priority as Priority} />
+          )}
+          <div className="h-4 w-4 rounded-full bg-white/5 flex items-center justify-center border border-white/10">
+            <User className="h-2.5 w-2.5 opacity-40" />
+          </div>
         </div>
       </div>
 

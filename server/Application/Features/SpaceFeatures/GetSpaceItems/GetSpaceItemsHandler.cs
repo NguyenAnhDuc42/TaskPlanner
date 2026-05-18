@@ -35,7 +35,7 @@ public class GetSpaceItemsHandler(IDataBase db, WorkspaceContext workspaceContex
             END;
 
             -- 2. Fetch Folders
-            SELECT id, name, created_at AS CreatedAt, status_id AS StatusId, start_date AS StartDate, due_date AS DueDate, order_key AS OrderKey
+            SELECT id, name, created_at AS CreatedAt, status_id AS StatusId, priority, start_date AS StartDate, due_date AS DueDate, order_key AS OrderKey
             FROM project_folders
             WHERE project_space_id = @SpaceId 
               AND deleted_at IS NULL 
