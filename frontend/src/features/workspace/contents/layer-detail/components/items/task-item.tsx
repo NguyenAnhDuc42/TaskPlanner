@@ -4,6 +4,7 @@ import { format } from "date-fns";
 import { PriorityBadge } from "@/components/priority-badge";
 import type { TaskItemDto } from "../../layer-detail-types";
 import { Priority } from "@/types/priority";
+import { DynamicIcon } from "@/components/dynamic-icon";
 
 interface TaskItemProps {
   task: TaskItemDto;
@@ -21,11 +22,10 @@ export function TaskItem({ task, onClick, isSelected }: TaskItemProps) {
         isSelected && "border-primary/40 bg-[#121212]"
       )}
     >
-      {/* 1. ID and Avatar Row */}
+      {/* 1. Type Marker and Avatar Row */}
       <div className="flex items-center justify-between text-[11px] text-muted-foreground/40 font-medium">
-        <span>{`SOM-${task.id.slice(0, 4).toUpperCase()}`}</span>
+        <span className="px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[8px] uppercase font-black tracking-widest leading-none">Task</span>
         <div className="flex items-center gap-2">
-          {task.priority && <PriorityBadge priority={task.priority as Priority} />}
           <div className="h-4 w-4 rounded-full bg-white/5 flex items-center justify-center border border-white/10">
             <User className="h-2.5 w-2.5 opacity-40" />
           </div>
@@ -34,19 +34,27 @@ export function TaskItem({ task, onClick, isSelected }: TaskItemProps) {
 
       {/* 2. Status & Title Row */}
       <div className="flex items-center gap-2">
-        <Circle className="h-3 w-3 text-muted-foreground/40 shrink-0" />
+        <div 
+          className="shrink-0 h-4 w-4 flex items-center justify-center"
+          style={{ color: task.color || "#FFFFFF" }}
+        >
+          <DynamicIcon
+            name={task.icon || "Circle"}
+            size={12}
+            color={task.color || "#FFFFFF"}
+            className="stroke-[2.5]"
+          />
+        </div>
         <h4 className="text-[12px] font-medium leading-tight text-foreground/90 group-hover:text-foreground transition-colors truncate">
           {task.name}
         </h4>
       </div>
 
-      {/* 3. Placeholders Row (Three dots & Box) */}
-      <div className="flex items-center gap-1.5 mt-0.5">
-        <div className="text-muted-foreground/30 text-[12px]">...</div>
-        <div className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-white/5 border border-white/5 text-muted-foreground/40 text-[10px]">
-          <Package className="h-2.5 w-2.5" />
-          <span>1</span>
-        </div>
+      {/* 3. Priority Badge under Title */}
+      <div className="flex items-center gap-1.5 mt-1 min-h-[18px]">
+        {task.priority && (
+          <PriorityBadge priority={task.priority as Priority} />
+        )}
       </div>
 
       {/* 4. Date Row */}

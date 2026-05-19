@@ -125,7 +125,7 @@ function BoardColumn({
       >
         <SortableContext items={itemIds} strategy={verticalListSortingStrategy}>
           {items.map((item) => {
-            const isTask = "priority" in item;
+            const isTask = item.__type === "task";
             return (
               <SortableItem
                 key={item.id}

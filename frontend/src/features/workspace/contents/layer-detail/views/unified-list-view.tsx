@@ -25,6 +25,7 @@ import { Priority } from "@/types/priority";
 import { StatusCategory } from "@/types/status-category";
 import { useEdgeScroll } from "../components/board/use-edge-scroll";
 import { PriorityBadge } from "@/components/priority-badge";
+import { DynamicIcon } from "@/components/dynamic-icon";
 
 interface UnifiedListViewProps {
   columns: Record<string, any[]>;
@@ -136,7 +137,7 @@ function ListGroupArea({
       >
         <SortableContext items={itemIds} strategy={verticalListSortingStrategy}>
           {items.map((item, idx) => {
-            const isTask = "priority" in item;
+            const isTask = item.__type === "task";
             return (
               <SortableRow
                 key={item.id}
@@ -396,7 +397,18 @@ function TaskListRow({
         </span>
       </div>
 
-      <div className="flex-1 min-w-0">
+      <div className="flex-1 min-w-0 flex items-center gap-2">
+        <div 
+          className="shrink-0 h-4 w-4 flex items-center justify-center"
+          style={{ color: task.color || "#FFFFFF" }}
+        >
+          <DynamicIcon
+            name={task.icon || "Circle"}
+            size={12}
+            color={task.color || "#FFFFFF"}
+            className="stroke-[2.5]"
+          />
+        </div>
         <span className="text-sm font-medium text-[#f5f5f7] truncate block">
           {task.name}
         </span>
@@ -440,7 +452,12 @@ function FolderListRow({
       )}
     >
       <div className="flex items-center gap-3 shrink-0">
-        <Layers className="h-3.5 w-3.5 text-[#3b82f6]" />
+        <DynamicIcon
+          name={folder.icon || "Folder"}
+          size={14}
+          color={folderColor}
+          className="stroke-[2.5]"
+        />
         <span className="text-xs font-medium text-[#4a4b53] tracking-wider">
           FOLDER
         </span>
@@ -454,11 +471,12 @@ function FolderListRow({
             color: folderColor,
           }}
         >
-          {folder.icon ? (
-            <span className="text-xs">{folder.icon}</span>
-          ) : (
-            <FolderIcon className="h-3 w-3" />
-          )}
+          <DynamicIcon
+            name={folder.icon || "Folder"}
+            size={12}
+            color={folderColor}
+            className="stroke-[2.5]"
+          />
         </div>
         <span className="text-sm font-medium text-[#f5f5f7] truncate block">
           {folder.name}

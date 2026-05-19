@@ -48,7 +48,7 @@ public class GetFolderItemsHandler(IDataBase db, WorkspaceContext workspaceConte
             WHERE 1=0;
 
             -- 3. Fetch Tasks
-            SELECT id, name, created_at AS CreatedAt, status_id AS StatusId, priority, due_date AS DueDate, start_date AS StartDate, order_key AS OrderKey
+            SELECT id, name, created_at AS CreatedAt, status_id AS StatusId, priority, due_date AS DueDate, start_date AS StartDate, order_key AS OrderKey, custom_icon as Icon, custom_color as Color
             FROM project_tasks
             WHERE project_workspace_id = @WorkspaceId 
               AND deleted_at IS NULL 

@@ -29,7 +29,7 @@ public partial class GetViewDataHandler
             END;
 
             -- 2. Fetch Folders (Only if at Space level)
-            SELECT id, name, created_at AS CreatedAt, status_id AS StatusId, priority, start_date AS StartDate, due_date AS DueDate, order_key AS OrderKey
+            SELECT id, name, created_at AS CreatedAt, status_id AS StatusId, priority, start_date AS StartDate, due_date AS DueDate, order_key AS OrderKey, custom_icon as Icon, custom_color as Color
             FROM project_folders
             WHERE project_space_id = @SpaceId 
               AND @FolderId IS NULL 
@@ -37,7 +37,7 @@ public partial class GetViewDataHandler
               AND is_archived = false;
 
             -- 3. Fetch Tasks
-            SELECT id, name, created_at AS CreatedAt, status_id AS StatusId, priority, due_date AS DueDate, start_date AS StartDate
+            SELECT id, name, created_at AS CreatedAt, status_id AS StatusId, priority, due_date AS DueDate, start_date AS StartDate, custom_icon as Icon, custom_color as Color
             FROM project_tasks
             WHERE project_workspace_id = @WorkspaceId 
               AND deleted_at IS NULL 
@@ -82,6 +82,8 @@ public record FolderItemDto
     public DateTimeOffset? StartDate { get; init; }
     public DateTimeOffset? DueDate { get; init; }
     public string? OrderKey { get; init; }
+    public string? Icon { get; init; }
+    public string? Color { get; init; }
 }
 
 public record TaskItemDto
@@ -94,6 +96,8 @@ public record TaskItemDto
     public DateTimeOffset? StartDate { get; init; }
     public DateTimeOffset? DueDate { get; init; }
     public string? OrderKey { get; init; }
+    public string? Icon { get; init; }
+    public string? Color { get; init; }
 }
 
 public record TaskItemStatusDto

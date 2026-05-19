@@ -35,7 +35,7 @@ public class GetSpaceItemsHandler(IDataBase db, WorkspaceContext workspaceContex
             END;
 
             -- 2. Fetch Folders
-            SELECT id, name, created_at AS CreatedAt, status_id AS StatusId, priority, start_date AS StartDate, due_date AS DueDate, order_key AS OrderKey
+            SELECT id, name, created_at AS CreatedAt, status_id AS StatusId, priority, start_date AS StartDate, due_date AS DueDate, order_key AS OrderKey, custom_icon as Icon, custom_color as Color
             FROM project_folders
             WHERE project_space_id = @SpaceId 
               AND deleted_at IS NULL 
@@ -43,7 +43,7 @@ public class GetSpaceItemsHandler(IDataBase db, WorkspaceContext workspaceContex
             ORDER BY order_key;
 
             -- 3. Fetch Tasks
-            SELECT id, name, created_at AS CreatedAt, status_id AS StatusId, priority, due_date AS DueDate, start_date AS StartDate, order_key AS OrderKey
+            SELECT id, name, created_at AS CreatedAt, status_id AS StatusId, priority, due_date AS DueDate, start_date AS StartDate, order_key AS OrderKey, custom_icon as Icon, custom_color as Color
             FROM project_tasks
             WHERE project_workspace_id = @WorkspaceId 
               AND deleted_at IS NULL 

@@ -8,6 +8,8 @@ export type ItemsViewMode = "board" | "list";
 export interface TaskItemDto {
   id: string;
   name: string;
+  icon?: string;
+  color?: string;
   createdAt: string;
   statusId?: string;
   priority?: Priority;
