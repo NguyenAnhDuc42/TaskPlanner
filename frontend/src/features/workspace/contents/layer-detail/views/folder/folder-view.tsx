@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect } from "react";
 import { FolderHeader } from "./folder-header";
 import { LayerTabs } from "../../components/layer-tabs";
 import { FolderOverview } from "./folder-overview";
@@ -11,13 +11,12 @@ import { cn } from "@/lib/utils";
 import { LoadingComponent } from "@/components/loading-component";
 import { useNavigate } from "@tanstack/react-router";
 import { useDeleteFolder } from "@/features/workspace/contents/hierarchy/hierarchy-api";
-import { useFolderDetail, useUpdateFolder, useFolderItems } from "./folder-api";
+import { useFolderItems } from "./folder-api";
 import { useWorkspaceWorkflows } from "@/features/workspace/api";
-import { useDebounce } from "@/hooks/use-debounce";
 import { EntityLayerType } from "@/types/entity-layer-type";
 import { useFolderRealtime } from "./folder-realtime";
 import { useTaskRealtime } from "../task/task-realtime";
-import { FolderEditorProvider, useFolderEditor } from "./folder-editor-context";
+import { FolderEditorProvider } from "./folder-editor-context";
 
 interface FolderViewProps {
   workspaceId: string;
@@ -81,8 +80,8 @@ function FolderViewContent({ workspaceId, folderId }: FolderViewProps) {
         layerType={EntityLayerType.ProjectFolder}
       />
 
-      <div className="flex-1 flex relative">
-        <div className="flex-1 relative min-w-0">
+      <div className="flex-1 flex relative overflow-hidden">
+        <div className="flex-1 relative min-w-0 flex flex-col h-full overflow-hidden">
           {activeTab === "overview" && (
             <FolderOverview />
           )}

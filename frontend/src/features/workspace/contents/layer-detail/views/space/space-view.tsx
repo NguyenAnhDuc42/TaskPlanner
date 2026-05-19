@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect } from "react";
 import { SpaceHeader } from "./space-header";
 import { LayerTabs } from "../../components/layer-tabs";
 import { SpaceOverview } from "./space-overview";
@@ -81,8 +81,8 @@ function SpaceViewContent({ workspaceId, spaceId }: SpaceViewProps) {
         layerType={EntityLayerType.ProjectSpace}
       />
 
-      <div className="flex-1 flex relative">
-        <div className="flex-1 relative min-w-0">
+      <div className="flex-1 flex relative overflow-hidden">
+        <div className="flex-1 relative min-w-0 flex flex-col h-full overflow-hidden">
           {activeTab === "overview" && (
             <SpaceOverview />
           )}
@@ -104,7 +104,7 @@ function SpaceViewContent({ workspaceId, spaceId }: SpaceViewProps) {
         <div
           className={cn(
             "h-full transition-all duration-300 ease-in-out flex items-start overflow-hidden",
-            (rightPanelType && activeTab === "overview") ? "w-[320px] opacity-100" : "w-0 opacity-0",
+            rightPanelType ? "w-[320px] opacity-100" : "w-0 opacity-0",
           )}
         >
           <div className="w-[320px] h-full p-1">

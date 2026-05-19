@@ -52,15 +52,6 @@ export function SpaceItemsView({
   useEffect(() => {
     if (isPending || isDebouncingRef.current) return;
 
-    const prev = viewDataRef.current;
-    const hasChanged =
-      !prev ||
-      prev.tasks !== viewData.tasks ||
-      prev.folders !== viewData.folders ||
-      prev.statuses !== viewData.statuses;
-
-    if (!hasChanged) return;
-
     viewDataRef.current = viewData;
     setColumns(buildColumns(viewData));
   }, [viewData, isPending]);
@@ -107,14 +98,19 @@ export function SpaceItemsView({
     const prev = stripped[clampedIndex - 1];
     const next = stripped[clampedIndex];
 
-    const prevWeight = prev ? getPriorityWeight(prev) : 3;
-    const nextWeight = next ? getPriorityWeight(next) : 0;
-
     let newWeight: number;
-    if (prevWeight === nextWeight) {
-      newWeight = prevWeight;
+    if (!prev) {
+      newWeight = next ? getPriorityWeight(next) : 1;
+    } else if (!next) {
+      newWeight = getPriorityWeight(prev);
     } else {
-      newWeight = Math.floor((prevWeight + nextWeight) / 2);
+      const prevWeight = getPriorityWeight(prev);
+      const nextWeight = getPriorityWeight(next);
+      if (prevWeight === nextWeight) {
+        newWeight = prevWeight;
+      } else {
+        newWeight = Math.floor((prevWeight + nextWeight) / 2);
+      }
     }
 
     const newPriority = WeightToPriority[newWeight] ?? "Normal";
@@ -146,14 +142,12 @@ export function SpaceItemsView({
 
     if (srcColId === dstColId) {
       srcItems.splice(targetIndex, 0, updatedItem);
-      srcItems.sort(prioritySort);
       setColumns((prev) => ({ ...prev, [srcColId]: srcItems }));
     } else {
       dstItems.splice(targetIndex, 0, updatedItem);
-      dstItems.sort(prioritySort);
       setColumns((prev) => ({
         ...prev,
-        [srcColId]: srcItems.sort(prioritySort),
+        [srcColId]: srcItems,
         [dstColId]: dstItems,
       }));
     }

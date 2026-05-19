@@ -17,7 +17,7 @@ import { buildColumns, calculateOrderKeys } from "./space-dnd-helpers";
 import { useMoveTaskToStatus } from "../task/task-api";
 import { useMoveFolderToStatus } from "../folder/folder-api";
 import { StatusCategory } from "@/types/status-category";
-import { useEdgeScroll } from "../use-edge-scroll";
+import { useEdgeScroll } from "../../components/board/use-edge-scroll";
 
 interface SpaceBoardViewProps {
   viewData: TaskViewData;
@@ -60,15 +60,23 @@ export function SpaceBoardView({ viewData, spaceId }: SpaceBoardViewProps) {
 
   const viewDataRef = useRef<TaskViewData | null>(null);
 
-  const { mutate: moveTaskToStatus, isPending: isMovingTask } = useMoveTaskToStatus();
-  const { mutate: moveFolderToStatus, isPending: isMovingFolder } = useMoveFolderToStatus();
+  const { mutate: moveTaskToStatus, isPending: isMovingTask } =
+    useMoveTaskToStatus();
+  const { mutate: moveFolderToStatus, isPending: isMovingFolder } =
+    useMoveFolderToStatus();
 
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isDebouncingRef = useRef(false);
   const pendingMutationRef = useRef<(() => void) | null>(null);
 
   useEffect(() => {
-    if (isDraggingRef.current || isMovingTask || isMovingFolder || isDebouncingRef.current) return;
+    if (
+      isDraggingRef.current ||
+      isMovingTask ||
+      isMovingFolder ||
+      isDebouncingRef.current
+    )
+      return;
 
     const prev = viewDataRef.current;
     const hasChanged =
@@ -170,7 +178,7 @@ export function SpaceBoardView({ viewData, spaceId }: SpaceBoardViewProps) {
     // 6. Persist (Debounced)
     isDebouncingRef.current = true;
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
-    
+
     const persist = () => {
       isDebouncingRef.current = false;
       pendingMutationRef.current = null;
@@ -251,7 +259,9 @@ export function SpaceBoardView({ viewData, spaceId }: SpaceBoardViewProps) {
                         className={cn(
                           "flex flex-col h-[calc(100vh-250px)] overflow-y-auto p-1 gap-2 rounded-md transition-colors",
                           "[&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-thumb]:bg-muted-foreground/10 hover:[&::-webkit-scrollbar-thumb]:bg-muted-foreground/30 [&::-webkit-scrollbar-track]:bg-transparent",
-                          snapshot.isDraggingOver ? "bg-white/[0.02] border border-dashed border-border/60" : "border border-transparent"
+                          snapshot.isDraggingOver
+                            ? "bg-white/[0.02] border border-dashed border-border/60"
+                            : "border border-transparent",
                         )}
                       >
                         {items.map((item: any, index: number) => {
@@ -272,7 +282,8 @@ export function SpaceBoardView({ viewData, spaceId }: SpaceBoardViewProps) {
                                     opacity: snapshot.isDragging ? 0.8 : 1,
                                   }}
                                   className={cn(
-                                    snapshot.isDragging && "[&_*]:transition-none",
+                                    snapshot.isDragging &&
+                                      "[&_*]:transition-none",
                                   )}
                                 >
                                   {isTask ? (

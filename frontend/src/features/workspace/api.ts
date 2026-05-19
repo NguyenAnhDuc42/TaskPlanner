@@ -103,6 +103,13 @@ export function useUpdateWorkflowStatuses() {
       queryClient.invalidateQueries({
         queryKey: [...workspaceKeys.all, "workflows"],
       });
+      // Invalidate space and folder items queries so empty/new columns instantly render on screen!
+      queryClient.invalidateQueries({
+        queryKey: [...workspaceKeys.all, "space"],
+      });
+      queryClient.invalidateQueries({
+        queryKey: [...workspaceKeys.all, "folder"],
+      });
     },
   });
 }

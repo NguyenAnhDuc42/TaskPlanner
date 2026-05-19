@@ -15,7 +15,7 @@ import { cn } from "@/lib/utils";
 import { buildColumns, calculateOrderKeys } from "./folder-dnd-helpers";
 import { useMoveTaskToStatus } from "../task/task-api";
 import { StatusCategory } from "@/types/status-category";
-import { useEdgeScroll } from "../use-edge-scroll";
+import { useEdgeScroll } from "../../components/board/use-edge-scroll";
 
 interface FolderBoardViewProps {
   viewData: TaskViewData;
@@ -58,14 +58,16 @@ export function FolderBoardView({ viewData, folderId }: FolderBoardViewProps) {
 
   const viewDataRef = useRef<TaskViewData | null>(null);
 
-  const { mutate: moveTaskToStatus, isPending: isMovingTask } = useMoveTaskToStatus();
+  const { mutate: moveTaskToStatus, isPending: isMovingTask } =
+    useMoveTaskToStatus();
 
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isDebouncingRef = useRef(false);
   const pendingMutationRef = useRef<(() => void) | null>(null);
 
   useEffect(() => {
-    if (isDraggingRef.current || isMovingTask || isDebouncingRef.current) return;
+    if (isDraggingRef.current || isMovingTask || isDebouncingRef.current)
+      return;
 
     const prev = viewDataRef.current;
     const hasChanged =
@@ -157,7 +159,7 @@ export function FolderBoardView({ viewData, folderId }: FolderBoardViewProps) {
 
     isDebouncingRef.current = true;
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
-    
+
     const persist = () => {
       isDebouncingRef.current = false;
       pendingMutationRef.current = null;
@@ -222,7 +224,9 @@ export function FolderBoardView({ viewData, folderId }: FolderBoardViewProps) {
                         className={cn(
                           "flex flex-col h-[calc(100vh-250px)] overflow-y-auto p-1 gap-2 rounded-md transition-colors",
                           "[&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-thumb]:bg-muted-foreground/10 hover:[&::-webkit-scrollbar-thumb]:bg-muted-foreground/30 [&::-webkit-scrollbar-track]:bg-transparent",
-                          snapshot.isDraggingOver ? "bg-white/[0.02] border border-dashed border-border/60" : "border border-transparent"
+                          snapshot.isDraggingOver
+                            ? "bg-white/[0.02] border border-dashed border-border/60"
+                            : "border border-transparent",
                         )}
                       >
                         {items.map((item: any, index: number) => (
@@ -241,7 +245,8 @@ export function FolderBoardView({ viewData, folderId }: FolderBoardViewProps) {
                                   opacity: snapshot.isDragging ? 0.8 : 1,
                                 }}
                                 className={cn(
-                                  snapshot.isDragging && "[&_*]:transition-none",
+                                  snapshot.isDragging &&
+                                    "[&_*]:transition-none",
                                 )}
                               >
                                 <TaskItem

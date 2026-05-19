@@ -25,19 +25,11 @@ public class MoveFolderToStatusHandler(IDataBase db, WorkspaceContext context, I
 
         var affected = await db.Folders
             .Where(f => f.Id == request.FolderId)
-            .ExecuteUpdateAsync(u => {
-                var calls = u
-                    .SetProperty(f => f.StatusId, request.TargetStatusId)
-                    .SetProperty(f => f.OrderKey, newOrderKey)
-                    .SetProperty(f => f.UpdatedAt, DateTimeOffset.UtcNow);
-
-                if (request.NewPriority.HasValue)
-                {
-                    calls = calls.SetProperty(f => f.Priority, request.NewPriority.Value);
-                }
-
-                return calls;
-            }, ct);
+            .ExecuteUpdateAsync(u => u
+                .SetProperty(f => f.StatusId, request.TargetStatusId)
+                .SetProperty(f => f.OrderKey, newOrderKey)
+                .SetProperty(f => f.Priority, f => request.NewPriority.HasValue ? request.NewPriority.Value : f.Priority)
+                .SetProperty(f => f.UpdatedAt, DateTimeOffset.UtcNow), ct);
 
         if (affected > 0)
         {
