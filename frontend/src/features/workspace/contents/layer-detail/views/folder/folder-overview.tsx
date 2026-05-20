@@ -28,15 +28,17 @@ export function FolderOverview() {
     }
   }, [folder?.name]);
 
+  const workflowId = folder?.workflowId ?? null;
+  const workflows = registry.workflows;
+
   const folderWorkflow = useMemo(() => {
-    if (!folder) return null;
-    if (folder.workflowId) {
-      return registry.workflows.find((w: any) => 
-        w.id?.toLowerCase() === folder.workflowId?.toLowerCase()
-      );
-    }
-    return null;
-  }, [folder?.workflowId, registry.workflows]);
+    if (!workflowId) return null;
+    return (
+      workflows.find(
+        (w: any) => w.id?.toLowerCase() === workflowId.toLowerCase(),
+      ) ?? null
+    );
+  }, [workflowId, workflows]);
 
   if (!folder) return null;
 

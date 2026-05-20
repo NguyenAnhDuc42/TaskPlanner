@@ -1,18 +1,19 @@
-import { Circle, Package, User } from "lucide-react";
+import { User } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
-import { PriorityBadge } from "@/components/priority-badge";
 import { Priority } from "@/types/priority";
 import type { FolderItemDto } from "../../layer-detail-types";
 import { DynamicIcon } from "@/components/dynamic-icon";
+import { InlinePriorityPicker } from "./inline-priority-picker";
 
 interface FolderItemProps {
   folder: FolderItemDto;
   onClick: (folder: FolderItemDto) => void;
   isSelected?: boolean;
+  onPriorityChange?: (itemId: string, priority: Priority) => void;
 }
 
-export function FolderItem({ folder, onClick, isSelected }: FolderItemProps) {
+export function FolderItem({ folder, onClick, isSelected, onPriorityChange }: FolderItemProps) {
   const folderColor = folder.color || "#3b82f6";
 
   return (
@@ -54,8 +55,18 @@ export function FolderItem({ folder, onClick, isSelected }: FolderItemProps) {
 
       {/* 3. Priority Badge under Title */}
       <div className="flex items-center gap-1.5 mt-1 min-h-[18px]">
-        {folder.priority && (
-          <PriorityBadge priority={folder.priority as Priority} />
+        {onPriorityChange ? (
+          <InlinePriorityPicker
+            priority={folder.priority as Priority}
+            onPriorityChange={(p) => onPriorityChange(folder.id, p)}
+          />
+        ) : (
+          folder.priority && (
+            <InlinePriorityPicker
+              priority={folder.priority as Priority}
+              onPriorityChange={() => {}}
+            />
+          )
         )}
       </div>
 

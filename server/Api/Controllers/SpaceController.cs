@@ -3,6 +3,7 @@ using Domain.Enums.RelationShip;
 using Application.Common.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 using Api.Extensions;
+using Application.Features.ItemFeatures;
 
 namespace Api.Controllers
 {
@@ -59,6 +60,13 @@ namespace Api.Controllers
         public async Task<IActionResult> GetItems(Guid id, CancellationToken cancellationToken)
         {
             var result = await _handler.QueryAsync<GetSpaceItemsQuery, Application.Features.ViewFeatures.TaskViewData>(new GetSpaceItemsQuery(id), cancellationToken);
+            return result.ToActionResult();
+        }
+
+        [HttpPost("batch-update")]
+        public async Task<IActionResult> BatchUpdate([FromBody] BatchUpdateItemsCommand command, CancellationToken cancellationToken)
+        {
+            var result = await _handler.SendAsync(command, cancellationToken);
             return result.ToActionResult();
         }
     }

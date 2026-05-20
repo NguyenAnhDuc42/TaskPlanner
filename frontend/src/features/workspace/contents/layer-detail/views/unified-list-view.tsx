@@ -18,13 +18,13 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
-import { Layers, Clock, User, Folder as FolderIcon } from "lucide-react";
+import { Clock, User } from "lucide-react";
 import { StatusGroup } from "../components/items/status-group";
 
 import { Priority } from "@/types/priority";
 import { StatusCategory } from "@/types/status-category";
 import { useEdgeScroll } from "../components/board/use-edge-scroll";
-import { PriorityBadge } from "@/components/priority-badge";
+import { InlinePriorityPicker } from "../components/items/inline-priority-picker";
 import { DynamicIcon } from "@/components/dynamic-icon";
 
 interface UnifiedListViewProps {
@@ -39,6 +39,7 @@ interface UnifiedListViewProps {
   }) => void;
   onTaskClick: (taskId: string) => void;
   onFolderClick: (folderId: string) => void;
+  onPriorityChange?: (itemId: string, priority: Priority) => void;
 }
 
 // 1. Sortable Row Component
@@ -49,6 +50,7 @@ function SortableRow({
   isFirst,
   onTaskClick,
   onFolderClick,
+  onPriorityChange,
 }: {
   item: any;
   type: "task" | "folder";
@@ -56,6 +58,7 @@ function SortableRow({
   isFirst?: boolean;
   onTaskClick: (id: string) => void;
   onFolderClick: (id: string) => void;
+  onPriorityChange?: (itemId: string, priority: Priority) => void;
 }) {
   const {
     attributes,
@@ -88,6 +91,7 @@ function SortableRow({
           task={item}
           isFirst={isFirst}
           onClick={() => onTaskClick(item.id)}
+          onPriorityChange={onPriorityChange}
         />
       ) : (
         <FolderListRow
@@ -106,11 +110,13 @@ function ListGroupArea({
   items,
   onTaskClick,
   onFolderClick,
+  onPriorityChange,
 }: {
   status: any;
   items: any[];
   onTaskClick: (id: string) => void;
   onFolderClick: (id: string) => void;
+  onPriorityChange?: (itemId: string, priority: Priority) => void;
 }) {
   const { setNodeRef, isOver } = useDroppable({
     id: status.statusId,
@@ -129,9 +135,9 @@ function ListGroupArea({
       <div
         ref={setNodeRef}
         className={cn(
-          "flex flex-col min-h-[40px] rounded-md transition-colors p-1",
+          "flex flex-col min-h-10 rounded-md transition-colors p-1",
           isOver
-            ? "bg-white/[0.01] border border-dashed border-border/40"
+            ? "bg-white/1 border border-dashed border-border/40"
             : "border border-transparent",
         )}
       >
@@ -147,6 +153,7 @@ function ListGroupArea({
                 isFirst={idx === 0}
                 onTaskClick={onTaskClick}
                 onFolderClick={onFolderClick}
+                onPriorityChange={onPriorityChange}
               />
             );
           })}
@@ -169,6 +176,7 @@ export function UnifiedListView({
   onMove,
   onTaskClick,
   onFolderClick,
+  onPriorityChange,
 }: UnifiedListViewProps) {
   const [activeItem, setActiveItem] = useState<any | null>(null);
   const [activeType, setActiveType] = useState<"task" | "folder" | null>(null);
@@ -177,11 +185,11 @@ export function UnifiedListView({
     useState<Record<string, any[]>>(columns);
   const containerRef = useRef<HTMLDivElement | null>(null);
 
+  // Sync from parent only when the parent-provided columns change.
+  // Avoid resetting on drag end (activeItem -> null) with stale props, which causes a flicker.
   useEffect(() => {
-    if (!activeItem) {
-      setBoardColumns(columns);
-    }
-  }, [columns, activeItem]);
+    if (!activeItem) setBoardColumns(columns);
+  }, [columns]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -351,6 +359,7 @@ export function UnifiedListView({
                 items={items}
                 onTaskClick={onTaskClick}
                 onFolderClick={onFolderClick}
+                onPriorityChange={onPriorityChange}
               />
             );
           })}
@@ -377,10 +386,12 @@ function TaskListRow({
   task,
   onClick,
   isFirst,
+  onPriorityChange,
 }: {
   task: any;
   onClick: () => void;
   isFirst?: boolean;
+  onPriorityChange?: (itemId: string, priority: Priority) => void;
 }) {
   return (
     <div
@@ -391,7 +402,17 @@ function TaskListRow({
       )}
     >
       <div className="flex items-center gap-3 shrink-0">
-        <PriorityBadge priority={task.priority as Priority} />
+        {onPriorityChange ? (
+          <InlinePriorityPicker
+            priority={task.priority as Priority}
+            onPriorityChange={(p) => onPriorityChange(task.id, p)}
+          />
+        ) : (
+          <InlinePriorityPicker
+            priority={task.priority as Priority}
+            onPriorityChange={() => {}}
+          />
+        )}
         <span className="text-xs font-medium text-[#4a4b53] tracking-wider min-w-[50px]">
           {`T-${task.id.slice(0, 4).toUpperCase()}`}
         </span>

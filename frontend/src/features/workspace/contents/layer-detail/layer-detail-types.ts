@@ -107,6 +107,11 @@ export interface TaskViewData {
   workflowName?: string;
 }
 
+export type LayerItemType = "task" | "folder";
+export type TaskLayerItem = TaskItemDto & { __type: "task" };
+export type FolderLayerItem = FolderItemDto & { __type: "folder" };
+export type LayerItem = TaskLayerItem | FolderLayerItem;
+
 // --- Hierarchy Types for Layer Logic (Decoupled) ---
 
 export interface LayerFolderItem {
@@ -219,3 +224,12 @@ export interface UpdateEntityAccessBulkRequest {
   }[];
 }
 
+export interface BatchUpdateItemDto {
+  id: string;
+  type: EntityLayerType;
+  statusId?: string | null;
+  priority?: string;
+  orderKey?: string;
+  previousItemOrderKey?: string | null;
+  nextItemOrderKey?: string | null;
+}

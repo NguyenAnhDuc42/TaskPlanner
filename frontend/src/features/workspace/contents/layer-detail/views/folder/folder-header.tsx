@@ -21,8 +21,6 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 import { SyncIndicator } from "@/components/sync-indicator";
-import type { EnrichedFolderDetailDto } from "./folder-types";
-
 import { useFolderEditor } from "./folder-editor-context";
 
 export type RightPanelType = "properties" | "attachments" | null;
@@ -189,7 +187,7 @@ function FilterItem({ label, active }: { label: string; active?: boolean }) {
     <DropdownMenuItem
       className={cn(
         "flex items-center justify-between px-2 py-1.5 rounded-lg cursor-pointer transition-colors",
-        active ? "bg-primary/5 text-primary" : "hover:bg-foreground/[0.03]",
+        active ? "bg-primary/5 text-primary" : "hover:bg-foreground/3",
       )}
     >
       <span className="text-[11px] font-bold">{label}</span>

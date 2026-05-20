@@ -1,16 +1,14 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { useNavigate, useParams } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
 import { workspaceKeys } from "@/features/main/query-keys";
-import type { TaskViewData } from "../../layer-detail-types";
+import type { FolderItemDto, LayerItem, TaskItemDto, TaskViewData } from "../../layer-detail-types";
 import { buildColumns } from "./space-dnd-helpers";
 import {
-  getPriorityWeight,
-  WeightToPriority,
-  prioritySort,
+  Priority,
 } from "@/types/priority";
-import { useMoveTaskToStatus } from "../task/task-api";
-import { useMoveFolderToStatus } from "../folder/folder-api";
+import { useItemsStore, selectHasPendingUpdates } from "../../hooks/use-items-store";
+import { EntityLayerType } from "@/types/entity-layer-type";
 import { UnifiedBoardView } from "../unified-board-view";
 import { UnifiedListView } from "../unified-list-view";
 
@@ -26,47 +24,72 @@ export function SpaceItemsView({
   viewMode,
 }: SpaceItemsViewProps) {
   const navigate = useNavigate();
-  const { workspaceId } = useParams({ strict: false }) as any;
+  const { workspaceId } = useParams({ strict: false }) as unknown as {
+    workspaceId: string;
+  };
   const queryClient = useQueryClient();
 
-  const [columns, setColumns] = useState<Record<string, any[]>>(() =>
+  const [columns, setColumns] = useState<Record<string, LayerItem[]>>(() =>
     buildColumns(viewData),
   );
 
-  const columnsRef = useRef(columns);
+  const columnsRef = useRef<Record<string, LayerItem[]>>(columns);
   columnsRef.current = columns;
 
-  const viewDataRef = useRef<TaskViewData | null>(null);
+  // Block viewData sync while ANY update is queued or in-flight
+  const hasPending = useItemsStore(selectHasPendingUpdates);
+  const prevHasPendingRef = useRef(hasPending);
+  const [isRefetchingAfterSave, setIsRefetchingAfterSave] = useState(false);
+  const [suppressViewDataSync, setSuppressViewDataSync] = useState(false);
+  const itemsQueryKey = useMemo(
+    () => [...workspaceKeys.all, "space", spaceId, "items"],
+    [spaceId],
+  );
 
-  const { mutate: moveTaskToStatus, isPending: isMovingTask } =
-    useMoveTaskToStatus();
-  const { mutate: moveFolderToStatus, isPending: isMovingFolder } =
-    useMoveFolderToStatus();
+  // When a batch save completes, refetch server data so orderKey-based sorting matches
+  useEffect(() => {
+    const prevHasPending = prevHasPendingRef.current;
+    prevHasPendingRef.current = hasPending;
 
-  const isPending = isMovingTask || isMovingFolder;
-
-  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const isDebouncingRef = useRef(false);
-  const pendingMutationRef = useRef<(() => void) | null>(null);
+    if (prevHasPending && !hasPending) {
+      setIsRefetchingAfterSave(true);
+      (async () => {
+        try {
+          await queryClient.invalidateQueries({ queryKey: itemsQueryKey });
+        } finally {
+          setIsRefetchingAfterSave(false);
+        }
+      })();
+    }
+  }, [hasPending, queryClient, itemsQueryKey]);
 
   useEffect(() => {
-    if (isPending || isDebouncingRef.current) return;
+    // As soon as a drop enqueues an update, stop syncing from viewData
+    if (hasPending) setSuppressViewDataSync(true);
 
-    viewDataRef.current = viewData;
+    // Once everything is saved and refetched, allow normal syncing again
+    if (!hasPending && !isRefetchingAfterSave) setSuppressViewDataSync(false);
+  }, [hasPending, isRefetchingAfterSave]);
+
+  useEffect(() => {
+    if (hasPending || isRefetchingAfterSave || suppressViewDataSync) return;
     setColumns(buildColumns(viewData));
-  }, [viewData, isPending]);
+  }, [viewData, hasPending, isRefetchingAfterSave, suppressViewDataSync]);
 
-  useEffect(() => {
-    return () => {
-      if (timeoutRef.current) clearTimeout(timeoutRef.current);
-      pendingMutationRef.current?.();
-    };
-  }, []);
+  const toPriority = (value: unknown): Priority => {
+    if (value === Priority.Low) return Priority.Low;
+    if (value === Priority.Normal) return Priority.Normal;
+    if (value === Priority.High) return Priority.High;
+    if (value === Priority.Urgent) return Priority.Urgent;
+    return Priority.Normal;
+  };
 
   function handleMove({
     activeId,
     targetStatusId,
     targetIndex,
+    previousItemOrderKey,
+    nextItemOrderKey,
   }: {
     activeId: string;
     targetStatusId: string | undefined;
@@ -74,6 +97,9 @@ export function SpaceItemsView({
     previousItemOrderKey: string | undefined;
     nextItemOrderKey: string | undefined;
   }) {
+    // Prevent a one-frame "snap back" from viewData sync before the store reports hasPending=true
+    setSuppressViewDataSync(true);
+
     const srcColId =
       Object.keys(columnsRef.current).find((key) =>
         columnsRef.current[key].some((item) => item.id === activeId),
@@ -92,43 +118,26 @@ export function SpaceItemsView({
 
     const isTask = activeItem.__type === "task";
 
-    // Calculate boundary priorities & orderKeys
+    // --- Priority inference from neighbors, with don't-downgrade guard ---
     const stripped = dstItems.filter((item) => item.id !== activeId);
     const clampedIndex = Math.max(0, Math.min(targetIndex, stripped.length));
     const prev = stripped[clampedIndex - 1];
     const next = stripped[clampedIndex];
 
-    let newWeight: number;
-    if (!prev) {
-      newWeight = next ? getPriorityWeight(next) : 1;
-    } else if (!next) {
-      newWeight = getPriorityWeight(prev);
+    // Take priority from the item above (or below if at top of column)
+    let inferredPriority: Priority;
+    if (prev) {
+      inferredPriority = toPriority(prev.priority);
+    } else if (next) {
+      inferredPriority = toPriority(next.priority);
     } else {
-      const prevWeight = getPriorityWeight(prev);
-      const nextWeight = getPriorityWeight(next);
-      if (prevWeight === nextWeight) {
-        newWeight = prevWeight;
-      } else {
-        newWeight = Math.floor((prevWeight + nextWeight) / 2);
-      }
+      inferredPriority = toPriority(activeItem.priority);
     }
 
-    const newPriority = WeightToPriority[newWeight] ?? "Normal";
+    // Allow both upgrading and downgrading priority via drag position
+    const newPriority = inferredPriority;
 
-    // Isolate identical priority subgroup in destination to determine mid-orderKey
-    const samePriorityItems = stripped.filter(
-      (item) => getPriorityWeight(item) === newWeight
-    );
-
-    const k = stripped.slice(0, clampedIndex).filter(
-      (item) => getPriorityWeight(item) === newWeight
-    ).length;
-
-    const prevSame = samePriorityItems[k - 1];
-    const nextSame = samePriorityItems[k];
-
-    const previousItemOrderKey = prevSame?.orderKey;
-    const nextItemOrderKey = nextSame?.orderKey;
+    // --- End priority logic ---
 
     const movedIdx = srcItems.findIndex((item) => item.id === activeId);
     if (movedIdx === -1) return;
@@ -153,51 +162,85 @@ export function SpaceItemsView({
     }
 
     // Optimistic cache patching
-    const queryKey = [...workspaceKeys.all, "space", spaceId, "items"];
+    const queryKey = itemsQueryKey;
     queryClient.setQueryData(
       queryKey,
-      (old: any) => {
+      (old: TaskViewData | undefined) => {
         if (!old) return old;
-        const patch = (list: any[]) =>
-          (list ?? []).map((item: any) =>
+        const patchTasks = (list: TaskItemDto[]) =>
+          (list ?? []).map((item) =>
+            item.id === activeId
+              ? { ...item, statusId: targetStatusId, priority: newPriority }
+              : item,
+          );
+        const patchFolders = (list: FolderItemDto[]) =>
+          (list ?? []).map((item) =>
             item.id === activeId
               ? { ...item, statusId: targetStatusId, priority: newPriority }
               : item,
           );
         return {
           ...old,
-          tasks: patch(old.tasks),
-          folders: patch(old.folders),
+          tasks: patchTasks(old.tasks),
+          folders: patchFolders(old.folders),
         };
       },
     );
 
-    isDebouncingRef.current = true;
-    if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    // Send to store immediately — store handles the 1500ms debounce
+    // statusId: null = explicit unclassify, undefined = don't change (badge-only updates)
+    useItemsStore.getState().addUpdate(workspaceId, {
+      id: activeId,
+      type: isTask ? EntityLayerType.ProjectTask : EntityLayerType.ProjectFolder,
+      statusId: targetStatusId ?? null, // null = unclassify → API sends sentinel
+      priority: newPriority,
+      previousItemOrderKey,
+      nextItemOrderKey,
+    });
+  }
 
-    const persist = () => {
-      isDebouncingRef.current = false;
-      pendingMutationRef.current = null;
-      if (isTask) {
-        moveTaskToStatus({
-          taskId: activeId,
-          targetStatusId,
-          previousItemOrderKey,
-          nextItemOrderKey,
-          newPriority,
-        });
-      } else {
-        moveFolderToStatus({
-          folderId: activeId,
-          targetStatusId,
-          previousItemOrderKey,
-          nextItemOrderKey,
-          newPriority,
-        });
+  function handlePriorityChange(itemId: string, priority: Priority) {
+    // Optimistically update local columns
+    setColumns((prev) => {
+      const next = { ...prev };
+      for (const key of Object.keys(next)) {
+        next[key] = next[key].map((item) =>
+          item.id === itemId ? { ...item, priority } : item,
+        );
       }
-    };
-    pendingMutationRef.current = persist;
-    timeoutRef.current = setTimeout(persist, 1000);
+      return next;
+    });
+
+    // Optimistic cache patching
+    const queryKey = itemsQueryKey;
+    queryClient.setQueryData(queryKey, (old: TaskViewData | undefined) => {
+      if (!old) return old;
+      const patchTasks = (list: TaskItemDto[]) =>
+        (list ?? []).map((item) =>
+          item.id === itemId ? { ...item, priority } : item,
+        );
+      const patchFolders = (list: FolderItemDto[]) =>
+        (list ?? []).map((item) =>
+          item.id === itemId ? { ...item, priority } : item,
+        );
+      return {
+        ...old,
+        tasks: patchTasks(old.tasks),
+        folders: patchFolders(old.folders),
+      };
+    });
+
+    // Find the item to determine its type
+    const allItems = Object.values(columnsRef.current).flat();
+    const item = allItems.find((i) => i.id === itemId);
+    const isTask = item?.__type === "task";
+
+    // Only send priority — statusId is undefined → omitted from JSON → backend keeps existing
+    useItemsStore.getState().addUpdate(workspaceId, {
+      id: itemId,
+      type: isTask ? EntityLayerType.ProjectTask : EntityLayerType.ProjectFolder,
+      priority,
+    });
   }
 
   function handleTaskClick(taskId: string) {
@@ -224,6 +267,7 @@ export function SpaceItemsView({
         onMove={handleMove}
         onTaskClick={handleTaskClick}
         onFolderClick={handleFolderClick}
+        onPriorityChange={handlePriorityChange}
       />
     );
   }
@@ -235,6 +279,7 @@ export function SpaceItemsView({
       onMove={handleMove}
       onTaskClick={handleTaskClick}
       onFolderClick={handleFolderClick}
+      onPriorityChange={handlePriorityChange}
     />
   );
 }

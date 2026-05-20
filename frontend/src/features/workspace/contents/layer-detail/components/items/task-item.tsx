@@ -1,18 +1,19 @@
-import { Circle, Package, User } from "lucide-react";
+import { User } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
-import { PriorityBadge } from "@/components/priority-badge";
 import type { TaskItemDto } from "../../layer-detail-types";
 import { Priority } from "@/types/priority";
 import { DynamicIcon } from "@/components/dynamic-icon";
+import { InlinePriorityPicker } from "./inline-priority-picker";
 
 interface TaskItemProps {
   task: TaskItemDto;
   onClick: (task: TaskItemDto) => void;
   isSelected?: boolean;
+  onPriorityChange?: (itemId: string, priority: Priority) => void;
 }
 
-export function TaskItem({ task, onClick, isSelected }: TaskItemProps) {
+export function TaskItem({ task, onClick, isSelected, onPriorityChange }: TaskItemProps) {
   return (
     <div
       onClick={() => onClick(task)}
@@ -52,8 +53,18 @@ export function TaskItem({ task, onClick, isSelected }: TaskItemProps) {
 
       {/* 3. Priority Badge under Title */}
       <div className="flex items-center gap-1.5 mt-1 min-h-[18px]">
-        {task.priority && (
-          <PriorityBadge priority={task.priority as Priority} />
+        {onPriorityChange ? (
+          <InlinePriorityPicker
+            priority={task.priority as Priority}
+            onPriorityChange={(p) => onPriorityChange(task.id, p)}
+          />
+        ) : (
+          task.priority && (
+            <InlinePriorityPicker
+              priority={task.priority as Priority}
+              onPriorityChange={() => {}}
+            />
+          )
         )}
       </div>
 

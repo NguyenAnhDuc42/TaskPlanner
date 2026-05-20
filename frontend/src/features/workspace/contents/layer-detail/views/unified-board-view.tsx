@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from "react";
+import type { Priority } from "@/types/priority";
 import {
   DndContext,
   useSensor,
@@ -36,6 +37,7 @@ interface UnifiedBoardViewProps {
   }) => void;
   onTaskClick: (taskId: string) => void;
   onFolderClick: (folderId: string) => void;
+  onPriorityChange?: (itemId: string, priority: Priority) => void;
 }
 
 // 1. Draggable Wrapper using `@dnd-kit/sortable`
@@ -45,12 +47,14 @@ function SortableItem({
   statusId,
   onTaskClick,
   onFolderClick,
+  onPriorityChange,
 }: {
   item: any;
   type: "task" | "folder";
   statusId: string;
   onTaskClick: (id: string) => void;
   onFolderClick: (id: string) => void;
+  onPriorityChange?: (itemId: string, priority: Priority) => void;
 }) {
   const {
     attributes,
@@ -79,9 +83,9 @@ function SortableItem({
       className="outline-none"
     >
       {type === "task" ? (
-        <TaskItem task={item} onClick={() => onTaskClick(item.id)} />
+        <TaskItem task={item} onClick={() => onTaskClick(item.id)} onPriorityChange={onPriorityChange} />
       ) : (
-        <FolderItem folder={item} onClick={() => onFolderClick(item.id)} />
+        <FolderItem folder={item} onClick={() => onFolderClick(item.id)} onPriorityChange={onPriorityChange} />
       )}
     </div>
   );
@@ -93,11 +97,13 @@ function BoardColumn({
   items,
   onTaskClick,
   onFolderClick,
+  onPriorityChange,
 }: {
   status: any;
   items: any[];
   onTaskClick: (id: string) => void;
   onFolderClick: (id: string) => void;
+  onPriorityChange?: (itemId: string, priority: Priority) => void;
 }) {
   const { setNodeRef, isOver } = useDroppable({
     id: status.statusId,
@@ -134,6 +140,7 @@ function BoardColumn({
                 statusId={status.statusId}
                 onTaskClick={onTaskClick}
                 onFolderClick={onFolderClick}
+                onPriorityChange={onPriorityChange}
               />
             );
           })}
@@ -150,6 +157,7 @@ export function UnifiedBoardView({
   onMove,
   onTaskClick,
   onFolderClick,
+  onPriorityChange,
 }: UnifiedBoardViewProps) {
   const [activeItem, setActiveItem] = useState<any | null>(null);
   const [activeType, setActiveType] = useState<"task" | "folder" | null>(null);
@@ -158,11 +166,11 @@ export function UnifiedBoardView({
     useState<Record<string, any[]>>(columns);
   const containerRef = useRef<HTMLDivElement | null>(null);
 
+  // Sync from parent only when the parent-provided columns change.
+  // Avoid resetting on drag end (activeItem -> null) with stale props, which causes a flicker.
   useEffect(() => {
-    if (!activeItem) {
-      setBoardColumns(columns);
-    }
-  }, [columns, activeItem]);
+    if (!activeItem) setBoardColumns(columns);
+  }, [columns]);
 
   // Activation constraints to make sure normal clicks trigger click handlers
   const sensors = useSensors(
@@ -338,6 +346,7 @@ export function UnifiedBoardView({
               items={items}
               onTaskClick={onTaskClick}
               onFolderClick={onFolderClick}
+              onPriorityChange={onPriorityChange}
             />
           );
         })}
