@@ -6,11 +6,13 @@ import type { FolderItemDto, LayerItem, TaskItemDto, TaskViewData } from "../../
 import { buildColumns } from "./folder-dnd-helpers";
 import {
   Priority,
+  prioritySort,
 } from "@/types/priority";
 import { useItemsStore, selectHasPendingUpdates } from "../../hooks/use-items-store";
 import { EntityLayerType } from "@/types/entity-layer-type";
 import { UnifiedBoardView } from "../unified-board-view";
 import { UnifiedListView } from "../unified-list-view";
+import { inferPriorityFromNeighbors } from "../shared/item-dnd-helpers";
 
 interface FolderItemsViewProps {
   viewData: TaskViewData;
@@ -40,7 +42,7 @@ export function FolderItemsView({
   const hasPending = useItemsStore(selectHasPendingUpdates);
   const prevHasPendingRef = useRef(hasPending);
   const [isRefetchingAfterSave, setIsRefetchingAfterSave] = useState(false);
-  const [suppressViewDataSync, setSuppressViewDataSync] = useState(false);
+  const suppressViewDataSyncRef = useRef(false);
   const itemsQueryKey = useMemo(
     () => [...workspaceKeys.all, "folder", folderId, "items"],
     [folderId],
@@ -64,22 +66,14 @@ export function FolderItemsView({
   }, [hasPending, queryClient, itemsQueryKey]);
 
   useEffect(() => {
-    if (hasPending) setSuppressViewDataSync(true);
-    if (!hasPending && !isRefetchingAfterSave) setSuppressViewDataSync(false);
+    if (hasPending) suppressViewDataSyncRef.current = true;
+    if (!hasPending && !isRefetchingAfterSave) suppressViewDataSyncRef.current = false;
   }, [hasPending, isRefetchingAfterSave]);
 
   useEffect(() => {
-    if (hasPending || isRefetchingAfterSave || suppressViewDataSync) return;
+    if (hasPending || isRefetchingAfterSave || suppressViewDataSyncRef.current) return;
     setColumns(buildColumns(viewData));
-  }, [viewData, hasPending, isRefetchingAfterSave, suppressViewDataSync]);
-
-  const toPriority = (value: unknown): Priority => {
-    if (value === Priority.Low) return Priority.Low;
-    if (value === Priority.Normal) return Priority.Normal;
-    if (value === Priority.High) return Priority.High;
-    if (value === Priority.Urgent) return Priority.Urgent;
-    return Priority.Normal;
-  };
+  }, [viewData, hasPending, isRefetchingAfterSave]);
 
   function handleMove({
     activeId,
@@ -95,7 +89,7 @@ export function FolderItemsView({
     nextItemOrderKey: string | undefined;
   }) {
     // Prevent a one-frame "snap back" from viewData sync before the store reports hasPending=true
-    setSuppressViewDataSync(true);
+    suppressViewDataSyncRef.current = true;
 
     const srcColId =
       Object.keys(columnsRef.current).find((key) =>
@@ -115,26 +109,11 @@ export function FolderItemsView({
 
     const isTask = activeItem.__type === "task";
 
-    // --- Priority inference from neighbors, with don't-downgrade guard ---
-    const stripped = dstItems.filter((item) => item.id !== activeId);
-    const clampedIndex = Math.max(0, Math.min(targetIndex, stripped.length));
-    const prev = stripped[clampedIndex - 1];
-    const next = stripped[clampedIndex];
-
-    // Take priority from the item above (or below if at top of column)
-    let inferredPriority: Priority;
-    if (prev) {
-      inferredPriority = toPriority(prev.priority);
-    } else if (next) {
-      inferredPriority = toPriority(next.priority);
-    } else {
-      inferredPriority = toPriority(activeItem.priority);
-    }
-
-    // Allow both upgrading and downgrading priority via drag position
-    const newPriority = inferredPriority;
-
-    // --- End priority logic ---
+    const newPriority = inferPriorityFromNeighbors({
+      activeItem,
+      targetIndex,
+      dstItems,
+    });
 
     const movedIdx = srcItems.findIndex((item) => item.id === activeId);
     if (movedIdx === -1) return;
@@ -200,9 +179,9 @@ export function FolderItemsView({
     setColumns((prev) => {
       const next = { ...prev };
       for (const key of Object.keys(next)) {
-        next[key] = next[key].map((item) =>
-          item.id === itemId ? { ...item, priority } : item,
-        );
+        next[key] = next[key]
+          .map((item) => (item.id === itemId ? { ...item, priority } : item))
+          .sort(prioritySort);
       }
       return next;
     });
