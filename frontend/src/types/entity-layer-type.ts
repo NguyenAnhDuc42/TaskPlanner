@@ -3,7 +3,6 @@ export const EntityLayerType = {
   ProjectSpace: "ProjectSpace",
   ProjectFolder: "ProjectFolder",
   ProjectTask: "ProjectTask",
-  ChatRoom: "ChatRoom",
 } as const;
 
 export type EntityLayerType = (typeof EntityLayerType)[keyof typeof EntityLayerType];

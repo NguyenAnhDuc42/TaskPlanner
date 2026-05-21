@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef } from "react";
 import {
   DndContext,
   useSensor,
@@ -26,9 +26,11 @@ import { StatusCategory } from "@/types/status-category";
 import { useEdgeScroll } from "../components/board/use-edge-scroll";
 import { InlinePriorityPicker } from "../components/items/inline-priority-picker";
 import { DynamicIcon } from "@/components/dynamic-icon";
+import type { LayerItem, TaskLayerItem, FolderLayerItem } from "../layer-detail-types";
+import { useItemsStore } from "../hooks/use-items-store";
 
 interface UnifiedListViewProps {
-  columns: Record<string, any[]>;
+  columns: Record<string, LayerItem[]>;
   statuses: any[];
   onMove: (event: {
     activeId: string;
@@ -45,15 +47,13 @@ interface UnifiedListViewProps {
 // 1. Sortable Row Component
 function SortableRow({
   item,
-  type,
   statusId,
   isFirst,
   onTaskClick,
   onFolderClick,
   onPriorityChange,
 }: {
-  item: any;
-  type: "task" | "folder";
+  item: LayerItem;
   statusId: string;
   isFirst?: boolean;
   onTaskClick: (id: string) => void;
@@ -69,7 +69,7 @@ function SortableRow({
     isDragging,
   } = useSortable({
     id: item.id,
-    data: { item, type, statusId },
+    data: { item, type: item.__type, statusId },
   });
 
   const style = {
@@ -86,16 +86,16 @@ function SortableRow({
       {...listeners}
       className="outline-none"
     >
-      {type === "task" ? (
+      {item.__type === "task" ? (
         <TaskListRow
-          task={item}
+          task={item as TaskLayerItem}
           isFirst={isFirst}
           onClick={() => onTaskClick(item.id)}
           onPriorityChange={onPriorityChange}
         />
       ) : (
         <FolderListRow
-          folder={item}
+          folder={item as FolderLayerItem}
           isFirst={isFirst}
           onClick={() => onFolderClick(item.id)}
         />
@@ -113,7 +113,7 @@ function ListGroupArea({
   onPriorityChange,
 }: {
   status: any;
-  items: any[];
+  items: LayerItem[];
   onTaskClick: (id: string) => void;
   onFolderClick: (id: string) => void;
   onPriorityChange?: (itemId: string, priority: Priority) => void;
@@ -143,12 +143,10 @@ function ListGroupArea({
       >
         <SortableContext items={itemIds} strategy={verticalListSortingStrategy}>
           {items.map((item, idx) => {
-            const isTask = item.__type === "task";
             return (
               <SortableRow
                 key={item.id}
                 item={item}
-                type={isTask ? "task" : "folder"}
                 statusId={status.statusId}
                 isFirst={idx === 0}
                 onTaskClick={onTaskClick}
@@ -180,16 +178,7 @@ export function UnifiedListView({
 }: UnifiedListViewProps) {
   const [activeItem, setActiveItem] = useState<any | null>(null);
   const [activeType, setActiveType] = useState<"task" | "folder" | null>(null);
-
-  const [boardColumns, setBoardColumns] =
-    useState<Record<string, any[]>>(columns);
   const containerRef = useRef<HTMLDivElement | null>(null);
-
-  // Sync from parent only when the parent-provided columns change.
-  // Avoid resetting on drag end (activeItem -> null) with stale props, which causes a flicker.
-  useEffect(() => {
-    if (!activeItem) setBoardColumns(columns);
-  }, [columns]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -206,10 +195,10 @@ export function UnifiedListView({
   );
 
   const isDragging = activeItem !== null;
-  useEdgeScroll(containerRef, isDragging, true); // Active vertical scrolling for List Mode!
+  useEdgeScroll(containerRef, isDragging, true);
 
   const displayStatuses = [...statuses];
-  const unclassifiedItems = boardColumns["unclassified"] ?? [];
+  const unclassifiedItems = columns["unclassified"] ?? [];
   if (unclassifiedItems.length > 0) {
     displayStatuses.push({
       statusId: "unclassified",
@@ -236,43 +225,27 @@ export function UnifiedListView({
     const activeId = active.id as string;
     const overId = over.id as string;
 
-    const activeColId = Object.keys(boardColumns).find((key) =>
-      boardColumns[key].some((item) => item.id === activeId),
+    // Always read fresh state so we track the item through multiple dragOver events
+    const currentColumns = useItemsStore.getState().columns;
+
+    const fromColId = Object.keys(currentColumns).find((key) =>
+      currentColumns[key].some((item) => item.id === activeId),
     );
-    const overColId =
+    const toColId =
       statuses.some((s) => s.statusId === overId) || overId === "unclassified"
         ? overId
-        : Object.keys(boardColumns).find((key) =>
-            boardColumns[key].some((item) => item.id === overId),
+        : Object.keys(currentColumns).find((key) =>
+            currentColumns[key].some((item) => item.id === overId),
           );
 
-    if (!activeColId || !overColId) {
-      return;
-    }
+    if (!fromColId || !toColId) return;
 
-    if (activeColId === overColId) {
-      setBoardColumns((prev) => {
-        const colItems = prev[activeColId] ?? [];
-        const activeIndex = colItems.findIndex((item) => item.id === activeId);
-        const overIndex = colItems.findIndex((item) => item.id === overId);
-
-        if (
-          activeIndex === -1 ||
-          overIndex === -1 ||
-          activeIndex === overIndex
-        ) {
-          return prev;
-        }
-
-        const newColItems = [...colItems];
-        const [movedItem] = newColItems.splice(activeIndex, 1);
-        newColItems.splice(overIndex, 0, movedItem);
-
-        return {
-          ...prev,
-          [activeColId]: newColItems,
-        };
-      });
+    if (fromColId === toColId) {
+      const colItems = currentColumns[fromColId] ?? [];
+      const activeIndex = colItems.findIndex((item) => item.id === activeId);
+      const overIndex = colItems.findIndex((item) => item.id === overId);
+      if (activeIndex === -1 || overIndex === -1 || activeIndex === overIndex) return;
+      useItemsStore.getState().previewMove({ activeId, fromColId, toColId, toIndex: overIndex });
     }
   }
 
@@ -285,46 +258,21 @@ export function UnifiedListView({
 
     const activeId = active.id as string;
 
-    // Find activeColId in original columns
-    const activeColId = Object.keys(columns).find((key) =>
-      columns[key].some((item) => item.id === activeId),
+    // Read the LATEST Zustand state — this reflects the final preview position after all dragOver calls
+    const latestColumns = useItemsStore.getState().columns;
+
+    const targetStatusId = Object.keys(latestColumns).find((key) =>
+      latestColumns[key].some((item) => item.id === activeId),
     );
-    if (!activeColId) return;
+    if (!targetStatusId) return;
 
-    // Resolve target status group and drop index
-    let targetStatusId: string = over.id as string;
-    let targetIndex = 0;
+    const targetColItems = latestColumns[targetStatusId] ?? [];
+    const targetIndex = targetColItems.findIndex((item) => item.id === activeId);
 
-    const isOverColumn =
-      statuses.some((s) => s.statusId === over.id) ||
-      over.id === "unclassified";
+    const resolvedStatusId = targetStatusId === "unclassified" ? undefined : targetStatusId;
 
-    if (isOverColumn) {
-      const targetItems = columns[targetStatusId] ?? [];
-      targetIndex = targetItems.filter((i) => i.id !== activeId).length;
-    } else {
-      const overData = over.data.current;
-      if (overData) {
-        targetStatusId = overData.statusId;
-        const colItems = columns[targetStatusId] ?? [];
-        const stripped = colItems.filter((i) => i.id !== activeId);
-
-        if (activeColId === targetStatusId) {
-          const currentItems = boardColumns[targetStatusId] ?? [];
-          targetIndex = currentItems.findIndex((i) => i.id === activeId);
-        } else {
-          const overIdx = stripped.findIndex((i) => i.id === over.id);
-          targetIndex = overIdx === -1 ? stripped.length : overIdx;
-        }
-      }
-    }
-
-    const resolvedStatusId =
-      targetStatusId === "unclassified" ? undefined : targetStatusId;
-
-    const stripped = (columns[targetStatusId] ?? []).filter(
-      (i) => i.id !== activeId,
-    );
+    // Neighbors are the items immediately around the dropped item in the final preview layout
+    const stripped = targetColItems.filter((i) => i.id !== activeId);
     const clampedIndex = Math.max(0, Math.min(targetIndex, stripped.length));
     const previousItemOrderKey = stripped[clampedIndex - 1]?.orderKey;
     const nextItemOrderKey = stripped[clampedIndex]?.orderKey;
@@ -351,7 +299,7 @@ export function UnifiedListView({
       >
         <div className="p-6 space-y-8">
           {displayStatuses.map((status) => {
-            const items = boardColumns[status.statusId] ?? [];
+            const items = columns[status.statusId] ?? [];
             return (
               <ListGroupArea
                 key={status.statusId}
@@ -388,7 +336,7 @@ function TaskListRow({
   isFirst,
   onPriorityChange,
 }: {
-  task: any;
+  task: TaskLayerItem;
   onClick: () => void;
   isFirst?: boolean;
   onPriorityChange?: (itemId: string, priority: Priority) => void;
@@ -458,7 +406,7 @@ function FolderListRow({
   onClick,
   isFirst,
 }: {
-  folder: any;
+  folder: FolderLayerItem;
   onClick: () => void;
   isFirst?: boolean;
 }) {

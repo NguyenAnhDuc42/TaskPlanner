@@ -16,7 +16,6 @@ public class BatchUpdateItemsHandler(IDataBase db, WorkspaceContext workspaceCon
         var taskUpdates = request.Updates.Where(u => u.Type == EntityLayerType.ProjectTask).ToList();
         var folderUpdates = request.Updates.Where(u => u.Type == EntityLayerType.ProjectFolder).ToList();
 
-        // 1. One Single Transaction for complete layout safety
         return await db.ExecuteInTransactionAsync(async () =>
         {
             if (taskUpdates.Any())
@@ -45,9 +44,9 @@ public class BatchUpdateItemsHandler(IDataBase db, WorkspaceContext workspaceCon
                 .Where(t => t.Id == update.Id && t.ProjectWorkspaceId == workspaceContext.workspaceId)
                 .ExecuteUpdateAsync(u => u
                     .SetProperty(t => t.StatusId, t =>
-                        update.StatusId == Guid.Empty ? null :       // Explicit unclassify
-                        update.StatusId.HasValue ? update.StatusId :  // Set to specific status
-                        t.StatusId)                                  // Not provided → keep existing
+                        update.StatusId == Guid.Empty ? null :
+                        update.StatusId.HasValue ? update.StatusId :
+                        t.StatusId)
                     .SetProperty(t => t.Priority, t => update.Priority != null ? Enum.Parse<Priority>(update.Priority) : t.Priority)
                     .SetProperty(t => t.OrderKey, t => orderKey ?? t.OrderKey)
                     .SetProperty(t => t.UpdatedAt, DateTimeOffset.UtcNow), ct);
@@ -68,9 +67,9 @@ public class BatchUpdateItemsHandler(IDataBase db, WorkspaceContext workspaceCon
                 .Where(f => f.Id == update.Id && f.ProjectWorkspaceId == workspaceContext.workspaceId)
                 .ExecuteUpdateAsync(u => u
                     .SetProperty(f => f.StatusId, f =>
-                        update.StatusId == Guid.Empty ? null :       // Explicit unclassify
-                        update.StatusId.HasValue ? update.StatusId :  // Set to specific status
-                        f.StatusId)                                  // Not provided → keep existing
+                        update.StatusId == Guid.Empty ? null :
+                        update.StatusId.HasValue ? update.StatusId :
+                        f.StatusId)
                     .SetProperty(f => f.Priority, f => update.Priority != null ? Enum.Parse<Priority>(update.Priority) : f.Priority)
                     .SetProperty(f => f.OrderKey, f => orderKey ?? f.OrderKey)
                     .SetProperty(f => f.UpdatedAt, DateTimeOffset.UtcNow), ct);

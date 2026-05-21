@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef } from "react";
 import type { Priority } from "@/types/priority";
 import {
   DndContext,
@@ -24,9 +24,11 @@ import { FolderItem } from "../components/items/folder-item";
 import { useSmartWheelScroll } from "../components/board/use-smart-wheel-scroll";
 import { useEdgeScroll } from "../components/board/use-edge-scroll";
 import { StatusCategory } from "@/types/status-category";
+import type { LayerItem } from "../layer-detail-types";
+import { useItemsStore } from "../hooks/use-items-store";
 
 interface UnifiedBoardViewProps {
-  columns: Record<string, any[]>;
+  columns: Record<string, LayerItem[]>;
   statuses: any[];
   onMove: (event: {
     activeId: string;
@@ -43,14 +45,12 @@ interface UnifiedBoardViewProps {
 // 1. Draggable Wrapper using `@dnd-kit/sortable`
 function SortableItem({
   item,
-  type,
   statusId,
   onTaskClick,
   onFolderClick,
   onPriorityChange,
 }: {
-  item: any;
-  type: "task" | "folder";
+  item: LayerItem;
   statusId: string;
   onTaskClick: (id: string) => void;
   onFolderClick: (id: string) => void;
@@ -65,7 +65,7 @@ function SortableItem({
     isDragging,
   } = useSortable({
     id: item.id,
-    data: { item, type, statusId },
+    data: { item, type: item.__type, statusId },
   });
 
   const style = {
@@ -82,7 +82,7 @@ function SortableItem({
       {...listeners}
       className="outline-none"
     >
-      {type === "task" ? (
+      {item.__type === "task" ? (
         <TaskItem task={item} onClick={() => onTaskClick(item.id)} onPriorityChange={onPriorityChange} />
       ) : (
         <FolderItem folder={item} onClick={() => onFolderClick(item.id)} onPriorityChange={onPriorityChange} />
@@ -100,7 +100,7 @@ function BoardColumn({
   onPriorityChange,
 }: {
   status: any;
-  items: any[];
+  items: LayerItem[];
   onTaskClick: (id: string) => void;
   onFolderClick: (id: string) => void;
   onPriorityChange?: (itemId: string, priority: Priority) => void;
@@ -131,12 +131,10 @@ function BoardColumn({
       >
         <SortableContext items={itemIds} strategy={verticalListSortingStrategy}>
           {items.map((item) => {
-            const isTask = item.__type === "task";
             return (
               <SortableItem
                 key={item.id}
                 item={item}
-                type={isTask ? "task" : "folder"}
                 statusId={status.statusId}
                 onTaskClick={onTaskClick}
                 onFolderClick={onFolderClick}
@@ -161,16 +159,7 @@ export function UnifiedBoardView({
 }: UnifiedBoardViewProps) {
   const [activeItem, setActiveItem] = useState<any | null>(null);
   const [activeType, setActiveType] = useState<"task" | "folder" | null>(null);
-
-  const [boardColumns, setBoardColumns] =
-    useState<Record<string, any[]>>(columns);
   const containerRef = useRef<HTMLDivElement | null>(null);
-
-  // Sync from parent only when the parent-provided columns change.
-  // Avoid resetting on drag end (activeItem -> null) with stale props, which causes a flicker.
-  useEffect(() => {
-    if (!activeItem) setBoardColumns(columns);
-  }, [columns]);
 
   // Activation constraints to make sure normal clicks trigger click handlers
   const sensors = useSensors(
@@ -192,7 +181,7 @@ export function UnifiedBoardView({
   useEdgeScroll(containerRef, isDragging);
 
   const displayStatuses = [...statuses];
-  const unclassifiedItems = boardColumns["unclassified"] ?? [];
+  const unclassifiedItems = columns["unclassified"] ?? [];
   if (unclassifiedItems.length > 0) {
     displayStatuses.push({
       statusId: "unclassified",
@@ -219,71 +208,33 @@ export function UnifiedBoardView({
     const activeId = active.id as string;
     const overId = over.id as string;
 
-    const activeColId = Object.keys(boardColumns).find((key) =>
-      boardColumns[key].some((item) => item.id === activeId),
+    // Always read fresh state so we track the item through multiple dragOver events
+    const currentColumns = useItemsStore.getState().columns;
+
+    const fromColId = Object.keys(currentColumns).find((key) =>
+      currentColumns[key].some((item) => item.id === activeId),
     );
-    const overColId =
+    const toColId =
       statuses.some((s) => s.statusId === overId) || overId === "unclassified"
         ? overId
-        : Object.keys(boardColumns).find((key) =>
-            boardColumns[key].some((item) => item.id === overId),
+        : Object.keys(currentColumns).find((key) =>
+            currentColumns[key].some((item) => item.id === overId),
           );
 
-    if (!activeColId || !overColId) {
-      return;
-    }
+    if (!fromColId || !toColId) return;
 
-    if (activeColId === overColId) {
-      setBoardColumns((prev) => {
-        const colItems = prev[activeColId] ?? [];
-        const activeIndex = colItems.findIndex((item) => item.id === activeId);
-        const overIndex = colItems.findIndex((item) => item.id === overId);
-
-        if (
-          activeIndex === -1 ||
-          overIndex === -1 ||
-          activeIndex === overIndex
-        ) {
-          return prev;
-        }
-
-        const newColItems = [...colItems];
-        const [movedItem] = newColItems.splice(activeIndex, 1);
-        newColItems.splice(overIndex, 0, movedItem);
-
-        return {
-          ...prev,
-          [activeColId]: newColItems,
-        };
-      });
-      return;
-    }
-
-    setBoardColumns((prev) => {
-      const activeItems = prev[activeColId] ?? [];
-      const overItems = prev[overColId] ?? [];
-
-      const activeIndex = activeItems.findIndex((item) => item.id === activeId);
-      if (activeIndex === -1) return prev;
-
+    if (fromColId === toColId) {
+      const colItems = currentColumns[fromColId] ?? [];
+      const activeIndex = colItems.findIndex((item) => item.id === activeId);
+      const overIndex = colItems.findIndex((item) => item.id === overId);
+      if (activeIndex === -1 || overIndex === -1 || activeIndex === overIndex) return;
+      useItemsStore.getState().previewMove({ activeId, fromColId, toColId, toIndex: overIndex });
+    } else {
+      const overItems = currentColumns[toColId] ?? [];
       const overIndex = overItems.findIndex((item) => item.id === overId);
-      let targetIndex = overIndex === -1 ? overItems.length : overIndex;
-
-      const newActiveItems = [...activeItems];
-      const [movedItem] = newActiveItems.splice(activeIndex, 1);
-
-      const newOverItems = [...overItems];
-      newOverItems.splice(targetIndex, 0, {
-        ...movedItem,
-        statusId: overColId === "unclassified" ? undefined : overColId,
-      });
-
-      return {
-        ...prev,
-        [activeColId]: newActiveItems,
-        [overColId]: newOverItems,
-      };
-    });
+      const toIndex = overIndex === -1 ? overItems.length : overIndex;
+      useItemsStore.getState().previewMove({ activeId, fromColId, toColId, toIndex });
+    }
   }
 
   function handleDragEnd(event: DragEndEvent) {
@@ -295,24 +246,21 @@ export function UnifiedBoardView({
 
     const activeId = active.id as string;
 
-    // Find the final column and index in boardColumns
-    const targetStatusId = Object.keys(boardColumns).find((key) =>
-      boardColumns[key].some((item) => item.id === activeId),
+    // Read the LATEST Zustand state — this reflects the final preview position after all dragOver calls
+    const latestColumns = useItemsStore.getState().columns;
+
+    const targetStatusId = Object.keys(latestColumns).find((key) =>
+      latestColumns[key].some((item) => item.id === activeId),
     );
     if (!targetStatusId) return;
 
-    const targetColItems = boardColumns[targetStatusId] ?? [];
-    const targetIndex = targetColItems.findIndex(
-      (item) => item.id === activeId,
-    );
+    const targetColItems = latestColumns[targetStatusId] ?? [];
+    const targetIndex = targetColItems.findIndex((item) => item.id === activeId);
 
-    const resolvedStatusId =
-      targetStatusId === "unclassified" ? undefined : targetStatusId;
+    const resolvedStatusId = targetStatusId === "unclassified" ? undefined : targetStatusId;
 
-    // Calculate boundary order keys using original columns to avoid using mutated keys
-    const stripped = (columns[targetStatusId] ?? []).filter(
-      (i) => i.id !== activeId,
-    );
+    // Neighbors are the items immediately around the dropped item in the final preview layout
+    const stripped = targetColItems.filter((i) => i.id !== activeId);
     const clampedIndex = Math.max(0, Math.min(targetIndex, stripped.length));
     const previousItemOrderKey = stripped[clampedIndex - 1]?.orderKey;
     const nextItemOrderKey = stripped[clampedIndex]?.orderKey;
@@ -338,7 +286,7 @@ export function UnifiedBoardView({
         className="h-full flex gap-4 p-6 overflow-x-auto overflow-y-hidden animate-in fade-in slide-in-from-bottom-2 duration-500 [&::-webkit-scrollbar]:h-1 [&::-webkit-scrollbar-thumb]:bg-muted-foreground/10 hover:[&::-webkit-scrollbar-thumb]:bg-muted-foreground/30 [&::-webkit-scrollbar-track]:bg-transparent"
       >
         {displayStatuses.map((status) => {
-          const items = boardColumns[status.statusId] ?? [];
+          const items = columns[status.statusId] ?? [];
           return (
             <BoardColumn
               key={status.statusId}
@@ -366,3 +314,4 @@ export function UnifiedBoardView({
     </DndContext>
   );
 }
+
