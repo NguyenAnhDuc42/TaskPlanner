@@ -30,22 +30,18 @@ public class UpdateWorkspaceHandler(
 
         if (workspace == null) return Result.Failure(WorkspaceError.NotFound);
 
-        if (!string.IsNullOrEmpty(request.Name))
-        {
-            workspace.UpdateName(request.Name);
-            workspace.UpdateSlug(SlugHelper.GenerateSlug(request.Name));
-        }
-        
-        if (request.Description != null)
-        {
-            workspace.UpdateDescription(request.Description);
-        }
+        var slug = !string.IsNullOrEmpty(request.Name) ? SlugHelper.GenerateSlug(request.Name) : null;
 
-        if (request.Color != null) workspace.UpdateColor(request.Color);
-        if (request.Icon != null) workspace.UpdateIcon(request.Icon);
+        workspace.Update(
+            name: request.Name,
+            slug: slug,
+            description: request.Description,
+            color: request.Color,
+            icon: request.Icon,
+            strictJoin: request.StrictJoin
+        );
 
         if (request.Theme.HasValue) context.CurrentMember.UpdateTheme(request.Theme.Value);
-        if (request.StrictJoin.HasValue) workspace.UpdateStrictJoin(request.StrictJoin.Value);
 
         await db.SaveChangesAsync(ct);
 

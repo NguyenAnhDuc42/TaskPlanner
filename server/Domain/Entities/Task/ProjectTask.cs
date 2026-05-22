@@ -107,92 +107,35 @@ public class ProjectTask : TenantEntity
         };
     }
 
-    public void UpdateName(string name)
+    public void Update(
+        string? name = null,
+        string? slug = null,
+        string? color = null,
+        string? icon = null,
+        Guid? statusId = null,
+        Priority? priority = null,
+        DateTimeOffset? startDate = null,
+        DateTimeOffset? dueDate = null,
+        int? storyPoints = null,
+        long? timeEstimateSeconds = null,
+        string? orderKey = null)
     {
         EnsureNotArchived();
-        Name = name;
-        UpdateTimestamp();
-    }
+        bool updated = false;
 
-    public void UpdateSlug(string slug)
-    {
-        EnsureNotArchived();
-        if (Slug == slug) return;
-        Slug = slug;
-        UpdateTimestamp();
-    }
+        if (name != null && Name != name) { Name = name; updated = true; }
+        if (slug != null && Slug != slug) { Slug = slug; updated = true; }
+        if (color != null && Color != color) { Color = color; updated = true; }
+        if (icon != null && Icon != icon) { Icon = icon; updated = true; }
+        if (statusId != null && StatusId != statusId) { StatusId = statusId; updated = true; }
+        if (priority != null && Priority != priority) { Priority = priority.Value; updated = true; }
+        if (startDate != null && StartDate != startDate) { StartDate = startDate; updated = true; }
+        if (dueDate != null && DueDate != dueDate) { DueDate = dueDate; updated = true; }
+        if (storyPoints != null && StoryPoints != storyPoints) { StoryPoints = storyPoints; updated = true; }
+        if (timeEstimateSeconds != null && TimeEstimateSeconds != timeEstimateSeconds) { TimeEstimateSeconds = timeEstimateSeconds; updated = true; }
+        if (orderKey != null && OrderKey != orderKey) { OrderKey = orderKey; updated = true; }
 
-    public void UpdateColor(string color)
-    {
-        EnsureNotArchived();
-        if (Color == color) return;
-        Color = color;
-        UpdateTimestamp();
-    }
-
-    public void UpdateIcon(string? icon)
-    {
-        EnsureNotArchived();
-        if (Icon == icon) return;
-        Icon = icon;
-        UpdateTimestamp();
-    }
-
-    public void UpdateStatus(Guid statusId)
-    {
-        EnsureNotArchived();
-        if (StatusId != statusId)
-        {
-            StatusId = statusId;
-            UpdateTimestamp();
-        }
-    }
-
-    public void UpdateOrderKey(string orderKey)
-    {
-        EnsureNotArchived();
-        if (OrderKey == orderKey) return;
-        OrderKey = orderKey;
-        UpdateTimestamp();
-    }
-
-    public void UpdatePriority(Priority priority)
-    {
-        EnsureNotArchived();
-        if (Priority != priority)
-        {
-            Priority = priority;
-            UpdateTimestamp();
-        }
-    }
-
-    public void UpdateStartDate(DateTimeOffset? startDate)
-    {
-        EnsureNotArchived();
-        if (StartDate == startDate) return;
-        StartDate = startDate;
-        UpdateTimestamp();
-    }
-    public void UpdateDueDate(DateTimeOffset? dueDate)
-    {
-        EnsureNotArchived();
-        if (DueDate == dueDate) return;
-        DueDate = dueDate;
-        UpdateTimestamp();
-    }
-    public void UpdateStoryPoints(int? storyPoints)
-    {
-        EnsureNotArchived();
-        if (StoryPoints == storyPoints) return;
-        StoryPoints = storyPoints;
-        UpdateTimestamp();
-    }
-    public void UpdateTimeEstimate(long? timeEstimateSeconds)
-    {
-        EnsureNotArchived();
-        if (TimeEstimateSeconds == timeEstimateSeconds) return;
-        TimeEstimateSeconds = timeEstimateSeconds;
-        UpdateTimestamp();
+        if (updated) UpdateTimestamp();
     }
 
     public void AddAsignees(List<TaskAssignment> newAssignments)

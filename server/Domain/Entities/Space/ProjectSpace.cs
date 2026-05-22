@@ -69,53 +69,25 @@ public sealed class ProjectSpace : TenantEntity
         SoftDelete();
     }
 
-    public void UpdateName(string name)
+    public void Update(
+        string? name = null,
+        string? slug = null,
+        string? color = null,
+        string? icon = null,
+        bool? isPrivate = null,
+        string? orderKey = null)
     {
         EnsureNotArchived();
-        Name = name;
-        UpdateTimestamp();
-    }
+        bool updated = false;
 
-    public void UpdateSlug(string slug)
-    {
-        EnsureNotArchived();
-        if (Slug == slug) return;
-        Slug = slug;
-        UpdateTimestamp();
-    }
+        if (name != null && Name != name) { Name = name; updated = true; }
+        if (slug != null && Slug != slug) { Slug = slug; updated = true; }
+        if (color != null && Color != color) { Color = color; updated = true; }
+        if (icon != null && Icon != icon) { Icon = icon; updated = true; }
+        if (isPrivate != null && IsPrivate != isPrivate) { IsPrivate = isPrivate.Value; updated = true; }
+        if (orderKey != null && OrderKey != orderKey) { OrderKey = orderKey; updated = true; }
 
-    public void UpdateColor(string color)
-    {
-        EnsureNotArchived();
-        if (Color == color) return;
-        Color = color;
-        UpdateTimestamp();
-    }
-
-    public void UpdateIcon(string? icon)
-    {
-        EnsureNotArchived();
-        if (Icon == icon) return;
-        Icon = icon;
-        UpdateTimestamp();
-    }
-
-    public void UpdatePrivate(bool isPrivate)
-    {
-        EnsureNotArchived();
-        if (IsPrivate != isPrivate)
-        {
-            IsPrivate = isPrivate;
-            UpdateTimestamp();
-        }
-    }
-
-    public void UpdateOrderKey(string orderKey)
-    {
-        EnsureNotArchived();
-        if (OrderKey == orderKey) return;
-        OrderKey = orderKey;
-        UpdateTimestamp();
+        if (updated) UpdateTimestamp();
     }
 
     public void Archive()

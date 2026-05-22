@@ -52,7 +52,7 @@ public class CreateFolderHandler(
                 slug: slug,
                 defaultDocumentId: document.Id,
                 orderKey: orderKey,
-                isPrivate: request.isPrivate,
+                isPrivate: false,
                 creatorId: context.CurrentMember.Id,
                 color: request.color,
                 icon: request.icon,
@@ -62,7 +62,7 @@ public class CreateFolderHandler(
 
             if (request.statusId != null)
             {
-                folder.UpdateStatus(request.statusId);
+                folder.Update(statusId: request.statusId);
             }
 
             await db.Folders.AddAsync(folder, ct);

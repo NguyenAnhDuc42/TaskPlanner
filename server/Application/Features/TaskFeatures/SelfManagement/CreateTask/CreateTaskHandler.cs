@@ -8,13 +8,12 @@ using Domain.Enums;
 using Domain.Enums.RelationShip;
 using Microsoft.EntityFrameworkCore;
 using Application.Interfaces;
-using Dapper;
 
 namespace Application.Features.TaskFeatures;
 
-public class CreateTaskHandler(IDataBase db, WorkspaceContext context) : ICommandHandler<CreateTaskCommand, TaskDto>
+public class CreateTaskHandler(IDataBase db, WorkspaceContext context) : ICommandHandler<CreateTaskCommand, Guid>
 {
-    public async Task<Result<TaskDto>> Handle(CreateTaskCommand request, CancellationToken ct)
+    public async Task<Result<Guid>> Handle(CreateTaskCommand request, CancellationToken ct)
     {
         var ancestors = await HierarchyHelper.GetAncestorChain(db, request.ParentId, request.ParentType, ct);
 
@@ -27,7 +26,15 @@ public class CreateTaskHandler(IDataBase db, WorkspaceContext context) : IComman
                 _ => FractionalIndex.Start()
             };
 
-            var statusId = await ResolveStatusId(ancestors.ProjectWorkspaceId, ancestors.ProjectSpaceId, request.StatusId);
+            if (request.StatusId.HasValue)
+            {
+                var isValidStatus = await db.Statuses.AnyAsync(s => 
+                    s.Id == request.StatusId.Value && 
+                    s.Workflow.ProjectWorkspaceId == ancestors.ProjectWorkspaceId, ct);
+
+                if (!isValidStatus)
+                    return Result<Guid>.Failure(Error.Validation("Task.InvalidStatus", "The requested status does not exist or does not belong to this workspace."));
+            }
 
             var slug = SlugHelper.GenerateSlug(request.Name);
 
@@ -50,7 +57,7 @@ public class CreateTaskHandler(IDataBase db, WorkspaceContext context) : IComman
                 color: request.Color ?? "#FFFFFF",
                 icon: request.Icon,
                 creatorId: context.CurrentMember.Id,
-                statusId: statusId,
+                statusId: request.StatusId,
                 priority: request.Priority,
                 startDate: request.StartDate,
                 dueDate: request.DueDate,
@@ -62,31 +69,18 @@ public class CreateTaskHandler(IDataBase db, WorkspaceContext context) : IComman
             await db.Tasks.AddAsync(task, ct);
 
             // Assignments
-            var assignees = new List<AssigneeDto>();
             if (request.AssigneeIds?.Any() == true)
             {
-                assignees = await HandleAssignments(task, ancestors.ProjectWorkspaceId, request.AssigneeIds, ct);
+                var memberIds = await db.WorkspaceMembers
+                    .Where(wm => wm.ProjectWorkspaceId == ancestors.ProjectWorkspaceId && request.AssigneeIds.Contains(wm.UserId))
+                    .Select(wm => wm.Id)
+                    .ToListAsync(ct);
+
+                var assignments = memberIds.Select(m => TaskAssignment.Create(task.Id, m, context.CurrentMember.Id)).ToList();
+                task.AddAsignees(assignments);
             }
 
-            return Result<TaskDto>.Success(new TaskDto(
-                task.Id,
-                task.ProjectWorkspaceId,
-                task.ProjectSpaceId,
-                task.ProjectFolderId,
-                task.Name,
-                task.DefaultDocumentId,
-                task.StatusId,
-                task.Priority,
-                task.StartDate,
-                task.DueDate,
-                task.StoryPoints,
-                task.TimeEstimateSeconds,
-                task.OrderKey,
-                task.CreatedAt,
-                assignees,
-                task.Icon,
-                task.Color
-            ));
+            return Result<Guid>.Success(task.Id);
         }, ct);
     }
 
@@ -102,39 +96,4 @@ public class CreateTaskHandler(IDataBase db, WorkspaceContext context) : IComman
         return maxKey is null ? FractionalIndex.Start() : FractionalIndex.After(maxKey);
     }
 
-    private async Task<Guid?> ResolveStatusId(Guid workspaceId, Guid? spaceId, Guid? requestedStatusId)
-    {
-        if (requestedStatusId.HasValue)
-        {
-            var isValid = await db.Connection.QuerySingleOrDefaultAsync<int>(@"
-                SELECT COUNT(1) FROM statuses s JOIN workflows w ON s.workflow_id = w.id
-                WHERE s.id = @Id AND w.project_workspace_id = @WorkspaceId AND s.deleted_at IS NULL",
-                new { Id = requestedStatusId.Value, WorkspaceId = workspaceId });
-            if (isValid > 0) return requestedStatusId;
-        }
-
-        return await db.Connection.QuerySingleOrDefaultAsync<Guid?>(@"
-            SELECT s.id FROM statuses s JOIN workflows w ON s.workflow_id = w.id
-            WHERE (w.project_space_id = @SpaceId OR (w.project_space_id IS NULL AND w.project_workspace_id = @WorkspaceId)) 
-              AND s.deleted_at IS NULL
-            ORDER BY w.project_space_id DESC, s.created_at ASC LIMIT 1", 
-            new { SpaceId = spaceId, WorkspaceId = workspaceId });
-    }
-
-    private async Task<List<AssigneeDto>> HandleAssignments(ProjectTask task, Guid workspaceId, List<Guid> userIds, CancellationToken ct)
-    {
-        var memberIds = await db.WorkspaceMembers
-            .Where(wm => wm.ProjectWorkspaceId == workspaceId && userIds.Contains(wm.UserId))
-            .Select(wm => wm.Id)
-            .ToListAsync(ct);
-
-        var assignments = memberIds.Select(memberId => TaskAssignment.Create(task.Id, memberId, context.CurrentMember.Id)).ToList();
-        task.AddAsignees(assignments);
-
-        var details = await db.Connection.QueryAsync<AssigneeDto>(@"
-            SELECT u.id AS Id, u.name AS Name, NULL AS AvatarUrl
-            FROM users u JOIN workspace_members wm ON wm.user_id = u.id
-            WHERE wm.id = ANY(@MemberIds)", new { MemberIds = memberIds.ToArray() });
-        return details.ToList();
-    }
 }

@@ -35,3 +35,14 @@ export interface EnrichedTaskDetailDto extends TaskDetailDto {
   members: any[];
   assignees: any[];
 }
+
+export interface CommentDto {
+  id: string;
+  content: string;
+  creatorId: string;
+  projectTaskId: string;
+  parentCommentId?: string;
+  isEdited: boolean;
+  createdAt: string;
+  updatedAt?: string;
+}

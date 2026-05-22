@@ -4,14 +4,21 @@ using Application.Interfaces.Data;
 using Dapper;
 
 using Application.Helpers;
+using Microsoft.Extensions.Caching.Hybrid;
 
 namespace Application.Features.WorkflowFeatures;
 
-public class GetWorkspaceWorkflowsHandler(IDataBase db, WorkspaceContext workspaceContext) : IQueryHandler<GetWorkspaceWorkflowsQuery, List<WorkflowDto>>
+public class GetWorkspaceWorkflowsHandler(IDataBase db, WorkspaceContext workspaceContext, HybridCache cache) : IQueryHandler<GetWorkspaceWorkflowsQuery, List<WorkflowDto>>
 {
     public async Task<Result<List<WorkflowDto>>> Handle(GetWorkspaceWorkflowsQuery request, CancellationToken ct)
     {
-        const string sql = @"
+        var cacheKey = $"Workflows-{workspaceContext.workspaceId}-{request.LayerType}-{request.LayerId}";
+        
+        var result = await cache.GetOrCreateAsync(
+            cacheKey,
+            async cancelToken =>
+            {
+                const string sql = @"
             SELECT 
                 w.id AS Id, w.name AS Name, w.project_space_id AS ProjectSpaceId, w.project_folder_id AS ProjectFolderId,
                 s.id AS Id, s.name AS Name, s.color AS Color, s.category AS Category, s.order_key AS OrderKey
@@ -50,6 +57,12 @@ public class GetWorkspaceWorkflowsHandler(IDataBase db, WorkspaceContext workspa
             },
             splitOn: "Id");
 
-        return Result<List<WorkflowDto>>.Success(workflowDict.Values.ToList());
+                return workflowDict.Values.ToList();
+            },
+            tags: [$"Workflows-{workspaceContext.workspaceId}"],
+            cancellationToken: ct
+        );
+
+        return Result<List<WorkflowDto>>.Success(result);
     }
 }

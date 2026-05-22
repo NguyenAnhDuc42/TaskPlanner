@@ -25,6 +25,7 @@ import { PriorityBadge } from "@/components/priority-badge";
 import { Priority } from "@/types/priority";
 import { StatusSelect } from "@/components/status-select";
 import { useTaskEditor } from "./task-editor-context";
+import { CommentSection } from "../../components/comments/comment-section";
 
 export function TaskDetailView() {
   const { registry } = useWorkspace();
@@ -205,6 +206,11 @@ export function TaskDetailView() {
               documentId={task.defaultDocumentId}
             />
           </div>
+        </div>
+
+        {/* --- COMMENTS AREA --- */}
+        <div className="pt-8">
+          <CommentSection taskId={task.id} />
         </div>
 
       </div>

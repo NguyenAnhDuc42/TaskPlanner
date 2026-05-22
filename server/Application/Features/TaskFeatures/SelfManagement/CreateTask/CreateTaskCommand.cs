@@ -17,7 +17,7 @@ public record CreateTaskCommand(
     long? TimeEstimate,
     string? Icon = null,
     string? Color = null
-) : ICommandRequest<TaskDto>, IAuthorizedWorkspaceRequest;
+) : ICommandRequest<Guid>, IAuthorizedWorkspaceRequest;
 
 public record TaskDto(
     Guid Id,

@@ -3,7 +3,7 @@ import { useMemo } from "react";
 import { api } from "@/lib/api-client";
 import { workspaceKeys } from "@/features/main/query-keys";
 import { useWorkspace } from "@/features/workspace/context/workspace-provider";
-import type { TaskDetailDto, UpdateTaskRequest } from "./task-types";
+import type { CommentDto, TaskDetailDto, UpdateTaskRequest } from "./task-types";
 
 export const taskQueryOptions = {
   detail: (workspaceId: string, taskId: string) => ({
@@ -87,6 +87,32 @@ export function useMoveTaskToStatus() {
       api.post(`/tasks/${data.taskId}/move-status`, data),
     onSuccess: () => {
       // SignalR will handle invalidation, but we can also invalidate here if needed
+    }
+  });
+}
+
+// --- Comments ---
+
+
+
+export function useTaskComments(taskId: string) {
+  return useQuery({
+    queryKey: [...workspaceKeys.all, "task", taskId, "comments"],
+    queryFn: async () => {
+      const { data } = await api.get<CommentDto[]>(`/tasks/${taskId}/comments`);
+      return data;
+    },
+    enabled: !!taskId,
+  });
+}
+
+export function useAddComment() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: { taskId: string; content: string; parentCommentId?: string }) => 
+      api.post(`/tasks/${data.taskId}/comments`, { content: data.content, parentCommentId: data.parentCommentId }),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: [...workspaceKeys.all, "task", variables.taskId, "comments"] });
     }
   });
 }

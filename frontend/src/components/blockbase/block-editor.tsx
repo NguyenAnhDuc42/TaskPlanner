@@ -18,7 +18,12 @@ import { cn } from "@/lib/utils";
 
 import { useBlockEditorSync } from "@/features/workspace/contents/layer-detail/hooks/useBlockEditorSync";
 import { IdExtension } from "@/features/workspace/contents/layer-detail/extensions/id-extension";
+import { SlashCommand, getSuggestionItems, renderSuggestion } from "./extensions/slash-command";
+import CodeBlockLowlight from '@tiptap/extension-code-block-lowlight';
+import { common, createLowlight } from 'lowlight';
 import React from "react";
+
+const lowlight = createLowlight(common);
 
 interface BlockEditorProps {
   documentId: string;
@@ -33,8 +38,20 @@ const EDITOR_STYLES = `
   .block-editor-styles .tiptap p {
     @apply my-1 transition-all duration-200 py-1 px-2 rounded-md hover:bg-foreground/[0.02];
   }
-  .block-editor-styles .tiptap h1, .block-editor-styles .tiptap h2 {
-    @apply mt-6 mb-2 px-2 transition-all duration-200 rounded-md hover:bg-foreground/[0.02];
+  .block-editor-styles .tiptap h1 {
+    @apply mt-6 mb-2 px-2 transition-all duration-200 rounded-md hover:bg-foreground/[0.02] text-2xl font-black tracking-tight;
+  }
+  .block-editor-styles .tiptap h2 {
+    @apply mt-6 mb-2 px-2 transition-all duration-200 rounded-md hover:bg-foreground/[0.02] text-xl font-bold tracking-tight;
+  }
+  .block-editor-styles .tiptap h3 {
+    @apply mt-4 mb-2 px-2 transition-all duration-200 rounded-md hover:bg-foreground/[0.02] text-lg font-semibold;
+  }
+  .block-editor-styles .tiptap ul:not([data-type="taskList"]) {
+    @apply list-disc list-inside my-2 px-2;
+  }
+  .block-editor-styles .tiptap ol {
+    @apply list-decimal list-inside my-2 px-2;
   }
   .block-editor-styles .tiptap ul[data-type="taskList"] {
     @apply list-none p-0;
@@ -50,6 +67,12 @@ const EDITOR_STYLES = `
   }
   .block-editor-styles .tiptap li[data-type="taskItem"] input[type="checkbox"] {
     @apply appearance-none h-4 w-4 rounded border border-border/60 checked:bg-primary checked:border-primary transition-all cursor-pointer relative after:content-[''] after:hidden checked:after:block after:absolute after:left-1 after:top-0.5 after:w-1.5 after:h-2.5 after:border-r-2 after:border-b-2 after:border-white after:rotate-45;
+  }
+  .block-editor-styles .tiptap pre {
+    @apply bg-[#0a0a0b] text-foreground/90 p-4 rounded-xl my-4 font-mono text-sm overflow-x-auto border border-border/20;
+  }
+  .block-editor-styles .tiptap pre code {
+    @apply bg-transparent p-0 text-inherit;
   }
 `;
 
@@ -232,7 +255,9 @@ export function BlockEditor({ documentId, placeholder }: BlockEditorProps) {
   }, [handleUpdate]);
   const editor = useEditor({
     extensions: [
-      StarterKit,
+      StarterKit.configure({
+        codeBlock: false,
+      }),
       IdExtension,
       Placeholder.configure({
         placeholder: placeholder || "Write something or type '/'...",
@@ -242,6 +267,15 @@ export function BlockEditor({ documentId, placeholder }: BlockEditorProps) {
       TaskList,
       TaskItem.configure({
         nested: true,
+      }),
+      CodeBlockLowlight.configure({
+        lowlight,
+      }),
+      SlashCommand.configure({
+        suggestion: {
+          items: getSuggestionItems,
+          render: renderSuggestion,
+        },
       }),
     ],
     content: "",

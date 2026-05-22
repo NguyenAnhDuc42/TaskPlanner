@@ -38,7 +38,9 @@ public static class PipelineDecorator
             var userId = currentUserService.CurrentUserId();
             var workspaceIdResult = workspaceContext.TryGetWorkspaceId();
             var workspaceId = workspaceIdResult.IsSuccess ? workspaceIdResult.Value : (Guid?)null;
+            var flowId = Guid.NewGuid().ToString("N")[..8];
 
+            using (LogContext.PushProperty("FlowId", flowId))
             using (LogContext.PushProperty("UserId", userId))
             using (LogContext.PushProperty("WorkspaceId", workspaceId))
             {
@@ -56,22 +58,31 @@ public static class PipelineDecorator
                         if (failures.Count > 0) return Result<TResponse>.Failure(Error.Validation("Request.ValidationFailed", string.Join(" | ", failures.Select(f => f.ErrorMessage))));
                     }
 
-                    // 3. Lazy Authorization
+                    // 3. Lazy Authorization with Caching
                     if (command is IAuthorizedWorkspaceRequest)
                     {
                         var db = serviceProvider.GetRequiredService<IDataBase>();
-                        var authResult = await AuthorizeInternalAsync(workspaceContext, userId, workspaceId, db, ct);
+                        var cache = serviceProvider.GetRequiredService<Microsoft.Extensions.Caching.Memory.IMemoryCache>();
+                        var authResult = await AuthorizeInternalAsync(workspaceContext, userId, workspaceId, db, cache, ct);
                         if (authResult is not null) return Result<TResponse>.Failure(authResult.Error!);
                     }
 
-                    // 4. Execution
-                    var result = await inner.Handle(command, ct);
+                    // 4. Execution with Transaction Safety
+                    // Automatically wraps handlers in Execution Strategy so retries and connection pools don't break transactions
+                    var db = serviceProvider.GetRequiredService<IDataBase>();
+                    var strategy = db.CreateExecutionStrategy();
+                    
+                    var result = await strategy.ExecuteAsync(async () => 
+                    {
+                        return await inner.Handle(command, ct);
+                    });
+
                     sw.Stop();
 
                     if (result.IsSuccess)
                         logger.LogInformation("Command {RequestName} executed successfully in {ElapsedMilliseconds}ms", requestName, sw.ElapsedMilliseconds);
                     else
-                        logger.LogError("Command {RequestName} failed in {ElapsedMilliseconds}ms: {Error}", requestName, sw.ElapsedMilliseconds, result.Error);
+                        logger.LogWarning("Command {RequestName} failed gracefully in {ElapsedMilliseconds}ms: {Error}", requestName, sw.ElapsedMilliseconds, result.Error);
 
                     return result;
                 }
@@ -100,7 +111,9 @@ public static class PipelineDecorator
             var userId = currentUserService.CurrentUserId();
             var workspaceIdResult = workspaceContext.TryGetWorkspaceId();
             var workspaceId = workspaceIdResult.IsSuccess ? workspaceIdResult.Value : (Guid?)null;
+            var flowId = Guid.NewGuid().ToString("N")[..8];
 
+            using (LogContext.PushProperty("FlowId", flowId))
             using (LogContext.PushProperty("UserId", userId))
             using (LogContext.PushProperty("WorkspaceId", workspaceId))
             {
@@ -120,17 +133,26 @@ public static class PipelineDecorator
                     if (command is IAuthorizedWorkspaceRequest)
                     {
                         var db = serviceProvider.GetRequiredService<IDataBase>();
-                        var authResult = await AuthorizeInternalAsync(workspaceContext, userId, workspaceId, db, ct);
+                        var cache = serviceProvider.GetRequiredService<Microsoft.Extensions.Caching.Memory.IMemoryCache>();
+                        var authResult = await AuthorizeInternalAsync(workspaceContext, userId, workspaceId, db, cache, ct);
                         if (authResult is not null) return authResult;
                     }
 
-                    var result = await inner.Handle(command, ct);
+                    // 4. Execution with Transaction Safety
+                    var db = serviceProvider.GetRequiredService<IDataBase>();
+                    var strategy = db.CreateExecutionStrategy();
+                    
+                    var result = await strategy.ExecuteAsync(async () => 
+                    {
+                        return await inner.Handle(command, ct);
+                    });
+                    
                     sw.Stop();
 
                     if (result.IsSuccess)
                         logger.LogInformation("Command {RequestName} executed successfully in {ElapsedMilliseconds}ms", requestName, sw.ElapsedMilliseconds);
                     else
-                        logger.LogError("Command {RequestName} failed in {ElapsedMilliseconds}ms: {Error}", requestName, sw.ElapsedMilliseconds, result.Error);
+                        logger.LogWarning("Command {RequestName} failed gracefully in {ElapsedMilliseconds}ms: {Error}", requestName, sw.ElapsedMilliseconds, result.Error);
 
                     return result;
                 }
@@ -159,7 +181,9 @@ public static class PipelineDecorator
             var userId = currentUserService.CurrentUserId();
             var workspaceIdResult = workspaceContext.TryGetWorkspaceId();
             var workspaceId = workspaceIdResult.IsSuccess ? workspaceIdResult.Value : (Guid?)null;
+            var flowId = Guid.NewGuid().ToString("N")[..8];
 
+            using (LogContext.PushProperty("FlowId", flowId))
             using (LogContext.PushProperty("UserId", userId))
             using (LogContext.PushProperty("WorkspaceId", workspaceId))
             {
@@ -179,7 +203,8 @@ public static class PipelineDecorator
                     if (query is IAuthorizedWorkspaceRequest)
                     {
                         var db = serviceProvider.GetRequiredService<IDataBase>();
-                        var authResult = await AuthorizeInternalAsync(workspaceContext, userId, workspaceId, db, ct);
+                        var cache = serviceProvider.GetRequiredService<Microsoft.Extensions.Caching.Memory.IMemoryCache>();
+                        var authResult = await AuthorizeInternalAsync(workspaceContext, userId, workspaceId, db, cache, ct);
                         if (authResult is not null) return Result<TResponse>.Failure(authResult.Error!);
                     }
 
@@ -203,7 +228,7 @@ public static class PipelineDecorator
         }
     }
 
-    private static async Task<Result?> AuthorizeInternalAsync(WorkspaceContext workspaceContext, Guid userId, Guid? workspaceId, IDataBase db, CancellationToken ct)
+    private static async Task<Result?> AuthorizeInternalAsync(WorkspaceContext workspaceContext, Guid userId, Guid? workspaceId, IDataBase db, Microsoft.Extensions.Caching.Memory.IMemoryCache cache, CancellationToken ct)
     {
         if (!workspaceId.HasValue) 
             return Result.Failure(Error.Validation("Workspace.Required", "Workspace context is required for this request."));
@@ -211,10 +236,16 @@ public static class PipelineDecorator
         if (workspaceContext.CurrentMember != null && workspaceContext.CurrentMember.UserId == userId)
             return null;
 
-        var member = await db.WorkspaceMembers
-            .AsNoTracking()
-            .ByMember(workspaceId.Value, userId)
-            .FirstOrDefaultAsync(ct);
+        var cacheKey = $"Auth_Member_{workspaceId.Value}_{userId}";
+        
+        var member = await cache.GetOrCreateAsync(cacheKey, async entry => 
+        {
+            entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(5);
+            return await db.WorkspaceMembers
+                .AsNoTracking()
+                .ByMember(workspaceId.Value, userId)
+                .FirstOrDefaultAsync(ct);
+        });
 
         if (member == null)
             return Result.Failure(MemberError.DontHavePermission);

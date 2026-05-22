@@ -8,7 +8,6 @@ public record UpdateFolderCommand(
     string? Name,
     string? Color,
     string? Icon,
-    bool? IsPrivate,
     DateTimeOffset? StartDate = null,
     DateTimeOffset? DueDate = null,
     Guid? StatusId = null,

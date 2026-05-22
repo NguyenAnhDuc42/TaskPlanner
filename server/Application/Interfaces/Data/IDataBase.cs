@@ -28,8 +28,8 @@ public interface IDataBase
     DbSet<PasswordResetToken> PasswordResetTokens { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
-
-    Microsoft.EntityFrameworkCore.Storage.IExecutionStrategy CreateExecutionStrategy();
+    DatabaseFacade Database { get; }
+    IExecutionStrategy CreateExecutionStrategy();
 
     Task BeginTransactionAsync(CancellationToken cancellationToken = default);
     Task CommitTransactionAsync(CancellationToken cancellationToken = default);

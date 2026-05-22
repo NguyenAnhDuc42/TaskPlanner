@@ -81,82 +81,33 @@ public sealed class ProjectFolder : TenantEntity
         SoftDelete();
     }
 
-    public void UpdateName(string name)
+    public void Update(
+        string? name = null,
+        string? slug = null,
+        string? color = null,
+        string? icon = null,
+        bool? isPrivate = null,
+        DateTimeOffset? startDate = null,
+        DateTimeOffset? dueDate = null,
+        Guid? statusId = null,
+        Priority? priority = null,
+        string? orderKey = null)
     {
         EnsureNotArchived();
-        Name = name;
-        UpdateTimestamp();
-    }
+        bool updated = false;
 
-    public void UpdateSlug(string slug)
-    {
-        EnsureNotArchived();
-        if (Slug == slug) return;
-        Slug = slug;
-        UpdateTimestamp();
-    }
+        if (name != null && Name != name) { Name = name; updated = true; }
+        if (slug != null && Slug != slug) { Slug = slug; updated = true; }
+        if (color != null && Color != color) { Color = color; updated = true; }
+        if (icon != null && Icon != icon) { Icon = icon; updated = true; }
+        if (isPrivate != null && IsPrivate != isPrivate) { IsPrivate = isPrivate.Value; updated = true; }
+        if (startDate != null && StartDate != startDate) { StartDate = startDate; updated = true; }
+        if (dueDate != null && DueDate != dueDate) { DueDate = dueDate; updated = true; }
+        if (statusId != null && StatusId != statusId) { StatusId = statusId; updated = true; }
+        if (priority != null && Priority != priority) { Priority = priority; updated = true; }
+        if (orderKey != null && OrderKey != orderKey) { OrderKey = orderKey; updated = true; }
 
-    public void UpdateColor(string color)
-    {
-        EnsureNotArchived();
-        if (Color == color) return;
-        Color = color;
-        UpdateTimestamp();
-    }
-
-    public void UpdateIcon(string? icon)
-    {
-        EnsureNotArchived();
-        if (Icon == icon) return;
-        Icon = icon;
-        UpdateTimestamp();
-    }
-
-    public void UpdateStartDate(DateTimeOffset? startDate)
-    {
-        EnsureNotArchived();
-        if (StartDate == startDate) return;
-        StartDate = startDate;
-        UpdateTimestamp();
-    }
-    public void UpdateDueDate(DateTimeOffset? dueDate)
-    {
-        EnsureNotArchived();
-        if (DueDate == dueDate) return;
-        DueDate = dueDate;
-        UpdateTimestamp();
-    }
-
-    public void UpdatePrivate(bool isPrivate)
-    {
-        EnsureNotArchived();
-        if (IsPrivate == isPrivate) return;
-        IsPrivate = isPrivate;
-        UpdateTimestamp();
-    }
-
-    public void UpdateOrderKey(string orderKey)
-    {
-        EnsureNotArchived();
-        if (OrderKey == orderKey) return;
-        OrderKey = orderKey;
-        UpdateTimestamp();
-    }
-
-    public void UpdateStatus(Guid? statusId)
-    {
-        EnsureNotArchived();
-        if (StatusId == statusId) return;
-        StatusId = statusId;
-        UpdateTimestamp();
-    }
-
-    public void UpdatePriority(Priority? priority)
-    {
-        EnsureNotArchived();
-        if (Priority == priority) return;
-        Priority = priority;
-        UpdateTimestamp();
+        if (updated) UpdateTimestamp();
     }
 
     public void Archive()

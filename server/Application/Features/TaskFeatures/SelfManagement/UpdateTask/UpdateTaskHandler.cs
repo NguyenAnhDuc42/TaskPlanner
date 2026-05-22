@@ -7,7 +7,6 @@ using Domain.Entities;
 using Domain.Enums;
 using Microsoft.EntityFrameworkCore;
 using Application.Interfaces;
-using Dapper;
 
 namespace Application.Features.TaskFeatures;
 
@@ -21,11 +20,9 @@ public class UpdateTaskHandler(IDataBase db, WorkspaceContext context, IRealtime
 
         if (task == null) return Result.Failure(TaskError.NotFound);
 
-        ApplyBasicDetails(task, request);
-        await ApplyStatusUpdate(task, request, ct);
-        ApplyPriorityUpdate(task, request);
-        ApplyDateUpdate(task, request);
-        ApplyEstimationUpdate(task, request);
+        var statusUpdateResult = await ApplyStatusAndUpdateProperties(task, request, ct);
+        if (!statusUpdateResult.IsSuccess) return statusUpdateResult;
+
         await ApplyAssigneeUpdate(task, request, ct);
 
         await db.SaveChangesAsync(ct);
@@ -47,53 +44,34 @@ public class UpdateTaskHandler(IDataBase db, WorkspaceContext context, IRealtime
         return Result.Success();
     }
 
-    private static void ApplyBasicDetails(ProjectTask task, UpdateTaskCommand request)
+    private async Task<Result> ApplyStatusAndUpdateProperties(ProjectTask task, UpdateTaskCommand request, CancellationToken ct)
     {
-        if (request.Name != null)
+        var slug = request.Name != null ? SlugHelper.GenerateSlug(request.Name) : null;
+        
+        task.Update(
+            name: request.Name,
+            slug: slug,
+            color: request.Color,
+            icon: request.Icon,
+            priority: request.Priority,
+            startDate: request.StartDate,
+            dueDate: request.DueDate,
+            storyPoints: request.StoryPoints,
+            timeEstimateSeconds: request.TimeEstimate
+        );
+
+        if (request.StatusId.HasValue && request.StatusId.Value != task.StatusId)
         {
-            task.UpdateName(request.Name);
-            task.UpdateSlug(SlugHelper.GenerateSlug(request.Name));
+            var isValid = await db.Statuses
+                .AnyAsync(s => s.Id == request.StatusId.Value && s.Workflow.ProjectWorkspaceId == task.ProjectWorkspaceId, ct);
+
+            if (!isValid)
+                return Result.Failure(Error.Validation("Task.InvalidStatus", "The requested status does not exist or does not belong to this workspace."));
+
+            task.Update(statusId: request.StatusId.Value);
         }
-        if (request.Icon != null)
-        {
-            task.UpdateIcon(request.Icon);
-        }
-        if (request.Color != null)
-        {
-            task.UpdateColor(request.Color);
-        }
-    }
 
-    private async Task ApplyStatusUpdate(ProjectTask task, UpdateTaskCommand request, CancellationToken ct)
-    {
-        if (!request.StatusId.HasValue || request.StatusId.Value == task.StatusId) return;
-
-        var isValid = await db.Connection.QuerySingleOrDefaultAsync<int>(@"
-            SELECT COUNT(1) 
-            FROM   statuses s
-            JOIN   workflows w ON s.workflow_id = w.id
-            WHERE  s.id = @Id 
-              AND  w.project_workspace_id = @WorkspaceId 
-              AND  s.deleted_at IS NULL", new { Id = request.StatusId.Value, WorkspaceId = task.ProjectWorkspaceId });
-
-        if (isValid > 0) task.UpdateStatus(request.StatusId.Value);
-    }
-
-    private static void ApplyPriorityUpdate(ProjectTask task, UpdateTaskCommand request)
-    {
-        if (request.Priority.HasValue) task.UpdatePriority(request.Priority.Value);
-    }
-
-    private static void ApplyDateUpdate(ProjectTask task, UpdateTaskCommand request)
-    {
-        if (request.StartDate.HasValue) task.UpdateStartDate(request.StartDate.Value);
-        if (request.DueDate.HasValue) task.UpdateDueDate(request.DueDate.Value);
-    }
-
-    private static void ApplyEstimationUpdate(ProjectTask task, UpdateTaskCommand request)
-    {
-        if (request.StoryPoints.HasValue) task.UpdateStoryPoints(request.StoryPoints.Value);
-        if (request.TimeEstimate.HasValue) task.UpdateTimeEstimate(request.TimeEstimate.Value);
+        return Result.Success();
     }
 
     private async Task ApplyAssigneeUpdate(ProjectTask task, UpdateTaskCommand request, CancellationToken ct)

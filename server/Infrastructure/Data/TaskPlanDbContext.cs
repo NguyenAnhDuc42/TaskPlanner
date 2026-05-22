@@ -2,14 +2,21 @@ using Microsoft.EntityFrameworkCore;
 using System.Reflection; 
 using Domain.Entities;
 using Domain.Common;
+using Microsoft.AspNetCore.Http;
 
 namespace Infrastructure.Data;
 
 public class TaskPlanDbContext : DbContext
 {
-    public TaskPlanDbContext(DbContextOptions<TaskPlanDbContext> options) : base(options)
+    private readonly IHttpContextAccessor? _httpContextAccessor;
+
+    public TaskPlanDbContext(DbContextOptions<TaskPlanDbContext> options, IHttpContextAccessor? httpContextAccessor = null) : base(options)
     {
+        _httpContextAccessor = httpContextAccessor;
     }
+
+    // Dynamic Tenant ID from current HTTP Request
+    public Guid? CurrentTenantId => _httpContextAccessor?.HttpContext?.Items["WorkspaceId"] as Guid?;
 
     // DbSet properties for entities
     public DbSet<User> Users { get; set; }
@@ -40,7 +47,28 @@ public class TaskPlanDbContext : DbContext
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.ApplyConfigurationsFromAssembly(Assembly.GetExecutingAssembly());
+
+        // Global Query Filters for RLS (Row-Level Security & Tenant Isolation)
+        foreach (var entityType in modelBuilder.Model.GetEntityTypes())
+        {
+            if (typeof(ITenanted).IsAssignableFrom(entityType.ClrType))
+            {
+                var method = typeof(TaskPlanDbContext)
+                    .GetMethod(nameof(ApplyTenantFilter), BindingFlags.NonPublic | BindingFlags.Instance)
+                    ?.MakeGenericMethod(entityType.ClrType);
+
+                method?.Invoke(this, new object[] { modelBuilder });
+            }
+        }
+
         base.OnModelCreating(modelBuilder);
+    }
+
+    private void ApplyTenantFilter<T>(ModelBuilder modelBuilder) where T : class, ITenanted
+    {
+        // Enforce that a query only returns data for the active WorkspaceId. 
+        // If CurrentTenantId is null (e.g. background jobs, migrations), the filter is bypassed.
+        modelBuilder.Entity<T>().HasQueryFilter(e => CurrentTenantId == null || e.ProjectWorkspaceId == CurrentTenantId);
     }
 
     protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder)

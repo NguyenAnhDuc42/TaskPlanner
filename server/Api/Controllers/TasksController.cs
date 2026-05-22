@@ -20,7 +20,7 @@ public class TasksController : ControllerBase
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] CreateTaskCommand command, CancellationToken ct)
     {
-        var result = await _handler.SendAsync<CreateTaskCommand, TaskDto>(command, ct);
+        var result = await _handler.SendAsync<CreateTaskCommand, Guid>(command, ct);
         return result.ToActionResult();
     }
 
@@ -53,21 +53,7 @@ public class TasksController : ControllerBase
         return result.ToActionResult();
     }
 
-    [HttpPost("{id:guid}/move-status")]
-    public async Task<IActionResult> MoveStatus(Guid id, [FromBody] MoveTaskToStatusRequest request, CancellationToken ct)
-    {
-        var command = new MoveTaskToStatusCommand(
-            TaskId: id,
-            TargetStatusId: request.TargetStatusId,
-            PreviousItemOrderKey: request.PreviousItemOrderKey,
-            NextItemOrderKey: request.NextItemOrderKey,
-            NewOrderKey: request.NewOrderKey,
-            NewPriority: request.NewPriority
-        );
 
-        var result = await _handler.SendAsync(command, ct);
-        return result.ToActionResult();
-    }
 
     [HttpDelete("{id:guid}")]
     public async Task<IActionResult> Delete(Guid id, CancellationToken ct)
@@ -94,6 +80,20 @@ public class TasksController : ControllerBase
             new GetTaskAssigneeCandidatesQuery(taskId, search, limit), ct);
         return result.ToActionResult();
     }
+
+    [HttpGet("{id:guid}/comments")]
+    public async Task<IActionResult> GetComments(Guid id, CancellationToken ct)
+    {
+        var result = await _handler.QueryAsync<GetCommentsQuery, List<CommentDto>>(new GetCommentsQuery(id), ct);
+        return result.ToActionResult();
+    }
+
+    [HttpPost("{id:guid}/comments")]
+    public async Task<IActionResult> AddComment(Guid id, [FromBody] AddCommentRequest request, CancellationToken ct)
+    {
+        var result = await _handler.SendAsync<AddCommentCommand, CommentDto>(new AddCommentCommand(id, request.Content, request.ParentCommentId), ct);
+        return result.ToActionResult();
+    }
 }
 
 public record UpdateTaskRequest(
@@ -109,10 +109,4 @@ public record UpdateTaskRequest(
     string? Color
 );
 
-public record MoveTaskToStatusRequest(
-    Guid? TargetStatusId,
-    string? PreviousItemOrderKey,
-    string? NextItemOrderKey,
-    string? NewOrderKey = null,
-    Priority? NewPriority = null
-);
+

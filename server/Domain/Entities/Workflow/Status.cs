@@ -73,37 +73,21 @@ public class Status : TenantEntity
         };
     }
 
-    public void UpdateName(string name)
+    public void Update(
+        string? name = null,
+        string? color = null,
+        StatusCategory? category = null,
+        string? orderKey = null,
+        Guid? workflowId = null)
     {
-        Name = name;
-        UpdateTimestamp();
-    }
+        bool updated = false;
 
-    public void UpdateColor(string color)
-    {
-        if (Color == color) return;
-        Color = color;
-        UpdateTimestamp();
-    }
+        if (name != null && Name != name) { Name = name; updated = true; }
+        if (color != null && Color != color) { Color = color; updated = true; }
+        if (category != null && Category != category) { Category = category.Value; updated = true; }
+        if (orderKey != null && OrderKey != orderKey) { OrderKey = orderKey; updated = true; }
+        if (workflowId != null && WorkflowId != workflowId) { WorkflowId = workflowId.Value; updated = true; }
 
-    public void UpdateCategory(StatusCategory category)
-    {
-        if (Category == category) return;
-        Category = category;
-        UpdateTimestamp();
-    }
-
-    public void UpdateOrderKey(string orderKey)
-    {
-        if (OrderKey == orderKey) return;
-        OrderKey = orderKey;
-        UpdateTimestamp();
-    }
-
-    public void SetWorkflow(Guid workflowId)
-    {
-        if (WorkflowId == workflowId) return;
-        WorkflowId = workflowId;
-        UpdateTimestamp();
+        if (updated) UpdateTimestamp();
     }
 }

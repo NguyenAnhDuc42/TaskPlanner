@@ -40,7 +40,6 @@ public class FoldersController : ControllerBase
             Name: request.Name,
             Color: request.Color,
             Icon: request.Icon,
-            IsPrivate: request.IsPrivate,
             StartDate: request.StartDate,
             DueDate: request.DueDate,
             StatusId: request.StatusId,
@@ -51,21 +50,7 @@ public class FoldersController : ControllerBase
         return result.ToActionResult();
     }
 
-    [HttpPost("{id:guid}/move-status")]
-    public async Task<IActionResult> MoveStatus(Guid id, [FromBody] MoveFolderToStatusRequest request, CancellationToken ct)
-    {
-        var command = new MoveFolderToStatusCommand(
-            FolderId: id,
-            TargetStatusId: request.TargetStatusId,
-            PreviousItemOrderKey: request.PreviousItemOrderKey,
-            NextItemOrderKey: request.NextItemOrderKey,
-            NewOrderKey: request.NewOrderKey,
-            NewPriority: request.NewPriority
-        );
 
-        var result = await _handler.SendAsync(command, ct);
-        return result.ToActionResult();
-    }
 
     [HttpDelete("{id:guid}")]
     public async Task<IActionResult> Delete(Guid id, CancellationToken ct)
@@ -86,17 +71,10 @@ public record UpdateFolderRequest(
     string? Name,
     string? Color,
     string? Icon,
-    bool? IsPrivate,
     DateTimeOffset? StartDate,
     DateTimeOffset? DueDate,
     Guid? StatusId,
     Priority? Priority
 );
 
-public record MoveFolderToStatusRequest(
-    Guid? TargetStatusId,
-    string? PreviousItemOrderKey,
-    string? NextItemOrderKey,
-    string? NewOrderKey = null,
-    Priority? NewPriority = null
-);
+

@@ -18,26 +18,28 @@ public class UpdateFolderHandler(IDataBase db, WorkspaceContext context, IRealti
         if (folder == null) 
             return Result.Failure(FolderError.NotFound);
 
-        if (request.Name is not null)
+        var slug = request.Name != null ? SlugHelper.GenerateSlug(request.Name) : null;
+
+        folder.Update(
+            name: request.Name,
+            slug: slug,
+            color: request.Color,
+            icon: request.Icon,
+            startDate: request.StartDate,
+            dueDate: request.DueDate,
+            priority: request.Priority
+        );
+
+        if (request.StatusId.HasValue && request.StatusId.Value != folder.StatusId)
         {
-            folder.UpdateName(request.Name);
-            folder.UpdateSlug(SlugHelper.GenerateSlug(request.Name));
+            var isValid = await db.Statuses
+                .AnyAsync(s => s.Id == request.StatusId.Value && s.Workflow.ProjectWorkspaceId == folder.ProjectWorkspaceId, ct);
+
+            if (!isValid)
+                return Result.Failure(Error.Validation("Folder.InvalidStatus", "The requested status does not exist or does not belong to this workspace."));
+
+            folder.Update(statusId: request.StatusId.Value);
         }
-
-        if (request.Color is not null) folder.UpdateColor(request.Color);
-        if (request.Icon is not null) folder.UpdateIcon(request.Icon);
-
-        if (request.IsPrivate.HasValue) 
-            folder.UpdatePrivate(request.IsPrivate.Value);
-
-        if (request.StartDate != null) folder.UpdateStartDate(request.StartDate.Value);
-        if (request.DueDate != null) folder.UpdateDueDate(request.DueDate.Value);
-        
-        if (request.StatusId.HasValue)
-            folder.UpdateStatus(request.StatusId.Value);
-
-        if (request.Priority.HasValue)
-            folder.UpdatePriority(request.Priority.Value);
 
         await db.SaveChangesAsync(ct);
 
@@ -50,7 +52,6 @@ public class UpdateFolderHandler(IDataBase db, WorkspaceContext context, IRealti
             Color = folder.Color,
             StatusId = folder.StatusId,
             Priority = folder.Priority,
-            IsPrivate = folder.IsPrivate,
             StartDate = folder.StartDate,
             DueDate = folder.DueDate
         }, ct);

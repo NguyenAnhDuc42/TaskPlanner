@@ -103,77 +103,29 @@ public sealed class ProjectWorkspace : Entity
         }
     }
 
-    public void TransferOwnership(Guid newOwnerId, Guid actorId)
-    {
-        EnsureNotArchived();
-
-        if (CreatorId == newOwnerId) return;
-
-        var newOwnerMember = _members.FirstOrDefault(m => m.UserId == newOwnerId);
-        if (newOwnerMember == null || newOwnerMember.Status != MembershipStatus.Active)
-        {
-            throw new MembershipException("New owner must be an active member of the workspace.");
-        }
-
-        // We can't easily "transfer" CreatorId
-        // but we can update the ownership role.
-        
-        newOwnerMember.UpdateRole(Role.Owner);
-        var currentOwnerMember = _members.FirstOrDefault(m => m.UserId == CreatorId);
-        currentOwnerMember?.UpdateRole(Role.Admin);
-
-        UpdateTimestamp();
-    }
-
     #endregion
 
     #region Update Methods
 
-    public void UpdateName(string name)
+    public void Update(
+        string? name = null,
+        string? slug = null,
+        string? description = null,
+        string? color = null,
+        string? icon = null,
+        bool? strictJoin = null)
     {
         EnsureNotArchived();
-        Name = name;
-        UpdateTimestamp();
-    }
+        bool updated = false;
 
-    public void UpdateSlug(string slug)
-    {
-        EnsureNotArchived();
-        if (Slug == slug) return;
-        Slug = slug;
-        UpdateTimestamp();
-    }
+        if (name != null && Name != name) { Name = name; updated = true; }
+        if (slug != null && Slug != slug) { Slug = slug; updated = true; }
+        if (description != null && Description != description) { Description = description; updated = true; }
+        if (color != null && Color != color) { Color = color; updated = true; }
+        if (icon != null && Icon != icon) { Icon = icon; updated = true; }
+        if (strictJoin != null && StrictJoin != strictJoin) { StrictJoin = strictJoin.Value; updated = true; }
 
-    public void UpdateDescription(string description)
-    {
-        EnsureNotArchived();
-        Description = description;
-        UpdateTimestamp();
-    }
-
-    public void UpdateColor(string color)
-    {
-        EnsureNotArchived();
-        if (Color == color) return;
-        Color = color;
-        UpdateTimestamp();
-    }
-
-    public void UpdateIcon(string? icon)
-    {
-        EnsureNotArchived();
-        if (Icon == icon) return;
-        Icon = icon;
-        UpdateTimestamp();
-    }
-
-
-    public void UpdateStrictJoin(bool strictJoin)
-    {
-        EnsureNotArchived();
-        if (StrictJoin == strictJoin) return;
-        StrictJoin = strictJoin;
-        UpdateTimestamp();
+        if (updated) UpdateTimestamp();
     }
 
     public void Delete()
