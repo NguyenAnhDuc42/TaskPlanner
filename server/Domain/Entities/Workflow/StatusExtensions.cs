@@ -1,6 +1,6 @@
 using System.Linq;
 
-namespace Domain.Entities;
+namespace Domain;
 
 public static class StatusExtensions
 {
@@ -13,3 +13,4 @@ public static class StatusExtensions
     public static IQueryable<Status> WhereNotDeleted(this IQueryable<Status> query) => 
         query.Where(s => s.DeletedAt == null);
 }
+

@@ -1,8 +1,5 @@
-using Application.Common.Interfaces;
 using System.Collections.Generic;
-using Domain.Enums;
-
-namespace Application.Features.WorkspaceFeatures;
+namespace Application;
 
 public record CreateWorkspaceCommand(
     string Name,
@@ -12,3 +9,4 @@ public record CreateWorkspaceCommand(
     Theme Theme,
     bool StrictJoin
 ) : ICommandRequest<Guid>;
+

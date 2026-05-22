@@ -1,6 +1,6 @@
 using System.Linq;
 
-namespace Domain.Entities;
+namespace Domain;
 
 public static class SpaceExtensions
 {
@@ -23,3 +23,4 @@ public static class SpaceExtensions
     public static IQueryable<ProjectSpace> BySlug(this IQueryable<ProjectSpace> query, string slug) => 
         query.Where(space => space.Slug == slug.ToLower().Trim());
 }
+

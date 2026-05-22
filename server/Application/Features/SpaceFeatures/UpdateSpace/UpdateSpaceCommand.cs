@@ -1,9 +1,5 @@
 using System;
-using Application.Common.Interfaces;
-using Domain.Enums.RelationShip;
-
-
-namespace Application.Features.SpaceFeatures;
+namespace Application;
 
 public record UpdateSpaceCommand(
     Guid SpaceId,
@@ -12,3 +8,4 @@ public record UpdateSpaceCommand(
     string? Icon,
     bool? IsPrivate
 ) : ICommandRequest, IAuthorizedWorkspaceRequest;
+

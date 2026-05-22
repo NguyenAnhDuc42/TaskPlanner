@@ -1,4 +1,4 @@
-namespace Application.Features.TaskFeatures;
+namespace Application;
 
 public static class GetTaskAssigneeCandidatesSQL
 {
@@ -21,3 +21,4 @@ public static class GetTaskAssigneeCandidatesSQL
         ORDER BY u.name
         LIMIT @Limit";
 }
+

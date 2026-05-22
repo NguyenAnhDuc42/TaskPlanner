@@ -1,13 +1,10 @@
-using Application.Features.DocumentFeatures;
-using Application.Common.Interfaces;
 using Microsoft.AspNetCore.Mvc;
-using Api.Extensions;
 using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Api.Controllers;
+namespace Api;
 
 [Route("api/documents")]
 [ApiController]
@@ -36,3 +33,5 @@ public class DocumentsController : ControllerBase
         return result.ToActionResult();
     }
 }
+
+

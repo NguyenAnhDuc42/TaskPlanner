@@ -1,8 +1,4 @@
-using Domain.Common;
-using Domain.Enums;
-using Domain.Enums.RelationShip;
-
-namespace Domain.Entities;
+namespace Domain;
 
 public class Status : TenantEntity
 {
@@ -91,3 +87,5 @@ public class Status : TenantEntity
         if (updated) UpdateTimestamp();
     }
 }
+
+

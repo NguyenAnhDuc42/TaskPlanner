@@ -1,9 +1,6 @@
-using Domain.Common;
-using Domain.Enums;
-using Domain.Enums.RelationShip;
 using System.Collections.Generic;
 
-namespace Domain.Entities;
+namespace Domain;
 
 public class ViewDefinition : TenantEntity
 {
@@ -92,3 +89,5 @@ public class ViewDefinition : TenantEntity
         UpdateTimestamp();
     }
 }
+
+

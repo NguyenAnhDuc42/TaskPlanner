@@ -1,4 +1,4 @@
-namespace Domain.Enums;
+namespace Domain;
 
 public enum OutboxState
 {
@@ -6,3 +6,4 @@ public enum OutboxState
     Sent,
     DeadLetter
 }
+

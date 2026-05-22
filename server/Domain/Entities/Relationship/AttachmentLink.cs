@@ -1,7 +1,4 @@
-using Domain.Common;
-using Domain.Enums;
-
-namespace Domain.Entities;
+namespace Domain;
 
 public class AttachmentLink : Entity
 {
@@ -30,3 +27,4 @@ public class AttachmentLink : Entity
         return new AttachmentLink(attachmentId, projectSpaceId, projectFolderId, projectTaskId, commentId, creatorId);
     }
 }
+

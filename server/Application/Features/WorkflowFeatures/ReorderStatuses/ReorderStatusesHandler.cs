@@ -1,15 +1,7 @@
-using Application.Common.Errors;
-using Application.Common.Interfaces;
-using Application.Common.Results;
-using Application.Helpers;
-using Application.Interfaces.Data;
-using Domain.Enums;
 using Microsoft.EntityFrameworkCore;
-using Application.Interfaces;
+namespace Application;
 
-namespace Application.Features.WorkflowFeatures;
-
-public class ReorderStatusesHandler(IDataBase db, WorkspaceContext context, IRealtimeService realtime) : ICommandHandler<ReorderStatusesCommand>
+public class ReorderStatusesHandler(TaskPlanDbContext db, WorkspaceContext context, RealtimeService realtime) : ICommandHandler<ReorderStatusesCommand>
 {
     public async Task<Result> Handle(ReorderStatusesCommand request, CancellationToken ct)
     {
@@ -59,3 +51,6 @@ public class ReorderStatusesHandler(IDataBase db, WorkspaceContext context, IRea
         return maxKey is null ? FractionalIndex.Start() : FractionalIndex.After(maxKey);
     }
 }
+
+
+

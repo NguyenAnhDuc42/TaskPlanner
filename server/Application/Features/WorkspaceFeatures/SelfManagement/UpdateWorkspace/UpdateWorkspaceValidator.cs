@@ -1,7 +1,5 @@
 using FluentValidation;
-using Application.Helpers;
-
-namespace Application.Features.WorkspaceFeatures;
+namespace Application;
 
 public class UpdateWorkspaceValidator : AbstractValidator<UpdateWorkspaceCommand>
 {
@@ -27,3 +25,4 @@ public class UpdateWorkspaceValidator : AbstractValidator<UpdateWorkspaceCommand
             .When(x => !string.IsNullOrWhiteSpace(x.Icon)); // Only run if Icon was provided
     }
 }
+

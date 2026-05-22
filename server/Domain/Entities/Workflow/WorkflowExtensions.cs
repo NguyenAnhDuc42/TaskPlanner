@@ -1,6 +1,6 @@
 using System.Linq;
 
-namespace Domain.Entities;
+namespace Domain;
 
 public static class WorkflowExtensions
 {

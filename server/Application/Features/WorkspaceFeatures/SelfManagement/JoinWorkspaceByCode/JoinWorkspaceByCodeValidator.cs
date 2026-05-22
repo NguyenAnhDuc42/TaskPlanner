@@ -1,6 +1,6 @@
 using FluentValidation;
 
-namespace Application.Features.WorkspaceFeatures;
+namespace Application;
 
 public class JoinWorkspaceByCodeValidator : AbstractValidator<JoinWorkspaceByCodeCommand>
 {
@@ -11,4 +11,5 @@ public class JoinWorkspaceByCodeValidator : AbstractValidator<JoinWorkspaceByCod
             .MaximumLength(32).WithMessage("Join code is too long.");
     }
 }
+
 

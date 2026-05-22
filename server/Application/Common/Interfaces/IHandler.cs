@@ -1,7 +1,4 @@
-using Application.Common.Results;
-using Application.Common.Interfaces;
-
-namespace Application.Common.Interfaces;
+namespace Application;
 
 public interface IHandler
 {
@@ -14,3 +11,5 @@ public interface IHandler
     Task<Result<TResponse>> QueryAsync<TQuery, TResponse>(TQuery query, CancellationToken ct = default) 
         where TQuery : IQueryRequest<TResponse>;
 }
+
+

@@ -1,18 +1,13 @@
-using Application.Common.Errors;
-using Application.Common.Results;
-using Application.Interfaces.Data;
-using Application.Interfaces;
-using Domain.Entities;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 
-namespace Application.Features.Auth;
+namespace Application;
 
 public class LoginHandler(
-    IDataBase db, 
-    IPasswordService passwordService, 
-    ITokenService tokenService, 
-    ICookieService cookieService, 
+    TaskPlanDbContext db, 
+    PasswordService passwordService, 
+    TokenService tokenService, 
+    CookieService cookieService, 
     IHttpContextAccessor httpContextAccessor
 ) : ICommandHandler<LoginCommand, LoginResponse>
 {
@@ -41,3 +36,6 @@ public class LoginHandler(
         ));
     }
 }
+
+
+

@@ -1,5 +1,5 @@
-using Application.Common.Interfaces;
-
-namespace Application.Features.Auth;
+namespace Application;
 
 public record ResetPasswordCommand(string Token, string NewPassword) : ICommandRequest;
+
+

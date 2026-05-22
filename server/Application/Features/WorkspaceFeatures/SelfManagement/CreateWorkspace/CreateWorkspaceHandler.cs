@@ -1,20 +1,11 @@
-using Application.Common.Errors;
-using Application.Common.Interfaces;
-using Application.Common.Results;
-using Application.Helpers;
-using Application.Interfaces.Data;
-using Domain.Entities;
-using Domain.Enums;
 using Microsoft.Extensions.Caching.Hybrid;
-using Application.Interfaces;
-
-namespace Application.Features.WorkspaceFeatures;
+namespace Application;
 
 public class CreateWorkspaceHandler(
-    IDataBase db, 
-    ICurrentUserService currentUserService, 
+    TaskPlanDbContext db, 
+    CurrentUserService currentUserService, 
     HybridCache cache, 
-    IRealtimeService realtime,
+    RealtimeService realtime,
     WorkspaceService workspaceService
 ) : ICommandHandler<CreateWorkspaceCommand, Guid>
 {
@@ -37,7 +28,7 @@ public class CreateWorkspaceHandler(
             strictJoin: request.StrictJoin
         );
         
-        await db.Workspaces.AddAsync(workspace, ct);
+        await db.ProjectWorkspaces.AddAsync(workspace, ct);
         await db.SaveChangesAsync(ct);
 
         // 2. Clear Cache
@@ -52,3 +43,6 @@ public class CreateWorkspaceHandler(
         return Result<Guid>.Success(workspace.Id);
     }
 }
+
+
+

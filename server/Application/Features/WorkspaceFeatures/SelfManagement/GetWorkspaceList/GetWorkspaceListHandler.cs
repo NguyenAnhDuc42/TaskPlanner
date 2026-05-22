@@ -1,31 +1,23 @@
+using Microsoft.EntityFrameworkCore;
 using System.Text.Json;
-using Application.Common.Filters;
-using Application.Common.Results;
-using Application.Common.Errors;
-using Application.Helper;
-using Application.Helpers;
-using Application.Interfaces;
-using Application.Interfaces.Data;
-using Domain.Enums;
-using Domain.Enums.RelationShip;
-using Dapper;
+using System.Text.Json;
 using Microsoft.Extensions.Caching.Hybrid;
 using Microsoft.Extensions.Logging;
 
-namespace Application.Features.WorkspaceFeatures;
+namespace Application;
 
 public class GetWorkspaceListHandler(
-    IDataBase db,
-    ICurrentUserService currentUserService,
+    TaskPlanDbContext db,
+    CurrentUserService currentUserService,
     CursorHelper cursorHelper,
     HybridCache cache
-) : IQueryHandler<GetWorksapceListQuery, PagedResult<WorkspaceSummaryDto>>
+) : IQueryHandler<GetWorksapceListQuery, PagedResult<WorkspaceRecord>>
 {
-    public async Task<Result<PagedResult<WorkspaceSummaryDto>>> Handle(GetWorksapceListQuery request, CancellationToken ct)
+    public async Task<Result<PagedResult<WorkspaceRecord>>> Handle(GetWorksapceListQuery request, CancellationToken ct)
     {
         var currentUserId = currentUserService.CurrentUserId();
         if (currentUserId == Guid.Empty) 
-            return Result<PagedResult<WorkspaceSummaryDto>>.Failure(UserError.NotFound);
+            return Result<PagedResult<WorkspaceRecord>>.Failure(UserError.NotFound);
 
         var cacheKey = WorkspaceCacheKeys.WorkspaceList(currentUserId, request);
         
@@ -39,16 +31,18 @@ public class GetWorkspaceListHandler(
                 ? GetWorkspaceListSQL.Asc
                 : GetWorkspaceListSQL.Desc;
 
-            var rows = (await db.Connection.QueryAsync<WorkspaceRow>(new CommandDefinition(sql, new
+            var parameters = new object[]
             {
-                currentUserId,
-                name = request.filter.Name,
-                owned = request.filter.Owned,
-                IsArchived = request.filter.isArchived,
-                cursorTimestamp = cursorTs,
-                cursorId,
-                PageSizePLusOne = pageSize + 1
-            }, cancellationToken: token))).ToList();
+                new Npgsql.NpgsqlParameter("CurrentUserId", currentUserId),
+                new Npgsql.NpgsqlParameter("name", request.filter.Name ?? (object)DBNull.Value),
+                new Npgsql.NpgsqlParameter("owned", request.filter.Owned ?? (object)DBNull.Value),
+                new Npgsql.NpgsqlParameter("isArchived", request.filter.isArchived ?? (object)DBNull.Value),
+                new Npgsql.NpgsqlParameter("cursorTimestamp", cursorTs ?? (object)DBNull.Value),
+                new Npgsql.NpgsqlParameter("cursorId", cursorId ?? (object)DBNull.Value),
+                new Npgsql.NpgsqlParameter("PageSizePLusOne", pageSize + 1)
+            };
+
+            var rows = await db.Database.SqlQueryRaw<WorkspaceRow>(sql, parameters).ToListAsync(token);
 
             var hasMore = rows.Count > pageSize;
             if (hasMore) rows.RemoveAt(rows.Count - 1);
@@ -59,13 +53,13 @@ public class GetWorkspaceListHandler(
                 ? EncodeNextCursor(rows[^1])
                 : null;
 
-            return new PagedResult<WorkspaceSummaryDto>(items, nextCursor, hasMore);
+            return new PagedResult<WorkspaceRecord>(items, nextCursor, hasMore);
         },
         new HybridCacheEntryOptions { Expiration = TimeSpan.FromMinutes(5) },
         new[] { $"user:{currentUserId}:workspaces" },
         ct);
 
-        return Result<PagedResult<WorkspaceSummaryDto>>.Success(result);
+        return Result<PagedResult<WorkspaceRecord>>.Success(result);
     }
 
     private void DecodeCursor(string? cursor, out DateTimeOffset? ts, out Guid? id)
@@ -91,26 +85,27 @@ public class GetWorkspaceListHandler(
         }
     }
 
-    private static List<WorkspaceSummaryDto> Map(List<WorkspaceRow> rows)
+    private static List<WorkspaceRecord> Map(List<WorkspaceRow> rows)
     {
         var jsonOptions = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
-        return rows.Select(x => new WorkspaceSummaryDto(
-            Id: x.Id,
-            Name: x.Name,
-            Icon: x.Icon,
-            Color: x.Color,
-            Description: x.Description,
-            Role: x.Role,
-            MemberCount: x.MemberCount,
-            IsArchived: x.IsArchived,
-            IsPinned: x.IsPinned,
-            CanUpdateWorkspace: x.MembershipStatus == MembershipStatus.Active && (x.Role == Role.Owner || x.Role == Role.Admin),
-            CanManageMembers: x.MembershipStatus == MembershipStatus.Active && (x.Role == Role.Owner || x.Role == Role.Admin),
-            CanPinWorkspace: x.MembershipStatus == MembershipStatus.Active,
-            Members: string.IsNullOrEmpty(x.MembersJson) 
-                ? new List<WorkspaceMemberSummaryDto>() 
-                : JsonSerializer.Deserialize<List<WorkspaceMemberSummaryDto>>(x.MembersJson, jsonOptions) ?? new()
-        )).ToList();
+        return rows.Select(x => new WorkspaceRecord
+        {
+            Id = x.Id,
+            Name = x.Name,
+            Icon = x.Icon,
+            Color = x.Color,
+            Description = x.Description,
+            Role = x.Role,
+            MemberCount = x.MemberCount,
+            IsArchived = x.IsArchived,
+            IsPinned = x.IsPinned,
+            CanEdit = x.MembershipStatus == MembershipStatus.Active && (x.Role == Role.Owner || x.Role == Role.Admin),
+            CanManageMembers = x.MembershipStatus == MembershipStatus.Active && (x.Role == Role.Owner || x.Role == Role.Admin),
+            CanPinWorkspace = x.MembershipStatus == MembershipStatus.Active,
+            Members = string.IsNullOrEmpty(x.MembersJson) 
+                ? new List<MemberRecord>() 
+                : JsonSerializer.Deserialize<List<MemberRecord>>(x.MembersJson, jsonOptions) ?? new()
+        }).ToList();
     }
 
     private string EncodeNextCursor(WorkspaceRow last)
@@ -124,3 +119,6 @@ public class GetWorkspaceListHandler(
         return cursorHelper.EncodeCursor(cursorData);
     }
 }
+
+
+

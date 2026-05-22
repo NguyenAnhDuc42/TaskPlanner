@@ -1,8 +1,6 @@
 using System;
 using System.Collections.Generic;
-using Application.Common.Interfaces;
-
-namespace Application.Features.DocumentFeatures;
+namespace Application;
 
 public record UpdateDocumentBlocksCommand(
     Guid DocumentId,
@@ -13,6 +11,9 @@ public record DocumentBlockValue(
     Guid? Id,
     string? Content,
     string? OrderKey,
-    Domain.Entities.BlockType? BlockType,
+    BlockType? BlockType,
     bool IsDeleted = false
 );
+
+
+

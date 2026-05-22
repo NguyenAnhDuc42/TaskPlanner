@@ -1,15 +1,9 @@
-using Application.Common.Errors;
-using Application.Common.Interfaces;
-using Application.Common.Results;
-using Application.Helpers;
-using Application.Interfaces.Data;
-using Domain.Enums;
 using Dapper;
 using Microsoft.EntityFrameworkCore;
 
-namespace Application.Features.WorkspaceFeatures;
+namespace Application;
 
-public class UpdateMembersHandler(IDataBase db, WorkspaceContext context) : ICommandHandler<UpdateMembersCommand, Guid>
+public class UpdateMembersHandler(TaskPlanDbContext db, WorkspaceContext context) : ICommandHandler<UpdateMembersCommand, Guid>
 {
     public async Task<Result<Guid>> Handle(UpdateMembersCommand request, CancellationToken ct)
     {
@@ -19,7 +13,7 @@ public class UpdateMembersHandler(IDataBase db, WorkspaceContext context) : ICom
         var members = request.members;
         if (members.Count == 0) return Result<Guid>.Success(context.workspaceId);
 
-        await db.Connection.ExecuteAsync(UpdateMembersSQL.UpdateMemberRoles, new
+        await db.Database.GetDbConnection().ExecuteAsync(UpdateMembersSQL.UpdateMemberRoles, new
         {
             UserIds = members.Select(m => m.userId).ToArray(),
             Roles = members.Select(m => m.role?.ToString() ?? string.Empty).ToArray(),
@@ -30,3 +24,5 @@ public class UpdateMembersHandler(IDataBase db, WorkspaceContext context) : ICom
         return Result<Guid>.Success(context.workspaceId);
     }
 }
+
+

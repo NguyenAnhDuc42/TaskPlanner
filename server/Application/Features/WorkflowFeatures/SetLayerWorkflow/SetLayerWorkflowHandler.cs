@@ -1,15 +1,8 @@
-using Application.Common.Errors;
-using Application.Common.Interfaces;
-using Application.Common.Results;
-using Application.Helpers;
-using Application.Interfaces.Data;
-using Domain.Enums;
-using Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 
-namespace Application.Features.WorkflowFeatures;
+namespace Application;
 
-public class SetLayerWorkflowHandler(IDataBase db, WorkspaceContext context) 
+public class SetLayerWorkflowHandler(TaskPlanDbContext db, WorkspaceContext context) 
     : ICommandHandler<SetLayerWorkflowCommand>
 {
     public async Task<Result> Handle(SetLayerWorkflowCommand request, CancellationToken ct)
@@ -47,3 +40,5 @@ public class SetLayerWorkflowHandler(IDataBase db, WorkspaceContext context)
         return Result.Success();
     }
 }
+
+

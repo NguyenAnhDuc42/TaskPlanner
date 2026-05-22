@@ -1,6 +1,6 @@
 using FluentValidation;
 
-namespace Application.Features.SpaceFeatures;
+namespace Application;
 
 public class DeleteSpaceValidator : AbstractValidator<DeleteSpaceCommand>
 {
@@ -11,3 +11,4 @@ public class DeleteSpaceValidator : AbstractValidator<DeleteSpaceCommand>
             .WithMessage("Space ID is required.");
     }
 }
+

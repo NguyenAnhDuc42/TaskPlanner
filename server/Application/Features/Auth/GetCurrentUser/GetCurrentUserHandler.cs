@@ -1,14 +1,10 @@
-using Application.Common.Results;
-using Application.Features;
-using Application.Interfaces;
-
-namespace Application.Features.Auth;
+namespace Application;
 
 public class GetCurrentUserHandler : IQueryHandler<GetCurrentUserQuery, GetCurrentUserDto>
 {
-    private readonly ICurrentUserService _currentUserService;
+    private readonly CurrentUserService _currentUserService;
 
-    public GetCurrentUserHandler(ICurrentUserService currentUserService)
+    public GetCurrentUserHandler(CurrentUserService currentUserService)
     {
         _currentUserService = currentUserService;
     }
@@ -24,3 +20,6 @@ public class GetCurrentUserHandler : IQueryHandler<GetCurrentUserQuery, GetCurre
         ));
     }
 }
+
+
+

@@ -1,23 +1,12 @@
-using Application.Common.Errors;
-using Application.Common.Interfaces;
-using Application.Common.Results;
-using Application.Helpers;
-using Application.Interfaces.Data;
-using Domain.Entities;
-using Domain.Enums;
-using Domain.Enums.RelationShip;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Hybrid;
-using Application.Interfaces;
-using Application.Features;
-
-namespace Application.Features.WorkspaceFeatures;
+namespace Application;
 
 public class JoinWorkspaceByCodeHandler(
-    IDataBase db, 
-    ICurrentUserService currentUserService, 
+    TaskPlanDbContext db, 
+    CurrentUserService currentUserService, 
     HybridCache cache, 
-    IRealtimeService realtime
+    RealtimeService realtime
 ) : ICommandHandler<JoinWorkspaceByCodeCommand, JoinWorkspaceByCodeResult>
 {
     public async Task<Result<JoinWorkspaceByCodeResult>> Handle(JoinWorkspaceByCodeCommand request, CancellationToken ct)
@@ -27,7 +16,7 @@ public class JoinWorkspaceByCodeHandler(
             return Result<JoinWorkspaceByCodeResult>.Failure(Error.Unauthorized("User.NotAuthenticated", "User not authenticated."));
 
         var normalizedCode = request.JoinCode.Trim().ToUpperInvariant();
-        var workspace = await db.Workspaces
+        var workspace = await db.ProjectWorkspaces
             .ByJoinCode(normalizedCode)
             .WhereNotDeleted()
             .FirstOrDefaultAsync(ct);
@@ -67,3 +56,6 @@ public class JoinWorkspaceByCodeHandler(
         return Result<JoinWorkspaceByCodeResult>.Success(dataResult);
     }
 }
+
+
+

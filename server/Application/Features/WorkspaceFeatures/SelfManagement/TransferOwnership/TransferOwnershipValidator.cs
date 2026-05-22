@@ -1,6 +1,6 @@
 using FluentValidation;
 
-namespace Application.Features.WorkspaceFeatures;
+namespace Application;
 
 public class TransferOwnershipValidator : AbstractValidator<TransferOwnershipCommand>
 {
@@ -15,3 +15,4 @@ public class TransferOwnershipValidator : AbstractValidator<TransferOwnershipCom
             .WithMessage("New owner ID is required.");
     }
 }
+

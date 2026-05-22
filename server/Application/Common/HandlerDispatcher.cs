@@ -1,9 +1,6 @@
-using Application.Common.Interfaces;
-using Application.Common.Results;
-using Application.Features;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace Application.Common;
+namespace Application;
 
 public class HandlerDispatcher : IHandler
 {
@@ -36,3 +33,5 @@ public class HandlerDispatcher : IHandler
     }
 
 }
+
+

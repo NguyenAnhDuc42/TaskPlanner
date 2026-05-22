@@ -1,17 +1,8 @@
-using Application.Common.Errors;
-using Application.Common.Interfaces;
-using Application.Common.Results;
-using Application.Helpers;
-using Application.Interfaces.Data;
-using Domain.Entities;
-using Domain.Enums;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Hybrid;
-using Application.Interfaces;
+namespace Application;
 
-namespace Application.Features.WorkflowFeatures;
-
-public class UpdateWorkflowStatusesHandler(IDataBase db, WorkspaceContext context, HybridCache cache, IRealtimeService realtime) 
+public class UpdateWorkflowStatusesHandler(TaskPlanDbContext db, WorkspaceContext context, HybridCache cache, RealtimeService realtime) 
     : ICommandHandler<UpdateWorkflowStatusesCommand>
 {
     public async Task<Result> Handle(UpdateWorkflowStatusesCommand request, CancellationToken ct)
@@ -100,3 +91,6 @@ public class UpdateWorkflowStatusesHandler(IDataBase db, WorkspaceContext contex
         return FractionalIndex.Start();
     }
 }
+
+
+

@@ -1,7 +1,7 @@
 using System;
 using FluentValidation;
 
-namespace Application.Features.Auth;
+namespace Application;
 
 public class LoginValidator : AbstractValidator<LoginCommand>
 {
@@ -18,3 +18,4 @@ public class LoginValidator : AbstractValidator<LoginCommand>
             .WithMessage("Password is required.");
     }
 }
+

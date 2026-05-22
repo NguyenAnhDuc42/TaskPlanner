@@ -1,7 +1,4 @@
-using Domain.Common;
-using Domain.Enums.RelationShip;
-
-namespace Domain.Entities;
+namespace Domain;
 
 public class EntityAccess : Entity
 {
@@ -52,3 +49,5 @@ public class EntityAccess : Entity
         SoftDelete();
     }
 }
+
+

@@ -1,6 +1,4 @@
-using Application.Common.Interfaces;
-
-namespace Application.Features.TaskFeatures;
+namespace Application;
 
 public record GetTaskAssigneesQuery(Guid TaskId) : IQueryRequest<List<TaskAssigneeDto>>;
 
@@ -9,3 +7,5 @@ public record TaskAssigneeDto(
     string UserName,
     string? AvatarUrl
 );
+
+

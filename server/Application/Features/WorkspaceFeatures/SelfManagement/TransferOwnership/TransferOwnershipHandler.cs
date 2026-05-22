@@ -1,40 +1,30 @@
-using Application.Common.Errors;
-using Application.Common.Interfaces;
-using Application.Common.Results;
-using Application.Helpers;
-using Application.Interfaces.Data;
 using Microsoft.EntityFrameworkCore;
-using Domain.Entities;
+namespace Application;
 
-namespace Application.Features.WorkspaceFeatures;
-
-public class TransferOwnershipHandler(IDataBase db, WorkspaceContext context) : ICommandHandler<TransferOwnershipCommand>
+public class TransferOwnershipHandler(TaskPlanDbContext db, WorkspaceContext context) : ICommandHandler<TransferOwnershipCommand>
 {
     public async Task<Result> Handle(TransferOwnershipCommand request, CancellationToken ct)
     {
         // Only Owner can transfer ownership
-        if (context.CurrentMember.Role != Domain.Enums.Role.Owner)
+        if (context.CurrentMember.Role != Role.Owner)
             return Result.Failure(Error.Forbidden("Workspace.Forbidden", "Only the workspace owner can transfer ownership"));
 
         if (request.NewOwnerId == context.CurrentMember.UserId)
             return Result.Failure(Error.Validation("Workspace.TransferSameUser", "Cannot transfer ownership to yourself"));
 
-        var workspace = await db.Workspaces
-            .ById(context.workspaceId)
-            .FirstOrDefaultAsync(ct);
+        var currentOwner = await db.WorkspaceMembers.FirstOrDefaultAsync(m => m.UserId == context.CurrentMember.UserId && m.ProjectWorkspaceId == context.workspaceId, ct);
+        var newOwner = await db.WorkspaceMembers.FirstOrDefaultAsync(m => m.UserId == request.NewOwnerId && m.ProjectWorkspaceId == context.workspaceId, ct);
 
-        if (workspace == null) return Result.Failure(WorkspaceError.NotFound);
+        if (currentOwner == null || currentOwner.Role != Role.Owner) return Result.Failure(Error.Forbidden("Workspace.Forbidden", "Only the workspace owner can transfer ownership"));
+        if (newOwner == null) return Result.Failure(Error.Validation("Workspace.NewOwnerNotFound", "New owner not found in workspace"));
 
-        try
-        {
-            workspace.TransferOwnership(request.NewOwnerId, context.CurrentMember.UserId);
-        }
-        catch (InvalidOperationException ex)
-        {
-            return Result.Failure(Error.ConditionNotMet with { Description = ex.Message });
-        }
+        currentOwner.UpdateRole(Role.Admin);
+        newOwner.UpdateRole(Role.Owner);
 
         await db.SaveChangesAsync(ct);
         return Result.Success();
     }
 }
+
+
+

@@ -1,6 +1,6 @@
 using System.Linq;
 
-namespace Domain.Entities;
+namespace Domain;
 
 public static class FolderExtensions
 {
@@ -20,3 +20,4 @@ public static class FolderExtensions
     public static IQueryable<ProjectFolder> BySpace(this IQueryable<ProjectFolder> query, Guid spaceId) => 
         query.Where(folder => folder.ProjectSpaceId == spaceId);
 }
+

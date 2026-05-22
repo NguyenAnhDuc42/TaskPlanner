@@ -1,11 +1,5 @@
-using Application.Features.SpaceFeatures;
-using Domain.Enums.RelationShip;
-using Application.Common.Interfaces;
 using Microsoft.AspNetCore.Mvc;
-using Api.Extensions;
-using Application.Features.ItemFeatures;
-
-namespace Api.Controllers
+namespace Api
 {
     [Route("api/[controller]")]
     [ApiController]
@@ -59,7 +53,7 @@ namespace Api.Controllers
         [HttpGet("{id:guid}/items")]
         public async Task<IActionResult> GetItems(Guid id, CancellationToken cancellationToken)
         {
-            var result = await _handler.QueryAsync<GetSpaceItemsQuery, Application.Features.ViewFeatures.TaskViewData>(new GetSpaceItemsQuery(id), cancellationToken);
+            var result = await _handler.QueryAsync<GetSpaceItemsQuery, TaskViewData>(new GetSpaceItemsQuery(id), cancellationToken);
             return result.ToActionResult();
         }
 
@@ -78,3 +72,5 @@ namespace Api.Controllers
         bool? IsPrivate
     );
 }
+
+

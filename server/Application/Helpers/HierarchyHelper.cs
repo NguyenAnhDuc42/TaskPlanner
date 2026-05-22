@@ -1,8 +1,7 @@
-using Application.Interfaces.Data;
-using Domain.Enums.RelationShip;
+using Microsoft.EntityFrameworkCore;
 using Dapper;
 
-namespace Application.Helpers;
+namespace Application;
 
 public class AncestorChain
 {
@@ -23,7 +22,7 @@ public class AncestorChain
 public static class HierarchyHelper
 {
     public static async Task<AncestorChain> GetAncestorChain(
-        IDataBase db,
+        TaskPlanDbContext db,
         Guid parentId,
         EntityLayerType parentType,
         CancellationToken ct = default)
@@ -37,7 +36,7 @@ public static class HierarchyHelper
         };
     }
 
-    private static async Task<AncestorChain> GetFromFolder(IDataBase db, Guid id, CancellationToken ct)
+    private static async Task<AncestorChain> GetFromFolder(TaskPlanDbContext db, Guid id, CancellationToken ct)
     {
         const string sql = @"
             SELECT 
@@ -48,11 +47,11 @@ public static class HierarchyHelper
             JOIN  project_spaces s ON f.project_space_id = s.id
             WHERE f.id = @Id";
 
-        var result = await db.Connection.QuerySingleOrDefaultAsync<AncestorChain>(sql, new { Id = id });
+        var result = await db.Database.GetDbConnection().QuerySingleOrDefaultAsync<AncestorChain>(sql, new { Id = id });
         return result ?? throw new KeyNotFoundException($"ProjectFolder {id} not found.");
     }
 
-    private static async Task<AncestorChain> GetFromSpace(IDataBase db, Guid id, CancellationToken ct)
+    private static async Task<AncestorChain> GetFromSpace(TaskPlanDbContext db, Guid id, CancellationToken ct)
     {
         const string sql = @"
             SELECT 
@@ -62,7 +61,9 @@ public static class HierarchyHelper
             FROM  project_spaces
             WHERE id = @Id";
 
-        var result = await db.Connection.QuerySingleOrDefaultAsync<AncestorChain>(sql, new { Id = id });
+        var result = await db.Database.GetDbConnection().QuerySingleOrDefaultAsync<AncestorChain>(sql, new { Id = id });
         return result ?? throw new KeyNotFoundException($"ProjectSpace {id} not found.");
     }
 }
+
+

@@ -1,12 +1,9 @@
-using Application.Common.Interfaces;
-using Application.Common.Results;
-using Application.Interfaces.Data;
-using Application.Helpers;
+using Microsoft.EntityFrameworkCore;
 using Dapper;
 
-namespace Application.Features.TaskFeatures;
+namespace Application;
 
-public class GetCommentsHandler(IDataBase db, WorkspaceContext workspaceContext) : IQueryHandler<GetCommentsQuery, List<CommentDto>>
+public class GetCommentsHandler(TaskPlanDbContext db, WorkspaceContext workspaceContext) : IQueryHandler<GetCommentsQuery, List<CommentDto>>
 {
     public async Task<Result<List<CommentDto>>> Handle(GetCommentsQuery request, CancellationToken ct)
     {
@@ -22,7 +19,7 @@ public class GetCommentsHandler(IDataBase db, WorkspaceContext workspaceContext)
               AND c.deleted_at IS NULL
             ORDER BY c.created_at ASC;";
 
-        var comments = await db.Connection.QueryAsync<CommentDto>(sql, new { 
+        var comments = await db.Database.GetDbConnection().QueryAsync<CommentDto>(sql, new { 
             request.TaskId, 
             WorkspaceId = workspaceContext.workspaceId 
         });
@@ -30,3 +27,5 @@ public class GetCommentsHandler(IDataBase db, WorkspaceContext workspaceContext)
         return Result<List<CommentDto>>.Success(comments.ToList());
     }
 }
+
+

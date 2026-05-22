@@ -1,10 +1,6 @@
-using Application.Common.Errors;
-using Application.Common.Interfaces;
-using Application.Common.Results;
-using Application.Features;
 using FluentValidation;
 
-namespace Application.Behaviors;
+namespace Application;
 
 public static class ValidationDecorator
 {
@@ -111,3 +107,5 @@ public static class ValidationDecorator
         }
     }
 }
+
+

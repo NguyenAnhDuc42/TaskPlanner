@@ -1,4 +1,4 @@
-namespace Domain.Enums.Notification;
+namespace Domain;
 
 public enum NotificationFrequency
 {
@@ -7,3 +7,4 @@ public enum NotificationFrequency
     Weekly,
     Monthly
 }
+

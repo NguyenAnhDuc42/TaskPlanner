@@ -1,6 +1,4 @@
-using Domain.Common;
-
-namespace Domain.Entities;
+namespace Domain;
 
 public class DocumentBlock : TenantEntity
 {
@@ -45,3 +43,5 @@ public class DocumentBlock : TenantEntity
         UpdateTimestamp();
     }
 }
+
+

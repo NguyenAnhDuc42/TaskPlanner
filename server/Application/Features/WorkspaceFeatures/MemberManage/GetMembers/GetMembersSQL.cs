@@ -1,10 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Text;
-using Domain.Enums;
-using Domain.Enums.RelationShip;
-
-namespace Application.Features.WorkspaceFeatures;
+namespace Application;
 
 public class MemberRow
 {
@@ -83,3 +80,5 @@ public static class GetMembersSQL
     LIMIT @PageSizePLusOne;
     ";
 }
+
+

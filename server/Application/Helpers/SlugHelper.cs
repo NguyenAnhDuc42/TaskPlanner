@@ -1,6 +1,6 @@
 using System.Text.RegularExpressions;
 
-namespace Application.Helpers;
+namespace Application;
 
 public static partial class SlugHelper
 {
@@ -25,3 +25,4 @@ public static partial class SlugHelper
         return str + "-" + Guid.NewGuid().ToString("N")[..4];
     }
 }
+

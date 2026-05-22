@@ -1,8 +1,4 @@
-using Domain.Common;
-using Domain.Exceptions;
-using Domain.Enums;
-
-namespace Domain.Entities;
+namespace Domain;
 
 public sealed class ProjectFolder : TenantEntity
 {
@@ -129,3 +125,5 @@ public sealed class ProjectFolder : TenantEntity
         if (IsArchived) throw new BusinessRuleException("Cannot modify an archived folder.");
     }
 }
+
+

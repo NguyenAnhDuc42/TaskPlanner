@@ -1,6 +1,4 @@
-using Application.Common.Interfaces;
-
-namespace Application.Features.Auth;
+namespace Application;
 
 public record GetCurrentUserQuery : IQueryRequest<GetCurrentUserDto>;
 
@@ -9,3 +7,5 @@ public record GetCurrentUserDto(
     string Name,
     string Email
 );
+
+

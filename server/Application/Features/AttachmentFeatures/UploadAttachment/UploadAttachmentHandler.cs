@@ -1,16 +1,7 @@
-using Application.Helpers;
-using Application.Common.Results;
-using Application.Common.Errors;
-using Application.Common.Interfaces;
-using Application.Interfaces.Data;
-using Domain.Entities;
-using Domain.Enums;
 using Microsoft.EntityFrameworkCore;
-using Application.Interfaces;
+namespace Application;
 
-namespace Application.Features.AttachmentFeatures;
-
-public class UploadAttachmentHandler(IDataBase db, WorkspaceContext context) : ICommandHandler<UploadAttachmentCommand>
+public class UploadAttachmentHandler(TaskPlanDbContext db, WorkspaceContext context) : ICommandHandler<UploadAttachmentCommand>
 {
     public async Task<Result> Handle(UploadAttachmentCommand request, CancellationToken ct)
     {
@@ -119,3 +110,5 @@ public class UploadAttachmentHandler(IDataBase db, WorkspaceContext context) : I
         return BitConverter.ToString(hash).Replace("-", "").ToLowerInvariant();
     }
 }
+
+

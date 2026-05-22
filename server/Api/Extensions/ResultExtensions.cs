@@ -1,9 +1,6 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using Application.Common.Results;
-using Application.Common.Errors;
-
-namespace Api.Extensions;
+namespace Api;
 
 public static class ResultExtensions
 {
@@ -60,3 +57,5 @@ public static class ResultExtensions
         _ => StatusCodes.Status400BadRequest
     };
 }
+
+

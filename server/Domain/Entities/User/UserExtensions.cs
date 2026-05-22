@@ -1,7 +1,5 @@
 using System.Linq;
-using Domain.Common;
-
-namespace Domain.Entities;
+namespace Domain;
 
 public static class UserExtensions
 {
@@ -14,3 +12,5 @@ public static class UserExtensions
     public static IQueryable<User> WhereNotDeleted(this IQueryable<User> query) => 
         query.Where(user => user.DeletedAt == null);
 }
+
+

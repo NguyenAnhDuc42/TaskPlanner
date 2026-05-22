@@ -1,6 +1,6 @@
 using FluentValidation;
 
-namespace Application.Features.WorkflowFeatures;
+namespace Application;
 
 public class SetLayerWorkflowValidator : AbstractValidator<SetLayerWorkflowCommand>
 {
@@ -12,3 +12,4 @@ public class SetLayerWorkflowValidator : AbstractValidator<SetLayerWorkflowComma
 
     }
 }
+

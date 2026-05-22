@@ -1,7 +1,5 @@
 using FluentValidation;
-using Domain.Enums;
-
-namespace Application.Features.WorkspaceFeatures;
+namespace Application;
 
 public class CreateWorkspaceValidator : AbstractValidator<CreateWorkspaceCommand>
 {
@@ -30,3 +28,4 @@ public class CreateWorkspaceValidator : AbstractValidator<CreateWorkspaceCommand
             .WithMessage("Invalid theme option provided.");
     }
 }
+

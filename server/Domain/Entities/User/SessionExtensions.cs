@@ -1,7 +1,5 @@
 using System.Linq;
-using Domain.Common;
-
-namespace Domain.Entities;
+namespace Domain;
 
 public static class SessionExtensions
 {
@@ -20,3 +18,5 @@ public static class SessionExtensions
     public static IQueryable<Session> WhereNotDeleted(this IQueryable<Session> query) => 
         query.Where(session => session.DeletedAt == null);
 }
+
+

@@ -1,6 +1,4 @@
-using Domain.Common;
-
-namespace Domain.Entities;
+namespace Domain;
 
 public class Comment : Entity
 {
@@ -33,3 +31,5 @@ public class Comment : Entity
         UpdateTimestamp();
     }
 }
+
+

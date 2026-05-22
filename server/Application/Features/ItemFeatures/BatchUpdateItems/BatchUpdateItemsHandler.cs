@@ -1,15 +1,8 @@
-using Application.Common.Errors;
-using Application.Common.Interfaces;
-using Application.Common.Results;
-using Application.Helpers;
-using Application.Interfaces.Data;
-using Domain.Enums;
-using Domain.Enums.RelationShip;
 using Microsoft.EntityFrameworkCore;
 
-namespace Application.Features.ItemFeatures;
+namespace Application;
 
-public class BatchUpdateItemsHandler(IDataBase db, WorkspaceContext workspaceContext) : ICommandHandler<BatchUpdateItemsCommand>
+public class BatchUpdateItemsHandler(TaskPlanDbContext db, WorkspaceContext workspaceContext) : ICommandHandler<BatchUpdateItemsCommand>
 {
     public async Task<Result> Handle(BatchUpdateItemsCommand request, CancellationToken ct)
     {
@@ -40,7 +33,7 @@ public class BatchUpdateItemsHandler(IDataBase db, WorkspaceContext workspaceCon
         {
             var orderKey = await ResolveTaskOrderKeyAsync(update, ct);
 
-            var affected = await db.Tasks
+            var affected = await db.ProjectTasks
                 .Where(t => t.Id == update.Id && t.ProjectWorkspaceId == workspaceContext.workspaceId)
                 .ExecuteUpdateAsync(u => u
                     .SetProperty(t => t.StatusId, t =>
@@ -63,7 +56,7 @@ public class BatchUpdateItemsHandler(IDataBase db, WorkspaceContext workspaceCon
         {
             var orderKey = await ResolveFolderOrderKeyAsync(update, ct);
 
-            var affected = await db.Folders
+            var affected = await db.ProjectFolders
                 .Where(f => f.Id == update.Id && f.ProjectWorkspaceId == workspaceContext.workspaceId)
                 .ExecuteUpdateAsync(u => u
                     .SetProperty(f => f.StatusId, f =>
@@ -96,7 +89,7 @@ public class BatchUpdateItemsHandler(IDataBase db, WorkspaceContext workspaceCon
         if (update.PreviousItemOrderKey != null) return FractionalIndex.After(update.PreviousItemOrderKey);
         if (update.NextItemOrderKey != null) return FractionalIndex.Before(update.NextItemOrderKey);
 
-        var maxKey = await db.Tasks
+        var maxKey = await db.ProjectTasks
             .Where(t => t.StatusId == update.StatusId && t.ProjectWorkspaceId == workspaceContext.workspaceId)
             .MaxAsync(t => t.OrderKey, ct);
 
@@ -119,10 +112,12 @@ public class BatchUpdateItemsHandler(IDataBase db, WorkspaceContext workspaceCon
         if (update.PreviousItemOrderKey != null) return FractionalIndex.After(update.PreviousItemOrderKey);
         if (update.NextItemOrderKey != null) return FractionalIndex.Before(update.NextItemOrderKey);
 
-        var maxKey = await db.Folders
+        var maxKey = await db.ProjectFolders
             .Where(f => f.StatusId == update.StatusId && f.ProjectWorkspaceId == workspaceContext.workspaceId)
             .MaxAsync(f => f.OrderKey, ct);
 
         return maxKey is null ? FractionalIndex.Start() : FractionalIndex.After(maxKey);
     }
 }
+
+

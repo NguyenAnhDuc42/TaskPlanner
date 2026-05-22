@@ -1,18 +1,11 @@
-using Application.Common.Errors;
-using Application.Common.Interfaces;
-using Application.Common.Results;
-using Application.Helpers;
-using Application.Interfaces.Data;
 using Microsoft.EntityFrameworkCore;
-using Domain.Entities;
+namespace Application;
 
-namespace Application.Features.WorkspaceFeatures;
-
-public class LeaveWorkspaceHandler(IDataBase db, WorkspaceContext context) : ICommandHandler<LeaveWorkspaceCommand>
+public class LeaveWorkspaceHandler(TaskPlanDbContext db, WorkspaceContext context) : ICommandHandler<LeaveWorkspaceCommand>
 {
     public async Task<Result> Handle(LeaveWorkspaceCommand request, CancellationToken ct)
     {
-        var workspace = await db.Workspaces
+        var workspace = await db.ProjectWorkspaces
             .ById(context.workspaceId)
             .FirstOrDefaultAsync(ct);
 
@@ -28,3 +21,5 @@ public class LeaveWorkspaceHandler(IDataBase db, WorkspaceContext context) : ICo
         return Result.Success();
     }
 }
+
+

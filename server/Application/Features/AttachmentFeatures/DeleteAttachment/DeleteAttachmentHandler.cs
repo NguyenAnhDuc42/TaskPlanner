@@ -1,14 +1,8 @@
-using Application.Common.Errors;
-using Application.Common.Results;
-using Application.Common.Interfaces;
-using Application.Helpers;
-using Application.Interfaces.Data;
-using Domain.Enums;
 using Microsoft.EntityFrameworkCore;
 
-namespace Application.Features.AttachmentFeatures;
+namespace Application;
 
-public class DeleteAttachmentHandler(IDataBase db, WorkspaceContext context) : ICommandHandler<DeleteAttachmentCommand>
+public class DeleteAttachmentHandler(TaskPlanDbContext db, WorkspaceContext context) : ICommandHandler<DeleteAttachmentCommand>
 {
     public async Task<Result> Handle(DeleteAttachmentCommand request, CancellationToken ct)
     {
@@ -25,3 +19,5 @@ public class DeleteAttachmentHandler(IDataBase db, WorkspaceContext context) : I
         return Result.Success();
     }
 }
+
+

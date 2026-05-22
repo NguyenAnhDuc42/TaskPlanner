@@ -1,7 +1,4 @@
-using Application.Common.Interfaces;
-using Domain.Enums;
-
-namespace Application.Features.WorkspaceFeatures;
+namespace Application;
 
 public record AddMembersCommand(
     Guid workspaceId, 
@@ -11,3 +8,5 @@ public record AddMembersCommand(
 ) : ICommandRequest, IAuthorizedWorkspaceRequest;
 
 public record MemberValue(string email, Role role);
+
+

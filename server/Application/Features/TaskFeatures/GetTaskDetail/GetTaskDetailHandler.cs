@@ -1,13 +1,9 @@
-using Application.Common.Errors;
-using Application.Common.Interfaces;
-using Application.Common.Results;
-using Application.Interfaces.Data;
-using Application.Helpers;
+using Microsoft.EntityFrameworkCore;
 using Dapper;
 
-namespace Application.Features.TaskFeatures;
+namespace Application;
 
-public class GetTaskDetailHandler(IDataBase db, WorkspaceContext workspaceContext) : IQueryHandler<GetTaskDetailQuery, TaskDetailDto>
+public class GetTaskDetailHandler(TaskPlanDbContext db, WorkspaceContext workspaceContext) : IQueryHandler<GetTaskDetailQuery, TaskDetailDto>
 {
     public async Task<Result<TaskDetailDto>> Handle(GetTaskDetailQuery request, CancellationToken ct)
     {
@@ -37,7 +33,7 @@ public class GetTaskDetailHandler(IDataBase db, WorkspaceContext workspaceContex
             FROM project_tasks t
             WHERE t.id = @TaskId AND t.project_workspace_id = @WorkspaceId AND t.deleted_at IS NULL;";
 
-        var task = await db.Connection.QuerySingleOrDefaultAsync<TaskDetailDto>(sql, new { 
+        var task = await db.Database.GetDbConnection().QuerySingleOrDefaultAsync<TaskDetailDto>(sql, new { 
             request.TaskId, 
             WorkspaceId = workspaceContext.workspaceId 
         });
@@ -48,3 +44,5 @@ public class GetTaskDetailHandler(IDataBase db, WorkspaceContext workspaceContex
         return Result<TaskDetailDto>.Success(task with { AssigneeIds = new List<Guid>() });
     }
 }
+
+

@@ -1,6 +1,6 @@
 using FluentValidation;
 
-namespace Application.Features.WorkspaceFeatures;
+namespace Application;
 
 public class SetWorkspacePinValidator : AbstractValidator<SetWorkspacePinCommand>
 {
@@ -11,4 +11,5 @@ public class SetWorkspacePinValidator : AbstractValidator<SetWorkspacePinCommand
             .WithMessage("Workspace ID is required.");
     }
 }
+
 

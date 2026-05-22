@@ -1,6 +1,6 @@
 using FluentValidation;
 
-namespace Application.Features.WorkflowFeatures;
+namespace Application;
 
 public class ReorderStatusesValidator : AbstractValidator<ReorderStatusesCommand>
 {
@@ -9,3 +9,4 @@ public class ReorderStatusesValidator : AbstractValidator<ReorderStatusesCommand
         RuleFor(x => x.StatusId).NotEmpty();
     }
 }
+

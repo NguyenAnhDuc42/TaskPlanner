@@ -1,17 +1,12 @@
-using Application.Common.Interfaces;
-using Application.Common.Results;
-using Application.Interfaces.Data;
-using Application.Helpers;
-using Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Application.Features.DocumentFeatures;
+namespace Application;
 
-public class UpdateDocumentBlocksHandler(IDataBase db, WorkspaceContext context) : ICommandHandler<UpdateDocumentBlocksCommand>
+public class UpdateDocumentBlocksHandler(TaskPlanDbContext db, WorkspaceContext context) : ICommandHandler<UpdateDocumentBlocksCommand>
 {
     public async Task<Result> Handle(UpdateDocumentBlocksCommand request, CancellationToken ct)
     {
@@ -74,3 +69,5 @@ public class UpdateDocumentBlocksHandler(IDataBase db, WorkspaceContext context)
         return Result.Success();
     }
 }
+
+

@@ -1,6 +1,6 @@
 using FluentValidation;
 
-namespace Application.Features.Auth.ChangePassword;
+namespace Application;
 
 public class ChangePasswordValidator : AbstractValidator<ChangePasswordCommand>
 {
@@ -19,3 +19,4 @@ public class ChangePasswordValidator : AbstractValidator<ChangePasswordCommand>
             .NotEqual(x => x.CurrentPassword).WithMessage("New password cannot be the same as the current password.");
     }
 }
+

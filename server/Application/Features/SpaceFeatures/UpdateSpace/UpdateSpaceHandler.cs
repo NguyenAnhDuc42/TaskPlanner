@@ -1,20 +1,12 @@
-using Application.Common.Errors;
-using Application.Common.Interfaces;
-using Application.Common.Results;
-using Application.Helpers;
-using Application.Interfaces;
-using Application.Interfaces.Data;
-using Domain.Entities;
-using Domain.Enums;
 using Microsoft.EntityFrameworkCore;
 
-namespace Application.Features.SpaceFeatures;
+namespace Application;
 
-public class UpdateSpaceHandler(IDataBase db, WorkspaceContext context, IRealtimeService realtime) : ICommandHandler<UpdateSpaceCommand>
+public class UpdateSpaceHandler(TaskPlanDbContext db, WorkspaceContext context, RealtimeService realtime) : ICommandHandler<UpdateSpaceCommand>
 {
     public async Task<Result> Handle(UpdateSpaceCommand request, CancellationToken ct)
     {
-        var space = await db.Spaces
+        var space = await db.ProjectSpaces
             .ById(request.SpaceId)
             .FirstOrDefaultAsync(ct);
 
@@ -47,3 +39,6 @@ public class UpdateSpaceHandler(IDataBase db, WorkspaceContext context, IRealtim
         return Result.Success();
     }
 }
+
+
+

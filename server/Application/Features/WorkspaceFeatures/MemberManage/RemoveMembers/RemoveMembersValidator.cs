@@ -1,6 +1,6 @@
 using FluentValidation;
 
-namespace Application.Features.WorkspaceFeatures;
+namespace Application;
 
 public class RemoveMembersValidator : AbstractValidator<RemoveMembersCommand>
 {
@@ -16,4 +16,5 @@ public class RemoveMembersValidator : AbstractValidator<RemoveMembersCommand>
             .WithMessage("At least one member ID is required.");
     }
 }
+
 

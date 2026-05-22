@@ -1,22 +1,12 @@
-using Application.Common.Errors;
-using Application.Common.Interfaces;
-using Application.Common.Results;
-using Application.Common;
-using Application.Helpers;
-using Application.Interfaces.Data;
-using Domain.Enums;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Hybrid;
-using Application.Interfaces;
-using Domain.Entities;
-
-namespace Application.Features.WorkspaceFeatures;
+namespace Application;
 
 public class UpdateWorkspaceHandler(
-    IDataBase db, 
+    TaskPlanDbContext db, 
     WorkspaceContext context,
     HybridCache cache, 
-    IRealtimeService realtime
+    RealtimeService realtime
 ) : ICommandHandler<UpdateWorkspaceCommand>
 {
     public async Task<Result> Handle(UpdateWorkspaceCommand request, CancellationToken ct)
@@ -24,7 +14,7 @@ public class UpdateWorkspaceHandler(
         if (context.CurrentMember.Role > Role.Admin)
             return Result.Failure(MemberError.DontHavePermission);
 
-        var workspace = await db.Workspaces
+        var workspace = await db.ProjectWorkspaces
             .ById(request.Id)
             .FirstOrDefaultAsync(ct);
 
@@ -54,3 +44,6 @@ public class UpdateWorkspaceHandler(
         return Result.Success();
     }
 }
+
+
+

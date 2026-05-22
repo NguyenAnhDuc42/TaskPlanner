@@ -1,7 +1,8 @@
-namespace Application.Common.Interfaces;
+namespace Application;
 
 public interface IBaseCommandRequest { }
 
 public interface ICommandRequest : IBaseCommandRequest { }
 
 public interface ICommandRequest<TResponse> : IBaseCommandRequest { }
+

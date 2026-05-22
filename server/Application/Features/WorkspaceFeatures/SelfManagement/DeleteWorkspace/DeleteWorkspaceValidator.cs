@@ -1,6 +1,6 @@
 using FluentValidation;
 
-namespace Application.Features.WorkspaceFeatures;
+namespace Application;
 
 public class DeleteWorkspaceValidator : AbstractValidator<DeleteWorkspaceCommand>
 {
@@ -11,4 +11,5 @@ public class DeleteWorkspaceValidator : AbstractValidator<DeleteWorkspaceCommand
             .WithMessage("Workspace ID is required.");
     }
 }
+
 

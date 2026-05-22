@@ -1,18 +1,11 @@
-using Application.Common.Errors;
-using Application.Common.Interfaces;
-using Application.Common.Results;
-using Application.Interfaces.Data;
-using Dapper;
+using Microsoft.EntityFrameworkCore;
+namespace Application;
 
-using Application.Helpers;
-
-namespace Application.Features.FolderFeatures;
-
-public class GetFolderDetailHandler(IDataBase db, WorkspaceContext workspaceContext) : IQueryHandler<GetFolderDetailQuery, FolderDetailDto>
+public class GetFolderDetailHandler(TaskPlanDbContext db, WorkspaceContext workspaceContext) : IQueryHandler<GetFolderDetailQuery, FolderDetailDto>
 {
     public async Task<Result<FolderDetailDto>> Handle(GetFolderDetailQuery request, CancellationToken ct)
     {
-        const string sql = @"
+        FormattableString sql = $@"
             SELECT 
                 f.id AS Id, f.project_space_id AS ProjectSpaceId, f.name AS Name, 
                 f.custom_color AS Color, f.custom_icon AS Icon, f.is_private AS IsPrivate, 
@@ -26,12 +19,9 @@ public class GetFolderDetailHandler(IDataBase db, WorkspaceContext workspaceCont
                 f.start_date AS StartDate, f.due_date AS DueDate, f.created_at AS CreatedAt,
                 (SELECT b.content FROM document_blocks b WHERE b.document_id = f.default_document_id ORDER BY b.order_key LIMIT 1) AS Description
             FROM project_folders f
-            WHERE f.id = @FolderId AND f.project_workspace_id = @WorkspaceId AND f.deleted_at IS NULL;";
+            WHERE f.id = {request.FolderId} AND f.project_workspace_id = {workspaceContext.workspaceId} AND f.deleted_at IS NULL;";
 
-        var folder = await db.Connection.QuerySingleOrDefaultAsync<FolderDetailDto>(sql, new { 
-            request.FolderId, 
-            WorkspaceId = workspaceContext.workspaceId 
-        });
+        var folder = await db.Database.SqlQuery<FolderDetailDto>(sql).SingleOrDefaultAsync(ct);
         
         if (folder == null)
             return Result<FolderDetailDto>.Failure(Error.NotFound("Folder.NotFound", $"Folder {request.FolderId} not found"));
@@ -39,3 +29,5 @@ public class GetFolderDetailHandler(IDataBase db, WorkspaceContext workspaceCont
         return Result<FolderDetailDto>.Success(folder with { MemberIds = new List<Guid>() });
     }
 }
+
+

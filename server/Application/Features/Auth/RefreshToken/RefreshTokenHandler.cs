@@ -1,16 +1,10 @@
-using Application.Interfaces.Data;
-using Application.Common.Results;
-using Application.Common.Errors;
-using Domain.Entities;
 using Microsoft.EntityFrameworkCore;
-using Application.Interfaces;
-
-namespace Application.Features.Auth;
+namespace Application;
 
 public class RefreshTokenHandler(
-    IDataBase db, 
-    ICookieService cookieService, 
-    ITokenService tokenService
+    TaskPlanDbContext db, 
+    CookieService cookieService, 
+    TokenService tokenService
 ) : ICommandHandler<RefreshTokenCommand, RefreshTokenResponse>
 {
     public async Task<Result<RefreshTokenResponse>> Handle(RefreshTokenCommand request, CancellationToken ct)
@@ -49,3 +43,6 @@ public class RefreshTokenHandler(
         ));
     }
 }
+
+
+

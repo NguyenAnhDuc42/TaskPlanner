@@ -1,8 +1,7 @@
-using Application.Common.Exceptions;
 using FluentValidation;
 using Microsoft.AspNetCore.Mvc;
 
-namespace Api.Middlewares;
+namespace Api;
 
 public class ExceptionHandlingMiddleware
 {
@@ -80,3 +79,5 @@ public class ExceptionHandlingMiddleware
     }
 
 }
+
+

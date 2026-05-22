@@ -1,17 +1,14 @@
-using Application.Common.Results;
-using Application.Interfaces.Data;
-using Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
-namespace Application.Features.Auth;
+namespace Application;
 
 public class ForgotPasswordHandler : ICommandHandler<ForgotPasswordCommand, string?>
 {
-    private readonly IDataBase _db;
+    private readonly TaskPlanDbContext _db;
     private readonly ILogger<ForgotPasswordHandler> _logger;
 
-    public ForgotPasswordHandler(IDataBase db, ILogger<ForgotPasswordHandler> logger)
+    public ForgotPasswordHandler(TaskPlanDbContext db, ILogger<ForgotPasswordHandler> logger)
     {
         _db = db;
         _logger = logger;
@@ -37,3 +34,5 @@ public class ForgotPasswordHandler : ICommandHandler<ForgotPasswordCommand, stri
         return Result<string?>.Success(token);
     }
 }
+
+

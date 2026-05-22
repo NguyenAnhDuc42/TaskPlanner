@@ -1,4 +1,4 @@
-namespace Application.Features.WorkspaceFeatures;
+namespace Application;
 
 public static class UpdateMembersSQL
 {
@@ -14,3 +14,4 @@ public static class UpdateMembersSQL
           AND wm.project_workspace_id = @WorkspaceId 
           AND wm.deleted_at IS NULL";
 }
+

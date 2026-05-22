@@ -1,7 +1,4 @@
-using Application.Common.Interfaces;
-using Application.Common.Results;
-
-namespace Application.Features;
+namespace Application;
 
 public interface ICommandHandler<in TCommand> where TCommand : ICommandRequest
 {   
@@ -12,3 +9,4 @@ public interface ICommandHandler<in TCommand, TResponse> where TCommand : IComma
 {   
     Task<Result<TResponse>> Handle(TCommand command, CancellationToken cancellationToken);
 }
+

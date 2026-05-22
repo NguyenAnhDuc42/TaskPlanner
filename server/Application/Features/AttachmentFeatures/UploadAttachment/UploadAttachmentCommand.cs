@@ -1,8 +1,6 @@
-using Application.Common.Interfaces;
-using Domain.Enums;
 using Microsoft.AspNetCore.Http;
 
-namespace Application.Features.AttachmentFeatures;
+namespace Application;
 
 public record UploadAttachmentCommand 
 (   
@@ -16,3 +14,5 @@ public record UploadAttachmentCommand
     string? ImageUrl,
     string? Provider 
 ) : ICommandRequest;
+
+

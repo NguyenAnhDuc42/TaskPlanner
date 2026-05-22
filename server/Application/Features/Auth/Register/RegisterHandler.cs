@@ -1,18 +1,13 @@
-using Application.Common.Errors;
-using Application.Common.Results;
-using Application.Interfaces.Data;
-using Application.Interfaces;
-using Domain.Entities;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 
-namespace Application.Features.Auth;
+namespace Application;
 
 public class RegisterHandler(
-    IDataBase db, 
-    IPasswordService passwordService, 
-    ITokenService tokenService, 
-    ICookieService cookieService, 
+    TaskPlanDbContext db, 
+    PasswordService passwordService, 
+    TokenService tokenService, 
+    CookieService cookieService, 
     IHttpContextAccessor httpContextAccessor
 ) : ICommandHandler<RegisterCommand, RegisterResponse>
 {
@@ -36,7 +31,7 @@ public class RegisterHandler(
             icon: null,
             creatorId: user.Id
         );
-        await db.Workspaces.AddAsync(defaultWorkspace, ct);
+        await db.ProjectWorkspaces.AddAsync(defaultWorkspace, ct);
  
         // Best Practice: Automatically log in the user after registration
         var httpContext = httpContextAccessor.HttpContext;
@@ -54,3 +49,6 @@ public class RegisterHandler(
         return Result<RegisterResponse>.Success(new RegisterResponse(user.Id, user.Name, user.Email));
     }
 }
+
+
+

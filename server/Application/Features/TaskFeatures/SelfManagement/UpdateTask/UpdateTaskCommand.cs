@@ -1,7 +1,4 @@
-using Application.Common.Interfaces;
-using Domain.Enums;
-
-namespace Application.Features.TaskFeatures;
+namespace Application;
 
 public record UpdateTaskCommand(
     Guid TaskId,
@@ -16,3 +13,5 @@ public record UpdateTaskCommand(
     string? Icon = null,
     string? Color = null
 ) : ICommandRequest, IAuthorizedWorkspaceRequest;
+
+

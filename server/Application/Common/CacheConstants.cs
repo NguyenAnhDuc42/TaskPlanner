@@ -1,6 +1,6 @@
 using System;
 
-namespace Application.Common;
+namespace Application;
 
 public static class CacheConstants
 {
@@ -22,3 +22,4 @@ public static class CacheConstants
             => $"workspaces:{workspaceId}:user:{userId}:entity:{entityId}:perm";
     }
 }
+

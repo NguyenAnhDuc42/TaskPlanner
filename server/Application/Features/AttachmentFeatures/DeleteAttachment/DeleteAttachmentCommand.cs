@@ -1,5 +1,5 @@
-using Application.Common.Interfaces;
-
-namespace Application.Features.AttachmentFeatures;
+namespace Application;
 
 public record DeleteAttachmentCommand(Guid AttachmentId) : ICommandRequest;
+
+

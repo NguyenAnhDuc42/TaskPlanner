@@ -1,9 +1,4 @@
-using Domain.Common;
-using Domain.Enums;
-using Domain.Enums.RelationShip;
-using Domain.Exceptions;
-
-namespace Domain.Entities;
+namespace Domain;
 
 public sealed class ProjectWorkspace : Entity
 {
@@ -165,3 +160,5 @@ public sealed class ProjectWorkspace : Entity
 
     #endregion
 }
+
+

@@ -1,9 +1,5 @@
-using Application.Features.Auth;
-using Application.Common.Interfaces;
 using Microsoft.AspNetCore.Mvc;
-using Api.Extensions;
-
-namespace Api.Controllers;
+namespace Api;
 
 [Route("api/[controller]")]
 [ApiController]
@@ -103,3 +99,5 @@ public record ResetPasswordRequest(string Token, string NewPassword);
 public record ExternalLoginRequest(string Provider, string Token);
 public record ChangePasswordRequest(string CurrentPassword, string NewPassword);
 public record UpdateProfileRequest(string? Name, string? Email);
+
+

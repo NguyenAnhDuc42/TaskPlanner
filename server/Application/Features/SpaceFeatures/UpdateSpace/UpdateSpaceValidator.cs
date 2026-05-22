@@ -1,6 +1,6 @@
 using FluentValidation;
 
-namespace Application.Features.SpaceFeatures;
+namespace Application;
 
 public class UpdateSpaceValidator : AbstractValidator<UpdateSpaceCommand>
 {
@@ -15,3 +15,4 @@ public class UpdateSpaceValidator : AbstractValidator<UpdateSpaceCommand>
             .When(x => x.Name != null);
     }
 }
+

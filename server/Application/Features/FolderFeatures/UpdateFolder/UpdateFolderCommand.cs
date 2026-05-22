@@ -1,7 +1,4 @@
-using Application.Common.Interfaces;
-using Domain.Enums;
-
-namespace Application.Features.FolderFeatures;
+namespace Application;
 
 public record UpdateFolderCommand(
     Guid FolderId,
@@ -13,3 +10,5 @@ public record UpdateFolderCommand(
     Guid? StatusId = null,
     Priority? Priority = null
 ) : ICommandRequest, IAuthorizedWorkspaceRequest;
+
+

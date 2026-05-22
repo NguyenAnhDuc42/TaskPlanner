@@ -1,7 +1,4 @@
-using Domain.Enums;
-using Domain.Enums.RelationShip;
-
-namespace Application.Features.WorkspaceFeatures;
+namespace Application;
 
 public class WorkspaceRow
 {
@@ -112,3 +109,5 @@ public static class GetWorkspaceListSQL
     LIMIT @PageSizePLusOne;
     ";
 }
+
+

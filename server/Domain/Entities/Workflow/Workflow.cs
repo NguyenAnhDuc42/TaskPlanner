@@ -1,6 +1,4 @@
-using Domain.Common;
-
-namespace Domain.Entities;
+namespace Domain;
 
 public class Workflow : TenantEntity
 {
@@ -48,7 +46,7 @@ public class Workflow : TenantEntity
     public void AddStatus(Status status)
     {
         if (status == null) throw new ArgumentNullException(nameof(status));
-        if (status.WorkflowId != Id) status.SetWorkflow(Id);
+        if (status.WorkflowId != Id) status.Update(workflowId: Id);
         
         if (!_statuses.Any(s => s.Id == status.Id))
         {
@@ -86,3 +84,5 @@ public class Workflow : TenantEntity
         UpdateTimestamp();
     }
 }
+
+

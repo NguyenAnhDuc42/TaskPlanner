@@ -1,8 +1,4 @@
-using Domain.Common;
-using Domain.Enums;
-using Domain.Enums.RelationShip;
-
-namespace Domain.Entities;
+namespace Domain;
 
 public class WorkspaceMember : Entity
 {
@@ -120,3 +116,5 @@ public class WorkspaceMember : Entity
         UpdateTimestamp();
     }
 }
+
+

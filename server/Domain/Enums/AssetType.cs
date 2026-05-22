@@ -1,4 +1,4 @@
-namespace Domain.Enums;
+namespace Domain;
 
 public enum AssetType
 {
@@ -7,3 +7,4 @@ public enum AssetType
     ExternalLink,
     GitHubResource 
 }
+

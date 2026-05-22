@@ -1,16 +1,12 @@
-using Application.Common.Interfaces;
-using Application.Common.Results;
-using Application.Interfaces.Data;
-using Dapper;
+using Microsoft.EntityFrameworkCore;
 
-using Application.Helpers;
 using Microsoft.Extensions.Caching.Hybrid;
 
-namespace Application.Features.WorkflowFeatures;
+namespace Application;
 
-public class GetWorkspaceWorkflowsHandler(IDataBase db, WorkspaceContext workspaceContext, HybridCache cache) : IQueryHandler<GetWorkspaceWorkflowsQuery, List<WorkflowDto>>
+public class GetWorkspaceWorkflowsHandler(TaskPlanDbContext db, WorkspaceContext workspaceContext, HybridCache cache) : IQueryHandler<GetWorkspaceWorkflowsQuery, List<WorkflowRecord>>
 {
-    public async Task<Result<List<WorkflowDto>>> Handle(GetWorkspaceWorkflowsQuery request, CancellationToken ct)
+    public async Task<Result<List<WorkflowRecord>>> Handle(GetWorkspaceWorkflowsQuery request, CancellationToken ct)
     {
         var cacheKey = $"Workflows-{workspaceContext.workspaceId}-{request.LayerType}-{request.LayerId}";
         
@@ -21,7 +17,7 @@ public class GetWorkspaceWorkflowsHandler(IDataBase db, WorkspaceContext workspa
                 const string sql = @"
             SELECT 
                 w.id AS Id, w.name AS Name, w.project_space_id AS ProjectSpaceId, w.project_folder_id AS ProjectFolderId,
-                s.id AS Id, s.name AS Name, s.color AS Color, s.category AS Category, s.order_key AS OrderKey
+                s.id AS StatusId, s.name AS StatusName, s.color AS Color, s.category AS Category, s.order_key AS OrderKey
             FROM workflows w
             LEFT JOIN statuses s ON w.id = s.workflow_id
             WHERE w.project_workspace_id = @WorkspaceId 
@@ -31,38 +27,44 @@ public class GetWorkspaceWorkflowsHandler(IDataBase db, WorkspaceContext workspa
               AND w.deleted_at IS NULL AND (s.deleted_at IS NULL OR s.id IS NULL)
             ORDER BY w.name, s.category, s.order_key;";
 
-        var workflowDict = new Dictionary<Guid, WorkflowDto>();
-
-        await db.Connection.QueryAsync<WorkflowDto, StatusDto, WorkflowDto>(
-            sql,
-            (workflow, status) =>
-            {
-                if (!workflowDict.TryGetValue(workflow.Id, out var workflowEntry))
+                var parameters = new object[]
                 {
-                    workflowEntry = workflow with { Statuses = new List<StatusDto>() };
-                    workflowDict.Add(workflowEntry.Id, workflowEntry);
-                }
+                    new Npgsql.NpgsqlParameter("WorkspaceId", workspaceContext.workspaceId),
+                    new Npgsql.NpgsqlParameter("LayerId", request.LayerId ?? (object)DBNull.Value),
+                    new Npgsql.NpgsqlParameter("LayerType", request.LayerType ?? (object)DBNull.Value)
+                };
 
-                if (status != null)
-                {
-                    workflowEntry.Statuses.Add(status);
-                }
+                var rows = await db.Database.SqlQueryRaw<WorkflowRow>(sql, parameters).ToListAsync(cancelToken);
 
-                return workflowEntry;
-            },
-            new { 
-                WorkspaceId = workspaceContext.workspaceId,
-                LayerId = request.LayerId,
-                LayerType = request.LayerType
-            },
-            splitOn: "Id");
-
-                return workflowDict.Values.ToList();
+                return rows
+                    .GroupBy(r => new { r.Id, r.Name, r.ProjectSpaceId, r.ProjectFolderId })
+                    .Select(g => new WorkflowRecord
+                    {
+                        Id = g.Key.Id,
+                        Name = g.Key.Name,
+                        ProjectSpaceId = g.Key.ProjectSpaceId,
+                        ProjectFolderId = g.Key.ProjectFolderId,
+                        Statuses = g.Where(r => r.StatusId != null).Select(r => new StatusRecord
+                        {
+                            Id = r.StatusId!.Value,
+                            Name = r.StatusName!,
+                            Color = r.Color,
+                            Category = r.Category!.Value,
+                            OrderKey = r.OrderKey
+                        }).ToList()
+                    }).ToList();
             },
             tags: [$"Workflows-{workspaceContext.workspaceId}"],
             cancellationToken: ct
         );
 
-        return Result<List<WorkflowDto>>.Success(result);
+        return Result<List<WorkflowRecord>>.Success(result);
     }
+
+    private record WorkflowRow(
+        Guid Id, string Name, Guid? ProjectSpaceId, Guid? ProjectFolderId,
+        Guid? StatusId, string? StatusName, string? Color, StatusCategory? Category, string? OrderKey
+    );
 }
+
+

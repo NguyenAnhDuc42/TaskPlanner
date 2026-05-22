@@ -1,4 +1,4 @@
-namespace Domain.Common;
+namespace Domain;
 
 public abstract class Entity
 {
@@ -39,3 +39,4 @@ public abstract class Entity
         UpdateTimestamp();
     }
 }
+

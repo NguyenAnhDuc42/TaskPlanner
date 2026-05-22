@@ -1,24 +1,15 @@
-using Application.Common.Errors;
-using Application.Common.Interfaces;
-using Application.Common.Results;
-using Application.Helpers;
-using Application.Interfaces.Data;
-using Domain.Enums;
-using Domain.Entities;
 using Microsoft.EntityFrameworkCore;
-using Application.Interfaces;
-
-namespace Application.Features.FolderFeatures;
+namespace Application;
 
 public class CreateFolderHandler(
-    IDataBase db, 
+    TaskPlanDbContext db, 
     WorkspaceContext context,
-    IRealtimeService realtime
+    RealtimeService realtime
 ) : ICommandHandler<CreateFolderCommand, Guid>
 {
     public async Task<Result<Guid>> Handle(CreateFolderCommand request, CancellationToken ct)
     {
-        var space = await db.Spaces.ById(request.spaceId).FirstOrDefaultAsync(ct);
+        var space = await db.ProjectSpaces.FirstOrDefaultAsync(s => s.Id == request.spaceId, ct);
         if (space == null) 
             return Result<Guid>.Failure(SpaceError.NotFound);
 
@@ -27,10 +18,9 @@ public class CreateFolderHandler(
 
         return await db.ExecuteInTransactionAsync(async () =>
         {
-            var maxKey = await db.Folders
+            var maxKey = await db.ProjectFolders
                 .AsNoTracking()
-                .BySpace(request.spaceId)
-                .WhereNotDeleted()
+                .Where(f => f.ProjectSpaceId == request.spaceId && f.DeletedAt == null)
                 .MaxAsync(f => f.OrderKey, ct);
             
             var orderKey = maxKey is null ? FractionalIndex.Start() : FractionalIndex.After(maxKey);
@@ -65,7 +55,7 @@ public class CreateFolderHandler(
                 folder.Update(statusId: request.statusId);
             }
 
-            await db.Folders.AddAsync(folder, ct);
+            await db.ProjectFolders.AddAsync(folder, ct);
 
             // 3. Create Default Workflow for the folder
             var workflow = Workflow.Create(
@@ -91,3 +81,6 @@ public class CreateFolderHandler(
         }, ct);
     }
 }
+
+
+

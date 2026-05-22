@@ -1,15 +1,8 @@
-using Application.Common.Errors;
-using Application.Common.Results;
-using Application.Common.Interfaces;
-using Application.Helpers;
-using Application.Interfaces.Data;
-using Domain.Entities;
-using Domain.Enums;
 using Microsoft.EntityFrameworkCore;
 
-namespace Application.Features.AttachmentFeatures;
+namespace Application;
 
-public class LinkAttachmentHandler(IDataBase db, WorkspaceContext context) : ICommandHandler<LinkAttachmentCommand>
+public class LinkAttachmentHandler(TaskPlanDbContext db, WorkspaceContext context) : ICommandHandler<LinkAttachmentCommand>
 {
     public async Task<Result> Handle(LinkAttachmentCommand request, CancellationToken ct)
     {
@@ -37,3 +30,5 @@ public class LinkAttachmentHandler(IDataBase db, WorkspaceContext context) : ICo
         return Result.Success();
     }
 }
+
+

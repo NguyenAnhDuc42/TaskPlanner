@@ -1,7 +1,6 @@
-using Domain.Common;
 using System.Text.RegularExpressions;
 
-namespace Domain.Entities;
+namespace Domain;
 
 public class User : Entity
 {
@@ -92,3 +91,5 @@ public class User : Entity
     private static bool IsValidEmail(string email) =>
         Regex.IsMatch(email, @"^[^@\s]+@[^@\s]+\.[^@\s]+$");
 }
+
+

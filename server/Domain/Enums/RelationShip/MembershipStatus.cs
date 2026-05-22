@@ -1,6 +1,6 @@
 using System.Text.Json.Serialization;
 
-namespace Domain.Enums.RelationShip;
+namespace Domain;
 
 [JsonConverter(typeof(JsonStringEnumConverter))]
 public enum MembershipStatus
@@ -10,3 +10,4 @@ public enum MembershipStatus
     Invited,   // Invited directly by an admin, hasn't accepted yet
     Suspended  // Member was suspended by an admin
 }
+

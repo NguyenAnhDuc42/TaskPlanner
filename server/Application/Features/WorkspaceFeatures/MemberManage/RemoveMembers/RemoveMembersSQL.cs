@@ -1,4 +1,4 @@
-namespace Application.Features.WorkspaceFeatures;
+namespace Application;
 
 public static class RemoveMembersSQL
 {
@@ -10,3 +10,4 @@ public static class RemoveMembersSQL
           AND user_id = ANY(@UserIds)
           AND deleted_at IS NULL";
 }
+

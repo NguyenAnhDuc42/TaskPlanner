@@ -1,7 +1,4 @@
-using Application.Common.Interfaces;
-using Domain.Enums;
-
-namespace Application.Features.TaskFeatures;
+namespace Application;
 
 public record GetTaskDetailQuery(Guid TaskId) : IQueryRequest<TaskDetailDto>, IAuthorizedWorkspaceRequest;
 
@@ -28,3 +25,5 @@ public record TaskDetailDto
     // Pointers for local-first dictionary mapping
     public List<Guid> AssigneeIds { get; init; } = new();
 }
+
+

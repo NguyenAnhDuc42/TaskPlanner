@@ -1,14 +1,11 @@
-using Application.Common.Results;
-using Application.Interfaces.Data;
-using Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 
-namespace Application.Helpers;
+namespace Application;
 
 public static class WorkflowHelper
 {
     public static async Task<Workflow?> GetActiveWorkflow(
-        IDataBase db,
+        TaskPlanDbContext db,
         Guid workspaceId,
         Guid? spaceId,
         Guid? folderId,
@@ -28,7 +25,7 @@ public static class WorkflowHelper
     }
 
     public static async Task<List<Status>?> GetActiveStatuses(
-        IDataBase db,
+        TaskPlanDbContext db,
         Guid workspaceId,
         Guid? spaceId,
         Guid? folderId,
@@ -45,3 +42,4 @@ public static class WorkflowHelper
         return statuses.Count > 0 ? statuses : null;
     }
 }
+

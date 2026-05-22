@@ -1,16 +1,10 @@
-using Application.Common.Filters;
-using Application.Common.Interfaces;
-using Application.Common.Results;
-using Domain.Enums;
-using Domain.Enums.RelationShip;
-
-namespace Application.Features.WorkspaceFeatures;
+namespace Application;
 
 public record class GetMembersQuery(
     CursorPaginationRequest pagination, 
     Guid WorkspaceId, 
     GetMembersFilter filter
-) : IQueryRequest<PagedResult<MemberDto>>, IAuthorizedWorkspaceRequest;
+) : IQueryRequest<PagedResult<MemberRecord>>, IAuthorizedWorkspaceRequest;
 
 public record class GetMembersFilter(
     string? Name,
@@ -20,14 +14,3 @@ public record class GetMembersFilter(
     Role? Role
 );
 
-public record class MemberDto(
-    Guid Id,
-    Guid WorkspaceMemberId,
-    string? Name,
-    string? Email,
-    string? AvatarUrl,
-    Role Role,
-    MembershipStatus Status,
-    DateTimeOffset CreatedAt,
-    DateTimeOffset? JoinedAt
-);

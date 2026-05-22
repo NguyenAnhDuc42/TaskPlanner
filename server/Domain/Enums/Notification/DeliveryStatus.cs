@@ -1,4 +1,4 @@
-namespace Domain.Enums.Notification;
+namespace Domain;
 
 public enum DeliveryStatus
 {
@@ -8,3 +8,4 @@ public enum DeliveryStatus
     Cancelled,
     RateLimited
 }
+

@@ -1,8 +1,4 @@
-using Application.Common.Interfaces;
-using Domain.Enums;
-using Domain.Enums.RelationShip;
-
-namespace Application.Features.TaskFeatures;
+namespace Application;
 
 public record CreateTaskCommand(
     Guid ParentId,
@@ -44,3 +40,5 @@ public record AssigneeDto(
     string Name,
     string? AvatarUrl
 );
+
+

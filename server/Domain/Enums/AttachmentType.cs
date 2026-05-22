@@ -1,6 +1,6 @@
-﻿using System.Text.Json.Serialization;
+using System.Text.Json.Serialization;
 
-namespace Domain.Enums;
+namespace Domain;
 
 [JsonConverter(typeof(JsonStringEnumConverter))]
 public enum AttachmentType
@@ -11,4 +11,5 @@ public enum AttachmentType
     Media,
     Embed
 }
+
 

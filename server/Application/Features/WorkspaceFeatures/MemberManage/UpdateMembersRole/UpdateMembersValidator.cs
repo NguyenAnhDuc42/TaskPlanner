@@ -1,8 +1,5 @@
 using FluentValidation;
-using Domain.Enums;
-using Domain.Enums.RelationShip;
-
-namespace Application.Features.WorkspaceFeatures;
+namespace Application;
 
 public class UpdateMembersValidator : AbstractValidator<UpdateMembersCommand>
 {
@@ -27,3 +24,5 @@ public class UpdateMemberValueValidator : AbstractValidator<UpdateMemberValue>
             .WithMessage("Invalid status provided.");
     }
 }
+
+

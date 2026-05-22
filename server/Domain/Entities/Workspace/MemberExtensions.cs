@@ -1,8 +1,5 @@
 using System.Linq;
-using Domain.Enums;
-using Domain.Enums.RelationShip;
-
-namespace Domain.Entities;
+namespace Domain;
 
 public static class MemberExtensions
 {
@@ -27,3 +24,5 @@ public static class MemberExtensions
     public static IQueryable<WorkspaceMember> InRoles(this IQueryable<WorkspaceMember> query, params Role[] roles) =>
         query.Where(m => roles.Contains(m.Role));
 }
+
+

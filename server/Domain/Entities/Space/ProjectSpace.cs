@@ -1,7 +1,4 @@
-using Domain.Common;
-using Domain.Exceptions;
-
-namespace Domain.Entities;
+namespace Domain;
 
 public sealed class ProjectSpace : TenantEntity
 {
@@ -109,3 +106,5 @@ public sealed class ProjectSpace : TenantEntity
         if (IsArchived) throw new BusinessRuleException("Cannot modify an archived space.");
     }
 }
+
+

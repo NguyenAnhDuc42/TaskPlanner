@@ -1,10 +1,11 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Text;
 
-namespace Application.Features.AttachmentFeatures.LinkAttachment
+namespace Application
 {
     internal class LinkAttachmentValidator
     {
     }
 }
+

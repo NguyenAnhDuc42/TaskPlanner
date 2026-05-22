@@ -1,19 +1,12 @@
-using Application.Helpers;
-using Application.Common.Errors;
-using Application.Common.Results;
-using Application.Common.Interfaces;
-using Application.Interfaces.Data;
-using Domain.Entities;
-using Domain.Enums;
 using Microsoft.EntityFrameworkCore;
 
-namespace Application.Features.TaskFeatures;
+namespace Application;
 
-public class DeleteTaskHandler(IDataBase db, WorkspaceContext context) : ICommandHandler<DeleteTaskCommand>
+public class DeleteTaskHandler(TaskPlanDbContext db, WorkspaceContext context) : ICommandHandler<DeleteTaskCommand>
 {
     public async Task<Result> Handle(DeleteTaskCommand request, CancellationToken ct)
     {
-        var task = await db.Tasks
+        var task = await db.ProjectTasks
             .ById(request.TaskId)
             .FirstOrDefaultAsync(ct);
 
@@ -26,3 +19,5 @@ public class DeleteTaskHandler(IDataBase db, WorkspaceContext context) : IComman
         return Result.Success();
     }
 }
+
+

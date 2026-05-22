@@ -1,14 +1,9 @@
-using Application.Interfaces.Data;
-using Application.Common.Results;
 using Microsoft.EntityFrameworkCore;
-using Application.Interfaces;
-using Domain.Entities;
-
-namespace Application.Features.Auth;
+namespace Application;
 
 public class LogoutHandler(
-    IDataBase db, 
-    ICookieService cookieService
+    TaskPlanDbContext db, 
+    CookieService cookieService
 ) : ICommandHandler<LogoutCommand>
 {
     public async Task<Result> Handle(LogoutCommand request, CancellationToken ct)
@@ -31,3 +26,6 @@ public class LogoutHandler(
         return Result.Success();
     }
 }
+
+
+

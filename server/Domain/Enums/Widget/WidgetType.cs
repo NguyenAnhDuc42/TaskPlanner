@@ -1,6 +1,6 @@
 using System.Text.Json.Serialization;
 
-namespace Domain.Enums.Widget;
+namespace Domain;
 
 [JsonConverter(typeof(JsonStringEnumConverter))]
 public enum WidgetType
@@ -24,3 +24,4 @@ public enum WidgetType
     Hero,
 
 }
+

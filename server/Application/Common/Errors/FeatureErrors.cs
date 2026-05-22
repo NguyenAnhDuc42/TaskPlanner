@@ -1,6 +1,4 @@
-using Application.Common.Errors;
-
-namespace Application.Common.Errors;
+namespace Application;
 
 public static class UserError
 {
@@ -58,3 +56,5 @@ public static class WorkflowError
     public static readonly Error NotFound = Error.NotFound("Workflow.NotFound", "The workflow with the specified identifier was not found.");
     public static readonly Error IntegrityViolation = Error.Failure("Workflow.IntegrityViolation", "The workflow must have at least one status in each completion category.");
 }
+
+

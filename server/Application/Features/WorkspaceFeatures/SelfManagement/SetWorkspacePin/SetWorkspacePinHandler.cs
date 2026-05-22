@@ -1,22 +1,13 @@
-using Application.Common.Errors;
-using Application.Common.Interfaces;
-using Application.Common.Results;
-using Application.Helpers;
-using Application.Interfaces.Data;
-using Application.Interfaces;
-using Application.Features;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Hybrid;
-using Domain.Entities;  
-
-namespace Application.Features.WorkspaceFeatures;
+namespace Application;
 
 public class SetWorkspacePinHandler(
-    IDataBase db, 
+    TaskPlanDbContext db, 
     WorkspaceContext context,
-    ICurrentUserService currentUserService, 
+    CurrentUserService currentUserService, 
     HybridCache cache, 
-    IRealtimeService realtime
+    RealtimeService realtime
 ) : ICommandHandler<SetWorkspacePinCommand>
 {
     public async Task<Result> Handle(SetWorkspacePinCommand request, CancellationToken ct)
@@ -55,3 +46,6 @@ public class SetWorkspacePinHandler(
         return Result.Success();
     }
 }
+
+
+

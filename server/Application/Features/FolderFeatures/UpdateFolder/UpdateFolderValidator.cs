@@ -1,6 +1,6 @@
 using FluentValidation;
 
-namespace Application.Features.FolderFeatures;
+namespace Application;
 
 public class UpdateFolderValidator : AbstractValidator<UpdateFolderCommand>
 {
@@ -15,3 +15,4 @@ public class UpdateFolderValidator : AbstractValidator<UpdateFolderCommand>
             .When(x => x.Name != null);
     }
 }
+

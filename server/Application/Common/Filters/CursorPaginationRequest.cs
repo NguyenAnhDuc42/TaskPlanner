@@ -1,6 +1,6 @@
 using System;
 
-namespace Application.Common.Filters;
+namespace Application;
 
 public record CursorPaginationRequest(
     string? Cursor = null,
@@ -9,3 +9,4 @@ public record CursorPaginationRequest(
     SortDirection Direction = SortDirection.Ascending);
 
 public enum SortDirection { Ascending, Descending }
+

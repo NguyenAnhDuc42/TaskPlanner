@@ -1,7 +1,4 @@
-using Application.Common.Interfaces;
-using Domain.Enums.RelationShip;
-
-namespace Application.Features.WorkspaceFeatures;
+namespace Application;
 
 public record MoveItemCommand(
     Guid ItemId,
@@ -11,3 +8,5 @@ public record MoveItemCommand(
     string? NextItemOrderKey,        // OrderKey of item below
     string? NewOrderKey             // Optional: Pre-calculated key from frontend
 ) : ICommandRequest, IAuthorizedWorkspaceRequest;
+
+

@@ -1,6 +1,4 @@
-using Domain.Enums;
-
-namespace Domain.Entities;
+namespace Domain;
 
 public readonly record struct ViewFilterConfig
 {
@@ -23,3 +21,5 @@ public readonly record struct ViewFilterConfig
 
     public static ViewFilterConfig CreateDefault() => new();
 }
+
+

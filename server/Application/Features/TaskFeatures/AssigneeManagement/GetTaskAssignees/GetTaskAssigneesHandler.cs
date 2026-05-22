@@ -1,24 +1,21 @@
-using Application.Helpers;
-using Application.Common.Errors;
-using Application.Common.Results;
-using Domain.Entities;
-using Application.Interfaces;
-using Application.Interfaces.Data;
+using Microsoft.EntityFrameworkCore;
 using Dapper;
 
-namespace Application.Features.TaskFeatures;
+namespace Application;
 
-public class GetTaskAssigneesHandler(IDataBase db) : IQueryHandler<GetTaskAssigneesQuery, List<TaskAssigneeDto>>
+public class GetTaskAssigneesHandler(TaskPlanDbContext db) : IQueryHandler<GetTaskAssigneesQuery, List<TaskAssigneeDto>>
 {
     public async Task<Result<List<TaskAssigneeDto>>> Handle(GetTaskAssigneesQuery request, CancellationToken ct)
     {
-        var task = await db.Tasks.FindAsync(request.TaskId, ct);
+        var task = await db.ProjectTasks.FindAsync(request.TaskId, ct);
         if (task == null) return TaskError.NotFound;
 
-        var assignees = await db.Connection.QueryAsync<TaskAssigneeDto>(
+        var assignees = await db.Database.GetDbConnection().QueryAsync<TaskAssigneeDto>(
             GetTaskAssigneesSQL.GetAssignees, 
             new { TaskId = task.Id });
 
         return assignees.ToList();
     }
 }
+
+

@@ -1,13 +1,6 @@
-using Application.Common.Filters;
-using Application.Common.Results;
-using Application.Features.WorkspaceFeatures;
 using Microsoft.AspNetCore.Mvc;
-using Domain.Enums;
 using Microsoft.AspNetCore.Authorization;
-using Api.Extensions;
-using Application.Common.Interfaces;
-
-namespace Api.Controllers
+namespace Api
 {
     [Route("api/[controller]")]
     [ApiController]
@@ -80,7 +73,7 @@ namespace Api.Controllers
             var filter = new WorkspaceFilter(name, owned, isArchived);
             var query = new GetWorksapceListQuery(pagination, filter);
 
-            var result = await _handler.QueryAsync<GetWorksapceListQuery, PagedResult<WorkspaceSummaryDto>>(query, cancellationToken);
+            var result = await _handler.QueryAsync<GetWorksapceListQuery, PagedResult<WorkspaceRecord>>(query, cancellationToken);
             return result.ToActionResult();
         }
 
@@ -120,7 +113,7 @@ namespace Api.Controllers
             Guid id,
             CancellationToken cancellationToken)
         {
-            var result = await _handler.QueryAsync<GetDetailWorkspaceQuery, WorkspaceSecurityContextDto>(new GetDetailWorkspaceQuery(id), cancellationToken);
+            var result = await _handler.QueryAsync<GetDetailWorkspaceQuery, WorkspaceRecord>(new GetDetailWorkspaceQuery(id), cancellationToken);
             return result.ToActionResult();
         }
 
@@ -140,7 +133,7 @@ namespace Api.Controllers
             var filter = new GetMembersFilter(name, email, spaceId, taskId, role);
             var query = new GetMembersQuery(pagination, id, filter);
 
-            var result = await _handler.QueryAsync<GetMembersQuery, PagedResult<MemberDto>>(query, cancellationToken);
+            var result = await _handler.QueryAsync<GetMembersQuery, PagedResult<MemberRecord>>(query, cancellationToken);
             return result.ToActionResult();
         }
 
@@ -210,7 +203,7 @@ namespace Api.Controllers
 
     public record MoveItemRequest(
         Guid ItemId,
-        Domain.Enums.RelationShip.EntityLayerType ItemType,
+        EntityLayerType ItemType,
         Guid? TargetParentId,
         string? PreviousItemOrderKey,
         string? NextItemOrderKey,
@@ -233,3 +226,6 @@ namespace Api.Controllers
         bool? RegenerateJoinCode
     );
 }
+
+
+

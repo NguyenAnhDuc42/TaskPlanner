@@ -1,7 +1,7 @@
 using System;
 using System.Text;
 
-namespace Application.Features.WorkspaceFeatures;
+namespace Application;
 
 public static class WorkspaceCacheKeys
 {
@@ -56,3 +56,4 @@ public static class WorkspaceCacheKeys
         return sb.ToString();
     }
 }
+

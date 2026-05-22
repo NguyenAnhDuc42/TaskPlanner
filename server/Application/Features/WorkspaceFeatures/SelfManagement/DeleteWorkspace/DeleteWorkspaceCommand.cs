@@ -1,5 +1,5 @@
-using Application.Common.Interfaces;
-
-namespace Application.Features.WorkspaceFeatures;
+namespace Application;
 
 public record DeleteWorkspaceCommand(Guid workspaceId) : ICommandRequest, IAuthorizedWorkspaceRequest;
+
+

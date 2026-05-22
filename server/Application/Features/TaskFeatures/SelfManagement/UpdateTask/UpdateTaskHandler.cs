@@ -1,20 +1,11 @@
-using Application.Helpers;
-using Application.Interfaces.Data;
-using Application.Common.Results;
-using Application.Common.Errors;
-using Application.Common.Interfaces;
-using Domain.Entities;
-using Domain.Enums;
 using Microsoft.EntityFrameworkCore;
-using Application.Interfaces;
+namespace Application;
 
-namespace Application.Features.TaskFeatures;
-
-public class UpdateTaskHandler(IDataBase db, WorkspaceContext context, IRealtimeService realtime) : ICommandHandler<UpdateTaskCommand>
+public class UpdateTaskHandler(TaskPlanDbContext db, WorkspaceContext context, RealtimeService realtime) : ICommandHandler<UpdateTaskCommand>
 {
     public async Task<Result> Handle(UpdateTaskCommand request, CancellationToken ct)
     {
-        var task = await db.Tasks
+        var task = await db.ProjectTasks
             .Include(t => t.Assignees)
             .FirstOrDefaultAsync(t => t.Id == request.TaskId, ct);
 
@@ -63,7 +54,7 @@ public class UpdateTaskHandler(IDataBase db, WorkspaceContext context, IRealtime
         if (request.StatusId.HasValue && request.StatusId.Value != task.StatusId)
         {
             var isValid = await db.Statuses
-                .AnyAsync(s => s.Id == request.StatusId.Value && s.Workflow.ProjectWorkspaceId == task.ProjectWorkspaceId, ct);
+                .AnyAsync(s => s.Id == request.StatusId.Value && s.ProjectWorkspaceId == task.ProjectWorkspaceId, ct);
 
             if (!isValid)
                 return Result.Failure(Error.Validation("Task.InvalidStatus", "The requested status does not exist or does not belong to this workspace."));
@@ -95,3 +86,6 @@ public class UpdateTaskHandler(IDataBase db, WorkspaceContext context, IRealtime
         task.AddAsignees(toAdd);
     }
 }
+
+
+

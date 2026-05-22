@@ -1,4 +1,4 @@
-namespace Domain.Enums;
+namespace Domain;
 
 public enum ScopeType
 {
@@ -10,3 +10,4 @@ public enum ScopeType
     Task
 
 }
+

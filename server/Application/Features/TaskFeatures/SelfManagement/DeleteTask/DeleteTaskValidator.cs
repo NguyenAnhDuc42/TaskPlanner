@@ -1,6 +1,6 @@
 using FluentValidation;
 
-namespace Application.Features.TaskFeatures;
+namespace Application;
 
 public class DeleteTaskValidator : AbstractValidator<DeleteTaskCommand>
 {
@@ -9,3 +9,4 @@ public class DeleteTaskValidator : AbstractValidator<DeleteTaskCommand>
         RuleFor(x => x.TaskId).NotEmpty().WithMessage("Task ID is required.");
     }
 }
+

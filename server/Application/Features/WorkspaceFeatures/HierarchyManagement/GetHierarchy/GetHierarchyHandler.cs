@@ -1,54 +1,47 @@
-using Application.Common.Errors;
-using Application.Common.Interfaces;
-using Application.Common.Results;
-using Application.Helpers;
-using Application.Interfaces.Data;
 using Microsoft.EntityFrameworkCore;
-using Domain.Entities;
-using Dapper;
 
-namespace Application.Features.WorkspaceFeatures;
 
-public class GetHierarchyHandler(IDataBase db) : IQueryHandler<GetHierarchyQuery, WorkspaceHierarchyDto>
+namespace Application;
+
+public class GetHierarchyHandler(TaskPlanDbContext db) : IQueryHandler<GetHierarchyQuery, WorkspaceHierarchyRecord>
 {
-    public async Task<Result<WorkspaceHierarchyDto>> Handle(GetHierarchyQuery request, CancellationToken ct)
+    public async Task<Result<WorkspaceHierarchyRecord>> Handle(GetHierarchyQuery request, CancellationToken ct)
     {
-        var rows = (await db.Connection.QueryAsync<SpaceRow>(
+        var rows = await db.Database.SqlQueryRaw<SpaceRow>(
             GetHierarchySql.GetSpacesAndWorkspaceQuery,
-            new { WorkspaceId = request.WorkspaceId })).AsList();
+            new Npgsql.NpgsqlParameter("WorkspaceId", request.WorkspaceId)
+        ).ToListAsync(ct);
 
         if (rows.Count == 0)
-            return Result<WorkspaceHierarchyDto>.Failure(
+            return Result<WorkspaceHierarchyRecord>.Failure(
                 Error.NotFound("Workspace.NotFound",
                     $"Workspace {request.WorkspaceId} not found"));
 
-        return Result<WorkspaceHierarchyDto>.Success(BuildHierarchy(rows));
+        return Result<WorkspaceHierarchyRecord>.Success(BuildHierarchy(rows));
     }
 
-    private static WorkspaceHierarchyDto BuildHierarchy(List<SpaceRow> rows)
+    private static WorkspaceHierarchyRecord BuildHierarchy(List<SpaceRow> rows)
     {
-        var spaces = new List<SpaceHierarchyDto>();
+        var spaces = new List<SpaceRecord>();
 
         foreach (var s in rows)
         {
             if (s.Id == null) continue;
 
-            spaces.Add(new SpaceHierarchyDto
+            spaces.Add(new SpaceRecord
             {
                 Id        = s.Id.Value,
                 Name      = s.Name ?? string.Empty,
-                Color     = s.Color  ?? string.Empty,
-                Icon      = s.Icon   ?? string.Empty,
+                Color     = s.Color,
+                Icon      = s.Icon,
                 IsPrivate = s.IsPrivate ?? false,
-                OrderKey  = s.OrderKey ?? string.Empty,
+                OrderKey  = s.OrderKey,
                 HasFolders = s.HasFolders ?? false,
-                HasTasks   = s.HasTasks ?? false,
-                Folders   = new List<FolderHierarchyDto>(0),
-                Tasks     = new List<TaskHierarchyDto>(0)
+                HasTasks   = s.HasTasks ?? false
             });
         }
 
-        return new WorkspaceHierarchyDto
+        return new WorkspaceHierarchyRecord
         {
             Name   = rows[0].WorkspaceName,
             Spaces = spaces
@@ -61,3 +54,5 @@ public class GetHierarchyHandler(IDataBase db) : IQueryHandler<GetHierarchyQuery
         bool? IsPrivate, string? OrderKey,
         bool? HasFolders, bool? HasTasks);
 }
+
+

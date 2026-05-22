@@ -1,7 +1,5 @@
 using FluentValidation;
-using Domain.Enums;
-
-namespace Application.Features.WorkflowFeatures;
+namespace Application;
 
 public class UpdateWorkflowStatusesValidator : AbstractValidator<UpdateWorkflowStatusesCommand>
 {
@@ -12,13 +10,13 @@ public class UpdateWorkflowStatusesValidator : AbstractValidator<UpdateWorkflowS
             .NotNull()
             .NotEmpty().WithMessage("At least one status must be provided.");
 
-        RuleForEach(x => x.Statuses).SetValidator(new StatusUpdateDtoValidator());
+        RuleForEach(x => x.Statuses).SetValidator(new StatusUpdateRecordValidator());
     }
 }
 
-public class StatusUpdateDtoValidator : AbstractValidator<StatusUpdateDto>
+public class StatusUpdateRecordValidator : AbstractValidator<StatusUpdateRecord>
 {
-    public StatusUpdateDtoValidator()
+    public StatusUpdateRecordValidator()
     {
         RuleFor(x => x.Name)
             .NotEmpty().MaximumLength(50).WithMessage("Name must be between 1 and 50 characters.")
@@ -36,3 +34,5 @@ public class StatusUpdateDtoValidator : AbstractValidator<StatusUpdateDto>
             .IsInEnum().WithMessage("Invalid action.");
     }
 }
+
+

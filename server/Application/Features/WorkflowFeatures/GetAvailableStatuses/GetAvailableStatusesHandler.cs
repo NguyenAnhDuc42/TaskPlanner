@@ -1,15 +1,11 @@
-using Application.Common.Interfaces;
-using Application.Common.Results;
-using Application.Helpers;
-using Application.Interfaces.Data;
 using Microsoft.Extensions.Caching.Hybrid;
 
-namespace Application.Features.WorkflowFeatures;
+namespace Application;
 
-public class GetAvailableStatusesHandler(IDataBase db, WorkspaceContext context, HybridCache cache) 
-    : IQueryHandler<GetAvailableStatusesQuery, List<StatusResponse>>
+public class GetAvailableStatusesHandler(TaskPlanDbContext db, WorkspaceContext context, HybridCache cache) 
+    : IQueryHandler<GetAvailableStatusesQuery, List<StatusRecord>>
 {
-    public async Task<Result<List<StatusResponse>>> Handle(GetAvailableStatusesQuery request, CancellationToken ct)
+    public async Task<Result<List<StatusRecord>>> Handle(GetAvailableStatusesQuery request, CancellationToken ct)
     {
         var cacheKey = $"AvailableStatuses-{context.workspaceId}-{request.SpaceId}-{request.FolderId}";
         
@@ -25,13 +21,15 @@ public class GetAvailableStatusesHandler(IDataBase db, WorkspaceContext context,
                     cancelToken);
 
                 return statuses
-                    .Select(s => new StatusResponse(s.Id, s.Name, s.Color, s.Category))
+                    .Select(s => new StatusRecord { Id = s.Id, Name = s.Name, Color = s.Color, Category = s.Category })
                     .ToList();
             },
             tags: [$"Statuses-{context.workspaceId}"],
             cancellationToken: ct
         );
 
-        return Result<List<StatusResponse>>.Success(response);
+        return Result<List<StatusRecord>>.Success(response);
     }
 }
+
+

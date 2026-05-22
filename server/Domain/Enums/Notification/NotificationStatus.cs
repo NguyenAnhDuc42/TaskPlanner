@@ -1,4 +1,4 @@
-namespace Domain.Enums.Notification;
+namespace Domain;
 
 public enum NotificationStatus
 {
@@ -6,3 +6,4 @@ public enum NotificationStatus
     Unread,
     Archived
 }
+

@@ -1,6 +1,4 @@
-using Application.Common.Interfaces;
-
-namespace Application.Features.TaskFeatures;
+namespace Application;
 
 public record GetCommentsQuery(Guid TaskId) : IQueryRequest<List<CommentDto>>, IAuthorizedWorkspaceRequest;
 
@@ -15,3 +13,5 @@ public record CommentDto
     public DateTimeOffset CreatedAt { get; init; }
     public DateTimeOffset? UpdatedAt { get; init; }
 }
+
+

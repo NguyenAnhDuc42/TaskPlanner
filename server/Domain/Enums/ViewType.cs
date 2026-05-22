@@ -1,6 +1,6 @@
 using System.Text.Json.Serialization;
 
-namespace Domain.Enums;
+namespace Domain;
 
 [JsonConverter(typeof(JsonStringEnumConverter))]
 public enum ViewType
@@ -8,3 +8,4 @@ public enum ViewType
     Overview,
     Tasks
 }
+

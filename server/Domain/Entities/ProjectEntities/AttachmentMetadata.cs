@@ -1,7 +1,6 @@
-﻿using Domain.Enums;
 using System.Text.Json;
 
-namespace Domain.Entities;
+namespace Domain;
 
 
 public record AttachmentMetadata
@@ -91,3 +90,5 @@ public record MediaMetaData(int? Width,int? Height ,int? DurationSecconds) : Att
 
     public string ToJson() => JsonSerializer.Serialize(this );
 }
+
+

@@ -1,9 +1,6 @@
 using System;
 using System.Collections.Generic;
-using Application.Common.Interfaces;
-using Domain.Entities;
-
-namespace Application.Features.DocumentFeatures;
+namespace Application;
 
 public record GetDocumentBlocksQuery(Guid DocumentId) : IQueryRequest<List<DocumentBlockDto>>, IAuthorizedWorkspaceRequest;
 
@@ -13,3 +10,5 @@ public record DocumentBlockDto(
     string Content,
     string OrderKey
 );
+
+

@@ -1,8 +1,8 @@
-using Application.Common.Interfaces;
-
-namespace Application.Features.WorkspaceFeatures;
+namespace Application;
 
 public record JoinWorkspaceByCodeCommand(string JoinCode) : ICommandRequest<JoinWorkspaceByCodeResult>;
 
 public record JoinWorkspaceByCodeResult(Guid WorkspaceId, string MembershipStatus, bool IsNewMember);
+
+
 

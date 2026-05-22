@@ -1,6 +1,4 @@
-using Domain.Common;
-
-namespace Domain.Entities;
+namespace Domain;
 
 public class PasswordResetToken : Entity
 {
@@ -45,3 +43,5 @@ public class PasswordResetToken : Entity
         UsedAt = DateTimeOffset.UtcNow;
     }
 }
+
+

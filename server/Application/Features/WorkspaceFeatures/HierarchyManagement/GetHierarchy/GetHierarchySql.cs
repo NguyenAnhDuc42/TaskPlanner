@@ -1,4 +1,4 @@
-namespace Application.Features.WorkspaceFeatures;
+namespace Application;
 
 public static class GetHierarchySql
 {
@@ -111,3 +111,4 @@ public static class GetHierarchySql
         ORDER BY t.order_key, t.id
         LIMIT @PageSize;";
 }
+

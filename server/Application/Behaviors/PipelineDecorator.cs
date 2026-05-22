@@ -1,19 +1,12 @@
-using Application.Common.Errors;
-using Application.Common.Interfaces;
-using Application.Common.Results;
-using Application.Features;
-using Application.Helpers;
-using Application.Interfaces;
-using Application.Interfaces.Data;
-using Domain.Entities;
 using FluentValidation;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 using Serilog.Context;
 using System.Diagnostics;
 
-namespace Application.Behaviors;
+namespace Application;
 
 /// <summary>
 /// A high-performance consolidated pipeline decorator.
@@ -32,7 +25,7 @@ public static class PipelineDecorator
             var requestName = typeof(TCommand).Name;
             
             // 1. Resolve basic services (fast)
-            var currentUserService = serviceProvider.GetRequiredService<ICurrentUserService>();
+            var currentUserService = serviceProvider.GetRequiredService<CurrentUserService>();
             var workspaceContext = serviceProvider.GetRequiredService<WorkspaceContext>();
             
             var userId = currentUserService.CurrentUserId();
@@ -61,16 +54,16 @@ public static class PipelineDecorator
                     // 3. Lazy Authorization with Caching
                     if (command is IAuthorizedWorkspaceRequest)
                     {
-                        var db = serviceProvider.GetRequiredService<IDataBase>();
-                        var cache = serviceProvider.GetRequiredService<Microsoft.Extensions.Caching.Memory.IMemoryCache>();
-                        var authResult = await AuthorizeInternalAsync(workspaceContext, userId, workspaceId, db, cache, ct);
+                        var authDb = serviceProvider.GetRequiredService<TaskPlanDbContext>();
+                        var cache = serviceProvider.GetRequiredService<IMemoryCache>();
+                        var authResult = await AuthorizeInternalAsync(workspaceContext, userId, workspaceId, authDb, cache, ct);
                         if (authResult is not null) return Result<TResponse>.Failure(authResult.Error!);
                     }
 
                     // 4. Execution with Transaction Safety
                     // Automatically wraps handlers in Execution Strategy so retries and connection pools don't break transactions
-                    var db = serviceProvider.GetRequiredService<IDataBase>();
-                    var strategy = db.CreateExecutionStrategy();
+                    var db = serviceProvider.GetRequiredService<TaskPlanDbContext>();
+                    var strategy = db.Database.CreateExecutionStrategy();
                     
                     var result = await strategy.ExecuteAsync(async () => 
                     {
@@ -105,7 +98,7 @@ public static class PipelineDecorator
         public async Task<Result> Handle(TCommand command, CancellationToken ct)
         {
             var requestName = typeof(TCommand).Name;
-            var currentUserService = serviceProvider.GetRequiredService<ICurrentUserService>();
+            var currentUserService = serviceProvider.GetRequiredService<CurrentUserService>();
             var workspaceContext = serviceProvider.GetRequiredService<WorkspaceContext>();
             
             var userId = currentUserService.CurrentUserId();
@@ -132,15 +125,15 @@ public static class PipelineDecorator
 
                     if (command is IAuthorizedWorkspaceRequest)
                     {
-                        var db = serviceProvider.GetRequiredService<IDataBase>();
-                        var cache = serviceProvider.GetRequiredService<Microsoft.Extensions.Caching.Memory.IMemoryCache>();
-                        var authResult = await AuthorizeInternalAsync(workspaceContext, userId, workspaceId, db, cache, ct);
+                        var authDb = serviceProvider.GetRequiredService<TaskPlanDbContext>();
+                        var cache = serviceProvider.GetRequiredService<IMemoryCache>();
+                        var authResult = await AuthorizeInternalAsync(workspaceContext, userId, workspaceId, authDb, cache, ct);
                         if (authResult is not null) return authResult;
                     }
 
                     // 4. Execution with Transaction Safety
-                    var db = serviceProvider.GetRequiredService<IDataBase>();
-                    var strategy = db.CreateExecutionStrategy();
+                    var db = serviceProvider.GetRequiredService<TaskPlanDbContext>();
+                    var strategy = db.Database.CreateExecutionStrategy();
                     
                     var result = await strategy.ExecuteAsync(async () => 
                     {
@@ -175,7 +168,7 @@ public static class PipelineDecorator
         public async Task<Result<TResponse>> Handle(TQuery query, CancellationToken ct)
         {
             var requestName = typeof(TQuery).Name;
-            var currentUserService = serviceProvider.GetRequiredService<ICurrentUserService>();
+            var currentUserService = serviceProvider.GetRequiredService<CurrentUserService>();
             var workspaceContext = serviceProvider.GetRequiredService<WorkspaceContext>();
             
             var userId = currentUserService.CurrentUserId();
@@ -202,9 +195,9 @@ public static class PipelineDecorator
 
                     if (query is IAuthorizedWorkspaceRequest)
                     {
-                        var db = serviceProvider.GetRequiredService<IDataBase>();
-                        var cache = serviceProvider.GetRequiredService<Microsoft.Extensions.Caching.Memory.IMemoryCache>();
-                        var authResult = await AuthorizeInternalAsync(workspaceContext, userId, workspaceId, db, cache, ct);
+                        var authDb = serviceProvider.GetRequiredService<TaskPlanDbContext>();
+                        var cache = serviceProvider.GetRequiredService<IMemoryCache>();
+                        var authResult = await AuthorizeInternalAsync(workspaceContext, userId, workspaceId, authDb, cache, ct);
                         if (authResult is not null) return Result<TResponse>.Failure(authResult.Error!);
                     }
 
@@ -228,7 +221,7 @@ public static class PipelineDecorator
         }
     }
 
-    private static async Task<Result?> AuthorizeInternalAsync(WorkspaceContext workspaceContext, Guid userId, Guid? workspaceId, IDataBase db, Microsoft.Extensions.Caching.Memory.IMemoryCache cache, CancellationToken ct)
+    private static async Task<Result?> AuthorizeInternalAsync(WorkspaceContext workspaceContext, Guid userId, Guid? workspaceId, TaskPlanDbContext db, IMemoryCache cache, CancellationToken ct)
     {
         if (!workspaceId.HasValue) 
             return Result.Failure(Error.Validation("Workspace.Required", "Workspace context is required for this request."));
@@ -254,3 +247,6 @@ public static class PipelineDecorator
         return null;
     }
 }
+
+
+

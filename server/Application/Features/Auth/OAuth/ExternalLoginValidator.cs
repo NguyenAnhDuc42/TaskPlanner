@@ -1,6 +1,6 @@
 using FluentValidation;
 
-namespace Application.Features.Auth.OAuth;
+namespace Application;
 
 public class ExternalLoginValidator : AbstractValidator<ExternalLoginCommand>
 {
@@ -10,3 +10,4 @@ public class ExternalLoginValidator : AbstractValidator<ExternalLoginCommand>
         RuleFor(x => x.Token).NotEmpty().WithMessage("Token is required.");
     }
 }
+

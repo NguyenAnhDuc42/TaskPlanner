@@ -1,19 +1,5 @@
-using Application.Common.Interfaces;
-using Domain.Enums;
+namespace Application;
 
-namespace Application.Features.WorkspaceFeatures;
+public record class GetDetailWorkspaceQuery(Guid WorkspaceId) : IQueryRequest<WorkspaceRecord>, IAuthorizedWorkspaceRequest;
 
-public record class GetDetailWorkspaceQuery(Guid WorkspaceId) : IQueryRequest<WorkspaceSecurityContextDto>, IAuthorizedWorkspaceRequest;
 
-public record WorkspaceSecurityContextDto(
-    Guid WorkspaceId,
-    string CurrentRole,
-    bool IsOwned,
-    Theme Theme,
-    string Color,
-    string Icon,
-    bool CanEdit,
-    bool CanInvite,
-    bool CanManageMembers,
-    bool IsDashboardEnabled
-);

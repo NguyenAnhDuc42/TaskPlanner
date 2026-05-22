@@ -1,18 +1,9 @@
-using Application.Common.Interfaces;
-using Application.Common.Results;
-using Application.Common.Errors;
-using Application.Features;
-using Application.Helpers;
-using Application.Interfaces.Data;
 using Microsoft.EntityFrameworkCore;
-using Application.Interfaces;
-using Domain.Entities;
-
-namespace Application.Behaviors;
+namespace Application;
 
 public static class PermissionDecorator
 {
-    private static async Task<Result?> AuthorizeAsync<TRequest>(TRequest request, WorkspaceContext workspaceContext, ICurrentUserService currentUserService, IDataBase db, CancellationToken ct)
+    private static async Task<Result?> AuthorizeAsync<TRequest>(TRequest request, WorkspaceContext workspaceContext, CurrentUserService currentUserService, TaskPlanDbContext db, CancellationToken ct)
     {
         if (request is not IAuthorizedWorkspaceRequest)
             return null;
@@ -43,10 +34,10 @@ public static class PermissionDecorator
     {
         private readonly IQueryHandler<TQuery, TResponse> _inner;
         private readonly WorkspaceContext _workspaceContext;
-        private readonly ICurrentUserService _currentUserService;
-        private readonly IDataBase _db;
+        private readonly CurrentUserService _currentUserService;
+        private readonly TaskPlanDbContext _db;
 
-        public QueryHandler(IQueryHandler<TQuery, TResponse> inner, WorkspaceContext workspaceContext, ICurrentUserService currentUserService, IDataBase db)
+        public QueryHandler(IQueryHandler<TQuery, TResponse> inner, WorkspaceContext workspaceContext, CurrentUserService currentUserService, TaskPlanDbContext db)
         {
             _inner = inner;
             _workspaceContext = workspaceContext;
@@ -68,10 +59,10 @@ public static class PermissionDecorator
     {
         private readonly ICommandHandler<TCommand, TResponse> _inner;
         private readonly WorkspaceContext _workspaceContext;
-        private readonly ICurrentUserService _currentUserService;
-        private readonly IDataBase _db;
+        private readonly CurrentUserService _currentUserService;
+        private readonly TaskPlanDbContext _db;
 
-        public CommandHandler(ICommandHandler<TCommand, TResponse> inner, WorkspaceContext workspaceContext, ICurrentUserService currentUserService, IDataBase db)
+        public CommandHandler(ICommandHandler<TCommand, TResponse> inner, WorkspaceContext workspaceContext, CurrentUserService currentUserService, TaskPlanDbContext db)
         {
             _inner = inner;
             _workspaceContext = workspaceContext;
@@ -93,10 +84,10 @@ public static class PermissionDecorator
     {
         private readonly ICommandHandler<TCommand> _inner;
         private readonly WorkspaceContext _workspaceContext;
-        private readonly ICurrentUserService _currentUserService;
-        private readonly IDataBase _db;
+        private readonly CurrentUserService _currentUserService;
+        private readonly TaskPlanDbContext _db;
 
-        public CommandBaseHandler(ICommandHandler<TCommand> inner, WorkspaceContext workspaceContext, ICurrentUserService currentUserService, IDataBase db)
+        public CommandBaseHandler(ICommandHandler<TCommand> inner, WorkspaceContext workspaceContext, CurrentUserService currentUserService, TaskPlanDbContext db)
         {
             _inner = inner;
             _workspaceContext = workspaceContext;
@@ -113,3 +104,6 @@ public static class PermissionDecorator
         }
     }
 }
+
+
+

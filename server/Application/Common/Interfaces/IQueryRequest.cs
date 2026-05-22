@@ -1,3 +1,4 @@
-namespace Application.Common.Interfaces;
+namespace Application;
 
 public interface IQueryRequest<TResponse> { }
+

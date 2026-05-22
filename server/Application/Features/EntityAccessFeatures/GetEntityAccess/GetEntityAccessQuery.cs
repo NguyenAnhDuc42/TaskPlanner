@@ -1,8 +1,4 @@
-using Application.Common.Interfaces;
-using Domain.Enums;
-using Domain.Enums.RelationShip;
-
-namespace Application.Features.EntityAccessFeatures;
+namespace Application;
 
 public record GetEntityAccessQuery(Guid SpaceId) : IQueryRequest<IReadOnlyList<EntityAccessDto>>, IAuthorizedWorkspaceRequest;
 public record EntityAccessDto(
@@ -10,3 +6,5 @@ public record EntityAccessDto(
     AccessLevel AccessLevel,
     bool HaveAccess
 );
+
+

@@ -1,6 +1,6 @@
 using System;
 
-namespace Api.Middlewares;
+namespace Api;
 
 public class WorkspaceContextMiddleware
 { 
@@ -26,3 +26,4 @@ public class WorkspaceContextMiddleware
     }
 
 }
+

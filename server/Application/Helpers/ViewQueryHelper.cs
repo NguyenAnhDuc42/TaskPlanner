@@ -1,8 +1,6 @@
-using Domain.Entities;
-using Domain.Enums;
 using Microsoft.EntityFrameworkCore;
 
-namespace Application.Helpers;
+namespace Application;
 
 public static class ViewQueryHelper
 {
@@ -51,3 +49,5 @@ public static class ViewQueryHelper
         return query;
     }
 }
+
+

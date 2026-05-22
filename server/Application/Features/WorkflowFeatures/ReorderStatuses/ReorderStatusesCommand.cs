@@ -1,6 +1,4 @@
-using Application.Common.Interfaces;
-
-namespace Application.Features.WorkflowFeatures;
+namespace Application;
 
 public record ReorderStatusesCommand(
     Guid StatusId,
@@ -8,3 +6,5 @@ public record ReorderStatusesCommand(
     string? NextStatusOrderKey,
     string? NewOrderKey = null
 ) : ICommandRequest, IAuthorizedWorkspaceRequest;
+
+

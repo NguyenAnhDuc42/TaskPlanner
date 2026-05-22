@@ -1,20 +1,12 @@
-using Application.Common.Errors;
-using Application.Common.Interfaces;
-using Application.Common.Results;
-using Application.Helpers;
-using Application.Interfaces;
-using Application.Interfaces.Data;
-using Domain.Enums;
-using Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 
-namespace Application.Features.FolderFeatures;
+namespace Application;
 
-public class UpdateFolderHandler(IDataBase db, WorkspaceContext context, IRealtimeService realtime) : ICommandHandler<UpdateFolderCommand>
+public class UpdateFolderHandler(TaskPlanDbContext db, WorkspaceContext context, RealtimeService realtime) : ICommandHandler<UpdateFolderCommand>
 {
     public async Task<Result> Handle(UpdateFolderCommand request, CancellationToken ct)
     {
-        var folder = await db.Folders.ById(request.FolderId).FirstOrDefaultAsync(ct);
+        var folder = await db.ProjectFolders.FirstOrDefaultAsync(f => f.Id == request.FolderId, ct);
         if (folder == null) 
             return Result.Failure(FolderError.NotFound);
 
@@ -33,7 +25,7 @@ public class UpdateFolderHandler(IDataBase db, WorkspaceContext context, IRealti
         if (request.StatusId.HasValue && request.StatusId.Value != folder.StatusId)
         {
             var isValid = await db.Statuses
-                .AnyAsync(s => s.Id == request.StatusId.Value && s.Workflow.ProjectWorkspaceId == folder.ProjectWorkspaceId, ct);
+                .AnyAsync(s => s.Id == request.StatusId.Value && s.ProjectWorkspaceId == folder.ProjectWorkspaceId, ct);
 
             if (!isValid)
                 return Result.Failure(Error.Validation("Folder.InvalidStatus", "The requested status does not exist or does not belong to this workspace."));
@@ -59,3 +51,6 @@ public class UpdateFolderHandler(IDataBase db, WorkspaceContext context, IRealti
         return Result.Success();
     }
 }
+
+
+

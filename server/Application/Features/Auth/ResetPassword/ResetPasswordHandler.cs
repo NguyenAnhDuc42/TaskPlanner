@@ -1,19 +1,13 @@
-using Application.Common.Errors;
-using Application.Common.Results;
-using Application.Interfaces.Data;
-using Application.Interfaces;
-using Application.Features;
-using Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 
-namespace Application.Features.Auth;
+namespace Application;
 
 public class ResetPasswordHandler : ICommandHandler<ResetPasswordCommand>
 {
-    private readonly IDataBase _db;
-    private readonly IPasswordService _passwordService;
+    private readonly TaskPlanDbContext _db;
+    private readonly PasswordService _passwordService;
 
-    public ResetPasswordHandler(IDataBase db, IPasswordService passwordService)
+    public ResetPasswordHandler(TaskPlanDbContext db, PasswordService passwordService)
     {
         _db = db;
         _passwordService = passwordService;
@@ -49,3 +43,6 @@ public class ResetPasswordHandler : ICommandHandler<ResetPasswordCommand>
         return Result.Success();
     }
 }
+
+
+

@@ -1,25 +1,20 @@
-using Application.Common;
-using Application.Common.Filters;
-using Application.Common.Results;
-using Application.Helper;
-using Application.Helpers;
-using Application.Interfaces;
-using Application.Interfaces.Data;
-using Dapper;
+using Microsoft.EntityFrameworkCore;
+
 using Microsoft.Extensions.Caching.Hybrid;
 using Microsoft.Extensions.Logging;
 using System.Text.Json;
 
-namespace Application.Features.WorkspaceFeatures;
+namespace Application;
 
 public class GetMembersHandler(
-    IDataBase db,
+    TaskPlanDbContext db,
     WorkspaceContext context,
     CursorHelper cursorHelper,
     HybridCache cache
-) : IQueryHandler<GetMembersQuery, PagedResult<MemberDto>>
+    HybridCache cache
+) : IQueryHandler<GetMembersQuery, PagedResult<MemberRecord>>
 {
-    public async Task<Result<PagedResult<MemberDto>>> Handle(GetMembersQuery request, CancellationToken ct)
+    public async Task<Result<PagedResult<MemberRecord>>> Handle(GetMembersQuery request, CancellationToken ct)
     {
         var workspaceId = context.workspaceId;
         var cacheKey = WorkspaceCacheKeys.MemberList(workspaceId, request);
@@ -33,16 +28,18 @@ public class GetMembersHandler(
                 ? GetMembersSQL.Asc
                 : GetMembersSQL.Desc;
 
-            var rows = (await db.Connection.QueryAsync<MemberRow>(new CommandDefinition(sql, new
+            var parameters = new object[]
             {
-                WorkspaceId = workspaceId,
-                name = request.filter.Name,
-                email = request.filter.Email,
-                role = request.filter.Role?.ToString(),
-                cursorTimestamp,
-                cursorId,
-                pageSizePLusOne = pageSize + 1
-            }, cancellationToken: token))).ToList();
+                new Npgsql.NpgsqlParameter("WorkspaceId", workspaceId),
+                new Npgsql.NpgsqlParameter("name", request.filter.Name ?? (object)DBNull.Value),
+                new Npgsql.NpgsqlParameter("email", request.filter.Email ?? (object)DBNull.Value),
+                new Npgsql.NpgsqlParameter("role", request.filter.Role?.ToString() ?? (object)DBNull.Value),
+                new Npgsql.NpgsqlParameter("cursorTimestamp", cursorTimestamp ?? (object)DBNull.Value),
+                new Npgsql.NpgsqlParameter("cursorId", cursorId ?? (object)DBNull.Value),
+                new Npgsql.NpgsqlParameter("pageSizePLusOne", pageSize + 1)
+            };
+
+            var rows = await db.Database.SqlQueryRaw<MemberRow>(sql, parameters).ToListAsync(token);
 
             var hasMore = rows.Count > pageSize;
             if (hasMore) rows.RemoveAt(rows.Count - 1);
@@ -52,13 +49,13 @@ public class GetMembersHandler(
                 ? EncodeNextCursor(rows[^1])
                 : null;
 
-            return new PagedResult<MemberDto>(items, nextCursor, hasMore);
+            return new PagedResult<MemberRecord>(items, nextCursor, hasMore);
         },
         new HybridCacheEntryOptions { Expiration = TimeSpan.FromMinutes(5) },
         new[] { CacheConstants.Tags.WorkspaceMembers(workspaceId) },
         ct);
 
-        return Result<PagedResult<MemberDto>>.Success(result);
+        return Result<PagedResult<MemberRecord>>.Success(result);
     }
 
     private void DecodeCursor(string? cursor, out DateTimeOffset? ts, out Guid? id)
@@ -84,19 +81,20 @@ public class GetMembersHandler(
         }
     }
 
-    private static List<MemberDto> Map(List<MemberRow> rows)
+    private static List<MemberRecord> Map(List<MemberRow> rows)
     {
-        return rows.Select(x => new MemberDto(
-            x.Id,
-            x.WorkspaceMemberId,
-            x.Name,
-            x.Email,
-            x.AvatarUrl,
-            x.Role,
-            x.Status,
-            x.CreatedAt,
-            x.JoinedAt
-        )).ToList();
+        return rows.Select(x => new MemberRecord
+        {
+            Id = x.Id,
+            WorkspaceMemberId = x.WorkspaceMemberId,
+            Name = x.Name ?? string.Empty,
+            Email = x.Email,
+            AvatarUrl = x.AvatarUrl,
+            Role = x.Role,
+            Status = x.Status,
+            CreatedAt = x.CreatedAt,
+            JoinedAt = x.JoinedAt
+        }).ToList();
     }
 
     private string EncodeNextCursor(MemberRow last)
@@ -109,3 +107,5 @@ public class GetMembersHandler(
         return cursorHelper.EncodeCursor(cursorData);
     }
 }
+
+

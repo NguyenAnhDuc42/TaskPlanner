@@ -1,25 +1,19 @@
-using Application.Common.Interfaces;
-using Application.Common.Results;
-using Application.Helpers;
-using Application.Interfaces.Data;
 using Dapper;
 using Microsoft.EntityFrameworkCore;
-using Application.Features.ViewFeatures;
+namespace Application;
 
-namespace Application.Features.SpaceFeatures;
-
-public class GetSpaceItemsHandler(IDataBase db, WorkspaceContext workspaceContext) : IQueryHandler<GetSpaceItemsQuery, TaskViewData>
+public class GetSpaceItemsHandler(TaskPlanDbContext db, WorkspaceContext workspaceContext) : IQueryHandler<GetSpaceItemsQuery, TaskViewData>
 {
-    public async Task<Result<TaskViewData>> Handle(GetSpaceItemsQuery request, CancellationToken ct)
+    public async Task<Result<TaskViewData>> Handle(GetSpaceItemsQuery request, CancellationToken cancellationToken)
     {
         var workspaceId = workspaceContext.workspaceId;
 
         var activeWorkflow = await WorkflowHelper.GetActiveWorkflow(db, workspaceId, 
             request.SpaceId, 
-            null, ct);
+            null, cancellationToken);
 
         if (activeWorkflow == null)
-            return Result<TaskViewData>.Failure(Application.Common.Errors.Error.NotFound("Workflow.NotFound", "Active workflow not found for this space"));
+            return Result<TaskViewData>.Failure(Error.NotFound("Workflow.NotFound", "Active workflow not found for this space"));
 
         const string sql = @"
             -- 1. Fetch Statuses
@@ -57,7 +51,7 @@ public class GetSpaceItemsHandler(IDataBase db, WorkspaceContext workspaceContex
             SpaceId = request.SpaceId
         };
 
-        using var multi = await db.Connection.QueryMultipleAsync(sql, parameters);
+        using var multi = await db.Database.GetDbConnection().QueryMultipleAsync(sql, parameters);
         
         var statuses = (await multi.ReadAsync<TaskItemStatusDto>()).ToList();
         var folders = (await multi.ReadAsync<FolderItemDto>()).ToList();
@@ -66,3 +60,5 @@ public class GetSpaceItemsHandler(IDataBase db, WorkspaceContext workspaceContex
         return Result<TaskViewData>.Success(new TaskViewData(folders, tasks, statuses));
     }
 }
+
+

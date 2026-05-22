@@ -1,7 +1,4 @@
-using Application.Common.Interfaces;
-using Domain.Enums;
-
-namespace Application.Features.WorkspaceFeatures;
+namespace Application;
 
 public record UpdateWorkspaceCommand(
     Guid Id,
@@ -14,3 +11,5 @@ public record UpdateWorkspaceCommand(
     bool? IsArchived,
     bool RegenerateJoinCode
 ) : ICommandRequest, IAuthorizedWorkspaceRequest;
+
+

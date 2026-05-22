@@ -1,7 +1,4 @@
-using Application.Common.Interfaces;
-using Domain.Enums.RelationShip;
-
-namespace Application.Features.ItemFeatures;
+namespace Application;
 
 public record BatchUpdateItemsCommand(
     Guid WorkspaceId,
@@ -17,3 +14,5 @@ public record BatchUpdateItemDto(
     string? PreviousItemOrderKey = null,
     string? NextItemOrderKey = null
 );
+
+

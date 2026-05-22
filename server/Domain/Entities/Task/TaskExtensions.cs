@@ -1,6 +1,6 @@
 using System.Linq;
 
-namespace Domain.Entities;
+namespace Domain;
 
 public static class TaskExtensions
 {
@@ -29,3 +29,4 @@ public static class TaskExtensions
     public static IQueryable<ProjectTask> BySlug(this IQueryable<ProjectTask> query, string slug)
         => query.Where(t => t.Slug == slug);
 }
+

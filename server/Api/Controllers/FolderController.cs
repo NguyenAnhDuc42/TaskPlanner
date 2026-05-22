@@ -1,10 +1,5 @@
-using Application.Features.FolderFeatures;
 using Microsoft.AspNetCore.Mvc;
-using Application.Common.Interfaces;
-using Api.Extensions;
-using Domain.Enums;
-
-namespace Api.Controllers;
+namespace Api;
 
 [Route("api/[controller]")]
 [ApiController]    
@@ -62,7 +57,7 @@ public class FoldersController : ControllerBase
     [HttpGet("{id:guid}/items")]
     public async Task<IActionResult> GetItems(Guid id, CancellationToken ct)
     {
-        var result = await _handler.QueryAsync<GetFolderItemsQuery, Application.Features.ViewFeatures.TaskViewData>(new GetFolderItemsQuery(id), ct);
+        var result = await _handler.QueryAsync<GetFolderItemsQuery, TaskViewData>(new GetFolderItemsQuery(id), ct);
         return result.ToActionResult();
     }
 }
@@ -76,5 +71,7 @@ public record UpdateFolderRequest(
     Guid? StatusId,
     Priority? Priority
 );
+
+
 
 

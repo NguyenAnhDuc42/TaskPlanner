@@ -1,6 +1,6 @@
 using System.Text.Json.Serialization;
 
-namespace Domain.Enums;
+namespace Domain;
 
 [JsonConverter(typeof(JsonStringEnumConverter))]
 public enum StorageProvider
@@ -11,3 +11,4 @@ public enum StorageProvider
     AzureBlob,
     GoogleCloudStorage,
 }
+

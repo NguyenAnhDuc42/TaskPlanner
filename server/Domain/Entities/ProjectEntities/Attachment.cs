@@ -1,7 +1,4 @@
-using Domain.Common;
-using Domain.Enums;
-
-namespace Domain.Entities;
+namespace Domain;
 
 public class Attachment : TenantEntity
 {
@@ -104,3 +101,4 @@ public class Attachment : TenantEntity
         UpdateTimestamp();
     }
 }
+

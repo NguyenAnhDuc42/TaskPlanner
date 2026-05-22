@@ -1,6 +1,6 @@
 using System.Linq;
 
-namespace Domain.Entities;
+namespace Domain;
 
 public static class WorkspaceExtensions
 {
@@ -23,3 +23,4 @@ public static class WorkspaceExtensions
     public static IQueryable<ProjectWorkspace> ByJoinCode(this IQueryable<ProjectWorkspace> query, string joinCode) => 
         query.Where(workspace => workspace.JoinCode == joinCode.Trim());
 }
+

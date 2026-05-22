@@ -1,6 +1,4 @@
-using Domain.Common;
-
-namespace Domain.Entities;
+namespace Domain;
 
 public class Document : TenantEntity
 {
@@ -28,3 +26,5 @@ public class Document : TenantEntity
     }
 
 }
+
+

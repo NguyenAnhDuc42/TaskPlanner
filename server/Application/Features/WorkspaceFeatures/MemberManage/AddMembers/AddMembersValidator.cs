@@ -3,7 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 
-namespace Application.Features.WorkspaceFeatures;
+namespace Application;
 
 public class AddMembersValidator : AbstractValidator<AddMembersCommand>
 {

@@ -1,4 +1,4 @@
-namespace Domain.Exceptions;
+namespace Domain;
 
 public class BusinessRuleException : DomainException
 {
@@ -9,3 +9,4 @@ public class MembershipException : BusinessRuleException
 {
     public MembershipException(string message) : base(message) { }
 }
+

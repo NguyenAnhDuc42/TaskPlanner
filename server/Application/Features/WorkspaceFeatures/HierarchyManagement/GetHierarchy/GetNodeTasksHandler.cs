@@ -1,19 +1,14 @@
-using Application.Common.Errors;
-using Application.Common.Interfaces;
-using Application.Common.Results;
-using Application.Helpers;
-using Application.Interfaces.Data;
-using Domain.Enums;
+using Microsoft.EntityFrameworkCore;
 using Dapper;
 
-namespace Application.Features.WorkspaceFeatures;
+namespace Application;
 
-public class GetNodeTasksHandler(IDataBase db) : IQueryHandler<GetNodeTasksQuery, NodeTasksDto>
+public class GetNodeTasksHandler(TaskPlanDbContext db) : IQueryHandler<GetNodeTasksQuery, NodeTasksDto>
 {
     public async Task<Result<NodeTasksDto>> Handle(GetNodeTasksQuery request, CancellationToken ct)
     {
         
-        var rawTasks = (await db.Connection.QueryAsync<TaskRawItem>(GetHierarchySql.TasksQuery, new
+        var rawTasks = (await db.Database.GetDbConnection().QueryAsync<TaskRawItem>(GetHierarchySql.TasksQuery, new
         {
             WorkspaceId = request.WorkspaceId,
             ParentId = request.ParentId,
@@ -64,3 +59,5 @@ public class GetNodeTasksHandler(IDataBase db) : IQueryHandler<GetNodeTasksQuery
         public string? Icon { get; init; }
     }
 }
+
+

@@ -1,6 +1,6 @@
 using FluentValidation;
 
-namespace Application.Features.Auth.ForgotPassword;
+namespace Application;
 
 public class ForgotPasswordValidator : AbstractValidator<ForgotPasswordCommand>
 {
@@ -11,3 +11,4 @@ public class ForgotPasswordValidator : AbstractValidator<ForgotPasswordCommand>
             .EmailAddress().WithMessage("Invalid email format.");
     }
 }
+

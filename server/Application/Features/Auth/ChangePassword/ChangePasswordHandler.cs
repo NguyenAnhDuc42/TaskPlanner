@@ -1,19 +1,12 @@
-using Application.Common.Errors;
-using Application.Common.Results;
-using Application.Interfaces.Data;
-using Application.Interfaces;
-using Application.Features;
-using Domain.Entities;
-
-namespace Application.Features.Auth;
+namespace Application;
 
 public class ChangePasswordHandler : ICommandHandler<ChangePasswordCommand>
 {
-    private readonly IDataBase _db;
-    private readonly ICurrentUserService _currentUserService;
-    private readonly IPasswordService _passwordService;
+    private readonly TaskPlanDbContext _db;
+    private readonly CurrentUserService _currentUserService;
+    private readonly PasswordService _passwordService;
 
-    public ChangePasswordHandler(IDataBase db, ICurrentUserService currentUserService, IPasswordService passwordService)
+    public ChangePasswordHandler(TaskPlanDbContext db, CurrentUserService currentUserService, PasswordService passwordService)
     {
         _db = db;
         _currentUserService = currentUserService;
@@ -45,3 +38,6 @@ public class ChangePasswordHandler : ICommandHandler<ChangePasswordCommand>
         return Result.Success();
     }
 }
+
+
+

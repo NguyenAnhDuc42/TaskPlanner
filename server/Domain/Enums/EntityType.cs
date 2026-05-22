@@ -1,4 +1,4 @@
-namespace Domain.Enums;
+namespace Domain;
 
 
 public enum EntityType
@@ -20,3 +20,4 @@ public enum EntityType
     Unknown
 
 }
+

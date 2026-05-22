@@ -1,6 +1,6 @@
 using System.Text.Json.Serialization;
 
-namespace Domain.Enums.RelationShip;
+namespace Domain;
 
 [JsonConverter(typeof(JsonStringEnumConverter))]
 public enum AccessLevel
@@ -10,3 +10,4 @@ public enum AccessLevel
     Editor,
     Viewer
 }
+

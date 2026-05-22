@@ -16,6 +16,8 @@
     <PackageReference Include="System.Security.Cryptography.Xml" />
     <PackageReference Include="Newtonsoft.Json" />
     <PackageReference Include="BCrypt.Net-Next" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" />
   </ItemGroup>
 
 </Project>
+

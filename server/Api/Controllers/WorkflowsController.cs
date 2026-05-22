@@ -1,9 +1,5 @@
-using Application.Features.WorkflowFeatures;
 using Microsoft.AspNetCore.Mvc;
-using Application.Common.Interfaces;
-using Api.Extensions;
-
-namespace Api.Controllers;
+namespace Api;
 
 [Route("api/[controller]")]
 [ApiController]
@@ -24,3 +20,5 @@ public class WorkflowsController(IHandler handler) : ControllerBase
         return result.ToActionResult();
     }
 }
+
+

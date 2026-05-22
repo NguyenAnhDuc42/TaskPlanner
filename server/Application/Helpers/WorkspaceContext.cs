@@ -1,9 +1,5 @@
 using Microsoft.AspNetCore.Http;
-using Application.Common.Results;
-using Application.Common.Errors;
-using Domain.Entities;
-
-namespace Application.Helpers;
+namespace Application;
 
 public class WorkspaceContext
 {
@@ -28,3 +24,5 @@ public class WorkspaceContext
         return Result<Guid>.Success(id.Value);
     }
 }
+
+

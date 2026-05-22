@@ -1,7 +1,7 @@
 using System;
 using FluentValidation;
 
-namespace Application.Features.Auth.Register;
+namespace Application;
 
 public class RegisterValidator : AbstractValidator<RegisterCommand>
 {
@@ -24,3 +24,4 @@ public class RegisterValidator : AbstractValidator<RegisterCommand>
             .Matches("[^a-zA-Z0-9]").WithMessage("Password must contain at least one special character.");
     }
 }
+

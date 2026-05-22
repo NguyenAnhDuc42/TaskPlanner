@@ -1,8 +1,4 @@
-using Domain.Common;
-using Domain.Enums;
-using Domain.Exceptions;
-
-namespace Domain.Entities;
+namespace Domain;
 
 public class ProjectTask : TenantEntity
 {
@@ -166,3 +162,5 @@ public class ProjectTask : TenantEntity
         if (IsArchived) throw new BusinessRuleException("Cannot modify an archived task.");
     }
 }
+
+

@@ -1,27 +1,17 @@
-using Application.Common.Errors;
-using Application.Common.Interfaces;
-using Application.Common.Results;
-using Application.Helpers;
-using Application.Interfaces.Data;
-using Domain.Entities;
-using Domain.Enums;
-using Domain.Enums.RelationShip;
 using Microsoft.EntityFrameworkCore;
-using Application.Interfaces;
-
-namespace Application.Features.SpaceFeatures;
+namespace Application;
 
 public class CreateSpaceHandler(
-    IDataBase db, 
+    TaskPlanDbContext db, 
     WorkspaceContext context,
-    IRealtimeService realtime
+    RealtimeService realtime
 ) : ICommandHandler<CreateSpaceCommand, Guid>
 {
     public async Task<Result<Guid>> Handle(CreateSpaceCommand request, CancellationToken ct)
     {
         return await db.ExecuteInTransactionAsync(async () =>
         {
-            var maxKey = await db.Spaces
+            var maxKey = await db.ProjectSpaces
                 .AsNoTracking()
                 .ByWorkspace(context.workspaceId)
                 .WhereNotDeleted()
@@ -51,7 +41,7 @@ public class CreateSpaceHandler(
                 orderKey: orderKey
             );
 
-            await db.Spaces.AddAsync(space, ct);
+            await db.ProjectSpaces.AddAsync(space, ct);
 
             // 3. Create Default Workflow for the space
             var workflow = Workflow.Create(
@@ -77,3 +67,6 @@ public class CreateSpaceHandler(
         }, ct);
     }
 }
+
+
+

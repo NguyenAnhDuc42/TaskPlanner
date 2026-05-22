@@ -1,7 +1,5 @@
 using System;
-using Domain.Common;
-
-namespace Domain.Entities;
+namespace Domain;
 
 public readonly record struct Customization
 {
@@ -25,3 +23,5 @@ public readonly record struct Customization
         => new Customization("#cdcbcbff", "default_icon");
 
 }
+
+

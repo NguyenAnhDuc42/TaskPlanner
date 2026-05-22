@@ -1,21 +1,8 @@
-using Application.Common.Interfaces;
-using Domain.Enums;
-
-namespace Application.Features.WorkflowFeatures;
+namespace Application;
 
 public record UpdateWorkflowStatusesCommand(
     Guid WorkflowId,
-    List<StatusUpdateDto> Statuses
+    List<StatusUpdateRecord> Statuses
 ) : ICommandRequest, IAuthorizedWorkspaceRequest;
 
 
-
-public record StatusUpdateDto(
-    Guid? Id, 
-    string Name,
-    string Color,
-    StatusCategory Category,
-    string? PreviousOrderKey,
-    string? NextOrderKey,
-    RowAction Action
-);

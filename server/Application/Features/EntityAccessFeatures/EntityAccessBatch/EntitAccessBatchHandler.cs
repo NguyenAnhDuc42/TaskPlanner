@@ -1,21 +1,14 @@
-using Application.Common.Errors;
-using Application.Common.Interfaces;
-using Application.Common.Results;
-using Application.Helpers;
-using Application.Interfaces.Data;
-using Domain.Entities;
-using Domain.Enums;
 using Microsoft.EntityFrameworkCore;
 
 
-namespace Application.Features.EntityAccessFeatures;
+namespace Application;
 
-public class EntityAccessBatchHandler(IDataBase db,WorkspaceContext workspaceContext): ICommandHandler<EntityAccessBatchCommand>,IAuthorizedWorkspaceRequest
+public class EntityAccessBatchHandler(TaskPlanDbContext db,WorkspaceContext workspaceContext): ICommandHandler<EntityAccessBatchCommand>,IAuthorizedWorkspaceRequest
 {
    
     public async Task<Result> Handle(EntityAccessBatchCommand request, CancellationToken cancellationToken)
     {
-        var space = await db.Spaces.FirstOrDefaultAsync(x => x.Id == request.SpaceId && x.ProjectWorkspaceId == workspaceContext.workspaceId, cancellationToken);
+        var space = await db.ProjectSpaces.FirstOrDefaultAsync(x => x.Id == request.SpaceId && x.ProjectWorkspaceId == workspaceContext.workspaceId, cancellationToken);
         if (space is null) return Result.Failure(Error.NotFound("Space.NotFound", "Space not found"));
 
         var deleteAccess= request.Rows.Where(r => r.Action == RowAction.Delete).ToList();
@@ -26,7 +19,7 @@ public class EntityAccessBatchHandler(IDataBase db,WorkspaceContext workspaceCon
             .Concat(deleteAccess.Select(r => r.MemberId))
             .ToList();
 
-        var existingAccesses = await db.Access
+        var existingAccesses = await db.EntityAccesses
             .Where(a => a.ProjectSpaceId == request.SpaceId && affectedIds.Contains(a.WorkspaceMemberId) && a.DeletedAt == null)
             .ToListAsync(cancellationToken);
         
@@ -75,9 +68,10 @@ public class EntityAccessBatchHandler(IDataBase db,WorkspaceContext workspaceCon
 
         if (newAccess.Count > 0)
         {
-            await db.Access.AddRangeAsync(newAccess, cancellationToken);
+            await db.EntityAccesses.AddRangeAsync(newAccess, cancellationToken);
         }
         await db.SaveChangesAsync(cancellationToken);
         return Result.Success();
     }
 }
+

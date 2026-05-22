@@ -1,6 +1,6 @@
 using FluentValidation;
 
-namespace Application.Features.Auth.UpdateProfile;
+namespace Application;
 
 public class UpdateProfileValidator : AbstractValidator<UpdateProfileCommand>
 {
@@ -22,4 +22,5 @@ public class UpdateProfileValidator : AbstractValidator<UpdateProfileCommand>
             .WithMessage("At least one field (name or email) must be provided.");
     }
 }
+
 

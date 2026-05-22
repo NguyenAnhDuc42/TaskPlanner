@@ -1,6 +1,4 @@
-using Application.Common.Errors;
-
-namespace Application.Common.Results;
+namespace Application;
 
 #pragma warning disable CS8907
 public abstract record Result
@@ -35,3 +33,4 @@ public abstract record Result<TValue>
     public static implicit operator Result<TValue>(Error error) => new FailureResult(error);
 }
 #pragma warning restore CS8907
+

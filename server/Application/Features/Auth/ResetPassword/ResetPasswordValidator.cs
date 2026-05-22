@@ -1,6 +1,6 @@
 using FluentValidation;
 
-namespace Application.Features.Auth.ResetPassword;
+namespace Application;
 
 public class ResetPasswordValidator : AbstractValidator<ResetPasswordCommand>
 {
@@ -18,3 +18,4 @@ public class ResetPasswordValidator : AbstractValidator<ResetPasswordCommand>
             .Matches("[^a-zA-Z0-9]").WithMessage("Password must contain at least one special character.");
     }
 }
+

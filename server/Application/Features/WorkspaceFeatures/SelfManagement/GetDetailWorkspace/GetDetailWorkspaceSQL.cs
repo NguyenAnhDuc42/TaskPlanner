@@ -1,4 +1,4 @@
-namespace Application.Features.WorkspaceFeatures;
+namespace Application;
 
 public static class GetDetailWorkspaceSQL
 {
@@ -24,3 +24,4 @@ public record WorkspaceDetailRow(
     string Color,
     string Icon
 );
+

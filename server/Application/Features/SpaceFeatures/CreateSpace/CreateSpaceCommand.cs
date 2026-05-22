@@ -1,6 +1,4 @@
-using Application.Common.Interfaces;
-
-namespace Application.Features.SpaceFeatures;
+namespace Application;
 
 public record CreateSpaceCommand(
     string name,
@@ -9,3 +7,4 @@ public record CreateSpaceCommand(
     bool isPrivate,
     List<Guid>? memberIdsToInvite = null
 ) : ICommandRequest<Guid>, IAuthorizedWorkspaceRequest;
+

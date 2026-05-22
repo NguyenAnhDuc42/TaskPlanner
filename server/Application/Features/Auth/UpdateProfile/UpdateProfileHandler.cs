@@ -1,19 +1,13 @@
-using Application.Common.Errors;
-using Application.Common.Results;
-using Application.Interfaces.Data;
-using Application.Interfaces;
-using Application.Features;
-using Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 
-namespace Application.Features.Auth;
+namespace Application;
 
 public class UpdateProfileHandler : ICommandHandler<UpdateProfileCommand>
 {
-    private readonly IDataBase _db;
-    private readonly ICurrentUserService _currentUserService;
+    private readonly TaskPlanDbContext _db;
+    private readonly CurrentUserService _currentUserService;
 
-    public UpdateProfileHandler(IDataBase db, ICurrentUserService currentUserService)
+    public UpdateProfileHandler(TaskPlanDbContext db, CurrentUserService currentUserService)
     {
         _db = db;
         _currentUserService = currentUserService;
@@ -50,3 +44,6 @@ public class UpdateProfileHandler : ICommandHandler<UpdateProfileCommand>
         return Result.Success();
     }
 }
+
+
+

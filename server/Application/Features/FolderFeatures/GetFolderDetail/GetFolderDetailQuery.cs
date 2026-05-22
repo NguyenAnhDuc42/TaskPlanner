@@ -1,7 +1,4 @@
-using Application.Common.Interfaces;
-using Domain.Enums;
-
-namespace Application.Features.FolderFeatures;
+namespace Application;
 
 public record GetFolderDetailQuery(Guid FolderId) : IQueryRequest<FolderDetailDto>, IAuthorizedWorkspaceRequest;
 
@@ -27,3 +24,5 @@ public record FolderDetailDto
     // Pointers for local-first dictionary mapping
     public List<Guid> MemberIds { get; init; } = new();
 }
+
+

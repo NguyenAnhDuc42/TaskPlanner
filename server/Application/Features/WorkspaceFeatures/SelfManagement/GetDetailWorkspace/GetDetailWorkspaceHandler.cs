@@ -1,39 +1,40 @@
-using Application.Common.Errors;
-using Application.Common.Interfaces;
-using Application.Common.Results;
-using Application.Helpers;
-using Application.Interfaces.Data;
-using Domain.Enums;
-using Domain.Entities;
 using Microsoft.EntityFrameworkCore;
-using Dapper;
 
-namespace Application.Features.WorkspaceFeatures;
 
-public class GetDetailWorkspaceHandler(IDataBase db, WorkspaceContext context) : IQueryHandler<GetDetailWorkspaceQuery, WorkspaceSecurityContextDto>
+namespace Application;
+
+public class GetDetailWorkspaceHandler(TaskPlanDbContext db, WorkspaceContext context) : IQueryHandler<GetDetailWorkspaceQuery, WorkspaceRecord>
 {
-    public async Task<Result<WorkspaceSecurityContextDto>> Handle(GetDetailWorkspaceQuery request, CancellationToken ct)
+    public async Task<Result<WorkspaceRecord>> Handle(GetDetailWorkspaceQuery request, CancellationToken ct)
     {
-        var row = await db.Connection.QuerySingleOrDefaultAsync<WorkspaceDetailRow>(
-            GetDetailWorkspaceSQL.GetDetail, 
-            new { WorkspaceId = request.WorkspaceId, UserId = context.CurrentMember.UserId });
+        var parameters = new[]
+        {
+            new Npgsql.NpgsqlParameter("WorkspaceId", request.WorkspaceId),
+            new Npgsql.NpgsqlParameter("UserId", context.CurrentMember.UserId)
+        };
+
+        var row = await db.Database.SqlQueryRaw<WorkspaceDetailRow>(
+            GetDetailWorkspaceSQL.GetDetail, parameters).FirstOrDefaultAsync(ct);
 
         if (row == null) 
-            return Result<WorkspaceSecurityContextDto>.Failure(WorkspaceError.NotFound);
+            return Result<WorkspaceRecord>.Failure(WorkspaceError.NotFound);
 
-        var dto = new WorkspaceSecurityContextDto(
-            WorkspaceId: row.WorkspaceId,
-            CurrentRole: row.Role,
-            IsOwned: row.Role == Role.Owner.ToString(),
-            Theme: Enum.Parse<Theme>(row.Theme),
-            Color: row.Color,
-            Icon: row.Icon,
-            CanEdit: row.Role == Role.Owner.ToString() || row.Role == Role.Admin.ToString(),
-            CanInvite: row.Role == Role.Owner.ToString() || row.Role == Role.Admin.ToString(),
-            CanManageMembers: row.Role == Role.Owner.ToString() || row.Role == Role.Admin.ToString(),
-            IsDashboardEnabled: false
-        );
+        var dto = new WorkspaceRecord
+        {
+            Id = row.WorkspaceId,
+            Role = Enum.TryParse<Role>(row.Role, out var roleEnum) ? roleEnum : null,
+            IsOwned = row.Role == Role.Owner.ToString(),
+            Theme = Enum.TryParse<Theme>(row.Theme, out var themeEnum) ? themeEnum : Theme.Dark,
+            Color = row.Color,
+            Icon = row.Icon,
+            CanEdit = row.Role == Role.Owner.ToString() || row.Role == Role.Admin.ToString(),
+            CanInvite = row.Role == Role.Owner.ToString() || row.Role == Role.Admin.ToString(),
+            CanManageMembers = row.Role == Role.Owner.ToString() || row.Role == Role.Admin.ToString(),
+            IsDashboardEnabled = false
+        };
 
-        return Result<WorkspaceSecurityContextDto>.Success(dto);
+        return Result<WorkspaceRecord>.Success(dto);
     }
 }
+
+

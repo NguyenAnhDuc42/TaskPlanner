@@ -1,5 +1,5 @@
-using Application.Common.Interfaces;
-
-namespace Application.Features.TaskFeatures;
+namespace Application;
 
 public record DeleteTaskCommand(Guid TaskId) : ICommandRequest, IAuthorizedWorkspaceRequest;
+
+

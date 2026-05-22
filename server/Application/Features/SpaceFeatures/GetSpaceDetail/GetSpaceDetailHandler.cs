@@ -1,17 +1,10 @@
-using Application.Common.Errors;
-using Application.Common.Interfaces;
-using Application.Common.Results;
-using Application.Interfaces.Data;
-using Dapper;
-using Domain.Entities;
+using Microsoft.EntityFrameworkCore;
 
-using Application.Helpers;
+namespace Application;
 
-namespace Application.Features.SpaceFeatures;
-
-public class GetSpaceDetailHandler(IDataBase db, WorkspaceContext workspaceContext) : IQueryHandler<GetSpaceDetailQuery, SpaceDetailDto>
+public class GetSpaceDetailHandler(TaskPlanDbContext db, WorkspaceContext workspaceContext) : IQueryHandler<GetSpaceDetailQuery, SpaceRecord>
 {
-    public async Task<Result<SpaceDetailDto>> Handle(GetSpaceDetailQuery request, CancellationToken ct)
+    public async Task<Result<SpaceRecord>> Handle(GetSpaceDetailQuery request, CancellationToken ct)
     {
         const string sql = @"
             SELECT 
@@ -27,14 +20,19 @@ public class GetSpaceDetailHandler(IDataBase db, WorkspaceContext workspaceConte
             FROM project_spaces s
             WHERE s.id = @SpaceId AND s.project_workspace_id = @WorkspaceId AND s.deleted_at IS NULL;";
 
-        var space = await db.Connection.QuerySingleOrDefaultAsync<SpaceDetailDto>(sql, new { 
-            request.SpaceId, 
-            WorkspaceId = workspaceContext.workspaceId 
-        });
+        var parameters = new[]
+        {
+            new Npgsql.NpgsqlParameter("SpaceId", request.SpaceId),
+            new Npgsql.NpgsqlParameter("WorkspaceId", workspaceContext.workspaceId)
+        };
+
+        var space = await db.Database.SqlQueryRaw<SpaceRecord>(sql, parameters).FirstOrDefaultAsync(ct);
         
         if (space == null)
-            return Result<SpaceDetailDto>.Failure(Error.NotFound("Space.NotFound", $"Space {request.SpaceId} not found"));
+            return Result<SpaceRecord>.Failure(Error.NotFound("Space.NotFound", $"Space {request.SpaceId} not found"));
 
-        return Result<SpaceDetailDto>.Success(space with { MemberIds = new List<Guid>() });
+        return Result<SpaceRecord>.Success(space with { MemberIds = new List<Guid>() });
     }
 }
+
+

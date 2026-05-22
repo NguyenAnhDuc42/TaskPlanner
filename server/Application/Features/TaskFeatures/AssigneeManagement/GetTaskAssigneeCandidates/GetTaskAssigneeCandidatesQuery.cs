@@ -1,6 +1,4 @@
-using Application.Common.Interfaces;
-
-namespace Application.Features.TaskFeatures;
+namespace Application;
 
 public record GetTaskAssigneeCandidatesQuery(
     Guid TaskId,
@@ -12,3 +10,5 @@ public record TaskAssigneeCandidateDto(
     string UserName,
     string? AvatarUrl
 );
+
+

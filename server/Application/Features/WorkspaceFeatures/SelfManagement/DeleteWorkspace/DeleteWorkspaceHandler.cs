@@ -1,23 +1,15 @@
-using Application.Common.Errors;
-using Application.Common.Interfaces;
-using Application.Common.Results;
-using Application.Features;
-using Application.Helpers;
-using Application.Interfaces;
-using Application.Interfaces.Data;
-using Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Hybrid;
 using Microsoft.Extensions.Logging;
 
 
-namespace Application.Features.WorkspaceFeatures;
+namespace Application;
 
 public class DeleteWorkspaceHandler(
-    IDataBase db, 
-    ICurrentUserService currentUserService, 
+    TaskPlanDbContext db, 
+    CurrentUserService currentUserService, 
     HybridCache cache, 
-    IRealtimeService realtime, 
+    RealtimeService realtime, 
     ILogger<DeleteWorkspaceHandler> logger
 ) : ICommandHandler<DeleteWorkspaceCommand>
 {
@@ -29,7 +21,7 @@ public class DeleteWorkspaceHandler(
 
         logger.LogInformation("Deleting workspace {WorkspaceId} by user {UserId}", request.workspaceId, currentUserId);
 
-        var workspace = await db.Workspaces
+        var workspace = await db.ProjectWorkspaces
             .ById(request.workspaceId)
             .FirstOrDefaultAsync(ct);
 
@@ -48,3 +40,6 @@ public class DeleteWorkspaceHandler(
         return Result.Success();
     }
 }
+
+
+

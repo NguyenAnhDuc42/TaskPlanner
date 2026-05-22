@@ -1,13 +1,8 @@
-using Application.Helpers;
-using Application.Interfaces.Data;
-using Application.Interfaces;
-using Domain.Entities;
-using Domain.Enums;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
-namespace Application.Features.WorkspaceFeatures;
+namespace Application;
 
 public class WorkspaceService(
     IServiceScopeFactory scopeFactory,
@@ -21,10 +16,10 @@ public class WorkspaceService(
             try
             {
                 using var scope = scopeFactory.CreateScope();
-                var db = scope.ServiceProvider.GetRequiredService<IDataBase>();
-                var realtime = scope.ServiceProvider.GetRequiredService<IRealtimeService>();
+                var db = scope.ServiceProvider.GetRequiredService<TaskPlanDbContext>();
+                var realtime = scope.ServiceProvider.GetRequiredService<RealtimeService>();
 
-                var workspace = await db.Workspaces
+                var workspace = await db.ProjectWorkspaces
                     .Include(w => w.Members)
                     .FirstOrDefaultAsync(w => w.Id == workspaceId);
 
@@ -36,7 +31,7 @@ public class WorkspaceService(
                 await db.Documents.AddAsync(spaceDoc);
 
                 var space = ProjectSpace.CreateDefault(workspace.Id, spaceDoc.Id, creatorId);
-                await db.Spaces.AddAsync(space);
+                await db.ProjectSpaces.AddAsync(space);
                 
                 // Create Workflow for the Default Space!
                 var spaceWorkflow = Workflow.Create(workspace.Id, "Personal Space Workflow", "", creatorId, projectSpaceId: space.Id);
@@ -53,7 +48,7 @@ public class WorkspaceService(
                 await db.Documents.AddAsync(folderDoc);
 
                 var folder = ProjectFolder.CreateDefault(workspace.Id, space.Id, folderDoc.Id, creatorId);
-                await db.Folders.AddAsync(folder);
+                await db.ProjectFolders.AddAsync(folder);
                 
                 db.ViewDefinitions.AddRange(
                     ViewDefinition.CreateDefaults(workspace.Id, space.Id, folder.Id, creatorId));
@@ -66,7 +61,7 @@ public class WorkspaceService(
                 await db.Documents.AddRangeAsync(exploreDoc, standaloneDoc);
 
                 var tasks = ProjectTask.CreateDefaults(workspace.Id, space.Id, folder.Id, firstStatus.Id, creatorId, exploreDoc.Id, standaloneDoc.Id);
-                await db.Tasks.AddRangeAsync(tasks);
+                await db.ProjectTasks.AddRangeAsync(tasks);
 
                 // 5. Finalize
                 workspace.MarkAsInitialized();
@@ -82,3 +77,6 @@ public class WorkspaceService(
         });
     }
 }
+
+
+

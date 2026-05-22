@@ -1,17 +1,7 @@
-using Application.Common.Errors;
-using Application.Common.Interfaces;
-using Application.Common.Results;
-using Application.Helpers;
-using Application.Interfaces.Data;
-using Domain.Entities;
-using Domain.Enums.RelationShip;
-using Domain.Enums;
 using Microsoft.EntityFrameworkCore;
-using Application.Interfaces;
+namespace Application;
 
-namespace Application.Features.WorkspaceFeatures;
-
-public class MoveItemHandler(IDataBase db, WorkspaceContext context, IRealtimeService realtime) : ICommandHandler<MoveItemCommand>
+public class MoveItemHandler(TaskPlanDbContext db, WorkspaceContext context, RealtimeService realtime) : ICommandHandler<MoveItemCommand>
 {
     public async Task<Result> Handle(MoveItemCommand request, CancellationToken ct)
     {
@@ -66,17 +56,17 @@ public class MoveItemHandler(IDataBase db, WorkspaceContext context, IRealtimeSe
         // PERFORMANCE: These queries MUST be supported by composite indexes: (ParentId, OrderKey)
         return request.ItemType switch
         {
-            EntityLayerType.ProjectSpace => await db.Spaces
+            EntityLayerType.ProjectSpace => await db.ProjectSpaces
                                  .AsNoTracking()
                                  .ByWorkspace(context.workspaceId)
                                  .MaxAsync(s => s.OrderKey, ct),
 
-            EntityLayerType.ProjectFolder => await db.Folders
+            EntityLayerType.ProjectFolder => await db.ProjectFolders
                                  .AsNoTracking()
                                  .BySpace(request.TargetParentId.GetValueOrDefault())
                                  .MaxAsync(f => f.OrderKey, ct),
 
-            EntityLayerType.ProjectTask => await db.Tasks
+            EntityLayerType.ProjectTask => await db.ProjectTasks
                                  .AsNoTracking()
                                  .Where(t => (request.TargetParentId.HasValue && t.ProjectFolderId == request.TargetParentId) ||
                                             (!request.TargetParentId.HasValue && t.ProjectSpaceId == request.ItemId && t.ProjectFolderId == null)) // ItemId is parent for Space moves
@@ -88,7 +78,7 @@ public class MoveItemHandler(IDataBase db, WorkspaceContext context, IRealtimeSe
 
     private async Task<Result> MoveSpace(Guid spaceId, string newOrderKey, CancellationToken ct)
     {
-        var affected = await db.Spaces
+        var affected = await db.ProjectSpaces
             .Where(s => s.Id == spaceId && s.ProjectWorkspaceId == context.workspaceId)
             .ExecuteUpdateAsync(u => u.SetProperty(s => s.OrderKey, newOrderKey)
                                       .SetProperty(s => s.UpdatedAt, DateTimeOffset.UtcNow), ct);
@@ -99,7 +89,7 @@ public class MoveItemHandler(IDataBase db, WorkspaceContext context, IRealtimeSe
     private async Task<Result> MoveFolder(Guid folderId, Guid? newSpaceId, string newOrderKey, CancellationToken ct)
     {
         // PERFORMANCE: Direct UPDATE with conditional parent change
-        var affected = await db.Folders
+        var affected = await db.ProjectFolders
             .Where(f => f.Id == folderId)
             .ExecuteUpdateAsync(u => u
                 .SetProperty(f => f.ProjectSpaceId, f => newSpaceId ?? f.ProjectSpaceId)
@@ -117,10 +107,10 @@ public class MoveItemHandler(IDataBase db, WorkspaceContext context, IRealtimeSe
         if (targetParentId.HasValue)
         {
             var targetGuid = targetParentId.Value;
-            var targetInfo = await db.Spaces
+            var targetInfo = await db.ProjectSpaces
                 .Where(s => s.Id == targetGuid)
                 .Select(s => new { Id = s.Id, Type = "ProjectSpace" })
-                .Union(db.Folders.Where(f => f.Id == targetGuid).Select(f => new { Id = f.ProjectSpaceId, Type = "ProjectFolder" }))
+                .Union(db.ProjectFolders.Where(f => f.Id == targetGuid).Select(f => new { Id = f.ProjectSpaceId, Type = "ProjectFolder" }))
                 .FirstOrDefaultAsync(ct);
 
             if (targetInfo == null) return Result.Failure(Error.Validation("MoveTask.InvalidTarget", "Target parent not found."));
@@ -132,7 +122,7 @@ public class MoveItemHandler(IDataBase db, WorkspaceContext context, IRealtimeSe
         if (resolvedSpaceId == null) return Result.Failure(Error.Validation("MoveTask.InvalidTarget", "No valid target space resolved."));
 
         // 2. PERFORMANCE: Direct Atomic Update
-        var affected = await db.Tasks
+        var affected = await db.ProjectTasks
             .Where(t => t.Id == taskId)
             .ExecuteUpdateAsync(u => u
                 .SetProperty(t => t.ProjectSpaceId, resolvedSpaceId)
@@ -143,3 +133,6 @@ public class MoveItemHandler(IDataBase db, WorkspaceContext context, IRealtimeSe
         return affected > 0 ? Result.Success() : Result.Failure(Error.NotFound("Task.NotFound", "Task not found"));
     }
 }
+
+
+

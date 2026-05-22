@@ -1,6 +1,6 @@
 using FluentValidation;
 
-namespace Application.Features.WorkspaceFeatures;
+namespace Application;
 
 public class MoveItemValidator : AbstractValidator<MoveItemCommand>
 {
@@ -17,3 +17,4 @@ public class MoveItemValidator : AbstractValidator<MoveItemCommand>
         // TargetParentId can be null (moving to root)
     }
 }
+

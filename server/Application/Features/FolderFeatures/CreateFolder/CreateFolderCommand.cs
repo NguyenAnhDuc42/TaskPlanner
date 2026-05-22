@@ -1,6 +1,4 @@
-using Application.Common.Interfaces;
-
-namespace Application.Features.FolderFeatures;
+namespace Application;
 
 public record class CreateFolderCommand(
     Guid spaceId,
@@ -11,3 +9,4 @@ public record class CreateFolderCommand(
     DateTimeOffset? startDate = null,
     DateTimeOffset? dueDate = null
 ) : ICommandRequest<Guid>, IAuthorizedWorkspaceRequest;
+

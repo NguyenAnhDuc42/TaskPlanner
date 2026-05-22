@@ -1,6 +1,4 @@
-using Application.Common.Interfaces;
-
-namespace Application.Features.Auth;
+namespace Application;
 
 public record UpdateProfileCommand(string? Name, string? Email) : ICommandRequest;
 
@@ -9,3 +7,5 @@ public record UpdateProfileDto(
     string Name,
     string Email
 );
+
+

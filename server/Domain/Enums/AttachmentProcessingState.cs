@@ -1,4 +1,4 @@
-namespace Domain.Enums;
+namespace Domain;
 
 public enum AttachmentProcessingState
 {
@@ -8,3 +8,4 @@ public enum AttachmentProcessingState
     Failed,
     Deleted
 }
+

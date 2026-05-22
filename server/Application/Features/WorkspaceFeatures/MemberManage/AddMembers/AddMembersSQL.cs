@@ -1,4 +1,4 @@
-namespace Application.Features.WorkspaceFeatures;
+namespace Application;
 
 public static class AddMembersSQL
 {
@@ -28,3 +28,4 @@ public static class AddMembersSQL
         WHERE wm.id IS NULL 
           AND u.deleted_at IS NULL;";
 }
+

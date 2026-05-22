@@ -1,4 +1,4 @@
-namespace Application.Common.Results;
+namespace Application;
 
 public record PagedResult<T>(
     IEnumerable<T> Items,

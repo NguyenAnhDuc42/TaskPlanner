@@ -1,6 +1,6 @@
 using FluentValidation;
 
-namespace Application.Features.TaskFeatures;
+namespace Application;
 
 public class UpdateTaskValidator : AbstractValidator<UpdateTaskCommand>
 {
@@ -10,3 +10,4 @@ public class UpdateTaskValidator : AbstractValidator<UpdateTaskCommand>
         RuleFor(x => x.Name).MaximumLength(200).When(x => x.Name != null);
     }
 }
+

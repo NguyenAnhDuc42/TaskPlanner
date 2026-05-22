@@ -1,24 +1,16 @@
-using Application.Common.Errors;
-using Application.Common.Interfaces;
-using Application.Common.Results;
-using Application.Helpers;
-using Application.Interfaces.Data;
-using Application.Interfaces;
-using Domain.Entities;
-using Domain.Enums;
 using Microsoft.EntityFrameworkCore;
 
-namespace Application.Features.FolderFeatures;
+namespace Application;
 
 public class DeleteFolderHandler(
-    IDataBase db, 
+    TaskPlanDbContext db, 
     WorkspaceContext context,
-    IRealtimeService realtime
+    RealtimeService realtime
 ) : ICommandHandler<DeleteFolderCommand>
 {
     public async Task<Result> Handle(DeleteFolderCommand request, CancellationToken ct)
     {
-        var folder = await db.Folders.ById(request.FolderId).FirstOrDefaultAsync(ct);
+        var folder = await db.ProjectFolders.FirstOrDefaultAsync(f => f.Id == request.FolderId, ct);
         if (folder == null) 
             return Result.Failure(FolderError.NotFound);
 
@@ -31,3 +23,6 @@ public class DeleteFolderHandler(
         return Result.Success();
     }
 }
+
+
+

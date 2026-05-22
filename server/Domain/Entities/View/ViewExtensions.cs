@@ -1,7 +1,5 @@
 using System.Linq;
-using Domain.Enums.RelationShip;
-
-namespace Domain.Entities;
+namespace Domain;
 
 
 public static class ViewExtensions
@@ -26,3 +24,4 @@ public static class ViewExtensions
     public static IQueryable<ViewDefinition> WhereDefault(this IQueryable<ViewDefinition> query)
         => query.Where(v => v.IsDefault);
 }
+

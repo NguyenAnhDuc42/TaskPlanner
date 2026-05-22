@@ -1,18 +1,8 @@
-using Application.Common.Interfaces;
-using Application.Common.Results;
-
-using Domain.Enums;
-
-namespace Application.Features.WorkflowFeatures;
+namespace Application;
 
 public record GetAvailableStatusesQuery(
     Guid? SpaceId = null,
     Guid? FolderId = null
-) : IQueryRequest<List<StatusResponse>>;
+) : IQueryRequest<List<StatusRecord>>;
 
-public record StatusResponse(
-    Guid Id,
-    string Name,
-    string Color,
-    StatusCategory Category
-);
+

@@ -1,12 +1,8 @@
-using Application.Common.Interfaces;
-using Application.Common.Results;
-using Application.Features;
-using Application.Helpers;
 using Microsoft.Extensions.Logging;
 using Serilog.Context;
 using System.Diagnostics;
 
-namespace Application.Behaviors;
+namespace Application;
 
 public static class LoggingDecorator
 {
@@ -127,3 +123,4 @@ public static class LoggingDecorator
         }
     }
 }
+

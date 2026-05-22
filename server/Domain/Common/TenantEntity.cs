@@ -1,7 +1,5 @@
 using System;
-using Domain.Entities;
-
-namespace Domain.Common;
+namespace Domain;
 
 public interface ITenanted
 {
@@ -19,3 +17,5 @@ public abstract class TenantEntity : Entity, ITenanted
         ProjectWorkspaceId = projectWorkspaceId;
     }
 }
+
+

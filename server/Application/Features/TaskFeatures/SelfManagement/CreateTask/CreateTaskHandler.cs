@@ -1,17 +1,7 @@
-using Application.Helpers;
-using Application.Interfaces.Data;
-using Application.Common.Results;
-using Application.Common.Errors;
-using Application.Common.Interfaces;
-using Domain.Entities;
-using Domain.Enums;
-using Domain.Enums.RelationShip;
 using Microsoft.EntityFrameworkCore;
-using Application.Interfaces;
+namespace Application;
 
-namespace Application.Features.TaskFeatures;
-
-public class CreateTaskHandler(IDataBase db, WorkspaceContext context) : ICommandHandler<CreateTaskCommand, Guid>
+public class CreateTaskHandler(TaskPlanDbContext db, WorkspaceContext context) : ICommandHandler<CreateTaskCommand, Guid>
 {
     public async Task<Result<Guid>> Handle(CreateTaskCommand request, CancellationToken ct)
     {
@@ -30,7 +20,7 @@ public class CreateTaskHandler(IDataBase db, WorkspaceContext context) : IComman
             {
                 var isValidStatus = await db.Statuses.AnyAsync(s => 
                     s.Id == request.StatusId.Value && 
-                    s.Workflow.ProjectWorkspaceId == ancestors.ProjectWorkspaceId, ct);
+                    s.ProjectWorkspaceId == ancestors.ProjectWorkspaceId, ct);
 
                 if (!isValidStatus)
                     return Result<Guid>.Failure(Error.Validation("Task.InvalidStatus", "The requested status does not exist or does not belong to this workspace."));
@@ -66,7 +56,7 @@ public class CreateTaskHandler(IDataBase db, WorkspaceContext context) : IComman
                 orderKey: orderKey
             );
 
-            await db.Tasks.AddAsync(task, ct);
+            await db.ProjectTasks.AddAsync(task, ct);
 
             // Assignments
             if (request.AssigneeIds?.Any() == true)
@@ -86,14 +76,16 @@ public class CreateTaskHandler(IDataBase db, WorkspaceContext context) : IComman
 
     private async Task<string> ResolveFolderOrderKey(Guid folderId, CancellationToken ct)
     {
-        var maxKey = await db.Tasks.ByFolder(folderId).WhereNotDeleted().MaxAsync(t => (string?)t.OrderKey, ct);
+        var maxKey = await db.ProjectTasks.ByFolder(folderId).WhereNotDeleted().MaxAsync(t => (string?)t.OrderKey, ct);
         return maxKey is null ? FractionalIndex.Start() : FractionalIndex.After(maxKey);
     }
 
     private async Task<string> ResolveSpaceOrderKey(Guid spaceId, CancellationToken ct)
     {
-        var maxKey = await db.Tasks.BySpace(spaceId).Where(t => t.ProjectFolderId == null).WhereNotDeleted().MaxAsync(t => (string?)t.OrderKey, ct);
+        var maxKey = await db.ProjectTasks.BySpace(spaceId).Where(t => t.ProjectFolderId == null).WhereNotDeleted().MaxAsync(t => (string?)t.OrderKey, ct);
         return maxKey is null ? FractionalIndex.Start() : FractionalIndex.After(maxKey);
     }
 
 }
+
+

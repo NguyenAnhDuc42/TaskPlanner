@@ -1,6 +1,6 @@
 using FluentValidation;
 
-namespace Application.Features.SpaceFeatures;
+namespace Application;
 
 public class CreateSpaceValidator : AbstractValidator<CreateSpaceCommand>
 {
@@ -9,3 +9,4 @@ public class CreateSpaceValidator : AbstractValidator<CreateSpaceCommand>
         RuleFor(x => x.name).NotEmpty();
     }
 }
+

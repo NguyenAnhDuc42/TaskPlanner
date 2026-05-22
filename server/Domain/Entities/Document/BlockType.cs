@@ -1,6 +1,6 @@
 using System.Text.Json.Serialization;
 
-namespace Domain.Entities;
+namespace Domain;
 
 [JsonConverter(typeof(JsonStringEnumConverter))]
 public enum BlockType 
@@ -19,3 +19,4 @@ public enum BlockType
     Divider,
     Quote
 }
+

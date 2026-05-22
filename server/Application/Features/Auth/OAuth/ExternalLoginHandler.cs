@@ -1,26 +1,20 @@
-using Application.Common.Results;
-using Application.Common.Errors;
-using Application.Interfaces.Data;
-using Domain.Entities;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
-using Application.Interfaces;
-
-namespace Application.Features.Auth;
+namespace Application;
 
 public class ExternalLoginHandler : ICommandHandler<ExternalLoginCommand, LoginResponse>
 {
-    private readonly IDataBase _db;
-    private readonly IExternalAuthService _externalAuthService;
-    private readonly ITokenService _tokenService;
-    private readonly ICookieService _cookieService;
+    private readonly TaskPlanDbContext _db;
+    private readonly ExternalAuthService _externalAuthService;
+    private readonly TokenService _tokenService;
+    private readonly CookieService _cookieService;
     private readonly IHttpContextAccessor _httpContextAccessor;
 
     public ExternalLoginHandler(
-        IDataBase db, 
-        IExternalAuthService externalAuthService,
-        ITokenService tokenService,
-        ICookieService cookieService,
+        TaskPlanDbContext db, 
+        ExternalAuthService externalAuthService,
+        TokenService tokenService,
+        CookieService cookieService,
         IHttpContextAccessor httpContextAccessor)
     {
         _db = db;
@@ -69,3 +63,6 @@ public class ExternalLoginHandler : ICommandHandler<ExternalLoginCommand, LoginR
         return Result<LoginResponse>.Success(new LoginResponse(tokens.ExpirationAccessToken, tokens.ExpirationRefreshToken));
     }
 }
+
+
+

@@ -1,6 +1,4 @@
-using Domain.Common;
-
-namespace Domain.Entities;
+namespace Domain;
 
 public class TaskAssignment : Entity
 {
@@ -50,3 +48,5 @@ public class TaskAssignment : Entity
 
     public bool IsCompleted => CompletedAt.HasValue;
 }
+
+

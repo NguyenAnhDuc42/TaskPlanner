@@ -7,7 +7,7 @@ using System.Text.Json.Serialization;
 
 
 
-namespace Application.Helper;
+namespace Application;
 
 public class CursorEncryptionOptions
 {

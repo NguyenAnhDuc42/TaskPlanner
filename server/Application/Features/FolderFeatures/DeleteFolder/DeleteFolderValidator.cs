@@ -1,6 +1,6 @@
 using FluentValidation;
 
-namespace Application.Features.FolderFeatures;
+namespace Application;
 
 public class DeleteFolderValidator : AbstractValidator<DeleteFolderCommand>
 {
@@ -11,3 +11,4 @@ public class DeleteFolderValidator : AbstractValidator<DeleteFolderCommand>
             .WithMessage("Folder ID is required.");
     }
 }
+

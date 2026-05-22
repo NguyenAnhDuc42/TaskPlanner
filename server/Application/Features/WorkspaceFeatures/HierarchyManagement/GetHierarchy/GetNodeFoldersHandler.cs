@@ -1,15 +1,13 @@
-using Application.Common.Interfaces;
-using Application.Common.Results;
-using Application.Interfaces.Data;
+using Microsoft.EntityFrameworkCore;
 using Dapper;
 
-namespace Application.Features.WorkspaceFeatures;
+namespace Application;
 
-public class GetNodeFoldersHandler(IDataBase db) : IQueryHandler<GetNodeFoldersQuery, List<FolderHierarchyDto>>
+public class GetNodeFoldersHandler(TaskPlanDbContext db) : IQueryHandler<GetNodeFoldersQuery, List<FolderHierarchyDto>>
 {
     public async Task<Result<List<FolderHierarchyDto>>> Handle(GetNodeFoldersQuery request, CancellationToken ct)
     {
-        var rawFolders = (await db.Connection.QueryAsync<FolderRaw>(
+        var rawFolders = (await db.Database.GetDbConnection().QueryAsync<FolderRaw>(
             GetHierarchySql.GetFoldersBySpaceQuery, 
             new { SpaceId = request.NodeId })).AsList();
 
@@ -34,3 +32,5 @@ public class GetNodeFoldersHandler(IDataBase db) : IQueryHandler<GetNodeFoldersQ
 
     private record FolderRaw(Guid Id, Guid ParentId, string Name, string? Color, string? Icon, bool IsPrivate, string OrderKey, bool HasTasks);
 }
+
+

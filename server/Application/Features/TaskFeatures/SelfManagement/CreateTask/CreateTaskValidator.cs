@@ -1,6 +1,6 @@
 using FluentValidation;
 
-namespace Application.Features.TaskFeatures;
+namespace Application;
 
 public class CreateTaskValidator : AbstractValidator<CreateTaskCommand>
 {
@@ -9,3 +9,4 @@ public class CreateTaskValidator : AbstractValidator<CreateTaskCommand>
         RuleFor(x => x.Name).NotEmpty().MaximumLength(200);
     }
 }
+

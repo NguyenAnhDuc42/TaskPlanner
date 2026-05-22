@@ -1,7 +1,6 @@
-using Domain.Common;
 using System;
 
-namespace Domain.Entities;
+namespace Domain;
 
 public class Session : Entity
 {
@@ -60,3 +59,4 @@ public class Session : Entity
         LastTokenRotationAt = DateTimeOffset.UtcNow;
     }
 }
+

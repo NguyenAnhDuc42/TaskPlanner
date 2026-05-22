@@ -1,16 +1,12 @@
-
-using Application.Common.Interfaces;
-using Application.Common.Results;
-using Application.Helpers;
-using Application.Interfaces.Data;
+using Microsoft.EntityFrameworkCore;
 using Dapper;
 
-namespace Application.Features.EntityAccessFeatures;
+namespace Application;
 
-public class GetEntityAccessHandler(IDataBase db,WorkspaceContext workspaceContext) : IQueryHandler<GetEntityAccessQuery, IReadOnlyList<EntityAccessDto>>, IAuthorizedWorkspaceRequest
+public class GetEntityAccessHandler(TaskPlanDbContext db,WorkspaceContext workspaceContext) : IQueryHandler<GetEntityAccessQuery, IReadOnlyList<EntityAccessDto>>, IAuthorizedWorkspaceRequest
 {
     public async Task<Result<IReadOnlyList<EntityAccessDto>>> Handle(GetEntityAccessQuery request, CancellationToken cancellationToken)
-    {   var connection = db.Connection;
+    {   var connection = db.Database.GetDbConnection();
         var query = """
             SELECT 
                 wm.id AS WorkspaceMemberId,
@@ -30,3 +26,4 @@ public class GetEntityAccessHandler(IDataBase db,WorkspaceContext workspaceConte
         return Result<IReadOnlyList<EntityAccessDto>>.Success(entityAccess.ToList());
     }
 }
+

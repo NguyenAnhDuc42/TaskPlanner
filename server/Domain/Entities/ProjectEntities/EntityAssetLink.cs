@@ -1,7 +1,4 @@
-using Domain.Common;
-using Domain.Enums;
-
-namespace Domain.Entities;
+namespace Domain;
 
 public class EntityAssetLink : TenantEntity
 {
@@ -32,3 +29,5 @@ public class EntityAssetLink : TenantEntity
         return new EntityAssetLink(projectWorkspaceId, assetId, assetType, projectSpaceId, projectFolderId, projectTaskId, commentId, creatorId);
     }
 }
+
+

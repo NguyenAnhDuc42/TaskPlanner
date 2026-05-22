@@ -2,7 +2,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Npgsql;
 
-namespace Background.Services;
+namespace Background;
 
 public class DatabaseKeepAliveService
 {
@@ -35,3 +35,4 @@ public class DatabaseKeepAliveService
         }
     }
 }
+

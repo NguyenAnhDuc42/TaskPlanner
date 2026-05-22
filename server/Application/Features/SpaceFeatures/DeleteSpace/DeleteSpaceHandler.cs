@@ -1,21 +1,12 @@
-using Application.Common.Errors;
-using Application.Common.Interfaces;
-using Application.Common.Results;
-using Application.Helpers;
-using Application.Interfaces.Data;
-using Application.Interfaces;
-using Domain.Enums;
 using Microsoft.EntityFrameworkCore;
-using Domain.Entities;
+namespace Application;
 
-namespace Application.Features.SpaceFeatures;
-
-public class DeleteSpaceHandler(IDataBase db, WorkspaceContext context, IRealtimeService realtime) 
+public class DeleteSpaceHandler(TaskPlanDbContext db, WorkspaceContext context, RealtimeService realtime) 
     : ICommandHandler<DeleteSpaceCommand>
 {
     public async Task<Result> Handle(DeleteSpaceCommand request, CancellationToken ct)
     {
-        var space = await db.Spaces
+        var space = await db.ProjectSpaces
             .ById(request.SpaceId)
             .FirstOrDefaultAsync(ct);
 
@@ -33,3 +24,6 @@ public class DeleteSpaceHandler(IDataBase db, WorkspaceContext context, IRealtim
         return Result.Success();
     }
 }
+
+
+

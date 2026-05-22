@@ -1,27 +1,17 @@
-using Application.Common.Errors;
-using Application.Common.Interfaces;
-using Application.Common.Results;
-using Application.Helpers;
-using Application.Interfaces.Data;
-using Application.Interfaces;
-using Application.Features;
-using Domain.Entities;
-using Domain.Enums;
-using Domain.Enums.RelationShip;
 using Dapper;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Hybrid;
 
-namespace Application.Features.WorkspaceFeatures;
+namespace Application;
 
-public class AddMembersHandler(IDataBase db, WorkspaceContext context) : ICommandHandler<AddMembersCommand>
+public class AddMembersHandler(TaskPlanDbContext db, WorkspaceContext context) : ICommandHandler<AddMembersCommand>
 {
     public async Task<Result> Handle(AddMembersCommand request, CancellationToken ct)
     {
         if (context.CurrentMember.Role > Role.Admin)
             return Result.Failure(MemberError.DontHavePermission);
 
-        var workspace = await db.Workspaces
+        var workspace = await db.ProjectWorkspaces
             .ById(request.workspaceId)
             .FirstOrDefaultAsync(ct);
 
@@ -30,16 +20,19 @@ public class AddMembersHandler(IDataBase db, WorkspaceContext context) : IComman
         var members = request.members;
         if (!members.Any()) return Result.Success();
 
-        await db.Connection.ExecuteAsync(AddMembersSQL.BulkAddMembers, new
+        await db.Database.GetDbConnection().ExecuteAsync(AddMembersSQL.BulkAddMembers, new
         {
             WorkspaceId = workspace.Id,
             CreatorId = context.CurrentMember.Id,
             Emails = members.Select(m => m.email).ToArray(),
             Roles = members.Select(m => m.role.ToString()).ToArray(),
-            Theme = Domain.Enums.Theme.Dark.ToString()
+            Theme = Theme.Dark.ToString()
         });
 
 
         return Result.Success();
     }
 }
+
+
+

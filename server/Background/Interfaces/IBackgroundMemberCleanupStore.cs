@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
-namespace Background.Interfaces;
+namespace Background;
 
 public interface IBackgroundMemberCleanupStore
 {
@@ -10,3 +10,4 @@ public interface IBackgroundMemberCleanupStore
     
     Task<(int EntityAccessDeleted, int AssignmentsDeleted)> CleanupMemberDataAsync(Guid workspaceId, List<Guid> memberIds);
 }
+

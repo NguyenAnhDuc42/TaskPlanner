@@ -2,7 +2,7 @@ using System.Collections.Concurrent;
 using System.Text;
 using Microsoft.Extensions.Caching.Memory;
 
-namespace Api.Middlewares;
+namespace Api;
 
 public class IdempotencyMiddleware(RequestDelegate next, IMemoryCache cache)
 {
@@ -88,3 +88,4 @@ public class IdempotencyMiddleware(RequestDelegate next, IMemoryCache cache)
 }
 
 public record CachedResponse(int StatusCode, string Body);
+

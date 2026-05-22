@@ -1,5 +1,3 @@
-using Background.Interfaces;
-using Background.Services;
 using Hangfire;
 using Hangfire.PostgreSql;
 using Microsoft.Extensions.Configuration;
@@ -38,9 +36,9 @@ public static class DependencyInjection
         services.AddScoped<DatabaseKeepAliveService>();
         services.AddSingleton<IBackgroundJobClient, BackgroundJobClient>();
         services.AddSingleton<IRecurringJobManager, RecurringJobManager>();
-        services.AddSingleton<HangfireJobScheduler>();
         #endregion
 
         return services;
     }
 }
+

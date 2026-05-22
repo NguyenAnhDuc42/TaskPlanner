@@ -1,4 +1,4 @@
-namespace Domain.Enums.Notification;
+namespace Domain;
 
 [Flags]
 public enum NotificationChanel
@@ -8,3 +8,4 @@ public enum NotificationChanel
     SMS = 4,
     Push = 8
 }
+

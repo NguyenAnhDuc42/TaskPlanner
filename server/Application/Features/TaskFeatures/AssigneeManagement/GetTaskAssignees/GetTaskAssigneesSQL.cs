@@ -1,4 +1,4 @@
-namespace Application.Features.TaskFeatures;
+namespace Application;
 
 public static class GetTaskAssigneesSQL
 {
@@ -12,3 +12,4 @@ public static class GetTaskAssigneesSQL
           AND wm.deleted_at IS NULL
         ORDER BY u.name";
 }
+

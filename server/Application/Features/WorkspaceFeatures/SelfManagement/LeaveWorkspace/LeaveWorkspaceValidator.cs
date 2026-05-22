@@ -1,6 +1,6 @@
 using FluentValidation;
 
-namespace Application.Features.WorkspaceFeatures;
+namespace Application;
 
 public class LeaveWorkspaceValidator : AbstractValidator<LeaveWorkspaceCommand>
 {
@@ -11,3 +11,4 @@ public class LeaveWorkspaceValidator : AbstractValidator<LeaveWorkspaceCommand>
             .WithMessage("Workspace ID is required.");
     }
 }
+

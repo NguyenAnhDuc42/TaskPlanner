@@ -1,6 +1,6 @@
 using FluentValidation;
 
-namespace Application.Features.FolderFeatures;
+namespace Application;
 
 public class CreateFolderValidator : AbstractValidator<CreateFolderCommand>
 {
@@ -9,3 +9,4 @@ public class CreateFolderValidator : AbstractValidator<CreateFolderCommand>
         RuleFor(x => x.name).NotEmpty();
     }
 }
+
