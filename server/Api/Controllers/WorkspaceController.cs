@@ -77,34 +77,36 @@ namespace Api
             return result.ToActionResult();
         }
 
-        [HttpGet("{id:guid}/hierarchy")]
-        public async Task<IActionResult> GetHierarchy(Guid id, CancellationToken cancellationToken)
+        [HttpGet("{id:guid}/nodes/spaces")]
+        public async Task<IActionResult> GetNodeSpaces(
+            Guid id, 
+            [FromQuery] CursorPaginationRequest pagination,
+            CancellationToken cancellationToken = default)
         {
-            var query = new GetHierarchyQuery(id);
-            var result = await _handler.QueryAsync<GetHierarchyQuery, WorkspaceHierarchyDto>(query, cancellationToken);
+            var result = await _handler.QueryAsync<GetNodeSpacesQuery, PagedResult<SpaceRecord>>(new GetNodeSpacesQuery(id, pagination), cancellationToken);
             return result.ToActionResult();
         }
 
-        [HttpGet("{id:guid}/hierarchy/nodes/{nodeId}/tasks")]
+        [HttpGet("{id:guid}/nodes/{nodeId:guid}/tasks")]
         public async Task<IActionResult> GetNodeTasks(
             Guid id,
             Guid nodeId,
             [FromQuery] string parentType,
-            [FromQuery] string? cursorOrderKey,
-            [FromQuery] string? cursorTaskId,
-            [FromQuery] int pageSize = 50,
+            [FromQuery] CursorPaginationRequest pagination,
             CancellationToken cancellationToken = default)
         {
-            var query = new GetNodeTasksQuery(id, nodeId, parentType, cursorOrderKey, cursorTaskId, pageSize);
-            var result = await _handler.QueryAsync<GetNodeTasksQuery, NodeTasksDto>(query, cancellationToken);
+            var result = await _handler.QueryAsync<GetNodeTasksQuery, PagedResult<TaskRecord>>(new GetNodeTasksQuery(id, nodeId, parentType, pagination), cancellationToken);
             return result.ToActionResult();
         }
 
-        [HttpGet("{id:guid}/hierarchy/nodes/{nodeId:guid}/folders")]
-        public async Task<IActionResult> GetNodeFolders(Guid id, Guid nodeId, CancellationToken cancellationToken)
+        [HttpGet("{id:guid}/nodes/{nodeId:guid}/folders")]
+        public async Task<IActionResult> GetNodeFolders(
+            Guid id, 
+            Guid nodeId, 
+            [FromQuery] CursorPaginationRequest pagination,
+            CancellationToken cancellationToken = default)
         {
-            var query = new GetNodeFoldersQuery(id, nodeId);
-            var result = await _handler.QueryAsync<GetNodeFoldersQuery, List<FolderHierarchyDto>>(query, cancellationToken);
+            var result = await _handler.QueryAsync<GetNodeFoldersQuery, PagedResult<FolderRecord>>(new GetNodeFoldersQuery(id, nodeId, pagination), cancellationToken);
             return result.ToActionResult();
         }
 

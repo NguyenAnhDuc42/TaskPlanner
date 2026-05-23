@@ -1,5 +1,4 @@
 using Microsoft.EntityFrameworkCore;
-using Dapper;
 
 namespace Application;
 
@@ -12,11 +11,13 @@ public class RemoveMembersHandler(TaskPlanDbContext db, WorkspaceContext context
 
         if (request.memberIds.Any())
         {
-            await db.Database.GetDbConnection().ExecuteAsync(RemoveMembersSQL.RemoveMembers, new
-            {
-                WorkspaceId = context.workspaceId,
-                UserIds = request.memberIds.ToArray()
-            });
+            await db.WorkspaceMembers
+                .Where(wm => wm.ProjectWorkspaceId == context.workspaceId 
+                          && request.memberIds.Contains(wm.UserId) 
+                          && wm.DeletedAt == null)
+                .ExecuteUpdateAsync(u => u
+                    .SetProperty(wm => wm.DeletedAt, DateTimeOffset.UtcNow)
+                    .SetProperty(wm => wm.UpdatedAt, DateTimeOffset.UtcNow), ct);
         }
 
         return Result<Guid>.Success(context.workspaceId);

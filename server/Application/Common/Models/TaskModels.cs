@@ -1,30 +1,28 @@
 namespace Application;
 
-public record TaskRecord(
-    Guid Id,
-    string Name,
-    string? Description = null,
-    Priority? Priority = null,
-    Guid? StatusId = null,
-    DateTimeOffset? StartDate = null,
-    DateTimeOffset? DueDate = null,
-    string? OrderKey = null,
-    string? Icon = null,
-    string? Color = null,
-    List<CommentRecord>? Comments = null,
-    List<AttachmentRecord>? Attachments = null
-);
+public record CommentRecord
+{
+    public Guid Id { get; init; }
+    public string Content { get; init; } = null!;
+    public Guid CreatorId { get; init; }
+    public Guid? ProjectTaskId { get; init; }
+    public Guid? ParentCommentId { get; init; }
+    public bool IsEdited { get; init; }
+    public DateTimeOffset CreatedAt { get; init; }
+    public DateTimeOffset? UpdatedAt { get; init; }
+}
 
-public record CommentRecord(
-    Guid Id,
-    string Content,
-    Guid UserId,
-    DateTimeOffset CreatedAt
-);
+public record AttachmentRecord
+{
+    public Guid Id { get; init; }
+    public string Name { get; init; } = null!;
+    public string Url { get; init; } = null!;
+    public long SizeBytes { get; init; }
+}
 
-public record AttachmentRecord(
-    Guid Id,
-    string Name,
-    string Url,
-    long SizeBytes
-);
+public record AssigneeRecord
+{
+    public Guid UserId { get; init; }
+    public string UserName { get; init; } = null!;
+    public string? AvatarUrl { get; init; }
+}

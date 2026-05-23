@@ -11,7 +11,7 @@ public class StatusesController(IHandler handler) : ControllerBase
         [FromQuery] Guid? folderId,
         CancellationToken ct)
     {
-        var result = await handler.QueryAsync<GetAvailableStatusesQuery, List<StatusResponse>>(
+        var result = await handler.QueryAsync<GetAvailableStatusesQuery, List<StatusRecord>>(
             new GetAvailableStatusesQuery(spaceId, folderId), ct);
         return result.ToActionResult();
     }

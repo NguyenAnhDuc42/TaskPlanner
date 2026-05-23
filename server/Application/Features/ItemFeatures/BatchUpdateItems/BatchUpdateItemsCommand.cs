@@ -2,10 +2,10 @@ namespace Application;
 
 public record BatchUpdateItemsCommand(
     Guid WorkspaceId,
-    List<BatchUpdateItemDto> Updates
+    List<BatchUpdateItemValue> Updates
 ) : ICommandRequest, IAuthorizedWorkspaceRequest;
 
-public record BatchUpdateItemDto(
+public record BatchUpdateItemValue(
     Guid Id,
     EntityLayerType Type, // ProjectTask or ProjectFolder
     Guid? StatusId,

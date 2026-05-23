@@ -1,23 +1,27 @@
 using Microsoft.EntityFrameworkCore;
-using Dapper;
+
 
 namespace Application;
 
-public class AddCommentHandler(TaskPlanDbContext db, WorkspaceContext workspaceContext) : ICommandHandler<AddCommentCommand, CommentDto>
+public class AddCommentHandler(TaskPlanDbContext db, WorkspaceContext workspaceContext) : ICommandHandler<AddCommentCommand, CommentRecord>
 {
-    public async Task<Result<CommentDto>> Handle(AddCommentCommand request, CancellationToken ct)
+    public async Task<Result<CommentRecord>> Handle(AddCommentCommand request, CancellationToken ct)
     {
         const string sql = "SELECT id FROM project_tasks WHERE id = @TaskId AND project_workspace_id = @WorkspaceId AND deleted_at IS NULL;";
-        var taskId = await db.Database.GetDbConnection().QuerySingleOrDefaultAsync<Guid?>(sql, new { request.TaskId, WorkspaceId = workspaceContext.workspaceId });
+        var parameters = new object[] {
+            new Npgsql.NpgsqlParameter("TaskId", request.TaskId),
+            new Npgsql.NpgsqlParameter("WorkspaceId", workspaceContext.workspaceId)
+        };
+        var taskId = await db.Database.SqlQueryRaw<Guid?>(sql, parameters).FirstOrDefaultAsync(ct);
         
         if (taskId == null)
-            return Result<CommentDto>.Failure(Error.NotFound("Task.NotFound", "Task not found."));
+            return Result<CommentRecord>.Failure(Error.NotFound("Task.NotFound", "Task not found."));
 
         var comment = Comment.Create(request.Content, workspaceContext.CurrentMember.UserId, request.TaskId, request.ParentCommentId);
         db.Comments.Add(comment);
         await db.SaveChangesAsync(ct);
 
-        var dto = new CommentDto
+        var dto = new CommentRecord
         {
             Id = comment.Id,
             Content = comment.Content,
@@ -29,7 +33,7 @@ public class AddCommentHandler(TaskPlanDbContext db, WorkspaceContext workspaceC
             UpdatedAt = comment.UpdatedAt
         };
 
-        return Result<CommentDto>.Success(dto);
+        return Result<CommentRecord>.Success(dto);
     }
 }
 

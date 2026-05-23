@@ -14,31 +14,3 @@ public record CreateTaskCommand(
     string? Icon = null,
     string? Color = null
 ) : ICommandRequest<Guid>, IAuthorizedWorkspaceRequest;
-
-public record TaskDto(
-    Guid Id,
-    Guid ProjectWorkspaceId,
-    Guid? ProjectSpaceId,
-    Guid? ProjectFolderId,
-    string Name,
-    Guid DefaultDocumentId,
-    Guid? StatusId,
-    Priority Priority,
-    DateTimeOffset? StartDate,
-    DateTimeOffset? DueDate,
-    int? StoryPoints,
-    long? TimeEstimate,
-    string? OrderKey,
-    DateTimeOffset CreatedAt,
-    List<AssigneeDto> Assignees,
-    string? Icon = null,
-    string? Color = null
-);
-
-public record AssigneeDto(
-    Guid Id,
-    string Name,
-    string? AvatarUrl
-);
-
-

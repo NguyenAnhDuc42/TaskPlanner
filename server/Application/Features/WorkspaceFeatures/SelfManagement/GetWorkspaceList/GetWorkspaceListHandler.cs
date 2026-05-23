@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using System.Text.Json;
-using System.Text.Json;
+
 using Microsoft.Extensions.Caching.Hybrid;
 using Microsoft.Extensions.Logging;
 
@@ -101,10 +101,7 @@ public class GetWorkspaceListHandler(
             IsPinned = x.IsPinned,
             CanEdit = x.MembershipStatus == MembershipStatus.Active && (x.Role == Role.Owner || x.Role == Role.Admin),
             CanManageMembers = x.MembershipStatus == MembershipStatus.Active && (x.Role == Role.Owner || x.Role == Role.Admin),
-            CanPinWorkspace = x.MembershipStatus == MembershipStatus.Active,
-            Members = string.IsNullOrEmpty(x.MembersJson) 
-                ? new List<MemberRecord>() 
-                : JsonSerializer.Deserialize<List<MemberRecord>>(x.MembersJson, jsonOptions) ?? new()
+            CanPinWorkspace = x.MembershipStatus == MembershipStatus.Active
         }).ToList();
     }
 

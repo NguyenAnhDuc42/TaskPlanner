@@ -2,7 +2,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Application;
 
-public class DeleteTaskHandler(TaskPlanDbContext db, WorkspaceContext context) : ICommandHandler<DeleteTaskCommand>
+public class DeleteTaskHandler(TaskPlanDbContext db) : ICommandHandler<DeleteTaskCommand>
 {
     public async Task<Result> Handle(DeleteTaskCommand request, CancellationToken ct)
     {

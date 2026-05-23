@@ -23,7 +23,7 @@ public class TasksController : ControllerBase
     public async Task<IActionResult> GetDetail(Guid id, CancellationToken ct)
     {
         var query = new GetTaskDetailQuery(id);
-        var result = await _handler.QueryAsync<GetTaskDetailQuery, TaskDetailDto>(query, ct);
+        var result = await _handler.QueryAsync<GetTaskDetailQuery, TaskRecord>(query, ct);
         return result.ToActionResult();
     }
 
@@ -60,7 +60,7 @@ public class TasksController : ControllerBase
     [HttpGet("{taskId:guid}/assignees")]
     public async Task<IActionResult> GetTaskAssignees(Guid taskId, CancellationToken ct)
     {
-        var result = await _handler.QueryAsync<GetTaskAssigneesQuery, List<TaskAssigneeDto>>(new GetTaskAssigneesQuery(taskId), ct);
+        var result = await _handler.QueryAsync<GetTaskAssigneesQuery, List<AssigneeRecord>>(new GetTaskAssigneesQuery(taskId), ct);
         return result.ToActionResult();
     }
 
@@ -71,7 +71,7 @@ public class TasksController : ControllerBase
         [FromQuery] int limit = 50,
         CancellationToken ct = default)
     {
-        var result = await _handler.QueryAsync<GetTaskAssigneeCandidatesQuery, List<TaskAssigneeCandidateDto>>(
+        var result = await _handler.QueryAsync<GetTaskAssigneeCandidatesQuery, List<AssigneeRecord>>(
             new GetTaskAssigneeCandidatesQuery(taskId, search, limit), ct);
         return result.ToActionResult();
     }
@@ -79,14 +79,14 @@ public class TasksController : ControllerBase
     [HttpGet("{id:guid}/comments")]
     public async Task<IActionResult> GetComments(Guid id, CancellationToken ct)
     {
-        var result = await _handler.QueryAsync<GetCommentsQuery, List<CommentDto>>(new GetCommentsQuery(id), ct);
+        var result = await _handler.QueryAsync<GetCommentsQuery, List<CommentRecord>>(new GetCommentsQuery(id), ct);
         return result.ToActionResult();
     }
 
     [HttpPost("{id:guid}/comments")]
     public async Task<IActionResult> AddComment(Guid id, [FromBody] AddCommentRequest request, CancellationToken ct)
     {
-        var result = await _handler.SendAsync<AddCommentCommand, CommentDto>(new AddCommentCommand(id, request.Content, request.ParentCommentId), ct);
+        var result = await _handler.SendAsync<AddCommentCommand, CommentRecord>(new AddCommentCommand(id, request.Content, request.ParentCommentId), ct);
         return result.ToActionResult();
     }
 }

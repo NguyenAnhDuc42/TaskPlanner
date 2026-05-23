@@ -27,7 +27,7 @@ public class BatchUpdateItemsHandler(TaskPlanDbContext db, WorkspaceContext work
         }, ct);
     }
 
-    private async Task<Result> BatchUpdateTasksAsync(List<BatchUpdateItemDto> updates, CancellationToken ct)
+    private async Task<Result> BatchUpdateTasksAsync(List<BatchUpdateItemValue> updates, CancellationToken ct)
     {
         foreach (var update in updates)
         {
@@ -50,7 +50,7 @@ public class BatchUpdateItemsHandler(TaskPlanDbContext db, WorkspaceContext work
         return Result.Success();
     }
 
-    private async Task<Result> BatchUpdateFoldersAsync(List<BatchUpdateItemDto> updates, CancellationToken ct)
+    private async Task<Result> BatchUpdateFoldersAsync(List<BatchUpdateItemValue> updates, CancellationToken ct)
     {
         foreach (var update in updates)
         {
@@ -73,7 +73,7 @@ public class BatchUpdateItemsHandler(TaskPlanDbContext db, WorkspaceContext work
         return Result.Success();
     }
 
-    private async Task<string?> ResolveTaskOrderKeyAsync(BatchUpdateItemDto update, CancellationToken ct)
+    private async Task<string?> ResolveTaskOrderKeyAsync(BatchUpdateItemValue update, CancellationToken ct)
     {
         if (update.OrderKey != null) return update.OrderKey;
         if (update.PreviousItemOrderKey == null && update.NextItemOrderKey == null) return null;
@@ -96,7 +96,7 @@ public class BatchUpdateItemsHandler(TaskPlanDbContext db, WorkspaceContext work
         return maxKey is null ? FractionalIndex.Start() : FractionalIndex.After(maxKey);
     }
 
-    private async Task<string?> ResolveFolderOrderKeyAsync(BatchUpdateItemDto update, CancellationToken ct)
+    private async Task<string?> ResolveFolderOrderKeyAsync(BatchUpdateItemValue update, CancellationToken ct)
     {
         if (update.OrderKey != null) return update.OrderKey;
         if (update.PreviousItemOrderKey == null && update.NextItemOrderKey == null) return null;

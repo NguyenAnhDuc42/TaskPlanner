@@ -20,7 +20,7 @@ public class GetAvailableStatusesHandler(TaskPlanDbContext db, WorkspaceContext 
                     request.FolderId, 
                     cancelToken);
 
-                return statuses
+                return (statuses ?? [])
                     .Select(s => new StatusRecord { Id = s.Id, Name = s.Name, Color = s.Color, Category = s.Category })
                     .ToList();
             },

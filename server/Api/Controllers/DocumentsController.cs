@@ -21,7 +21,7 @@ public class DocumentsController : ControllerBase
     public async Task<IActionResult> GetBlocks(Guid documentId, CancellationToken cancellationToken)
     {
         var query = new GetDocumentBlocksQuery(documentId);
-        var result = await _handler.QueryAsync<GetDocumentBlocksQuery, List<DocumentBlockDto>>(query, cancellationToken);
+        var result = await _handler.QueryAsync<GetDocumentBlocksQuery, List<DocumentBlockRecord>>(query, cancellationToken);
         return result.ToActionResult();
     }
 

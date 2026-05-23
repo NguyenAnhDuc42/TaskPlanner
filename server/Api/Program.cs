@@ -6,6 +6,7 @@ using Background;
 using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.RateLimiting;
 using Scalar.AspNetCore;
+using Api;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -35,11 +36,11 @@ builder.Services.AddCors(options =>
 // --- 2. Infrastructure & Data ---
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
 
-builder.EnrichNpgsqlDbContext<Application.Data.TaskPlanDbContext>();
+builder.EnrichNpgsqlDbContext<TaskPlanDbContext>();
 builder.Services.AddApplication(builder.Configuration);
 
-var rateLimitSettings = builder.Configuration.GetSection(Application.Configuration.RateLimitSettings.SectionName).Get<Application.Configuration.RateLimitSettings>() ?? new Application.Configuration.RateLimitSettings();
-builder.Services.Configure<Application.Configuration.RateLimitSettings>(builder.Configuration.GetSection(Application.Configuration.RateLimitSettings.SectionName));
+var rateLimitSettings = builder.Configuration.GetSection(RateLimitSettings.SectionName).Get<RateLimitSettings>() ?? new RateLimitSettings();
+builder.Services.Configure<RateLimitSettings>(builder.Configuration.GetSection(RateLimitSettings.SectionName));
 
 builder.Services.AddRateLimiter(options =>
 {

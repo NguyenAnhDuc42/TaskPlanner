@@ -9,7 +9,7 @@ public class WorkflowsController(IHandler handler) : ControllerBase
     public async Task<IActionResult> GetWorkspaceWorkflows([FromQuery] Guid? layerId, [FromQuery] string? layerType, CancellationToken ct)
     {
         var query = new GetWorkspaceWorkflowsQuery(layerId, layerType);
-        var result = await handler.QueryAsync<GetWorkspaceWorkflowsQuery, List<WorkflowDto>>(query, ct);
+        var result = await handler.QueryAsync<GetWorkspaceWorkflowsQuery, List<WorkflowRecord>>(query, ct);
         return result.ToActionResult();
     }
 

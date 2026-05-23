@@ -23,7 +23,7 @@ namespace Api
         public async Task<IActionResult> GetDetail(Guid id, CancellationToken cancellationToken)
         {
             var query = new GetSpaceDetailQuery(id);
-            var result = await _handler.QueryAsync<GetSpaceDetailQuery, SpaceDetailDto>(query, cancellationToken);
+            var result = await _handler.QueryAsync<GetSpaceDetailQuery, SpaceRecord>(query, cancellationToken);
             return result.ToActionResult();
         }
 

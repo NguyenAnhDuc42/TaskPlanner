@@ -2,9 +2,7 @@ using System.Data;
 using System.IdentityModel.Tokens.Jwt;
 using System.Text;
 using Dapper;
-using Infrastructure.Auth;
-using Infrastructure.Auth.Types;
-using Infrastructure.Services;
+using Application;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Hybrid;
@@ -33,28 +31,7 @@ public static class DependencyInjection
 
         services.AddSignalR();
 
-        var perfSettings = config.GetSection("PerformanceSettings").Get<Application.Data.PerformanceSettings>() 
-                           ?? new Application.Data.PerformanceSettings();
 
-        // 2. Rate Limiting: Prevent API abuse (200 requests / minute per user)
-        services.AddRateLimiter(options =>
-        {
-            options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
-            options.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(context =>
-            {
-                var userId = context.User.Claims.FirstOrDefault(c => c.Type == "sub")?.Value ?? 
-                             context.Connection.RemoteIpAddress?.ToString() ?? "anonymous";
-                
-                return RateLimitPartition.GetFixedWindowLimiter(
-                    partitionKey: userId,
-                    factory: partition => new FixedWindowRateLimiterOptions
-                    {
-                        AutoReplenishment = true,
-                        PermitLimit = perfSettings.RateLimitMaxRequestsPerMinute, 
-                        Window = TimeSpan.FromMinutes(1)
-                    });
-            });
-        });
 
         #region Authentication
         JwtSecurityTokenHandler.DefaultInboundClaimTypeMap.Clear();

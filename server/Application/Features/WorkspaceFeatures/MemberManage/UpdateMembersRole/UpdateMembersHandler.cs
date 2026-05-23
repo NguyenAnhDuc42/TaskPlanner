@@ -1,6 +1,4 @@
-using Dapper;
 using Microsoft.EntityFrameworkCore;
-
 namespace Application;
 
 public class UpdateMembersHandler(TaskPlanDbContext db, WorkspaceContext context) : ICommandHandler<UpdateMembersCommand, Guid>
@@ -13,13 +11,20 @@ public class UpdateMembersHandler(TaskPlanDbContext db, WorkspaceContext context
         var members = request.members;
         if (members.Count == 0) return Result<Guid>.Success(context.workspaceId);
 
-        await db.Database.GetDbConnection().ExecuteAsync(UpdateMembersSQL.UpdateMemberRoles, new
+        // Using ExecuteUpdate inside a transaction for atomic batch updates
+        await db.ExecuteInTransactionAsync(async () =>
         {
-            UserIds = members.Select(m => m.userId).ToArray(),
-            Roles = members.Select(m => m.role?.ToString() ?? string.Empty).ToArray(),
-            Statuses = members.Select(m => m.status?.ToString() ?? string.Empty).ToArray(),
-            WorkspaceId = context.workspaceId
-        });
+            foreach (var member in members)
+            {
+                await db.WorkspaceMembers
+                    .Where(wm => wm.UserId == member.userId && wm.ProjectWorkspaceId == context.workspaceId && wm.DeletedAt == null)
+                    .ExecuteUpdateAsync(u => u
+                        .SetProperty(wm => wm.Role, wm => member.role ?? wm.Role)
+                        .SetProperty(wm => wm.Status, wm => member.status ?? wm.Status)
+                        .SetProperty(wm => wm.UpdatedAt, DateTimeOffset.UtcNow), ct);
+            }
+            return Result.Success();
+        }, ct);
 
         return Result<Guid>.Success(context.workspaceId);
     }

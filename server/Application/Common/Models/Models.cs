@@ -13,9 +13,17 @@ public record TaskRecord
     public string? Icon { get; init; }
     public string? Color { get; init; }
     
-    // Optional Nested
-    public List<CommentRecord>? Comments { get; init; } = null;
-    public List<AttachmentRecord>? Attachments { get; init; } = null;
+    // Detailed properties
+    public Guid? ProjectSpaceId { get; init; }
+    public Guid? ProjectFolderId { get; init; }
+    public string? Description { get; init; }
+    public Guid? ParentWorkflowId { get; init; }
+    public Guid? DefaultDocumentId { get; init; }
+    public bool? IsArchived { get; init; }
+    public int? StoryPoints { get; init; }
+    public long? TimeEstimateSeconds { get; init; }
+    public string? ParentType { get; init; }
+    public List<Guid>? AssigneeIds { get; init; } = null;
 }
 
 public record FolderRecord
@@ -30,5 +38,21 @@ public record FolderRecord
     public string? OrderKey { get; init; }
     public string? Icon { get; init; }
     public string? Color { get; init; }
+    public bool? IsPrivate { get; init; }
+    public bool? HasTasks { get; init; }
+    public Guid? ParentId { get; init; }
 }
 
+public record TaskViewData(
+    List<FolderRecord> Folders,
+    List<TaskRecord> Tasks,
+    List<StatusRecord> Statuses
+);
+
+public record DocumentBlockRecord
+{
+    public Guid Id { get; init; }
+    public BlockType Type { get; init; }
+    public string Content { get; init; } = null!;
+    public string OrderKey { get; init; } = null!;
+}

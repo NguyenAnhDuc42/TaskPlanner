@@ -37,7 +37,7 @@ public class UpdateWorkspaceHandler(
 
         // Cache Invalidation
         await cache.RemoveByTagAsync(WorkspaceCacheKeys.WorkspaceListTag(context.CurrentMember.UserId), ct);
-        await cache.RemoveByTagAsync(CacheConstants.Tags.WorkspaceMembers(workspace.Id), ct);
+        await cache.RemoveByTagAsync(WorkspaceCacheKeys.WorkspaceMembersTag(workspace.Id), ct);
 
         _ = realtime.NotifyUserAsync(context.CurrentMember.UserId, "WorkspaceUpdated", new { WorkspaceId = workspace.Id }, ct);
 

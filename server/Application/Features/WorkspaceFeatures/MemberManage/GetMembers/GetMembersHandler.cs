@@ -1,5 +1,4 @@
 using Microsoft.EntityFrameworkCore;
-
 using Microsoft.Extensions.Caching.Hybrid;
 using Microsoft.Extensions.Logging;
 using System.Text.Json;
@@ -10,7 +9,6 @@ public class GetMembersHandler(
     TaskPlanDbContext db,
     WorkspaceContext context,
     CursorHelper cursorHelper,
-    HybridCache cache
     HybridCache cache
 ) : IQueryHandler<GetMembersQuery, PagedResult<MemberRecord>>
 {
@@ -52,7 +50,7 @@ public class GetMembersHandler(
             return new PagedResult<MemberRecord>(items, nextCursor, hasMore);
         },
         new HybridCacheEntryOptions { Expiration = TimeSpan.FromMinutes(5) },
-        new[] { CacheConstants.Tags.WorkspaceMembers(workspaceId) },
+        new[] { WorkspaceCacheKeys.WorkspaceMembersTag(workspaceId) },
         ct);
 
         return Result<PagedResult<MemberRecord>>.Success(result);

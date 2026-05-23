@@ -1,11 +1,11 @@
 using Microsoft.EntityFrameworkCore;
-using Dapper;
+
 
 namespace Application;
 
-public class GetTaskDetailHandler(TaskPlanDbContext db, WorkspaceContext workspaceContext) : IQueryHandler<GetTaskDetailQuery, TaskDetailDto>
+public class GetTaskDetailHandler(TaskPlanDbContext db, WorkspaceContext workspaceContext) : IQueryHandler<GetTaskDetailQuery, TaskRecord>
 {
-    public async Task<Result<TaskDetailDto>> Handle(GetTaskDetailQuery request, CancellationToken ct)
+    public async Task<Result<TaskRecord>> Handle(GetTaskDetailQuery request, CancellationToken ct)
     {
         const string sql = @"
             SELECT 
@@ -33,15 +33,17 @@ public class GetTaskDetailHandler(TaskPlanDbContext db, WorkspaceContext workspa
             FROM project_tasks t
             WHERE t.id = @TaskId AND t.project_workspace_id = @WorkspaceId AND t.deleted_at IS NULL;";
 
-        var task = await db.Database.GetDbConnection().QuerySingleOrDefaultAsync<TaskDetailDto>(sql, new { 
-            request.TaskId, 
-            WorkspaceId = workspaceContext.workspaceId 
-        });
+        var parameters = new[] {
+            new Npgsql.NpgsqlParameter("TaskId", request.TaskId),
+            new Npgsql.NpgsqlParameter("WorkspaceId", workspaceContext.workspaceId)
+        };
+
+        var task = await db.Database.SqlQueryRaw<TaskRecord>(sql, parameters).FirstOrDefaultAsync(ct);
         
         if (task == null)
-            return Result<TaskDetailDto>.Failure(Error.NotFound("Task.NotFound", $"Task {request.TaskId} not found"));
+            return Result<TaskRecord>.Failure(Error.NotFound("Task.NotFound", $"Task {request.TaskId} not found"));
 
-        return Result<TaskDetailDto>.Success(task with { AssigneeIds = new List<Guid>() });
+        return Result<TaskRecord>.Success(task with { AssigneeIds = new List<Guid>() });
     }
 }
 

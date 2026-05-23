@@ -1,11 +1,11 @@
 using Microsoft.EntityFrameworkCore;
-using Dapper;
+
 
 namespace Application;
 
-public class GetCommentsHandler(TaskPlanDbContext db, WorkspaceContext workspaceContext) : IQueryHandler<GetCommentsQuery, List<CommentDto>>
+public class GetCommentsHandler(TaskPlanDbContext db, WorkspaceContext workspaceContext) : IQueryHandler<GetCommentsQuery, List<CommentRecord>>
 {
-    public async Task<Result<List<CommentDto>>> Handle(GetCommentsQuery request, CancellationToken ct)
+    public async Task<Result<List<CommentRecord>>> Handle(GetCommentsQuery request, CancellationToken ct)
     {
         const string sql = @"
             SELECT 
@@ -19,12 +19,14 @@ public class GetCommentsHandler(TaskPlanDbContext db, WorkspaceContext workspace
               AND c.deleted_at IS NULL
             ORDER BY c.created_at ASC;";
 
-        var comments = await db.Database.GetDbConnection().QueryAsync<CommentDto>(sql, new { 
-            request.TaskId, 
-            WorkspaceId = workspaceContext.workspaceId 
-        });
+        var parameters = new object[] {
+            new Npgsql.NpgsqlParameter("TaskId", request.TaskId),
+            new Npgsql.NpgsqlParameter("WorkspaceId", workspaceContext.workspaceId)
+        };
 
-        return Result<List<CommentDto>>.Success(comments.ToList());
+        var comments = await db.Database.SqlQueryRaw<CommentRecord>(sql, parameters).ToListAsync(ct);
+
+        return Result<List<CommentRecord>>.Success(comments);
     }
 }
 

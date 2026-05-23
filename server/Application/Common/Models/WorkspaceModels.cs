@@ -25,9 +25,6 @@ public record WorkspaceRecord
     public bool? IsArchived { get; init; }
     public bool? IsDashboardEnabled { get; init; }
 
-    // Nested lists
-    public List<MemberRecord>? Members { get; init; } = null;
-    public List<SpaceRecord>? Spaces { get; init; } = null;
 }
 
 public record MemberRecord 
@@ -58,7 +55,6 @@ public record SpaceRecord
     public string? Icon { get; init; }
     public bool IsPrivate { get; init; }
     public string? OrderKey { get; init; }
-    
     // Detailed properties
     public string? Description { get; init; }
     public Guid? ParentWorkflowId { get; init; }
@@ -69,19 +65,13 @@ public record SpaceRecord
     public DateTimeOffset? DueDate { get; init; }
     public DateTimeOffset? CreatedAt { get; init; }
     public List<Guid>? MemberIds { get; init; } = null;
-
-    // Hierarchy properties
     public bool? HasFolders { get; init; }
     public bool? HasTasks { get; init; }
-    
-    public List<FolderRecord>? Folders { get; init; } = null;
-    public List<TaskRecord>? Tasks { get; init; } = null;
 }
 
-public record NodeTasksRecord
+public record EntityAccessRecord
 {
-    public List<TaskRecord> Tasks { get; init; } = new();
-    public string? NextCursorOrderKey { get; init; }
-    public string? NextCursorTaskId { get; init; }
-    public bool HasMore { get; init; }
+    public Guid WorkspaceMemberId { get; init; }
+    public AccessLevel AccessLevel { get; init; }
+    public bool HaveAccess { get; init; }
 }

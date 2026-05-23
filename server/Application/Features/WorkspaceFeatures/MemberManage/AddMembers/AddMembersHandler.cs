@@ -1,6 +1,4 @@
-using Dapper;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Caching.Hybrid;
 
 namespace Application;
 
@@ -20,15 +18,47 @@ public class AddMembersHandler(TaskPlanDbContext db, WorkspaceContext context) :
         var members = request.members;
         if (!members.Any()) return Result.Success();
 
-        await db.Database.GetDbConnection().ExecuteAsync(AddMembersSQL.BulkAddMembers, new
-        {
-            WorkspaceId = workspace.Id,
-            CreatorId = context.CurrentMember.Id,
-            Emails = members.Select(m => m.email).ToArray(),
-            Roles = members.Select(m => m.role.ToString()).ToArray(),
-            Theme = Theme.Dark.ToString()
-        });
+        var emails = members.Select(m => m.email).ToList();
 
+        // 1. Find all requested users by email
+        var users = await db.Users
+            .Where(u => emails.Contains(u.Email) && u.DeletedAt == null)
+            .ToListAsync(ct);
+
+        if (!users.Any()) return Result.Success();
+
+        // 2. Filter out users who are already in the workspace
+        var existingUserIds = await db.WorkspaceMembers
+            .Where(wm => wm.ProjectWorkspaceId == workspace.Id && wm.DeletedAt == null)
+            .Select(wm => wm.UserId)
+            .ToListAsync(ct);
+
+        var newMembersToInsert = new List<WorkspaceMember>();
+
+        foreach (var user in users)
+        {
+            if (existingUserIds.Contains(user.Id)) continue;
+
+            // Find the role requested for this email
+            var requestedRole = members.First(m => m.email == user.Email).role;
+
+            var newMember = new WorkspaceMember(
+                userId: user.Id,
+                projectWorkspaceId: workspace.Id,
+                role: requestedRole,
+                status: MembershipStatus.Active,
+                creatorId: context.CurrentMember.Id,
+                joinMethod: "Invite"
+            );
+
+            newMembersToInsert.Add(newMember);
+        }
+
+        if (newMembersToInsert.Any())
+        {
+            await db.WorkspaceMembers.AddRangeAsync(newMembersToInsert, ct);
+            await db.SaveChangesAsync(ct);
+        }
 
         return Result.Success();
     }

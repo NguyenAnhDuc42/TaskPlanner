@@ -6,6 +6,10 @@ namespace Application;
 public static class WorkspaceCacheKeys
 {
     public static string WorkspaceListTag(Guid userId) => $"user:{userId}:workspaces";
+    public static string WorkspaceMembersTag(Guid workspaceId) => $"workspaces:{workspaceId}:members";
+    public static string UserPermissionsTag(Guid userId) => $"user:{userId}:permissions";
+    public static string WorkspaceMemberRoleKey(Guid userId, Guid workspaceId) => $"workspaces:{workspaceId}:user:{userId}:perm";
+    public static string EntityAccessLevelKey(Guid userId, Guid workspaceId, Guid entityId, string entityType) => $"workspaces:{workspaceId}:user:{userId}:entity:{entityId}:perm";
 
     public static string WorkspaceList(Guid userId, GetWorksapceListQuery query)
     {

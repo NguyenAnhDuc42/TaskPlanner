@@ -1,12 +1,12 @@
 using Microsoft.EntityFrameworkCore;
-using Dapper;
+
 
 namespace Application;
 
-public class GetEntityAccessHandler(TaskPlanDbContext db,WorkspaceContext workspaceContext) : IQueryHandler<GetEntityAccessQuery, IReadOnlyList<EntityAccessDto>>, IAuthorizedWorkspaceRequest
+public class GetEntityAccessHandler(TaskPlanDbContext db,WorkspaceContext workspaceContext) : IQueryHandler<GetEntityAccessQuery, IReadOnlyList<EntityAccessRecord>>, IAuthorizedWorkspaceRequest
 {
-    public async Task<Result<IReadOnlyList<EntityAccessDto>>> Handle(GetEntityAccessQuery request, CancellationToken cancellationToken)
-    {   var connection = db.Database.GetDbConnection();
+    public async Task<Result<IReadOnlyList<EntityAccessRecord>>> Handle(GetEntityAccessQuery request, CancellationToken cancellationToken)
+    {
         var query = """
             SELECT 
                 wm.id AS WorkspaceMemberId,
@@ -17,13 +17,12 @@ public class GetEntityAccessHandler(TaskPlanDbContext db,WorkspaceContext worksp
             Where wm.project_workspace_id = @WorkspaceId AND wm.deleted_on IS NULL
         """;
 
-        var entityAccess = await connection.QueryAsync<EntityAccessDto>(query, new
-        {
-            WorkspaceId = workspaceContext.workspaceId,
-            request.SpaceId
-        });
+        var entityAccess = await db.Database.SqlQueryRaw<EntityAccessRecord>(query, 
+            new Npgsql.NpgsqlParameter("WorkspaceId", workspaceContext.workspaceId),
+            new Npgsql.NpgsqlParameter("SpaceId", request.SpaceId)
+        ).ToListAsync(cancellationToken);
 
-        return Result<IReadOnlyList<EntityAccessDto>>.Success(entityAccess.ToList());
+        return Result<IReadOnlyList<EntityAccessRecord>>.Success(entityAccess);
     }
 }
 
