@@ -90,7 +90,7 @@ export function MemberCard({ member, isEditMode, isSelected, onSelect, onDelete 
         {/* Contact Info */}
         <div className="space-y-2 border-t border-border pt-3">
           <div className="flex items-center gap-2 text-xs text-muted-foreground">
-            <Mail className="h-3.5 w-3.5 flex-shrink-0" />
+            <Mail className="h-3.5 w-3.5 shrink-0" />
             <a href={`mailto:${member.email}`} className="hover:text-primary truncate">
               {member.email}
             </a>

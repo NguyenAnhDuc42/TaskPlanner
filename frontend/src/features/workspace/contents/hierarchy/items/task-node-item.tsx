@@ -3,10 +3,7 @@ import { useNavigate } from "@tanstack/react-router";
 import { useWorkspace } from "@/features/workspace/context/workspace-provider";
 import { cn } from "@/lib/utils";
 import { CheckSquare, MoreHorizontal } from "lucide-react";
-import {
-  TaskContextMenu,
-  EntityMenuTrigger,
-} from "../hierarchy-components/entity-context-menu";
+
 import { SortableItem } from "../dnd/sortable-item";
 import { FadeTruncate } from "@/components/fade-truncate";
 import {
@@ -17,6 +14,8 @@ import {
 import { useLocation } from "@tanstack/react-router";
 import { useHierarchyStore } from "../use-hierarchy-store";
 import { DynamicIcon } from "@/components/dynamic-icon";
+import { TaskContextMenu } from "../hierarchy-components/context-menus/task-context-menu";
+import { EntityMenuTrigger } from "../hierarchy-components/context-menus/shared";
 
 interface TaskNodeItemProps {
   taskId: string;
@@ -68,7 +67,7 @@ export const TaskNodeItem = React.memo(function TaskNodeItem({
             navigate({ to: `/workspaces/${workspaceId}/tasks/${task.id}` })
           }
         >
-          <div className="w-5 h-5 flex items-center justify-center flex-shrink-0 mr-2">
+          <div className="w-5 h-5 flex items-center justify-center shrink-0 mr-2">
             {task.icon ? (
               <DynamicIcon name={task.icon} color={task.color} size={14} />
             ) : (

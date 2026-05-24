@@ -19,7 +19,7 @@ import type { MoveItemRequest } from "../hierarchy-api";
 interface UseHierarchyDndProps {
   workspaceId: string;
   moveItem: {
-    mutate: (data: MoveItemRequest) => void;
+    mutate: (data: MoveItemRequest, options?: { onError?: () => void }) => void;
   };
 }
 

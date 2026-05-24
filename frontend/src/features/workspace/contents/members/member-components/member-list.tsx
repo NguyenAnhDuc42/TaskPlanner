@@ -234,7 +234,7 @@ export function MemberList({
 
                   {/* Member Column */}
                   <div className="flex items-center gap-3 min-w-0 px-3 py-2 border-r border-border/10 h-full">
-                    <Avatar className="h-6 w-6 rounded-sm flex-shrink-0">
+                    <Avatar className="h-6 w-6 rounded-sm shrink-0">
                       <AvatarImage src={member.avatarUrl || ""} />
                       <AvatarFallback className="text-[10px] bg-muted rounded-sm">
                         {member.name.substring(0, 1)}
@@ -252,7 +252,7 @@ export function MemberList({
 
                   {/* Role Column */}
                   <div className="px-3 py-2 border-r border-border/10 h-full flex items-center">
-                    <RoleBadge role={member.role as any} />
+                    <RoleBadge role={member.role} />
                   </div>
 
                   {/* Status Column */}

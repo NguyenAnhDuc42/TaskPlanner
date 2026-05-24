@@ -8,7 +8,7 @@ import type { DragItemData, DragTaskData } from "../drag-item-type";
 export function handleTaskMove(
   activeData: DragTaskData,
   overData: DragItemData,
-  mutateMoveItem: (req: MoveItemRequest) => void
+  mutateMoveItem: (req: MoveItemRequest, options?: { onError?: () => void }) => void
 ) {
   let targetParentId: string | undefined;
   let targetParentType: EntityLayerType | undefined;
@@ -27,6 +27,13 @@ export function handleTaskMove(
   if (!targetParentId || !targetParentType) return;
 
   const store = useHierarchyStore.getState();
+  const snapshot = {
+    tasksByParent: store.tasksByParent,
+    tasks: store.tasks,
+    spaces: store.spaces,
+    folders: store.folders
+  };
+
   const sourceParentId = activeData.parentId;
   
   const sourceTasks = store.tasksByParent[sourceParentId] || [];
@@ -119,5 +126,10 @@ export function handleTaskMove(
     newOrderKey,
     sourceParentId: sourceParentId,
     sourceParentType: activeData.parentType
+  }, {
+    onError: () => {
+      // Revert optimistic update if API fails
+      useHierarchyStore.setState(snapshot);
+    }
   });
 }

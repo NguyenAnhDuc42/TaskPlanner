@@ -7,9 +7,9 @@ export function HierarchySidebarSkeleton() {
   return (
     <div className="flex flex-col h-full bg-background border-r border-border/40 w-full text-foreground">
       {/* Search */}
-      <div className="h-8 px-1 flex items-center border-b border-border flex-shrink-0">
+      <div className="h-8 px-1 flex items-center border-b border-border shrink-0">
         <div className="flex items-center gap-2 px-2 h-6 rounded-sm bg-muted/40 border border-border/10 flex-1">
-          <Search className="h-3 w-3 text-muted-foreground/40 flex-shrink-0" />
+          <Search className="h-3 w-3 text-muted-foreground/40 shrink-0" />
           <div className="text-[10px] font-medium text-muted-foreground/30">
             Search...
           </div>
@@ -79,7 +79,7 @@ export function HierarchySidebarSkeleton() {
       {/* Footer / Bottom Section */}
       <div className="p-2 border-t border-border/40">
         <div className="flex items-center gap-1.5 px-1 py-1 text-[10px] font-black uppercase tracking-wider text-muted-foreground cursor-pointer hover:text-foreground">
-          <ChevronDown className="h-3 w-3 rotate-[-90deg] transition-transform" />
+          <ChevronDown className="h-3 w-3 -rotate-90 transition-transform" />
           Docs & Tasks
         </div>
       </div>

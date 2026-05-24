@@ -42,9 +42,9 @@ export function HierarchySidebar() {
   return (
     <div className="h-full flex flex-col bg-background overflow-hidden select-none">
       {/* Search & Actions */}
-      <div className="h-8 px-1 flex items-center border-b border-border flex-shrink-0">
+      <div className="h-8 px-1 flex items-center border-b border-border shrink-0">
         <div className="flex items-center gap-2 px-2 h-6 rounded-sm bg-muted/40 border border-border/10 focus-within:border-primary/30 focus-within:bg-muted/60 transition-all group flex-1">
-          <Search className="h-3 w-3 text-muted-foreground/40 group-focus-within:text-primary transition-colors flex-shrink-0" />
+          <Search className="h-3 w-3 text-muted-foreground/40 group-focus-within:text-primary transition-colors shrink-0" />
           <input
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
@@ -114,7 +114,7 @@ export function HierarchySidebar() {
                         title="Create New Space"
                         trigger={
                           <button className="flex items-center w-full px-1 py-0.5 rounded-sm transition-colors cursor-pointer hover:bg-muted text-muted-foreground/50 hover:text-primary group">
-                            <div className="w-5 h-5 flex items-center justify-center flex-shrink-0 mr-0.5">
+                            <div className="w-5 h-5 flex items-center justify-center shrink-0 mr-0.5">
                               <Plus className="h-3.5 w-3.5" />
                             </div>
                             <span className="text-[10px] font-bold uppercase tracking-widest">

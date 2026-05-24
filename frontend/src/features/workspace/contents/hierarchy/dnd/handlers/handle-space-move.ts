@@ -10,11 +10,16 @@ export function handleSpaceMove(
   workspaceId: string,
   activeData: DragSpaceData,
   overData: DragItemData,
-  mutateMoveItem: (req: MoveItemRequest) => void
+  mutateMoveItem: (req: MoveItemRequest, options?: { onError?: () => void }) => void
 ) {
   if (overData?.type !== EntityLayerConst.ProjectSpace) return;
 
   const store = useHierarchyStore.getState();
+  const snapshot = {
+    rootSpaceIds: store.rootSpaceIds,
+    spaces: store.spaces
+  };
+
   const rootSpaceIds = store.rootSpaceIds;
   const oldIndex = rootSpaceIds.indexOf(activeData.id);
   const newIndex = rootSpaceIds.indexOf(overData.id);
@@ -28,8 +33,19 @@ export function handleSpaceMove(
   const nextKey = newIndex < moved.length - 1 ? spaces[moved[newIndex + 1]]?.orderKey : undefined;
   const newOrderKey = fractionalBetween(prevKey, nextKey);
   
+  const newSpaces = { ...store.spaces };
+  if (newSpaces[activeData.id]) {
+    newSpaces[activeData.id] = {
+      ...newSpaces[activeData.id],
+      orderKey: newOrderKey || newSpaces[activeData.id].orderKey
+    };
+  }
+  
   // Optimistic UI update via Zustand
-  useHierarchyStore.setState({ rootSpaceIds: moved });
+  useHierarchyStore.setState({ 
+    rootSpaceIds: moved,
+    spaces: newSpaces 
+  });
 
   mutateMoveItem({
     itemId: activeData.id,
@@ -38,5 +54,9 @@ export function handleSpaceMove(
     targetParentType: "Workspace",
     nextItemOrderKey: nextKey,
     newOrderKey
+  }, {
+    onError: () => {
+      useHierarchyStore.setState(snapshot);
+    }
   });
 }

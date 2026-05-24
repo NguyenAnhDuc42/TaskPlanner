@@ -1,14 +1,11 @@
 import React from "react";
 import * as Icons from "lucide-react";
-import { ChevronRight, MoreHorizontal, Lock } from "lucide-react";
+import { ChevronRight, MoreHorizontal, Lock, type LucideIcon } from "lucide-react";
 import { useNavigate, useLocation } from "@tanstack/react-router";
 import { useWorkspace } from "@/features/workspace/context/workspace-provider";
 import { cn } from "@/lib/utils";
 import { Collapsible, CollapsibleContent } from "@/components/ui/collapsible";
-import {
-  SpaceContextMenu,
-  EntityMenuTrigger,
-} from "../hierarchy-components/entity-context-menu";
+
 import { FadeTruncate } from "@/components/fade-truncate";
 import { NodeTasksList } from "./node-tasks-list";
 import { EntityLayerType as EntityLayerConst } from "@/types/entity-layer-type";
@@ -17,6 +14,8 @@ import { useQueryClient } from "@tanstack/react-query";
 import { SortableItem } from "../dnd/sortable-item";
 import { NodeFoldersList } from "./node-folders-list";
 import { prefetchNodeFolders, prefetchNodeTasks } from "../hierarchy-api";
+import { SpaceContextMenu } from "../hierarchy-components/context-menus/space-context-menu";
+import { EntityMenuTrigger } from "../hierarchy-components/context-menus/shared";
 
 interface SpaceNodeItemProps {
   spaceId: string;
@@ -33,14 +32,23 @@ export const SpaceNodeItem = React.memo(function SpaceNodeItem({
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const location = useLocation();
+  const [isOpen, setIsOpen] = React.useState(false);
+
+  // Auto-collapse if space becomes empty
+  React.useEffect(() => {
+    if (isOpen && space && !space.hasFolders && !space.hasTasks) {
+      setIsOpen(false);
+    }
+  }, [isOpen, space?.hasFolders, space?.hasTasks, space]);
   
   if (!space) return null;
 
   const isActive = location.pathname.includes(`/spaces/${space.id}`);
-  const IconComponent = (Icons as any)[space.icon || "LayoutGrid"] || Icons.LayoutGrid;
+  const iconName = (space.icon ?? "LayoutGrid") as keyof typeof Icons;
+  const IconComponent: LucideIcon =(Icons[iconName] as unknown as LucideIcon) ?? Icons.LayoutGrid;
   const spaceColor = space.color || "var(--primary)";
 
-  const [isOpen, setIsOpen] = React.useState(false);
+  
   const effectiveOpen = isForcedOpen || isOpen;
 
   const hasChildren = space.hasFolders || space.hasTasks;
@@ -73,7 +81,7 @@ export const SpaceNodeItem = React.memo(function SpaceNodeItem({
             }
           >
             <div
-              className="relative flex items-center justify-center w-5 h-5 flex-shrink-0 cursor-pointer rounded-sm hover:bg-background/50 group/icon mr-1.5"
+              className="relative flex items-center justify-center w-5 h-5 shrink-0 cursor-pointer rounded-sm hover:bg-background/50 group/icon mr-1.5"
               onMouseEnter={() => {
                 if (effectiveOpen || !workspaceId || !hasChildren) return;
                 prefetchNodeFolders(queryClient, workspaceId, space.id);
@@ -115,7 +123,7 @@ export const SpaceNodeItem = React.memo(function SpaceNodeItem({
             {/* Action Area: Lock and 3-dots */}
             <div className="flex items-center gap-0.5 min-w-fit">
               {space.isPrivate && (
-                <Lock className="h-3 w-3 text-muted-foreground/40 flex-shrink-0" />
+                <Lock className="h-3 w-3 text-muted-foreground/40 shrink-0" />
               )}
 
               <div className="w-0 group-hover:w-4 overflow-hidden opacity-0 group-hover:opacity-100 transition-all duration-300 ease-in-out">
@@ -134,7 +142,7 @@ export const SpaceNodeItem = React.memo(function SpaceNodeItem({
       </SortableItem>
 
       <CollapsibleContent className="overflow-hidden">
-        <div className="ml-[13px] pl-2 border-l border-border flex flex-col">
+        <div className="ml-3.25 pl-2 border-l border-border flex flex-col">
           <NodeFoldersList
             spaceId={space.id}
             isExpanded={effectiveOpen}

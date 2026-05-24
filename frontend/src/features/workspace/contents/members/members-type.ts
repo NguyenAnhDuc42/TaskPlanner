@@ -19,7 +19,7 @@ export const addMembersSchema = z.object({
     .array(
       z.object({
         email: z.string().email("Invalid email format"),
-        role: z.enum(["Admin", "Member", "Guest"]), // match your Role enum
+        role: z.custom<Role>(), // match your Role enum
       }),
     )
     .min(1, "At least one member required"),
@@ -32,9 +32,9 @@ export const updateMembersSchema = z.object({
   members: z
     .array(
       z.object({
-        userId: z.string().uuid(),
-        role: z.enum(["Admin", "Member", "Guest"]).optional(),
-        status: z.enum(["Suspended"]).optional(),
+        userId: z.uuid(),
+        role: z.custom<Role>().optional(),
+        status: z.custom<MembershipStatus>().optional(),
       }),
     )
     .min(1, "At least one member required"),

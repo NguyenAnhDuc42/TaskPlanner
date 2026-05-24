@@ -27,7 +27,9 @@ public class MoveItemHandler(TaskPlanDbContext db, WorkspaceContext context, Rea
                 request.ItemId, 
                 request.ItemType, 
                 request.TargetParentId, 
-                NewOrderKey = newOrderKey 
+                SourceParentId = request.SourceParentId,
+                NewOrderKey = newOrderKey,
+                SenderId = context.CurrentMember.UserId
             }, ct);
         }
 

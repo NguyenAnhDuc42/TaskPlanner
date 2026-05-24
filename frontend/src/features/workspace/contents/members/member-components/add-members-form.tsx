@@ -16,18 +16,24 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { X, Trash2, Mail } from "lucide-react";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { cn } from "@/lib/utils";
+import type { Role } from "@/types/role";
+
 
 type InviteItem = {
   id: string;
   email: string;
-  role: "Admin" | "Member" | "Guest";
+  role: Role;
   selected: boolean;
 };
 
 type Props = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSubmit?: (data: any) => Promise<any> | void;
+  onSubmit?: (data: {
+    members: { email: string; role: Role }[];
+    enableEmail?: boolean;
+    message?: string;
+  }) => Promise<unknown> | void;
   isLoading?: boolean;
 };
 
@@ -126,7 +132,7 @@ export function AddMembersForm({
       if (remaining.length === 0) {
         onOpenChange(false);
       }
-    } catch (_err) {
+    } catch {
       // toast handled by useMutation
     }
   };
@@ -196,7 +202,7 @@ export function AddMembersForm({
                     )}
                   </div>
 
-                  <div className="flex flex-wrap gap-1 p-2 rounded-sm border border-border bg-card/10 min-h-[60px] align-content-start">
+                  <div className="flex flex-wrap gap-1 p-2 rounded-sm border border-border bg-card/10 min-h-15 align-content-start">
                     {invites.map((inv) => (
                       <button
                         key={inv.id}
@@ -209,7 +215,7 @@ export function AddMembersForm({
                             : "bg-background border-border hover:border-primary/50 text-foreground",
                         )}
                       >
-                        <span className="max-w-[100px] truncate">
+                        <span className="max-w-25 truncate">
                           {inv.email}
                         </span>
                         <div
@@ -238,7 +244,7 @@ export function AddMembersForm({
                   <div className="pt-2">
                     <RadioGroup
                       value={batchRole}
-                      onValueChange={(v) => handleRoleChange(v as any)}
+                      onValueChange={(v) => handleRoleChange(v as "Admin" | "Member" | "Guest")}
                       className="grid grid-cols-3 gap-2"
                     >
                       {["Guest", "Member", "Admin"].map((role) => (

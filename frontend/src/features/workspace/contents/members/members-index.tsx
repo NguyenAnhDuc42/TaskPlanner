@@ -38,8 +38,8 @@ export default function MembersIndex() {
     await updateMembers({
       members: ids.map((id) => ({
         userId: id,
-        role: role as any,
-        status: status as any,
+        role: role,
+        status: status,
       })),
     });
   };

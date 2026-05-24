@@ -1,7 +1,7 @@
 import {
+  QueryClient,
   useInfiniteQuery,
   useMutation,
-  useQuery,
   useQueryClient,
 } from "@tanstack/react-query";
 import { type EntityLayerType } from "@/types/entity-layer-type";
@@ -241,7 +241,7 @@ export function useMoveItem(workspaceId: string) {
 // --- Prefetch Helpers ---
 
 export const prefetchNodeFolders = async (
-  queryClient: any,
+  queryClient: QueryClient,
   workspaceId: string,
   nodeId: string,
 ) => {
@@ -260,7 +260,7 @@ export const prefetchNodeFolders = async (
 };
 
 export const prefetchNodeTasks = async (
-  queryClient: any,
+  queryClient: QueryClient,
   workspaceId: string,
   nodeId: string,
   parentType: EntityLayerType,

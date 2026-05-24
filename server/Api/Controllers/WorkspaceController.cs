@@ -193,6 +193,7 @@ namespace Api
                 ItemId: request.ItemId,
                 ItemType: request.ItemType,
                 TargetParentId: request.TargetParentId,
+                SourceParentId: request.SourceParentId,
                 PreviousItemOrderKey: request.PreviousItemOrderKey,
                 NextItemOrderKey: request.NextItemOrderKey,
                 NewOrderKey: request.NewOrderKey
@@ -207,6 +208,7 @@ namespace Api
         Guid ItemId,
         EntityLayerType ItemType,
         Guid? TargetParentId,
+        Guid? SourceParentId,
         string? PreviousItemOrderKey,
         string? NextItemOrderKey,
         string? NewOrderKey

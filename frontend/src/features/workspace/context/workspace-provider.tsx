@@ -20,6 +20,7 @@ import type { WorkspaceRegistry } from "./workspace-context";
 import { useWorkspaceUIStore } from "./use-workspace-ui-store";
 import type { WorkflowRecord } from "@/types/projects";
 import type { MemberRecord } from "@/types/workspace/member-record";
+import { useWorkspaceSignalR } from "./use-workspace-signalr";
 
 export function useWorkspace() {
   const context = useContext(WorkspaceContext);
@@ -210,20 +211,8 @@ export function WorkspaceProvider({
     }
   }, [isError, error, navigate]);
 
-  useEffect(() => {
-    const manageConnection = async () => {
-      try {
-        await signalRService.startConnection();
-        await signalRService.invoke("JoinWorkspace", workspaceId);
-      } catch (err) {
-        console.error("[SignalR] Join error:", err);
-      }
-    };
-    manageConnection();
-    return () => {
-      signalRService.invoke("LeaveWorkspace", workspaceId).catch(() => {});
-    };
-  }, [workspaceId]);
+  // 6.5. Realtime Sync (SignalR)
+  useWorkspaceSignalR(workspaceId);
 
   // 7. Memoized Context Value
   const isLoading =

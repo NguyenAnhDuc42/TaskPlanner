@@ -8,7 +8,7 @@ import type { DragItemData, DragFolderData } from "../drag-item-type";
 export function handleFolderMove(
   activeData: DragFolderData,
   overData: DragItemData,
-  mutateMoveItem: (req: MoveItemRequest) => void
+  mutateMoveItem: (req: MoveItemRequest, options?: { onError?: () => void }) => void
 ) {
   let targetSpaceId: string | undefined;
 
@@ -21,6 +21,11 @@ export function handleFolderMove(
   if (!targetSpaceId) return;
 
   const store = useHierarchyStore.getState();
+  const snapshot = {
+    foldersBySpace: store.foldersBySpace,
+    folders: store.folders
+  };
+
   const sourceSpaceId = activeData.spaceId || activeData.parentId;
   
   const sourceFolders = store.foldersBySpace[sourceSpaceId] || [];
@@ -94,5 +99,9 @@ export function handleFolderMove(
     newOrderKey,
     sourceParentId: sourceSpaceId,
     sourceParentType: EntityLayerConst.ProjectSpace
+  }, {
+    onError: () => {
+      useHierarchyStore.setState(snapshot);
+    }
   });
 }
