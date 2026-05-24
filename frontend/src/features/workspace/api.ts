@@ -3,6 +3,9 @@ import { api } from "@/lib/api-client";
 import { workspaceKeys } from "../main/query-keys";
 import type { Theme } from "@/types/theme";
 import type { Status } from "@/types/status";
+import type { PagedResult } from "@/types/paged-result";
+import type { WorkflowRecord } from "@/types/projects";
+import type { MemberRecord } from "@/types/workspace/member-record";
 
 export interface WorkspaceSecurityContext {
   workspaceId: string;
@@ -28,7 +31,7 @@ export const workspaceQueryOptions = {
   workflows: (workspaceId: string, layerId?: string, layerType?: string) => ({
     queryKey: [...workspaceKeys.all, "workflows", workspaceId, layerId, layerType],
     queryFn: async () => {
-      const { data } = await api.get<any[]>("/workflows", {
+      const { data } = await api.get<WorkflowRecord[]>("/workflows", {
         params: { layerId, layerType },
       });
       return data;
@@ -39,7 +42,7 @@ export const workspaceQueryOptions = {
   members: (workspaceId: string) => ({
     queryKey: [...workspaceKeys.all, "members", workspaceId],
     queryFn: async () => {
-      const { data } = await api.get(
+      const { data } = await api.get<PagedResult<MemberRecord>>(
         `/workspaces/${workspaceId}/members?pageSize=1000`,
       );
       return data;

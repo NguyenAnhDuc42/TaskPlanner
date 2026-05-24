@@ -4,7 +4,7 @@ import { FolderNodeItem } from "@/features/workspace/contents/hierarchy/items/fo
 import { useWorkspace } from "@/features/workspace/context/workspace-provider";
 import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import React from "react";
-import type { FolderHierarchy } from "../hierarchy-type";
+import { useHierarchyStore } from "../use-hierarchy-store";
 
 const FolderSkeleton = () => (
   <div className="flex items-center gap-2 pl-4 py-1 opacity-20 animate-pulse">
@@ -22,12 +22,21 @@ export const NodeFoldersList = React.memo(function NodeFoldersList({
 }) {
   const { workspaceId } = useWorkspace();
   
-  // Only load folders if this space is expanded
-  const { data: folders = [], isLoading } = useNodeFolders(
+  const { data, isLoading, fetchNextPage, hasNextPage } = useNodeFolders(
     workspaceId || "", 
     spaceId, 
     isExpanded
   );
+  
+  const setFolders = useHierarchyStore((state) => state.setFolders);
+  const folderIds = useHierarchyStore((state) => state.foldersBySpace[spaceId] || []);
+
+  React.useEffect(() => {
+    if (data?.pages) {
+      const allFolders = data.pages.flatMap((page) => page.items);
+      setFolders(spaceId, allFolders);
+    }
+  }, [data, setFolders, spaceId]);
 
   if (!isExpanded) return null;
 
@@ -41,22 +50,33 @@ export const NodeFoldersList = React.memo(function NodeFoldersList({
     );
   }
 
-  if (folders.length === 0) return null;
+  if (folderIds.length === 0) return null;
 
   return (
     <SortableContext
-      items={folders.map((f) => `folder-${f.id}`)}
+      items={folderIds.map((id) => `folder-${id}`)}
       strategy={verticalListSortingStrategy}
     >
       <div className="flex flex-col">
-        {folders.map((folder: FolderHierarchy) => (
+        {folderIds.map((id) => (
           <FolderNodeItem
-            key={folder.id}
-            folder={folder}
+            key={id}
+            folderId={id}
             spaceId={spaceId}
           />
         ))}
       </div>
+      {hasNextPage && (
+        <button
+          onClick={(e) => {
+             e.stopPropagation();
+             fetchNextPage();
+          }}
+          className="text-[10px] text-muted-foreground hover:text-primary mt-1 text-left px-2"
+        >
+          Load more folders...
+        </button>
+      )}
     </SortableContext>
   );
 });

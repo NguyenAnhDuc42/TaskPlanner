@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Dapper;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
@@ -20,8 +21,9 @@ public class GetDocumentBlocksHandler(TaskPlanDbContext db) : IQueryHandler<GetD
             WHERE document_id = @DocumentId AND deleted_at IS NULL
             ORDER BY order_key;";
 
-        var blocks = await db.Database.SqlQueryRaw<DocumentBlockRecord>(sql, 
-            new Npgsql.NpgsqlParameter("DocumentId", request.DocumentId)).ToListAsync(ct);
+        var connection = db.Database.GetDbConnection();
+        var blocks = (await connection.QueryAsync<DocumentBlockRecord>(
+            sql, new { DocumentId = request.DocumentId })).AsList();
 
         return Result<List<DocumentBlockRecord>>.Success(blocks);
     }

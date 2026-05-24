@@ -46,7 +46,7 @@ export function CreateFolderForm({
 
     try {
       const result = await createFolder.mutateAsync({
-        spaceId,
+        projectSpaceId: spaceId,
         name,
         isPrivate,
         color,

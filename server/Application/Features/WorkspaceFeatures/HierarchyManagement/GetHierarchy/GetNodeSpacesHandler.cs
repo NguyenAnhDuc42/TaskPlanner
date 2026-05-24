@@ -1,6 +1,21 @@
 using Microsoft.EntityFrameworkCore;
+using NpgsqlTypes;
+using Dapper;
 
 namespace Application;
+
+public class SpaceRow
+{
+    public Guid Id { get; init; }
+    public string Name { get; init; } = null!;
+    public string? Color { get; init; }
+    public string? Icon { get; init; }
+    public bool IsPrivate { get; init; }
+    public string? OrderKey { get; init; }
+    public DateTimeOffset? CreatedAt { get; init; }
+    public bool? HasFolders { get; init; }
+    public bool? HasTasks { get; init; }
+}
 
 public class GetNodeSpacesHandler(TaskPlanDbContext db, CursorHelper cursorHelper) : IQueryHandler<GetNodeSpacesQuery, PagedResult<SpaceRecord>>
 {
@@ -8,19 +23,20 @@ public class GetNodeSpacesHandler(TaskPlanDbContext db, CursorHelper cursorHelpe
     {
         const string sql = @"
             SELECT 
-                id,
-                name,
-                custom_color AS color,
-                custom_icon  AS icon,
-                is_private,
-                order_key,
+                id AS Id,
+                name AS Name,
+                custom_color AS Color,
+                custom_icon AS Icon,
+                is_private AS IsPrivate,
+                order_key AS OrderKey,
+                created_at AS CreatedAt,
                 EXISTS (
                     SELECT 1 FROM project_folders f
                     WHERE f.project_space_id = project_spaces.id
                       AND f.deleted_at IS NULL
                       AND f.is_archived = false
                     LIMIT 1
-                ) AS has_folders,
+                ) AS HasFolders,
                 EXISTS (
                     SELECT 1 FROM project_tasks t
                     WHERE t.project_space_id = project_spaces.id
@@ -28,7 +44,7 @@ public class GetNodeSpacesHandler(TaskPlanDbContext db, CursorHelper cursorHelpe
                       AND t.deleted_at IS NULL
                       AND t.is_archived = false
                     LIMIT 1
-                ) AS has_tasks
+                ) AS HasTasks
             FROM project_spaces
             WHERE project_workspace_id = @WorkspaceId
               AND deleted_at IS NULL
@@ -44,13 +60,16 @@ public class GetNodeSpacesHandler(TaskPlanDbContext db, CursorHelper cursorHelpe
         var cursorOrderKey = cursorData?.Values.GetValueOrDefault("OrderKey")?.ToString();
         var cursorSpaceId = cursorData?.Values.GetValueOrDefault("Id")?.ToString();
 
-        var rawSpaces = await db.Database.SqlQueryRaw<SpaceRecord>(
-            sql,
-            new Npgsql.NpgsqlParameter("WorkspaceId", request.WorkspaceId),
-            new Npgsql.NpgsqlParameter("CursorOrderKey", cursorOrderKey ?? (object)DBNull.Value),
-            new Npgsql.NpgsqlParameter("CursorSpaceId", cursorSpaceId != null ? Guid.Parse(cursorSpaceId) : (object)DBNull.Value),
-            new Npgsql.NpgsqlParameter("PageSize", request.Pagination.PageSize + 1)
-        ).ToListAsync(ct);
+        var connection = db.Database.GetDbConnection();
+        var parameters = new
+        {
+            WorkspaceId = request.WorkspaceId,
+            CursorOrderKey = cursorOrderKey,
+            CursorSpaceId = cursorSpaceId != null ? (Guid?)Guid.Parse(cursorSpaceId) : null,
+            PageSize = request.Pagination.PageSize + 1
+        };
+
+        var rawSpaces = (await connection.QueryAsync<SpaceRow>(sql, parameters)).AsList();
 
         var hasMore = rawSpaces.Count > request.Pagination.PageSize;
         if (hasMore) rawSpaces.RemoveAt(rawSpaces.Count - 1);
@@ -68,6 +87,19 @@ public class GetNodeSpacesHandler(TaskPlanDbContext db, CursorHelper cursorHelpe
             nextCursor = cursorHelper.EncodeCursor(data);
         }
 
-        return Result<PagedResult<SpaceRecord>>.Success(new PagedResult<SpaceRecord>(rawSpaces, nextCursor, hasMore));
+        var mappedSpaces = rawSpaces.Select(x => new SpaceRecord
+        {
+            Id = x.Id,
+            Name = x.Name,
+            Color = x.Color,
+            Icon = x.Icon,
+            IsPrivate = x.IsPrivate,
+            OrderKey = x.OrderKey,
+            CreatedAt = x.CreatedAt,
+            HasFolders = x.HasFolders,
+            HasTasks = x.HasTasks
+        }).ToList();
+
+        return Result<PagedResult<SpaceRecord>>.Success(new PagedResult<SpaceRecord>(mappedSpaces, nextCursor, hasMore));
     }
 }

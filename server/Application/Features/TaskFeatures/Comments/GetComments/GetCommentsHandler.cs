@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Dapper;
 
 
 namespace Application;
@@ -19,12 +20,13 @@ public class GetCommentsHandler(TaskPlanDbContext db, WorkspaceContext workspace
               AND c.deleted_at IS NULL
             ORDER BY c.created_at ASC;";
 
-        var parameters = new object[] {
-            new Npgsql.NpgsqlParameter("TaskId", request.TaskId),
-            new Npgsql.NpgsqlParameter("WorkspaceId", workspaceContext.workspaceId)
+        var parameters = new {
+            TaskId = request.TaskId,
+            WorkspaceId = workspaceContext.workspaceId
         };
 
-        var comments = await db.Database.SqlQueryRaw<CommentRecord>(sql, parameters).ToListAsync(ct);
+        var connection = db.Database.GetDbConnection();
+        var comments = (await connection.QueryAsync<CommentRecord>(sql, parameters)).AsList();
 
         return Result<List<CommentRecord>>.Success(comments);
     }

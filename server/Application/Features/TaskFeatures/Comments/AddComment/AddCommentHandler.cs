@@ -7,14 +7,10 @@ public class AddCommentHandler(TaskPlanDbContext db, WorkspaceContext workspaceC
 {
     public async Task<Result<CommentRecord>> Handle(AddCommentCommand request, CancellationToken ct)
     {
-        const string sql = "SELECT id FROM project_tasks WHERE id = @TaskId AND project_workspace_id = @WorkspaceId AND deleted_at IS NULL;";
-        var parameters = new object[] {
-            new Npgsql.NpgsqlParameter("TaskId", request.TaskId),
-            new Npgsql.NpgsqlParameter("WorkspaceId", workspaceContext.workspaceId)
-        };
-        var taskId = await db.Database.SqlQueryRaw<Guid?>(sql, parameters).FirstOrDefaultAsync(ct);
+        var taskExists = await db.ProjectTasks
+            .AnyAsync(t => t.Id == request.TaskId && t.ProjectWorkspaceId == workspaceContext.workspaceId && t.DeletedAt == null, ct);
         
-        if (taskId == null)
+        if (!taskExists)
             return Result<CommentRecord>.Failure(Error.NotFound("Task.NotFound", "Task not found."));
 
         var comment = Comment.Create(request.Content, workspaceContext.CurrentMember.UserId, request.TaskId, request.ParentCommentId);

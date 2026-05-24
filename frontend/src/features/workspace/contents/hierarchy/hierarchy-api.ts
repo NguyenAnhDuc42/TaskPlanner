@@ -5,29 +5,68 @@ import {
   useQueryClient,
 } from "@tanstack/react-query";
 import { type EntityLayerType } from "@/types/entity-layer-type";
-import type {
-  CreateFolderRequest,
-  CreateSpaceRequest,
-  CreateTaskRequest,
-  FolderHierarchy,
-  NodeTasksResponse,
-  WorkspaceHierarchy,
-  MoveItemRequest,
-} from "./hierarchy-type";
+import type { SpaceRecord, FolderRecord, TaskRecord } from "@/types/projects";
+import type { PagedResult } from "@/types/paged-result";
 import { hierarchyKeys } from "./hierarchy-keys";
 import { api } from "@/lib/api-client";
 
+// Request models (We will define these manually for now)
+export interface CreateSpaceRequest {
+  name: string;
+  isPrivate: boolean;
+  color?: string;
+  icon?: string;
+}
+
+export interface CreateFolderRequest {
+  projectSpaceId: string;
+  name: string;
+  isPrivate?: boolean;
+  color?: string;
+  icon?: string;
+  statusId?: string | null;
+  startDate?: string;
+  dueDate?: string;
+}
+
+export interface CreateTaskRequest {
+  name: string;
+  parentId: string;
+  parentType: string;
+  icon?: string;
+  color?: string;
+  statusId?: string | null;
+  priority?: string | null;
+  assignees?: string[];
+  startDate?: string;
+  dueDate?: string;
+}
+
+export interface MoveItemRequest {
+  itemId: string;
+  itemType: string;
+  targetParentId: string;
+  targetParentType: string;
+  nextItemOrderKey?: string;
+  newOrderKey?: string;
+  sourceParentId?: string;
+  sourceParentType?: string;
+}
+
 // --- Structure Queries (Sidebar) ---
 
-export function useHierarchy(workspaceId: string) {
-  return useQuery({
+export function useNodeSpaces(workspaceId: string) {
+  return useInfiniteQuery({
     queryKey: hierarchyKeys.detail(workspaceId),
-    queryFn: async () => {
-      const { data } = await api.get<WorkspaceHierarchy>(
-        `/workspaces/${workspaceId}/hierarchy`,
+    queryFn: async ({ pageParam }) => {
+      const { data } = await api.get<PagedResult<SpaceRecord>>(
+        `/workspaces/${workspaceId}/nodes/spaces`,
+        { params: { cursor: pageParam } }
       );
       return data;
     },
+    initialPageParam: null as string | null,
+    getNextPageParam: (lastPage) => lastPage.nextCursor || undefined,
     enabled: !!workspaceId,
     staleTime: 1000 * 60 * 5,
     gcTime: 1000 * 60 * 30,
@@ -39,14 +78,17 @@ export function useNodeFolders(
   nodeId: string,
   enabled: boolean = true,
 ) {
-  return useQuery({
+  return useInfiniteQuery({
     queryKey: hierarchyKeys.nodeFolders(workspaceId, nodeId),
-    queryFn: async () => {
-      const { data } = await api.get<FolderHierarchy[]>(
-        `/workspaces/${workspaceId}/hierarchy/nodes/${nodeId}/folders`,
+    queryFn: async ({ pageParam }) => {
+      const { data } = await api.get<PagedResult<FolderRecord>>(
+        `/workspaces/${workspaceId}/nodes/${nodeId}/folders`,
+        { params: { cursor: pageParam } }
       );
       return data;
     },
+    initialPageParam: null as string | null,
+    getNextPageParam: (lastPage) => lastPage.nextCursor || undefined,
     enabled: !!workspaceId && !!nodeId && enabled,
     staleTime: 1000 * 60 * 5,
   });
@@ -60,27 +102,19 @@ export function useNodeTasks(
   return useInfiniteQuery({
     queryKey: hierarchyKeys.nodeTasks(workspaceId, nodeId),
     queryFn: async ({ pageParam }) => {
-      const { data } = await api.get<NodeTasksResponse>(
-        `/workspaces/${workspaceId}/hierarchy/nodes/${nodeId}/tasks`,
+      const { data } = await api.get<PagedResult<TaskRecord>>(
+        `/workspaces/${workspaceId}/nodes/${nodeId}/tasks`,
         {
           params: {
             parentType,
-            cursorOrderKey: pageParam?.orderKey,
-            cursorTaskId: pageParam?.taskId,
+            cursor: pageParam,
           },
         },
       );
       return data;
     },
-    initialPageParam: null as { orderKey: string; taskId: string } | null,
-    getPreviousPageParam: () => undefined,
-    getNextPageParam: (lastPage) =>
-      lastPage.hasMore
-        ? {
-            orderKey: lastPage.nextCursorOrderKey!,
-            taskId: lastPage.nextCursorTaskId!,
-          }
-        : undefined,
+    initialPageParam: null as string | null,
+    getNextPageParam: (lastPage) => lastPage.nextCursor || undefined,
     enabled: !!nodeId && !!workspaceId,
     staleTime: 1000 * 60 * 5,
     gcTime: 1000 * 60 * 30,
@@ -181,83 +215,26 @@ export function useMoveItem(workspaceId: string) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (data: MoveItemRequest) =>
-      api.post(`/workspaces/${workspaceId}/hierarchy/move`, data),
-    onMutate: async (moveRequest) => {
-      const { itemId, itemType, nextItemOrderKey, newOrderKey } = moveRequest;
-
-      await queryClient.cancelQueries({ queryKey: hierarchyKeys.detail(workspaceId) });
-      await queryClient.cancelQueries({ queryKey: hierarchyKeys.all });
-
-      const previousHierarchy = queryClient.getQueryData<WorkspaceHierarchy>(hierarchyKeys.detail(workspaceId));
-      
-      // Optimistic updates for structural changes
-      if (previousHierarchy) {
-        queryClient.setQueryData<WorkspaceHierarchy>(hierarchyKeys.detail(workspaceId), (old) => {
-          if (!old) return old;
-          const newHierarchy = JSON.parse(JSON.stringify(old)) as WorkspaceHierarchy;
-          
-          if (itemType === "ProjectSpace") {
-            const spaces = newHierarchy.spaces || [];
-            const activeIndex = spaces.findIndex(s => s.id === itemId);
-            if (activeIndex !== -1) {
-              const [removed] = spaces.splice(activeIndex, 1);
-              if (newOrderKey) removed.orderKey = newOrderKey;
-              const overIdx = nextItemOrderKey 
-                ? spaces.findIndex(s => s.orderKey === nextItemOrderKey) 
-                : spaces.length;
-              spaces.splice(overIdx === -1 ? spaces.length : overIdx, 0, removed);
-              newHierarchy.spaces = spaces.sort((a, b) => (a.orderKey < b.orderKey ? -1 : a.orderKey > b.orderKey ? 1 : 0));
-            }
-          }
-          // Note: Folder/Task moves across nodes are handled by onSettled invalidation 
-          // because they often involve cross-query updates (NodeFolders, NodeTasks).
-          return newHierarchy;
-        });
-      }
-
-      return { previousHierarchy };
-    },
-    onError: (_err, _variables, context) => {
-      if (context?.previousHierarchy) {
-        queryClient.setQueryData(hierarchyKeys.detail(workspaceId), context.previousHierarchy);
-      }
-    },
-    onSettled: (_data, _error, variables) => {
-      const { itemType, targetParentId } = variables;
-
-      // Read current hierarchy state from cache
-      const currentHierarchy = queryClient.getQueryData<WorkspaceHierarchy>(
-        hierarchyKeys.detail(workspaceId)
-      );
-
-      if (itemType === "ProjectFolder" && targetParentId) {
-        const targetSpace = currentHierarchy?.spaces.find(s => s.id === targetParentId);
-        
-        // ONLY invalidate hierarchy if the space was previously empty!
-        if (targetSpace && !targetSpace.hasFolders) {
-          queryClient.invalidateQueries({ queryKey: hierarchyKeys.detail(workspaceId) });
-        }
-
-        // Always invalidate the specific folders list to show the new folder
-        queryClient.invalidateQueries({ 
-          queryKey: hierarchyKeys.nodeFolders(workspaceId, targetParentId) 
-        });
-      }
-      
-      else if (itemType === "ProjectTask" && targetParentId) {
-        const targetSpace = currentHierarchy?.spaces.find(s => s.id === targetParentId);
-        
-        // ONLY invalidate hierarchy if the space was previously empty of tasks!
-        if (targetSpace && !targetSpace.hasTasks) {
-          queryClient.invalidateQueries({ queryKey: hierarchyKeys.detail(workspaceId) });
-        }
-
-        // Always invalidate the specific tasks list to show the new task
-        queryClient.invalidateQueries({ 
-          queryKey: hierarchyKeys.nodeTasks(workspaceId, targetParentId) 
-        });
-      }
-    },
+      api.post(`/workspaces/${workspaceId}/nodes/move`, data),
+    onSuccess: (_, variables) => {
+       if (variables.itemType === "ProjectTask") {
+         if (variables.targetParentId) {
+           queryClient.invalidateQueries({ queryKey: hierarchyKeys.nodeTasks(workspaceId, variables.targetParentId) });
+         }
+         if (variables.sourceParentId) {
+           queryClient.invalidateQueries({ queryKey: hierarchyKeys.nodeTasks(workspaceId, variables.sourceParentId) });
+         }
+       } else if (variables.itemType === "ProjectFolder") {
+         if (variables.targetParentId) {
+           queryClient.invalidateQueries({ queryKey: hierarchyKeys.nodeFolders(workspaceId, variables.targetParentId) });
+         }
+         if (variables.sourceParentId) {
+           queryClient.invalidateQueries({ queryKey: hierarchyKeys.nodeFolders(workspaceId, variables.sourceParentId) });
+         }
+       } else if (variables.itemType === "ProjectSpace") {
+         queryClient.invalidateQueries({ queryKey: hierarchyKeys.detail(workspaceId) });
+       }
+    }
   });
 }
 
@@ -268,14 +245,16 @@ export const prefetchNodeFolders = async (
   workspaceId: string,
   nodeId: string,
 ) => {
-  await queryClient.prefetchQuery({
+  await queryClient.prefetchInfiniteQuery({
     queryKey: hierarchyKeys.nodeFolders(workspaceId, nodeId),
     queryFn: async () => {
-      const { data } = await api.get<FolderHierarchy[]>(
-        `/workspaces/${workspaceId}/hierarchy/nodes/${nodeId}/folders`,
+      const { data } = await api.get<PagedResult<FolderRecord>>(
+        `/workspaces/${workspaceId}/nodes/${nodeId}/folders`,
+        { params: { cursor: null } }
       );
       return data;
     },
+    initialPageParam: null,
     staleTime: 1000 * 60 * 5,
   });
 };
@@ -289,9 +268,9 @@ export const prefetchNodeTasks = async (
   await queryClient.prefetchInfiniteQuery({
     queryKey: hierarchyKeys.nodeTasks(workspaceId, nodeId),
     queryFn: async () => {
-      const { data } = await api.get<NodeTasksResponse>(
-        `/workspaces/${workspaceId}/hierarchy/nodes/${nodeId}/tasks`,
-        { params: { parentType, cursorOrderKey: null, cursorTaskId: null } },
+      const { data } = await api.get<PagedResult<TaskRecord>>(
+        `/workspaces/${workspaceId}/nodes/${nodeId}/tasks`,
+        { params: { parentType, cursor: null } },
       );
       return data;
     },

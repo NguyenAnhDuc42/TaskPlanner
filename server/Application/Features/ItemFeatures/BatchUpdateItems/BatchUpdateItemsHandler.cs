@@ -17,7 +17,7 @@ public class BatchUpdateItemsHandler(TaskPlanDbContext db, WorkspaceContext work
                 if (taskResult.IsFailure) return taskResult;
             }
 
-            if (folderUpdates.Any())
+            if (folderUpdates.Any()) 
             {
                 var folderResult = await BatchUpdateFoldersAsync(folderUpdates, ct);
                 if (folderResult.IsFailure) return folderResult;
@@ -33,15 +33,18 @@ public class BatchUpdateItemsHandler(TaskPlanDbContext db, WorkspaceContext work
         {
             var orderKey = await ResolveTaskOrderKeyAsync(update, ct);
 
+            Priority? parsedPriority = update.Priority != null ? Enum.Parse<Priority>(update.Priority) : null;
+            Guid? targetStatusId = update.StatusId == Guid.Empty ? null : update.StatusId;
+            bool updateStatus = update.StatusId.HasValue;
+            bool updatePriority = update.Priority != null;
+            bool updateOrder = orderKey != null;
+
             var affected = await db.ProjectTasks
                 .Where(t => t.Id == update.Id && t.ProjectWorkspaceId == workspaceContext.workspaceId)
                 .ExecuteUpdateAsync(u => u
-                    .SetProperty(t => t.StatusId, t =>
-                        update.StatusId == Guid.Empty ? null :
-                        update.StatusId.HasValue ? update.StatusId :
-                        t.StatusId)
-                    .SetProperty(t => t.Priority, t => update.Priority != null ? Enum.Parse<Priority>(update.Priority) : t.Priority)
-                    .SetProperty(t => t.OrderKey, t => orderKey ?? t.OrderKey)
+                    .SetProperty(t => t.StatusId, t => updateStatus ? targetStatusId : t.StatusId)
+                    .SetProperty(t => t.Priority, t => updatePriority ? parsedPriority : t.Priority)
+                    .SetProperty(t => t.OrderKey, t => updateOrder ? orderKey : t.OrderKey)
                     .SetProperty(t => t.UpdatedAt, DateTimeOffset.UtcNow), ct);
 
             if (affected == 0)
@@ -56,15 +59,18 @@ public class BatchUpdateItemsHandler(TaskPlanDbContext db, WorkspaceContext work
         {
             var orderKey = await ResolveFolderOrderKeyAsync(update, ct);
 
+            Priority? parsedPriority = update.Priority != null ? Enum.Parse<Priority>(update.Priority) : null;
+            Guid? targetStatusId = update.StatusId == Guid.Empty ? null : update.StatusId;
+            bool updateStatus = update.StatusId.HasValue;
+            bool updatePriority = update.Priority != null;
+            bool updateOrder = orderKey != null;
+
             var affected = await db.ProjectFolders
                 .Where(f => f.Id == update.Id && f.ProjectWorkspaceId == workspaceContext.workspaceId)
                 .ExecuteUpdateAsync(u => u
-                    .SetProperty(f => f.StatusId, f =>
-                        update.StatusId == Guid.Empty ? null :
-                        update.StatusId.HasValue ? update.StatusId :
-                        f.StatusId)
-                    .SetProperty(f => f.Priority, f => update.Priority != null ? Enum.Parse<Priority>(update.Priority) : f.Priority)
-                    .SetProperty(f => f.OrderKey, f => orderKey ?? f.OrderKey)
+                    .SetProperty(f => f.StatusId, f => updateStatus ? targetStatusId : f.StatusId)
+                    .SetProperty(f => f.Priority, f => updatePriority ? parsedPriority : f.Priority)
+                    .SetProperty(f => f.OrderKey, f => updateOrder ? orderKey : f.OrderKey)
                     .SetProperty(f => f.UpdatedAt, DateTimeOffset.UtcNow), ct);
 
             if (affected == 0)

@@ -18,7 +18,8 @@ import type { ContentPage } from "../type";
 import { WorkspaceContext } from "./workspace-context";
 import type { WorkspaceRegistry } from "./workspace-context";
 import { useWorkspaceUIStore } from "./use-workspace-ui-store";
-
+import type { WorkflowRecord } from "@/types/projects";
+import type { MemberRecord } from "@/types/workspace/member-record";
 
 export function useWorkspace() {
   const context = useContext(WorkspaceContext);
@@ -124,22 +125,22 @@ export function WorkspaceProvider({
     return workspacesData?.pages.flatMap((page) => page.items) ?? [];
   }, [workspacesData]);
 
-  // 3. Build Lookup Dictionaries (Memoized)
+  // Backward compatibility for registry
   const registry = useMemo((): WorkspaceRegistry => {
     const statusMap: Record<string, Status> = {};
-    const memberMap: Record<string, any> = {};
+    const memberMap: Record<string, MemberRecord> = {};
 
-    workflows.forEach((wf: any) => {
-      wf.statuses?.forEach((status: any) => {
-        const sid = status.statusId || status.id;
+    workflows.forEach((wf: WorkflowRecord) => {
+      wf.statuses?.forEach((status: Status) => {
+        const sid = status.statusId || (status as any).id;
         status.statusId = sid; // ensure statusId is always populated
         statusMap[sid] = status;
       });
     });
 
-    const members = (memberData as any)?.items || [];
-    members.forEach((m: any) => {
-      memberMap[m.workspaceMemberId] = m;
+    const members = memberData?.items || [];
+    members.forEach((m: MemberRecord) => {
+      memberMap[m.workspaceMemberId || m.id] = m;
     });
 
     return {

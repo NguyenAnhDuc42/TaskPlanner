@@ -6,41 +6,28 @@ import {
   type DragEndEvent,
   type DragStartEvent
 } from "@dnd-kit/core";
-import { sortableKeyboardCoordinates, arrayMove } from "@dnd-kit/sortable";
-import { EntityLayerType, EntityLayerType as EntityLayerConst } from "@/types/entity-layer-type";
-import type { 
-  SpaceHierarchy, 
-  WorkspaceHierarchy, 
-  MoveItemRequest, 
-  FolderHierarchy, 
-  TaskHierarchy,
-} from "../hierarchy-type";
+import { sortableKeyboardCoordinates } from "@dnd-kit/sortable";
+import { EntityLayerType as EntityLayerConst } from "@/types/entity-layer-type";
 import { useState } from "react";
-import { useQueryClient } from "@tanstack/react-query";
-import { hierarchyKeys } from "../hierarchy-keys";
-import { fractionalBetween } from "../utils/fractional-index";
-import { useHierarchyStore } from "../use-hierarchy-store";
 import { useDebounceCallback } from "@/hooks/use-debounce";
+import { handleSpaceMove } from "./handlers/handle-space-move";
+import { handleFolderMove } from "./handlers/handle-folder-move";
+import { handleTaskMove } from "./handlers/handle-task-move";
+import type { DragItemData } from "./drag-item-type";
+import type { MoveItemRequest } from "../hierarchy-api";
 
 interface UseHierarchyDndProps {
   workspaceId: string;
-  filteredHierarchy: WorkspaceHierarchy | undefined;
   moveItem: {
     mutate: (data: MoveItemRequest) => void;
   };
 }
 
-export function useHierarchyDnd({ workspaceId, filteredHierarchy, moveItem }: UseHierarchyDndProps) {
-  const queryClient = useQueryClient();
-  const [activeItem, setActiveItem] = useState<{ 
-    id: string, 
-    type: EntityLayerType, 
-    data: SpaceHierarchy | FolderHierarchy | TaskHierarchy | any
-  } | null>(null);
+export function useHierarchyDnd({ workspaceId, moveItem }: UseHierarchyDndProps) {
+  const [activeItem, setActiveItem] = useState<DragItemData | null>(null);
 
+  // Debounce the actual API call
   const debouncedMoveItem = useDebounceCallback(moveItem.mutate, 1000);
-
-
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -55,11 +42,7 @@ export function useHierarchyDnd({ workspaceId, filteredHierarchy, moveItem }: Us
     const data = event.active.data.current;
     if (!data) return;
 
-    setActiveItem({
-      id: event.active.id as string,
-      type: data.type as EntityLayerType,
-      data: data as any
-    });
+    setActiveItem(data as DragItemData);
   };
 
   const handleDragEnd = async (event: DragEndEvent) => {
@@ -68,263 +51,19 @@ export function useHierarchyDnd({ workspaceId, filteredHierarchy, moveItem }: Us
     
     if (!over || active.id === over.id) return;
 
-    const activeData = active.data.current;
-    const overData = over.data.current;
+    const activeData = active.data.current as DragItemData | undefined;
+    const overData = over.data.current as DragItemData | undefined;
 
     if (!activeData || !overData) return;
 
-    const itemType = activeData.type as EntityLayerType;
-
-    let prevKey: string | undefined;
-    let nextKey: string | undefined;
-    let newOrderKey: string | undefined;
-
-    // 1. REORDERING SPACES
-    if (itemType === EntityLayerConst.ProjectSpace) {
-      if (overData?.type !== EntityLayerConst.ProjectSpace) return;
-
-      await queryClient.cancelQueries({ queryKey: hierarchyKeys.detail(workspaceId) });
-
-      const spaces = filteredHierarchy?.spaces || [];
-      const oldIndex = spaces.findIndex(s => s.id === activeData.id);
-      const newIndex = spaces.findIndex(s => s.id === overData.id);
-      
-      if (oldIndex === -1 || newIndex === -1) return;
-
-      const moved = arrayMove(spaces, oldIndex, newIndex);
-      prevKey = newIndex > 0 ? moved[newIndex - 1]?.orderKey : undefined;
-      nextKey = newIndex < moved.length - 1 ? moved[newIndex + 1]?.orderKey : undefined;
-      newOrderKey = fractionalBetween(prevKey, nextKey);
-      
-      useHierarchyStore.getState().updateHierarchy((prev) => prev ? { ...prev, spaces: moved } : prev);
-
-      debouncedMoveItem({
-        itemId: activeData.id,
-        itemType: EntityLayerConst.ProjectSpace,
-        previousItemOrderKey: prevKey,
-        nextItemOrderKey: nextKey,
-        newOrderKey
-      });
+    if (activeData.type === EntityLayerConst.ProjectSpace) {
+      handleSpaceMove(workspaceId, activeData, overData, debouncedMoveItem);
     } 
-    // 2. MOVING/REORDERING FOLDERS
-    else if (itemType === EntityLayerConst.ProjectFolder) {
-      let targetSpaceId: string | undefined;
-
-      if (overData?.type === EntityLayerConst.ProjectSpace) {
-        targetSpaceId = overData.id;
-      } else if (overData?.type === EntityLayerConst.ProjectFolder) {
-        targetSpaceId = overData.parentId;
-      }
-
-      if (!targetSpaceId) return;
-
-      const foldersKey = hierarchyKeys.nodeFolders(workspaceId, targetSpaceId);
-      const folders = queryClient.getQueryData<FolderHierarchy[]>(foldersKey) || [];
-
-      const oldIndex = folders.findIndex(f => f.id === activeData.id);
-      const newIndex = folders.findIndex(f => f.id === overData.id);
-
-      let moved = [...folders];
-      if (oldIndex !== -1) {
-        moved = arrayMove(folders, oldIndex, newIndex === -1 ? 0 : newIndex);
-        const finalIdx = newIndex === -1 ? 0 : newIndex;
-        prevKey = finalIdx > 0 ? moved[finalIdx - 1]?.orderKey : undefined;
-        nextKey = finalIdx < moved.length - 1 ? moved[finalIdx + 1]?.orderKey : undefined;
-      } else {
-        const finalIdx = newIndex === -1 ? 0 : newIndex;
-        prevKey = finalIdx > 0 ? folders[finalIdx - 1]?.orderKey : undefined;
-        nextKey = finalIdx < folders.length ? folders[finalIdx]?.orderKey : undefined;
-      }
-
-      newOrderKey = fractionalBetween(prevKey, nextKey);
-      const sourceSpaceId = activeData.parentId;
-      const sourceKey = hierarchyKeys.nodeFolders(workspaceId, sourceSpaceId);
-      const targetKey = hierarchyKeys.nodeFolders(workspaceId, targetSpaceId);
-
-      await queryClient.cancelQueries({ queryKey: sourceKey });
-      await queryClient.cancelQueries({ queryKey: targetKey });
-
-      if (sourceSpaceId === targetSpaceId) {
-        // Reordering in the same list
-        queryClient.setQueryData(sourceKey, (old: any) => {
-          if (!old) return old;
-          const oldIndex = old.findIndex((f: any) => f.id === activeData.id);
-          const newIndex = old.findIndex((f: any) => f.id === overData.id);
-          
-          if (oldIndex === -1 || newIndex === -1) return old;
-          
-          const moved = arrayMove(old, oldIndex, newIndex);
-          return moved;
-        });
-      } else {
-        // Moving across spaces
-        // Remove from source
-        queryClient.setQueryData(sourceKey, (old: any) => {
-          if (!old) return old;
-          return old.filter((f: any) => f.id !== activeData.id);
-        });
-        
-        // Add to target
-        queryClient.setQueryData(targetKey, (old: any) => {
-          const data = old || [];
-          return [activeData as FolderHierarchy, ...data];
-        });
-      }
-
-      debouncedMoveItem({
-        itemId: activeData.id,
-        itemType: EntityLayerConst.ProjectFolder,
-        targetParentId: targetSpaceId,
-        previousItemOrderKey: prevKey,
-        nextItemOrderKey: nextKey,
-        newOrderKey
-      });
+    else if (activeData.type === EntityLayerConst.ProjectFolder) {
+      handleFolderMove(activeData, overData, debouncedMoveItem);
     }
-    // 3. MOVING/REORDERING TASKS
-    else if (itemType === EntityLayerConst.ProjectTask) {
-      let targetParentId: string | undefined;
-      let targetParentType: EntityLayerType | undefined;
-
-      if (overData?.type === EntityLayerConst.ProjectSpace) {
-        targetParentId = overData.id;
-        targetParentType = EntityLayerConst.ProjectSpace;
-      } else if (overData?.type === EntityLayerConst.ProjectFolder) {
-        targetParentId = overData.id;
-        targetParentType = EntityLayerConst.ProjectFolder;
-      } else if (overData?.type === EntityLayerConst.ProjectTask) {
-        targetParentId = overData.parentId;
-        targetParentType = overData.parentType;
-      }
-
-      if (!targetParentId || !targetParentType) return;
-
-      const sourceParentId = activeData.parentId;
-      const sourceKey = hierarchyKeys.nodeTasks(workspaceId, sourceParentId);
-      const targetKey = hierarchyKeys.nodeTasks(workspaceId, targetParentId);
-
-      await queryClient.cancelQueries({ queryKey: sourceKey });
-      await queryClient.cancelQueries({ queryKey: targetKey });
-
-      // Optimistic update for React Query cache (Infinite Query)
-      const updateCache = (key: any, remove: boolean, add: boolean, taskData: any) => {
-        queryClient.setQueryData(key, (old: any) => {
-          const data = old || { pages: [{ tasks: [], hasMore: false }], pageParams: [] };
-          const newPages = data.pages.map((page: any) => {
-            let tasks = [...page.tasks];
-            if (remove) {
-              tasks = tasks.filter((t: any) => t.id !== taskData.id);
-            }
-            if (add && page === data.pages[0]) {
-              // Add to the top of the first page for simplicity
-              tasks = [taskData, ...tasks];
-            }
-            return { ...page, tasks };
-          });
-          return { ...data, pages: newPages };
-        });
-      };
-
-      if (sourceParentId === targetParentId) {
-        // Reordering in the same list
-        queryClient.setQueryData(sourceKey, (old: any) => {
-          if (!old) return old;
-          const allTasks = old.pages.flatMap((p: any) => p.tasks) as TaskHierarchy[];
-          const oldIndex = allTasks.findIndex((t: any) => t.id === activeData.id);
-          const newIndex = allTasks.findIndex((t: any) => t.id === overData.id);
-          
-          if (oldIndex === -1 || newIndex === -1) return old;
-          
-          const moved = arrayMove(allTasks, oldIndex, newIndex);
-          const finalIdx = newIndex;
-          prevKey = finalIdx > 0 ? moved[finalIdx - 1]?.orderKey : undefined;
-          nextKey = finalIdx < moved.length - 1 ? moved[finalIdx + 1]?.orderKey : undefined;
-          newOrderKey = fractionalBetween(prevKey, nextKey);
-
-          // Put back into pages structure
-          let pointer = 0;
-          const newPages = old.pages.map((page: any) => {
-            const pageTasks = moved.slice(pointer, pointer + page.tasks.length);
-            pointer += page.tasks.length;
-            return { ...page, tasks: pageTasks };
-          });
-          return { ...old, pages: newPages };
-        });
-      } else {
-        // Moving across layers
-        const sourceTasks = queryClient.getQueryData<any>(sourceKey);
-        const sourceTaskCount = sourceTasks?.pages.flatMap((p: any) => p.tasks).length || 0;
-        const isLastItem = sourceTaskCount === 1;
-
-        const targetTasks = queryClient.getQueryData<any>(targetKey);
-        const targetTaskCount = targetTasks?.pages.flatMap((p: any) => p.tasks).length || 0;
-        const isFirstItem = targetTaskCount === 0;
-
-        // Optimistically update both lists!
-        updateCache(sourceKey, true, false, activeData);
-        updateCache(targetKey, false, true, activeData);
-        
-        // Update hasTasks flag in React Query for folders!
-        if (targetParentType === EntityLayerConst.ProjectFolder) {
-          const spaceId = overData.spaceId;
-          const foldersKey = hierarchyKeys.nodeFolders(workspaceId, spaceId);
-          queryClient.setQueryData(foldersKey, (old: FolderHierarchy[] | undefined) => {
-            if (!old) return old;
-            return old.map((folder) => {
-              if (folder.id === targetParentId && isFirstItem) {
-                return { ...folder, hasTasks: true };
-              }
-              return folder;
-            });
-          });
-        }
-
-        const sourceParentType = activeData.parentType;
-        if (sourceParentType === EntityLayerConst.ProjectFolder) {
-          const spaceId = activeData.spaceId;
-          const foldersKey = hierarchyKeys.nodeFolders(workspaceId, spaceId);
-          queryClient.setQueryData(foldersKey, (old: FolderHierarchy[] | undefined) => {
-            if (!old) return old;
-            return old.map((folder) => {
-              if (folder.id === sourceParentId && isLastItem) {
-                return { ...folder, hasTasks: false };
-              }
-              return folder;
-            });
-          });
-        }
-
-        // Update hasTasks flag in hierarchy store (for spaces)
-        useHierarchyStore.getState().updateHierarchy((prev) => {
-          if (!prev) return prev;
-          const newSpaces = prev.spaces.map((space) => {
-            let newSpace = { ...space };
-            
-            if (space.id === sourceParentId && isLastItem) {
-              newSpace.hasTasks = false;
-            }
-            if (space.id === targetParentId && isFirstItem) {
-              newSpace.hasTasks = true;
-            }
-            
-            return newSpace;
-          });
-          return { ...prev, spaces: newSpaces };
-        });
-        
-        // For moving to a new list, we just put it at the top, so nextKey is the first item's key
-        const firstTask = targetTasks?.pages[0]?.tasks[0];
-        nextKey = firstTask?.orderKey;
-        newOrderKey = fractionalBetween(undefined, nextKey);
-      }
-
-      debouncedMoveItem({
-        itemId: activeData.id,
-        itemType: EntityLayerConst.ProjectTask,
-        targetParentId: targetParentId,
-        previousItemOrderKey: prevKey,
-        nextItemOrderKey: nextKey,
-        newOrderKey
-      });
+    else if (activeData.type === EntityLayerConst.ProjectTask) {
+      handleTaskMove(activeData, overData, debouncedMoveItem);
     }
   };
 

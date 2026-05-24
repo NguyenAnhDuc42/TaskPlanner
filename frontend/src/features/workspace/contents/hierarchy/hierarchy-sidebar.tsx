@@ -1,18 +1,12 @@
 import { useWorkspace } from "@/features/workspace/context/workspace-provider";
-import { useHierarchy, useMoveItem } from "./hierarchy-api";
+import { useMoveItem } from "./hierarchy-api";
 import {
   EntityLayerType as EntityLayerConst,
-  EntityLayerType,
 } from "@/types/entity-layer-type";
 import { DialogFormWrapper } from "@/components/dialog-form-wrapper";
-import { useHierarchyStore } from "./use-hierarchy-store";
 
 import { Plus, Search, ChevronDown } from "lucide-react";
 import { DndContext, closestCenter, DragOverlay } from "@dnd-kit/core";
-import {
-  SortableContext,
-  verticalListSortingStrategy,
-} from "@dnd-kit/sortable";
 import { restrictToVerticalAxis } from "@dnd-kit/modifiers";
 import {
   Collapsible,
@@ -21,12 +15,7 @@ import {
 } from "@/components/ui/collapsible";
 import { cn } from "@/lib/utils";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { useState, useMemo, useDeferredValue, useEffect } from "react";
-import type {
-  SpaceHierarchy,
-  FolderHierarchy,
-  TaskHierarchy,
-} from "./hierarchy-type";
+import { useState, useDeferredValue,  } from "react";
 
 // Modularized Components & Hooks
 import { useHierarchyDnd } from "./dnd/use-hierarchy-dnd";
@@ -34,28 +23,9 @@ import { SpaceNodeItem } from "./items/space-node-item";
 import { FolderNodeItem } from "./items/folder-node-item";
 import { TaskNodeItem } from "./items/task-node-item";
 import { CreateSpaceForm } from "../../components/forms/create-space-form";
-import { HierarchySidebarSkeleton } from "./hierarchy-components/hierarchy-skeleton";
-
+import { SpaceNodeList } from "./items/space-node-list";
 export function HierarchySidebar() {
   const { workspaceId } = useWorkspace();
-  const { data: hierarchy, isLoading, error } = useHierarchy(workspaceId);
-  const localHierarchy = useHierarchyStore((state) => state.hierarchy);
-  const setHierarchy = useHierarchyStore((state) => state.setHierarchy);
-
-  useEffect(() => {
-    if (hierarchy) {
-      setHierarchy(hierarchy);
-    }
-  }, [hierarchy, setHierarchy]);
-
-  // useEffect(() => {
-  //   const onHierarchyChanged = () => {};
-  //   signalRService.on("hierarchychanged", onHierarchyChanged);
-  //   return () => {
-  //     signalRService.off("hierarchychanged", onHierarchyChanged);
-  //   };
-  // }, []);
-
   const [isHierarchyOpen, setIsHierarchyOpen] = useState(true);
   const [isDocsOpen, setIsDocsOpen] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
@@ -63,41 +33,11 @@ export function HierarchySidebar() {
 
   const moveItem = useMoveItem(workspaceId || "");
 
-  const filteredHierarchy = useMemo(() => {
-    if (!localHierarchy || !deferredSearchQuery) return localHierarchy;
-    const query = deferredSearchQuery.toLowerCase();
-    const filteredSpaces = localHierarchy.spaces
-      .map((space) => {
-        const folders = space.folders.filter((f) =>
-          f.name.toLowerCase().includes(query),
-        );
-        const isSpaceMatch = space.name.toLowerCase().includes(query);
-        if (isSpaceMatch || folders.length > 0) {
-          return { ...space, folders, tasks: [], isExpanded: true };
-        }
-        return null;
-      })
-      .filter((s) => s !== null) as SpaceHierarchy[];
-    return { ...localHierarchy, spaces: filteredSpaces };
-  }, [localHierarchy, deferredSearchQuery]);
-
   const { sensors, handleDragStart, handleDragEnd, activeItem } =
     useHierarchyDnd({
       workspaceId: workspaceId || "",
-      filteredHierarchy,
       moveItem,
     });
-
-  if (isLoading) {
-    return <HierarchySidebarSkeleton />;
-  }
-
-  const hasData =
-    !isLoading &&
-    !error &&
-    filteredHierarchy?.spaces &&
-    filteredHierarchy.spaces.length > 0;
-  const showEmptyState = !hasData;
 
   return (
     <div className="h-full flex flex-col bg-background overflow-hidden select-none">
@@ -166,22 +106,7 @@ export function HierarchySidebar() {
                   onDragEnd={handleDragEnd}
                   modifiers={[restrictToVerticalAxis]}
                 >
-                  {!showEmptyState && filteredHierarchy?.spaces && (
-                    <SortableContext
-                      items={filteredHierarchy.spaces.map(
-                        (s) => `space-${s.id}`,
-                      )}
-                      strategy={verticalListSortingStrategy}
-                    >
-                      {filteredHierarchy.spaces.map((space) => (
-                        <SpaceNodeItem
-                          key={space.id}
-                          space={space}
-                          isForcedOpen={!!deferredSearchQuery}
-                        />
-                      ))}
-                    </SortableContext>
-                  )}
+                  <SpaceNodeList searchQuery={deferredSearchQuery} />
 
                   {!searchQuery && (
                     <div className="mb-px">
@@ -211,25 +136,22 @@ export function HierarchySidebar() {
                       <div className="opacity-80 scale-105 transition-transform pointer-events-none shadow-2xl rounded-sm overflow-hidden ring-1 ring-primary/20">
                         {activeItem.type === EntityLayerConst.ProjectSpace && (
                           <SpaceNodeItem
-                            space={activeItem.data as SpaceHierarchy}
+                            spaceId={activeItem.id}
                             isForcedOpen={false}
                           />
                         )}
                         {activeItem.type === EntityLayerConst.ProjectFolder && (
                           <FolderNodeItem
-                            folder={activeItem.data as FolderHierarchy}
-                            spaceId={(activeItem.data as any).spaceId || ""}
+                            folderId={activeItem.id}
+                            spaceId={activeItem.spaceId}
                           />
                         )}
                         {activeItem.type === EntityLayerConst.ProjectTask && (
                           <TaskNodeItem
-                            task={activeItem.data as TaskHierarchy}
-                            parentId={activeItem.data.parentId || ""}
-                            parentType={
-                              (activeItem.data.parentType as EntityLayerType) ||
-                              EntityLayerConst.ProjectFolder
-                            }
-                            spaceId={(activeItem.data as any).spaceId || ""}
+                            taskId={activeItem.id}
+                            parentId={activeItem.parentId}
+                            parentType={activeItem.parentType}
+                            spaceId={activeItem.spaceId}
                           />
                         )}
                       </div>

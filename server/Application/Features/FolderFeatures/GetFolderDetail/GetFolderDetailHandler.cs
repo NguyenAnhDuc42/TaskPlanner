@@ -1,11 +1,12 @@
 using Microsoft.EntityFrameworkCore;
+using Dapper;
 namespace Application;
 
 public class GetFolderDetailHandler(TaskPlanDbContext db, WorkspaceContext workspaceContext) : IQueryHandler<GetFolderDetailQuery, FolderDetailDto>
 {
     public async Task<Result<FolderDetailDto>> Handle(GetFolderDetailQuery request, CancellationToken ct)
     {
-        FormattableString sql = $@"
+        const string sql = @"
             SELECT 
                 f.id AS Id, f.project_space_id AS ProjectSpaceId, f.name AS Name, 
                 f.custom_color AS Color, f.custom_icon AS Icon, f.is_private AS IsPrivate, 
@@ -19,9 +20,11 @@ public class GetFolderDetailHandler(TaskPlanDbContext db, WorkspaceContext works
                 f.start_date AS StartDate, f.due_date AS DueDate, f.created_at AS CreatedAt,
                 (SELECT b.content FROM document_blocks b WHERE b.document_id = f.default_document_id ORDER BY b.order_key LIMIT 1) AS Description
             FROM project_folders f
-            WHERE f.id = {request.FolderId} AND f.project_workspace_id = {workspaceContext.workspaceId} AND f.deleted_at IS NULL;";
+            WHERE f.id = @FolderId AND f.project_workspace_id = @WorkspaceId AND f.deleted_at IS NULL;";
 
-        var folder = await db.Database.SqlQuery<FolderDetailDto>(sql).SingleOrDefaultAsync(ct);
+        var connection = db.Database.GetDbConnection();
+        var folder = await connection.QueryFirstOrDefaultAsync<FolderDetailDto>(
+            sql, new { FolderId = request.FolderId, WorkspaceId = workspaceContext.workspaceId });
         
         if (folder == null)
             return Result<FolderDetailDto>.Failure(Error.NotFound("Folder.NotFound", $"Folder {request.FolderId} not found"));

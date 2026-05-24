@@ -183,7 +183,7 @@ namespace Api
             return result.ToActionResult();
         }
 
-        [HttpPost("{id:guid}/hierarchy/move")]
+        [HttpPost("{id:guid}/nodes/move")]
         public async Task<IActionResult> MoveHierarchyItem(
             Guid id,
             [FromBody] MoveItemRequest request,

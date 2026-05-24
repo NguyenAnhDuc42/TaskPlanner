@@ -17,5 +17,4 @@
   </Folder>
   <Project Path="AppHost/AppHost.csproj" Id="986151e5-bc61-4de1-805a-c89491e2f08b" />
   <Project Path="ServiceDefaults/ServiceDefaults.csproj" Id="86ccfa23-bda8-4ade-9fb4-a209927213d2" />
-  <Project Path="Worker/Worker.csproj" />
 </Solution>

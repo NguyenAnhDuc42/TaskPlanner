@@ -1,20 +1,39 @@
 using Microsoft.EntityFrameworkCore;
+using Dapper;
 
 
 namespace Application;
+
+public class WorkspaceDetailRow
+{
+    public Guid WorkspaceId { get; init; }
+    public string Role { get; init; } = null!;
+    public string Theme { get; init; } = null!;
+    public string? Color { get; init; }
+    public string? Icon { get; init; }
+}
 
 public class GetDetailWorkspaceHandler(TaskPlanDbContext db, WorkspaceContext context) : IQueryHandler<GetDetailWorkspaceQuery, WorkspaceRecord>
 {
     public async Task<Result<WorkspaceRecord>> Handle(GetDetailWorkspaceQuery request, CancellationToken ct)
     {
-        var parameters = new[]
-        {
-            new Npgsql.NpgsqlParameter("WorkspaceId", request.WorkspaceId),
-            new Npgsql.NpgsqlParameter("UserId", context.CurrentMember.UserId)
-        };
+        const string sql = @"
+            SELECT 
+                w.id AS WorkspaceId,
+                wm.role AS Role,
+                wm.theme AS Theme,
+                w.custom_color AS Color,
+                w.custom_icon AS Icon
+            FROM project_workspaces w
+            JOIN workspace_members wm ON w.id = wm.project_workspace_id
+            WHERE w.id = @WorkspaceId 
+              AND wm.user_id = @UserId
+              AND w.deleted_at IS NULL
+              AND wm.deleted_at IS NULL";
 
-        var row = await db.Database.SqlQueryRaw<WorkspaceDetailRow>(
-            GetDetailWorkspaceSQL.GetDetail, parameters).FirstOrDefaultAsync(ct);
+        var connection = db.Database.GetDbConnection();
+        var row = await connection.QueryFirstOrDefaultAsync<WorkspaceDetailRow>(
+            sql, new { WorkspaceId = request.WorkspaceId, UserId = context.CurrentMember.UserId });
 
         if (row == null) 
             return Result<WorkspaceRecord>.Failure(WorkspaceError.NotFound);

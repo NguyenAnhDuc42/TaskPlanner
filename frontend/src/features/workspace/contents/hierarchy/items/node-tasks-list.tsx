@@ -8,6 +8,7 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { TaskNodeItem } from "./task-node-item";
+import { useHierarchyStore } from "../use-hierarchy-store";
 
 const TaskSkeleton = () => (
   <div className="flex items-center gap-2 pl-2 py-1 opacity-20 animate-pulse">
@@ -30,6 +31,16 @@ export const NodeTasksList = React.memo(function NodeTasksList({
   const { workspaceId } = useWorkspace();
   const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isLoading } =
     useNodeTasks(workspaceId, nodeId, parentType);
+    
+  const setTasks = useHierarchyStore((state) => state.setTasks);
+  const taskIds = useHierarchyStore((state) => state.tasksByParent[nodeId] || []);
+
+  React.useEffect(() => {
+    if (data?.pages) {
+      const allTasks = data.pages.flatMap((page) => page.items);
+      setTasks(nodeId, allTasks);
+    }
+  }, [data, setTasks, nodeId]);
 
   if (!isExpanded) return null;
 
@@ -43,18 +54,16 @@ export const NodeTasksList = React.memo(function NodeTasksList({
     );
   }
 
-  const allTasks = data?.pages.flatMap((page) => page.tasks) || [];
-
   return (
     <SortableContext
-      items={allTasks.map((t) => `task-${t.id}`)}
+      items={taskIds.map((id) => `task-${id}`)}
       strategy={verticalListSortingStrategy}
     >
       <div className="flex flex-col">
-        {allTasks.map((task) => (
+        {taskIds.map((id) => (
           <TaskNodeItem
-            key={task.id}
-            task={task}
+            key={id}
+            taskId={id}
             parentId={nodeId}
             parentType={parentType}
             spaceId={spaceId}

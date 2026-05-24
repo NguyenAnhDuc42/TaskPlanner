@@ -36,8 +36,8 @@ builder.Services.AddCors(options =>
 // --- 2. Infrastructure & Data ---
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
 
-builder.EnrichNpgsqlDbContext<TaskPlanDbContext>();
 builder.Services.AddApplication(builder.Configuration);
+builder.EnrichNpgsqlDbContext<TaskPlanDbContext>();
 
 var rateLimitSettings = builder.Configuration.GetSection(RateLimitSettings.SectionName).Get<RateLimitSettings>() ?? new RateLimitSettings();
 builder.Services.Configure<RateLimitSettings>(builder.Configuration.GetSection(RateLimitSettings.SectionName));

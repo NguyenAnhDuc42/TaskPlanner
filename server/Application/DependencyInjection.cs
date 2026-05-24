@@ -98,6 +98,10 @@ public static class DependencyInjection
         services.AddTransient<ExternalAuthService>();
         services.AddSingleton<PasswordService>();
         services.AddHttpContextAccessor();
+        
+        // Cursor Helper Configuration
+        services.Configure<CursorEncryptionOptions>(config.GetSection(CursorEncryptionOptions.SectionName));
+        services.AddScoped<CursorHelper>();
         #endregion
 
         services.AddSignalR();
@@ -143,6 +147,3 @@ public static class DependencyInjection
         return services;
     }
 }
-
-
-

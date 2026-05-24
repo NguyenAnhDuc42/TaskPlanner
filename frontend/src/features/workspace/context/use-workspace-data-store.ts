@@ -1,18 +1,18 @@
 import { create } from 'zustand';
 import type { Status } from '@/types/status';
-import type { MemberSummary } from '@/features/workspace/contents/members/members-type';
+import type { MemberRecord } from '@/types/workspace/member-record';
 
 interface WorkspaceDataState {
   statuses: Record<string, Status>; // statusId -> Status
   spaceStatuses: Record<string, string[]>; // spaceId -> statusIds
   folderStatuses: Record<string, string[]>; // folderId -> statusIds
-  members: Record<string, MemberSummary>; // memberId -> Member
+  members: Record<string, MemberRecord>; // memberId -> Member
   
   // Actions
   setStatuses: (statuses: Status[]) => void;
   setSpaceStatuses: (spaceId: string, statusIds: string[]) => void;
   setFolderStatuses: (folderId: string, statusIds: string[]) => void;
-  setMembers: (members: MemberSummary[]) => void;
+  setMembers: (members: MemberRecord[]) => void;
 }
 
 export const useWorkspaceDataStore = create<WorkspaceDataState>((set) => ({

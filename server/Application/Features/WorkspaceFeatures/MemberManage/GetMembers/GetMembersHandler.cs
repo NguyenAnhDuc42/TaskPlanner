@@ -2,8 +2,23 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Hybrid;
 using Microsoft.Extensions.Logging;
 using System.Text.Json;
+using NpgsqlTypes;
+using Dapper;
 
 namespace Application;
+
+public class MemberRow
+{
+    public Guid Id { get; set; }
+    public Guid WorkspaceMemberId { get; set; }
+    public DateTimeOffset CreatedAt { get; set; }
+    public DateTimeOffset? JoinedAt { get; set; }
+    public string Name { get; set; } = null!;
+    public string Email { get; set; } = null!;
+    public string? AvatarUrl { get; set; }
+    public Role Role { get; set; }
+    public MembershipStatus Status { get; set; }
+}
 
 public class GetMembersHandler(
     TaskPlanDbContext db,
@@ -23,21 +38,70 @@ public class GetMembersHandler(
             DecodeCursor(request.pagination.Cursor, out var cursorTimestamp, out var cursorId);
 
             var sql = request.pagination.Direction == SortDirection.Ascending
-                ? GetMembersSQL.Asc
-                : GetMembersSQL.Desc;
+                ? @"
+                SELECT 
+                    u.id AS Id,
+                    wm.id AS WorkspaceMemberId,
+                    wm.created_at AS CreatedAt,
+                    wm.joined_at AS JoinedAt,
+                    u.name AS Name,
+                    u.email AS Email,
+                    wm.role AS Role,
+                    wm.status AS Status
+                FROM users u
+                JOIN workspace_members wm ON wm.user_id = u.id AND wm.project_workspace_id = @WorkspaceId
+                WHERE wm.deleted_at IS NULL AND
+                    (@name IS NULL OR u.name ILIKE '%' || @name || '%') AND 
+                    (@email IS NULL OR u.email ILIKE '%' || @email || '%') AND 
+                    (@role::text IS NULL OR wm.role::text = @role) AND
+                    (
+                        @cursorTimestamp IS NULL OR
+                            (
+                                COALESCE(wm.joined_at, wm.created_at) > @cursorTimestamp OR 
+                                (COALESCE(wm.joined_at, wm.created_at) = @cursorTimestamp AND u.id > @cursorId)
+                            )
+                    )
+                ORDER BY COALESCE(wm.joined_at, wm.created_at) ASC, u.id ASC
+                LIMIT @pageSizePLusOne;"
+                : @"
+                SELECT 
+                    u.id AS Id,
+                    wm.id AS WorkspaceMemberId,
+                    wm.created_at AS CreatedAt,
+                    wm.joined_at AS JoinedAt,
+                    u.name AS Name,
+                    u.email AS Email,
+                    wm.role AS Role,
+                    wm.status AS Status
+                FROM users u
+                JOIN workspace_members wm ON wm.user_id = u.id AND wm.project_workspace_id = @WorkspaceId
+                WHERE wm.deleted_at IS NULL AND
+                    (@name IS NULL OR u.name ILIKE '%' || @name || '%') AND 
+                    (@email IS NULL OR u.email ILIKE '%' || @email || '%') AND 
+                    (@role::text IS NULL OR wm.role::text = @role) AND
+                    (
+                        @cursorTimestamp IS NULL OR
+                            (
+                                COALESCE(wm.joined_at, wm.created_at) < @cursorTimestamp OR 
+                                (COALESCE(wm.joined_at, wm.created_at) = @cursorTimestamp AND u.id < @cursorId)
+                            )
+                    )
+                ORDER BY COALESCE(wm.joined_at, wm.created_at) DESC, u.id DESC
+                LIMIT @pageSizePLusOne;";
 
-            var parameters = new object[]
+            var connection = db.Database.GetDbConnection();
+            var parameters = new
             {
-                new Npgsql.NpgsqlParameter("WorkspaceId", workspaceId),
-                new Npgsql.NpgsqlParameter("name", request.filter.Name ?? (object)DBNull.Value),
-                new Npgsql.NpgsqlParameter("email", request.filter.Email ?? (object)DBNull.Value),
-                new Npgsql.NpgsqlParameter("role", request.filter.Role?.ToString() ?? (object)DBNull.Value),
-                new Npgsql.NpgsqlParameter("cursorTimestamp", cursorTimestamp ?? (object)DBNull.Value),
-                new Npgsql.NpgsqlParameter("cursorId", cursorId ?? (object)DBNull.Value),
-                new Npgsql.NpgsqlParameter("pageSizePLusOne", pageSize + 1)
+                WorkspaceId = workspaceId,
+                name = request.filter.Name,
+                email = request.filter.Email,
+                role = request.filter.Role?.ToString(),
+                cursorTimestamp = cursorTimestamp,
+                cursorId = cursorId,
+                pageSizePLusOne = pageSize + 1
             };
 
-            var rows = await db.Database.SqlQueryRaw<MemberRow>(sql, parameters).ToListAsync(token);
+            var rows = (await connection.QueryAsync<MemberRow>(sql, parameters)).AsList();
 
             var hasMore = rows.Count > pageSize;
             if (hasMore) rows.RemoveAt(rows.Count - 1);

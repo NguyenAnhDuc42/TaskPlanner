@@ -24,7 +24,6 @@ export function CreateSpaceForm({ onSuccess, onCancel }: CreateSpaceFormProps) {
 
     try {
       const result = await createSpace.mutateAsync({
-        workspaceId,
         name,
         isPrivate,
         color,

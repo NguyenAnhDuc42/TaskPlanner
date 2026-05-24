@@ -1,5 +1,5 @@
-
 using Microsoft.EntityFrameworkCore;
+using Dapper;
 namespace Application;
 
 public class GetSpaceItemsHandler(TaskPlanDbContext db, WorkspaceContext workspaceContext) : IQueryHandler<GetSpaceItemsQuery, TaskViewData>
@@ -15,13 +15,7 @@ public class GetSpaceItemsHandler(TaskPlanDbContext db, WorkspaceContext workspa
         if (activeWorkflow == null)
             return Result<TaskViewData>.Failure(Error.NotFound("Workflow.NotFound", "Active workflow not found for this space"));
 
-        var parameters = new object[] {
-            new Npgsql.NpgsqlParameter("WorkflowId", activeWorkflow.Id),
-            new Npgsql.NpgsqlParameter("WorkspaceId", workspaceId),
-            new Npgsql.NpgsqlParameter("SpaceId", request.SpaceId)
-        };
-
-        var statusesSql = @"
+        var sql = @"
             SELECT id AS Id, id AS StatusId, name AS Name, color AS Color, category AS Category, order_key AS OrderKey
             FROM statuses
             WHERE workflow_id = @WorkflowId
@@ -31,17 +25,15 @@ public class GetSpaceItemsHandler(TaskPlanDbContext db, WorkspaceContext workspa
                 WHEN 'Done' THEN 2
                 WHEN 'Closed' THEN 3
                 ELSE 4
-            END;";
+            END;
 
-        var foldersSql = @"
             SELECT id AS Id, name AS Name, created_at AS CreatedAt, status_id AS StatusId, priority AS Priority, start_date AS StartDate, due_date AS DueDate, order_key AS OrderKey, custom_icon as Icon, custom_color as Color
             FROM project_folders
             WHERE project_space_id = @SpaceId 
               AND deleted_at IS NULL 
               AND is_archived = false
-            ORDER BY order_key;";
+            ORDER BY order_key;
 
-        var tasksSql = @"
             SELECT id AS Id, name AS Name, created_at AS CreatedAt, status_id AS StatusId, priority AS Priority, due_date AS DueDate, start_date AS StartDate, order_key AS OrderKey, custom_icon as Icon, custom_color as Color
             FROM project_tasks
             WHERE project_workspace_id = @WorkspaceId 
@@ -50,9 +42,12 @@ public class GetSpaceItemsHandler(TaskPlanDbContext db, WorkspaceContext workspa
               AND project_space_id = @SpaceId AND project_folder_id IS NULL
             ORDER BY order_key;";
 
-        var statuses = await db.Database.SqlQueryRaw<StatusRecord>(statusesSql, parameters).ToListAsync(cancellationToken);
-        var folders = await db.Database.SqlQueryRaw<FolderRecord>(foldersSql, parameters).ToListAsync(cancellationToken);
-        var tasks = await db.Database.SqlQueryRaw<TaskRecord>(tasksSql, parameters).ToListAsync(cancellationToken);
+        var connection = db.Database.GetDbConnection();
+        using var multi = await connection.QueryMultipleAsync(sql, new { WorkflowId = activeWorkflow.Id, WorkspaceId = workspaceId, SpaceId = request.SpaceId });
+
+        var statuses = (await multi.ReadAsync<StatusRecord>()).AsList();
+        var folders = (await multi.ReadAsync<FolderRecord>()).AsList();
+        var tasks = (await multi.ReadAsync<TaskRecord>()).AsList();
 
         return Result<TaskViewData>.Success(new TaskViewData(folders, tasks, statuses));
     }

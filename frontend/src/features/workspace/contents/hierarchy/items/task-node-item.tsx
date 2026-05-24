@@ -15,25 +15,29 @@ import {
 } from "@/types/entity-layer-type";
 
 import { useLocation } from "@tanstack/react-router";
-import type { TaskHierarchy } from "../hierarchy-type";
+import { useHierarchyStore } from "../use-hierarchy-store";
 import { DynamicIcon } from "@/components/dynamic-icon";
 
 interface TaskNodeItemProps {
-  task: TaskHierarchy;
+  taskId: string;
   parentId: string;
   parentType: EntityLayerType;
   spaceId: string;
 }
 
 export const TaskNodeItem = React.memo(function TaskNodeItem({
-  task,
+  taskId,
   parentId,
   parentType,
   spaceId,
 }: TaskNodeItemProps) {
+  const task = useHierarchyStore((state) => state.tasks[taskId]);
   const navigate = useNavigate();
   const { workspaceId } = useWorkspace();
   const location = useLocation();
+  
+  if (!task) return null;
+  
   const isActive = location.pathname.includes(`/tasks/${task.id}`);
 
   return (

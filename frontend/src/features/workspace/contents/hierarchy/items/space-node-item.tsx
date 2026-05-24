@@ -12,27 +12,32 @@ import {
 import { FadeTruncate } from "@/components/fade-truncate";
 import { NodeTasksList } from "./node-tasks-list";
 import { EntityLayerType as EntityLayerConst } from "@/types/entity-layer-type";
-import type { SpaceHierarchy } from "../hierarchy-type";
+import { useHierarchyStore } from "../use-hierarchy-store";
 import { useQueryClient } from "@tanstack/react-query";
 import { SortableItem } from "../dnd/sortable-item";
 import { NodeFoldersList } from "./node-folders-list";
 import { prefetchNodeFolders, prefetchNodeTasks } from "../hierarchy-api";
 
 interface SpaceNodeItemProps {
-  space: SpaceHierarchy;
+  spaceId: string;
   isForcedOpen?: boolean;
 }
 
 export const SpaceNodeItem = React.memo(function SpaceNodeItem({
-  space,
+  spaceId,
   isForcedOpen,
 }: SpaceNodeItemProps) {
   const { workspaceId } = useWorkspace();
+  const space = useHierarchyStore((state) => state.spaces[spaceId]);
+  
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const location = useLocation();
+  
+  if (!space) return null;
+
   const isActive = location.pathname.includes(`/spaces/${space.id}`);
-  const IconComponent = (Icons as any)[space.icon] || Icons.LayoutGrid;
+  const IconComponent = (Icons as any)[space.icon || "LayoutGrid"] || Icons.LayoutGrid;
   const spaceColor = space.color || "var(--primary)";
 
   const [isOpen, setIsOpen] = React.useState(false);

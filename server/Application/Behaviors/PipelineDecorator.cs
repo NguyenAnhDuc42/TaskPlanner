@@ -234,6 +234,7 @@ public static class PipelineDecorator
         var member = await cache.GetOrCreateAsync(cacheKey, async entry => 
         {
             entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(5);
+            entry.Size = 1;
             return await db.WorkspaceMembers
                 .AsNoTracking()
                 .ByMember(workspaceId.Value, userId)
@@ -247,6 +248,9 @@ public static class PipelineDecorator
         return null;
     }
 }
+
+
+
 
 
 

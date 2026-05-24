@@ -3,6 +3,8 @@ import type { WorkspaceSecurityContext } from "../api";
 import type { WorkspaceSummary } from "@/features/main/home-screen/type";
 import type { Status } from "@/types/status";
 import type { ContentPage } from "../type";
+import type { MemberRecord } from "@/types/workspace/member-record";
+import type { WorkflowRecord } from "@/types/projects";
 
 export interface WorkspaceUIState {
   activeIcon: ContentPage;
@@ -24,8 +26,8 @@ export interface WorkspaceUIActions {
 
 export interface WorkspaceRegistry {
   statusMap: Record<string, Status>;
-  memberMap: Record<string, any>;
-  workflows: any[];
+  memberMap: Record<string, MemberRecord>;
+  workflows: WorkflowRecord[];
 }
 
 export interface WorkspaceContextType {

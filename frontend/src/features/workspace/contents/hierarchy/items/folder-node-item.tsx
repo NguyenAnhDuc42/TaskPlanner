@@ -13,21 +13,25 @@ import { SortableItem } from "../dnd/sortable-item";
 import { NodeTasksList } from "./node-tasks-list";
 import { FadeTruncate } from "@/components/fade-truncate";
 import { EntityLayerType as EntityLayerConst } from "@/types/entity-layer-type";
-import type { FolderHierarchy } from "../hierarchy-type";
+import { useHierarchyStore } from "../use-hierarchy-store";
 import { useQueryClient } from "@tanstack/react-query";
 import { prefetchNodeTasks } from "../hierarchy-api";
 
 interface FolderNodeItemProps {
-  folder: FolderHierarchy;
+  folderId: string;
   spaceId: string;
 }
 
 export const FolderNodeItem = React.memo(function FolderNodeItem({
-  folder,
+  folderId,
   spaceId,
 }: FolderNodeItemProps) {
+  const folder = useHierarchyStore((state) => state.folders[folderId]);
   const [isOpen, setIsOpen] = useState(false);
-  const IconComponent = (Icons as any)[folder.icon] || Icons.Folder;
+  
+  if (!folder) return null;
+  
+  const IconComponent = (Icons as any)[folder.icon || "Folder"] || Icons.Folder;
   const location = useLocation();
   const isActive = location.pathname.includes(`/folders/${folder.id}`);
   const navigate = useNavigate();

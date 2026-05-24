@@ -1,7 +1,28 @@
 using Microsoft.EntityFrameworkCore;
-
+using Dapper;
 
 namespace Application;
+
+public class TaskDetailRow
+{
+    public Guid Id { get; init; }
+    public Guid? ProjectSpaceId { get; init; }
+    public Guid? ProjectFolderId { get; init; }
+    public string Name { get; init; } = null!;
+    public string? Color { get; init; }
+    public string? Icon { get; init; }
+    public Guid? DefaultDocumentId { get; init; }
+    public bool IsArchived { get; init; }
+    public Priority? Priority { get; init; }
+    public int? StoryPoints { get; init; }
+    public int? TimeEstimateSeconds { get; init; }
+    public Guid? StatusId { get; init; }
+    public Guid? ParentWorkflowId { get; init; }
+    public DateTimeOffset? StartDate { get; init; }
+    public DateTimeOffset? DueDate { get; init; }
+    public DateTimeOffset CreatedAt { get; init; }
+    public string? Description { get; init; }
+}
 
 public class GetTaskDetailHandler(TaskPlanDbContext db, WorkspaceContext workspaceContext) : IQueryHandler<GetTaskDetailQuery, TaskRecord>
 {
@@ -33,17 +54,40 @@ public class GetTaskDetailHandler(TaskPlanDbContext db, WorkspaceContext workspa
             FROM project_tasks t
             WHERE t.id = @TaskId AND t.project_workspace_id = @WorkspaceId AND t.deleted_at IS NULL;";
 
-        var parameters = new[] {
-            new Npgsql.NpgsqlParameter("TaskId", request.TaskId),
-            new Npgsql.NpgsqlParameter("WorkspaceId", workspaceContext.workspaceId)
+        var connection = db.Database.GetDbConnection();
+        var parameters = new {
+            TaskId = request.TaskId,
+            WorkspaceId = workspaceContext.workspaceId
         };
 
-        var task = await db.Database.SqlQueryRaw<TaskRecord>(sql, parameters).FirstOrDefaultAsync(ct);
+        var row = await connection.QueryFirstOrDefaultAsync<TaskDetailRow>(sql, parameters);
         
-        if (task == null)
+        if (row == null)
             return Result<TaskRecord>.Failure(Error.NotFound("Task.NotFound", $"Task {request.TaskId} not found"));
 
-        return Result<TaskRecord>.Success(task with { AssigneeIds = new List<Guid>() });
+        var task = new TaskRecord
+        {
+            Id = row.Id,
+            ProjectSpaceId = row.ProjectSpaceId,
+            ProjectFolderId = row.ProjectFolderId,
+            Name = row.Name,
+            Color = row.Color,
+            Icon = row.Icon,
+            DefaultDocumentId = row.DefaultDocumentId,
+            IsArchived = row.IsArchived,
+            Priority = row.Priority,
+            StoryPoints = row.StoryPoints,
+            TimeEstimateSeconds = row.TimeEstimateSeconds,
+            StatusId = row.StatusId,
+            ParentWorkflowId = row.ParentWorkflowId,
+            StartDate = row.StartDate,
+            DueDate = row.DueDate,
+            CreatedAt = row.CreatedAt,
+            Description = row.Description,
+            AssigneeIds = new List<Guid>()
+        };
+
+        return Result<TaskRecord>.Success(task);
     }
 }
 

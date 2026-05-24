@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Dapper;
 
 
 namespace Application;
@@ -20,9 +21,10 @@ public class GetTaskAssigneesHandler(TaskPlanDbContext db) : IQueryHandler<GetTa
               AND wm.deleted_at IS NULL
             ORDER BY u.name";
 
-        var assignees = await db.Database.SqlQueryRaw<AssigneeRecord>(
+        var connection = db.Database.GetDbConnection();
+        var assignees = (await connection.QueryAsync<AssigneeRecord>(
             sql, 
-            new Npgsql.NpgsqlParameter("TaskId", task.Id)).ToListAsync(ct);
+            new { TaskId = task.Id })).AsList();
 
         return assignees;
     }

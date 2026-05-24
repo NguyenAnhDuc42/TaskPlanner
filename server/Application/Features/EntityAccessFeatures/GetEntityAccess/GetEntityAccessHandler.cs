@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Dapper;
 
 
 namespace Application;
@@ -14,13 +15,12 @@ public class GetEntityAccessHandler(TaskPlanDbContext db,WorkspaceContext worksp
                 ea.workspace_member_id IS NOT NULL AS HaveAccess 
             FROM workspace_members wm
             LEFT JOIN entity_access ea ON ea.workspace_member_id = wm.id AND ea.project_space_id = @SpaceId
-            Where wm.project_workspace_id = @WorkspaceId AND wm.deleted_on IS NULL
+            Where wm.project_workspace_id = @WorkspaceId AND wm.deleted_at IS NULL
         """;
 
-        var entityAccess = await db.Database.SqlQueryRaw<EntityAccessRecord>(query, 
-            new Npgsql.NpgsqlParameter("WorkspaceId", workspaceContext.workspaceId),
-            new Npgsql.NpgsqlParameter("SpaceId", request.SpaceId)
-        ).ToListAsync(cancellationToken);
+        var connection = db.Database.GetDbConnection();
+        var entityAccess = (await connection.QueryAsync<EntityAccessRecord>(
+            query, new { WorkspaceId = workspaceContext.workspaceId, SpaceId = request.SpaceId })).AsList();
 
         return Result<IReadOnlyList<EntityAccessRecord>>.Success(entityAccess);
     }

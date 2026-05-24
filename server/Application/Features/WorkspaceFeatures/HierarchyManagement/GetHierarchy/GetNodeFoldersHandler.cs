@@ -1,6 +1,20 @@
 using Microsoft.EntityFrameworkCore;
+using NpgsqlTypes;
+using Dapper;
 
 namespace Application;
+
+public class FolderRow
+{
+    public Guid Id { get; init; }
+    public Guid ParentId { get; init; }
+    public string Name { get; init; } = null!;
+    public string? Color { get; init; }
+    public string? Icon { get; init; }
+    public bool IsPrivate { get; init; }
+    public string? OrderKey { get; init; }
+    public bool? HasTasks { get; init; }
+}
 
 public class GetNodeFoldersHandler(TaskPlanDbContext db, CursorHelper cursorHelper) : IQueryHandler<GetNodeFoldersQuery, PagedResult<FolderRecord>>
 {
@@ -8,20 +22,20 @@ public class GetNodeFoldersHandler(TaskPlanDbContext db, CursorHelper cursorHelp
     {
         const string sql = @"
             SELECT 
-                f.id,
-                f.project_space_id AS parent_id,
-                f.name,
-                f.custom_color AS color,
-                f.custom_icon  AS icon,
-                f.is_private,
-                f.order_key,
+                f.id AS Id,
+                f.project_space_id AS ParentId,
+                f.name AS Name,
+                f.custom_color AS Color,
+                f.custom_icon AS Icon,
+                f.is_private AS IsPrivate,
+                f.order_key AS OrderKey,
                 EXISTS (
                     SELECT 1 FROM project_tasks t
                     WHERE t.project_folder_id = f.id
                       AND t.deleted_at IS NULL
                       AND t.is_archived = false
                     LIMIT 1
-                ) AS has_tasks
+                ) AS HasTasks
             FROM project_folders f
             WHERE f.project_space_id = @SpaceId
               AND f.deleted_at IS NULL
@@ -37,13 +51,16 @@ public class GetNodeFoldersHandler(TaskPlanDbContext db, CursorHelper cursorHelp
         var cursorOrderKey = cursorData?.Values.GetValueOrDefault("OrderKey")?.ToString();
         var cursorFolderId = cursorData?.Values.GetValueOrDefault("Id")?.ToString();
 
-        var rawFolders = await db.Database.SqlQueryRaw<FolderRecord>(
-            sql, 
-            new Npgsql.NpgsqlParameter("SpaceId", request.NodeId),
-            new Npgsql.NpgsqlParameter("CursorOrderKey", cursorOrderKey ?? (object)DBNull.Value),
-            new Npgsql.NpgsqlParameter("CursorFolderId", cursorFolderId != null ? Guid.Parse(cursorFolderId) : (object)DBNull.Value),
-            new Npgsql.NpgsqlParameter("PageSize", request.Pagination.PageSize + 1)
-        ).ToListAsync(ct);
+        var connection = db.Database.GetDbConnection();
+        var parameters = new
+        {
+            SpaceId = request.NodeId,
+            CursorOrderKey = cursorOrderKey,
+            CursorFolderId = cursorFolderId != null ? (Guid?)Guid.Parse(cursorFolderId) : null,
+            PageSize = request.Pagination.PageSize + 1
+        };
+
+        var rawFolders = (await connection.QueryAsync<FolderRow>(sql, parameters)).AsList();
 
         var hasMore = rawFolders.Count > request.Pagination.PageSize;
         if (hasMore) rawFolders.RemoveAt(rawFolders.Count - 1);
@@ -61,7 +78,19 @@ public class GetNodeFoldersHandler(TaskPlanDbContext db, CursorHelper cursorHelp
             nextCursor = cursorHelper.EncodeCursor(data);
         }
 
-        return Result<PagedResult<FolderRecord>>.Success(new PagedResult<FolderRecord>(rawFolders, nextCursor, hasMore));
+        var mappedFolders = rawFolders.Select(x => new FolderRecord
+        {
+            Id = x.Id,
+            ParentId = x.ParentId,
+            Name = x.Name,
+            Color = x.Color,
+            Icon = x.Icon,
+            IsPrivate = x.IsPrivate,
+            OrderKey = x.OrderKey,
+            HasTasks = x.HasTasks
+        }).ToList();
+
+        return Result<PagedResult<FolderRecord>>.Success(new PagedResult<FolderRecord>(mappedFolders, nextCursor, hasMore));
     }
 }
 

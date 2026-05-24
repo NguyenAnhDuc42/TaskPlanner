@@ -20,9 +20,7 @@ var redis = builder.AddRedis("cache");
 // --- 2. Register Services ---
 
 // The Background Worker
-var worker = builder.AddProject<Projects.Worker>("worker")
-    .WithReference(postgres) // Injects "ConnectionStrings:postgres"
-    .WithReference(redis);
+// (Worker removed)
 
 // The Main API
 var api = builder.AddProject<Projects.Api>("api")

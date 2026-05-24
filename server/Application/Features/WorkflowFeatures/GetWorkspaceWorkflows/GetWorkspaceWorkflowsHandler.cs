@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 
 using Microsoft.Extensions.Caching.Hybrid;
+using Dapper;
 
 namespace Application;
 
@@ -27,14 +28,15 @@ public class GetWorkspaceWorkflowsHandler(TaskPlanDbContext db, WorkspaceContext
               AND w.deleted_at IS NULL AND (s.deleted_at IS NULL OR s.id IS NULL)
             ORDER BY w.name, s.category, s.order_key;";
 
-                var parameters = new object[]
+                var connection = db.Database.GetDbConnection();
+                var parameters = new
                 {
-                    new Npgsql.NpgsqlParameter("WorkspaceId", workspaceContext.workspaceId),
-                    new Npgsql.NpgsqlParameter("LayerId", request.LayerId ?? (object)DBNull.Value),
-                    new Npgsql.NpgsqlParameter("LayerType", request.LayerType ?? (object)DBNull.Value)
+                    WorkspaceId = workspaceContext.workspaceId,
+                    LayerId = request.LayerId,
+                    LayerType = request.LayerType
                 };
 
-                var rows = await db.Database.SqlQueryRaw<WorkflowRow>(sql, parameters).ToListAsync(cancelToken);
+                var rows = (await connection.QueryAsync<WorkflowRow>(sql, parameters)).AsList();
 
                 return rows
                     .GroupBy(r => new { r.Id, r.Name, r.ProjectSpaceId, r.ProjectFolderId })

@@ -1,40 +1,90 @@
 import { create } from 'zustand';
-import type { WorkspaceHierarchy, FolderHierarchy, TaskHierarchy } from './hierarchy-type';
+import type { SpaceRecord, FolderRecord, TaskRecord } from '@/types/projects';
 
 interface HierarchyState {
-  hierarchy: WorkspaceHierarchy | undefined;
-  folders: Record<string, FolderHierarchy[]>; // nodeId -> Folders
-  tasks: Record<string, TaskHierarchy[]>; // nodeId -> Tasks
-  expandedNodes: Record<string, boolean>; // nodeId -> isOpen
+  // 1. FLAT DICTIONARIES (The Single Source of Truth)
+  spaces: Record<string, SpaceRecord>;
+  folders: Record<string, FolderRecord>;
+  tasks: Record<string, TaskRecord>;
 
-  setHierarchy: (hierarchy: WorkspaceHierarchy) => void;
-  setFolders: (nodeId: string, folders: FolderHierarchy[]) => void;
-  setTasks: (nodeId: string, tasks: TaskHierarchy[]) => void;
-  updateHierarchy: (updater: (prev: WorkspaceHierarchy | undefined) => WorkspaceHierarchy | undefined) => void;
+  // 2. RELATIONSHIPS (Arrays of IDs for ordering)
+  rootSpaceIds: string[]; 
+  foldersBySpace: Record<string, string[]>; // spaceId -> folderIds
+  tasksByParent: Record<string, string[]>;  // parentId -> taskIds
+
+  // 3. UI STATE
+  expandedNodes: Record<string, boolean>; // nodeId -> isOpen
+  
+  // ACTIONS
+  setSpaces: (spaces: SpaceRecord[]) => void;
+  setFolders: (spaceId: string, folders: FolderRecord[]) => void;
+  setTasks: (parentId: string, tasks: TaskRecord[]) => void;
   
   toggleNodeExpand: (nodeId: string) => void;
   setNodeExpand: (nodeId: string, isOpen: boolean) => void;
 }
 
 export const useHierarchyStore = create<HierarchyState>((set) => ({
-  hierarchy: undefined,
+  spaces: {},
   folders: {},
   tasks: {},
+
+  rootSpaceIds: [],
+  foldersBySpace: {},
+  tasksByParent: {},
+
   expandedNodes: {},
 
-  setHierarchy: (hierarchy) => set({ hierarchy }),
-  
-  setFolders: (nodeId, folders) => set((state) => ({
-    folders: { ...state.folders, [nodeId]: folders }
-  })),
+  setSpaces: (spaces) => set((state) => {
+    const newSpaces = { ...state.spaces };
+    const newRootSpaceIds = [...state.rootSpaceIds];
+    
+    spaces.forEach(s => {
+      newSpaces[s.id] = s;
+      if (!newRootSpaceIds.includes(s.id)) {
+        newRootSpaceIds.push(s.id);
+      }
+    });
 
-  setTasks: (nodeId, tasks) => set((state) => ({
-    tasks: { ...state.tasks, [nodeId]: tasks }
-  })),
+    return { 
+      spaces: newSpaces,
+      rootSpaceIds: newRootSpaceIds 
+    };
+  }),
 
-  updateHierarchy: (updater) => set((state) => ({
-    hierarchy: updater(state.hierarchy)
-  })),
+  setFolders: (spaceId, folders) => set((state) => {
+    const newFolders = { ...state.folders };
+    const folderIds = state.foldersBySpace[spaceId] ? [...state.foldersBySpace[spaceId]] : [];
+    
+    folders.forEach(f => {
+      newFolders[f.id] = f;
+      if (!folderIds.includes(f.id)) {
+        folderIds.push(f.id);
+      }
+    });
+
+    return { 
+      folders: newFolders,
+      foldersBySpace: { ...state.foldersBySpace, [spaceId]: folderIds }
+    };
+  }),
+
+  setTasks: (parentId, tasks) => set((state) => {
+    const newTasks = { ...state.tasks };
+    const taskIds = state.tasksByParent[parentId] ? [...state.tasksByParent[parentId]] : [];
+    
+    tasks.forEach(t => {
+      newTasks[t.id] = t;
+      if (!taskIds.includes(t.id)) {
+        taskIds.push(t.id);
+      }
+    });
+
+    return { 
+      tasks: newTasks,
+      tasksByParent: { ...state.tasksByParent, [parentId]: taskIds }
+    };
+  }),
 
   toggleNodeExpand: (nodeId) => set((state) => ({
     expandedNodes: { ...state.expandedNodes, [nodeId]: !state.expandedNodes[nodeId] }

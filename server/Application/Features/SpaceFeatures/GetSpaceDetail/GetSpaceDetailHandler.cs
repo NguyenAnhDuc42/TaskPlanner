@@ -1,6 +1,23 @@
 using Microsoft.EntityFrameworkCore;
+using Dapper;
 
 namespace Application;
+
+public class SpaceDetailRow
+{
+    public Guid Id { get; init; }
+    public Guid ProjectWorkspaceId { get; init; }
+    public string Name { get; init; } = null!;
+    public string? Color { get; init; }
+    public string? Icon { get; init; }
+    public bool IsPrivate { get; init; }
+    public bool IsArchived { get; init; }
+    public Guid? ParentWorkflowId { get; init; }
+    public Guid? WorkflowId { get; init; }
+    public Guid? DefaultDocumentId { get; init; }
+    public DateTimeOffset? CreatedAt { get; init; }
+    public string? Description { get; init; }
+}
 
 public class GetSpaceDetailHandler(TaskPlanDbContext db, WorkspaceContext workspaceContext) : IQueryHandler<GetSpaceDetailQuery, SpaceRecord>
 {
@@ -11,7 +28,6 @@ public class GetSpaceDetailHandler(TaskPlanDbContext db, WorkspaceContext worksp
                 s.id AS Id, s.project_workspace_id AS ProjectWorkspaceId, s.name AS Name, 
                 s.custom_color AS Color, s.custom_icon AS Icon, 
                 s.is_private AS IsPrivate, s.is_archived AS IsArchived, 
-
                 (SELECT wf.id FROM workflows wf WHERE wf.project_workspace_id = s.project_workspace_id AND wf.project_space_id IS NULL AND wf.project_folder_id IS NULL LIMIT 1) AS ParentWorkflowId,
                 (SELECT wf.id FROM workflows wf WHERE wf.project_space_id = s.id AND wf.project_folder_id IS NULL LIMIT 1) AS WorkflowId,
                 s.default_document_id AS DefaultDocumentId, 
@@ -20,18 +36,34 @@ public class GetSpaceDetailHandler(TaskPlanDbContext db, WorkspaceContext worksp
             FROM project_spaces s
             WHERE s.id = @SpaceId AND s.project_workspace_id = @WorkspaceId AND s.deleted_at IS NULL;";
 
-        var parameters = new[]
+        var connection = db.Database.GetDbConnection();
+        var parameters = new
         {
-            new Npgsql.NpgsqlParameter("SpaceId", request.SpaceId),
-            new Npgsql.NpgsqlParameter("WorkspaceId", workspaceContext.workspaceId)
+            SpaceId = request.SpaceId,
+            WorkspaceId = workspaceContext.workspaceId
         };
 
-        var space = await db.Database.SqlQueryRaw<SpaceRecord>(sql, parameters).FirstOrDefaultAsync(ct);
+        var row = await connection.QueryFirstOrDefaultAsync<SpaceDetailRow>(sql, parameters);
         
-        if (space == null)
+        if (row == null)
             return Result<SpaceRecord>.Failure(Error.NotFound("Space.NotFound", $"Space {request.SpaceId} not found"));
 
-        return Result<SpaceRecord>.Success(space with { MemberIds = new List<Guid>() });
+        var space = new SpaceRecord
+        {
+            Id = row.Id,
+            Name = row.Name,
+            Color = row.Color,
+            Icon = row.Icon,
+            IsPrivate = row.IsPrivate,
+            ParentWorkflowId = row.ParentWorkflowId,
+            WorkflowId = row.WorkflowId,
+            DefaultDocumentId = row.DefaultDocumentId,
+            CreatedAt = row.CreatedAt,
+            Description = row.Description,
+            MemberIds = new List<Guid>()
+        };
+
+        return Result<SpaceRecord>.Success(space);
     }
 }
 

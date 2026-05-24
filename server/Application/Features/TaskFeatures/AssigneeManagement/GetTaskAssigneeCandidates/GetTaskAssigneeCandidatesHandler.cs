@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
-
+using NpgsqlTypes;
+using Dapper;
 
 namespace Application;
 
@@ -19,9 +20,10 @@ public class GetTaskAssigneeCandidatesHandler(TaskPlanDbContext db)
               AND ta.deleted_at IS NULL
               AND wm.deleted_at IS NULL";
 
-        var assignedUserIds = await db.Database.SqlQueryRaw<Guid>(
+        var connection = db.Database.GetDbConnection();
+        var assignedUserIds = (await connection.QueryAsync<Guid>(
             assignedSql, 
-            new Npgsql.NpgsqlParameter("TaskId", task.Id)).ToArrayAsync(ct);
+            new { TaskId = task.Id })).ToArray();
 
         var safeLimit = request.Limit <= 0 ? 50 : Math.Min(request.Limit, 100);
 
@@ -39,13 +41,15 @@ public class GetTaskAssigneeCandidatesHandler(TaskPlanDbContext db)
             ORDER BY u.name
             LIMIT @Limit";
 
-        var candidates = await db.Database.SqlQueryRaw<AssigneeRecord>(
+        var candidates = (await connection.QueryAsync<AssigneeRecord>(
             candidatesSql, 
-            new Npgsql.NpgsqlParameter("WorkspaceId", task.ProjectWorkspaceId),
-            new Npgsql.NpgsqlParameter("Search", searchStr),
-            new Npgsql.NpgsqlParameter("AssignedUserIds", assignedArray),
-            new Npgsql.NpgsqlParameter("Limit", safeLimit)
-        ).ToListAsync(ct);
+            new { 
+                WorkspaceId = task.ProjectWorkspaceId,
+                Search = searchStr,
+                AssignedUserIds = assignedArray,
+                Limit = safeLimit
+            }
+        )).AsList();
 
         return candidates;
     }
