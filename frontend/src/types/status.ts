@@ -1,7 +1,7 @@
 import { StatusCategory } from "./status-category";
 
 export interface Status {
-  statusId: string;
+  id: string;
   name: string;
   color: string;
   category: StatusCategory;

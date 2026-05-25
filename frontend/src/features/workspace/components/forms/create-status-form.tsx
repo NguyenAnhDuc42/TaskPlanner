@@ -128,7 +128,7 @@ function SortableStatusItem({
     transform,
     transition,
     isDragging,
-  } = useSortable({ id: status.statusId });
+  } = useSortable({ id: status.id });
 
   const [isOpen, setIsOpen] = useState(false);
 
@@ -173,7 +173,7 @@ function SortableStatusItem({
                 e.stopPropagation();
                 setIsOpen(true);
               }}
-              onChange={(e) => onUpdateName(status.statusId, e.target.value)}
+              onChange={(e) => onUpdateName(status.id, e.target.value)}
             />
           </div>
         </PopoverTrigger>
@@ -181,7 +181,7 @@ function SortableStatusItem({
         <PopoverContent className="p-0 border-none bg-transparent shadow-none w-auto" side="right" sideOffset={8}>
           <StatusColorPicker
             selectedColor={status.color}
-            onSelectColor={(c) => onUpdateColor(status.statusId, c)}
+            onSelectColor={(c) => onUpdateColor(status.id, c)}
           />
         </PopoverContent>
 
@@ -189,7 +189,7 @@ function SortableStatusItem({
           className="text-muted-foreground/30 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all shrink-0"
           onClick={(e) => {
             e.stopPropagation();
-            onDelete(status.statusId);
+            onDelete(status.id);
           }}
           type="button"
         >
@@ -219,10 +219,15 @@ export function CreateStatusForm({
   }, [workflowId, registry.workflows]);
 
   const resolvedCurrentStatuses = useMemo(() => {
-    if (currentStatuses) return currentStatuses;
+    if (currentStatuses) {
+      return currentStatuses.map((s: any) => ({
+        ...s,
+        id: s.id || s.id,
+      }));
+    }
     if (!workflow) return [];
     return (workflow.statuses || []).map((s: any) => ({
-      statusId: s.statusId || s.id,
+      id: s.id || s.id,
       name: s.name,
       color: s.color,
       category: s.category,
@@ -260,18 +265,18 @@ export function CreateStatusForm({
 
   const handleUpdateName = useCallback((id: string, newName: string) => {
     setLocalStatuses((prev) =>
-      prev.map((s) => (s.statusId === id ? { ...s, name: newName } : s))
+      prev.map((s) => (s.id === id ? { ...s, name: newName } : s))
     );
   }, []);
 
   const handleUpdateColor = useCallback((id: string, color: string) => {
     setLocalStatuses((prev) =>
-      prev.map((s) => (s.statusId === id ? { ...s, color } : s))
+      prev.map((s) => (s.id === id ? { ...s, color } : s))
     );
   }, []);
 
   const handleDelete = useCallback((id: string) => {
-    setLocalStatuses((prev) => prev.filter((s) => s.statusId !== id));
+    setLocalStatuses((prev) => prev.filter((s) => s.id !== id));
   }, []);
 
   const handleDragEnd = useCallback(
@@ -280,8 +285,8 @@ export function CreateStatusForm({
       if (!over || active.id === over.id) return;
 
       setLocalStatuses((prev) => {
-        const oldIndex = prev.findIndex((s) => s.statusId === active.id);
-        const newIndex = prev.findIndex((s) => s.statusId === over.id);
+        const oldIndex = prev.findIndex((s) => s.id === active.id);
+        const newIndex = prev.findIndex((s) => s.id === over.id);
 
         if (oldIndex === -1 || newIndex === -1) return prev;
 
@@ -333,13 +338,13 @@ export function CreateStatusForm({
                 onDragEnd={handleDragEnd}
               >
                 <SortableContext
-                  items={statuses.map((s) => s.statusId)}
+                  items={statuses.map((s) => s.id)}
                   strategy={verticalListSortingStrategy}
                 >
                   <div className="space-y-1.5">
                     {statuses.map((s) => (
                       <SortableStatusItem
-                        key={s.statusId}
+                        key={s.id}
                         status={s}
                         onUpdateName={handleUpdateName}
                         onUpdateColor={handleUpdateColor}
@@ -363,7 +368,7 @@ export function CreateStatusForm({
                     onBlur={() => {
                       if (name.trim()) {
                         const newStatus: Status = {
-                          statusId: `temp-${Date.now()}`,
+                          id: `temp-${Date.now()}`,
                           name: name.trim(),
                           color: PRESET_COLORS[0],
                           category: cat as StatusCategory,
@@ -377,7 +382,7 @@ export function CreateStatusForm({
                     onKeyDown={(e) => {
                       if (e.key === "Enter" && name.trim()) {
                         const newStatus: Status = {
-                          statusId: `temp-${Date.now()}`,
+                          id: `temp-${Date.now()}`,
                           name: name.trim(),
                           color: PRESET_COLORS[0],
                           category: cat as StatusCategory,
@@ -417,14 +422,14 @@ export function CreateStatusForm({
           <Button
             className="h-8 text-xs gap-1.5 rounded-md"
             onClick={() => {
-              if (workflowId && workflow) {
-                const originalStatuses = workflow.statuses || [];
-                const newIds = new Set(localStatuses.map(s => s.statusId));
+              if (workflowId) {
+                const originalStatuses = resolvedCurrentStatuses || [];
+                const newIds = new Set(localStatuses.map(s => s.id));
                 const payloads: StatusUpdatePayload[] = [];
 
                 // Deletes
                 for (const s of originalStatuses) {
-                  const sid = s.statusId || s.id;
+                  const sid = s.id || s.id;
                   if (!newIds.has(sid)) {
                     payloads.push({
                       id: sid,
@@ -449,15 +454,15 @@ export function CreateStatusForm({
 
                 // Creates & Updates
                 for (const s of localStatuses) {
-                  const isNew = s.statusId.startsWith("temp-");
+                  const isNew = s.id && typeof s.id === 'string' && s.id.startsWith("temp-");
                   const catGroup = categoryGroups[s.category] || [];
-                  const idx = catGroup.findIndex(item => item.statusId === s.statusId);
+                  const idx = catGroup.findIndex(item => item.id === s.id);
                   
                   const prevKey = idx > 0 ? catGroup[idx - 1].orderKey || null : null;
                   const nextKey = idx < catGroup.length - 1 ? catGroup[idx + 1].orderKey || null : null;
 
                   payloads.push({
-                    id: isNew ? null : s.statusId,
+                    id: isNew ? null : s.id,
                     name: s.name,
                     color: s.color,
                     category: s.category,
@@ -467,7 +472,7 @@ export function CreateStatusForm({
                   });
                 }
 
-                updateStatuses({ workflowId: workflow.id, statuses: payloads });
+                updateStatuses({ workflowId, statuses: payloads });
               } else {
                 onApplyChanges?.(localStatuses);
               }

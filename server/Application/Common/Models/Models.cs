@@ -38,7 +38,6 @@ public record FolderRecord
     public string? OrderKey { get; init; }
     public string? Icon { get; init; }
     public string? Color { get; init; }
-    public bool? IsPrivate { get; init; }
     public bool? HasTasks { get; init; }
     public Guid? ParentId { get; init; }
 }

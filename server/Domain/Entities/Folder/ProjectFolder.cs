@@ -37,7 +37,7 @@ public sealed class ProjectFolder : TenantEntity
         InitializeAudit(creatorId);
     }
 
-    public static ProjectFolder Create(Guid projectWorkspaceId, Guid projectSpaceId, string name, string slug, Guid defaultDocumentId, string orderKey, bool isPrivate, Guid creatorId, string? color = null, string? icon = null, DateTimeOffset? startDate = null, DateTimeOffset? dueDate = null, Priority? priority = null)
+    public static ProjectFolder Create(Guid projectWorkspaceId, Guid projectSpaceId, string name, string slug, string orderKey, Guid creatorId, string? color = null, string? icon = null, DateTimeOffset? startDate = null, DateTimeOffset? dueDate = null, Priority? priority = null)
     {
         var folder = new ProjectFolder(
             Guid.NewGuid(), 
@@ -45,9 +45,9 @@ public sealed class ProjectFolder : TenantEntity
             projectSpaceId, 
             name,
             slug,
-            defaultDocumentId, 
+            Guid.Empty, 
             orderKey, 
-            isPrivate, 
+            false, 
             creatorId, 
             color ?? "#FFFFFF", 
             icon,
@@ -58,16 +58,14 @@ public sealed class ProjectFolder : TenantEntity
         return folder;
     }
 
-    public static ProjectFolder CreateDefault(Guid projectWorkspaceId, Guid projectSpaceId, Guid defaultDocumentId, Guid creatorId)
+    public static ProjectFolder CreateDefault(Guid projectWorkspaceId, Guid projectSpaceId, Guid creatorId)
     {
         return Create(
             projectWorkspaceId,
             projectSpaceId,
             "Getting Started",
             "getting-started",
-            defaultDocumentId,
             FractionalIndex.Start(),
-            isPrivate: false,
             creatorId: creatorId
         );
     }

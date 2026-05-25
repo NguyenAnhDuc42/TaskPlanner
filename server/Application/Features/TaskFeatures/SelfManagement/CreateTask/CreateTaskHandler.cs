@@ -1,13 +1,13 @@
 using Microsoft.EntityFrameworkCore;
 namespace Application;
 
-public class CreateTaskHandler(TaskPlanDbContext db, WorkspaceContext context) : ICommandHandler<CreateTaskCommand, Guid>
+public class CreateTaskHandler(TaskPlanDbContext db, WorkspaceContext context, RealtimeService realtimeService) : ICommandHandler<CreateTaskCommand, Guid>
 {
     public async Task<Result<Guid>> Handle(CreateTaskCommand request, CancellationToken ct)
     {
         var ancestors = await HierarchyHelper.GetAncestorChain(db, request.ParentId, request.ParentType, ct);
 
-        return await db.ExecuteInTransactionAsync(async () =>
+        var result = await db.ExecuteInTransactionAsync(async () =>
         {
             string orderKey = request.ParentType switch
             {
@@ -72,6 +72,13 @@ public class CreateTaskHandler(TaskPlanDbContext db, WorkspaceContext context) :
 
             return Result<Guid>.Success(task.Id);
         }, ct);
+
+        if (result.IsSuccess)
+        {
+            await realtimeService.NotifyWorkspaceAsync(context.workspaceId, "TaskUpdated", new { TaskId = result.Value, FolderId = request.ParentId }, ct);
+        }
+
+        return result;
     }
 
     private async Task<string> ResolveFolderOrderKey(Guid folderId, CancellationToken ct)

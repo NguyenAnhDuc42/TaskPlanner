@@ -4,20 +4,6 @@ using Dapper;
 
 namespace Application;
 
-public class TaskRow
-{
-    public Guid Id { get; init; }
-    public string Name { get; init; } = null!;
-    public Guid? StatusId { get; init; }
-    public Priority? Priority { get; init; }
-    public string? OrderKey { get; init; }
-    public Guid? ProjectFolderId { get; init; }
-    public Guid? ProjectSpaceId { get; init; }
-    public string? Color { get; init; }
-    public string? Icon { get; init; }
-    public string? ParentType { get; init; }
-}
-
 public class GetNodeTasksHandler(TaskPlanDbContext db, CursorHelper cursorHelper) : IQueryHandler<GetNodeTasksQuery, PagedResult<TaskRecord>>
 {
     public async Task<Result<PagedResult<TaskRecord>>> Handle(GetNodeTasksQuery request, CancellationToken ct)
@@ -68,12 +54,12 @@ public class GetNodeTasksHandler(TaskPlanDbContext db, CursorHelper cursorHelper
             PageSize = request.Pagination.PageSize + 1
         };
 
-        var rawTasks = (await connection.QueryAsync<TaskRow>(sql, parameters)).AsList();
+        var mappedTasks = (await connection.QueryAsync<TaskRecord>(sql, parameters)).AsList();
 
-        var hasMore = rawTasks.Count > request.Pagination.PageSize;
-        if (hasMore) rawTasks.RemoveAt(rawTasks.Count - 1);
+        var hasMore = mappedTasks.Count > request.Pagination.PageSize;
+        if (hasMore) mappedTasks.RemoveAt(mappedTasks.Count - 1);
 
-        var last = rawTasks.LastOrDefault();
+        var last = mappedTasks.LastOrDefault();
         string? nextCursor = null;
 
         if (hasMore && last != null)
@@ -85,20 +71,6 @@ public class GetNodeTasksHandler(TaskPlanDbContext db, CursorHelper cursorHelper
             });
             nextCursor = cursorHelper.EncodeCursor(data);
         }
-
-        var mappedTasks = rawTasks.Select(x => new TaskRecord
-        {
-            Id = x.Id,
-            Name = x.Name,
-            StatusId = x.StatusId,
-            Priority = x.Priority,
-            OrderKey = x.OrderKey,
-            ProjectFolderId = x.ProjectFolderId,
-            ProjectSpaceId = x.ProjectSpaceId,
-            Color = x.Color,
-            Icon = x.Icon,
-            ParentType = x.ParentType
-        }).ToList();
 
         return Result<PagedResult<TaskRecord>>.Success(new PagedResult<TaskRecord>(mappedTasks, nextCursor, hasMore));
     }

@@ -71,18 +71,14 @@ export const useHierarchyStore = create<HierarchyState>((set) => ({
 
   setTasks: (parentId, tasks) => set((state) => {
     const newTasks = { ...state.tasks };
-    const taskIds = state.tasksByParent[parentId] ? [...state.tasksByParent[parentId]] : [];
     
     tasks.forEach(t => {
       newTasks[t.id] = t;
-      if (!taskIds.includes(t.id)) {
-        taskIds.push(t.id);
-      }
     });
 
     return { 
       tasks: newTasks,
-      tasksByParent: { ...state.tasksByParent, [parentId]: taskIds }
+      tasksByParent: { ...state.tasksByParent, [parentId]: tasks.map(t => t.id) }
     };
   }),
 

@@ -23,7 +23,7 @@ public class FoldersController : ControllerBase
     public async Task<IActionResult> GetDetail(Guid id, CancellationToken ct)
     {
         var query = new GetFolderDetailQuery(id);
-        var result = await _handler.QueryAsync<GetFolderDetailQuery, FolderDetailDto>(query, ct);
+        var result = await _handler.QueryAsync<GetFolderDetailQuery, FolderDetailResponse>(query, ct);
         return result.ToActionResult();
     }
 
@@ -53,14 +53,22 @@ public class FoldersController : ControllerBase
         var result = await _handler.SendAsync(new DeleteFolderCommand(id), ct);
         return result.ToActionResult();
     }
-
-    [HttpGet("{id:guid}/items")]
-    public async Task<IActionResult> GetItems(Guid id, CancellationToken ct)
+    
+    [HttpPost("{id:guid}/tasks")]
+    public async Task<IActionResult> GetTasks(Guid id, [FromBody] GetFolderTasksQuery request, CancellationToken ct = default)
     {
-        var result = await _handler.QueryAsync<GetFolderItemsQuery, TaskViewData>(new GetFolderItemsQuery(id), ct);
+        var result = await _handler.QueryAsync<GetFolderTasksQuery, PagedResult<TaskRecord>>(request with { FolderId = id }, ct);
+        return result.ToActionResult();
+    }
+
+    [HttpPost("{id:guid}/tasks/batch")]
+    public async Task<IActionResult> BatchUpdateTasks(Guid id, [FromBody] BatchUpdateFolderTasksCommand request, CancellationToken ct = default)
+    {
+        var result = await _handler.SendAsync(request with { FolderId = id }, ct);
         return result.ToActionResult();
     }
 }
+
 
 public record UpdateFolderRequest(
     string? Name,

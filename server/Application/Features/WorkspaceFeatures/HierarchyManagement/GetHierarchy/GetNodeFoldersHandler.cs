@@ -4,18 +4,6 @@ using Dapper;
 
 namespace Application;
 
-public class FolderRow
-{
-    public Guid Id { get; init; }
-    public Guid ParentId { get; init; }
-    public string Name { get; init; } = null!;
-    public string? Color { get; init; }
-    public string? Icon { get; init; }
-    public bool IsPrivate { get; init; }
-    public string? OrderKey { get; init; }
-    public bool? HasTasks { get; init; }
-}
-
 public class GetNodeFoldersHandler(TaskPlanDbContext db, CursorHelper cursorHelper) : IQueryHandler<GetNodeFoldersQuery, PagedResult<FolderRecord>>
 {
     public async Task<Result<PagedResult<FolderRecord>>> Handle(GetNodeFoldersQuery request, CancellationToken ct)
@@ -27,7 +15,6 @@ public class GetNodeFoldersHandler(TaskPlanDbContext db, CursorHelper cursorHelp
                 f.name AS Name,
                 f.custom_color AS Color,
                 f.custom_icon AS Icon,
-                f.is_private AS IsPrivate,
                 f.order_key AS OrderKey,
                 EXISTS (
                     SELECT 1 FROM project_tasks t
@@ -60,12 +47,12 @@ public class GetNodeFoldersHandler(TaskPlanDbContext db, CursorHelper cursorHelp
             PageSize = request.Pagination.PageSize + 1
         };
 
-        var rawFolders = (await connection.QueryAsync<FolderRow>(sql, parameters)).AsList();
+        var mappedFolders = (await connection.QueryAsync<FolderRecord>(sql, parameters)).AsList();
 
-        var hasMore = rawFolders.Count > request.Pagination.PageSize;
-        if (hasMore) rawFolders.RemoveAt(rawFolders.Count - 1);
+        var hasMore = mappedFolders.Count > request.Pagination.PageSize;
+        if (hasMore) mappedFolders.RemoveAt(mappedFolders.Count - 1);
 
-        var last = rawFolders.LastOrDefault();
+        var last = mappedFolders.LastOrDefault();
         string? nextCursor = null;
 
         if (hasMore && last != null)
@@ -77,18 +64,6 @@ public class GetNodeFoldersHandler(TaskPlanDbContext db, CursorHelper cursorHelp
             });
             nextCursor = cursorHelper.EncodeCursor(data);
         }
-
-        var mappedFolders = rawFolders.Select(x => new FolderRecord
-        {
-            Id = x.Id,
-            ParentId = x.ParentId,
-            Name = x.Name,
-            Color = x.Color,
-            Icon = x.Icon,
-            IsPrivate = x.IsPrivate,
-            OrderKey = x.OrderKey,
-            HasTasks = x.HasTasks
-        }).ToList();
 
         return Result<PagedResult<FolderRecord>>.Success(new PagedResult<FolderRecord>(mappedFolders, nextCursor, hasMore));
     }

@@ -47,7 +47,7 @@ public class WorkspaceService(
                 var folderDoc = Document.Create(workspace.Id, "Getting Started", creatorId);
                 await db.Documents.AddAsync(folderDoc);
 
-                var folder = ProjectFolder.CreateDefault(workspace.Id, space.Id, folderDoc.Id, creatorId);
+                var folder = ProjectFolder.CreateDefault(workspace.Id, space.Id, creatorId);
                 await db.ProjectFolders.AddAsync(folder);
                 
                 db.ViewDefinitions.AddRange(

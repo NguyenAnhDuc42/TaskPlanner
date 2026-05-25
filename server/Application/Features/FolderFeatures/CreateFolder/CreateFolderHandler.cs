@@ -26,23 +26,13 @@ public class CreateFolderHandler(
             var orderKey = maxKey is null ? FractionalIndex.Start() : FractionalIndex.After(maxKey);
             var slug = SlugHelper.GenerateSlug(request.name);
 
-            // 1. Create the primary document for this folder
-            var document = Document.Create(
-                context.workspaceId,
-                request.name, 
-                context.CurrentMember.Id
-            );
-            await db.Documents.AddAsync(document, ct);
-
-            // 2. Create the folder linked to the document
+            // 2. Create the folder 
             var folder = ProjectFolder.Create(
                 projectWorkspaceId: context.workspaceId,
                 projectSpaceId: space.Id,
                 name: request.name,
                 slug: slug,
-                defaultDocumentId: document.Id,
                 orderKey: orderKey,
-                isPrivate: false,
                 creatorId: context.CurrentMember.Id,
                 color: request.color,
                 icon: request.icon,

@@ -4,19 +4,6 @@ using Dapper;
 
 namespace Application;
 
-public class SpaceRow
-{
-    public Guid Id { get; init; }
-    public string Name { get; init; } = null!;
-    public string? Color { get; init; }
-    public string? Icon { get; init; }
-    public bool IsPrivate { get; init; }
-    public string? OrderKey { get; init; }
-    public DateTimeOffset? CreatedAt { get; init; }
-    public bool? HasFolders { get; init; }
-    public bool? HasTasks { get; init; }
-}
-
 public class GetNodeSpacesHandler(TaskPlanDbContext db, CursorHelper cursorHelper) : IQueryHandler<GetNodeSpacesQuery, PagedResult<SpaceRecord>>
 {
     public async Task<Result<PagedResult<SpaceRecord>>> Handle(GetNodeSpacesQuery request, CancellationToken ct)
@@ -69,12 +56,12 @@ public class GetNodeSpacesHandler(TaskPlanDbContext db, CursorHelper cursorHelpe
             PageSize = request.Pagination.PageSize + 1
         };
 
-        var rawSpaces = (await connection.QueryAsync<SpaceRow>(sql, parameters)).AsList();
+        var mappedSpaces = (await connection.QueryAsync<SpaceRecord>(sql, parameters)).AsList();
 
-        var hasMore = rawSpaces.Count > request.Pagination.PageSize;
-        if (hasMore) rawSpaces.RemoveAt(rawSpaces.Count - 1);
+        var hasMore = mappedSpaces.Count > request.Pagination.PageSize;
+        if (hasMore) mappedSpaces.RemoveAt(mappedSpaces.Count - 1);
 
-        var last = rawSpaces.LastOrDefault();
+        var last = mappedSpaces.LastOrDefault();
         string? nextCursor = null;
 
         if (hasMore && last != null)
@@ -86,19 +73,6 @@ public class GetNodeSpacesHandler(TaskPlanDbContext db, CursorHelper cursorHelpe
             });
             nextCursor = cursorHelper.EncodeCursor(data);
         }
-
-        var mappedSpaces = rawSpaces.Select(x => new SpaceRecord
-        {
-            Id = x.Id,
-            Name = x.Name,
-            Color = x.Color,
-            Icon = x.Icon,
-            IsPrivate = x.IsPrivate,
-            OrderKey = x.OrderKey,
-            CreatedAt = x.CreatedAt,
-            HasFolders = x.HasFolders,
-            HasTasks = x.HasTasks
-        }).ToList();
 
         return Result<PagedResult<SpaceRecord>>.Success(new PagedResult<SpaceRecord>(mappedSpaces, nextCursor, hasMore));
     }

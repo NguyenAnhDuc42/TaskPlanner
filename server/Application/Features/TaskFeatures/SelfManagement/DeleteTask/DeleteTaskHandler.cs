@@ -2,7 +2,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Application;
 
-public class DeleteTaskHandler(TaskPlanDbContext db) : ICommandHandler<DeleteTaskCommand>
+public class DeleteTaskHandler(TaskPlanDbContext db, WorkspaceContext context, RealtimeService realtimeService) : ICommandHandler<DeleteTaskCommand>
 {
     public async Task<Result> Handle(DeleteTaskCommand request, CancellationToken ct)
     {
@@ -15,6 +15,8 @@ public class DeleteTaskHandler(TaskPlanDbContext db) : ICommandHandler<DeleteTas
 
         task.SoftDelete();
         await db.SaveChangesAsync(ct);
+
+        await realtimeService.NotifyWorkspaceAsync(context.workspaceId, "TaskUpdated", new { TaskId = task.Id, FolderId = task.ProjectFolderId, SpaceId = task.ProjectSpaceId }, ct);
 
         return Result.Success();
     }
