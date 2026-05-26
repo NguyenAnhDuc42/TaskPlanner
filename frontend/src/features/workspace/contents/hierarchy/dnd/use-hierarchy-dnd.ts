@@ -9,7 +9,6 @@ import {
 import { sortableKeyboardCoordinates } from "@dnd-kit/sortable";
 import { EntityLayerType as EntityLayerConst } from "@/types/entity-layer-type";
 import { useState } from "react";
-import { useDebounceCallback } from "@/hooks/use-debounce";
 import { handleSpaceMove } from "./handlers/handle-space-move";
 import { handleFolderMove } from "./handlers/handle-folder-move";
 import { handleTaskMove } from "./handlers/handle-task-move";
@@ -18,16 +17,11 @@ import type { MoveItemRequest } from "../hierarchy-api";
 
 interface UseHierarchyDndProps {
   workspaceId: string;
-  moveItem: {
-    mutate: (data: MoveItemRequest, options?: { onError?: () => void }) => void;
-  };
+  moveItem: (args: { workspaceId: string; body: MoveItemRequest }) => Promise<unknown>;
 }
 
 export function useHierarchyDnd({ workspaceId, moveItem }: UseHierarchyDndProps) {
   const [activeItem, setActiveItem] = useState<DragItemData | null>(null);
-
-  // Debounce the actual API call
-  const debouncedMoveItem = useDebounceCallback(moveItem.mutate, 1000);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -41,7 +35,6 @@ export function useHierarchyDnd({ workspaceId, moveItem }: UseHierarchyDndProps)
   const handleDragStart = (event: DragStartEvent) => {
     const data = event.active.data.current;
     if (!data) return;
-
     setActiveItem(data as DragItemData);
   };
 
@@ -56,14 +49,15 @@ export function useHierarchyDnd({ workspaceId, moveItem }: UseHierarchyDndProps)
 
     if (!activeData || !overData) return;
 
+    // Direct, type-safe movement routing
     if (activeData.type === EntityLayerConst.ProjectSpace) {
-      handleSpaceMove(workspaceId, activeData, overData, debouncedMoveItem);
+      handleSpaceMove(workspaceId, activeData, overData, moveItem);
     } 
     else if (activeData.type === EntityLayerConst.ProjectFolder) {
-      handleFolderMove(activeData, overData, debouncedMoveItem);
+      handleFolderMove(workspaceId, activeData, overData, moveItem);
     }
     else if (activeData.type === EntityLayerConst.ProjectTask) {
-      handleTaskMove(activeData, overData, debouncedMoveItem);
+      handleTaskMove(workspaceId, activeData, overData, moveItem);
     }
   };
 

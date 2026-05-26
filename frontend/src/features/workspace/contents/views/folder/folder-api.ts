@@ -1,10 +1,12 @@
-import { api } from "@/lib/api-client";
-import { useMutation, useInfiniteQuery, useQuery } from "@tanstack/react-query";
-import type { PagedResult } from "@/types/paged-result";
+import { workspaceApi } from "@/store/workspaceApi";
+import { folderSlice, taskSlice, statusSlice, taskSelectors, folderSelectors } from "@/store/entityStore";
+import { useSelector } from "react-redux";
+import type { RootState } from "@/store";
 import type { TaskRecord } from "@/types/projects/task-record";
-import type { Status } from "@/types/status";
-
 import type { FolderRecord } from "@/types/projects/folder-record";
+import type { PagedResult } from "@/types/paged-result";
+import { Priority } from "@/types/priority";
+import type { Status } from "@/types/status";
 
 export interface FolderDetailResponse {
   folder: FolderRecord;
@@ -21,60 +23,120 @@ export interface TaskFilter {
   search?: string;
 }
 
-export interface GetFolderTasksRequest {
-  cursor?: string | null;
-  limit?: number;
-  filter?: TaskFilter;
-}
-
 export interface BatchUpdateFolderTaskValue {
   id: string;
   statusId?: string | null;
-  priority?: string | null;
+  priority?: Priority | null;
   startDate?: string | null;
   dueDate?: string | null;
   orderKey?: string | null;
   isDeleted?: boolean | null;
 }
 
-export async function getFolderDetail(folderId: string): Promise<FolderDetailResponse> {
-  const { data } = await api.get(`/folders/${folderId}`);
-  return data;
-}
+// 1. Inject Folder endpoints directly into our central base query (100% Type-Safe)
+export const folderApi = workspaceApi.injectEndpoints({
+  endpoints: (build) => ({
+    getFolderDetail: build.query<FolderDetailResponse, string>({
+      query: (folderId) => ({ url: `/folders/${folderId}`, method: 'GET' }),
+      async onQueryStarted(folderId, { dispatch, queryFulfilled }) {
+        try {
+          const { data } = await queryFulfilled;
+          dispatch(folderSlice.actions.upsert(data.folder));
+          dispatch(statusSlice.actions.upsertMany(data.statuses));
+        } catch {}
+      }
+    }),
 
-export const folderQueryOptions = {
-  detail: (folderId: string) => ({
-    queryKey: ["folderDetail", folderId],
-    queryFn: () => getFolderDetail(folderId),
-  }),
-  tasks: (folderId: string, filter?: TaskFilter, limit = 50) => ({
-    queryKey: ["folderTasks", folderId, filter],
-    queryFn: ({ pageParam }: { pageParam?: string | null }) => getFolderTasks(folderId, { cursor: pageParam, limit, filter }),
-    getNextPageParam: (lastPage: PagedResult<TaskRecord>) => (lastPage.hasNextPage ? lastPage.nextCursor : undefined),
-    initialPageParam: undefined as string | undefined | null,
-  }),
-};
+    getFolderTasks: build.query<PagedResult<TaskRecord>, { folderId: string; cursor?: string | null; filter?: TaskFilter }>({
+      query: ({ folderId, cursor, filter }) => ({
+        url: `/folders/${folderId}/tasks`,
+        method: 'POST',
+        data: { cursor, limit: 50, filter }
+      }),
+      async onQueryStarted(_, { dispatch, queryFulfilled }) {
+        try {
+          const { data } = await queryFulfilled;
+          dispatch(taskSlice.actions.upsertMany(data.items));
+        } catch {}
+      }
+    }),
 
-export function useGetFolderDetail(folderId: string) {
-  return useQuery(folderQueryOptions.detail(folderId));
-}
+    batchUpdateFolderTasks: build.mutation<void, { folderId: string; updates: BatchUpdateFolderTaskValue[] }>({
+      query: ({ folderId, updates }) => ({
+        url: `/folders/${folderId}/tasks/batch`,
+        method: 'POST',
+        data: { folderId, updates }
+      }),
+      async onQueryStarted({ updates }, { dispatch, queryFulfilled, getState }) {
+        const state = getState() as RootState;
+        
+        // 1. Snapshot ONLY the specific original keys of the target tasks for type-safe granular rollback
+        const originalTasks = updates
+          .map((u) => taskSelectors.selectById(state, u.id))
+          .filter((t): t is TaskRecord => !!t);
 
-export async function getFolderTasks(folderId: string, req: GetFolderTasksRequest): Promise<PagedResult<TaskRecord>> {
-  const { data } = await api.post(`/folders/${folderId}/tasks`, req);
-  return data;
-}
+        // 2. Perform Optimistic Update instantly on Redux
+        dispatch(taskSlice.actions.upsertMany(updates as Partial<TaskRecord>[]));
 
-export function useGetFolderTasks(folderId: string, filter?: TaskFilter, limit = 50) {
-  return useInfiniteQuery(folderQueryOptions.tasks(folderId, filter, limit));
-}
+        try {
+          await queryFulfilled;
+        } catch {
+          // 3. Rollback on failure
+          dispatch(taskSlice.actions.upsertMany(originalTasks));
+        }
+      }
+    }),
 
-export async function batchUpdateFolderTasks(folderId: string, updates: BatchUpdateFolderTaskValue[]): Promise<void> {
-  await api.post(`/folders/${folderId}/tasks/batch`, { folderId, updates });
-}
+    updateFolderField: build.mutation<void, { folderId: string; patches: Partial<FolderRecord> }>({
+      query: ({ folderId, patches }) => ({
+        url: `/folders/${folderId}`,
+        method: 'PATCH',
+        data: patches
+      }),
+      async onQueryStarted({ folderId, patches }, { dispatch, queryFulfilled, getState }) {
+        const state = getState() as RootState;
+        const originalFolder = folderSelectors.selectById(state, folderId);
 
+        // 1. Optimistic update
+        dispatch(folderSlice.actions.upsert({ id: folderId, ...patches }));
+
+        try {
+          await queryFulfilled;
+        } catch {
+          // 2. Rollback on failure
+          if (originalFolder) {
+            dispatch(folderSlice.actions.upsert(originalFolder));
+          }
+        }
+      }
+    })
+  })
+});
+
+// Export Hooks
+export const {
+  useGetFolderDetailQuery,
+  useGetFolderTasksQuery,
+  useBatchUpdateFolderTasksMutation,
+  useUpdateFolderFieldMutation,
+} = folderApi;
+
+// Convenience wrapper — pre-binds folderId so call-sites just pass updates[]
 export function useBatchUpdateFolderTasks(folderId: string) {
-  return useMutation({
-    mutationFn: (updates: BatchUpdateFolderTaskValue[]) => batchUpdateFolderTasks(folderId, updates),
-  });
+  const [mutate, result] = useBatchUpdateFolderTasksMutation();
+  return {
+    ...result,
+    mutate: (updates: BatchUpdateFolderTaskValue[]) => mutate({ folderId, updates }),
+  };
 }
 
+// --- READ CUSTOM SELECTORS (Hooks components call directly to query central tables) ---
+export function useFolderDetail(folderId: string) {
+  return useSelector((state: RootState) => folderSelectors.selectById(state, folderId));
+}
+
+export function useFolderTasksList(folderId: string) {
+  return useSelector((state: RootState) => 
+    Object.values(state.tasks.entities).filter((t): t is TaskRecord => !!t && t.projectFolderId === folderId)
+  );
+}

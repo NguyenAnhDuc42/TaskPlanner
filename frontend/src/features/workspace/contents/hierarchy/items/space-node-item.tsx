@@ -5,15 +5,16 @@ import { useNavigate, useLocation } from "@tanstack/react-router";
 import { useWorkspace } from "@/features/workspace/context/workspace-provider";
 import { cn } from "@/lib/utils";
 import { Collapsible, CollapsibleContent } from "@/components/ui/collapsible";
+import { useSelector } from "react-redux";
+import { spaceSelectors } from "@/store/entityStore";
+import { hierarchyApi } from "../hierarchy-api";
+import type { RootState } from "@/store";
 
 import { FadeTruncate } from "@/components/fade-truncate";
 import { NodeTasksList } from "./node-tasks-list";
 import { EntityLayerType as EntityLayerConst } from "@/types/entity-layer-type";
-import { useHierarchyStore } from "../use-hierarchy-store";
-import { useQueryClient } from "@tanstack/react-query";
 import { SortableItem } from "../dnd/sortable-item";
 import { NodeFoldersList } from "./node-folders-list";
-import { prefetchNodeFolders, prefetchNodeTasks } from "../hierarchy-api";
 import { SpaceContextMenu } from "../hierarchy-components/context-menus/space-context-menu";
 import { EntityMenuTrigger } from "../hierarchy-components/context-menus/shared";
 
@@ -27,9 +28,14 @@ export const SpaceNodeItem = React.memo(function SpaceNodeItem({
   isForcedOpen,
 }: SpaceNodeItemProps) {
   const { workspaceId } = useWorkspace();
-  const space = useHierarchyStore((state) => state.spaces[spaceId]);
   
-  const queryClient = useQueryClient();
+  // Select Space strictly from Redux
+  const space = useSelector((state: RootState) => spaceSelectors.selectById(state, spaceId));
+  
+  // Generate prefetch triggers using RTK Query
+  const prefetchFolders = hierarchyApi.usePrefetch("getNodeFolders");
+  const prefetchTasks = hierarchyApi.usePrefetch("getNodeTasks");
+
   const navigate = useNavigate();
   const location = useLocation();
   const [isOpen, setIsOpen] = React.useState(false);
@@ -48,9 +54,7 @@ export const SpaceNodeItem = React.memo(function SpaceNodeItem({
   const IconComponent: LucideIcon =(Icons[iconName] as unknown as LucideIcon) ?? Icons.LayoutGrid;
   const spaceColor = space.color || "var(--primary)";
 
-  
   const effectiveOpen = isForcedOpen || isOpen;
-
   const hasChildren = space.hasFolders || space.hasTasks;
 
   return (
@@ -84,13 +88,9 @@ export const SpaceNodeItem = React.memo(function SpaceNodeItem({
               className="relative flex items-center justify-center w-5 h-5 shrink-0 cursor-pointer rounded-sm hover:bg-background/50 group/icon mr-1.5"
               onMouseEnter={() => {
                 if (effectiveOpen || !workspaceId || !hasChildren) return;
-                prefetchNodeFolders(queryClient, workspaceId, space.id);
-                prefetchNodeTasks(
-                  queryClient,
-                  workspaceId,
-                  space.id,
-                  EntityLayerConst.ProjectSpace,
-                );
+                // Prefetch both folders and tasks into Redux database on hover!
+                prefetchFolders({ workspaceId: workspaceId || "", nodeId: space.id, cursor: null });
+                prefetchTasks({ workspaceId: workspaceId || "", nodeId: space.id, parentType: EntityLayerConst.ProjectSpace, cursor: null });
               }}
               onClick={(e) => {
                 if (!hasChildren) return;
@@ -120,7 +120,6 @@ export const SpaceNodeItem = React.memo(function SpaceNodeItem({
               className="text-[11px] font-bold flex-1"
             />
 
-            {/* Action Area: Lock and 3-dots */}
             <div className="flex items-center gap-0.5 min-w-fit">
               {space.isPrivate && (
                 <Lock className="h-3 w-3 text-muted-foreground/40 shrink-0" />

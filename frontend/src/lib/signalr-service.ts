@@ -4,25 +4,48 @@ import {
   HubConnectionState,
   LogLevel,
 } from "@microsoft/signalr";
+import type { SpaceRecord, FolderRecord, TaskRecord } from "@/types/projects";
+import type { MemberRecord } from "@/types/workspace/member-record";
 
-type SignalRListener = {
-  eventName: string;
-  callback: (...args: any[]) => void;
+// The transactional update packet (1 level deep flat entities for multiple rows and types)
+export interface EntityBatchUpdate {
+  spaces?: (Partial<SpaceRecord> & { id: string })[];
+  folders?: (Partial<FolderRecord> & { id: string })[];
+  tasks?: (Partial<TaskRecord> & { id: string })[];
+  members?: (Partial<MemberRecord> & { id: string })[];
+}
+
+// The transactional deletion packet
+export interface EntityBatchDelete {
+  spaceIds?: string[];
+  folderIds?: string[];
+  taskIds?: string[];
+  memberIds?: string[];
+}
+
+// 1. Strict contract for all SignalR events (Zero loose types, decoupled from specific view features)
+export interface SignalREvents {
+  EntitiesUpdated: EntityBatchUpdate;
+  EntitiesDeleted: EntityBatchDelete;
+}
+
+type SignalRListener<E extends keyof SignalREvents> = {
+  eventName: E;
+  callback: (data: SignalREvents[E]) => void;
 };
 
 class SignalRService {
   private connection: HubConnection | null = null;
   private startPromise: Promise<void> | null = null;
   private url: string = "https://localhost:7285/hubs/workspace";
-  private pendingListeners: SignalRListener[] = [];
+  private pendingListeners: SignalRListener<keyof SignalREvents>[] = [];
+  private reconnectCallbacks: Array<() => void> = [];
 
   public async startConnection(): Promise<void> {
-    // If already connected, return
     if (this.connection?.state === HubConnectionState.Connected) {
       return;
     }
 
-    // If already starting, return the existing promise
     if (this.startPromise) {
       return this.startPromise;
     }
@@ -35,22 +58,35 @@ class SignalRService {
       .configureLogging(LogLevel.Information)
       .build();
 
-    // Register any listeners that were queued before the connection existed
+    // 2. Strong reconnect event handling
+    this.connection.onreconnected((connectionId) => {
+      console.log("[SignalR] Reconnected with ID:", connectionId);
+      this.reconnectCallbacks.forEach((cb) => cb());
+    });
+
     this.flushPendingListeners();
 
-    this.startPromise = (async () => {
+    // The startPromise now wraps the entire connection retry chain so concurrent callers always await resolution
+    this.startPromise = new Promise<void>((resolve, reject) => {
+      const tryStart = async () => {
+        try {
+          await this.connection!.start();
+          console.log("[SignalR] Connection started");
+          this.startPromise = null;
+          resolve();
+        } catch (err) {
+          console.error("[SignalR] Error starting connection, retrying in 5s: " + err);
+          setTimeout(() => tryStart(), 5000);
+        }
+      };
+
       try {
-        await this.connection!.start();
-        console.log("[SignalR] Connection started");
+        tryStart();
       } catch (err) {
-        console.error("[SignalR] Error while starting connection: " + err);
         this.startPromise = null;
-        setTimeout(() => this.startConnection(), 5000);
-        throw err;
-      } finally {
-        this.startPromise = null;
+        reject(err);
       }
-    })();
+    });
 
     return this.startPromise;
   }
@@ -59,32 +95,45 @@ class SignalRService {
     if (!this.connection) return;
     
     this.pendingListeners.forEach(({ eventName, callback }) => {
-      this.connection!.on(eventName, callback);
+      this.connection!.on(eventName, callback as (data: unknown) => void);
     });
     this.pendingListeners = [];
   }
 
-  public on(eventName: string, callback: (...args: any[]) => void): void {
+  // 3. 100% Type-Safe Event subscription
+  public on<E extends keyof SignalREvents>(
+    eventName: E,
+    callback: (data: SignalREvents[E]) => void
+  ): void {
     if (!this.connection) {
-      // Queue it up for when the connection is built
-      this.pendingListeners.push({ eventName, callback });
+      this.pendingListeners.push({ eventName, callback } as SignalRListener<keyof SignalREvents>);
       return;
     }
-    this.connection.on(eventName, callback);
+    this.connection.on(eventName, callback as (data: unknown) => void);
   }
 
-  public off(eventName: string, callback: (...args: any[]) => void): void {
+  public off<E extends keyof SignalREvents>(
+    eventName: E,
+    callback: (data: SignalREvents[E]) => void
+  ): void {
     if (!this.connection) {
-      // Remove from pending if it's there
       this.pendingListeners = this.pendingListeners.filter(
-        l => !(l.eventName === eventName && l.callback === callback)
+        l => !(l.eventName === eventName && l.callback === (callback as unknown as (data: SignalREvents[keyof SignalREvents]) => void))
       );
       return;
     }
-    this.connection.off(eventName, callback);
+    this.connection.off(eventName, callback as (data: unknown) => void);
   }
 
-  public async invoke<T = any>(methodName: string, ...args: any[]): Promise<T> {
+  public onReconnected(callback: () => void): void {
+    this.reconnectCallbacks.push(callback);
+  }
+
+  public offReconnected(callback: () => void): void {
+    this.reconnectCallbacks = this.reconnectCallbacks.filter(cb => cb !== callback);
+  }
+
+  public async invoke<T = void>(methodName: string, ...args: unknown[]): Promise<T> {
     if (!this.connection) {
       throw new Error("[SignalR] Connection not initialized");
     }
@@ -96,6 +145,8 @@ class SignalRService {
       await this.connection.stop();
       this.connection = null;
       this.pendingListeners = [];
+      this.reconnectCallbacks = [];
+      this.startPromise = null;
     }
   }
 }

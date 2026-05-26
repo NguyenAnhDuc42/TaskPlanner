@@ -3,6 +3,9 @@ import { useNavigate } from "@tanstack/react-router";
 import { useWorkspace } from "@/features/workspace/context/workspace-provider";
 import { cn } from "@/lib/utils";
 import { CheckSquare, MoreHorizontal } from "lucide-react";
+import { useSelector } from "react-redux";
+import { taskSelectors } from "@/store/entityStore";
+import type { RootState } from "@/store";
 
 import { SortableItem } from "../dnd/sortable-item";
 import { FadeTruncate } from "@/components/fade-truncate";
@@ -12,7 +15,6 @@ import {
 } from "@/types/entity-layer-type";
 
 import { useLocation } from "@tanstack/react-router";
-import { useHierarchyStore } from "../use-hierarchy-store";
 import { DynamicIcon } from "@/components/dynamic-icon";
 import { TaskContextMenu } from "../hierarchy-components/context-menus/task-context-menu";
 import { EntityMenuTrigger } from "../hierarchy-components/context-menus/shared";
@@ -30,7 +32,9 @@ export const TaskNodeItem = React.memo(function TaskNodeItem({
   parentType,
   spaceId,
 }: TaskNodeItemProps) {
-  const task = useHierarchyStore((state) => state.tasks[taskId]);
+  // Select Task strictly from Redux
+  const task = useSelector((state: RootState) => taskSelectors.selectById(state, taskId));
+  
   const navigate = useNavigate();
   const { workspaceId } = useWorkspace();
   const location = useLocation();
@@ -78,10 +82,7 @@ export const TaskNodeItem = React.memo(function TaskNodeItem({
             text={task.name}
             className="text-[11px] font-semibold flex-1 leading-tight"
           />
-          {/* Action Area: Lock and 3-dots */}
           <div className="flex items-center gap-0.5 min-w-fit">
-            {/* Task-specific private check could go here if implemented */}
-
             <div className="w-0 group-hover:w-4 overflow-hidden opacity-0 group-hover:opacity-100 transition-all duration-300 ease-in-out">
               <EntityMenuTrigger>
                 <button

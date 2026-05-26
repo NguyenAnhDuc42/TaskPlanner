@@ -15,7 +15,7 @@ import { useTaskRealtime } from "../task/task-realtime";
 import { useFolderRealtime } from "../folder/folder-realtime";
 import { LoadingComponent } from "@/components/loading-component";
 import { useNavigate } from "@tanstack/react-router";
-import { useDeleteSpace } from "@/features/workspace/contents/hierarchy/hierarchy-api";
+import { useDeleteSpaceMutation } from "@/features/workspace/contents/hierarchy/hierarchy-api";
 import { SpaceEditorProvider, } from "./space-editor-context";
 
 interface SpaceViewProps {
@@ -51,16 +51,14 @@ function SpaceViewContent({ workspaceId, spaceId }: SpaceViewProps) {
     setRightPanelType((prev) => (prev === type ? null : type));
   };
 
-  const { mutate: deleteSpace } = useDeleteSpace(workspaceId);
+  const [deleteSpaceMutation] = useDeleteSpaceMutation();
   const navigate = useNavigate();
 
   const handleDelete = () => {
     if (window.confirm("Are you sure you want to delete this space?")) {
-      deleteSpace(spaceId, {
-        onSuccess: () => {
-          navigate({ to: `/workspaces/${workspaceId}` });
-        },
-      });
+      deleteSpaceMutation({ workspaceId, spaceId })
+        .unwrap()
+        .then(() => navigate({ to: `/workspaces/${workspaceId}` }));
     }
   };
 

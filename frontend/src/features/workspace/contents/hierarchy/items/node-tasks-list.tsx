@@ -1,14 +1,12 @@
 import React from "react";
 import { useWorkspace } from "@/features/workspace/context/workspace-provider";
-import { useNodeTasks } from "../hierarchy-api";
+import { useGetNodeTasksQuery, useTasksByParent } from "../hierarchy-api";
 import { EntityLayerType } from "@/types/entity-layer-type";
-import { Loader2, Plus } from "lucide-react";
 import {
   SortableContext,
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { TaskNodeItem } from "./task-node-item";
-import { useHierarchyStore } from "../use-hierarchy-store";
 
 const TaskSkeleton = () => (
   <div className="flex items-center gap-2 pl-2 py-1 opacity-20 animate-pulse">
@@ -29,22 +27,19 @@ export const NodeTasksList = React.memo(function NodeTasksList({
   spaceId: string;
 }) {
   const { workspaceId } = useWorkspace();
-  const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isLoading } =
-    useNodeTasks(workspaceId, nodeId, parentType);
+  
+  // 1. Fetch child tasks using Redux Query
+  const { isLoading } = useGetNodeTasksQuery(
+    { workspaceId: workspaceId || "", nodeId, parentType, cursor: null },
+    { skip: !isExpanded } // Only query if expanded
+  );
     
-  const setTasks = useHierarchyStore((state) => state.setTasks);
-  const taskIds = useHierarchyStore((state) => state.tasksByParent[nodeId] || []);
-
-  React.useEffect(() => {
-    if (data?.pages) {
-      const allTasks = data.pages.flatMap((page) => page.items);
-      setTasks(nodeId, allTasks);
-    }
-  }, [data, setTasks, nodeId]);
+  // 2. Select tasks dynamically from our centralized store
+  const tasks = useTasksByParent(nodeId);
 
   if (!isExpanded) return null;
 
-  if (isLoading) {
+  if (isLoading && tasks.length === 0) {
     return (
       <div className="flex flex-col gap-0.5">
         {[1, 2, 3].map((i) => (
@@ -54,39 +49,24 @@ export const NodeTasksList = React.memo(function NodeTasksList({
     );
   }
 
+  if (tasks.length === 0) return null;
+
   return (
     <SortableContext
-      items={taskIds.map((id) => `task-${id}`)}
+      items={tasks.map((t) => `task-${t.id}`)}
       strategy={verticalListSortingStrategy}
     >
       <div className="flex flex-col">
-        {taskIds.map((id) => (
+        {tasks.map((t) => (
           <TaskNodeItem
-            key={id}
-            taskId={id}
+            key={t.id}
+            taskId={t.id}
             parentId={nodeId}
             parentType={parentType}
             spaceId={spaceId}
           />
         ))}
       </div>
-      {hasNextPage && (
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            fetchNextPage();
-          }}
-          disabled={isFetchingNextPage}
-          className="flex items-center gap-2 pl-6 py-1 text-[10px] font-bold uppercase tracking-widest text-muted-foreground hover:text-primary transition-colors disabled:opacity-50"
-        >
-          {isFetchingNextPage ? (
-            <Loader2 className="h-3 w-3 animate-spin" />
-          ) : (
-            <Plus className="h-3 w-3" />
-          )}
-          Load More
-        </button>
-      )}
     </SortableContext>
   );
 });

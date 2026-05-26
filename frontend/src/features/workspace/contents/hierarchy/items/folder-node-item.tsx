@@ -5,14 +5,15 @@ import { useNavigate, useLocation } from "@tanstack/react-router";
 import { useWorkspace } from "@/features/workspace/context/workspace-provider";
 import { cn } from "@/lib/utils";
 import { Collapsible, CollapsibleContent } from "@/components/ui/collapsible";
+import { useSelector } from "react-redux";
+import { folderSelectors } from "@/store/entityStore";
+import { hierarchyApi } from "../hierarchy-api";
+import type { RootState } from "@/store";
 
 import { SortableItem } from "../dnd/sortable-item";
 import { NodeTasksList } from "./node-tasks-list";
 import { FadeTruncate } from "@/components/fade-truncate";
 import { EntityLayerType as EntityLayerConst } from "@/types/entity-layer-type";
-import { useHierarchyStore } from "../use-hierarchy-store";
-import { useQueryClient } from "@tanstack/react-query";
-import { prefetchNodeTasks } from "../hierarchy-api";
 import { FolderContextMenu } from "../hierarchy-components/context-menus/folder-context-menu";
 import { EntityMenuTrigger } from "../hierarchy-components/context-menus/shared";
 
@@ -25,26 +26,28 @@ export const FolderNodeItem = React.memo(function FolderNodeItem({
   folderId,
   spaceId,
 }: FolderNodeItemProps) {
-  const folder = useHierarchyStore((state) => state.folders[folderId]);
+  // Select Folder strictly from Redux
+  const folder = useSelector((state: RootState) => folderSelectors.selectById(state, folderId));
+  
+  // Prefetch trigger using RTK Query
+  const prefetchTasks = hierarchyApi.usePrefetch("getNodeTasks");
+
   const [isOpen, setIsOpen] = useState(false);
   
   const location = useLocation();
   const navigate = useNavigate();
   const { workspaceId } = useWorkspace();
-  const queryClient = useQueryClient();
 
-  // New: Auto-collapse if folder becomes empty
   React.useEffect(() => {
     if (isOpen && folder && !folder.hasTasks) {
       setIsOpen(false);
     }
-  }, [isOpen, folder.hasTasks, folder]);
+  }, [isOpen, folder?.hasTasks, folder]);
 
   if (!folder) return null;
 
   const iconName = (folder.icon ?? "Folder") as keyof typeof Icons;
   const IconComponent: LucideIcon =(Icons[iconName] as unknown as LucideIcon) ?? Icons.Folder;
-  
   const isActive = location.pathname.includes(`/folders/${folder.id}`);
 
   return (
@@ -80,12 +83,8 @@ export const FolderNodeItem = React.memo(function FolderNodeItem({
               className="relative flex items-center justify-center w-5 h-5 shrink-0 cursor-pointer rounded-sm hover:bg-background/50 group/icon mr-1.5"
               onMouseEnter={() => {
                 if (isOpen || !workspaceId || !folder.hasTasks) return;
-                prefetchNodeTasks(
-                  queryClient,
-                  workspaceId,
-                  folder.id,
-                  EntityLayerConst.ProjectFolder,
-                );
+                // Prefetch child tasks on hover!
+                prefetchTasks({ workspaceId: workspaceId || "", nodeId: folder.id, parentType: EntityLayerConst.ProjectFolder, cursor: null });
               }}
               onClick={(e) => {
                 if (!folder.hasTasks) return;
@@ -114,7 +113,6 @@ export const FolderNodeItem = React.memo(function FolderNodeItem({
               className="text-[11px] font-semibold flex-1"
             />
 
-            {/* Action Area: Lock and 3-dots */}
             <div className="flex items-center gap-0.5 min-w-fit">
               {folder.isPrivate && (
                 <Lock className="h-3 w-3 text-muted-foreground/40 shrink-0" />

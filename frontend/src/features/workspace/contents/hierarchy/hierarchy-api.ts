@@ -1,16 +1,12 @@
-import {
-  QueryClient,
-  useInfiniteQuery,
-  useMutation,
-  useQueryClient,
-} from "@tanstack/react-query";
-import { type EntityLayerType } from "@/types/entity-layer-type";
+import { workspaceApi } from "@/store/workspaceApi";
+import { spaceSlice, folderSlice, taskSlice, spaceSelectors, folderSelectors, taskSelectors } from "@/store/entityStore";
+import { useSelector } from "react-redux";
+import type { RootState } from "@/store";
 import type { SpaceRecord, FolderRecord, TaskRecord } from "@/types/projects";
 import type { PagedResult } from "@/types/paged-result";
-import { hierarchyKeys } from "./hierarchy-keys";
-import { api } from "@/lib/api-client";
+import type { EntityLayerType } from "@/types/entity-layer-type";
+import { createSelector } from "@reduxjs/toolkit";
 
-// Request models (We will define these manually for now)
 export interface CreateSpaceRequest {
   name: string;
   isPrivate: boolean;
@@ -53,228 +49,337 @@ export interface MoveItemRequest {
   sourceParentType?: string;
 }
 
-// --- Structure Queries (Sidebar) ---
+export const hierarchyApi = workspaceApi.injectEndpoints({
+  endpoints: (build) => ({
+    // Load spaces paginated
+    getNodeSpaces: build.query<PagedResult<SpaceRecord>, { workspaceId: string; cursor: string | null }>({
+      query: ({ workspaceId, cursor }) => ({
+        url: `/workspaces/${workspaceId}/nodes/spaces`,
+        method: "GET",
+        params: { cursor }
+      }),
+      serializeQueryArgs: ({ endpointName, queryArgs }) => `${endpointName}_${queryArgs.workspaceId}`,
+      merge: (currentCache, newItems) => {
+        if (!currentCache) return newItems;
+        currentCache.items = [...currentCache.items, ...newItems.items];
+        currentCache.nextCursor = newItems.nextCursor;
+        currentCache.hasNextPage = newItems.hasNextPage;
+        return currentCache;
+      },
+      async onQueryStarted(_, { dispatch, queryFulfilled }) {
+        try {
+          const { data } = await queryFulfilled;
+          dispatch(spaceSlice.actions.upsertMany(data.items));
+        } catch {}
+      }
+    }),
 
-export function useNodeSpaces(workspaceId: string) {
-  return useInfiniteQuery({
-    queryKey: hierarchyKeys.detail(workspaceId),
-    queryFn: async ({ pageParam }) => {
-      const { data } = await api.get<PagedResult<SpaceRecord>>(
-        `/workspaces/${workspaceId}/nodes/spaces`,
-        { params: { cursor: pageParam } }
-      );
-      return data;
-    },
-    initialPageParam: null as string | null,
-    getNextPageParam: (lastPage) => lastPage.nextCursor || undefined,
-    enabled: !!workspaceId,
-    staleTime: 1000 * 60 * 5,
-    gcTime: 1000 * 60 * 30,
-  });
+    // Load folders for a space paginated
+    getNodeFolders: build.query<PagedResult<FolderRecord>, { workspaceId: string; nodeId: string; cursor: string | null }>({
+      query: ({ workspaceId, nodeId, cursor }) => ({
+        url: `/workspaces/${workspaceId}/nodes/${nodeId}/folders`,
+        method: "GET",
+        params: { cursor }
+      }),
+      serializeQueryArgs: ({ endpointName, queryArgs }) => `${endpointName}_${queryArgs.nodeId}`,
+      merge: (currentCache, newItems) => {
+        if (!currentCache) return newItems;
+        currentCache.items = [...currentCache.items, ...newItems.items];
+        currentCache.nextCursor = newItems.nextCursor;
+        currentCache.hasNextPage = newItems.hasNextPage;
+        return currentCache;
+      },
+      async onQueryStarted(_, { dispatch, queryFulfilled }) {
+        try {
+          const { data } = await queryFulfilled;
+          dispatch(folderSlice.actions.upsertMany(data.items));
+        } catch {}
+      }
+    }),
+
+    // Load tasks for a folder/space paginated
+    getNodeTasks: build.query<PagedResult<TaskRecord>, { workspaceId: string; nodeId: string; parentType: EntityLayerType; cursor: string | null }>({
+      query: ({ workspaceId, nodeId, parentType, cursor }) => ({
+        url: `/workspaces/${workspaceId}/nodes/${nodeId}/tasks`,
+        method: "GET",
+        params: { parentType, cursor }
+      }),
+      serializeQueryArgs: ({ endpointName, queryArgs }) => `${endpointName}_${queryArgs.nodeId}`,
+      merge: (currentCache, newItems) => {
+        if (!currentCache) return newItems;
+        currentCache.items = [...currentCache.items, ...newItems.items];
+        currentCache.nextCursor = newItems.nextCursor;
+        currentCache.hasNextPage = newItems.hasNextPage;
+        return currentCache;
+      },
+      async onQueryStarted(_, { dispatch, queryFulfilled }) {
+        try {
+          const { data } = await queryFulfilled;
+          dispatch(taskSlice.actions.upsertMany(data.items));
+        } catch {}
+      }
+    }),
+
+    createSpace: build.mutation<SpaceRecord, { workspaceId: string; body: CreateSpaceRequest }>({
+      query: ({ body }) => ({ url: `/spaces`, method: "POST", data: body }),
+      async onQueryStarted({ body }, { dispatch, queryFulfilled }) {
+        // optimistic — fake id until server responds
+        const tempId = `temp_${crypto.randomUUID()}`
+        const optimistic: SpaceRecord = {
+          id: tempId,
+          name: body.name,
+          isPrivate: body.isPrivate,
+          color: body.color ?? null,
+          icon: body.icon ?? null,
+        } as SpaceRecord
+
+        dispatch(spaceSlice.actions.upsert(optimistic))
+
+        try {
+          const { data } = await queryFulfilled
+          // remove temp, add real
+          dispatch(spaceSlice.actions.remove(tempId))
+          dispatch(spaceSlice.actions.upsert(data))
+        } catch {
+          // server failed, remove temp
+          dispatch(spaceSlice.actions.remove(tempId))
+        }
+      }
+    }),
+
+    createFolder: build.mutation<FolderRecord, { workspaceId: string; body: CreateFolderRequest }>({
+      query: ({ body }) => ({ url: `/folders`, method: "POST", data: body }),
+      async onQueryStarted({ body }, { dispatch, queryFulfilled }) {
+        const tempId = `temp_${crypto.randomUUID()}`
+        const optimistic: FolderRecord = {
+          id: tempId,
+          name: body.name,
+          parentId: body.projectSpaceId,
+          isPrivate: body.isPrivate ?? false,
+          color: body.color ?? null,
+          icon: body.icon ?? null,
+          statusId: body.statusId ?? null,
+          startDate: body.startDate ?? null,
+          dueDate: body.dueDate ?? null,
+        } as FolderRecord
+
+        dispatch(folderSlice.actions.upsert(optimistic))
+
+        try {
+          const { data } = await queryFulfilled
+          dispatch(folderSlice.actions.remove(tempId))
+          dispatch(folderSlice.actions.upsert(data))
+        } catch {
+          dispatch(folderSlice.actions.remove(tempId))
+        }
+      }
+    }),
+
+    createTask: build.mutation<TaskRecord, { workspaceId: string; body: CreateTaskRequest }>({
+      query: ({ body }) => ({ url: `/tasks`, method: "POST", data: body }),
+      async onQueryStarted({ body }, { dispatch, queryFulfilled }) {
+        const tempId = `temp_${crypto.randomUUID()}`
+        const optimistic: TaskRecord = {
+          id: tempId,
+          name: body.name,
+          projectFolderId: body.parentType === "ProjectFolder" ? body.parentId : null,
+          projectSpaceId:  body.parentType === "ProjectSpace"  ? body.parentId : null,
+          icon: body.icon ?? null,
+          color: body.color ?? null,
+          statusId: body.statusId ?? null,
+          priority: body.priority ?? null,
+          assigneeIds: body.assignees ?? [],
+          startDate: body.startDate ?? null,
+          dueDate: body.dueDate ?? null,
+        } as TaskRecord
+
+        dispatch(taskSlice.actions.upsert(optimistic))
+
+        try {
+          const { data } = await queryFulfilled
+          dispatch(taskSlice.actions.remove(tempId))
+          dispatch(taskSlice.actions.upsert(data))
+        } catch {
+          dispatch(taskSlice.actions.remove(tempId))
+        }
+      }
+    }),
+
+    deleteSpace: build.mutation<void, { workspaceId: string; spaceId: string }>({
+      query: ({ spaceId }) => ({ url: `/spaces/${spaceId}`, method: "DELETE" }),
+      async onQueryStarted({ spaceId }, { dispatch, queryFulfilled }) {
+        dispatch(spaceSlice.actions.remove(spaceId));
+        try { await queryFulfilled; } catch {}
+      }
+    }),
+
+    deleteFolder: build.mutation<void, { workspaceId: string; folderId: string }>({
+      query: ({ folderId }) => ({ url: `/folders/${folderId}`, method: "DELETE" }),
+      async onQueryStarted({ folderId }, { dispatch, queryFulfilled }) {
+        dispatch(folderSlice.actions.remove(folderId));
+        try { await queryFulfilled; } catch {}
+      }
+    }),
+
+    deleteTask: build.mutation<void, { workspaceId: string; taskId: string }>({
+      query: ({ taskId }) => ({ url: `/tasks/${taskId}`, method: "DELETE" }),
+      async onQueryStarted({ taskId }, { dispatch, queryFulfilled }) {
+        dispatch(taskSlice.actions.remove(taskId));
+        try { await queryFulfilled; } catch {}
+      }
+    }),
+
+    moveItem: build.mutation<void, { workspaceId: string; body: MoveItemRequest }>({
+      query: ({ workspaceId, body }) => ({ url: `/workspaces/${workspaceId}/nodes/move`, method: "POST", data: body }),
+      async onQueryStarted({ workspaceId, body }, { dispatch, queryFulfilled, getState }) {
+        const state = getState() as RootState;
+        const itemId = body.itemId;
+
+        // 1. Instantly update the item's flat properties inside your entity store
+        if (body.itemType === "ProjectSpace") {
+          const space = spaceSelectors.selectById(state, itemId);
+          if (space && body.newOrderKey) {
+            dispatch(spaceSlice.actions.upsert({ ...space, orderKey: body.newOrderKey }));
+          }
+        } 
+        else if (body.itemType === "ProjectFolder") {
+          const folder = folderSelectors.selectById(state, itemId);
+          if (folder && body.newOrderKey) {
+            dispatch(folderSlice.actions.upsert({ ...folder, orderKey: body.newOrderKey, parentId: body.targetParentId }));
+            
+            // 🔥 OPTIMISTIC FLAG UPDATE: Turn on hasFolders for the new target Space
+            const targetSpace = spaceSelectors.selectById(state, body.targetParentId);
+            if (targetSpace) {
+              dispatch(spaceSlice.actions.upsert({ ...targetSpace, hasFolders: true }));
+            }
+          }
+        } 
+        else if (body.itemType === "ProjectTask") {
+          const task = taskSelectors.selectById(state, itemId);
+          if (task && body.newOrderKey) {
+            const isTargetSpace = body.targetParentType === "ProjectSpace";
+            dispatch(taskSlice.actions.upsert({ 
+              ...task, 
+              orderKey: body.newOrderKey, 
+              projectSpaceId: isTargetSpace ? body.targetParentId : task.projectSpaceId,
+              projectFolderId: isTargetSpace ? undefined : body.targetParentId
+            }));
+
+            // 🔥 OPTIMISTIC FLAG UPDATE: Turn on hasTasks for the new target parent
+            if (isTargetSpace) {
+              const targetSpace = spaceSelectors.selectById(state, body.targetParentId);
+              if (targetSpace) {
+                dispatch(spaceSlice.actions.upsert({ ...targetSpace, hasTasks: true }));
+              }
+            } else {
+              const targetFolder = folderSelectors.selectById(state, body.targetParentId);
+              if (targetFolder) {
+                dispatch(folderSlice.actions.upsert({ ...targetFolder, hasTasks: true }));
+              }
+            }
+          }
+        }
+
+        // 2. SURGICALLY UPDATE THE LAZY-LOADED QUERY CACHES
+        if (body.itemType === "ProjectFolder") {
+          dispatch(
+            hierarchyApi.util.updateQueryData("getNodeFolders", { workspaceId, nodeId: body.targetParentId, cursor: null }, (draft) => {
+              if (!draft || !draft.items) return;
+              
+              const itemIndex = draft.items.findIndex(f => f.id === itemId);
+              if (itemIndex !== -1) {
+                draft.items[itemIndex].orderKey = body.newOrderKey ?? draft.items[itemIndex].orderKey;
+              } else {
+                const folder = folderSelectors.selectById(state, itemId);
+                if (folder) {
+                  draft.items.push({ ...folder, orderKey: body.newOrderKey ?? "", parentId: body.targetParentId });
+                }
+              }
+              draft.items.sort((a, b) => (a.orderKey ?? "").localeCompare(b.orderKey ?? ""));
+            })
+          );
+        }
+
+        else if (body.itemType === "ProjectTask") {
+          dispatch(
+            hierarchyApi.util.updateQueryData(
+              "getNodeTasks", 
+              { workspaceId, nodeId: body.targetParentId, parentType: body.targetParentType as EntityLayerType, cursor: null }, 
+              (draft) => {
+                if (!draft || !draft.items) return;
+
+                const itemIndex = draft.items.findIndex(t => t.id === itemId);
+                if (itemIndex !== -1) {
+                  draft.items[itemIndex].orderKey = body.newOrderKey ?? draft.items[itemIndex].orderKey;
+                } else {
+                  const task = taskSelectors.selectById(state, itemId);
+                  if (task) {
+                    const isTargetSpace = body.targetParentType === "ProjectSpace";
+                    draft.items.push({
+                      ...task,
+                      orderKey: body.newOrderKey ?? "",
+                      projectSpaceId: isTargetSpace ? body.targetParentId : task.projectSpaceId,
+                      projectFolderId: isTargetSpace ? undefined : body.targetParentId
+                    });
+                  }
+                }
+                draft.items.sort((a, b) => (a.orderKey ?? "").localeCompare(b.orderKey ?? ""));
+              }
+            )
+          );
+        }
+
+        try {
+          await queryFulfilled;
+        } catch {
+          // If server fails, your fallback/refresh runs
+        }
+      }
+    })
+  })
+});
+
+export const {
+  useGetNodeSpacesQuery,
+  useGetNodeFoldersQuery,
+  useGetNodeTasksQuery,
+  useCreateSpaceMutation,
+  useCreateFolderMutation,
+  useCreateTaskMutation,
+  useDeleteSpaceMutation,
+  useDeleteFolderMutation,
+  useDeleteTaskMutation,
+  useMoveItemMutation,
+} = hierarchyApi;
+
+
+// --- CENTRAL RELATIONAL SELECTORS FOR COMPONENTS ---
+export function useSpaces() {
+  const spaces = useSelector(spaceSelectors.selectAll);
+  return [...spaces].sort((a, b) => (a.orderKey ?? "").localeCompare(b.orderKey ?? ""));
 }
 
-export function useNodeFolders(
-  workspaceId: string,
-  nodeId: string,
-  enabled: boolean = true,
-) {
-  return useInfiniteQuery({
-    queryKey: hierarchyKeys.nodeFolders(workspaceId, nodeId),
-    queryFn: async ({ pageParam }) => {
-      const { data } = await api.get<PagedResult<FolderRecord>>(
-        `/workspaces/${workspaceId}/nodes/${nodeId}/folders`,
-        { params: { cursor: pageParam } }
-      );
-      return data;
-    },
-    initialPageParam: null as string | null,
-    getNextPageParam: (lastPage) => lastPage.nextCursor || undefined,
-    enabled: !!workspaceId && !!nodeId && enabled,
-    staleTime: 1000 * 60 * 5,
-  });
+export function useFoldersBySpace(spaceId: string) {
+  return useSelector(
+    createSelector(
+      folderSelectors.selectAll,
+      (folders) => folders
+        .filter(f => f.parentId === spaceId)
+        .sort((a, b) => (a.orderKey ?? "").localeCompare(b.orderKey ?? ""))
+    )
+  );
 }
 
-export function useNodeTasks(
-  workspaceId: string,
-  nodeId: string,
-  parentType: EntityLayerType,
-) {
-  return useInfiniteQuery({
-    queryKey: hierarchyKeys.nodeTasks(workspaceId, nodeId),
-    queryFn: async ({ pageParam }) => {
-      const { data } = await api.get<PagedResult<TaskRecord>>(
-        `/workspaces/${workspaceId}/nodes/${nodeId}/tasks`,
-        {
-          params: {
-            parentType,
-            cursor: pageParam,
-          },
-        },
-      );
-      return data;
-    },
-    initialPageParam: null as string | null,
-    getNextPageParam: (lastPage) => lastPage.nextCursor || undefined,
-    enabled: !!nodeId && !!workspaceId,
-    staleTime: 1000 * 60 * 5,
-    gcTime: 1000 * 60 * 30,
-  });
+export function useTasksByParent(parentId: string) {
+  return useSelector(
+    createSelector(
+      taskSelectors.selectAll,
+      (tasks) => tasks
+        .filter(t => 
+          t.projectFolderId === parentId || 
+          (t.projectSpaceId === parentId && !t.projectFolderId)
+        )
+        .sort((a, b) => (a.orderKey ?? "").localeCompare(b.orderKey ?? ""))
+    )
+  );
 }
-
-// --- Creation Mutations ---
-
-export function useCreateSpace(workspaceId: string) {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (data: CreateSpaceRequest) => 
-      api.post(`/spaces`, data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: hierarchyKeys.detail(workspaceId),
-      });
-    },
-  });
-}
-
-export function useCreateFolder(workspaceId: string) {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (data: CreateFolderRequest) => 
-      api.post(`/folders`, data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: hierarchyKeys.detail(workspaceId),
-      });
-    },
-  });
-}
-
-export function useCreateTask(workspaceId: string) {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (data: CreateTaskRequest) => 
-      api.post(`/tasks`, data),
-    onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({
-        queryKey: hierarchyKeys.nodeTasks(workspaceId, variables.parentId),
-      });
-      queryClient.invalidateQueries({
-        queryKey: hierarchyKeys.detail(workspaceId),
-      });
-    },
-  });
-}
-
-// --- Delete Mutations ---
-
-export function useDeleteSpace(workspaceId: string) {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (spaceId: string) => 
-      api.delete(`/spaces/${spaceId}`),
-    onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: hierarchyKeys.detail(workspaceId),
-      });
-    },
-  });
-}
-
-export function useDeleteFolder(workspaceId: string) {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (folderId: string) => 
-      api.delete(`/folders/${folderId}`),
-    onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: hierarchyKeys.detail(workspaceId),
-      });
-    },
-  });
-}
-
-export function useDeleteTask(workspaceId: string, parentId: string) {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (taskId: string) => 
-      api.delete(`/tasks/${taskId}`),
-    onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: hierarchyKeys.nodeTasks(workspaceId, parentId),
-      });
-      queryClient.invalidateQueries({
-        queryKey: hierarchyKeys.detail(workspaceId),
-      });
-    },
-  });
-}
-
-// --- Movement Logic (PREMIUM OPTIMISTIC) ---
-
-export function useMoveItem(workspaceId: string) {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (data: MoveItemRequest) =>
-      api.post(`/workspaces/${workspaceId}/nodes/move`, data),
-    onSuccess: (_, variables) => {
-       if (variables.itemType === "ProjectTask") {
-         if (variables.targetParentId) {
-           queryClient.invalidateQueries({ queryKey: hierarchyKeys.nodeTasks(workspaceId, variables.targetParentId) });
-         }
-         if (variables.sourceParentId) {
-           queryClient.invalidateQueries({ queryKey: hierarchyKeys.nodeTasks(workspaceId, variables.sourceParentId) });
-         }
-       } else if (variables.itemType === "ProjectFolder") {
-         if (variables.targetParentId) {
-           queryClient.invalidateQueries({ queryKey: hierarchyKeys.nodeFolders(workspaceId, variables.targetParentId) });
-         }
-         if (variables.sourceParentId) {
-           queryClient.invalidateQueries({ queryKey: hierarchyKeys.nodeFolders(workspaceId, variables.sourceParentId) });
-         }
-       } else if (variables.itemType === "ProjectSpace") {
-         queryClient.invalidateQueries({ queryKey: hierarchyKeys.detail(workspaceId) });
-       }
-    }
-  });
-}
-
-// --- Prefetch Helpers ---
-
-export const prefetchNodeFolders = async (
-  queryClient: QueryClient,
-  workspaceId: string,
-  nodeId: string,
-) => {
-  await queryClient.prefetchInfiniteQuery({
-    queryKey: hierarchyKeys.nodeFolders(workspaceId, nodeId),
-    queryFn: async () => {
-      const { data } = await api.get<PagedResult<FolderRecord>>(
-        `/workspaces/${workspaceId}/nodes/${nodeId}/folders`,
-        { params: { cursor: null } }
-      );
-      return data;
-    },
-    initialPageParam: null,
-    staleTime: 1000 * 60 * 5,
-  });
-};
-
-export const prefetchNodeTasks = async (
-  queryClient: QueryClient,
-  workspaceId: string,
-  nodeId: string,
-  parentType: EntityLayerType,
-) => {
-  await queryClient.prefetchInfiniteQuery({
-    queryKey: hierarchyKeys.nodeTasks(workspaceId, nodeId),
-    queryFn: async () => {
-      const { data } = await api.get<PagedResult<TaskRecord>>(
-        `/workspaces/${workspaceId}/nodes/${nodeId}/tasks`,
-        { params: { parentType, cursor: null } },
-      );
-      return data;
-    },
-    initialPageParam: null,
-    staleTime: 1000 * 60 * 5,
-  });
-};

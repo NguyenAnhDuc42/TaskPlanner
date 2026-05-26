@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useCreateSpace } from "../../contents/hierarchy/hierarchy-api";
+import { useCreateSpaceMutation } from "../../contents/hierarchy/hierarchy-api";
 import { Button } from "@/components/ui/button";
 import { useWorkspace } from "../../context/workspace-provider";
 import { toast } from "sonner";
@@ -12,7 +12,7 @@ interface CreateSpaceFormProps {
 
 export function CreateSpaceForm({ onSuccess, onCancel }: CreateSpaceFormProps) {
   const { workspaceId } = useWorkspace();
-  const createSpace = useCreateSpace(workspaceId);
+  const [createSpaceMutation, { isLoading: isCreating }] = useCreateSpaceMutation();
   const [name, setName] = useState("");
   const [isPrivate, setIsPrivate] = useState(false);
   const [icon, setIcon] = useState("LayoutGrid");
@@ -23,14 +23,12 @@ export function CreateSpaceForm({ onSuccess, onCancel }: CreateSpaceFormProps) {
     if (!name.trim()) return;
 
     try {
-      const result = await createSpace.mutateAsync({
-        name,
-        isPrivate,
-        color,
-        icon,
-      });
+      const result = await createSpaceMutation({
+        workspaceId,
+        body: { name, isPrivate, color, icon },
+      }).unwrap();
       toast.success("Space created");
-      onSuccess?.((result as any).data);
+      onSuccess?.((result as any).id);
     } catch (error) {
       toast.error("Failed to create space");
     }
@@ -75,10 +73,10 @@ export function CreateSpaceForm({ onSuccess, onCancel }: CreateSpaceFormProps) {
         <Button
           type="submit"
           size="sm"
-          disabled={!name.trim() || createSpace.isPending}
+          disabled={!name.trim() || isCreating}
           className="h-7 px-4 text-[10px] font-semibold bg-primary hover:bg-primary/90 text-primary-foreground shadow-sm rounded-md transition-all active:scale-95"
         >
-          {createSpace.isPending ? "Creating..." : "Create Space"}
+          {isCreating ? "Creating..." : "Create Space"}
         </Button>
       </div>
     </form>

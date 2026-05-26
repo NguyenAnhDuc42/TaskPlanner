@@ -9,7 +9,8 @@ import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import type { TaskRecord } from "@/types/projects";
 import type { Priority } from "@/types/priority";
-import type { Status } from "@/types/status";
+import { useSelector } from "react-redux";
+import { statusSelectors } from "@/store/entityStore";
 
 export interface SortableTaskItemProps {
   task: TaskRecord;
@@ -17,10 +18,11 @@ export interface SortableTaskItemProps {
   isChecked: boolean;
   onSelect: () => void;
   onToggleCheck?: (taskId: string, e: React.MouseEvent) => void;
-  statuses?: Status[];
 }
 
-export function SortableTaskItem({ task, isSelected, isChecked, onSelect, onToggleCheck, statuses }: SortableTaskItemProps) {
+export function SortableTaskItem({ task, isSelected, isChecked, onSelect, onToggleCheck }: SortableTaskItemProps) {
+  const statuses = useSelector(statusSelectors.selectAll);
+
   const {
     attributes,
     listeners,
@@ -51,8 +53,8 @@ export function SortableTaskItem({ task, isSelected, isChecked, onSelect, onTogg
           : "hover:bg-muted/50 border-transparent bg-background"
       )}
     >
-      <div 
-        className="shrink-0 mt-0.5 cursor-pointer z-10" 
+      <div
+        className="shrink-0 mt-0.5 cursor-pointer z-10"
         onClick={(e) => {
           e.stopPropagation();
           onToggleCheck?.(task.id, e);
@@ -60,8 +62,8 @@ export function SortableTaskItem({ task, isSelected, isChecked, onSelect, onTogg
       >
         <div className={cn(
           "h-3.5 w-3.5 rounded-[3px] border flex items-center justify-center transition-colors",
-          isChecked 
-            ? "bg-primary border-primary" 
+          isChecked
+            ? "bg-primary border-primary"
             : "border-muted-foreground/30 group-hover:border-primary bg-background"
         )}>
           {isChecked && <Check className="h-2.5 w-2.5 text-primary-foreground" />}
@@ -70,7 +72,7 @@ export function SortableTaskItem({ task, isSelected, isChecked, onSelect, onTogg
 
       {/* Task Content Column */}
       <div className="flex flex-col gap-1.5 flex-1 min-w-0">
-        
+
         {/* Row 1: Name + Menu */}
         <div className="flex items-center justify-between w-full gap-2">
           <div className="flex items-center gap-1.5 min-w-0">
@@ -94,12 +96,12 @@ export function SortableTaskItem({ task, isSelected, isChecked, onSelect, onTogg
         {/* Row 2: Status + Priority */}
         <div className="flex items-center gap-3">
           {task.statusId && (
-            <StatusBadge status={statuses?.find(s => s.id === task.statusId)} />
-          )} 
+            <StatusBadge status={statuses.find(s => s.id === task.statusId)} />
+          )}
           {task.priority && <PriorityBadge priority={task.priority as Priority} />}
         </div>
 
-        {/* Row 3: Time + Comments + Assignee */}
+        {/* Row 3: Dates */}
         <div className="flex items-center justify-between w-full mt-0.5">
           <div className="flex items-center gap-2">
             <DateBadge startDate={task.startDate} dueDate={task.dueDate} />

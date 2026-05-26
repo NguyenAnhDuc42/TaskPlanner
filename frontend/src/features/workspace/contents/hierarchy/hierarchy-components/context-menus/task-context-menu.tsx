@@ -16,7 +16,7 @@ import {
   ExternalLink,
 } from "lucide-react";
 import { useWorkspace } from "@/features/workspace/context/workspace-provider";
-import { useDeleteTask } from "../../hierarchy-api";
+import { useDeleteTaskMutation } from "../../hierarchy-api";
 import { EntityMenuContext, DeleteConfirmationDialog } from "./shared";
 
 interface TaskContextMenuProps {
@@ -28,16 +28,15 @@ interface TaskContextMenuProps {
 
 export function TaskContextMenu({
   taskId,
-  taskName,
-  parentId,
   children,
+  taskName,
 }: TaskContextMenuProps) {
   const { workspaceId } = useWorkspace();
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
-  const { mutate: deleteTask } = useDeleteTask(workspaceId || "", parentId);
+  const [deleteTask] = useDeleteTaskMutation();
 
   const handleDelete = () => {
-    deleteTask(taskId);
+    deleteTask({ workspaceId: workspaceId || "", taskId });
     setIsDeleteOpen(false);
   };
 

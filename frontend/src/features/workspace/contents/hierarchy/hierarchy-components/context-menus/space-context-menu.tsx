@@ -24,10 +24,9 @@ import { DialogFormWrapper } from "@/components/dialog-form-wrapper";
 import { CreateTaskForm } from "@/features/workspace/components/forms/create-task-form";
 import { CreateFolderForm } from "@/features/workspace/components/forms/create-folder-form";
 import { CreateSpaceForm } from "@/features/workspace/components/forms/create-space-form";
-import { useDeleteSpace } from "../../hierarchy-api";
-import { workspaceKeys } from "@/features/main/query-keys";
-import { useQueryClient } from "@tanstack/react-query";
-import { useHierarchyStore } from "../../use-hierarchy-store";
+import { useDeleteSpaceMutation } from "../../hierarchy-api";
+import { useDispatch } from "react-redux";
+import { spaceSlice } from "@/store/entityStore";
 import { EntityMenuContext, DeleteConfirmationDialog } from "./shared";
 
 interface SpaceContextMenuProps {
@@ -42,14 +41,13 @@ export function SpaceContextMenu({
   children,
 }: SpaceContextMenuProps) {
   const { workspaceId } = useWorkspace();
-  const queryClient = useQueryClient();
+  const dispatch = useDispatch();
   const [activeForm, setActiveForm] = useState<"task" | "folder" | "settings" | null>(null);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
-
-  const { mutate: deleteSpace } = useDeleteSpace(workspaceId || "");
+  const [deleteSpace] = useDeleteSpaceMutation();
 
   const handleDelete = () => {
-    deleteSpace(spaceId);
+    deleteSpace({ workspaceId: workspaceId || "", spaceId });
     setIsDeleteOpen(false);
   };
 
@@ -118,20 +116,8 @@ export function SpaceContextMenu({
           parentType={EntityLayerType.ProjectSpace}
           onSuccess={() => {
             setActiveForm(null);
-            queryClient.invalidateQueries({
-              queryKey: [...workspaceKeys.all, "space", spaceId, "items"],
-            });
-            
-            // Update hasTasks flag in hierarchy store (for spaces)
-            const store = useHierarchyStore.getState();
-            if (store.spaces[spaceId]) {
-              useHierarchyStore.setState({
-                spaces: {
-                  ...store.spaces,
-                  [spaceId]: { ...store.spaces[spaceId], hasTasks: true }
-                }
-              });
-            }
+            // Direct relational database state sync in Redux
+            dispatch(spaceSlice.actions.upsert({ id: spaceId, hasTasks: true }));
           }}
           onCancel={() => setActiveForm(null)}
         />
@@ -145,7 +131,10 @@ export function SpaceContextMenu({
       >
         <CreateFolderForm 
           spaceId={spaceId}
-          onSuccess={() => setActiveForm(null)}
+          onSuccess={() => {
+            setActiveForm(null);
+            dispatch(spaceSlice.actions.upsert({ id: spaceId, hasFolders: true }));
+          }}
           onCancel={() => setActiveForm(null)}
         />
       </DialogFormWrapper>

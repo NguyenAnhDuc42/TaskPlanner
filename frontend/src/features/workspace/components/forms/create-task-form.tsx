@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { useCreateTask } from "../../contents/hierarchy/hierarchy-api";
+import { useCreateTaskMutation } from "../../contents/hierarchy/hierarchy-api";
 import { Button } from "@/components/ui/button";
 import { useWorkspace } from "../../context/workspace-provider";
 import { EntityLayerType } from "@/types/entity-layer-type";
@@ -34,7 +34,7 @@ export function CreateTaskForm({
   onCancel,
 }: CreateTaskFormProps) {
   const { workspaceId, registry } = useWorkspace();
-  const createTask = useCreateTask(workspaceId);
+  const [createTaskMutation, { isLoading: isCreating }] = useCreateTaskMutation();
   const [name, setName] = useState("");
   const [priority, setPriority] = useState<Priority>(Priority.Normal);
   const [icon, setIcon] = useState("Circle");
@@ -65,19 +65,22 @@ export function CreateTaskForm({
     if (!name.trim()) return;
 
     try {
-      const result = await createTask.mutateAsync({
-        parentId,
-        parentType,
-        name,
-        priority: priority as any,
-        icon,
-        color,
-        statusId: selectedStatusId,
-        startDate: startDate?.toISOString(),
-        dueDate: dueDate?.toISOString(),
-      });
+      const result = await createTaskMutation({
+        workspaceId,
+        body: {
+          parentId,
+          parentType,
+          name,
+          priority: priority as any,
+          icon,
+          color,
+          statusId: selectedStatusId,
+          startDate: startDate?.toISOString(),
+          dueDate: dueDate?.toISOString(),
+        },
+      }).unwrap();
       toast.success("Task created");
-      onSuccess?.((result as any).data);
+      onSuccess?.((result as any).id);
     } catch (error) {
       toast.error("Failed to create task");
     }
@@ -209,10 +212,10 @@ export function CreateTaskForm({
           <Button
             type="submit"
             size="sm"
-            disabled={!name.trim() || createTask.isPending}
+            disabled={!name.trim() || isCreating}
             className="h-7 px-4 text-[10px] font-semibold bg-primary hover:bg-primary/90 text-primary-foreground shadow-sm rounded-md transition-all active:scale-95"
           >
-            {createTask.isPending ? "Creating..." : "Create Task"}
+            {isCreating ? "Creating..." : "Create Task"}
           </Button>
         </div>
       </div>

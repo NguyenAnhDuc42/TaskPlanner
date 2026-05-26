@@ -20,10 +20,9 @@ import { EntityLayerType } from "@/types/entity-layer-type";
 import { useWorkspace } from "@/features/workspace/context/workspace-provider";
 import { DialogFormWrapper } from "@/components/dialog-form-wrapper";
 import { CreateTaskForm } from "@/features/workspace/components/forms/create-task-form";
-import { useDeleteFolder } from "../../hierarchy-api";
-import { workspaceKeys } from "@/features/main/query-keys";
-import { useQueryClient } from "@tanstack/react-query";
-import { useHierarchyStore } from "../../use-hierarchy-store";
+import { useDeleteFolderMutation } from "../../hierarchy-api";
+import { useDispatch } from "react-redux";
+import { folderSlice } from "@/store/entityStore";
 import { EntityMenuContext, DeleteConfirmationDialog } from "./shared";
 
 interface FolderContextMenuProps {
@@ -38,14 +37,13 @@ export function FolderContextMenu({
   children,
 }: FolderContextMenuProps) {
   const { workspaceId } = useWorkspace();
-  const queryClient = useQueryClient();
+  const dispatch = useDispatch();
   const [activeForm, setActiveForm] = useState<"task" | null>(null);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
-
-  const { mutate: deleteFolder } = useDeleteFolder(workspaceId || "");
+  const [deleteFolder] = useDeleteFolderMutation();
 
   const handleDelete = () => {
-    deleteFolder(folderId);
+    deleteFolder({ workspaceId: workspaceId || "", folderId });
     setIsDeleteOpen(false);
   };
 
@@ -104,20 +102,8 @@ export function FolderContextMenu({
           parentType={EntityLayerType.ProjectFolder}
           onSuccess={() => {
             setActiveForm(null);
-            queryClient.invalidateQueries({
-              queryKey: [...workspaceKeys.all, "folder", folderId, "items"],
-            });
-            
-            // Update hasTasks flag in hierarchy store (for folders)
-            const store = useHierarchyStore.getState();
-            if (store.folders[folderId]) {
-              useHierarchyStore.setState({
-                folders: {
-                  ...store.folders,
-                  [folderId]: { ...store.folders[folderId], hasTasks: true }
-                }
-              });
-            }
+            // Relational state sync on success
+            dispatch(folderSlice.actions.upsert({ id: folderId, hasTasks: true }));
           }}
           onCancel={() => setActiveForm(null)}
         />

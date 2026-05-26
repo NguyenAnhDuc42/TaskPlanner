@@ -47,12 +47,17 @@ if (!root) {
   (window as any).__reactRoot = root;
 }
 
+import { Provider } from "react-redux";
+import { store } from "./store";
+
 root.render(
   <StrictMode>
-    <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <InnerApp />
-      </AuthProvider>
-    </QueryClientProvider>
+    <Provider store={store}>
+      <QueryClientProvider client={queryClient}>
+        <AuthProvider>
+          <InnerApp />
+        </AuthProvider>
+      </QueryClientProvider>
+    </Provider>
   </StrictMode>
 );

@@ -1,5 +1,5 @@
 import { CircleDashed, Flag, Calendar, Trash2, X } from "lucide-react";
-import { useBatchUpdateFolderTasks } from "../folder-api";
+import { useBatchUpdateFolderTasks, type BatchUpdateFolderTaskValue } from "../folder-api";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -11,20 +11,23 @@ import { Priority } from "@/types/priority";
 import { PriorityBadge } from "@/components/priority-badge";
 import { StatusBadge } from "@/components/status-badge";
 import { Input } from "@/components/ui/input";
-import type { Status } from "@/types/status";
 import { useState } from "react";
+import { useSelector } from "react-redux";
+import { statusSelectors } from "@/store/entityStore";
+
+type PendingUpdates = Pick<BatchUpdateFolderTaskValue, "statusId" | "priority" | "startDate" | "dueDate">;
 
 interface FolderTaskBatchBarProps {
   folderId: string;
   checkedTaskIds: Set<string>;
   onClear: () => void;
-  statuses?: Status[];
 }
 
-export function FolderTaskBatchBar({ folderId, checkedTaskIds, onClear, statuses = [] }: FolderTaskBatchBarProps) {
+export function FolderTaskBatchBar({ folderId, checkedTaskIds, onClear }: FolderTaskBatchBarProps) {
   const batchUpdate = useBatchUpdateFolderTasks(folderId);
+  const statuses = useSelector(statusSelectors.selectAll);
 
-  const [pendingUpdates, setPendingUpdates] = useState<any>({});
+  const [pendingUpdates, setPendingUpdates] = useState<PendingUpdates>({});
 
   const handleDelete = () => {
     batchUpdate.mutate(
@@ -33,8 +36,8 @@ export function FolderTaskBatchBar({ folderId, checkedTaskIds, onClear, statuses
     onClear();
   };
 
-  const updateLocal = (updates: any) => {
-    setPendingUpdates((prev: any) => ({ ...prev, ...updates }));
+  const updateLocal = (updates: Partial<PendingUpdates>) => {
+    setPendingUpdates((prev) => ({ ...prev, ...updates }));
   };
 
   const applyChanges = () => {
@@ -56,21 +59,19 @@ export function FolderTaskBatchBar({ folderId, checkedTaskIds, onClear, statuses
         </span>
         <span className="text-[11px] font-medium text-foreground whitespace-nowrap pr-1">Tasks selected</span>
       </div>
-      
+
       <div className="w-[1px] h-4 bg-border" />
-      
+
       <div className="flex items-center gap-1">
+        {/* Status */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <button 
-              className={`h-7 px-2 min-w-[28px] rounded-md flex items-center justify-center transition-colors ${pendingUpdates.statusId ? 'bg-primary/10 hover:bg-primary/20' : 'hover:bg-muted text-muted-foreground'}`}
+            <button
+              className={`h-7 px-2 min-w-[28px] rounded-md flex items-center justify-center transition-colors ${pendingUpdates.statusId ? "bg-primary/10 hover:bg-primary/20" : "hover:bg-muted text-muted-foreground"}`}
               title="Change Status"
             >
               {pendingUpdates.statusId ? (
-                <StatusBadge 
-                  status={statuses.find(s => s.id === pendingUpdates.statusId) || statuses.find(s => s.id === pendingUpdates.statusId)} 
-                  showIcon={false} 
-                />
+                <StatusBadge status={statuses.find(s => s.id === pendingUpdates.statusId)} showIcon={false} />
               ) : (
                 <CircleDashed className="h-3.5 w-3.5" />
               )}
@@ -78,7 +79,7 @@ export function FolderTaskBatchBar({ folderId, checkedTaskIds, onClear, statuses
           </DropdownMenuTrigger>
           <DropdownMenuContent align="center" sideOffset={14}>
             {statuses.map(s => (
-              <DropdownMenuItem key={s.id || s.id} onClick={() => updateLocal({ statusId: s.id || s.id })}>
+              <DropdownMenuItem key={s.id} onClick={() => updateLocal({ statusId: s.id })}>
                 <div className="flex items-center gap-2 text-xs">
                   <div className="w-2 h-2 rounded-full" style={{ backgroundColor: s.color }} />
                   {s.name}
@@ -88,10 +89,11 @@ export function FolderTaskBatchBar({ folderId, checkedTaskIds, onClear, statuses
           </DropdownMenuContent>
         </DropdownMenu>
 
+        {/* Priority */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <button 
-              className={`h-7 px-2 min-w-[28px] rounded-md flex items-center justify-center transition-colors ${pendingUpdates.priority ? 'bg-primary/10 hover:bg-primary/20' : 'hover:bg-muted text-muted-foreground'}`}
+            <button
+              className={`h-7 px-2 min-w-[28px] rounded-md flex items-center justify-center transition-colors ${pendingUpdates.priority ? "bg-primary/10 hover:bg-primary/20" : "hover:bg-muted text-muted-foreground"}`}
               title="Change Priority"
             >
               {pendingUpdates.priority ? (
@@ -110,16 +112,23 @@ export function FolderTaskBatchBar({ folderId, checkedTaskIds, onClear, statuses
           </DropdownMenuContent>
         </DropdownMenu>
 
+        {/* Dates */}
         <PopoverFormWrapper
           trigger={
-            <button 
-              className={`h-7 px-2 min-w-[28px] rounded-md flex items-center justify-center transition-colors gap-1.5 ${pendingUpdates.startDate || pendingUpdates.dueDate ? 'bg-primary/10 text-primary hover:bg-primary/20' : 'hover:bg-muted text-muted-foreground'}`}
+            <button
+              className={`h-7 px-2 min-w-[28px] rounded-md flex items-center justify-center transition-colors gap-1.5 ${pendingUpdates.startDate || pendingUpdates.dueDate ? "bg-primary/10 text-primary hover:bg-primary/20" : "hover:bg-muted text-muted-foreground"}`}
               title="Set Dates"
             >
               <Calendar className="h-3.5 w-3.5" />
               {(pendingUpdates.startDate || pendingUpdates.dueDate) && (
                 <span className="text-[10px] font-bold">
-                  {pendingUpdates.startDate ? new Date(pendingUpdates.startDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : '...'} - {pendingUpdates.dueDate ? new Date(pendingUpdates.dueDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : '...'}
+                  {pendingUpdates.startDate
+                    ? new Date(pendingUpdates.startDate).toLocaleDateString(undefined, { month: "short", day: "numeric" })
+                    : "..."}{" "}
+                  -{" "}
+                  {pendingUpdates.dueDate
+                    ? new Date(pendingUpdates.dueDate).toLocaleDateString(undefined, { month: "short", day: "numeric" })
+                    : "..."}
                 </span>
               )}
             </button>
@@ -129,29 +138,29 @@ export function FolderTaskBatchBar({ folderId, checkedTaskIds, onClear, statuses
           <div className="flex flex-col gap-3">
             <div className="flex flex-col gap-1.5">
               <label className="text-[10px] font-bold uppercase text-muted-foreground">Start Date</label>
-              <Input 
-                type="date" 
+              <Input
+                type="date"
                 className="h-8 text-xs"
-                defaultValue={pendingUpdates.startDate ? pendingUpdates.startDate.split('T')[0] : ""}
-                onBlur={(e) => updateLocal({ startDate: e.target.value ? new Date(e.target.value).toISOString() : null })}
+                defaultValue={pendingUpdates.startDate ? pendingUpdates.startDate.split("T")[0] : ""}
+                onBlur={(e) => updateLocal({ startDate: e.target.value ? new Date(e.target.value).toISOString() : undefined })}
               />
             </div>
             <div className="flex flex-col gap-1.5">
               <label className="text-[10px] font-bold uppercase text-muted-foreground">Due Date</label>
-              <Input 
-                type="date" 
+              <Input
+                type="date"
                 className="h-8 text-xs"
-                defaultValue={pendingUpdates.dueDate ? pendingUpdates.dueDate.split('T')[0] : ""}
-                onBlur={(e) => updateLocal({ dueDate: e.target.value ? new Date(e.target.value).toISOString() : null })}
+                defaultValue={pendingUpdates.dueDate ? pendingUpdates.dueDate.split("T")[0] : ""}
+                onBlur={(e) => updateLocal({ dueDate: e.target.value ? new Date(e.target.value).toISOString() : undefined })}
               />
             </div>
           </div>
         </PopoverFormWrapper>
 
         <div className="w-[1px] h-3 bg-border mx-1" />
-        
+
         {pendingCount > 0 && (
-          <button 
+          <button
             className="h-7 px-3 bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 text-primary-foreground rounded-md text-[11px] font-bold tracking-wide shadow-md transition-all hover:scale-105 active:scale-95"
             onClick={applyChanges}
           >
@@ -159,9 +168,9 @@ export function FolderTaskBatchBar({ folderId, checkedTaskIds, onClear, statuses
           </button>
         )}
 
-        <button 
+        <button
           onClick={handleDelete}
-          className="h-7 w-7 rounded-md flex items-center justify-center hover:bg-destructive/10 text-destructive transition-colors" 
+          className="h-7 w-7 rounded-md flex items-center justify-center hover:bg-destructive/10 text-destructive transition-colors"
           title="Delete"
         >
           <Trash2 className="h-3.5 w-3.5" />
@@ -169,8 +178,8 @@ export function FolderTaskBatchBar({ folderId, checkedTaskIds, onClear, statuses
       </div>
 
       <div className="w-[1px] h-4 bg-border" />
-      
-      <button 
+
+      <button
         onClick={onClear}
         className="h-7 w-7 rounded-md flex items-center justify-center hover:bg-muted text-muted-foreground transition-colors"
       >

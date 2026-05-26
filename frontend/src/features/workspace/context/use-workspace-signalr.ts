@@ -1,12 +1,12 @@
 import { useEffect } from "react";
-import { useQueryClient } from "@tanstack/react-query";
+import { useDispatch } from "react-redux";
 import { signalRService } from "@/lib/signalr-service";
-import { hierarchyKeys } from "../contents/hierarchy/hierarchy-keys";
-import { useAuth } from "@/features/auth/auth-context";
+import { spaceSlice, folderSlice, taskSlice, memberSlice } from "@/store/entityStore";
+import { workspaceApi } from "@/store/workspaceApi";
+import type { AppDispatch } from "@/store";
 
 export function useWorkspaceSignalR(workspaceId: string) {
-  const queryClient = useQueryClient();
-  const { user } = useAuth();
+  const dispatch = useDispatch<AppDispatch>();
 
   useEffect(() => {
     if (!workspaceId) return;
@@ -22,34 +22,37 @@ export function useWorkspaceSignalR(workspaceId: string) {
     
     manageConnection();
 
-    const onHierarchyChanged = (payload: any) => {
-      // Ignore our own events to prevent Optimistic UI glitches
-      if (user && payload.senderId === user.id) return;
-
-      if (payload.itemType === "ProjectTask") {
-        if (payload.targetParentId) {
-          queryClient.invalidateQueries({ queryKey: hierarchyKeys.nodeTasks(workspaceId, payload.targetParentId) });
-        }
-        if (payload.sourceParentId) {
-          queryClient.invalidateQueries({ queryKey: hierarchyKeys.nodeTasks(workspaceId, payload.sourceParentId) });
-        }
-      } else if (payload.itemType === "ProjectFolder") {
-        if (payload.targetParentId) {
-          queryClient.invalidateQueries({ queryKey: hierarchyKeys.nodeFolders(workspaceId, payload.targetParentId) });
-        }
-        if (payload.sourceParentId) {
-          queryClient.invalidateQueries({ queryKey: hierarchyKeys.nodeFolders(workspaceId, payload.sourceParentId) });
-        }
-      } else if (payload.itemType === "ProjectSpace") {
-        queryClient.invalidateQueries({ queryKey: hierarchyKeys.detail(workspaceId) });
-      }
+    // 1. Unified, transactional update handler (applies multi-entity changes instantly)
+    const onEntitiesUpdated = (payload: import("@/lib/signalr-service").EntityBatchUpdate) => {
+      if (payload.spaces)   dispatch(spaceSlice.actions.upsertMany(payload.spaces));
+      if (payload.folders)  dispatch(folderSlice.actions.upsertMany(payload.folders));
+      if (payload.tasks)    dispatch(taskSlice.actions.upsertMany(payload.tasks));
+      if (payload.members)  dispatch(memberSlice.actions.upsertMany(payload.members));
     };
 
-    signalRService.on("HierarchyChanged", onHierarchyChanged);
+    // 2. Unified, transactional deletion handler using removeMany (1 dispatch, 1 re-render)
+    const onEntitiesDeleted = (payload: import("@/lib/signalr-service").EntityBatchDelete) => {
+      if (payload.spaceIds)  dispatch(spaceSlice.actions.removeMany(payload.spaceIds));
+      if (payload.folderIds) dispatch(folderSlice.actions.removeMany(payload.folderIds));
+      if (payload.taskIds)   dispatch(taskSlice.actions.removeMany(payload.taskIds));
+      if (payload.memberIds) dispatch(memberSlice.actions.removeMany(payload.memberIds));
+    };
+
+    // 3. Strong reconnection handler: only refetch active queries currently on screen
+    const handleReconnect = () => {
+      console.log("[SignalR] Reconnected. Syncing active screen views...");
+      dispatch(workspaceApi.util.invalidateTags(['Spaces', 'Folders', 'Tasks', 'Members']));
+    };
+
+    signalRService.on("EntitiesUpdated", onEntitiesUpdated);
+    signalRService.on("EntitiesDeleted", onEntitiesDeleted);
+    signalRService.onReconnected(handleReconnect);
 
     return () => {
-      signalRService.off("HierarchyChanged", onHierarchyChanged);
+      signalRService.off("EntitiesUpdated", onEntitiesUpdated);
+      signalRService.off("EntitiesDeleted", onEntitiesDeleted);
+      signalRService.offReconnected(handleReconnect);
       signalRService.invoke("LeaveWorkspace", workspaceId).catch(() => {});
     };
-  }, [workspaceId, queryClient, user?.id]);
+  }, [workspaceId, dispatch]);
 }

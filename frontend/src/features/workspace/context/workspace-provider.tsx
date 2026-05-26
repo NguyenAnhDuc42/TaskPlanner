@@ -12,7 +12,6 @@ import {
   useWorkspaceMembers,
 } from "../api";
 import { useWorkspaces } from "@/features/main/home-screen/api";
-import { signalRService } from "@/lib/signalr-service";
 import type { Status } from "@/types/status";
 import type { ContentPage } from "../type";
 import { WorkspaceContext } from "./workspace-context";
@@ -88,7 +87,7 @@ export function useWorkspaceSession() {
     actions: context.actions,
     workspaceId: context.workspaceId,
     isLoading: context.isLoading,
-    registry: (context as any).registry, // Cast to any since we removed it from the type
+    registry: (context as any).registry,
   };
 }
 
@@ -133,8 +132,8 @@ export function WorkspaceProvider({
 
     workflows.forEach((wf: WorkflowRecord) => {
       wf.statuses?.forEach((status: Status) => {
-        const sid = status.statusId || (status as any).id;
-        status.statusId = sid; // ensure statusId is always populated
+        const sid = status.id || (status as any).id;
+        status.id = sid; // ensure id is always populated
         statusMap[sid] = status;
       });
     });

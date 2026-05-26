@@ -1,10 +1,8 @@
-import { useNodeFolders } from "@/features/workspace/contents/hierarchy/hierarchy-api";
-
+import { useGetNodeFoldersQuery, useFoldersBySpace } from "@/features/workspace/contents/hierarchy/hierarchy-api";
 import { FolderNodeItem } from "@/features/workspace/contents/hierarchy/items/folder-node-item";
 import { useWorkspace } from "@/features/workspace/context/workspace-provider";
 import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import React from "react";
-import { useHierarchyStore } from "../use-hierarchy-store";
 
 const FolderSkeleton = () => (
   <div className="flex items-center gap-2 pl-4 py-1 opacity-20 animate-pulse">
@@ -22,25 +20,18 @@ export const NodeFoldersList = React.memo(function NodeFoldersList({
 }) {
   const { workspaceId } = useWorkspace();
   
-  const { data, isLoading, fetchNextPage, hasNextPage } = useNodeFolders(
-    workspaceId || "", 
-    spaceId, 
-    isExpanded
+  // 1. Fetch space folders using Redux Query
+  const { isLoading } = useGetNodeFoldersQuery(
+    { workspaceId: workspaceId || "", nodeId: spaceId, cursor: null },
+    { skip: !isExpanded } // Only query if expanded
   );
   
-  const setFolders = useHierarchyStore((state) => state.setFolders);
-  const folderIds = useHierarchyStore((state) => state.foldersBySpace[spaceId] || []);
-
-  React.useEffect(() => {
-    if (data?.pages) {
-      const allFolders = data.pages.flatMap((page) => page.items);
-      setFolders(spaceId, allFolders);
-    }
-  }, [data, setFolders, spaceId]);
+  // 2. Select folders dynamically from our centralized store
+  const folders = useFoldersBySpace(spaceId);
 
   if (!isExpanded) return null;
 
-  if (isLoading) {
+  if (isLoading && folders.length === 0) {
     return (
       <div className="flex flex-col gap-0.5">
         {[1, 2].map((i) => (
@@ -50,33 +41,22 @@ export const NodeFoldersList = React.memo(function NodeFoldersList({
     );
   }
 
-  if (folderIds.length === 0) return null;
+  if (folders.length === 0) return null;
 
   return (
     <SortableContext
-      items={folderIds.map((id) => `folder-${id}`)}
+      items={folders.map((f) => `folder-${f.id}`)}
       strategy={verticalListSortingStrategy}
     >
       <div className="flex flex-col">
-        {folderIds.map((id) => (
+        {folders.map((f) => (
           <FolderNodeItem
-            key={id}
-            folderId={id}
+            key={f.id}
+            folderId={f.id}
             spaceId={spaceId}
           />
         ))}
       </div>
-      {hasNextPage && (
-        <button
-          onClick={(e) => {
-             e.stopPropagation();
-             fetchNextPage();
-          }}
-          className="text-[10px] text-muted-foreground hover:text-primary mt-1 text-left px-2"
-        >
-          Load more folders...
-        </button>
-      )}
     </SortableContext>
   );
 });

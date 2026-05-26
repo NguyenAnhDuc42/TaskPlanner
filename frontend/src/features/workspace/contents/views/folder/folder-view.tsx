@@ -15,30 +15,46 @@ import {
 import { Button } from "@/components/ui/button";
 import { PriorityBadge } from "@/components/priority-badge";
 import { DateBadge } from "@/components/date-badge";
-import { useGetFolderDetail } from "./folder-api";
+import {
+  useGetFolderDetailQuery,
+  useFolderDetail,
+  useUpdateFolderFieldMutation,
+} from "./folder-api";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { FolderEditorProvider, useFolderEditor } from "./folder-editor-context";
 import { FolderTaskBatchBar } from "./components/folder-task-batch-bar";
 import { DynamicIcon } from "@/components/dynamic-icon";
 import { Priority } from "@/types/priority";
 import { PopoverFormWrapper } from "@/components/popover-wrapper";
 import { UniversalPicker } from "@/components/universal-picker";
 import { Input } from "@/components/ui/input";
-import { useFolderRealtime } from "./use-folder-realtime";
 import { CreateStatusForm } from "@/features/workspace/components/forms/create-status-form";
+import type { FolderRecord } from "@/types/projects/folder-record";
 
 export function FolderView() {
-  const { folderId, workspaceId } = useParams({ strict: false }) as { folderId: string, workspaceId: string };
+  const { folderId, workspaceId } = useParams({ strict: false }) as {
+    folderId: string;
+    workspaceId: string;
+  };
+
   const [checkedTaskIds, setCheckedTaskIds] = React.useState<Set<string>>(new Set());
+  const [isWorkflowOpen, setIsWorkflowOpen] = React.useState(false);
 
-  useFolderRealtime(folderId);
+  // Load folder + statuses into Redux (single source of truth)
+  const { data: detailData, isLoading } = useGetFolderDetailQuery(folderId);
 
-  const { data: detailData, isLoading } = useGetFolderDetail(folderId);
+  // Read folder reactively from Redux (real-time safe)
+  const folder = useFolderDetail(folderId);
+
+  const [updateFolderField] = useUpdateFolderFieldMutation();
+
+  const updateField = (patches: Partial<FolderRecord>) => {
+    updateFolderField({ folderId, patches });
+  };
 
   const toggleCheck = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -46,42 +62,17 @@ export function FolderView() {
       setCheckedTaskIds(new Set());
       return;
     }
-    const newSet = new Set(checkedTaskIds);
-    if (newSet.has(id)) newSet.delete(id);
-    else newSet.add(id);
-    setCheckedTaskIds(newSet);
+    setCheckedTaskIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
   };
 
   if (isLoading) {
-    return <div className="p-8 text-sm text-muted-foreground">Loading folder...</div>;
+    return <div className="p-8 text-sm text-muted-foreground animate-pulse">Loading folder...</div>;
   }
-
-
-  return (
-    <FolderEditorProvider folderId={folderId}>
-      <InnerFolderView 
-        folderId={folderId} 
-        workspaceId={workspaceId} 
-        checkedTaskIds={checkedTaskIds} 
-        setCheckedTaskIds={setCheckedTaskIds} 
-        detailData={detailData} 
-        toggleCheck={toggleCheck} 
-      />
-    </FolderEditorProvider>
-  );
-}
-
-function InnerFolderView({ 
-  folderId, 
-  workspaceId, 
-  checkedTaskIds, 
-  setCheckedTaskIds, 
-  detailData, 
-  toggleCheck 
-}: any) {
-  const { updateField } = useFolderEditor();
-  const folder = detailData?.folder;
-  const [isWorkflowOpen, setIsWorkflowOpen] = React.useState(false);
 
   return (
     <EntityViewFrame
@@ -91,7 +82,11 @@ function InnerFolderView({
             <BreadcrumbList className="text-xs sm:gap-1.5">
               <BreadcrumbItem>
                 <BreadcrumbLink asChild>
-                  <Link to="/workspaces/$workspaceId/spaces/$spaceId" params={{ workspaceId, spaceId: "mock-space" }} className="flex items-center gap-1.5 text-muted-foreground hover:text-foreground">
+                  <Link
+                    to="/workspaces/$workspaceId/spaces/$spaceId"
+                    params={{ workspaceId, spaceId: "mock-space" }}
+                    className="flex items-center gap-1.5 text-muted-foreground hover:text-foreground"
+                  >
                     <LayoutGrid className="h-3 w-3" />
                     Engineering
                   </Link>
@@ -100,27 +95,25 @@ function InnerFolderView({
               <BreadcrumbSeparator className="[&>svg]:w-3 [&>svg]:h-3" />
               <BreadcrumbItem>
                 <BreadcrumbPage className="font-medium text-foreground flex items-center gap-1.5">
-                  {folder?.name || "Folder"}
+                  {folder?.name ?? "Folder"}
                 </BreadcrumbPage>
               </BreadcrumbItem>
             </BreadcrumbList>
           </Breadcrumb>
-          
-          <div>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground">
-                  <MoreHorizontal className="h-4 w-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem className="text-destructive focus:text-destructive focus:bg-destructive/10">
-                  <Trash2 className="h-4 w-4 mr-2" />
-                  Delete Folder
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
+
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground">
+                <MoreHorizontal className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem className="text-destructive focus:text-destructive focus:bg-destructive/10">
+                <Trash2 className="h-4 w-4 mr-2" />
+                Delete Folder
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       }
       subHeader={
@@ -130,7 +123,7 @@ function InnerFolderView({
               trigger={
                 <button className="flex items-center justify-center p-1 hover:bg-muted rounded-md transition-colors cursor-pointer focus:outline-none">
                   {folder?.icon ? (
-                    <DynamicIcon name={folder.icon} className="h-4 w-4" color={folder?.color} />
+                    <DynamicIcon name={folder.icon} className="h-4 w-4" color={folder.color} />
                   ) : (
                     <Folder className="h-4 w-4" color={folder?.color} />
                   )}
@@ -138,41 +131,40 @@ function InnerFolderView({
               }
             >
               <UniversalPicker
-                selectedIcon={folder?.icon || "Folder"}
-                selectedColor={folder?.color || "#6366f1"}
+                selectedIcon={folder?.icon ?? "Folder"}
+                selectedColor={folder?.color ?? "#6366f1"}
                 onSelect={(icon, color) => updateField({ icon, color })}
               />
             </PopoverFormWrapper>
+
             <input
-              className="h-6 px-1  -ml-1 w-63 text-sm font-bold text-foreground tracking-tight bg-transparent border-none outline-none hover:bg-muted/30 focus:bg-muted/50 transition-colors rounded-sm cursor-text"
-              defaultValue={folder?.name || "Folder"}
+              className="h-6 px-1 -ml-1 w-63 text-sm font-bold text-foreground tracking-tight bg-transparent border-none outline-none hover:bg-muted/30 focus:bg-muted/50 transition-colors rounded-sm cursor-text"
+              defaultValue={folder?.name ?? "Folder"}
               onBlur={(e) => {
                 if (e.target.value && e.target.value !== folder?.name) {
                   updateField({ name: e.target.value });
                 }
               }}
               onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  e.currentTarget.blur();
-                }
+                if (e.key === "Enter") e.currentTarget.blur();
               }}
             />
           </div>
-          
+
           <div className="flex items-center gap-3">
             <DropdownMenu>
               <DropdownMenuTrigger className="focus:outline-none">
                 <PriorityBadge priority={folder?.priority} />
               </DropdownMenuTrigger>
               <DropdownMenuContent>
-                {Object.values(Priority).map(p => (
+                {Object.values(Priority).map((p) => (
                   <DropdownMenuItem key={p} onClick={() => updateField({ priority: p })}>
                     <PriorityBadge priority={p} />
                   </DropdownMenuItem>
                 ))}
               </DropdownMenuContent>
             </DropdownMenu>
-            
+
             <PopoverFormWrapper
               trigger={
                 <button className="focus:outline-none flex items-center">
@@ -184,26 +176,30 @@ function InnerFolderView({
               <div className="flex flex-col gap-3">
                 <div className="flex flex-col gap-1.5">
                   <label className="text-[10px] font-bold uppercase text-muted-foreground">Start Date</label>
-                  <Input 
-                    type="date" 
+                  <Input
+                    type="date"
                     className="h-8 text-xs"
-                    defaultValue={folder?.startDate?.split('T')[0] || ""}
-                    onBlur={(e) => updateField({ startDate: e.target.value ? new Date(e.target.value).toISOString() : undefined })}
+                    defaultValue={folder?.startDate?.split("T")[0] ?? ""}
+                    onBlur={(e) =>
+                      updateField({ startDate: e.target.value ? new Date(e.target.value).toISOString() : undefined })
+                    }
                   />
                 </div>
                 <div className="flex flex-col gap-1.5">
                   <label className="text-[10px] font-bold uppercase text-muted-foreground">Due Date</label>
-                  <Input 
-                    type="date" 
+                  <Input
+                    type="date"
                     className="h-8 text-xs"
-                    defaultValue={folder?.dueDate?.split('T')[0] || ""}
-                    onBlur={(e) => updateField({ dueDate: e.target.value ? new Date(e.target.value).toISOString() : undefined })}
+                    defaultValue={folder?.dueDate?.split("T")[0] ?? ""}
+                    onBlur={(e) =>
+                      updateField({ dueDate: e.target.value ? new Date(e.target.value).toISOString() : undefined })
+                    }
                   />
                 </div>
               </div>
             </PopoverFormWrapper>
-            
-            <button 
+
+            <button
               className="flex items-center h-5 gap-1.5 px-2 rounded-sm bg-muted/50 text-[10px] text-muted-foreground font-semibold hover:bg-muted/80 transition-colors cursor-pointer"
               onClick={() => setIsWorkflowOpen(true)}
             >
@@ -211,7 +207,7 @@ function InnerFolderView({
               <span>Workflow</span>
             </button>
           </div>
-          
+
           {folder?.createdAt && (
             <div className="ml-auto flex items-center text-[11px] text-muted-foreground">
               Created {new Date(folder.createdAt).toLocaleDateString()}
@@ -222,10 +218,9 @@ function InnerFolderView({
     >
       <div className="h-full w-full flex relative">
         <div className="w-[300px] border-r border-border shrink-0 flex flex-col bg-background/50">
-          <FolderTaskList 
+          <FolderTaskList
             checkedTaskIds={checkedTaskIds}
             onToggleCheck={toggleCheck}
-            statuses={detailData?.statuses}
           />
         </div>
 
@@ -242,11 +237,10 @@ function InnerFolderView({
       />
 
       {checkedTaskIds.size > 0 && (
-        <FolderTaskBatchBar 
-          folderId={folderId} 
-          checkedTaskIds={checkedTaskIds} 
-          onClear={() => setCheckedTaskIds(new Set())} 
-          statuses={detailData?.statuses || []}
+        <FolderTaskBatchBar
+          folderId={folderId}
+          checkedTaskIds={checkedTaskIds}
+          onClear={() => setCheckedTaskIds(new Set())}
         />
       )}
     </EntityViewFrame>

@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { useCreateFolder } from "../../contents/hierarchy/hierarchy-api";
+import { useCreateFolderMutation } from "../../contents/hierarchy/hierarchy-api";
 import { Button } from "@/components/ui/button";
 import { useWorkspace } from "../../context/workspace-provider";
 import { toast } from "sonner";
@@ -25,7 +25,7 @@ export function CreateFolderForm({
   onCancel,
 }: CreateFolderFormProps) {
   const { workspaceId, registry } = useWorkspace();
-  const createFolder = useCreateFolder(workspaceId);
+  const [createFolderMutation, { isLoading: isCreating }] = useCreateFolderMutation();
   const [name, setName] = useState("");
   const [isPrivate, setIsPrivate] = useState(false);
   const [icon, setIcon] = useState("Folder");
@@ -45,18 +45,21 @@ export function CreateFolderForm({
     if (!name.trim()) return;
 
     try {
-      const result = await createFolder.mutateAsync({
-        projectSpaceId: spaceId,
-        name,
-        isPrivate,
-        color,
-        icon,
-        statusId: selectedStatusId,
-        startDate: startDate?.toISOString(),
-        dueDate: dueDate?.toISOString(),
-      });
+      const result = await createFolderMutation({
+        workspaceId,
+        body: {
+          projectSpaceId: spaceId,
+          name,
+          isPrivate,
+          color,
+          icon,
+          statusId: selectedStatusId,
+          startDate: startDate?.toISOString(),
+          dueDate: dueDate?.toISOString(),
+        },
+      }).unwrap();
       toast.success("Folder created");
-      onSuccess?.((result as any).data);
+      onSuccess?.((result as any).id);
     } catch (error) {
       toast.error("Failed to create folder");
     }
@@ -139,10 +142,10 @@ export function CreateFolderForm({
         <Button
           type="submit"
           size="sm"
-          disabled={!name.trim() || createFolder.isPending}
+          disabled={!name.trim() || isCreating}
           className="h-7 px-4 text-[10px] font-semibold bg-primary hover:bg-primary/90 text-primary-foreground shadow-sm rounded-md transition-all active:scale-95"
         >
-          {createFolder.isPending ? "Creating..." : "Create Folder"}
+          {isCreating ? "Creating..." : "Create Folder"}
         </Button>
       </div>
     </form>
