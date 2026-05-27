@@ -154,7 +154,7 @@ export const hierarchyApi = workspaceApi.injectEndpoints({
         const optimistic: FolderRecord = {
           id: tempId,
           name: body.name,
-          parentId: body.projectSpaceId,
+          spaceId: body.projectSpaceId,
           isPrivate: body.isPrivate ?? false,
           color: body.color ?? null,
           icon: body.icon ?? null,
@@ -245,7 +245,7 @@ export const hierarchyApi = workspaceApi.injectEndpoints({
         else if (body.itemType === "ProjectFolder") {
           const folder = folderSelectors.selectById(state, itemId);
           if (folder && body.newOrderKey) {
-            dispatch(folderSlice.actions.upsert({ ...folder, orderKey: body.newOrderKey, parentId: body.targetParentId }));
+            dispatch(folderSlice.actions.upsert({ ...folder, orderKey: body.newOrderKey, spaceId: body.targetParentId }));
             
             // 🔥 OPTIMISTIC FLAG UPDATE: Turn on hasFolders for the new target Space
             const targetSpace = spaceSelectors.selectById(state, body.targetParentId);
@@ -292,7 +292,7 @@ export const hierarchyApi = workspaceApi.injectEndpoints({
               } else {
                 const folder = folderSelectors.selectById(state, itemId);
                 if (folder) {
-                  draft.items.push({ ...folder, orderKey: body.newOrderKey ?? "", parentId: body.targetParentId });
+                  draft.items.push({ ...folder, orderKey: body.newOrderKey ?? "", spaceId: body.targetParentId });
                 }
               }
               draft.items.sort((a, b) => (a.orderKey ?? "").localeCompare(b.orderKey ?? ""));
@@ -361,7 +361,7 @@ export const hierarchyApi = workspaceApi.injectEndpoints({
                   if (idx !== -1) {
                     draft.items[idx].orderKey = move.newOrderKey;
                   } else {
-                    draft.items.push({ ...folder, orderKey: move.newOrderKey, parentId: targetParentId });
+                    draft.items.push({ ...folder, orderKey: move.newOrderKey, spaceId: targetParentId });
                   }
                   draft.items.sort((a, b) => (a.orderKey ?? "").localeCompare(b.orderKey ?? ""));
                 })
@@ -388,7 +388,7 @@ export const hierarchyApi = workspaceApi.injectEndpoints({
                       draft.items.push({
                         ...task,
                         orderKey: move.newOrderKey,
-                        projectSpaceId: isTargetSpace ? targetParentId : (folderSelectors.selectById(state, targetParentId)?.parentId ?? task.projectSpaceId),
+                        projectSpaceId: isTargetSpace ? targetParentId : (folderSelectors.selectById(state, targetParentId)?.spaceId ?? task.projectSpaceId),
                         projectFolderId: isTargetSpace ? null : targetParentId
                       });
                     }
@@ -428,13 +428,17 @@ export const {
 import { useMemo } from "react";
 
 // --- CENTRAL RELATIONAL SELECTORS FOR COMPONENTS ---
-const selectSortedSpaces = createSelector(
-  [spaceSelectors.selectAll],
-  (spaces) => [...spaces].sort((a, b) => (a.orderKey ?? "").localeCompare(b.orderKey ?? ""))
-);
+export function useSpaces(workspaceId: string) {
+  const selectForWorkspace = useMemo(() =>
+    createSelector(
+      [spaceSelectors.selectAll],
+      (spaces) => spaces
+        .filter(s => s.workspaceId === workspaceId)
+        .sort((a, b) => (a.orderKey ?? "").localeCompare(b.orderKey ?? ""))
+    ),
+  [workspaceId]);
 
-export function useSpaces() {
-  return useSelector(selectSortedSpaces);
+  return useSelector(selectForWorkspace);
 }
 
 export function useFoldersBySpace(spaceId: string) {
@@ -442,7 +446,7 @@ export function useFoldersBySpace(spaceId: string) {
     return createSelector(
       [folderSelectors.selectAll],
       (folders) => folders
-        .filter(f => f.parentId === spaceId)
+        .filter(f => f.spaceId === spaceId)
         .sort((a, b) => (a.orderKey ?? "").localeCompare(b.orderKey ?? ""))
     );
   }, [spaceId]);

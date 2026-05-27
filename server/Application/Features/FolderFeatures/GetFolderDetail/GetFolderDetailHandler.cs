@@ -18,7 +18,8 @@ public class GetFolderDetailHandler(TaskPlanDbContext db, WorkspaceContext works
                 f.start_date AS StartDate, 
                 f.due_date AS DueDate, 
                 f.created_at AS CreatedAt,
-                f.project_space_id AS ParentId,
+                f.project_workspace_id AS WorkspaceId,
+                f.project_space_id AS SpaceId,
                 (SELECT wf.id FROM workflows wf WHERE wf.project_space_id = f.project_space_id AND wf.project_folder_id IS NULL LIMIT 1) AS ParentWorkflowId,
                 (SELECT wf.id FROM workflows wf WHERE wf.project_folder_id = f.id LIMIT 1) AS WorkflowId
             FROM project_folders f
@@ -42,7 +43,8 @@ public class GetFolderDetailHandler(TaskPlanDbContext db, WorkspaceContext works
             DueDate = folderData.DueDate,
             Icon = folderData.Icon,
             Color = folderData.Color,
-            ParentId = folderData.ParentId
+            WorkspaceId = folderData.WorkspaceId,
+            SpaceId = folderData.SpaceId
         };
 
         var activeWorkflowId = folderData.WorkflowId ?? folderData.ParentWorkflowId;
@@ -79,7 +81,8 @@ public class GetFolderDetailHandler(TaskPlanDbContext db, WorkspaceContext works
         public DateTimeOffset? DueDate { get; set; }
         public string? Icon { get; set; }
         public string? Color { get; set; }
-        public Guid? ParentId { get; set; }
+        public Guid? WorkspaceId { get; set; }
+        public Guid? SpaceId { get; set; }
         public Guid? WorkflowId { get; set; }
         public Guid? ParentWorkflowId { get; set; }
     }

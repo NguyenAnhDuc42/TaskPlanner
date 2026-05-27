@@ -50,6 +50,7 @@ public record WorkspaceHierarchyRecord
 public record SpaceRecord
 {
     public Guid Id { get; init; }
+    public Guid WorkspaceId { get; init; }   // ancestor id for client-side workspace scoping
     public string Name { get; init; } = null!;
     public string? Color { get; init; }
     public string? Icon { get; init; }

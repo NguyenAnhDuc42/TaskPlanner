@@ -96,7 +96,7 @@ export function handleTaskMove(
     store.dispatch(taskSlice.actions.upsert({
       id: activeData.id,
       projectFolderId: isTargetFolder ? targetParentId : null,
-      projectSpaceId: isTargetFolder ? state.folders.entities[targetParentId]?.parentId : targetParentId,
+      projectSpaceId: isTargetFolder ? state.folders.entities[targetParentId]?.spaceId : targetParentId,
       parentType: targetParentType,
       orderKey: newOrderKey
     }));

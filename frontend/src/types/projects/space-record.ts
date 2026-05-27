@@ -1,5 +1,6 @@
 export interface SpaceRecord {
     id: string;
+    workspaceId?: string;   // ancestor id — used to scope selectors per workspace
     name: string;
     color?: string;
     icon?: string;

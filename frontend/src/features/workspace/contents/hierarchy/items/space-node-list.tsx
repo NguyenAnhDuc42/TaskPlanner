@@ -12,7 +12,7 @@ export const SpaceNodeList = React.memo(function SpaceNodeList({
 }) {
   const { workspaceId } = useWorkspace();
   const { isLoading } = useGetNodeSpacesQuery({ workspaceId: workspaceId || "", cursor: null });
-  const spaces = useSpaces();
+  const spaces = useSpaces(workspaceId);
 
   const filteredSpaces = useMemo(() => {
     if (!searchQuery) return spaces;

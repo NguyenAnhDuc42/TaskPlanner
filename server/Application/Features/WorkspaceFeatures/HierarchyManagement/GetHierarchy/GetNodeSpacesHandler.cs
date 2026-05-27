@@ -11,6 +11,7 @@ public class GetNodeSpacesHandler(TaskPlanDbContext db, CursorHelper cursorHelpe
         const string sql = @"
             SELECT 
                 id AS Id,
+                project_workspace_id AS WorkspaceId,
                 name AS Name,
                 custom_color AS Color,
                 custom_icon AS Icon,

@@ -17,11 +17,11 @@ export function handleFolderMove( activeData: DragFolderData, overData: DragItem
   if (!targetSpaceId) return;
 
   const state = store.getState();
-  const sourceSpaceId = activeData.spaceId || activeData.parentId;
+  const sourceSpaceId = activeData.spaceId;
 
   // Retrieve and sort current sibling folders under source space
   const sourceFolders = Object.values(state.folders.entities)
-    .filter((f): f is typeof f & { id: string } => !!f && f.parentId === sourceSpaceId)
+    .filter((f): f is typeof f & { id: string } => !!f && f.spaceId === sourceSpaceId)
     .sort((a, b) => (a.orderKey || "").localeCompare(b.orderKey || ""))
     .map(f => f.id);
 
@@ -29,7 +29,7 @@ export function handleFolderMove( activeData: DragFolderData, overData: DragItem
   const targetFolders = sourceSpaceId === targetSpaceId
     ? sourceFolders
     : Object.values(state.folders.entities)
-        .filter((f): f is typeof f & { id: string } => !!f && f.parentId === targetSpaceId)
+        .filter((f): f is typeof f & { id: string } => !!f && f.spaceId === targetSpaceId)
         .sort((a, b) => (a.orderKey || "").localeCompare(b.orderKey || ""))
         .map(f => f.id);
 
@@ -58,7 +58,7 @@ export function handleFolderMove( activeData: DragFolderData, overData: DragItem
     newOrderKey = freshKeys[newIndex];
 
     // Optimistic: update dragged folder + all existing target folders
-    store.dispatch(folderSlice.actions.upsert({ id: activeData.id, parentId: targetSpaceId, orderKey: newOrderKey }));
+    store.dispatch(folderSlice.actions.upsert({ id: activeData.id, spaceId: targetSpaceId, orderKey: newOrderKey }));
   }
 
   // Turn ON hasFolders for new target Space

@@ -50,6 +50,25 @@ public class BatchMoveItemHandler(
                         .SetProperty(f => f.UpdatedAt, DateTimeOffset.UtcNow), ct);
             }
 
+            if (taskMoves.Any())
+            {
+                // Pre-load all target parent info in ONE query instead of N UNION SELECTs
+                var allTargetGuids = taskMoves
+                    .Where(m => m.TargetParentId.HasValue)
+                    .Select(m => m.TargetParentId!.Value)
+                    .Distinct()
+                    .ToList();
+
+                var parentInfoMap = allTargetGuids.Any()
+                    ? await db.ProjectSpaces
+                        .Where(s => allTargetGuids.Contains(s.Id) && s.ProjectWorkspaceId == context.workspaceId)
+                        .Select(s => new { s.Id, Type = "ProjectSpace", SpaceId = s.Id })
+                        .Union(db.ProjectFolders
+                            .Where(f => allTargetGuids.Contains(f.Id))
+                            .Select(f => new { f.Id, Type = "ProjectFolder", SpaceId = f.ProjectSpaceId }))
+                        .ToDictionaryAsync(x => x.Id, ct)
+                    : [];
+
             foreach (var move in taskMoves)
             {
                 Guid? resolvedSpaceId = null;
@@ -59,17 +78,11 @@ public class BatchMoveItemHandler(
                 if (move.TargetParentId.HasValue)
                 {
                     var targetGuid = move.TargetParentId.Value;
-                    var targetInfo = await db.ProjectSpaces
-                        .Where(s => s.Id == targetGuid)
-                        .Select(s => new { Id = s.Id, Type = "ProjectSpace" })
-                        .Union(db.ProjectFolders.Where(f => f.Id == targetGuid).Select(f => new { Id = f.ProjectSpaceId, Type = "ProjectFolder" }))
-                        .FirstOrDefaultAsync(ct);
-
-                    if (targetInfo != null)
+                    if (parentInfoMap.TryGetValue(targetGuid, out var info))
                     {
                         hasTarget = true;
-                        if (targetInfo.Type == "ProjectSpace") resolvedSpaceId = targetGuid;
-                        else { resolvedFolderId = targetGuid; resolvedSpaceId = targetInfo.Id; }
+                        if (info.Type == "ProjectSpace") resolvedSpaceId = targetGuid;
+                        else { resolvedFolderId = targetGuid; resolvedSpaceId = info.SpaceId; }
                     }
                 }
 
@@ -81,6 +94,7 @@ public class BatchMoveItemHandler(
                         .SetProperty(t => t.OrderKey, move.NewOrderKey)
                         .SetProperty(t => t.UpdatedAt, DateTimeOffset.UtcNow), ct);
             }
+            }
 
             if (spaceMoves.Any())
             {
@@ -91,6 +105,7 @@ public class BatchMoveItemHandler(
                     .Select(s => new SpaceRecord
                     {
                         Id = s.Id,
+                        WorkspaceId = s.ProjectWorkspaceId,
                         Name = s.Name,
                         Color = s.Color,
                         Icon = s.Icon,
@@ -108,8 +123,9 @@ public class BatchMoveItemHandler(
                     .Select(f => new FolderRecord
                     {
                         Id = f.Id,
+                        WorkspaceId = context.workspaceId,
+                        SpaceId = f.ProjectSpaceId,
                         Name = f.Name,
-                        ParentId = f.ProjectSpaceId,
                         OrderKey = f.OrderKey,
                         Icon = f.Icon,
                         Color = f.Color
@@ -125,6 +141,7 @@ public class BatchMoveItemHandler(
                     .Select(t => new TaskRecord
                     {
                         Id = t.Id,
+                        WorkspaceId = context.workspaceId,
                         Name = t.Name,
                         StatusId = t.StatusId,
                         Priority = t.Priority,

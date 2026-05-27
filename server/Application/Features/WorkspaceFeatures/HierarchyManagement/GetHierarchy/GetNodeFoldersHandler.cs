@@ -11,11 +11,13 @@ public class GetNodeFoldersHandler(TaskPlanDbContext db, CursorHelper cursorHelp
         const string sql = @"
             SELECT 
                 f.id AS Id,
-                f.project_space_id AS ParentId,
+                @WorkspaceId AS WorkspaceId,
+                f.project_space_id AS SpaceId,
                 f.name AS Name,
                 f.custom_color AS Color,
                 f.custom_icon AS Icon,
                 f.order_key AS OrderKey,
+                f.created_at AS CreatedAt,
                 EXISTS (
                     SELECT 1 FROM project_tasks t
                     WHERE t.project_folder_id = f.id
@@ -41,6 +43,7 @@ public class GetNodeFoldersHandler(TaskPlanDbContext db, CursorHelper cursorHelp
         var connection = db.Database.GetDbConnection();
         var parameters = new
         {
+            WorkspaceId = request.WorkspaceId,
             SpaceId = request.NodeId,
             CursorOrderKey = cursorOrderKey,
             CursorFolderId = cursorFolderId != null ? (Guid?)Guid.Parse(cursorFolderId) : null,

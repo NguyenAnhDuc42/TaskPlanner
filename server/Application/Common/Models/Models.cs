@@ -3,6 +3,7 @@ namespace Application;
 public record TaskRecord
 {
     public Guid Id { get; init; }
+    public Guid? WorkspaceId { get; init; }        // ancestor: workspace
     public string Name { get; init; } = null!;
     public DateTimeOffset CreatedAt { get; init; }
     public Guid? StatusId { get; init; }
@@ -13,9 +14,11 @@ public record TaskRecord
     public string? Icon { get; init; }
     public string? Color { get; init; }
     
-    // Detailed properties
+    // Ancestor ids
     public Guid? ProjectSpaceId { get; init; }
     public Guid? ProjectFolderId { get; init; }
+
+    // Detailed properties
     public string? Description { get; init; }
     public Guid? ParentWorkflowId { get; init; }
     public Guid? DefaultDocumentId { get; init; }
@@ -29,6 +32,8 @@ public record TaskRecord
 public record FolderRecord
 {
     public Guid Id { get; init; }
+    public Guid? WorkspaceId { get; init; }        // ancestor: workspace
+    public Guid? SpaceId { get; init; }            // ancestor: space
     public string Name { get; init; } = null!;
     public DateTimeOffset CreatedAt { get; init; }
     public Guid? StatusId { get; init; }
@@ -39,7 +44,6 @@ public record FolderRecord
     public string? Icon { get; init; }
     public string? Color { get; init; }
     public bool? HasTasks { get; init; }
-    public Guid? ParentId { get; init; }
 }
 
 public record TaskViewData(
