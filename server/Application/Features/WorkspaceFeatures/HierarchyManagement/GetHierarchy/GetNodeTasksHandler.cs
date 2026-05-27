@@ -17,6 +17,7 @@ public class GetNodeTasksHandler(TaskPlanDbContext db, CursorHelper cursorHelper
                 t.order_key AS OrderKey,
                 t.project_folder_id AS ProjectFolderId,
                 t.project_space_id AS ProjectSpaceId,
+                t.project_workspace_id AS WorkspaceId,
                 t.custom_color AS Color,
                 t.custom_icon AS Icon,
                 CASE 

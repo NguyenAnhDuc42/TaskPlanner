@@ -1,6 +1,6 @@
 import { configureStore } from '@reduxjs/toolkit';
-import { spaceSlice, folderSlice, taskSlice, memberSlice, statusSlice } from './entityStore';
 import { workspaceApi } from './workspaceApi';
+import { spaceSlice, folderSlice, taskSlice, memberSlice, statusSlice } from './entityStore';
 
 export const store = configureStore({
   reducer: {

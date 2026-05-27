@@ -27,14 +27,14 @@ public class GetSpaceItemsHandler(TaskPlanDbContext db, WorkspaceContext workspa
                 ELSE 4
             END;
 
-            SELECT id AS Id, name AS Name, created_at AS CreatedAt, status_id AS StatusId, priority AS Priority, start_date AS StartDate, due_date AS DueDate, order_key AS OrderKey, custom_icon as Icon, custom_color as Color
+            SELECT id AS Id, @WorkspaceId AS WorkspaceId, project_space_id AS SpaceId, name AS Name, created_at AS CreatedAt, status_id AS StatusId, priority AS Priority, start_date AS StartDate, due_date AS DueDate, order_key AS OrderKey, custom_icon as Icon, custom_color as Color
             FROM project_folders
             WHERE project_space_id = @SpaceId 
               AND deleted_at IS NULL 
               AND is_archived = false
             ORDER BY order_key;
 
-            SELECT id AS Id, name AS Name, created_at AS CreatedAt, status_id AS StatusId, priority AS Priority, due_date AS DueDate, start_date AS StartDate, order_key AS OrderKey, custom_icon as Icon, custom_color as Color
+            SELECT id AS Id, @WorkspaceId AS WorkspaceId, project_space_id AS ProjectSpaceId, project_folder_id AS ProjectFolderId, name AS Name, created_at AS CreatedAt, status_id AS StatusId, priority AS Priority, due_date AS DueDate, start_date AS StartDate, order_key AS OrderKey, custom_icon as Icon, custom_color as Color
             FROM project_tasks
             WHERE project_workspace_id = @WorkspaceId 
               AND deleted_at IS NULL 

@@ -33,10 +33,10 @@ interface StatusBadgeProps {
   status?: Status | null;
   className?: string;
   showIcon?: boolean;
+  variant?: "text" | "outline";
 }
 
-
-export function StatusBadge({ status, className, showIcon = true }: StatusBadgeProps) {
+export function StatusBadge({ status, className, showIcon = true, variant = "text" }: StatusBadgeProps) {
   if (!status) {
     return (
       <div className={cn("flex items-center gap-1 text-[10px] text-muted-foreground font-medium", className)}>
@@ -53,6 +53,24 @@ export function StatusBadge({ status, className, showIcon = true }: StatusBadgeP
     : status.category === StatusCategory.Done ? CheckCircle2
     : status.category === StatusCategory.Closed ? AlertCircle
     : CircleDashed;
+
+  if (variant === "outline") {
+    return (
+      <div 
+        className={cn("flex items-center gap-1.5 px-2 py-0.5 rounded-md border text-[10px] font-semibold transition-all duration-300", className)}
+        style={{ 
+          color: statusColor,
+          borderColor: `${statusColor}33`,
+          backgroundColor: `${statusColor}0a`
+        }}
+      >
+        {showIcon && (
+          <Icon className="h-3 w-3" />
+        )}
+        <span>{status.name}</span>
+      </div>
+    );
+  }
 
   return (
     <div 

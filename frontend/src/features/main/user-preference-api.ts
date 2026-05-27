@@ -1,7 +1,5 @@
-import { useQuery, useMutation, useQueryClient, queryOptions } from "@tanstack/react-query";
-import { api } from "@/lib/api-client";
+import { workspaceApi } from "@/store/workspaceApi";
 
-// ─── Types ───────────────────────────────────────────────
 export interface WorkspaceSetting {
   sideBarWidth?: number;
   mainContentWidth?: number;
@@ -19,36 +17,31 @@ export interface UserPreference {
   workspaceSettings: Record<string, WorkspaceSetting>;
 }
 
-// ─── Query Keys ──────────────────────────────────────────
-export const userPreferenceKeys = {
-  all: ["user-preference"] as const,
-  detail: () => [...userPreferenceKeys.all, "detail"] as const,
-};
-
-// ─── Query Options (for use in route loaders) ────────────
-export const userPreferenceQueryOptions = queryOptions({
-  queryKey: userPreferenceKeys.detail(),
-  queryFn: async () => {
-    const { data } = await api.get<UserPreference>("/users/preferences");
-    return data;
-  },
-  staleTime: 1000 * 60 * 5,
+export const userPreferenceApi = workspaceApi.injectEndpoints({
+  endpoints: (build) => ({
+    getUserPreference: build.query<UserPreference, void>({
+      query: () => ({ url: "/users/preferences", method: "GET" }),
+      providesTags: ["UserPreference"],
+    }),
+    updateUserPreference: build.mutation<void, Partial<Omit<UserPreference, "userId">>>({
+      query: (payload) => ({ url: "/users/preferences", method: "PUT", data: payload }),
+      invalidatesTags: ["UserPreference"],
+    }),
+  }),
 });
 
-// ─── Hooks ───────────────────────────────────────────────
+export const {
+  useGetUserPreferenceQuery,
+  useUpdateUserPreferenceMutation,
+} = userPreferenceApi;
+
 export function useUserPreference() {
-  return useQuery(userPreferenceQueryOptions);
+  return useGetUserPreferenceQuery();
 }
 
 export function useUpdateUserPreference() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async (payload: Partial<Omit<UserPreference, "userId">>) => {
-      await api.put("/users/preferences", payload);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: userPreferenceKeys.all });
-    },
-  });
+  const [updatePreferenceTrigger] = useUpdateUserPreferenceMutation();
+  return {
+    mutate: (payload: Partial<Omit<UserPreference, "userId">>) => updatePreferenceTrigger(payload).unwrap(),
+  };
 }

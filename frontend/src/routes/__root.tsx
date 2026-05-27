@@ -8,12 +8,10 @@ import type { AuthContextType } from "@/features/auth/auth-context";
 
 import "../index.css";
 
-import type { QueryClient } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/sonner";
 
 interface RouterContext {
   auth: AuthContextType;
-  queryClient: QueryClient;
 }
 
 const RootLayout = () => (

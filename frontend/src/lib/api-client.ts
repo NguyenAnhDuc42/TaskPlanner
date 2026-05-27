@@ -1,9 +1,15 @@
 import axios from "axios";
-import { queryClient } from "@/main";
 import { authKeys } from "@/features/auth/api";
+
+// Simple event channel to notify query layers when tokens refresh without circular dependencies
+export const apiEvents = {
+  onTokenRefreshed: [] as (() => void)[],
+};
+
 import { ApiError } from "@/types/api-error";
-import { deleteCookie } from "./cookie-utils";
+import { deleteCookie, getCookie } from "./cookie-utils";
 import { toast } from "sonner";
+import { signalRService } from "./signalr-service";
 
 export const api = axios.create({
   baseURL: "/api",
@@ -14,6 +20,7 @@ export const api = axios.create({
 });
 
 let isRefreshing = false;
+let isRedirecting = false; // Protects against concurrent API storms during redirect
 let failedQueue: Array<{
   resolve: (value: unknown) => void;
   reject: (reason?: any) => void;
@@ -27,10 +34,19 @@ const processQueue = (error: any, token: any = null) => {
   failedQueue = [];
 };
 
-import { signalRService } from "./signalr-service";
-
-// Request Interceptor: Inject Workspace ID & SignalR Connection ID for Echo Suppression
+// Request Interceptor: Inject Workspace ID, SignalR Connection ID and prevent concurrent/unauthorized spam
 api.interceptors.request.use((config) => {
+  // 1. Drop requests immediately if we are already in the process of redirecting to login/home
+  if (isRedirecting) {
+    return Promise.reject(new axios.Cancel("API request cancelled: redirecting user"));
+  }
+
+  // 2. Drop requests immediately if session cookie is missing (except login/signup endpoints)
+  const isAuthRequest = config.url?.includes("/auth/") && !config.url?.includes("/auth/me");
+  if (!isAuthRequest && !getCookie("is_logged_in")) {
+    return Promise.reject(new axios.Cancel("API request cancelled: no active session"));
+  }
+
   if (!config.headers["X-Workspace-Id"]) {
     const workspaceIdMatch = window.location.pathname.match(/\/workspaces\/([a-f\d-]+)/i);
     if (workspaceIdMatch) {
@@ -69,20 +85,19 @@ api.interceptors.response.use(
 
       try {
         await api.post("/auth/refresh");
-        queryClient.invalidateQueries({ queryKey: authKeys.me() });
+        apiEvents.onTokenRefreshed.forEach(cb => cb());
         processQueue(null);
         return api(originalRequest);
       } catch (refreshError) {
         processQueue(refreshError);
         
         // Fatal Refresh Error: The session is completely dead.
-        // The server already cleared our cookies via Set-Cookie, 
-        // but we clear them in JS too just to be absolute.
         deleteCookie("is_logged_in");
         deleteCookie("atexp");
 
         // Redirect to sign-in if we aren't already there
         if (!window.location.pathname.startsWith("/auth/")) {
+            isRedirecting = true; // Lock outgoing requests
             window.location.href = "/auth/sign-in";
         }
         
@@ -94,6 +109,7 @@ api.interceptors.response.use(
 
     if (error.response?.status === 403 && originalRequest?.url?.includes("/workspaces/")) {
       toast.error("You do not have access to this workspace.");
+      isRedirecting = true; // Lock outgoing requests
       window.location.href = "/";
       return Promise.reject(new ApiError(error));
     }

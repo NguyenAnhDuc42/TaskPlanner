@@ -1,8 +1,7 @@
-import { userQueryOptions } from "@/features/auth/api";
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import { WorkspaceHomeScreen } from "@/features/main/home-screen";
-import { workspaceInfiniteQueryOptions } from "@/features/main/home-screen/api";
 import { z } from "zod";
+import { getCookie } from "@/lib/cookie-utils";
 
 const workspaceSearchSchema = z.object({
   name: z.string().optional(),
@@ -17,9 +16,9 @@ export type WorkspaceSearch = z.infer<typeof workspaceSearchSchema>;
 
 export const Route = createFileRoute("/")({
   validateSearch: (search) => workspaceSearchSchema.parse(search),
-  beforeLoad: async ({ context, search }) => {
-    const user = await context.queryClient.ensureQueryData(userQueryOptions);
-    if (!user) {
+  beforeLoad: async ({ search }) => {
+    const isLoggedIn = !!getCookie("is_logged_in");
+    if (!isLoggedIn) {
       throw redirect({ to: "/auth/sign-in" });
     }
 
@@ -35,10 +34,5 @@ export const Route = createFileRoute("/")({
     }
   },
   loaderDeps: ({ search }) => search,
-  loader: async ({ context, deps }) => {
-    await context.queryClient.ensureInfiniteQueryData(
-      workspaceInfiniteQueryOptions(deps as WorkspaceSearch),
-    );
-  },
   component: WorkspaceHomeScreen,
 });

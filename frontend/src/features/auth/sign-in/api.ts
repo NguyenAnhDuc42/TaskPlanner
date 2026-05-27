@@ -1,23 +1,14 @@
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useLoginMutation } from "../api";
 import { signInSchema } from "./type";
 import z from "zod";
-import { authKeys } from "../api";
-import { api } from "@/lib/api-client";
-import type { LoginResponse } from "../types";
 
 type SignInValues = z.infer<typeof signInSchema>;
 
 export function useLogin() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async (values: SignInValues) => {
-      const { data } = await api.post<LoginResponse>("/auth/login", values);
-      return data;
+  const [loginTrigger] = useLoginMutation();
+  return {
+    mutate: async (values: SignInValues) => {
+      return await loginTrigger(values).unwrap();
     },
-    onSuccess: async () => {
-      await queryClient.refetchQueries({ queryKey: authKeys.me() });
-      await queryClient.invalidateQueries({ queryKey: ["user-preference"] });
-    },
-  });
+  };
 }

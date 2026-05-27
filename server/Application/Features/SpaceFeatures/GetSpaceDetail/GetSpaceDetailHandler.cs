@@ -51,6 +51,7 @@ public class GetSpaceDetailHandler(TaskPlanDbContext db, WorkspaceContext worksp
         var space = new SpaceRecord
         {
             Id = row.Id,
+            WorkspaceId = workspaceContext.workspaceId,
             Name = row.Name,
             Color = row.Color,
             Icon = row.Icon,

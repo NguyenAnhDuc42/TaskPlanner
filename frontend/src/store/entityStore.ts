@@ -2,7 +2,6 @@ import { createEntityAdapter, createSlice, type PayloadAction } from '@reduxjs/t
 import type { SpaceRecord, FolderRecord, TaskRecord } from "@/types/projects";
 import type { MemberRecord } from "@/types/workspace/member-record";
 import type { Status } from "@/types/status";
-import type { RootState } from './index';
 
 // ─── UTILITY: GRANULAR DEEP MERGE (LAST WRITE WINS) ───
 function safeMergeEntity<T extends { id: string }>(
@@ -153,8 +152,8 @@ export const statusSlice = createSlice({
 });
 
 // Central selectors
-export const spaceSelectors  = adapters.spaces.getSelectors((s: RootState) => s.spaces);
-export const folderSelectors = adapters.folders.getSelectors((s: RootState) => s.folders);
-export const taskSelectors   = adapters.tasks.getSelectors((s: RootState) => s.tasks);
-export const memberSelectors = adapters.members.getSelectors((s: RootState) => s.members);
-export const statusSelectors = adapters.statuses.getSelectors((s: RootState) => s.statuses);
+export const spaceSelectors  = adapters.spaces.getSelectors((s: any) => s.spaces);
+export const folderSelectors = adapters.folders.getSelectors((s: any) => s.folders);
+export const taskSelectors   = adapters.tasks.getSelectors((s: any) => s.tasks);
+export const memberSelectors = adapters.members.getSelectors((s: any) => s.members);
+export const statusSelectors = adapters.statuses.getSelectors((s: any) => s.statuses);

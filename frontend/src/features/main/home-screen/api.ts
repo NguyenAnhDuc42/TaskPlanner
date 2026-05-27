@@ -1,17 +1,7 @@
 import { z } from "zod";
 import type { createWorkspaceSchema, WorkspaceSummary } from "./type";
-import {
-  keepPreviousData,
-  useMutation,
-  useInfiniteQuery,
-  useQueryClient,
-  infiniteQueryOptions,
-} from "@tanstack/react-query";
-import { api } from "@/lib/api-client";
-import { workspaceKeys } from "../query-keys";
-
+import { workspaceApi } from "@/store/workspaceApi";
 import { toast } from "sonner";
-import type { ApiError } from "@/types/api-error";
 import type { PagedResult } from "@/types/paged-result";
 import { useNavigate, useSearch } from "@tanstack/react-router";
 import React from "react";
@@ -19,116 +9,144 @@ import { signalRService } from "@/lib/signalr-service";
 
 type CreateWorkspaceValues = z.infer<typeof createWorkspaceSchema>;
 
+export const homeWorkspaceApi = workspaceApi.injectEndpoints({
+  endpoints: (build) => ({
+    getWorkspaces: build.query<PagedResult<WorkspaceSummary>, {
+      name?: string;
+      owned?: boolean;
+      isArchived?: boolean;
+      variant?: string;
+      direction?: "Ascending" | "Descending";
+      cursor?: string | null;
+    }>({
+      query: (params) => ({ url: "/workspaces", method: "GET", params }),
+      // Infinite scroll: reuse cache based only on filters
+      serializeQueryArgs: ({ endpointName, queryArgs }) => {
+        const { cursor, ...filters } = queryArgs;
+        return `${endpointName}_${JSON.stringify(filters)}`;
+      },
+      merge: (currentCache, newItems, { arg }) => {
+        if (!arg.cursor) {
+          return newItems;
+        }
+        currentCache.items.push(...newItems.items);
+        currentCache.nextCursor = newItems.nextCursor;
+        currentCache.hasNextPage = newItems.hasNextPage;
+      },
+      forceRefetch({ currentArg, previousArg }) {
+        return currentArg !== previousArg;
+      },
+      providesTags: ["Spaces"],
+    }),
+    createWorkspace: build.mutation<WorkspaceSummary, CreateWorkspaceValues & { strictJoin?: boolean }>({
+      query: (values) => ({ url: "/workspaces", method: "POST", data: values }),
+      invalidatesTags: ["Spaces"],
+    }),
+    setWorkspacePin: build.mutation<void, { workspaceId: string; isPinned: boolean }>({
+      query: (payload) => ({ url: `/workspaces/${payload.workspaceId}/pin`, method: "PUT", data: { isPinned: payload.isPinned } }),
+      invalidatesTags: ["Spaces"],
+    }),
+    joinWorkspace: build.mutation<{
+      workspaceId: string;
+      membershipStatus: string;
+      isNewMember: boolean;
+    }, string>({
+      query: (joinCode) => ({ url: "/workspaces/join", method: "POST", data: { joinCode } }),
+      invalidatesTags: ["Spaces"],
+    }),
+  }),
+});
+
+export const {
+  useGetWorkspacesQuery,
+  useCreateWorkspaceMutation,
+  useSetWorkspacePinMutation,
+  useJoinWorkspaceMutation,
+} = homeWorkspaceApi;
+
 export function useCreateWorkspace() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: async (values: CreateWorkspaceValues) => {
-      const result = await api.post("/workspaces", {
-        ...values,
-      });
-      return result.data;
+  const [createTrigger] = useCreateWorkspaceMutation();
+  return {
+    mutate: async (values: CreateWorkspaceValues & { strictJoin?: boolean }) => {
+      try {
+        const result = await createTrigger(values).unwrap();
+        toast.success("Workspace created successfully");
+        return result;
+      } catch (error: any) {
+        toast.error(error.message || "Failed to create workspace");
+        throw error;
+      }
     },
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: workspaceKeys.list() });
-      toast.success("Workspace created successfully");
-    },
-    onError: (error: ApiError) => {
-      toast.error(error.message);
-    },
-  });
+  };
 }
 
-export const workspaceInfiniteQueryOptions = (
-  filters: {
-    name?: string;
-    owned?: boolean;
-    isArchived?: boolean;
-    variant?: string;
-    direction?: "Ascending" | "Descending";
-  } = {},
-) =>
-  infiniteQueryOptions({
-    queryKey: [...workspaceKeys.list(), filters],
-    queryFn: async ({ pageParam }: { pageParam: string | null }) => {
-      const { data } = await api.get<PagedResult<WorkspaceSummary>>(
-        "/workspaces",
-        {
-          params: {
-            cursor: pageParam,
-            ...filters,
-          },
-        },
-      );
-      return data;
-    },
-    initialPageParam: null as string | null,
-    getNextPageParam: (lastPage) => lastPage.nextCursor || undefined,
-  });
+export function useWorkspaces(filters: any) {
+  const [cursor, setCursor] = React.useState<string | null>(null);
 
-export function useWorkspaces(filters?: {
-  name?: string;
-  owned?: boolean;
-  isArchived?: boolean;
-  variant?: string;
-  direction?: "Ascending" | "Descending";
-}) {
-  return useInfiniteQuery({
-    ...workspaceInfiniteQueryOptions(filters),
-    staleTime: 1000 * 60 * 2,
-    refetchOnWindowFocus: false,
-    placeholderData: keepPreviousData,
-  });
+  // Reset pagination cursor when search filters change
+  const prevFiltersRef = React.useRef(filters);
+  React.useEffect(() => {
+    if (JSON.stringify(prevFiltersRef.current) !== JSON.stringify(filters)) {
+      setCursor(null);
+      prevFiltersRef.current = filters;
+    }
+  }, [filters]);
+
+  const { data, isLoading, isFetching } = useGetWorkspacesQuery({ ...filters, cursor });
+
+  const fetchNextPage = React.useCallback(() => {
+    if (data?.nextCursor) {
+      setCursor(data.nextCursor);
+    }
+  }, [data]);
+
+  return {
+    data: data ? { pages: [data] } : undefined,
+    isLoading,
+    isFetchingNextPage: isFetching && cursor !== null,
+    hasNextPage: !!data?.nextCursor,
+    fetchNextPage,
+  };
 }
 
 export function useSetWorkspacePin() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async (payload: { workspaceId: string; isPinned: boolean }) => {
-      await api.put(`/workspaces/${payload.workspaceId}/pin`, {
-        isPinned: payload.isPinned,
-      });
+  const [pinTrigger] = useSetWorkspacePinMutation();
+  return {
+    mutate: async (payload: { workspaceId: string; isPinned: boolean }) => {
+      try {
+        await pinTrigger(payload).unwrap();
+        toast.success("Workspace pin updated!");
+      } catch (error: any) {
+        toast.error(error.message || "Failed to update pin");
+      }
     },
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: workspaceKeys.list() });
-      toast.success("Workspace pin updated!");
-    },
-    onError: (error: ApiError) => {
-      toast.error(error.message);
-    },
-  });
+  };
 }
 
 export function useJoinWorkspaceByCode() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async (joinCode: string) => {
-      const response = await api.post<{
-        workspaceId: string;
-        membershipStatus: string;
-        isNewMember: boolean;
-      }>("/workspaces/join", { joinCode });
-      return response.data;
-    },
-    onSuccess: async (data) => {
-      await queryClient.invalidateQueries({ queryKey: workspaceKeys.list() });
-      if (data.membershipStatus === "Pending") {
-        toast.info("Join request sent. Waiting for approval.");
-      } else {
-        toast.success("Joined workspace successfully");
+  const [joinTrigger] = useJoinWorkspaceMutation();
+  return {
+    mutate: async (joinCode: string) => {
+      try {
+        const data = await joinTrigger(joinCode).unwrap();
+        if (data.membershipStatus === "Pending") {
+          toast.info("Join request sent. Waiting for approval.");
+        } else {
+          toast.success("Joined workspace successfully");
+        }
+        return data;
+      } catch (error: any) {
+        toast.error(error.message || "Failed to join workspace");
+        throw error;
       }
     },
-    onError: (error: ApiError) => {
-      toast.error(error.message);
-    },
-  });
+  };
 }
 
 export function useWorkspaceHome() {
   const search = useSearch({ from: "/" }) as any;
   const navigate = useNavigate();
-  const queryClient = useQueryClient();
+  const { refetch } = useGetWorkspacesQuery({ ...search });
 
   const {
     data,
@@ -142,8 +160,7 @@ export function useWorkspaceHome() {
     return data?.pages.flatMap((page) => page.items) ?? [];
   }, [data]);
 
-  const { mutate: createInternal, isPending: isCreating } =
-    useCreateWorkspace();
+  const { mutate: createInternal } = useCreateWorkspace();
   const { mutate: setWorkspacePin } = useSetWorkspacePin();
 
   const [isCreateModalOpen, setIsCreateModalOpen] = React.useState(false);
@@ -153,17 +170,17 @@ export function useWorkspaceHome() {
     signalRService.startConnection();
 
     const onUpdate = () => {
-      queryClient.invalidateQueries({ queryKey: workspaceKeys.list() });
+      refetch();
     };
 
-    signalRService.on("WorkspaceUpdated", onUpdate);
-    signalRService.on("WorkspacePinned", onUpdate);
+    signalRService.on("EntitiesUpdated", onUpdate);
+    signalRService.on("EntitiesDeleted", onUpdate);
 
     return () => {
-      signalRService.off("WorkspaceUpdated", onUpdate);
-      signalRService.off("WorkspacePinned", onUpdate);
+      signalRService.off("EntitiesUpdated", onUpdate);
+      signalRService.off("EntitiesDeleted", onUpdate);
     };
-  }, [queryClient]);
+  }, [refetch]);
 
   const handleCreateWorkspace = React.useCallback(
     (data: any) => {
@@ -206,7 +223,7 @@ export function useWorkspaceHome() {
     filters: search,
     workspaces,
     isWorkspacesLoading,
-    isCreating,
+    isCreating: false,
     isCreateModalOpen,
     setIsCreateModalOpen,
     isJoinModalOpen,

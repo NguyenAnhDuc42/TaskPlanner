@@ -11,7 +11,7 @@ public class GetFolderTasksHandler(TaskPlanDbContext db, WorkspaceContext worksp
         var connection = db.Database.GetDbConnection();
 
         var sql = @"
-            SELECT id AS Id, name AS Name, created_at AS CreatedAt, status_id AS StatusId, priority AS Priority, due_date AS DueDate, start_date AS StartDate, order_key AS OrderKey, custom_icon as Icon, custom_color as Color
+            SELECT id AS Id, name AS Name, created_at AS CreatedAt, status_id AS StatusId, priority AS Priority, due_date AS DueDate, start_date AS StartDate, order_key AS OrderKey, custom_icon as Icon, custom_color as Color, project_folder_id AS ProjectFolderId, project_space_id AS ProjectSpaceId, project_workspace_id AS WorkspaceId
             FROM project_tasks
             WHERE project_workspace_id = @WorkspaceId 
               AND deleted_at IS NULL 

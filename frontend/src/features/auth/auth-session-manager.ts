@@ -1,6 +1,5 @@
-import { api } from "@/lib/api-client";
+import { api, apiEvents } from "@/lib/api-client";
 import { getCookie, deleteCookie } from "@/lib/cookie-utils";
-import { queryClient } from "@/main";
 import { authKeys } from "./api";
 
 class AuthSessionManager {
@@ -40,7 +39,7 @@ class AuthSessionManager {
   private async checkAndRefresh() {
     try {
       await api.post("/auth/refresh");
-      queryClient.invalidateQueries({ queryKey: authKeys.me() });
+      apiEvents.onTokenRefreshed.forEach(cb => cb());
       this.scheduleNextCheck();
     } catch (error) {
       this.stop();

@@ -68,6 +68,7 @@ public class GetTaskDetailHandler(TaskPlanDbContext db, WorkspaceContext workspa
         var task = new TaskRecord
         {
             Id = row.Id,
+            WorkspaceId = workspaceContext.workspaceId,
             ProjectSpaceId = row.ProjectSpaceId,
             ProjectFolderId = row.ProjectFolderId,
             Name = row.Name,

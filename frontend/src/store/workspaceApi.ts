@@ -32,6 +32,6 @@ export const axiosBaseQuery = (): BaseQueryFn<
 export const workspaceApi = createApi({
   reducerPath: 'workspaceApi',
   baseQuery: axiosBaseQuery(),
-  tagTypes: ['Spaces', 'Folders', 'Tasks', 'Members'],
+  tagTypes: ['Spaces', 'Folders', 'Tasks', 'Members', 'User', 'UserPreference'],
   endpoints: () => ({}), // Endpoints will be injected by features
 });

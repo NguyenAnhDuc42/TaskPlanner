@@ -1,11 +1,11 @@
 import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
-import { userQueryOptions } from "@/features/auth/api";
+import { getCookie } from "@/lib/cookie-utils";
 
 export const Route = createFileRoute("/auth")({
-  beforeLoad: async ({ context }) => {  
-    const user = await context.queryClient.ensureQueryData(userQueryOptions);
+  beforeLoad: async () => {  
+    const isLoggedIn = !!getCookie("is_logged_in");
 
-    if (user) {
+    if (isLoggedIn) {
       throw redirect({
         to: "/",
       });
