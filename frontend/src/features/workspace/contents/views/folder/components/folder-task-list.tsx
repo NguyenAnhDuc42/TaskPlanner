@@ -40,17 +40,10 @@ export function FolderTaskList({
   const { folderId } = useParams({ strict: false }) as { folderId: string };
   const dispatch = useDispatch();
   const [createOpen, setCreateOpen] = React.useState(false);
-
-  // Trigger query — populates Redux store via onQueryStarted
   const { isLoading } = useGetFolderTasksQuery({ folderId, cursor: null });
-
-  // Read reactively from Redux entity store
   const tasks = useFolderTasksList(folderId);
-
   const sortableItems = React.useMemo(() => tasks.map(t => t.id), [tasks]);
-
   const [batchUpdate] = useBatchUpdateFolderTasksMutation();
-
   const pointerSensor = useSensor(PointerSensor, { activationConstraint: { distance: 8 } });
   const keyboardSensor = useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates });
   const sensors = useSensors(pointerSensor, keyboardSensor);

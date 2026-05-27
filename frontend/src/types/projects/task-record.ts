@@ -11,8 +11,8 @@ export interface TaskRecord {
     orderKey?: string;
     icon?: string;
     color?: string;
-    projectSpaceId?: string;
-    projectFolderId?: string;
+    projectSpaceId?: string | null;
+    projectFolderId?: string | null;
     description?: string;
     parentWorkflowId?: string;
     defaultDocumentId?: string;

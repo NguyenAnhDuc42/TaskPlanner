@@ -1,16 +1,15 @@
 import { arrayMove } from "@dnd-kit/sortable";
 import { EntityLayerType as EntityLayerConst, EntityLayerType } from "@/types/entity-layer-type";
-import { fractionalBetween } from "../../utils/fractional-index";
-import type { MoveItemRequest } from "../../hierarchy-api";
+import { generateKeyBetween, generateNKeysBetween } from "fractional-indexing";
+import { safeKey } from "../../utils/fractional-index";
 import type { DragItemData, DragTaskData } from "../drag-item-type";
 import { store } from "@/store";
-import { taskSlice } from "@/store/entityStore";
+import { folderSlice, spaceSlice, taskSlice } from "@/store/entityStore";
 
 export function handleTaskMove(
-  workspaceId: string,
   activeData: DragTaskData,
   overData: DragItemData,
-  moveItemMutation: (args: { workspaceId: string; body: MoveItemRequest }) => Promise<unknown>
+  triggerBatchMove: (move: { itemId: string; itemType: string; targetParentId: string | null; newOrderKey: string; }) => void
 ) {
   let targetParentId: string | undefined;
   let targetParentType: EntityLayerType | undefined;
@@ -30,66 +29,105 @@ export function handleTaskMove(
 
   const state = store.getState();
   const sourceParentId = activeData.parentId;
-  
-  // Retrieve and sort tasks
+  const isSourceSpace = activeData.parentType === EntityLayerConst.ProjectSpace;
+  const isTargetSpace = targetParentType === EntityLayerConst.ProjectSpace;
+  const isTargetFolder = targetParentType === EntityLayerConst.ProjectFolder;
+  const isSameParent = sourceParentId === targetParentId && isSourceSpace === isTargetSpace;
+
+  // Retrieve and sort tasks for source parent
   const sourceTasks = Object.values(state.tasks.entities)
-    .filter((t): t is typeof t & { id: string } => !!t && t.projectFolderId === sourceParentId)
+    .filter((t): t is typeof t & { id: string } => {
+      if (!t) return false;
+      return isSourceSpace
+        ? (t.projectSpaceId === sourceParentId && !t.projectFolderId)
+        : (t.projectFolderId === sourceParentId);
+    })
     .sort((a, b) => (a.orderKey || "").localeCompare(b.orderKey || ""))
     .map(t => t.id);
 
-  const targetTasks = sourceParentId === targetParentId 
-    ? sourceTasks 
+  // Retrieve and sort tasks for target parent
+  const targetTasks = isSameParent
+    ? sourceTasks
     : Object.values(state.tasks.entities)
-        .filter((t): t is typeof t & { id: string } => !!t && t.projectFolderId === targetParentId)
+        .filter((t): t is typeof t & { id: string } => {
+          if (!t) return false;
+          return isTargetSpace
+            ? (t.projectSpaceId === targetParentId && !t.projectFolderId)
+            : (t.projectFolderId === targetParentId);
+        })
         .sort((a, b) => (a.orderKey || "").localeCompare(b.orderKey || ""))
         .map(t => t.id);
 
   const oldIndex = sourceTasks.indexOf(activeData.id);
   let newIndex = targetTasks.indexOf(overData.id);
-  if (newIndex === -1) newIndex = 0;
+  // If over a parent row (folder/space header), append to end
+  if (newIndex === -1) newIndex = targetTasks.length;
 
-  let prevKey: string | undefined;
-  let nextKey: string | undefined;
-  let newOrderKey: string | undefined;
+  let newOrderKey: string;
 
-  if (sourceParentId === targetParentId) {
-    if (oldIndex === -1 || newIndex === -1) return;
+  if (isSameParent) {
+    // Same-parent reorder: regenerate ALL keys so numeric/rocicorp mix stays sorted
+    if (oldIndex === -1) return;
     const moved = arrayMove(sourceTasks, oldIndex, newIndex);
-    
-    prevKey = newIndex > 0 ? state.tasks.entities[moved[newIndex - 1]]?.orderKey : undefined;
-    nextKey = newIndex < moved.length - 1 ? state.tasks.entities[moved[newIndex + 1]]?.orderKey : undefined;
-    newOrderKey = fractionalBetween(prevKey, nextKey);
+    const freshKeys = generateNKeysBetween(null, null, moved.length);
+    newOrderKey = freshKeys[newIndex];
+    // Optimistic: update ALL tasks in this parent
+    moved.forEach((id, i) => {
+      store.dispatch(taskSlice.actions.upsert({ id, orderKey: freshKeys[i] }));
+    });
   } else {
-    const newTargetTasks = [...targetTasks];
+    // Cross-parent move: insert at newIndex in target list
+    const newTargetTasks = [...targetTasks, ""].slice(0, targetTasks.length); // copy
     newTargetTasks.splice(newIndex, 0, activeData.id);
 
-    prevKey = newIndex > 0 ? state.tasks.entities[newTargetTasks[newIndex - 1]]?.orderKey : undefined;
-    nextKey = newIndex < newTargetTasks.length - 1 ? state.tasks.entities[newTargetTasks[newIndex + 1]]?.orderKey : undefined;
-    newOrderKey = fractionalBetween(prevKey, nextKey);
+    const prevKey = safeKey(newIndex > 0 ? state.tasks.entities[newTargetTasks[newIndex - 1]]?.orderKey : undefined);
+    const nextKey = safeKey(newIndex < newTargetTasks.length - 1 ? state.tasks.entities[newTargetTasks[newIndex + 1]]?.orderKey : undefined);
+
+    if (prevKey !== null || nextKey !== null) {
+      // At least one neighbor has a valid rocicorp key — insert between them
+      newOrderKey = generateKeyBetween(prevKey, nextKey);
+    } else {
+      // All existing target keys are legacy numeric — generate fresh sequence and pick position
+      const freshKeys = generateNKeysBetween(null, null, newTargetTasks.length);
+      newOrderKey = freshKeys[newIndex];
+    }
+
+    // Optimistic: update the dragged task's parent and order
+    store.dispatch(taskSlice.actions.upsert({
+      id: activeData.id,
+      projectFolderId: isTargetFolder ? targetParentId : null,
+      projectSpaceId: isTargetFolder ? state.folders.entities[targetParentId]?.parentId : targetParentId,
+      parentType: targetParentType,
+      orderKey: newOrderKey
+    }));
   }
 
-  // 1. Optimistic Update directly to Redux database
-  const isTargetFolder = targetParentType === EntityLayerConst.ProjectFolder;
-  store.dispatch(taskSlice.actions.upsert({
-    id: activeData.id,
-    projectFolderId: isTargetFolder ? targetParentId : undefined,
-    projectSpaceId: isTargetFolder ? state.folders.entities[targetParentId]?.parentId : targetParentId,
-    parentType: targetParentType,
-    orderKey: newOrderKey
-  }));
+  // Turn ON hasTasks for new parent
+  if (isTargetFolder) {
+    store.dispatch(folderSlice.actions.upsert({ id: targetParentId, hasTasks: true }));
+  } else {
+    store.dispatch(spaceSlice.actions.upsert({ id: targetParentId, hasTasks: true }));
+  }
 
-  // 2. Trigger RTK Query mutation (rollback fully handled on request failure)
-  moveItemMutation({
-    workspaceId,
-    body: {
-      itemId: activeData.id,
-      itemType: EntityLayerConst.ProjectTask,
-      targetParentId: targetParentId,
-      targetParentType: targetParentType,
-      nextItemOrderKey: nextKey,
-      newOrderKey,
-      sourceParentId: sourceParentId,
-      sourceParentType: activeData.parentType
+  // Turn OFF hasTasks for old parent if no tasks remain
+  if (!isSameParent) {
+    const remainingTasks = sourceTasks.filter(id => id !== activeData.id);
+    if (remainingTasks.length === 0) {
+      if (isSourceSpace) {
+        const sourceSpace = state.spaces.entities[sourceParentId];
+        if (sourceSpace) store.dispatch(spaceSlice.actions.upsert({ ...sourceSpace, hasTasks: false }));
+      } else {
+        const sourceFolder = state.folders.entities[sourceParentId];
+        if (sourceFolder) store.dispatch(folderSlice.actions.upsert({ ...sourceFolder, hasTasks: false }));
+      }
     }
+  }
+
+  // Trigger batch queue
+  triggerBatchMove({
+    itemId: activeData.id,
+    itemType: EntityLayerConst.ProjectTask,
+    targetParentId: targetParentId,
+    newOrderKey
   });
 }

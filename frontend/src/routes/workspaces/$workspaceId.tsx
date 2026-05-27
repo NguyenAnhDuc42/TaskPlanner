@@ -6,8 +6,8 @@ import {
 import { WorkspaceLayout } from "@/features/workspace/components/workspace-layout";
 import { z } from "zod";
 import { Loader2 } from "lucide-react";
-
-import { workspaceQueryOptions } from "@/features/workspace/api";
+import { store } from "@/store";
+import { workspaceFeatureApi } from "@/features/workspace/api";
 
 export const workspaceSearchSchema = z.object({});
 
@@ -16,10 +16,12 @@ export const Route = createFileRoute("/workspaces/$workspaceId")({
     workspaceId: z.uuid().parse(params.workspaceId),
   }),
   validateSearch: (search) => workspaceSearchSchema.parse(search),
-  loader: ({ context: { queryClient }, params: { workspaceId } }) => {
-    queryClient.ensureQueryData(workspaceQueryOptions.workflows(workspaceId));
-    queryClient.ensureQueryData(workspaceQueryOptions.members(workspaceId));
-    queryClient.ensureQueryData(workspaceQueryOptions.detail(workspaceId));
+  loader: ({ params: { workspaceId } }) => {
+    return Promise.all([
+      store.dispatch(workspaceFeatureApi.endpoints.getWorkspaceDetail.initiate(workspaceId)),
+      store.dispatch(workspaceFeatureApi.endpoints.getWorkspaceMembers.initiate(workspaceId)),
+      store.dispatch(workspaceFeatureApi.endpoints.getWorkspaceWorkflows.initiate(workspaceId)),
+    ]);
   },
   component: WorkspaceRoot,
 });

@@ -41,8 +41,7 @@ export const NodeFoldersList = React.memo(function NodeFoldersList({
     );
   }
 
-  if (folders.length === 0) return null;
-
+  // Always render SortableContext even when empty — required so DND can drop into empty layers
   return (
     <SortableContext
       items={folders.map((f) => `folder-${f.id}`)}

@@ -7,9 +7,9 @@ import {
 } from "react";
 import { useNavigate, useLocation } from "@tanstack/react-router";
 import {
-  useWorkspaceDetail,
-  useWorkspaceWorkflows,
-  useWorkspaceMembers,
+  useGetWorkspaceDetailQuery,
+  useGetWorkspaceWorkflowsQuery,
+  useGetWorkspaceMembersQuery,
 } from "../api";
 import { useWorkspaces } from "@/features/main/home-screen/api";
 import type { Status } from "@/types/status";
@@ -24,7 +24,6 @@ import { useWorkspaceSignalR } from "./use-workspace-signalr";
 export function useWorkspace() {
   const context = useContext(WorkspaceContext);
   if (!context) {
-    // Fallback to prevent crashes if used outside provider
     return {
       workspaceId: "",
       workspace: undefined,
@@ -49,7 +48,7 @@ export function useWorkspace() {
         setContextWidthLocal: () => {},
       },
       registry: { statusMap: {}, memberMap: {}, workflows: [] },
-    } as any; // Cast to any to satisfy the complex return type in fallback
+    } as any;
   }
   return context;
 }
@@ -57,7 +56,6 @@ export function useWorkspace() {
 export function useWorkspaceSession() {
   const context = useContext(WorkspaceContext);
 
-  // Resilient fallback to prevent "useWorkspace must be used within a WorkspaceProvider" crash
   if (!context) {
     return {
       state: {
@@ -105,19 +103,19 @@ export function WorkspaceProvider({
   const navigate = useNavigate();
   const location = useLocation();
 
-  // 1. Fetch Workspace Data
+  // 1. Fetch Workspace Data via RTK Query
   const {
     data: workspace,
     isLoading: isWorkspaceLoading,
     error,
     isError,
-  } = useWorkspaceDetail(workspaceId);
+  } = useGetWorkspaceDetailQuery(workspaceId);
 
-  // 2. Fetch Registry Data (Workflows & Members)
+  // 2. Fetch Registry Data (Workflows & Members) via RTK Query
   const { data: workflows = [], isLoading: isWorkflowsLoading } =
-    useWorkspaceWorkflows(workspaceId);
+    useGetWorkspaceWorkflowsQuery(workspaceId);
   const { data: memberData, isLoading: isMembersLoading } =
-    useWorkspaceMembers(workspaceId);
+    useGetWorkspaceMembersQuery(workspaceId);
 
   // 2.5. Fetch Workspaces List (for switcher)
   const { data: workspacesData, isLoading: isWorkspacesLoading } = useWorkspaces();

@@ -1,17 +1,11 @@
 import { arrayMove } from "@dnd-kit/sortable";
 import { EntityLayerType as EntityLayerConst } from "@/types/entity-layer-type";
-import { fractionalBetween } from "../../utils/fractional-index";
-import type { MoveItemRequest } from "../../hierarchy-api";
+import { generateNKeysBetween } from "fractional-indexing";
 import type { DragItemData, DragFolderData } from "../drag-item-type";
 import { store } from "@/store";
-import { folderSlice } from "@/store/entityStore";
+import { folderSlice, spaceSlice } from "@/store/entityStore";
 
-export function handleFolderMove(
-  workspaceId: string,
-  activeData: DragFolderData,
-  overData: DragItemData,
-  moveItemMutation: (args: { workspaceId: string; body: MoveItemRequest }) => Promise<unknown>
-) {
+export function handleFolderMove( activeData: DragFolderData, overData: DragItemData, triggerBatchMove: (move: { itemId: string; itemType: string; targetParentId: string | null; newOrderKey: string; }) => void) {
   let targetSpaceId: string | undefined;
 
   if (overData?.type === EntityLayerConst.ProjectSpace) {
@@ -32,8 +26,8 @@ export function handleFolderMove(
     .map(f => f.id);
 
   // Retrieve sibling folders under target space
-  const targetFolders = sourceSpaceId === targetSpaceId 
-    ? sourceFolders 
+  const targetFolders = sourceSpaceId === targetSpaceId
+    ? sourceFolders
     : Object.values(state.folders.entities)
         .filter((f): f is typeof f & { id: string } => !!f && f.parentId === targetSpaceId)
         .sort((a, b) => (a.orderKey || "").localeCompare(b.orderKey || ""))
@@ -43,41 +37,47 @@ export function handleFolderMove(
   let newIndex = targetFolders.indexOf(overData.id);
   if (newIndex === -1) newIndex = 0;
 
-  let prevKey: string | undefined;
-  let nextKey: string | undefined;
-  let newOrderKey: string | undefined;
+  let newOrderKey: string;
 
   if (sourceSpaceId === targetSpaceId) {
-    if (oldIndex === -1 || newIndex === -1) return;
+    // Same-space reorder: regenerate ALL folder keys so numeric→rocicorp mix stays sorted
+    if (oldIndex === -1) return;
     const moved = arrayMove(sourceFolders, oldIndex, newIndex);
-    
-    prevKey = newIndex > 0 ? state.folders.entities[moved[newIndex - 1]]?.orderKey : undefined;
-    nextKey = newIndex < moved.length - 1 ? state.folders.entities[moved[newIndex + 1]]?.orderKey : undefined;
-    newOrderKey = fractionalBetween(prevKey, nextKey);
+    const freshKeys = generateNKeysBetween(null, null, moved.length);
+    newOrderKey = freshKeys[newIndex];
+
+    // Optimistic: update ALL folders in this space
+    moved.forEach((id, i) => {
+      store.dispatch(folderSlice.actions.upsert({ id, orderKey: freshKeys[i] }));
+    });
   } else {
+    // Cross-space move: insert at newIndex in target list
     const newTargetFolders = [...targetFolders];
     newTargetFolders.splice(newIndex, 0, activeData.id);
+    const freshKeys = generateNKeysBetween(null, null, newTargetFolders.length);
+    newOrderKey = freshKeys[newIndex];
 
-    prevKey = newIndex > 0 ? state.folders.entities[newTargetFolders[newIndex - 1]]?.orderKey : undefined;
-    nextKey = newIndex < newTargetFolders.length - 1 ? state.folders.entities[newTargetFolders[newIndex + 1]]?.orderKey : undefined;
-    newOrderKey = fractionalBetween(prevKey, nextKey);
+    // Optimistic: update dragged folder + all existing target folders
+    store.dispatch(folderSlice.actions.upsert({ id: activeData.id, parentId: targetSpaceId, orderKey: newOrderKey }));
   }
 
-  // 1. Optimistic Update directly to Redux database
-  store.dispatch(folderSlice.actions.upsert({ id: activeData.id, parentId: targetSpaceId, orderKey: newOrderKey }));
+  // Turn ON hasFolders for new target Space
+  store.dispatch(spaceSlice.actions.upsert({ id: targetSpaceId, hasFolders: true }));
 
-  // 2. Trigger RTK Query mutation (failsafe rollback fully automated in hierarchyApi)
-  moveItemMutation({
-    workspaceId,
-    body: {
-      itemId: activeData.id,
-      itemType: EntityLayerConst.ProjectFolder,
-      targetParentId: targetSpaceId,
-      targetParentType: EntityLayerConst.ProjectSpace,
-      nextItemOrderKey: nextKey,
-      newOrderKey,
-      sourceParentId: sourceSpaceId,
-      sourceParentType: EntityLayerConst.ProjectSpace
+  // Turn OFF hasFolders for source Space if this was the last folder under it
+  const remainingFolders = sourceFolders.filter(id => id !== activeData.id);
+  if (remainingFolders.length === 0) {
+    const sourceSpace = state.spaces.entities[sourceSpaceId];
+    if (sourceSpace) {
+      store.dispatch(spaceSlice.actions.upsert({ ...sourceSpace, hasFolders: false }));
     }
+  }
+
+  // Trigger batch queue
+  triggerBatchMove({
+    itemId: activeData.id,
+    itemType: EntityLayerConst.ProjectFolder,
+    targetParentId: targetSpaceId,
+    newOrderKey
   });
 }

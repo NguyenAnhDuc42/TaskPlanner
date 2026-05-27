@@ -133,6 +133,10 @@ class SignalRService {
     this.reconnectCallbacks = this.reconnectCallbacks.filter(cb => cb !== callback);
   }
 
+  public getConnectionId(): string | null {
+    return this.connection?.connectionId || null;
+  }
+
   public async invoke<T = void>(methodName: string, ...args: unknown[]): Promise<T> {
     if (!this.connection) {
       throw new Error("[SignalR] Connection not initialized");

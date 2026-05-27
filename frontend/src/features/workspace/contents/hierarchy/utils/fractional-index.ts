@@ -1,53 +1,60 @@
-const Alphabet = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
-const AlphabetLength = Alphabet.length;
+/**
+ * Thin wrapper around the battle-tested `fractional-indexing` library by rocicorp.
+ * https://github.com/rocicorp/fractional-indexing
+ *
+ * Includes a `safeKey` sanitizer that converts legacy keys (from the old
+ * custom implementation) to `null` so the library never throws on stale data.
+ */
+import { generateKeyBetween, generateNKeysBetween } from "fractional-indexing";
 
-// O(1) lookup table built once
-const AlphabetIndex = new Int8Array(128).fill(-1);
-for (let i = 0; i < AlphabetLength; i++) {
-  AlphabetIndex[Alphabet.charCodeAt(i)] = i;
+/**
+ * Rocicorp keys must start with a lowercase letter (positive) or uppercase
+ * letter (negative) as an integer-length prefix, followed by digits.
+ * Any key that doesn't match is treated as an unbound end (null).
+ */
+export function safeKey(key: string | null | undefined): string | null {
+  if (key == null || key === "") return null;
+  // Rocicorp format: letter prefix indicating digit-count, followed by digits
+  // e.g. "a0", "a9", "b10", "Z9" — letter MUST be followed by at least one digit
+  if (/^[a-zA-Z][0-9]/.test(key)) return key;
+  return null; // Legacy key ("0", "V", "1", etc.) — treat as unbound
 }
 
-function getIndex(c: string): number {
-  const code = c.charCodeAt(0);
-  return code < 128 ? AlphabetIndex[code] : -1;
+/**
+ * Returns a key that sorts between `lo` and `hi`.
+ * Pass `null`/`undefined` for either bound to mean "no bound" (−∞ or +∞).
+ */
+export function fractionalBetween(
+  lo?: string | null,
+  hi?: string | null
+): string {
+  return generateKeyBetween(safeKey(lo), safeKey(hi));
 }
 
-export function fractionalStart(): string  { return "V"; }
-export function fractionalAfter(key?: string | null):  string { return fractionalBetween(key, null); }
-export function fractionalBefore(key?: string | null): string { return fractionalBetween(null, key); }
+/** Returns a key that sorts after `key` (key → +∞). */
+export function fractionalAfter(key?: string | null): string {
+  return generateKeyBetween(safeKey(key), null);
+}
 
-export function fractionalBetween(before?: string | null, after?: string | null): string {
-  const b = before ?? "";
-  const a = after  ?? "";
+/** Returns a key that sorts before `key` (−∞ → key). */
+export function fractionalBefore(key?: string | null): string {
+  return generateKeyBetween(null, safeKey(key));
+}
 
-  if (!b && !a) return "V";
+/** Returns the canonical starting key (middle of the alphabet). */
+export function fractionalStart(): string {
+  return generateKeyBetween(null, null); // "a0"
+}
 
-  const n = Math.max(b.length, a.length) + 1;
-  let result = "";
-
-  for (let i = 0; i < n; i++) {
-    const bc = i < b.length ? b[i] : "\0";
-    const ac = i < a.length ? a[i] : "\x7f";
-
-    if (bc === ac) { result += bc; continue; }
-
-    let bIdx = getIndex(bc);
-    let aIdx = getIndex(ac);
-    if (aIdx === -1) aIdx = AlphabetLength;
-
-   const midIdx = Math.floor((Math.max(bIdx, 0) + aIdx) / 2);
-
-    if (midIdx > bIdx) {
-      result += Alphabet[midIdx];
-      break;
-    }
-
-    result += bc;
-    if (i >= b.length - 1) {
-      result += Alphabet[Math.floor(AlphabetLength / 2)];
-      break;
-    }
-  }
-
-  return result;
+/**
+ * Generates `count` evenly-spaced keys between `lo` and `hi`.
+ * Prefer this over calling `fractionalBetween` in a loop for batch inserts —
+ * the keys stay much shorter.
+ */
+export function fractionalBetweenN(
+  lo: string | null,
+  hi: string | null,
+  count: number
+): string[] {
+  return generateNKeysBetween(safeKey(lo), safeKey(hi), count);
 }

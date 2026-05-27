@@ -49,8 +49,7 @@ export const NodeTasksList = React.memo(function NodeTasksList({
     );
   }
 
-  if (tasks.length === 0) return null;
-
+  // Always render SortableContext even when empty — required so DND can drop into empty layers
   return (
     <SortableContext
       items={tasks.map((t) => `task-${t.id}`)}

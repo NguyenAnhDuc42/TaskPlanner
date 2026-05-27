@@ -335,6 +335,77 @@ export const hierarchyApi = workspaceApi.injectEndpoints({
           // If server fails, your fallback/refresh runs
         }
       }
+    }),
+
+    batchMoveItems: build.mutation<void, { workspaceId: string; moves: { itemId: string; itemType: string; targetParentId: string | null; newOrderKey: string }[] }>({
+      query: ({ workspaceId, moves }) => ({
+        url: `/workspaces/${workspaceId}/nodes/batch-move`,
+        method: "POST",
+        data: moves
+      }),
+      async onQueryStarted({ workspaceId, moves }, { dispatch, queryFulfilled, getState }) {
+        // NOTE: Entity upserts (hasTasks, parent changes, orderKey) are done IMMEDIATELY
+        const state = getState() as RootState;
+
+        moves.forEach((move) => {
+          const itemId = move.itemId;
+          const targetParentId = move.targetParentId;
+
+          if (move.itemType === "ProjectFolder" && targetParentId) {
+            const folder = folderSelectors.selectById(state, itemId);
+            if (folder) {
+              dispatch(
+                hierarchyApi.util.updateQueryData("getNodeFolders", { workspaceId, nodeId: targetParentId, cursor: null }, (draft) => {
+                  if (!draft?.items) return;
+                  const idx = draft.items.findIndex(f => f.id === itemId);
+                  if (idx !== -1) {
+                    draft.items[idx].orderKey = move.newOrderKey;
+                  } else {
+                    draft.items.push({ ...folder, orderKey: move.newOrderKey, parentId: targetParentId });
+                  }
+                  draft.items.sort((a, b) => (a.orderKey ?? "").localeCompare(b.orderKey ?? ""));
+                })
+              );
+            }
+          }
+
+          else if (move.itemType === "ProjectTask" && targetParentId) {
+            const task = taskSelectors.selectById(state, itemId);
+            if (task) {
+              const isTargetSpace = !!spaceSelectors.selectById(state, targetParentId);
+              const targetParentType = isTargetSpace ? "ProjectSpace" : "ProjectFolder";
+
+              dispatch(
+                hierarchyApi.util.updateQueryData(
+                  "getNodeTasks",
+                  { workspaceId, nodeId: targetParentId, parentType: targetParentType as EntityLayerType, cursor: null },
+                  (draft) => {
+                    if (!draft?.items) return;
+                    const idx = draft.items.findIndex(t => t.id === itemId);
+                    if (idx !== -1) {
+                      draft.items[idx].orderKey = move.newOrderKey;
+                    } else {
+                      draft.items.push({
+                        ...task,
+                        orderKey: move.newOrderKey,
+                        projectSpaceId: isTargetSpace ? targetParentId : (folderSelectors.selectById(state, targetParentId)?.parentId ?? task.projectSpaceId),
+                        projectFolderId: isTargetSpace ? null : targetParentId
+                      });
+                    }
+                    draft.items.sort((a, b) => (a.orderKey ?? "").localeCompare(b.orderKey ?? ""));
+                  }
+                )
+              );
+            }
+          }
+        });
+
+        try {
+          await queryFulfilled;
+        } catch {
+          // RTK Query automatically rolls back on failure
+        }
+      }
     })
   })
 });
@@ -350,36 +421,47 @@ export const {
   useDeleteFolderMutation,
   useDeleteTaskMutation,
   useMoveItemMutation,
+  useBatchMoveItemsMutation,
 } = hierarchyApi;
 
 
+import { useMemo } from "react";
+
 // --- CENTRAL RELATIONAL SELECTORS FOR COMPONENTS ---
+const selectSortedSpaces = createSelector(
+  [spaceSelectors.selectAll],
+  (spaces) => [...spaces].sort((a, b) => (a.orderKey ?? "").localeCompare(b.orderKey ?? ""))
+);
+
 export function useSpaces() {
-  const spaces = useSelector(spaceSelectors.selectAll);
-  return [...spaces].sort((a, b) => (a.orderKey ?? "").localeCompare(b.orderKey ?? ""));
+  return useSelector(selectSortedSpaces);
 }
 
 export function useFoldersBySpace(spaceId: string) {
-  return useSelector(
-    createSelector(
-      folderSelectors.selectAll,
+  const selectForThisSpace = useMemo(() => {
+    return createSelector(
+      [folderSelectors.selectAll],
       (folders) => folders
         .filter(f => f.parentId === spaceId)
         .sort((a, b) => (a.orderKey ?? "").localeCompare(b.orderKey ?? ""))
-    )
-  );
+    );
+  }, [spaceId]);
+
+  return useSelector(selectForThisSpace);
 }
 
 export function useTasksByParent(parentId: string) {
-  return useSelector(
-    createSelector(
-      taskSelectors.selectAll,
+  const selectForThisParent = useMemo(() => {
+    return createSelector(
+      [taskSelectors.selectAll],
       (tasks) => tasks
         .filter(t => 
           t.projectFolderId === parentId || 
           (t.projectSpaceId === parentId && !t.projectFolderId)
         )
         .sort((a, b) => (a.orderKey ?? "").localeCompare(b.orderKey ?? ""))
-    )
-  );
+    );
+  }, [parentId]);
+
+  return useSelector(selectForThisParent);
 }

@@ -27,7 +27,9 @@ const processQueue = (error: any, token: any = null) => {
   failedQueue = [];
 };
 
-// Request Interceptor: Inject Workspace ID
+import { signalRService } from "./signalr-service";
+
+// Request Interceptor: Inject Workspace ID & SignalR Connection ID for Echo Suppression
 api.interceptors.request.use((config) => {
   if (!config.headers["X-Workspace-Id"]) {
     const workspaceIdMatch = window.location.pathname.match(/\/workspaces\/([a-f\d-]+)/i);
@@ -35,6 +37,12 @@ api.interceptors.request.use((config) => {
       config.headers["X-Workspace-Id"] = workspaceIdMatch[1];
     }
   }
+
+  const connectionId = signalRService.getConnectionId();
+  if (connectionId) {
+    config.headers["X-Connection-Id"] = connectionId;
+  }
+
   return config;
 });
 

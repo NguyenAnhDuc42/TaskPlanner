@@ -38,11 +38,6 @@ export const FolderNodeItem = React.memo(function FolderNodeItem({
   const navigate = useNavigate();
   const { workspaceId } = useWorkspace();
 
-  React.useEffect(() => {
-    if (isOpen && folder && !folder.hasTasks) {
-      setIsOpen(false);
-    }
-  }, [isOpen, folder?.hasTasks, folder]);
 
   if (!folder) return null;
 
@@ -82,8 +77,8 @@ export const FolderNodeItem = React.memo(function FolderNodeItem({
             <div
               className="relative flex items-center justify-center w-5 h-5 shrink-0 cursor-pointer rounded-sm hover:bg-background/50 group/icon mr-1.5"
               onMouseEnter={() => {
-                if (isOpen || !workspaceId || !folder.hasTasks) return;
-                // Prefetch child tasks on hover!
+                if (isOpen || !workspaceId) return;
+                // Prefetch child tasks on hover — even if hasTasks=false (data may be stale)
                 prefetchTasks({ workspaceId: workspaceId || "", nodeId: folder.id, parentType: EntityLayerConst.ProjectFolder, cursor: null });
               }}
               onClick={(e) => {
@@ -99,6 +94,8 @@ export const FolderNodeItem = React.memo(function FolderNodeItem({
                 )}
                 style={{ color: folder.color }}
               />
+              {/* Chevron shows whenever hasTasks=true — including after optimistic dispatch.
+                  This is the fallback: if auto-expand doesn't fire, user clicks here. */}
               {folder.hasTasks && (
                 <ChevronRight
                   className={cn(
@@ -134,14 +131,12 @@ export const FolderNodeItem = React.memo(function FolderNodeItem({
       </SortableItem>
       <CollapsibleContent className="overflow-hidden">
         <div className="ml-3.5 pl-2 border-l border-border flex flex-col">
-          {isOpen && !folder.hasTasks ? null : (
-            <NodeTasksList
-              nodeId={folder.id}
-              parentType={EntityLayerConst.ProjectFolder}
-              isExpanded={isOpen}
-              spaceId={spaceId}
-            />
-          )}
+          <NodeTasksList
+            nodeId={folder.id}
+            parentType={EntityLayerConst.ProjectFolder}
+            isExpanded={isOpen}
+            spaceId={spaceId}
+          />
         </div>
       </CollapsibleContent>
     </Collapsible>

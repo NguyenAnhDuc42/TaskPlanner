@@ -31,6 +31,7 @@ export const SpaceNodeItem = React.memo(function SpaceNodeItem({
   
   // Select Space strictly from Redux
   const space = useSelector((state: RootState) => spaceSelectors.selectById(state, spaceId));
+  const hasChildren = !!(space?.hasFolders || space?.hasTasks);
   
   // Generate prefetch triggers using RTK Query
   const prefetchFolders = hierarchyApi.usePrefetch("getNodeFolders");
@@ -40,13 +41,7 @@ export const SpaceNodeItem = React.memo(function SpaceNodeItem({
   const location = useLocation();
   const [isOpen, setIsOpen] = React.useState(false);
 
-  // Auto-collapse if space becomes empty
-  React.useEffect(() => {
-    if (isOpen && space && !space.hasFolders && !space.hasTasks) {
-      setIsOpen(false);
-    }
-  }, [isOpen, space?.hasFolders, space?.hasTasks, space]);
-  
+
   if (!space) return null;
 
   const isActive = location.pathname.includes(`/spaces/${space.id}`);
@@ -55,7 +50,6 @@ export const SpaceNodeItem = React.memo(function SpaceNodeItem({
   const spaceColor = space.color || "var(--primary)";
 
   const effectiveOpen = isForcedOpen || isOpen;
-  const hasChildren = space.hasFolders || space.hasTasks;
 
   return (
     <Collapsible
@@ -87,8 +81,8 @@ export const SpaceNodeItem = React.memo(function SpaceNodeItem({
             <div
               className="relative flex items-center justify-center w-5 h-5 shrink-0 cursor-pointer rounded-sm hover:bg-background/50 group/icon mr-1.5"
               onMouseEnter={() => {
-                if (effectiveOpen || !workspaceId || !hasChildren) return;
-                // Prefetch both folders and tasks into Redux database on hover!
+                if (effectiveOpen || !workspaceId) return;
+                // Prefetch folders and tasks on hover
                 prefetchFolders({ workspaceId: workspaceId || "", nodeId: space.id, cursor: null });
                 prefetchTasks({ workspaceId: workspaceId || "", nodeId: space.id, parentType: EntityLayerConst.ProjectSpace, cursor: null });
               }}

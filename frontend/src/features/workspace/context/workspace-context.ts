@@ -1,5 +1,5 @@
 import { createContext } from "react";
-import type { WorkspaceSecurityContext } from "../api";
+import type { WorkspaceRecord } from "@/types/workspace/workspace-record";
 import type { WorkspaceSummary } from "@/features/main/home-screen/type";
 import type { Status } from "@/types/status";
 import type { ContentPage } from "../type";
@@ -32,7 +32,7 @@ export interface WorkspaceRegistry {
 
 export interface WorkspaceContextType {
   workspaceId: string;
-  workspace: WorkspaceSecurityContext | undefined;
+  workspace: WorkspaceRecord | undefined;
   workspaces: WorkspaceSummary[];
   registry: WorkspaceRegistry;
   isLoading: boolean;

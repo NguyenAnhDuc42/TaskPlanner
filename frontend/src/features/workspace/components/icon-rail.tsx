@@ -82,6 +82,11 @@ export function IconRail({ onSelectIcon, onCommandCenter }: IconRailProps) {
                     : "text-[var(--theme-text-normal)] hover:bg-[var(--theme-item-hover)] hover:text-[var(--theme-text-hover)]",
                 )}
                 onClick={onCommandCenter}
+                onMouseEnter={() => {
+                  if (!state.isInnerSidebarOpen) {
+                    actions.setHoveredIcon("command-center");
+                  }
+                }}
               >
                 <LayoutGrid className="h-[18px] w-[18px]" />
               </Button>
@@ -122,8 +127,12 @@ export function IconRail({ onSelectIcon, onCommandCenter }: IconRailProps) {
                     )}
                     onClick={() => onSelectIcon(item.id)}
                     onMouseEnter={() => {
-                      if (!state.isInnerSidebarOpen && item.hasSidebar) {
-                        actions.setHoveredIcon(item.id);
+                      if (!state.isInnerSidebarOpen) {
+                        if (item.hasSidebar) {
+                          actions.setHoveredIcon(item.id);
+                        } else {
+                          actions.setHoveredIcon(null);
+                        }
                       }
                     }}
                   >
@@ -167,6 +176,11 @@ export function IconRail({ onSelectIcon, onCommandCenter }: IconRailProps) {
                     : "text-[var(--theme-text-normal)] hover:bg-[var(--theme-item-hover)] hover:text-[var(--theme-text-hover)]",
                 )}
                 onClick={() => onSelectIcon("settings")}
+                onMouseEnter={() => {
+                  if (!state.isInnerSidebarOpen) {
+                    actions.setHoveredIcon("settings");
+                  }
+                }}
               >
                 <Settings className="h-4 w-4" />
               </Button>
@@ -188,6 +202,11 @@ export function IconRail({ onSelectIcon, onCommandCenter }: IconRailProps) {
                 size="icon"
                 className="w-7 h-7 rounded-md hover:bg-destructive/10 hover:text-destructive text-[var(--theme-text-normal)] transition-colors opacity-40 hover:opacity-100"
                 onClick={() => navigate({ to: "/" })}
+                onMouseEnter={() => {
+                  if (!state.isInnerSidebarOpen) {
+                    actions.setHoveredIcon(null);
+                  }
+                }}
               >
                 <LogOut className="h-4 w-4" />
               </Button>

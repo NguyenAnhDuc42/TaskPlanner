@@ -8,20 +8,23 @@ import {
 } from "@dnd-kit/core";
 import { sortableKeyboardCoordinates } from "@dnd-kit/sortable";
 import { EntityLayerType as EntityLayerConst } from "@/types/entity-layer-type";
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { handleSpaceMove } from "./handlers/handle-space-move";
 import { handleFolderMove } from "./handlers/handle-folder-move";
 import { handleTaskMove } from "./handlers/handle-task-move";
 import type { DragItemData } from "./drag-item-type";
-import type { MoveItemRequest } from "../hierarchy-api";
 
 interface UseHierarchyDndProps {
   workspaceId: string;
-  moveItem: (args: { workspaceId: string; body: MoveItemRequest }) => Promise<unknown>;
+  batchMoveItems: (args: { workspaceId: string; moves: { itemId: string; itemType: string; targetParentId: string | null; newOrderKey: string }[] }) => Promise<unknown>;
 }
 
-export function useHierarchyDnd({ workspaceId, moveItem }: UseHierarchyDndProps) {
+export function useHierarchyDnd({ workspaceId, batchMoveItems }: UseHierarchyDndProps) {
   const [activeItem, setActiveItem] = useState<DragItemData | null>(null);
+
+  // 1. Buffered moves Map (itemId -> move parameters) to avoid redundant requests
+  const pendingMovesRef = useRef<Map<string, { itemId: string; itemType: string; targetParentId: string | null; newOrderKey: string }>>(new Map());
+  const debounceTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -31,6 +34,33 @@ export function useHierarchyDnd({ workspaceId, moveItem }: UseHierarchyDndProps)
       coordinateGetter: sortableKeyboardCoordinates,
     })
   );
+
+  // Clean timeouts on unmount to prevent leaks
+  useEffect(() => {
+    return () => {
+      if (debounceTimeoutRef.current) clearTimeout(debounceTimeoutRef.current);
+    };
+  }, []);
+
+  // 2. Debounce trigger: consolidates drag actions in a 500ms window
+  const triggerDebouncedBatchMove = (move: { itemId: string; itemType: string; targetParentId: string | null; newOrderKey: string }) => {
+    pendingMovesRef.current.set(move.itemId, move);
+
+    if (debounceTimeoutRef.current) clearTimeout(debounceTimeoutRef.current);
+
+    debounceTimeoutRef.current = setTimeout(async () => {
+      const movesToSend = Array.from(pendingMovesRef.current.values());
+      pendingMovesRef.current.clear();
+
+      if (movesToSend.length > 0) {
+        try {
+          await batchMoveItems({ workspaceId, moves: movesToSend });
+        } catch (err) {
+          console.error("[DND] Batch move network request failed:", err);
+        }
+      }
+    }, 500);
+  };
 
   const handleDragStart = (event: DragStartEvent) => {
     const data = event.active.data.current;
@@ -49,15 +79,15 @@ export function useHierarchyDnd({ workspaceId, moveItem }: UseHierarchyDndProps)
 
     if (!activeData || !overData) return;
 
-    // Direct, type-safe movement routing
+    // Direct, type-safe movement routing using our debounced batch pipeline
     if (activeData.type === EntityLayerConst.ProjectSpace) {
-      handleSpaceMove(workspaceId, activeData, overData, moveItem);
+      handleSpaceMove( activeData, overData, triggerDebouncedBatchMove);
     } 
     else if (activeData.type === EntityLayerConst.ProjectFolder) {
-      handleFolderMove(workspaceId, activeData, overData, moveItem);
+      handleFolderMove( activeData, overData, triggerDebouncedBatchMove);
     }
     else if (activeData.type === EntityLayerConst.ProjectTask) {
-      handleTaskMove(workspaceId, activeData, overData, moveItem);
+      handleTaskMove(activeData, overData, triggerDebouncedBatchMove);
     }
   };
 

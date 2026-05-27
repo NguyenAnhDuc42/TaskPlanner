@@ -159,7 +159,7 @@ export function WorkspaceLayout() {
           <IconRail onSelectIcon={handleSelectIcon} onCommandCenter={handleCommandCenter} />
 
           {/* ─── Hover Peek Frame ───────────────────────────── */}
-          {ui.hoveredIcon && !ui.isInnerSidebarOpen && (
+          {ui.hoveredIcon && !ui.isInnerSidebarOpen && SidebarRegistry({ page: ui.hoveredIcon }) !== null && (
             <div
               className="absolute top-0 left-[44px] h-full w-64 z-50 animate-in fade-in slide-in-from-left-1 duration-200"
               onMouseEnter={() => {

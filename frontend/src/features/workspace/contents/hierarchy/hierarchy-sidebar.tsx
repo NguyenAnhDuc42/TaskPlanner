@@ -1,5 +1,5 @@
 import { useWorkspace } from "@/features/workspace/context/workspace-provider";
-import { useMoveItemMutation } from "./hierarchy-api";
+import { useBatchMoveItemsMutation } from "./hierarchy-api";
 import {
   EntityLayerType as EntityLayerConst,
 } from "@/types/entity-layer-type";
@@ -31,12 +31,12 @@ export function HierarchySidebar() {
   const [searchQuery, setSearchQuery] = useState("");
   const deferredSearchQuery = useDeferredValue(searchQuery);
 
-  const [moveItem] = useMoveItemMutation();
+  const [batchMoveItems] = useBatchMoveItemsMutation();
 
   const { sensors, handleDragStart, handleDragEnd, activeItem } =
     useHierarchyDnd({
       workspaceId: workspaceId || "",
-      moveItem,
+      batchMoveItems,
     });
 
   return (

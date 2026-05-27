@@ -28,9 +28,10 @@ public class IdempotencyMiddleware(RequestDelegate next, IMemoryCache cache)
 
         var idempotencyKey = keyValues.ToString();
         
-        // Tie the key to the specific user/workspace to prevent collisions across tenants
+        // Tie the key to the workspace-member boundary (WorkspaceId + UserId)
+        var workspaceId = context.Items["WorkspaceId"]?.ToString() ?? "global";
         var userId = context.User.Claims.FirstOrDefault(c => c.Type == "sub")?.Value ?? "anonymous";
-        var cacheKey = $"Idempotency_{userId}_{idempotencyKey}";
+        var cacheKey = $"Idempotency_{workspaceId}_{userId}_{idempotencyKey}";
 
         // Phase 2 Check: Has this request already been completed recently?
         if (cache.TryGetValue(cacheKey, out CachedResponse? cachedResponse) && cachedResponse != null)

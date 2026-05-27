@@ -1,82 +1,10 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { api } from "@/lib/api-client";
-import { workspaceKeys } from "../main/query-keys";
-import type { Theme } from "@/types/theme";
-import type { Status } from "@/types/status";
+import { workspaceApi } from "@/store/workspaceApi";
+import { memberSlice, statusSlice } from "@/store/entityStore";
+import type { WorkspaceRecord } from "@/types/workspace/workspace-record";
 import type { PagedResult } from "@/types/paged-result";
-import type { WorkflowRecord } from "@/types/projects";
 import type { MemberRecord } from "@/types/workspace/member-record";
-
-export interface WorkspaceSecurityContext {
-  workspaceId: string;
-  currentRole: string;
-  isOwned: boolean;
-  theme: Theme;
-  color: string;
-  icon: string;
-}
-
-export const workspaceQueryOptions = {
-  detail: (workspaceId: string) => ({
-    queryKey: [...workspaceKeys.all, "detail", workspaceId],
-    queryFn: async () => {
-      const { data } = await api.get<WorkspaceSecurityContext>(
-        `/workspaces/${workspaceId}/me/permissions`,
-      );
-      return data;
-    },
-    enabled: !!workspaceId,
-    staleTime: 1000 * 60 * 5, // 5 minutes
-  }),
-  workflows: (workspaceId: string, layerId?: string, layerType?: string) => ({
-    queryKey: [...workspaceKeys.all, "workflows", workspaceId, layerId, layerType],
-    queryFn: async () => {
-      const { data } = await api.get<WorkflowRecord[]>("/workflows", {
-        params: { layerId, layerType },
-      });
-      return data;
-    },
-    enabled: !!workspaceId,
-    staleTime: 0, // Always refetch to keep multi-user in sync
-  }),
-  members: (workspaceId: string) => ({
-    queryKey: [...workspaceKeys.all, "members", workspaceId],
-    queryFn: async () => {
-      const { data } = await api.get<PagedResult<MemberRecord>>(
-        `/workspaces/${workspaceId}/members?pageSize=1000`,
-      );
-      return data;
-    },
-    enabled: !!workspaceId,
-    staleTime: 1000 * 60 * 5,
-  }),
-  availableStatuses: (spaceId?: string, folderId?: string) => ({
-    queryKey: [...workspaceKeys.all, "statuses", "available", spaceId, folderId],
-    queryFn: async () => {
-      const { data } = await api.get<Status[]>("/statuses/available", {
-        params: { spaceId, folderId },
-      });
-      return data;
-    },
-    staleTime: 1000 * 60, // 1 minute
-  }),
-};
-
-export function useWorkspaceDetail(workspaceId: string) {
-  return useQuery(workspaceQueryOptions.detail(workspaceId));
-}
-
-export function useWorkspaceWorkflows(workspaceId: string, layerId?: string, layerType?: string) {
-  return useQuery(workspaceQueryOptions.workflows(workspaceId, layerId, layerType));
-}
-
-export function useWorkspaceMembers(workspaceId: string) {
-  return useQuery(workspaceQueryOptions.members(workspaceId));
-}
-
-export function useAvailableStatuses(spaceId?: string, folderId?: string) {
-  return useQuery(workspaceQueryOptions.availableStatuses(spaceId, folderId));
-}
+import type { WorkflowRecord } from "@/types/projects";
+import type { Status } from "@/types/status";
 
 export const RowAction = { Create: "Create", Update: "Update", Delete: "Delete" } as const;
 export type RowAction = (typeof RowAction)[keyof typeof RowAction];
@@ -91,28 +19,73 @@ export interface StatusUpdatePayload {
   action: RowAction;
 }
 
+export const workspaceFeatureApi = workspaceApi.injectEndpoints({
+  endpoints: (build) => ({
+    getWorkspaceDetail: build.query<WorkspaceRecord, string>({
+      query: (workspaceId) => ({
+        url: `/workspaces/${workspaceId}/me/permissions`,
+        method: "GET",
+      }),
+      providesTags: (result, error, id) => [{ type: "Spaces" as const, id }],
+    }),
+
+    getWorkspaceMembers: build.query<PagedResult<MemberRecord>, string>({
+      query: (workspaceId) => ({
+        url: `/workspaces/${workspaceId}/members`,
+        method: "GET",
+        params: { pageSize: 1000 },
+      }),
+      providesTags: ["Members"],
+      async onQueryStarted(_, { dispatch, queryFulfilled }) {
+        try {
+          const { data } = await queryFulfilled;
+          dispatch(memberSlice.actions.upsertMany(data.items));
+        } catch {}
+      },
+    }),
+
+    getWorkspaceWorkflows: build.query<WorkflowRecord[], string>({
+      query: (workspaceId) => ({
+        url: `/workflows`,
+        method: "GET",
+        params: { workspaceId },
+      }),
+      async onQueryStarted(_, { dispatch, queryFulfilled }) {
+        try {
+          const { data } = await queryFulfilled;
+          const statuses: Status[] = [];
+          data.forEach((wf) => {
+            wf.statuses?.forEach((status) => {
+              statuses.push(status);
+            });
+          });
+          dispatch(statusSlice.actions.upsertMany(statuses));
+        } catch {}
+      },
+    }),
+
+    updateWorkflowStatuses: build.mutation<void, { workflowId: string; statuses: StatusUpdatePayload[] }>({
+      query: ({ workflowId, statuses }) => ({
+        url: `/statuses/workflow/${workflowId}`,
+        method: "PUT",
+        data: statuses,
+      }),
+    }),
+  }),
+});
+
+export const {
+  useGetWorkspaceDetailQuery,
+  useGetWorkspaceMembersQuery,
+  useGetWorkspaceWorkflowsQuery,
+  useUpdateWorkflowStatusesMutation,
+} = workspaceFeatureApi;
+
+// Backwards-compatible hook wrapper for status updates to avoid breaking current forms
 export function useUpdateWorkflowStatuses() {
-  const queryClient = useQueryClient();
-  
-  return useMutation({
-    mutationFn: async (data: { workflowId: string; statuses: StatusUpdatePayload[] }) => {
-      const { data: responseData } = await api.put(
-        `/statuses/workflow/${data.workflowId}`,
-        data.statuses
-      );
-      return responseData;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: [...workspaceKeys.all, "workflows"],
-      });
-      // Invalidate space and folder items queries so empty/new columns instantly render on screen!
-      queryClient.invalidateQueries({
-        queryKey: [...workspaceKeys.all, "space"],
-      });
-      queryClient.invalidateQueries({
-        queryKey: [...workspaceKeys.all, "folder"],
-      });
-    },
-  });
+  const [trigger, result] = useUpdateWorkflowStatusesMutation();
+  return {
+    mutate: (args: { workflowId: string; statuses: StatusUpdatePayload[] }) => trigger(args),
+    ...result,
+  };
 }

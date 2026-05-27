@@ -1,6 +1,8 @@
 import { workspaceApi } from "@/store/workspaceApi";
 import { folderSlice, taskSlice, statusSlice, taskSelectors, folderSelectors } from "@/store/entityStore";
 import { useSelector } from "react-redux";
+import { createSelector } from "@reduxjs/toolkit";
+import { useMemo } from "react";
 import type { RootState } from "@/store";
 import type { TaskRecord } from "@/types/projects/task-record";
 import type { FolderRecord } from "@/types/projects/folder-record";
@@ -136,7 +138,12 @@ export function useFolderDetail(folderId: string) {
 }
 
 export function useFolderTasksList(folderId: string) {
-  return useSelector((state: RootState) => 
-    Object.values(state.tasks.entities).filter((t): t is TaskRecord => !!t && t.projectFolderId === folderId)
-  );
+  const selectTasksForFolder = useMemo(() =>
+    createSelector(
+      [taskSelectors.selectAll],
+      (tasks) => tasks.filter((t): t is TaskRecord => t.projectFolderId === folderId)
+    ),
+  [folderId]);
+
+  return useSelector(selectTasksForFolder);
 }

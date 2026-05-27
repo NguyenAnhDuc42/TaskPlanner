@@ -1,16 +1,14 @@
 import { arrayMove } from "@dnd-kit/sortable";
 import { EntityLayerType as EntityLayerConst } from "@/types/entity-layer-type";
 import type { DragItemData, DragSpaceData } from "../drag-item-type";
-import type { MoveItemRequest } from "../../hierarchy-api";
-import { fractionalBetween } from "../../utils/fractional-index";
+import { generateNKeysBetween } from "fractional-indexing";
 import { store } from "@/store";
 import { spaceSlice } from "@/store/entityStore";
 
 export function handleSpaceMove(
-  workspaceId: string,
   activeData: DragSpaceData,
   overData: DragItemData,
-  moveItemMutation: (args: { workspaceId: string; body: MoveItemRequest }) => Promise<unknown>
+  triggerBatchMove: (move: { itemId: string; itemType: string; targetParentId: string | null; newOrderKey: string }) => void
 ) {
   if (overData?.type !== EntityLayerConst.ProjectSpace) return;
 
@@ -22,28 +20,26 @@ export function handleSpaceMove(
   const rootSpaceIds = spacesList.map(s => s.id);
   const oldIndex = rootSpaceIds.indexOf(activeData.id);
   const newIndex = rootSpaceIds.indexOf(overData.id);
-  
-  if (oldIndex === -1 || newIndex === -1) return;
+
+  if (oldIndex === -1 || newIndex === -1 || oldIndex === newIndex) return;
 
   const moved = arrayMove(rootSpaceIds, oldIndex, newIndex);
-  
-  const prevKey = newIndex > 0 ? state.spaces.entities[moved[newIndex - 1]]?.orderKey : undefined;
-  const nextKey = newIndex < moved.length - 1 ? state.spaces.entities[moved[newIndex + 1]]?.orderKey : undefined;
-  const newOrderKey = fractionalBetween(prevKey, nextKey);
-  
-  // 1. Optimistic Update directly to Redux database!
-  store.dispatch(spaceSlice.actions.upsert({ id: activeData.id, orderKey: newOrderKey }));
 
-  // 2. Trigger RTK Query mutation (automatically handles fallback/rollback on failure)
-  moveItemMutation({
-    workspaceId,
-    body: {
-      itemId: activeData.id,
-      itemType: EntityLayerConst.ProjectSpace,
-      targetParentId: workspaceId,
-      targetParentType: "Workspace",
-      nextItemOrderKey: nextKey,
-      newOrderKey
-    }
+  // Generate fresh rocicorp keys for ALL spaces so mixed numeric/"a0" keys
+  // don't break the sort order. Only the dragged space's key goes to the server.
+  const freshKeys = generateNKeysBetween(null, null, moved.length);
+  const newOrderKey = freshKeys[newIndex];
+
+  // 1. Optimistic update — update ALL spaces so the sort stays consistent
+  moved.forEach((id, i) => {
+    store.dispatch(spaceSlice.actions.upsert({ id, orderKey: freshKeys[i] }));
+  });
+
+  // 2. Trigger batch queue (only send the dragged item's new key to server)
+  triggerBatchMove({
+    itemId: activeData.id,
+    itemType: EntityLayerConst.ProjectSpace,
+    targetParentId: null,
+    newOrderKey
   });
 }
