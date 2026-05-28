@@ -14,7 +14,7 @@ export interface SpaceItemsResponse {
   statuses: Status[];
 }
 
-export interface SpaceBatchUpdateValue {
+export interface BatchUpdateSpaceItemValue {
   id: string;
   type: "ProjectFolder" | "ProjectTask";
   statusId?: string | null;
@@ -48,13 +48,13 @@ export const spaceApi = workspaceApi.injectEndpoints({
       }
     }),
 
-    batchUpdateSpaceItems: build.mutation<void, { spaceId: string; updates: SpaceBatchUpdateValue[] }>({
+    batchUpdateSpaceItems: build.mutation<void, { spaceId: string; updates: BatchUpdateSpaceItemValue[] }>({
       query: ({ spaceId, updates }) => ({
         url: "/spaces/batch-update",
         method: "POST",
         data: { workspaceId: spaceId, updates }
       }),
-      async onQueryStarted({ updates }, { dispatch, queryFulfilled, getState }) {
+      async onQueryStarted({ spaceId, updates }, { dispatch, queryFulfilled, getState }) {
         const state = getState() as RootState;
 
         // Snapshot original folders and tasks for rollback
@@ -82,10 +82,35 @@ export const spaceApi = workspaceApi.injectEndpoints({
           dispatch(taskSlice.actions.upsertMany(taskUpdates as Partial<TaskRecord>[]));
         }
 
+        // 🔥 OPTIMISTIC QUERY CACHE UPDATE: Immediately patch active query data to prevent rebound
+        const patchResult = dispatch(
+          spaceApi.util.updateQueryData("getSpaceItems", spaceId, (draft) => {
+            if (!draft) return;
+            updates.forEach((u) => {
+              if (u.type === "ProjectFolder") {
+                const folder = draft.folders.find((f) => f.id === u.id);
+                if (folder) {
+                  if (u.statusId !== undefined) folder.statusId = u.statusId ?? undefined;
+                  if (u.priority !== undefined) folder.priority = (u.priority ?? undefined) as any;
+                  if (u.orderKey !== undefined) folder.orderKey = u.orderKey ?? undefined;
+                }
+              } else {
+                const task = draft.tasks.find((t) => t.id === u.id);
+                if (task) {
+                  if (u.statusId !== undefined) task.statusId = u.statusId ?? undefined;
+                  if (u.priority !== undefined) task.priority = (u.priority ?? undefined) as any;
+                  if (u.orderKey !== undefined) task.orderKey = u.orderKey ?? undefined;
+                }
+              }
+            });
+          })
+        );
+
         try {
           await queryFulfilled;
         } catch {
           // Rollback on failure
+          patchResult.undo();
           if (originalFolders.length > 0) {
             dispatch(folderSlice.actions.upsertMany(originalFolders));
           }

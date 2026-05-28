@@ -9,7 +9,7 @@ import {
   Paperclip,
 } from "lucide-react";
 import { DynamicIcon } from "@/components/dynamic-icon";
-import { FadeTruncate } from "@/components/fade-truncate";
+
 import { Button } from "@/components/ui/button";
 import type { MainViewTab, ItemsViewMode } from "../../layer-detail-types";
 import {
@@ -60,10 +60,9 @@ export function SpaceHeader({
             color={space.color}
             className="stroke-[2.5]"
           />
-          <FadeTruncate 
-            text={space.name}
-            className="max-w-[200px] font-black tracking-tight text-foreground/90"
-          />
+          <span className="max-w-[200px] font-black tracking-tight text-foreground/90 truncate">
+            {space.name}
+          </span>
         </div>
       </div>
 

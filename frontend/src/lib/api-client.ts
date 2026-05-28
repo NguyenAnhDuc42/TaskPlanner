@@ -1,5 +1,4 @@
 import axios from "axios";
-import { authKeys } from "@/features/auth/api";
 
 // Simple event channel to notify query layers when tokens refresh without circular dependencies
 export const apiEvents = {
@@ -44,6 +43,10 @@ api.interceptors.request.use((config) => {
   // 2. Drop requests immediately if session cookie is missing (except login/signup endpoints)
   const isAuthRequest = config.url?.includes("/auth/") && !config.url?.includes("/auth/me");
   if (!isAuthRequest && !getCookie("is_logged_in")) {
+    if (!window.location.pathname.startsWith("/auth/")) {
+      isRedirecting = true; // Lock outgoing requests
+      window.location.href = "/auth/sign-in";
+    }
     return Promise.reject(new axios.Cancel("API request cancelled: no active session"));
   }
 

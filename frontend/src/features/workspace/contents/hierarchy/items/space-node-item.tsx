@@ -10,7 +10,7 @@ import { spaceSelectors } from "@/store/entityStore";
 import { hierarchyApi } from "../hierarchy-api";
 import type { RootState } from "@/store";
 
-import { FadeTruncate } from "@/components/fade-truncate";
+
 import { NodeTasksList } from "./node-tasks-list";
 import { EntityLayerType as EntityLayerConst } from "@/types/entity-layer-type";
 import { SortableItem } from "../dnd/sortable-item";
@@ -109,10 +109,9 @@ export const SpaceNodeItem = React.memo(function SpaceNodeItem({
               )}
             </div>
 
-            <FadeTruncate
-              text={space.name}
-              className="text-[11px] font-bold flex-1"
-            />
+            <span className="text-[11px] font-bold flex-1 truncate">
+              {space.name}
+            </span>
 
             <div className="flex items-center gap-0.5 min-w-fit">
               {space.isPrivate && (

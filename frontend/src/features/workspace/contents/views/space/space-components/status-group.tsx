@@ -22,12 +22,9 @@ export function StatusGroup({
   return (
     <div 
       className={cn(
-       "flex-shrink-0 flex flex-col bg-transparent rounded-lg border overflow-hidden transition-all duration-300",
+       "flex-shrink-0 flex flex-col bg-card/25 backdrop-blur-sm rounded-lg border border-border/30 overflow-hidden transition-all duration-300",
        className
       )}
-      style={{
-        borderColor: `${color}25` // Soft themed border outline matching status color
-      }}
     >
       {/* Column Header */}
       <div className="flex items-center justify-between px-3 py-2 group/header border-b border-border/10 bg-transparent">

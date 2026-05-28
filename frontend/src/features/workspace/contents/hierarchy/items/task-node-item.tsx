@@ -8,7 +8,7 @@ import { taskSelectors } from "@/store/entityStore";
 import type { RootState } from "@/store";
 
 import { SortableItem } from "../dnd/sortable-item";
-import { FadeTruncate } from "@/components/fade-truncate";
+
 import {
   EntityLayerType,
   EntityLayerType as EntityLayerConst,
@@ -78,10 +78,9 @@ export const TaskNodeItem = React.memo(function TaskNodeItem({
               <CheckSquare className="h-3.5 w-3.5 opacity-60" />
             )}
           </div>
-          <FadeTruncate
-            text={task.name}
-            className="text-[11px] font-semibold flex-1 leading-tight"
-          />
+          <span className="text-[11px] font-semibold flex-1 leading-tight truncate">
+            {task.name}
+          </span>
           <div className="flex items-center gap-0.5 min-w-fit">
             <div className="w-0 group-hover:w-4 overflow-hidden opacity-0 group-hover:opacity-100 transition-all duration-300 ease-in-out">
               <EntityMenuTrigger>

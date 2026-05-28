@@ -12,7 +12,7 @@ import type { RootState } from "@/store";
 
 import { SortableItem } from "../dnd/sortable-item";
 import { NodeTasksList } from "./node-tasks-list";
-import { FadeTruncate } from "@/components/fade-truncate";
+
 import { EntityLayerType as EntityLayerConst } from "@/types/entity-layer-type";
 import { FolderContextMenu } from "../hierarchy-components/context-menus/folder-context-menu";
 import { EntityMenuTrigger } from "../hierarchy-components/context-menus/shared";
@@ -105,10 +105,9 @@ export const FolderNodeItem = React.memo(function FolderNodeItem({
                 />
               )}
             </div>
-            <FadeTruncate
-              text={folder.name}
-              className="text-[11px] font-semibold flex-1"
-            />
+            <span className="text-[11px] font-semibold flex-1 truncate">
+              {folder.name}
+            </span>
 
             <div className="flex items-center gap-0.5 min-w-fit">
               {folder.isPrivate && (

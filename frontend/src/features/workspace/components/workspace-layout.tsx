@@ -188,7 +188,7 @@ export function WorkspaceLayout() {
         {/* ═══════════════════════════════════════════════════
             COLUMN 2: Inner Sidebar (resizable)
         ═══════════════════════════════════════════════════ */}
-        {ui.isInnerSidebarOpen && (
+        {ui.isInnerSidebarOpen && SidebarRegistry({ page: ui.activeIcon }) !== null && (
           <div
             style={{ width: isResizingSidebar ? sidebarWidth : ui.sidebarWidth }}
             className={cn(

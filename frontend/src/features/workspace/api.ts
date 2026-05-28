@@ -70,6 +70,15 @@ export const workspaceFeatureApi = workspaceApi.injectEndpoints({
         method: "PUT",
         data: statuses,
       }),
+      invalidatesTags: ["Tasks", "Folders", "Spaces"],
+      async onQueryStarted(_, { queryFulfilled }) {
+        try {
+          const { queryClient } = await import("@/lib/query-client");
+          await queryFulfilled;
+          // Invalidate TanStack Query to refresh legacy detail tabs in sync
+          queryClient.invalidateQueries();
+        } catch {}
+      }
     }),
   }),
 });

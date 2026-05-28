@@ -29,6 +29,7 @@ public class UpdateWorkflowStatusesHandler(TaskPlanDbContext db, WorkspaceContex
                 if (statusDto.Action == RowAction.Delete)
                 {
                     workflow.RemoveStatus(existing.Id);
+                    db.Statuses.Remove(existing);
                 }
                 else
                 {

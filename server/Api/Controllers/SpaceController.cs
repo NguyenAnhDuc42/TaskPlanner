@@ -58,7 +58,7 @@ namespace Api
         }
 
         [HttpPost("batch-update")]
-        public async Task<IActionResult> BatchUpdate([FromBody] BatchUpdateItemsCommand command, CancellationToken cancellationToken)
+        public async Task<IActionResult> BatchUpdate([FromBody] BatchUpdateSpaceItemsCommand command, CancellationToken cancellationToken)
         {
             var result = await _handler.SendAsync(command, cancellationToken);
             return result.ToActionResult();

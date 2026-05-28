@@ -23,6 +23,7 @@ import {
 interface CreateTaskFormProps {
   parentId: string;
   parentType: EntityLayerType;
+  defaultStatusId?: string;
   onSuccess?: (task: any) => void;
   onCancel?: () => void;
 }
@@ -30,6 +31,7 @@ interface CreateTaskFormProps {
 export function CreateTaskForm({
   parentId,
   parentType,
+  defaultStatusId,
   onSuccess,
   onCancel,
 }: CreateTaskFormProps) {
@@ -41,7 +43,7 @@ export function CreateTaskForm({
   const [color, setColor] = useState("#94a3b8");
   const [selectedStatusId, setSelectedStatusId] = useState<
     string | undefined
-  >();
+  >(defaultStatusId);
   const [startDate, setStartDate] = useState<Date | undefined>();
   const [dueDate, setDueDate] = useState<Date | undefined>();
 
