@@ -81,6 +81,7 @@ export function useBoardDnd({
 
     if (!toColId) return;
 
+    // Only handle cross-column moves here; same-column final position is resolved in handleDragEnd
     if (fromColId !== toColId) {
       setLocalColumns((prev) => {
         if (!prev) return null;
@@ -117,21 +118,56 @@ export function useBoardDnd({
   function handleDragEnd(event: DragEndEvent) {
     const { active, over } = event;
     
-    const finalCols = localColumns || columns;
+    const snapshotCols = localColumns || columns;
     setDraggedItem(null);
     setLocalColumns(null);
     lastDragOverRef.current = null;
 
-    if (!over || !finalCols) return;
+    if (!over || !snapshotCols) return;
 
     const activeId = active.id as string;
-    
-    const toColId = Object.keys(finalCols).find((key) =>
-      finalCols[key].some((item) => item.id === activeId)
-    );
-    if (!toColId) return;
+    const overId = over.id as string;
 
-    const destItems = finalCols[toColId];
+    // Find which column the active item is currently in (after cross-col moves via handleDragOver)
+    const fromColId = Object.keys(snapshotCols).find((key) =>
+      snapshotCols[key].some((item) => item.id === activeId)
+    );
+    if (!fromColId) return;
+
+    // Determine the target column from the over target
+    const isOverStatusHeader = statuses.some((s) => s.id === overId) || overId === "unclassified";
+    const overColId = isOverStatusHeader
+      ? overId
+      : Object.keys(snapshotCols).find((key) =>
+          snapshotCols[key].some((item) => item.id === overId)
+        ) ?? fromColId;
+
+    const toColId = overColId;
+
+    // Build the final destination items array
+    let destItems: BoardItem[];
+
+    if (fromColId === toColId) {
+      // SAME-COLUMN REORDER: dnd-kit handled visuals via GPU translate.
+      // We must apply the position swap here to get the correct final order.
+      const colItems = [...(snapshotCols[fromColId] || [])];
+      const activeIndex = colItems.findIndex((i) => i.id === activeId);
+      const overIndex = colItems.findIndex((i) => i.id === overId);
+
+      if (activeIndex === -1) return;
+
+      if (overIndex !== -1 && activeIndex !== overIndex) {
+        // Remove from original position, insert at target position
+        const [moved] = colItems.splice(activeIndex, 1);
+        colItems.splice(overIndex, 0, moved);
+      }
+
+      destItems = colItems;
+    } else {
+      // CROSS-COLUMN: handleDragOver already moved the item into the new column in localColumns
+      destItems = snapshotCols[toColId] || [];
+    }
+
     const activeIndex = destItems.findIndex((item) => item.id === activeId);
     if (activeIndex === -1) return;
 

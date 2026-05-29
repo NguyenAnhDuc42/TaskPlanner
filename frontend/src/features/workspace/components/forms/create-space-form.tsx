@@ -3,7 +3,8 @@ import { useCreateSpaceMutation } from "../../contents/hierarchy/hierarchy-api";
 import { Button } from "@/components/ui/button";
 import { useWorkspace } from "../../context/workspace-provider";
 import { toast } from "sonner";
-import { PrivacyToggle, IconColorPicker } from "./form-elements";
+import { PrivacyToggle, IconColorPicker, AttributeButton } from "./form-elements";
+import { User } from "lucide-react";
 
 interface CreateSpaceFormProps {
   onSuccess?: (id: string) => void;
@@ -37,7 +38,7 @@ export function CreateSpaceForm({ onSuccess, onCancel }: CreateSpaceFormProps) {
   return (
     <form onSubmit={handleSubmit} className="flex flex-col w-full">
       {/* Main Header / Input Section */}
-      <div className="px-3 pt-4 pb-2">
+      <div className="px-3 pt-2.5 pb-2">
         <div className="flex items-center gap-3">
           <IconColorPicker 
             icon={icon} 
@@ -55,8 +56,11 @@ export function CreateSpaceForm({ onSuccess, onCancel }: CreateSpaceFormProps) {
       </div>
 
       {/* Attribute Strip */}
-      <div className="px-3 py-1.5 flex flex-wrap items-center gap-1.5 border-t border-border/5">
+      <div className="px-3 py-1.5 flex flex-nowrap items-center gap-1.5 border-t border-border/5 overflow-x-auto [&::-webkit-scrollbar]:hidden">
         <PrivacyToggle isPrivate={isPrivate} onChange={setIsPrivate} />
+        <AttributeButton icon={User} className="ml-auto">
+          Members
+        </AttributeButton>
       </div>
 
       {/* Footer */}

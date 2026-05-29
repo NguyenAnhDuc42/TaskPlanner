@@ -122,7 +122,7 @@ export function CreateTaskForm({
       </div>
 
       {/* Attribute Strip */}
-      <div className="px-3 py-1.5 flex flex-wrap items-center gap-1.5 border-t border-border/5">
+      <div className="px-3 py-1.5 flex flex-nowrap items-center gap-1.5 border-t border-border/5 overflow-x-auto [&::-webkit-scrollbar]:hidden">
         <StatusSelect
           value={selectedStatusId || undefined}
           onChange={(statusId) => setSelectedStatusId(statusId)}
@@ -191,16 +191,7 @@ export function CreateTaskForm({
       </div>
 
       {/* Footer Actions */}
-      <div className="px-3 py-1.5 bg-background flex items-center justify-between border-t border-border/10">
-        <div className="flex items-center gap-1">
-          <div className="px-1.5 py-0.5 rounded border border-border/50 bg-muted/30 text-[9px] font-medium text-muted-foreground flex items-center gap-1">
-            <Command className="h-2 w-2" /> Enter
-          </div>
-          <span className="text-[10px] text-muted-foreground/30 font-medium">
-            to create
-          </span>
-        </div>
-
+      <div className="px-3 py-1.5 bg-background flex items-center justify-end border-t border-border/10">
         <div className="flex items-center gap-2">
           <Button
             type="button"

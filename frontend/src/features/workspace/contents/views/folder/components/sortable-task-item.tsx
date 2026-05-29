@@ -33,10 +33,10 @@ export function SortableTaskItem({ task, isSelected, isChecked, onSelect, onTogg
   } = useSortable({ id: task.id });
 
   const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-    zIndex: isDragging ? 10 : 1,
-    opacity: isDragging ? 0.8 : 1,
+    transform: isDragging ? undefined : CSS.Transform.toString(transform),
+    transition: isDragging ? undefined : transition,
+    opacity: isDragging ? 0 : 1,
+    pointerEvents: isDragging ? "none" as const : undefined,
   };
 
   const itemColor = task.color || "#3b82f6";

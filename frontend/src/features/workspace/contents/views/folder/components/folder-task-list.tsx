@@ -8,14 +8,17 @@ import { EntityLayerType } from "@/types/entity-layer-type";
 import { SortableTaskItem } from "./sortable-task-item";
 import { useDispatch } from "react-redux";
 import { taskSlice } from "@/store/entityStore";
+import { createPortal } from "react-dom";
 import {
   DndContext,
   closestCenter,
+  DragOverlay,
   KeyboardSensor,
   PointerSensor,
   useSensor,
   useSensors,
   type DragEndEvent,
+  type DragStartEvent,
 } from "@dnd-kit/core";
 import {
   arrayMove,
@@ -24,6 +27,7 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { restrictToVerticalAxis } from "@dnd-kit/modifiers";
+import type { TaskRecord } from "@/types/projects";
 
 interface FolderTaskListProps {
   onSelectTask?: (taskId: string) => void;
@@ -45,11 +49,18 @@ export function FolderTaskList({
   const tasks = useFolderTasksList(folderId);
   const sortableItems = React.useMemo(() => tasks.map(t => t.id), [tasks]);
   const [batchUpdate] = useBatchUpdateFolderTasksMutation();
-  const pointerSensor = useSensor(PointerSensor, { activationConstraint: { distance: 8 } });
+  const [draggedTask, setDraggedTask] = React.useState<TaskRecord | null>(null);
+  const pointerSensor = useSensor(PointerSensor, { activationConstraint: { distance: 5 } });
   const keyboardSensor = useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates });
   const sensors = useSensors(pointerSensor, keyboardSensor);
 
+  function handleDragStart(event: DragStartEvent) {
+    const task = tasks.find(t => t.id === event.active.id);
+    if (task) setDraggedTask(task);
+  }
+
   function handleDragEnd(event: DragEndEvent) {
+    setDraggedTask(null);
     const { active, over } = event;
     if (!over || active.id === over.id) return;
 
@@ -99,6 +110,7 @@ export function FolderTaskList({
           sensors={sensors}
           collisionDetection={closestCenter}
           modifiers={[restrictToVerticalAxis]}
+          onDragStart={handleDragStart}
           onDragEnd={handleDragEnd}
         >
           <SortableContext items={sortableItems} strategy={verticalListSortingStrategy}>
@@ -113,16 +125,33 @@ export function FolderTaskList({
               />
             ))}
           </SortableContext>
+
+          {createPortal(
+            <DragOverlay dropAnimation={null}>
+              {draggedTask ? (
+                <div className="rotate-1 scale-[1.02] opacity-95 cursor-grabbing pointer-events-none shadow-2xl shadow-black/60">
+                  <SortableTaskItem
+                    task={draggedTask}
+                    isSelected={false}
+                    isChecked={false}
+                    onSelect={() => {}}
+                  />
+                </div>
+              ) : null}
+            </DragOverlay>,
+            document.body
+          )}
         </DndContext>
 
         {/* Create Task */}
         <Dialog open={createOpen} onOpenChange={setCreateOpen}>
           <DialogTrigger asChild>
-            <button className="w-full flex items-center justify-center py-1.5 rounded-md hover:bg-muted/50 text-muted-foreground hover:text-foreground transition-colors border border-transparent border-dashed hover:border-border mt-1">
-              <span className="text-[11px] font-medium">Create new task</span>
+            <button className="w-full flex items-center justify-center py-2 px-3 rounded-md bg-muted/40 hover:bg-muted/70 text-foreground transition-all border border-border/40 hover:border-border/80 mt-2 gap-1.5 cursor-pointer shadow-sm active:scale-[0.98]">
+              <Plus className="h-3.5 w-3.5 text-muted-foreground" />
+              <span className="text-[11px] font-semibold text-muted-foreground">Create Task</span>
             </button>
           </DialogTrigger>
-          <DialogContent className="max-w-xl max-h-[85vh] overflow-y-auto">
+          <DialogContent className="max-w-2xl p-0" showCloseButton={false}>
             <CreateTaskForm
               parentId={folderId}
               parentType={EntityLayerType.ProjectFolder}

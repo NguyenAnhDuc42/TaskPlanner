@@ -2,8 +2,7 @@ import * as React from "react";
 import { EntityViewFrame } from "../entity-view-frame";
 import { SpaceBoard } from "./space-components/space-board";
 import { useSpaceDetail, useGetSpaceItemsQuery, useGetSpaceDetailQuery, useUpdateSpaceFieldMutation } from "./space-api";
-import { DynamicIcon } from "@/components/dynamic-icon";
-import { ChevronRight, Folder, Layout, FileText, GitMerge, Lock, Unlock } from "lucide-react";
+import { Folder, Layout, FileText, GitMerge, Lock, Unlock, MoreVertical } from "lucide-react";
 import { CreateStatusForm } from "@/features/workspace/components/forms/create-status-form";
 import { cn } from "@/lib/utils";
 import { PopoverFormWrapper } from "@/components/popover-wrapper";
@@ -11,6 +10,7 @@ import { UniversalPicker } from "@/components/universal-picker";
 import type { SpaceRecord } from "@/types/projects";
 
 import { SpaceDetail } from "./space-components/space-detail";
+import { DynamicIcon } from "@/components/dynamic-icon";
 
 interface SpaceViewProps {
   spaceId: string;
@@ -32,36 +32,8 @@ export function SpaceView({ spaceId }: SpaceViewProps) {
   };
 
   return (
-    <EntityViewFrame
-      topHeader={
-        <div className="flex items-center justify-between w-full h-full">
-          {/* Left: Breadcrumbs */}
-          <div className="flex items-center gap-0.5 text-[10px] font-bold text-muted-foreground/60 uppercase tracking-widest h-full">
-            <span className="hover:text-foreground transition-colors cursor-pointer">
-              Workspace
-            </span>
-            <ChevronRight className="h-2.5 w-2.5 opacity-40 mx-0.5" />
-            <div className="flex items-center gap-1.5 text-foreground/70 h-full">
-              {space && (
-                <>
-                  <DynamicIcon
-                    name={space.icon || "Folder"}
-                    size={12}
-                    color={space.color || "#3b82f6"}
-                    className="stroke-[2.5]"
-                  />
-                  <span className="font-black tracking-tight text-foreground/90">
-                    {space.name}
-                  </span>
-                </>
-              )}
-            </div>
-          </div>
-          <div>{/* Actions */}</div>
-        </div>
-      }
-    >
-      <div className="h-full w-full flex flex-col bg-background/25 p-2 gap-2 overflow-hidden relative">
+    <EntityViewFrame>
+      <div className="h-full w-full flex flex-col bg-background/25 p-1 gap-1 overflow-hidden relative">
         {/* Ambient background accent glow */}
         <div 
           className="absolute right-12 bottom-12 w-[350px] h-[350px] rounded-full blur-[120px] opacity-[0.05] pointer-events-none transition-all duration-700"
@@ -69,7 +41,7 @@ export function SpaceView({ spaceId }: SpaceViewProps) {
         />
 
         {/* Integrated Floating Space Header Bar */}
-        <div className="flex items-center justify-between px-2.5 py-1 rounded-md border border-border/30 bg-card/30 backdrop-blur-md shadow-sm shrink-0">
+        <div className="flex items-center justify-between px-2 py-1 rounded-md border border-border/30 bg-card/30 backdrop-blur-md shadow-sm shrink-0">
           <div className="flex items-center gap-1.5">
             <PopoverFormWrapper
               trigger={
@@ -131,12 +103,12 @@ export function SpaceView({ spaceId }: SpaceViewProps) {
               >
                 {space.isPrivate ? (
                   <>
-                    <Lock className="h-2.5 w-2.5" />
+                    <Lock className="h-2 w-2" />
                     <span>Private</span>
                   </>
                 ) : (
                   <>
-                    <Unlock className="h-2.5 w-2.5" />
+                    <Unlock className="h-2 w-2" />
                     <span>Public</span>
                   </>
                 )}
@@ -144,6 +116,14 @@ export function SpaceView({ spaceId }: SpaceViewProps) {
             )}
 
             {/* View Switcher Toggle Buttons */}
+            <button
+              className="flex items-center h-5 gap-1.5 px-2.5 rounded-md bg-muted/45 text-[10px] text-muted-foreground font-semibold hover:bg-muted hover:text-foreground transition-all cursor-pointer border border-border/10 shadow-sm"
+              onClick={() => setIsWorkflowOpen(true)}
+            >
+              <GitMerge className="h-3 w-3 opacity-80" />
+              <span>Workflow</span>
+            </button>
+
             <div className="flex items-center bg-muted/45 border border-border/10 rounded-md p-0.5 shadow-sm">
               <button 
                 onClick={() => setActiveTab("items")}
@@ -171,18 +151,19 @@ export function SpaceView({ spaceId }: SpaceViewProps) {
               </button>
             </div>
 
+            {/* 3-dot vertical menu */}
             <button
-              className="flex items-center h-5 gap-1.5 px-2.5 rounded-md bg-muted/45 text-[10px] text-muted-foreground font-semibold hover:bg-muted hover:text-foreground transition-all cursor-pointer border border-border/10 shadow-sm"
-              onClick={() => setIsWorkflowOpen(true)}
+              className="h-5 w-5 flex items-center justify-center rounded-md hover:bg-white/[0.06] text-muted-foreground/50 hover:text-foreground transition-all cursor-pointer border border-transparent hover:border-border/20"
+              title="More options"
             >
-              <GitMerge className="h-3 w-3 opacity-80" />
-              <span>Workflow</span>
+              <MoreVertical className="h-3.5 w-3.5" />
             </button>
+
           </div>
         </div>
 
         {/* Content Area */}
-        <div className="flex-1 rounded-md border border-border/40 bg-card/35 backdrop-blur-md shadow-sm overflow-hidden flex flex-col relative">
+        <div className="flex-1 rounded-md border border-border/40 bg-card/30 backdrop-blur-md shadow-sm overflow-hidden flex flex-col relative">
           {activeTab === "items" ? (
             <SpaceBoard spaceId={spaceId} onWorkflowOpen={undefined} />
           ) : (

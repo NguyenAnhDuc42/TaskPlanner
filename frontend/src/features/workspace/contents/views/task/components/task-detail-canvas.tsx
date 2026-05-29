@@ -1,6 +1,5 @@
-import * as React from "react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Calendar, CheckSquare, CircleDashed, Flag, MoreHorizontal, UserPlus, ChevronDown } from "lucide-react";
+import { Calendar, CheckSquare, CircleDashed, Flag, UserPlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 interface TaskDetailCanvasProps {

@@ -1,10 +1,12 @@
 import { EntityViewFrame } from "../entity-view-frame";
 import { FolderTaskList } from "./components/folder-task-list";
-import { Folder, Trash2, MoreHorizontal, LayoutGrid, GitMerge, Calendar } from "lucide-react";
+import { Folder, Trash2, MoreHorizontal, GitMerge, Calendar } from "lucide-react";
 import { TaskDetailCanvas } from "../task/components/task-detail-canvas";
 import * as React from "react";
 import { useParams, Link } from "@tanstack/react-router";
 import { format } from "date-fns";
+import { useSpaceDetail } from "../space/space-api";
+import { DynamicIcon } from "@/components/dynamic-icon";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -15,7 +17,6 @@ import {
 } from "@/components/ui/breadcrumb";
 import { Button } from "@/components/ui/button";
 import { PriorityBadge } from "@/components/priority-badge";
-import { DateBadge } from "@/components/date-badge";
 import {
   useGetFolderDetailQuery,
   useFolderDetail,
@@ -34,11 +35,9 @@ import {
 } from "@/components/ui/popover";
 import { Calendar as ShadcnCalendar } from "@/components/ui/calendar";
 import { FolderTaskBatchBar } from "./components/folder-task-batch-bar";
-import { DynamicIcon } from "@/components/dynamic-icon";
 import { Priority } from "@/types/priority";
 import { PopoverFormWrapper } from "@/components/popover-wrapper";
 import { UniversalPicker } from "@/components/universal-picker";
-import { Input } from "@/components/ui/input";
 import { CreateStatusForm } from "@/features/workspace/components/forms/create-status-form";
 import type { FolderRecord } from "@/types/projects/folder-record";
 
@@ -56,6 +55,7 @@ export function FolderView() {
 
   // Read folder reactively from Redux (real-time safe)
   const folder = useFolderDetail(folderId);
+  const parentSpace = useSpaceDetail(folder?.spaceId ?? "");
 
   const [updateFolderField] = useUpdateFolderFieldMutation();
 
@@ -87,21 +87,36 @@ export function FolderView() {
         <div className="flex items-center justify-between w-full">
           <Breadcrumb className="text-xs">
             <BreadcrumbList className="text-xs sm:gap-1.5">
-              <BreadcrumbItem>
-                <BreadcrumbLink asChild>
-                  <Link
-                    to="/workspaces/$workspaceId/spaces/$spaceId"
-                    params={{ workspaceId, spaceId: "mock-space" }}
-                    className="flex items-center gap-1.5 text-muted-foreground hover:text-foreground"
-                  >
-                    <LayoutGrid className="h-3 w-3" />
-                    Engineering
-                  </Link>
-                </BreadcrumbLink>
-              </BreadcrumbItem>
-              <BreadcrumbSeparator className="[&>svg]:w-3 [&>svg]:h-3" />
+              {parentSpace && (
+                <>
+                  <BreadcrumbItem>
+                    <BreadcrumbLink asChild>
+                      <Link
+                        to="/workspaces/$workspaceId/spaces/$spaceId"
+                        params={{ workspaceId, spaceId: folder?.spaceId ?? "" }}
+                        className="flex items-center gap-1.5 text-muted-foreground hover:text-foreground transition-colors"
+                      >
+                        <DynamicIcon
+                          name={parentSpace.icon || "Folder"}
+                          size={11}
+                          color={parentSpace.color || "#3b82f6"}
+                          className="stroke-[2.5] shrink-0"
+                        />
+                        <span>{parentSpace.name}</span>
+                      </Link>
+                    </BreadcrumbLink>
+                  </BreadcrumbItem>
+                  <BreadcrumbSeparator className="[&>svg]:w-3 [&>svg]:h-3" />
+                </>
+              )}
               <BreadcrumbItem>
                 <BreadcrumbPage className="font-medium text-foreground flex items-center gap-1.5">
+                  <DynamicIcon
+                    name={folder?.icon || "Folder"}
+                    size={11}
+                    color={folder?.color || "#6366f1"}
+                    className="stroke-[2.5] shrink-0"
+                  />
                   {folder?.name ?? "Folder"}
                 </BreadcrumbPage>
               </BreadcrumbItem>
@@ -124,7 +139,7 @@ export function FolderView() {
         </div>
       }
     >
-      <div className="h-full w-full flex flex-col bg-background/25 p-2 gap-2 overflow-hidden relative">
+      <div className="h-full w-full flex flex-col bg-background/25 p-1 gap-1 overflow-hidden relative">
         {/* Ambient background accent glow */}
         <div 
           className="absolute right-12 bottom-12 w-[350px] h-[350px] rounded-full blur-[120px] opacity-[0.05] pointer-events-none transition-all duration-700"
@@ -132,7 +147,7 @@ export function FolderView() {
         />
 
         {/* Integrated Floating Folder Header Bar */}
-        <div className="flex items-center justify-between px-2.5 py-1 rounded-md border border-border/30 bg-card/30 backdrop-blur-md shadow-sm shrink-0">
+        <div className="flex items-center justify-between px-1.5 py-1 rounded-md border border-border/30 bg-card/30 backdrop-blur-md shadow-sm shrink-0">
           <div className="flex items-center gap-1.5">
             <PopoverFormWrapper
               trigger={
@@ -238,17 +253,11 @@ export function FolderView() {
               <GitMerge className="h-3 w-3 opacity-80" />
               <span>Workflow</span>
             </button>
-
-            {folder?.createdAt && (
-              <div className="text-[10px] text-muted-foreground/50 pl-2 border-l border-border/20">
-                Created {new Date(folder.createdAt).toLocaleDateString()}
-              </div>
-            )}
           </div>
         </div>
 
         {/* Floating Content Area */}
-        <div className="flex-1 flex gap-2 overflow-hidden relative">
+        <div className="flex-1 flex gap-1 overflow-hidden relative">
           {/* Left Card: Folder Task List Column */}
           <div className="w-[280px] rounded-md border border-border/40 bg-card/35 backdrop-blur-md shadow-sm overflow-hidden flex flex-col shrink-0">
             <FolderTaskList

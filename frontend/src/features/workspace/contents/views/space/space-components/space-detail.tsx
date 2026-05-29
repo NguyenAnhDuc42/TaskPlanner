@@ -1,15 +1,11 @@
 import { useSpaceDetail } from "../space-api";
 import {
-  Users,
-  Folder,
-  Plus,
   PenBox,
   FileText,
   FileCode,
   LayoutTemplate,
   Notebook
 } from "lucide-react";
-import { format } from "date-fns";
 import React, { useState } from "react";
 import { StatusBadge } from "@/components/status-badge";
 

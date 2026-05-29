@@ -9,7 +9,14 @@ import { SortableBoardItem } from "./sortable-board-item";
 import type { BoardItem } from "../space-api";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import { CreateTaskForm } from "@/features/workspace/components/forms/create-task-form";
+import { CreateFolderForm } from "@/features/workspace/components/forms/create-folder-form";
 import { EntityLayerType } from "@/types/entity-layer-type";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 export const BoardColumn = React.memo(function BoardColumn({
   statusId,
@@ -39,6 +46,14 @@ export const BoardColumn = React.memo(function BoardColumn({
   const itemIds = useMemo(() => items.map((i) => i.id), [items]);
 
   const [createOpen, setCreateOpen] = useState(false);
+  const [createType, setCreateType] = useState<"task" | "folder" | null>(null);
+
+  const handleOpenChange = (open: boolean) => {
+    setCreateOpen(open);
+    if (!open) {
+      setCreateType(null);
+    }
+  };
 
   return (
     <StatusGroup
@@ -47,7 +62,7 @@ export const BoardColumn = React.memo(function BoardColumn({
       color={color}
       category={category}
       totalCount={items.length}
-      className="w-[280px] min-h-[400px] shrink-0"
+      className="w-[280px] min-h-[400px] shrink-0 flex flex-col"
     >
       <div
         ref={setNodeRef}
@@ -70,26 +85,76 @@ export const BoardColumn = React.memo(function BoardColumn({
             />
           ))}
         </SortableContext>
+      </div>
 
-        {/* Create Item Button */}
-        <Dialog open={createOpen} onOpenChange={setCreateOpen}>
-          <DialogTrigger asChild>
+      {/* Render the button and dropdown OUTSIDE the droppable DND-active container area! */}
+      <div className="px-2 pb-2 shrink-0">
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
             <button className="w-full flex items-center justify-center py-2 rounded-md hover:bg-white/[0.04] text-muted-foreground/60 hover:text-foreground transition-all border border-dashed border-border/50 hover:border-border shrink-0 mt-1 gap-1 cursor-pointer active:scale-[0.98]">
               <Plus className="h-3.5 w-3.5" />
               <span className="text-[11px] font-semibold">Create Item</span>
             </button>
-          </DialogTrigger>
-          <DialogContent className="max-w-xl max-h-[85vh] overflow-y-auto">
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-40 bg-popover border border-border shadow-md rounded-md p-1">
+            <DropdownMenuItem
+              className="cursor-pointer flex items-center gap-2 text-xs hover:bg-muted p-1.5 rounded transition-colors"
+              onClick={() => {
+                setCreateType("task");
+                setCreateOpen(true);
+              }}
+            >
+              <Plus className="h-3.5 w-3.5 text-muted-foreground" />
+              <span className="font-medium text-foreground">Create Task</span>
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              className="cursor-pointer flex items-center gap-2 text-xs hover:bg-muted p-1.5 rounded transition-colors"
+              onClick={() => {
+                setCreateType("folder");
+                setCreateOpen(true);
+              }}
+            >
+              <svg className="h-3.5 w-3.5 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9 13h6m-3-3v6m-9 1V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
+              </svg>
+              <span className="font-medium text-foreground">Create Folder</span>
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
+
+      {/* Programmatic Dialog Wrapper */}
+      <Dialog open={createOpen} onOpenChange={handleOpenChange}>
+        <DialogContent className="max-w-2xl p-0" showCloseButton={false}>
+          {createType === "task" ? (
             <CreateTaskForm
               parentId={spaceId}
               parentType={EntityLayerType.ProjectSpace}
               defaultStatusId={statusId === "unclassified" ? undefined : statusId}
-              onSuccess={() => setCreateOpen(false)}
-              onCancel={() => setCreateOpen(false)}
+              onSuccess={() => {
+                setCreateOpen(false);
+                setCreateType(null);
+              }}
+              onCancel={() => {
+                setCreateOpen(false);
+                setCreateType(null);
+              }}
             />
-          </DialogContent>
-        </Dialog>
-      </div>
+          ) : createType === "folder" ? (
+            <CreateFolderForm
+              spaceId={spaceId}
+              onSuccess={() => {
+                setCreateOpen(false);
+                setCreateType(null);
+              }}
+              onCancel={() => {
+                setCreateOpen(false);
+                setCreateType(null);
+              }}
+            />
+          ) : null}
+        </DialogContent>
+      </Dialog>
     </StatusGroup>
   );
 }, (prevProps, nextProps) => {
