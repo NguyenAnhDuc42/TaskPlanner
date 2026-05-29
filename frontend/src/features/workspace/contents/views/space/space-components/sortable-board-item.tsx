@@ -1,3 +1,4 @@
+import React from "react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { Priority } from "@/types/priority";
@@ -37,95 +38,97 @@ export function BoardItemCard({
       {...dragProps}
       onClick={onClick}
       className={cn(
-        "group relative flex flex-col gap-1.5 p-2.5 rounded-lg cursor-grab active:cursor-grabbing select-none border bg-muted/40 text-card-foreground border-border/50 outline-none shadow-sm",
-        isDragging && "opacity-35"
+        "group relative flex flex-col gap-1.5 p-2.5 rounded-lg cursor-grab active:cursor-grabbing select-none border outline-none shadow-sm shrink-0 w-full bg-muted/40 text-card-foreground border-border/50 hover:bg-muted/60",
+        isDragging && "opacity-0 pointer-events-none border-transparent bg-transparent shadow-none"
       )}
       style={style}
     >
-      {/* 1. Priority Picker & Assignee Avatar Row (Top) */}
-      <div className="flex items-center justify-between text-[10px] font-medium leading-none">
-        <InlinePriorityPicker
-          priority={(item as any).priority as Priority}
-          onPriorityChange={onPriorityChange || (() => {})}
-        />
-        <div className="flex items-center gap-2">
-          <div className="h-4 w-4 rounded-full bg-white/[0.03] flex items-center justify-center border border-white/[0.05]">
-            <User className="h-2.5 w-2.5 opacity-30 group-hover:opacity-50 transition-opacity" />
+      <div className="flex flex-col gap-1.5 w-full h-full">
+        {/* 1. Priority Picker & Assignee Avatar Row (Top) */}
+        <div className="flex items-center justify-between text-[10px] font-medium leading-none">
+          <InlinePriorityPicker
+            priority={(item as any).priority as Priority}
+            onPriorityChange={onPriorityChange || (() => {})}
+          />
+          <div className="flex items-center gap-2">
+            <div className="h-4 w-4 rounded-full bg-white/[0.03] flex items-center justify-center border border-white/[0.05]">
+              <User className="h-2.5 w-2.5 opacity-30 group-hover:opacity-50 transition-opacity" />
+            </div>
           </div>
         </div>
-      </div>
 
-      {/* 2. Custom Icon & Item Name */}
-      <div className="flex items-center gap-2 mt-0.5">
-        <div className="shrink-0 h-4.5 w-4.5 flex items-center justify-center" style={{ color: itemColor }}>
-          <DynamicIcon
-            name={item.icon || (item.__type === "folder" ? "Folder" : "Circle")}
-            size={13}
-            color={itemColor}
-            className="stroke-[2.5]"
-          />
+        {/* 2. Custom Icon & Item Name */}
+        <div className="flex items-center gap-2 mt-0.5">
+          <div className="shrink-0 h-4.5 w-4.5 flex items-center justify-center" style={{ color: itemColor }}>
+            <DynamicIcon
+              name={item.icon || (item.__type === "folder" ? "Folder" : "Circle")}
+              size={13}
+              color={itemColor}
+              className="stroke-[2.5]"
+            />
+          </div>
+          <h4 className="text-[12px] font-medium leading-tight text-zinc-300 group-hover:text-white transition-colors truncate w-full">
+            {item.name}
+          </h4>
         </div>
-        <h4 className="text-[12px] font-medium leading-tight text-zinc-300 group-hover:text-white transition-colors truncate w-full">
-          {item.name}
-        </h4>
-      </div>
 
-      {/* 3. Badges Row: Type Tag & Calendar Date Pill (Below with nice spacing & creation date on right) */}
-      <div className="flex items-center justify-between mt-1.5 w-full gap-2">
-        <div className="flex items-center gap-1.5 flex-wrap">
-          <span 
-            className="px-1.5 py-0.5 rounded text-[8px] uppercase font-black tracking-widest border shrink-0"
-            style={{
-              backgroundColor: `${itemColor}0e`,
-              color: itemColor,
-              borderColor: `${itemColor}22`
-            }}
-          >
-            {item.__type}
-          </span>
-          {showDate ? (
-            <div 
-              className={cn(
-                "flex items-center gap-1 text-[8px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded border w-fit transition-colors leading-none",
-                isOverdue 
-                  ? "bg-red-500/10 text-red-400 border-red-500/20" 
-                  : "bg-white/[0.02] text-zinc-500 border-white/[0.04]"
-              )}
+        {/* 3. Badges Row: Type Tag & Calendar Date Pill (Below with nice spacing & creation date on right) */}
+        <div className="flex items-center justify-between mt-1.5 w-full gap-2">
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <span 
+              className="px-1.5 py-0.5 rounded text-[8px] uppercase font-black tracking-widest border shrink-0"
+              style={{
+                backgroundColor: `${itemColor}0e`,
+                color: itemColor,
+                borderColor: `${itemColor}22`
+              }}
             >
-              <Calendar className={cn("h-2.5 w-2.5", isOverdue ? "opacity-90" : "opacity-40")} />
-              {item.startDate && item.dueDate ? (
-                <span>
-                  {`${format(new Date(item.startDate), "MMM d")} - ${format(new Date(item.dueDate), "MMM d")}`}
-                </span>
-              ) : item.startDate ? (
-                <span>{`Start: ${format(new Date(item.startDate), "MMM d")}`}</span>
-              ) : (
-                <span>
-                  {isOverdue ? `Overdue: ${format(new Date(item.dueDate!), "MMM d")}` : `Due: ${format(new Date(item.dueDate!), "MMM d")}`}
-                </span>
-              )}
-            </div>
-          ) : (
-            <div 
-              className="flex items-center gap-1 text-[8px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded border w-fit transition-colors leading-none bg-white/[0.01] text-zinc-500/40 border-white/[0.03] select-none"
-            >
-              <Calendar className="h-2.5 w-2.5 opacity-20" />
-              <span>No Date</span>
-            </div>
+              {item.__type}
+            </span>
+            {showDate ? (
+              <div 
+                className={cn(
+                  "flex items-center gap-1 text-[8px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded border w-fit transition-colors leading-none",
+                  isOverdue 
+                    ? "bg-red-500/10 text-red-400 border-red-500/20" 
+                    : "bg-white/[0.02] text-zinc-500 border-white/[0.04]"
+                )}
+              >
+                <Calendar className={cn("h-2.5 w-2.5", isOverdue ? "opacity-90" : "opacity-40")} />
+                {item.startDate && item.dueDate ? (
+                  <span>
+                    {`${format(new Date(item.startDate), "MMM d")} - ${format(new Date(item.dueDate), "MMM d")}`}
+                  </span>
+                ) : item.startDate ? (
+                  <span>{`Start: ${format(new Date(item.startDate), "MMM d")}`}</span>
+                ) : (
+                  <span>
+                    {isOverdue ? `Overdue: ${format(new Date(item.dueDate!), "MMM d")}` : `Due: ${format(new Date(item.dueDate!), "MMM d")}`}
+                  </span>
+                )}
+              </div>
+            ) : (
+              <div 
+                className="flex items-center gap-1 text-[8px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded border w-fit transition-colors leading-none bg-white/[0.01] text-zinc-500/40 border-white/[0.03] select-none"
+              >
+                <Calendar className="h-2.5 w-2.5 opacity-20" />
+                <span>No Date</span>
+              </div>
+            )}
+          </div>
+          
+          {item.createdAt && (
+            <span className="text-[9px] text-muted-foreground/45 font-medium shrink-0 ml-auto select-none">
+              {format(new Date(item.createdAt), "MMM d")}
+            </span>
           )}
         </div>
-        
-        {item.createdAt && (
-          <span className="text-[9px] text-muted-foreground/45 font-medium shrink-0 ml-auto select-none">
-            {format(new Date(item.createdAt), "MMM d")}
-          </span>
-        )}
       </div>
     </div>
   );
 }
 
-export function SortableBoardItem({
+export const SortableBoardItem = React.memo(function SortableBoardItem({
   item,
   onTaskClick,
   onFolderClick,
@@ -148,8 +151,8 @@ export function SortableBoardItem({
   });
 
   const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
+    transform: isDragging ? undefined : CSS.Transform.toString(transform),
+    transition: isDragging ? undefined : transition,
   };
 
   return (
@@ -163,4 +166,4 @@ export function SortableBoardItem({
       dragProps={{ ...attributes, ...listeners }}
     />
   );
-}
+});

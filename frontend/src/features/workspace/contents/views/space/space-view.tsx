@@ -1,25 +1,35 @@
 import * as React from "react";
 import { EntityViewFrame } from "../entity-view-frame";
 import { SpaceBoard } from "./space-components/space-board";
-import { useGetSpaceDetailQuery, useSpaceDetail, useGetSpaceItemsQuery } from "./space-api";
+import { useSpaceDetail, useGetSpaceItemsQuery, useGetSpaceDetailQuery, useUpdateSpaceFieldMutation } from "./space-api";
 import { DynamicIcon } from "@/components/dynamic-icon";
-import { ChevronRight, GitMerge } from "lucide-react";
-import { useParams } from "@tanstack/react-router";
+import { ChevronRight, Folder, Layout, FileText, GitMerge, Lock, Unlock } from "lucide-react";
 import { CreateStatusForm } from "@/features/workspace/components/forms/create-status-form";
+import { cn } from "@/lib/utils";
+import { PopoverFormWrapper } from "@/components/popover-wrapper";
+import { UniversalPicker } from "@/components/universal-picker";
+import type { SpaceRecord } from "@/types/projects";
+
+import { SpaceDetail } from "./space-components/space-detail";
 
 interface SpaceViewProps {
   spaceId: string;
 }
 
 export function SpaceView({ spaceId }: SpaceViewProps) {
-  const { workspaceId } = useParams({ strict: false }) as { workspaceId: string };
   const [isWorkflowOpen, setIsWorkflowOpen] = React.useState(false);
+  const [activeTab, setActiveTab] = React.useState<"detail" | "items">("items");
   
   // Load space details & items into Redux
-  const { isLoading: isDetailLoading } = useGetSpaceDetailQuery(spaceId);
   const space = useSpaceDetail(spaceId);
+  useGetSpaceDetailQuery(spaceId);
   const { data: spaceItems } = useGetSpaceItemsQuery(spaceId);
   const statuses = spaceItems?.statuses || [];
+
+  const [updateSpaceField] = useUpdateSpaceFieldMutation();
+  const updateField = (patches: Partial<SpaceRecord>) => {
+    updateSpaceField({ spaceId, patches });
+  };
 
   return (
     <EntityViewFrame
@@ -50,16 +60,135 @@ export function SpaceView({ spaceId }: SpaceViewProps) {
           <div>{/* Actions */}</div>
         </div>
       }
-      subHeader={
-        <div className="flex gap-4">
-          <button className="text-sm font-bold border-b-2 border-primary text-primary pb-2 mt-2">
-            Board
-          </button>
-        </div>
-      }
     >
-      <div className="h-full w-full flex flex-col bg-background/50">
-        <SpaceBoard spaceId={spaceId} onWorkflowOpen={() => setIsWorkflowOpen(true)} />
+      <div className="h-full w-full flex flex-col bg-background/25 p-2 gap-2 overflow-hidden relative">
+        {/* Ambient background accent glow */}
+        <div 
+          className="absolute right-12 bottom-12 w-[350px] h-[350px] rounded-full blur-[120px] opacity-[0.05] pointer-events-none transition-all duration-700"
+          style={{ backgroundColor: space?.color || "#3b82f6" }}
+        />
+
+        {/* Integrated Floating Space Header Bar */}
+        <div className="flex items-center justify-between px-2.5 py-1 rounded-md border border-border/30 bg-card/30 backdrop-blur-md shadow-sm shrink-0">
+          <div className="flex items-center gap-1.5">
+            <PopoverFormWrapper
+              trigger={
+                <button className="flex items-center justify-center p-0.5 hover:bg-muted/65 rounded-md transition-all cursor-pointer focus:outline-none border border-border/10 shadow-sm bg-background/80">
+                  {space?.icon ? (
+                    <DynamicIcon name={space.icon} className="h-3 w-3" color={space.color} />
+                  ) : (
+                    <Folder className="h-3 w-3" color={space?.color} />
+                  )}
+                </button>
+              }
+            >
+              <UniversalPicker
+                selectedIcon={space?.icon ?? "Folder"}
+                selectedColor={space?.color ?? "#3b82f6"}
+                onSelect={(icon, color) => updateField({ icon, color })}
+              />
+            </PopoverFormWrapper>
+
+            <input
+              className="h-6 px-1 w-56 text-xs font-bold text-foreground/90 tracking-tight bg-transparent border-none outline-none hover:bg-muted/20 focus:bg-muted/40 transition-all rounded cursor-text"
+              defaultValue={space?.name ?? "Space"}
+              onBlur={(e) => {
+                if (e.target.value && e.target.value !== space?.name) {
+                  updateField({ name: e.target.value });
+                }
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") e.currentTarget.blur();
+              }}
+            />
+          </div>
+
+          <div className="flex items-center gap-2.5">
+            {/* Space Members Avatar Pile */}
+            <div className="flex items-center -space-x-1.5 mr-0.5">
+              <div className="h-5 w-5 rounded-full bg-cyan-500 border border-background flex items-center justify-center text-[8px] font-black text-white shrink-0 shadow-sm hover:translate-y-[-1px] transition-transform cursor-pointer" title="Anh Đức Nguyễn (Owner)">
+                AD
+              </div>
+              <div className="h-5 w-5 rounded-full bg-purple-500 border border-background flex items-center justify-center text-[8px] font-black text-white shrink-0 shadow-sm hover:translate-y-[-1px] transition-transform cursor-pointer" title="John Doe (Admin)">
+                JD
+              </div>
+              <button className="h-5 w-5 rounded-full bg-muted/65 hover:bg-muted border border-border/20 flex items-center justify-center text-[9px] font-bold text-muted-foreground shrink-0 shadow-sm transition-all cursor-pointer">
+                +
+              </button>
+            </div>
+
+            {/* Public/Private Toggle Switcher */}
+            {space && (
+              <button
+                onClick={() => updateField({ isPrivate: !space.isPrivate })}
+                className={cn(
+                  "flex items-center gap-1 h-5 px-1.5 rounded-md border text-[9px] font-bold cursor-pointer transition-all select-none",
+                  space.isPrivate
+                    ? "bg-rose-500/10 border-rose-500/30 text-rose-400 hover:bg-rose-500/20"
+                    : "bg-emerald-500/10 border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/20"
+                )}
+                title={space.isPrivate ? "Click to make Public" : "Click to make Private"}
+              >
+                {space.isPrivate ? (
+                  <>
+                    <Lock className="h-2.5 w-2.5" />
+                    <span>Private</span>
+                  </>
+                ) : (
+                  <>
+                    <Unlock className="h-2.5 w-2.5" />
+                    <span>Public</span>
+                  </>
+                )}
+              </button>
+            )}
+
+            {/* View Switcher Toggle Buttons */}
+            <div className="flex items-center bg-muted/45 border border-border/10 rounded-md p-0.5 shadow-sm">
+              <button 
+                onClick={() => setActiveTab("items")}
+                className={cn(
+                  "flex items-center gap-1 h-5 px-2 rounded-sm text-[10px] font-semibold transition-all cursor-pointer",
+                  activeTab === "items" 
+                    ? "bg-background text-foreground shadow-sm animate-in fade-in duration-200" 
+                    : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                <Layout className="h-2.5 w-2.5" />
+                <span>Board</span>
+              </button>
+              <button 
+                onClick={() => setActiveTab("detail")}
+                className={cn(
+                  "flex items-center gap-1 h-5 px-2 rounded-sm text-[10px] font-semibold transition-all cursor-pointer",
+                  activeTab === "detail" 
+                    ? "bg-background text-foreground shadow-sm animate-in fade-in duration-200" 
+                    : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                <FileText className="h-2.5 w-2.5" />
+                <span>Detail</span>
+              </button>
+            </div>
+
+            <button
+              className="flex items-center h-5 gap-1.5 px-2.5 rounded-md bg-muted/45 text-[10px] text-muted-foreground font-semibold hover:bg-muted hover:text-foreground transition-all cursor-pointer border border-border/10 shadow-sm"
+              onClick={() => setIsWorkflowOpen(true)}
+            >
+              <GitMerge className="h-3 w-3 opacity-80" />
+              <span>Workflow</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Content Area */}
+        <div className="flex-1 rounded-md border border-border/40 bg-card/35 backdrop-blur-md shadow-sm overflow-hidden flex flex-col relative">
+          {activeTab === "items" ? (
+            <SpaceBoard spaceId={spaceId} onWorkflowOpen={undefined} />
+          ) : (
+            <SpaceDetail spaceId={spaceId} />
+          )}
+        </div>
       </div>
 
       {space?.workflowId && (

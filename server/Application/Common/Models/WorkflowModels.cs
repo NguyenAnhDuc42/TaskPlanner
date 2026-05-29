@@ -13,6 +13,7 @@ public record WorkflowRecord
 public record StatusRecord
 {
     public Guid Id { get; init; }
+    public Guid WorkflowId { get; init; }
     public Guid? StatusId { get; init; } // Alias for Dapper/SQL projections
     public string Name { get; init; } = null!;
     public string? Color { get; init; }

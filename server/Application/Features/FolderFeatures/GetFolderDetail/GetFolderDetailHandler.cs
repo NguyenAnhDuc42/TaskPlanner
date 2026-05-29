@@ -53,7 +53,7 @@ public class GetFolderDetailHandler(TaskPlanDbContext db, WorkspaceContext works
         if (activeWorkflowId.HasValue)
         {
             var statusSql = @"
-                SELECT id AS Id, id AS StatusId, name AS Name, color AS Color, category AS Category, order_key AS OrderKey
+                SELECT id AS Id, id AS StatusId, workflow_id AS WorkflowId, name AS Name, color AS Color, category AS Category, order_key AS OrderKey
                 FROM statuses
                 WHERE workflow_id = @WorkflowId
                 ORDER BY CASE category

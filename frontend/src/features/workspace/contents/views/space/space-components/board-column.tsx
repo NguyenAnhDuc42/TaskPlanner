@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import React, { useMemo, useState } from "react";
 import { useDroppable } from "@dnd-kit/core";
 import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { Plus } from "lucide-react";
@@ -11,10 +11,11 @@ import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import { CreateTaskForm } from "@/features/workspace/components/forms/create-task-form";
 import { EntityLayerType } from "@/types/entity-layer-type";
 
-export function BoardColumn({
+export const BoardColumn = React.memo(function BoardColumn({
   statusId,
   name,
   color,
+  category,
   items,
   spaceId,
   onTaskClick,
@@ -24,6 +25,7 @@ export function BoardColumn({
   statusId: string;
   name: string;
   color: string;
+  category: string;
   items: BoardItem[];
   spaceId: string;
   onTaskClick: (id: string) => void;
@@ -43,13 +45,14 @@ export function BoardColumn({
       id={statusId}
       statusName={name}
       color={color}
+      category={category}
       totalCount={items.length}
       className="w-[280px] min-h-[400px] shrink-0"
     >
       <div
         ref={setNodeRef}
         className={cn(
-          "flex flex-col flex-1 overflow-y-auto p-1 gap-2 rounded-md transition-colors status-column-scrollable",
+          "flex flex-col flex-1 overflow-y-auto px-2 pb-2 pt-1 gap-2 rounded-md transition-colors status-column-scrollable",
           "[&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:bg-white/[0.05] [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-white/[0.15] [&::-webkit-scrollbar-track]:bg-transparent",
           isOver
             ? "bg-white/[0.02] border border-dashed border-border/60"
@@ -89,4 +92,29 @@ export function BoardColumn({
       </div>
     </StatusGroup>
   );
-}
+}, (prevProps, nextProps) => {
+  if (prevProps.statusId !== nextProps.statusId) return false;
+  if (prevProps.name !== nextProps.name) return false;
+  if (prevProps.color !== nextProps.color) return false;
+  if (prevProps.category !== nextProps.category) return false;
+  if (prevProps.spaceId !== nextProps.spaceId) return false;
+  if (prevProps.onTaskClick !== nextProps.onTaskClick) return false;
+  if (prevProps.onFolderClick !== nextProps.onFolderClick) return false;
+  if (prevProps.onPriorityChange !== nextProps.onPriorityChange) return false;
+
+  if (prevProps.items.length !== nextProps.items.length) return false;
+
+  for (let i = 0; i < prevProps.items.length; i++) {
+    const a = prevProps.items[i];
+    const b = nextProps.items[i];
+    if (a.id !== b.id) return false;
+    if (a.statusId !== b.statusId) return false;
+    if (a.orderKey !== b.orderKey) return false;
+    if ((a as any).priority !== (b as any).priority) return false;
+    if (a.name !== b.name) return false;
+    if (a.color !== b.color) return false;
+    if (a.icon !== b.icon) return false;
+  }
+
+  return true;
+});

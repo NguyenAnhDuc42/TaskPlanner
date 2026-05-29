@@ -9,7 +9,7 @@ interface TaskDetailCanvasProps {
 
 export function TaskDetailCanvas({ taskId }: TaskDetailCanvasProps) {
   return (
-    <div className="flex flex-col h-full w-full bg-background overflow-hidden">
+    <div className="flex flex-col h-full w-full bg-transparent overflow-hidden">
 
 
       {/* Task Content Scroll Area */}

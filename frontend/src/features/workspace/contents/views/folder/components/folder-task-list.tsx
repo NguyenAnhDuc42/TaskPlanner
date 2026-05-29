@@ -23,6 +23,7 @@ import {
   sortableKeyboardCoordinates,
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
+import { restrictToVerticalAxis } from "@dnd-kit/modifiers";
 
 interface FolderTaskListProps {
   onSelectTask?: (taskId: string) => void;
@@ -69,10 +70,10 @@ export function FolderTaskList({
   }
 
   return (
-    <div className="flex flex-col h-full w-full bg-background relative">
+    <div className="flex flex-col h-full w-full bg-transparent relative">
 
       {/* Search / Filter Bar */}
-      <div className="px-1.5 py-1 border-b border-border/50 shrink-0 flex items-center gap-1">
+      <div className="px-1.5 py-1 border-b border-border/15 shrink-0 flex items-center gap-1">
         <div className="h-7 flex-1 bg-muted/30 rounded-md border border-border/30 flex items-center px-2.5 text-[11px] text-muted-foreground/50">
           Search tasks...
         </div>
@@ -86,7 +87,7 @@ export function FolderTaskList({
       </div>
 
       {/* Task List */}
-      <div className="flex-1 overflow-y-auto p-1.5 space-y-0.5 [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-thumb]:bg-muted-foreground/10 hover:[&::-webkit-scrollbar-thumb]:bg-muted-foreground/30 [&::-webkit-scrollbar-track]:bg-transparent">
+      <div className="flex-1 overflow-y-auto p-1 space-y-1 [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-thumb]:bg-muted-foreground/10 hover:[&::-webkit-scrollbar-thumb]:bg-muted-foreground/30 [&::-webkit-scrollbar-track]:bg-transparent">
         {isLoading && tasks.length === 0 && (
           <div className="p-4 text-xs text-muted-foreground text-center">Loading tasks...</div>
         )}
@@ -97,6 +98,7 @@ export function FolderTaskList({
         <DndContext
           sensors={sensors}
           collisionDetection={closestCenter}
+          modifiers={[restrictToVerticalAxis]}
           onDragEnd={handleDragEnd}
         >
           <SortableContext items={sortableItems} strategy={verticalListSortingStrategy}>
@@ -116,8 +118,8 @@ export function FolderTaskList({
         {/* Create Task */}
         <Dialog open={createOpen} onOpenChange={setCreateOpen}>
           <DialogTrigger asChild>
-            <button className="w-full flex items-center justify-center py-2.5 rounded-md hover:bg-muted/50 text-muted-foreground hover:text-foreground transition-colors border border-transparent border-dashed hover:border-border mt-1">
-              <span className="text-[12px] font-medium">Create new task</span>
+            <button className="w-full flex items-center justify-center py-1.5 rounded-md hover:bg-muted/50 text-muted-foreground hover:text-foreground transition-colors border border-transparent border-dashed hover:border-border mt-1">
+              <span className="text-[11px] font-medium">Create new task</span>
             </button>
           </DialogTrigger>
           <DialogContent className="max-w-xl max-h-[85vh] overflow-y-auto">

@@ -7,6 +7,7 @@ interface StatusGroupProps {
   id: string;
   statusName: string;
   color: string;
+  category: string;
   totalCount: number;
   children: ReactNode;
   className?: string;
@@ -15,6 +16,7 @@ interface StatusGroupProps {
 export function StatusGroup({
   statusName,
   color,
+  category,
   totalCount,
   children,
   className,
@@ -29,7 +31,7 @@ export function StatusGroup({
       {/* Column Header */}
       <div className="flex items-center justify-between px-3 py-2 group/header border-b border-border/10 bg-transparent">
         <div className="flex items-center gap-3">
-          <StatusBadge status={{ name: statusName, color: color } as any} variant="outline" />
+          <StatusBadge status={{ name: statusName, color: color, category } as any} variant="outline" />
           <span className="text-[9px] font-black text-muted-foreground/40 px-2 py-0.5 rounded-md bg-white/[0.02] border border-white/[0.03]">
             {totalCount}
           </span>
@@ -45,7 +47,7 @@ export function StatusGroup({
       </div>
 
       {/* Items Area */}
-      <div className="flex-1 px-2 pb-1 pt-3 flex flex-col min-h-0">
+      <div className="flex-1 flex flex-col min-h-0 pt-2">
         {children}
       </div>
     </div>

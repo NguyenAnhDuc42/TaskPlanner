@@ -141,7 +141,9 @@ export function useFolderTasksList(folderId: string) {
   const selectTasksForFolder = useMemo(() =>
     createSelector(
       [taskSelectors.selectAll],
-      (tasks) => tasks.filter((t): t is TaskRecord => t.projectFolderId === folderId)
+      (tasks) => tasks
+        .filter((t): t is TaskRecord => t.projectFolderId === folderId)
+        .sort((a, b) => (a.orderKey || "").localeCompare(b.orderKey || ""))
     ),
   [folderId]);
 

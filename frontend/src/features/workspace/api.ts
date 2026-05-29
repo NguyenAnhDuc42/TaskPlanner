@@ -64,20 +64,45 @@ export const workspaceFeatureApi = workspaceApi.injectEndpoints({
       },
     }),
 
-    updateWorkflowStatuses: build.mutation<void, { workflowId: string; statuses: StatusUpdatePayload[] }>({
+    updateWorkflowStatuses: build.mutation<void, { workflowId: string; workspaceId?: string; statuses: StatusUpdatePayload[]; optimisticStatuses?: Status[] }>({
       query: ({ workflowId, statuses }) => ({
         url: `/statuses/workflow/${workflowId}`,
         method: "PUT",
         data: statuses,
       }),
       invalidatesTags: ["Tasks", "Folders", "Spaces"],
-      async onQueryStarted(_, { queryFulfilled }) {
+      async onQueryStarted({ workflowId, workspaceId, statuses, optimisticStatuses }, { dispatch, queryFulfilled }) {
+        let patchResult: any;
+
+        if (workspaceId && optimisticStatuses) {
+          patchResult = dispatch(
+            workspaceFeatureApi.util.updateQueryData("getWorkspaceWorkflows", workspaceId, (draft) => {
+              const wf = draft.find(w => w.id === workflowId);
+              if (wf) {
+                wf.statuses = optimisticStatuses;
+              }
+            })
+          );
+          dispatch(statusSlice.actions.upsertMany(optimisticStatuses));
+
+          const deletedIds = statuses
+            .filter((s) => s.action === RowAction.Delete && s.id != null)
+            .map((s) => s.id as string);
+          if (deletedIds.length > 0) {
+            dispatch(statusSlice.actions.removeMany(deletedIds));
+          }
+        }
+
         try {
           const { queryClient } = await import("@/lib/query-client");
           await queryFulfilled;
           // Invalidate TanStack Query to refresh legacy detail tabs in sync
           queryClient.invalidateQueries();
-        } catch {}
+        } catch {
+          if (patchResult) {
+            patchResult.undo();
+          }
+        }
       }
     }),
   }),
@@ -94,7 +119,7 @@ export const {
 export function useUpdateWorkflowStatuses() {
   const [trigger, result] = useUpdateWorkflowStatusesMutation();
   return {
-    mutate: (args: { workflowId: string; statuses: StatusUpdatePayload[] }) => trigger(args),
+    mutate: (args: { workflowId: string; workspaceId?: string; statuses: StatusUpdatePayload[]; optimisticStatuses?: Status[] }) => trigger(args),
     ...result,
   };
 }

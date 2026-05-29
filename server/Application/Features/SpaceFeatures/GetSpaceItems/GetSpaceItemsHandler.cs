@@ -16,7 +16,7 @@ public class GetSpaceItemsHandler(TaskPlanDbContext db, WorkspaceContext workspa
             return Result<TaskViewData>.Failure(Error.NotFound("Workflow.NotFound", "Active workflow not found for this space"));
 
         var sql = @"
-            SELECT id AS Id, id AS StatusId, name AS Name, color AS Color, category AS Category, order_key AS OrderKey
+            SELECT id AS Id, id AS StatusId, workflow_id AS WorkflowId, name AS Name, color AS Color, category AS Category, order_key AS OrderKey
             FROM statuses
             WHERE workflow_id = @WorkflowId
             ORDER BY CASE category

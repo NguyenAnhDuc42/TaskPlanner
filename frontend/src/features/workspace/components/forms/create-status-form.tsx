@@ -34,10 +34,12 @@ import {
 } from "@/components/ui/popover";
 import { StatusCategory } from "@/types/status-category";
 import type { Status } from "@/types/status";
+import type { WorkflowRecord } from "@/types/projects";
 import { useWorkspace } from "@/features/workspace/context/workspace-provider";
 import { useUpdateWorkflowStatuses, RowAction } from "@/features/workspace/api";
 import type { StatusUpdatePayload } from "@/features/workspace/api";
 import { useMemo } from "react";
+import { fractionalBetween } from "@/features/workspace/contents/hierarchy/utils/fractional-index";
 
 
 interface CreateStatusFormProps {
@@ -208,26 +210,27 @@ export function CreateStatusForm({
   currentStatuses,
   onApplyChanges,
 }: CreateStatusFormProps) {
-  const { registry } = useWorkspace();
+  const { registry, workspaceId: currentWorkspaceId } = useWorkspace();
   const { mutate: updateStatuses } = useUpdateWorkflowStatuses();
 
   const workflow = useMemo(() => {
     if (!workflowId) return null;
-    return registry.workflows.find((w: any) => 
+    return registry.workflows.find((w: WorkflowRecord) => 
       w.id?.toLowerCase() === workflowId?.toLowerCase()
     );
   }, [workflowId, registry.workflows]);
 
   const resolvedCurrentStatuses = useMemo(() => {
     if (currentStatuses) {
-      return currentStatuses.map((s: any) => ({
+      return currentStatuses.map((s: Status) => ({
         ...s,
         id: s.id || s.id,
       }));
     }
     if (!workflow) return [];
-    return (workflow.statuses || []).map((s: any) => ({
+    return (workflow.statuses || []).map((s: Status) => ({
       id: s.id || s.id,
+      workflowId: s.workflowId || workflow.id,
       name: s.name,
       color: s.color,
       category: s.category,
@@ -369,6 +372,7 @@ export function CreateStatusForm({
                       if (name.trim()) {
                         const newStatus: Status = {
                           id: `temp-${Date.now()}`,
+                          workflowId: workflowId || "",
                           name: name.trim(),
                           color: PRESET_COLORS[0],
                           category: cat as StatusCategory,
@@ -383,6 +387,7 @@ export function CreateStatusForm({
                       if (e.key === "Enter" && name.trim()) {
                         const newStatus: Status = {
                           id: `temp-${Date.now()}`,
+                          workflowId: workflowId || "",
                           name: name.trim(),
                           color: PRESET_COLORS[0],
                           category: cat as StatusCategory,
@@ -460,6 +465,10 @@ export function CreateStatusForm({
                   
                   const prevKey = idx > 0 ? catGroup[idx - 1].orderKey || null : null;
                   const nextKey = idx < catGroup.length - 1 ? catGroup[idx + 1].orderKey || null : null;
+                  
+                  // Assign the correctly ordered key to the optimistic object immediately
+                  const newOrderKey = fractionalBetween(prevKey, nextKey);
+                  s.orderKey = newOrderKey;
 
                   payloads.push({
                     id: isNew ? null : s.id,
@@ -472,7 +481,12 @@ export function CreateStatusForm({
                   });
                 }
 
-                updateStatuses({ workflowId, statuses: payloads });
+                updateStatuses({ 
+                  workflowId, 
+                  workspaceId: registry.workspaceId || currentWorkspaceId, 
+                  statuses: payloads, 
+                  optimisticStatuses: localStatuses 
+                });
               } else {
                 onApplyChanges?.(localStatuses);
               }

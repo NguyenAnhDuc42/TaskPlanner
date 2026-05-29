@@ -1,12 +1,13 @@
 import { workspaceApi } from "@/store/workspaceApi";
-import { spaceSlice, folderSlice, taskSlice, statusSlice, folderSelectors, taskSelectors } from "@/store/entityStore";
+import { spaceSlice, folderSlice, taskSlice, statusSlice, folderSelectors, taskSelectors, statusSelectors } from "@/store/entityStore";
 import { useSelector } from "react-redux";
 import { createSelector } from "@reduxjs/toolkit";
 import { useMemo } from "react";
 import type { RootState } from "@/store";
 import type { SpaceRecord, FolderRecord, TaskRecord } from "@/types/projects";
 import type { Status } from "@/types/status";
-import { prioritySort } from "@/types/priority";
+import { StatusCategory } from "@/types/status-category";
+
 
 export interface SpaceItemsResponse {
   folders: FolderRecord[];
@@ -188,4 +189,34 @@ export function useSpaceBoardItems(spaceId: string) {
   [spaceId]);
 
   return useSelector(selectBoardItemsForSpace);
+}
+
+const statusCategoryWeight = {
+  [StatusCategory.NotStarted]: 0,
+  [StatusCategory.Active]: 1,
+  [StatusCategory.Done]: 2,
+  [StatusCategory.Closed]: 3,
+};
+
+export function useSpaceStatuses(spaceId: string) {
+  const space = useSpaceDetail(spaceId);
+  const selectSpaceStatuses = useMemo(() =>
+    createSelector(
+      [statusSelectors.selectAll],
+      (statuses: Status[]) => {
+        const targetWorkflowId = space?.workflowId;
+        if (!targetWorkflowId) return [];
+        return statuses
+          .filter(s => s.workflowId === targetWorkflowId)
+          .sort((a, b) => {
+            const weightA = statusCategoryWeight[a.category] ?? 4;
+            const weightB = statusCategoryWeight[b.category] ?? 4;
+            if (weightA !== weightB) return weightA - weightB;
+            return (a.orderKey || "").localeCompare(b.orderKey || "");
+          });
+      }
+    ),
+  [space?.workflowId]);
+
+  return useSelector(selectSpaceStatuses);
 }

@@ -49,6 +49,7 @@ public class GetWorkspaceWorkflowsHandler(TaskPlanDbContext db, WorkspaceContext
                         Statuses = g.Where(r => r.StatusId != null).Select(r => new StatusRecord
                         {
                             Id = r.StatusId!.Value,
+                            WorkflowId = g.Key.Id,
                             Name = r.StatusName!,
                             Color = r.Color,
                             Category = r.Category!.Value,
