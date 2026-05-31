@@ -15,4 +15,5 @@ export interface FolderRecord {
     color?: string;
     isPrivate?: boolean;
     hasTasks?: boolean;
+    workflowId?: string;   // resolved workflow — folder's own if set, else inherited from parent space
 }

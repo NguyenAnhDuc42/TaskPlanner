@@ -12,17 +12,18 @@ export interface CreateSpaceRequest {
   isPrivate: boolean;
   color?: string;
   icon?: string;
+  memberIdsToInvite?: string[];
 }
 
 export interface CreateFolderRequest {
-  projectSpaceId: string;
+  spaceId: string;
   name: string;
-  isPrivate?: boolean;
   color?: string;
   icon?: string;
   statusId?: string | null;
   startDate?: string;
   dueDate?: string;
+  priority?: Priority;
 }
 
 export interface CreateTaskRequest {
@@ -122,11 +123,12 @@ export const hierarchyApi = workspaceApi.injectEndpoints({
 
     createSpace: build.mutation<SpaceRecord, { workspaceId: string; body: CreateSpaceRequest }>({
       query: ({ body }) => ({ url: `/spaces`, method: "POST", data: body }),
-      async onQueryStarted({ body }, { dispatch, queryFulfilled }) {
+      async onQueryStarted({ workspaceId, body }, { dispatch, queryFulfilled }) {
         // optimistic — fake id until server responds
         const tempId = `temp_${crypto.randomUUID()}`
         const optimistic: SpaceRecord = {
           id: tempId,
+          workspaceId,
           name: body.name,
           isPrivate: body.isPrivate,
           color: body.color ?? null,
@@ -139,7 +141,18 @@ export const hierarchyApi = workspaceApi.injectEndpoints({
           const { data } = await queryFulfilled
           // remove temp, add real
           dispatch(spaceSlice.actions.remove(tempId))
-          dispatch(spaceSlice.actions.upsert(data))
+          
+          const spaceId = typeof data === 'string' ? data : (data as any).id || (data as any).value || tempId;
+          const realSpace: SpaceRecord = {
+            id: spaceId,
+            workspaceId,
+            name: body.name,
+            isPrivate: body.isPrivate,
+            color: body.color ?? null,
+            icon: body.icon ?? null,
+          } as SpaceRecord;
+
+          dispatch(spaceSlice.actions.upsert(realSpace))
         } catch {
           // server failed, remove temp
           dispatch(spaceSlice.actions.remove(tempId))
@@ -154,11 +167,11 @@ export const hierarchyApi = workspaceApi.injectEndpoints({
         const optimistic: FolderRecord = {
           id: tempId,
           name: body.name,
-          spaceId: body.projectSpaceId,
-          isPrivate: body.isPrivate ?? false,
+          spaceId: body.spaceId,
           color: body.color ?? null,
           icon: body.icon ?? null,
           statusId: body.statusId ?? null,
+          priority: body.priority ?? null,
           startDate: body.startDate ?? null,
           dueDate: body.dueDate ?? null,
         } as FolderRecord
@@ -168,7 +181,21 @@ export const hierarchyApi = workspaceApi.injectEndpoints({
         try {
           const { data } = await queryFulfilled
           dispatch(folderSlice.actions.remove(tempId))
-          dispatch(folderSlice.actions.upsert(data))
+          
+          const folderId = typeof data === 'string' ? data : (data as any).id || (data as any).value || tempId;
+          const realFolder: FolderRecord = {
+            id: folderId,
+            spaceId: body.spaceId,
+            name: body.name,
+            color: body.color ?? null,
+            icon: body.icon ?? null,
+            statusId: body.statusId ?? null,
+            priority: body.priority ?? null,
+            startDate: body.startDate ?? null,
+            dueDate: body.dueDate ?? null,
+          } as FolderRecord;
+
+          dispatch(folderSlice.actions.upsert(realFolder))
         } catch {
           dispatch(folderSlice.actions.remove(tempId))
         }
@@ -198,7 +225,23 @@ export const hierarchyApi = workspaceApi.injectEndpoints({
         try {
           const { data } = await queryFulfilled
           dispatch(taskSlice.actions.remove(tempId))
-          dispatch(taskSlice.actions.upsert(data))
+          
+          const taskId = typeof data === 'string' ? data : (data as any).id || (data as any).value || tempId;
+          const realTask: TaskRecord = {
+            id: taskId,
+            name: body.name,
+            projectFolderId: body.parentType === "ProjectFolder" ? body.parentId : null,
+            projectSpaceId:  body.parentType === "ProjectSpace"  ? body.parentId : null,
+            icon: body.icon ?? null,
+            color: body.color ?? null,
+            statusId: body.statusId ?? null,
+            priority: body.priority ?? null,
+            assigneeIds: body.assignees ?? [],
+            startDate: body.startDate ?? null,
+            dueDate: body.dueDate ?? null,
+          } as TaskRecord;
+
+          dispatch(taskSlice.actions.upsert(realTask))
         } catch {
           dispatch(taskSlice.actions.remove(tempId))
         }
@@ -426,6 +469,7 @@ export const {
 
 
 import { useMemo } from "react";
+import type { Priority } from "@/types/priority";
 
 // --- CENTRAL RELATIONAL SELECTORS FOR COMPONENTS ---
 export function useSpaces(workspaceId: string) {

@@ -43,7 +43,7 @@ export const folderApi = workspaceApi.injectEndpoints({
       async onQueryStarted(folderId, { dispatch, queryFulfilled }) {
         try {
           const { data } = await queryFulfilled;
-          dispatch(folderSlice.actions.upsert(data.folder));
+          dispatch(folderSlice.actions.upsert({ ...data.folder, workflowId: data.workflowId ?? undefined }));
           dispatch(statusSlice.actions.upsertMany(data.statuses));
         } catch {}
       }

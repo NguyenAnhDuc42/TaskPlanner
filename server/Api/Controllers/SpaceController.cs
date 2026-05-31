@@ -63,6 +63,22 @@ namespace Api
             var result = await _handler.SendAsync(command, cancellationToken);
             return result.ToActionResult();
         }
+
+        [HttpGet("{id:guid}/access")]
+        public async Task<IActionResult> GetAccess(Guid id, CancellationToken cancellationToken)
+        {
+            var query = new GetEntityAccessQuery(id);
+            var result = await _handler.QueryAsync<GetEntityAccessQuery, IReadOnlyList<EntityAccessRecord>>(query, cancellationToken);
+            return result.ToActionResult();
+        }
+
+        [HttpPost("{id:guid}/access")]
+        public async Task<IActionResult> UpdateAccess(Guid id, [FromBody] System.Collections.Generic.IEnumerable<EntityAccessRowsValue> rows, CancellationToken cancellationToken)
+        {
+            var command = new EntityAccessBatchCommand(id, rows);
+            var result = await _handler.SendAsync(command, cancellationToken);
+            return result.ToActionResult();
+        }
     }
 
     public record UpdateSpaceRequest(

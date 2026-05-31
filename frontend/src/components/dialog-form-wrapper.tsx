@@ -44,7 +44,7 @@ export function DialogFormWrapper({
       <Dialog open={open} onOpenChange={handleOpenChange}>
         <DialogContent
           className={cn(
-            "sm:max-w-[440px] w-full p-0 overflow-hidden border border-border/50 shadow-2xl rounded-xl bg-background outline-none",
+            "sm:max-w-[520px] w-full p-0 overflow-hidden border border-border/50 shadow-2xl rounded-xl bg-background outline-none",
             contentClassName,
           )}
         >

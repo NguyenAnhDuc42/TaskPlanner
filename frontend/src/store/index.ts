@@ -1,6 +1,6 @@
 import { configureStore } from '@reduxjs/toolkit';
 import { workspaceApi } from './workspaceApi';
-import { spaceSlice, folderSlice, taskSlice, memberSlice, statusSlice } from './entityStore';
+import { spaceSlice, folderSlice, taskSlice, memberSlice, statusSlice, entityAccessSlice } from './entityStore';
 
 export const store = configureStore({
   reducer: {
@@ -9,6 +9,7 @@ export const store = configureStore({
     tasks:    taskSlice.reducer,
     members:  memberSlice.reducer,
     statuses: statusSlice.reducer,
+    entityAccess: entityAccessSlice.reducer,
     [workspaceApi.reducerPath]: workspaceApi.reducer,
   },
   middleware: (getDefaultMiddleware) =>

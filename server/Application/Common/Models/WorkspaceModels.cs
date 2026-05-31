@@ -65,6 +65,7 @@ public record SpaceRecord
     public DateTimeOffset? StartDate { get; init; }
     public DateTimeOffset? DueDate { get; init; }
     public DateTimeOffset? CreatedAt { get; init; }
+    public Guid? CreatorId { get; init; }
     public List<Guid>? MemberIds { get; init; } = null;
     public bool? HasFolders { get; init; }
     public bool? HasTasks { get; init; }

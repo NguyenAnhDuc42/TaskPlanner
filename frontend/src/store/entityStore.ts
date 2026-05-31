@@ -2,6 +2,7 @@ import { createEntityAdapter, createSlice, type PayloadAction } from '@reduxjs/t
 import type { SpaceRecord, FolderRecord, TaskRecord } from "@/types/projects";
 import type { MemberRecord } from "@/types/workspace/member-record";
 import type { Status } from "@/types/status";
+import type { EntityAccessRecord } from "@/types/workspace";
 
 // ─── UTILITY: GRANULAR DEEP MERGE (LAST WRITE WINS) ───
 function safeMergeEntity<T extends { id: string }>(
@@ -38,6 +39,7 @@ export const adapters = {
   tasks:    createEntityAdapter<TaskRecord>(),
   members:  createEntityAdapter<MemberRecord>(),
   statuses: createEntityAdapter<Status>(),
+  entityAccess: createEntityAdapter<EntityAccessRecord>(),
 };
 
 // ─── REDUX SLICES WITH SAFE MERGE TRANSACTIONS (Strict Typed + removeMany) ───
@@ -151,9 +153,32 @@ export const statusSlice = createSlice({
   }
 });
 
+export const entityAccessSlice = createSlice({
+  name: 'entityAccess',
+  initialState: adapters.entityAccess.getInitialState(),
+  reducers: {
+    upsert(state, action: PayloadAction<Partial<EntityAccessRecord> & { id: string }>) {
+      const existing = state.entities[action.payload.id];
+      const merged = safeMergeEntity(existing, action.payload);
+      adapters.entityAccess.upsertOne(state, merged);
+    },
+    upsertMany(state, action: PayloadAction<Partial<EntityAccessRecord>[]>) {
+      action.payload.forEach((item) => {
+        if (!item.id) return;
+        const existing = state.entities[item.id];
+        const merged = safeMergeEntity(existing, item);
+        adapters.entityAccess.upsertOne(state, merged);
+      });
+    },
+    remove: adapters.entityAccess.removeOne,
+    removeMany: adapters.entityAccess.removeMany,
+  }
+});
+
 // Central selectors
 export const spaceSelectors  = adapters.spaces.getSelectors((s: any) => s.spaces);
 export const folderSelectors = adapters.folders.getSelectors((s: any) => s.folders);
 export const taskSelectors   = adapters.tasks.getSelectors((s: any) => s.tasks);
 export const memberSelectors = adapters.members.getSelectors((s: any) => s.members);
 export const statusSelectors = adapters.statuses.getSelectors((s: any) => s.statuses);
+export const entityAccessSelectors = adapters.entityAccess.getSelectors((s: any) => s.entityAccess);

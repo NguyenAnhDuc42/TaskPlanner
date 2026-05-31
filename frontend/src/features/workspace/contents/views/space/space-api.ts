@@ -1,5 +1,5 @@
 import { workspaceApi } from "@/store/workspaceApi";
-import { spaceSlice, folderSlice, taskSlice, statusSlice, folderSelectors, taskSelectors, statusSelectors } from "@/store/entityStore";
+import { spaceSlice, folderSlice, taskSlice, statusSlice, entityAccessSlice, folderSelectors, taskSelectors, statusSelectors } from "@/store/entityStore";
 import { useSelector } from "react-redux";
 import { createSelector } from "@reduxjs/toolkit";
 import { useMemo } from "react";
@@ -7,12 +7,20 @@ import type { RootState } from "@/store";
 import type { SpaceRecord, FolderRecord, TaskRecord } from "@/types/projects";
 import type { Status } from "@/types/status";
 import { StatusCategory } from "@/types/status-category";
+import type { AccessLevel } from "@/types/access-level";
+import type { EntityAccessRecord } from "@/types/workspace";
 
 
 export interface SpaceItemsResponse {
   folders: FolderRecord[];
   tasks: TaskRecord[];
   statuses: Status[];
+}
+
+export interface EntityAccessRowsValue {
+  memberId: string;
+  accessLevel: AccessLevel;
+  action: "Create" | "Update" | "Delete";
 }
 
 export interface BatchUpdateSpaceItemValue {
@@ -142,15 +150,50 @@ export const spaceApi = workspaceApi.injectEndpoints({
           }
         }
       }
+    }),
+
+    getEntityAccess: build.query<EntityAccessRecord[], string>({
+      query: (spaceId) => ({ url: `/spaces/${spaceId}/access`, method: "GET" }),
+      providesTags: (result, error, spaceId) => [{ type: "Spaces" as const, id: `access-${spaceId}` }],
+      async onQueryStarted(spaceId, { dispatch, queryFulfilled }) {
+        try {
+          const { data } = await queryFulfilled;
+          const mapped = data.map(item => ({ ...item, id: item.workspaceMemberId }));
+          dispatch(entityAccessSlice.actions.upsertMany(mapped));
+        } catch {}
+      }
+    }),
+
+    updateEntityAccess: build.mutation<void, { spaceId: string; rows: EntityAccessRowsValue[] }>({
+      query: ({ spaceId, rows }) => ({
+        url: `/spaces/${spaceId}/access`,
+        method: "POST",
+        data: rows
+      }),
+      invalidatesTags: (result, error, { spaceId }) => [{ type: "Spaces" as const, id: `access-${spaceId}` }],
+      async onQueryStarted({ spaceId, rows }, { dispatch, queryFulfilled }) {
+        const originalRows = rows.map(r => ({
+          id: r.memberId,
+          workspaceMemberId: r.memberId,
+          accessLevel: r.accessLevel,
+          haveAccess: r.action !== "Delete"
+        }));
+        dispatch(entityAccessSlice.actions.upsertMany(originalRows));
+
+        try {
+          await queryFulfilled;
+        } catch {}
+      }
     })
   })
 });
-
 export const {
   useGetSpaceDetailQuery,
   useGetSpaceItemsQuery,
   useBatchUpdateSpaceItemsMutation,
   useUpdateSpaceFieldMutation,
+  useGetEntityAccessQuery,
+  useUpdateEntityAccessMutation,
 } = spaceApi;
 
 // Selectors

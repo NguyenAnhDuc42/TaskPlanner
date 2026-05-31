@@ -61,6 +61,18 @@ public class CreateSpaceHandler(
             db.ViewDefinitions.AddRange(
                 ViewDefinition.CreateDefaults(context.workspaceId, space.Id, null, context.CurrentMember.Id));
 
+            // 6. Automatically grant Manager access to the Space Creator
+            var creatorAccess = EntityAccess.Create(
+                projectWorkspaceId: context.workspaceId,
+                workspaceMemberId: context.CurrentMember.Id,
+                projectSpaceId: space.Id,
+                projectFolderId: null,
+                projectTaskId: null,
+                accessLevel: AccessLevel.Manager,
+                creatorId: context.CurrentMember.Id
+            );
+            await db.EntityAccesses.AddAsync(creatorAccess, ct);
+
             await realtime.NotifyWorkspaceAsync(context.workspaceId, "SpaceCreated", new { SpaceId = space.Id, WorkspaceId = context.workspaceId }, ct);
 
             return Result<Guid>.Success(space.Id);

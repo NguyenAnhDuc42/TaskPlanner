@@ -1,13 +1,17 @@
 import * as React from "react";
 import { EntityViewFrame } from "../entity-view-frame";
 import { SpaceBoard } from "./space-components/space-board";
-import { useSpaceDetail, useGetSpaceItemsQuery, useGetSpaceDetailQuery, useUpdateSpaceFieldMutation } from "./space-api";
+import { useSpaceDetail, useGetSpaceItemsQuery, useGetSpaceDetailQuery, useUpdateSpaceFieldMutation, useGetEntityAccessQuery } from "./space-api";
 import { Folder, Layout, FileText, GitMerge, Lock, Unlock, MoreVertical } from "lucide-react";
 import { CreateStatusForm } from "@/features/workspace/components/forms/create-status-form";
 import { cn } from "@/lib/utils";
 import { PopoverFormWrapper } from "@/components/popover-wrapper";
 import { UniversalPicker } from "@/components/universal-picker";
 import type { SpaceRecord } from "@/types/projects";
+import { useSelector } from "react-redux";
+import { entityAccessSelectors } from "@/store/entityStore";
+import { useWorkspace } from "@/features/workspace/context/workspace-provider";
+import { SpaceAccessDialog } from "./space-components/space-access-dialog";
 
 import { SpaceDetail } from "./space-components/space-detail";
 import { DynamicIcon } from "@/components/dynamic-icon";
@@ -25,6 +29,13 @@ export function SpaceView({ spaceId }: SpaceViewProps) {
   useGetSpaceDetailQuery(spaceId);
   const { data: spaceItems } = useGetSpaceItemsQuery(spaceId);
   const statuses = spaceItems?.statuses || [];
+
+  // Fetch access lists to trigger Redux cache upsertion
+  useGetEntityAccessQuery(spaceId);
+  const entityAccessList = useSelector(entityAccessSelectors.selectAll);
+  const { registry } = useWorkspace();
+
+  const currentAccessMembers = entityAccessList.filter(a => a.haveAccess);
 
   const [updateSpaceField] = useUpdateSpaceFieldMutation();
   const updateField = (patches: Partial<SpaceRecord>) => {
@@ -77,16 +88,36 @@ export function SpaceView({ spaceId }: SpaceViewProps) {
 
           <div className="flex items-center gap-2.5">
             {/* Space Members Avatar Pile */}
-            <div className="flex items-center -space-x-1.5 mr-0.5">
-              <div className="h-5 w-5 rounded-full bg-cyan-500 border border-background flex items-center justify-center text-[8px] font-black text-white shrink-0 shadow-sm hover:translate-y-[-1px] transition-transform cursor-pointer" title="Anh Đức Nguyễn (Owner)">
-                AD
-              </div>
-              <div className="h-5 w-5 rounded-full bg-purple-500 border border-background flex items-center justify-center text-[8px] font-black text-white shrink-0 shadow-sm hover:translate-y-[-1px] transition-transform cursor-pointer" title="John Doe (Admin)">
-                JD
-              </div>
-              <button className="h-5 w-5 rounded-full bg-muted/65 hover:bg-muted border border-border/20 flex items-center justify-center text-[9px] font-bold text-muted-foreground shrink-0 shadow-sm transition-all cursor-pointer">
-                +
-              </button>
+            <div className="flex items-center -space-x-1.5 mr-0.5 select-none">
+              {currentAccessMembers.slice(0, 4).map((access) => {
+                const profile = registry.memberMap[access.workspaceMemberId];
+                if (!profile) return null;
+                const name = profile.name || "User";
+                const initials = name.split(" ").map((w: string) => w[0]).slice(0, 2).join("").toUpperCase();
+
+                const colors = ["bg-cyan-500", "bg-purple-500", "bg-indigo-500", "bg-teal-500", "bg-emerald-500", "bg-amber-500"];
+                const colorIdx = (initials.charCodeAt(0) + (initials.charCodeAt(1) || 0)) % colors.length;
+                const avatarBg = colors[colorIdx];
+
+                return (
+                  <div
+                    key={access.workspaceMemberId}
+                    className={`h-5 w-5 rounded-full ${avatarBg} border border-background flex items-center justify-center text-[8px] font-black text-white shrink-0 shadow-sm hover:translate-y-[-1px] transition-transform cursor-pointer`}
+                    title={`${name} (${access.accessLevel})`}
+                  >
+                    {initials}
+                  </div>
+                );
+              })}
+
+              <SpaceAccessDialog
+                spaceId={spaceId}
+                trigger={
+                  <button className="h-5 w-5 rounded-full bg-muted/65 hover:bg-muted border border-border/20 flex items-center justify-center text-[9px] font-bold text-muted-foreground shrink-0 shadow-sm transition-all cursor-pointer">
+                    +
+                  </button>
+                }
+              />
             </div>
 
             {/* Public/Private Toggle Switcher */}

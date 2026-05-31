@@ -118,7 +118,7 @@ export function WorkspaceProvider({
     useGetWorkspaceMembersQuery(workspaceId);
 
   // 2.5. Fetch Workspaces List (for switcher)
-  const { data: workspacesData, isLoading: isWorkspacesLoading } = useWorkspaces();
+  const { data: workspacesData, isLoading: isWorkspacesLoading } = useWorkspaces({});
   const workspaces = useMemo(() => {
     return workspacesData?.pages.flatMap((page) => page.items) ?? [];
   }, [workspacesData]);

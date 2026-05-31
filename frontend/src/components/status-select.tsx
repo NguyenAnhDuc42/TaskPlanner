@@ -7,6 +7,9 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { useSelector } from "react-redux";
+import { statusSelectors } from "@/store/entityStore";
+import type { Status } from "@/types/status";
 
 interface StatusSelectProps {
   value?: string;
@@ -32,11 +35,16 @@ export function StatusSelect({
     );
   }, [workflowId, registry.workflows]);
 
-  const statuses = workflow?.statuses || [];
+  const allStatuses = useSelector(statusSelectors.selectAll);
+  const statuses = useMemo(() => {
+    if (workflow?.statuses?.length) return workflow.statuses;
+    if (!workflowId) return [];
+    return allStatuses.filter((s: Status) => s.workflowId?.toLowerCase() === workflowId?.toLowerCase());
+  }, [workflow, workflowId, allStatuses]);
 
   const currentStatus = useMemo(() => {
-    return registry.statusMap[value || ""] || null;
-  }, [value, registry.statusMap]);
+    return allStatuses.find((s: Status) => s.id === value || s.id === value) || null;
+  }, [value, allStatuses]);
 
   const statusesByCategory = useMemo(() => {
     const grouped: Record<string, any[]> = {};

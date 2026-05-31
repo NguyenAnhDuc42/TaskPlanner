@@ -17,6 +17,7 @@ public class SpaceDetailRow
     public Guid? DefaultDocumentId { get; init; }
     public DateTimeOffset? CreatedAt { get; init; }
     public string? Description { get; init; }
+    public Guid? CreatorId { get; init; }
 }
 
 public class GetSpaceDetailHandler(TaskPlanDbContext db, WorkspaceContext workspaceContext) : IQueryHandler<GetSpaceDetailQuery, SpaceRecord>
@@ -32,6 +33,7 @@ public class GetSpaceDetailHandler(TaskPlanDbContext db, WorkspaceContext worksp
                 (SELECT wf.id FROM workflows wf WHERE wf.project_space_id = s.id AND wf.project_folder_id IS NULL LIMIT 1) AS WorkflowId,
                 s.default_document_id AS DefaultDocumentId, 
                 s.created_at AS CreatedAt,
+                s.creator_id AS CreatorId,
                 (SELECT b.content FROM document_blocks b WHERE b.document_id = s.default_document_id ORDER BY b.order_key LIMIT 1) AS Description
             FROM project_spaces s
             WHERE s.id = @SpaceId AND s.project_workspace_id = @WorkspaceId AND s.deleted_at IS NULL;";
@@ -61,6 +63,7 @@ public class GetSpaceDetailHandler(TaskPlanDbContext db, WorkspaceContext worksp
             DefaultDocumentId = row.DefaultDocumentId,
             CreatedAt = row.CreatedAt,
             Description = row.Description,
+            CreatorId = row.CreatorId,
             MemberIds = new List<Guid>()
         };
 

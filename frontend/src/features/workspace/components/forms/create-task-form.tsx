@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState } from "react";
 import { useCreateTaskMutation } from "../../contents/hierarchy/hierarchy-api";
 import { Button } from "@/components/ui/button";
 import { useWorkspace } from "../../context/workspace-provider";
@@ -19,6 +19,13 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import { useSelector } from "react-redux";
+
+import { useGetSpaceDetailQuery, useGetSpaceItemsQuery } from "../../contents/views/space/space-api";
+import { useGetFolderDetailQuery } from "../../contents/views/folder/folder-api";
+import { statusSelectors } from "@/store/entityStore";
+import type { Status } from "@/types/status";
+import type { RootState } from "@/store";
 
 interface CreateTaskFormProps {
   parentId: string;
@@ -35,7 +42,7 @@ export function CreateTaskForm({
   onSuccess,
   onCancel,
 }: CreateTaskFormProps) {
-  const { workspaceId, registry } = useWorkspace();
+  const { workspaceId } = useWorkspace();
   const [createTaskMutation, { isLoading: isCreating }] = useCreateTaskMutation();
   const [name, setName] = useState("");
   const [priority, setPriority] = useState<Priority>(Priority.Normal);
@@ -47,20 +54,31 @@ export function CreateTaskForm({
   const [startDate, setStartDate] = useState<Date | undefined>();
   const [dueDate, setDueDate] = useState<Date | undefined>();
 
+  // Dynamically resolve space ID depending on folder/space parentType
+  const folder = useSelector((state: RootState) => state.folders.entities[parentId]);
+  const spaceId = parentType === "ProjectSpace" ? parentId : folder?.spaceId;
 
-  const workflow = useMemo(() => {
-    if (parentType === "ProjectFolder") {
-      return registry.workflows.find((w: any) => 
-        w.projectFolderId?.toLowerCase() === parentId?.toLowerCase()
-      );
-    }
-    if (parentType === "ProjectSpace") {
-      return registry.workflows.find((w: any) => 
-        w.projectSpaceId?.toLowerCase() === parentId?.toLowerCase() && !w.projectFolderId
-      );
-    }
-    return null;
-  }, [parentId, parentType, registry.workflows]);
+  // Lazy-load folder detail (populates workflowId + statuses into Redux) when parent is a folder
+  useGetFolderDetailQuery(parentId, { skip: parentType !== "ProjectFolder" });
+
+  // Lazy-load space detail + items (populates space statuses into Redux)
+  const { data: space } = useGetSpaceDetailQuery(spaceId || "", { skip: !spaceId });
+  useGetSpaceItemsQuery(spaceId || "", { skip: !spaceId });
+
+  // Resolve the correct workflowId:
+  // - Folder parent: use the folder's resolved workflowId (folder-own or inherited), stored after getFolderDetail fires
+  // - Space parent: use the space's workflowId directly
+  const targetWorkflowId =
+    parentType === "ProjectFolder"
+      ? (folder?.workflowId || space?.workflowId)
+      : space?.workflowId;
+
+  // Derive statuses from the RESOLVED workflow
+  const statuses = useSelector((state: RootState) =>
+    targetWorkflowId
+      ? statusSelectors.selectAll(state).filter((s: Status) => s.workflowId === targetWorkflowId)
+      : []
+  );
 
   const onSubmit = async (e?: React.FormEvent) => {
     e?.preventDefault();
@@ -89,7 +107,7 @@ export function CreateTaskForm({
   };
 
   return (
-    <form onSubmit={onSubmit} className="flex flex-col w-full">
+    <form onSubmit={onSubmit} className="flex flex-col w-full bg-background border border-border/30 rounded-md overflow-hidden text-foreground">
       {/* Main Header / Input Section */}
       <div className="px-3 pt-2 pb-2">
         <div className="flex items-center gap-3">
@@ -126,13 +144,13 @@ export function CreateTaskForm({
         <StatusSelect
           value={selectedStatusId || undefined}
           onChange={(statusId) => setSelectedStatusId(statusId)}
-          workflowId={workflow?.id}
+          workflowId={targetWorkflowId}
           align="start"
           trigger={
             <AttributeButton icon={selectedStatusId ? undefined : Circle}>
               {selectedStatusId ? (
                 <StatusBadge
-                  status={registry.statusMap[selectedStatusId]}
+                  status={statuses.find((s: Status) => s.id === selectedStatusId)}
                 />
               ) : (
                 "Status"

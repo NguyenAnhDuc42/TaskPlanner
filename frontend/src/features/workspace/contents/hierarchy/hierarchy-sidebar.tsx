@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/collapsible";
 import { cn } from "@/lib/utils";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { useState, useDeferredValue,  } from "react";
+import { useState, useDeferredValue } from "react";
 
 // Modularized Components & Hooks
 import { useHierarchyDnd } from "./dnd/use-hierarchy-dnd";
@@ -30,6 +30,8 @@ export function HierarchySidebar() {
   const [isDocsOpen, setIsDocsOpen] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const deferredSearchQuery = useDeferredValue(searchQuery);
+  const [isHeaderCreateOpen, setIsHeaderCreateOpen] = useState(false);
+  const [isInlineCreateOpen, setIsInlineCreateOpen] = useState(false);
 
   const [batchMoveItems] = useBatchMoveItemsMutation();
 
@@ -87,11 +89,19 @@ export function HierarchySidebar() {
             <div onClick={(e) => e.stopPropagation()}>
               <DialogFormWrapper
                 title="Create New Space"
+                open={isHeaderCreateOpen}
+                onOpenChange={setIsHeaderCreateOpen}
                 trigger={
-                  <Plus className="h-3 w-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-none hover:text-primary cursor-pointer" />
+                  <Plus
+                    className="h-3 w-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-none hover:text-primary cursor-pointer"
+                    onClick={() => setIsHeaderCreateOpen(true)}
+                  />
                 }
               >
-                <CreateSpaceForm onSuccess={() => {}} onCancel={() => {}} />
+                <CreateSpaceForm
+                  onSuccess={() => setIsHeaderCreateOpen(false)}
+                  onCancel={() => setIsHeaderCreateOpen(false)}
+                />
               </DialogFormWrapper>
             </div>
           </CollapsibleTrigger>
@@ -112,8 +122,13 @@ export function HierarchySidebar() {
                     <div className="mb-px">
                       <DialogFormWrapper
                         title="Create New Space"
+                        open={isInlineCreateOpen}
+                        onOpenChange={setIsInlineCreateOpen}
                         trigger={
-                          <button className="flex items-center w-full px-1 py-0.5 rounded-sm transition-colors cursor-pointer hover:bg-muted text-muted-foreground/50 hover:text-primary group">
+                          <button
+                            className="flex items-center w-full px-1 py-0.5 rounded-sm transition-colors cursor-pointer hover:bg-muted text-muted-foreground/50 hover:text-primary group"
+                            onClick={() => setIsInlineCreateOpen(true)}
+                          >
                             <div className="w-5 h-5 flex items-center justify-center shrink-0 mr-0.5">
                               <Plus className="h-3.5 w-3.5" />
                             </div>
@@ -124,8 +139,8 @@ export function HierarchySidebar() {
                         }
                       >
                         <CreateSpaceForm
-                          onSuccess={() => {}}
-                          onCancel={() => {}}
+                          onSuccess={() => setIsInlineCreateOpen(false)}
+                          onCancel={() => setIsInlineCreateOpen(false)}
                         />
                       </DialogFormWrapper>
                     </div>

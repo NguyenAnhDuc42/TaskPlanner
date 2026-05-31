@@ -1,26 +1,18 @@
 import { useEditor, EditorContent } from "@tiptap/react";
-import { useEffect, useRef, useCallback } from "react";
-import { BubbleMenu, FloatingMenu } from "@tiptap/react/menus";
+import { useEffect, useRef, useCallback, useState } from "react";
+import { BubbleMenu } from "@tiptap/react/menus";
 import StarterKit from "@tiptap/starter-kit";
 import Placeholder from "@tiptap/extension-placeholder";
 import TaskList from "@tiptap/extension-task-list";
 import TaskItem from "@tiptap/extension-task-item";
-import { 
-  Bold, 
-  Italic, 
-  Strikethrough, 
-  List, 
-  Heading1, 
-  Heading2, 
-  CheckSquare
-} from "lucide-react";
+import { Bold, Italic, Strikethrough, Heading1, Heading2, Code, Quote } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 import { useBlockEditorSync } from "@/features/workspace/contents/layer-detail/hooks/useBlockEditorSync";
 import { IdExtension } from "@/features/workspace/contents/layer-detail/extensions/id-extension";
 import { SlashCommand, getSuggestionItems, renderSuggestion } from "./extensions/slash-command";
-import CodeBlockLowlight from '@tiptap/extension-code-block-lowlight';
-import { common, createLowlight } from 'lowlight';
+import CodeBlockLowlight from "@tiptap/extension-code-block-lowlight";
+import { common, createLowlight } from "lowlight";
 import React from "react";
 
 const lowlight = createLowlight(common);
@@ -31,208 +23,343 @@ interface BlockEditorProps {
 }
 
 // ============================================================================
-// STYLES: MOVED OUTSIDE COMPONENT - INJECTED ONCE, NOT PER RENDER
+// STYLES — injected once at module load
 // ============================================================================
 
 const EDITOR_STYLES = `
-  .block-editor-styles .tiptap p {
-    @apply my-1 transition-all duration-200 py-1 px-2 rounded-md hover:bg-foreground/[0.02];
+  /* ── Base typography ─────────────────────────────────────────────────────── */
+  .be .tiptap {
+    outline: none;
+    color: hsl(var(--foreground) / 0.82);
+    font-size: 15px;
+    line-height: 1.7;
+    font-family: inherit;
   }
-  .block-editor-styles .tiptap h1 {
-    @apply mt-6 mb-2 px-2 transition-all duration-200 rounded-md hover:bg-foreground/[0.02] text-2xl font-black tracking-tight;
+
+  /* ── Placeholder ─────────────────────────────────────────────────────────── */
+  .be .tiptap p.is-editor-empty:first-child::before {
+    content: attr(data-placeholder);
+    float: left;
+    color: hsl(var(--muted-foreground) / 0.3);
+    pointer-events: none;
+    height: 0;
+    font-style: normal;
   }
-  .block-editor-styles .tiptap h2 {
-    @apply mt-6 mb-2 px-2 transition-all duration-200 rounded-md hover:bg-foreground/[0.02] text-xl font-bold tracking-tight;
+
+  /* ── Paragraphs ─────────────────────────────────────────────────────────── */
+  .be .tiptap p {
+    margin: 2px 0;
+    padding: 2px 4px;
+    border-radius: 4px;
+    transition: background 0.1s;
+    min-height: 1.7em;
   }
-  .block-editor-styles .tiptap h3 {
-    @apply mt-4 mb-2 px-2 transition-all duration-200 rounded-md hover:bg-foreground/[0.02] text-lg font-semibold;
+  .be .tiptap p:hover {
+    background: hsl(var(--foreground) / 0.025);
   }
-  .block-editor-styles .tiptap ul:not([data-type="taskList"]) {
-    @apply list-disc list-inside my-2 px-2;
+
+  /* ── Headings ─────────────────────────────────────────────────────────── */
+  .be .tiptap h1 {
+    font-size: 2em;
+    font-weight: 800;
+    letter-spacing: -0.04em;
+    line-height: 1.2;
+    margin: 1.4em 0 0.3em;
+    padding: 2px 4px;
+    border-radius: 4px;
+    color: hsl(var(--foreground) / 0.95);
   }
-  .block-editor-styles .tiptap ol {
-    @apply list-decimal list-inside my-2 px-2;
+  .be .tiptap h2 {
+    font-size: 1.45em;
+    font-weight: 700;
+    letter-spacing: -0.025em;
+    line-height: 1.3;
+    margin: 1.1em 0 0.25em;
+    padding: 2px 4px;
+    border-radius: 4px;
+    color: hsl(var(--foreground) / 0.92);
   }
-  .block-editor-styles .tiptap ul[data-type="taskList"] {
-    @apply list-none p-0;
+  .be .tiptap h3 {
+    font-size: 1.15em;
+    font-weight: 700;
+    letter-spacing: -0.015em;
+    line-height: 1.35;
+    margin: 0.9em 0 0.2em;
+    padding: 2px 4px;
+    border-radius: 4px;
+    color: hsl(var(--foreground) / 0.88);
   }
-  .block-editor-styles .tiptap li[data-type="taskItem"] {
-    @apply flex items-start gap-2 mb-1 px-2 py-1 transition-all duration-200 rounded-md hover:bg-foreground/[0.02];
+
+  /* ── Lists ─────────────────────────────────────────────────────────── */
+  .be .tiptap ul:not([data-type="taskList"]) {
+    list-style: disc;
+    padding-left: 1.5em;
+    margin: 4px 0;
   }
-  .block-editor-styles .tiptap li[data-type="taskItem"] > label {
-    @apply mt-1.5 shrink-0;
+  .be .tiptap ol {
+    list-style: decimal;
+    padding-left: 1.5em;
+    margin: 4px 0;
   }
-  .block-editor-styles .tiptap li[data-type="taskItem"] > div {
-    @apply flex-1;
+  .be .tiptap li {
+    margin: 1px 0;
+    padding: 1px 0;
   }
-  .block-editor-styles .tiptap li[data-type="taskItem"] input[type="checkbox"] {
-    @apply appearance-none h-4 w-4 rounded border border-border/60 checked:bg-primary checked:border-primary transition-all cursor-pointer relative after:content-[''] after:hidden checked:after:block after:absolute after:left-1 after:top-0.5 after:w-1.5 after:h-2.5 after:border-r-2 after:border-b-2 after:border-white after:rotate-45;
+  .be .tiptap ul[data-type="taskList"] {
+    list-style: none;
+    padding-left: 0;
+    margin: 4px 0;
   }
-  .block-editor-styles .tiptap pre {
-    @apply bg-[#0a0a0b] text-foreground/90 p-4 rounded-xl my-4 font-mono text-sm overflow-x-auto border border-border/20;
+  .be .tiptap li[data-type="taskItem"] {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: baseline;
+    gap: 8px;
+    margin: 2px 0;
+    padding: 2px 4px;
+    border-radius: 4px;
+    transition: background 0.1s;
   }
-  .block-editor-styles .tiptap pre code {
-    @apply bg-transparent p-0 text-inherit;
+  .be .tiptap li[data-type="taskItem"]:hover {
+    background: hsl(var(--foreground) / 0.025);
+  }
+  .be .tiptap li[data-type="taskItem"] > label {
+    display: flex !important;
+    align-items: center;
+    flex-shrink: 0;
+    margin-top: 0;
+    line-height: 1;
+    cursor: pointer;
+  }
+  .be .tiptap li[data-type="taskItem"] > div {
+    flex: 1;
+    min-width: 0;
+  }
+  .be .tiptap li[data-type="taskItem"] input[type="checkbox"] {
+    appearance: none;
+    -webkit-appearance: none;
+    height: 15px;
+    width: 15px;
+    border-radius: 4px;
+    border: 1.5px solid hsl(var(--border) / 0.7);
+    background: transparent;
+    cursor: pointer;
+    position: relative;
+    transition: all 0.15s;
+  }
+  .be .tiptap li[data-type="taskItem"] input[type="checkbox"]:checked {
+    background: hsl(var(--primary));
+    border-color: hsl(var(--primary));
+  }
+  .be .tiptap li[data-type="taskItem"] input[type="checkbox"]:checked::after {
+    content: '';
+    position: absolute;
+    left: 3px;
+    top: 1px;
+    width: 5px;
+    height: 9px;
+    border-right: 2px solid white;
+    border-bottom: 2px solid white;
+    transform: rotate(45deg);
+    display: block;
+  }
+  .be .tiptap li[data-type="taskItem"][data-checked="true"] > div p {
+    color: hsl(var(--muted-foreground) / 0.5);
+    text-decoration: line-through;
+    text-decoration-color: hsl(var(--muted-foreground) / 0.3);
+  }
+
+  /* ── Blockquote ─────────────────────────────────────────────────────────── */
+  .be .tiptap blockquote {
+    border-left: 3px solid hsl(var(--primary) / 0.5);
+    padding: 6px 12px;
+    margin: 8px 0;
+    border-radius: 0 6px 6px 0;
+    background: hsl(var(--primary) / 0.04);
+    color: hsl(var(--foreground) / 0.75);
+    font-style: italic;
+  }
+
+  /* ── Code Inline ─────────────────────────────────────────────────────────── */
+  .be .tiptap code:not(pre code) {
+    font-family: 'JetBrains Mono Variable', 'Menlo', monospace;
+    font-size: 0.85em;
+    background: hsl(var(--muted) / 0.7);
+    border: 1px solid hsl(var(--border) / 0.4);
+    border-radius: 4px;
+    padding: 1px 5px;
+    color: hsl(var(--foreground) / 0.85);
+  }
+
+  /* ── Code Block ─────────────────────────────────────────────────────────── */
+  .be .tiptap pre {
+    background: hsl(0 0% 5%);
+    border: 1px solid hsl(var(--border) / 0.2);
+    border-radius: 10px;
+    padding: 16px 20px;
+    margin: 10px 0;
+    overflow-x: auto;
+    font-family: 'JetBrains Mono Variable', 'Menlo', monospace;
+    font-size: 13px;
+    line-height: 1.6;
+  }
+  .be .tiptap pre code {
+    background: transparent;
+    padding: 0;
+    border: none;
+    font-size: inherit;
+    color: hsl(var(--foreground) / 0.88);
+  }
+
+  /* ── Horizontal Rule ─────────────────────────────────────────────────────── */
+  .be .tiptap hr {
+    border: none;
+    border-top: 1px solid hsl(var(--border) / 0.3);
+    margin: 20px 0;
+    height: 0;
+  }
+
+  /* ── Strong / Em ─────────────────────────────────────────────────────────── */
+  .be .tiptap strong {
+    font-weight: 700;
+    color: hsl(var(--foreground) / 0.95);
+  }
+  .be .tiptap em {
+    font-style: italic;
+    color: hsl(var(--foreground) / 0.8);
+  }
+  .be .tiptap s {
+    text-decoration: line-through;
+    color: hsl(var(--muted-foreground) / 0.6);
+  }
+
+  /* ── Selection ─────────────────────────────────────────────────────────── */
+  .be .tiptap ::selection {
+    background: hsl(var(--primary) / 0.18);
   }
 `;
 
-// Inject styles once on module load
-if (typeof document !== 'undefined' && !document.getElementById('block-editor-styles')) {
-  const styleEl = document.createElement('style');
-  styleEl.id = 'block-editor-styles';
+if (typeof document !== "undefined" && !document.getElementById("block-editor-styles-v3")) {
+  // Remove old style tags to prevent conflicts
+  ["block-editor-styles-v2", "block-editor-styles"].forEach((id) => {
+    document.getElementById(id)?.remove();
+  });
+  const styleEl = document.createElement("style");
+  styleEl.id = "block-editor-styles-v3";
   styleEl.textContent = EDITOR_STYLES;
   document.head.appendChild(styleEl);
 }
 
 // ============================================================================
-// MENU BUTTONS: MEMOIZED TO PREVENT RE-RENDERS
-// ============================================================================
-
-const MenuButton = React.memo(function MenuButton({ 
-  onClick, 
-  icon: Icon, 
-  active 
-}: { 
-  onClick: () => void
-  icon: any
-  active?: boolean 
-}) {
-  return (
-    <button
-      onClick={onClick}
-      className={cn(
-        "p-1.5 rounded-lg text-muted-foreground transition-all hover:text-foreground hover:bg-muted",
-        active && "text-primary bg-primary/10"
-      )}
-      type="button"
-    >
-      <Icon className="h-4 w-4" />
-    </button>
-  );
-})
-
-const BubbleButton = React.memo(function BubbleButton({ 
-  onClick, 
-  icon: Icon, 
-  active 
-}: { 
-  onClick: () => void
-  icon: any
-  active?: boolean 
-}) {
-  return (
-    <button
-      onClick={onClick}
-      className={cn(
-        "p-1.5 rounded-md transition-all hover:bg-background/10",
-        active ? "text-primary" : "text-background"
-      )}
-      type="button"
-    >
-      <Icon className="h-3.5 w-3.5" />
-    </button>
-  );
-})
-
-// ============================================================================
-// FLOATING MENU TOOLBAR: MEMOIZED
-// ============================================================================
-
-const FloatingToolbar = React.memo(function FloatingToolbar({ editor }: { editor: any }) {
-  // Memoize handlers so they don't recreate on every parent render
-  const toggleHeading1 = useCallback(() => {
-    editor.chain().focus().toggleHeading({ level: 1 }).run()
-  }, [editor])
-
-  const toggleHeading2 = useCallback(() => {
-    editor.chain().focus().toggleHeading({ level: 2 }).run()
-  }, [editor])
-
-  const toggleBulletList = useCallback(() => {
-    editor.chain().focus().toggleBulletList().run()
-  }, [editor])
-
-  const toggleTaskList = useCallback(() => {
-    editor.chain().focus().toggleTaskList().run()
-  }, [editor])
-
-  return (
-    <FloatingMenu editor={editor} options={{ duration: 100 } as any}>
-      <div className="flex items-center gap-1 p-1 bg-background border border-border/50 rounded-xl shadow-2xl animate-in fade-in zoom-in-95 duration-200">
-        <MenuButton 
-          onClick={toggleHeading1}
-          icon={Heading1}
-          active={editor.isActive('heading', { level: 1 })}
-        />
-        <MenuButton 
-          onClick={toggleHeading2}
-          icon={Heading2}
-          active={editor.isActive('heading', { level: 2 })}
-        />
-        <MenuButton 
-          onClick={toggleBulletList}
-          icon={List}
-          active={editor.isActive('bulletList')}
-        />
-        <MenuButton 
-          onClick={toggleTaskList}
-          icon={CheckSquare}
-          active={editor.isActive('taskList')}
-        />
-      </div>
-    </FloatingMenu>
-  )
-})
-
-// ============================================================================
-// BUBBLE MENU TOOLBAR: MEMOIZED
+// BUBBLE MENU — context toolbar on text selection
 // ============================================================================
 
 const BubbleToolbar = React.memo(function BubbleToolbar({ editor }: { editor: any }) {
-  const toggleBold = useCallback(() => {
-    editor.chain().focus().toggleBold().run()
-  }, [editor])
-
-  const toggleItalic = useCallback(() => {
-    editor.chain().focus().toggleItalic().run()
-  }, [editor])
-
-  const toggleStrike = useCallback(() => {
-    editor.chain().focus().toggleStrike().run()
-  }, [editor])
-
-  const toggleHeading1 = useCallback(() => {
-    editor.chain().focus().toggleHeading({ level: 1 }).run()
-  }, [editor])
+  const btn = (active: boolean) =>
+    cn(
+      "p-1.5 rounded-md transition-all text-[13px] font-semibold leading-none",
+      active
+        ? "bg-white/20 text-white"
+        : "text-white/70 hover:bg-white/10 hover:text-white"
+    );
 
   return (
     <BubbleMenu editor={editor} options={{ duration: 100 } as any}>
-      <div className="flex items-center gap-0.5 p-1 bg-foreground/90 text-background rounded-lg shadow-xl backdrop-blur-md animate-in fade-in slide-in-from-bottom-2 duration-200">
-        <BubbleButton 
-          onClick={toggleBold}
-          icon={Bold}
-          active={editor.isActive('bold')}
-        />
-        <BubbleButton 
-          onClick={toggleItalic}
-          icon={Italic}
-          active={editor.isActive('italic')}
-        />
-        <BubbleButton 
-          onClick={toggleStrike}
-          icon={Strikethrough}
-          active={editor.isActive('strike')}
-        />
-        <div className="w-px h-3 bg-background/20 mx-1" />
-        <BubbleButton 
-          onClick={toggleHeading1}
-          icon={Heading1}
-          active={editor.isActive('heading', { level: 1 })}
-        />
+      <div className="flex items-center gap-0.5 p-1 bg-foreground/90 rounded-lg shadow-xl backdrop-blur-md animate-in fade-in slide-in-from-bottom-1 duration-150">
+        <button
+          type="button"
+          onClick={() => editor.chain().focus().toggleBold().run()}
+          className={btn(editor.isActive("bold"))}
+          title="Bold"
+        >
+          <Bold className="h-3.5 w-3.5" />
+        </button>
+        <button
+          type="button"
+          onClick={() => editor.chain().focus().toggleItalic().run()}
+          className={btn(editor.isActive("italic"))}
+          title="Italic"
+        >
+          <Italic className="h-3.5 w-3.5" />
+        </button>
+        <button
+          type="button"
+          onClick={() => editor.chain().focus().toggleStrike().run()}
+          className={btn(editor.isActive("strike"))}
+          title="Strikethrough"
+        >
+          <Strikethrough className="h-3.5 w-3.5" />
+        </button>
+        <button
+          type="button"
+          onClick={() => editor.chain().focus().toggleCode().run()}
+          className={btn(editor.isActive("code"))}
+          title="Inline code"
+        >
+          <Code className="h-3.5 w-3.5" />
+        </button>
+
+        <div className="w-px h-3.5 bg-white/15 mx-0.5" />
+
+        <button
+          type="button"
+          onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
+          className={btn(editor.isActive("heading", { level: 1 }))}
+          title="Heading 1"
+        >
+          <Heading1 className="h-3.5 w-3.5" />
+        </button>
+        <button
+          type="button"
+          onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
+          className={btn(editor.isActive("heading", { level: 2 }))}
+          title="Heading 2"
+        >
+          <Heading2 className="h-3.5 w-3.5" />
+        </button>
+        <button
+          type="button"
+          onClick={() => editor.chain().focus().toggleBlockquote().run()}
+          className={btn(editor.isActive("blockquote"))}
+          title="Quote"
+        >
+          <Quote className="h-3.5 w-3.5" />
+        </button>
       </div>
     </BubbleMenu>
-  )
-})
+  );
+});
+
+// ============================================================================
+// SAVE INDICATOR
+// ============================================================================
+
+type SaveState = "saved" | "saving" | "unsaved";
+
+const SaveIndicator = React.memo(function SaveIndicator({ state }: { state: SaveState }) {
+  return (
+    <div className="flex items-center gap-1.5 text-[10px] font-medium text-muted-foreground/40 select-none transition-all duration-300">
+      {state === "saving" && (
+        <>
+          <span className="h-1.5 w-1.5 rounded-full bg-amber-500/70 animate-pulse" />
+          <span>Saving…</span>
+        </>
+      )}
+      {state === "saved" && (
+        <>
+          <span className="h-1.5 w-1.5 rounded-full bg-emerald-500/60" />
+          <span>Saved</span>
+        </>
+      )}
+      {state === "unsaved" && (
+        <>
+          <span className="h-1.5 w-1.5 rounded-full bg-muted-foreground/30" />
+          <span>Unsaved changes</span>
+        </>
+      )}
+    </div>
+  );
+});
 
 // ============================================================================
 // MAIN EDITOR COMPONENT
@@ -242,35 +369,35 @@ export function BlockEditor({ documentId, placeholder }: BlockEditorProps) {
   const { initialContent, handleUpdate } = useBlockEditorSync(documentId);
   const isSettingContent = useRef(false);
   const updateTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [saveState, setSaveState] = useState<SaveState>("saved");
 
-  // **DEBOUNCE handleUpdate** - Don't fire on every keystroke
-  // Fire only after user stops typing for 500ms
-  const debouncedHandleUpdate = useCallback((content: any) => {
-    if (updateTimeoutRef.current) {
-      clearTimeout(updateTimeoutRef.current);
-    }
-    updateTimeoutRef.current = setTimeout(() => {
-      handleUpdate(content);
-    }, 500);
-  }, [handleUpdate]);
+  const debouncedHandleUpdate = useCallback(
+    (content: any) => {
+      setSaveState("unsaved");
+      if (updateTimeoutRef.current) clearTimeout(updateTimeoutRef.current);
+      updateTimeoutRef.current = setTimeout(async () => {
+        setSaveState("saving");
+        try {
+          await handleUpdate(content);
+        } finally {
+          setSaveState("saved");
+        }
+      }, 800);
+    },
+    [handleUpdate]
+  );
+
   const editor = useEditor({
     extensions: [
-      StarterKit.configure({
-        codeBlock: false,
-      }),
+      StarterKit.configure({ codeBlock: false }),
       IdExtension,
       Placeholder.configure({
-        placeholder: placeholder || "Write something or type '/'...",
-        emptyEditorClass:
-          "cursor-text before:content-[attr(data-placeholder)] before:absolute before:text-muted-foreground/20 before:pointer-events-none before:not-italic",
+        placeholder: placeholder || "Write something, or type '/' for commands…",
+        emptyEditorClass: "is-editor-empty",
       }),
       TaskList,
-      TaskItem.configure({
-        nested: true,
-      }),
-      CodeBlockLowlight.configure({
-        lowlight,
-      }),
+      TaskItem.configure({ nested: true }),
+      CodeBlockLowlight.configure({ lowlight }),
       SlashCommand.configure({
         suggestion: {
           items: getSuggestionItems,
@@ -281,16 +408,17 @@ export function BlockEditor({ documentId, placeholder }: BlockEditorProps) {
     content: "",
     editorProps: {
       attributes: {
-        class: "prose prose-sm dark:prose-invert focus:outline-none min-h-[400px] max-w-none text-[15px] leading-relaxed text-foreground/70 selection:bg-primary/20",
+        class: "focus:outline-none min-h-[300px] max-w-none",
+        spellcheck: "true",
       },
     },
     onUpdate: ({ editor }) => {
       if (isSettingContent.current) return;
-      debouncedHandleUpdate(editor.getJSON()); // Debounced update
+      debouncedHandleUpdate(editor.getJSON());
     },
   });
 
-  // Initialize content once
+  // Initialize content once after data loads
   const isInitialized = useRef(false);
   useEffect(() => {
     if (editor && initialContent.content.length > 0 && !isInitialized.current) {
@@ -304,21 +432,77 @@ export function BlockEditor({ documentId, placeholder }: BlockEditorProps) {
   // Cleanup debounce on unmount
   useEffect(() => {
     return () => {
-      if (updateTimeoutRef.current) {
-        clearTimeout(updateTimeoutRef.current);
-      }
+      if (updateTimeoutRef.current) clearTimeout(updateTimeoutRef.current);
     };
   }, []);
 
   if (!editor) return null;
 
   return (
-    <div className="relative group/editor flex flex-col h-full">
-      <FloatingToolbar editor={editor} />
+    <div className="relative flex flex-col h-full">
+      {/* Toolbar row */}
+      <div className="flex items-center justify-between px-1 py-1 mb-1">
+        <div className="flex items-center gap-0.5">
+          {[
+            { icon: Bold, cmd: () => editor.chain().focus().toggleBold().run(), active: editor.isActive("bold"), title: "Bold" },
+            { icon: Italic, cmd: () => editor.chain().focus().toggleItalic().run(), active: editor.isActive("italic"), title: "Italic" },
+            { icon: Strikethrough, cmd: () => editor.chain().focus().toggleStrike().run(), active: editor.isActive("strike"), title: "Strikethrough" },
+            { icon: Code, cmd: () => editor.chain().focus().toggleCode().run(), active: editor.isActive("code"), title: "Code" },
+          ].map(({ icon: Icon, cmd, active, title }) => (
+            <button
+              key={title}
+              type="button"
+              onClick={cmd}
+              title={title}
+              className={cn(
+                "p-1.5 rounded-md transition-all",
+                active
+                  ? "bg-primary/10 text-primary"
+                  : "text-muted-foreground/40 hover:text-foreground hover:bg-muted/60"
+              )}
+            >
+              <Icon className="h-3.5 w-3.5" />
+            </button>
+          ))}
+
+          <div className="w-px h-3.5 bg-border/30 mx-1" />
+
+          {[
+            { icon: Heading1, cmd: () => editor.chain().focus().toggleHeading({ level: 1 }).run(), active: editor.isActive("heading", { level: 1 }), title: "H1" },
+            { icon: Heading2, cmd: () => editor.chain().focus().toggleHeading({ level: 2 }).run(), active: editor.isActive("heading", { level: 2 }), title: "H2" },
+            { icon: Quote, cmd: () => editor.chain().focus().toggleBlockquote().run(), active: editor.isActive("blockquote"), title: "Quote" },
+          ].map(({ icon: Icon, cmd, active, title }) => (
+            <button
+              key={title}
+              type="button"
+              onClick={cmd}
+              title={title}
+              className={cn(
+                "p-1.5 rounded-md transition-all",
+                active
+                  ? "bg-primary/10 text-primary"
+                  : "text-muted-foreground/40 hover:text-foreground hover:bg-muted/60"
+              )}
+            >
+              <Icon className="h-3.5 w-3.5" />
+            </button>
+          ))}
+        </div>
+
+        <SaveIndicator state={saveState} />
+      </div>
+
+      {/* Bubble menu on selection */}
       <BubbleToolbar editor={editor} />
 
-      <div className="flex-1 cursor-text block-editor-styles">
+      {/* Editor surface */}
+      <div className="flex-1 cursor-text be">
         <EditorContent editor={editor} />
+      </div>
+
+      {/* Slash hint */}
+      <div className="pt-4 pb-1 px-1 text-[10px] text-muted-foreground/25 select-none">
+        Type <kbd className="font-mono bg-muted/40 px-1 rounded text-[9px] border border-border/20">/</kbd> to insert blocks
       </div>
     </div>
   );

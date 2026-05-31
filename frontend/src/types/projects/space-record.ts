@@ -17,4 +17,6 @@ export interface SpaceRecord {
     memberIds?: string[];
     hasFolders?: boolean;
     hasTasks?: boolean;
+    creatorId?: string;
 }
+

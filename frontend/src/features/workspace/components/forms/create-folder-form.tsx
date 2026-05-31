@@ -1,17 +1,21 @@
-import { useState, useMemo } from "react";
+import { useState } from "react";
 import { useCreateFolderMutation } from "../../contents/hierarchy/hierarchy-api";
 import { Button } from "@/components/ui/button";
 import { useWorkspace } from "../../context/workspace-provider";
 import { toast } from "sonner";
 import {
   IconColorPicker,
-  PrivacyToggle,
   AttributeButton,
   SimpleDatePicker,
 } from "./form-elements";
 import * as Icons from "lucide-react";
 import { StatusBadge } from "@/components/status-badge";
 import { StatusSelect } from "@/components/status-select";
+import { useGetSpaceDetailQuery, useGetSpaceItemsQuery, useSpaceStatuses } from "../../contents/views/space/space-api";
+import type { Status } from "@/types/status";
+import { Priority } from "@/types/priority";
+import { PriorityBadge } from "@/components/priority-badge";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 interface CreateFolderFormProps {
   spaceId: string;
@@ -27,18 +31,17 @@ export function CreateFolderForm({
   const { workspaceId, registry } = useWorkspace();
   const [createFolderMutation, { isLoading: isCreating }] = useCreateFolderMutation();
   const [name, setName] = useState("");
-  const [isPrivate, setIsPrivate] = useState(false);
   const [icon, setIcon] = useState("Folder");
   const [color, setColor] = useState("#6366f1");
   const [selectedStatusId, setSelectedStatusId] = useState<string | null>(null);
+  const [priority, setPriority] = useState<Priority>(Priority.Normal);
   const [startDate, setStartDate] = useState<Date | undefined>();
   const [dueDate, setDueDate] = useState<Date | undefined>();
 
-  const spaceWorkflow = useMemo(() => {
-    return registry.workflows.find((w: any) => 
-      w.projectSpaceId?.toLowerCase() === spaceId?.toLowerCase() && !w.projectFolderId
-    );
-  }, [spaceId, registry.workflows]);
+  // Lazy-load Space Record details and items (including statuses)
+  const { data: space } = useGetSpaceDetailQuery(spaceId);
+  useGetSpaceItemsQuery(spaceId);
+  const spaceStatuses = useSpaceStatuses(spaceId);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -48,17 +51,27 @@ export function CreateFolderForm({
       const result = await createFolderMutation({
         workspaceId,
         body: {
-          projectSpaceId: spaceId,
+          spaceId,
           name,
-          isPrivate,
           color,
           icon,
           statusId: selectedStatusId,
+          priority,
           startDate: startDate?.toISOString(),
           dueDate: dueDate?.toISOString(),
         },
       }).unwrap();
       toast.success("Folder created");
+
+      // Reset form state cleanly upon success
+      setName("");
+      setIcon("Folder");
+      setColor("#6366f1");
+      setSelectedStatusId(null);
+      setPriority(Priority.Normal);
+      setStartDate(undefined);
+      setDueDate(undefined);
+
       onSuccess?.((result as any).id);
     } catch (error) {
       toast.error("Failed to create folder");
@@ -95,18 +108,16 @@ export function CreateFolderForm({
 
       {/* Attribute Strip */}
       <div className="px-3 py-1.5 flex flex-nowrap items-center gap-1.5 border-t border-border/5 overflow-x-auto [&::-webkit-scrollbar]:hidden">
-        <PrivacyToggle isPrivate={isPrivate} onChange={setIsPrivate} />
-
         <StatusSelect
           value={selectedStatusId || undefined}
           onChange={(statusId) => setSelectedStatusId(statusId)}
-          workflowId={spaceWorkflow?.id}
+          workflowId={space?.workflowId}
           align="start"
           trigger={
             <AttributeButton icon={selectedStatusId ? undefined : Icons.Circle}>
               {selectedStatusId ? (
                 <StatusBadge
-                  status={registry.statusMap[selectedStatusId]}
+                  status={spaceStatuses.find((s: Status) => s.id === selectedStatusId)}
                   showIcon={true}
                 />
               ) : (
@@ -115,6 +126,39 @@ export function CreateFolderForm({
             </AttributeButton>
           }
         />
+
+        <Popover>
+          <PopoverTrigger asChild>
+            <AttributeButton>
+              <PriorityBadge priority={priority} />
+            </AttributeButton>
+          </PopoverTrigger>
+          <PopoverContent
+            className="w-32 p-1 bg-popover border border-border shadow-md rounded-md"
+            align="start"
+          >
+            <div className="flex flex-col gap-0.5">
+              {[
+                Priority.Low,
+                Priority.Normal,
+                Priority.High,
+                Priority.Urgent,
+              ].map((p) => (
+                <button
+                  key={p}
+                  type="button"
+                  className="px-1 py-1 text-xs text-left rounded-sm hover:bg-muted transition-colors flex items-center cursor-pointer"
+                  onClick={() => setPriority(p)}
+                >
+                  <PriorityBadge
+                    priority={p}
+                    className="w-full justify-start"
+                  />
+                </button>
+              ))}
+            </div>
+          </PopoverContent>
+        </Popover>
 
         <SimpleDatePicker
           value={startDate}
