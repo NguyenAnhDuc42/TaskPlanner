@@ -1,6 +1,6 @@
 import { useSpaceDetail, useGetEntityAccessQuery, useUpdateEntityAccessMutation, useSpaceStatuses, useSpaceBoardItems } from "../space-api";
 import { Shield } from "lucide-react";
-import React, { useState, useMemo } from "react";
+import  { useState, useMemo } from "react";
 import { StatusBadge } from "@/components/status-badge";
 import { useWorkspace } from "@/features/workspace/context/workspace-provider";
 import { useSelector } from "react-redux";

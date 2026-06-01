@@ -22,14 +22,11 @@ public record MoveTaskValue(
     string NewOrderKey
 );
 
-public record BatchMoveItemCommand(
-    List<MoveSpaceValue>? Spaces = null,
-    List<MoveFolderValue>? Folders = null,
-    List<MoveTaskValue>? Tasks = null
-) : ICommandRequest, IAuthorizedWorkspaceRequest
+public record BatchMoveItemCommand : ICommandRequest, IAuthorizedWorkspaceRequest
 {
-    public bool HasAnyMoves =>
-        (Spaces?.Any() ?? false) ||
-        (Folders?.Any() ?? false) ||
-        (Tasks?.Any() ?? false);
+    public List<MoveSpaceValue> Spaces { get; init; } = [];
+    public List<MoveFolderValue> Folders { get; init; } = [];
+    public List<MoveTaskValue> Tasks { get; init; } = [];
+
+    public bool HasAnyMoves => Spaces.Count > 0 || Folders.Count > 0 || Tasks.Count > 0;
 }

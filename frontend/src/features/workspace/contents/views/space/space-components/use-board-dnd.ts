@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState } from "react";
 import { useDispatch } from "react-redux";
 import {
   useSensor,
@@ -10,7 +10,7 @@ import {
 } from "@dnd-kit/core";
 import { folderSlice, taskSlice } from "@/store/entityStore";
 import { fractionalBetween } from "@/features/workspace/contents/hierarchy/utils/fractional-index";
-import { getPriorityWeight, type Priority } from "@/types/priority";
+import { getPriorityWeight, WeightToPriority, type Priority } from "@/types/priority";
 import type { BoardItem } from "../space-api";
 import type { Status } from "@/types/status";
 
@@ -38,7 +38,6 @@ export function useBoardDnd({
 
   const [draggedItem, setDraggedItem] = useState<BoardItem | null>(null);
   const [localColumns, setLocalColumns] = useState<Record<string, BoardItem[]> | null>(null);
-  const lastDragOverRef = useRef<{ activeId: string; overId: string } | null>(null);
 
   function handleDragStart(event: DragStartEvent) {
     const { active } = event;
@@ -46,7 +45,6 @@ export function useBoardDnd({
     if (item) {
       setDraggedItem(item);
       setLocalColumns(columns);
-      lastDragOverRef.current = null;
     }
   }
 
@@ -56,17 +54,6 @@ export function useBoardDnd({
 
     const activeId = active.id as string;
     const overId = over.id as string;
-
-    // INSTANT DEBOUNCE: Skip processing if we are dragging over the same active hover target
-    if (
-      lastDragOverRef.current &&
-      lastDragOverRef.current.activeId === activeId &&
-      lastDragOverRef.current.overId === overId
-    ) {
-      return;
-    }
-
-    lastDragOverRef.current = { activeId, overId };
 
     const fromColId = Object.keys(localColumns).find((key) =>
       localColumns[key].some((item) => item.id === activeId)
@@ -81,7 +68,6 @@ export function useBoardDnd({
 
     if (!toColId) return;
 
-    // Only handle cross-column moves here; same-column final position is resolved in handleDragEnd
     if (fromColId !== toColId) {
       setLocalColumns((prev) => {
         if (!prev) return null;
@@ -112,6 +98,23 @@ export function useBoardDnd({
           [toColId]: destItems,
         };
       });
+    } else {
+      setLocalColumns((prev) => {
+        if (!prev) return null;
+        const colItems = [...(prev[fromColId] || [])];
+        const activeIndex = colItems.findIndex((item) => item.id === activeId);
+        const overIndex = colItems.findIndex((item) => item.id === overId);
+
+        if (activeIndex !== -1 && overIndex !== -1 && activeIndex !== overIndex) {
+          const [movingItem] = colItems.splice(activeIndex, 1);
+          colItems.splice(overIndex, 0, movingItem);
+          return {
+            ...prev,
+            [fromColId]: colItems,
+          };
+        }
+        return prev;
+      });
     }
   }
 
@@ -121,53 +124,17 @@ export function useBoardDnd({
     const snapshotCols = localColumns || columns;
     setDraggedItem(null);
     setLocalColumns(null);
-    lastDragOverRef.current = null;
 
     if (!over || !snapshotCols) return;
 
     const activeId = active.id as string;
-    const overId = over.id as string;
 
-    // Find which column the active item is currently in (after cross-col moves via handleDragOver)
-    const fromColId = Object.keys(snapshotCols).find((key) =>
+    const toColId = Object.keys(snapshotCols).find((key) =>
       snapshotCols[key].some((item) => item.id === activeId)
     );
-    if (!fromColId) return;
+    if (!toColId) return;
 
-    // Determine the target column from the over target
-    const isOverStatusHeader = statuses.some((s) => s.id === overId) || overId === "unclassified";
-    const overColId = isOverStatusHeader
-      ? overId
-      : Object.keys(snapshotCols).find((key) =>
-          snapshotCols[key].some((item) => item.id === overId)
-        ) ?? fromColId;
-
-    const toColId = overColId;
-
-    // Build the final destination items array
-    let destItems: BoardItem[];
-
-    if (fromColId === toColId) {
-      // SAME-COLUMN REORDER: dnd-kit handled visuals via GPU translate.
-      // We must apply the position swap here to get the correct final order.
-      const colItems = [...(snapshotCols[fromColId] || [])];
-      const activeIndex = colItems.findIndex((i) => i.id === activeId);
-      const overIndex = colItems.findIndex((i) => i.id === overId);
-
-      if (activeIndex === -1) return;
-
-      if (overIndex !== -1 && activeIndex !== overIndex) {
-        // Remove from original position, insert at target position
-        const [moved] = colItems.splice(activeIndex, 1);
-        colItems.splice(overIndex, 0, moved);
-      }
-
-      destItems = colItems;
-    } else {
-      // CROSS-COLUMN: handleDragOver already moved the item into the new column in localColumns
-      destItems = snapshotCols[toColId] || [];
-    }
-
+    const destItems = snapshotCols[toColId] || [];
     const activeIndex = destItems.findIndex((item) => item.id === activeId);
     if (activeIndex === -1) return;
 
@@ -180,39 +147,34 @@ export function useBoardDnd({
     const nextItem = destItems[activeIndex + 1];
 
     let resolvedPriority = activeItem.priority as Priority;
-    const activeWeight = getPriorityWeight(activeItem);
-    const prevWeight = prevItem ? getPriorityWeight(prevItem) : null;
-    const nextWeight = nextItem ? getPriorityWeight(nextItem) : null;
+    if (prevItem) {
+      resolvedPriority = WeightToPriority[getPriorityWeight(prevItem)];
+    } else if (nextItem) {
+      resolvedPriority = WeightToPriority[getPriorityWeight(nextItem)];
+    }
 
-    if (prevWeight === null && nextWeight !== null) {
-      if (activeWeight !== nextWeight) {
-        resolvedPriority = (nextItem as any).priority as Priority;
-      }
-    } else if (prevWeight !== null && nextWeight === null) {
-      if (activeWeight !== prevWeight) {
-        resolvedPriority = (prevItem as any).priority as Priority;
-      }
-    } else if (prevWeight !== null && nextWeight !== null) {
-      if (activeWeight > prevWeight) {
-        resolvedPriority = (prevItem as any).priority as Priority;
-      } else if (activeWeight < nextWeight) {
-        resolvedPriority = (nextItem as any).priority as Priority;
+    const resolvedWeight = getPriorityWeight({ priority: resolvedPriority });
+
+    let prevItemOfSamePriority: BoardItem | null = null;
+    for (let i = activeIndex - 1; i >= 0; i--) {
+      if (getPriorityWeight(destItems[i]) === resolvedWeight) {
+        prevItemOfSamePriority = destItems[i];
+        break;
       }
     }
 
-    let tempOrderKey = activeItem.orderKey;
-    const isPrevSamePriority = prevItem && (prevItem as any).priority === resolvedPriority;
-    const isNextSamePriority = nextItem && (nextItem as any).priority === resolvedPriority;
-
-    if (isPrevSamePriority && isNextSamePriority) {
-      tempOrderKey = fractionalBetween(prevItem?.orderKey, nextItem?.orderKey);
-    } else if (isPrevSamePriority) {
-      tempOrderKey = fractionalBetween(prevItem?.orderKey, null);
-    } else if (isNextSamePriority) {
-      tempOrderKey = fractionalBetween(null, nextItem?.orderKey);
-    } else {
-      tempOrderKey = activeItem.orderKey || fractionalBetween(null, null);
+    let nextItemOfSamePriority: BoardItem | null = null;
+    for (let i = activeIndex + 1; i < destItems.length; i++) {
+      if (getPriorityWeight(destItems[i]) === resolvedWeight) {
+        nextItemOfSamePriority = destItems[i];
+        break;
+      }
     }
+
+    const tempOrderKey = fractionalBetween(
+      prevItemOfSamePriority?.orderKey || null,
+      nextItemOfSamePriority?.orderKey || null
+    );
 
     const updates = {
       id: activeId,
@@ -236,8 +198,8 @@ export function useBoardDnd({
           statusId: resolvedStatusId,
           priority: resolvedPriority,
           orderKey: tempOrderKey,
-          previousItemOrderKey: prevItem?.orderKey || null,
-          nextItemOrderKey: nextItem?.orderKey || null,
+          previousItemOrderKey: prevItemOfSamePriority?.orderKey || null,
+          nextItemOrderKey: nextItemOfSamePriority?.orderKey || null,
         },
       ],
     });

@@ -7,7 +7,7 @@ import { Priority } from "@/types/priority";
 import { StatusGroup } from "./status-group";
 import { SortableBoardItem } from "./sortable-board-item";
 import type { BoardItem } from "../space-api";
-import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { CreateTaskForm } from "@/features/workspace/components/forms/create-task-form";
 import { CreateFolderForm } from "@/features/workspace/components/forms/create-folder-form";
 import { EntityLayerType } from "@/types/entity-layer-type";

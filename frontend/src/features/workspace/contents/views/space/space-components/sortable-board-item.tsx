@@ -29,8 +29,27 @@ export function BoardItemCard({
   dragProps,
 }: BoardItemCardProps) {
   const itemColor = item.color || (item.__type === "folder" ? "#3b82f6" : "#6b7280");
-  const isOverdue = item.dueDate ? isBefore(startOfDay(new Date(item.dueDate)), startOfDay(new Date())) : false;
-  const showDate = !!item.startDate || !!item.dueDate;
+  const isOverdue = React.useMemo(() => {
+    return item.dueDate ? isBefore(startOfDay(new Date(item.dueDate)), startOfDay(new Date())) : false;
+  }, [item.dueDate]);
+
+  const dateInfo = React.useMemo(() => {
+    const show = !!item.startDate || !!item.dueDate;
+    let text = "";
+    if (show) {
+      if (item.startDate && item.dueDate) {
+        text = `${format(new Date(item.startDate), "MMM d")} - ${format(new Date(item.dueDate), "MMM d")}`;
+      } else if (item.startDate) {
+        text = `Start: ${format(new Date(item.startDate), "MMM d")}`;
+      } else if (item.dueDate) {
+        text = isOverdue 
+          ? `Overdue: ${format(new Date(item.dueDate), "MMM d")}` 
+          : `Due: ${format(new Date(item.dueDate), "MMM d")}`;
+      }
+    }
+    const createdText = item.createdAt ? format(new Date(item.createdAt), "MMM d") : "";
+    return { show, text, createdText };
+  }, [item.startDate, item.dueDate, item.createdAt, isOverdue]);
 
   return (
     <div
@@ -85,7 +104,7 @@ export function BoardItemCard({
             >
               {item.__type}
             </span>
-            {showDate ? (
+            {dateInfo.show ? (
               <div 
                 className={cn(
                   "flex items-center gap-1 text-[8px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded border w-fit transition-colors leading-none",
@@ -95,17 +114,7 @@ export function BoardItemCard({
                 )}
               >
                 <Calendar className={cn("h-2.5 w-2.5", isOverdue ? "opacity-90" : "opacity-40")} />
-                {item.startDate && item.dueDate ? (
-                  <span>
-                    {`${format(new Date(item.startDate), "MMM d")} - ${format(new Date(item.dueDate), "MMM d")}`}
-                  </span>
-                ) : item.startDate ? (
-                  <span>{`Start: ${format(new Date(item.startDate), "MMM d")}`}</span>
-                ) : (
-                  <span>
-                    {isOverdue ? `Overdue: ${format(new Date(item.dueDate!), "MMM d")}` : `Due: ${format(new Date(item.dueDate!), "MMM d")}`}
-                  </span>
-                )}
+                <span>{dateInfo.text}</span>
               </div>
             ) : (
               <div 
@@ -117,9 +126,9 @@ export function BoardItemCard({
             )}
           </div>
           
-          {item.createdAt && (
+          {dateInfo.createdText && (
             <span className="text-[9px] text-muted-foreground/45 font-medium shrink-0 ml-auto select-none">
-              {format(new Date(item.createdAt), "MMM d")}
+              {dateInfo.createdText}
             </span>
           )}
         </div>
