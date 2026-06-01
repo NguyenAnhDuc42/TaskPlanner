@@ -34,7 +34,6 @@ builder.Services.AddCors(options =>
 });
 
 // --- 2. Infrastructure & Data ---
-var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
 
 builder.Services.AddApplication(builder.Configuration);
 builder.EnrichNpgsqlDbContext<TaskPlanDbContext>();
@@ -62,9 +61,7 @@ builder.Services.AddRateLimiter(options =>
 });
 
 
-/* 
 
-*/
 var app = builder.Build();
 
 // --- 3. Aspire Endpoints & Monitoring ---
@@ -105,10 +102,10 @@ app.UseAuthentication();
 app.UseAuthorization();
 app.UseMiddleware<IdempotencyMiddleware>();
 
-// app.MapGet("/", () => Results.Ok(new { status = "ok", time = DateTime.UtcNow }));
+
 app.MapHub<WorkspaceHub>("/hubs/workspace");
 app.MapControllers();
 
-app.Run();
+await app.RunAsync();
 
 

@@ -12,10 +12,7 @@ var postgres = builder.AddConnectionString("DefaultConnection");
 // Redis (Still container, as it's lightweight and easy)
 var redis = builder.AddRedis("cache");
 
-// MailDev (Container)
-// var maildev = builder.AddContainer("maildev", "maildev/maildev")
-//     .WithHttpEndpoint(port: 1080, targetPort: 1080, name: "http")
-//     .WithEndpoint(port: 1025, targetPort: 1025, name: "smtp");
+
 
 // --- 2. Register Services ---
 
@@ -23,13 +20,12 @@ var redis = builder.AddRedis("cache");
 // (Worker removed)
 
 // The Main API
-var api = builder.AddProject<Projects.Api>("api")
+builder.AddProject<Projects.Api>("api")
     .WithReference(postgres)
     .WithReference(redis);
-// .WithReference(maildev);
 
 // var viteApp = builder.AddViteApp("frontend", "../frontend")
 //     .WithReference(api);
 
 
-builder.Build().Run();
+await builder.Build().RunAsync();

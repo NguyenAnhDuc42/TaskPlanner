@@ -81,7 +81,7 @@ export function useHierarchyDnd({ workspaceId, batchMoveItems }: UseHierarchyDnd
       } catch (err) {
         console.error("[DND] Batch move network request failed:", err);
       }
-    }, 5000);
+    }, 1000);
   };
 
   const handleDragStart = (event: DragStartEvent) => {

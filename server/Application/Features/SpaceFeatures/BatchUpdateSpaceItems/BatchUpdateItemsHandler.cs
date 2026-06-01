@@ -4,95 +4,111 @@ namespace Application;
 
 public class BatchUpdateSpaceItemsHandler(TaskPlanDbContext db, WorkspaceContext workspaceContext) : ICommandHandler<BatchUpdateSpaceItemsCommand>
 {
-    public async Task<Result> Handle(BatchUpdateSpaceItemsCommand request, CancellationToken ct)
+    public async Task<Result> Handle(BatchUpdateSpaceItemsCommand request, CancellationToken cancellationToken)
     {
         var taskUpdates = request.Updates.Where(u => u.Type == EntityLayerType.ProjectTask).ToList();
         var folderUpdates = request.Updates.Where(u => u.Type == EntityLayerType.ProjectFolder).ToList();
 
         return await db.ExecuteInTransactionAsync(async () =>
         {
-            // 1. Batch Load all affected Tasks in a single SELECT query
-            if (taskUpdates.Any())
-            {
-                var taskIds = taskUpdates.Select(u => u.Id).ToList();
-                var tasks = await db.ProjectTasks
-                    .Where(t => taskIds.Contains(t.Id) && t.ProjectWorkspaceId == workspaceContext.workspaceId)
-                    .ToListAsync(ct);
+            var taskResult = await ProcessTaskUpdates(taskUpdates, cancellationToken);
+            if (taskResult.IsFailure) return taskResult;
 
-                foreach (var update in taskUpdates)
-                {
-                    var task = tasks.FirstOrDefault(t => t.Id == update.Id);
-                    if (task == null)
-                        return Result.Failure(Error.NotFound("Task.NotFound", $"Task {update.Id} not found in workspace"));
+            var folderResult = await ProcessFolderUpdates(folderUpdates, cancellationToken);
+            if (folderResult.IsFailure) return folderResult;
 
-                    var orderKey = ResolveOrderKey(update.OrderKey, update.PreviousItemOrderKey, update.NextItemOrderKey);
-
-                    // Safely set encapsulated properties via EF Core Entry API
-                    if (update.StatusId.HasValue)
-                    {
-                        var targetStatusId = update.StatusId == Guid.Empty ? null : update.StatusId;
-                        db.Entry(task).Property(t => t.StatusId).CurrentValue = targetStatusId;
-                    }
-
-                    if (update.Priority != null)
-                    {
-                        db.Entry(task).Property(t => t.Priority).CurrentValue = Enum.Parse<Priority>(update.Priority);
-                    }
-
-                    if (orderKey != null)
-                    {
-                        db.Entry(task).Property(t => t.OrderKey).CurrentValue = orderKey;
-                    }
-
-                    db.Entry(task).Property(t => t.UpdatedAt).CurrentValue = DateTimeOffset.UtcNow;
-                }
-            }
-
-            // 2. Batch Load all affected Folders in a single SELECT query
-            if (folderUpdates.Any())
-            {
-                var folderIds = folderUpdates.Select(u => u.Id).ToList();
-                var folders = await db.ProjectFolders
-                    .Where(f => folderIds.Contains(f.Id) && f.ProjectWorkspaceId == workspaceContext.workspaceId)
-                    .ToListAsync(ct);
-
-                foreach (var update in folderUpdates)
-                {
-                    var folder = folders.FirstOrDefault(f => f.Id == update.Id);
-                    if (folder == null)
-                        return Result.Failure(Error.NotFound("Folder.NotFound", $"Folder {update.Id} not found in workspace"));
-
-                    var orderKey = ResolveOrderKey(update.OrderKey, update.PreviousItemOrderKey, update.NextItemOrderKey);
-
-                    // Safely set encapsulated properties via EF Core Entry API
-                    if (update.StatusId.HasValue)
-                    {
-                        var targetStatusId = update.StatusId == Guid.Empty ? null : update.StatusId;
-                        db.Entry(folder).Property(f => f.StatusId).CurrentValue = targetStatusId;
-                    }
-
-                    if (update.Priority != null)
-                    {
-                        db.Entry(folder).Property(f => f.Priority).CurrentValue = Enum.Parse<Priority>(update.Priority);
-                    }
-
-                    if (orderKey != null)
-                    {
-                        db.Entry(folder).Property(f => f.OrderKey).CurrentValue = orderKey;
-                    }
-
-                    db.Entry(folder).Property(f => f.UpdatedAt).CurrentValue = DateTimeOffset.UtcNow;
-                }
-            }
-
-            // 3. Save all changes in a single batch roundtrip
-            await db.SaveChangesAsync(ct);
+            await db.SaveChangesAsync(cancellationToken);
             return Result.Success();
-        }, ct);
+        }, cancellationToken);
     }
 
-    // Fully synchronous in-memory index resolution (100% database-free!)
-    private string? ResolveOrderKey(string? explicitOrderKey, string? previousItemOrderKey, string? nextItemOrderKey)
+    private async Task<Result> ProcessTaskUpdates(List<BatchUpdateSpaceItemValue> taskUpdates, CancellationToken cancellationToken)
+    {
+        if (!taskUpdates.Any())
+            return Result.Success();
+
+        var taskIds = taskUpdates.Select(u => u.Id).ToList();
+        var taskMap = await db.ProjectTasks
+            .Where(t => taskIds.Contains(t.Id) && t.ProjectWorkspaceId == workspaceContext.workspaceId)
+            .ToDictionaryAsync(t => t.Id, cancellationToken);
+
+        foreach (var update in taskUpdates)
+        {
+            if (!taskMap.TryGetValue(update.Id, out var task))
+                return Result.Failure(Error.NotFound("Task.NotFound", $"Task {update.Id} not found in workspace"));
+
+            var applyResult = ApplyTaskUpdate(task, update);
+            if (applyResult.IsFailure) return applyResult;
+        }
+
+        return Result.Success();
+    }
+
+    private async Task<Result> ProcessFolderUpdates(List<BatchUpdateSpaceItemValue> folderUpdates, CancellationToken cancellationToken)
+    {
+        if (!folderUpdates.Any())
+            return Result.Success();
+
+        var folderIds = folderUpdates.Select(u => u.Id).ToList();
+        var folderMap = await db.ProjectFolders
+            .Where(f => folderIds.Contains(f.Id) && f.ProjectWorkspaceId == workspaceContext.workspaceId)
+            .ToDictionaryAsync(f => f.Id, cancellationToken);
+
+        foreach (var update in folderUpdates)
+        {
+            if (!folderMap.TryGetValue(update.Id, out var folder))
+                return Result.Failure(Error.NotFound("Folder.NotFound", $"Folder {update.Id} not found in workspace"));
+
+            var applyResult = ApplyFolderUpdate(folder, update);
+            if (applyResult.IsFailure) return applyResult;
+        }
+
+        return Result.Success();
+    }
+
+    private Result ApplyTaskUpdate(ProjectTask task, BatchUpdateSpaceItemValue update)
+    {
+        if (update.StatusId.HasValue)
+            db.Entry(task).Property(t => t.StatusId).CurrentValue = update.StatusId == Guid.Empty ? null : update.StatusId;
+
+        if (update.Priority != null)
+        {
+            if (!Enum.TryParse<Priority>(update.Priority, out var priority))
+                return Result.Failure(Error.Validation("Priority.Invalid", $"'{update.Priority}' is not a valid priority"));
+
+            db.Entry(task).Property(t => t.Priority).CurrentValue = priority;
+        }
+
+        var orderKey = ResolveOrderKey(update.OrderKey, update.PreviousItemOrderKey, update.NextItemOrderKey);
+        if (orderKey != null)
+            db.Entry(task).Property(t => t.OrderKey).CurrentValue = orderKey;
+
+        db.Entry(task).Property(t => t.UpdatedAt).CurrentValue = DateTimeOffset.UtcNow;
+        return Result.Success();
+    }
+
+    private Result ApplyFolderUpdate(ProjectFolder folder, BatchUpdateSpaceItemValue update)
+    {
+        if (update.StatusId.HasValue)
+            db.Entry(folder).Property(f => f.StatusId).CurrentValue = update.StatusId == Guid.Empty ? null : update.StatusId;
+
+        if (update.Priority != null)
+        {
+            if (!Enum.TryParse<Priority>(update.Priority, out var priority))
+                return Result.Failure(Error.Validation("Priority.Invalid", $"'{update.Priority}' is not a valid priority"));
+
+            db.Entry(folder).Property(f => f.Priority).CurrentValue = priority;
+        }
+
+        var orderKey = ResolveOrderKey(update.OrderKey, update.PreviousItemOrderKey, update.NextItemOrderKey);
+        if (orderKey != null)
+            db.Entry(folder).Property(f => f.OrderKey).CurrentValue = orderKey;
+
+        db.Entry(folder).Property(f => f.UpdatedAt).CurrentValue = DateTimeOffset.UtcNow;
+        return Result.Success();
+    }
+
+    private static string? ResolveOrderKey(string? explicitOrderKey, string? previousItemOrderKey, string? nextItemOrderKey)
     {
         if (explicitOrderKey != null) return explicitOrderKey;
         if (previousItemOrderKey == null && nextItemOrderKey == null) return null;
@@ -106,8 +122,7 @@ public class BatchUpdateSpaceItemsHandler(TaskPlanDbContext db, WorkspaceContext
         }
 
         if (previousItemOrderKey != null) return FractionalIndex.After(previousItemOrderKey);
-        if (nextItemOrderKey != null) return FractionalIndex.Before(nextItemOrderKey);
 
-        return null;
+        return FractionalIndex.Before(nextItemOrderKey!);
     }
 }

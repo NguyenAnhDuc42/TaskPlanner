@@ -28,32 +28,7 @@ public class CursorHelper
         if (_key.Length != 16 && _key.Length != 24 && _key.Length != 32)
             throw new ArgumentException($"Invalid Key size ({_key.Length} bytes). AES key must be 16, 24, or 32 bytes.");
     }
-    //EF CORE (legacy)
-    // public string EncodeCursor(CursorData data)
-    // {
-    //     var options = new JsonSerializerOptions 
-    //     { 
-    //         Converters = { new JsonStringEnumConverter() }
-    //     };
-    //     var json = JsonSerializer.Serialize(data.Values, options);
-    //     var encrypted = EncryptString(json, _key);
-    //     return Convert.ToBase64String(encrypted);
-    // }
-
-    // public CursorData? DecodeCursor(string cursor)
-    // {
-    //     try
-    //     {
-    //         var encrypted = Convert.FromBase64String(cursor);
-    //         var json = DecryptString(encrypted, _key);
-    //         var values = JsonSerializer.Deserialize<Dictionary<string, object>>(json);
-    //         return new CursorData(values!);
-    //     }
-    //     catch
-    //     {
-    //         return null;
-    //     }
-    // }
+   
     public string EncodeCursor(CursorData data)
     {
         // Serialize with proper type handling
@@ -104,9 +79,7 @@ public class CursorHelper
     {
         using var aes = Aes.Create();
         aes.Key = key;
-        
-        // Use a fixed IV for deterministic encryption (same data = same cursor)
-        aes.IV = new byte[aes.BlockSize / 8]; 
+        aes.GenerateIV();
 
         using var encryptor = aes.CreateEncryptor(aes.Key, aes.IV);
         using var ms = new MemoryStream();
