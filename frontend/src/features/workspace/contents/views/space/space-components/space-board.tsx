@@ -20,8 +20,8 @@ import { useBoardDnd } from "./use-board-dnd";
 import { BoardColumn } from "./board-column";
 import { StatusBadge } from "@/components/status-badge";
 import { GitMerge, SlidersHorizontal } from "lucide-react";
-import { useSmartWheelScroll } from "@/features/workspace/contents/layer-detail/components/board/use-smart-wheel-scroll";
-import { useEdgeScroll } from "@/features/workspace/contents/layer-detail/components/board/use-edge-scroll";
+import { useSmartWheelScroll } from "@/features/workspace/contents/views/space/utils/use-smart-wheel-scroll";
+import { useEdgeScroll } from "@/features/workspace/contents/views/space/utils/use-edge-scroll";
 
 import { folderSlice, taskSlice } from "@/store/entityStore";
 

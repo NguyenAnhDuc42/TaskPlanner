@@ -51,7 +51,7 @@ api.interceptors.request.use((config) => {
   }
 
   if (!config.headers["X-Workspace-Id"]) {
-    const workspaceIdMatch = window.location.pathname.match(/\/workspaces\/([a-f\d-]+)/i);
+    const workspaceIdMatch = window.location.href.match(/\/workspaces\/([a-f\d-]+)/i);
     if (workspaceIdMatch) {
       config.headers["X-Workspace-Id"] = workspaceIdMatch[1];
     }

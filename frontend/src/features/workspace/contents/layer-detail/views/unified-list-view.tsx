@@ -23,7 +23,7 @@ import { StatusGroup } from "../components/items/status-group";
 
 import { Priority } from "@/types/priority";
 import { StatusCategory } from "@/types/status-category";
-import { useEdgeScroll } from "../components/board/use-edge-scroll";
+import { useEdgeScroll } from "../../views/space/utils/use-edge-scroll";
 import { InlinePriorityPicker } from "../components/items/inline-priority-picker";
 import { DynamicIcon } from "@/components/dynamic-icon";
 import type { LayerItem, TaskLayerItem, FolderLayerItem } from "../layer-detail-types";

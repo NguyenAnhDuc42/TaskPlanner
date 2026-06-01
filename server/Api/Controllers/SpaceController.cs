@@ -79,6 +79,22 @@ namespace Api
             var result = await _handler.SendAsync(command, cancellationToken);
             return result.ToActionResult();
         }
+
+        [HttpGet("{id:guid}/documents")]
+        public async Task<IActionResult> GetDocuments(Guid id, CancellationToken cancellationToken)
+        {
+            var query = new GetSpaceDocumentsQuery(id);
+            var result = await _handler.QueryAsync<GetSpaceDocumentsQuery, List<SpaceDocumentRecord>>(query, cancellationToken);
+            return result.ToActionResult();
+        }
+
+        [HttpPost("{id:guid}/documents")]
+        public async Task<IActionResult> CreateDocument(Guid id, [FromBody] CreateSpaceDocumentRequest request, CancellationToken cancellationToken)
+        {
+            var command = new CreateSpaceDocumentCommand(id, request.Name);
+            var result = await _handler.SendAsync<CreateSpaceDocumentCommand, SpaceDocumentRecord>(command, cancellationToken);
+            return result.ToActionResult();
+        }
     }
 
     public record UpdateSpaceRequest(
@@ -86,6 +102,10 @@ namespace Api
         string? Color,
         string? Icon,
         bool? IsPrivate
+    );
+
+    public record CreateSpaceDocumentRequest(
+        string Name
     );
 }
 

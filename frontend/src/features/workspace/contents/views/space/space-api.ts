@@ -9,6 +9,7 @@ import type { Status } from "@/types/status";
 import { StatusCategory } from "@/types/status-category";
 import type { AccessLevel } from "@/types/access-level";
 import type { EntityAccessRecord } from "@/types/workspace";
+import type { SpaceDocumentRecord } from "@/types/document";
 
 
 export interface SpaceItemsResponse {
@@ -184,9 +185,25 @@ export const spaceApi = workspaceApi.injectEndpoints({
           await queryFulfilled;
         } catch {}
       }
+    }),
+
+    getSpaceDocuments: build.query<SpaceDocumentRecord[], string>({
+      query: (spaceId) => ({ url: `/spaces/${spaceId}/documents`, method: "GET" }),
+      providesTags: (result, error, spaceId) => [{ type: "Spaces" as const, id: `docs-${spaceId}` }]
+    }),
+
+    createSpaceDocument: build.mutation<SpaceDocumentRecord, { spaceId: string; name: string }>({
+      query: ({ spaceId, name }) => ({
+        url: `/spaces/${spaceId}/documents`,
+        method: "POST",
+        data: { name }
+      }),
+      invalidatesTags: (result, error, { spaceId }) => [{ type: "Spaces" as const, id: `docs-${spaceId}` }]
     })
   })
 });
+
+
 export const {
   useGetSpaceDetailQuery,
   useGetSpaceItemsQuery,
@@ -194,6 +211,8 @@ export const {
   useUpdateSpaceFieldMutation,
   useGetEntityAccessQuery,
   useUpdateEntityAccessMutation,
+  useGetSpaceDocumentsQuery,
+  useCreateSpaceDocumentMutation,
 } = spaceApi;
 
 // Selectors

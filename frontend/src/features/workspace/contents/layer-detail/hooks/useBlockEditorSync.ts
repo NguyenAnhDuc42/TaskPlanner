@@ -8,6 +8,12 @@ export function useBlockEditorSync(documentId: string) {
   const { mutate: updateBlocks } = useUpdateDocumentBlocks();
   
   const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  
+  // Track blocks in a ref so performSave always reads the fresh state without re-running effects
+  const blocksRef = useRef(blocks);
+  useEffect(() => {
+    blocksRef.current = blocks;
+  }, [blocks]);
 
   // Convert flat DB blocks to Tiptap JSON
   const initialContent = useMemo<TiptapDoc>(() => {
@@ -29,7 +35,8 @@ export function useBlockEditorSync(documentId: string) {
 
   const performSave = (json: any) => {
     const contentStr = JSON.stringify(json);
-    const firstBlock = blocks?.[0];
+    const currentBlocks = blocksRef.current;
+    const firstBlock = currentBlocks?.[0];
     
     const blocksToUpdate: DocumentBlockValue[] = [
       {
@@ -43,7 +50,7 @@ export function useBlockEditorSync(documentId: string) {
 
     // Mark all other blocks as deleted to clean up the DB
     const deletedBlocks: DocumentBlockValue[] = [];
-    blocks?.forEach((b: DocumentBlockDto) => {
+    currentBlocks?.forEach((b: DocumentBlockDto) => {
       if (b.id !== firstBlock?.id) {
         deletedBlocks.push({
           id: b.id,
@@ -70,10 +77,9 @@ export function useBlockEditorSync(documentId: string) {
     saveTimeoutRef.current = setTimeout(() => {
       performSave(json);
       saveTimeoutRef.current = null;
-    }, 1000);
+    }, 2500); // Decoupled & calm 2.5s debounce save duration
   };
 
-  // Save on unmount if there are pending changes
   useEffect(() => {
     return () => {
       if (saveTimeoutRef.current && latestJsonRef.current) {
@@ -81,7 +87,7 @@ export function useBlockEditorSync(documentId: string) {
         performSave(latestJsonRef.current);
       }
     };
-  }, [blocks, documentId]);
+  }, [documentId]);
 
   return {
     initialContent,

@@ -16,7 +16,7 @@ export function useUpdateDocumentBlocks() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async ({ documentId, blocks }: { documentId: string, blocks: any[] }) => {
-      const { data } = await api.put(`/documents/${documentId}/blocks`, { blocks });
+      const { data } = await api.put(`/documents/${documentId}/blocks`, blocks);
       return data;
     },
     onSuccess: (_, variables) => {
