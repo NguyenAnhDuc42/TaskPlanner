@@ -1,5 +1,5 @@
 import { arrayMove } from "@dnd-kit/sortable";
-import { EntityLayerType as EntityLayerConst, EntityLayerType } from "@/types/entity-layer-type";
+import { EntityLayerType as EntityLayerConst } from "@/types/entity-layer-type";
 import { generateKeyBetween, generateNKeysBetween } from "fractional-indexing";
 import { safeKey } from "../../utils/fractional-index";
 import type { DragItemData, DragTaskData } from "../drag-item-type";
@@ -9,51 +9,53 @@ import { folderSlice, spaceSlice, taskSlice } from "@/store/entityStore";
 export function handleTaskMove(
   activeData: DragTaskData,
   overData: DragItemData,
-  triggerBatchMove: (move: { itemId: string; itemType: string; targetParentId: string | null; newOrderKey: string; }) => void
+  triggerBatchMove: (move: { kind: "task"; itemId: string; targetSpaceId: string; targetFolderId: string | null; newOrderKey: string }) => void
 ) {
-  let targetParentId: string | undefined;
-  let targetParentType: EntityLayerType | undefined;
+  // Derive explicit targetSpaceId + optional targetFolderId
+  // Space is primary container; Folder is optional organizational layer
+  let targetSpaceId: string | undefined;
+  let targetFolderId: string | null = null;
 
   if (overData?.type === EntityLayerConst.ProjectSpace) {
-    targetParentId = overData.id;
-    targetParentType = EntityLayerConst.ProjectSpace;
+    targetSpaceId = overData.id;
+    targetFolderId = null;
   } else if (overData?.type === EntityLayerConst.ProjectFolder) {
-    targetParentId = overData.id;
-    targetParentType = EntityLayerConst.ProjectFolder;
+    targetSpaceId = overData.spaceId; // folder's parent space
+    targetFolderId = overData.id;
   } else if (overData?.type === EntityLayerConst.ProjectTask) {
-    targetParentId = overData.parentId;
-    targetParentType = overData.parentType;
+    targetSpaceId = overData.spaceId;
+    targetFolderId = overData.parentType === EntityLayerConst.ProjectFolder ? overData.parentId : null;
   }
 
-  if (!targetParentId || !targetParentType) return;
+  if (!targetSpaceId) return;
 
   const state = store.getState();
-  const sourceParentId = activeData.parentId;
-  const isSourceSpace = activeData.parentType === EntityLayerConst.ProjectSpace;
-  const isTargetSpace = targetParentType === EntityLayerConst.ProjectSpace;
-  const isTargetFolder = targetParentType === EntityLayerConst.ProjectFolder;
-  const isSameParent = sourceParentId === targetParentId && isSourceSpace === isTargetSpace;
+  const sourceContainerId = activeData.parentId;
+  const isSourceFolder = activeData.parentType === EntityLayerConst.ProjectFolder;
+  const targetContainerId = targetFolderId ?? targetSpaceId;
+  const isTargetFolder = !!targetFolderId;
+  const isSameContainer = sourceContainerId === targetContainerId;
 
-  // Retrieve and sort tasks for source parent
+  // Retrieve and sort tasks for source container
   const sourceTasks = Object.values(state.tasks.entities)
     .filter((t): t is typeof t & { id: string } => {
       if (!t) return false;
-      return isSourceSpace
-        ? (t.projectSpaceId === sourceParentId && !t.projectFolderId)
-        : (t.projectFolderId === sourceParentId);
+      return isSourceFolder
+        ? (t.projectFolderId === sourceContainerId)
+        : (t.projectSpaceId === sourceContainerId && !t.projectFolderId);
     })
     .sort((a, b) => (a.orderKey || "").localeCompare(b.orderKey || ""))
     .map(t => t.id);
 
-  // Retrieve and sort tasks for target parent
-  const targetTasks = isSameParent
+  // Retrieve and sort tasks for target container
+  const targetTasks = isSameContainer
     ? sourceTasks
     : Object.values(state.tasks.entities)
         .filter((t): t is typeof t & { id: string } => {
           if (!t) return false;
-          return isTargetSpace
-            ? (t.projectSpaceId === targetParentId && !t.projectFolderId)
-            : (t.projectFolderId === targetParentId);
+          return isTargetFolder
+            ? (t.projectFolderId === targetContainerId)
+            : (t.projectSpaceId === targetContainerId && !t.projectFolderId);
         })
         .sort((a, b) => (a.orderKey || "").localeCompare(b.orderKey || ""))
         .map(t => t.id);
@@ -65,19 +67,19 @@ export function handleTaskMove(
 
   let newOrderKey: string;
 
-  if (isSameParent) {
-    // Same-parent reorder: regenerate ALL keys so numeric/rocicorp mix stays sorted
+  if (isSameContainer) {
+    // Same-container reorder: regenerate ALL keys so numeric/rocicorp mix stays sorted
     if (oldIndex === -1) return;
     const moved = arrayMove(sourceTasks, oldIndex, newIndex);
     const freshKeys = generateNKeysBetween(null, null, moved.length);
     newOrderKey = freshKeys[newIndex];
-    // Optimistic: update ALL tasks in this parent
+    // Optimistic: update ALL tasks in this container
     moved.forEach((id, i) => {
       store.dispatch(taskSlice.actions.upsert({ id, orderKey: freshKeys[i] }));
     });
   } else {
-    // Cross-parent move: insert at newIndex in target list
-    const newTargetTasks = [...targetTasks, ""].slice(0, targetTasks.length); // copy
+    // Cross-container move: insert at newIndex in target list
+    const newTargetTasks = [...targetTasks];
     newTargetTasks.splice(newIndex, 0, activeData.id);
 
     const prevKey = safeKey(newIndex > 0 ? state.tasks.entities[newTargetTasks[newIndex - 1]]?.orderKey : undefined);
@@ -92,42 +94,42 @@ export function handleTaskMove(
       newOrderKey = freshKeys[newIndex];
     }
 
-    // Optimistic: update the dragged task's parent and order
+    // Optimistic: update the dragged task — explicit space + folder, no lookup needed
     store.dispatch(taskSlice.actions.upsert({
       id: activeData.id,
-      projectFolderId: isTargetFolder ? targetParentId : null,
-      projectSpaceId: isTargetFolder ? state.folders.entities[targetParentId]?.spaceId : targetParentId,
-      parentType: targetParentType,
+      projectFolderId: targetFolderId,
+      projectSpaceId: targetSpaceId,
       orderKey: newOrderKey
     }));
   }
 
-  // Turn ON hasTasks for new parent
+  // Turn ON hasTasks for new container
   if (isTargetFolder) {
-    store.dispatch(folderSlice.actions.upsert({ id: targetParentId, hasTasks: true }));
+    store.dispatch(folderSlice.actions.upsert({ id: targetContainerId, hasTasks: true }));
   } else {
-    store.dispatch(spaceSlice.actions.upsert({ id: targetParentId, hasTasks: true }));
+    store.dispatch(spaceSlice.actions.upsert({ id: targetContainerId, hasTasks: true }));
   }
 
-  // Turn OFF hasTasks for old parent if no tasks remain
-  if (!isSameParent) {
+  // Turn OFF hasTasks for old container if no tasks remain
+  if (!isSameContainer) {
     const remainingTasks = sourceTasks.filter(id => id !== activeData.id);
     if (remainingTasks.length === 0) {
-      if (isSourceSpace) {
-        const sourceSpace = state.spaces.entities[sourceParentId];
-        if (sourceSpace) store.dispatch(spaceSlice.actions.upsert({ ...sourceSpace, hasTasks: false }));
-      } else {
-        const sourceFolder = state.folders.entities[sourceParentId];
+      if (isSourceFolder) {
+        const sourceFolder = state.folders.entities[sourceContainerId];
         if (sourceFolder) store.dispatch(folderSlice.actions.upsert({ ...sourceFolder, hasTasks: false }));
+      } else {
+        const sourceSpace = state.spaces.entities[sourceContainerId];
+        if (sourceSpace) store.dispatch(spaceSlice.actions.upsert({ ...sourceSpace, hasTasks: false }));
       }
     }
   }
 
   // Trigger batch queue
   triggerBatchMove({
+    kind: "task",
     itemId: activeData.id,
-    itemType: EntityLayerConst.ProjectTask,
-    targetParentId: targetParentId,
+    targetSpaceId,
+    targetFolderId,
     newOrderKey
   });
 }

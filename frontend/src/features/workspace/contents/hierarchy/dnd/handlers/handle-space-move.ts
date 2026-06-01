@@ -8,7 +8,7 @@ import { spaceSlice } from "@/store/entityStore";
 export function handleSpaceMove(
   activeData: DragSpaceData,
   overData: DragItemData,
-  triggerBatchMove: (move: { itemId: string; itemType: string; targetParentId: string | null; newOrderKey: string }) => void
+  triggerBatchMove: (move: { kind: "space"; itemId: string; newOrderKey: string }) => void
 ) {
   if (overData?.type !== EntityLayerConst.ProjectSpace) return;
 
@@ -36,10 +36,5 @@ export function handleSpaceMove(
   });
 
   // 2. Trigger batch queue (only send the dragged item's new key to server)
-  triggerBatchMove({
-    itemId: activeData.id,
-    itemType: EntityLayerConst.ProjectSpace,
-    targetParentId: null,
-    newOrderKey
-  });
+  triggerBatchMove({ kind: "space", itemId: activeData.id, newOrderKey });
 }

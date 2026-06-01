@@ -15,11 +15,26 @@ public class BatchMoveItemHandler(
 {
     public async Task<Result> Handle(BatchMoveItemCommand request, CancellationToken ct)
     {
-        if (request.Moves == null || !request.Moves.Any()) 
+        if (!request.HasAnyMoves) 
             return Result.Success();
 
         if (context.CurrentMember.Role > Role.Member) 
             return Result.Failure(MemberError.DontHavePermission);
+
+        // Validate ownership + referential integrity before touching the DB
+        var validator = new BatchMoveValidator(db, context.workspaceId);
+
+        if (request.Folders?.Any() ?? false)
+        {
+            var folderValidation = await validator.ValidateFolderMovesAsync(request.Folders, ct);
+            if (folderValidation.IsFailure) return folderValidation;
+        }
+
+        if (request.Tasks?.Any() ?? false)
+        {
+            var taskValidation = await validator.ValidateTaskMovesAsync(request.Tasks, ct);
+            if (taskValidation.IsFailure) return taskValidation;
+        }
 
         var updatedSpaces = new List<SpaceRecord>();
         var updatedFolders = new List<FolderRecord>();
@@ -27,78 +42,52 @@ public class BatchMoveItemHandler(
 
         var result = await db.ExecuteInTransactionAsync(async () =>
         {
-            var spaceMoves = request.Moves.Where(m => m.ItemType == EntityLayerType.ProjectSpace).OrderBy(m => m.NewOrderKey).ToList();
-            var folderMoves = request.Moves.Where(m => m.ItemType == EntityLayerType.ProjectFolder).OrderBy(m => m.NewOrderKey).ToList();
-            var taskMoves = request.Moves.Where(m => m.ItemType == EntityLayerType.ProjectTask).OrderBy(m => m.NewOrderKey).ToList();
-
-            foreach (var move in spaceMoves)
+            // SPACES: Reorder only (spaces can't move between workspaces)
+            if (request.Spaces?.Any() ?? false)
             {
-                await db.ProjectSpaces
-                    .Where(s => s.Id == move.ItemId && s.ProjectWorkspaceId == context.workspaceId)
-                    .ExecuteUpdateAsync(u => u
-                        .SetProperty(s => s.OrderKey, move.NewOrderKey)
-                        .SetProperty(s => s.UpdatedAt, DateTimeOffset.UtcNow), ct);
-            }
-
-            foreach (var move in folderMoves)
-            {
-                await db.ProjectFolders
-                    .Where(f => f.Id == move.ItemId)
-                    .ExecuteUpdateAsync(u => u
-                        .SetProperty(f => f.ProjectSpaceId, f => move.TargetParentId ?? f.ProjectSpaceId)
-                        .SetProperty(f => f.OrderKey, move.NewOrderKey)
-                        .SetProperty(f => f.UpdatedAt, DateTimeOffset.UtcNow), ct);
-            }
-
-            if (taskMoves.Any())
-            {
-                // Pre-load all target parent info in ONE query instead of N UNION SELECTs
-                var allTargetGuids = taskMoves
-                    .Where(m => m.TargetParentId.HasValue)
-                    .Select(m => m.TargetParentId!.Value)
-                    .Distinct()
-                    .ToList();
-
-                var parentInfoMap = allTargetGuids.Any()
-                    ? await db.ProjectSpaces
-                        .Where(s => allTargetGuids.Contains(s.Id) && s.ProjectWorkspaceId == context.workspaceId)
-                        .Select(s => new { s.Id, Type = "ProjectSpace", SpaceId = s.Id })
-                        .Union(db.ProjectFolders
-                            .Where(f => allTargetGuids.Contains(f.Id))
-                            .Select(f => new { f.Id, Type = "ProjectFolder", SpaceId = f.ProjectSpaceId }))
-                        .ToDictionaryAsync(x => x.Id, ct)
-                    : [];
-
-            foreach (var move in taskMoves)
-            {
-                Guid? resolvedSpaceId = null;
-                Guid? resolvedFolderId = null;
-                bool hasTarget = false;
-
-                if (move.TargetParentId.HasValue)
+                foreach (var move in request.Spaces)
                 {
-                    var targetGuid = move.TargetParentId.Value;
-                    if (parentInfoMap.TryGetValue(targetGuid, out var info))
-                    {
-                        hasTarget = true;
-                        if (info.Type == "ProjectSpace") resolvedSpaceId = targetGuid;
-                        else { resolvedFolderId = targetGuid; resolvedSpaceId = info.SpaceId; }
-                    }
+                    await db.ProjectSpaces
+                        .Where(s => s.Id == move.ItemId && s.ProjectWorkspaceId == context.workspaceId)
+                        .ExecuteUpdateAsync(u => u
+                            .SetProperty(s => s.OrderKey, move.NewOrderKey)
+                            .SetProperty(s => s.UpdatedAt, DateTimeOffset.UtcNow), ct);
                 }
-
-                await db.ProjectTasks
-                    .Where(t => t.Id == move.ItemId)
-                    .ExecuteUpdateAsync(u => u
-                        .SetProperty(t => t.ProjectSpaceId, t => hasTarget ? resolvedSpaceId : t.ProjectSpaceId)
-                        .SetProperty(t => t.ProjectFolderId, t => hasTarget ? resolvedFolderId : t.ProjectFolderId)
-                        .SetProperty(t => t.OrderKey, move.NewOrderKey)
-                        .SetProperty(t => t.UpdatedAt, DateTimeOffset.UtcNow), ct);
-            }
             }
 
-            if (spaceMoves.Any())
+            // FOLDERS: Move to new Space + reorder (no cascade — tasks own their space)
+            if (request.Folders?.Any() ?? false)
             {
-                var spaceIds = spaceMoves.Select(m => m.ItemId).ToList();
+                foreach (var move in request.Folders)
+                {
+                    await db.ProjectFolders
+                        .Where(f => f.Id == move.ItemId)
+                        .ExecuteUpdateAsync(u => u
+                            .SetProperty(f => f.ProjectSpaceId, f => move.TargetParentId ?? f.ProjectSpaceId)
+                            .SetProperty(f => f.OrderKey, move.NewOrderKey)
+                            .SetProperty(f => f.UpdatedAt, DateTimeOffset.UtcNow), ct);
+                }
+            }
+
+            // TASKS: Move with explicit SpaceId + optional FolderId — no server-side parent resolution needed
+            if (request.Tasks?.Any() ?? false)
+            {
+                foreach (var move in request.Tasks)
+                {
+                    await db.ProjectTasks
+                        .Where(t => t.Id == move.ItemId)
+                        .ExecuteUpdateAsync(u => u
+                            .SetProperty(t => t.ProjectSpaceId, move.TargetSpaceId)
+                            .SetProperty(t => t.ProjectFolderId, move.TargetFolderId)
+                            .SetProperty(t => t.OrderKey, move.NewOrderKey)
+                            .SetProperty(t => t.UpdatedAt, DateTimeOffset.UtcNow), ct);
+                }
+            }
+
+            // Fetch updated records for realtime notification
+            if (request.Spaces?.Any() ?? false)
+            {
+                var spaceIds = request.Spaces.Select(s => s.ItemId).ToList();
                 updatedSpaces = await db.ProjectSpaces
                     .AsNoTracking()
                     .Where(s => spaceIds.Contains(s.Id))
@@ -114,9 +103,9 @@ public class BatchMoveItemHandler(
                     }).ToListAsync(ct);
             }
 
-            if (folderMoves.Any())
+            if (request.Folders?.Any() ?? false)
             {
-                var folderIds = folderMoves.Select(m => m.ItemId).ToList();
+                var folderIds = request.Folders.Select(f => f.ItemId).ToList();
                 updatedFolders = await db.ProjectFolders
                     .AsNoTracking()
                     .Where(f => folderIds.Contains(f.Id))
@@ -132,9 +121,9 @@ public class BatchMoveItemHandler(
                     }).ToListAsync(ct);
             }
 
-            if (taskMoves.Any())
+            if (request.Tasks?.Any() ?? false)
             {
-                var taskIds = taskMoves.Select(m => m.ItemId).ToList();
+                var taskIds = request.Tasks.Select(t => t.ItemId).ToList();
                 updatedTasks = await db.ProjectTasks
                     .AsNoTracking()
                     .Where(t => taskIds.Contains(t.Id))

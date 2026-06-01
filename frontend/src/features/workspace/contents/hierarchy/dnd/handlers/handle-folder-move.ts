@@ -5,7 +5,11 @@ import type { DragItemData, DragFolderData } from "../drag-item-type";
 import { store } from "@/store";
 import { folderSlice, spaceSlice } from "@/store/entityStore";
 
-export function handleFolderMove( activeData: DragFolderData, overData: DragItemData, triggerBatchMove: (move: { itemId: string; itemType: string; targetParentId: string | null; newOrderKey: string; }) => void) {
+export function handleFolderMove(
+  activeData: DragFolderData,
+  overData: DragItemData,
+  triggerBatchMove: (move: { kind: "folder"; itemId: string; targetParentId: string | null; newOrderKey: string }) => void
+) {
   let targetSpaceId: string | undefined;
 
   if (overData?.type === EntityLayerConst.ProjectSpace) {
@@ -74,10 +78,5 @@ export function handleFolderMove( activeData: DragFolderData, overData: DragItem
   }
 
   // Trigger batch queue
-  triggerBatchMove({
-    itemId: activeData.id,
-    itemType: EntityLayerConst.ProjectFolder,
-    targetParentId: targetSpaceId,
-    newOrderKey
-  });
+  triggerBatchMove({ kind: "folder", itemId: activeData.id, targetParentId: targetSpaceId, newOrderKey });
 }

@@ -50,6 +50,15 @@ export interface MoveItemRequest {
   sourceParentType?: string;
 }
 
+export interface SpaceMoveValue { itemId: string; newOrderKey: string; }
+export interface FolderMoveValue { itemId: string; targetParentId: string | null; newOrderKey: string; }
+export interface TaskMoveValue { itemId: string; targetSpaceId: string; targetFolderId: string | null; newOrderKey: string; }
+export interface BatchMoveCommand {
+  spaces?: SpaceMoveValue[];
+  folders?: FolderMoveValue[];
+  tasks?: TaskMoveValue[];
+}
+
 export const hierarchyApi = workspaceApi.injectEndpoints({
   endpoints: (build) => ({
     // Load spaces paginated
@@ -380,66 +389,64 @@ export const hierarchyApi = workspaceApi.injectEndpoints({
       }
     }),
 
-    batchMoveItems: build.mutation<void, { workspaceId: string; moves: { itemId: string; itemType: string; targetParentId: string | null; newOrderKey: string }[] }>({
-      query: ({ workspaceId, moves }) => ({
+    batchMoveItems: build.mutation<void, { workspaceId: string; command: BatchMoveCommand }>({
+      query: ({ workspaceId, command }) => ({
         url: `/workspaces/${workspaceId}/nodes/batch-move`,
         method: "POST",
-        data: moves
+        data: command
       }),
-      async onQueryStarted({ workspaceId, moves }, { dispatch, queryFulfilled, getState }) {
-        // NOTE: Entity upserts (hasTasks, parent changes, orderKey) are done IMMEDIATELY
+      async onQueryStarted({ workspaceId, command }, { dispatch, queryFulfilled, getState }) {
+        // NOTE: Entity store upserts (hasTasks, parent changes, orderKey) happen immediately
+        // in the handler files. Here we only patch the lazy-loaded node query caches.
         const state = getState() as RootState;
 
-        moves.forEach((move) => {
-          const itemId = move.itemId;
-          const targetParentId = move.targetParentId;
+        // Folder cache patches
+        command.folders?.forEach((move) => {
+          if (!move.targetParentId) return;
+          const folder = folderSelectors.selectById(state, move.itemId);
+          if (folder) {
+            dispatch(
+              hierarchyApi.util.updateQueryData("getNodeFolders", { workspaceId, nodeId: move.targetParentId, cursor: null }, (draft) => {
+                if (!draft?.items) return;
+                const idx = draft.items.findIndex(f => f.id === move.itemId);
+                if (idx !== -1) {
+                  draft.items[idx].orderKey = move.newOrderKey;
+                } else {
+                  draft.items.push({ ...folder, orderKey: move.newOrderKey, spaceId: move.targetParentId! });
+                }
+                draft.items.sort((a, b) => (a.orderKey ?? "").localeCompare(b.orderKey ?? ""));
+              })
+            );
+          }
+        });
 
-          if (move.itemType === "ProjectFolder" && targetParentId) {
-            const folder = folderSelectors.selectById(state, itemId);
-            if (folder) {
-              dispatch(
-                hierarchyApi.util.updateQueryData("getNodeFolders", { workspaceId, nodeId: targetParentId, cursor: null }, (draft) => {
+        // Task cache patches — targetFolderId/targetSpaceId are explicit, no state lookup needed
+        command.tasks?.forEach((move) => {
+          const task = taskSelectors.selectById(state, move.itemId);
+          if (task) {
+            const containerNodeId = move.targetFolderId ?? move.targetSpaceId;
+            const parentType = (move.targetFolderId ? "ProjectFolder" : "ProjectSpace") as EntityLayerType;
+            dispatch(
+              hierarchyApi.util.updateQueryData(
+                "getNodeTasks",
+                { workspaceId, nodeId: containerNodeId, parentType, cursor: null },
+                (draft) => {
                   if (!draft?.items) return;
-                  const idx = draft.items.findIndex(f => f.id === itemId);
+                  const idx = draft.items.findIndex(t => t.id === move.itemId);
                   if (idx !== -1) {
                     draft.items[idx].orderKey = move.newOrderKey;
                   } else {
-                    draft.items.push({ ...folder, orderKey: move.newOrderKey, spaceId: targetParentId });
+                    draft.items.push({
+                      ...task,
+                      orderKey: move.newOrderKey,
+                      projectSpaceId: move.targetSpaceId,
+                      projectFolderId: move.targetFolderId
+                    });
                   }
                   draft.items.sort((a, b) => (a.orderKey ?? "").localeCompare(b.orderKey ?? ""));
-                })
-              );
-            }
-          }
-
-          else if (move.itemType === "ProjectTask" && targetParentId) {
-            const task = taskSelectors.selectById(state, itemId);
-            if (task) {
-              const isTargetSpace = !!spaceSelectors.selectById(state, targetParentId);
-              const targetParentType = isTargetSpace ? "ProjectSpace" : "ProjectFolder";
-
-              dispatch(
-                hierarchyApi.util.updateQueryData(
-                  "getNodeTasks",
-                  { workspaceId, nodeId: targetParentId, parentType: targetParentType as EntityLayerType, cursor: null },
-                  (draft) => {
-                    if (!draft?.items) return;
-                    const idx = draft.items.findIndex(t => t.id === itemId);
-                    if (idx !== -1) {
-                      draft.items[idx].orderKey = move.newOrderKey;
-                    } else {
-                      draft.items.push({
-                        ...task,
-                        orderKey: move.newOrderKey,
-                        projectSpaceId: isTargetSpace ? targetParentId : (folderSelectors.selectById(state, targetParentId)?.spaceId ?? task.projectSpaceId),
-                        projectFolderId: isTargetSpace ? null : targetParentId
-                      });
-                    }
-                    draft.items.sort((a, b) => (a.orderKey ?? "").localeCompare(b.orderKey ?? ""));
-                  }
-                )
-              );
-            }
+                }
+              )
+            );
           }
         });
 

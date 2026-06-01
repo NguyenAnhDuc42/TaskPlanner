@@ -206,10 +206,9 @@ namespace Api
         [HttpPost("{id:guid}/nodes/batch-move")]
         public async Task<IActionResult> BatchMoveHierarchyItems(
             Guid id,
-            [FromBody] List<BatchMoveItemValue> moves,
+            [FromBody] BatchMoveItemCommand command,
             CancellationToken cancellationToken)
         {
-            var command = new BatchMoveItemCommand(moves);
             var result = await _handler.SendAsync(command, cancellationToken);
             return result.ToActionResult();
         }
