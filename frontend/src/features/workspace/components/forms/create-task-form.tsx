@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useReducer, useMemo } from "react";
 import { useCreateTaskMutation } from "../../contents/hierarchy/hierarchy-api";
 import { Button } from "@/components/ui/button";
 import { useWorkspace } from "../../context/workspace-provider";
@@ -14,6 +14,7 @@ import {
 import { StatusBadge } from "@/components/status-badge";
 import { PriorityBadge } from "@/components/priority-badge";
 import { StatusSelect } from "@/components/status-select";
+import { PrioritySelect } from "@/components/priority-select";
 import {
   Popover,
   PopoverContent,
@@ -28,11 +29,66 @@ import type { Status } from "@/types/status";
 import type { RootState } from "@/store";
 
 interface CreateTaskFormProps {
-  parentId: string;
-  parentType: EntityLayerType;
-  defaultStatusId?: string;
-  onSuccess?: (task: any) => void;
-  onCancel?: () => void;
+  readonly parentId: string;
+  readonly parentType: EntityLayerType;
+  readonly defaultStatusId?: string;
+  readonly onSuccess?: (task: any) => void;
+  readonly onCancel?: () => void;
+}
+
+interface TaskFormState {
+  readonly name: string;
+  readonly priority: Priority;
+  readonly icon: string;
+  readonly color: string;
+  readonly selectedStatusId: string | undefined;
+  readonly startDate: Date | undefined;
+  readonly dueDate: Date | undefined;
+}
+
+type TaskFormAction =
+  | { readonly type: "SET_NAME"; readonly payload: string }
+  | { readonly type: "SET_PRIORITY"; readonly payload: Priority }
+  | { readonly type: "SET_ICON"; readonly payload: string }
+  | { readonly type: "SET_COLOR"; readonly payload: string }
+  | { readonly type: "SET_STATUS"; readonly payload: string | undefined }
+  | { readonly type: "SET_START_DATE"; readonly payload: Date | undefined }
+  | { readonly type: "SET_DUE_DATE"; readonly payload: Date | undefined }
+  | { readonly type: "RESET"; readonly payload?: string };
+
+function createTaskFormReducer(defaultStatusId?: string) {
+
+
+  return function (state: TaskFormState, action: TaskFormAction): TaskFormState {
+    switch (action.type) {
+      case "SET_NAME":
+        return { ...state, name: action.payload };
+      case "SET_PRIORITY":
+        return { ...state, priority: action.payload };
+      case "SET_ICON":
+        return { ...state, icon: action.payload };
+      case "SET_COLOR":
+        return { ...state, color: action.payload };
+      case "SET_STATUS":
+        return { ...state, selectedStatusId: action.payload };
+      case "SET_START_DATE":
+        return { ...state, startDate: action.payload };
+      case "SET_DUE_DATE":
+        return { ...state, dueDate: action.payload };
+      case "RESET":
+        return {
+          name: "",
+          priority: Priority.Normal,
+          icon: "Circle",
+          color: "#94a3b8",
+          selectedStatusId: action.payload || defaultStatusId,
+          startDate: undefined,
+          dueDate: undefined,
+        };
+      default:
+        return state;
+    }
+  };
 }
 
 export function CreateTaskForm({
@@ -41,18 +97,21 @@ export function CreateTaskForm({
   defaultStatusId,
   onSuccess,
   onCancel,
-}: CreateTaskFormProps) {
+}: Readonly<CreateTaskFormProps>) {
   const { workspaceId } = useWorkspace();
   const [createTaskMutation, { isLoading: isCreating }] = useCreateTaskMutation();
-  const [name, setName] = useState("");
-  const [priority, setPriority] = useState<Priority>(Priority.Normal);
-  const [icon, setIcon] = useState("Circle");
-  const [color, setColor] = useState("#94a3b8");
-  const [selectedStatusId, setSelectedStatusId] = useState<
-    string | undefined
-  >(defaultStatusId);
-  const [startDate, setStartDate] = useState<Date | undefined>();
-  const [dueDate, setDueDate] = useState<Date | undefined>();
+  const [state, dispatch] = useReducer(
+    createTaskFormReducer(defaultStatusId),
+    {
+      name: "",
+      priority: Priority.Normal,
+      icon: "Circle",
+      color: "#94a3b8",
+      selectedStatusId: defaultStatusId,
+      startDate: undefined,
+      dueDate: undefined,
+    }
+  );
 
   // Dynamically resolve space ID depending on folder/space parentType
   const folder = useSelector((state: RootState) => state.folders.entities[parentId]);
@@ -74,15 +133,16 @@ export function CreateTaskForm({
       : space?.workflowId;
 
   // Derive statuses from the RESOLVED workflow
-  const statuses = useSelector((state: RootState) =>
-    targetWorkflowId
-      ? statusSelectors.selectAll(state).filter((s: Status) => s.workflowId === targetWorkflowId)
-      : []
-  );
+  const allStatuses = useSelector((state: RootState) => statusSelectors.selectAll(state));
+  const statuses = useMemo(() => {
+    return targetWorkflowId
+      ? allStatuses.filter((s: Status) => s.workflowId === targetWorkflowId)
+      : [];
+  }, [allStatuses, targetWorkflowId]);
 
   const onSubmit = async (e?: React.FormEvent) => {
     e?.preventDefault();
-    if (!name.trim()) return;
+    if (!state.name.trim()) return;
 
     try {
       const result = await createTaskMutation({
@@ -90,13 +150,13 @@ export function CreateTaskForm({
         body: {
           parentId,
           parentType,
-          name,
-          priority: priority as any,
-          icon,
-          color,
-          statusId: selectedStatusId,
-          startDate: startDate?.toISOString(),
-          dueDate: dueDate?.toISOString(),
+          name: state.name,
+          priority: state.priority as any,
+          icon: state.icon,
+          color: state.color,
+          statusId: state.selectedStatusId,
+          startDate: state.startDate?.toISOString(),
+          dueDate: state.dueDate?.toISOString(),
         },
       }).unwrap();
       toast.success("Task created");
@@ -112,19 +172,19 @@ export function CreateTaskForm({
       <div className="px-3 pt-2 pb-2">
         <div className="flex items-center gap-3">
           <IconColorPicker
-            icon={icon}
-            color={color}
+            icon={state.icon}
+            color={state.color}
             onChange={(i, c) => {
-              setIcon(i);
-              setColor(c);
+              dispatch({ type: "SET_ICON", payload: i });
+              dispatch({ type: "SET_COLOR", payload: c });
             }}
           />
           <textarea
             placeholder="Task title"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
+            aria-label="Task title"
+            value={state.name}
+            onChange={(e) => dispatch({ type: "SET_NAME", payload: e.target.value })}
             className="flex-1 bg-transparent border-none focus:ring-0 text-[13px] font-semibold placeholder:text-muted-foreground/30 py-0 outline-none resize-none min-h-[22px]"
-            autoFocus
             rows={1}
             onKeyDown={(e) => {
               if (e.key === " ") {
@@ -142,15 +202,15 @@ export function CreateTaskForm({
       {/* Attribute Strip */}
       <div className="px-3 py-1.5 flex flex-nowrap items-center gap-1.5 border-t border-border/5 overflow-x-auto [&::-webkit-scrollbar]:hidden">
         <StatusSelect
-          value={selectedStatusId || undefined}
-          onChange={(statusId) => setSelectedStatusId(statusId)}
+          value={state.selectedStatusId || undefined}
+          onChange={(statusId) => dispatch({ type: "SET_STATUS", payload: statusId })}
           workflowId={targetWorkflowId}
           align="start"
           trigger={
-            <AttributeButton icon={selectedStatusId ? undefined : Circle}>
-              {selectedStatusId ? (
+            <AttributeButton icon={state.selectedStatusId ? undefined : Circle}>
+              {state.selectedStatusId ? (
                 <StatusBadge
-                  status={statuses.find((s: Status) => s.id === selectedStatusId)}
+                  status={statuses.find((s: Status) => s.id === state.selectedStatusId)}
                 />
               ) : (
                 "Status"
@@ -159,47 +219,25 @@ export function CreateTaskForm({
           }
         />
 
-        <Popover>
-          <PopoverTrigger asChild>
+        <PrioritySelect
+          value={state.priority}
+          onChange={(p) => dispatch({ type: "SET_PRIORITY", payload: p })}
+          align="start"
+          trigger={
             <AttributeButton>
-              <PriorityBadge priority={priority} />
+              <PriorityBadge priority={state.priority} />
             </AttributeButton>
-          </PopoverTrigger>
-          <PopoverContent
-            className="w-32 p-1 bg-popover border border-border shadow-md rounded-md"
-            align="start"
-          >
-            <div className="flex flex-col gap-0.5">
-              {[
-                Priority.Low,
-                Priority.Normal,
-                Priority.High,
-                Priority.Urgent,
-              ].map((p) => (
-                <button
-                  key={p}
-                  type="button"
-                  className="px-1 py-1 text-xs text-left rounded-sm hover:bg-muted transition-colors flex items-center"
-                  onClick={() => setPriority(p)}
-                >
-                  <PriorityBadge
-                    priority={p}
-                    className="w-full justify-start"
-                  />
-                </button>
-              ))}
-            </div>
-          </PopoverContent>
-        </Popover>
+          }
+        />
 
         <SimpleDatePicker
-          value={startDate}
-          onChange={setStartDate}
+          value={state.startDate}
+          onChange={(date) => dispatch({ type: "SET_START_DATE", payload: date })}
           label="Start Date"
         />
         <SimpleDatePicker
-          value={dueDate}
-          onChange={setDueDate}
+          value={state.dueDate}
+          onChange={(date) => dispatch({ type: "SET_DUE_DATE", payload: date })}
           label="Due Date"
         />
 
@@ -223,7 +261,7 @@ export function CreateTaskForm({
           <Button
             type="submit"
             size="sm"
-            disabled={!name.trim() || isCreating}
+            disabled={!state.name.trim() || isCreating}
             className="h-7 px-4 text-[10px] font-semibold bg-primary hover:bg-primary/90 text-primary-foreground shadow-sm rounded-md transition-all active:scale-95"
           >
             {isCreating ? "Creating..." : "Create Task"}

@@ -1,5 +1,5 @@
 import { useEditor, EditorContent } from "@tiptap/react";
-import { useEffect, useRef, useCallback, useState } from "react";
+import React, { useEffect, useRef, useCallback, useState, memo } from "react";
 import { BubbleMenu } from "@tiptap/react/menus";
 import StarterKit from "@tiptap/starter-kit";
 import Placeholder from "@tiptap/extension-placeholder";
@@ -13,13 +13,12 @@ import { IdExtension } from "@/features/workspace/contents/layer-detail/extensio
 import { SlashCommand, getSuggestionItems, renderSuggestion } from "./extensions/slash-command";
 import CodeBlockLowlight from "@tiptap/extension-code-block-lowlight";
 import { common, createLowlight } from "lowlight";
-import React from "react";
 
 const lowlight = createLowlight(common);
 
 interface BlockEditorProps {
-  documentId: string;
-  placeholder?: string;
+  readonly documentId: string;
+  readonly placeholder?: string;
 }
 
 // ============================================================================
@@ -254,22 +253,22 @@ if (typeof document !== "undefined" && !document.getElementById("block-editor-st
 // BUBBLE MENU — context toolbar on text selection
 // ============================================================================
 
-const BubbleToolbar = React.memo(function BubbleToolbar({ editor }: { editor: any }) {
-  const btn = (active: boolean) =>
-    cn(
-      "p-1.5 rounded-md transition-all text-[13px] font-semibold leading-none",
-      active
-        ? "bg-white/20 text-white"
-        : "text-white/70 hover:bg-white/10 hover:text-white"
-    );
+const btnClass = (active: boolean) =>
+  cn(
+    "p-1.5 rounded-md transition-all text-[13px] font-semibold leading-none",
+    active
+      ? "bg-white/20 text-white"
+      : "text-white/70 hover:bg-white/10 hover:text-white"
+  );
 
+const BubbleToolbar = memo(function BubbleToolbar({ editor }: Readonly<{ editor: any }>) {
   return (
     <BubbleMenu editor={editor} options={{ duration: 100 } as any}>
       <div className="flex items-center gap-0.5 p-1 bg-foreground/90 rounded-lg shadow-xl backdrop-blur-md animate-in fade-in slide-in-from-bottom-1 duration-150">
         <button
           type="button"
           onClick={() => editor.chain().focus().toggleBold().run()}
-          className={btn(editor.isActive("bold"))}
+          className={btnClass(editor.isActive("bold"))}
           title="Bold"
         >
           <Bold className="h-3.5 w-3.5" />
@@ -277,7 +276,7 @@ const BubbleToolbar = React.memo(function BubbleToolbar({ editor }: { editor: an
         <button
           type="button"
           onClick={() => editor.chain().focus().toggleItalic().run()}
-          className={btn(editor.isActive("italic"))}
+          className={btnClass(editor.isActive("italic"))}
           title="Italic"
         >
           <Italic className="h-3.5 w-3.5" />
@@ -285,7 +284,7 @@ const BubbleToolbar = React.memo(function BubbleToolbar({ editor }: { editor: an
         <button
           type="button"
           onClick={() => editor.chain().focus().toggleStrike().run()}
-          className={btn(editor.isActive("strike"))}
+          className={btnClass(editor.isActive("strike"))}
           title="Strikethrough"
         >
           <Strikethrough className="h-3.5 w-3.5" />
@@ -293,7 +292,7 @@ const BubbleToolbar = React.memo(function BubbleToolbar({ editor }: { editor: an
         <button
           type="button"
           onClick={() => editor.chain().focus().toggleCode().run()}
-          className={btn(editor.isActive("code"))}
+          className={btnClass(editor.isActive("code"))}
           title="Inline code"
         >
           <Code className="h-3.5 w-3.5" />
@@ -304,7 +303,7 @@ const BubbleToolbar = React.memo(function BubbleToolbar({ editor }: { editor: an
         <button
           type="button"
           onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
-          className={btn(editor.isActive("heading", { level: 1 }))}
+          className={btnClass(editor.isActive("heading", { level: 1 }))}
           title="Heading 1"
         >
           <Heading1 className="h-3.5 w-3.5" />
@@ -312,7 +311,7 @@ const BubbleToolbar = React.memo(function BubbleToolbar({ editor }: { editor: an
         <button
           type="button"
           onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
-          className={btn(editor.isActive("heading", { level: 2 }))}
+          className={btnClass(editor.isActive("heading", { level: 2 }))}
           title="Heading 2"
         >
           <Heading2 className="h-3.5 w-3.5" />
@@ -320,7 +319,7 @@ const BubbleToolbar = React.memo(function BubbleToolbar({ editor }: { editor: an
         <button
           type="button"
           onClick={() => editor.chain().focus().toggleBlockquote().run()}
-          className={btn(editor.isActive("blockquote"))}
+          className={btnClass(editor.isActive("blockquote"))}
           title="Quote"
         >
           <Quote className="h-3.5 w-3.5" />
@@ -336,7 +335,7 @@ const BubbleToolbar = React.memo(function BubbleToolbar({ editor }: { editor: an
 
 type SaveState = "saved" | "saving" | "unsaved";
 
-const SaveIndicator = React.memo(function SaveIndicator({ state }: { state: SaveState }) {
+const SaveIndicator = memo(function SaveIndicator({ state }: Readonly<{ state: SaveState }>) {
   return (
     <div className="flex items-center gap-1.5 text-[10px] font-medium text-muted-foreground/40 select-none transition-all duration-300">
       {state === "saving" && (
@@ -365,7 +364,7 @@ const SaveIndicator = React.memo(function SaveIndicator({ state }: { state: Save
 // MAIN EDITOR COMPONENT
 // ============================================================================
 
-export function BlockEditor({ documentId, placeholder }: BlockEditorProps) {
+export function BlockEditor({ documentId, placeholder }: Readonly<BlockEditorProps>) {
   const { initialContent, handleUpdate } = useBlockEditorSync(documentId);
   const isSettingContent = useRef(false);
   const updateTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -375,10 +374,10 @@ export function BlockEditor({ documentId, placeholder }: BlockEditorProps) {
     (content: any) => {
       setSaveState("unsaved");
       if (updateTimeoutRef.current) clearTimeout(updateTimeoutRef.current);
-      updateTimeoutRef.current = setTimeout(async () => {
+      updateTimeoutRef.current = setTimeout(() => {
         setSaveState("saving");
         try {
-          await handleUpdate(content);
+          handleUpdate(content);
         } finally {
           setSaveState("saved");
         }

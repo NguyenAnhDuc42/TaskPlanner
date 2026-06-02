@@ -113,10 +113,14 @@ const COMMAND_GROUPS: { label: string; items: CommandItemProps[] }[] = [
 
 export const getSuggestionItems = ({ query }: { query: string }): CommandItemProps[] => {
   const q = query.toLowerCase();
-  return COMMAND_GROUPS.flatMap((g) => g.items).filter(
-    (item) =>
-      item.title.toLowerCase().includes(q) || item.description.toLowerCase().includes(q)
-  );
+  return COMMAND_GROUPS.reduce<CommandItemProps[]>((acc, group) => {
+    for (const item of group.items) {
+      if (item.title.toLowerCase().includes(q) || item.description.toLowerCase().includes(q)) {
+        acc.push(item);
+      }
+    }
+    return acc;
+  }, []);
 };
 
 export const CommandList = forwardRef(
@@ -155,11 +159,16 @@ export const CommandList = forwardRef(
 
     if (props.items.length === 0) return null;
 
-    // Group displayed items
-    const displayedGroups = COMMAND_GROUPS.map((g) => ({
-      ...g,
-      items: g.items.filter((item) => props.items.includes(item)),
-    })).filter((g) => g.items.length > 0);
+    const displayedGroups = COMMAND_GROUPS.reduce<Array<{ label: string; items: any[] }>>((acc, g) => {
+      const matchedItems = g.items.filter((item) => props.items.includes(item));
+      if (matchedItems.length > 0) {
+        acc.push({
+          ...g,
+          items: matchedItems,
+        });
+      }
+      return acc;
+    }, []);
 
     let globalIndex = 0;
 

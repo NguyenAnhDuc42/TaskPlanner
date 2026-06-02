@@ -9,7 +9,7 @@ public class CreateWorkspaceHandler(
     WorkspaceService workspaceService
 ) : ICommandHandler<CreateWorkspaceCommand, Guid>
 {
-    public async Task<Result<Guid>> Handle(CreateWorkspaceCommand request, CancellationToken ct)
+    public async Task<Result<Guid>> Handle(CreateWorkspaceCommand request, CancellationToken cancellationToken)
     {
         var currentUserId = currentUserService.CurrentUserId();
         if (currentUserId == Guid.Empty) 
@@ -28,17 +28,14 @@ public class CreateWorkspaceHandler(
             strictJoin: request.StrictJoin
         );
         
-        await db.ProjectWorkspaces.AddAsync(workspace, ct);
-        await db.SaveChangesAsync(ct);
+        await db.ProjectWorkspaces.AddAsync(workspace, cancellationToken);
+        await db.SaveChangesAsync(cancellationToken);
 
-        // 2. Clear Cache
-        await cache.RemoveByTagAsync(WorkspaceCacheKeys.WorkspaceListTag(currentUserId), ct);
+        await cache.RemoveByTagAsync(WorkspaceCacheKeys.WorkspaceListTag(currentUserId), cancellationToken);
 
-        // 3. Offload Skeleton Creation (Async Internal Service)
         workspaceService.InitializeInBackground(workspace.Id, currentUserId);
-
-        // 4. Immediate Real-time Signal for Navigation
-        await realtime.NotifyUserAsync(currentUserId, "WorkspaceCreated", new { WorkspaceId = workspace.Id }, ct);
+        
+        await realtime.NotifyUserAsync(currentUserId, "WorkspaceCreated", new { WorkspaceId = workspace.Id }, cancellationToken);
 
         return Result<Guid>.Success(workspace.Id);
     }

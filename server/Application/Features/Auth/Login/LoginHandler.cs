@@ -14,7 +14,7 @@ public class LoginHandler(
     IMemoryCache cache
 ) : ICommandHandler<LoginCommand, LoginResponse>
 {
-    public async Task<Result<LoginResponse>> Handle(LoginCommand request, CancellationToken ct)
+    public async Task<Result<LoginResponse>> Handle(LoginCommand request, CancellationToken cancellationToken)
     {
         var httpContext = httpContextAccessor.HttpContext;
         var ipAddress = httpContext?.Connection.RemoteIpAddress?.ToString() ?? "Unknown";
@@ -26,7 +26,7 @@ public class LoginHandler(
             return Result<LoginResponse>.Failure(Error.Validation("Auth.Locked", "Too many failed login attempts. Please try again in 15 minutes."));
         }
 
-        var user = await db.Users.ByEmail(request.email).AsNoTracking().FirstOrDefaultAsync(ct);
+        var user = await db.Users.ByEmail(request.email).AsNoTracking().FirstOrDefaultAsync(cancellationToken);
         
         // 2. Validate Credentials & Track Attempts
         if (user is null || !passwordService.VerifyPassword(request.password, user.PasswordHash!)) 
@@ -55,8 +55,8 @@ public class LoginHandler(
         var tokens = tokenService.GenerateTokens(user, userAgent, ipAddress);
 
         var session = Session.Create(user.Id, tokens.RefreshToken, tokens.ExpirationRefreshToken, userAgent, ipAddress);
-        await db.Sessions.AddAsync(session, ct);
-        await db.SaveChangesAsync(ct);
+        await db.Sessions.AddAsync(session, cancellationToken);
+        await db.SaveChangesAsync(cancellationToken);
 
         cookieService.SetAuthCookies(tokens);
 

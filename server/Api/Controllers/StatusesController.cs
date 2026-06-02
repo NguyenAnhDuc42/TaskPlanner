@@ -19,7 +19,7 @@ public class StatusesController(IHandler handler) : ControllerBase
     [HttpPut("workflow/{workflowId:guid}")]
     public async Task<IActionResult> UpdateWorkflowStatuses(
         Guid workflowId, 
-        [FromBody] List<StatusUpdateRecord> statuses, 
+        [FromBody] List<StatusUpdateValue> statuses, 
         CancellationToken ct)
     {
         var result = await handler.SendAsync(new UpdateWorkflowStatusesCommand(workflowId, statuses), ct);

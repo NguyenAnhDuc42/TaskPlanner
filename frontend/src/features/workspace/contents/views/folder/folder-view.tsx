@@ -1,6 +1,6 @@
 import { EntityViewFrame } from "../entity-view-frame";
 import { FolderTaskList } from "./components/folder-task-list";
-import { Folder, Trash2, MoreHorizontal, GitMerge, Calendar } from "lucide-react";
+import { Folder, Trash2, MoreHorizontal, GitMerge, Calendar, Circle } from "lucide-react";
 import { TaskDetailCanvas } from "../task/components/task-detail-canvas";
 import * as React from "react";
 import { useParams, Link } from "@tanstack/react-router";
@@ -17,6 +17,13 @@ import {
 } from "@/components/ui/breadcrumb";
 import { Button } from "@/components/ui/button";
 import { PriorityBadge } from "@/components/priority-badge";
+import { StatusBadge } from "@/components/status-badge";
+import { StatusSelect } from "@/components/status-select";
+import { PrioritySelect } from "@/components/priority-select";
+import { AttributeButton } from "@/features/workspace/components/forms/form-elements";
+import { useSelector } from "react-redux";
+import { statusSelectors } from "@/store/entityStore";
+import type { Status } from "@/types/status";
 import {
   useGetFolderDetailQuery,
   useFolderDetail,
@@ -59,9 +66,18 @@ export function FolderView() {
 
   const [updateFolderField] = useUpdateFolderFieldMutation();
 
+  const targetWorkflowId = folder?.workflowId || parentSpace?.workflowId || detailData?.workflowId;
+  const allStatuses = useSelector(statusSelectors.selectAll);
+  const folderStatuses = React.useMemo(() => {
+    return targetWorkflowId
+      ? allStatuses.filter((s: Status) => s.workflowId === targetWorkflowId)
+      : [];
+  }, [allStatuses, targetWorkflowId]);
+
   const updateField = (patches: Partial<FolderRecord>) => {
     updateFolderField({ folderId, patches });
   };
+
 
   const toggleCheck = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -182,21 +198,36 @@ export function FolderView() {
           </div>
 
           <div className="flex items-center gap-2">
-            <DropdownMenu>
-              <DropdownMenuTrigger className="focus:outline-none rounded-md">
-                <PriorityBadge 
-                  priority={folder?.priority} 
-                  className="h-5 px-2 rounded-md cursor-pointer border border-border/10 shadow-sm"
-                />
-              </DropdownMenuTrigger>
-              <DropdownMenuContent>
-                {Object.values(Priority).map((p) => (
-                  <DropdownMenuItem key={p} onClick={() => updateField({ priority: p })}>
-                    <PriorityBadge priority={p} />
-                  </DropdownMenuItem>
-                ))}
-              </DropdownMenuContent>
-            </DropdownMenu>
+            {/* Status Selector */}
+            <StatusSelect
+              value={folder?.statusId || undefined}
+              onChange={(statusId) => updateField({ statusId })}
+              workflowId={targetWorkflowId}
+              align="end"
+              trigger={
+                <AttributeButton icon={folder?.statusId ? undefined : Circle}>
+                  {folder?.statusId ? (
+                    <StatusBadge
+                      status={folderStatuses.find((s) => s.id === folder.statusId)}
+                    />
+                  ) : (
+                    "Status"
+                  )}
+                </AttributeButton>
+              }
+            />
+
+            {/* Reusable Priority Selector */}
+            <PrioritySelect
+              value={folder?.priority}
+              onChange={(priority) => updateField({ priority })}
+              align="end"
+              trigger={
+                <AttributeButton>
+                  <PriorityBadge priority={folder?.priority} />
+                </AttributeButton>
+              }
+            />
 
             {/* Start Date */}
             <Popover>

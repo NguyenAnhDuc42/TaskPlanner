@@ -189,7 +189,6 @@ export function TaskDetailView() {
                 mode="single"
                 selected={task.dueDate ? new Date(task.dueDate) : undefined}
                 onSelect={(date) => updateField({ dueDate: date?.toISOString() })}
-                initialFocus
               />
             </PopoverContent>
           </Popover>

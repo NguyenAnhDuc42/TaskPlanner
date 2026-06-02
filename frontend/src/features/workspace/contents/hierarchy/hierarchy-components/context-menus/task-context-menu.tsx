@@ -40,7 +40,7 @@ export function TaskContextMenu({
     setIsDeleteOpen(false);
   };
 
-  const renderMenuItems = (isContext: boolean) => {
+  const renderMenuItems = React.useCallback((isContext: boolean) => {
     const Item = isContext ? ContextMenuItem : DropdownMenuItem;
     const Separator = isContext ? ContextMenuSeparator : DropdownMenuSeparator;
 
@@ -64,10 +64,12 @@ export function TaskContextMenu({
         </Item>
       </>
     );
-  };
+  }, [taskId, workspaceId]);
+
+  const contextValue = React.useMemo(() => ({ renderMenuItems }), [renderMenuItems]);
 
   return (
-    <EntityMenuContext.Provider value={{ renderMenuItems }}>
+    <EntityMenuContext.Provider value={contextValue}>
       <ContextMenu>
         <ContextMenuTrigger asChild>
           {children}

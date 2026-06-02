@@ -6,7 +6,7 @@ namespace Application;
 
 public class GetNodeFoldersHandler(TaskPlanDbContext db, CursorHelper cursorHelper) : IQueryHandler<GetNodeFoldersQuery, PagedResult<FolderRecord>>
 {
-    public async Task<Result<PagedResult<FolderRecord>>> Handle(GetNodeFoldersQuery request, CancellationToken ct)
+    public async Task<Result<PagedResult<FolderRecord>>> Handle(GetNodeFoldersQuery request, CancellationToken cancellationToken)
     {
         const string sql = @"
             SELECT 

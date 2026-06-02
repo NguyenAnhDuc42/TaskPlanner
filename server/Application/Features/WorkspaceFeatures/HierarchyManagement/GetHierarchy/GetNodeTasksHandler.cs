@@ -6,7 +6,7 @@ namespace Application;
 
 public class GetNodeTasksHandler(TaskPlanDbContext db, CursorHelper cursorHelper) : IQueryHandler<GetNodeTasksQuery, PagedResult<TaskRecord>>
 {
-    public async Task<Result<PagedResult<TaskRecord>>> Handle(GetNodeTasksQuery request, CancellationToken ct)
+    public async Task<Result<PagedResult<TaskRecord>>> Handle(GetNodeTasksQuery request, CancellationToken cancellationToken)
     {
         const string sql = @"
             SELECT 

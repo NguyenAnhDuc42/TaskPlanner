@@ -23,7 +23,7 @@ public class EntityAccess : Entity
         AccessLevel = accessLevel;
         InitializeAudit(creatorId);
     }
-    public EntityAccess Create(Guid projectWorkspaceId, Guid workspaceMemberId, Guid? projectSpaceId, AccessLevel accessLevel, Guid creatorId){
+    static EntityAccess Create(Guid projectWorkspaceId, Guid workspaceMemberId, Guid? projectSpaceId, AccessLevel accessLevel, Guid creatorId){
         return new EntityAccess(projectWorkspaceId, workspaceMemberId, projectSpaceId, null, null, accessLevel, creatorId);
     }
 

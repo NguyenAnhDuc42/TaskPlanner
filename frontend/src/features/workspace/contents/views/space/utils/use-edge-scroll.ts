@@ -51,8 +51,8 @@ export function useEdgeScroll(
     const handlePointerMove = (e: PointerEvent) => {
       mousePosRef.current = { x: e.clientX, y: e.clientY };
     };
-    window.addEventListener("pointermove", handlePointerMove);
-    return () => window.removeEventListener("pointermove", handlePointerMove);
+    globalThis.addEventListener("pointermove", handlePointerMove);
+    return () => globalThis.removeEventListener("pointermove", handlePointerMove);
   }, []);
 
   useEffect(() => {

@@ -68,10 +68,10 @@ export function CreateWorkspaceForm({
             />
             <input
               placeholder="Workspace name"
+              aria-label="Workspace name"
               value={data.name}
               onChange={(e) => setData({ ...data, name: e.target.value })}
               className="flex-1 bg-transparent border-none focus:ring-0 text-[13px] font-semibold placeholder:text-muted-foreground/30 py-0 outline-none"
-              autoFocus
               onKeyDown={(e) => {
                 if (e.key === "Enter" && !e.shiftKey) {
                   e.preventDefault();

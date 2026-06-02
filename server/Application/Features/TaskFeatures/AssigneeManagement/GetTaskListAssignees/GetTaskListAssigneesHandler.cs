@@ -6,9 +6,9 @@ namespace Application;
 
 public class GetTaskListAssigneesHandler(TaskPlanDbContext db) : IQueryHandler<GetTaskListAssigneesQuery, List<AssigneeRecord>>
 {
-    public async Task<Result<List<AssigneeRecord>>> Handle(GetTaskListAssigneesQuery request, CancellationToken ct)
+    public async Task<Result<List<AssigneeRecord>>> Handle(GetTaskListAssigneesQuery request, CancellationToken cancellationToken)
     {
-        var folder = await db.ProjectFolders.FindAsync(request.ListId, ct);
+        var folder = await db.ProjectFolders.FindAsync(request.ListId, cancellationToken);
         if (folder == null) return FolderError.NotFound;
 
         const string sql = @"

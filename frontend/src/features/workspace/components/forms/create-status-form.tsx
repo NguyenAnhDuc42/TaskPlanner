@@ -145,8 +145,15 @@ function SortableStatusItem({
         ref={setNodeRef}
         style={style}
         onClick={() => setIsOpen(true)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            setIsOpen(true);
+          }
+        }}
+        tabIndex={0}
+        role="button"
         className={cn(
-          "flex items-center gap-2 bg-muted/20 hover:bg-muted/30 px-2.5 h-8 rounded-md border border-border/40 group cursor-pointer",
+          "flex items-center gap-2 bg-muted/20 hover:bg-muted/30 px-2.5 h-8 rounded-md border border-border/40 group cursor-pointer outline-none focus-visible:ring-1 focus-visible:ring-ring",
           isDragging && "opacity-50 shadow-lg z-50"
         )}
       >
@@ -366,8 +373,8 @@ export function CreateStatusForm({
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     placeholder="Status name"
+                    aria-label="Status name"
                     className="flex-1 h-6 bg-transparent p-0 text-xs focus:outline-none placeholder:text-muted-foreground/30"
-                    autoFocus
                     onBlur={() => {
                       if (name.trim()) {
                         const newStatus: Status = {

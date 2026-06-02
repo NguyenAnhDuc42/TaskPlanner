@@ -157,11 +157,12 @@ export function WorkspaceProvider({
   const isInnerSidebarOpen = settings.isInnerSidebarOpen;
 
   // 5. Derive Active Icon from URL (Source of Truth)
+  const pathname = location.pathname;
   const activeIcon = useMemo(() => {
-    const segments = location.pathname.split("/");
+    const segments = pathname.split("/");
     const icon = segments[3] || "projects";
     return icon as ContentPage;
-  }, [location.pathname]);
+  }, [pathname]);
 
   const updateSidebarWidth = useCallback(
     (newWidth: number) => {

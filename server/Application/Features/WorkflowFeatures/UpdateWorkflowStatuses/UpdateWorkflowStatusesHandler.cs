@@ -1,97 +1,150 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Hybrid;
+
 namespace Application;
 
-public class UpdateWorkflowStatusesHandler(TaskPlanDbContext db, WorkspaceContext context, HybridCache cache, RealtimeService realtime) 
+public class UpdateWorkflowStatusesHandler(
+    TaskPlanDbContext db,
+    WorkspaceContext context,
+    HybridCache cache,
+    RealtimeService realtime)
     : ICommandHandler<UpdateWorkflowStatusesCommand>
 {
-    public async Task<Result> Handle(UpdateWorkflowStatusesCommand request, CancellationToken ct)
+    public async Task<Result> Handle(
+        UpdateWorkflowStatusesCommand request,
+        CancellationToken cancellationToken)
     {
         if (context.CurrentMember.Role > Role.Admin)
             return Result.Failure(MemberError.DontHavePermission);
 
         var workflow = await db.Workflows
-            .Include(w => w.Statuses)
-            .FirstOrDefaultAsync(w => w.Id == request.WorkflowId, ct);
+            .Include(x => x.Statuses)
+            .FirstOrDefaultAsync(
+                x => x.Id == request.WorkflowId,
+                cancellationToken);
 
-        if (workflow == null) return Result.Failure(WorkflowError.NotFound);
+        if (workflow is null)
+            return Result.Failure(WorkflowError.NotFound);
 
-        var existingStatuses = workflow.Statuses.ToDictionary(s => s.Id);
+        var existingStatuses = workflow.Statuses
+            .ToDictionary(x => x.Id);
 
-        var existingModifiers = request.Statuses.Where(s => s.Action == RowAction.Update || s.Action == RowAction.Delete);
-        var creates = request.Statuses.Where(s => s.Action == RowAction.Create);
-
-        // 1. Process Updates and Deletes
-        foreach (var statusDto in existingModifiers)
+        foreach (var status in request.Statuses)
         {
-            if (statusDto.Id.HasValue && existingStatuses.TryGetValue(statusDto.Id.Value, out var existing))
+            switch (status.Action)
             {
-                if (statusDto.Action == RowAction.Delete)
-                {
-                    workflow.RemoveStatus(existing.Id);
-                    db.Statuses.Remove(existing);
-                }
-                else
-                {
-                    var resolvedKey = (statusDto.PreviousOrderKey != null || statusDto.NextOrderKey != null)
-                        ? ResolveOrderKey(statusDto.PreviousOrderKey, statusDto.NextOrderKey)
-                        : null;
+                case RowAction.Create:
+                    ProcessCreate(status, workflow);
+                    break;
 
-                    existing.Update(
-                        name: statusDto.Name,
-                        color: statusDto.Color,
-                        category: statusDto.Category,
-                        orderKey: resolvedKey
-                    );
-                }
+                case RowAction.Update:
+                    if (status.Id is null)
+                        continue;
+
+                    if (!existingStatuses.TryGetValue(
+                            status.Id.Value,
+                            out var statusToUpdate))
+                        continue;
+
+                    ProcessUpdate(statusToUpdate, status);
+                    break;
+
+                case RowAction.Delete:
+                    if (status.Id is null)
+                        continue;
+
+                    if (!existingStatuses.TryGetValue(
+                            status.Id.Value,
+                            out var statusToDelete))
+                        continue;
+
+                    ProcessDelete(statusToDelete, workflow);
+                    break;
             }
         }
 
-        // 3. Process Creates
-        foreach (var statusDto in creates)
-        {
-            var orderKey = (statusDto.PreviousOrderKey != null || statusDto.NextOrderKey != null)
-                ? ResolveOrderKey(statusDto.PreviousOrderKey, statusDto.NextOrderKey)
-                : null;
-            
-            var @new = Status.Create(
-                workflow.ProjectWorkspaceId, 
-                workflow.Id, 
-                statusDto.Name, 
-                statusDto.Color!, 
-                statusDto.Category, 
-                context.CurrentMember.Id,
-                orderKey);
-            
-            workflow.AddStatus(@new);
-        }
+        await db.SaveChangesAsync(cancellationToken);
 
-        await db.SaveChangesAsync(ct);
+        await cache.RemoveByTagAsync(
+            $"Workflows-{context.workspaceId}",
+            cancellationToken);
 
-        await cache.RemoveByTagAsync($"Workflows-{context.workspaceId}", ct);
-        await cache.RemoveByTagAsync($"Statuses-{context.workspaceId}", ct);
+        await cache.RemoveByTagAsync(
+            $"Statuses-{context.workspaceId}",
+            cancellationToken);
 
-        await realtime.NotifyWorkspaceAsync(context.workspaceId, "WorkflowUpdated", new { WorkflowId = workflow.Id }, ct);
+        await realtime.NotifyWorkspaceAsync(
+            context.workspaceId,
+            "WorkflowUpdated",
+            new { WorkflowId = workflow.Id },
+            cancellationToken);
 
         return Result.Success();
     }
 
-    private static string ResolveOrderKey(string? prevKey, string? nextKey)
+    private void ProcessCreate(
+        StatusUpdateValue dto,
+        Workflow workflow)
     {
-        if (prevKey != null && nextKey != null)
-        {
-            if (string.Compare(prevKey, nextKey, StringComparison.Ordinal) >= 0)
-                return FractionalIndex.After(prevKey);
+        var orderKey = ResolveOrderKey(
+            dto.PreviousOrderKey,
+            dto.NextOrderKey);
 
-            return FractionalIndex.Between(prevKey, nextKey);
+        var status = Status.Create(
+            workflow.ProjectWorkspaceId,
+            workflow.Id,
+            dto.Name,
+            dto.Color,
+            dto.Category,
+            context.CurrentMember.Id,
+            orderKey);
+
+        workflow.AddStatus(status);
+    }
+
+    private void ProcessDelete(
+        Status status,
+        Workflow workflow)
+    {
+        workflow.RemoveStatus(status.Id);
+        db.Statuses.Remove(status);
+    }
+
+    private static void ProcessUpdate(
+        Status status,
+        StatusUpdateValue dto)
+    {
+        var orderKey = ResolveOrderKey(
+            dto.PreviousOrderKey,
+            dto.NextOrderKey);
+
+        status.Update(
+            dto.Name,
+            dto.Color,
+            dto.Category,
+            orderKey);
+    }
+
+    private static string? ResolveOrderKey(
+        string? previousKey,
+        string? nextKey)
+    {
+        if (previousKey is null && nextKey is null)
+            return null;
+
+        if (previousKey is not null && nextKey is not null)
+        {
+            return string.Compare(
+                       previousKey,
+                       nextKey,
+                       StringComparison.Ordinal) >= 0
+                ? FractionalIndex.After(previousKey)
+                : FractionalIndex.Between(previousKey, nextKey);
         }
 
-        if (prevKey != null) return FractionalIndex.After(prevKey);
-        if (nextKey != null) return FractionalIndex.Before(nextKey);
+        if (previousKey is not null)
+            return FractionalIndex.After(previousKey);
 
-        return FractionalIndex.Start();
+        return FractionalIndex.Before(nextKey!);
     }
 }
-
-
-

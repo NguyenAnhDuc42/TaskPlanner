@@ -6,9 +6,9 @@ namespace Application;
 
 public class GetTaskAssigneesHandler(TaskPlanDbContext db) : IQueryHandler<GetTaskAssigneesQuery, List<AssigneeRecord>>
 {
-    public async Task<Result<List<AssigneeRecord>>> Handle(GetTaskAssigneesQuery request, CancellationToken ct)
+    public async Task<Result<List<AssigneeRecord>>> Handle(GetTaskAssigneesQuery request, CancellationToken cancellationToken)
     {
-        var task = await db.ProjectTasks.FindAsync(request.TaskId, ct);
+        var task = await db.ProjectTasks.FindAsync(request.TaskId, cancellationToken);
         if (task == null) return TaskError.NotFound;
 
         const string sql = @"

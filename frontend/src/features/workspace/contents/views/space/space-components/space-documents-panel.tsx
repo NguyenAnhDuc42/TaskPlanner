@@ -98,7 +98,7 @@ export function SpaceDocumentsPanel({ spaceId }: SpaceDocumentsPanelProps) {
             <FileText className="h-3 w-3 text-sky-400" />
             <input
               type="text"
-              autoFocus
+              aria-label="New document name"
               value={newTabName}
               onChange={(e) => setNewTabName(e.target.value)}
               onKeyDown={(e) => {

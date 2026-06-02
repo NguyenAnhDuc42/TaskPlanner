@@ -2,19 +2,19 @@ import { cn } from "@/lib/utils";
 import { Calendar } from "lucide-react";
 
 interface DateBadgeProps {
-  startDate?: string | null;
-  dueDate?: string | null;
-  className?: string;
-  onClick?: () => void;
+  readonly startDate?: string | null;
+  readonly dueDate?: string | null;
+  readonly className?: string;
+  readonly onClick?: () => void;
 }
 
-export function DateBadge({ startDate, dueDate, className, onClick }: DateBadgeProps) {
-  if (!startDate && !dueDate) return null;
+const formatShort = (dateStr: string) => {
+  const d = new Date(dateStr);
+  return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+};
 
-  const formatShort = (dateStr: string) => {
-    const d = new Date(dateStr);
-    return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
-  };
+export function DateBadge({ startDate, dueDate, className, onClick }: Readonly<DateBadgeProps>) {
+  if (!startDate && !dueDate) return null;
 
   let text = "";
   if (startDate && dueDate) {
@@ -33,8 +33,16 @@ export function DateBadge({ startDate, dueDate, className, onClick }: DateBadgeP
           onClick();
         }
       }}
+      onKeyDown={(e) => {
+        if (onClick && (e.key === "Enter" || e.key === " ")) {
+          e.stopPropagation();
+          onClick();
+        }
+      }}
+      tabIndex={onClick ? 0 : undefined}
+      role={onClick ? "button" : undefined}
       className={cn(
-        "flex items-center h-5 gap-1.5 px-2 rounded-sm bg-muted/50 text-[10px] text-muted-foreground font-semibold hover:bg-muted/80 transition-colors cursor-default", 
+        "flex items-center h-5 gap-1.5 px-2 rounded-sm bg-muted/50 text-[10px] text-muted-foreground font-semibold hover:bg-muted/80 transition-colors cursor-default outline-none focus-visible:ring-1 focus-visible:ring-ring", 
         onClick && "cursor-pointer",
         className
       )}

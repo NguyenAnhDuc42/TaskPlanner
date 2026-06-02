@@ -36,7 +36,15 @@ export function DialogFormWrapper({
       {isControlled ? (
         trigger
       ) : (
-        <div className="contents" onClick={() => handleOpenChange(true)}>
+        <div 
+          className="contents" 
+          onClick={() => handleOpenChange(true)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              handleOpenChange(true);
+            }
+          }}
+        >
           {trigger}
         </div>
       )}

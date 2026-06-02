@@ -29,12 +29,12 @@ import {
 import { restrictToVerticalAxis } from "@dnd-kit/modifiers";
 import type { TaskRecord } from "@/types/projects";
 
-interface FolderTaskListProps {
+type FolderTaskListProps = Readonly<{
   onSelectTask?: (taskId: string) => void;
   selectedTaskId?: string;
   checkedTaskIds?: Set<string>;
   onToggleCheck?: (taskId: string, e: React.MouseEvent) => void;
-}
+}>;
 
 export function FolderTaskList({
   onSelectTask,

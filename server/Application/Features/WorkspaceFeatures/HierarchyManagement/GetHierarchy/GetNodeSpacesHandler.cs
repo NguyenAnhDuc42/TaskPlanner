@@ -6,7 +6,7 @@ namespace Application;
 
 public class GetNodeSpacesHandler(TaskPlanDbContext db, CursorHelper cursorHelper) : IQueryHandler<GetNodeSpacesQuery, PagedResult<SpaceRecord>>
 {
-    public async Task<Result<PagedResult<SpaceRecord>>> Handle(GetNodeSpacesQuery request, CancellationToken ct)
+    public async Task<Result<PagedResult<SpaceRecord>>> Handle(GetNodeSpacesQuery request, CancellationToken cancellationToken)
     {
         const string sql = @"
             SELECT 

@@ -9,7 +9,7 @@ namespace Application;
 
 public class GetDocumentBlocksHandler(TaskPlanDbContext db) : IQueryHandler<GetDocumentBlocksQuery, List<DocumentBlockRecord>>
 {
-    public async Task<Result<List<DocumentBlockRecord>>> Handle(GetDocumentBlocksQuery request, CancellationToken ct)
+    public async Task<Result<List<DocumentBlockRecord>>> Handle(GetDocumentBlocksQuery request, CancellationToken cancellationToken)
     {
         const string sql = @"
             SELECT 

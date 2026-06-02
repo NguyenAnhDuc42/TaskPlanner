@@ -83,14 +83,11 @@ export function useCreateWorkspace() {
 export function useWorkspaces(filters: any) {
   const [cursor, setCursor] = React.useState<string | null>(null);
 
-  // Reset pagination cursor when search filters change
-  const prevFiltersRef = React.useRef(filters);
-  React.useEffect(() => {
-    if (JSON.stringify(prevFiltersRef.current) !== JSON.stringify(filters)) {
-      setCursor(null);
-      prevFiltersRef.current = filters;
-    }
-  }, [filters]);
+  const [prevFilters, setPrevFilters] = React.useState(filters);
+  if (JSON.stringify(prevFilters) !== JSON.stringify(filters)) {
+    setPrevFilters(filters);
+    setCursor(null);
+  }
 
   const { data, isLoading, isFetching } = useGetWorkspacesQuery({ ...filters, cursor });
 

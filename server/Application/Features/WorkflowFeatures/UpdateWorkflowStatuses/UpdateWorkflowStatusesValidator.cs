@@ -10,13 +10,13 @@ public class UpdateWorkflowStatusesValidator : AbstractValidator<UpdateWorkflowS
             .NotNull()
             .NotEmpty().WithMessage("At least one status must be provided.");
 
-        RuleForEach(x => x.Statuses).SetValidator(new StatusUpdateRecordValidator());
+        RuleForEach(x => x.Statuses).SetValidator(new StatusUpdateValueValidator());
     }
 }
 
-public class StatusUpdateRecordValidator : AbstractValidator<StatusUpdateRecord>
+public class StatusUpdateValueValidator : AbstractValidator<StatusUpdateValue>
 {
-    public StatusUpdateRecordValidator()
+    public StatusUpdateValueValidator()
     {
         RuleFor(x => x.Name)
             .NotEmpty().MaximumLength(50).WithMessage("Name must be between 1 and 50 characters.")

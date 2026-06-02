@@ -43,7 +43,12 @@ export const BoardColumn = React.memo(function BoardColumn({
     id: statusId,
   });
 
-  const itemIds = useMemo(() => items.map((i) => i.id), [items]);
+  const itemIds = useMemo(() => 
+    items
+      .filter((i) => i && i.id)
+      .map((i) => `${i.__type}-${i.id}`), 
+    [items]
+  );
 
   const [createOpen, setCreateOpen] = useState(false);
   const [createType, setCreateType] = useState<"task" | "folder" | null>(null);
@@ -75,15 +80,17 @@ export const BoardColumn = React.memo(function BoardColumn({
         )}
       >
         <SortableContext items={itemIds} strategy={verticalListSortingStrategy}>
-          {items.map((item) => (
-            <SortableBoardItem
-              key={item.id}
-              item={item}
-              onTaskClick={onTaskClick}
-              onFolderClick={onFolderClick}
-              onPriorityChange={onPriorityChange}
-            />
-          ))}
+          {items
+            .filter((item) => item && item.id)
+            .map((item) => (
+              <SortableBoardItem
+                key={`${item.__type}-${item.id}`}
+                item={item}
+                onTaskClick={onTaskClick}
+                onFolderClick={onFolderClick}
+                onPriorityChange={onPriorityChange}
+              />
+            ))}
         </SortableContext>
       </div>
 

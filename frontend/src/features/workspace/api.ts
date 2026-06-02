@@ -26,7 +26,7 @@ export const workspaceFeatureApi = workspaceApi.injectEndpoints({
         url: `/workspaces/${workspaceId}/me/permissions`,
         method: "GET",
       }),
-      providesTags: (result, error, id) => [{ type: "Spaces" as const, id }],
+      providesTags: (_result, _error, id) => [{ type: "Spaces" as const, id }],
     }),
 
     getWorkspaceMembers: build.query<PagedResult<MemberRecord>, string>({
@@ -85,9 +85,12 @@ export const workspaceFeatureApi = workspaceApi.injectEndpoints({
           );
           dispatch(statusSlice.actions.upsertMany(optimisticStatuses));
 
-          const deletedIds = statuses
-            .filter((s) => s.action === RowAction.Delete && s.id != null)
-            .map((s) => s.id as string);
+          const deletedIds = statuses.reduce<string[]>((acc, s) => {
+            if (s.action === RowAction.Delete && s.id != null) {
+              acc.push(s.id);
+            }
+            return acc;
+          }, []);
           if (deletedIds.length > 0) {
             dispatch(statusSlice.actions.removeMany(deletedIds));
           }

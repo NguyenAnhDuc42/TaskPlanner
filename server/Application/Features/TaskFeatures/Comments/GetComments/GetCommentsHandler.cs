@@ -6,7 +6,7 @@ namespace Application;
 
 public class GetCommentsHandler(TaskPlanDbContext db, WorkspaceContext workspaceContext) : IQueryHandler<GetCommentsQuery, List<CommentRecord>>
 {
-    public async Task<Result<List<CommentRecord>>> Handle(GetCommentsQuery request, CancellationToken ct)
+    public async Task<Result<List<CommentRecord>>> Handle(GetCommentsQuery request, CancellationToken cancellationToken)
     {
         const string sql = @"
             SELECT 

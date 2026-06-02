@@ -9,6 +9,11 @@ public class EntityBatchUpdate
     public List<FolderRecord>? Folders { get; set; }
     public List<TaskRecord>? Tasks { get; set; }
     public List<MemberRecord>? Members { get; set; }
+
+    public bool HasAny => (Spaces?.Count > 0) || 
+                          (Folders?.Count > 0) || 
+                          (Tasks?.Count > 0) || 
+                          (Members?.Count > 0);
 }
 
 public class EntityBatchDelete

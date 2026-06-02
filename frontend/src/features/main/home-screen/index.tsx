@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { useNavigate } from "@tanstack/react-router";
 import { ChevronRight, Pin } from "lucide-react";
 import { cn } from "@/lib/utils";
+import React from "react";
 
 export function WorkspaceHomeScreen() {
   const {
@@ -21,8 +22,18 @@ export function WorkspaceHomeScreen() {
     handlePinWorkspace,
   } = useWorkspaceHome();
 
-  const { mutate: joinByCode, isPending: isJoining } = useJoinWorkspaceByCode();
+  const [isJoining, setIsJoining] = React.useState(false);
+  const { mutate: joinByCode } = useJoinWorkspaceByCode();
   const navigate = useNavigate();
+
+  const handleJoin = async (code: string) => {
+    setIsJoining(true);
+    try {
+      await joinByCode(code);
+    } finally {
+      setIsJoining(false);
+    }
+  };
 
   return (
     <div className="flex flex-col items-center justify-center h-screen bg-background overflow-hidden relative">
@@ -48,10 +59,18 @@ export function WorkspaceHomeScreen() {
             workspaces.map((workspace) => (
               <div
                 key={workspace.id}
-                className="flex items-center justify-between p-3 bg-background/40 hover:bg-background/80 border border-transparent hover:border-border/40 rounded-md cursor-pointer transition-all duration-200 group"
+                role="button"
+                tabIndex={0}
+                className="flex items-center justify-between p-3 bg-background/40 hover:bg-background/80 border border-transparent hover:border-border/40 rounded-md cursor-pointer transition-all duration-200 group outline-none focus-visible:ring-1 focus-visible:ring-primary"
                 onClick={() => {
                   localStorage.setItem("lastWorkspaceId", workspace.id);
                   navigate({ to: `/workspaces/${workspace.id}` });
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    localStorage.setItem("lastWorkspaceId", workspace.id);
+                    navigate({ to: `/workspaces/${workspace.id}` });
+                  }
                 }}
               >
                 <div className="flex items-center gap-3">
@@ -130,7 +149,7 @@ export function WorkspaceHomeScreen() {
         open={isJoinModalOpen}
         onOpenChange={setIsJoinModalOpen}
         isLoading={isJoining}
-        onJoin={(code) => joinByCode(code)}
+        onJoin={handleJoin}
       />
     </div>
   );

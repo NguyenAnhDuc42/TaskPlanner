@@ -21,12 +21,3 @@ public record StatusRecord
     public string? OrderKey { get; init; }
 }
 
-public record StatusUpdateRecord(
-    Guid? Id, 
-    string Name,
-    string Color,
-    StatusCategory Category,
-    string? PreviousOrderKey,
-    string? NextOrderKey,
-    RowAction Action
-);

@@ -31,7 +31,7 @@ public class GetWorkspaceListHandler(
     HybridCache cache
 ) : IQueryHandler<GetWorksapceListQuery, PagedResult<WorkspaceRecord>>
 {
-    public async Task<Result<PagedResult<WorkspaceRecord>>> Handle(GetWorksapceListQuery request, CancellationToken ct)
+    public async Task<Result<PagedResult<WorkspaceRecord>>> Handle(GetWorksapceListQuery request, CancellationToken cancellationToken)
     {
         var currentUserId = currentUserService.CurrentUserId();
         if (currentUserId == Guid.Empty) 
@@ -106,7 +106,7 @@ public class GetWorkspaceListHandler(
         },
         new HybridCacheEntryOptions { Expiration = TimeSpan.FromMinutes(5) },
         new[] { $"user:{currentUserId}:workspaces" },
-        ct);
+        cancellationToken);
 
         return Result<PagedResult<WorkspaceRecord>>.Success(result);
     }
@@ -136,7 +136,7 @@ public class GetWorkspaceListHandler(
 
     private static List<WorkspaceRecord> Map(List<WorkspaceRow> rows)
     {
-        var jsonOptions = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+        
         return rows.Select(x => new WorkspaceRecord
         {
             Id = x.Id,

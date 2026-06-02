@@ -28,11 +28,11 @@ const NAV_ICONS: { id: ContentPage; icon: React.ElementType; label: string; hasS
   ];
 
 interface IconRailProps {
-  onSelectIcon: (icon: ContentPage) => void;
-  onCommandCenter: () => void;
+  readonly onSelectIcon: (icon: ContentPage) => void;
+  readonly onCommandCenter: () => void;
 }
 
-export function IconRail({ onSelectIcon, onCommandCenter }: IconRailProps) {
+export function IconRail({ onSelectIcon, onCommandCenter }: Readonly<IconRailProps>) {
   const navigate = useNavigate();
   const { state, actions } = useWorkspaceSession();
 

@@ -1,10 +1,21 @@
 import * as React from "react"
-import { Search, LayoutGrid, type LucideIcon } from "lucide-react"
-import * as LucideIcons from "lucide-react"
-import { cn } from "@/lib/utils"
 import { Input } from "@/components/ui/input"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { ScrollArea } from "@/components/ui/scroll-area"
+import { cn } from "@/lib/utils"
+import {
+  LayoutGrid, Folder, FileText, CheckSquare, Calendar, Clock, User, Users,
+  Settings, Bell, Inbox, Hash, Star, Heart, Flag, Bookmark, Tag, Search,
+  Zap, Flame, Target, Trophy, Gamepad2, Code2, Terminal, Layers, Component,
+  Box, Package, Database, Cloud, HardDrive, Cpu
+} from "lucide-react"
+
+const ICON_MAP: Record<string, React.ComponentType<any>> = {
+  LayoutGrid, Folder, FileText, CheckSquare, Calendar, Clock, User, Users,
+  Settings, Bell, Inbox, Hash, Star, Heart, Flag, Bookmark, Tag, Search,
+  Zap, Flame, Target, Trophy, Gamepad2, Code2, Terminal, Layers, Component,
+  Box, Package, Database, Cloud, HardDrive, Cpu
+}
 
 // ============================================================================
 // DOMAIN ABSTRACTIONS
@@ -143,7 +154,7 @@ const IconRenderer = React.memo(function IconRenderer({
   isActive,
   onClick,
 }: IconRendererProps) {
-  const Icon = (LucideIcons as any)[name] as LucideIcon | undefined
+  const Icon = ICON_MAP[name]
 
   if (!Icon) {
     return <LayoutGrid className="h-5 w-5" />
@@ -151,6 +162,7 @@ const IconRenderer = React.memo(function IconRenderer({
 
   return (
     <button
+      aria-label={`Select icon ${name}`}
       className={cn(
         "w-10 h-10 flex items-center justify-center rounded-lg transition-all duration-150",
         isActive
@@ -183,6 +195,7 @@ const ColorSwatch = React.memo(function ColorSwatch({
 }: ColorSwatchProps) {
   return (
     <button
+      aria-label={`Select color ${color}`}
       className={cn(
         "w-6 h-6 rounded-full flex-shrink-0 transition-all duration-150 hover:scale-110 active:scale-95",
         isSelected
@@ -277,21 +290,17 @@ export function UniversalPicker({
     onSelect(localIcon, color)
   }
 
-  const [showColorPicker, setShowColorPicker] = React.useState(false)
   const [customColor, setCustomColor] = React.useState(localColor)
   const colorInputRef = React.useRef<HTMLInputElement>(null)
 
   const handleCustomColor = (color: string) => {
     handleSelectColor(color)
-    setShowColorPicker(false)
   }
 
   return (
     <div
       className="w-80 flex flex-col gap-0 bg-background border border-border shadow-xl rounded-xl overflow-hidden"
       onClick={(e) => e.stopPropagation()}
-      role="region"
-      aria-label="Icon and color picker"
     >
       {/* Color Bar - Fixed at Top */}
       <div className="flex items-center justify-center gap-2 px-4 py-3 bg-muted/10 border-b border-border/50">
@@ -309,7 +318,6 @@ export function UniversalPicker({
         {/* Custom Color Picker Circle Button */}
         <button
           onClick={() => {
-            setShowColorPicker(!showColorPicker)
             setTimeout(() => colorInputRef.current?.click(), 0)
           }}
           className="w-6 h-6 rounded-full flex-shrink-0 flex items-center justify-center bg-gradient-to-br from-red-500 via-green-500 to-blue-500 hover:shadow-lg transition-all hover:scale-110"

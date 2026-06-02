@@ -27,7 +27,7 @@ public class GetMembersHandler(
     HybridCache cache
 ) : IQueryHandler<GetMembersQuery, PagedResult<MemberRecord>>
 {
-    public async Task<Result<PagedResult<MemberRecord>>> Handle(GetMembersQuery request, CancellationToken ct)
+    public async Task<Result<PagedResult<MemberRecord>>> Handle(GetMembersQuery request, CancellationToken cancellationToken)
     {
         var workspaceId = context.workspaceId;
         var cacheKey = WorkspaceCacheKeys.MemberList(workspaceId, request);
@@ -115,7 +115,7 @@ public class GetMembersHandler(
         },
         new HybridCacheEntryOptions { Expiration = TimeSpan.FromMinutes(5) },
         new[] { WorkspaceCacheKeys.WorkspaceMembersTag(workspaceId) },
-        ct);
+        cancellationToken);
 
         return Result<PagedResult<MemberRecord>>.Success(result);
     }

@@ -7,7 +7,7 @@ import {
   DragOverlay,
   closestCenter,
 } from "@dnd-kit/core";
-import { Priority } from "@/types/priority";
+import { Priority, prioritySort } from "@/types/priority";
 import {
   useGetSpaceItemsQuery,
   useSpaceBoardItems,
@@ -16,7 +16,6 @@ import {
   type BoardItem,
 } from "../space-api";
 import { BoardItemCard } from "./sortable-board-item";
-import { prioritySort } from "@/types/priority";
 import { useBoardDnd } from "./use-board-dnd";
 import { BoardColumn } from "./board-column";
 import { StatusBadge } from "@/components/status-badge";
@@ -79,7 +78,7 @@ export function SpaceBoard({ spaceId, onWorkflowOpen }: SpaceBoardProps) {
     return cols;
   }, [boardItems, statuses]);
 
-  const { sensors, draggedItem, localColumns, handleDragStart, handleDragOver, handleDragEnd } = useBoardDnd({
+  const { sensors, draggedItem, localColumns, handleDragStart, handleDragEnd } = useBoardDnd({
     spaceId,
     boardItems,
     statuses,
@@ -197,7 +196,6 @@ export function SpaceBoard({ spaceId, onWorkflowOpen }: SpaceBoardProps) {
         sensors={sensors}
         collisionDetection={closestCenter}
         onDragStart={handleDragStart}
-        onDragOver={handleDragOver}
         onDragEnd={handleDragEnd}
       >
         <div

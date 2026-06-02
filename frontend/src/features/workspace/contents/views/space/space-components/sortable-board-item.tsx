@@ -19,7 +19,7 @@ export interface BoardItemCardProps {
   dragProps?: any;
 }
 
-export function BoardItemCard({
+export const BoardItemCard = React.memo(function BoardItemCard({
   item,
   onClick,
   onPriorityChange,
@@ -135,7 +135,7 @@ export function BoardItemCard({
       </div>
     </div>
   );
-}
+});
 
 export const SortableBoardItem = React.memo(function SortableBoardItem({
   item,
@@ -156,7 +156,7 @@ export const SortableBoardItem = React.memo(function SortableBoardItem({
     transition,
     isDragging,
   } = useSortable({
-    id: item.id,
+    id: `${item.__type}-${item.id}`,
   });
 
   const style = {

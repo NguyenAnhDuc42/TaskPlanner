@@ -4,7 +4,7 @@ namespace Application;
 
 public class RemoveMembersHandler(TaskPlanDbContext db, WorkspaceContext context) : ICommandHandler<RemoveMembersCommand, Guid>
 {
-    public async Task<Result<Guid>> Handle(RemoveMembersCommand request, CancellationToken ct)
+    public async Task<Result<Guid>> Handle(RemoveMembersCommand request, CancellationToken cancellationToken)
     {
         if (context.CurrentMember.Role > Role.Admin)
             return Result<Guid>.Failure(MemberError.DontHavePermission);
@@ -17,7 +17,7 @@ public class RemoveMembersHandler(TaskPlanDbContext db, WorkspaceContext context
                           && wm.DeletedAt == null)
                 .ExecuteUpdateAsync(u => u
                     .SetProperty(wm => wm.DeletedAt, DateTimeOffset.UtcNow)
-                    .SetProperty(wm => wm.UpdatedAt, DateTimeOffset.UtcNow), ct);
+                    .SetProperty(wm => wm.UpdatedAt, DateTimeOffset.UtcNow), cancellationToken);
         }
 
         return Result<Guid>.Success(context.workspaceId);
