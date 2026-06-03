@@ -8,8 +8,7 @@ import TaskItem from "@tiptap/extension-task-item";
 import { Bold, Italic, Strikethrough, Heading1, Heading2, Code, Quote } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-import { useBlockEditorSync } from "@/features/workspace/contents/layer-detail/hooks/useBlockEditorSync";
-import { IdExtension } from "@/features/workspace/contents/layer-detail/extensions/id-extension";
+import { useBlockEditorSync, IdExtension } from "@/features/workspace/contents/views/view-components/use-block-editor-sync";
 import { SlashCommand, getSuggestionItems, renderSuggestion } from "./extensions/slash-command";
 import CodeBlockLowlight from "@tiptap/extension-code-block-lowlight";
 import { common, createLowlight } from "lowlight";

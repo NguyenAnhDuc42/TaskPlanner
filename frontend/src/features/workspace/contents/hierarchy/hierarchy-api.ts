@@ -6,6 +6,8 @@ import type { SpaceRecord, FolderRecord, TaskRecord } from "@/types/projects";
 import type { PagedResult } from "@/types/paged-result";
 import type { EntityLayerType } from "@/types/entity-layer-type";
 import { createSelector } from "@reduxjs/toolkit";
+import { useMemo } from "react";
+import type { Priority } from "@/types/priority";
 
 export interface CreateSpaceRequest {
   name: string;
@@ -287,19 +289,19 @@ export const hierarchyApi = workspaceApi.injectEndpoints({
         const state = getState() as RootState;
         const itemId = body.itemId;
 
-        // 1. Instantly update the item's flat properties inside your entity store
+        const originalSpace = body.itemType === "ProjectSpace" ? spaceSelectors.selectById(state, itemId) : null;
+        const originalFolder = body.itemType === "ProjectFolder" ? folderSelectors.selectById(state, itemId) : null;
+        const originalTask = body.itemType === "ProjectTask" ? taskSelectors.selectById(state, itemId) : null;
+
         if (body.itemType === "ProjectSpace") {
-          const space = spaceSelectors.selectById(state, itemId);
-          if (space && body.newOrderKey) {
-            dispatch(spaceSlice.actions.upsert({ ...space, orderKey: body.newOrderKey }));
+          if (originalSpace && body.newOrderKey) {
+            dispatch(spaceSlice.actions.upsert({ ...originalSpace, orderKey: body.newOrderKey }));
           }
         } 
         else if (body.itemType === "ProjectFolder") {
-          const folder = folderSelectors.selectById(state, itemId);
-          if (folder && body.newOrderKey) {
-            dispatch(folderSlice.actions.upsert({ ...folder, orderKey: body.newOrderKey, spaceId: body.targetParentId }));
-            
-            // 🔥 OPTIMISTIC FLAG UPDATE: Turn on hasFolders for the new target Space
+          if (originalFolder && body.newOrderKey) {
+            dispatch(folderSlice.actions.upsert({ ...originalFolder, orderKey: body.newOrderKey, spaceId: body.targetParentId }));
+ 
             const targetSpace = spaceSelectors.selectById(state, body.targetParentId);
             if (targetSpace) {
               dispatch(spaceSlice.actions.upsert({ ...targetSpace, hasFolders: true }));
@@ -307,17 +309,16 @@ export const hierarchyApi = workspaceApi.injectEndpoints({
           }
         } 
         else if (body.itemType === "ProjectTask") {
-          const task = taskSelectors.selectById(state, itemId);
-          if (task && body.newOrderKey) {
+          if (originalTask && body.newOrderKey) {
             const isTargetSpace = body.targetParentType === "ProjectSpace";
             dispatch(taskSlice.actions.upsert({ 
-              ...task, 
+              ...originalTask, 
               orderKey: body.newOrderKey, 
-              projectSpaceId: isTargetSpace ? body.targetParentId : task.projectSpaceId,
+              projectSpaceId: isTargetSpace ? body.targetParentId : originalTask.projectSpaceId,
               projectFolderId: isTargetSpace ? undefined : body.targetParentId
             }));
 
-            // 🔥 OPTIMISTIC FLAG UPDATE: Turn on hasTasks for the new target parent
+    
             if (isTargetSpace) {
               const targetSpace = spaceSelectors.selectById(state, body.targetParentId);
               if (targetSpace) {
@@ -332,9 +333,9 @@ export const hierarchyApi = workspaceApi.injectEndpoints({
           }
         }
 
-        // 2. SURGICALLY UPDATE THE LAZY-LOADED QUERY CACHES
+        let patchResult: any;
         if (body.itemType === "ProjectFolder") {
-          dispatch(
+          patchResult = dispatch(
             hierarchyApi.util.updateQueryData("getNodeFolders", { workspaceId, nodeId: body.targetParentId, cursor: null }, (draft) => {
               if (!draft || !draft.items) return;
               
@@ -342,7 +343,7 @@ export const hierarchyApi = workspaceApi.injectEndpoints({
               if (itemIndex !== -1) {
                 draft.items[itemIndex].orderKey = body.newOrderKey ?? draft.items[itemIndex].orderKey;
               } else {
-                const folder = folderSelectors.selectById(state, itemId);
+                const folder = originalFolder || folderSelectors.selectById(state, itemId);
                 if (folder) {
                   draft.items.push({ ...folder, orderKey: body.newOrderKey ?? "", spaceId: body.targetParentId });
                 }
@@ -353,7 +354,7 @@ export const hierarchyApi = workspaceApi.injectEndpoints({
         }
 
         else if (body.itemType === "ProjectTask") {
-          dispatch(
+          patchResult = dispatch(
             hierarchyApi.util.updateQueryData(
               "getNodeTasks", 
               { workspaceId, nodeId: body.targetParentId, parentType: body.targetParentType as EntityLayerType, cursor: null }, 
@@ -364,7 +365,7 @@ export const hierarchyApi = workspaceApi.injectEndpoints({
                 if (itemIndex !== -1) {
                   draft.items[itemIndex].orderKey = body.newOrderKey ?? draft.items[itemIndex].orderKey;
                 } else {
-                  const task = taskSelectors.selectById(state, itemId);
+                  const task = originalTask || taskSelectors.selectById(state, itemId);
                   if (task) {
                     const isTargetSpace = body.targetParentType === "ProjectSpace";
                     draft.items.push({
@@ -384,7 +385,18 @@ export const hierarchyApi = workspaceApi.injectEndpoints({
         try {
           await queryFulfilled;
         } catch {
-          // If server fails, your fallback/refresh runs
+          if (patchResult) {
+            patchResult.undo();
+          }
+          if (originalSpace) {
+            dispatch(spaceSlice.actions.upsert(originalSpace));
+          }
+          if (originalFolder) {
+            dispatch(folderSlice.actions.upsert(originalFolder));
+          }
+          if (originalTask) {
+            dispatch(taskSlice.actions.upsert(originalTask));
+          }
         }
       }
     }),
@@ -399,34 +411,99 @@ export const hierarchyApi = workspaceApi.injectEndpoints({
         // NOTE: Entity store upserts (hasTasks, parent changes, orderKey) happen immediately
         // in the handler files. Here we only patch the lazy-loaded node query caches.
         const state = getState() as RootState;
+        const patches: { undo: () => void }[] = [];
 
-        // Folder cache patches
-        command.folders?.forEach((move) => {
-          if (!move.targetParentId) return;
-          const folder = folderSelectors.selectById(state, move.itemId);
-          if (folder) {
-            dispatch(
-              hierarchyApi.util.updateQueryData("getNodeFolders", { workspaceId, nodeId: move.targetParentId, cursor: null }, (draft) => {
+        // Snapshot original items for Entity Store rollback
+        const originalSpaces: SpaceRecord[] = [];
+        const originalFolders: FolderRecord[] = [];
+        const originalTasks: TaskRecord[] = [];
+
+        // Space cache + Entity Store patches
+        command.spaces?.forEach((move) => {
+          const space = spaceSelectors.selectById(state, move.itemId);
+          if (space) {
+            originalSpaces.push(space);
+            dispatch(spaceSlice.actions.upsert({
+              ...space,
+              orderKey: move.newOrderKey
+            }));
+
+            const patch = dispatch(
+              hierarchyApi.util.updateQueryData("getNodeSpaces", { workspaceId, cursor: null }, (draft) => {
                 if (!draft?.items) return;
-                const idx = draft.items.findIndex(f => f.id === move.itemId);
+                const idx = draft.items.findIndex(s => s.id === move.itemId);
                 if (idx !== -1) {
                   draft.items[idx].orderKey = move.newOrderKey;
                 } else {
-                  draft.items.push({ ...folder, orderKey: move.newOrderKey, spaceId: move.targetParentId! });
+                  draft.items.push({ ...space, orderKey: move.newOrderKey });
                 }
                 draft.items.sort((a, b) => (a.orderKey ?? "").localeCompare(b.orderKey ?? ""));
               })
             );
+            patches.push(patch);
           }
         });
 
-        // Task cache patches — targetFolderId/targetSpaceId are explicit, no state lookup needed
+        // Folder cache + Entity Store patches
+        command.folders?.forEach((move) => {
+          const folder = folderSelectors.selectById(state, move.itemId);
+          if (folder) {
+            originalFolders.push(folder);
+            const targetSpaceId = move.targetParentId ?? folder.spaceId;
+            if (!targetSpaceId) return;
+
+            dispatch(folderSlice.actions.upsert({
+              ...folder,
+              spaceId: targetSpaceId,
+              orderKey: move.newOrderKey
+            }));
+
+            const patch = dispatch(
+              hierarchyApi.util.updateQueryData("getNodeFolders", { workspaceId, nodeId: targetSpaceId, cursor: null }, (draft) => {
+                if (!draft?.items) return;
+                const idx = draft.items.findIndex(f => f.id === move.itemId);
+                if (idx !== -1) {
+                  draft.items[idx].orderKey = move.newOrderKey;
+                  draft.items[idx].spaceId = targetSpaceId;
+                } else {
+                  draft.items.push({ ...folder, orderKey: move.newOrderKey, spaceId: targetSpaceId });
+                }
+                draft.items.sort((a, b) => (a.orderKey ?? "").localeCompare(b.orderKey ?? ""));
+              })
+            );
+            patches.push(patch);
+
+            // Remove from old parent folder query cache if moved to a different space
+            if (move.targetParentId && folder.spaceId && move.targetParentId !== folder.spaceId) {
+              const removePatch = dispatch(
+                hierarchyApi.util.updateQueryData("getNodeFolders", { workspaceId, nodeId: folder.spaceId, cursor: null }, (draft) => {
+                  if (!draft?.items) return;
+                  const idx = draft.items.findIndex(f => f.id === move.itemId);
+                  if (idx !== -1) {
+                    draft.items.splice(idx, 1);
+                  }
+                })
+              );
+              patches.push(removePatch);
+            }
+          }
+        });
+
+        // Task cache + Entity Store patches
         command.tasks?.forEach((move) => {
           const task = taskSelectors.selectById(state, move.itemId);
           if (task) {
+            originalTasks.push(task);
+            dispatch(taskSlice.actions.upsert({
+              ...task,
+              projectSpaceId: move.targetSpaceId ?? task.projectSpaceId,
+              projectFolderId: move.targetFolderId ?? task.projectFolderId,
+              orderKey: move.newOrderKey
+            }));
+
             const containerNodeId = move.targetFolderId ?? move.targetSpaceId;
             const parentType = (move.targetFolderId ? "ProjectFolder" : "ProjectSpace") as EntityLayerType;
-            dispatch(
+            const patch = dispatch(
               hierarchyApi.util.updateQueryData(
                 "getNodeTasks",
                 { workspaceId, nodeId: containerNodeId, parentType, cursor: null },
@@ -447,13 +524,45 @@ export const hierarchyApi = workspaceApi.injectEndpoints({
                 }
               )
             );
+            patches.push(patch);
+
+            // Remove from old container query cache if parent container changed
+            const oldContainerId = task.projectFolderId ?? task.projectSpaceId;
+            const oldParentType = (task.projectFolderId ? "ProjectFolder" : "ProjectSpace") as EntityLayerType;
+            if (oldContainerId && (oldContainerId !== containerNodeId || oldParentType !== parentType)) {
+              const removePatch = dispatch(
+                hierarchyApi.util.updateQueryData(
+                  "getNodeTasks",
+                  { workspaceId, nodeId: oldContainerId, parentType: oldParentType, cursor: null },
+                  (draft) => {
+                    if (!draft?.items) return;
+                    const idx = draft.items.findIndex(t => t.id === move.itemId);
+                    if (idx !== -1) {
+                      draft.items.splice(idx, 1);
+                    }
+                  }
+                )
+              );
+              patches.push(removePatch);
+            }
           }
         });
 
         try {
           await queryFulfilled;
         } catch {
-          // RTK Query automatically rolls back on failure
+          // Rollback the optimistic query cache patches on failure
+          patches.forEach((p) => p.undo());
+          // Rollback Entity Store
+          if (originalSpaces.length > 0) {
+            dispatch(spaceSlice.actions.upsertMany(originalSpaces));
+          }
+          if (originalFolders.length > 0) {
+            dispatch(folderSlice.actions.upsertMany(originalFolders));
+          }
+          if (originalTasks.length > 0) {
+            dispatch(taskSlice.actions.upsertMany(originalTasks));
+          }
         }
       }
     })
@@ -475,8 +584,6 @@ export const {
 } = hierarchyApi;
 
 
-import { useMemo } from "react";
-import type { Priority } from "@/types/priority";
 
 // --- CENTRAL RELATIONAL SELECTORS FOR COMPONENTS ---
 export function useSpaces(workspaceId: string) {

@@ -2,7 +2,7 @@ import * as React from "react";
 import { useState } from "react";
 import { FileText, Plus } from "lucide-react";
 import { useSpaceDetail, useGetSpaceDocumentsQuery, useCreateSpaceDocumentMutation } from "../space-api";
-import { DescriptionSection } from "../../../layer-detail/components/overview/description-section";
+import { BlockEditor } from "@/components/blockbase/block-editor";
 
 interface SpaceDocumentsPanelProps {
   spaceId: string;
@@ -18,12 +18,14 @@ export function SpaceDocumentsPanel({ spaceId }: SpaceDocumentsPanelProps) {
   const [newTabName, setNewTabName] = useState("");
   const isSavingTabRef = React.useRef(false);
 
-  // Sync active document ID with defaultDocumentId on space load
+  // Sync active document ID with defaultDocumentId when spaceId or defaultDocumentId changes
   React.useEffect(() => {
-    if (space?.defaultDocumentId && !activeDocId) {
-      setActiveDocId(space.defaultDocumentId || null);
+    if (space?.defaultDocumentId) {
+      setActiveDocId(space.defaultDocumentId);
+    } else {
+      setActiveDocId(null);
     }
-  }, [space?.defaultDocumentId, activeDocId]);
+  }, [spaceId, space?.defaultDocumentId]);
 
   const handleAddTabClick = () => {
     setIsCreatingTab(true);
@@ -58,7 +60,7 @@ export function SpaceDocumentsPanel({ spaceId }: SpaceDocumentsPanelProps) {
   if (!space) return null;
 
   return (
-    <div className="rounded-xl border border-border/25 overflow-hidden bg-card/10 shadow-sm">
+    <div className="rounded-md border border-border/25 overflow-hidden bg-card/10 shadow-sm">
       {/* Tab bar */}
       <div className="flex items-center gap-0 bg-white/[0.02] border-b border-border/15 px-2 pt-1 select-none overflow-x-auto">
         {/* Default Overview doc tab */}
@@ -126,7 +128,7 @@ export function SpaceDocumentsPanel({ spaceId }: SpaceDocumentsPanelProps) {
       {/* Document content */}
       <div className="px-4 py-3">
         {activeDocId ? (
-          <DescriptionSection key={activeDocId} documentId={activeDocId} />
+          <BlockEditor key={activeDocId} documentId={activeDocId} />
         ) : (
           <div className="flex flex-col items-center justify-center py-10 text-center gap-2">
             <FileText className="h-8 w-8 text-muted-foreground/20" />

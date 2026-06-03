@@ -46,8 +46,8 @@ class PickerConfig {
  * Memoizes predicates to avoid allocation thrashing.
  */
 class IconSearchEngine {
-  private queryCache = new Map<string, string[]>()
-  private maxCacheSize = 20
+  private readonly queryCache = new Map<string, string[]>()
+  private readonly maxCacheSize = 20
 
   search(query: string, icons: readonly string[]): string[] {
     if (!query.trim()) return Array.from(icons)
@@ -265,7 +265,7 @@ export function UniversalPicker({
   selectedColor,
   onSelect,
   config = DEFAULT_CONFIG,
-}: UniversalPickerProps) {
+}: Readonly<UniversalPickerProps>) {
   const {
     selectedIcon: localIcon,
     selectedColor: localColor,

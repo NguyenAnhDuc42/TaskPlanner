@@ -153,12 +153,13 @@ export function CreateFolderForm({
           value={state.selectedStatusId || undefined}
           onChange={(statusId) => dispatch({ type: "SET_STATUS", payload: statusId })}
           workflowId={space?.workflowId}
+          statuses={spaceStatuses}
           align="start"
           trigger={
             <AttributeButton icon={state.selectedStatusId ? undefined : Icons.Circle}>
               {state.selectedStatusId ? (
                 <StatusBadge
-                  status={spaceStatuses.find((s: Status) => s.id === state.selectedStatusId)}
+                  status={spaceStatuses.find((s: Status) => s.id?.toLowerCase() === state.selectedStatusId?.toLowerCase())}
                   showIcon={true}
                 />
               ) : (

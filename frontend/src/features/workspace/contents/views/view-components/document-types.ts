@@ -15,7 +15,6 @@ export interface DocumentBlockDto {
   type: BlockType;
 }
 
-// Tiptap JSON node structure
 export interface TiptapNode {
   type: string;
   attrs?: {

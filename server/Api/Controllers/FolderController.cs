@@ -61,7 +61,7 @@ public class FoldersController : ControllerBase
         return result.ToActionResult();
     }
 
-    [HttpPost("{id:guid}/tasks/batch")]
+    [HttpPut("{id:guid}/tasks/batch")]
     public async Task<IActionResult> BatchUpdateTasks(Guid id, [FromBody] BatchUpdateFolderTasksCommand request, CancellationToken ct = default)
     {
         var result = await _handler.SendAsync(request with { FolderId = id }, ct);

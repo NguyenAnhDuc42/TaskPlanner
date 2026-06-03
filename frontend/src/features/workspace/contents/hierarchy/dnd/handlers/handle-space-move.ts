@@ -1,7 +1,8 @@
 import { arrayMove } from "@dnd-kit/sortable";
 import { EntityLayerType as EntityLayerConst } from "@/types/entity-layer-type";
 import type { DragItemData, DragSpaceData } from "../drag-item-type";
-import { generateNKeysBetween } from "fractional-indexing";
+import { generateKeyBetween } from "fractional-indexing";
+import { safeKey } from "../../utils/fractional-index";
 import { store } from "@/store";
 import { spaceSlice } from "@/store/entityStore";
 
@@ -17,24 +18,20 @@ export function handleSpaceMove(
     .filter((s): s is typeof s & { id: string } => !!s)
     .sort((a, b) => (a.orderKey || "").localeCompare(b.orderKey || ""));
 
-  const rootSpaceIds = spacesList.map(s => s.id);
-  const oldIndex = rootSpaceIds.indexOf(activeData.id);
-  const newIndex = rootSpaceIds.indexOf(overData.id);
+  const oldIndex = spacesList.findIndex(s => s.id === activeData.id);
+  const newIndex = spacesList.findIndex(s => s.id === overData.id);
 
   if (oldIndex === -1 || newIndex === -1 || oldIndex === newIndex) return;
 
-  const moved = arrayMove(rootSpaceIds, oldIndex, newIndex);
+  const moved = arrayMove(spacesList, oldIndex, newIndex);
 
-  // Generate fresh rocicorp keys for ALL spaces so mixed numeric/"a0" keys
-  // don't break the sort order. Only the dragged space's key goes to the server.
-  const freshKeys = generateNKeysBetween(null, null, moved.length);
-  const newOrderKey = freshKeys[newIndex];
+  const prevKey = safeKey(moved[newIndex - 1]?.orderKey);
+  const nextKey = safeKey(moved[newIndex + 1]?.orderKey);
+  const newOrderKey = generateKeyBetween(prevKey, nextKey);
 
-  // 1. Optimistic update — update ALL spaces so the sort stays consistent
-  moved.forEach((id, i) => {
-    store.dispatch(spaceSlice.actions.upsert({ id, orderKey: freshKeys[i] }));
-  });
+  // 1. Optimistic update (only update the dragged space)
+  store.dispatch(spaceSlice.actions.upsert({ id: activeData.id, orderKey: newOrderKey }));
 
-  // 2. Trigger batch queue (only send the dragged item's new key to server)
+  // 2. Trigger batch queue
   triggerBatchMove({ kind: "space", itemId: activeData.id, newOrderKey });
 }

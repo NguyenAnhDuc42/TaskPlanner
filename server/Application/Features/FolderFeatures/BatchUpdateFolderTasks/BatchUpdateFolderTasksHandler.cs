@@ -9,13 +9,13 @@ public class BatchUpdateFolderTasksHandler(
     RealtimeService realtimeService)
     : ICommandHandler<BatchUpdateFolderTasksCommand>
 {
-    public async Task<Result> Handle(BatchUpdateFolderTasksCommand request, CancellationToken ct)
+    public async Task<Result> Handle(BatchUpdateFolderTasksCommand request, CancellationToken cancellationToken)
     {
         if (request.Updates is not { Count: > 0 })
             return Result.Success();
 
         var result = await db.ExecuteInTransactionAsync(
-            () => ApplyBatchAsync(request, ct), ct);
+            () => ApplyBatchAsync(request), cancellationToken);
 
         if (result.IsSuccess)
         {
@@ -23,18 +23,17 @@ public class BatchUpdateFolderTasksHandler(
                 workspaceContext.workspaceId,
                 "FolderTasksBatchUpdated",
                 new { FolderId = request.FolderId },
-                ct);
+                cancellationToken);
         }
 
         return result;
     }
 
-    private async Task<Result> ApplyBatchAsync(BatchUpdateFolderTasksCommand request, CancellationToken cancellationToken)
+    private async Task<Result> ApplyBatchAsync(BatchUpdateFolderTasksCommand request)
     {
         var connection = db.Database.GetDbConnection();
         var workspaceId = workspaceContext.workspaceId;
 
-        // Validate all IDs exist in this folder first — one round trip
         var requestedIds = request.Updates.Select(u => u.Id).ToArray();
 
         var existingIds = (await connection.QueryAsync<Guid>(
@@ -47,10 +46,9 @@ public class BatchUpdateFolderTasksHandler(
         )).ToHashSet();
 
         var missing = requestedIds.FirstOrDefault(id => !existingIds.Contains(id));
-        if (missing != default)
+        if (missing != Guid.Empty)
             return Result.Failure(Error.NotFound("Task.NotFound", $"Task {missing} not found in folder {request.FolderId}"));
 
-        // One UPDATE per distinct update shape, batched with UNNEST
         await ApplyOrderKeyBatch(connection, request, workspaceId);
         await ApplyStatusBatch(connection, request, workspaceId);
         await ApplyPriorityBatch(connection, request, workspaceId);
@@ -74,7 +72,7 @@ public class BatchUpdateFolderTasksHandler(
         await connection.ExecuteAsync(
             @"UPDATE project_tasks t
               SET order_key = v.order_key, updated_at = NOW()
-              FROM UNNEST(@Ids, @OrderKeys) AS v(id uuid, order_key text)
+              FROM UNNEST(@Ids, @OrderKeys) AS v(id, order_key)
               WHERE t.id = v.id AND t.project_workspace_id = @WorkspaceId",
             new
             {
@@ -100,7 +98,7 @@ public class BatchUpdateFolderTasksHandler(
               SET status_id = CASE WHEN v.status_id = '00000000-0000-0000-0000-000000000000' 
                                    THEN NULL ELSE v.status_id END,
                   updated_at = NOW()
-              FROM UNNEST(@Ids, @StatusIds) AS v(id uuid, status_id uuid)
+              FROM UNNEST(@Ids, @StatusIds) AS v(id, status_id)
               WHERE t.id = v.id AND t.project_workspace_id = @WorkspaceId",
             new
             {
@@ -124,7 +122,7 @@ public class BatchUpdateFolderTasksHandler(
         await connection.ExecuteAsync(
             @"UPDATE project_tasks t
               SET priority = v.priority, updated_at = NOW()
-              FROM UNNEST(@Ids, @Priorities) AS v(id uuid, priority int)
+              FROM UNNEST(@Ids, @Priorities) AS v(id, priority)
               WHERE t.id = v.id AND t.project_workspace_id = @WorkspaceId",
             new
             {
@@ -147,7 +145,7 @@ public class BatchUpdateFolderTasksHandler(
             await connection.ExecuteAsync(
                 @"UPDATE project_tasks t
                   SET start_date = v.start_date, updated_at = NOW()
-                  FROM UNNEST(@Ids, @Dates) AS v(id uuid, start_date timestamptz)
+                  FROM UNNEST(@Ids, @Dates) AS v(id, start_date)
                   WHERE t.id = v.id AND t.project_workspace_id = @WorkspaceId",
                 new
                 {
@@ -162,7 +160,7 @@ public class BatchUpdateFolderTasksHandler(
             await connection.ExecuteAsync(
                 @"UPDATE project_tasks t
                   SET due_date = v.due_date, updated_at = NOW()
-                  FROM UNNEST(@Ids, @Dates) AS v(id uuid, due_date timestamptz)
+                  FROM UNNEST(@Ids, @Dates) AS v(id, due_date)
                   WHERE t.id = v.id AND t.project_workspace_id = @WorkspaceId",
                 new
                 {

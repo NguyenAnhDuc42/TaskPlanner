@@ -14,6 +14,7 @@ export interface FolderDetailResponse {
   folder: FolderRecord;
   statuses: Status[];
   workflowId?: string;
+  parentWorkflowId?: string;
 }
 
 export interface TaskFilter {
@@ -66,7 +67,7 @@ export const folderApi = workspaceApi.injectEndpoints({
     batchUpdateFolderTasks: build.mutation<void, { folderId: string; updates: BatchUpdateFolderTaskValue[] }>({
       query: ({ folderId, updates }) => ({
         url: `/folders/${folderId}/tasks/batch`,
-        method: 'POST',
+        method: 'PUT',
         data: { folderId, updates }
       }),
       async onQueryStarted({ updates }, { dispatch, queryFulfilled, getState }) {
@@ -92,7 +93,7 @@ export const folderApi = workspaceApi.injectEndpoints({
     updateFolderField: build.mutation<void, { folderId: string; patches: Partial<FolderRecord> }>({
       query: ({ folderId, patches }) => ({
         url: `/folders/${folderId}`,
-        method: 'PATCH',
+        method: 'PUT',
         data: patches
       }),
       async onQueryStarted({ folderId, patches }, { dispatch, queryFulfilled, getState }) {
@@ -105,7 +106,7 @@ export const folderApi = workspaceApi.injectEndpoints({
         try {
           await queryFulfilled;
         } catch {
-          // 2. Rollback on failure
+
           if (originalFolder) {
             dispatch(folderSlice.actions.upsert(originalFolder));
           }

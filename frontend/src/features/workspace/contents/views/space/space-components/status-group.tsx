@@ -20,7 +20,7 @@ export function StatusGroup({
   totalCount,
   children,
   className,
-}: StatusGroupProps) {
+}: Readonly<StatusGroupProps>) {
   return (
     <div 
       className={cn(

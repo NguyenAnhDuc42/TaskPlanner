@@ -435,64 +435,12 @@ export function CreateStatusForm({
             className="h-8 text-xs gap-1.5 rounded-md"
             onClick={() => {
               if (workflowId) {
-                const originalStatuses = resolvedCurrentStatuses || [];
-                const newIds = new Set(localStatuses.map(s => s.id));
-                const payloads: StatusUpdatePayload[] = [];
-
-                // Deletes
-                for (const s of originalStatuses) {
-                  const sid = s.id || s.id;
-                  if (!newIds.has(sid)) {
-                    payloads.push({
-                      id: sid,
-                      name: s.name,
-                      color: s.color,
-                      category: s.category,
-                      previousOrderKey: null,
-                      nextOrderKey: null,
-                      action: RowAction.Delete,
-                    });
-                  }
-                }
-
-                // Group localStatuses by category
-                const categoryGroups: Record<string, typeof localStatuses> = {};
-                for (const s of localStatuses) {
-                  if (!categoryGroups[s.category]) {
-                    categoryGroups[s.category] = [];
-                  }
-                  categoryGroups[s.category].push(s);
-                }
-
-                // Creates & Updates
-                for (const s of localStatuses) {
-                  const isNew = s.id && typeof s.id === 'string' && s.id.startsWith("temp-");
-                  const catGroup = categoryGroups[s.category] || [];
-                  const idx = catGroup.findIndex(item => item.id === s.id);
-                  
-                  const prevKey = idx > 0 ? catGroup[idx - 1].orderKey || null : null;
-                  const nextKey = idx < catGroup.length - 1 ? catGroup[idx + 1].orderKey || null : null;
-                  
-                  // Assign the correctly ordered key to the optimistic object immediately
-                  const newOrderKey = fractionalBetween(prevKey, nextKey);
-                  s.orderKey = newOrderKey;
-
-                  payloads.push({
-                    id: isNew ? null : s.id,
-                    name: s.name,
-                    color: s.color,
-                    category: s.category,
-                    previousOrderKey: prevKey,
-                    nextOrderKey: nextKey,
-                    action: isNew ? RowAction.Create : RowAction.Update,
-                  });
-                }
-
+                const { payloads, clonedStatuses } = buildStatusUpdatePayloads(localStatuses, resolvedCurrentStatuses || []);
                 updateStatuses({ 
                   workflowId, 
                   workspaceId: registry.workspaceId || currentWorkspaceId, 
                   statuses: payloads, 
-                  optimisticStatuses: localStatuses 
+                  optimisticStatuses: clonedStatuses 
                 });
               } else {
                 onApplyChanges?.(localStatuses);
@@ -506,4 +454,65 @@ export function CreateStatusForm({
       </DialogContent>
     </Dialog>
   );
+}
+
+function buildStatusUpdatePayloads(
+  localStatuses: any[],
+  resolvedCurrentStatuses: any[]
+): { payloads: StatusUpdatePayload[]; clonedStatuses: any[] } {
+  const originalStatuses = resolvedCurrentStatuses || [];
+  const newIds = new Set(localStatuses.map(s => s.id));
+  const payloads: StatusUpdatePayload[] = [];
+
+  // Deletes
+  for (const s of originalStatuses) {
+    const sid = s.id;
+    if (!newIds.has(sid)) {
+      payloads.push({
+        id: sid,
+        name: s.name,
+        color: s.color,
+        category: s.category,
+        previousOrderKey: null,
+        nextOrderKey: null,
+        action: RowAction.Delete,
+      });
+    }
+  }
+
+  // Clone local statuses to prevent read-only property mutation
+  const clonedStatuses = localStatuses.map(s => ({ ...s }));
+
+  // Group cloned statuses by category
+  const categoryGroups: Record<string, any[]> = {};
+  for (const s of clonedStatuses) {
+    if (!categoryGroups[s.category]) {
+      categoryGroups[s.category] = [];
+    }
+    categoryGroups[s.category].push(s);
+  }
+
+  // Creates & Updates
+  for (const s of clonedStatuses) {
+    const isNew = s.id && typeof s.id === 'string' && s.id.startsWith("temp-");
+    const catGroup = categoryGroups[s.category] || [];
+    const idx = catGroup.findIndex(item => item.id === s.id);
+    
+    const prevKey = idx > 0 ? catGroup[idx - 1].orderKey || null : null;
+    const nextKey = idx < catGroup.length - 1 ? catGroup[idx + 1].orderKey || null : null;
+    
+    s.orderKey = fractionalBetween(prevKey, nextKey);
+
+    payloads.push({
+      id: isNew ? null : s.id,
+      name: s.name,
+      color: s.color,
+      category: s.category,
+      previousOrderKey: prevKey,
+      nextOrderKey: nextKey,
+      action: isNew ? RowAction.Create : RowAction.Update,
+    });
+  }
+
+  return { payloads, clonedStatuses };
 }

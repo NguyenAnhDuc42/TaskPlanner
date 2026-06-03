@@ -47,15 +47,13 @@ public class GetFolderDetailHandler(TaskPlanDbContext db, WorkspaceContext works
             SpaceId = folderData.SpaceId
         };
 
-        var activeWorkflowId = folderData.WorkflowId ?? folderData.ParentWorkflowId;
         List<StatusRecord> statuses = new();
-
-        if (activeWorkflowId.HasValue)
+        if (folderData.ParentWorkflowId.HasValue || folderData.WorkflowId.HasValue)
         {
             var statusSql = @"
                 SELECT id AS Id, id AS StatusId, workflow_id AS WorkflowId, name AS Name, color AS Color, category AS Category, order_key AS OrderKey
                 FROM statuses
-                WHERE workflow_id = @WorkflowId
+                WHERE workflow_id = @ParentWorkflowId OR workflow_id = @WorkflowId
                 ORDER BY CASE category
                     WHEN 'NotStarted' THEN 0
                     WHEN 'Active' THEN 1
@@ -64,10 +62,27 @@ public class GetFolderDetailHandler(TaskPlanDbContext db, WorkspaceContext works
                     ELSE 4
                 END;";
             
-            statuses = (await connection.QueryAsync<StatusRecord>(statusSql, new { WorkflowId = activeWorkflowId })).AsList();
+            statuses = (await connection.QueryAsync<StatusRecord>(statusSql, new { 
+                ParentWorkflowId = folderData.ParentWorkflowId, 
+                WorkflowId = folderData.WorkflowId 
+            })).AsList();
         }
 
-        return Result<FolderDetailResponse>.Success(new FolderDetailResponse(folderRecord, statuses, activeWorkflowId));
+        if (folderData.StatusId.HasValue && !statuses.Any(s => s.Id == folderData.StatusId.Value))
+        {
+            var singleStatusSql = @"
+                SELECT id AS Id, id AS StatusId, workflow_id AS WorkflowId, name AS Name, color AS Color, category AS Category, order_key AS OrderKey
+                FROM statuses
+                WHERE id = @StatusId;";
+            var singleStatus = await connection.QueryFirstOrDefaultAsync<StatusRecord>(
+                singleStatusSql, new { StatusId = folderData.StatusId.Value });
+            if (singleStatus != null)
+            {
+                statuses.Add(singleStatus);
+            }
+        }
+
+        return Result<FolderDetailResponse>.Success(new FolderDetailResponse(folderRecord, statuses, folderData.WorkflowId, folderData.ParentWorkflowId));
     }
 
     private class FolderQueryResult

@@ -107,18 +107,24 @@ export const BoardItemCard = React.memo(function BoardItemCard({
             {dateInfo.show ? (
               <div 
                 className={cn(
-                  "flex items-center gap-1 text-[8px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded border w-fit transition-colors leading-none",
+                  // REMOVED "transition-colors" to stop layout style calculation battles
+                  "flex items-center gap-1 text-[8px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded border w-fit leading-none",
                   isOverdue 
                     ? "bg-red-500/10 text-red-400 border-red-500/20" 
                     : "bg-white/[0.02] text-zinc-500 border-white/[0.04]"
                 )}
               >
-                <Calendar className={cn("h-2.5 w-2.5", isOverdue ? "opacity-90" : "opacity-40")} />
+                {/* Use direct inline styles or explicit layout utilities instead of toggling conditional class engines */}
+                <Calendar 
+                  className="h-2.5 w-2.5" 
+                  style={{ opacity: isOverdue ? 0.9 : 0.4 }} 
+                />
                 <span>{dateInfo.text}</span>
               </div>
             ) : (
+              // Do the same layout cleanup for the fallback badge element
               <div 
-                className="flex items-center gap-1 text-[8px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded border w-fit transition-colors leading-none bg-white/[0.01] text-zinc-500/40 border-white/[0.03] select-none"
+                className="flex items-center gap-1 text-[8px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded border w-fit leading-none bg-white/[0.01] text-zinc-500/40 border-white/[0.03] select-none"
               >
                 <Calendar className="h-2.5 w-2.5 opacity-20" />
                 <span>No Date</span>

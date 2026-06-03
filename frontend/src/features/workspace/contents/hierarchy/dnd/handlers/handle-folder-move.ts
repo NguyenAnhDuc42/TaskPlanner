@@ -1,6 +1,7 @@
 import { arrayMove } from "@dnd-kit/sortable";
 import { EntityLayerType as EntityLayerConst } from "@/types/entity-layer-type";
-import { generateNKeysBetween } from "fractional-indexing";
+import { generateKeyBetween } from "fractional-indexing";
+import { safeKey } from "../../utils/fractional-index";
 import type { DragItemData, DragFolderData } from "../drag-item-type";
 import { store } from "@/store";
 import { folderSlice, spaceSlice } from "@/store/entityStore";
@@ -24,44 +25,54 @@ export function handleFolderMove(
   const sourceSpaceId = activeData.spaceId;
 
   // Retrieve and sort current sibling folders under source space
-  const sourceFolders = Object.values(state.folders.entities)
+  const sourceFoldersList = Object.values(state.folders.entities)
     .filter((f): f is typeof f & { id: string } => !!f && f.spaceId === sourceSpaceId)
-    .sort((a, b) => (a.orderKey || "").localeCompare(b.orderKey || ""))
-    .map(f => f.id);
+    .sort((a, b) => (a.orderKey || "").localeCompare(b.orderKey || ""));
+
+  const sourceFolders = sourceFoldersList.map(f => f.id);
 
   // Retrieve sibling folders under target space
-  const targetFolders = sourceSpaceId === targetSpaceId
-    ? sourceFolders
+  const targetFoldersList = sourceSpaceId === targetSpaceId
+    ? sourceFoldersList
     : Object.values(state.folders.entities)
         .filter((f): f is typeof f & { id: string } => !!f && f.spaceId === targetSpaceId)
-        .sort((a, b) => (a.orderKey || "").localeCompare(b.orderKey || ""))
-        .map(f => f.id);
+        .sort((a, b) => (a.orderKey || "").localeCompare(b.orderKey || ""));
+
+  const targetFolders = targetFoldersList.map(f => f.id);
+
+  // Guard: dropping onto itself or its current parent space header
+  if (activeData.id === overData.id || overData.id === activeData.spaceId) {
+    return;
+  }
 
   const oldIndex = sourceFolders.indexOf(activeData.id);
   let newIndex = targetFolders.indexOf(overData.id);
-  if (newIndex === -1) newIndex = 0;
+
+  // Bug 2 Fix: If dropped on container space header, append to the end
+  if (newIndex === -1) newIndex = targetFolders.length;
+
+  if (sourceSpaceId === targetSpaceId && oldIndex === newIndex) {
+    return;
+  }
 
   let newOrderKey: string;
 
   if (sourceSpaceId === targetSpaceId) {
-    // Same-space reorder: regenerate ALL folder keys so numeric→rocicorp mix stays sorted
     if (oldIndex === -1) return;
-    const moved = arrayMove(sourceFolders, oldIndex, newIndex);
-    const freshKeys = generateNKeysBetween(null, null, moved.length);
-    newOrderKey = freshKeys[newIndex];
+    const moved = arrayMove(sourceFoldersList, oldIndex, newIndex);
+    const prevKey = safeKey(moved[newIndex - 1]?.orderKey);
+    const nextKey = safeKey(moved[newIndex + 1]?.orderKey);
+    newOrderKey = generateKeyBetween(prevKey, nextKey);
 
-    // Optimistic: update ALL folders in this space
-    moved.forEach((id, i) => {
-      store.dispatch(folderSlice.actions.upsert({ id, orderKey: freshKeys[i] }));
-    });
+    // Optimistic: update only the dragged folder
+    store.dispatch(folderSlice.actions.upsert({ id: activeData.id, orderKey: newOrderKey }));
   } else {
     // Cross-space move: insert at newIndex in target list
-    const newTargetFolders = [...targetFolders];
-    newTargetFolders.splice(newIndex, 0, activeData.id);
-    const freshKeys = generateNKeysBetween(null, null, newTargetFolders.length);
-    newOrderKey = freshKeys[newIndex];
+    const prevKey = safeKey(targetFoldersList[newIndex - 1]?.orderKey);
+    const nextKey = safeKey(targetFoldersList[newIndex]?.orderKey);
+    newOrderKey = generateKeyBetween(prevKey, nextKey);
 
-    // Optimistic: update dragged folder + all existing target folders
+    // Optimistic: update only the dragged folder
     store.dispatch(folderSlice.actions.upsert({ id: activeData.id, spaceId: targetSpaceId, orderKey: newOrderKey }));
   }
 

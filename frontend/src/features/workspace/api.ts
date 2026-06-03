@@ -1,5 +1,6 @@
 import { workspaceApi } from "@/store/workspaceApi";
-import { memberSlice, statusSlice } from "@/store/entityStore";
+import { memberSlice, statusSlice, statusSelectors } from "@/store/entityStore";
+import type { RootState } from "@/store";
 import type { WorkspaceRecord } from "@/types/workspace/workspace-record";
 import type { PagedResult } from "@/types/paged-result";
 import type { MemberRecord } from "@/types/workspace/member-record";
@@ -71,8 +72,24 @@ export const workspaceFeatureApi = workspaceApi.injectEndpoints({
         data: statuses,
       }),
       invalidatesTags: ["Tasks", "Folders", "Spaces"],
-      async onQueryStarted({ workflowId, workspaceId, statuses, optimisticStatuses }, { dispatch, queryFulfilled }) {
+      async onQueryStarted({ workflowId, workspaceId, statuses, optimisticStatuses }, { dispatch, queryFulfilled, getState }) {
         let patchResult: any;
+        const state = getState() as RootState;
+
+        // Snapshot original state of ALL statuses in this workspace workflow for rollback
+        const originalStatuses: Status[] = [];
+        if (workspaceId) {
+          const workspaceWorkflows = (state as any).workspaceApi?.queries?.[`getWorkspaceWorkflows("${workspaceId}")`]?.data as WorkflowRecord[] | undefined;
+          const wf = workspaceWorkflows?.find(w => w.id === workflowId);
+          if (wf?.statuses) {
+            originalStatuses.push(...wf.statuses);
+          } else {
+            // Backup from status selectors if query cache state isn't populated
+            const allStatuses = statusSelectors.selectAll(state);
+            const wfStatuses = allStatuses.filter(s => s.workflowId === workflowId);
+            originalStatuses.push(...wfStatuses);
+          }
+        }
 
         if (workspaceId && optimisticStatuses) {
           patchResult = dispatch(
@@ -104,6 +121,10 @@ export const workspaceFeatureApi = workspaceApi.injectEndpoints({
         } catch {
           if (patchResult) {
             patchResult.undo();
+          }
+          // Rollback Entity Store status slice changes
+          if (originalStatuses.length > 0) {
+            dispatch(statusSlice.actions.upsertMany(originalStatuses));
           }
         }
       }

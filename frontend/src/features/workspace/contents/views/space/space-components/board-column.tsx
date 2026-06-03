@@ -164,29 +164,23 @@ export const BoardColumn = React.memo(function BoardColumn({
       </Dialog>
     </StatusGroup>
   );
-}, (prevProps, nextProps) => {
+},(prevProps, nextProps) => {
+  // If basic column configs change, re-render
   if (prevProps.statusId !== nextProps.statusId) return false;
   if (prevProps.name !== nextProps.name) return false;
   if (prevProps.color !== nextProps.color) return false;
   if (prevProps.category !== nextProps.category) return false;
   if (prevProps.spaceId !== nextProps.spaceId) return false;
-  if (prevProps.onTaskClick !== nextProps.onTaskClick) return false;
-  if (prevProps.onFolderClick !== nextProps.onFolderClick) return false;
-  if (prevProps.onPriorityChange !== nextProps.onPriorityChange) return false;
 
+  // FAST PATH: If the items array reference is identical, DO NOT re-render
+  if (prevProps.items === nextProps.items) return true;
+  
+  // If items were added or removed from this specific column, re-render
   if (prevProps.items.length !== nextProps.items.length) return false;
 
-  for (let i = 0; i < prevProps.items.length; i++) {
-    const a = prevProps.items[i];
-    const b = nextProps.items[i];
-    if (a.id !== b.id) return false;
-    if (a.statusId !== b.statusId) return false;
-    if (a.orderKey !== b.orderKey) return false;
-    if ((a as any).priority !== (b as any).priority) return false;
-    if (a.name !== b.name) return false;
-    if (a.color !== b.color) return false;
-    if (a.icon !== b.icon) return false;
-  }
-
-  return true;
+  // Deep check only IDs to see if items swapped positions inside this column
+  return prevProps.items.every((item, idx) => {
+    const nextItem = nextProps.items[idx];
+    return item?.id === nextItem?.id && item?.orderKey === nextItem?.orderKey;
+  });
 });

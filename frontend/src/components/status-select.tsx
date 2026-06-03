@@ -10,6 +10,7 @@ interface StatusSelectProps {
   value?: string;
   onChange: (statusId: string) => void;
   workflowId?: string;
+  statuses?: Status[];
   align?: "start" | "end" | "center";
   trigger?: React.ReactNode;
 }
@@ -18,6 +19,7 @@ export function StatusSelect({
   value,
   onChange,
   workflowId,
+  statuses: customStatuses,
   align = "start",
   trigger,
 }: StatusSelectProps) {
@@ -32,13 +34,17 @@ export function StatusSelect({
 
   const allStatuses = useSelector(statusSelectors.selectAll);
   const statuses = useMemo(() => {
+    if (customStatuses) return customStatuses;
     if (workflow?.statuses?.length) return workflow.statuses;
-    if (!workflowId) return [];
-    return allStatuses.filter((s: Status) => s.workflowId?.toLowerCase() === workflowId?.toLowerCase());
-  }, [workflow, workflowId, allStatuses]);
+    if (workflowId) {
+      const filtered = allStatuses.filter((s: Status) => s.workflowId?.toLowerCase() === workflowId?.toLowerCase());
+      if (filtered.length > 0) return filtered;
+    }
+    return allStatuses;
+  }, [customStatuses, workflow, workflowId, allStatuses]);
 
   const currentStatus = useMemo(() => {
-    return allStatuses.find((s: Status) => s.id === value) || null;
+    return allStatuses.find((s: Status) => s.id?.toLowerCase() === value?.toLowerCase()) || null;
   }, [value, allStatuses]);
 
   const statusesByCategory = useMemo(() => {

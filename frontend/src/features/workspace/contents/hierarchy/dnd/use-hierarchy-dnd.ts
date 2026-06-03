@@ -35,7 +35,7 @@ export function useHierarchyDnd({ workspaceId, batchMoveItems }: UseHierarchyDnd
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
-      activationConstraint: { distance: 8 },
+      activationConstraint: { distance: 3 },
     }),
     useSensor(KeyboardSensor, {
       coordinateGetter: sortableKeyboardCoordinates,
@@ -81,7 +81,7 @@ export function useHierarchyDnd({ workspaceId, batchMoveItems }: UseHierarchyDnd
       } catch (err) {
         console.error("[DND] Batch move network request failed:", err);
       }
-    }, 1000);
+    }, 4000);
   };
 
   const handleDragStart = (event: DragStartEvent) => {

@@ -4,8 +4,13 @@ import { generateKeyBetween, generateNKeysBetween } from "fractional-indexing";
 export function safeKey(key: string | null | undefined): string | null {
   if (key == null || key === "") return null;
 
-  if (/^[a-zA-Z][0-9]/.test(key)) return key;
-  return null; 
+  try {
+    generateKeyBetween(key, null);
+    generateKeyBetween(null, key);
+    return key;
+  } catch {
+    return null;
+  }
 }
 
 export function fractionalBetween(

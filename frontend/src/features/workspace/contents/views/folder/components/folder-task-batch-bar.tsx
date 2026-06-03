@@ -15,17 +15,19 @@ import { useState } from "react";
 import { useSelector } from "react-redux";
 import { statusSelectors } from "@/store/entityStore";
 
+import type { Status } from "@/types/status";
+
 type PendingUpdates = Pick<BatchUpdateFolderTaskValue, "statusId" | "priority" | "startDate" | "dueDate">;
 
 interface FolderTaskBatchBarProps {
   folderId: string;
   checkedTaskIds: Set<string>;
   onClear: () => void;
+  statuses: Status[];
 }
 
-export function FolderTaskBatchBar({ folderId, checkedTaskIds, onClear }: FolderTaskBatchBarProps) {
+export function FolderTaskBatchBar({ folderId, checkedTaskIds, onClear, statuses }: FolderTaskBatchBarProps) {
   const batchUpdate = useBatchUpdateFolderTasks(folderId);
-  const statuses = useSelector(statusSelectors.selectAll);
 
   const [pendingUpdates, setPendingUpdates] = useState<PendingUpdates>({});
 
@@ -71,7 +73,7 @@ export function FolderTaskBatchBar({ folderId, checkedTaskIds, onClear }: Folder
               title="Change Status"
             >
               {pendingUpdates.statusId ? (
-                <StatusBadge status={statuses.find(s => s.id === pendingUpdates.statusId)} showIcon={false} />
+                <StatusBadge status={statuses.find(s => s.id?.toLowerCase() === pendingUpdates.statusId?.toLowerCase())} showIcon={false} />
               ) : (
                 <CircleDashed className="h-3.5 w-3.5" />
               )}

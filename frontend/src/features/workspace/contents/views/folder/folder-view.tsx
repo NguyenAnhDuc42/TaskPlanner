@@ -5,7 +5,7 @@ import { TaskDetailCanvas } from "../task/components/task-detail-canvas";
 import * as React from "react";
 import { useParams, Link } from "@tanstack/react-router";
 import { format } from "date-fns";
-import { useSpaceDetail } from "../space/space-api";
+import { useSpaceDetail, useGetSpaceDetailQuery } from "../space/space-api";
 import { DynamicIcon } from "@/components/dynamic-icon";
 import {
   Breadcrumb,
@@ -42,7 +42,6 @@ import {
 } from "@/components/ui/popover";
 import { Calendar as ShadcnCalendar } from "@/components/ui/calendar";
 import { FolderTaskBatchBar } from "./components/folder-task-batch-bar";
-import { Priority } from "@/types/priority";
 import { PopoverFormWrapper } from "@/components/popover-wrapper";
 import { UniversalPicker } from "@/components/universal-picker";
 import { CreateStatusForm } from "@/features/workspace/components/forms/create-status-form";
@@ -64,15 +63,25 @@ export function FolderView() {
   const folder = useFolderDetail(folderId);
   const parentSpace = useSpaceDetail(folder?.spaceId ?? "");
 
+  // Load parent space details to ensure we always have the workflow of the space above it
+  useGetSpaceDetailQuery(folder?.spaceId ?? "", { skip: !folder?.spaceId });
+
   const [updateFolderField] = useUpdateFolderFieldMutation();
 
-  const targetWorkflowId = folder?.workflowId || parentSpace?.workflowId || detailData?.workflowId;
   const allStatuses = useSelector(statusSelectors.selectAll);
-  const folderStatuses = React.useMemo(() => {
-    return targetWorkflowId
-      ? allStatuses.filter((s: Status) => s.workflowId === targetWorkflowId)
-      : [];
-  }, [allStatuses, targetWorkflowId]);
+  const folderStatuses = detailData?.statuses || [];
+
+  const spaceStatuses = React.useMemo(() => {
+    const parentWorkflowId = detailData?.parentWorkflowId;
+    if (!parentWorkflowId) return [];
+    return allStatuses.filter(s => s.workflowId?.toLowerCase() === parentWorkflowId.toLowerCase());
+  }, [allStatuses, detailData?.parentWorkflowId]);
+
+  const taskStatuses = React.useMemo(() => {
+    const activeWorkflowId = folder?.workflowId || detailData?.parentWorkflowId;
+    if (!activeWorkflowId) return [];
+    return allStatuses.filter(s => s.workflowId?.toLowerCase() === activeWorkflowId.toLowerCase());
+  }, [allStatuses, folder?.workflowId, detailData?.parentWorkflowId]);
 
   const updateField = (patches: Partial<FolderRecord>) => {
     updateFolderField({ folderId, patches });
@@ -202,13 +211,17 @@ export function FolderView() {
             <StatusSelect
               value={folder?.statusId || undefined}
               onChange={(statusId) => updateField({ statusId })}
-              workflowId={targetWorkflowId}
+              workflowId={detailData?.parentWorkflowId}
+              statuses={spaceStatuses}
               align="end"
               trigger={
                 <AttributeButton icon={folder?.statusId ? undefined : Circle}>
                   {folder?.statusId ? (
                     <StatusBadge
-                      status={folderStatuses.find((s) => s.id === folder.statusId)}
+                      status={
+                        spaceStatuses.find((s) => s.id?.toLowerCase() === folder.statusId?.toLowerCase()) ||
+                        allStatuses.find((s) => s.id?.toLowerCase() === folder.statusId?.toLowerCase())
+                      }
                     />
                   ) : (
                     "Status"
@@ -248,10 +261,9 @@ export function FolderView() {
                   mode="single"
                   selected={folder?.startDate ? new Date(folder.startDate) : undefined}
                   onSelect={(date) => updateField({ startDate: date?.toISOString() })}
-                  initialFocus
                 />
               </PopoverContent>
-            </Popover>
+            </Popover>  
 
             {/* Due Date */}
             <Popover>
@@ -272,7 +284,6 @@ export function FolderView() {
                   mode="single"
                   selected={folder?.dueDate ? new Date(folder.dueDate) : undefined}
                   onSelect={(date) => updateField({ dueDate: date?.toISOString() })}
-                  initialFocus
                 />
               </PopoverContent>
             </Popover>
@@ -316,6 +327,7 @@ export function FolderView() {
           folderId={folderId}
           checkedTaskIds={checkedTaskIds}
           onClear={() => setCheckedTaskIds(new Set())}
+          statuses={taskStatuses}
         />
       )}
     </EntityViewFrame>

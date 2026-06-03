@@ -5,7 +5,7 @@ import { createPortal } from "react-dom";
 import {
   DndContext,
   DragOverlay,
-  closestCenter,
+  pointerWithin
 } from "@dnd-kit/core";
 import { Priority, prioritySort } from "@/types/priority";
 import {
@@ -30,20 +30,21 @@ interface SpaceBoardProps {
   onWorkflowOpen?: () => void;
 }
 
-export function SpaceBoard({ spaceId, onWorkflowOpen }: SpaceBoardProps) {
+export function SpaceBoard({ spaceId, onWorkflowOpen }: Readonly<SpaceBoardProps>) {
   const dispatch = useDispatch();
   const navigate = useNavigate();
-  const { workspaceId } = useParams({ strict: false }) as { workspaceId: string };
+  
+  // 1. CRITICAL FIX: Destructure the string primitive immediately. 
+  // Do not depend on the raw params object inside useCallback dependencies.
+  const params = useParams({ strict: false }) as Record<string, string>;
+  const workspaceId = params?.workspaceId;
+
   const containerRef = useRef<HTMLDivElement | null>(null);
 
-  // 1. Fetch space items from server into Redux (automatically upserts via onQueryStarted)
   const { isLoading } = useGetSpaceItemsQuery(spaceId);
-
-  // 2. Select items dynamically from our centralized store
   const boardItems = useSpaceBoardItems(spaceId);
   const statuses = useSpaceStatuses(spaceId);
 
-  // Toggle state to dynamically hide/unhide columns
   const [hiddenStatusIds, setHiddenStatusIds] = useState<string[]>([]);
 
   const toggleStatusVisibility = useCallback((statusId: string) => {
@@ -53,32 +54,36 @@ export function SpaceBoard({ spaceId, onWorkflowOpen }: SpaceBoardProps) {
         : [...prev, statusId]
     );
   }, []);
-
-  // Mutator for updating space items
+  const stableColumnsRef = useRef<Record<string, BoardItem[]>>({});
   const [batchUpdate] = useBatchUpdateSpaceItemsMutation();
 
-  // Combine and group board items by status ID
   const columns = useMemo(() => {
-    const cols: Record<string, BoardItem[]> = {};
-    statuses.forEach((s) => {
-      cols[s.id] = [];
-    });
-    cols["unclassified"] = [];
+  const nextCols: Record<string, BoardItem[]> = {};
+  
+  statuses.forEach((s) => { nextCols[s.id] = []; });
+  nextCols["unclassified"] = [];
 
-    boardItems.forEach((item) => {
-      const colId = item.statusId && cols[item.statusId] ? item.statusId : "unclassified";
-      cols[colId].push(item);
-    });
+  boardItems.forEach((item) => {
+    const colId = item.statusId && nextCols[item.statusId] ? item.statusId : "unclassified";
+    nextCols[colId].push(item);
+  });
 
-    // Sort by prioritySort (which handles priority weight first, then orderKey)
-    Object.keys(cols).forEach((colId) => {
-      cols[colId].sort(prioritySort);
-    });
+  Object.keys(nextCols).forEach((colId) => {
+    nextCols[colId].sort(prioritySort);
+  });
+  Object.keys(nextCols).forEach((key) => {
+    const prev = stableColumnsRef.current[key];
+    const curr = nextCols[key];
+    if (prev?.length === curr.length && prev.every((v, i) => v.id === curr[i].id && v.orderKey === curr[i].orderKey)) {
+      nextCols[key] = prev;
+    }
+  });
 
-    return cols;
-  }, [boardItems, statuses]);
+  stableColumnsRef.current = nextCols;
+  return nextCols;
+}, [boardItems, statuses]);
 
-  const { sensors, draggedItem, localColumns, handleDragStart, handleDragEnd } = useBoardDnd({
+  const { sensors, draggedItem, handleDragStart, handleDragEnd } = useBoardDnd({
     spaceId,
     boardItems,
     statuses,
@@ -86,16 +91,18 @@ export function SpaceBoard({ spaceId, onWorkflowOpen }: SpaceBoardProps) {
     batchUpdate,
   });
 
-  // Enable custom board-wide scrolling gestures
   const isDragging = draggedItem !== null;
   useSmartWheelScroll(containerRef, isDragging);
   useEdgeScroll(containerRef, isDragging);
 
+  // 2. Click handles are now completely static during a drag execution
   const handleTaskClick = useCallback((id: string) => {
+    if (!workspaceId) return;
     navigate({ to: `/workspaces/${workspaceId}/tasks/${id}` });
   }, [workspaceId, navigate]);
 
   const handleFolderClick = useCallback((id: string) => {
+    if (!workspaceId) return;
     navigate({ to: `/workspaces/${workspaceId}/folders/${id}` });
   }, [workspaceId, navigate]);
 
@@ -120,29 +127,26 @@ export function SpaceBoard({ spaceId, onWorkflowOpen }: SpaceBoardProps) {
   }, [spaceId, batchUpdate, dispatch]);
 
   const columnsToRender = useMemo(() => {
-    const activeCols = localColumns || columns;
     const cols = statuses.map((s) => ({
       id: s.id,
       name: s.name,
       color: s.color,
       category: s.category,
-      items: activeCols[s.id] || [],
+      items: columns[s.id] || [],
     }));
 
-    if (activeCols["unclassified"] && activeCols["unclassified"].length > 0) {
+    if (columns["unclassified"] && columns["unclassified"].length > 0) {
       cols.push({
         id: "unclassified",
         name: "Unclassified",
         color: "#6b7280",
         category: "NotStarted",
-        items: activeCols["unclassified"],
+        items: columns["unclassified"],
       });
     }
 
     return cols.filter((col) => !hiddenStatusIds.includes(col.id));
-  }, [statuses, columns, localColumns, hiddenStatusIds]);
-
-
+  }, [statuses, columns, hiddenStatusIds]);
 
   if (isLoading && boardItems.length === 0) {
     return (
@@ -154,7 +158,6 @@ export function SpaceBoard({ spaceId, onWorkflowOpen }: SpaceBoardProps) {
 
   return (
     <>
-      {/* Board Top Status Bar & Navigation (Outside DndContext) */}
       <div className="px-2 py-2 flex items-center shrink-0 select-none gap-1 bg-background/20 backdrop-blur-sm">
         {onWorkflowOpen && (
           <button
@@ -180,7 +183,6 @@ export function SpaceBoard({ spaceId, onWorkflowOpen }: SpaceBoardProps) {
           ))}
         </div>
 
-        {/* Premium Filter Button on Right */}
         <button
           className="ml-auto flex items-center h-6 gap-1 px-2 rounded-md bg-muted/40 text-[10px] text-muted-foreground font-semibold hover:bg-muted/80 hover:text-foreground border border-border/30 transition-all cursor-pointer shrink-0"
           onClick={() => {
@@ -194,7 +196,7 @@ export function SpaceBoard({ spaceId, onWorkflowOpen }: SpaceBoardProps) {
 
       <DndContext
         sensors={sensors}
-        collisionDetection={closestCenter}
+        collisionDetection={pointerWithin}
         onDragStart={handleDragStart}
         onDragEnd={handleDragEnd}
       >
@@ -221,8 +223,12 @@ export function SpaceBoard({ spaceId, onWorkflowOpen }: SpaceBoardProps) {
         {createPortal(
           <DragOverlay dropAnimation={null}>
             {draggedItem ? (
-              <div className="rotate-3 scale-105 opacity-90 cursor-grabbing pointer-events-none w-[268px]">
-                <BoardItemCard item={draggedItem} />
+              // Add layout-stable inline styles to prevent container shifting on mount
+              <div 
+                className="rotate-3 scale-105 opacity-90 pointer-events-none w-[268px] contain-layout"
+                style={{ willChange: "transform" }}
+              >
+                <BoardItemCard item={draggedItem} isDragging={false} />
               </div>
             ) : null}
           </DragOverlay>,

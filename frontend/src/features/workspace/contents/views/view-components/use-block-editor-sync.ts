@@ -1,15 +1,40 @@
 import { useEffect, useMemo, useRef } from "react";
-import { useDocumentBlocks, useUpdateDocumentBlocks } from "../views/document-api";
-import type { DocumentBlockDto, DocumentBlockValue, TiptapDoc } from "../types/document-types";
+import { useGetDocumentBlocksQuery, useUpdateDocumentBlocksMutation } from "./document-api";
 import { BlockType } from "@/types/block-type";
+import type { DocumentBlockRecord } from "@/types/document/document-block-record";
+import type { DocumentBlockValue, TiptapDoc } from "./document-types";
+import { Extension } from "@tiptap/react";
+
+// Custom extension to keep track of DB IDs on Tiptap nodes
+export const IdExtension = Extension.create({
+  name: "idTracking",
+  addGlobalAttributes() {
+    return [
+      {
+        types: ["paragraph", "heading", "taskItem"],
+        attributes: {
+          id: {
+            default: null,
+            parseHTML: element => element.getAttribute("data-id"),
+            renderHTML: attributes => {
+              if (!attributes.id) return {};
+              return { "data-id": attributes.id };
+            },
+            keepOnSplit: false,
+          },
+        },
+      },
+    ];
+  },
+});
 
 export function useBlockEditorSync(documentId: string) {
-  const { data: blocks } = useDocumentBlocks(documentId);
-  const { mutate: updateBlocks } = useUpdateDocumentBlocks();
+  const { data: blocks } = useGetDocumentBlocksQuery(documentId);
+  const [updateBlocks] = useUpdateDocumentBlocksMutation();
   
   const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   
-  // Track blocks in a ref so performSave always reads the fresh state without re-running effects
+  // Track blocks in a ref so performSave always reads the fresh state
   const blocksRef = useRef(blocks);
   useEffect(() => {
     blocksRef.current = blocks;
@@ -50,7 +75,7 @@ export function useBlockEditorSync(documentId: string) {
 
     // Mark all other blocks as deleted to clean up the DB
     const deletedBlocks: DocumentBlockValue[] = [];
-    currentBlocks?.forEach((b: DocumentBlockDto) => {
+    currentBlocks?.forEach((b: DocumentBlockRecord) => {
       if (b.id !== firstBlock?.id) {
         deletedBlocks.push({
           id: b.id,

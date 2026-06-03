@@ -5,7 +5,8 @@ public record GetFolderDetailQuery(Guid FolderId) : IQueryRequest<FolderDetailRe
 public record FolderDetailResponse(
     FolderRecord Folder,
     List<StatusRecord> Statuses,
-    Guid? WorkflowId
+    Guid? WorkflowId,
+    Guid? ParentWorkflowId = null
 );
 
 

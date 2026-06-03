@@ -19,21 +19,22 @@ import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { useForm } from "@tanstack/react-form";
 import { useRegister } from "../api";
+import { useNavigate } from "@tanstack/react-router";
 
 export function SignUpForm() {
   const { mutate: register, isPending } = useRegister();
+  const navigate = useNavigate();
 
   const form = useForm({
     defaultValues: { name: "", email: "", password: "" },
     onSubmit: async ({ value }) => {
-      register(value, {
-        onError: (err: any) => {
-          toast.error(err.response?.data?.detail || "Registration failed");
-        },
-        onSuccess: () => {
-          toast.success("Account created successfully!");
-        },
-      });
+      try {
+        await register(value);
+        toast.success("Account created successfully!");
+        navigate({ to: "/" });
+      } catch (err: any) {
+        toast.error(err.data?.detail || err.message || "Registration failed");
+      }
     },
   });
 

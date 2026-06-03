@@ -103,7 +103,7 @@ export function SortableTaskItem({ task, isSelected, isChecked, onSelect, onTogg
         {/* Row 2: Status + Priority */}
         <div className="flex items-center gap-3">
           {task.statusId && (
-            <StatusBadge status={statuses.find(s => s.id === task.statusId)} />
+            <StatusBadge status={statuses.find(s => s.id?.toLowerCase() === task.statusId?.toLowerCase())} />
           )}
           {task.priority && <PriorityBadge priority={task.priority as Priority} />}
         </div>

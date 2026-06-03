@@ -77,11 +77,11 @@ export function IconColorPicker({
   icon, 
   color, 
   onChange 
-}: { 
+}: Readonly<{ 
   icon: string; 
   color: string; 
   onChange: (icon: string, color: string) => void 
-}) {
+}>) {
   const SelectedIcon = (Icons as any)[icon] || Icons.LayoutGrid;
 
   return (
@@ -120,7 +120,6 @@ export function SimpleDatePicker({ value, onChange, label = "Due Date" }: { valu
           mode="single"
           selected={value}
           onSelect={onChange}
-          initialFocus
         />
       </PopoverContent>
     </Popover>

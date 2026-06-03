@@ -92,35 +92,10 @@ export const spaceApi = workspaceApi.injectEndpoints({
           dispatch(taskSlice.actions.upsertMany(taskUpdates as Partial<TaskRecord>[]));
         }
 
-        // 🔥 OPTIMISTIC QUERY CACHE UPDATE: Immediately patch active query data to prevent rebound
-        const patchResult = dispatch(
-          spaceApi.util.updateQueryData("getSpaceItems", spaceId, (draft) => {
-            if (!draft) return;
-            updates.forEach((u) => {
-              if (u.type === "ProjectFolder") {
-                const folder = draft.folders.find((f) => f.id === u.id);
-                if (folder) {
-                  if (u.statusId !== undefined) folder.statusId = u.statusId ?? undefined;
-                  if (u.priority !== undefined) folder.priority = (u.priority ?? undefined) as any;
-                  if (u.orderKey !== undefined) folder.orderKey = u.orderKey ?? undefined;
-                }
-              } else {
-                const task = draft.tasks.find((t) => t.id === u.id);
-                if (task) {
-                  if (u.statusId !== undefined) task.statusId = u.statusId ?? undefined;
-                  if (u.priority !== undefined) task.priority = (u.priority ?? undefined) as any;
-                  if (u.orderKey !== undefined) task.orderKey = u.orderKey ?? undefined;
-                }
-              }
-            });
-          })
-        );
-
         try {
           await queryFulfilled;
         } catch {
           // Rollback on failure
-          patchResult.undo();
           if (originalFolders.length > 0) {
             dispatch(folderSlice.actions.upsertMany(originalFolders));
           }
@@ -155,7 +130,7 @@ export const spaceApi = workspaceApi.injectEndpoints({
 
     getEntityAccess: build.query<EntityAccessRecord[], string>({
       query: (spaceId) => ({ url: `/spaces/${spaceId}/access`, method: "GET" }),
-      providesTags: (result, error, spaceId) => [{ type: "Spaces" as const, id: `access-${spaceId}` }],
+      providesTags: (_result, _error, spaceId) => [{ type: "EntityAccess" as const, id: `access-${spaceId}` }],
       async onQueryStarted(spaceId, { dispatch, queryFulfilled }) {
         try {
           const { data } = await queryFulfilled;
@@ -171,25 +146,45 @@ export const spaceApi = workspaceApi.injectEndpoints({
         method: "POST",
         data: rows
       }),
-      invalidatesTags: (result, error, { spaceId }) => [{ type: "Spaces" as const, id: `access-${spaceId}` }],
-      async onQueryStarted({ spaceId, rows }, { dispatch, queryFulfilled }) {
-        const originalRows = rows.map(r => ({
+      invalidatesTags: (_result, _error, { spaceId }) => [{ type: "EntityAccess" as const, id: `access-${spaceId}` }],
+      async onQueryStarted({ spaceId, rows }, { dispatch, queryFulfilled, getState }) {
+        const state = getState() as RootState;
+
+        // Snapshot original rows for rollback
+        const originalStateRows: EntityAccessRecord[] = [];
+        const idsToRemoveOnFailure: string[] = [];
+
+        rows.forEach((r) => {
+          const original = state.entityAccess.entities[r.memberId];
+          if (original) {
+            originalStateRows.push(original);
+          } else {
+            idsToRemoveOnFailure.push(r.memberId);
+          }
+        });
+
+        const newRows = rows.map(r => ({
           id: r.memberId,
           workspaceMemberId: r.memberId,
           accessLevel: r.accessLevel,
           haveAccess: r.action !== "Delete"
         }));
-        dispatch(entityAccessSlice.actions.upsertMany(originalRows));
+
+        dispatch(entityAccessSlice.actions.upsertMany(newRows));
 
         try {
           await queryFulfilled;
-        } catch {}
+        } catch {
+          if (idsToRemoveOnFailure.length > 0) {
+            dispatch(entityAccessSlice.actions.removeMany(idsToRemoveOnFailure));
+          }
+        }
       }
     }),
 
     getSpaceDocuments: build.query<SpaceDocumentRecord[], string>({
       query: (spaceId) => ({ url: `/spaces/${spaceId}/documents`, method: "GET" }),
-      providesTags: (result, error, spaceId) => [{ type: "Spaces" as const, id: `docs-${spaceId}` }]
+      providesTags: (_result, _error, spaceId) => [{ type: "Spaces" as const, id: `docs-${spaceId}` }]
     }),
 
     createSpaceDocument: build.mutation<SpaceDocumentRecord, { spaceId: string; name: string }>({
@@ -198,7 +193,7 @@ export const spaceApi = workspaceApi.injectEndpoints({
         method: "POST",
         data: { name }
       }),
-      invalidatesTags: (result, error, { spaceId }) => [{ type: "Spaces" as const, id: `docs-${spaceId}` }]
+      invalidatesTags: (_result, _error, { spaceId }) => [{ type: "Spaces" as const, id: `docs-${spaceId}` }]
     })
   })
 });
@@ -269,7 +264,7 @@ export function useSpaceStatuses(spaceId: string) {
         const targetWorkflowId = space?.workflowId;
         if (!targetWorkflowId) return [];
         return statuses
-          .filter(s => s.workflowId === targetWorkflowId)
+          .filter(s => s.workflowId?.toLowerCase() === targetWorkflowId.toLowerCase())
           .sort((a, b) => {
             const weightA = statusCategoryWeight[a.category] ?? 4;
             const weightB = statusCategoryWeight[b.category] ?? 4;

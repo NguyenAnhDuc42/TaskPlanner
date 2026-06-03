@@ -31,15 +31,13 @@ export default function SignInForm() {
       password: "",
     },
     onSubmit: async ({ value }) => {
-      login(value, {
-        onSuccess: () => {
-          navigate({ to: "/" });
-          toast.success("Sign in successfully");
-        },
-        onError: (err: any) => {
-          toast.error(err.response?.data?.detail || "Failed to sign in");
-        },
-      });
+      try {
+        await login(value);
+        toast.success("Sign in successfully");
+        navigate({ to: "/" });
+      } catch (err: any) {
+        toast.error(err.data?.detail || err.message || "Failed to sign in");
+      }
     },
   });
 

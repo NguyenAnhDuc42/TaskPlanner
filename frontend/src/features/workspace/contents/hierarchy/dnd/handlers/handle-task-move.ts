@@ -60,23 +60,35 @@ export function handleTaskMove(
         .sort((a, b) => (a.orderKey || "").localeCompare(b.orderKey || ""))
         .map(t => t.id);
 
+  // Guard: dropping onto itself or its current parent header
+  if (activeData.id === overData.id || overData.id === activeData.parentId) {
+    return;
+  }
+
   const oldIndex = sourceTasks.indexOf(activeData.id);
   let newIndex = targetTasks.indexOf(overData.id);
   // If over a parent row (folder/space header), append to end
   if (newIndex === -1) newIndex = targetTasks.length;
 
+  if (isSameContainer && oldIndex === newIndex) {
+    return;
+  }
+
   let newOrderKey: string;
 
   if (isSameContainer) {
-    // Same-container reorder: regenerate ALL keys so numeric/rocicorp mix stays sorted
     if (oldIndex === -1) return;
-    const moved = arrayMove(sourceTasks, oldIndex, newIndex);
-    const freshKeys = generateNKeysBetween(null, null, moved.length);
-    newOrderKey = freshKeys[newIndex];
-    // Optimistic: update ALL tasks in this container
-    moved.forEach((id, i) => {
-      store.dispatch(taskSlice.actions.upsert({ id, orderKey: freshKeys[i] }));
-    });
+
+    // Retrieve sorted task records to read neighbor order keys
+    const sortedTasks = sourceTasks.map(id => state.tasks.entities[id]).filter((t): t is typeof t & { orderKey?: string } => !!t);
+    const moved = arrayMove(sortedTasks, oldIndex, newIndex);
+
+    const prevKey = safeKey(moved[newIndex - 1]?.orderKey);
+    const nextKey = safeKey(moved[newIndex + 1]?.orderKey);
+    newOrderKey = generateKeyBetween(prevKey, nextKey);
+
+    // Optimistic: update only the dragged task
+    store.dispatch(taskSlice.actions.upsert({ id: activeData.id, orderKey: newOrderKey }));
   } else {
     // Cross-container move: insert at newIndex in target list
     const newTargetTasks = [...targetTasks];
@@ -84,17 +96,9 @@ export function handleTaskMove(
 
     const prevKey = safeKey(newIndex > 0 ? state.tasks.entities[newTargetTasks[newIndex - 1]]?.orderKey : undefined);
     const nextKey = safeKey(newIndex < newTargetTasks.length - 1 ? state.tasks.entities[newTargetTasks[newIndex + 1]]?.orderKey : undefined);
+    newOrderKey = generateKeyBetween(prevKey, nextKey);
 
-    if (prevKey !== null || nextKey !== null) {
-      // At least one neighbor has a valid rocicorp key — insert between them
-      newOrderKey = generateKeyBetween(prevKey, nextKey);
-    } else {
-      // All existing target keys are legacy numeric — generate fresh sequence and pick position
-      const freshKeys = generateNKeysBetween(null, null, newTargetTasks.length);
-      newOrderKey = freshKeys[newIndex];
-    }
-
-    // Optimistic: update the dragged task — explicit space + folder, no lookup needed
+    // Optimistic: update only the dragged task
     store.dispatch(taskSlice.actions.upsert({
       id: activeData.id,
       projectFolderId: targetFolderId,

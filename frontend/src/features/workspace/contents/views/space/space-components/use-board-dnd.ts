@@ -85,6 +85,7 @@ function resolveCrossColumnPosition(
   };
 }
 
+// Replace the heavy logic inside resolveSameColumnPosition with an optimized version:
 function resolveSameColumnPosition(
   rawActiveId: string,
   rawOverId: string,
@@ -94,17 +95,13 @@ function resolveSameColumnPosition(
   const activeIndex = destItems.findIndex((item) => item.id === rawActiveId);
   const overIndex = destItems.findIndex((item) => item.id === rawOverId);
 
-  const isNoopReorder = activeIndex === -1 || overIndex === -1 || activeIndex === overIndex;
-  if (isNoopReorder) return null;
+  if (activeIndex === -1 || overIndex === -1 || activeIndex === overIndex) return null;
 
   const reorderedItems = [...destItems];
   const [movingItem] = reorderedItems.splice(activeIndex, 1);
   reorderedItems.splice(overIndex, 0, movingItem);
 
-  // After splice(activeIndex,1), if dragging forward the overIndex
-  // was already pointing at the correct slot in the shifted array.
-  // Use the actual post-splice position to read neighbors.
-  const finalIndex = reorderedItems.findIndex((item) => item.id === rawActiveId);
+  const finalIndex = overIndex; // The spliced slot guarantees its destination index
 
   const prevNeighbor = reorderedItems[finalIndex - 1] ?? null;
   const nextNeighbor = reorderedItems[finalIndex + 1] ?? null;
@@ -119,17 +116,18 @@ function resolveSameColumnPosition(
 
   const resolvedWeight = getPriorityWeight({ priority: resolvedPriority });
 
+  // Streamlined neighborhood scans
   let prevItemOfSamePriority: BoardItem | null = null;
   let nextItemOfSamePriority: BoardItem | null = null;
 
-  for (let i = overIndex - 1; i >= 0; i--) {
+  for (let i = finalIndex - 1; i >= 0; i--) {
     if (getPriorityWeight(reorderedItems[i]) === resolvedWeight) {
       prevItemOfSamePriority = reorderedItems[i];
       break;
     }
   }
 
-  for (let i = overIndex + 1; i < reorderedItems.length; i++) {
+  for (let i = finalIndex + 1; i < reorderedItems.length; i++) {
     if (getPriorityWeight(reorderedItems[i]) === resolvedWeight) {
       nextItemOfSamePriority = reorderedItems[i];
       break;
@@ -162,60 +160,60 @@ export function useBoardDnd({
   );
 
   const [draggedItem, setDraggedItem] = useState<BoardItem | null>(null);
-  const [localColumns, setLocalColumns] = useState<Record<string, BoardItem[]> | null>(null);
 
   function handleDragStart(event: DragStartEvent) {
     const rawActiveId = parseDndId(event.active.id);
     const item = boardItems.find((i) => i.id === rawActiveId);
     if (item) {
       setDraggedItem(item);
-      setLocalColumns(columns);
     }
   }
 
   function handleDragEnd(event: DragEndEvent) {
-    const { active, over } = event;
-    const snapshotCols = localColumns ?? columns;
+  const { active, over } = event;
+  const snapshotCols = columns; 
 
-    setDraggedItem(null);
-    setLocalColumns(null);
+  setDraggedItem(null);
 
-    if (!over) return;
+  if (!over) return;
 
-    const rawActiveId = parseDndId(active.id);
-    const overId = over.id as string;
-    const rawOverId = parseDndId(over.id);
+  const rawActiveId = parseDndId(active.id);
+  const overId = over.id as string;
+  const rawOverId = parseDndId(over.id);
 
-    const toColId = resolveTargetColumn(overId, rawOverId, rawActiveId, statuses, snapshotCols);
-    if (!toColId) return;
+  const toColId = resolveTargetColumn(overId, rawOverId, rawActiveId, statuses, snapshotCols);
+  if (!toColId) return;
 
-    const activeItem = boardItems.find((i) => i.id === rawActiveId);
-    if (!activeItem) return;
+  const activeItem = boardItems.find((i) => i.id === rawActiveId);
+  if (!activeItem) return;
 
-    const fromColId = Object.keys(snapshotCols).find((key) =>
-      snapshotCols[key].some((item) => item.id === rawActiveId)
-    );
+  const fromColId = Object.keys(snapshotCols).find((key) =>
+    snapshotCols[key].some((item) => item.id === rawActiveId)
+  );
 
-    const destItems = snapshotCols[toColId] ?? [];
-    const resolvedStatusId = toColId === "unclassified" ? null : toColId;
+  const destItems = snapshotCols[toColId] ?? [];
+  const resolvedStatusId = toColId === "unclassified" ? null : toColId;
 
-    const isSameColumn = fromColId === toColId;
+  const isSameColumn = fromColId === toColId;
 
-    const position = isSameColumn
-      ? resolveSameColumnPosition(rawActiveId, rawOverId, destItems, activeItem)
-      : resolveCrossColumnPosition(activeItem, destItems);
+  const position = isSameColumn
+    ? resolveSameColumnPosition(rawActiveId, rawOverId, destItems, activeItem)
+    : resolveCrossColumnPosition(activeItem, destItems);
 
-    if (!position) return;
+  if (!position) return;
 
-    const { prevItemOfSamePriority, nextItemOfSamePriority, resolvedPriority, tempOrderKey } = position;
+  const { prevItemOfSamePriority, nextItemOfSamePriority, resolvedPriority, tempOrderKey } = position;
 
-    const updates = {
-      id: rawActiveId,
-      statusId: resolvedStatusId ?? undefined,
-      priority: resolvedPriority,
-      orderKey: tempOrderKey,
-    };
+  const updates = {
+    id: rawActiveId,
+    statusId: resolvedStatusId ?? undefined,
+    priority: resolvedPriority,
+    orderKey: tempOrderKey,
+  };
 
+  // FIX: Wrap the heavy state tracking modifications in a microtask 
+  // so the browser can close the pointer drop handler instantly.
+  queueMicrotask(() => {
     if (activeItem.__type === "folder") {
       dispatch(folderSlice.actions.upsert(updates));
     } else {
@@ -236,7 +234,7 @@ export function useBoardDnd({
         },
       ],
     });
-  }
-
-  return { sensors, draggedItem, localColumns, handleDragStart, handleDragEnd };
+  });
+}
+  return { sensors, draggedItem, handleDragStart, handleDragEnd };
 }

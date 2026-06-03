@@ -4,6 +4,8 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
+using Npgsql;
+using NpgsqlTypes;
 
 namespace Application;
 
@@ -13,7 +15,7 @@ public class BatchMoveItemHandler(
     RealtimeService realtime
 ) : ICommandHandler<BatchMoveItemCommand>
 {
-    public async Task<Result> Handle(BatchMoveItemCommand request, CancellationToken ct)
+    public async Task<Result> Handle(BatchMoveItemCommand request, CancellationToken cancellationToken)
     {
         if (!request.HasAnyMoves)
             return Result.Success();
@@ -21,136 +23,179 @@ public class BatchMoveItemHandler(
         if (context.CurrentMember.Role != Role.Admin && context.CurrentMember.Role != Role.Owner)
             return Result.Failure(MemberError.DontHavePermission);
 
-        var folderValTask = request.Folders.Count > 0
-            ? new BatchMoveValidator(db, context.workspaceId).ValidateFolderMovesAsync(request.Folders, ct)
-            : Task.FromResult(Result.Success());
+        if (request.Folders.Count > 0)
+        {
+            var folderValidation = await new BatchMoveValidator(db, context.workspaceId)
+                .ValidateFolderMovesAsync(request.Folders, cancellationToken);
+            if (folderValidation.IsFailure) return folderValidation;
+        }
 
-        var taskValTask = request.Tasks.Count > 0
-            ? new BatchMoveValidator(db, context.workspaceId).ValidateTaskMovesAsync(request.Tasks, ct)
-            : Task.FromResult(Result.Success());
-
-        await Task.WhenAll(folderValTask, taskValTask);
-
-        var folderValidation = await folderValTask;
-        if (folderValidation.IsFailure) return folderValidation;
-
-        var taskValidation = await taskValTask;
-        if (taskValidation.IsFailure) return taskValidation;
+        if (request.Tasks.Count > 0)
+        {
+            var taskValidation = await new BatchMoveValidator(db, context.workspaceId)
+                .ValidateTaskMovesAsync(request.Tasks, cancellationToken);
+            if (taskValidation.IsFailure) return taskValidation;
+        }
 
         var result = await db.ExecuteInTransactionAsync(async () =>
         {
-            await ApplyMovesAsync(request, ct);
+            await ApplyMovesAsync(request, cancellationToken);
             return Result.Success();
-        }, ct);
+        }, cancellationToken);
 
         if (result.IsFailure)
             return result;
 
-        var packet = await FetchUpdatedRecordsAsync(request, ct);
+        db.ChangeTracker.Clear();
+
+        var packet = await FetchUpdatedRecordsAsync(request, cancellationToken);
 
         if (packet.HasAny)
-            await realtime.NotifyEntitiesUpdatedAsync(context.workspaceId, packet, ct);
+            await realtime.NotifyEntitiesUpdatedAsync(context.workspaceId, packet, cancellationToken);
 
         return Result.Success();
     }
 
 
-    private async Task ApplyMovesAsync(BatchMoveItemCommand request, CancellationToken ct)
+    private async Task ApplyMovesAsync(BatchMoveItemCommand request, CancellationToken cancellationToken)
     {
         if (request.Spaces.Count > 0)
         {
-            var orderMap = request.Spaces.ToDictionary(s => s.ItemId, s => s.NewOrderKey);
+            var ids = request.Spaces.Select(s => s.ItemId).ToArray();
+            var orderKeys = request.Spaces.Select(s => s.NewOrderKey).ToArray();
 
-            await db.ProjectSpaces
-                .Where(s => orderMap.Keys.Contains(s.Id) && s.ProjectWorkspaceId == context.workspaceId)
-                .ExecuteUpdateAsync(u => u
-                    .SetProperty(s => s.OrderKey, s => orderMap[s.Id])
-                    .SetProperty(s => s.UpdatedAt, DateTimeOffset.UtcNow), ct);
+            await db.Database.ExecuteSqlRawAsync(
+                """
+                UPDATE project_spaces s
+                SET order_key = v.order_key,
+                    updated_at = NOW()
+                FROM UNNEST(@ids, @orderKeys) AS v(id, order_key)
+                WHERE s.id = v.id AND s.project_workspace_id = @workspaceId
+                """,
+                parameters: new object[]
+                {
+                    new NpgsqlParameter("ids", NpgsqlDbType.Array | NpgsqlDbType.Uuid) { Value = ids },
+                    new NpgsqlParameter("orderKeys", NpgsqlDbType.Array | NpgsqlDbType.Text) { Value = orderKeys },
+                    new NpgsqlParameter("workspaceId", context.workspaceId)
+                },
+                cancellationToken: cancellationToken
+            );
         }
 
         if (request.Folders.Count > 0)
         {
-            // Split into two groups: folders that are being re-parented vs reorder-only
             var withParentChange = request.Folders.Where(f => f.TargetParentId.HasValue).ToList();
             var reorderOnly      = request.Folders.Where(f => !f.TargetParentId.HasValue).ToList();
 
             if (withParentChange.Count > 0)
             {
-                // Group by target space so we still get one UPDATE per distinct target
                 foreach (var group in withParentChange.GroupBy(f => f.TargetParentId!.Value))
                 {
-                    var ids      = group.Select(f => f.ItemId).ToList();
-                    var orderMap = group.ToDictionary(f => f.ItemId, f => f.NewOrderKey);
-                    var spaceId  = group.Key;
+                    var ids = group.Select(f => f.ItemId).ToArray();
+                    var orderKeys = group.Select(f => f.NewOrderKey).ToArray();
+                    var spaceId = group.Key;
 
-                    await db.ProjectFolders
-                        .Where(f => ids.Contains(f.Id))
-                        .ExecuteUpdateAsync(u => u
-                            .SetProperty(f => f.ProjectSpaceId, spaceId)
-                            .SetProperty(f => f.OrderKey, f => orderMap[f.Id])
-                            .SetProperty(f => f.UpdatedAt, DateTimeOffset.UtcNow), ct);
+                    await db.Database.ExecuteSqlRawAsync(
+                        """
+                        UPDATE project_folders f
+                        SET project_space_id = @spaceId,
+                            order_key = v.order_key,
+                            updated_at = NOW()
+                        FROM UNNEST(@ids, @orderKeys) AS v(id, order_key)
+                        WHERE f.id = v.id AND f.project_workspace_id = @workspaceId
+                        """,
+                        parameters: new object[]
+                        {
+                            new NpgsqlParameter("spaceId", spaceId),
+                            new NpgsqlParameter("ids", NpgsqlDbType.Array | NpgsqlDbType.Uuid) { Value = ids },
+                            new NpgsqlParameter("orderKeys", NpgsqlDbType.Array | NpgsqlDbType.Text) { Value = orderKeys },
+                            new NpgsqlParameter("workspaceId", context.workspaceId)
+                        },
+                        cancellationToken: cancellationToken
+                    );
                 }
             }
 
             if (reorderOnly.Count > 0)
             {
-                var ids      = reorderOnly.Select(f => f.ItemId).ToList();
-                var orderMap = reorderOnly.ToDictionary(f => f.ItemId, f => f.NewOrderKey);
+                var ids = reorderOnly.Select(f => f.ItemId).ToArray();
+                var orderKeys = reorderOnly.Select(f => f.NewOrderKey).ToArray();
 
-                await db.ProjectFolders
-                    .Where(f => ids.Contains(f.Id))
-                    .ExecuteUpdateAsync(u => u
-                        .SetProperty(f => f.OrderKey, f => orderMap[f.Id])
-                        .SetProperty(f => f.UpdatedAt, DateTimeOffset.UtcNow), ct);
+                await db.Database.ExecuteSqlRawAsync(
+                    """
+                    UPDATE project_folders f
+                    SET order_key = v.order_key,
+                        updated_at = NOW()
+                    FROM UNNEST(@ids, @orderKeys) AS v(id, order_key)
+                    WHERE f.id = v.id AND f.project_workspace_id = @workspaceId
+                    """,
+                    parameters: new object[]
+                    {
+                        new NpgsqlParameter("ids", NpgsqlDbType.Array | NpgsqlDbType.Uuid) { Value = ids },
+                        new NpgsqlParameter("orderKeys", NpgsqlDbType.Array | NpgsqlDbType.Text) { Value = orderKeys },
+                        new NpgsqlParameter("workspaceId", context.workspaceId)
+                    },
+                    cancellationToken: cancellationToken
+                );
             }
         }
 
         if (request.Tasks.Count > 0)
         {
-            // Group by (TargetSpaceId, TargetFolderId) so each group is one UPDATE
             foreach (var group in request.Tasks.GroupBy(t => (t.TargetSpaceId, t.TargetFolderId)))
             {
-                var ids      = group.Select(t => t.ItemId).ToList();
-                var orderMap = group.ToDictionary(t => t.ItemId, t => t.NewOrderKey);
-                var spaceId  = group.Key.TargetSpaceId;
+                var ids = group.Select(t => t.ItemId).ToArray();
+                var orderKeys = group.Select(t => t.NewOrderKey).ToArray();
+                var spaceId = group.Key.TargetSpaceId;
                 var folderId = group.Key.TargetFolderId;
 
-                await db.ProjectTasks
-                    .Where(t => ids.Contains(t.Id))
-                    .ExecuteUpdateAsync(u => u
-                        .SetProperty(t => t.ProjectSpaceId, spaceId)
-                        .SetProperty(t => t.ProjectFolderId, folderId)
-                        .SetProperty(t => t.OrderKey, t => orderMap[t.Id])
-                        .SetProperty(t => t.UpdatedAt, DateTimeOffset.UtcNow), ct);
+                await db.Database.ExecuteSqlRawAsync(
+                    """
+                    UPDATE project_tasks t
+                    SET project_space_id = @spaceId,
+                        project_folder_id = @folderId,
+                        order_key = v.order_key,
+                        updated_at = NOW()
+                    FROM UNNEST(@ids, @orderKeys) AS v(id, order_key)
+                    WHERE t.id = v.id AND t.project_workspace_id = @workspaceId
+                    """,
+                    parameters: new object[]
+                    {
+                        new NpgsqlParameter("spaceId", spaceId),
+                        new NpgsqlParameter("folderId", (object?)folderId ?? DBNull.Value),
+                        new NpgsqlParameter("ids", NpgsqlDbType.Array | NpgsqlDbType.Uuid) { Value = ids },
+                        new NpgsqlParameter("orderKeys", NpgsqlDbType.Array | NpgsqlDbType.Text) { Value = orderKeys },
+                        new NpgsqlParameter("workspaceId", context.workspaceId)
+                    },
+                    cancellationToken: cancellationToken
+                );
             }
         }
     }
 
-    private async Task<EntityBatchUpdate> FetchUpdatedRecordsAsync(BatchMoveItemCommand request, CancellationToken ct)
+    private async Task<EntityBatchUpdate> FetchUpdatedRecordsAsync(BatchMoveItemCommand request, CancellationToken cancellationToken)
     {
-        var spacesTask = request.Spaces.Count > 0
-            ? FetchSpacesAsync(request.Spaces.Select(s => s.ItemId).ToList(), ct)
-            : Task.FromResult<List<SpaceRecord>>([]);
+        var spaces = request.Spaces.Count > 0
+            ? await FetchSpacesAsync(request.Spaces.Select(s => s.ItemId).ToList(), cancellationToken)
+            : [];
 
-        var foldersTask = request.Folders.Count > 0
-            ? FetchFoldersAsync(request.Folders.Select(f => f.ItemId).ToList(), ct)
-            : Task.FromResult<List<FolderRecord>>([]);
+        var folders = request.Folders.Count > 0
+            ? await FetchFoldersAsync(request.Folders.Select(f => f.ItemId).ToList(), cancellationToken)
+            : [];
 
-        var tasksTask = request.Tasks.Count > 0
-            ? FetchTasksAsync(request.Tasks.Select(t => t.ItemId).ToList(), ct)
-            : Task.FromResult<List<TaskRecord>>([]);
-
-        await Task.WhenAll(spacesTask, foldersTask, tasksTask);
+        var tasks = request.Tasks.Count > 0
+            ? await FetchTasksAsync(request.Tasks.Select(t => t.ItemId).ToList(), cancellationToken)
+            : [];
 
         return new EntityBatchUpdate
         {
-            Spaces  = (await spacesTask).NullIfEmpty(),
-            Folders = (await foldersTask).NullIfEmpty(),
-            Tasks   = (await tasksTask).NullIfEmpty()
+            Spaces  = spaces.NullIfEmpty(),
+            Folders = folders.NullIfEmpty(),
+            Tasks   = tasks.NullIfEmpty()
         };
     }
 
-    private Task<List<SpaceRecord>> FetchSpacesAsync(List<Guid> ids, CancellationToken ct) =>
+    private Task<List<SpaceRecord>> FetchSpacesAsync(List<Guid> ids, CancellationToken cancellationToken) =>
         db.ProjectSpaces
             .AsNoTracking()
             .Where(s => ids.Contains(s.Id))
@@ -164,9 +209,9 @@ public class BatchMoveItemHandler(
                 IsPrivate   = s.IsPrivate,
                 OrderKey    = s.OrderKey
             })
-            .ToListAsync(ct);
+            .ToListAsync(cancellationToken);
 
-    private Task<List<FolderRecord>> FetchFoldersAsync(List<Guid> ids, CancellationToken ct) =>
+    private Task<List<FolderRecord>> FetchFoldersAsync(List<Guid> ids, CancellationToken cancellationToken) =>
         db.ProjectFolders
             .AsNoTracking()
             .Where(f => ids.Contains(f.Id))
@@ -180,10 +225,10 @@ public class BatchMoveItemHandler(
                 Icon        = f.Icon,
                 Color       = f.Color
             })
-            .ToListAsync(ct);
+            .ToListAsync(cancellationToken);
 
-    private Task<List<TaskRecord>> FetchTasksAsync(List<Guid> ids, CancellationToken ct) =>
-        db.ProjectTasks
+    private Task<List<TaskRecord>> FetchTasksAsync(List<Guid> ids, CancellationToken cancellationToken) =>
+         db.ProjectTasks
             .AsNoTracking()
             .Where(t => ids.Contains(t.Id))
             .Select(t => new TaskRecord
@@ -201,7 +246,7 @@ public class BatchMoveItemHandler(
                 ProjectSpaceId  = t.ProjectSpaceId,
                 ProjectFolderId = t.ProjectFolderId
             })
-            .ToListAsync(ct);
+            .ToListAsync(cancellationToken);
 }
 
 public static class ListExtensions

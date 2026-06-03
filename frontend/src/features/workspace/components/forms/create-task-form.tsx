@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { useWorkspace } from "../../context/workspace-provider";
 import { EntityLayerType } from "@/types/entity-layer-type";
 import { Priority } from "@/types/priority";
-import { Circle, Command, User } from "lucide-react";
+import { Circle, User } from "lucide-react";
 import { toast } from "sonner";
 import {
   AttributeButton,
@@ -136,7 +136,7 @@ export function CreateTaskForm({
   const allStatuses = useSelector((state: RootState) => statusSelectors.selectAll(state));
   const statuses = useMemo(() => {
     return targetWorkflowId
-      ? allStatuses.filter((s: Status) => s.workflowId === targetWorkflowId)
+      ? allStatuses.filter((s: Status) => s.workflowId?.toLowerCase() === targetWorkflowId.toLowerCase())
       : [];
   }, [allStatuses, targetWorkflowId]);
 
@@ -210,7 +210,7 @@ export function CreateTaskForm({
             <AttributeButton icon={state.selectedStatusId ? undefined : Circle}>
               {state.selectedStatusId ? (
                 <StatusBadge
-                  status={statuses.find((s: Status) => s.id === state.selectedStatusId)}
+                  status={statuses.find((s: Status) => s.id?.toLowerCase() === state.selectedStatusId?.toLowerCase())}
                 />
               ) : (
                 "Status"
