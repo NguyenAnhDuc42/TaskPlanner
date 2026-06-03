@@ -8,9 +8,15 @@ import { DynamicIcon } from "@/components/dynamic-icon";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import type { TaskRecord } from "@/types/projects";
-import type { Priority } from "@/types/priority";
+import { Priority } from "@/types/priority";
 import { useSelector } from "react-redux";
 import { statusSelectors } from "@/store/entityStore";
+import { StatusSelect } from "@/components/status-select";
+import { PrioritySelect } from "@/components/priority-select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar as ShadcnCalendar } from "@/components/ui/calendar";
+import { useParams } from "@tanstack/react-router";
+import { useGetFolderDetailQuery, useBatchUpdateFolderTasks } from "../folder-api";
 
 export interface SortableTaskItemProps {
   task: TaskRecord;
@@ -20,8 +26,23 @@ export interface SortableTaskItemProps {
   onToggleCheck?: (taskId: string, e: React.MouseEvent) => void;
 }
 
-export function SortableTaskItem({ task, isSelected, isChecked, onSelect, onToggleCheck }: SortableTaskItemProps) {
+export function SortableTaskItem({ 
+  task, 
+  isSelected, 
+  isChecked, 
+  onSelect, 
+  onToggleCheck,
+}: Readonly<SortableTaskItemProps>) {
   const statuses = useSelector(statusSelectors.selectAll);
+  const { folderId } = useParams({ strict: false }) as { folderId: string };
+  const { data: detailData } = useGetFolderDetailQuery(folderId);
+  const { mutate: batchUpdate } = useBatchUpdateFolderTasks(folderId);
+
+  const taskStatuses = detailData?.taskStatuses || [];
+
+  const onUpdateTaskField = (fields: Partial<TaskRecord>) => {
+    batchUpdate([{ id: task.id, ...fields }]);
+  };
 
   const {
     attributes,
@@ -42,14 +63,14 @@ export function SortableTaskItem({ task, isSelected, isChecked, onSelect, onTogg
   const itemColor = task.color || "#3b82f6";
   
   return (
-    <button
+    <div
       ref={setNodeRef}
       style={{ ...style, borderWidth: "1px" }}
       {...attributes}
       {...listeners}
       onClick={onSelect}
       className={cn(
-        "w-full text-left flex items-start px-2.5 py-1.5 rounded-md transition-all group relative border shadow-sm outline-none",
+        "w-full text-left flex items-start px-2.5 py-1.5 rounded-md transition-all group relative border shadow-sm outline-none cursor-pointer",
         isSelected
           ? "bg-primary/5 border-primary/30" 
           : "bg-muted/40 border-border/50 hover:bg-muted/60"
@@ -102,26 +123,88 @@ export function SortableTaskItem({ task, isSelected, isChecked, onSelect, onTogg
 
         {/* Row 2: Status + Priority */}
         <div className="flex items-center gap-3">
-          {task.statusId && (
-            <StatusBadge status={statuses.find(s => s.id?.toLowerCase() === task.statusId?.toLowerCase())} />
-          )}
-          {task.priority && <PriorityBadge priority={task.priority as Priority} />}
+          <div 
+            onClick={(e) => e.stopPropagation()} 
+            onPointerDown={(e) => e.stopPropagation()}
+          >
+            <StatusSelect
+              value={task.statusId || undefined}
+              onChange={(statusId) => onUpdateTaskField({ statusId })}
+              workflowId={taskStatuses[0]?.workflowId}
+              statuses={taskStatuses}
+              trigger={
+                <button type="button" className="cursor-pointer focus:outline-none">
+                  <StatusBadge status={statuses.find(s => s.id?.toLowerCase() === task.statusId?.toLowerCase())} />
+                </button>
+              }
+            />
+          </div>
+
+          <div 
+            onClick={(e) => e.stopPropagation()} 
+            onPointerDown={(e) => e.stopPropagation()}
+          >
+            <PrioritySelect
+              value={task.priority as Priority}
+              onChange={(priority) => onUpdateTaskField({ priority })}
+              trigger={
+                <button type="button" className="cursor-pointer focus:outline-none">
+                  <PriorityBadge priority={task.priority as Priority} />
+                </button>
+              }
+            />
+          </div>
         </div>
 
         {/* Row 3: Dates */}
         <div className="flex items-center justify-between w-full mt-0.5">
           <div className="flex items-center gap-2">
-            {task.startDate || task.dueDate ? (
-              <DateBadge startDate={task.startDate} dueDate={task.dueDate} />
-            ) : (
-              <div className="flex items-center h-5 gap-1 px-1.5 rounded-sm bg-muted/30 text-[9px] text-muted-foreground/50 font-bold border border-border/5">
-                <Calendar className="h-2.5 w-2.5 opacity-50" />
-                <span>No Date</span>
-              </div>
-            )}
+            <Popover>
+              <PopoverTrigger asChild>
+                <div
+                  onClick={(e) => e.stopPropagation()}
+                  onPointerDown={(e) => e.stopPropagation()}
+                  className="cursor-pointer"
+                >
+                  {task.startDate || task.dueDate ? (
+                    <DateBadge startDate={task.startDate} dueDate={task.dueDate} />
+                  ) : (
+                    <div className="flex items-center h-5 gap-1 px-1.5 rounded-sm bg-muted/30 text-[9px] text-muted-foreground/50 font-bold border border-border/5 hover:bg-muted/50 transition-colors">
+                      <Calendar className="h-2.5 w-2.5 opacity-50" />
+                      <span>No Date</span>
+                    </div>
+                  )}
+                </div>
+              </PopoverTrigger>
+              <PopoverContent 
+                className="w-auto p-3 border border-border/50 shadow-xl rounded-xl bg-background flex flex-col gap-3" 
+                align="start"
+                onClick={(e) => e.stopPropagation()}
+                onPointerDown={(e) => e.stopPropagation()}
+              >
+                <div className="flex gap-4">
+                  <div className="flex flex-col gap-1.5">
+                    <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Start Date</span>
+                    <ShadcnCalendar
+                      mode="single"
+                      selected={task.startDate ? new Date(task.startDate) : undefined}
+                      onSelect={(date) => onUpdateTaskField({ startDate: date?.toISOString() ?? undefined })}
+                    />
+                  </div>
+                  <div className="flex flex-col gap-1.5">
+                    <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Due Date</span>
+                    <ShadcnCalendar
+                      mode="single"
+                      selected={task.dueDate ? new Date(task.dueDate) : undefined}
+                      onSelect={(date) => onUpdateTaskField({ dueDate: date?.toISOString() ?? undefined })}
+                    />
+                  </div>
+                </div>
+              </PopoverContent>
+            </Popover>
           </div>
         </div>
       </div>
-    </button>
+    </div>
   );
 }

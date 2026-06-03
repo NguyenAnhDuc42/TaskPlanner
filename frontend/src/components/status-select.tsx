@@ -22,7 +22,7 @@ export function StatusSelect({
   statuses: customStatuses,
   align = "start",
   trigger,
-}: StatusSelectProps) {
+}: Readonly<StatusSelectProps>) {
   const { registry } = useWorkspace();
 
   const workflow = useMemo(() => {
@@ -71,12 +71,12 @@ export function StatusSelect({
         className="w-44 p-1 bg-popover border border-border shadow-md rounded-md"
         onFocusOutside={(e) => e.preventDefault()}
       >
-        <div className="px-1.5 py-0.5 border-b border-border/10 mb-1">
+        <div className="px-1.5 py-0.5 border-b border-border/10">
           <span className="text-[8px] font-black uppercase tracking-wider text-muted-foreground/50">Select Status</span>
         </div>
-        <div className="max-h-48 overflow-y-auto space-y-1 p-0.5 no-scrollbar flex flex-col gap-0.5">
+        <div className="max-h-40 overflow-y-auto  flex flex-col gap-1 [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-thumb]:bg-muted-foreground/20 hover:[&::-webkit-scrollbar-thumb]:bg-muted-foreground/45 [&::-webkit-scrollbar-track]:bg-transparent">
           {Object.entries(statusesByCategory).map(([category, cats]) => (
-            <div key={category} className="space-y-0.5 flex flex-col">
+            <div key={category} className="flex flex-col gap-0.5">
               <div className="px-1.5 py-0.5">
                 <span className="text-[7px] font-black uppercase tracking-[0.1em] text-muted-foreground/30">{category}</span>
               </div>
@@ -85,7 +85,7 @@ export function StatusSelect({
                   key={status.statusId || status.id}
                   type="button"
                   onClick={() => onChange(status.statusId || status.id)}
-                  className="px-1.5 py-1 text-xs text-left rounded-sm hover:bg-muted transition-colors flex items-center w-full"
+                  className="px-1.5 py-0.5 text-xs text-left rounded-sm hover:bg-muted transition-colors flex items-center w-full"
                 >
                   <StatusBadge status={status} className="w-full justify-start border-none bg-transparent hover:bg-transparent text-[10px] p-0 h-auto" />
                 </button>

@@ -9,12 +9,18 @@ import type { FolderRecord } from "@/types/projects/folder-record";
 import type { PagedResult } from "@/types/paged-result";
 import { Priority } from "@/types/priority";
 import type { Status } from "@/types/status";
+import type { BreadcrumbInfo } from "@/types/breadcrumb-info";
+
 
 export interface FolderDetailResponse {
   folder: FolderRecord;
-  statuses: Status[];
+  space: BreadcrumbInfo;
+  folderStatus?: Status;
+  parentWorkflowId?: string; 
+  spaceStatuses: Status[]; 
+  taskStatuses: Status[]; 
   workflowId?: string;
-  parentWorkflowId?: string;
+ 
 }
 
 export interface TaskFilter {
@@ -45,7 +51,8 @@ export const folderApi = workspaceApi.injectEndpoints({
         try {
           const { data } = await queryFulfilled;
           dispatch(folderSlice.actions.upsert({ ...data.folder, workflowId: data.workflowId ?? undefined }));
-          dispatch(statusSlice.actions.upsertMany(data.statuses));
+          dispatch(statusSlice.actions.upsertMany(data.spaceStatuses));
+          dispatch(statusSlice.actions.upsertMany(data.taskStatuses));
         } catch {}
       }
     }),

@@ -49,6 +49,7 @@ export function FolderTaskList({
   const tasks = useFolderTasksList(folderId);
   const sortableItems = React.useMemo(() => tasks.map(t => t.id), [tasks]);
   const [batchUpdate] = useBatchUpdateFolderTasksMutation();
+
   const [draggedTask, setDraggedTask] = React.useState<TaskRecord | null>(null);
   const pointerSensor = useSensor(PointerSensor, { activationConstraint: { distance: 5 } });
   const keyboardSensor = useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates });

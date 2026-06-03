@@ -23,11 +23,11 @@ import { PrioritySelect } from "@/components/priority-select";
 import { AttributeButton } from "@/features/workspace/components/forms/form-elements";
 import { useSelector } from "react-redux";
 import { statusSelectors } from "@/store/entityStore";
-import type { Status } from "@/types/status";
 import {
   useGetFolderDetailQuery,
   useFolderDetail,
   useUpdateFolderFieldMutation,
+  useFolderTasksList,
 } from "./folder-api";
 import {
   DropdownMenu,
@@ -55,12 +55,14 @@ export function FolderView() {
 
   const [checkedTaskIds, setCheckedTaskIds] = React.useState<Set<string>>(new Set());
   const [isWorkflowOpen, setIsWorkflowOpen] = React.useState(false);
+  const [selectedTaskId, setSelectedTaskId] = React.useState<string | undefined>(undefined);
 
   // Load folder + statuses into Redux (single source of truth)
   const { data: detailData, isLoading } = useGetFolderDetailQuery(folderId);
 
   // Read folder reactively from Redux (real-time safe)
   const folder = useFolderDetail(folderId);
+  const tasks = useFolderTasksList(folderId);
   const parentSpace = useSpaceDetail(folder?.spaceId ?? "");
 
   // Load parent space details to ensure we always have the workflow of the space above it
@@ -68,20 +70,22 @@ export function FolderView() {
 
   const [updateFolderField] = useUpdateFolderFieldMutation();
 
+  React.useEffect(() => {
+    if (tasks.length > 0) {
+      const exists = tasks.some(t => t.id === selectedTaskId);
+      if (!selectedTaskId || !exists) {
+        setSelectedTaskId(tasks[0].id);
+      }
+    } else {
+      setSelectedTaskId(undefined);
+    }
+  }, [tasks, selectedTaskId]);
+
   const allStatuses = useSelector(statusSelectors.selectAll);
-  const folderStatuses = detailData?.statuses || [];
 
-  const spaceStatuses = React.useMemo(() => {
-    const parentWorkflowId = detailData?.parentWorkflowId;
-    if (!parentWorkflowId) return [];
-    return allStatuses.filter(s => s.workflowId?.toLowerCase() === parentWorkflowId.toLowerCase());
-  }, [allStatuses, detailData?.parentWorkflowId]);
 
-  const taskStatuses = React.useMemo(() => {
-    const activeWorkflowId = folder?.workflowId || detailData?.parentWorkflowId;
-    if (!activeWorkflowId) return [];
-    return allStatuses.filter(s => s.workflowId?.toLowerCase() === activeWorkflowId.toLowerCase());
-  }, [allStatuses, folder?.workflowId, detailData?.parentWorkflowId]);
+  const spaceStatuses = detailData?.spaceStatuses || [];
+  const taskStatuses = detailData?.taskStatuses || [];
 
   const updateField = (patches: Partial<FolderRecord>) => {
     updateFolderField({ folderId, patches });
@@ -305,12 +309,14 @@ export function FolderView() {
             <FolderTaskList
               checkedTaskIds={checkedTaskIds}
               onToggleCheck={toggleCheck}
+              selectedTaskId={selectedTaskId}
+              onSelectTask={setSelectedTaskId}
             />
           </div>
 
           {/* Right Card: Task Detail Canvas */}
           <div className="flex-1 rounded-md border border-border/40 bg-card/35 backdrop-blur-md shadow-sm overflow-hidden flex flex-col">
-            <TaskDetailCanvas taskId="1" />
+            <TaskDetailCanvas taskId={selectedTaskId} />
           </div>
         </div>
       </div>
@@ -319,7 +325,7 @@ export function FolderView() {
         isOpen={isWorkflowOpen}
         onClose={() => setIsWorkflowOpen(false)}
         workflowId={detailData?.workflowId}
-        currentStatuses={detailData?.statuses}
+        currentStatuses={detailData?.taskStatuses}
       />
 
       {checkedTaskIds.size > 0 && (

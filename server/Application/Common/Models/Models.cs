@@ -59,3 +59,5 @@ public record DocumentBlockRecord
     public string Content { get; init; } = null!;
     public string OrderKey { get; init; } = null!;
 }
+
+public record BreadcrumbInfo(string Name, string? Icon, string? Color);

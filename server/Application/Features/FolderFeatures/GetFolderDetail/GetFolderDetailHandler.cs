@@ -6,54 +6,52 @@ public class GetFolderDetailHandler(TaskPlanDbContext db, WorkspaceContext works
 {
     public async Task<Result<FolderDetailResponse>> Handle(GetFolderDetailQuery request, CancellationToken ct)
     {
+        // Only select columns shown on the folder view page
         const string sql = @"
             SELECT 
-                f.id AS Id, 
-                f.project_space_id AS ProjectSpaceId, 
-                f.name AS Name, 
-                f.custom_color AS Color, 
-                f.custom_icon AS Icon,
-                f.status_id AS StatusId, 
-                f.priority AS Priority, 
-                f.start_date AS StartDate, 
-                f.due_date AS DueDate, 
-                f.created_at AS CreatedAt,
-                f.project_workspace_id AS WorkspaceId,
+                f.id          AS Id,
                 f.project_space_id AS SpaceId,
-                (SELECT wf.id FROM workflows wf WHERE wf.project_space_id = f.project_space_id AND wf.project_folder_id IS NULL LIMIT 1) AS ParentWorkflowId,
-                (SELECT wf.id FROM workflows wf WHERE wf.project_folder_id = f.id LIMIT 1) AS WorkflowId
+                f.name        AS Name,
+                f.custom_icon AS Icon,
+                f.custom_color AS Color,
+                f.status_id   AS StatusId,
+                f.priority    AS Priority,
+                f.start_date  AS StartDate,
+                f.due_date    AS DueDate
             FROM project_folders f
-            WHERE f.id = @FolderId AND f.project_workspace_id = @WorkspaceId AND f.deleted_at IS NULL;";
+            WHERE f.id = @FolderId AND f.project_workspace_id = @WorkspaceId AND f.deleted_at IS NULL;
+
+            SELECT s.name AS Name, s.custom_icon AS Icon, s.custom_color AS Color
+            FROM project_spaces s
+            INNER JOIN project_folders f ON f.project_space_id = s.id
+            WHERE f.id = @FolderId AND f.project_workspace_id = @WorkspaceId LIMIT 1;
+
+            SELECT wf.id FROM workflows wf
+            INNER JOIN project_folders f ON f.project_space_id = wf.project_space_id
+            WHERE f.id = @FolderId AND wf.project_folder_id IS NULL LIMIT 1;
+
+            SELECT wf.id FROM workflows wf
+            WHERE wf.project_folder_id = @FolderId LIMIT 1;";
 
         var connection = db.Database.GetDbConnection();
-        var folderData = await connection.QueryFirstOrDefaultAsync<FolderQueryResult>(
+        using var multi = await connection.QueryMultipleAsync(
             sql, new { FolderId = request.FolderId, WorkspaceId = workspaceContext.workspaceId });
-        
-        if (folderData == null)
+
+        var folder = await multi.ReadFirstOrDefaultAsync<FolderRecord>();
+        if (folder == null)
             return Result<FolderDetailResponse>.Failure(Error.NotFound("Folder.NotFound", $"Folder {request.FolderId} not found"));
 
-        var folderRecord = new FolderRecord
-        {
-            Id = folderData.Id,
-            Name = folderData.Name,
-            CreatedAt = folderData.CreatedAt,
-            StatusId = folderData.StatusId,
-            Priority = folderData.Priority,
-            StartDate = folderData.StartDate,
-            DueDate = folderData.DueDate,
-            Icon = folderData.Icon,
-            Color = folderData.Color,
-            WorkspaceId = folderData.WorkspaceId,
-            SpaceId = folderData.SpaceId
-        };
+        var space = await multi.ReadFirstOrDefaultAsync<BreadcrumbInfo>();
+        var parentWorkflowId = await multi.ReadFirstOrDefaultAsync<Guid?>();
+        var workflowId = await multi.ReadFirstOrDefaultAsync<Guid?>();
 
-        List<StatusRecord> statuses = new();
-        if (folderData.ParentWorkflowId.HasValue || folderData.WorkflowId.HasValue)
+        List<StatusRecord> spaceStatuses = new();
+        if (parentWorkflowId.HasValue)
         {
             var statusSql = @"
                 SELECT id AS Id, id AS StatusId, workflow_id AS WorkflowId, name AS Name, color AS Color, category AS Category, order_key AS OrderKey
                 FROM statuses
-                WHERE workflow_id = @ParentWorkflowId OR workflow_id = @WorkflowId
+                WHERE workflow_id = @ParentWorkflowId
                 ORDER BY CASE category
                     WHEN 'NotStarted' THEN 0
                     WHEN 'Active' THEN 1
@@ -61,44 +59,59 @@ public class GetFolderDetailHandler(TaskPlanDbContext db, WorkspaceContext works
                     WHEN 'Closed' THEN 3
                     ELSE 4
                 END;";
-            
-            statuses = (await connection.QueryAsync<StatusRecord>(statusSql, new { 
-                ParentWorkflowId = folderData.ParentWorkflowId, 
-                WorkflowId = folderData.WorkflowId 
+
+            spaceStatuses = (await connection.QueryAsync<StatusRecord>(statusSql, new {
+                ParentWorkflowId = parentWorkflowId
             })).AsList();
         }
 
-        if (folderData.StatusId.HasValue && !statuses.Any(s => s.Id == folderData.StatusId.Value))
+        List<StatusRecord> taskStatuses = new();
+        if (workflowId.HasValue)
         {
-            var singleStatusSql = @"
+            var taskStatusSql = @"
                 SELECT id AS Id, id AS StatusId, workflow_id AS WorkflowId, name AS Name, color AS Color, category AS Category, order_key AS OrderKey
                 FROM statuses
-                WHERE id = @StatusId;";
-            var singleStatus = await connection.QueryFirstOrDefaultAsync<StatusRecord>(
-                singleStatusSql, new { StatusId = folderData.StatusId.Value });
-            if (singleStatus != null)
+                WHERE workflow_id = @WorkflowId
+                ORDER BY CASE category
+                    WHEN 'NotStarted' THEN 0
+                    WHEN 'Active' THEN 1
+                    WHEN 'Done' THEN 2
+                    WHEN 'Closed' THEN 3
+                    ELSE 4
+                END;";
+
+            taskStatuses = (await connection.QueryAsync<StatusRecord>(taskStatusSql, new {
+                WorkflowId = workflowId
+            })).AsList();
+        }
+        else
+        {
+            // Folder has no custom workflow — tasks inherit space statuses
+            taskStatuses = spaceStatuses;
+        }
+
+        StatusRecord? folderStatus = null;
+        if (folder.StatusId.HasValue)
+        {
+            folderStatus = spaceStatuses.FirstOrDefault(s => s.Id == folder.StatusId.Value);
+
+            if (folderStatus == null)
             {
-                statuses.Add(singleStatus);
+                folderStatus = await connection.QueryFirstOrDefaultAsync<StatusRecord>(@"
+                    SELECT id AS Id, id AS StatusId, workflow_id AS WorkflowId, name AS Name, color AS Color, category AS Category, order_key AS OrderKey
+                    FROM statuses WHERE id = @StatusId;",
+                    new { StatusId = folder.StatusId.Value });
             }
         }
 
-        return Result<FolderDetailResponse>.Success(new FolderDetailResponse(folderRecord, statuses, folderData.WorkflowId, folderData.ParentWorkflowId));
-    }
-
-    private class FolderQueryResult
-    {
-        public Guid Id { get; set; }
-        public string Name { get; set; } = null!;
-        public DateTimeOffset CreatedAt { get; set; }
-        public Guid? StatusId { get; set; }
-        public Priority? Priority { get; set; }
-        public DateTimeOffset? StartDate { get; set; }
-        public DateTimeOffset? DueDate { get; set; }
-        public string? Icon { get; set; }
-        public string? Color { get; set; }
-        public Guid? WorkspaceId { get; set; }
-        public Guid? SpaceId { get; set; }
-        public Guid? WorkflowId { get; set; }
-        public Guid? ParentWorkflowId { get; set; }
+        return Result<FolderDetailResponse>.Success(new FolderDetailResponse(
+            folder,
+            space ?? new BreadcrumbInfo("", null, null),
+            folderStatus,
+            parentWorkflowId,
+            spaceStatuses,
+            workflowId,
+            taskStatuses
+        ));
     }
 }
