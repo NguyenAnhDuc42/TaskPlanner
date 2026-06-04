@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+
 namespace Api;
 
 [Route("api/[controller]")]
@@ -39,7 +40,6 @@ public class TasksController : ControllerBase
             DueDate: request.DueDate,
             StoryPoints: request.StoryPoints,
             TimeEstimate: request.TimeEstimate,
-            AssigneeIds: request.AssigneeIds,
             Icon: request.Icon,
             Color: request.Color
         );
@@ -47,8 +47,6 @@ public class TasksController : ControllerBase
         var result = await _handler.SendAsync(command, ct);
         return result.ToActionResult();
     }
-
-
 
     [HttpDelete("{id:guid}")]
     public async Task<IActionResult> Delete(Guid id, CancellationToken ct)
@@ -64,15 +62,11 @@ public class TasksController : ControllerBase
         return result.ToActionResult();
     }
 
-    [HttpGet("{taskId:guid}/assignee-candidates")]
-    public async Task<IActionResult> GetTaskAssigneeCandidates(
-        Guid taskId,
-        [FromQuery] string? search,
-        [FromQuery] int limit = 50,
-        CancellationToken ct = default)
+    [HttpPut("{taskId:guid}/assignees")]
+    public async Task<IActionResult> UpdateAssignees(Guid taskId, [FromBody] List<AssigneeChangeValue> changes, CancellationToken ct)
     {
-        var result = await _handler.QueryAsync<GetTaskAssigneeCandidatesQuery, List<AssigneeRecord>>(
-            new GetTaskAssigneeCandidatesQuery(taskId, search, limit), ct);
+        var command = new UpdateTaskAssigneesCommand(taskId, changes);
+        var result = await _handler.SendAsync(command, ct);
         return result.ToActionResult();
     }
 
@@ -99,11 +93,6 @@ public record UpdateTaskRequest(
     DateTimeOffset? DueDate,
     int? StoryPoints,
     long? TimeEstimate,
-    List<Guid>? AssigneeIds,
     string? Icon,
     string? Color
 );
-
-
-
-

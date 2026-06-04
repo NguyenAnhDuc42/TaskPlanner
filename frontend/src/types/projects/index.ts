@@ -3,4 +3,6 @@ export * from './folder-record';
 export * from './space-record';
 export * from './workflow-record';
 export * from './comment-record';
+export * from './assignee-record';
+
 

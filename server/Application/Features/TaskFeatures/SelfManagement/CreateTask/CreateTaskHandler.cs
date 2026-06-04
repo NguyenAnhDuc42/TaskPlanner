@@ -62,7 +62,7 @@ public class CreateTaskHandler(TaskPlanDbContext db, WorkspaceContext context, R
             if (request.AssigneeIds?.Any() == true)
             {
                 var memberIds = await db.WorkspaceMembers
-                    .Where(wm => wm.ProjectWorkspaceId == ancestors.ProjectWorkspaceId && request.AssigneeIds.Contains(wm.UserId))
+                    .Where(wm => wm.ProjectWorkspaceId == ancestors.ProjectWorkspaceId && request.AssigneeIds.Contains(wm.Id) && wm.DeletedAt == null)
                     .Select(wm => wm.Id)
                     .ToListAsync(ct);
 

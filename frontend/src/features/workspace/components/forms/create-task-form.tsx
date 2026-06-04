@@ -15,11 +15,7 @@ import { StatusBadge } from "@/components/status-badge";
 import { PriorityBadge } from "@/components/priority-badge";
 import { StatusSelect } from "@/components/status-select";
 import { PrioritySelect } from "@/components/priority-select";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
+
 import { useSelector } from "react-redux";
 
 import { useGetSpaceDetailQuery, useGetSpaceItemsQuery } from "../../contents/views/space/space-api";

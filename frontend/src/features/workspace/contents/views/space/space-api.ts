@@ -12,7 +12,7 @@ import type { EntityAccessRecord } from "@/types/workspace";
 import type { SpaceDocumentRecord } from "@/types/document";
 
 
-export interface SpaceItemsResponse {
+export interface GetSpaceItemsResponse {
   folders: FolderRecord[];
   tasks: TaskRecord[];
   statuses: Status[];
@@ -38,7 +38,7 @@ export const spaceApi = workspaceApi.injectEndpoints({
   endpoints: (build) => ({
     getSpaceDetail: build.query<SpaceRecord, string>({
       query: (spaceId) => ({ url: `/spaces/${spaceId}`, method: "GET" }),
-      async onQueryStarted(spaceId, { dispatch, queryFulfilled }) {
+      async onQueryStarted(_spaceId, { dispatch, queryFulfilled }) {
         try {
           const { data } = await queryFulfilled;
           dispatch(spaceSlice.actions.upsert(data));
@@ -46,9 +46,9 @@ export const spaceApi = workspaceApi.injectEndpoints({
       }
     }),
 
-    getSpaceItems: build.query<SpaceItemsResponse, string>({
+    getSpaceItems: build.query<GetSpaceItemsResponse, string>({
       query: (spaceId) => ({ url: `/spaces/${spaceId}/items`, method: "GET" }),
-      async onQueryStarted(spaceId, { dispatch, queryFulfilled }) {
+      async onQueryStarted(_spaceId, { dispatch, queryFulfilled }) {
         try {
           const { data } = await queryFulfilled;
           dispatch(folderSlice.actions.upsertMany(data.folders));
@@ -64,7 +64,7 @@ export const spaceApi = workspaceApi.injectEndpoints({
         method: "POST",
         data: { workspaceId: spaceId, updates }
       }),
-      async onQueryStarted({ spaceId, updates }, { dispatch, queryFulfilled, getState }) {
+      async onQueryStarted({ spaceId: _spaceId, updates }, { dispatch, queryFulfilled, getState }) {
         const state = getState() as RootState;
 
         // Snapshot original folders and tasks for rollback
@@ -131,7 +131,7 @@ export const spaceApi = workspaceApi.injectEndpoints({
     getEntityAccess: build.query<EntityAccessRecord[], string>({
       query: (spaceId) => ({ url: `/spaces/${spaceId}/access`, method: "GET" }),
       providesTags: (_result, _error, spaceId) => [{ type: "EntityAccess" as const, id: `access-${spaceId}` }],
-      async onQueryStarted(spaceId, { dispatch, queryFulfilled }) {
+      async onQueryStarted(_spaceId, { dispatch, queryFulfilled }) {
         try {
           const { data } = await queryFulfilled;
           const mapped = data.map(item => ({ ...item, id: item.workspaceMemberId }));
@@ -147,7 +147,7 @@ export const spaceApi = workspaceApi.injectEndpoints({
         data: rows
       }),
       invalidatesTags: (_result, _error, { spaceId }) => [{ type: "EntityAccess" as const, id: `access-${spaceId}` }],
-      async onQueryStarted({ spaceId, rows }, { dispatch, queryFulfilled, getState }) {
+      async onQueryStarted({ spaceId: _spaceId, rows }, { dispatch, queryFulfilled, getState }) {
         const state = getState() as RootState;
 
         // Snapshot original rows for rollback
@@ -234,7 +234,7 @@ export function useSpaceBoardItems(spaceId: string) {
           }));
 
         const spaceTasks = tasks
-          .filter((t) => t.projectSpaceId?.toLowerCase() === targetSpaceId && !t.projectFolderId)
+          .filter((t) => t.spaceId?.toLowerCase() === targetSpaceId && !t.folderId)
           .map((t) => ({
             ...t,
             __type: "task" as const,

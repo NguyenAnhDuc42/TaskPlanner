@@ -1,9 +1,7 @@
 import { workspaceApi } from "@/store/workspaceApi";
-import { taskSlice, taskSelectors } from "@/store/entityStore";
-import type { RootState } from "@/store";
+import { taskSlice, assigneeSlice } from "@/store/entityStore";
 import type { TaskRecord } from "@/types/projects/task-record";
-import type { CommentRecord } from "@/types/projects";
-
+import type { CommentRecord, AssigneeRecord } from "@/types/projects";
 
 export const taskApi = workspaceApi.injectEndpoints({
   endpoints: (build) => ({
@@ -13,7 +11,7 @@ export const taskApi = workspaceApi.injectEndpoints({
         method: "GET",
       }),
       providesTags: (_result, _error, id) => [{ type: "Tasks" as const, id }],
-      async onQueryStarted(taskId, { dispatch, queryFulfilled }) {
+      async onQueryStarted(_taskId, { dispatch, queryFulfilled }) {
         try {
           const { data } = await queryFulfilled;
           dispatch(taskSlice.actions.upsert(data));
@@ -28,29 +26,42 @@ export const taskApi = workspaceApi.injectEndpoints({
         data: patches,
       }),
       invalidatesTags: (_result, _error, { taskId }) => [{ type: "Tasks" as const, id: taskId }],
-      async onQueryStarted({ taskId, patches }, { dispatch, queryFulfilled, getState }) {
-        const state = getState() as RootState;
-        const originalTask = taskSelectors.selectById(state, taskId);
+    }),
 
-        // Optimistic update
-        dispatch(taskSlice.actions.upsert({ id: taskId, ...patches }));
-
+    getTaskAssignees: build.query<AssigneeRecord[], string>({
+      query: (taskId) => ({
+        url: `/tasks/${taskId}/assignees`,
+        method: "GET",
+      }),
+      providesTags: (_result, _error, id) => [{ type: "Tasks" as const, id: `assignees-${id}` }],
+      async onQueryStarted(_taskId, { dispatch, queryFulfilled }) {
         try {
-          await queryFulfilled;
-        } catch {
-          if (originalTask) {
-            dispatch(taskSlice.actions.upsert(originalTask));
-          }
-        }
+          const { data } = await queryFulfilled;
+          const mappedAssignees = data.map(a => ({
+            id: `${a.taskId}_${a.workspaceMemberId}`,
+            taskId: a.taskId,
+            workspaceMemberId: a.workspaceMemberId
+          }));
+          dispatch(assigneeSlice.actions.upsertMany(mappedAssignees));
+        } catch {}
       },
     }),
 
-    getComments: build.query<CommentRecord[], string>({
+    updateTaskAssignees: build.mutation<void, { taskId: string; changes: { memberId: string; isDelete: boolean }[] }>({
+      query: ({ taskId, changes }) => ({
+        url: `/tasks/${taskId}/assignees`,
+        method: "PUT",
+        data: changes,
+      }),
+      invalidatesTags: (_result, _error, { taskId }) => [{ type: "Tasks" as const, id: `assignees-${taskId}` }],
+    }),
+
+    getTaskComments: build.query<CommentRecord[], string>({
       query: (taskId) => ({
         url: `/tasks/${taskId}/comments`,
         method: "GET",
       }),
-      providesTags: (_result, _error, taskId) => [{ type: "Tasks" as const, id: `comments-${taskId}` }],
+      providesTags: (_result, _error, id) => [{ type: "Tasks" as const, id: `comments-${id}` }],
     }),
 
     addComment: build.mutation<CommentRecord, { taskId: string; content: string; parentCommentId?: string }>({
@@ -67,6 +78,8 @@ export const taskApi = workspaceApi.injectEndpoints({
 export const {
   useGetTaskDetailQuery,
   useUpdateTaskMutation,
-  useGetCommentsQuery,
+  useGetTaskAssigneesQuery,
+  useUpdateTaskAssigneesMutation,
+  useGetTaskCommentsQuery,
   useAddCommentMutation,
 } = taskApi;

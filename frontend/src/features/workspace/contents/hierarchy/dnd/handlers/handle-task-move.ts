@@ -1,6 +1,6 @@
 import { arrayMove } from "@dnd-kit/sortable";
 import { EntityLayerType as EntityLayerConst } from "@/types/entity-layer-type";
-import { generateKeyBetween, generateNKeysBetween } from "fractional-indexing";
+import { generateKeyBetween } from "fractional-indexing";
 import { safeKey } from "../../utils/fractional-index";
 import type { DragItemData, DragTaskData } from "../drag-item-type";
 import { store } from "@/store";
@@ -41,8 +41,8 @@ export function handleTaskMove(
     .filter((t): t is typeof t & { id: string } => {
       if (!t) return false;
       return isSourceFolder
-        ? (t.projectFolderId === sourceContainerId)
-        : (t.projectSpaceId === sourceContainerId && !t.projectFolderId);
+        ? (t.folderId === sourceContainerId)
+        : (t.spaceId === sourceContainerId && !t.folderId);
     })
     .sort((a, b) => (a.orderKey || "").localeCompare(b.orderKey || ""))
     .map(t => t.id);
@@ -54,8 +54,8 @@ export function handleTaskMove(
         .filter((t): t is typeof t & { id: string } => {
           if (!t) return false;
           return isTargetFolder
-            ? (t.projectFolderId === targetContainerId)
-            : (t.projectSpaceId === targetContainerId && !t.projectFolderId);
+            ? (t.folderId === targetContainerId)
+            : (t.spaceId === targetContainerId && !t.folderId);
         })
         .sort((a, b) => (a.orderKey || "").localeCompare(b.orderKey || ""))
         .map(t => t.id);
@@ -101,8 +101,8 @@ export function handleTaskMove(
     // Optimistic: update only the dragged task
     store.dispatch(taskSlice.actions.upsert({
       id: activeData.id,
-      projectFolderId: targetFolderId,
-      projectSpaceId: targetSpaceId,
+      folderId: targetFolderId,
+      spaceId: targetSpaceId,
       orderKey: newOrderKey
     }));
   }

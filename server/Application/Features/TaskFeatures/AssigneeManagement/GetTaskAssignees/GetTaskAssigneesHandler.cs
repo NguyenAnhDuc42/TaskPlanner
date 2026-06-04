@@ -12,14 +12,10 @@ public class GetTaskAssigneesHandler(TaskPlanDbContext db) : IQueryHandler<GetTa
         if (task == null) return TaskError.NotFound;
 
         const string sql = @"
-            SELECT u.id AS UserId, u.name AS UserName, NULL AS AvatarUrl
+            SELECT ta.task_id AS TaskId, ta.workspace_member_id AS WorkspaceMemberId
             FROM task_assignments ta
-            JOIN workspace_members wm ON ta.workspace_member_id = wm.id
-            JOIN users u ON wm.user_id = u.id
             WHERE ta.task_id = @TaskId
-              AND ta.deleted_at IS NULL
-              AND wm.deleted_at IS NULL
-            ORDER BY u.name";
+              AND ta.deleted_at IS NULL";
 
         var connection = db.Database.GetDbConnection();
         var assignees = (await connection.QueryAsync<AssigneeRecord>(

@@ -1,6 +1,5 @@
 import { api, apiEvents } from "@/lib/api-client";
 import { getCookie, deleteCookie } from "@/lib/cookie-utils";
-import { authKeys } from "./api";
 
 class AuthSessionManager {
   private timeoutId: number | null = null;

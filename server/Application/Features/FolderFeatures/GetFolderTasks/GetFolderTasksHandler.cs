@@ -20,8 +20,8 @@ public class GetFolderTasksHandler(
                 order_key               AS OrderKey,
                 custom_icon             AS Icon,
                 custom_color            AS Color,
-                project_folder_id       AS ProjectFolderId,
-                project_space_id        AS ProjectSpaceId,
+                project_folder_id       AS FolderId,
+                project_space_id        AS SpaceId,
                 project_workspace_id    AS WorkspaceId
         FROM project_tasks
         /**where**/

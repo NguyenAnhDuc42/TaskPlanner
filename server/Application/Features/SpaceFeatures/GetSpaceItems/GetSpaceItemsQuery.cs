@@ -3,6 +3,13 @@ namespace Application;
 
 public record GetSpaceItemsQuery(
     Guid SpaceId
-) : IQueryRequest<TaskViewData>, IAuthorizedWorkspaceRequest;
+) : IQueryRequest<GetSpaceItemsResponse>, IAuthorizedWorkspaceRequest;
+
+public record GetSpaceItemsResponse(
+    List<FolderRecord> Folders,
+    List<TaskRecord> Tasks,
+    List<StatusRecord> Statuses
+);
+
 
 

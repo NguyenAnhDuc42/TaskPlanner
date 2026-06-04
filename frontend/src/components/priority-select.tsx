@@ -11,7 +11,7 @@ interface PrioritySelectProps {
 }
 
 export function PrioritySelect({
-  value,
+  value: _value,
   onChange,
   align = "start",
   trigger,

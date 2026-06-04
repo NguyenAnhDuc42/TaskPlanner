@@ -53,7 +53,7 @@ namespace Api
         [HttpGet("{id:guid}/items")]
         public async Task<IActionResult> GetItems(Guid id, CancellationToken cancellationToken)
         {
-            var result = await _handler.QueryAsync<GetSpaceItemsQuery, TaskViewData>(new GetSpaceItemsQuery(id), cancellationToken);
+            var result = await _handler.QueryAsync<GetSpaceItemsQuery, GetSpaceItemsResponse>(new GetSpaceItemsQuery(id), cancellationToken);
             return result.ToActionResult();
         }
 

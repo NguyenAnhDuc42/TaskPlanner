@@ -1,5 +1,5 @@
-import { Role } from "../role";
-import { Theme } from "../theme";
+import type { Role } from "../role";
+import type { Theme } from "../theme";
 
 export interface WorkspaceRecord {
     id: string;

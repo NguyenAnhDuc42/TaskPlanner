@@ -47,7 +47,7 @@ export const folderApi = workspaceApi.injectEndpoints({
   endpoints: (build) => ({
     getFolderDetail: build.query<FolderDetailResponse, string>({
       query: (folderId) => ({ url: `/folders/${folderId}`, method: 'GET' }),
-      async onQueryStarted(folderId, { dispatch, queryFulfilled }) {
+      async onQueryStarted(_folderId, { dispatch, queryFulfilled }) {
         try {
           const { data } = await queryFulfilled;
           dispatch(folderSlice.actions.upsert({ ...data.folder, workflowId: data.workflowId ?? undefined }));
@@ -150,7 +150,7 @@ export function useFolderTasksList(folderId: string) {
     createSelector(
       [taskSelectors.selectAll],
       (tasks) => tasks
-        .filter((t): t is TaskRecord => t.projectFolderId === folderId)
+        .filter((t): t is TaskRecord => t.folderId === folderId)
         .sort((a, b) => (a.orderKey || "").localeCompare(b.orderKey || ""))
     ),
   [folderId]);

@@ -11,7 +11,7 @@ public class GetCommentsHandler(TaskPlanDbContext db, WorkspaceContext workspace
         const string sql = @"
             SELECT 
                 c.id AS Id, c.content AS Content, c.created_by_id AS CreatorId,
-                c.project_task_id AS ProjectTaskId, c.parent_comment_id AS ParentCommentId,
+                c.project_task_id AS TaskId, c.parent_comment_id AS ParentCommentId,
                 c.is_edited AS IsEdited, c.created_at AS CreatedAt, c.updated_at AS UpdatedAt
             FROM comments c
             INNER JOIN project_tasks t ON t.id = c.project_task_id

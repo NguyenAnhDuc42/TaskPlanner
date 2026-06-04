@@ -6,7 +6,7 @@ interface TaskViewProps {
   taskId: string;
 }
 
-export function TaskView({ taskId }: TaskViewProps) {
+export function TaskView({ taskId }: Readonly<TaskViewProps>) {
   return (
     <EntityViewFrame
       topHeader={

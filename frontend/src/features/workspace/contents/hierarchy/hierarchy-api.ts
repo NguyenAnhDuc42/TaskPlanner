@@ -220,15 +220,15 @@ export const hierarchyApi = workspaceApi.injectEndpoints({
         const optimistic: TaskRecord = {
           id: tempId,
           name: body.name,
-          projectFolderId: body.parentType === "ProjectFolder" ? body.parentId : null,
-          projectSpaceId:  body.parentType === "ProjectSpace"  ? body.parentId : null,
+          folderId: body.parentType === "ProjectFolder" ? body.parentId : null,
+          spaceId:  body.parentType === "ProjectSpace"  ? body.parentId : null,
           icon: body.icon ?? null,
           color: body.color ?? null,
           statusId: body.statusId ?? null,
           priority: body.priority ?? null,
-          assigneeIds: body.assignees ?? [],
           startDate: body.startDate ?? null,
           dueDate: body.dueDate ?? null,
+          createdAt: new Date().toISOString(),
         } as TaskRecord
 
         dispatch(taskSlice.actions.upsert(optimistic))
@@ -241,15 +241,15 @@ export const hierarchyApi = workspaceApi.injectEndpoints({
           const realTask: TaskRecord = {
             id: taskId,
             name: body.name,
-            projectFolderId: body.parentType === "ProjectFolder" ? body.parentId : null,
-            projectSpaceId:  body.parentType === "ProjectSpace"  ? body.parentId : null,
+            folderId: body.parentType === "ProjectFolder" ? body.parentId : null,
+            spaceId:  body.parentType === "ProjectSpace"  ? body.parentId : null,
             icon: body.icon ?? null,
             color: body.color ?? null,
             statusId: body.statusId ?? null,
             priority: body.priority ?? null,
-            assigneeIds: body.assignees ?? [],
             startDate: body.startDate ?? null,
             dueDate: body.dueDate ?? null,
+            createdAt: new Date().toISOString(),
           } as TaskRecord;
 
           dispatch(taskSlice.actions.upsert(realTask))
@@ -314,8 +314,8 @@ export const hierarchyApi = workspaceApi.injectEndpoints({
             dispatch(taskSlice.actions.upsert({ 
               ...originalTask, 
               orderKey: body.newOrderKey, 
-              projectSpaceId: isTargetSpace ? body.targetParentId : originalTask.projectSpaceId,
-              projectFolderId: isTargetSpace ? undefined : body.targetParentId
+              spaceId: isTargetSpace ? body.targetParentId : originalTask.spaceId,
+              folderId: isTargetSpace ? undefined : body.targetParentId
             }));
 
     
@@ -371,8 +371,8 @@ export const hierarchyApi = workspaceApi.injectEndpoints({
                     draft.items.push({
                       ...task,
                       orderKey: body.newOrderKey ?? "",
-                      projectSpaceId: isTargetSpace ? body.targetParentId : task.projectSpaceId,
-                      projectFolderId: isTargetSpace ? undefined : body.targetParentId
+                      spaceId: isTargetSpace ? body.targetParentId : task.spaceId,
+                      folderId: isTargetSpace ? undefined : body.targetParentId
                     });
                   }
                 }
@@ -496,8 +496,8 @@ export const hierarchyApi = workspaceApi.injectEndpoints({
             originalTasks.push(task);
             dispatch(taskSlice.actions.upsert({
               ...task,
-              projectSpaceId: move.targetSpaceId ?? task.projectSpaceId,
-              projectFolderId: move.targetFolderId ?? task.projectFolderId,
+              spaceId: move.targetSpaceId ?? task.spaceId,
+              folderId: move.targetFolderId ?? task.folderId,
               orderKey: move.newOrderKey
             }));
 
@@ -516,8 +516,8 @@ export const hierarchyApi = workspaceApi.injectEndpoints({
                     draft.items.push({
                       ...task,
                       orderKey: move.newOrderKey,
-                      projectSpaceId: move.targetSpaceId,
-                      projectFolderId: move.targetFolderId
+                      spaceId: move.targetSpaceId,
+                      folderId: move.targetFolderId
                     });
                   }
                   draft.items.sort((a, b) => (a.orderKey ?? "").localeCompare(b.orderKey ?? ""));
@@ -527,8 +527,8 @@ export const hierarchyApi = workspaceApi.injectEndpoints({
             patches.push(patch);
 
             // Remove from old container query cache if parent container changed
-            const oldContainerId = task.projectFolderId ?? task.projectSpaceId;
-            const oldParentType = (task.projectFolderId ? "ProjectFolder" : "ProjectSpace") as EntityLayerType;
+            const oldContainerId = task.folderId ?? task.spaceId;
+            const oldParentType = (task.folderId ? "ProjectFolder" : "ProjectSpace") as EntityLayerType;
             if (oldContainerId && (oldContainerId !== containerNodeId || oldParentType !== parentType)) {
               const removePatch = dispatch(
                 hierarchyApi.util.updateQueryData(
@@ -618,8 +618,8 @@ export function useTasksByParent(parentId: string) {
       [taskSelectors.selectAll],
       (tasks) => tasks
         .filter(t => 
-          t.projectFolderId === parentId || 
-          (t.projectSpaceId === parentId && !t.projectFolderId)
+          t.folderId === parentId || 
+          (t.spaceId === parentId && !t.folderId)
         )
         .sort((a, b) => (a.orderKey ?? "").localeCompare(b.orderKey ?? ""))
     );

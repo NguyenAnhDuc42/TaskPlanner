@@ -2,7 +2,6 @@
 	
 	<ItemGroup>
 		<ProjectReference Include="..\Application\Application.csproj" />
-		<ProjectReference Include="..\Background\Background.csproj" />
 		<ProjectReference Include="..\Domain\Domain.csproj" />
 		<ProjectReference Include="..\..\ServiceDefaults\ServiceDefaults.csproj" />
 	</ItemGroup>

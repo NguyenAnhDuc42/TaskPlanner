@@ -2,9 +2,9 @@ using Microsoft.EntityFrameworkCore;
 using Dapper;
 namespace Application;
 
-public class GetSpaceItemsHandler(TaskPlanDbContext db, WorkspaceContext workspaceContext) : IQueryHandler<GetSpaceItemsQuery, TaskViewData>
+public class GetSpaceItemsHandler(TaskPlanDbContext db, WorkspaceContext workspaceContext) : IQueryHandler<GetSpaceItemsQuery, GetSpaceItemsResponse>
 {
-    public async Task<Result<TaskViewData>> Handle(GetSpaceItemsQuery request, CancellationToken cancellationToken)
+    public async Task<Result<GetSpaceItemsResponse>> Handle(GetSpaceItemsQuery request, CancellationToken cancellationToken)
     {
         var workspaceId = workspaceContext.workspaceId;
 
@@ -13,7 +13,7 @@ public class GetSpaceItemsHandler(TaskPlanDbContext db, WorkspaceContext workspa
             null, cancellationToken);
 
         if (activeWorkflow == null)
-            return Result<TaskViewData>.Failure(Error.NotFound("Workflow.NotFound", "Active workflow not found for this space"));
+            return Result<GetSpaceItemsResponse>.Failure(Error.NotFound("Workflow.NotFound", "Active workflow not found for this space"));
 
         var sql = @"
             SELECT id AS Id, id AS StatusId, workflow_id AS WorkflowId, name AS Name, color AS Color, category AS Category, order_key AS OrderKey
@@ -34,7 +34,7 @@ public class GetSpaceItemsHandler(TaskPlanDbContext db, WorkspaceContext workspa
               AND is_archived = false
             ORDER BY order_key;
 
-            SELECT id AS Id, @WorkspaceId AS WorkspaceId, project_space_id AS ProjectSpaceId, project_folder_id AS ProjectFolderId, name AS Name, created_at AS CreatedAt, status_id AS StatusId, priority AS Priority, due_date AS DueDate, start_date AS StartDate, order_key AS OrderKey, custom_icon as Icon, custom_color as Color
+            SELECT id AS Id, @WorkspaceId AS WorkspaceId, project_space_id AS SpaceId, project_folder_id AS FolderId, name AS Name, created_at AS CreatedAt, status_id AS StatusId, priority AS Priority, due_date AS DueDate, start_date AS StartDate, order_key AS OrderKey, custom_icon as Icon, custom_color as Color
             FROM project_tasks
             WHERE project_workspace_id = @WorkspaceId 
               AND deleted_at IS NULL 
@@ -49,7 +49,7 @@ public class GetSpaceItemsHandler(TaskPlanDbContext db, WorkspaceContext workspa
         var folders = (await multi.ReadAsync<FolderRecord>()).AsList();
         var tasks = (await multi.ReadAsync<TaskRecord>()).AsList();
 
-        return Result<TaskViewData>.Success(new TaskViewData(folders, tasks, statuses));
+        return Result<GetSpaceItemsResponse>.Success(new GetSpaceItemsResponse(folders, tasks, statuses));
     }
 }
 

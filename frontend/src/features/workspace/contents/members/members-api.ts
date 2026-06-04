@@ -107,7 +107,7 @@ export function useMembers(
 }
 
 export function useAddMembers(workspaceId: string) {
-  const [addTrigger] = useAddMembersMutation();
+  const [addTrigger, { isLoading }] = useAddMembersMutation();
   return {
     mutate: async (values: z.infer<typeof addMembersSchema>) => {
       try {
@@ -119,11 +119,12 @@ export function useAddMembers(workspaceId: string) {
         throw error;
       }
     },
+    isPending: isLoading,
   };
 }
 
 export function useUpdateMembers(workspaceId: string) {
-  const [updateTrigger] = useUpdateMembersMutation();
+  const [updateTrigger, { isLoading }] = useUpdateMembersMutation();
   return {
     mutate: async (values: z.infer<typeof updateMembersSchema>) => {
       try {
@@ -135,11 +136,12 @@ export function useUpdateMembers(workspaceId: string) {
         throw error;
       }
     },
+    isPending: isLoading,
   };
 }
 
 export function useRemoveMembers(workspaceId: string) {
-  const [removeTrigger] = useRemoveMembersMutation();
+  const [removeTrigger, { isLoading }] = useRemoveMembersMutation();
   return {
     mutate: async (memberIds: string[]) => {
       try {
@@ -151,5 +153,6 @@ export function useRemoveMembers(workspaceId: string) {
         throw error;
       }
     },
+    isPending: isLoading,
   };
 }

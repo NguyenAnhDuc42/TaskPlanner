@@ -6,15 +6,12 @@ public class UpdateTaskHandler(TaskPlanDbContext db, WorkspaceContext context, R
     public async Task<Result> Handle(UpdateTaskCommand request, CancellationToken ct)
     {
         var task = await db.ProjectTasks
-            .Include(t => t.Assignees)
             .FirstOrDefaultAsync(t => t.Id == request.TaskId, ct);
 
         if (task == null) return Result.Failure(TaskError.NotFound);
 
         var statusUpdateResult = await ApplyStatusAndUpdateProperties(task, request, ct);
         if (!statusUpdateResult.IsSuccess) return statusUpdateResult;
-
-        await ApplyAssigneeUpdate(task, request, ct);
 
         await db.SaveChangesAsync(ct);
 
@@ -64,28 +61,4 @@ public class UpdateTaskHandler(TaskPlanDbContext db, WorkspaceContext context, R
 
         return Result.Success();
     }
-
-    private async Task ApplyAssigneeUpdate(ProjectTask task, UpdateTaskCommand request, CancellationToken ct)
-    {
-        if (request.AssigneeIds == null) return;
-
-        var memberIds = await db.WorkspaceMembers
-            .Where(wm => wm.ProjectWorkspaceId == task.ProjectWorkspaceId && request.AssigneeIds.Contains(wm.UserId))
-            .Select(wm => wm.Id)
-            .ToListAsync(ct);
-
-        var currentMemberIds = task.Assignees.Select(a => a.WorkspaceMemberId).ToHashSet();
-
-        var toRemove = task.Assignees.Where(a => !memberIds.Contains(a.WorkspaceMemberId)).ToList();
-        task.RemoveAsignees(toRemove.Select(a => a.WorkspaceMemberId).ToList());
-
-        var toAdd = memberIds
-            .Where(id => !currentMemberIds.Contains(id))
-            .Select(id => TaskAssignment.Create(task.Id, id, context.CurrentMember.Id))
-            .ToList();
-        task.AddAsignees(toAdd);
-    }
 }
-
-
-

@@ -5,14 +5,11 @@ public class MoveItemHandler(TaskPlanDbContext db, WorkspaceContext context, Rea
 {
     public async Task<Result> Handle(MoveItemCommand request, CancellationToken ct)
     {
-        // 1. Permission: Only Admin/Owner can reorganize hierarchy across workspace
         if (context.CurrentMember.Role > Role.Admin) 
             return Result.Failure(MemberError.DontHavePermission);
 
-        // 2. Resolve New OrderKey (O(1) if provided by FE, else O(log N) with index)
         var newOrderKey = request.NewOrderKey ?? await ResolveOrderKey(request, ct);
 
-        // 3. PERFORMANCE: Branch to optimized direct updates
         var result = request.ItemType switch
         {
             EntityLayerType.ProjectSpace => await MoveSpace(request.ItemId, newOrderKey, ct),
@@ -55,7 +52,6 @@ public class MoveItemHandler(TaskPlanDbContext db, WorkspaceContext context, Rea
 
     private async Task<string?> GetMaxOrderKey(MoveItemCommand request, CancellationToken ct)
     {
-        // PERFORMANCE: These queries MUST be supported by composite indexes: (ParentId, OrderKey)
         return request.ItemType switch
         {
             EntityLayerType.ProjectSpace => await db.ProjectSpaces
@@ -90,7 +86,6 @@ public class MoveItemHandler(TaskPlanDbContext db, WorkspaceContext context, Rea
 
     private async Task<Result> MoveFolder(Guid folderId, Guid? newSpaceId, string newOrderKey, CancellationToken ct)
     {
-        // PERFORMANCE: Direct UPDATE with conditional parent change
         var affected = await db.ProjectFolders
             .Where(f => f.Id == folderId)
             .ExecuteUpdateAsync(u => u
@@ -123,7 +118,6 @@ public class MoveItemHandler(TaskPlanDbContext db, WorkspaceContext context, Rea
 
         if (resolvedSpaceId == null) return Result.Failure(Error.Validation("MoveTask.InvalidTarget", "No valid target space resolved."));
 
-        // 2. PERFORMANCE: Direct Atomic Update
         var affected = await db.ProjectTasks
             .Where(t => t.Id == taskId)
             .ExecuteUpdateAsync(u => u

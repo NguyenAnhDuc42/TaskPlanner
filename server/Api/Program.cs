@@ -2,7 +2,6 @@ using System.Security.Claims;
 using Npgsql;
 using System.Text.Json.Serialization;
 using Application;
-using Background;
 using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.RateLimiting;
 using Scalar.AspNetCore;

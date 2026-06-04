@@ -243,8 +243,8 @@ public class BatchMoveItemHandler(
                 OrderKey        = t.OrderKey,
                 Icon            = t.Icon,
                 Color           = t.Color,
-                ProjectSpaceId  = t.ProjectSpaceId,
-                ProjectFolderId = t.ProjectFolderId
+                SpaceId  = t.ProjectSpaceId,
+                FolderId = t.ProjectFolderId
             })
             .ToListAsync(cancellationToken);
 }

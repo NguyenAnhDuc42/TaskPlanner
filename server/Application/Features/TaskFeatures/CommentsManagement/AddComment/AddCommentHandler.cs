@@ -22,7 +22,7 @@ public class AddCommentHandler(TaskPlanDbContext db, WorkspaceContext workspaceC
             Id = comment.Id,
             Content = comment.Content,
             CreatorId = comment.CreatorId ?? Guid.Empty,
-            ProjectTaskId = comment.ProjectTaskId,
+            TaskId = comment.ProjectTaskId,
             ParentCommentId = comment.ParentCommentId,
             IsEdited = comment.IsEdited,
             CreatedAt = comment.CreatedAt,

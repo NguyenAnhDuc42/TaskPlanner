@@ -1,5 +1,5 @@
 import { useEditor, EditorContent } from "@tiptap/react";
-import React, { useEffect, useRef, useCallback, useState, memo } from "react";
+import { useEffect, useRef, useCallback, useState, memo } from "react";
 import { BubbleMenu } from "@tiptap/react/menus";
 import StarterKit from "@tiptap/starter-kit";
 import Placeholder from "@tiptap/extension-placeholder";

@@ -15,8 +15,8 @@ public record TaskRecord
     public string? Color { get; init; }
     
     // Ancestor ids
-    public Guid? ProjectSpaceId { get; init; }
-    public Guid? ProjectFolderId { get; init; }
+    public Guid? SpaceId { get; init; }
+    public Guid? FolderId { get; init; }
 
     // Detailed properties
     public string? Description { get; init; }
@@ -26,7 +26,6 @@ public record TaskRecord
     public int? StoryPoints { get; init; }
     public long? TimeEstimateSeconds { get; init; }
     public string? ParentType { get; init; }
-    public List<Guid>? AssigneeIds { get; init; } = null;
 }
 
 public record FolderRecord
@@ -46,11 +45,6 @@ public record FolderRecord
     public bool? HasTasks { get; init; }
 }
 
-public record TaskViewData(
-    List<FolderRecord> Folders,
-    List<TaskRecord> Tasks,
-    List<StatusRecord> Statuses
-);
 
 public record DocumentBlockRecord
 {

@@ -21,10 +21,10 @@ export default function MembersIndex() {
 
   const { data, isLoading, fetchNextPage, hasNextPage, isFetchingNextPage } =
     useMembers(workspaceId);
-  const { mutateAsync: addMembers, isPending: isAddingMembers } =
+  const { mutate: addMembers, isPending: isAddingMembers } =
     useAddMembers(workspaceId);
-  const { mutateAsync: updateMembers } = useUpdateMembers(workspaceId);
-  const { mutateAsync: removeMembers } = useRemoveMembers(workspaceId);
+  const { mutate: updateMembers } = useUpdateMembers(workspaceId);
+  const { mutate: removeMembers } = useRemoveMembers(workspaceId);
 
   const members = useMemo(() => {
     return data?.pages.flatMap((page) => page.items) ?? [];

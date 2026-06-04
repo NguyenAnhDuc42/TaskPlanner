@@ -11,8 +11,8 @@ export interface TaskRecord {
     orderKey?: string;
     icon?: string;
     color?: string;
-    projectSpaceId?: string | null;
-    projectFolderId?: string | null;
+    spaceId?: string | null;
+    folderId?: string | null;
     description?: string;
     parentWorkflowId?: string;
     defaultDocumentId?: string;
@@ -20,5 +20,5 @@ export interface TaskRecord {
     storyPoints?: number;
     timeEstimateSeconds?: number;
     parentType?: string;
-    assigneeIds?: string[];
 }
+

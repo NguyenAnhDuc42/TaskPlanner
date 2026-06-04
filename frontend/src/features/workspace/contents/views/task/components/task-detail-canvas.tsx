@@ -1,12 +1,13 @@
 import { useState, useEffect } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Calendar as CalendarIcon, CheckSquare, Circle, UserPlus, Check, X, Send } from "lucide-react";
+import { UserPlus, Check, X, Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useSelector } from "react-redux";
-import { memberSelectors } from "@/store/entityStore";
+import { memberSelectors, assigneeSelectors, entityAccessSelectors } from "@/store/entityStore";
 import { useWorkspace } from "@/features/workspace/context/workspace-provider";
+import { useGetEntityAccessQuery } from "../../space/space-api";
 import { StatusSelect } from "@/components/status-select";
 import { PrioritySelect } from "@/components/priority-select";
 import { PriorityBadge } from "@/components/priority-badge";
@@ -18,7 +19,9 @@ import { ViewSkeleton } from "@/components/view-skeleton";
 import {
   useGetTaskDetailQuery,
   useUpdateTaskMutation,
-  useGetCommentsQuery,
+  useGetTaskAssigneesQuery,
+  useUpdateTaskAssigneesMutation,
+  useGetTaskCommentsQuery,
   useAddCommentMutation,
 } from "../task-api";
 
@@ -33,12 +36,30 @@ export function TaskDetailCanvas({ taskId }: TaskDetailCanvasProps) {
   const { data: task, isLoading } = useGetTaskDetailQuery(taskId || "", {
     skip: !taskId,
   });
-  const [updateTask] = useUpdateTaskMutation();
-
-  const { data: comments = [] } = useGetCommentsQuery(taskId || "", {
+  useGetTaskAssigneesQuery(taskId || "", {
     skip: !taskId,
   });
+  const { data: comments = [] } = useGetTaskCommentsQuery(taskId || "", {
+    skip: !taskId,
+  });
+
+  const [updateTask] = useUpdateTaskMutation();
+  const [updateTaskAssignees] = useUpdateTaskAssigneesMutation();
   const [addComment] = useAddCommentMutation();
+
+  const allAssignees = useSelector(assigneeSelectors.selectAll);
+  const assignees = allAssignees.filter(a => a.taskId === taskId);
+
+  // Retrieve the task's space to check privacy
+  const space = useSelector((state: any) => state.spaces.entities[task?.spaceId || ""]);
+
+  // Fetch access permissions if the space is private
+  useGetEntityAccessQuery(task?.spaceId || "", {
+    skip: !task?.spaceId || !space?.isPrivate,
+  });
+
+  const entityAccessList = useSelector(entityAccessSelectors.selectAll);
+  const spaceAccessList = entityAccessList.filter(ea => ea.haveAccess);
 
   const [localName, setLocalName] = useState("");
   const [assigneeSearch, setAssigneeSearch] = useState("");
@@ -85,11 +106,12 @@ export function TaskDetailCanvas({ taskId }: TaskDetailCanvasProps) {
   };
 
   const handleToggleAssignee = (memberId: string) => {
-    const current = task.assigneeIds || [];
-    const next = current.includes(memberId)
-      ? current.filter((id) => id !== memberId)
-      : [...current, memberId];
-    updateTask({ taskId, patches: { assigneeIds: next } });
+    const current = assignees.map((a) => a.workspaceMemberId) || [];
+    const isAssigned = current.includes(memberId);
+    updateTaskAssignees({
+      taskId,
+      changes: [{ memberId, isDelete: isAssigned }]
+    });
   };
 
   const handleSendComment = async (e?: React.FormEvent) => {
@@ -101,7 +123,11 @@ export function TaskDetailCanvas({ taskId }: TaskDetailCanvasProps) {
     } catch {}
   };
 
-  const filteredMembers = allMembers.filter((m) =>
+  const allowedMembers = space?.isPrivate
+    ? allMembers.filter(m => spaceAccessList.some(ea => ea.workspaceMemberId === m.id || ea.workspaceMemberId === m.workspaceMemberId))
+    : allMembers;
+
+  const filteredMembers = allowedMembers.filter((m) =>
     m.name.toLowerCase().includes(assigneeSearch.toLowerCase()) ||
     m.email?.toLowerCase().includes(assigneeSearch.toLowerCase())
   );
@@ -168,12 +194,12 @@ export function TaskDetailCanvas({ taskId }: TaskDetailCanvasProps) {
             {/* Assignees */}
             <span className="font-mono text-[10px] uppercase tracking-wider opacity-50 shrink-0">Assignees</span>
             <div className="flex flex-wrap items-center gap-1.5 min-h-6">
-              {task.assigneeIds?.map((id) => {
-                const member = registry.memberMap[id] || allMembers.find((m) => m.id === id || m.workspaceMemberId === id);
+              {assignees.map((assignee) => {
+                const member = registry.memberMap[assignee.workspaceMemberId] || allMembers.find(m => m.id === assignee.workspaceMemberId || m.workspaceMemberId === assignee.workspaceMemberId);
                 if (!member) return null;
                 const initials = member.name.split(" ").map((n: string) => n[0]).join("").slice(0, 2).toUpperCase();
                 return (
-                  <div key={id} className="flex items-center gap-1 bg-muted/30 border border-border/50 rounded-full pl-1 pr-2 py-0.5 text-xs">
+                  <div key={assignee.workspaceMemberId} className="flex items-center gap-1 bg-muted/30 border border-border/50 rounded-full pl-1 pr-2 py-0.5 text-xs">
                     <Avatar className="h-4 w-4">
                       {member.avatarUrl && <AvatarImage src={member.avatarUrl} alt={member.name} />}
                       <AvatarFallback className="text-[7px] bg-primary/20 text-primary">{initials}</AvatarFallback>
@@ -181,7 +207,7 @@ export function TaskDetailCanvas({ taskId }: TaskDetailCanvasProps) {
                     <span className="max-w-[80px] truncate">{member.name}</span>
                     <button
                       type="button"
-                      onClick={() => handleToggleAssignee(id)}
+                      onClick={() => handleToggleAssignee(assignee.workspaceMemberId)}
                       className="text-muted-foreground hover:text-foreground ml-1"
                     >
                       <X className="h-3 w-3" />
@@ -209,7 +235,7 @@ export function TaskDetailCanvas({ taskId }: TaskDetailCanvasProps) {
                   <div className="max-h-40 overflow-y-auto flex flex-col gap-1">
                     {filteredMembers.map((member) => {
                       const memberId = member.workspaceMemberId || member.id;
-                      const isAssigned = task.assigneeIds?.includes(memberId);
+                      const isAssigned = assignees.some((a) => a.workspaceMemberId === memberId);
                       const initials = member.name.split(" ").map((n: string) => n[0]).join("").slice(0, 2).toUpperCase();
                       return (
                         <button
@@ -320,4 +346,3 @@ export function TaskDetailCanvas({ taskId }: TaskDetailCanvasProps) {
     </div>
   );
 }
-

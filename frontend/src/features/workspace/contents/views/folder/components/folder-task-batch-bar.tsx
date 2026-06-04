@@ -12,8 +12,7 @@ import { PriorityBadge } from "@/components/priority-badge";
 import { StatusBadge } from "@/components/status-badge";
 import { Input } from "@/components/ui/input";
 import { useState } from "react";
-import { useSelector } from "react-redux";
-import { statusSelectors } from "@/store/entityStore";
+
 
 import type { Status } from "@/types/status";
 
