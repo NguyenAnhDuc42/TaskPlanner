@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { UserPlus, Check, X, Send } from "lucide-react";
+import { UserPlus, Check, X, Send, Calendar } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -12,11 +12,11 @@ import { useGetEntityAccessQuery } from "../../space/space-api";
 import { StatusSelect } from "@/components/status-select";
 import { PrioritySelect } from "@/components/priority-select";
 import { PriorityBadge } from "@/components/priority-badge";
-import { SimpleDatePicker } from "@/features/workspace/components/forms/form-elements";
 import { UniversalPicker } from "@/components/universal-picker";
 import { DynamicIcon } from "@/components/dynamic-icon";
 import { BlockEditor } from "@/components/blockbase/block-editor";
 import { ViewSkeleton } from "@/components/view-skeleton";
+import { DateSelect } from "@/components/date-select";
 import {
   useGetTaskDetailQuery,
   useUpdateTaskMutation,
@@ -144,7 +144,7 @@ export function TaskDetailCanvas({ taskId }: TaskDetailCanvasProps) {
             <Popover>
               <PopoverTrigger asChild>
                 <button className="h-9 w-9 flex items-center justify-center rounded-lg border border-border/50 bg-muted/20 hover:bg-muted/40 transition-colors shrink-0">
-                  <DynamicIcon name={task.icon || "CheckSquare"} color={task.color || ""} size={20} />
+                  <DynamicIcon name={task.icon || "CheckSquare"} color={task.color || ""} size={24} />
                 </button>
               </PopoverTrigger>
               <PopoverContent className="p-0 border-none bg-transparent shadow-none" align="start">
@@ -158,61 +158,63 @@ export function TaskDetailCanvas({ taskId }: TaskDetailCanvasProps) {
               </PopoverContent>
             </Popover>
 
-            <Input
+            <input
               value={localName}
               onChange={(e) => setLocalName(e.target.value)}
               onBlur={handleNameBlur}
               placeholder="Untitled Task"
-              className="text-2xl font-black text-foreground border-none p-0 focus-visible:ring-0 bg-transparent h-auto"
+              className="text-2xl font-black text-foreground border-none p-0 focus-visible:ring-0 bg-transparent h-auto outline-none w-full"
             />
           </div>
 
-          {/* Properties Grid (Notion-style, wraps nicely in Context Area) */}
-          <div className="grid grid-cols-[100px_1fr] gap-y-3.5 gap-x-4 items-center text-sm pb-6 border-b border-border/30">
-            {/* Status */}
-            <span className="font-mono text-[10px] uppercase tracking-wider opacity-50 shrink-0">Status</span>
-            <div>
+          {/* Properties Area */}
+          <div className="flex flex-col gap-3.5 pb-6 border-b border-border/30">
+            {/* Row 1: Task State and Timing (Status, Priority, Dates) */}
+            <div className="flex flex-wrap items-center gap-2.5">
               <StatusSelect
                 value={task.statusId}
                 onChange={handleStatusChange}
                 workflowId={task.parentWorkflowId}
               />
-            </div>
 
-            {/* Priority */}
-            <span className="font-mono text-[10px] uppercase tracking-wider opacity-50 shrink-0">Priority</span>
-            <div>
               <PrioritySelect
                 value={task.priority}
                 onChange={handlePriorityChange}
                 trigger={
-                  <button className="h-7 px-2 flex items-center gap-1.5 text-xs border border-border/50 rounded-md bg-muted/10 hover:bg-muted/20 text-foreground transition-all">
-                    <PriorityBadge priority={task.priority} className="border-none bg-transparent p-0" />
+                  <button type="button" className="cursor-pointer focus:outline-none bg-transparent border-none p-0">
+                    <PriorityBadge priority={task.priority} />
                   </button>
                 }
               />
+
+              <DateSelect
+                startDate={task.startDate}
+                dueDate={task.dueDate}
+                onStartDateChange={handleStartDateChange}
+                onDueDateChange={handleDueDateChange}
+                size="sm"
+              />
             </div>
 
-            {/* Assignees */}
-            <span className="font-mono text-[10px] uppercase tracking-wider opacity-50 shrink-0">Assignees</span>
-            <div className="flex flex-wrap items-center gap-1.5 min-h-6">
+            {/* Row 2: People (Assignees) */}
+            <div className="flex flex-wrap items-center gap-1.5 min-h-7">
               {assignees.map((assignee) => {
                 const member = registry.memberMap[assignee.workspaceMemberId] || allMembers.find(m => m.id === assignee.workspaceMemberId || m.workspaceMemberId === assignee.workspaceMemberId);
                 if (!member) return null;
                 const initials = member.name.split(" ").map((n: string) => n[0]).join("").slice(0, 2).toUpperCase();
                 return (
-                  <div key={assignee.workspaceMemberId} className="flex items-center gap-1 bg-muted/30 border border-border/50 rounded-full pl-1 pr-2 py-0.5 text-xs">
-                    <Avatar className="h-4 w-4">
+                  <div key={assignee.workspaceMemberId} className="flex items-center gap-1 bg-muted/30 border border-border/50 rounded-md pl-1 pr-1.5 py-0.5 text-[10px] h-5.5 select-none leading-none">
+                    <Avatar className="h-3.5 w-3.5 rounded-sm">
                       {member.avatarUrl && <AvatarImage src={member.avatarUrl} alt={member.name} />}
-                      <AvatarFallback className="text-[7px] bg-primary/20 text-primary">{initials}</AvatarFallback>
+                      <AvatarFallback className="text-[7px] bg-primary/20 text-primary leading-none flex items-center justify-center rounded-sm">{initials}</AvatarFallback>
                     </Avatar>
-                    <span className="max-w-[80px] truncate">{member.name}</span>
+                    <span className="max-w-[80px] truncate font-medium">{member.name}</span>
                     <button
                       type="button"
                       onClick={() => handleToggleAssignee(assignee.workspaceMemberId)}
-                      className="text-muted-foreground hover:text-foreground ml-1"
+                      className="text-muted-foreground hover:text-foreground ml-0.5"
                     >
-                      <X className="h-3 w-3" />
+                      <X className="h-2.5 w-2.5" />
                     </button>
                   </div>
                 );
@@ -220,8 +222,8 @@ export function TaskDetailCanvas({ taskId }: TaskDetailCanvasProps) {
 
               <Popover>
                 <PopoverTrigger asChild>
-                  <Button variant="ghost" size="sm" className="h-6 px-2 text-xs text-muted-foreground hover:text-foreground border border-dashed border-border/50 hover:bg-muted/50 rounded-full">
-                    <UserPlus className="h-3 w-3 mr-1" /> Add
+                  <Button variant="ghost" size="sm" className="h-5.5 px-1.5 text-[10px] text-muted-foreground hover:text-foreground border border-dashed border-border/50 hover:bg-muted/50 rounded-md">
+                    <UserPlus className="h-2.5 w-2.5 mr-1" /> Add Assignee
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-60 p-2 bg-popover border border-border shadow-md rounded-md" align="start">
@@ -260,26 +262,6 @@ export function TaskDetailCanvas({ taskId }: TaskDetailCanvasProps) {
                   </div>
                 </PopoverContent>
               </Popover>
-            </div>
-
-            {/* Start Date */}
-            <span className="font-mono text-[10px] uppercase tracking-wider opacity-50 shrink-0">Start Date</span>
-            <div>
-              <SimpleDatePicker
-                value={task.startDate ? new Date(task.startDate) : undefined}
-                onChange={handleStartDateChange}
-                label="Start Date"
-              />
-            </div>
-
-            {/* Due Date */}
-            <span className="font-mono text-[10px] uppercase tracking-wider opacity-50 shrink-0">Due Date</span>
-            <div>
-              <SimpleDatePicker
-                value={task.dueDate ? new Date(task.dueDate) : undefined}
-                onChange={handleDueDateChange}
-                label="Due Date"
-              />
             </div>
           </div>
 

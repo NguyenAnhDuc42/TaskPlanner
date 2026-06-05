@@ -35,12 +35,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import { Calendar as ShadcnCalendar } from "@/components/ui/calendar";
+import { DateSelect } from "@/components/date-select";
 import { FolderTaskBatchBar } from "./components/folder-task-batch-bar";
 import { PopoverFormWrapper } from "@/components/popover-wrapper";
 import { UniversalPicker } from "@/components/universal-picker";
@@ -226,18 +221,22 @@ export function FolderView() {
               statuses={spaceStatuses}
               align="end"
               trigger={
-                <AttributeButton icon={folder?.statusId ? undefined : Circle}>
+                <button type="button" className="cursor-pointer focus:outline-none bg-transparent border-none p-0">
                   {folder?.statusId ? (
                     <StatusBadge
                       status={
                         spaceStatuses.find((s) => s.id?.toLowerCase() === folder.statusId?.toLowerCase()) ||
                         allStatuses.find((s) => s.id?.toLowerCase() === folder.statusId?.toLowerCase())
                       }
+                      variant="pill"
                     />
                   ) : (
-                    "Status"
+                    <div className="flex items-center h-5 gap-1.5 px-2 rounded-sm bg-muted/50 text-[10px] text-muted-foreground font-semibold hover:bg-muted/80 transition-colors">
+                      <Circle className="h-3 w-3 opacity-70" />
+                      <span>Status</span>
+                    </div>
                   )}
-                </AttributeButton>
+                </button>
               }
             />
 
@@ -247,57 +246,21 @@ export function FolderView() {
               onChange={(priority) => updateField({ priority })}
               align="end"
               trigger={
-                <AttributeButton>
+                <button type="button" className="cursor-pointer focus:outline-none bg-transparent border-none p-0">
                   <PriorityBadge priority={folder?.priority} />
-                </AttributeButton>
+                </button>
               }
             />
 
-            {/* Start Date */}
-            <Popover>
-              <PopoverTrigger asChild>
-                <button className="focus:outline-none flex items-center h-5 rounded-md transition-all cursor-pointer border border-border/10 shadow-sm text-[10px] font-semibold shrink-0 bg-muted/40 hover:bg-muted/75 hover:text-foreground text-muted-foreground gap-1.5 px-2">
-                  <Calendar className="h-3 w-3 opacity-80" />
-                  <span>
-                    {folder?.startDate ? (
-                      `Start: ${format(new Date(folder.startDate), "MMM d, yyyy")}`
-                    ) : (
-                      "Set Start"
-                    )}
-                  </span>
-                </button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0 border-border/40 shadow-2xl rounded-xl" align="end">
-                <ShadcnCalendar
-                  mode="single"
-                  selected={folder?.startDate ? new Date(folder.startDate) : undefined}
-                  onSelect={(date) => updateField({ startDate: date?.toISOString() })}
-                />
-              </PopoverContent>
-            </Popover>  
-
-            {/* Due Date */}
-            <Popover>
-              <PopoverTrigger asChild>
-                <button className="focus:outline-none flex items-center h-5 rounded-md transition-all cursor-pointer border border-border/10 shadow-sm text-[10px] font-semibold shrink-0 bg-muted/40 hover:bg-muted/75 hover:text-foreground text-muted-foreground gap-1.5 px-2">
-                  <Calendar className="h-3 w-3 opacity-80" />
-                  <span>
-                    {folder?.dueDate ? (
-                      `Due: ${format(new Date(folder.dueDate), "MMM d, yyyy")}`
-                    ) : (
-                      "Set Due"
-                    )}
-                  </span>
-                </button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0 border-border/40 shadow-2xl rounded-xl" align="end">
-                <ShadcnCalendar
-                  mode="single"
-                  selected={folder?.dueDate ? new Date(folder.dueDate) : undefined}
-                  onSelect={(date) => updateField({ dueDate: date?.toISOString() })}
-                />
-              </PopoverContent>
-            </Popover>
+            <DateSelect
+              startDate={folder?.startDate}
+              dueDate={folder?.dueDate}
+              onStartDateChange={(date) => updateField({ startDate: date?.toISOString() })}
+              onDueDateChange={(date) => updateField({ dueDate: date?.toISOString() })}
+              align="end"
+              size="sm"
+              triggerClassName="h-5 px-2 text-[10px] font-semibold rounded-md border border-border/10 bg-muted/40 hover:bg-muted/75 hover:text-foreground text-muted-foreground transition-all cursor-pointer shadow-sm"
+            />
 
             <button
               className="flex items-center h-5 gap-1.5 px-2.5 rounded-md bg-muted/45 text-[10px] text-muted-foreground font-semibold hover:bg-muted hover:text-foreground transition-all cursor-pointer border border-border/10 shadow-sm"

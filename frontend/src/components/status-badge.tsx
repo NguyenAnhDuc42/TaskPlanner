@@ -33,7 +33,7 @@ interface StatusBadgeProps {
   status?: Status | null;
   className?: string;
   showIcon?: boolean;
-  variant?: "text" | "outline";
+  variant?: "text" | "outline" | "pill";
 }
 
 export function StatusBadge({ status, className, showIcon = true, variant = "text" }: StatusBadgeProps) {
@@ -62,6 +62,23 @@ export function StatusBadge({ status, className, showIcon = true, variant = "tex
           color: statusColor,
           borderColor: `${statusColor}33`,
           backgroundColor: `${statusColor}0a`
+        }}
+      >
+        {showIcon && (
+          <Icon className="h-3 w-3" />
+        )}
+        <span>{status.name}</span>
+      </div>
+    );
+  }
+
+  if (variant === "pill") {
+    return (
+      <div 
+        className={cn("flex items-center gap-1.5 h-5 px-2 rounded-sm text-[10px] font-semibold transition-all duration-300", className)}
+        style={{ 
+          color: statusColor,
+          backgroundColor: `${statusColor}1a`
         }}
       >
         {showIcon && (

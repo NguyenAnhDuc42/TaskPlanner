@@ -1,21 +1,18 @@
 import * as React from "react";
 import { cn } from "@/lib/utils";
-import { Check, MoreHorizontal, FileText, Calendar } from "lucide-react";
+import { Check, MoreHorizontal, FileText } from "lucide-react";
 import { StatusBadge } from "@/components/status-badge";
 import { PriorityBadge } from "@/components/priority-badge";
-import { DateBadge } from "@/components/date-badge";
+import { DateSelect } from "@/components/date-select";
 import { DynamicIcon } from "@/components/dynamic-icon";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import type { TaskRecord } from "@/types/projects";
-import { Priority } from "@/types/priority";
 import { useSelector } from "react-redux";
 import { statusSelectors, folderSelectors } from "@/store/entityStore";
 import type { RootState } from "@/store";
 import { StatusSelect } from "@/components/status-select";
 import { PrioritySelect } from "@/components/priority-select";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Calendar as ShadcnCalendar } from "@/components/ui/calendar";
 import { useParams } from "@tanstack/react-router";
 import { useGetFolderDetailQuery, useBatchUpdateFolderTasks } from "../folder-api";
 
@@ -78,6 +75,14 @@ export function SortableTaskItem({
       {...attributes}
       {...listeners}
       onClick={onSelect}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          onSelect();
+        }
+      }}
       className={cn(
         "w-full text-left flex items-start px-2.5 py-1.5 rounded-md transition-all group relative border shadow-sm outline-none cursor-pointer",
         isSelected
@@ -154,11 +159,11 @@ export function SortableTaskItem({
             onPointerDown={(e) => e.stopPropagation()}
           >
             <PrioritySelect
-              value={task.priority as Priority}
+              value={task.priority}
               onChange={(priority) => onUpdateTaskField({ priority })}
               trigger={
                 <button type="button" className="cursor-pointer focus:outline-none">
-                  <PriorityBadge priority={task.priority as Priority} />
+                  <PriorityBadge priority={task.priority} />
                 </button>
               }
             />
@@ -168,49 +173,14 @@ export function SortableTaskItem({
         {/* Row 3: Dates */}
         <div className="flex items-center justify-between w-full mt-0.5">
           <div className="flex items-center gap-2">
-            <Popover>
-              <PopoverTrigger asChild>
-                <div
-                  onClick={(e) => e.stopPropagation()}
-                  onPointerDown={(e) => e.stopPropagation()}
-                  className="cursor-pointer"
-                >
-                  {task.startDate || task.dueDate ? (
-                    <DateBadge startDate={task.startDate} dueDate={task.dueDate} />
-                  ) : (
-                    <div className="flex items-center h-5 gap-1 px-1.5 rounded-sm bg-muted/30 text-[9px] text-muted-foreground/50 font-bold border border-border/5 hover:bg-muted/50 transition-colors">
-                      <Calendar className="h-2.5 w-2.5 opacity-50" />
-                      <span>No Date</span>
-                    </div>
-                  )}
-                </div>
-              </PopoverTrigger>
-              <PopoverContent 
-                className="w-auto p-3 border border-border/50 shadow-xl rounded-xl bg-background flex flex-col gap-3" 
-                align="start"
-                onClick={(e) => e.stopPropagation()}
-                onPointerDown={(e) => e.stopPropagation()}
-              >
-                <div className="flex gap-4">
-                  <div className="flex flex-col gap-1.5">
-                    <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Start Date</span>
-                    <ShadcnCalendar
-                      mode="single"
-                      selected={task.startDate ? new Date(task.startDate) : undefined}
-                      onSelect={(date) => onUpdateTaskField({ startDate: date?.toISOString() ?? undefined })}
-                    />
-                  </div>
-                  <div className="flex flex-col gap-1.5">
-                    <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Due Date</span>
-                    <ShadcnCalendar
-                      mode="single"
-                      selected={task.dueDate ? new Date(task.dueDate) : undefined}
-                      onSelect={(date) => onUpdateTaskField({ dueDate: date?.toISOString() ?? undefined })}
-                    />
-                  </div>
-                </div>
-              </PopoverContent>
-            </Popover>
+            <DateSelect
+              startDate={task.startDate}
+              dueDate={task.dueDate}
+              onStartDateChange={(date) => onUpdateTaskField({ startDate: date?.toISOString() ?? undefined })}
+              onDueDateChange={(date) => onUpdateTaskField({ dueDate: date?.toISOString() ?? undefined })}
+              size="sm"
+              triggerClassName="h-5 px-1.5 text-[9px] font-bold border border-border/5 rounded-sm"
+            />
           </div>
         </div>
       </div>

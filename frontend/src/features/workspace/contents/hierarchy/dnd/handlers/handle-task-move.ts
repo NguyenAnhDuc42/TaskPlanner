@@ -17,7 +17,6 @@ export function handleTaskMove(
 
   if (overData?.type === EntityLayerConst.ProjectSpace) {
     targetSpaceId = overData.id;
-    targetFolderId = null;
   } else if (overData?.type === EntityLayerConst.ProjectFolder) {
     targetSpaceId = overData.spaceId; // folder's parent space
     targetFolderId = overData.id;

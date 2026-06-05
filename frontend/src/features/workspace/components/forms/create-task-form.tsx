@@ -9,8 +9,8 @@ import { toast } from "sonner";
 import {
   AttributeButton,
   IconColorPicker,
-  SimpleDatePicker,
 } from "./form-elements";
+import { DateSelect } from "@/components/date-select";
 import { StatusBadge } from "@/components/status-badge";
 import { PriorityBadge } from "@/components/priority-badge";
 import { StatusSelect } from "@/components/status-select";
@@ -226,15 +226,14 @@ export function CreateTaskForm({
           }
         />
 
-        <SimpleDatePicker
-          value={state.startDate}
-          onChange={(date) => dispatch({ type: "SET_START_DATE", payload: date })}
-          label="Start Date"
-        />
-        <SimpleDatePicker
-          value={state.dueDate}
-          onChange={(date) => dispatch({ type: "SET_DUE_DATE", payload: date })}
-          label="Due Date"
+        <DateSelect
+          startDate={state.startDate?.toISOString()}
+          dueDate={state.dueDate?.toISOString()}
+          onStartDateChange={(date) => dispatch({ type: "SET_START_DATE", payload: date })}
+          onDueDateChange={(date) => dispatch({ type: "SET_DUE_DATE", payload: date })}
+          align="start"
+          size="sm"
+          triggerClassName="h-6 px-2 text-[10px] font-medium rounded-md border border-transparent bg-muted/30 hover:bg-muted/50 text-muted-foreground transition-all cursor-pointer"
         />
 
         <AttributeButton icon={User} className="ml-auto">

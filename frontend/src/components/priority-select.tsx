@@ -26,7 +26,7 @@ export function PrioritySelect({
         align={align}
         onFocusOutside={(e) => e.preventDefault()}
       >
-        <div className="px-1.5 py-0.5 border-b border-border/10 mb-1">
+        <div className="border-b border-border/10 mb-1">
           <span className="text-[8px] font-black uppercase tracking-wider text-muted-foreground/50">Select Priority</span>
         </div>
         <div className="flex flex-col gap-0.5">

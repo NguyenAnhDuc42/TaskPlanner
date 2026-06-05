@@ -61,8 +61,8 @@ export function StatusSelect({
     <Popover>
       <PopoverTrigger asChild>
         {trigger || (
-          <button type="button" className="cursor-pointer focus:outline-none">
-            <StatusBadge status={currentStatus} className="text-[10px] font-bold" />
+          <button type="button" className="cursor-pointer focus:outline-none bg-transparent border-none p-0">
+            <StatusBadge status={currentStatus} variant="pill" />
           </button>
         )}
       </PopoverTrigger>

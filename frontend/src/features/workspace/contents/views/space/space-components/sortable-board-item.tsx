@@ -7,12 +7,14 @@ import { cn } from "@/lib/utils";
 import { format, isBefore, startOfDay } from "date-fns";
 import { InlinePriorityPicker } from "./inline-priority-picker";
 import { DynamicIcon } from "@/components/dynamic-icon";
-import { Calendar, User } from "lucide-react";
+import { User } from "lucide-react";
+import { DateSelect } from "@/components/date-select";
 
 export interface BoardItemCardProps {
   item: BoardItem;
   onClick?: () => void;
   onPriorityChange?: (priority: Priority) => void;
+  onDateChange?: (startDate: Date | undefined, dueDate: Date | undefined) => void;
   isDragging?: boolean;
   style?: React.CSSProperties;
   dragRef?: (node: HTMLElement | null) => void;
@@ -23,6 +25,7 @@ export const BoardItemCard = React.memo(function BoardItemCard({
   item,
   onClick,
   onPriorityChange,
+  onDateChange,
   isDragging,
   style,
   dragRef,
@@ -56,6 +59,14 @@ export const BoardItemCard = React.memo(function BoardItemCard({
       ref={dragRef}
       {...dragProps}
       onClick={onClick}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => {
+        if (onClick && (e.key === "Enter" || e.key === " ")) {
+          e.preventDefault();
+          onClick();
+        }
+      }}
       className={cn(
         "group relative flex flex-col gap-1.5 p-2.5 rounded-lg cursor-grab active:cursor-grabbing select-none border outline-none shadow-sm shrink-0 w-full bg-muted/40 text-card-foreground border-border/50 hover:bg-muted/60",
         isDragging && "opacity-0 pointer-events-none border-transparent bg-transparent shadow-none"
@@ -104,32 +115,20 @@ export const BoardItemCard = React.memo(function BoardItemCard({
             >
               {item.__type}
             </span>
-            {dateInfo.show ? (
-              <div 
-                className={cn(
-                  // REMOVED "transition-colors" to stop layout style calculation battles
-                  "flex items-center gap-1 text-[8px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded border w-fit leading-none",
+              <DateSelect
+                startDate={item.startDate}
+                dueDate={item.dueDate}
+                onStartDateChange={(date) => onDateChange?.(date, item.dueDate ? new Date(item.dueDate) : undefined)}
+                onDueDateChange={(date) => onDateChange?.(item.startDate ? new Date(item.startDate) : undefined, date)}
+                size="sm"
+                align="start"
+                triggerClassName={cn(
+                  "h-5 px-1.5 text-[8px] font-black uppercase tracking-wider border border-border/5 rounded w-fit leading-none",
                   isOverdue 
-                    ? "bg-red-500/10 text-red-400 border-red-500/20" 
-                    : "bg-white/[0.02] text-zinc-500 border-white/[0.04]"
+                    ? "bg-red-500/10 text-red-400 border-red-500/20 hover:bg-red-500/20" 
+                    : "bg-white/[0.02] text-zinc-500 border-white/[0.04] hover:bg-white/[0.06]"
                 )}
-              >
-                {/* Use direct inline styles or explicit layout utilities instead of toggling conditional class engines */}
-                <Calendar 
-                  className="h-2.5 w-2.5" 
-                  style={{ opacity: isOverdue ? 0.9 : 0.4 }} 
-                />
-                <span>{dateInfo.text}</span>
-              </div>
-            ) : (
-              // Do the same layout cleanup for the fallback badge element
-              <div 
-                className="flex items-center gap-1 text-[8px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded border w-fit leading-none bg-white/[0.01] text-zinc-500/40 border-white/[0.03] select-none"
-              >
-                <Calendar className="h-2.5 w-2.5 opacity-20" />
-                <span>No Date</span>
-              </div>
-            )}
+              />
           </div>
           
           {dateInfo.createdText && (
@@ -148,11 +147,13 @@ export const SortableBoardItem = React.memo(function SortableBoardItem({
   onTaskClick,
   onFolderClick,
   onPriorityChange,
+  onDateChange,
 }: {
   item: BoardItem;
   onTaskClick: (id: string) => void;
   onFolderClick: (id: string) => void;
   onPriorityChange: (id: string, type: "task" | "folder", priority: Priority) => void;
+  onDateChange: (id: string, type: "task" | "folder", startDate: Date | undefined, dueDate: Date | undefined) => void;
 }) {
   const {
     attributes,
@@ -175,6 +176,7 @@ export const SortableBoardItem = React.memo(function SortableBoardItem({
       item={item}
       onClick={() => item.__type === "task" ? onTaskClick(item.id) : onFolderClick(item.id)}
       onPriorityChange={(p) => onPriorityChange(item.id, item.__type, p)}
+      onDateChange={(start, due) => onDateChange(item.id, item.__type, start, due)}
       isDragging={isDragging}
       style={style}
       dragRef={setNodeRef}

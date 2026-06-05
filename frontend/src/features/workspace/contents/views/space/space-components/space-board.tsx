@@ -24,6 +24,8 @@ import { useSmartWheelScroll } from "@/features/workspace/contents/views/space/u
 import { useEdgeScroll } from "@/features/workspace/contents/views/space/utils/use-edge-scroll";
 
 import { folderSlice, taskSlice } from "@/store/entityStore";
+import { useUpdateTaskMutation } from "../../task/task-api";
+import { useUpdateFolderFieldMutation } from "../../folder/folder-api";
 
 interface SpaceBoardProps {
   spaceId: string;
@@ -105,6 +107,37 @@ export function SpaceBoard({ spaceId, onWorkflowOpen }: Readonly<SpaceBoardProps
     if (!workspaceId) return;
     navigate({ to: `/workspaces/${workspaceId}/folders/${id}` });
   }, [workspaceId, navigate]);
+
+  const [updateTask] = useUpdateTaskMutation();
+  const [updateFolderField] = useUpdateFolderFieldMutation();
+
+  const handleDateChange = useCallback((itemId: string, type: "task" | "folder", startDate: Date | undefined, dueDate: Date | undefined) => {
+    const updates = { 
+      id: itemId, 
+      startDate: startDate?.toISOString(), 
+      dueDate: dueDate?.toISOString() 
+    };
+
+    if (type === "folder") {
+      dispatch(folderSlice.actions.upsert(updates));
+      updateFolderField({ 
+        folderId: itemId, 
+        patches: { 
+          startDate: updates.startDate, 
+          dueDate: updates.dueDate 
+        } 
+      });
+    } else {
+      dispatch(taskSlice.actions.upsert(updates));
+      updateTask({ 
+        taskId: itemId, 
+        patches: { 
+          startDate: updates.startDate, 
+          dueDate: updates.dueDate 
+        } 
+      });
+    }
+  }, [dispatch, updateFolderField, updateTask]);
 
   const handlePriorityChange = useCallback((itemId: string, type: "task" | "folder", priority: Priority) => {
     const updates = { id: itemId, priority };
@@ -216,6 +249,7 @@ export function SpaceBoard({ spaceId, onWorkflowOpen }: Readonly<SpaceBoardProps
               onTaskClick={handleTaskClick}
               onFolderClick={handleFolderClick}
               onPriorityChange={handlePriorityChange}
+              onDateChange={handleDateChange}
             />
           ))}
         </div>

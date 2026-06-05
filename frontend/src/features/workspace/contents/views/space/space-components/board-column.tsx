@@ -28,6 +28,7 @@ export const BoardColumn = React.memo(function BoardColumn({
   onTaskClick,
   onFolderClick,
   onPriorityChange,
+  onDateChange,
 }: {
   statusId: string;
   name: string;
@@ -38,6 +39,7 @@ export const BoardColumn = React.memo(function BoardColumn({
   onTaskClick: (id: string) => void;
   onFolderClick: (id: string) => void;
   onPriorityChange: (id: string, type: "task" | "folder", priority: Priority) => void;
+  onDateChange: (id: string, type: "task" | "folder", startDate: Date | undefined, dueDate: Date | undefined) => void;
 }) {
   const { setNodeRef, isOver } = useDroppable({
     id: statusId,
@@ -89,6 +91,7 @@ export const BoardColumn = React.memo(function BoardColumn({
                 onTaskClick={onTaskClick}
                 onFolderClick={onFolderClick}
                 onPriorityChange={onPriorityChange}
+                onDateChange={onDateChange}
               />
             ))}
         </SortableContext>
