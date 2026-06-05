@@ -27,14 +27,10 @@ public class DeleteWorkspaceHandler(
 
         if (workspace == null) return Result.Failure(WorkspaceError.NotFound);
 
-        // 1. Logic: Use formal domain method to trigger background cleanup
         workspace.Delete();
         await db.SaveChangesAsync(ct);
-
-        // --- Side Effects ---
-        await cache.RemoveByTagAsync(WorkspaceCacheKeys.WorkspaceListTag(currentUserId), ct);
         
-        // 3. STAGE 1 Notification: UI hides the workspace immediately while cleanup starts
+        await cache.RemoveByTagAsync(WorkspaceCacheKeys.WorkspaceListTag(currentUserId), ct);
         await realtime.NotifyUserAsync(currentUserId, "WorkspaceDeleting", new { WorkspaceId = request.workspaceId }, ct);
 
         return Result.Success();

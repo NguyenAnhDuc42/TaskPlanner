@@ -1,8 +1,7 @@
 import { arrayMove } from "@dnd-kit/sortable";
 import { EntityLayerType as EntityLayerConst } from "@/types/entity-layer-type";
 import type { DragItemData, DragSpaceData } from "../drag-item-type";
-import { generateKeyBetween } from "fractional-indexing";
-import { safeKey } from "../../utils/fractional-index";
+import { safeKey, fractionalBetween } from "../../utils/fractional-index";
 import { store } from "@/store";
 import { spaceSlice } from "@/store/entityStore";
 
@@ -27,7 +26,7 @@ export function handleSpaceMove(
 
   const prevKey = safeKey(moved[newIndex - 1]?.orderKey);
   const nextKey = safeKey(moved[newIndex + 1]?.orderKey);
-  const newOrderKey = generateKeyBetween(prevKey, nextKey);
+  const newOrderKey = fractionalBetween(prevKey, nextKey);
 
   // 1. Optimistic update (only update the dragged space)
   store.dispatch(spaceSlice.actions.upsert({ id: activeData.id, orderKey: newOrderKey }));

@@ -10,6 +10,8 @@ public class GetEntityAccessHandler(TaskPlanDbContext db,WorkspaceContext worksp
     {
         var query = """
             SELECT 
+                ea.id AS Id,
+                @SpaceId AS SpaceId,
                 wm.id AS WorkspaceMemberId,
                 ea.access_level AS AccessLevel,
                 ea.workspace_member_id IS NOT NULL AS HaveAccess 

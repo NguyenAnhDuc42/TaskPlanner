@@ -27,12 +27,11 @@ export function SpaceView({ spaceId }: SpaceViewProps) {
   // Load space details & items into Redux
   const space = useSpaceDetail(spaceId);
   useGetSpaceDetailQuery(spaceId);
-  const { data: spaceItems } = useGetSpaceItemsQuery(spaceId);
-  const statuses = spaceItems?.statuses || [];
+  useGetSpaceItemsQuery(spaceId);
 
   // Fetch access lists to trigger Redux cache upsertion
   useGetEntityAccessQuery(spaceId);
-  const entityAccessList = useSelector(entityAccessSelectors.selectAll);
+  const entityAccessList = useSelector(entityAccessSelectors.selectAll).filter(ea => ea.spaceId === spaceId);
   const { registry } = useWorkspace();
 
   const currentAccessMembers = entityAccessList.filter(a => a.haveAccess);
@@ -208,7 +207,6 @@ export function SpaceView({ spaceId }: SpaceViewProps) {
           isOpen={isWorkflowOpen}
           onClose={() => setIsWorkflowOpen(false)}
           workflowId={space.workflowId}
-          currentStatuses={statuses}
         />
       )}
     </EntityViewFrame>

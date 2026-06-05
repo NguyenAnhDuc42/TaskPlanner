@@ -7,8 +7,7 @@ import type { MemberRecord } from "@/types/workspace/member-record";
 import type { WorkflowRecord } from "@/types/projects";
 import type { Status } from "@/types/status";
 
-export const RowAction = { Create: "Create", Update: "Update", Delete: "Delete" } as const;
-export type RowAction = (typeof RowAction)[keyof typeof RowAction];
+import { RowAction } from "@/types/row-action";
 
 export interface StatusUpdatePayload {
   id: string | null;

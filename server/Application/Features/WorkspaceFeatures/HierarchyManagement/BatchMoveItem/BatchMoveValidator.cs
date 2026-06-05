@@ -9,16 +9,10 @@ namespace Application;
 
 public class BatchMoveValidator(TaskPlanDbContext db, Guid workspaceId)
 {
-    /// <summary>
-    /// Validates folder moves:
-    /// - All folders exist in this workspace (via their ProjectSpaceId)
-    /// - All target spaces (TargetParentId) exist in this workspace
-    /// </summary>
     public async Task<Result> ValidateFolderMovesAsync(List<MoveFolderValue> moves, CancellationToken ct)
     {
         if (!moves.Any()) return Result.Success();
 
-        // Folders must exist under a space that belongs to this workspace
         var folderIds = moves.Select(m => m.ItemId).Distinct().ToList();
         var foundCount = await db.ProjectFolders
             .AsNoTracking()
@@ -30,7 +24,6 @@ public class BatchMoveValidator(TaskPlanDbContext db, Guid workspaceId)
             return Result.Failure(Error.NotFound("Folder.BatchMoveNotFound",
                 "One or more folders were not found in this workspace."));
 
-        // Target spaces (when provided) must exist under this workspace
         var targetSpaceIds = moves
             .Where(m => m.TargetParentId.HasValue)
             .Select(m => m.TargetParentId!.Value)
@@ -39,31 +32,52 @@ public class BatchMoveValidator(TaskPlanDbContext db, Guid workspaceId)
 
         if (targetSpaceIds.Any())
         {
-            var spaceCount = await db.ProjectSpaces
+            var targetSpaces = await db.ProjectSpaces
                 .AsNoTracking()
                 .Where(s => targetSpaceIds.Contains(s.Id) && s.ProjectWorkspaceId == workspaceId)
-                .CountAsync(ct);
+                .Select(s => new { s.Id, s.IsPrivate })
+                .ToListAsync(ct);
 
-            if (spaceCount != targetSpaceIds.Count)
+            if (targetSpaces.Count != targetSpaceIds.Count)
                 return Result.Failure(Error.NotFound("Space.BatchMoveTargetNotFound",
                     "One or more target spaces were not found in this workspace."));
+
+            var privateTargetSpaceIds = targetSpaces
+                .Where(s => s.IsPrivate)
+                .Select(s => s.Id)
+                .ToHashSet();
+
+            if (privateTargetSpaceIds.Any())
+            {
+                var movesIntoPrivate = moves
+                    .Where(m => m.TargetParentId.HasValue && privateTargetSpaceIds.Contains(m.TargetParentId.Value))
+                    .ToList();
+
+                var movingFolderIds = movesIntoPrivate.Select(m => m.ItemId).Distinct().ToList();
+                var sourceFolderSpaces = await db.ProjectFolders
+                    .AsNoTracking()
+                    .Where(f => movingFolderIds.Contains(f.Id))
+                    .Select(f => new { f.Id, f.ProjectSpaceId })
+                    .ToListAsync(ct);
+
+                var sourceMap = sourceFolderSpaces.ToDictionary(f => f.Id, f => f.ProjectSpaceId);
+
+                var isCrossSpacePrivateMove = movesIntoPrivate.Any(m =>
+                    !sourceMap.TryGetValue(m.ItemId, out var srcSpaceId) ||
+                    srcSpaceId != m.TargetParentId);
+
+                if (isCrossSpacePrivateMove)
+                    return Result.Failure(Error.Validation("Space.BatchMoveTargetPrivate",
+                        "Cannot move items to a private space."));
+            }
         }
 
         return Result.Success();
     }
 
-    /// <summary>
-    /// Validates task moves:
-    /// - All tasks exist in this workspace (via their ProjectSpaceId — NOT ProjectFolder which can be null)
-    /// - All target spaces exist in this workspace
-    /// - If TargetFolderId is provided: folder must exist AND belong to TargetSpaceId
-    /// </summary>
     public async Task<Result> ValidateTaskMovesAsync(List<MoveTaskValue> moves, CancellationToken ct)
     {
         if (!moves.Any()) return Result.Success();
-
-        // Tasks must exist under a space that belongs to this workspace
-        // Use ProjectSpaceId scalar — NOT ProjectFolder navigation (can be null for tasks directly in a space)
         var taskIds = moves.Select(m => m.ItemId).Distinct().ToList();
         var foundCount = await db.ProjectTasks
             .AsNoTracking()
@@ -74,19 +88,49 @@ public class BatchMoveValidator(TaskPlanDbContext db, Guid workspaceId)
         if (foundCount != taskIds.Count)
             return Result.Failure(Error.NotFound("Task.BatchMoveNotFound",
                 "One or more tasks were not found in this workspace."));
-
-        // All target spaces must exist under this workspace
         var targetSpaceIds = moves.Select(m => m.TargetSpaceId).Distinct().ToList();
-        var spaceCount = await db.ProjectSpaces
+
+        var targetSpaces = await db.ProjectSpaces
             .AsNoTracking()
             .Where(s => targetSpaceIds.Contains(s.Id) && s.ProjectWorkspaceId == workspaceId)
-            .CountAsync(ct);
+            .Select(s => new { s.Id, s.IsPrivate })
+            .ToListAsync(ct);
 
-        if (spaceCount != targetSpaceIds.Count)
+        if (targetSpaces.Count != targetSpaceIds.Count)
             return Result.Failure(Error.NotFound("Space.BatchMoveTargetNotFound",
                 "One or more target spaces were not found in this workspace."));
 
-        // If TargetFolderId is provided: folder must exist AND be in the declared TargetSpaceId
+        // Only block cross-space moves into a private space.
+        // Reordering within the same private space is allowed.
+        var privateTargetSpaceIds = targetSpaces
+            .Where(s => s.IsPrivate)
+            .Select(s => s.Id)
+            .ToHashSet();
+
+        if (privateTargetSpaceIds.Any())
+        {
+            var movesIntoPrivate = moves
+                .Where(m => privateTargetSpaceIds.Contains(m.TargetSpaceId))
+                .ToList();
+
+            var movingTaskIds = movesIntoPrivate.Select(m => m.ItemId).Distinct().ToList();
+            var sourceTaskSpaces = await db.ProjectTasks
+                .AsNoTracking()
+                .Where(t => movingTaskIds.Contains(t.Id))
+                .Select(t => new { t.Id, t.ProjectSpaceId })
+                .ToListAsync(ct);
+
+            var sourceMap = sourceTaskSpaces.ToDictionary(t => t.Id, t => t.ProjectSpaceId);
+
+            var isCrossSpacePrivateMove = movesIntoPrivate.Any(m =>
+                !sourceMap.TryGetValue(m.ItemId, out var srcSpaceId) ||
+                srcSpaceId != m.TargetSpaceId);
+
+            if (isCrossSpacePrivateMove)
+                return Result.Failure(Error.Validation("Space.BatchMoveTargetPrivate",
+                    "Cannot move items to a private space."));
+        }
+
         var folderMoves = moves.Where(m => m.TargetFolderId.HasValue).ToList();
         if (folderMoves.Any())
         {

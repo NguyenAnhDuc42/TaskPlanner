@@ -86,24 +86,25 @@ export function HierarchySidebar() {
             <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider flex-1 text-left">
               Items
             </span>
-            <div onClick={(e) => e.stopPropagation()}>
-              <DialogFormWrapper
-                title="Create New Space"
-                open={isHeaderCreateOpen}
-                onOpenChange={setIsHeaderCreateOpen}
-                trigger={
-                  <Plus
-                    className="h-3 w-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-none hover:text-primary cursor-pointer"
-                    onClick={() => setIsHeaderCreateOpen(true)}
-                  />
-                }
-              >
-                <CreateSpaceForm
-                  onSuccess={() => setIsHeaderCreateOpen(false)}
-                  onCancel={() => setIsHeaderCreateOpen(false)}
+            <DialogFormWrapper
+              title="Create New Space"
+              open={isHeaderCreateOpen}
+              onOpenChange={setIsHeaderCreateOpen}
+              trigger={
+                <Plus
+                  className="h-3 w-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-none hover:text-primary cursor-pointer"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setIsHeaderCreateOpen(true);
+                  }}
                 />
-              </DialogFormWrapper>
-            </div>
+              }
+            >
+              <CreateSpaceForm
+                onSuccess={() => setIsHeaderCreateOpen(false)}
+                onCancel={() => setIsHeaderCreateOpen(false)}
+              />
+            </DialogFormWrapper>
           </CollapsibleTrigger>
 
           <CollapsibleContent className="flex-1 min-h-0 overflow-hidden data-[state=open]:flex data-[state=closed]:hidden">

@@ -5,7 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useSelector } from "react-redux";
-import { memberSelectors, assigneeSelectors, entityAccessSelectors } from "@/store/entityStore";
+import { memberSelectors, assigneeSelectors, entityAccessSelectors, taskSelectors } from "@/store/entityStore";
+import type { RootState } from "@/store";
 import { useWorkspace } from "@/features/workspace/context/workspace-provider";
 import { useGetEntityAccessQuery } from "../../space/space-api";
 import { StatusSelect } from "@/components/status-select";
@@ -33,9 +34,10 @@ export function TaskDetailCanvas({ taskId }: TaskDetailCanvasProps) {
   const { registry } = useWorkspace();
   const allMembers = useSelector(memberSelectors.selectAll);
 
-  const { data: task, isLoading } = useGetTaskDetailQuery(taskId || "", {
+  const { isLoading } = useGetTaskDetailQuery(taskId || "", {
     skip: !taskId,
   });
+  const task = useSelector((state: RootState) => taskSelectors.selectById(state, taskId || ""));
   useGetTaskAssigneesQuery(taskId || "", {
     skip: !taskId,
   });
@@ -58,7 +60,7 @@ export function TaskDetailCanvas({ taskId }: TaskDetailCanvasProps) {
     skip: !task?.spaceId || !space?.isPrivate,
   });
 
-  const entityAccessList = useSelector(entityAccessSelectors.selectAll);
+  const entityAccessList = useSelector(entityAccessSelectors.selectAll).filter(ea => ea.spaceId === task?.spaceId);
   const spaceAccessList = entityAccessList.filter(ea => ea.haveAccess);
 
   const [localName, setLocalName] = useState("");
@@ -106,11 +108,11 @@ export function TaskDetailCanvas({ taskId }: TaskDetailCanvasProps) {
   };
 
   const handleToggleAssignee = (memberId: string) => {
-    const current = assignees.map((a) => a.workspaceMemberId) || [];
-    const isAssigned = current.includes(memberId);
+    const existing = assignees.find((a) => a.workspaceMemberId === memberId);
+    const isAssigned = !!existing;
     updateTaskAssignees({
       taskId,
-      changes: [{ memberId, isDelete: isAssigned }]
+      changes: [{ id: existing?.id, memberId, isDelete: isAssigned }]
     });
   };
 

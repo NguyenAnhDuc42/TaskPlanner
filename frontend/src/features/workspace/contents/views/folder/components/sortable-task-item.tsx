@@ -10,7 +10,8 @@ import { CSS } from "@dnd-kit/utilities";
 import type { TaskRecord } from "@/types/projects";
 import { Priority } from "@/types/priority";
 import { useSelector } from "react-redux";
-import { statusSelectors } from "@/store/entityStore";
+import { statusSelectors, folderSelectors } from "@/store/entityStore";
+import type { RootState } from "@/store";
 import { StatusSelect } from "@/components/status-select";
 import { PrioritySelect } from "@/components/priority-select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -35,10 +36,18 @@ export function SortableTaskItem({
 }: Readonly<SortableTaskItemProps>) {
   const statuses = useSelector(statusSelectors.selectAll);
   const { folderId } = useParams({ strict: false }) as { folderId: string };
-  const { data: detailData } = useGetFolderDetailQuery(folderId);
+  useGetFolderDetailQuery(folderId);
   const { mutate: batchUpdate } = useBatchUpdateFolderTasks(folderId);
 
-  const taskStatuses = detailData?.taskStatuses || [];
+  const folder = useSelector((state: RootState) => folderSelectors.selectById(state, folderId));
+
+  const taskStatuses = React.useMemo(() => {
+    const targetWorkflowId = folder?.workflowId;
+    if (!targetWorkflowId) return [];
+    return statuses
+      .filter(s => s.workflowId?.toLowerCase() === targetWorkflowId.toLowerCase())
+      .sort((a, b) => (a.orderKey || "").localeCompare(b.orderKey || ""));
+  }, [folder?.workflowId, statuses]);
 
   const onUpdateTaskField = (fields: Partial<TaskRecord>) => {
     batchUpdate([{ id: task.id, ...fields }]);

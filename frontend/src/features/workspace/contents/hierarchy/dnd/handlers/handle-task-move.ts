@@ -1,7 +1,6 @@
 import { arrayMove } from "@dnd-kit/sortable";
 import { EntityLayerType as EntityLayerConst } from "@/types/entity-layer-type";
-import { generateKeyBetween } from "fractional-indexing";
-import { safeKey } from "../../utils/fractional-index";
+import { safeKey, fractionalBetween } from "../../utils/fractional-index";
 import type { DragItemData, DragTaskData } from "../drag-item-type";
 import { store } from "@/store";
 import { folderSlice, spaceSlice, taskSlice } from "@/store/entityStore";
@@ -85,7 +84,7 @@ export function handleTaskMove(
 
     const prevKey = safeKey(moved[newIndex - 1]?.orderKey);
     const nextKey = safeKey(moved[newIndex + 1]?.orderKey);
-    newOrderKey = generateKeyBetween(prevKey, nextKey);
+    newOrderKey = fractionalBetween(prevKey, nextKey);
 
     // Optimistic: update only the dragged task
     store.dispatch(taskSlice.actions.upsert({ id: activeData.id, orderKey: newOrderKey }));
@@ -96,7 +95,7 @@ export function handleTaskMove(
 
     const prevKey = safeKey(newIndex > 0 ? state.tasks.entities[newTargetTasks[newIndex - 1]]?.orderKey : undefined);
     const nextKey = safeKey(newIndex < newTargetTasks.length - 1 ? state.tasks.entities[newTargetTasks[newIndex + 1]]?.orderKey : undefined);
-    newOrderKey = generateKeyBetween(prevKey, nextKey);
+    newOrderKey = fractionalBetween(prevKey, nextKey);
 
     // Optimistic: update only the dragged task
     store.dispatch(taskSlice.actions.upsert({

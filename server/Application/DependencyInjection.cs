@@ -102,6 +102,7 @@ public static class DependencyInjection
         // Cursor Helper Configuration
         services.Configure<CursorEncryptionOptions>(config.GetSection(CursorEncryptionOptions.SectionName));
         services.AddScoped<CursorHelper>();
+        services.AddScoped<PermissionService>();
         #endregion
 
         services.AddSignalR();

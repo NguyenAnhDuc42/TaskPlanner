@@ -5,7 +5,7 @@ import { TaskDetailCanvas } from "../task/components/task-detail-canvas";
 import * as React from "react";
 import { useParams, Link } from "@tanstack/react-router";
 import { format } from "date-fns";
-import { useSpaceDetail, useGetSpaceDetailQuery } from "../space/space-api";
+import { useSpaceDetail, useGetSpaceDetailQuery, useSpaceStatuses } from "../space/space-api";
 import { DynamicIcon } from "@/components/dynamic-icon";
 import {
   Breadcrumb,
@@ -58,7 +58,7 @@ export function FolderView() {
   const [selectedTaskId, setSelectedTaskId] = React.useState<string | undefined>(undefined);
 
   // Load folder + statuses into Redux (single source of truth)
-  const { data: detailData, isLoading } = useGetFolderDetailQuery(folderId);
+  const { isLoading } = useGetFolderDetailQuery(folderId);
 
   // Read folder reactively from Redux (real-time safe)
   const folder = useFolderDetail(folderId);
@@ -83,9 +83,16 @@ export function FolderView() {
 
   const allStatuses = useSelector(statusSelectors.selectAll);
 
+  // Retrieve space statuses & folder task statuses directly from Redux
+  const spaceStatuses = useSpaceStatuses(folder?.spaceId ?? "");
 
-  const spaceStatuses = detailData?.spaceStatuses || [];
-  const taskStatuses = detailData?.taskStatuses || [];
+  const taskStatuses = React.useMemo(() => {
+    const targetWorkflowId = folder?.workflowId;
+    if (!targetWorkflowId) return [];
+    return allStatuses
+      .filter(s => s.workflowId?.toLowerCase() === targetWorkflowId.toLowerCase())
+      .sort((a, b) => (a.orderKey || "").localeCompare(b.orderKey || ""));
+  }, [folder?.workflowId, allStatuses]);
 
   const updateField = (patches: Partial<FolderRecord>) => {
     updateFolderField({ folderId, patches });
@@ -215,7 +222,7 @@ export function FolderView() {
             <StatusSelect
               value={folder?.statusId || undefined}
               onChange={(statusId) => updateField({ statusId })}
-              workflowId={detailData?.parentWorkflowId}
+              workflowId={parentSpace?.workflowId}
               statuses={spaceStatuses}
               align="end"
               trigger={
@@ -324,8 +331,7 @@ export function FolderView() {
       <CreateStatusForm
         isOpen={isWorkflowOpen}
         onClose={() => setIsWorkflowOpen(false)}
-        workflowId={detailData?.workflowId}
-        currentStatuses={detailData?.taskStatuses}
+        workflowId={folder?.workflowId}
       />
 
       {checkedTaskIds.size > 0 && (

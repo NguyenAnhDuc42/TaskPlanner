@@ -24,7 +24,6 @@ public static class PipelineDecorator
         {
             var requestName = typeof(TCommand).Name;
             
-            // 1. Resolve basic services (fast)
             var currentUserService = serviceProvider.GetRequiredService<CurrentUserService>();
             var workspaceContext = serviceProvider.GetRequiredService<WorkspaceContext>();
             

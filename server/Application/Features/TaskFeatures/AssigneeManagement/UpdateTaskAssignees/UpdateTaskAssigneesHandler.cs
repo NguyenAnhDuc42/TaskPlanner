@@ -42,8 +42,14 @@ public class UpdateTaskAssigneesHandler(
             }
         }
 
+        var deletedAssigneeIds = new List<Guid>();
         if (memberIdsToRemove.Count > 0)
         {
+            deletedAssigneeIds = task.Assignees
+                .Where(a => memberIdsToRemove.Contains(a.WorkspaceMemberId))
+                .Select(a => a.Id)
+                .ToList();
+
             task.RemoveAsignees(memberIdsToRemove);
         }
 
@@ -61,18 +67,19 @@ public class UpdateTaskAssigneesHandler(
             {
                 Assignees = toAdd.Select(a => new AssigneeRecord
                 {
-                    TaskId = a.TaskId,
+                    Id = a.Id,
+                    TaskId = a.ProjectTaskId,
                     WorkspaceMemberId = a.WorkspaceMemberId
                 }).ToList()
             };
             await realtime.NotifyEntitiesUpdatedAsync(context.workspaceId, updatePayload, ct);
         }
 
-        if (memberIdsToRemove.Count > 0)
+        if (deletedAssigneeIds.Count > 0)
         {
             var deletePayload = new EntityBatchDelete
             {
-                AssigneeIds = memberIdsToRemove.Select(mId => $"{task.Id}_{mId}").ToList()
+                AssigneeIds = deletedAssigneeIds
             };
             await realtime.NotifyEntitiesDeletedAsync(context.workspaceId, deletePayload, ct);
         }

@@ -2,18 +2,6 @@ import type { Role } from "@/types/role";
 import type { MembershipStatus } from "@/types/membership-status";
 import z from "zod";
 
-export interface MemberSummary {
-  id: string;
-  workspaceMemberId: string;
-  name: string;
-  email: string;
-  avatarUrl: string;
-  role: Role;
-  status?: MembershipStatus;
-  createdAt: string;
-  joinedAt: string;
-}
-
 export const addMembersSchema = z.object({
   members: z
     .array(

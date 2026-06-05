@@ -7,19 +7,6 @@ using Dapper;
 
 namespace Application;
 
-public class MemberRow
-{
-    public Guid Id { get; set; }
-    public Guid WorkspaceMemberId { get; set; }
-    public DateTimeOffset CreatedAt { get; set; }
-    public DateTimeOffset? JoinedAt { get; set; }
-    public string Name { get; set; } = null!;
-    public string Email { get; set; } = null!;
-    public string? AvatarUrl { get; set; }
-    public Role Role { get; set; }
-    public MembershipStatus Status { get; set; }
-}
-
 public class GetMembersHandler(
     TaskPlanDbContext db,
     WorkspaceContext context,
@@ -101,17 +88,16 @@ public class GetMembersHandler(
                 pageSizePLusOne = pageSize + 1
             };
 
-            var rows = (await connection.QueryAsync<MemberRow>(sql, parameters)).AsList();
+            var rows = (await connection.QueryAsync<MemberRecord>(sql, parameters)).AsList();
 
             var hasMore = rows.Count > pageSize;
             if (hasMore) rows.RemoveAt(rows.Count - 1);
 
-            var items = Map(rows);
             var nextCursor = hasMore && rows.Count > 0
                 ? EncodeNextCursor(rows[^1])
                 : null;
 
-            return new PagedResult<MemberRecord>(items, nextCursor, hasMore);
+            return new PagedResult<MemberRecord>(rows, nextCursor, hasMore);
         },
         new HybridCacheEntryOptions { Expiration = TimeSpan.FromMinutes(5) },
         new[] { WorkspaceCacheKeys.WorkspaceMembersTag(workspaceId) },
@@ -143,27 +129,11 @@ public class GetMembersHandler(
         }
     }
 
-    private static List<MemberRecord> Map(List<MemberRow> rows)
-    {
-        return rows.Select(x => new MemberRecord
-        {
-            Id = x.Id,
-            WorkspaceMemberId = x.WorkspaceMemberId,
-            Name = x.Name ?? string.Empty,
-            Email = x.Email,
-            AvatarUrl = x.AvatarUrl,
-            Role = x.Role,
-            Status = x.Status,
-            CreatedAt = x.CreatedAt,
-            JoinedAt = x.JoinedAt
-        }).ToList();
-    }
-
-    private string EncodeNextCursor(MemberRow last)
+    private string EncodeNextCursor(MemberRecord last)
     {
         var cursorData = new CursorData(new Dictionary<string, object>
         {
-            { "Timestamp", last.JoinedAt ?? last.CreatedAt },
+            { "Timestamp", last.JoinedAt ?? last.CreatedAt ?? DateTimeOffset.UtcNow },
             { "Id", last.Id }
         });
         return cursorHelper.EncodeCursor(cursorData);

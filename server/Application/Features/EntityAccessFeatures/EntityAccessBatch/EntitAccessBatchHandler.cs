@@ -11,32 +11,60 @@ public class EntityAccessBatchHandler(TaskPlanDbContext db,WorkspaceContext work
         var space = await db.ProjectSpaces.FirstOrDefaultAsync(x => x.Id == request.SpaceId && x.ProjectWorkspaceId == workspaceContext.workspaceId, cancellationToken);
         if (space is null) return Result.Failure(Error.NotFound("Space.NotFound", "Space not found"));
 
-        var deleteAccess= request.Rows.Where(r => r.Action == RowAction.Delete).ToList();
-        var createAccess= request.Rows.Where(r => r.Action == RowAction.Create).ToList();
-        var updateAccess= request.Rows.Where(r => r.Action == RowAction.Update).ToList(); 
+        var deleteAccess = request.Rows.Where(r => r.Action == RowAction.Delete).ToList();
+        var createAccess = request.Rows.Where(r => r.Action == RowAction.Create).ToList();
+        var updateAccess = request.Rows.Where(r => r.Action == RowAction.Update).ToList(); 
 
-        var affectedIds = updateAccess.Select(r => r.MemberId)
-            .Concat(deleteAccess.Select(r => r.MemberId))
+        var affectedRowIds = updateAccess.Select(r => r.Id ?? Guid.Empty)
+            .Concat(deleteAccess.Select(r => r.Id ?? Guid.Empty))
+            .Where(id => id != Guid.Empty)
+            .ToList();
+
+        var affectedMemberIds = updateAccess.Where(r => !r.Id.HasValue).Select(r => r.MemberId)
+            .Concat(deleteAccess.Where(r => !r.Id.HasValue).Select(r => r.MemberId))
             .ToList();
 
         var existingAccesses = await db.EntityAccesses
-            .Where(a => a.ProjectSpaceId == request.SpaceId && affectedIds.Contains(a.WorkspaceMemberId) && a.DeletedAt == null)
+            .Where(a => a.ProjectSpaceId == request.SpaceId && 
+                        a.DeletedAt == null && 
+                        (affectedRowIds.Contains(a.Id) || affectedMemberIds.Contains(a.WorkspaceMemberId)))
             .ToListAsync(cancellationToken);
         
-        var existingLookUp = existingAccesses.ToDictionary(a => a.WorkspaceMemberId);
+        var existingLookUpById = existingAccesses.ToDictionary(a => a.Id);
+        var existingLookUpByMember = existingAccesses.ToDictionary(a => a.WorkspaceMemberId);
 
         foreach(var row in deleteAccess)
         {
-            if(!existingLookUp.TryGetValue(row.MemberId, out var entity)) 
-                return Result.Failure(Error.Validation("Access.NotFound", $"Cannot delete access for member {row.MemberId} because it does not exist."));
+            EntityAccess? entity = null;
+            if (row.Id.HasValue)
+            {
+                existingLookUpById.TryGetValue(row.Id.Value, out entity);
+            }
+            else
+            {
+                existingLookUpByMember.TryGetValue(row.MemberId, out entity);
+            }
+
+            if (entity is null) 
+                return Result.Failure(Error.Validation("Access.NotFound", "Cannot delete access because it does not exist."));
             
             entity.SoftDelete();
         }
 
         foreach(var row in updateAccess)
         {
-            if(!existingLookUp.TryGetValue(row.MemberId, out var entity)) 
-                return Result.Failure(Error.Validation("Access.NotFound", $"Cannot update access for member {row.MemberId} because it does not exist."));
+            EntityAccess? entity = null;
+            if (row.Id.HasValue)
+            {
+                existingLookUpById.TryGetValue(row.Id.Value, out entity);
+            }
+            else
+            {
+                existingLookUpByMember.TryGetValue(row.MemberId, out entity);
+            }
+
+            if (entity is null) 
+                return Result.Failure(Error.Validation("Access.NotFound", "Cannot update access because it does not exist."));
                 
             entity.Update(row.AccessLevel);
         }

@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef, useCallback } from "react";
+import { useEffect, useState, useRef, useCallback, useMemo } from "react";
 import { Plus, GripVertical, Trash2, HelpCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -36,10 +36,12 @@ import { StatusCategory } from "@/types/status-category";
 import type { Status } from "@/types/status";
 import type { WorkflowRecord } from "@/types/projects";
 import { useWorkspace } from "@/features/workspace/context/workspace-provider";
-import { useUpdateWorkflowStatuses, RowAction } from "@/features/workspace/api";
+import { useUpdateWorkflowStatuses } from "@/features/workspace/api";
+import { RowAction } from "@/types/row-action";
 import type { StatusUpdatePayload } from "@/features/workspace/api";
-import { useMemo } from "react";
 import { fractionalBetween } from "@/features/workspace/contents/hierarchy/utils/fractional-index";
+import { useSelector } from "react-redux";
+import { statusSelectors } from "@/store/entityStore";
 
 
 interface CreateStatusFormProps {
@@ -220,30 +222,17 @@ export function CreateStatusForm({
   const { registry, workspaceId: currentWorkspaceId } = useWorkspace();
   const { mutate: updateStatuses } = useUpdateWorkflowStatuses();
 
-  const workflow = useMemo(() => {
-    if (!workflowId) return null;
-    return registry.workflows.find((w: WorkflowRecord) => 
-      w.id?.toLowerCase() === workflowId?.toLowerCase()
-    );
-  }, [workflowId, registry.workflows]);
+  const allStatuses = useSelector(statusSelectors.selectAll);
 
   const resolvedCurrentStatuses = useMemo(() => {
     if (currentStatuses) {
-      return currentStatuses.map((s: Status) => ({
-        ...s,
-        id: s.id || s.id,
-      }));
+      return currentStatuses;
     }
-    if (!workflow) return [];
-    return (workflow.statuses || []).map((s: Status) => ({
-      id: s.id || s.id,
-      workflowId: s.workflowId || workflow.id,
-      name: s.name,
-      color: s.color,
-      category: s.category,
-      orderKey: s.orderKey || "",
-    }));
-  }, [currentStatuses, workflow]);
+    if (!workflowId) return [];
+    return allStatuses
+      .filter((s: Status) => s.workflowId?.toLowerCase() === workflowId.toLowerCase())
+      .sort((a, b) => (a.orderKey || "").localeCompare(b.orderKey || ""));
+  }, [currentStatuses, allStatuses, workflowId]);
 
   const [localStatuses, setLocalStatuses] = useState<Status[]>(resolvedCurrentStatuses);
   const [name, setName] = useState("");

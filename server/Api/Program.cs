@@ -48,13 +48,15 @@ builder.Services.AddRateLimiter(options =>
         var userId = context.User.Claims.FirstOrDefault(c => c.Type == "sub")?.Value ?? 
                      context.Connection.RemoteIpAddress?.ToString() ?? "anonymous";
         
-        return RateLimitPartition.GetFixedWindowLimiter(
+        return RateLimitPartition.GetTokenBucketLimiter(
             partitionKey: userId,
-            factory: partition => new FixedWindowRateLimiterOptions
+            factory: partition => new TokenBucketRateLimiterOptions
             {
-                AutoReplenishment = true,
-                PermitLimit = rateLimitSettings.MaxRequestsPerMinute, 
-                Window = TimeSpan.FromMinutes(1)
+                TokenLimit = rateLimitSettings.MaxRequestsPerMinute,
+                QueueLimit = 0,
+                ReplenishmentPeriod = TimeSpan.FromSeconds(10),
+                TokensPerPeriod = Math.Max(1, rateLimitSettings.MaxRequestsPerMinute / 6),
+                AutoReplenishment = true
             });
     });
 });

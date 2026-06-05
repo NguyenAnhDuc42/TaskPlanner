@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import type { MemberSummary } from "../members-type";
+import type { MemberRecord } from "@/types/workspace/member-record";
 import { Button } from "@/components/ui/button";
 import {
   Filter,
@@ -34,7 +34,7 @@ import {
 import type { MembershipStatus } from "@/types/membership-status";
 
 interface Props {
-  members?: MemberSummary[];
+  members?: MemberRecord[];
   onAddMember?: () => void;
   onDeleteMember?: (id: string) => void;
   onBatchUpdate?: (ids: string[], role?: Role, status?: MembershipStatus) => void;
@@ -63,7 +63,7 @@ export function MemberList({
   };
 
   const uniqueRoles = useMemo(
-    () => [...new Set(members?.map((m) => m.role))],
+    () => [...new Set(members?.map((m) => m.role || "Member"))],
     [members],
   );
 
@@ -71,11 +71,11 @@ export function MemberList({
     return members?.filter((member) => {
       const matchesSearch =
         member.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        member.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        member.role.toLowerCase().includes(searchQuery.toLowerCase());
+        (member.email || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (member.role || "Member").toLowerCase().includes(searchQuery.toLowerCase());
 
       const matchesRole =
-        selectedRoles.length === 0 || selectedRoles.includes(member.role);
+        selectedRoles.length === 0 || selectedRoles.includes(member.role || "Guest");
 
       return matchesSearch && matchesRole;
     });
@@ -245,14 +245,14 @@ export function MemberList({
                         {member.name}
                       </span>
                       <span className="text-muted-foreground/60 text-[10px] truncate">
-                        {member.email}
+                        {member.email || ""}
                       </span>
                     </div>
                   </div>
 
                   {/* Role Column */}
                   <div className="px-3 py-2 border-r border-border/10 h-full flex items-center">
-                    <RoleBadge role={member.role} />
+                    <RoleBadge role={member.role || "Guest"} />
                   </div>
 
                   {/* Status Column */}

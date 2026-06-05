@@ -40,12 +40,6 @@ public record MemberRecord
     public DateTimeOffset? JoinedAt { get; init; }
 }
 
-public record WorkspaceHierarchyRecord
-{
-    public Guid Id { get; init; }
-    public string Name { get; init; } = null!;
-    public List<SpaceRecord>? Spaces { get; init; } = null;
-}
 
 public record SpaceRecord
 {
@@ -73,6 +67,8 @@ public record SpaceRecord
 
 public record EntityAccessRecord
 {
+    public Guid? Id { get; init; }
+    public Guid? SpaceId { get; init; }
     public Guid WorkspaceMemberId { get; init; }
     public AccessLevel AccessLevel { get; init; }
     public bool HaveAccess { get; init; }

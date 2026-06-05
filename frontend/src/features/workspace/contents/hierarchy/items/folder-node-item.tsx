@@ -26,10 +26,8 @@ export const FolderNodeItem = React.memo(function FolderNodeItem({
   folderId,
   spaceId,
 }: FolderNodeItemProps) {
-  // Select Folder strictly from Redux
   const folder = useSelector((state: RootState) => folderSelectors.selectById(state, folderId));
   
-  // Prefetch trigger using RTK Query
   const prefetchTasks = hierarchyApi.usePrefetch("getNodeTasks");
 
   const [isOpen, setIsOpen] = useState(false);
@@ -63,22 +61,17 @@ export const FolderNodeItem = React.memo(function FolderNodeItem({
         >
           <div
             className={cn(
-              "flex items-center w-full px-1 py-0.5 rounded-sm transition-colors cursor-pointer mb-px group",
+              "flex items-center w-full px-1 py-0.5 rounded-sm transition-colors mb-px group",
               isActive
                 ? "bg-primary/10 text-foreground"
                 : "text-muted-foreground hover:bg-muted hover:text-foreground",
             )}
-            onClick={() =>
-              navigate({
-                to: `/workspaces/${workspaceId}/folders/${folder.id}`,
-              })
-            }
           >
-            <div
+            <button
+              type="button"
               className="relative flex items-center justify-center w-5 h-5 shrink-0 cursor-pointer rounded-sm hover:bg-background/50 group/icon mr-1.5"
               onMouseEnter={() => {
                 if (isOpen || !workspaceId) return;
-                // Prefetch child tasks on hover — even if hasTasks=false (data may be stale)
                 prefetchTasks({ workspaceId: workspaceId || "", nodeId: folder.id, parentType: EntityLayerConst.ProjectFolder, cursor: null });
               }}
               onClick={(e) => {
@@ -104,19 +97,29 @@ export const FolderNodeItem = React.memo(function FolderNodeItem({
                   )}
                 />
               )}
-            </div>
-            <span className="text-[11px] font-semibold flex-1 truncate">
+            </button>
+            
+            <button
+              type="button"
+              className="flex-1 text-left text-[11px] font-semibold truncate outline-none select-none"
+              onClick={() =>
+                navigate({
+                  to: `/workspaces/${workspaceId}/folders/${folder.id}`,
+                })
+              }
+            >
               {folder.name}
-            </span>
+            </button>
 
             <div className="flex items-center gap-0.5 min-w-fit">
               {folder.isPrivate && (
-                <Lock className="h-3 w-3 text-muted-foreground/40 shrink-0" />
+                <Lock className="h-3 w-3 text-muted-foreground/40 shrink-0 mr-1" />
               )}
 
               <div className="w-0 group-hover:w-4 overflow-hidden opacity-0 group-hover:opacity-100 transition-all duration-300 ease-in-out">
                 <EntityMenuTrigger>
                   <button
+                    type="button"
                     className="h-4 w-4 p-0.5 flex items-center justify-center rounded-sm hover:bg-muted-foreground/10 text-muted-foreground hover:text-primary transition-colors"
                     onClick={(e) => e.stopPropagation()}
                   >

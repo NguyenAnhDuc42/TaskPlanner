@@ -1,7 +1,6 @@
 import { arrayMove } from "@dnd-kit/sortable";
 import { EntityLayerType as EntityLayerConst } from "@/types/entity-layer-type";
-import { generateKeyBetween } from "fractional-indexing";
-import { safeKey } from "../../utils/fractional-index";
+import { safeKey, fractionalBetween } from "../../utils/fractional-index";
 import type { DragItemData, DragFolderData } from "../drag-item-type";
 import { store } from "@/store";
 import { folderSlice, spaceSlice } from "@/store/entityStore";
@@ -62,7 +61,7 @@ export function handleFolderMove(
     const moved = arrayMove(sourceFoldersList, oldIndex, newIndex);
     const prevKey = safeKey(moved[newIndex - 1]?.orderKey);
     const nextKey = safeKey(moved[newIndex + 1]?.orderKey);
-    newOrderKey = generateKeyBetween(prevKey, nextKey);
+    newOrderKey = fractionalBetween(prevKey, nextKey);
 
     // Optimistic: update only the dragged folder
     store.dispatch(folderSlice.actions.upsert({ id: activeData.id, orderKey: newOrderKey }));
@@ -70,7 +69,7 @@ export function handleFolderMove(
     // Cross-space move: insert at newIndex in target list
     const prevKey = safeKey(targetFoldersList[newIndex - 1]?.orderKey);
     const nextKey = safeKey(targetFoldersList[newIndex]?.orderKey);
-    newOrderKey = generateKeyBetween(prevKey, nextKey);
+    newOrderKey = fractionalBetween(prevKey, nextKey);
 
     // Optimistic: update only the dragged folder
     store.dispatch(folderSlice.actions.upsert({ id: activeData.id, spaceId: targetSpaceId, orderKey: newOrderKey }));

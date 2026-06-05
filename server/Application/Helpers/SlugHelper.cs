@@ -17,7 +17,6 @@ public static partial class SlugHelper
 
         var str = name.ToLowerInvariant();
         
-        // Use source-generated regex for maximum performance
         str = WhitespaceRegex().Replace(str, "-");
         str = SpecialCharsRegex().Replace(str, "");
         str = str.Trim('-');

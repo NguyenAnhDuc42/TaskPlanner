@@ -22,6 +22,7 @@ public record AttachmentRecord
 
 public record AssigneeRecord
 {
+    public Guid Id { get; init; }
     public Guid TaskId { get; init; }
     public Guid WorkspaceMemberId { get; init; }
 }

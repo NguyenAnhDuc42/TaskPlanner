@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 import {
   WorkspaceProvider,
   useWorkspace,
@@ -8,10 +8,17 @@ import { z } from "zod";
 import { Loader2 } from "lucide-react";
 import { store } from "@/store";
 import { workspaceFeatureApi } from "@/features/workspace/api";
+import { getCookie } from "@/lib/cookie-utils";
 
 export const workspaceSearchSchema = z.object({});
 
 export const Route = createFileRoute("/workspaces/$workspaceId")({
+  beforeLoad: async () => {
+    const isLoggedIn = !!getCookie("is_logged_in");
+    if (!isLoggedIn) {
+      throw redirect({ to: "/auth/sign-in" });
+    }
+  },
   parseParams: (params) => ({
     workspaceId: z.uuid().parse(params.workspaceId),
   }),

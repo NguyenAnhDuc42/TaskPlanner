@@ -12,6 +12,10 @@ import { useParams } from "@tanstack/react-router";
 import { AddMembersForm } from "./member-components/add-members-form";
 import type { Role } from "@/types/role";
 import type { MembershipStatus } from "@/types/membership-status";
+import { useSelector } from "react-redux";
+import { memberSelectors } from "@/store/entityStore";
+import type { RootState } from "@/store";
+import type { MemberRecord } from "@/types/workspace/member-record";
 
 export default function MembersIndex() {
   const { workspaceId } = useParams({
@@ -26,9 +30,15 @@ export default function MembersIndex() {
   const { mutate: updateMembers } = useUpdateMembers(workspaceId);
   const { mutate: removeMembers } = useRemoveMembers(workspaceId);
 
-  const members = useMemo(() => {
-    return data?.pages.flatMap((page) => page.items) ?? [];
+  const memberIds = useMemo(() => {
+    return data?.pages.flatMap((page) => page.items.map((i) => i.id)) ?? [];
   }, [data]);
+
+  const members = useSelector((state: RootState) =>
+    memberIds
+      .map((id) => memberSelectors.selectById(state, id))
+      .filter((record): record is MemberRecord => !!record)
+  );
 
   const handleBatchUpdate = async (
     ids: string[],

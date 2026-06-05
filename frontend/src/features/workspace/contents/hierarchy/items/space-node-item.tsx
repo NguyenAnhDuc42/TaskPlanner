@@ -69,20 +69,17 @@ export const SpaceNodeItem = React.memo(function SpaceNodeItem({
         <SpaceContextMenu spaceId={space.id} spaceName={space.name}>
           <div
             className={cn(
-              "flex items-center w-full px-1 py-0.5 rounded-sm transition-colors cursor-pointer mb-px group",
+              "flex items-center w-full px-1 py-0.5 rounded-sm transition-colors mb-px group",
               isActive
                 ? "bg-primary/10 text-primary"
                 : "text-foreground hover:bg-muted",
             )}
-            onClick={() =>
-              navigate({ to: `/workspaces/${workspaceId}/spaces/${space.id}` })
-            }
           >
-            <div
+            <button
+              type="button"
               className="relative flex items-center justify-center w-5 h-5 shrink-0 cursor-pointer rounded-sm hover:bg-background/50 group/icon mr-1.5"
               onMouseEnter={() => {
                 if (effectiveOpen || !workspaceId) return;
-                // Prefetch folders and tasks on hover
                 prefetchFolders({ workspaceId: workspaceId || "", nodeId: space.id, cursor: null });
                 prefetchTasks({ workspaceId: workspaceId || "", nodeId: space.id, parentType: EntityLayerConst.ProjectSpace, cursor: null });
               }}
@@ -107,20 +104,27 @@ export const SpaceNodeItem = React.memo(function SpaceNodeItem({
                   )}
                 />
               )}
-            </div>
+            </button>
 
-            <span className="text-[11px] font-bold flex-1 truncate">
+            <button
+              type="button"
+              className="flex-1 text-left text-[11px] font-bold truncate outline-none select-none"
+              onClick={() =>
+                navigate({ to: `/workspaces/${workspaceId}/spaces/${space.id}` })
+              }
+            >
               {space.name}
-            </span>
+            </button>
 
             <div className="flex items-center gap-0.5 min-w-fit">
               {space.isPrivate && (
-                <Lock className="h-3 w-3 text-muted-foreground/40 shrink-0" />
+                <Lock className="h-3 w-3 text-muted-foreground/40 shrink-0 mr-1" />
               )}
 
               <div className="w-0 group-hover:w-4 overflow-hidden opacity-0 group-hover:opacity-100 transition-all duration-300 ease-in-out">
                 <EntityMenuTrigger>
                   <button
+                    type="button"
                     className="h-4 w-4 p-0.5 flex items-center justify-center rounded-sm hover:bg-muted-foreground/10 text-muted-foreground hover:text-primary transition-colors"
                     onClick={(e) => e.stopPropagation()}
                   >

@@ -20,13 +20,11 @@ export const NodeFoldersList = React.memo(function NodeFoldersList({
 }) {
   const { workspaceId } = useWorkspace();
   
-  // 1. Fetch space folders using Redux Query
   const { isLoading } = useGetNodeFoldersQuery(
     { workspaceId: workspaceId || "", nodeId: spaceId, cursor: null },
-    { skip: !isExpanded } // Only query if expanded
+    { skip: !isExpanded } 
   );
   
-  // 2. Select folders dynamically from our centralized store
   const folders = useFoldersBySpace(spaceId);
 
   if (!isExpanded) return null;
@@ -41,7 +39,6 @@ export const NodeFoldersList = React.memo(function NodeFoldersList({
     );
   }
 
-  // Always render SortableContext even when empty — required so DND can drop into empty layers
   return (
     <SortableContext
       items={folders.map((f) => `folder-${f.id}`)}

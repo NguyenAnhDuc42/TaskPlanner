@@ -11,14 +11,14 @@ public record MoveSpaceValue(
 
 public record MoveFolderValue(
     Guid ItemId,
-    Guid? TargetParentId, // null = stay in current Space, Value = target SpaceId
+    Guid? TargetParentId, 
     string NewOrderKey
 );
 
 public record MoveTaskValue(
     Guid ItemId,
-    Guid TargetSpaceId,      // required — task owns its space
-    Guid? TargetFolderId,    // optional — organizational focus layer
+    Guid TargetSpaceId,      
+    Guid? TargetFolderId,    
     string NewOrderKey
 );
 

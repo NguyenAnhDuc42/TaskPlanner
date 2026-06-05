@@ -10,6 +10,7 @@ import { StatusCategory } from "@/types/status-category";
 import type { AccessLevel } from "@/types/access-level";
 import type { EntityAccessRecord } from "@/types/workspace";
 import type { SpaceDocumentRecord } from "@/types/document";
+import { RowAction } from "@/types/row-action";
 
 
 export interface GetSpaceItemsResponse {
@@ -19,9 +20,10 @@ export interface GetSpaceItemsResponse {
 }
 
 export interface EntityAccessRowsValue {
+  id?: string;
   memberId: string;
   accessLevel: AccessLevel;
-  action: "Create" | "Update" | "Delete";
+  action: RowAction;
 }
 
 export interface BatchUpdateSpaceItemValue {
@@ -134,7 +136,10 @@ export const spaceApi = workspaceApi.injectEndpoints({
       async onQueryStarted(_spaceId, { dispatch, queryFulfilled }) {
         try {
           const { data } = await queryFulfilled;
-          const mapped = data.map(item => ({ ...item, id: item.workspaceMemberId }));
+          // Filter out rows without database Guid ids (accessLevel = None / HaveAccess = false)
+          const mapped = data
+            .filter(item => item.id)
+            .map(item => ({ ...item, id: item.id! }));
           dispatch(entityAccessSlice.actions.upsertMany(mapped));
         } catch {}
       }
@@ -147,39 +152,6 @@ export const spaceApi = workspaceApi.injectEndpoints({
         data: rows
       }),
       invalidatesTags: (_result, _error, { spaceId }) => [{ type: "EntityAccess" as const, id: `access-${spaceId}` }],
-      async onQueryStarted({ spaceId: _spaceId, rows }, { dispatch, queryFulfilled, getState }) {
-        const state = getState() as RootState;
-
-        // Snapshot original rows for rollback
-        const originalStateRows: EntityAccessRecord[] = [];
-        const idsToRemoveOnFailure: string[] = [];
-
-        rows.forEach((r) => {
-          const original = state.entityAccess.entities[r.memberId];
-          if (original) {
-            originalStateRows.push(original);
-          } else {
-            idsToRemoveOnFailure.push(r.memberId);
-          }
-        });
-
-        const newRows = rows.map(r => ({
-          id: r.memberId,
-          workspaceMemberId: r.memberId,
-          accessLevel: r.accessLevel,
-          haveAccess: r.action !== "Delete"
-        }));
-
-        dispatch(entityAccessSlice.actions.upsertMany(newRows));
-
-        try {
-          await queryFulfilled;
-        } catch {
-          if (idsToRemoveOnFailure.length > 0) {
-            dispatch(entityAccessSlice.actions.removeMany(idsToRemoveOnFailure));
-          }
-        }
-      }
     }),
 
     getSpaceDocuments: build.query<SpaceDocumentRecord[], string>({

@@ -1,6 +1,9 @@
 import { useSpaceDetail, useGetEntityAccessQuery, useUpdateEntityAccessMutation, useSpaceStatuses, useSpaceBoardItems } from "../space-api";
+import type { AccessLevel } from "@/types/access-level";
 import { Shield } from "lucide-react";
 import  { useState, useMemo } from "react";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import type { EntityAccessRecord } from "@/types/workspace";
 import { StatusBadge } from "@/components/status-badge";
 import { useWorkspace } from "@/features/workspace/context/workspace-provider";
 import { useSelector } from "react-redux";
@@ -11,6 +14,66 @@ import { SpaceDocumentsPanel } from "./space-documents-panel";
 
 interface SpaceDetailProps {
   spaceId: string;
+}
+
+interface SpaceAccessMemberRowProps {
+  access: EntityAccessRecord;
+  spaceCreatorId?: string;
+  onAccessChange: (memberId: string, newLevel: AccessLevel) => void;
+}
+
+export function SpaceAccessMemberRow({ access, spaceCreatorId, onAccessChange }: Readonly<SpaceAccessMemberRowProps>) {
+  const { registry } = useWorkspace();
+  const profile = registry.memberMap[access.workspaceMemberId];
+  if (!profile) return null;
+
+  const name = profile.name || "Unknown User";
+  const initials = name.split(" ").map((w: string) => w[0]).slice(0, 2).join("").toUpperCase();
+  const isCreator = !!(spaceCreatorId && access.workspaceMemberId === spaceCreatorId);
+
+  return (
+    <div className="flex items-center gap-1.5 p-1 rounded-sm hover:bg-white/[0.02] transition-colors cursor-pointer group/member">
+      <Avatar className="h-4 w-4 shrink-0 text-[8px] font-black">
+        <AvatarImage src={profile.avatarUrl} alt={name} />
+        <AvatarFallback className="bg-primary/20 text-white border border-border/20 leading-none flex items-center justify-center">
+          {initials}
+        </AvatarFallback>
+      </Avatar>
+      <div className="flex flex-col">
+        <span className="font-bold text-[10px] text-foreground/85 line-clamp-1 leading-none flex items-center gap-1">
+          {name}
+          {isCreator && (
+            <span className="text-[6px] bg-primary/25 text-primary px-0.5 rounded-sm uppercase tracking-wider font-extrabold scale-90 origin-left">
+              Owner
+            </span>
+          )}
+        </span>
+        <span className="text-[7.5px] text-muted-foreground/45 flex items-center gap-0.5 font-medium uppercase font-mono mt-0.5">
+          <Shield className="h-2 w-2 shrink-0 opacity-55" />
+          {profile.role || "Member"}
+        </span>
+      </div>
+      
+      <select
+        value={isCreator ? "Manager" : access.accessLevel}
+        onChange={(e) => onAccessChange(access.workspaceMemberId, e.target.value as AccessLevel)}
+        disabled={isCreator}
+        className="ml-auto bg-background border border-border/25 rounded px-1 py-0.5 text-[9px] font-bold text-foreground/80 cursor-pointer disabled:cursor-not-allowed disabled:opacity-50 outline-none focus:border-primary/50 leading-none"
+        title={isCreator ? "Owner has full management access" : "Change access privilege"}
+      >
+        {isCreator ? (
+          <option value="Manager">Owner</option>
+        ) : (
+          <>
+            <option value="Viewer">Viewer</option>
+            <option value="Editor">Editor</option>
+            <option value="Manager">Manager</option>
+            <option value="None">Remove</option>
+          </>
+        )}
+      </select>
+    </div>
+  );
 }
 
 export function SpaceDetail({ spaceId }: SpaceDetailProps) {
@@ -24,7 +87,7 @@ export function SpaceDetail({ spaceId }: SpaceDetailProps) {
 
   // Fetch access lists to trigger the onQueryStarted handler which populates Redux
   useGetEntityAccessQuery(spaceId);
-  const entityAccessList = useSelector(entityAccessSelectors.selectAll);
+  const entityAccessList = useSelector(entityAccessSelectors.selectAll).filter(ea => ea.spaceId === spaceId);
   const [updateEntityAccess] = useUpdateEntityAccessMutation();
 
   // Retrieve dynamic space-scoped statuses & items
@@ -47,24 +110,18 @@ export function SpaceDetail({ spaceId }: SpaceDetailProps) {
 
   if (!space) return null;
 
-  // Handle changing member access level on click
-  const handleAccessChange = async (memberId: string, currentLevel: string, isCreate: boolean) => {
-    const nextLevels: Record<string, "None" | "Viewer" | "Editor" | "Manager"> = {
-      None: "Viewer",
-      Viewer: "Editor",
-      Editor: "Manager",
-      Manager: "None"
-    };
-
-    const nextLevel = nextLevels[currentLevel] || "Viewer";
-    const action = isCreate ? "Create" : (nextLevel === "None" ? "Delete" : "Update");
+  // Handle changing member access level on click/select
+  const handleAccessChange = async (memberId: string, newLevel: AccessLevel, isCreate: boolean) => {
+    const action = isCreate ? "Create" : (newLevel === "None" ? "Delete" : "Update");
+    const access = entityAccessList.find((a) => a.workspaceMemberId === memberId);
 
     try {
       await updateEntityAccess({
         spaceId,
         rows: [{
+          id: access?.id,
           memberId,
-          accessLevel: nextLevel,
+          accessLevel: newLevel,
           action
         }]
       }).unwrap();
@@ -106,70 +163,20 @@ export function SpaceDetail({ spaceId }: SpaceDetailProps) {
             />
           </div>
           
-          {!isMembersCollapsed && (
             <div className="space-y-1 text-xs transition-all duration-300">
               {currentAccessMembers.length === 0 ? (
                 <div className="text-[9px] text-muted-foreground/45 italic py-0.5 px-1">No explicit members assigned</div>
               ) : (
-                currentAccessMembers.map((access) => {
-                  const profile = registry.memberMap[access.workspaceMemberId];
-                  if (!profile) return null;
-
-                  const name = profile.name || "Unknown User";
-                  const initials = name.split(" ").map((w: string) => w[0]).slice(0, 2).join("").toUpperCase();
-                  
-                  const colors = ["bg-cyan-500", "bg-purple-500", "bg-indigo-500", "bg-teal-500", "bg-emerald-500", "bg-amber-500"];
-                  const colorIdx = (initials.charCodeAt(0) + (initials.charCodeAt(1) || 0)) % colors.length;
-                  const avatarBg = colors[colorIdx];
-
-                  const isCreator = !!(space?.creatorId && access.workspaceMemberId === space.creatorId);
-
-                  return (
-                    <div key={access.workspaceMemberId} className="flex items-center gap-1.5 p-1 rounded-sm hover:bg-white/[0.02] transition-colors cursor-pointer group/member">
-                      <div className={`h-4 w-4 rounded-full ${avatarBg} border border-border/20 flex items-center justify-center text-[8px] font-black text-white shrink-0`}>
-                        {initials}
-                      </div>
-                      <div className="flex flex-col">
-                        <span className="font-bold text-[10px] text-foreground/85 line-clamp-1 leading-none flex items-center gap-1">
-                          {name}
-                          {isCreator && (
-                            <span className="text-[6px] bg-primary/25 text-primary px-0.5 rounded-sm uppercase tracking-wider font-extrabold scale-90 origin-left">
-                              Owner
-                            </span>
-                          )}
-                        </span>
-                        <span className="text-[7.5px] text-muted-foreground/45 flex items-center gap-0.5 font-medium uppercase font-mono mt-0.5">
-                          <Shield className="h-2 w-2 shrink-0 opacity-55" />
-                          {profile.role || "Member"}
-                        </span>
-                      </div>
-                      
-                      <button
-                        onClick={isCreator ? undefined : () => handleAccessChange(access.workspaceMemberId, access.accessLevel, false)}
-                        disabled={isCreator}
-                        className={`ml-auto text-[7.5px] uppercase tracking-widest font-black border border-border/25 px-1 py-0.5 rounded transition-all leading-none ${
-                          isCreator
-                            ? "text-primary border-primary/25 bg-primary/5 cursor-not-allowed opacity-80"
-                            : "hover:bg-white/[0.04] cursor-pointer hover:border-primary/40 active:scale-95"
-                        } ${
-                          access.accessLevel === "Manager" && !isCreator
-                            ? "text-rose-400 border-rose-500/25 bg-rose-500/5"
-                            : access.accessLevel === "Editor" && !isCreator
-                            ? "text-sky-400 border-sky-500/25 bg-sky-500/5"
-                            : !isCreator
-                            ? "text-emerald-400 border-emerald-500/25 bg-emerald-500/5"
-                            : ""
-                        }`}
-                        title={isCreator ? "Owner has full management access" : "Click to toggle access privileges"}
-                      >
-                        {isCreator ? "Owner" : access.accessLevel}
-                      </button>
-                    </div>
-                  );
-                })
+                currentAccessMembers.map((access) => (
+                  <SpaceAccessMemberRow
+                    key={access.workspaceMemberId}
+                    access={access}
+                    spaceCreatorId={space.creatorId}
+                    onAccessChange={(memberId, newLevel) => handleAccessChange(memberId, newLevel, false)}
+                  />
+                ))
               )}
             </div>
-          )}
         </div>
 
         {/* Workflow Block */}

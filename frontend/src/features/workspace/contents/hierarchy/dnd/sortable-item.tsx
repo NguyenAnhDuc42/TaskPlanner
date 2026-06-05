@@ -2,7 +2,7 @@ import React from "react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 
-export function SortableItem({ id, data, children }: { id: string; data: Record<string, unknown>; children: React.ReactNode }) {
+export function SortableItem({ id, data, children }: Readonly<{ id: string; data: Record<string, unknown>; children: React.ReactNode }>) {
   const {
     attributes,
     listeners,

@@ -1,13 +1,15 @@
 import { workspaceApi } from "@/store/workspaceApi";
-import type { MemberSummary, addMembersSchema, updateMembersSchema } from "./members-type";
+import type { addMembersSchema, updateMembersSchema } from "./members-type";
 import type { PagedResult } from "@/types/paged-result";
 import { toast } from "sonner";
 import type z from "zod";
 import React from "react";
+import { memberSlice } from "@/store/entityStore";
+import type { MemberRecord } from "@/types/workspace/member-record";
 
 export const membersApi = workspaceApi.injectEndpoints({
   endpoints: (build) => ({
-    getMembers: build.query<PagedResult<MemberSummary>, {
+    getMembers: build.query<PagedResult<MemberRecord>, {
       workspaceId: string;
       name?: string;
       email?: string;
@@ -19,6 +21,12 @@ export const membersApi = workspaceApi.injectEndpoints({
         method: "GET",
         params,
       }),
+      async onQueryStarted(_arg, { dispatch, queryFulfilled }) {
+        try {
+          const { data } = await queryFulfilled;
+          dispatch(memberSlice.actions.upsertMany(data.items));
+        } catch {}
+      },
       // Infinite scroll: reuse cache based only on filters
       serializeQueryArgs: ({ endpointName, queryArgs }) => {
         const { cursor, ...filters } = queryArgs;
