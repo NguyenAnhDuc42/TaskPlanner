@@ -111,7 +111,7 @@ class SignalRService {
     callback: (data: SignalREvents[E]) => void
   ): void {
     if (!this.connection) {
-      this.pendingListeners.push({ eventName, callback } as SignalRListener<keyof SignalREvents>);
+      this.pendingListeners.push({ eventName, callback });
       return;
     }
     this.connection.on(eventName, callback as (data: unknown) => void);
@@ -123,7 +123,7 @@ class SignalRService {
   ): void {
     if (!this.connection) {
       this.pendingListeners = this.pendingListeners.filter(
-        l => !(l.eventName === eventName && l.callback === (callback as unknown as (data: SignalREvents[keyof SignalREvents]) => void))
+        l => !(l.eventName === eventName && l.callback === callback)
       );
       return;
     }

@@ -113,10 +113,7 @@ export const workspaceFeatureApi = workspaceApi.injectEndpoints({
         }
 
         try {
-          const { queryClient } = await import("@/lib/query-client");
           await queryFulfilled;
-          // Invalidate TanStack Query to refresh legacy detail tabs in sync
-          queryClient.invalidateQueries();
         } catch {
           if (patchResult) {
             patchResult.undo();

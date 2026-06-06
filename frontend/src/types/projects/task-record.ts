@@ -20,5 +20,6 @@ export interface TaskRecord {
     storyPoints?: number;
     timeEstimateSeconds?: number;
     parentType?: string;
+    parentTaskId?: string;
 }
 

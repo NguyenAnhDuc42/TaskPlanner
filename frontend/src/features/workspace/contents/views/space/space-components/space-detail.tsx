@@ -78,7 +78,7 @@ export function SpaceAccessMemberRow({ access, spaceCreatorId, onAccessChange }:
 
 export function SpaceDetail({ spaceId }: SpaceDetailProps) {
   const space = useSpaceDetail(spaceId);
-  const { registry } = useWorkspace();
+  useWorkspace();
 
   // Collapse toggle state for sidebar lists
   const [isMembersCollapsed, setIsMembersCollapsed] = useState(false);

@@ -22,7 +22,6 @@ export function useWorkspaceSignalR(workspaceId: string) {
     
     manageConnection();
 
-    // 1. Unified, transactional update handler (applies multi-entity changes instantly)
     const onEntitiesUpdated = (payload: import("@/lib/signalr-service").EntityBatchUpdate) => {
       if (payload.spaces)       dispatch(spaceSlice.actions.upsertMany(payload.spaces));
       if (payload.folders)      dispatch(folderSlice.actions.upsertMany(payload.folders));
@@ -41,7 +40,6 @@ export function useWorkspaceSignalR(workspaceId: string) {
       if (payload.entityAccessIds) dispatch(entityAccessSlice.actions.removeMany(payload.entityAccessIds));
     };
 
-    // 3. Strong reconnection handler: only refetch active queries currently on screen
     const handleReconnect = () => {
       console.log("[SignalR] Reconnected. Syncing active screen views...");
       dispatch(workspaceApi.util.invalidateTags(['Spaces', 'Folders', 'Tasks', 'Members']));

@@ -4,6 +4,7 @@ public class ProjectTask : TenantEntity
 {
     public Guid? ProjectSpaceId { get; private set; }
     public Guid? ProjectFolderId { get; private set; }
+    public Guid? ParentTaskId { get; private set; }
     public string Name { get; private set; } = null!;
     public string Slug { get; private set; } = null!;
     public Guid DefaultDocumentId { get; private set; }
@@ -24,7 +25,7 @@ public class ProjectTask : TenantEntity
     // EF Core
     private ProjectTask() { }
 
-    private ProjectTask(Guid id, Guid projectWorkspaceId, Guid? projectSpaceId, Guid? projectFolderId, string name, string slug, Guid defaultDocumentId, string color, string? icon, Guid creatorId, Guid? statusId, Priority priority, DateTimeOffset? startDate, DateTimeOffset? dueDate, int? storyPoints, long? timeEstimateSeconds, string orderKey)
+    private ProjectTask(Guid id, Guid projectWorkspaceId, Guid? projectSpaceId, Guid? projectFolderId, string name, string slug, Guid defaultDocumentId, string color, string? icon, Guid creatorId, Guid? statusId, Priority priority, DateTimeOffset? startDate, DateTimeOffset? dueDate, int? storyPoints, long? timeEstimateSeconds, string orderKey, Guid? parentTaskId = null)
         : base(id, projectWorkspaceId)
     {
         ProjectSpaceId = projectSpaceId;
@@ -42,31 +43,33 @@ public class ProjectTask : TenantEntity
         TimeEstimateSeconds = timeEstimateSeconds;
         OrderKey = orderKey;
         IsArchived = false;
+        ParentTaskId = parentTaskId;
 
         // Audit is initialized in base constructor
         InitializeAudit(creatorId);
     }
 
-    public static ProjectTask Create(Guid projectWorkspaceId, Guid? projectSpaceId, Guid? projectFolderId, string name, string slug, Guid defaultDocumentId, string? color, string? icon, Guid creatorId, Guid? statusId = null, Priority priority = Priority.Low, DateTimeOffset? startDate = null, DateTimeOffset? dueDate = null, int? storyPoints = null, long? timeEstimateSeconds = null, string? orderKey = null)
+    public static ProjectTask Create(Guid projectWorkspaceId, Guid? projectSpaceId, Guid? projectFolderId, string name, string slug, Guid defaultDocumentId, string? color, string? icon, Guid creatorId, Guid? statusId = null, Priority priority = Priority.Low, DateTimeOffset? startDate = null, DateTimeOffset? dueDate = null, int? storyPoints = null, long? timeEstimateSeconds = null, string? orderKey = null, Guid? parentTaskId = null)
     {
         return new ProjectTask(
-            Guid.NewGuid(), 
-            projectWorkspaceId, 
-            projectSpaceId, 
-            projectFolderId, 
-            name, 
-            slug, 
-            defaultDocumentId, 
-            color ?? "#FFFFFF", 
-            icon,
-            creatorId, 
-            statusId, 
-            priority, 
-            startDate, 
-            dueDate, 
-            storyPoints, 
-            timeEstimateSeconds, 
-            orderKey ?? FractionalIndex.Start());
+            projectWorkspaceId: projectWorkspaceId,
+            projectSpaceId: projectSpaceId,
+            projectFolderId: projectFolderId,
+            name: name,
+            slug: slug,
+            defaultDocumentId: defaultDocumentId,
+            color: color ?? "#FFFFFF",
+            icon: icon,
+            creatorId: creatorId,
+            statusId: statusId,
+            priority: priority,
+            startDate: startDate,
+            dueDate: dueDate,
+            storyPoints: storyPoints,
+            timeEstimateSeconds: timeEstimateSeconds,
+            orderKey: orderKey ?? FractionalIndex.Start(),
+            parentTaskId: parentTaskId,
+            id: Guid.NewGuid());
     }
 
     public static List<ProjectTask> CreateDefaults(Guid projectWorkspaceId, Guid spaceId, Guid folderId, Guid statusId, Guid creatorId, Guid exploreDocId, Guid standaloneDocId)
@@ -114,7 +117,8 @@ public class ProjectTask : TenantEntity
         DateTimeOffset? dueDate = null,
         int? storyPoints = null,
         long? timeEstimateSeconds = null,
-        string? orderKey = null)
+        string? orderKey = null,
+        Guid? parentTaskId = null)
     {
         EnsureNotArchived();
         bool updated = false;
@@ -130,6 +134,7 @@ public class ProjectTask : TenantEntity
         if (storyPoints != null && StoryPoints != storyPoints) { StoryPoints = storyPoints; updated = true; }
         if (timeEstimateSeconds != null && TimeEstimateSeconds != timeEstimateSeconds) { TimeEstimateSeconds = timeEstimateSeconds; updated = true; }
         if (orderKey != null && OrderKey != orderKey) { OrderKey = orderKey; updated = true; }
+        if (parentTaskId != null && ParentTaskId != parentTaskId) { ParentTaskId = parentTaskId; updated = true; }
 
         if (updated) UpdateTimestamp();
     }

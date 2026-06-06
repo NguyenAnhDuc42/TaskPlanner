@@ -1,5 +1,5 @@
 import { Card } from "@/components/ui/card";
-import type { MemberSummary } from "../members-type";
+import type { MemberRecord } from "@/types/workspace/member-record";
 import { cn } from "@/lib/utils";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -10,7 +10,7 @@ import { getRoleLabel } from "@/types/role";
 import { Badge } from "@/components/ui/badge";
 
 interface Props {
-  member: MemberSummary;
+  member: MemberRecord;
   isEditMode: boolean;
   isSelected: boolean;
   onSelect: () => void;
@@ -20,10 +20,10 @@ interface Props {
 export function MemberCard({ member, isEditMode, isSelected, onSelect, onDelete }: Props) {
     const initials = member.name
     .split(" ")
-    .map((n) => n[0])
+    .map((n: string) => n[0])
     .join("")
     .toUpperCase()
-    const roleLabel = getRoleLabel(member.role)
+    const roleLabel = getRoleLabel(member.role ?? "Member")
   return (
     <Card
       className={cn(
@@ -100,11 +100,11 @@ export function MemberCard({ member, isEditMode, isSelected, onSelect, onDelete 
         {/* Join Date */}
         <div className="text-xs text-muted-foreground border-t border-border pt-3">
           Joined{" "}
-          {new Date(member.joinedAt).toLocaleDateString("en-US", {
+          {member.joinedAt ? new Date(member.joinedAt).toLocaleDateString("en-US", {
             month: "short",
             day: "numeric",
             year: "numeric",
-          })}
+          }) : "N/A"}
         </div>
       </div>
     </Card>

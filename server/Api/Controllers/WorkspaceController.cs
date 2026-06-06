@@ -22,40 +22,28 @@ namespace Api
         }
 
         [HttpPatch("{id:guid}")]
-        public async Task<IActionResult> UpdateWorkspace(Guid id, [FromBody] UpdateWorkspaceRequest request, CancellationToken cancellationToken)
+        public async Task<IActionResult> UpdateWorkspace(Guid id, [FromBody] UpdateWorkspaceCommand command, CancellationToken cancellationToken)
         {
-            var command = new UpdateWorkspaceCommand(
-                Id: id,
-                Name: request.Name,
-                Description: request.Description,
-                Color: request.Color,
-                Icon: request.Icon,
-                Theme: request.Theme,
-                StrictJoin: request.StrictJoin,
-                IsArchived: request.IsArchived,
-                RegenerateJoinCode: request.RegenerateJoinCode ?? false
-            );
-
-            var result = await _handler.SendAsync(command, cancellationToken);
+            var result = await _handler.SendAsync(command with { Id = id }, cancellationToken);
             return result.ToActionResult();
         }
 
         [HttpPut("{id:guid}/pin")]
         public async Task<IActionResult> SetWorkspacePin(
             Guid id,
-            [FromBody] SetWorkspacePinRequest request,
+            [FromBody] SetWorkspacePinCommand command,
             CancellationToken cancellationToken)
         {
-            var result = await _handler.SendAsync(new SetWorkspacePinCommand(id, request.IsPinned), cancellationToken);
+            var result = await _handler.SendAsync(command with { WorkspaceId = id }, cancellationToken);
             return result.ToActionResult();
         }
 
         [HttpPost("join")]
         public async Task<IActionResult> JoinWorkspaceByCode(
-            [FromBody] JoinWorkspaceByCodeRequest request,
+            [FromBody] JoinWorkspaceByCodeCommand command,
             CancellationToken cancellationToken)
         {
-            var result = await _handler.SendAsync<JoinWorkspaceByCodeCommand, JoinWorkspaceByCodeResult>(new JoinWorkspaceByCodeCommand(request.JoinCode), cancellationToken);
+            var result = await _handler.SendAsync<JoinWorkspaceByCodeCommand, JoinWorkspaceByCodeResult>(command, cancellationToken);
             return result.ToActionResult();
         }
 
@@ -142,63 +130,39 @@ namespace Api
         [HttpPost("{id:guid}/members")]
         public async Task<IActionResult> AddMembers(
             Guid id,
-            [FromBody] AddMembersRequest request,
+            [FromBody] AddMembersCommand command,
             CancellationToken cancellationToken)
         {
-            var command = new AddMembersCommand(
-                workspaceId: id,
-                members: request.Members,
-                enableEmail: request.EnableEmail,
-                message: request.Message
-            );
-            var result = await _handler.SendAsync(command, cancellationToken);
+            var result = await _handler.SendAsync(command with { workspaceId = id }, cancellationToken);
             return result.ToActionResult();
         }
 
         [HttpPatch("{id:guid}/members")]
         public async Task<IActionResult> UpdateMembers(
             Guid id,
-            [FromBody] UpdateMembersRequest request,
+            [FromBody] UpdateMembersCommand command,
             CancellationToken cancellationToken)
         {
-            var command = new UpdateMembersCommand(
-                workspaceId: id,
-                members: request.Members
-            );
-            var result = await _handler.SendAsync<UpdateMembersCommand, Guid>(command, cancellationToken);
+            var result = await _handler.SendAsync<UpdateMembersCommand, Guid>(command with { workspaceId = id }, cancellationToken);
             return result.ToActionResult();
         }
 
         [HttpDelete("{id:guid}/members")]
         public async Task<IActionResult> RemoveMembers(
             Guid id,
-            [FromBody] RemoveMembersRequest request,
+            [FromBody] RemoveMembersCommand command,
             CancellationToken cancellationToken)
         {
-            var command = new RemoveMembersCommand(
-                workspaceId: id,
-                memberIds: request.MemberIds
-            );
-            var result = await _handler.SendAsync<RemoveMembersCommand, Guid>(command, cancellationToken);
+            var result = await _handler.SendAsync<RemoveMembersCommand, Guid>(command with { workspaceId = id }, cancellationToken);
             return result.ToActionResult();
         }
 
         [HttpPost("{id:guid}/nodes/move")]
         public async Task<IActionResult> MoveHierarchyItem(
             Guid id,
-            [FromBody] MoveItemRequest request,
+            [FromBody] MoveItemCommand command,
             CancellationToken cancellationToken)
         {
-            var command = new MoveItemCommand(
-                ItemId: request.ItemId,
-                ItemType: request.ItemType,
-                TargetParentId: request.TargetParentId,
-                SourceParentId: request.SourceParentId,
-                PreviousItemOrderKey: request.PreviousItemOrderKey,
-                NextItemOrderKey: request.NextItemOrderKey,
-                NewOrderKey: request.NewOrderKey
-            );
-
             var result = await _handler.SendAsync(command, cancellationToken);
             return result.ToActionResult();
         }
@@ -214,31 +178,7 @@ namespace Api
         }
     }
 
-    public record MoveItemRequest(
-        Guid ItemId,
-        EntityLayerType ItemType,
-        Guid? TargetParentId,
-        Guid? SourceParentId,
-        string? PreviousItemOrderKey,
-        string? NextItemOrderKey,
-        string? NewOrderKey
-    );
 
-    public record AddMembersRequest(List<MemberValue> Members, bool? EnableEmail = false, string? Message = null);
-    public record UpdateMembersRequest(List<UpdateMemberValue> Members);
-    public record RemoveMembersRequest(List<Guid> MemberIds);
-    public record SetWorkspacePinRequest(bool IsPinned);
-    public record JoinWorkspaceByCodeRequest(string JoinCode);
-    public record UpdateWorkspaceRequest(
-        string? Name,
-        string? Description,
-        string? Color,
-        string? Icon,
-        Theme? Theme,
-        bool? StrictJoin,
-        bool? IsArchived,
-        bool? RegenerateJoinCode
-    );
 }
 
 

@@ -34,7 +34,6 @@ import {
 } from "@/components/ui/popover";
 import { StatusCategory } from "@/types/status-category";
 import type { Status } from "@/types/status";
-import type { WorkflowRecord } from "@/types/projects";
 import { useWorkspace } from "@/features/workspace/context/workspace-provider";
 import { useUpdateWorkflowStatuses } from "@/features/workspace/api";
 import { RowAction } from "@/types/row-action";

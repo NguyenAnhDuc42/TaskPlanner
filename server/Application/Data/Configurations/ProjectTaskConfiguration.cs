@@ -63,6 +63,14 @@ public class ProjectTaskConfiguration : TenantEntityConfiguration<ProjectTask>
             .HasColumnName("order_key")
             .IsRequired();
 
+        builder.Property(t => t.ParentTaskId)
+            .HasColumnName("parent_task_id");
+
+        builder.HasOne<ProjectTask>()
+            .WithMany()
+            .HasForeignKey(t => t.ParentTaskId)
+            .OnDelete(DeleteBehavior.Cascade);
+
         // Foreign Keys
         builder.HasOne<ProjectSpace>()
             .WithMany()

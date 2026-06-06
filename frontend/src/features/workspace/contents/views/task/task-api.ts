@@ -5,7 +5,7 @@ import type { CommentRecord, AssigneeRecord } from "@/types/projects";
 
 export const taskApi = workspaceApi.injectEndpoints({
   endpoints: (build) => ({
-    getTaskDetail: build.query<TaskRecord, string>({
+    getTaskDetail: build.query<TaskRecord[], string>({
       query: (taskId) => ({
         url: `/tasks/${taskId}`,
         method: "GET",
@@ -14,7 +14,7 @@ export const taskApi = workspaceApi.injectEndpoints({
       async onQueryStarted(_taskId, { dispatch, queryFulfilled }) {
         try {
           const { data } = await queryFulfilled;
-          dispatch(taskSlice.actions.upsert(data));
+          dispatch(taskSlice.actions.upsertMany(data));
         } catch {}
       },
     }),
@@ -117,6 +117,18 @@ export const taskApi = workspaceApi.injectEndpoints({
       }),
       invalidatesTags: (_result, _error, { taskId }) => [{ type: "Tasks" as const, id: `comments-${taskId}` }],
     }),
+
+    createSubTask: build.mutation<void, { spaceId: string; parentTaskId: string; name: string; priority: string }>({
+      query: ({ spaceId, parentTaskId, name, priority }) => ({
+        url: `/tasks/${parentTaskId}/subtasks`,
+        method: "POST",
+        data: { spaceId, name, priority },
+      }),
+      invalidatesTags: (_result, _error, { parentTaskId }) => [
+        { type: "Tasks" as const, id: parentTaskId },
+        { type: "Tasks" as const, id: `subtasks-${parentTaskId}` }
+      ],
+    }),
   }),
 });
 
@@ -127,4 +139,5 @@ export const {
   useUpdateTaskAssigneesMutation,
   useGetTaskCommentsQuery,
   useAddCommentMutation,
+  useCreateSubTaskMutation,
 } = taskApi;

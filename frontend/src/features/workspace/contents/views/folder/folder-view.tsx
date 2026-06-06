@@ -1,10 +1,9 @@
 import { EntityViewFrame } from "../entity-view-frame";
 import { FolderTaskList } from "./components/folder-task-list";
-import { Folder, Trash2, MoreHorizontal, GitMerge, Calendar, Circle } from "lucide-react";
+import { Folder, Trash2, MoreHorizontal, GitMerge, Circle } from "lucide-react";
 import { TaskDetailCanvas } from "../task/components/task-detail-canvas";
 import * as React from "react";
 import { useParams, Link } from "@tanstack/react-router";
-import { format } from "date-fns";
 import { useSpaceDetail, useGetSpaceDetailQuery, useSpaceStatuses } from "../space/space-api";
 import { DynamicIcon } from "@/components/dynamic-icon";
 import {
@@ -20,7 +19,6 @@ import { PriorityBadge } from "@/components/priority-badge";
 import { StatusBadge } from "@/components/status-badge";
 import { StatusSelect } from "@/components/status-select";
 import { PrioritySelect } from "@/components/priority-select";
-import { AttributeButton } from "@/features/workspace/components/forms/form-elements";
 import { useSelector } from "react-redux";
 import { statusSelectors } from "@/store/entityStore";
 import {

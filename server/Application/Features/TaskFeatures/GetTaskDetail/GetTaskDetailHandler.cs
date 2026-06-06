@@ -3,9 +3,9 @@ using Dapper;
 
 namespace Application;
 
-public class GetTaskDetailHandler(TaskPlanDbContext db, WorkspaceContext workspaceContext) : IQueryHandler<GetTaskDetailQuery, TaskRecord>
+public class GetTaskDetailHandler(TaskPlanDbContext db, WorkspaceContext workspaceContext) : IQueryHandler<GetTaskDetailQuery, List<TaskRecord>>
 {
-    public async Task<Result<TaskRecord>> Handle(GetTaskDetailQuery request, CancellationToken cancellationToken)
+    public async Task<Result<List<TaskRecord>>> Handle(GetTaskDetailQuery request, CancellationToken cancellationToken)
     {
         const string sql = @"
             SELECT 
@@ -29,7 +29,8 @@ public class GetTaskDetailHandler(TaskPlanDbContext db, WorkspaceContext workspa
                      LIMIT 1
                  ) AS ParentWorkflowId,
                 t.start_date AS StartDate, t.due_date AS DueDate, t.created_at AS CreatedAt,
-                (SELECT b.content FROM document_blocks b WHERE b.document_id = t.default_document_id ORDER BY b.order_key LIMIT 1) AS Description
+                (SELECT b.content FROM document_blocks b WHERE b.document_id = t.default_document_id ORDER BY b.order_key LIMIT 1) AS Description,
+                t.parent_task_id AS ParentTaskId
             FROM project_tasks t
             WHERE t.id = @TaskId AND t.project_workspace_id = @WorkspaceId AND t.deleted_at IS NULL;";
 
@@ -42,8 +43,26 @@ public class GetTaskDetailHandler(TaskPlanDbContext db, WorkspaceContext workspa
         var task = await connection.QueryFirstOrDefaultAsync<TaskRecord>(sql, parameters);
         
         if (task == null)
-            return Result<TaskRecord>.Failure(Error.NotFound("Task.NotFound", $"Task {request.TaskId} not found"));
+            return Result<List<TaskRecord>>.Failure(Error.NotFound("Task.NotFound", $"Task {request.TaskId} not found"));
 
-        return Result<TaskRecord>.Success(task);
+        const string subtasksSql = @"
+            SELECT 
+                t.id AS Id, t.project_space_id AS SpaceId, t.project_folder_id AS FolderId,
+                t.name AS Name, t.custom_color AS Color, t.custom_icon AS Icon, 
+                t.default_document_id AS DefaultDocumentId,
+                t.is_archived AS IsArchived, t.priority AS Priority, 
+                t.story_points AS StoryPoints, t.time_estimate_seconds AS TimeEstimateSeconds,
+                t.status_id AS StatusId, 
+                t.start_date AS StartDate, t.due_date AS DueDate, t.created_at AS CreatedAt,
+                t.parent_task_id AS ParentTaskId
+            FROM project_tasks t
+            WHERE t.parent_task_id = @TaskId AND t.project_workspace_id = @WorkspaceId AND t.deleted_at IS NULL;";
+
+        var subtasks = await connection.QueryAsync<TaskRecord>(subtasksSql, parameters);
+
+        var list = new List<TaskRecord> { task };
+        list.AddRange(subtasks);
+
+        return Result<List<TaskRecord>>.Success(list);
     }
 }

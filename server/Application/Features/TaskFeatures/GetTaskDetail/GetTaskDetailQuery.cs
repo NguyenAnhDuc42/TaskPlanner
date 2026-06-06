@@ -1,3 +1,3 @@
 namespace Application;
 
-public record GetTaskDetailQuery(Guid TaskId) : IQueryRequest<TaskRecord>, IAuthorizedWorkspaceRequest;
+public record GetTaskDetailQuery(Guid TaskId) : IQueryRequest<List<TaskRecord>>, IAuthorizedWorkspaceRequest;

@@ -166,17 +166,34 @@ export const SortableBoardItem = React.memo(function SortableBoardItem({
     id: `${item.__type}-${item.id}`,
   });
 
-  const style = {
+  const style = React.useMemo(() => ({
     transform: isDragging ? undefined : CSS.Transform.toString(transform),
     transition: isDragging ? undefined : transition,
-  };
+  }), [isDragging, transform, transition]);
+
+  // Memoize callbacks to prevent unnecessary re-renders of the child BoardItemCard
+  const handleClick = React.useCallback(() => {
+    if (item.__type === "task") {
+      onTaskClick(item.id);
+    } else {
+      onFolderClick(item.id);
+    }
+  }, [item.id, item.__type, onTaskClick, onFolderClick]);
+
+  const handlePrioritySelect = React.useCallback((p: Priority) => {
+    onPriorityChange(item.id, item.__type, p);
+  }, [item.id, item.__type, onPriorityChange]);
+
+  const handleDateSelect = React.useCallback((start: Date | undefined, due: Date | undefined) => {
+    onDateChange(item.id, item.__type, start, due);
+  }, [item.id, item.__type, onDateChange]);
 
   return (
     <BoardItemCard
       item={item}
-      onClick={() => item.__type === "task" ? onTaskClick(item.id) : onFolderClick(item.id)}
-      onPriorityChange={(p) => onPriorityChange(item.id, item.__type, p)}
-      onDateChange={(start, due) => onDateChange(item.id, item.__type, start, due)}
+      onClick={handleClick}
+      onPriorityChange={handlePrioritySelect}
+      onDateChange={handleDateSelect}
       isDragging={isDragging}
       style={style}
       dragRef={setNodeRef}

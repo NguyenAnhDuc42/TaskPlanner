@@ -26,6 +26,7 @@ public record TaskRecord
     public int? StoryPoints { get; init; }
     public long? TimeEstimateSeconds { get; init; }
     public string? ParentType { get; init; }
+    public Guid? ParentTaskId { get; init; }
 }
 
 public record FolderRecord

@@ -24,27 +24,14 @@ public class TasksController : ControllerBase
     public async Task<IActionResult> GetDetail(Guid id, CancellationToken ct)
     {
         var query = new GetTaskDetailQuery(id);
-        var result = await _handler.QueryAsync<GetTaskDetailQuery, TaskRecord>(query, ct);
+        var result = await _handler.QueryAsync<GetTaskDetailQuery, List<TaskRecord>>(query, ct);
         return result.ToActionResult();
     }
 
     [HttpPut("{id:guid}")]
-    public async Task<IActionResult> Update(Guid id, [FromBody] UpdateTaskRequest request, CancellationToken ct)
+    public async Task<IActionResult> Update(Guid id, [FromBody] UpdateTaskCommand command, CancellationToken ct)
     {
-        var command = new UpdateTaskCommand(
-            TaskId: id,
-            Name: request.Name,
-            StatusId: request.StatusId,
-            Priority: request.Priority,
-            StartDate: request.StartDate,
-            DueDate: request.DueDate,
-            StoryPoints: request.StoryPoints,
-            TimeEstimate: request.TimeEstimate,
-            Icon: request.Icon,
-            Color: request.Color
-        );
-
-        var result = await _handler.SendAsync(command, ct);
+        var result = await _handler.SendAsync(command with { TaskId = id }, ct);
         return result.ToActionResult();
     }
 
@@ -83,16 +70,27 @@ public class TasksController : ControllerBase
         var result = await _handler.SendAsync<AddCommentCommand, CommentRecord>(new AddCommentCommand(id, request.Content, request.ParentCommentId), ct);
         return result.ToActionResult();
     }
+
+    [HttpPost("{parentTaskId:guid}/subtasks")]
+    public async Task<IActionResult> CreateSubTask(Guid parentTaskId, [FromBody] CreateSubTaskCommand command, CancellationToken ct)
+    {
+        var result = await _handler.SendAsync(command with { ParentTaskId = parentTaskId }, ct);
+        return result.ToActionResult();
+    }
+
+    [HttpPut("{parentTaskId:guid}/subtasks/{subTaskId:guid}")]
+    public async Task<IActionResult> UpdateSubTask(Guid parentTaskId, Guid subTaskId, [FromBody] UpdateSubTaskCommand command, CancellationToken ct)
+    {
+        var result = await _handler.SendAsync(command with { ParentTaskId = parentTaskId, TaskId = subTaskId }, ct);
+        return result.ToActionResult();
+    }
+
+    [HttpDelete("{parentTaskId:guid}/subtasks/{subTaskId:guid}")]
+    public async Task<IActionResult> DeleteSubTask(Guid parentTaskId, Guid subTaskId, [FromQuery] Guid spaceId, CancellationToken ct)
+    {
+        var result = await _handler.SendAsync(new DeleteSubTaskCommand(spaceId, parentTaskId, subTaskId), ct);
+        return result.ToActionResult();
+    }
 }
 
-public record UpdateTaskRequest(
-    string? Name,
-    Guid? StatusId,
-    Priority? Priority,
-    DateTimeOffset? StartDate,
-    DateTimeOffset? DueDate,
-    int? StoryPoints,
-    long? TimeEstimate,
-    string? Icon,
-    string? Color
-);
+

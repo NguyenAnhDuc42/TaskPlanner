@@ -28,20 +28,9 @@ public class FoldersController : ControllerBase
     }
 
     [HttpPut("{id:guid}")]
-    public async Task<IActionResult> Update(Guid id, [FromBody] UpdateFolderRequest request, CancellationToken ct)
+    public async Task<IActionResult> Update(Guid id, [FromBody] UpdateFolderCommand command, CancellationToken ct)
     {
-        var command = new UpdateFolderCommand(
-            FolderId: id,
-            Name: request.Name,
-            Color: request.Color,
-            Icon: request.Icon,
-            StartDate: request.StartDate,
-            DueDate: request.DueDate,
-            StatusId: request.StatusId,
-            Priority: request.Priority
-        );
-
-        var result = await _handler.SendAsync(command, ct);
+        var result = await _handler.SendAsync(command with { FolderId = id }, ct);
         return result.ToActionResult();
     }
 
@@ -70,15 +59,7 @@ public class FoldersController : ControllerBase
 }
 
 
-public record UpdateFolderRequest(
-    string? Name,
-    string? Color,
-    string? Icon,
-    DateTimeOffset? StartDate,
-    DateTimeOffset? DueDate,
-    Guid? StatusId,
-    Priority? Priority
-);
+
 
 
 

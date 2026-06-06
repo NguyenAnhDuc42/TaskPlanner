@@ -1,4 +1,3 @@
-import * as React from "react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar as ShadcnCalendar } from "@/components/ui/calendar";
 import { DateBadge } from "@/components/date-badge";

@@ -5,7 +5,7 @@ import { createPortal } from "react-dom";
 import {
   DndContext,
   DragOverlay,
-  pointerWithin
+  closestCorners
 } from "@dnd-kit/core";
 import { Priority, prioritySort } from "@/types/priority";
 import {
@@ -229,7 +229,7 @@ export function SpaceBoard({ spaceId, onWorkflowOpen }: Readonly<SpaceBoardProps
 
       <DndContext
         sensors={sensors}
-        collisionDetection={pointerWithin}
+        collisionDetection={closestCorners}
         onDragStart={handleDragStart}
         onDragEnd={handleDragEnd}
       >
