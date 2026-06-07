@@ -8,10 +8,7 @@ using System.Diagnostics;
 
 namespace Application;
 
-/// <summary>
-/// A high-performance consolidated pipeline decorator.
-/// Uses lazy resolution (IServiceProvider) to avoid expensive DI overhead for simple requests.
-/// </summary>
+
 public static class PipelineDecorator
 {
     internal class CommandHandler<TCommand, TResponse>(
