@@ -7,8 +7,6 @@ using Serilog.Context;
 using System.Diagnostics;
 
 namespace Application;
-
-
 public static class PipelineDecorator
 {
     internal class CommandHandler<TCommand, TResponse>(

@@ -1,6 +1,6 @@
 namespace Application;
 
-public record class UpdateMembersCommand(Guid workspaceId, List<UpdateMemberValue> members) : ICommandRequest<Guid>;
+public record class UpdateMembersCommand(Guid WorkspaceId, List<UpdateMemberValue> Members) : ICommandRequest, IAuthorizedWorkspaceRequest;
 
-public record class UpdateMemberValue(Guid userId, Role? role, MembershipStatus? status);
+public record class UpdateMemberValue(Guid MemberId, Role? Role, MembershipStatus? Status);
 

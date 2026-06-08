@@ -19,7 +19,6 @@ public record TaskRecord
     public Guid? FolderId { get; init; }
 
     // Detailed properties
-    public string? Description { get; init; }
     public Guid? ParentWorkflowId { get; init; }
     public Guid? DefaultDocumentId { get; init; }
     public bool? IsArchived { get; init; }
@@ -27,13 +26,36 @@ public record TaskRecord
     public long? TimeEstimateSeconds { get; init; }
     public string? ParentType { get; init; }
     public Guid? ParentTaskId { get; init; }
+
+    public static TaskRecord FromDomain(ProjectTask t) => new()
+    {
+        Id = t.Id,
+        WorkspaceId = t.ProjectWorkspaceId,
+        Name = t.Name,
+        CreatedAt = t.CreatedAt,
+        StatusId = t.StatusId,
+        Priority = t.Priority,
+        StartDate = t.StartDate,
+        DueDate = t.DueDate,
+        OrderKey = t.OrderKey,
+        Icon = t.Icon,
+        Color = t.Color,
+        SpaceId = t.ProjectSpaceId,
+        FolderId = t.ProjectFolderId,
+        DefaultDocumentId = t.DefaultDocumentId,
+        IsArchived = t.IsArchived,
+        StoryPoints = t.StoryPoints,
+        TimeEstimateSeconds = t.TimeEstimateSeconds,
+        ParentType = t.ProjectFolderId != null ? "ProjectFolder" : "ProjectSpace",
+        ParentTaskId = t.ParentTaskId
+    };
 }
 
 public record FolderRecord
 {
     public Guid Id { get; init; }
-    public Guid? WorkspaceId { get; init; }        // ancestor: workspace
-    public Guid? SpaceId { get; init; }            // ancestor: space
+    public Guid? WorkspaceId { get; init; }
+    public Guid? SpaceId { get; init; }
     public string Name { get; init; } = null!;
     public DateTimeOffset CreatedAt { get; init; }
     public Guid? StatusId { get; init; }
@@ -44,6 +66,23 @@ public record FolderRecord
     public string? Icon { get; init; }
     public string? Color { get; init; }
     public bool? HasTasks { get; init; }
+
+    public static FolderRecord FromDomain(ProjectFolder f) => new()
+    {
+        Id = f.Id,
+        WorkspaceId = f.ProjectWorkspaceId,
+        SpaceId = f.ProjectSpaceId,
+        Name = f.Name,
+        CreatedAt = f.CreatedAt,
+        StatusId = f.StatusId,
+        Priority = f.Priority,
+        StartDate = f.StartDate,
+        DueDate = f.DueDate,
+        OrderKey = f.OrderKey,
+        Icon = f.Icon,
+        Color = f.Color,
+        HasTasks = null  // computed, not on domain entity
+    };
 }
 
 

@@ -1,6 +1,3 @@
-using System;
-using System.Collections.Generic;
-
 namespace Application;
 
 public record GetSpaceDocumentsQuery(Guid SpaceId) : IQueryRequest<List<SpaceDocumentRecord>>, IAuthorizedWorkspaceRequest;

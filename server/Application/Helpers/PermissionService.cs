@@ -10,30 +10,33 @@ public class PermissionService(TaskPlanDbContext db, WorkspaceContext context)
         Role requiredRole,
         Guid? spaceId = null,
         AccessLevel? requiredAccess = null,
-        CancellationToken ct = default)
+        CancellationToken cancellationToken = default)
     {
-        var currentMember = context.CurrentMember;
-        if (currentMember == null) return false;
+        if (spaceId.HasValue != requiredAccess.HasValue) throw new ArgumentException("spaceId and requiredAccess must both be provided or both be null");
 
-        // 1. Check workspace level role
+        var currentMember = context.CurrentMember;
+        if (currentMember is null) return false;
+
         if (currentMember.Role.IsAtLeast(requiredRole)) return true;
 
-        // 2. Check space level access
-        if (spaceId.HasValue && requiredAccess.HasValue)
-        {
-            var space = await db.ProjectSpaces.AsNoTracking().FirstOrDefaultAsync(s => s.Id == spaceId.Value, ct);
-            if (space == null) return false;
+        if (!spaceId.HasValue) return false;
 
-            if (!space.IsPrivate) return true;
+        var spaceInfo = await db.ProjectSpaces.AsNoTracking()
+            .Where(s => s.Id == spaceId.Value && s.DeletedAt == null)
+            .Select(s => new { s.IsPrivate })
+            .FirstOrDefaultAsync(cancellationToken);
 
-            var access = await db.EntityAccesses.AsNoTracking()
-                .FirstOrDefaultAsync(ea => ea.ProjectSpaceId == spaceId.Value && ea.WorkspaceMemberId == currentMember.Id && ea.DeletedAt == null, ct);
+        if (spaceInfo is null) return false;
+        if (!spaceInfo.IsPrivate) return true;
 
-            if (access == null) return false;
+        var access = await db.EntityAccesses.AsNoTracking()
+            .Where(ea => ea.ProjectSpaceId == spaceId.Value
+                    && ea.WorkspaceMemberId == currentMember.Id
+                    && ea.DeletedAt == null)
+            .Select(ea => new { ea.AccessLevel })
+            .FirstOrDefaultAsync(cancellationToken);
 
-            return access.AccessLevel.IsAtLeast(requiredAccess.Value);
-        }
-
-        return false;
+        if (access is null) return false;
+        return access.AccessLevel.IsAtLeast(requiredAccess!.Value);
     }
 }

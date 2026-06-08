@@ -2,7 +2,6 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Hybrid;
 using Microsoft.Extensions.Logging;
 
-
 namespace Application;
 
 public class DeleteWorkspaceHandler(
@@ -16,14 +15,11 @@ public class DeleteWorkspaceHandler(
     public async Task<Result> Handle(DeleteWorkspaceCommand request, CancellationToken ct)
     {
         var currentUserId = currentUserService.CurrentUserId();
-        if (currentUserId == Guid.Empty) 
-            return Result.Failure(Error.Unauthorized("User.NotAuthenticated", "User not authenticated."));
+        if (currentUserId == Guid.Empty)  return Result.Failure(Error.Unauthorized("User.NotAuthenticated", "User not authenticated."));
 
         logger.LogInformation("Deleting workspace {WorkspaceId} by user {UserId}", request.workspaceId, currentUserId);
 
-        var workspace = await db.ProjectWorkspaces
-            .ById(request.workspaceId)
-            .FirstOrDefaultAsync(ct);
+        var workspace = await db.ProjectWorkspaces.FirstOrDefaultAsync(w => w.Id == request.workspaceId, ct);
 
         if (workspace == null) return Result.Failure(WorkspaceError.NotFound);
 

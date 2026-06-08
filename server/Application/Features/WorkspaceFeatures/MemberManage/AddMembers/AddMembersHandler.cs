@@ -2,46 +2,38 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Application;
 
-public class AddMembersHandler(TaskPlanDbContext db, WorkspaceContext context) : ICommandHandler<AddMembersCommand>
+public class AddMembersHandler(TaskPlanDbContext db, WorkspaceContext context,PermissionService permissionService,RealtimeService realtimeService) : ICommandHandler<AddMembersCommand>
 {
-    public async Task<Result> Handle(AddMembersCommand request, CancellationToken ct)
+    public async Task<Result> Handle(AddMembersCommand request, CancellationToken cancellationToken)
     {
-        if (context.CurrentMember.Role > Role.Admin)
-            return Result.Failure(MemberError.DontHavePermission);
+        var hasAccess = await permissionService.VerifyAsync(Role.Admin,cancellationToken: cancellationToken);
+        if (!hasAccess) return Result.Failure(MemberError.DontHavePermission);
 
-        var workspace = await db.ProjectWorkspaces
-            .ById(request.workspaceId)
-            .FirstOrDefaultAsync(ct);
-
+        var workspace = await db.ProjectWorkspaces.FirstOrDefaultAsync(w => w.Id == request.WorkspaceId && w.DeletedAt == null,cancellationToken);
         if (workspace == null) return Result.Failure(WorkspaceError.NotFound);
 
-        var members = request.members;
+        var members = request.Members;
         if (!members.Any()) return Result.Success();
 
-        var emails = members.Select(m => m.email).ToList();
+        var emails = members.Select(m => m.Email).ToList();
 
-        // 1. Find all requested users by email
         var users = await db.Users
             .Where(u => emails.Contains(u.Email) && u.DeletedAt == null)
-            .ToListAsync(ct);
+            .ToListAsync(cancellationToken);
 
         if (!users.Any()) return Result.Success();
 
-        // 2. Filter out users who are already in the workspace
         var existingUserIds = await db.WorkspaceMembers
             .Where(wm => wm.ProjectWorkspaceId == workspace.Id && wm.DeletedAt == null)
             .Select(wm => wm.UserId)
-            .ToListAsync(ct);
+            .ToHashSetAsync(cancellationToken);
 
         var newMembersToInsert = new List<WorkspaceMember>();
-
+        var memberRoleByEmail = members.ToDictionary(m => m.Email, m => m.Role);
         foreach (var user in users)
         {
             if (existingUserIds.Contains(user.Id)) continue;
-
-            // Find the role requested for this email
-            var requestedRole = members.First(m => m.email == user.Email).role;
-
+            var requestedRole = memberRoleByEmail[user.Email];
             var newMember = new WorkspaceMember(
                 userId: user.Id,
                 projectWorkspaceId: workspace.Id,
@@ -54,10 +46,20 @@ public class AddMembersHandler(TaskPlanDbContext db, WorkspaceContext context) :
             newMembersToInsert.Add(newMember);
         }
 
-        if (newMembersToInsert.Any())
+        if (newMembersToInsert.Count > 0)
         {
-            await db.WorkspaceMembers.AddRangeAsync(newMembersToInsert, ct);
-            await db.SaveChangesAsync(ct);
+            await db.WorkspaceMembers.AddRangeAsync(newMembersToInsert, cancellationToken);
+            await db.SaveChangesAsync(cancellationToken);
+
+            var userLookup = users.ToDictionary(u => u.Id);
+            var records = newMembersToInsert
+                .Select(wm => MemberRecord.FromDomain(wm, userLookup[wm.UserId]))
+                .ToList();
+            await realtimeService.NotifyEntitiesUpdatedAsync(
+                request.WorkspaceId,
+                new EntityBatchUpdate { Members = records },
+                cancellationToken
+            );
         }
 
         return Result.Success();

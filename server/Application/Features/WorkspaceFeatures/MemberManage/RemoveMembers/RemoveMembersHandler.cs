@@ -2,25 +2,31 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Application;
 
-public class RemoveMembersHandler(TaskPlanDbContext db, WorkspaceContext context) : ICommandHandler<RemoveMembersCommand, Guid>
+public class RemoveMembersHandler(TaskPlanDbContext db, WorkspaceContext context, RealtimeService realtimeService, PermissionService permissionService) : ICommandHandler<RemoveMembersCommand>
 {
-    public async Task<Result<Guid>> Handle(RemoveMembersCommand request, CancellationToken cancellationToken)
+    public async Task<Result> Handle(RemoveMembersCommand request, CancellationToken cancellationToken)
     {
-        if (context.CurrentMember.Role > Role.Admin)
-            return Result<Guid>.Failure(MemberError.DontHavePermission);
+        var hasAccess = await permissionService.VerifyAsync(Role.Admin,cancellationToken: cancellationToken);
+        if (!hasAccess) return Result.Failure(MemberError.DontHavePermission);
 
-        if (request.memberIds.Any())
-        {
-            await db.WorkspaceMembers
-                .Where(wm => wm.ProjectWorkspaceId == context.workspaceId 
-                          && request.memberIds.Contains(wm.UserId) 
-                          && wm.DeletedAt == null)
-                .ExecuteUpdateAsync(u => u
-                    .SetProperty(wm => wm.DeletedAt, DateTimeOffset.UtcNow)
-                    .SetProperty(wm => wm.UpdatedAt, DateTimeOffset.UtcNow), cancellationToken);
-        }
+        if (request.MemberIds.Count == 0 ) return Result.Success();
 
-        return Result<Guid>.Success(context.workspaceId);
+        var affected = await db.WorkspaceMembers
+            .Where(wm => wm.ProjectWorkspaceId == request.WorkspaceId 
+                        && request.MemberIds.Contains(wm.UserId) 
+                        && wm.DeletedAt == null)
+            .ExecuteUpdateAsync(u => u
+                .SetProperty(wm => wm.DeletedAt, DateTimeOffset.UtcNow)
+                .SetProperty(wm => wm.UpdatedAt, DateTimeOffset.UtcNow), cancellationToken);
+        
+        if (affected > 0){
+            await realtimeService.NotifyEntitiesDeletedAsync(
+                request.WorkspaceId, 
+                new EntityBatchDelete { MemberIds = request.MemberIds }, 
+                cancellationToken);
+        } 
+
+        return Result.Success();
     }
 }
 

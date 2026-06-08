@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 namespace Application;
 
 public record CreateWorkspaceCommand(

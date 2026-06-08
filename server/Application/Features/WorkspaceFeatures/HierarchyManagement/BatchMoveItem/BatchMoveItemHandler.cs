@@ -1,8 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
 using NpgsqlTypes;
@@ -12,28 +7,25 @@ namespace Application;
 public class BatchMoveItemHandler(
     TaskPlanDbContext db,
     WorkspaceContext context,
+    PermissionService permissionService,
     RealtimeService realtime
 ) : ICommandHandler<BatchMoveItemCommand>
 {
     public async Task<Result> Handle(BatchMoveItemCommand request, CancellationToken cancellationToken)
     {
-        if (!request.HasAnyMoves)
-            return Result.Success();
-
-        if (context.CurrentMember.Role != Role.Admin && context.CurrentMember.Role != Role.Owner)
-            return Result.Failure(MemberError.DontHavePermission);
-
+        var hasAccess = await permissionService.VerifyAsync(Role.Admin,cancellationToken : cancellationToken);
+        if (!hasAccess) return Result.Failure(MemberError.DontHavePermission);
+        
+        var validator = new BatchMoveValidator(db, context.TryGetWorkspaceId().Value);
         if (request.Folders.Count > 0)
         {
-            var folderValidation = await new BatchMoveValidator(db, context.workspaceId)
-                .ValidateFolderMovesAsync(request.Folders, cancellationToken);
+            var folderValidation = await validator.ValidateFolderMovesAsync(request.Folders, cancellationToken);
             if (folderValidation.IsFailure) return folderValidation;
         }
 
         if (request.Tasks.Count > 0)
         {
-            var taskValidation = await new BatchMoveValidator(db, context.workspaceId)
-                .ValidateTaskMovesAsync(request.Tasks, cancellationToken);
+            var taskValidation = await validator.ValidateTaskMovesAsync(request.Tasks, cancellationToken);
             if (taskValidation.IsFailure) return taskValidation;
         }
 
@@ -51,7 +43,7 @@ public class BatchMoveItemHandler(
         var packet = await FetchUpdatedRecordsAsync(request, cancellationToken);
 
         if (packet.HasAny)
-            await realtime.NotifyEntitiesUpdatedAsync(context.workspaceId, packet, cancellationToken);
+            await realtime.NotifyEntitiesUpdatedAsync(context.WorkspaceId, packet, cancellationToken);
 
         return Result.Success();
     }
@@ -76,7 +68,7 @@ public class BatchMoveItemHandler(
                 {
                     new NpgsqlParameter("ids", NpgsqlDbType.Array | NpgsqlDbType.Uuid) { Value = ids },
                     new NpgsqlParameter("orderKeys", NpgsqlDbType.Array | NpgsqlDbType.Text) { Value = orderKeys },
-                    new NpgsqlParameter("workspaceId", context.workspaceId)
+                    new NpgsqlParameter("workspaceId", context.WorkspaceId)
                 },
                 cancellationToken: cancellationToken
             );
@@ -109,7 +101,7 @@ public class BatchMoveItemHandler(
                             new NpgsqlParameter("spaceId", spaceId),
                             new NpgsqlParameter("ids", NpgsqlDbType.Array | NpgsqlDbType.Uuid) { Value = ids },
                             new NpgsqlParameter("orderKeys", NpgsqlDbType.Array | NpgsqlDbType.Text) { Value = orderKeys },
-                            new NpgsqlParameter("workspaceId", context.workspaceId)
+                            new NpgsqlParameter("workspaceId", context.WorkspaceId)
                         },
                         cancellationToken: cancellationToken
                     );
@@ -133,7 +125,7 @@ public class BatchMoveItemHandler(
                     {
                         new NpgsqlParameter("ids", NpgsqlDbType.Array | NpgsqlDbType.Uuid) { Value = ids },
                         new NpgsqlParameter("orderKeys", NpgsqlDbType.Array | NpgsqlDbType.Text) { Value = orderKeys },
-                        new NpgsqlParameter("workspaceId", context.workspaceId)
+                        new NpgsqlParameter("workspaceId", context.WorkspaceId)
                     },
                     cancellationToken: cancellationToken
                 );
@@ -165,7 +157,7 @@ public class BatchMoveItemHandler(
                         new NpgsqlParameter("folderId", (object?)folderId ?? DBNull.Value),
                         new NpgsqlParameter("ids", NpgsqlDbType.Array | NpgsqlDbType.Uuid) { Value = ids },
                         new NpgsqlParameter("orderKeys", NpgsqlDbType.Array | NpgsqlDbType.Text) { Value = orderKeys },
-                        new NpgsqlParameter("workspaceId", context.workspaceId)
+                        new NpgsqlParameter("workspaceId", context.WorkspaceId)
                     },
                     cancellationToken: cancellationToken
                 );
@@ -218,7 +210,7 @@ public class BatchMoveItemHandler(
             .Select(f => new FolderRecord
             {
                 Id          = f.Id,
-                WorkspaceId = context.workspaceId,
+                WorkspaceId = context.WorkspaceId,
                 SpaceId     = f.ProjectSpaceId,
                 Name        = f.Name,
                 OrderKey    = f.OrderKey,
@@ -234,7 +226,7 @@ public class BatchMoveItemHandler(
             .Select(t => new TaskRecord
             {
                 Id              = t.Id,
-                WorkspaceId     = context.workspaceId,
+                WorkspaceId     = context.WorkspaceId,
                 Name            = t.Name,
                 StatusId        = t.StatusId,
                 Priority        = t.Priority,

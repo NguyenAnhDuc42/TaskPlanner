@@ -6,7 +6,7 @@ public class CreateFolderValidator : AbstractValidator<CreateFolderCommand>
 {
     public CreateFolderValidator()
     {
-        RuleFor(x => x.name).NotEmpty();
+        RuleFor(x => x.Name).NotEmpty();
     }
 }
 

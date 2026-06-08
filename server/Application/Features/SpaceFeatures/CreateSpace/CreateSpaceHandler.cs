@@ -2,35 +2,40 @@ using Microsoft.EntityFrameworkCore;
 namespace Application;
 
 public class CreateSpaceHandler(
-    TaskPlanDbContext db, 
+    TaskPlanDbContext db,
     WorkspaceContext context,
-    RealtimeService realtime
-) : ICommandHandler<CreateSpaceCommand, Guid>
+    PermissionService permissionService,
+    RealtimeService realtimeService
+) : ICommandHandler<CreateSpaceCommand>
 {
-    public async Task<Result<Guid>> Handle(CreateSpaceCommand request, CancellationToken ct)
+    public async Task<Result> Handle(CreateSpaceCommand request, CancellationToken cancellationToken)
     {
-        return await db.ExecuteInTransactionAsync(async () =>
+        var hasAccess = await permissionService.VerifyAsync(Role.Member, cancellationToken: cancellationToken);
+        if (!hasAccess) return Result.Failure(MemberError.DontHavePermission);
+
+        ProjectSpace? space = null;
+        EntityAccess? creatorAccess = null;
+        Workflow? workflow = null;
+        var result = await db.ExecuteInTransactionAsync(async () =>
         {
             var maxKey = await db.ProjectSpaces
                 .AsNoTracking()
-                .ByWorkspace(context.workspaceId)
+                .ByWorkspace(context.WorkspaceId)
                 .WhereNotDeleted()
-                .MaxAsync(s => s.OrderKey, ct);
-            
+                .MaxAsync(s => s.OrderKey, cancellationToken);
+
             var orderKey = maxKey is null ? FractionalIndex.Start() : FractionalIndex.After(maxKey);
             var slug = SlugHelper.GenerateSlug(request.name);
 
-            // 1. Create the primary document for this space
             var document = Document.Create(
-                context.workspaceId,
-                request.name, 
+                context.WorkspaceId,
+                request.name,
                 context.CurrentMember.Id
             );
-            await db.Documents.AddAsync(document, ct);
+            await db.Documents.AddAsync(document, cancellationToken);
 
-            // 2. Create the space linked to the document
-            var space = ProjectSpace.Create(
-                projectWorkspaceId: context.workspaceId,
+            space = ProjectSpace.Create(
+                projectWorkspaceId: context.WorkspaceId,
                 name: request.name,
                 slug: slug,
                 defaultDocumentId: document.Id,
@@ -41,29 +46,22 @@ public class CreateSpaceHandler(
                 orderKey: orderKey
             );
 
-            await db.ProjectSpaces.AddAsync(space, ct);
+            await db.ProjectSpaces.AddAsync(space, cancellationToken);
 
-            // 3. Create Default Workflow for the space
-            var workflow = Workflow.Create(
-                context.workspaceId, 
-                $"{request.name} Workflow", 
-                $"Default workflow for {request.name} space", 
-                context.CurrentMember.Id, 
+            workflow = Workflow.Create(
+                context.WorkspaceId,
+                $"{request.name} Workflow",
+                $"Default workflow for {request.name} space",
+                context.CurrentMember.Id,
                 projectSpaceId: space.Id
             );
-            await db.Workflows.AddAsync(workflow, ct);
+            await db.Workflows.AddAsync(workflow, cancellationToken);
 
-            // 4. Create Starter Statuses
-            var statuses = Status.CreateSpaceStarterSet(context.workspaceId, workflow.Id, context.CurrentMember.Id);
-            await db.Statuses.AddRangeAsync(statuses, ct);
+            var statuses = Status.CreateSpaceStarterSet(context.WorkspaceId, workflow.Id, context.CurrentMember.Id);
+            await db.Statuses.AddRangeAsync(statuses, cancellationToken);
 
-            // 5. Create Default Views
-            db.ViewDefinitions.AddRange(
-                ViewDefinition.CreateDefaults(context.workspaceId, space.Id, null, context.CurrentMember.Id));
-
-            // 6. Automatically grant Manager access to the Space Creator
-            var creatorAccess = EntityAccess.Create(
-                projectWorkspaceId: context.workspaceId,
+            creatorAccess = EntityAccess.Create(
+                projectWorkspaceId: context.WorkspaceId,
                 workspaceMemberId: context.CurrentMember.Id,
                 projectSpaceId: space.Id,
                 projectFolderId: null,
@@ -71,12 +69,23 @@ public class CreateSpaceHandler(
                 accessLevel: AccessLevel.Manager,
                 creatorId: context.CurrentMember.Id
             );
-            await db.EntityAccesses.AddAsync(creatorAccess, ct);
+            await db.EntityAccesses.AddAsync(creatorAccess, cancellationToken);
 
-            await realtime.NotifyWorkspaceAsync(context.workspaceId, "SpaceCreated", new { SpaceId = space.Id, WorkspaceId = context.workspaceId }, ct);
-
-            return Result<Guid>.Success(space.Id);
-        }, ct);
+            return Result.Success();
+        }, cancellationToken);
+        if (result.IsSuccess)
+        {
+            await realtimeService.NotifyEntitiesUpdatedAsync(
+                context.TryGetWorkspaceId().Value,
+               new EntityBatchUpdate
+               {
+                   Spaces = [SpaceRecord.FromDomain(space!, workflow!.Id)],
+                   EntityAccess = [EntityAccessRecord.FromDomain(creatorAccess!)]
+               },
+                cancellationToken
+            );
+        }
+        return result;
     }
 }
 

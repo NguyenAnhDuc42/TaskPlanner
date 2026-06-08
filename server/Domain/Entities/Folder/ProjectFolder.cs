@@ -17,7 +17,7 @@ public sealed class ProjectFolder : TenantEntity
     public Priority? Priority { get; private set; }
 
     private ProjectFolder() { }
-    private ProjectFolder(Guid id, Guid projectWorkspaceId, Guid projectSpaceId, string name, string slug, Guid defaultDocumentId, string orderKey, bool isPrivate, Guid creatorId, string color, string? icon, DateTimeOffset? startDate, DateTimeOffset? dueDate, Priority? priority = null)
+    private ProjectFolder(Guid id, Guid projectWorkspaceId, Guid projectSpaceId, string name, string slug, Guid defaultDocumentId, string orderKey, bool isPrivate, Guid creatorId, string color, string? icon, DateTimeOffset? startDate, DateTimeOffset? dueDate, Priority? priority = null, Guid? statusId = null)
         : base(id, projectWorkspaceId)
     {
         ProjectSpaceId = projectSpaceId;
@@ -32,31 +32,31 @@ public sealed class ProjectFolder : TenantEntity
         StartDate = startDate;
         DueDate = dueDate;
         Priority = priority;
+        StatusId = statusId;
 
         // Audit is initialized in base constructor
         InitializeAudit(creatorId);
     }
 
-    public static ProjectFolder Create(Guid projectWorkspaceId, Guid projectSpaceId, string name, string slug, string orderKey, Guid creatorId, string? color = null, string? icon = null, DateTimeOffset? startDate = null, DateTimeOffset? dueDate = null, Priority? priority = null)
-    {
-        var folder = new ProjectFolder(
-            Guid.NewGuid(), 
-            projectWorkspaceId, 
-            projectSpaceId, 
-            name,
-            slug,
-            Guid.Empty, 
-            orderKey, 
-            false, 
-            creatorId, 
-            color ?? "#FFFFFF", 
-            icon,
-            startDate,
-            dueDate,
-            priority);
-
-        return folder;
-    }
+    public static ProjectFolder Create(Guid projectWorkspaceId, Guid projectSpaceId, string name, string slug, string orderKey, Guid creatorId,string? color = null, string? icon = null, DateTimeOffset? startDate = null, DateTimeOffset? dueDate = null, Priority? priority = null, Guid? statusId = null)
+{
+    return new ProjectFolder(
+        Guid.NewGuid(),
+        projectWorkspaceId,
+        projectSpaceId,
+        name,
+        slug,
+        Guid.Empty,
+        orderKey,
+        false,
+        creatorId,
+        color ?? "#FFFFFF",
+        icon,
+        startDate,
+        dueDate,
+        priority,
+        statusId);
+}
 
     public static ProjectFolder CreateDefault(Guid projectWorkspaceId, Guid projectSpaceId, Guid creatorId)
     {

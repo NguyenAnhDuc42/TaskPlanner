@@ -3,16 +3,16 @@ using Microsoft.Extensions.Caching.Hybrid;
 namespace Application;
 
 public class JoinWorkspaceByCodeHandler(
-    TaskPlanDbContext db, 
-    CurrentUserService currentUserService, 
-    HybridCache cache, 
+    TaskPlanDbContext db,
+    CurrentUserService currentUserService,
+    HybridCache cache,
     RealtimeService realtime
 ) : ICommandHandler<JoinWorkspaceByCodeCommand, JoinWorkspaceByCodeResult>
 {
     public async Task<Result<JoinWorkspaceByCodeResult>> Handle(JoinWorkspaceByCodeCommand request, CancellationToken ct)
     {
         var currentUserId = currentUserService.CurrentUserId();
-        if (currentUserId == Guid.Empty) 
+        if (currentUserId == Guid.Empty)
             return Result<JoinWorkspaceByCodeResult>.Failure(Error.Unauthorized("User.NotAuthenticated", "User not authenticated."));
 
         var normalizedCode = request.JoinCode.Trim().ToUpperInvariant();
@@ -20,14 +20,12 @@ public class JoinWorkspaceByCodeHandler(
             .ByJoinCode(normalizedCode)
             .WhereNotDeleted()
             .FirstOrDefaultAsync(ct);
-            
+
         if (workspace == null) return Result<JoinWorkspaceByCodeResult>.Failure(Error.Validation("Workspace.InvalidJoinCode", "Invalid join code."));
         if (workspace.IsArchived) return Result<JoinWorkspaceByCodeResult>.Failure(Error.Validation("Workspace.Archived", "Cannot join an archived workspace."));
 
-        var existingMember = await db.WorkspaceMembers.IgnoreQueryFilters()
-            .ByWorkspace(workspace.Id)
-            .ByUser(currentUserId)
-            .FirstOrDefaultAsync(ct);
+        var existingMember = await db.WorkspaceMembers
+        .FirstOrDefaultAsync(m => m.ProjectWorkspaceId == workspace.Id && m.UserId == currentUserId, ct);
 
         JoinWorkspaceByCodeResult dataResult;
         if (existingMember is null)
@@ -50,7 +48,7 @@ public class JoinWorkspaceByCodeHandler(
         await db.SaveChangesAsync(ct);
 
         await cache.RemoveByTagAsync(WorkspaceCacheKeys.WorkspaceListTag(currentUserId), ct);
-        
+
         _ = realtime.NotifyUserAsync(currentUserId, "WorkspaceJoined", new { WorkspaceId = workspace.Id }, ct);
 
         return Result<JoinWorkspaceByCodeResult>.Success(dataResult);

@@ -1,7 +1,3 @@
-using System.Collections.Generic;
-using System.Data;
-using System.Threading;
-using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using Dapper;
 
@@ -37,7 +33,7 @@ public class GetSpaceDocumentsHandler(TaskPlanDbContext db, WorkspaceContext wor
         var parameters = new
         {
             SpaceId = request.SpaceId,
-            WorkspaceId = workspaceContext.workspaceId
+            WorkspaceId = workspaceContext.WorkspaceId
         };
 
         var documents = (await connection.QueryAsync<SpaceDocumentRecord>(sql, parameters)).AsList();

@@ -2,73 +2,84 @@ using Microsoft.EntityFrameworkCore;
 namespace Application;
 
 public class CreateFolderHandler(
-    TaskPlanDbContext db, 
-    WorkspaceContext context,
-    RealtimeService realtime
-) : ICommandHandler<CreateFolderCommand, Guid>
+    TaskPlanDbContext db,
+    WorkspaceContext workspaceContext,
+    PermissionService permissionService,
+    RealtimeService realtimeService
+) : ICommandHandler<CreateFolderCommand>
 {
-    public async Task<Result<Guid>> Handle(CreateFolderCommand request, CancellationToken ct)
+    public async Task<Result> Handle(CreateFolderCommand request, CancellationToken cancellationToken)
     {
-        var space = await db.ProjectSpaces.FirstOrDefaultAsync(s => s.Id == request.spaceId, ct);
-        if (space == null) 
-            return Result<Guid>.Failure(SpaceError.NotFound);
+        var space = await db.ProjectSpaces
+             .AsNoTracking()
+             .Where(s => s.Id == request.SpaceId
+                      && s.ProjectWorkspaceId == workspaceContext.WorkspaceId
+                      && s.DeletedAt == null)
+             .Select(s => new { s.Id, s.CreatorId })
+             .FirstOrDefaultAsync(cancellationToken);
+        if (space is null) return Result.Failure(SpaceError.NotFound);
 
-        if (space.ProjectWorkspaceId != context.workspaceId)
-            return Result<Guid>.Failure(MemberError.DontHavePermission);
+        var isCreator = space.CreatorId == workspaceContext.CurrentMember.Id;
+        if (!isCreator)
+        {
+            var hasAccess = await permissionService.VerifyAsync(Role.Member, request.SpaceId, AccessLevel.Editor, cancellationToken);
+            if (!hasAccess) return Result.Failure(MemberError.DontHavePermission);
+        }
 
-        return await db.ExecuteInTransactionAsync(async () =>
+        ProjectFolder? folder = null;
+        var result = await db.ExecuteInTransactionAsync(async () =>
         {
             var maxKey = await db.ProjectFolders
-                .AsNoTracking()
-                .Where(f => f.ProjectSpaceId == request.spaceId && f.DeletedAt == null)
-                .MaxAsync(f => f.OrderKey, ct);
-            
+                  .AsNoTracking()
+                  .Where(f => f.ProjectSpaceId == request.SpaceId && f.DeletedAt == null)
+                  .Select(f => f.OrderKey)
+                  .OrderByDescending(k => k)
+                  .FirstOrDefaultAsync(cancellationToken);
+
             var orderKey = maxKey is null ? FractionalIndex.Start() : FractionalIndex.After(maxKey);
-            var slug = SlugHelper.GenerateSlug(request.name);
+            var slug = SlugHelper.GenerateSlug(request.Name);
 
             // 2. Create the folder 
-            var folder = ProjectFolder.Create(
-                projectWorkspaceId: context.workspaceId,
+            folder = ProjectFolder.Create(
+                projectWorkspaceId: workspaceContext.WorkspaceId,
                 projectSpaceId: space.Id,
-                name: request.name,
+                name: request.Name,
                 slug: slug,
                 orderKey: orderKey,
-                creatorId: context.CurrentMember.Id,
-                color: request.color,
-                icon: request.icon,
-                startDate: request.startDate,
-                dueDate: request.dueDate
+                creatorId: workspaceContext.CurrentMember.Id,
+                color: request.Color,
+                icon: request.Icon,
+                startDate: request.StartDate,
+                dueDate: request.DueDate,
+                priority: request.Priority,
+                statusId: request.StatusId
             );
 
-            if (request.statusId != null)
-            {
-                folder.Update(statusId: request.statusId);
-            }
+            db.ProjectFolders.Add(folder);
 
-            await db.ProjectFolders.AddAsync(folder, ct);
-
-            // 3. Create Default Workflow for the folder
             var workflow = Workflow.Create(
-                context.workspaceId, 
-                $"{request.name} Workflow", 
-                $"Default workflow for {request.name} folder", 
-                context.CurrentMember.Id, 
+                workspaceContext.WorkspaceId,
+                $"{request.Name} Workflow",
+                $"Default workflow for {request.Name} folder",
+                workspaceContext.CurrentMember.Id,
                 projectFolderId: folder.Id
             );
-            await db.Workflows.AddAsync(workflow, ct);
+            db.Workflows.Add(workflow);
 
-            // 4. Create Starter Statuses
-            var statuses = Status.CreateFolderStarterSet(context.workspaceId, workflow.Id, context.CurrentMember.Id);
-            await db.Statuses.AddRangeAsync(statuses, ct);
+            var statuses = Status.CreateFolderStarterSet(workspaceContext.WorkspaceId, workflow.Id, workspaceContext.CurrentMember.Id);
+            db.Statuses.AddRange(statuses);
 
-            // 5. Create Default Views
-            db.ViewDefinitions.AddRange(
-                ViewDefinition.CreateDefaults(context.workspaceId, space.Id, folder.Id, context.CurrentMember.Id));
+            return Result.Success();
+        }, cancellationToken);
+        if (result.IsSuccess)
+        {
+            await realtimeService.NotifyEntitiesUpdatedAsync(
+                workspaceContext.WorkspaceId,
+                new EntityBatchUpdate { Folders = [FolderRecord.FromDomain(folder!)] },
+                cancellationToken);
+        }
 
-            await realtime.NotifyWorkspaceAsync(context.workspaceId, "FolderCreated", new { FolderId = folder.Id, SpaceId = space.Id, WorkspaceId = context.workspaceId }, ct);
-
-            return Result<Guid>.Success(folder.Id);
-        }, ct);
+        return result;
     }
 }
 

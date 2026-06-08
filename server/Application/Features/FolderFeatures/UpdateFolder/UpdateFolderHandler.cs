@@ -2,51 +2,41 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Application;
 
-public class UpdateFolderHandler(TaskPlanDbContext db, WorkspaceContext context, RealtimeService realtime) : ICommandHandler<UpdateFolderCommand>
+public class UpdateFolderHandler(TaskPlanDbContext db, WorkspaceContext workspaceContext, PermissionService permissionService, RealtimeService realtimeService) : ICommandHandler<UpdateFolderCommand>
 {
-    public async Task<Result> Handle(UpdateFolderCommand request, CancellationToken ct)
+    public async Task<Result> Handle(UpdateFolderCommand request, CancellationToken cancellationToken)
     {
-        var folder = await db.ProjectFolders.FirstOrDefaultAsync(f => f.Id == request.FolderId, ct);
-        if (folder == null) 
-            return Result.Failure(FolderError.NotFound);
+        var folder = await db.ProjectFolders.FirstOrDefaultAsync(f => f.Id == request.FolderId, cancellationToken);
+        if (folder == null) return Result.Failure(FolderError.NotFound);
+
+        var isCreator = folder.CreatorId == workspaceContext.CurrentMember.Id;
+        if (!isCreator)
+        {
+            var hasAccess = await permissionService.VerifyAsync(Role.Member, folder.ProjectSpaceId, AccessLevel.Editor, cancellationToken);
+            if (!hasAccess) return Result.Failure(MemberError.DontHavePermission);
+        }
 
         var slug = request.Name != null ? SlugHelper.GenerateSlug(request.Name) : null;
 
         folder.Update(
             name: request.Name,
-            slug: slug,
+            slug: request.Name != null ? SlugHelper.GenerateSlug(request.Name) : null,
             color: request.Color,
             icon: request.Icon,
             startDate: request.StartDate,
             dueDate: request.DueDate,
+            statusId: request.StatusId,
             priority: request.Priority
         );
 
-        if (request.StatusId.HasValue && request.StatusId.Value != folder.StatusId)
+        var affectedRows = await db.SaveChangesAsync(cancellationToken);
+        if (affectedRows > 0)
         {
-            var isValid = await db.Statuses
-                .AnyAsync(s => s.Id == request.StatusId.Value && s.ProjectWorkspaceId == folder.ProjectWorkspaceId, ct);
-
-            if (!isValid)
-                return Result.Failure(Error.Validation("Folder.InvalidStatus", "The requested status does not exist or does not belong to this workspace."));
-
-            folder.Update(statusId: request.StatusId.Value);
+            await realtimeService.NotifyEntitiesUpdatedAsync(
+                workspaceContext.TryGetWorkspaceId().Value,
+                new EntityBatchUpdate { Folders = [FolderRecord.FromDomain(folder)] },
+                cancellationToken);
         }
-
-        await db.SaveChangesAsync(ct);
-
-        await realtime.NotifyWorkspaceAsync(context.workspaceId, "FolderUpdated", new { 
-            FolderId = folder.Id, 
-            SpaceId = folder.ProjectSpaceId, 
-            WorkspaceId = context.workspaceId,
-            Name = folder.Name,
-            Icon = folder.Icon,
-            Color = folder.Color,
-            StatusId = folder.StatusId,
-            Priority = folder.Priority,
-            StartDate = folder.StartDate,
-            DueDate = folder.DueDate
-        }, ct);
 
         return Result.Success();
     }

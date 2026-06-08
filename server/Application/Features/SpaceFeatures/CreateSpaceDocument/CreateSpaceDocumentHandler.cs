@@ -1,28 +1,37 @@
-using System.Threading;
-using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
-using Domain;
 
 namespace Application;
 
-public class CreateSpaceDocumentHandler(TaskPlanDbContext db, WorkspaceContext workspaceContext) : ICommandHandler<CreateSpaceDocumentCommand, SpaceDocumentRecord>
+public class CreateSpaceDocumentHandler(
+    TaskPlanDbContext db,
+    WorkspaceContext workspaceContext,
+    PermissionService permissionService
+) : ICommandHandler<CreateSpaceDocumentCommand, SpaceDocumentRecord>
 {
-    public async Task<Result<SpaceDocumentRecord>> Handle(CreateSpaceDocumentCommand request, CancellationToken ct)
+    public async Task<Result<SpaceDocumentRecord>> Handle(CreateSpaceDocumentCommand request, CancellationToken cancellationToken)
     {
-        // 1. Verify Space exists in Workspace
-        var spaceExists = await db.ProjectSpaces
-            .AnyAsync(s => s.Id == request.SpaceId && s.ProjectWorkspaceId == workspaceContext.workspaceId && s.DeletedAt == null, ct);
+        var space = await db.ProjectSpaces
+            .AsNoTracking()
+            .Where(s => s.Id == request.SpaceId
+                     && s.ProjectWorkspaceId == workspaceContext.WorkspaceId
+                     && s.DeletedAt == null)
+            .Select(s => new { s.CreatorId })
+            .FirstOrDefaultAsync(cancellationToken);
 
-        if (!spaceExists)
-            return Result<SpaceDocumentRecord>.Failure(Error.NotFound("Space.NotFound", $"Space {request.SpaceId} not found"));
+        if (space is null) return Result<SpaceDocumentRecord>.Failure(SpaceError.NotFound);
 
-        // 2. Create the Document entity
-        var document = Document.Create(workspaceContext.workspaceId, request.Name, workspaceContext.CurrentMember.Id);
-        await db.Documents.AddAsync(document, ct);
+        var isCreator = space.CreatorId == workspaceContext.CurrentMember.Id;
+        if (!isCreator)
+        {
+            var hasAccess = await permissionService.VerifyAsync(Role.Member, request.SpaceId, AccessLevel.Editor, cancellationToken);
+            if (!hasAccess) return Result<SpaceDocumentRecord>.Failure(MemberError.DontHavePermission);
+        }
 
-        // 3. Link Document to Space using EntityAssetLink with AssetType.Document
+        var document = Document.Create(workspaceContext.WorkspaceId, request.Name, workspaceContext.CurrentMember.Id);
+        db.Documents.Add(document);
+
         var link = EntityAssetLink.Create(
-            workspaceContext.workspaceId,
+            workspaceContext.WorkspaceId,
             document.Id,
             AssetType.Document,
             projectSpaceId: request.SpaceId,
@@ -31,13 +40,12 @@ public class CreateSpaceDocumentHandler(TaskPlanDbContext db, WorkspaceContext w
             commentId: null,
             creatorId: workspaceContext.CurrentMember.Id
         );
-        await db.EntityAssetLinks.AddAsync(link, ct);
+        db.EntityAssetLinks.Add(link);
 
-        // 4. Save changes
-        await db.SaveChangesAsync(ct);
+        await db.SaveChangesAsync(cancellationToken);
 
-        // 5. Return mapped record
-        var record = new SpaceDocumentRecord(document.Id, document.Name, IsDefault: false);
-        return Result<SpaceDocumentRecord>.Success(record);
+        return Result<SpaceDocumentRecord>.Success(
+            new SpaceDocumentRecord(document.Id, document.Name, IsDefault: false)
+        );
     }
 }

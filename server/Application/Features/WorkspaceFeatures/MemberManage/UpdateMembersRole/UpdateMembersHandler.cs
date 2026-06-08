@@ -1,32 +1,31 @@
 using Microsoft.EntityFrameworkCore;
 namespace Application;
 
-public class UpdateMembersHandler(TaskPlanDbContext db, WorkspaceContext context) : ICommandHandler<UpdateMembersCommand, Guid>
+public class UpdateMembersHandler(TaskPlanDbContext db, WorkspaceContext context,PermissionService permissionService) : ICommandHandler<UpdateMembersCommand>
 {
-    public async Task<Result<Guid>> Handle(UpdateMembersCommand request, CancellationToken ct)
+    public async Task<Result> Handle(UpdateMembersCommand request, CancellationToken cancellationToken)
     {
-        if (context.CurrentMember.Role > Role.Admin)
-            return Result<Guid>.Failure(MemberError.DontHavePermission);
+        var hasAccess = await permissionService.VerifyAsync(Role.Admin,cancellationToken : cancellationToken);
+        if (!hasAccess) return Result.Failure(MemberError.DontHavePermission);
 
-        var members = request.members;
-        if (members.Count == 0) return Result<Guid>.Success(context.workspaceId);
+        var memberIds = request.Members.Select(m => m.MemberId).ToHashSet();
+        var lookup = request.Members.ToDictionary(m => m.MemberId);
 
-        // Using ExecuteUpdate inside a transaction for atomic batch updates
-        await db.ExecuteInTransactionAsync(async () =>
+        var workspaceMembers = await db.WorkspaceMembers
+            .Where(wm => memberIds.Contains(wm.Id)
+                      && wm.ProjectWorkspaceId == context.TryGetWorkspaceId().Value
+                      && wm.DeletedAt == null)
+            .ToListAsync(cancellationToken);
+
+        foreach (var wm in workspaceMembers)
         {
-            foreach (var member in members)
-            {
-                await db.WorkspaceMembers
-                    .Where(wm => wm.UserId == member.userId && wm.ProjectWorkspaceId == context.workspaceId && wm.DeletedAt == null)
-                    .ExecuteUpdateAsync(u => u
-                        .SetProperty(wm => wm.Role, wm => member.role ?? wm.Role)
-                        .SetProperty(wm => wm.Status, wm => member.status ?? wm.Status)
-                        .SetProperty(wm => wm.UpdatedAt, DateTimeOffset.UtcNow), ct);
-            }
-            return Result.Success();
-        }, ct);
+            var update = lookup[wm.Id];
+            wm.Update(update.Role, update.Status);
+        }
+        
+        await db.SaveChangesAsync(cancellationToken);
 
-        return Result<Guid>.Success(context.workspaceId);
+        return Result.Success();
     }
 }
 

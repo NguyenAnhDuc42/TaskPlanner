@@ -48,7 +48,9 @@ This ledger acts as a master checklist for every handler in the system against t
 - **[CQRS]** ❌ Returns `Result<Guid>`.
 - **[OPTIMIZE]** ✅ Optimized EF Core query.
 - **[CACHE]** ⚠️ Needs verification.
+==> future turn to batch operation right now just change stuff in member from userid to memberid need fix for fronentend
 
+//legacy but still might be viable for future
 ### MoveItemHandler.cs (Command)
 - **[REALTIME]** ❌ Uses `NotifyWorkspaceAsync`.
 - **[PERM]** ❌ Manual `CurrentMember.Role` check.
@@ -69,6 +71,7 @@ This ledger acts as a master checklist for every handler in the system against t
 - **[CQRS]** ✅ Returns `Result`.
 - **[OPTIMIZE]** ✅ Optimized EF Core query.
 - **[CACHE]** ⚠️ Needs verification.
+==> different flow cause this outside of workspace bound
 
 ### LeaveWorkspaceHandler.cs (Command)
 - **[REALTIME]** ❌ Does not broadcast `EntityBatchUpdate`.
@@ -77,12 +80,14 @@ This ledger acts as a master checklist for every handler in the system against t
 - **[OPTIMIZE]** ✅ Optimized EF Core query.
 - **[CACHE]** ⚠️ Needs verification.
 
+
 ### SetWorkspacePinHandler.cs (Command)
 - **[REALTIME]** ❌ Does not broadcast `EntityBatchUpdate`.
 - **[PERM]** ❌ Missing `PermissionService`.
 - **[CQRS]** ✅ Returns `Result`.
 - **[OPTIMIZE]** ✅ Optimized EF Core query.
 - **[CACHE]** ⚠️ Needs verification.
+==> different flow cause this outside of workspace bound
 
 ### DeleteWorkspaceHandler.cs (Command)
 - **[REALTIME]** ❌ Does not broadcast `EntityBatchDelete`.
@@ -97,8 +102,10 @@ This ledger acts as a master checklist for every handler in the system against t
 - **[CQRS]** ❌ Returns `Result<Guid>`.
 - **[OPTIMIZE]** ✅ Optimized EF Core query.
 - **[CACHE]** ⚠️ Needs verification.
+==> different flow cause this outside of workspace bound
 
----
+
+--- ==> check api.ts,members-api.ts to check for correct type and type safe
 
 ## Space Features
 
@@ -108,16 +115,17 @@ This ledger acts as a master checklist for every handler in the system against t
 - **[CQRS]** ❌ Returns `Result<Guid>`.
 - **[OPTIMIZE]** ✅ Optimized EF Core query.
 - **[CACHE]** ⚠️ Needs verification.
+==> worksapce bound but havent reach space yet so cant check entityacces
 
 ### UpdateSpaceHandler.cs (Command)
-- **[REALTIME]** ❌ Uses `NotifyWorkspaceAsync`.
+- **[REALTIME]** ❌ Does not broadcast `EntityBatchUpdate`.
 - **[PERM]** ❌ Missing `PermissionService`.
 - **[CQRS]** ✅ Returns `Result`.
 - **[OPTIMIZE]** ✅ Optimized EF Core query.
 - **[CACHE]** ⚠️ Needs verification.
 
 ### DeleteSpaceHandler.cs (Command)
-- **[REALTIME]** ❌ Uses `NotifyWorkspaceAsync`.
+- **[REALTIME]** ❌ Does not broadcast `EntityBatchDelete`.
 - **[PERM]** ❌ Missing `PermissionService`.
 - **[CQRS]** ✅ Returns `Result`.
 - **[OPTIMIZE]** ✅ Optimized EF Core query.
@@ -129,6 +137,8 @@ This ledger acts as a master checklist for every handler in the system against t
 - **[CQRS]** ✅ Returns `Result`.
 - **[OPTIMIZE]** ✅ Optimized EF Core query.
 - **[CACHE]** ⚠️ Needs verification.
+==> added Spaceid for perm purpose need frontend update to catch up with new API
+==> future will fix to refetch instead of relly on memory for record
 
 ### CreateSpaceDocumentHandler.cs (Command)
 - **[REALTIME]** ❌ Does not broadcast `EntityBatchUpdate`.
@@ -136,40 +146,42 @@ This ledger acts as a master checklist for every handler in the system against t
 - **[CQRS]** ✅ Returns `Result`.
 - **[OPTIMIZE]** ✅ Optimized EF Core query.
 - **[CACHE]** ⚠️ Needs verification.
+==> wtf is this flow 
+Summarize Space Checkngi need update to be like what is in BatchUpdate
+--- ==> check hierarchy-api.ts,space-api.ts to check for correct type and type safe
 
----
 
 ## Folder Features
 
 ### CreateFolderHandler.cs (Command)
-- **[REALTIME]** ❌ Uses `NotifyWorkspaceAsync`.
+- **[REALTIME]** ❌ Does not broadcast `EntityBatchUpdate`.
 - **[PERM]** ❌ Missing `PermissionService`.
 - **[CQRS]** ❌ Returns `Result<Guid>`.
 - **[OPTIMIZE]** ✅ Optimized EF Core query.
 - **[CACHE]** ⚠️ Needs verification.
 
 ### UpdateFolderHandler.cs (Command)
-- **[REALTIME]** ❌ Uses `NotifyWorkspaceAsync`.
+- **[REALTIME]** ❌ Does not broadcast `EntityBatchUpdate`.
 - **[PERM]** ❌ Missing `PermissionService`.
 - **[CQRS]** ✅ Returns `Result`.
 - **[OPTIMIZE]** ✅ Optimized EF Core query.
 - **[CACHE]** ⚠️ Needs verification.
 
 ### DeleteFolderHandler.cs (Command)
-- **[REALTIME]** ❌ Uses `NotifyWorkspaceAsync`.
+- **[REALTIME]** ❌ Does not broadcast `EntityBatchDelete`.
 - **[PERM]** ❌ Missing `PermissionService`.
 - **[CQRS]** ✅ Returns `Result`.
 - **[OPTIMIZE]** ✅ Optimized EF Core query.
 - **[CACHE]** ⚠️ Needs verification.
 
 ### BatchUpdateFolderTasksHandler.cs (Command)
-- **[REALTIME]** ❌ Uses `NotifyWorkspaceAsync`.
+- **[REALTIME]** ❌ Does not broadcast `EntityBatchUpdate`.
 - **[PERM]** ❌ Missing `PermissionService`.
 - **[CQRS]** ✅ Returns `Result`.
 - **[OPTIMIZE]** ✅ Optimized EF Core query.
 - **[CACHE]** ⚠️ Needs verification.
 
----
+--- ==> check hierarchy-api.ts,folder-api.ts to check for correct type and type safe
 
 ## Task Features
 
@@ -232,7 +244,7 @@ This ledger acts as a master checklist for every handler in the system against t
 - **[OPTIMIZE]** ✅ Uses `FirstOrDefaultAsync`.
 - **[CACHE]** ⚠️ Needs verification.
 
----
+--- ==> overall  need fixing in permmission service missing edgecase on if the creator of item get revoke access on space layer , and redudnt worksapceid check of item on feature handler is redudant cause DbCobtext already caught this
 
 ## Workflow Features
 

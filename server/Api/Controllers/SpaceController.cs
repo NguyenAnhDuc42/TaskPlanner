@@ -15,7 +15,7 @@ namespace Api
         [HttpPost]
         public async Task<IActionResult> Create([FromBody] CreateSpaceCommand command, CancellationToken cancellationToken)
         {
-            var result = await _handler.SendAsync<CreateSpaceCommand, Guid>(command, cancellationToken);
+            var result = await _handler.SendAsync(command, cancellationToken);
             return result.ToActionResult();
         }
 
@@ -49,10 +49,10 @@ namespace Api
             return result.ToActionResult();
         }
 
-        [HttpPost("batch-update")]
-        public async Task<IActionResult> BatchUpdate([FromBody] BatchUpdateSpaceItemsCommand command, CancellationToken cancellationToken)
+        [HttpPost("{id:guid}/batch-update")]
+        public async Task<IActionResult> BatchUpdate(Guid id, [FromBody] BatchUpdateSpaceItemsCommand command, CancellationToken cancellationToken)
         {
-            var result = await _handler.SendAsync(command, cancellationToken);
+            var result = await _handler.SendAsync(command with { SpaceId = id }, cancellationToken);
             return result.ToActionResult();
         }
 

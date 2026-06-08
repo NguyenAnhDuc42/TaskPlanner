@@ -40,6 +40,13 @@ public class WorkspaceMember : Entity
     public static WorkspaceMember CreateOwner(Guid userId, Guid projectWorkspaceId, Guid createdBy, Theme theme = Theme.Dark)
         => new(userId, projectWorkspaceId, Role.Owner, MembershipStatus.Active, createdBy, "Created", theme);
 
+    public void Update(Role? role, MembershipStatus? status)
+    {
+        if (role.HasValue) Role = role.Value;
+        if (status.HasValue) Status = status.Value;
+        UpdatedAt = DateTimeOffset.UtcNow;
+    }
+
     public void ApproveMembership()
     {
         Status = MembershipStatus.Active;

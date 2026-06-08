@@ -38,6 +38,18 @@ public record MemberRecord
     public MembershipStatus? Status { get; init; }
     public DateTimeOffset? CreatedAt { get; init; }
     public DateTimeOffset? JoinedAt { get; init; }
+
+    public static MemberRecord FromDomain(WorkspaceMember wm, User user) => new()
+    {
+        Id = user.Id,
+        WorkspaceMemberId = wm.Id,
+        Name = user.Name,
+        Email = user.Email,
+        Role = wm.Role,
+        Status = wm.Status,
+        CreatedAt = wm.CreatedAt,
+        JoinedAt = wm.JoinedAt
+    };
 }
 
 
@@ -50,19 +62,29 @@ public record SpaceRecord
     public string? Icon { get; init; }
     public bool IsPrivate { get; init; }
     public string? OrderKey { get; init; }
-    // Detailed properties
-    public string? Description { get; init; }
-    public Guid? ParentWorkflowId { get; init; }
     public Guid? WorkflowId { get; init; }
-    public Guid? StatusId { get; init; }
     public Guid? DefaultDocumentId { get; init; }
-    public DateTimeOffset? StartDate { get; init; }
-    public DateTimeOffset? DueDate { get; init; }
     public DateTimeOffset? CreatedAt { get; init; }
     public Guid? CreatorId { get; init; }
-    public List<Guid>? MemberIds { get; init; } = null;
     public bool? HasFolders { get; init; }
     public bool? HasTasks { get; init; }
+
+    public static SpaceRecord FromDomain(ProjectSpace s,Guid? workflowId) => new()
+    {
+        Id = s.Id,
+        WorkspaceId = s.ProjectWorkspaceId,
+        Name = s.Name,
+        Color = s.Color,
+        Icon = s.Icon,
+        IsPrivate = s.IsPrivate,
+        OrderKey = s.OrderKey,
+        WorkflowId = workflowId ,
+        DefaultDocumentId = s.DefaultDocumentId,
+        CreatedAt = s.CreatedAt,
+        CreatorId = s.CreatorId,
+        HasFolders = null,
+        HasTasks = null
+    };
 }
 
 public record EntityAccessRecord
@@ -72,4 +94,13 @@ public record EntityAccessRecord
     public Guid WorkspaceMemberId { get; init; }
     public AccessLevel AccessLevel { get; init; }
     public bool HaveAccess { get; init; }
+
+    public static EntityAccessRecord FromDomain(EntityAccess ea) => new()
+    {
+        Id = ea.Id,
+        SpaceId = ea.ProjectSpaceId,
+        WorkspaceMemberId = ea.WorkspaceMemberId,
+        AccessLevel = ea.AccessLevel,
+        HaveAccess = true
+    };
 }
