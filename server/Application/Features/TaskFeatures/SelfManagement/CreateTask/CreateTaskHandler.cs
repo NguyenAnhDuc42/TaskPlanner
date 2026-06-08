@@ -1,10 +1,13 @@
 using Microsoft.EntityFrameworkCore;
 namespace Application;
 
-public class CreateTaskHandler(TaskPlanDbContext db, WorkspaceContext context, RealtimeService realtimeService) : ICommandHandler<CreateTaskCommand, Guid>
+public class CreateTaskHandler(TaskPlanDbContext db, WorkspaceContext workspaceContext, PermissionService permissionService, RealtimeService realtimeService) : ICommandHandler<CreateTaskCommand>
 {
-    public async Task<Result<Guid>> Handle(CreateTaskCommand request, CancellationToken ct)
+    public async Task<Result> Handle(CreateTaskCommand request, CancellationToken ct)
     {
+
+        var hasPermission = await VerifyPermission(request.ParentType, request.ParentId, permissionService, ct);
+        if (!hasPermission) return Result.Failure(MemberError.DontHavePermission);
         var ancestors = await HierarchyHelper.GetAncestorChain(db, request.ParentId, request.ParentType, ct);
 
         var result = await db.ExecuteInTransactionAsync(async () =>
@@ -16,27 +19,15 @@ public class CreateTaskHandler(TaskPlanDbContext db, WorkspaceContext context, R
                 _ => FractionalIndex.Start()
             };
 
-            if (request.StatusId.HasValue)
-            {
-                var isValidStatus = await db.Statuses.AnyAsync(s => 
-                    s.Id == request.StatusId.Value && 
-                    s.ProjectWorkspaceId == ancestors.ProjectWorkspaceId, ct);
-
-                if (!isValidStatus)
-                    return Result<Guid>.Failure(Error.Validation("Task.InvalidStatus", "The requested status does not exist or does not belong to this workspace."));
-            }
-
             var slug = SlugHelper.GenerateSlug(request.Name);
 
-            // 1. Create the primary document for this task
             var document = Document.Create(
                 ancestors.ProjectWorkspaceId,
                 request.Name, // Doc name matches task name initially
-                context.CurrentMember.Id
+                workspaceContext.CurrentMember.Id
             );
             await db.Documents.AddAsync(document, ct);
 
-            // 2. Create the task linked to the document
             var task = ProjectTask.Create(
                 projectWorkspaceId: ancestors.ProjectWorkspaceId,
                 projectSpaceId: ancestors.ProjectSpaceId,
@@ -46,7 +37,7 @@ public class CreateTaskHandler(TaskPlanDbContext db, WorkspaceContext context, R
                 defaultDocumentId: document.Id,
                 color: request.Color ?? "#FFFFFF",
                 icon: request.Icon,
-                creatorId: context.CurrentMember.Id,
+                creatorId: workspaceContext.CurrentMember.Id,
                 statusId: request.StatusId,
                 priority: request.Priority,
                 startDate: request.StartDate,
@@ -58,7 +49,6 @@ public class CreateTaskHandler(TaskPlanDbContext db, WorkspaceContext context, R
 
             await db.ProjectTasks.AddAsync(task, ct);
 
-            // Assignments
             if (request.AssigneeIds?.Any() == true)
             {
                 var memberIds = await db.WorkspaceMembers
@@ -66,16 +56,16 @@ public class CreateTaskHandler(TaskPlanDbContext db, WorkspaceContext context, R
                     .Select(wm => wm.Id)
                     .ToListAsync(ct);
 
-                var assignments = memberIds.Select(m => TaskAssignment.Create(task.Id, m, context.CurrentMember.Id)).ToList();
+                var assignments = memberIds.Select(m => TaskAssignment.Create(task.Id, m, workspaceContext.CurrentMember.Id)).ToList();
                 task.AddAsignees(assignments);
             }
 
-            return Result<Guid>.Success(task.Id);
+            return Result.Success();
         }, ct);
 
         if (result.IsSuccess)
         {
-            await realtimeService.NotifyWorkspaceAsync(context.workspaceId, "TaskUpdated", new { TaskId = result.Value, FolderId = request.ParentId }, ct);
+            await realtimeService.NotifyWorkspaceAsync(workspaceContext.WorkspaceId, "TaskUpdated", new { TaskId = result.Value, FolderId = request.ParentId }, ct);
         }
 
         return result;
@@ -83,14 +73,48 @@ public class CreateTaskHandler(TaskPlanDbContext db, WorkspaceContext context, R
 
     private async Task<string> ResolveFolderOrderKey(Guid folderId, CancellationToken ct)
     {
-        var maxKey = await db.ProjectTasks.ByFolder(folderId).WhereNotDeleted().MaxAsync(t => (string?)t.OrderKey, ct);
+        var maxKey = await db.ProjectTasks.AsNoTracking().Where(t => t.ProjectFolderId == folderId).MaxAsync(t => (string?)t.OrderKey, ct);
         return maxKey is null ? FractionalIndex.Start() : FractionalIndex.After(maxKey);
     }
 
     private async Task<string> ResolveSpaceOrderKey(Guid spaceId, CancellationToken ct)
     {
-        var maxKey = await db.ProjectTasks.BySpace(spaceId).Where(t => t.ProjectFolderId == null).WhereNotDeleted().MaxAsync(t => (string?)t.OrderKey, ct);
+        var maxKey = await db.ProjectTasks.AsNoTracking().Where(t => t.ProjectSpaceId == spaceId).MaxAsync(t => (string?)t.OrderKey, ct);
         return maxKey is null ? FractionalIndex.Start() : FractionalIndex.After(maxKey);
+    }
+
+    private async Task<bool> VerifyPermission(EntityLayerType entityType, Guid entityId, PermissionService permissionService, CancellationToken cancellationToken)
+    {
+        switch (entityType)
+        {
+            case EntityLayerType.ProjectFolder:
+                var isFolderCreator = await db.ProjectFolders
+                    .AsNoTracking()
+                    .Where(f => f.Id == entityId && f.DeletedAt == null)
+                    .Select(f => new { f.CreatorId })
+                    .FirstOrDefaultAsync(cancellationToken);
+                if (isFolderCreator?.CreatorId != workspaceContext.CurrentMember.Id)
+                {
+                    var hasAccess = await permissionService.VerifyAsync(Role.Member, entityId, AccessLevel.Editor, cancellationToken);
+                    if (!hasAccess) return false;
+                }
+                break;
+            case EntityLayerType.ProjectSpace:
+                var isSpaceCreator = await db.ProjectSpaces
+                    .AsNoTracking()
+                    .Where(s => s.Id == entityId && s.DeletedAt == null)
+                    .Select(s => new { s.CreatorId })
+                    .FirstOrDefaultAsync(cancellationToken);
+                if (isSpaceCreator?.CreatorId != workspaceContext.CurrentMember.Id)
+                {
+                    var hasAccess = await permissionService.VerifyAsync(Role.Member, entityId, AccessLevel.Editor, cancellationToken);
+                    if (!hasAccess) return false;
+                }
+                break;
+            default:
+                return false;
+        }
+        return false;
     }
 
 }

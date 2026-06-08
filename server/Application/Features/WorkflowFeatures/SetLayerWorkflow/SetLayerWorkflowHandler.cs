@@ -16,7 +16,7 @@ public class SetLayerWorkflowHandler(TaskPlanDbContext db, WorkspaceContext cont
         var workflow = await db.Workflows.FirstOrDefaultAsync(w => w.Id == request.WorkflowId.Value, ct);
         if (workflow == null) return Result.Failure(Error.NotFound("Workflow.NotFound", "Workflow not found."));
 
-        if (workflow.ProjectWorkspaceId != context.workspaceId)
+        if (workflow.ProjectWorkspaceId != context.WorkspaceId)
             return Result.Failure(MemberError.DontHavePermission);
 
         // Maintain "1 layer 1 workflow" by unassigning any existing workflow for this target

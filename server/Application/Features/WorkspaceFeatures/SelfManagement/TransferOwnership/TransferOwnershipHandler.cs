@@ -12,8 +12,8 @@ public class TransferOwnershipHandler(TaskPlanDbContext db, WorkspaceContext con
         if (request.NewOwnerId == context.CurrentMember.UserId)
             return Result.Failure(Error.Validation("Workspace.TransferSameUser", "Cannot transfer ownership to yourself"));
 
-        var currentOwner = await db.WorkspaceMembers.FirstOrDefaultAsync(m => m.UserId == context.CurrentMember.UserId && m.ProjectWorkspaceId == context.workspaceId, ct);
-        var newOwner = await db.WorkspaceMembers.FirstOrDefaultAsync(m => m.UserId == request.NewOwnerId && m.ProjectWorkspaceId == context.workspaceId, ct);
+        var currentOwner = await db.WorkspaceMembers.FirstOrDefaultAsync(m => m.UserId == context.CurrentMember.UserId && m.ProjectWorkspaceId == context.WorkspaceId, ct);
+        var newOwner = await db.WorkspaceMembers.FirstOrDefaultAsync(m => m.UserId == request.NewOwnerId && m.ProjectWorkspaceId == context.WorkspaceId, ct);
 
         if (currentOwner == null || currentOwner.Role != Role.Owner) return Result.Failure(Error.Forbidden("Workspace.Forbidden", "Only the workspace owner can transfer ownership"));
         if (newOwner == null) return Result.Failure(Error.Validation("Workspace.NewOwnerNotFound", "New owner not found in workspace"));

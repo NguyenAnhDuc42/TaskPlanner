@@ -21,7 +21,7 @@ public class ReorderStatusesHandler(TaskPlanDbContext db, WorkspaceContext conte
 
         if (affected > 0)
         {
-            await realtime.NotifyWorkspaceAsync(context.workspaceId, "StatusOrderChanged", new { 
+            await realtime.NotifyWorkspaceAsync(context.WorkspaceId, "StatusOrderChanged", new { 
                 request.StatusId, 
                 NewOrderKey = newOrderKey 
             }, ct);

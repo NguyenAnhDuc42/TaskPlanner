@@ -6,7 +6,7 @@ public class GetSpaceItemsHandler(TaskPlanDbContext db, WorkspaceContext workspa
 {
     public async Task<Result<GetSpaceItemsResponse>> Handle(GetSpaceItemsQuery request, CancellationToken cancellationToken)
     {
-        var workspaceId = workspaceContext.workspaceId;
+        var workspaceId = workspaceContext.WorkspaceId;
 
         var activeWorkflow = await WorkflowHelper.GetActiveWorkflow(db, workspaceId, 
             request.SpaceId, 

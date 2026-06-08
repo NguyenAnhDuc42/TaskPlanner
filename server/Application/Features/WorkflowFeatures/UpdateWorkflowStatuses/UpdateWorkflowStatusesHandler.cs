@@ -66,15 +66,15 @@ public class UpdateWorkflowStatusesHandler(
         await db.SaveChangesAsync(cancellationToken);
 
         await cache.RemoveByTagAsync(
-            $"Workflows-{context.workspaceId}",
+            $"Workflows-{context.WorkspaceId}",
             cancellationToken);
 
         await cache.RemoveByTagAsync(
-            $"Statuses-{context.workspaceId}",
+            $"Statuses-{context.WorkspaceId}",
             cancellationToken);
 
         await realtime.NotifyWorkspaceAsync(
-            context.workspaceId,
+            context.WorkspaceId,
             "WorkflowUpdated",
             new { WorkflowId = workflow.Id },
             cancellationToken);

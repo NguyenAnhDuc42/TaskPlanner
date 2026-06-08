@@ -22,7 +22,7 @@ public class GetCommentsHandler(TaskPlanDbContext db, WorkspaceContext workspace
 
         var parameters = new {
             TaskId = request.TaskId,
-            WorkspaceId = workspaceContext.workspaceId
+            WorkspaceId = workspaceContext.WorkspaceId
         };
 
         var connection = db.Database.GetDbConnection();

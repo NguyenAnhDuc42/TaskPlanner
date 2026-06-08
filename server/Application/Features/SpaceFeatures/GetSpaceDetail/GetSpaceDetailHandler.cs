@@ -3,23 +3,6 @@ using Dapper;
 
 namespace Application;
 
-public class SpaceDetailRow
-{
-    public Guid Id { get; init; }
-    public Guid ProjectWorkspaceId { get; init; }
-    public string Name { get; init; } = null!;
-    public string? Color { get; init; }
-    public string? Icon { get; init; }
-    public bool IsPrivate { get; init; }
-    public bool IsArchived { get; init; }
-    public Guid? ParentWorkflowId { get; init; }
-    public Guid? WorkflowId { get; init; }
-    public Guid? DefaultDocumentId { get; init; }
-    public DateTimeOffset? CreatedAt { get; init; }
-    public string? Description { get; init; }
-    public Guid? CreatorId { get; init; }
-}
-
 public class GetSpaceDetailHandler(TaskPlanDbContext db, WorkspaceContext workspaceContext) : IQueryHandler<GetSpaceDetailQuery, SpaceRecord>
 {
     public async Task<Result<SpaceRecord>> Handle(GetSpaceDetailQuery request, CancellationToken ct)
@@ -42,10 +25,10 @@ public class GetSpaceDetailHandler(TaskPlanDbContext db, WorkspaceContext worksp
         var parameters = new
         {
             SpaceId = request.SpaceId,
-            WorkspaceId = workspaceContext.workspaceId
+            WorkspaceId = workspaceContext.WorkspaceId
         };
 
-        var row = await connection.QueryFirstOrDefaultAsync<SpaceDetailRow>(sql, parameters);
+        var row = await connection.QueryFirstOrDefaultAsync<SpaceRecord>(sql, parameters);
         
         if (row == null)
             return Result<SpaceRecord>.Failure(Error.NotFound("Space.NotFound", $"Space {request.SpaceId} not found"));
@@ -53,18 +36,15 @@ public class GetSpaceDetailHandler(TaskPlanDbContext db, WorkspaceContext worksp
         var space = new SpaceRecord
         {
             Id = row.Id,
-            WorkspaceId = workspaceContext.workspaceId,
+            WorkspaceId = workspaceContext.WorkspaceId,
             Name = row.Name,
             Color = row.Color,
             Icon = row.Icon,
             IsPrivate = row.IsPrivate,
-            ParentWorkflowId = row.ParentWorkflowId,
             WorkflowId = row.WorkflowId,
             DefaultDocumentId = row.DefaultDocumentId,
             CreatedAt = row.CreatedAt,
-            Description = row.Description,
             CreatorId = row.CreatorId,
-            MemberIds = new List<Guid>()
         };
 
         return Result<SpaceRecord>.Success(space);

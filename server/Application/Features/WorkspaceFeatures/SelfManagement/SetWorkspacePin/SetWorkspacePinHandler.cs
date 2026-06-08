@@ -18,7 +18,7 @@ public class SetWorkspacePinHandler(
         
         // 1. Membership Check
         var member = context.CurrentMember;
-        if (member == null || context.workspaceId != request.WorkspaceId)
+        if (member == null || context.WorkspaceId != request.WorkspaceId)
         {
             member = await db.WorkspaceMembers
                 .ByWorkspace(request.WorkspaceId)

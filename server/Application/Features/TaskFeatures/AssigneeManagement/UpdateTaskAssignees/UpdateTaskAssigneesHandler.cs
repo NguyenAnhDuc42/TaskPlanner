@@ -72,7 +72,7 @@ public class UpdateTaskAssigneesHandler(
                     WorkspaceMemberId = a.WorkspaceMemberId
                 }).ToList()
             };
-            await realtime.NotifyEntitiesUpdatedAsync(context.workspaceId, updatePayload, ct);
+            await realtime.NotifyEntitiesUpdatedAsync(context.WorkspaceId, updatePayload, ct);
         }
 
         if (deletedAssigneeIds.Count > 0)
@@ -81,7 +81,7 @@ public class UpdateTaskAssigneesHandler(
             {
                 AssigneeIds = deletedAssigneeIds
             };
-            await realtime.NotifyEntitiesDeletedAsync(context.workspaceId, deletePayload, ct);
+            await realtime.NotifyEntitiesDeletedAsync(context.WorkspaceId, deletePayload, ct);
         }
 
         return Result.Success();

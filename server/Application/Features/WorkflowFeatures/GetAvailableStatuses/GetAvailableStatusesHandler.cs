@@ -7,7 +7,7 @@ public class GetAvailableStatusesHandler(TaskPlanDbContext db, WorkspaceContext 
 {
     public async Task<Result<List<StatusRecord>>> Handle(GetAvailableStatusesQuery request, CancellationToken ct)
     {
-        var cacheKey = $"AvailableStatuses-{context.workspaceId}-{request.SpaceId}-{request.FolderId}";
+        var cacheKey = $"AvailableStatuses-{context.WorkspaceId}-{request.SpaceId}-{request.FolderId}";
         
         var response = await cache.GetOrCreateAsync(
             cacheKey,
@@ -15,7 +15,7 @@ public class GetAvailableStatusesHandler(TaskPlanDbContext db, WorkspaceContext 
             {
                 var statuses = await WorkflowHelper.GetActiveStatuses(
                     db, 
-                    context.workspaceId, 
+                    context.WorkspaceId, 
                     request.SpaceId, 
                     request.FolderId, 
                     cancelToken);
@@ -24,7 +24,7 @@ public class GetAvailableStatusesHandler(TaskPlanDbContext db, WorkspaceContext 
                     .Select(s => new StatusRecord { Id = s.Id, Name = s.Name, Color = s.Color, Category = s.Category })
                     .ToList();
             },
-            tags: [$"Statuses-{context.workspaceId}"],
+            tags: [$"Statuses-{context.WorkspaceId}"],
             cancellationToken: ct
         );
 

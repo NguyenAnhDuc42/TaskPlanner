@@ -37,7 +37,7 @@ public class GetTaskDetailHandler(TaskPlanDbContext db, WorkspaceContext workspa
         var connection = db.Database.GetDbConnection();
         var parameters = new {
             TaskId = request.TaskId,
-            WorkspaceId = workspaceContext.workspaceId
+            WorkspaceId = workspaceContext.WorkspaceId
         };
 
         var task = await connection.QueryFirstOrDefaultAsync<TaskRecord>(sql, parameters);

@@ -9,7 +9,7 @@ public class GetWorkspaceWorkflowsHandler(TaskPlanDbContext db, WorkspaceContext
 {
     public async Task<Result<List<WorkflowRecord>>> Handle(GetWorkspaceWorkflowsQuery request, CancellationToken ct)
     {
-        var cacheKey = $"Workflows-{workspaceContext.workspaceId}-{request.LayerType}-{request.LayerId}";
+        var cacheKey = $"Workflows-{workspaceContext.WorkspaceId}-{request.LayerType}-{request.LayerId}";
         
         var result = await cache.GetOrCreateAsync(
             cacheKey,
@@ -31,7 +31,7 @@ public class GetWorkspaceWorkflowsHandler(TaskPlanDbContext db, WorkspaceContext
                 var connection = db.Database.GetDbConnection();
                 var parameters = new
                 {
-                    WorkspaceId = workspaceContext.workspaceId,
+                    WorkspaceId = workspaceContext.WorkspaceId,
                     LayerId = request.LayerId,
                     LayerType = request.LayerType
                 };
@@ -57,7 +57,7 @@ public class GetWorkspaceWorkflowsHandler(TaskPlanDbContext db, WorkspaceContext
                         }).ToList()
                     }).ToList();
             },
-            tags: [$"Workflows-{workspaceContext.workspaceId}"],
+            tags: [$"Workflows-{workspaceContext.WorkspaceId}"],
             cancellationToken: ct
         );
 

@@ -20,7 +20,7 @@ public class MoveItemHandler(TaskPlanDbContext db, WorkspaceContext context, Rea
 
         if (result.IsSuccess)
         {
-            await realtime.NotifyWorkspaceAsync(context.workspaceId, "HierarchyChanged", new { 
+            await realtime.NotifyWorkspaceAsync(context.WorkspaceId, "HierarchyChanged", new { 
                 request.ItemId, 
                 request.ItemType, 
                 request.TargetParentId, 
@@ -56,7 +56,7 @@ public class MoveItemHandler(TaskPlanDbContext db, WorkspaceContext context, Rea
         {
             EntityLayerType.ProjectSpace => await db.ProjectSpaces
                                  .AsNoTracking()
-                                 .ByWorkspace(context.workspaceId)
+                                 .ByWorkspace(context.WorkspaceId)
                                  .MaxAsync(s => s.OrderKey, ct),
 
             EntityLayerType.ProjectFolder => await db.ProjectFolders
@@ -77,7 +77,7 @@ public class MoveItemHandler(TaskPlanDbContext db, WorkspaceContext context, Rea
     private async Task<Result> MoveSpace(Guid spaceId, string newOrderKey, CancellationToken ct)
     {
         var affected = await db.ProjectSpaces
-            .Where(s => s.Id == spaceId && s.ProjectWorkspaceId == context.workspaceId)
+            .Where(s => s.Id == spaceId && s.ProjectWorkspaceId == context.WorkspaceId)
             .ExecuteUpdateAsync(u => u.SetProperty(s => s.OrderKey, newOrderKey)
                                       .SetProperty(s => s.UpdatedAt, DateTimeOffset.UtcNow), ct);
 

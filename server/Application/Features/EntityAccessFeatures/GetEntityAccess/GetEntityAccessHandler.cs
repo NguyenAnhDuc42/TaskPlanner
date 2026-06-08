@@ -22,7 +22,7 @@ public class GetEntityAccessHandler(TaskPlanDbContext db,WorkspaceContext worksp
 
         var connection = db.Database.GetDbConnection();
         var entityAccess = (await connection.QueryAsync<EntityAccessRecord>(
-            query, new { WorkspaceId = workspaceContext.workspaceId, SpaceId = request.SpaceId })).AsList();
+            query, new { WorkspaceId = workspaceContext.WorkspaceId, SpaceId = request.SpaceId })).AsList();
 
         return Result<IReadOnlyList<EntityAccessRecord>>.Success(entityAccess);
     }

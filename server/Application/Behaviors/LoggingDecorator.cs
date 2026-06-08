@@ -16,7 +16,7 @@ public static class LoggingDecorator
         {
             var requestName = typeof(TQuery).Name;
             var userId = context.CurrentMember?.UserId;
-            var workspaceId = context.TryGetWorkspaceId().IsSuccess ? context.workspaceId : (Guid?)null;
+            var workspaceId = context.TryGetWorkspaceId().IsSuccess ? context.WorkspaceId : (Guid?)null;
 
             using (LogContext.PushProperty("UserId", userId))
             using (LogContext.PushProperty("WorkspaceId", workspaceId))
@@ -55,7 +55,7 @@ public static class LoggingDecorator
         {
             var requestName = typeof(TCommand).Name;
             var userId = context.CurrentMember?.UserId;
-            var workspaceId = context.TryGetWorkspaceId().IsSuccess ? context.workspaceId : (Guid?)null;
+            var workspaceId = context.TryGetWorkspaceId().IsSuccess ? context.WorkspaceId : (Guid?)null;
 
             using (LogContext.PushProperty("UserId", userId))
             using (LogContext.PushProperty("WorkspaceId", workspaceId))
@@ -94,7 +94,7 @@ public static class LoggingDecorator
         {
             var requestName = typeof(TCommand).Name;
             var userId = context.CurrentMember?.UserId;
-            var workspaceId = context.TryGetWorkspaceId().IsSuccess ? context.workspaceId : (Guid?)null;
+            var workspaceId = context.TryGetWorkspaceId().IsSuccess ? context.WorkspaceId : (Guid?)null;
 
             using (LogContext.PushProperty("UserId", userId))
             using (LogContext.PushProperty("WorkspaceId", workspaceId))

@@ -8,7 +8,7 @@ public class EntityAccessBatchHandler(TaskPlanDbContext db,WorkspaceContext work
    
     public async Task<Result> Handle(EntityAccessBatchCommand request, CancellationToken cancellationToken)
     {
-        var space = await db.ProjectSpaces.FirstOrDefaultAsync(x => x.Id == request.SpaceId && x.ProjectWorkspaceId == workspaceContext.workspaceId, cancellationToken);
+        var space = await db.ProjectSpaces.FirstOrDefaultAsync(x => x.Id == request.SpaceId && x.ProjectWorkspaceId == workspaceContext.WorkspaceId, cancellationToken);
         if (space is null) return Result.Failure(Error.NotFound("Space.NotFound", "Space not found"));
 
         var deleteAccess = request.Rows.Where(r => r.Action == RowAction.Delete).ToList();
@@ -74,7 +74,7 @@ public class EntityAccessBatchHandler(TaskPlanDbContext db,WorkspaceContext work
         {
             var createMemberIds = createAccess.Select(r => r.MemberId).ToList();
             var validWorkspaceMembers = await db.WorkspaceMembers
-                .Where(wm => wm.ProjectWorkspaceId == workspaceContext.workspaceId && createMemberIds.Contains(wm.Id))
+                .Where(wm => wm.ProjectWorkspaceId == workspaceContext.WorkspaceId && createMemberIds.Contains(wm.Id))
                 .Select(wm => wm.Id)
                 .ToListAsync(cancellationToken);
 
@@ -85,7 +85,7 @@ public class EntityAccessBatchHandler(TaskPlanDbContext db,WorkspaceContext work
 
         var newAccess = createAccess
             .Select(row => EntityAccess.Create(
-                workspaceContext.workspaceId,
+                workspaceContext.WorkspaceId,
                 row.MemberId,
                 request.SpaceId,
                 projectFolderId: null,

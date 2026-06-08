@@ -12,9 +12,7 @@ public class CreateFolderHandler(
     {
         var space = await db.ProjectSpaces
              .AsNoTracking()
-             .Where(s => s.Id == request.SpaceId
-                      && s.ProjectWorkspaceId == workspaceContext.WorkspaceId
-                      && s.DeletedAt == null)
+             .Where(s => s.Id == request.SpaceId && s.DeletedAt == null)
              .Select(s => new { s.Id, s.CreatorId })
              .FirstOrDefaultAsync(cancellationToken);
         if (space is null) return Result.Failure(SpaceError.NotFound);

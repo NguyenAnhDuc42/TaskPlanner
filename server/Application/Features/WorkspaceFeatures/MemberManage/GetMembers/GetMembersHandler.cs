@@ -1,8 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Hybrid;
-using Microsoft.Extensions.Logging;
 using System.Text.Json;
-using NpgsqlTypes;
 using Dapper;
 
 namespace Application;
@@ -16,7 +14,7 @@ public class GetMembersHandler(
 {
     public async Task<Result<PagedResult<MemberRecord>>> Handle(GetMembersQuery request, CancellationToken cancellationToken)
     {
-        var workspaceId = context.workspaceId;
+        var workspaceId = context.WorkspaceId;
         var cacheKey = WorkspaceCacheKeys.MemberList(workspaceId, request);
 
         var result = await cache.GetOrCreateAsync(cacheKey, async token =>

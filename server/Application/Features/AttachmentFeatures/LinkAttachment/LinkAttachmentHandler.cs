@@ -15,7 +15,7 @@ public class LinkAttachmentHandler(TaskPlanDbContext db, WorkspaceContext contex
             return Result.Failure(AttachmentError.NotFound);
         
         var link = EntityAssetLink.Create(
-            context.workspaceId,
+            context.WorkspaceId,
             attachment.Id,
             AssetType.Attachment,
             request.ParentEntityType == EntityType.ProjectSpace ? request.ParentEntityId : null,

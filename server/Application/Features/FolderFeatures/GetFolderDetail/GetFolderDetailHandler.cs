@@ -35,7 +35,7 @@ public class GetFolderDetailHandler(TaskPlanDbContext db, WorkspaceContext works
 
         var connection = db.Database.GetDbConnection();
         using var multi = await connection.QueryMultipleAsync(
-            sql, new { FolderId = request.FolderId, WorkspaceId = workspaceContext.workspaceId });
+            sql, new { FolderId = request.FolderId, WorkspaceId = workspaceContext.WorkspaceId });
 
         var folder = await multi.ReadFirstOrDefaultAsync<FolderRecord>();
         if (folder == null)

@@ -53,7 +53,7 @@ public class UpdateDocumentBlocksHandler(TaskPlanDbContext db, WorkspaceContext 
 
         // 5. EXECUTE ADDS
         var newBlocks = toAddItems.Select(item => DocumentBlock.Create(
-            context.workspaceId, 
+            context.WorkspaceId, 
             request.DocumentId, 
             item.BlockType ?? BlockType.Paragraph, 
             item.Content ?? string.Empty, 

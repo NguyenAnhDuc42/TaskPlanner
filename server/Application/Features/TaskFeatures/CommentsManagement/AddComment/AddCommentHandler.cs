@@ -8,7 +8,7 @@ public class AddCommentHandler(TaskPlanDbContext db, WorkspaceContext workspaceC
     public async Task<Result<CommentRecord>> Handle(AddCommentCommand request, CancellationToken cancellationToken)
     {
         var taskExists = await db.ProjectTasks
-            .AnyAsync(t => t.Id == request.TaskId && t.ProjectWorkspaceId == workspaceContext.workspaceId && t.DeletedAt == null, cancellationToken);
+            .AnyAsync(t => t.Id == request.TaskId && t.ProjectWorkspaceId == workspaceContext.WorkspaceId && t.DeletedAt == null, cancellationToken);
         
         if (!taskExists)
             return Result<CommentRecord>.Failure(Error.NotFound("Task.NotFound", "Task not found."));

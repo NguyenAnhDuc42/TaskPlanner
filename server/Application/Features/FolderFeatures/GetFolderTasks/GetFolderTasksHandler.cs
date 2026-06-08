@@ -38,7 +38,7 @@ public class GetFolderTasksHandler(
         var template = builder.AddTemplate(BaseSelect);
         var parameters = new DynamicParameters();
 
-        ApplyBaseFilters(builder, parameters, workspaceContext.workspaceId, request.FolderId);
+        ApplyBaseFilters(builder, parameters, workspaceContext.WorkspaceId, request.FolderId);
 
         var cursorData = request.Cursor is not null
             ? cursorHelper.DecodeCursor(request.Cursor)

@@ -16,7 +16,7 @@ public class DeleteTaskHandler(TaskPlanDbContext db, WorkspaceContext context, R
         task.SoftDelete();
         await db.SaveChangesAsync(ct);
 
-        await realtimeService.NotifyWorkspaceAsync(context.workspaceId, "TaskUpdated", new { TaskId = task.Id, FolderId = task.ProjectFolderId, SpaceId = task.ProjectSpaceId }, ct);
+        await realtimeService.NotifyWorkspaceAsync(context.WorkspaceId, "TaskUpdated", new { TaskId = task.Id, FolderId = task.ProjectFolderId, SpaceId = task.ProjectSpaceId }, ct);
 
         return Result.Success();
     }

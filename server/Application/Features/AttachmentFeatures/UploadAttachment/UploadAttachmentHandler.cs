@@ -30,7 +30,7 @@ public class UploadAttachmentHandler(TaskPlanDbContext db, WorkspaceContext cont
             Guid? commentId = request.EntityType == EntityType.Comment ? request.ParentEntityId : null;
 
             var link = EntityAssetLink.Create(
-                context.workspaceId,
+                context.WorkspaceId,
                 attachment.Id,
                 AssetType.Attachment,
                 spaceId,
@@ -55,7 +55,7 @@ public class UploadAttachmentHandler(TaskPlanDbContext db, WorkspaceContext cont
         if (req.File == null) throw new ArgumentNullException(nameof(req.File));
         var checksum = await CalculateChecksumAsync(req.File.OpenReadStream());
         return Attachment.CreateFile(
-            context.workspaceId,
+            context.WorkspaceId,
             req.File.FileName,
             req.File.ContentType,
             req.File.Length,
@@ -70,7 +70,7 @@ public class UploadAttachmentHandler(TaskPlanDbContext db, WorkspaceContext cont
         var checksum = await CalculateChecksumAsync(req.File.OpenReadStream());
         
         return Attachment.CreateMedia(
-            context.workspaceId,
+            context.WorkspaceId,
             req.File.FileName,
             req.File.ContentType,
             req.File.Length,
@@ -82,7 +82,7 @@ public class UploadAttachmentHandler(TaskPlanDbContext db, WorkspaceContext cont
     private Attachment CreateLinkAttachment(UploadAttachmentCommand req)
     {
         return Attachment.CreateLink(
-            context.workspaceId,
+            context.WorkspaceId,
             req.Url!,
             req.Title ?? "Untitled Link",
             req.Description ?? string.Empty,
@@ -94,7 +94,7 @@ public class UploadAttachmentHandler(TaskPlanDbContext db, WorkspaceContext cont
     private Attachment CreateEmbedAttachment(UploadAttachmentCommand req)
     {
         return Attachment.CreateEmbed(
-            context.workspaceId,
+            context.WorkspaceId,
             req.Url!,
             req.Provider ?? "Unknown",
             req.Title ?? "Untitled Embed",

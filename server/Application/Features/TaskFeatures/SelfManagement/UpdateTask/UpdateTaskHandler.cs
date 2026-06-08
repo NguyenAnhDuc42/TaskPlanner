@@ -15,9 +15,9 @@ public class UpdateTaskHandler(TaskPlanDbContext db, WorkspaceContext context, R
 
         await db.SaveChangesAsync(ct);
 
-        await realtime.NotifyWorkspaceAsync(context.workspaceId, "TaskUpdated", new { 
+        await realtime.NotifyWorkspaceAsync(context.WorkspaceId, "TaskUpdated", new { 
             TaskId = task.Id, 
-            WorkspaceId = context.workspaceId,
+            WorkspaceId = context.WorkspaceId,
             Name = task.Name,
             StatusId = task.StatusId,
             Priority = task.Priority,
