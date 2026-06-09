@@ -3,7 +3,7 @@ namespace Application;
 
 public static class PermissionDecorator
 {
-    private static async Task<Result?> AuthorizeAsync<TRequest>(TRequest request, WorkspaceContext workspaceContext, CurrentUserService currentUserService, TaskPlanDbContext db, CancellationToken ct)
+    private static async Task<Result?> AuthorizeAsync<TRequest>(TRequest request, WorkspaceContext workspaceContext, CurrentUserService currentUserService, TaskPlanDbContext db, CancellationToken cancellationToken)
     {
         if (request is not IAuthorizedWorkspaceRequest)
             return null;
@@ -20,7 +20,7 @@ public static class PermissionDecorator
         var member = await db.WorkspaceMembers
             .AsNoTracking()
             .ByMember(workspaceId, userId)
-            .FirstOrDefaultAsync(ct);
+            .FirstOrDefaultAsync(cancellationToken);
 
         if (member == null)
             return Result.Failure(MemberError.DontHavePermission);
@@ -45,12 +45,12 @@ public static class PermissionDecorator
             _db = db;
         }
 
-        public async Task<Result<TResponse>> Handle(TQuery query, CancellationToken ct)
+        public async Task<Result<TResponse>> Handle(TQuery query, CancellationToken cancellationToken)
         {
-            var authResult = await AuthorizeAsync(query, _workspaceContext, _currentUserService, _db, ct);
+            var authResult = await AuthorizeAsync(query, _workspaceContext, _currentUserService, _db, cancellationToken);
             if (authResult is not null) return Result<TResponse>.Failure(authResult.Error!);
 
-            return await _inner.Handle(query, ct);
+            return await _inner.Handle(query, cancellationToken);
         }
     }
 
@@ -70,12 +70,12 @@ public static class PermissionDecorator
             _db = db;
         }
 
-        public async Task<Result<TResponse>> Handle(TCommand command, CancellationToken ct)
+        public async Task<Result<TResponse>> Handle(TCommand command, CancellationToken cancellationToken)
         {
-            var authResult = await AuthorizeAsync(command, _workspaceContext, _currentUserService, _db, ct);
+            var authResult = await AuthorizeAsync(command, _workspaceContext, _currentUserService, _db, cancellationToken);
             if (authResult is not null) return Result<TResponse>.Failure(authResult.Error!);
 
-            return await _inner.Handle(command, ct);
+            return await _inner.Handle(command, cancellationToken);
         }
     }
 
@@ -95,12 +95,12 @@ public static class PermissionDecorator
             _db = db;
         }
 
-        public async Task<Result> Handle(TCommand command, CancellationToken ct)
+        public async Task<Result> Handle(TCommand command, CancellationToken cancellationToken)
         {
-            var authResult = await AuthorizeAsync(command, _workspaceContext, _currentUserService, _db, ct);
+            var authResult = await AuthorizeAsync(command, _workspaceContext, _currentUserService, _db, cancellationToken);
             if (authResult is not null) return authResult;
 
-            return await _inner.Handle(command, ct);
+            return await _inner.Handle(command, cancellationToken);
         }
     }
 }

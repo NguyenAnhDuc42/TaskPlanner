@@ -3,19 +3,21 @@ namespace Application;
 
 public class CreateTaskHandler(TaskPlanDbContext db, WorkspaceContext workspaceContext, PermissionService permissionService, RealtimeService realtimeService) : ICommandHandler<CreateTaskCommand>
 {
-    public async Task<Result> Handle(CreateTaskCommand request, CancellationToken ct)
+    public async Task<Result> Handle(CreateTaskCommand request, CancellationToken cancellationToken)
     {
 
-        var hasPermission = await VerifyPermission(request.ParentType, request.ParentId, permissionService, ct);
+        var hasPermission = await VerifyPermission(request.ParentType, request.ParentId, permissionService, cancellationToken);
         if (!hasPermission) return Result.Failure(MemberError.DontHavePermission);
-        var ancestors = await HierarchyHelper.GetAncestorChain(db, request.ParentId, request.ParentType, ct);
+        var ancestors = await HierarchyHelper.GetAncestorChain(db, request.ParentId, request.ParentType, cancellationToken);
+        ProjectTask? task = null;
+        List<TaskAssignment> assigee = [];
 
         var result = await db.ExecuteInTransactionAsync(async () =>
         {
             string orderKey = request.ParentType switch
             {
-                EntityLayerType.ProjectFolder => await ResolveFolderOrderKey(request.ParentId, ct),
-                EntityLayerType.ProjectSpace => await ResolveSpaceOrderKey(request.ParentId, ct),
+                EntityLayerType.ProjectFolder => await ResolveFolderOrderKey(request.ParentId, cancellationToken),
+                EntityLayerType.ProjectSpace => await ResolveSpaceOrderKey(request.ParentId, cancellationToken),
                 _ => FractionalIndex.Start()
             };
 
@@ -23,12 +25,12 @@ public class CreateTaskHandler(TaskPlanDbContext db, WorkspaceContext workspaceC
 
             var document = Document.Create(
                 ancestors.ProjectWorkspaceId,
-                request.Name, // Doc name matches task name initially
+                request.Name,
                 workspaceContext.CurrentMember.Id
             );
-            await db.Documents.AddAsync(document, ct);
+            db.Documents.Add(document);
 
-            var task = ProjectTask.Create(
+            task = ProjectTask.Create(
                 projectWorkspaceId: ancestors.ProjectWorkspaceId,
                 projectSpaceId: ancestors.ProjectSpaceId,
                 projectFolderId: ancestors.ProjectFolderId,
@@ -47,29 +49,32 @@ public class CreateTaskHandler(TaskPlanDbContext db, WorkspaceContext workspaceC
                 orderKey: orderKey
             );
 
-            await db.ProjectTasks.AddAsync(task, ct);
+            db.ProjectTasks.Add(task);
+            assigee = await CreateAssignmentsAsync(
+                request,
+                ancestors.ProjectWorkspaceId,
+                task.Id,
+                cancellationToken);
 
-            if (request.AssigneeIds?.Any() == true)
-            {
-                var memberIds = await db.WorkspaceMembers
-                    .Where(wm => wm.ProjectWorkspaceId == ancestors.ProjectWorkspaceId && request.AssigneeIds.Contains(wm.Id) && wm.DeletedAt == null)
-                    .Select(wm => wm.Id)
-                    .ToListAsync(ct);
-
-                var assignments = memberIds.Select(m => TaskAssignment.Create(task.Id, m, workspaceContext.CurrentMember.Id)).ToList();
-                task.AddAsignees(assignments);
-            }
 
             return Result.Success();
-        }, ct);
+        }, cancellationToken);
 
         if (result.IsSuccess)
         {
-            await realtimeService.NotifyWorkspaceAsync(workspaceContext.WorkspaceId, "TaskUpdated", new { TaskId = result.Value, FolderId = request.ParentId }, ct);
+            await realtimeService.NotifyEntitiesUpdatedAsync(
+             workspaceContext.WorkspaceId,
+             new EntityBatchUpdate
+             {
+                 Tasks = [TaskRecord.FromDomain(task!)],
+                 Assignees = assigee.Select(AssigneeRecord.FromDomain).ToList()
+             },
+             cancellationToken);
         }
 
         return result;
     }
+
 
     private async Task<string> ResolveFolderOrderKey(Guid folderId, CancellationToken ct)
     {
@@ -82,6 +87,7 @@ public class CreateTaskHandler(TaskPlanDbContext db, WorkspaceContext workspaceC
         var maxKey = await db.ProjectTasks.AsNoTracking().Where(t => t.ProjectSpaceId == spaceId).MaxAsync(t => (string?)t.OrderKey, ct);
         return maxKey is null ? FractionalIndex.Start() : FractionalIndex.After(maxKey);
     }
+
 
     private async Task<bool> VerifyPermission(EntityLayerType entityType, Guid entityId, PermissionService permissionService, CancellationToken cancellationToken)
     {
@@ -115,6 +121,33 @@ public class CreateTaskHandler(TaskPlanDbContext db, WorkspaceContext workspaceC
                 return false;
         }
         return false;
+    }
+
+    private async Task<List<TaskAssignment>> CreateAssignmentsAsync(CreateTaskCommand request, Guid workspaceId, Guid taskId, CancellationToken cancellationToken)
+    {
+        if (request.AssigneeIds?.Any() != true)
+            return [];
+
+        var memberIds = await db.WorkspaceMembers
+            .Where(wm =>
+                wm.ProjectWorkspaceId == workspaceId &&
+                request.AssigneeIds.Contains(wm.Id) &&
+                wm.DeletedAt == null)
+            .Select(wm => wm.Id)
+            .ToListAsync(cancellationToken);
+
+        var assignments = memberIds
+            .Select(memberId =>
+                TaskAssignment.Create(
+                    taskId,
+                    memberId,
+                    workspaceContext.CurrentMember.Id))
+            .ToList();
+
+        db.TaskAssignments.AddRange(assignments);
+
+
+        return assignments;
     }
 
 }

@@ -25,4 +25,11 @@ public record AssigneeRecord
     public Guid Id { get; init; }
     public Guid TaskId { get; init; }
     public Guid WorkspaceMemberId { get; init; }
+
+    public static AssigneeRecord FromDomain(TaskAssignment a) => new()
+    {
+        Id = a.Id,
+        TaskId = a.ProjectTaskId,
+        WorkspaceMemberId = a.WorkspaceMemberId
+    };
 }

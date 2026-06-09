@@ -1,41 +1,22 @@
 using Microsoft.EntityFrameworkCore;
 namespace Application;
 
-public class UpdateTaskHandler(TaskPlanDbContext db, WorkspaceContext context, RealtimeService realtime) : ICommandHandler<UpdateTaskCommand>
+public class UpdateTaskHandler(TaskPlanDbContext db, WorkspaceContext workspaceContext, PermissionService permissionService, RealtimeService realtimeService) : ICommandHandler<UpdateTaskCommand>
 {
-    public async Task<Result> Handle(UpdateTaskCommand request, CancellationToken ct)
+    public async Task<Result> Handle(UpdateTaskCommand request, CancellationToken cancellationToken)
     {
-        var task = await db.ProjectTasks
-            .FirstOrDefaultAsync(t => t.Id == request.TaskId, ct);
-
+        var task = await db.ProjectTasks.FirstOrDefaultAsync(t => t.Id == request.TaskId && t.DeletedAt == null, cancellationToken);
         if (task == null) return Result.Failure(TaskError.NotFound);
 
-        var statusUpdateResult = await ApplyStatusAndUpdateProperties(task, request, ct);
-        if (!statusUpdateResult.IsSuccess) return statusUpdateResult;
+        var isCreator = task.CreatorId == workspaceContext.CurrentMember.Id;
+        if (!isCreator)
+        {
+            var hasAccess = await permissionService.VerifyAsync(Role.Member, task.ProjectSpaceId, AccessLevel.Editor, cancellationToken);
+            if (!hasAccess) return Result.Failure(MemberError.DontHavePermission);
+        }
 
-        await db.SaveChangesAsync(ct);
-
-        await realtime.NotifyWorkspaceAsync(context.WorkspaceId, "TaskUpdated", new { 
-            TaskId = task.Id, 
-            WorkspaceId = context.WorkspaceId,
-            Name = task.Name,
-            StatusId = task.StatusId,
-            Priority = task.Priority,
-            StoryPoints = task.StoryPoints,
-            TimeEstimate = task.TimeEstimateSeconds,
-            StartDate = task.StartDate,
-            DueDate = task.DueDate,
-            Icon = task.Icon,
-            Color = task.Color
-        }, ct);
-
-        return Result.Success();
-    }
-
-    private async Task<Result> ApplyStatusAndUpdateProperties(ProjectTask task, UpdateTaskCommand request, CancellationToken ct)
-    {
         var slug = request.Name != null ? SlugHelper.GenerateSlug(request.Name) : null;
-        
+
         task.Update(
             name: request.Name,
             slug: slug,
@@ -51,14 +32,23 @@ public class UpdateTaskHandler(TaskPlanDbContext db, WorkspaceContext context, R
         if (request.StatusId.HasValue && request.StatusId.Value != task.StatusId)
         {
             var isValid = await db.Statuses
-                .AnyAsync(s => s.Id == request.StatusId.Value && s.ProjectWorkspaceId == task.ProjectWorkspaceId, ct);
+                .AnyAsync(s => s.Id == request.StatusId.Value && s.ProjectWorkspaceId == task.ProjectWorkspaceId, cancellationToken);
 
-            if (!isValid)
-                return Result.Failure(Error.Validation("Task.InvalidStatus", "The requested status does not exist or does not belong to this workspace."));
+            if (!isValid) return Result.Failure(Error.Validation("Task.InvalidStatus", "The requested status does not exist or does not belong to this workspace."));
 
             task.Update(statusId: request.StatusId.Value);
         }
 
+        var affectedRows = await db.SaveChangesAsync(cancellationToken);
+        if (affectedRows > 0)
+        {
+            await realtimeService.NotifyEntitiesUpdatedAsync(
+                workspaceContext.WorkspaceId,
+                new EntityBatchUpdate { Tasks = new List<TaskRecord> { TaskRecord.FromDomain(task) } },
+                cancellationToken);
+        }
+
         return Result.Success();
     }
+
 }

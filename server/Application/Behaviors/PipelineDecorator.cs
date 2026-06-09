@@ -15,7 +15,7 @@ public static class PipelineDecorator
         IServiceProvider serviceProvider) : ICommandHandler<TCommand, TResponse>
         where TCommand : ICommandRequest<TResponse>
     {
-        public async Task<Result<TResponse>> Handle(TCommand command, CancellationToken ct)
+        public async Task<Result<TResponse>> Handle(TCommand command, CancellationToken cancellationToken)
         {
             var requestName = typeof(TCommand).Name;
             
@@ -50,7 +50,7 @@ public static class PipelineDecorator
                     {
                         var authDb = serviceProvider.GetRequiredService<TaskPlanDbContext>();
                         var cache = serviceProvider.GetRequiredService<IMemoryCache>();
-                        var authResult = await AuthorizeInternalAsync(workspaceContext, userId, workspaceId, authDb, cache, ct);
+                        var authResult = await AuthorizeInternalAsync(workspaceContext, userId, workspaceId, authDb, cache, cancellationToken);
                         if (authResult is not null) return Result<TResponse>.Failure(authResult.Error!);
                     }
 
@@ -61,7 +61,7 @@ public static class PipelineDecorator
                     
                     var result = await strategy.ExecuteAsync(async () => 
                     {
-                        return await inner.Handle(command, ct);
+                        return await inner.Handle(command, cancellationToken);
                     });
 
                     sw.Stop();
@@ -89,7 +89,7 @@ public static class PipelineDecorator
         IServiceProvider serviceProvider) : ICommandHandler<TCommand>
         where TCommand : ICommandRequest
     {
-        public async Task<Result> Handle(TCommand command, CancellationToken ct)
+        public async Task<Result> Handle(TCommand command, CancellationToken cancellationToken)
         {
             var requestName = typeof(TCommand).Name;
             var currentUserService = serviceProvider.GetRequiredService<CurrentUserService>();
@@ -121,7 +121,7 @@ public static class PipelineDecorator
                     {
                         var authDb = serviceProvider.GetRequiredService<TaskPlanDbContext>();
                         var cache = serviceProvider.GetRequiredService<IMemoryCache>();
-                        var authResult = await AuthorizeInternalAsync(workspaceContext, userId, workspaceId, authDb, cache, ct);
+                        var authResult = await AuthorizeInternalAsync(workspaceContext, userId, workspaceId, authDb, cache, cancellationToken);
                         if (authResult is not null) return authResult;
                     }
 
@@ -131,7 +131,7 @@ public static class PipelineDecorator
                     
                     var result = await strategy.ExecuteAsync(async () => 
                     {
-                        return await inner.Handle(command, ct);
+                        return await inner.Handle(command, cancellationToken);
                     });
                     
                     sw.Stop();
@@ -159,7 +159,7 @@ public static class PipelineDecorator
         IServiceProvider serviceProvider) : IQueryHandler<TQuery, TResponse>
         where TQuery : IQueryRequest<TResponse>
     {
-        public async Task<Result<TResponse>> Handle(TQuery query, CancellationToken ct)
+        public async Task<Result<TResponse>> Handle(TQuery query, CancellationToken cancellationToken)
         {
             var requestName = typeof(TQuery).Name;
             var currentUserService = serviceProvider.GetRequiredService<CurrentUserService>();
@@ -191,11 +191,11 @@ public static class PipelineDecorator
                     {
                         var authDb = serviceProvider.GetRequiredService<TaskPlanDbContext>();
                         var cache = serviceProvider.GetRequiredService<IMemoryCache>();
-                        var authResult = await AuthorizeInternalAsync(workspaceContext, userId, workspaceId, authDb, cache, ct);
+                        var authResult = await AuthorizeInternalAsync(workspaceContext, userId, workspaceId, authDb, cache, cancellationToken);
                         if (authResult is not null) return Result<TResponse>.Failure(authResult.Error!);
                     }
 
-                    var result = await inner.Handle(query, ct);
+                    var result = await inner.Handle(query, cancellationToken);
                     sw.Stop();
 
                     if (result.IsSuccess)

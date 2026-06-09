@@ -4,9 +4,9 @@ namespace Application;
 public class DeleteSpaceHandler(TaskPlanDbContext db, WorkspaceContext context, RealtimeService realtimeService, PermissionService permissionService)
     : ICommandHandler<DeleteSpaceCommand>
 {
-    public async Task<Result> Handle(DeleteSpaceCommand request, CancellationToken ct)
+    public async Task<Result> Handle(DeleteSpaceCommand request, CancellationToken cancellationToken)
     {
-        var space = await db.ProjectSpaces.FirstOrDefaultAsync(s => s.Id == request.SpaceId && s.DeletedAt == null, ct);
+        var space = await db.ProjectSpaces.FirstOrDefaultAsync(s => s.Id == request.SpaceId && s.DeletedAt == null, cancellationToken);
 
         if (space == null) return Result.Failure(SpaceError.NotFound);
         if (space.ProjectWorkspaceId != context.WorkspaceId) return Result.Failure(SpaceError.NotFound);
@@ -14,19 +14,19 @@ public class DeleteSpaceHandler(TaskPlanDbContext db, WorkspaceContext context, 
         var isCreator = space.CreatorId == context.CurrentMember.Id;
         if (!isCreator)
         {
-            var hasAccess = await permissionService.VerifyAsync(Role.Member, request.SpaceId, AccessLevel.Manager, ct);
+            var hasAccess = await permissionService.VerifyAsync(Role.Member, request.SpaceId, AccessLevel.Manager, cancellationToken);
             if (!hasAccess) return Result.Failure(MemberError.DontHavePermission);
         }
         space.Delete();
 
 
-        var affectedRows = await db.SaveChangesAsync(ct);
+        var affectedRows = await db.SaveChangesAsync(cancellationToken);
         if (affectedRows > 0)
         {
             await realtimeService.NotifyEntitiesDeletedAsync(
                 context.TryGetWorkspaceId().Value,
                 new EntityBatchDelete { SpaceIds = [space.Id] },
-                ct);
+                cancellationToken);
         }
 
         return Result.Success();
