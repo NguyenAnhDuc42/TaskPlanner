@@ -7,7 +7,7 @@ public class RefreshTokenHandler(
     TokenService tokenService
 ) : ICommandHandler<RefreshTokenCommand, RefreshTokenResponse>
 {
-    public async Task<Result<RefreshTokenResponse>> Handle(RefreshTokenCommand request, CancellationToken ct)
+    public async Task<Result<RefreshTokenResponse>> Handle(RefreshTokenCommand request, CancellationToken cancellationToken)
     {
         var refreshToken = cookieService.GetRefreshTokenFromCookies();
         if (string.IsNullOrEmpty(refreshToken))
@@ -19,7 +19,7 @@ public class RefreshTokenHandler(
         var session = await db.Sessions
             .ByRefreshToken(refreshToken)
             .Include(s => s.User)
-            .FirstOrDefaultAsync(ct);
+            .FirstOrDefaultAsync(cancellationToken);
         
         if (session is null || !session.IsActive || session.User is null) 
         {
@@ -32,7 +32,7 @@ public class RefreshTokenHandler(
 
         // 2. Extend/Update Session
         session.ExtendExpiration(tokenService.GetRefreshTokenDuration());
-        await db.SaveChangesAsync(ct);
+        await db.SaveChangesAsync(cancellationToken);
         
         // 3. Update Cookies
         cookieService.SetAuthCookies(tokens);

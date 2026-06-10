@@ -62,9 +62,9 @@ export const spaceApi = workspaceApi.injectEndpoints({
 
     batchUpdateSpaceItems: build.mutation<void, { spaceId: string; updates: BatchUpdateSpaceItemValue[] }>({
       query: ({ spaceId, updates }) => ({
-        url: "/spaces/batch-update",
+        url: `/spaces/${spaceId}/batch-update`,
         method: "POST",
-        data: { workspaceId: spaceId, updates }
+        data: { updates }
       }),
       async onQueryStarted({ spaceId: _spaceId, updates }, { dispatch, queryFulfilled, getState }) {
         const state = getState() as RootState;

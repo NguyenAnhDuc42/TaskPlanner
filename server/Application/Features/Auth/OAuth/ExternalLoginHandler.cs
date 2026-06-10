@@ -24,26 +24,26 @@ public class ExternalLoginHandler : ICommandHandler<ExternalLoginCommand, LoginR
         _httpContextAccessor = httpContextAccessor;
     }
 
-    public async Task<Result<LoginResponse>> Handle(ExternalLoginCommand request, CancellationToken ct)
+    public async Task<Result<LoginResponse>> Handle(ExternalLoginCommand request, CancellationToken cancellationToken)
     {
         // 1. Validate Token with Provider
         var externalUser = await _externalAuthService.ValidateAsync(request.Provider, request.Token);
 
         // 2. Find or Create User
-        var user = await _db.Users.FirstOrDefaultAsync(u => u.Email == externalUser.Email, ct);
+        var user = await _db.Users.FirstOrDefaultAsync(u => u.Email == externalUser.Email, cancellationToken);
         
         if (user == null)
         {
             // JIT Provisioning
             user = User.CreateExternal(externalUser.Name, externalUser.Email, externalUser.Provider, externalUser.ExternalId);
-            await _db.Users.AddAsync(user, ct);
-            await _db.SaveChangesAsync(ct);
+            await _db.Users.AddAsync(user, cancellationToken);
+            await _db.SaveChangesAsync(cancellationToken);
         }
         else if (!user.IsLinkedToProvider(request.Provider))
         {
             // Existing user, link OAuth account
             user.LinkExternalAccount(request.Provider, externalUser.ExternalId);
-            await _db.SaveChangesAsync(ct);
+            await _db.SaveChangesAsync(cancellationToken);
         }
 
         // 3. Generate Tokens and Create Session
@@ -54,8 +54,8 @@ public class ExternalLoginHandler : ICommandHandler<ExternalLoginCommand, LoginR
         var tokens = _tokenService.GenerateTokens(user, userAgent, ipAddress);
         
         var session = Session.Create(user.Id, tokens.RefreshToken, tokens.ExpirationRefreshToken, userAgent, ipAddress);
-        await _db.Sessions.AddAsync(session, ct);
-        await _db.SaveChangesAsync(ct);
+        await _db.Sessions.AddAsync(session, cancellationToken);
+        await _db.SaveChangesAsync(cancellationToken);
 
         // Update Cookies
         _cookieService.SetAuthCookies(tokens);

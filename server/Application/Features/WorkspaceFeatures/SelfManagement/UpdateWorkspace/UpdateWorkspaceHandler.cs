@@ -6,17 +6,18 @@ public class UpdateWorkspaceHandler(
     TaskPlanDbContext db, 
     WorkspaceContext context,
     HybridCache cache, 
-    RealtimeService realtime
+    RealtimeService realtime,
+    PermissionService permissionService
 ) : ICommandHandler<UpdateWorkspaceCommand>
 {
-    public async Task<Result> Handle(UpdateWorkspaceCommand request, CancellationToken ct)
+    public async Task<Result> Handle(UpdateWorkspaceCommand request, CancellationToken cancellationToken)
     {
-        if (context.CurrentMember.Role > Role.Admin)
-            return Result.Failure(MemberError.DontHavePermission);
+        var hasAccess = await permissionService.VerifyAsync(Role.Admin, cancellationToken: cancellationToken);
+        if (!hasAccess) return Result.Failure(MemberError.DontHavePermission);
 
         var workspace = await db.ProjectWorkspaces
             .ById(request.Id)
-            .FirstOrDefaultAsync(ct);
+            .FirstOrDefaultAsync(cancellationToken);
 
         if (workspace == null) return Result.Failure(WorkspaceError.NotFound);
 
@@ -33,13 +34,19 @@ public class UpdateWorkspaceHandler(
 
         if (request.Theme.HasValue) context.CurrentMember.UpdateTheme(request.Theme.Value);
 
-        await db.SaveChangesAsync(ct);
+        var affected = await db.SaveChangesAsync(cancellationToken);
 
-        // Cache Invalidation
-        await cache.RemoveByTagAsync(WorkspaceCacheKeys.WorkspaceListTag(context.CurrentMember.UserId), ct);
-        await cache.RemoveByTagAsync(WorkspaceCacheKeys.WorkspaceMembersTag(workspace.Id), ct);
+        if (affected > 0)
+        {
+            // Cache Invalidation
+            await cache.RemoveByTagAsync(WorkspaceCacheKeys.WorkspaceListTag(context.CurrentMember.UserId), cancellationToken);
+            await cache.RemoveByTagAsync(WorkspaceCacheKeys.WorkspaceMembersTag(workspace.Id), cancellationToken);
 
-        _ = realtime.NotifyUserAsync(context.CurrentMember.UserId, "WorkspaceUpdated", new { WorkspaceId = workspace.Id }, ct);
+            await realtime.NotifyEntitiesUpdatedAsync(workspace.Id, new EntityBatchUpdate
+            {
+                Workspaces = [WorkspaceRecord.FromDomain(workspace, context.CurrentMember)]
+            }, cancellationToken);
+        }
 
         return Result.Success();
     }

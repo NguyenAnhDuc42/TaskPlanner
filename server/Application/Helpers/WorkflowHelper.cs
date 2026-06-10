@@ -9,17 +9,17 @@ public static class WorkflowHelper
         Guid workspaceId,
         Guid? spaceId,
         Guid? folderId,
-        CancellationToken ct)
+        CancellationToken cancellationToken)
     {
         if (folderId.HasValue)
             return await db.Workflows
                 .Include(w => w.Statuses)
-                .FirstOrDefaultAsync(w => w.ProjectWorkspaceId == workspaceId && w.ProjectFolderId == folderId.Value, ct);
+                .FirstOrDefaultAsync(w => w.ProjectWorkspaceId == workspaceId && w.ProjectFolderId == folderId.Value, cancellationToken);
 
         if (spaceId.HasValue)
             return await db.Workflows
                 .Include(w => w.Statuses)
-                .FirstOrDefaultAsync(w => w.ProjectWorkspaceId == workspaceId && w.ProjectSpaceId == spaceId.Value && w.ProjectFolderId == null, ct);
+                .FirstOrDefaultAsync(w => w.ProjectWorkspaceId == workspaceId && w.ProjectSpaceId == spaceId.Value && w.ProjectFolderId == null, cancellationToken);
 
         return null;
     }
@@ -29,9 +29,9 @@ public static class WorkflowHelper
         Guid workspaceId,
         Guid? spaceId,
         Guid? folderId,
-        CancellationToken ct)
+        CancellationToken cancellationToken)
     {
-        var workflow = await GetActiveWorkflow(db, workspaceId, spaceId, folderId, ct);
+        var workflow = await GetActiveWorkflow(db, workspaceId, spaceId, folderId, cancellationToken);
         if (workflow is null) return null;
 
         var statuses = workflow.Statuses

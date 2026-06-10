@@ -15,7 +15,7 @@ public class WorkspaceDetailRow
 
 public class GetDetailWorkspaceHandler(TaskPlanDbContext db, WorkspaceContext context) : IQueryHandler<GetDetailWorkspaceQuery, WorkspaceRecord>
 {
-    public async Task<Result<WorkspaceRecord>> Handle(GetDetailWorkspaceQuery request, CancellationToken ct)
+    public async Task<Result<WorkspaceRecord>> Handle(GetDetailWorkspaceQuery request, CancellationToken cancellationToken)
     {
         const string sql = @"
             SELECT 

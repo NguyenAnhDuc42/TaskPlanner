@@ -25,6 +25,25 @@ public record WorkspaceRecord
     public bool? IsArchived { get; init; }
     public bool? IsDashboardEnabled { get; init; }
 
+    public static WorkspaceRecord FromDomain(ProjectWorkspace w, WorkspaceMember? currentMember = null) => new()
+    {
+        Id = w.Id,
+        Name = w.Name,
+        Icon = w.Icon,
+        Color = w.Color,
+        Description = w.Description,
+        Role = currentMember?.Role,
+        Theme = currentMember?.Theme,
+        IsPinned = currentMember?.IsPinned,
+        IsOwned = currentMember?.Role == Domain.Role.Owner,
+        CanEdit = currentMember?.Role.IsAtLeast(Domain.Role.Admin),
+        CanInvite = currentMember?.Role.IsAtLeast(Domain.Role.Admin),
+        CanManageMembers = currentMember?.Role.IsAtLeast(Domain.Role.Admin),
+        CanPinWorkspace = currentMember != null,
+        MemberCount = null,
+        IsArchived = w.IsArchived,
+        IsDashboardEnabled = null
+    };
 }
 
 public record MemberRecord 

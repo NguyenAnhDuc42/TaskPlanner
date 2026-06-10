@@ -4,9 +4,9 @@ namespace Application;
 
 public class DeleteAttachmentHandler(TaskPlanDbContext db, WorkspaceContext context) : ICommandHandler<DeleteAttachmentCommand>
 {
-    public async Task<Result> Handle(DeleteAttachmentCommand request, CancellationToken ct)
+    public async Task<Result> Handle(DeleteAttachmentCommand request, CancellationToken cancellationToken)
     {
-        var attachment = await db.Attachments.FirstOrDefaultAsync(x => x.Id == request.AttachmentId, ct);
+        var attachment = await db.Attachments.FirstOrDefaultAsync(x => x.Id == request.AttachmentId, cancellationToken);
         if (attachment == null) 
             return Result.Failure(AttachmentError.NotFound);
 
@@ -14,7 +14,7 @@ public class DeleteAttachmentHandler(TaskPlanDbContext db, WorkspaceContext cont
             return Result.Failure(MemberError.DontHavePermission);
         
         attachment.SoftDelete();
-        await db.SaveChangesAsync(ct);
+        await db.SaveChangesAsync(cancellationToken);
         
         return Result.Success();
     }

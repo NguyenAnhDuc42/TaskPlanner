@@ -20,7 +20,7 @@ export const updateMembersSchema = z.object({
   members: z
     .array(
       z.object({
-        userId: z.uuid(),
+        memberId: z.string().uuid(),
         role: z.custom<Role>().optional(),
         status: z.custom<MembershipStatus>().optional(),
       }),

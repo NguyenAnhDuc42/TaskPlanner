@@ -7,7 +7,7 @@ namespace Application;
 
 public class GetWorkspaceWorkflowsHandler(TaskPlanDbContext db, WorkspaceContext workspaceContext, HybridCache cache) : IQueryHandler<GetWorkspaceWorkflowsQuery, List<WorkflowRecord>>
 {
-    public async Task<Result<List<WorkflowRecord>>> Handle(GetWorkspaceWorkflowsQuery request, CancellationToken ct)
+    public async Task<Result<List<WorkflowRecord>>> Handle(GetWorkspaceWorkflowsQuery request, CancellationToken cancellationToken)
     {
         var cacheKey = $"Workflows-{workspaceContext.WorkspaceId}-{request.LayerType}-{request.LayerId}";
         
@@ -58,7 +58,7 @@ public class GetWorkspaceWorkflowsHandler(TaskPlanDbContext db, WorkspaceContext
                     }).ToList();
             },
             tags: [$"Workflows-{workspaceContext.WorkspaceId}"],
-            cancellationToken: ct
+            cancellationToken: cancellationToken
         );
 
         return Result<List<WorkflowRecord>>.Success(result);

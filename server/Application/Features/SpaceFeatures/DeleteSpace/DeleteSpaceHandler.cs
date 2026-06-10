@@ -11,12 +11,8 @@ public class DeleteSpaceHandler(TaskPlanDbContext db, WorkspaceContext context, 
         if (space == null) return Result.Failure(SpaceError.NotFound);
         if (space.ProjectWorkspaceId != context.WorkspaceId) return Result.Failure(SpaceError.NotFound);
 
-        var isCreator = space.CreatorId == context.CurrentMember.Id;
-        if (!isCreator)
-        {
-            var hasAccess = await permissionService.VerifyAsync(Role.Member, request.SpaceId, AccessLevel.Manager, cancellationToken);
-            if (!hasAccess) return Result.Failure(MemberError.DontHavePermission);
-        }
+        var hasAccess = await permissionService.VerifyAsync(Role.Member, request.SpaceId, AccessLevel.Manager, space.CreatorId, cancellationToken);
+        if (!hasAccess) return Result.Failure(MemberError.DontHavePermission);
         space.Delete();
 
 

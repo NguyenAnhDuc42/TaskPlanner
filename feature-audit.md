@@ -15,40 +15,40 @@ This ledger acts as a master checklist for every handler in the system against t
 ## Workspace Features
 
 ### UpdateWorkspaceHandler.cs (Command)
-- **[REALTIME]** ❌ Does not broadcast `EntityBatchUpdate`.
-- **[PERM]** ❌ Manual `CurrentMember.Role` check.
+- **[REALTIME]** ✅ Broadcasts `EntityBatchUpdate`.
+- **[PERM]** ✅ Uses `PermissionService`.
 - **[CQRS]** ✅ Returns `Result`.
 - **[OPTIMIZE]** ✅ Optimized EF Core query.
 - **[CACHE]** ⚠️ Needs verification.
 
 ### TransferOwnershipHandler.cs (Command)
-- **[REALTIME]** ❌ Does not broadcast `EntityBatchUpdate`.
-- **[PERM]** ❌ Manual `CurrentMember.Role` check.
+- **[REALTIME]** ✅ Broadcasts `EntityBatchUpdate`.
+- **[PERM]** ✅ Uses `PermissionService`.
 - **[CQRS]** ✅ Returns `Result`.
 - **[OPTIMIZE]** ✅ Optimized EF Core query.
 - **[CACHE]** ⚠️ Needs verification.
 
 ### AddMembersHandler.cs (Command)
-- **[REALTIME]** ❌ Does not broadcast `EntityBatchUpdate`.
-- **[PERM]** ❌ Manual `CurrentMember.Role` check.
+- **[REALTIME]** ✅ Broadcasts `EntityBatchUpdate`.
+- **[PERM]** ✅ Uses `PermissionService`.
 - **[CQRS]** ✅ Returns `Result`.
 - **[OPTIMIZE]** ✅ Optimized EF Core query.
 - **[CACHE]** ⚠️ Needs verification.
 
 ### RemoveMembersHandler.cs (Command)
-- **[REALTIME]** ❌ Does not broadcast `EntityBatchDelete`.
-- **[PERM]** ❌ Manual `CurrentMember.Role` check.
-- **[CQRS]** ❌ Returns `Result<Guid>`.
+- **[REALTIME]** ✅ Broadcasts `EntityBatchDelete`.
+- **[PERM]** ✅ Uses `PermissionService`.
+- **[CQRS]** ✅ Returns `Result`.
 - **[OPTIMIZE]** ✅ Optimized EF Core query.
 - **[CACHE]** ⚠️ Needs verification.
 
 ### UpdateMembersHandler.cs (Command)
-- **[REALTIME]** ❌ Does not broadcast `EntityBatchUpdate`.
-- **[PERM]** ❌ Manual `CurrentMember.Role` check.
-- **[CQRS]** ❌ Returns `Result<Guid>`.
+- **[REALTIME]** ✅ Broadcasts `EntityBatchUpdate`.
+- **[PERM]** ✅ Uses `PermissionService`.
+- **[CQRS]** ✅ Returns `Result`.
 - **[OPTIMIZE]** ✅ Optimized EF Core query.
 - **[CACHE]** ⚠️ Needs verification.
-==> future turn to batch operation right now just change stuff in member from userid to memberid need fix for fronentend
+✅ Resolved: Changed userId to memberId in frontend API and payload.
 
 //legacy but still might be viable for future
 ### MoveItemHandler.cs (Command)
@@ -60,46 +60,46 @@ This ledger acts as a master checklist for every handler in the system against t
 
 ### BatchMoveItemHandler.cs (Command)
 - **[REALTIME]** ✅ Uses `EntityBatch`.
-- **[PERM]** ❌ Manual `CurrentMember.Role` check.
+- **[PERM]** ✅ Uses `PermissionService`.
 - **[CQRS]** ✅ Returns `Result`.
 - **[OPTIMIZE]** ✅ Optimized EF Core query.
 - **[CACHE]** ⚠️ Needs verification.
 
 ### JoinWorkspaceByCodeHandler.cs (Command)
-- **[REALTIME]** ❌ Does not broadcast `EntityBatchUpdate`.
-- **[PERM]** ❌ Missing `PermissionService`.
+- **[REALTIME]** ✅ Broadcasts `EntityBatchUpdate`.
+- **[PERM]** ✅ Bypasses `PermissionService` (Boundary).
 - **[CQRS]** ✅ Returns `Result`.
 - **[OPTIMIZE]** ✅ Optimized EF Core query.
 - **[CACHE]** ⚠️ Needs verification.
 ==> different flow cause this outside of workspace bound
 
 ### LeaveWorkspaceHandler.cs (Command)
-- **[REALTIME]** ❌ Does not broadcast `EntityBatchUpdate`.
-- **[PERM]** ❌ Missing `PermissionService`.
+- **[REALTIME]** ✅ Broadcasts `EntityBatchUpdate`.
+- **[PERM]** ✅ Bypasses `PermissionService` (Boundary).
 - **[CQRS]** ✅ Returns `Result`.
 - **[OPTIMIZE]** ✅ Optimized EF Core query.
 - **[CACHE]** ⚠️ Needs verification.
 
 
 ### SetWorkspacePinHandler.cs (Command)
-- **[REALTIME]** ❌ Does not broadcast `EntityBatchUpdate`.
-- **[PERM]** ❌ Missing `PermissionService`.
+- **[REALTIME]** ✅ Emits user-specific pin event.
+- **[PERM]** ✅ Bypasses `PermissionService` (Boundary).
 - **[CQRS]** ✅ Returns `Result`.
 - **[OPTIMIZE]** ✅ Optimized EF Core query.
 - **[CACHE]** ⚠️ Needs verification.
 ==> different flow cause this outside of workspace bound
 
 ### DeleteWorkspaceHandler.cs (Command)
-- **[REALTIME]** ❌ Does not broadcast `EntityBatchDelete`.
-- **[PERM]** ❌ Missing `PermissionService`.
+- **[REALTIME]** ✅ Broadcasts `EntityBatchDelete`.
+- **[PERM]** ✅ Bypasses `PermissionService` (Boundary).
 - **[CQRS]** ✅ Returns `Result`.
 - **[OPTIMIZE]** ✅ Optimized EF Core query.
 - **[CACHE]** ⚠️ Needs verification.
 
 ### CreateWorkspaceHandler.cs (Command)
-- **[REALTIME]** ❌ Does not broadcast `EntityBatchUpdate`.
-- **[PERM]** ❌ Missing `PermissionService`.
-- **[CQRS]** ❌ Returns `Result<Guid>`.
+- **[REALTIME]** ✅ Broadcasts `EntityBatchUpdate`.
+- **[PERM]** ✅ Bypasses `PermissionService` (Boundary).
+- **[CQRS]** ❌ Returns `Result<Guid>`. need to return id for quick re navigate
 - **[OPTIMIZE]** ✅ Optimized EF Core query.
 - **[CACHE]** ⚠️ Needs verification.
 ==> different flow cause this outside of workspace bound
@@ -110,30 +110,30 @@ This ledger acts as a master checklist for every handler in the system against t
 ## Space Features
 
 ### CreateSpaceHandler.cs (Command)
-- **[REALTIME]** ❌ Uses `NotifyWorkspaceAsync`.
-- **[PERM]** ❌ Manual `db.EntityAccesses` check.
-- **[CQRS]** ❌ Returns `Result<Guid>`.
+- **[REALTIME]** ✅ Broadcasts `EntityBatchUpdate`.
+- **[PERM]** ✅ Uses `PermissionService`.
+- **[CQRS]** ✅ Returns `Result`.
 - **[OPTIMIZE]** ✅ Optimized EF Core query.
 - **[CACHE]** ⚠️ Needs verification.
 ==> worksapce bound but havent reach space yet so cant check entityacces
 
 ### UpdateSpaceHandler.cs (Command)
-- **[REALTIME]** ❌ Does not broadcast `EntityBatchUpdate`.
-- **[PERM]** ❌ Missing `PermissionService`.
+- **[REALTIME]** ✅ Broadcasts `EntityBatchUpdate`.
+- **[PERM]** ✅ Uses `PermissionService`.
 - **[CQRS]** ✅ Returns `Result`.
 - **[OPTIMIZE]** ✅ Optimized EF Core query.
 - **[CACHE]** ⚠️ Needs verification.
 
 ### DeleteSpaceHandler.cs (Command)
-- **[REALTIME]** ❌ Does not broadcast `EntityBatchDelete`.
-- **[PERM]** ❌ Missing `PermissionService`.
+- **[REALTIME]** ✅ Broadcasts `EntityBatchDelete`.
+- **[PERM]** ✅ Uses `PermissionService`.
 - **[CQRS]** ✅ Returns `Result`.
 - **[OPTIMIZE]** ✅ Optimized EF Core query.
 - **[CACHE]** ⚠️ Needs verification.
 
 ### BatchUpdateItemsHandler.cs (Command)
-- **[REALTIME]** ❌ Does not broadcast `EntityBatchUpdate`.
-- **[PERM]** ❌ Missing `PermissionService`.
+- **[REALTIME]** ✅ Broadcasts `EntityBatchUpdate`.
+- **[PERM]** ✅ Uses `PermissionService`.
 - **[CQRS]** ✅ Returns `Result`.
 - **[OPTIMIZE]** ✅ Optimized EF Core query.
 - **[CACHE]** ⚠️ Needs verification.
@@ -141,9 +141,9 @@ This ledger acts as a master checklist for every handler in the system against t
 ==> future will fix to refetch instead of relly on memory for record
 
 ### CreateSpaceDocumentHandler.cs (Command)
-- **[REALTIME]** ❌ Does not broadcast `EntityBatchUpdate`.
-- **[PERM]** ❌ Missing `PermissionService`.
-- **[CQRS]** ✅ Returns `Result`.
+- **[REALTIME]** ⏭️ Skipped (Syncing only document blocks per user request).
+- **[PERM]** ✅ Uses `PermissionService`.
+- **[CQRS]** ⏭️ Kept returning data for frontend sync.
 - **[OPTIMIZE]** ✅ Optimized EF Core query.
 - **[CACHE]** ⚠️ Needs verification.
 ==> wtf is this flow 
@@ -154,29 +154,29 @@ Summarize Space Checkngi need update to be like what is in BatchUpdate
 ## Folder Features
 
 ### CreateFolderHandler.cs (Command)
-- **[REALTIME]** ❌ Does not broadcast `EntityBatchUpdate`.
-- **[PERM]** ❌ Missing `PermissionService`.
-- **[CQRS]** ❌ Returns `Result<Guid>`.
+- **[REALTIME]** ✅ Broadcasts `EntityBatchUpdate`.
+- **[PERM]** ✅ Uses `PermissionService`.
+- **[CQRS]** ✅ Returns `Result`.
 - **[OPTIMIZE]** ✅ Optimized EF Core query.
 - **[CACHE]** ⚠️ Needs verification.
 
 ### UpdateFolderHandler.cs (Command)
-- **[REALTIME]** ❌ Does not broadcast `EntityBatchUpdate`.
-- **[PERM]** ❌ Missing `PermissionService`.
+- **[REALTIME]** ✅ Broadcasts `EntityBatchUpdate`.
+- **[PERM]** ✅ Uses `PermissionService`.
 - **[CQRS]** ✅ Returns `Result`.
 - **[OPTIMIZE]** ✅ Optimized EF Core query.
 - **[CACHE]** ⚠️ Needs verification.
 
 ### DeleteFolderHandler.cs (Command)
-- **[REALTIME]** ❌ Does not broadcast `EntityBatchDelete`.
-- **[PERM]** ❌ Missing `PermissionService`.
+- **[REALTIME]** ✅ Broadcasts `EntityBatchDelete`.
+- **[PERM]** ✅ Uses `PermissionService`.
 - **[CQRS]** ✅ Returns `Result`.
 - **[OPTIMIZE]** ✅ Optimized EF Core query.
 - **[CACHE]** ⚠️ Needs verification.
 
 ### BatchUpdateFolderTasksHandler.cs (Command)
-- **[REALTIME]** ❌ Does not broadcast `EntityBatchUpdate`.
-- **[PERM]** ❌ Missing `PermissionService`.
+- **[REALTIME]** ✅ Broadcasts `EntityBatchUpdate`.
+- **[PERM]** ✅ Uses `PermissionService`.
 - **[CQRS]** ✅ Returns `Result`.
 - **[OPTIMIZE]** ✅ Optimized EF Core query.
 - **[CACHE]** ⚠️ Needs verification.
@@ -186,47 +186,47 @@ Summarize Space Checkngi need update to be like what is in BatchUpdate
 ## Task Features
 
 ### CreateTaskHandler.cs (Command)
-- **[REALTIME]** ❌ Uses `NotifyWorkspaceAsync`.
-- **[PERM]** ❌ Missing `PermissionService`.
-- **[CQRS]** ❌ Returns `Result<Guid>`.
+- **[REALTIME]** ✅ Broadcasts `EntityBatchUpdate`.
+- **[PERM]** ✅ Uses `PermissionService`.
+- **[CQRS]** ✅ Returns `Result`.
 - **[OPTIMIZE]** ✅ Optimized EF Core query.
 - **[CACHE]** ⚠️ Needs verification.
 
 ### UpdateTaskHandler.cs (Command)
-- **[REALTIME]** ❌ Uses `NotifyWorkspaceAsync`.
-- **[PERM]** ❌ Missing `PermissionService`.
+- **[REALTIME]** ✅ Broadcasts `EntityBatchUpdate`.
+- **[PERM]** ✅ Uses `PermissionService`.
 - **[CQRS]** ✅ Returns `Result`.
 - **[OPTIMIZE]** ✅ Optimized EF Core query.
 - **[CACHE]** ⚠️ Needs verification.
 
 ### DeleteTaskHandler.cs (Command)
-- **[REALTIME]** ❌ Uses `NotifyWorkspaceAsync`.
-- **[PERM]** ❌ Missing `PermissionService`.
+- **[REALTIME]** ✅ Broadcasts `EntityBatchDelete`.
+- **[PERM]** ✅ Uses `PermissionService`.
 - **[CQRS]** ✅ Returns `Result`.
 - **[OPTIMIZE]** ✅ Optimized EF Core query.
 - **[CACHE]** ⚠️ Needs verification.
 
 ### UpdateTaskAssigneesHandler.cs (Command)
 - **[REALTIME]** ✅ Uses `EntityBatch`.
-- **[PERM]** ❌ Missing `PermissionService`.
+- **[PERM]** ✅ Uses `PermissionService`.
 - **[CQRS]** ✅ Returns `Result`.
 - **[OPTIMIZE]** ✅ Optimized EF Core query.
 - **[CACHE]** ⚠️ Needs verification.
 
 ### AddCommentHandler.cs (Command)
-- **[REALTIME]** ❌ Does not broadcast `EntityBatchUpdate`.
-- **[PERM]** ❌ Missing `PermissionService`.
-- **[CQRS]** ✅ Returns `Result`.
+- **[REALTIME]** ✅ Broadcasts `EntityBatchUpdate`.
+- **[PERM]** ✅ Uses `PermissionService`.
+- **[CQRS]** ⏭️ Kept returning data for frontend sync.
 - **[OPTIMIZE]** ✅ Optimized EF Core query.
 - **[CACHE]** ⚠️ Needs verification.
 
 ### GetTaskAssigneesHandler.cs (Query)
-- **[PERF]** ❌ Uses `FindAsync`. Should be `FirstOrDefaultAsync`.
+- **[PERF]** ✅ Uses `FirstOrDefaultAsync`.
 
 ### CreateSubTaskHandler.cs (Command)
 - **[REALTIME]** ✅ Uses `EntityBatchUpdate`.
 - **[PERM]** ✅ Uses `PermissionService`.
-- **[CQRS]** ✅ Returns `Result<TaskRecord>`.
+- **[CQRS]** ✅ Returns `Result`.
 - **[OPTIMIZE]** ✅ Uses `FirstOrDefaultAsync`.
 - **[CACHE]** ⚠️ Needs verification.
 
@@ -244,7 +244,7 @@ Summarize Space Checkngi need update to be like what is in BatchUpdate
 - **[OPTIMIZE]** ✅ Uses `FirstOrDefaultAsync`.
 - **[CACHE]** ⚠️ Needs verification.
 
---- ==> overall  need fixing in permmission service missing edgecase on if the creator of item get revoke access on space layer , and redudnt worksapceid check of item on feature handler is redudant cause DbCobtext already caught this
+--- ✅ Resolved: PermissionService creator edge case fixed. Redundant ProjectWorkspaceId checks removed from all backend feature handlers.
 
 ## Workflow Features
 
@@ -274,8 +274,8 @@ Summarize Space Checkngi need update to be like what is in BatchUpdate
 ## Entity Access Features
 
 ### EntitAccessBatchHandler.cs (Command)
-- **[REALTIME]** ❌ Does not broadcast `EntityBatchUpdate`.
-- **[PERM]** ❌ Manual `db.EntityAccesses` check.
+- **[REALTIME]** ✅ Broadcasts `EntityBatchUpdate`.
+- **[PERM]** ✅ Uses `PermissionService`.
 - **[CQRS]** ✅ Returns `Result`.
 - **[OPTIMIZE]** ✅ Optimized EF Core query.
 - **[CACHE]** ⚠️ Needs verification.

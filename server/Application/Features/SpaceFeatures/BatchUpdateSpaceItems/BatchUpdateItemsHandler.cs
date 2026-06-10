@@ -9,19 +9,14 @@ public class BatchUpdateSpaceItemsHandler(TaskPlanDbContext db, WorkspaceContext
         var space = await db.ProjectSpaces
             .AsNoTracking()
             .Where(s => s.Id == request.SpaceId 
-                    && s.ProjectWorkspaceId == workspaceContext.WorkspaceId 
                     && s.DeletedAt == null)
             .Select(s => new { s.CreatorId })
             .FirstOrDefaultAsync(cancellationToken);
 
         if (space is null) return Result.Failure(SpaceError.NotFound);
 
-        var isCreator = space.CreatorId == workspaceContext.CurrentMember.Id;
-        if (!isCreator)
-        {
-            var hasAccess = await permissionService.VerifyAsync(Role.Member, request.SpaceId, AccessLevel.Editor, cancellationToken);
-            if (!hasAccess) return Result.Failure(MemberError.DontHavePermission);
-        }
+        var hasAccess = await permissionService.VerifyAsync(Role.Member, request.SpaceId, AccessLevel.Editor, space.CreatorId, cancellationToken);
+        if (!hasAccess) return Result.Failure(MemberError.DontHavePermission);
 
         var taskUpdates = request.Updates.Where(u => u.Type == EntityLayerType.ProjectTask).ToList();
         var folderUpdates = request.Updates.Where(u => u.Type == EntityLayerType.ProjectFolder).ToList();
@@ -66,7 +61,7 @@ public class BatchUpdateSpaceItemsHandler(TaskPlanDbContext db, WorkspaceContext
 
         var taskIds = taskUpdates.Select(u => u.Id).ToList();
         var taskMap = await db.ProjectTasks
-            .Where(t => taskIds.Contains(t.Id) && t.ProjectWorkspaceId == workspaceContext.WorkspaceId)
+            .Where(t => taskIds.Contains(t.Id))
             .ToDictionaryAsync(t => t.Id, cancellationToken);
 
         var records = new List<TaskRecord>();
@@ -89,7 +84,7 @@ public class BatchUpdateSpaceItemsHandler(TaskPlanDbContext db, WorkspaceContext
 
         var folderIds = folderUpdates.Select(u => u.Id).ToList();
         var folderMap = await db.ProjectFolders
-            .Where(f => folderIds.Contains(f.Id) && f.ProjectWorkspaceId == workspaceContext.WorkspaceId)
+            .Where(f => folderIds.Contains(f.Id))
             .ToDictionaryAsync(f => f.Id, cancellationToken);
 
         var records = new List<FolderRecord>();

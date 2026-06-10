@@ -133,7 +133,7 @@ namespace Api
             [FromBody] AddMembersCommand command,
             CancellationToken cancellationToken)
         {
-            var result = await _handler.SendAsync(command with { workspaceId = id }, cancellationToken);
+            var result = await _handler.SendAsync(command with { WorkspaceId = id }, cancellationToken);
             return result.ToActionResult();
         }
 
@@ -143,7 +143,7 @@ namespace Api
             [FromBody] UpdateMembersCommand command,
             CancellationToken cancellationToken)
         {
-            var result = await _handler.SendAsync<UpdateMembersCommand>(command with { workspaceId = id }, cancellationToken);
+            var result = await _handler.SendAsync(command with { WorkspaceId = id }, cancellationToken);
             return result.ToActionResult();
         }
 
@@ -153,7 +153,7 @@ namespace Api
             [FromBody] RemoveMembersCommand command,
             CancellationToken cancellationToken)
         {
-            var result = await _handler.SendAsync<RemoveMembersCommand>(command with { workspaceId = id }, cancellationToken);
+            var result = await _handler.SendAsync(command with { WorkspaceId = id }, cancellationToken);
             return result.ToActionResult();
         }
 

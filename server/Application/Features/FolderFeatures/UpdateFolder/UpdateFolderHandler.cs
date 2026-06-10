@@ -9,15 +9,10 @@ public class UpdateFolderHandler(TaskPlanDbContext db, WorkspaceContext workspac
         var folder = await db.ProjectFolders.FirstOrDefaultAsync(f => f.Id == request.FolderId, cancellationToken);
         if (folder == null) return Result.Failure(FolderError.NotFound);
 
-        var isCreator = folder.CreatorId == workspaceContext.CurrentMember.Id;
-        if (!isCreator)
-        {
-            var hasAccess = await permissionService.VerifyAsync(Role.Member, folder.ProjectSpaceId, AccessLevel.Editor, cancellationToken);
-            if (!hasAccess) return Result.Failure(MemberError.DontHavePermission);
-        }
+        var hasAccess = await permissionService.VerifyAsync(Role.Member, folder.ProjectSpaceId, AccessLevel.Editor, folder.CreatorId, cancellationToken);
+        if (!hasAccess) return Result.Failure(MemberError.DontHavePermission);
 
-        var slug = request.Name != null ? SlugHelper.GenerateSlug(request.Name) : null;
-
+        
         folder.Update(
             name: request.Name,
             slug: request.Name != null ? SlugHelper.GenerateSlug(request.Name) : null,

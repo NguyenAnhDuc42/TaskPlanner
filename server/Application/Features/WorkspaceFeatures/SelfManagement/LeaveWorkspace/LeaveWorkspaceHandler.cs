@@ -3,9 +3,9 @@ namespace Application;
 
 public class LeaveWorkspaceHandler(TaskPlanDbContext db, WorkspaceContext context) : ICommandHandler<LeaveWorkspaceCommand>
 {
-    public async Task<Result> Handle(LeaveWorkspaceCommand request, CancellationToken ct)
+    public async Task<Result> Handle(LeaveWorkspaceCommand request, CancellationToken cancellationToken)
     {
-        var workspace = await db.ProjectWorkspaces.FirstOrDefaultAsync(w => w.Id == context.TryGetWorkspaceId().Value, ct);
+        var workspace = await db.ProjectWorkspaces.FirstOrDefaultAsync(w => w.Id == context.TryGetWorkspaceId().Value, cancellationToken);
 
         if (workspace == null) return Result.Failure(WorkspaceError.NotFound);
 
@@ -13,7 +13,7 @@ public class LeaveWorkspaceHandler(TaskPlanDbContext db, WorkspaceContext contex
             return Result.Failure(Error.Validation("Workspace.OwnerCannotLeave", "Workspace owner cannot leave. Transfer ownership first."));
 
         workspace.RemoveMembers(new[] { context.CurrentMember.UserId });
-        await db.SaveChangesAsync(ct);
+        await db.SaveChangesAsync(cancellationToken);
 
         return Result.Success();
     }

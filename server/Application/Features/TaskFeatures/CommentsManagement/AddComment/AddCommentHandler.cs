@@ -3,19 +3,32 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Application;
 
-public class AddCommentHandler(TaskPlanDbContext db, WorkspaceContext workspaceContext) : ICommandHandler<AddCommentCommand, CommentRecord>
+public class AddCommentHandler(
+    TaskPlanDbContext db,
+    WorkspaceContext workspaceContext,
+    PermissionService permissionService,
+    RealtimeService realtimeService
+) : ICommandHandler<AddCommentCommand, CommentRecord>
 {
     public async Task<Result<CommentRecord>> Handle(AddCommentCommand request, CancellationToken cancellationToken)
     {
-        var taskExists = await db.ProjectTasks
-            .AnyAsync(t => t.Id == request.TaskId && t.ProjectWorkspaceId == workspaceContext.WorkspaceId && t.DeletedAt == null, cancellationToken);
+        var task = await db.ProjectTasks
+            .AsNoTracking()
+            .Where(t => t.Id == request.TaskId && t.DeletedAt == null)
+            .Select(t => new { t.ProjectSpaceId, t.CreatorId })
+            .FirstOrDefaultAsync(cancellationToken);
         
-        if (!taskExists)
+        if (task == null)
             return Result<CommentRecord>.Failure(Error.NotFound("Task.NotFound", "Task not found."));
+
+        var hasAccess = await permissionService.VerifyAsync(Role.Member, task.ProjectSpaceId, AccessLevel.Viewer, task.CreatorId, cancellationToken);
+        if (!hasAccess)
+            return Result<CommentRecord>.Failure(MemberError.DontHavePermission);
 
         var comment = Comment.Create(request.Content, workspaceContext.CurrentMember.UserId, request.TaskId, request.ParentCommentId);
         db.Comments.Add(comment);
-        await db.SaveChangesAsync(cancellationToken);
+        
+        var affected = await db.SaveChangesAsync(cancellationToken);
 
         var dto = new CommentRecord
         {
@@ -28,6 +41,14 @@ public class AddCommentHandler(TaskPlanDbContext db, WorkspaceContext workspaceC
             CreatedAt = comment.CreatedAt,
             UpdatedAt = comment.UpdatedAt
         };
+
+        if (affected > 0)
+        {
+            await realtimeService.NotifyEntitiesUpdatedAsync(
+                workspaceContext.WorkspaceId,
+                new EntityBatchUpdate { Comments = [dto] },
+                cancellationToken);
+        }
 
         return Result<CommentRecord>.Success(dto);
     }

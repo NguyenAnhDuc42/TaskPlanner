@@ -8,12 +8,8 @@ public class UpdateTaskHandler(TaskPlanDbContext db, WorkspaceContext workspaceC
         var task = await db.ProjectTasks.FirstOrDefaultAsync(t => t.Id == request.TaskId && t.DeletedAt == null, cancellationToken);
         if (task == null) return Result.Failure(TaskError.NotFound);
 
-        var isCreator = task.CreatorId == workspaceContext.CurrentMember.Id;
-        if (!isCreator)
-        {
-            var hasAccess = await permissionService.VerifyAsync(Role.Member, task.ProjectSpaceId, AccessLevel.Editor, cancellationToken);
-            if (!hasAccess) return Result.Failure(MemberError.DontHavePermission);
-        }
+        var hasAccess = await permissionService.VerifyAsync(Role.Member, task.ProjectSpaceId, AccessLevel.Editor, task.CreatorId, cancellationToken);
+        if (!hasAccess) return Result.Failure(MemberError.DontHavePermission);
 
         var slug = request.Name != null ? SlugHelper.GenerateSlug(request.Name) : null;
 
@@ -32,7 +28,7 @@ public class UpdateTaskHandler(TaskPlanDbContext db, WorkspaceContext workspaceC
         if (request.StatusId.HasValue && request.StatusId.Value != task.StatusId)
         {
             var isValid = await db.Statuses
-                .AnyAsync(s => s.Id == request.StatusId.Value && s.ProjectWorkspaceId == task.ProjectWorkspaceId, cancellationToken);
+                .AnyAsync(s => s.Id == request.StatusId.Value, cancellationToken);
 
             if (!isValid) return Result.Failure(Error.Validation("Task.InvalidStatus", "The requested status does not exist or does not belong to this workspace."));
 

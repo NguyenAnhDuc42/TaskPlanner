@@ -8,13 +8,21 @@ public class EntityBatchUpdate
     public List<MemberRecord>? Members { get; set; }
     public List<AssigneeRecord>? Assignees { get; set; }
     public List<EntityAccessRecord>? EntityAccess { get; set; }
+    public List<WorkspaceRecord>? Workspaces { get; set; }
+    public List<WorkflowRecord>? Workflows { get; set; }
+    public List<StatusRecord>? Statuses { get; set; }
+    public List<CommentRecord>? Comments { get; set; }
 
     public bool HasAny => (Spaces?.Count > 0) || 
                           (Folders?.Count > 0) || 
                           (Tasks?.Count > 0) || 
                           (Members?.Count > 0) ||
                           (Assignees?.Count > 0) ||
-                          (EntityAccess?.Count > 0);
+                          (EntityAccess?.Count > 0) ||
+                          (Workspaces?.Count > 0) ||
+                          (Workflows?.Count > 0) ||
+                          (Statuses?.Count > 0) ||
+                          (Comments?.Count > 0);
 }
 
 public class EntityBatchDelete
@@ -25,4 +33,8 @@ public class EntityBatchDelete
     public List<Guid>? MemberIds { get; set; }
     public List<Guid>? AssigneeIds { get; set; }
     public List<Guid>? EntityAccessIds { get; set; }
+    public List<Guid>? WorkspaceIds { get; set; }
+    public List<Guid>? WorkflowIds { get; set; }
+    public List<Guid>? StatusIds { get; set; }
+    public List<Guid>? CommentIds { get; set; }
 }

@@ -2,7 +2,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Application;
 
-public class RemoveMembersHandler(TaskPlanDbContext db, WorkspaceContext context, RealtimeService realtimeService, PermissionService permissionService) : ICommandHandler<RemoveMembersCommand>
+public class RemoveMembersHandler(TaskPlanDbContext db, RealtimeService realtimeService, PermissionService permissionService) : ICommandHandler<RemoveMembersCommand>
 {
     public async Task<Result> Handle(RemoveMembersCommand request, CancellationToken cancellationToken)
     {
@@ -12,9 +12,7 @@ public class RemoveMembersHandler(TaskPlanDbContext db, WorkspaceContext context
         if (request.MemberIds.Count == 0 ) return Result.Success();
 
         var affected = await db.WorkspaceMembers
-            .Where(wm => wm.ProjectWorkspaceId == request.WorkspaceId 
-                        && request.MemberIds.Contains(wm.UserId) 
-                        && wm.DeletedAt == null)
+            .Where(wm => request.MemberIds.Contains(wm.Id) && wm.DeletedAt == null)
             .ExecuteUpdateAsync(u => u
                 .SetProperty(wm => wm.DeletedAt, DateTimeOffset.UtcNow)
                 .SetProperty(wm => wm.UpdatedAt, DateTimeOffset.UtcNow), cancellationToken);

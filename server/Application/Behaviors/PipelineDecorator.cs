@@ -215,7 +215,7 @@ public static class PipelineDecorator
         }
     }
 
-    private static async Task<Result?> AuthorizeInternalAsync(WorkspaceContext workspaceContext, Guid userId, Guid? workspaceId, TaskPlanDbContext db, IMemoryCache cache, CancellationToken ct)
+    private static async Task<Result?> AuthorizeInternalAsync(WorkspaceContext workspaceContext, Guid userId, Guid? workspaceId, TaskPlanDbContext db, IMemoryCache cache, CancellationToken cancellationToken)
     {
         if (!workspaceId.HasValue) 
             return Result.Failure(Error.Validation("Workspace.Required", "Workspace context is required for this request."));
@@ -232,7 +232,7 @@ public static class PipelineDecorator
             return await db.WorkspaceMembers
                 .AsNoTracking()
                 .ByMember(workspaceId.Value, userId)
-                .FirstOrDefaultAsync(ct);
+                .FirstOrDefaultAsync(cancellationToken);
         });
 
         if (member == null)

@@ -5,7 +5,7 @@ namespace Application;
 public class GetAvailableStatusesHandler(TaskPlanDbContext db, WorkspaceContext context, HybridCache cache) 
     : IQueryHandler<GetAvailableStatusesQuery, List<StatusRecord>>
 {
-    public async Task<Result<List<StatusRecord>>> Handle(GetAvailableStatusesQuery request, CancellationToken ct)
+    public async Task<Result<List<StatusRecord>>> Handle(GetAvailableStatusesQuery request, CancellationToken cancellationToken)
     {
         var cacheKey = $"AvailableStatuses-{context.WorkspaceId}-{request.SpaceId}-{request.FolderId}";
         
@@ -25,7 +25,7 @@ public class GetAvailableStatusesHandler(TaskPlanDbContext db, WorkspaceContext 
                     .ToList();
             },
             tags: [$"Statuses-{context.WorkspaceId}"],
-            cancellationToken: ct
+            cancellationToken: cancellationToken
         );
 
         return Result<List<StatusRecord>>.Success(response);

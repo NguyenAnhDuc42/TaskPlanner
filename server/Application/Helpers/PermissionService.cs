@@ -10,6 +10,7 @@ public class PermissionService(TaskPlanDbContext db, WorkspaceContext context)
         Role requiredRole,
         Guid? spaceId = null,
         AccessLevel? requiredAccess = null,
+        Guid? creatorId = null,
         CancellationToken cancellationToken = default)
     {
         if (spaceId.HasValue != requiredAccess.HasValue) throw new ArgumentException("spaceId and requiredAccess must both be provided or both be null");
@@ -37,6 +38,7 @@ public class PermissionService(TaskPlanDbContext db, WorkspaceContext context)
             .FirstOrDefaultAsync(cancellationToken);
 
         if (access is null) return false;
+        if (creatorId.HasValue && currentMember.Id == creatorId.Value) return true;
         return access.AccessLevel.IsAtLeast(requiredAccess!.Value);
     }
 }

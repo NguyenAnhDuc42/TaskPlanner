@@ -13,19 +13,14 @@ public class CreateSpaceDocumentHandler(
         var space = await db.ProjectSpaces
             .AsNoTracking()
             .Where(s => s.Id == request.SpaceId
-                     && s.ProjectWorkspaceId == workspaceContext.WorkspaceId
                      && s.DeletedAt == null)
             .Select(s => new { s.CreatorId })
             .FirstOrDefaultAsync(cancellationToken);
 
         if (space is null) return Result<SpaceDocumentRecord>.Failure(SpaceError.NotFound);
 
-        var isCreator = space.CreatorId == workspaceContext.CurrentMember.Id;
-        if (!isCreator)
-        {
-            var hasAccess = await permissionService.VerifyAsync(Role.Member, request.SpaceId, AccessLevel.Editor, cancellationToken);
-            if (!hasAccess) return Result<SpaceDocumentRecord>.Failure(MemberError.DontHavePermission);
-        }
+        var hasAccess = await permissionService.VerifyAsync(Role.Member, request.SpaceId, AccessLevel.Editor, space.CreatorId, cancellationToken);
+        if (!hasAccess) return Result<SpaceDocumentRecord>.Failure(MemberError.DontHavePermission);
 
         var document = Document.Create(workspaceContext.WorkspaceId, request.Name, workspaceContext.CurrentMember.Id);
         db.Documents.Add(document);

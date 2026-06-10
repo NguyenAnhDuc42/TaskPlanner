@@ -49,17 +49,20 @@ public class AddMembersHandler(TaskPlanDbContext db, WorkspaceContext context,Pe
         if (newMembersToInsert.Count > 0)
         {
             await db.WorkspaceMembers.AddRangeAsync(newMembersToInsert, cancellationToken);
-            await db.SaveChangesAsync(cancellationToken);
+            var affected = await db.SaveChangesAsync(cancellationToken);
 
-            var userLookup = users.ToDictionary(u => u.Id);
-            var records = newMembersToInsert
-                .Select(wm => MemberRecord.FromDomain(wm, userLookup[wm.UserId]))
-                .ToList();
-            await realtimeService.NotifyEntitiesUpdatedAsync(
-                request.WorkspaceId,
-                new EntityBatchUpdate { Members = records },
-                cancellationToken
-            );
+            if (affected > 0)
+            {
+                var userLookup = users.ToDictionary(u => u.Id);
+                var records = newMembersToInsert
+                    .Select(wm => MemberRecord.FromDomain(wm, userLookup[wm.UserId]))
+                    .ToList();
+                await realtimeService.NotifyEntitiesUpdatedAsync(
+                    request.WorkspaceId,
+                    new EntityBatchUpdate { Members = records },
+                    cancellationToken
+                );
+            }
         }
 
         return Result.Success();

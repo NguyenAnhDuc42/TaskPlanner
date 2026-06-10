@@ -1,29 +1,33 @@
 using Microsoft.EntityFrameworkCore;
-using Domain;
+
 
 namespace Application;
 
 public class UpdateTaskAssigneesHandler(
     TaskPlanDbContext db,
-    WorkspaceContext context,
+    WorkspaceContext workspaceContext,
+    PermissionService permissionService,
     RealtimeService realtime
 ) : ICommandHandler<UpdateTaskAssigneesCommand>
 {
-    public async Task<Result> Handle(UpdateTaskAssigneesCommand request, CancellationToken ct)
+    public async Task<Result> Handle(UpdateTaskAssigneesCommand request, CancellationToken cancellationToken )
     {
         var task = await db.ProjectTasks
             .Include(t => t.Assignees)
-            .FirstOrDefaultAsync(t => t.Id == request.TaskId, ct);
-
+            .FirstOrDefaultAsync(t => t.Id == request.TaskId, cancellationToken);
+            
         if (task == null) return Result.Failure(TaskError.NotFound);
+
+        var hasAccess = await permissionService.VerifyAsync(Role.Member,task.ProjectSpaceId,AccessLevel.Editor, task.CreatorId, cancellationToken);
+        if (!hasAccess) return Result.Failure(MemberError.DontHavePermission);
 
         var memberIdsToProcess = request.Changes.Select(c => c.MemberId).ToList();
 
         // Validate members exist in workspace and are active
         var activeMemberIds = await db.WorkspaceMembers
-            .Where(wm => wm.ProjectWorkspaceId == task.ProjectWorkspaceId && memberIdsToProcess.Contains(wm.Id) && wm.DeletedAt == null)
+            .Where(wm => memberIdsToProcess.Contains(wm.Id) && wm.DeletedAt == null)
             .Select(wm => wm.Id)
-            .ToListAsync(ct);
+            .ToListAsync(cancellationToken);
 
         var toAdd = new List<TaskAssignment>();
         var memberIdsToRemove = new List<Guid>();
@@ -38,7 +42,7 @@ public class UpdateTaskAssigneesHandler(
             }
             else if (!task.Assignees.Any(a => a.WorkspaceMemberId == change.MemberId))
             {
-                toAdd.Add(TaskAssignment.Create(task.Id, change.MemberId, context.CurrentMember.Id));
+                toAdd.Add(TaskAssignment.Create(task.Id, change.MemberId, workspaceContext.CurrentMember.Id));
             }
         }
 
@@ -58,9 +62,8 @@ public class UpdateTaskAssigneesHandler(
             task.AddAsignees(toAdd);
         }
 
-        await db.SaveChangesAsync(ct);
+        await db.SaveChangesAsync(cancellationToken);
 
-        // Transactional SignalR broadcasts
         if (toAdd.Count > 0)
         {
             var updatePayload = new EntityBatchUpdate
@@ -72,7 +75,7 @@ public class UpdateTaskAssigneesHandler(
                     WorkspaceMemberId = a.WorkspaceMemberId
                 }).ToList()
             };
-            await realtime.NotifyEntitiesUpdatedAsync(context.WorkspaceId, updatePayload, ct);
+            await realtime.NotifyEntitiesUpdatedAsync(workspaceContext.WorkspaceId, updatePayload, cancellationToken);
         }
 
         if (deletedAssigneeIds.Count > 0)
@@ -81,7 +84,7 @@ public class UpdateTaskAssigneesHandler(
             {
                 AssigneeIds = deletedAssigneeIds
             };
-            await realtime.NotifyEntitiesDeletedAsync(context.WorkspaceId, deletePayload, ct);
+            await realtime.NotifyEntitiesDeletedAsync(workspaceContext.WorkspaceId, deletePayload, cancellationToken);
         }
 
         return Result.Success();

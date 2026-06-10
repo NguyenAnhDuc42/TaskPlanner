@@ -10,7 +10,7 @@ public class SetWorkspacePinHandler(
     RealtimeService realtime
 ) : ICommandHandler<SetWorkspacePinCommand>
 {
-    public async Task<Result> Handle(SetWorkspacePinCommand request, CancellationToken ct)
+    public async Task<Result> Handle(SetWorkspacePinCommand request, CancellationToken cancellationToken)
     {
         var currentUserId = currentUserService.CurrentUserId();
         if (currentUserId == Guid.Empty) 
@@ -24,7 +24,7 @@ public class SetWorkspacePinHandler(
                 .ByWorkspace(request.WorkspaceId)
                 .ByUser(currentUserId)
                 .WhereActive()
-                .FirstOrDefaultAsync(ct);
+                .FirstOrDefaultAsync(cancellationToken);
         }
 
         if (member is null) 
@@ -32,16 +32,16 @@ public class SetWorkspacePinHandler(
 
         // 2. Logic execution
         var memberEntity = await db.WorkspaceMembers
-            .FirstOrDefaultAsync(m => m.Id == member.Id, ct);
+            .FirstOrDefaultAsync(m => m.Id == member.Id, cancellationToken);
 
         if (memberEntity == null) return Result.Failure(MemberError.NotFound);
 
         memberEntity.SetPinned(request.IsPinned);
-        await db.SaveChangesAsync(ct);
+        await db.SaveChangesAsync(cancellationToken);
         
-        await cache.RemoveByTagAsync(WorkspaceCacheKeys.WorkspaceListTag(currentUserId), ct);
+        await cache.RemoveByTagAsync(WorkspaceCacheKeys.WorkspaceListTag(currentUserId), cancellationToken);
         
-        _ = realtime.NotifyUserAsync(currentUserId, "WorkspacePinned", new { WorkspaceId = request.WorkspaceId, IsPinned = request.IsPinned }, ct);
+        _ = realtime.NotifyUserAsync(currentUserId, "WorkspacePinned", new { WorkspaceId = request.WorkspaceId, IsPinned = request.IsPinned }, cancellationToken);
 
         return Result.Success();
     }

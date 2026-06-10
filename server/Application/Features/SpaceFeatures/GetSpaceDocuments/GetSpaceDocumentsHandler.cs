@@ -5,7 +5,7 @@ namespace Application;
 
 public class GetSpaceDocumentsHandler(TaskPlanDbContext db, WorkspaceContext workspaceContext) : IQueryHandler<GetSpaceDocumentsQuery, List<SpaceDocumentRecord>>
 {
-    public async Task<Result<List<SpaceDocumentRecord>>> Handle(GetSpaceDocumentsQuery request, CancellationToken ct)
+    public async Task<Result<List<SpaceDocumentRecord>>> Handle(GetSpaceDocumentsQuery request, CancellationToken cancellationToken)
     {
         const string sql = @"
             SELECT 

@@ -76,15 +76,15 @@ public class CreateTaskHandler(TaskPlanDbContext db, WorkspaceContext workspaceC
     }
 
 
-    private async Task<string> ResolveFolderOrderKey(Guid folderId, CancellationToken ct)
+    private async Task<string> ResolveFolderOrderKey(Guid folderId, CancellationToken cancellationToken)
     {
-        var maxKey = await db.ProjectTasks.AsNoTracking().Where(t => t.ProjectFolderId == folderId).MaxAsync(t => (string?)t.OrderKey, ct);
+        var maxKey = await db.ProjectTasks.AsNoTracking().Where(t => t.ProjectFolderId == folderId).MaxAsync(t => (string?)t.OrderKey, cancellationToken);
         return maxKey is null ? FractionalIndex.Start() : FractionalIndex.After(maxKey);
     }
 
-    private async Task<string> ResolveSpaceOrderKey(Guid spaceId, CancellationToken ct)
+    private async Task<string> ResolveSpaceOrderKey(Guid spaceId, CancellationToken cancellationToken)
     {
-        var maxKey = await db.ProjectTasks.AsNoTracking().Where(t => t.ProjectSpaceId == spaceId).MaxAsync(t => (string?)t.OrderKey, ct);
+        var maxKey = await db.ProjectTasks.AsNoTracking().Where(t => t.ProjectSpaceId == spaceId).MaxAsync(t => (string?)t.OrderKey, cancellationToken);
         return maxKey is null ? FractionalIndex.Start() : FractionalIndex.After(maxKey);
     }
 
@@ -101,7 +101,7 @@ public class CreateTaskHandler(TaskPlanDbContext db, WorkspaceContext workspaceC
                     .FirstOrDefaultAsync(cancellationToken);
                 if (isFolderCreator?.CreatorId != workspaceContext.CurrentMember.Id)
                 {
-                    var hasAccess = await permissionService.VerifyAsync(Role.Member, entityId, AccessLevel.Editor, cancellationToken);
+                    var hasAccess = await permissionService.VerifyAsync(Role.Member, spaceId: entityId, requiredAccess: AccessLevel.Editor, cancellationToken: cancellationToken);
                     if (!hasAccess) return false;
                 }
                 break;
@@ -113,7 +113,7 @@ public class CreateTaskHandler(TaskPlanDbContext db, WorkspaceContext workspaceC
                     .FirstOrDefaultAsync(cancellationToken);
                 if (isSpaceCreator?.CreatorId != workspaceContext.CurrentMember.Id)
                 {
-                    var hasAccess = await permissionService.VerifyAsync(Role.Member, entityId, AccessLevel.Editor, cancellationToken);
+                    var hasAccess = await permissionService.VerifyAsync(Role.Member, spaceId: entityId, requiredAccess: AccessLevel.Editor, cancellationToken: cancellationToken);
                     if (!hasAccess) return false;
                 }
                 break;
@@ -130,7 +130,6 @@ public class CreateTaskHandler(TaskPlanDbContext db, WorkspaceContext workspaceC
 
         var memberIds = await db.WorkspaceMembers
             .Where(wm =>
-                wm.ProjectWorkspaceId == workspaceId &&
                 request.AssigneeIds.Contains(wm.Id) &&
                 wm.DeletedAt == null)
             .Select(wm => wm.Id)

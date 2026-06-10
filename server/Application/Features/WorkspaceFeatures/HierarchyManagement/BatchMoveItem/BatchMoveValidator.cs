@@ -4,7 +4,7 @@ namespace Application;
 
 public class BatchMoveValidator(TaskPlanDbContext db, Guid workspaceId)
 {
-    public async Task<Result> ValidateFolderMovesAsync(List<MoveFolderValue> moves, CancellationToken ct)
+    public async Task<Result> ValidateFolderMovesAsync(List<MoveFolderValue> moves, CancellationToken cancellationToken)
     {
         if (!moves.Any()) return Result.Success();
 
@@ -13,7 +13,7 @@ public class BatchMoveValidator(TaskPlanDbContext db, Guid workspaceId)
             .AsNoTracking()
             .Where(f => folderIds.Contains(f.Id) &&
                 db.ProjectSpaces.Any(s => s.Id == f.ProjectSpaceId && s.ProjectWorkspaceId == workspaceId))
-            .CountAsync(ct);
+            .CountAsync(cancellationToken);
 
         if (foundCount != folderIds.Count)
             return Result.Failure(Error.NotFound("Folder.BatchMoveNotFound",
@@ -31,7 +31,7 @@ public class BatchMoveValidator(TaskPlanDbContext db, Guid workspaceId)
                 .AsNoTracking()
                 .Where(s => targetSpaceIds.Contains(s.Id) && s.ProjectWorkspaceId == workspaceId)
                 .Select(s => new { s.Id, s.IsPrivate })
-                .ToListAsync(ct);
+                .ToListAsync(cancellationToken);
 
             if (targetSpaces.Count != targetSpaceIds.Count)
                 return Result.Failure(Error.NotFound("Space.BatchMoveTargetNotFound",
@@ -53,7 +53,7 @@ public class BatchMoveValidator(TaskPlanDbContext db, Guid workspaceId)
                     .AsNoTracking()
                     .Where(f => movingFolderIds.Contains(f.Id))
                     .Select(f => new { f.Id, f.ProjectSpaceId })
-                    .ToListAsync(ct);
+                    .ToListAsync(cancellationToken);
 
                 var sourceMap = sourceFolderSpaces.ToDictionary(f => f.Id, f => f.ProjectSpaceId);
 
@@ -70,7 +70,7 @@ public class BatchMoveValidator(TaskPlanDbContext db, Guid workspaceId)
         return Result.Success();
     }
 
-    public async Task<Result> ValidateTaskMovesAsync(List<MoveTaskValue> moves, CancellationToken ct)
+    public async Task<Result> ValidateTaskMovesAsync(List<MoveTaskValue> moves, CancellationToken cancellationToken)
     {
         if (!moves.Any()) return Result.Success();
         var taskIds = moves.Select(m => m.ItemId).Distinct().ToList();
@@ -78,7 +78,7 @@ public class BatchMoveValidator(TaskPlanDbContext db, Guid workspaceId)
             .AsNoTracking()
             .Where(t => taskIds.Contains(t.Id) &&
                 db.ProjectSpaces.Any(s => s.Id == t.ProjectSpaceId && s.ProjectWorkspaceId == workspaceId))
-            .CountAsync(ct);
+            .CountAsync(cancellationToken);
 
         if (foundCount != taskIds.Count)
             return Result.Failure(Error.NotFound("Task.BatchMoveNotFound",
@@ -89,7 +89,7 @@ public class BatchMoveValidator(TaskPlanDbContext db, Guid workspaceId)
             .AsNoTracking()
             .Where(s => targetSpaceIds.Contains(s.Id) && s.ProjectWorkspaceId == workspaceId)
             .Select(s => new { s.Id, s.IsPrivate })
-            .ToListAsync(ct);
+            .ToListAsync(cancellationToken);
 
         if (targetSpaces.Count != targetSpaceIds.Count)
             return Result.Failure(Error.NotFound("Space.BatchMoveTargetNotFound",
@@ -113,7 +113,7 @@ public class BatchMoveValidator(TaskPlanDbContext db, Guid workspaceId)
                 .AsNoTracking()
                 .Where(t => movingTaskIds.Contains(t.Id))
                 .Select(t => new { t.Id, t.ProjectSpaceId })
-                .ToListAsync(ct);
+                .ToListAsync(cancellationToken);
 
             var sourceMap = sourceTaskSpaces.ToDictionary(t => t.Id, t => t.ProjectSpaceId);
 
@@ -138,7 +138,7 @@ public class BatchMoveValidator(TaskPlanDbContext db, Guid workspaceId)
                 .AsNoTracking()
                 .Where(f => targetFolderIds.Contains(f.Id))
                 .Select(f => new { f.Id, f.ProjectSpaceId })
-                .ToDictionaryAsync(f => f.Id, ct);
+                .ToDictionaryAsync(f => f.Id, cancellationToken);
 
             var hasMismatch = folderMoves.Any(m =>
                 !folders.ContainsKey(m.TargetFolderId!.Value) ||

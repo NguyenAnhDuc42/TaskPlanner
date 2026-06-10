@@ -1,7 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 namespace Application;
 
-public class UpdateMembersHandler(TaskPlanDbContext db, WorkspaceContext context,PermissionService permissionService) : ICommandHandler<UpdateMembersCommand>
+public class UpdateMembersHandler(TaskPlanDbContext db, PermissionService permissionService, RealtimeService realtimeService) : ICommandHandler<UpdateMembersCommand>
 {
     public async Task<Result> Handle(UpdateMembersCommand request, CancellationToken cancellationToken)
     {
@@ -12,9 +12,8 @@ public class UpdateMembersHandler(TaskPlanDbContext db, WorkspaceContext context
         var lookup = request.Members.ToDictionary(m => m.MemberId);
 
         var workspaceMembers = await db.WorkspaceMembers
-            .Where(wm => memberIds.Contains(wm.Id)
-                      && wm.ProjectWorkspaceId == context.TryGetWorkspaceId().Value
-                      && wm.DeletedAt == null)
+            .Include(wm => wm.User)
+            .Where(wm => memberIds.Contains(wm.Id) && wm.DeletedAt == null)
             .ToListAsync(cancellationToken);
 
         foreach (var wm in workspaceMembers)
@@ -23,7 +22,20 @@ public class UpdateMembersHandler(TaskPlanDbContext db, WorkspaceContext context
             wm.Update(update.Role, update.Status);
         }
         
-        await db.SaveChangesAsync(cancellationToken);
+        var affected = await db.SaveChangesAsync(cancellationToken);
+
+        if (affected > 0)
+        {
+            var records = workspaceMembers.Select(wm => MemberRecord.FromDomain(wm, wm.User)).ToList();
+            if (records.Count > 0)
+            {
+                await realtimeService.NotifyEntitiesUpdatedAsync(
+                    request.WorkspaceId,
+                    new EntityBatchUpdate { Members = records },
+                    cancellationToken
+                );
+            }
+        }
 
         return Result.Success();
     }

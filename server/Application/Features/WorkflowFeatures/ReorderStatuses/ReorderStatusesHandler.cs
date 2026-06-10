@@ -3,35 +3,35 @@ namespace Application;
 
 public class ReorderStatusesHandler(TaskPlanDbContext db, WorkspaceContext context, RealtimeService realtime) : ICommandHandler<ReorderStatusesCommand>
 {
-    public async Task<Result> Handle(ReorderStatusesCommand request, CancellationToken ct)
+    public async Task<Result> Handle(ReorderStatusesCommand request, CancellationToken cancellationToken)
     {
         if (context.CurrentMember.Role > Role.Admin) 
             return Result.Failure(MemberError.DontHavePermission);
 
-        var status = await db.Statuses.FirstOrDefaultAsync(s => s.Id == request.StatusId, ct);
+        var status = await db.Statuses.FirstOrDefaultAsync(s => s.Id == request.StatusId, cancellationToken);
         if (status == null) return Result.Failure(Error.NotFound("Status.NotFound", "Status not found"));
 
-        var newOrderKey = request.NewOrderKey ?? await ResolveOrderKey(request, status.WorkflowId, ct);
+        var newOrderKey = request.NewOrderKey ?? await ResolveOrderKey(request, status.WorkflowId, cancellationToken);
 
         var affected = await db.Statuses
             .Where(s => s.Id == request.StatusId)
             .ExecuteUpdateAsync(u => u
                 .SetProperty(s => s.OrderKey, newOrderKey)
-                .SetProperty(s => s.UpdatedAt, DateTimeOffset.UtcNow), ct);
+                .SetProperty(s => s.UpdatedAt, DateTimeOffset.UtcNow), cancellationToken);
 
         if (affected > 0)
         {
             await realtime.NotifyWorkspaceAsync(context.WorkspaceId, "StatusOrderChanged", new { 
                 request.StatusId, 
                 NewOrderKey = newOrderKey 
-            }, ct);
+            }, cancellationToken);
             return Result.Success();
         }
 
         return Result.Failure(Error.NotFound("Status.NotFound", "Status not found"));
     }
 
-    private async Task<string> ResolveOrderKey(ReorderStatusesCommand request, Guid workflowId, CancellationToken ct)
+    private async Task<string> ResolveOrderKey(ReorderStatusesCommand request, Guid workflowId, CancellationToken cancellationToken)
     {
         if (request.PreviousStatusOrderKey != null && request.NextStatusOrderKey != null)
         {
@@ -46,7 +46,7 @@ public class ReorderStatusesHandler(TaskPlanDbContext db, WorkspaceContext conte
 
         var maxKey = await db.Statuses
             .Where(s => s.WorkflowId == workflowId)
-            .MaxAsync(s => s.OrderKey, ct);
+            .MaxAsync(s => s.OrderKey, cancellationToken);
 
         return maxKey is null ? FractionalIndex.Start() : FractionalIndex.After(maxKey);
     }

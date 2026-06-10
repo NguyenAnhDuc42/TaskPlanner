@@ -3,17 +3,30 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Application;
 
-public class EntityAccessBatchHandler(TaskPlanDbContext db,WorkspaceContext workspaceContext): ICommandHandler<EntityAccessBatchCommand>,IAuthorizedWorkspaceRequest
+public class EntityAccessBatchHandler(
+    TaskPlanDbContext db,
+    WorkspaceContext workspaceContext,
+    PermissionService permissionService,
+    RealtimeService realtimeService
+) : ICommandHandler<EntityAccessBatchCommand>, IAuthorizedWorkspaceRequest
 {
-   
+
     public async Task<Result> Handle(EntityAccessBatchCommand request, CancellationToken cancellationToken)
     {
-        var space = await db.ProjectSpaces.FirstOrDefaultAsync(x => x.Id == request.SpaceId && x.ProjectWorkspaceId == workspaceContext.WorkspaceId, cancellationToken);
+
+        var space = await db.ProjectSpaces
+            .AsNoTracking()
+            .Where(s => s.Id == request.SpaceId && s.DeletedAt == null)
+            .Select(s => new { s.Id, s.CreatorId })
+            .FirstOrDefaultAsync(cancellationToken);
+        
         if (space is null) return Result.Failure(Error.NotFound("Space.NotFound", "Space not found"));
+        var hasAccess = await permissionService.VerifyAsync(Role.Member, space.Id, AccessLevel.Editor, space.CreatorId, cancellationToken);
+        if (!hasAccess) return Result.Failure(MemberError.DontHavePermission);
 
         var deleteAccess = request.Rows.Where(r => r.Action == RowAction.Delete).ToList();
         var createAccess = request.Rows.Where(r => r.Action == RowAction.Create).ToList();
-        var updateAccess = request.Rows.Where(r => r.Action == RowAction.Update).ToList(); 
+        var updateAccess = request.Rows.Where(r => r.Action == RowAction.Update).ToList();
 
         var affectedRowIds = updateAccess.Select(r => r.Id ?? Guid.Empty)
             .Concat(deleteAccess.Select(r => r.Id ?? Guid.Empty))
@@ -25,15 +38,15 @@ public class EntityAccessBatchHandler(TaskPlanDbContext db,WorkspaceContext work
             .ToList();
 
         var existingAccesses = await db.EntityAccesses
-            .Where(a => a.ProjectSpaceId == request.SpaceId && 
-                        a.DeletedAt == null && 
+            .Where(a => a.ProjectSpaceId == request.SpaceId &&
+                        a.DeletedAt == null &&
                         (affectedRowIds.Contains(a.Id) || affectedMemberIds.Contains(a.WorkspaceMemberId)))
             .ToListAsync(cancellationToken);
-        
+
         var existingLookUpById = existingAccesses.ToDictionary(a => a.Id);
         var existingLookUpByMember = existingAccesses.ToDictionary(a => a.WorkspaceMemberId);
 
-        foreach(var row in deleteAccess)
+        foreach (var row in deleteAccess)
         {
             EntityAccess? entity = null;
             if (row.Id.HasValue)
@@ -45,13 +58,13 @@ public class EntityAccessBatchHandler(TaskPlanDbContext db,WorkspaceContext work
                 existingLookUpByMember.TryGetValue(row.MemberId, out entity);
             }
 
-            if (entity is null) 
+            if (entity is null)
                 return Result.Failure(Error.Validation("Access.NotFound", "Cannot delete access because it does not exist."));
-            
+
             entity.SoftDelete();
         }
 
-        foreach(var row in updateAccess)
+        foreach (var row in updateAccess)
         {
             EntityAccess? entity = null;
             if (row.Id.HasValue)
@@ -63,9 +76,9 @@ public class EntityAccessBatchHandler(TaskPlanDbContext db,WorkspaceContext work
                 existingLookUpByMember.TryGetValue(row.MemberId, out entity);
             }
 
-            if (entity is null) 
+            if (entity is null)
                 return Result.Failure(Error.Validation("Access.NotFound", "Cannot update access because it does not exist."));
-                
+
             entity.Update(row.AccessLevel);
         }
 
@@ -74,7 +87,7 @@ public class EntityAccessBatchHandler(TaskPlanDbContext db,WorkspaceContext work
         {
             var createMemberIds = createAccess.Select(r => r.MemberId).ToList();
             var validWorkspaceMembers = await db.WorkspaceMembers
-                .Where(wm => wm.ProjectWorkspaceId == workspaceContext.WorkspaceId && createMemberIds.Contains(wm.Id))
+                .Where(wm => createMemberIds.Contains(wm.Id))
                 .Select(wm => wm.Id)
                 .ToListAsync(cancellationToken);
 
@@ -98,7 +111,38 @@ public class EntityAccessBatchHandler(TaskPlanDbContext db,WorkspaceContext work
         {
             await db.EntityAccesses.AddRangeAsync(newAccess, cancellationToken);
         }
-        await db.SaveChangesAsync(cancellationToken);
+        var affected = await db.SaveChangesAsync(cancellationToken);
+        
+        if (affected > 0)
+        {
+            var updatedRecords = existingAccesses
+                .Where(a => a.DeletedAt == null)
+                .Concat(newAccess)
+                .Select(EntityAccessRecord.FromDomain)
+                .ToList();
+
+            if (updatedRecords.Count > 0)
+            {
+                await realtimeService.NotifyEntitiesUpdatedAsync(
+                    workspaceContext.WorkspaceId,
+                    new EntityBatchUpdate { EntityAccess = updatedRecords },
+                    cancellationToken);
+            }
+
+            var deletedIds = existingAccesses
+                .Where(a => a.DeletedAt != null)
+                .Select(a => a.Id)
+                .ToList();
+
+            if (deletedIds.Count > 0)
+            {
+                await realtimeService.NotifyEntitiesDeletedAsync(
+                    workspaceContext.WorkspaceId,
+                    new EntityBatchDelete { EntityAccessIds = deletedIds },
+                    cancellationToken);
+            }
+        }
+        
         return Result.Success();
     }
 }

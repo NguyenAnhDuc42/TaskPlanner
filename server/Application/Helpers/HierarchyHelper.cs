@@ -25,18 +25,18 @@ public static class HierarchyHelper
         TaskPlanDbContext db,
         Guid parentId,
         EntityLayerType parentType,
-        CancellationToken ct = default)
+        CancellationToken cancellationToken = default)
     {
         return parentType switch
         {
-            EntityLayerType.ProjectFolder => await GetFromFolder(db, parentId, ct),
-            EntityLayerType.ProjectSpace => await GetFromSpace(db, parentId, ct),
+            EntityLayerType.ProjectFolder => await GetFromFolder(db, parentId, cancellationToken),
+            EntityLayerType.ProjectSpace => await GetFromSpace(db, parentId, cancellationToken),
             EntityLayerType.ProjectWorkspace => new AncestorChain(parentId, null, null),
             _ => throw new ArgumentException("Invalid layer type for hierarchy resolution.")
         };
     }
 
-    private static async Task<AncestorChain> GetFromFolder(TaskPlanDbContext db, Guid id, CancellationToken ct)
+    private static async Task<AncestorChain> GetFromFolder(TaskPlanDbContext db, Guid id, CancellationToken cancellationToken)
     {
         const string sql = @"
             SELECT 
@@ -51,7 +51,7 @@ public static class HierarchyHelper
         return result ?? throw new KeyNotFoundException($"ProjectFolder {id} not found.");
     }
 
-    private static async Task<AncestorChain> GetFromSpace(TaskPlanDbContext db, Guid id, CancellationToken ct)
+    private static async Task<AncestorChain> GetFromSpace(TaskPlanDbContext db, Guid id, CancellationToken cancellationToken)
     {
         const string sql = @"
             SELECT 

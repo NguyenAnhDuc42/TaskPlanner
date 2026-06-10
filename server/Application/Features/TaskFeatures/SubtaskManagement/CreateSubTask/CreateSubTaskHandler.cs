@@ -4,25 +4,23 @@ namespace Application;
 
 public class CreateSubTaskHandler(
     TaskPlanDbContext db,
-    WorkspaceContext context,
+    WorkspaceContext workspaceContext,
     RealtimeService realtimeService,
     PermissionService permissionService
 ) : ICommandHandler<CreateSubTaskCommand>
 {
     public async Task<Result> Handle(CreateSubTaskCommand request, CancellationToken cancellationToken)
     {
-        var hasAccess = await permissionService.VerifyAsync(Role.Member, request.SpaceId, AccessLevel.Editor, cancellationToken);
-        if (!hasAccess)
-            return Result.Failure(MemberError.DontHavePermission);
-
-        // Reads outside the transaction — minimal projection
         var parentTask = await db.ProjectTasks
+            .AsNoTracking()
             .Where(t => t.Id == request.ParentTaskId && t.DeletedAt == null)
-            .Select(t => new { t.Id, t.ProjectWorkspaceId, t.ProjectSpaceId, t.ProjectFolderId })
+            .Select(t => new { t.Id, t.ProjectSpaceId, t.ProjectFolderId,t.CreatorId })
             .FirstOrDefaultAsync(cancellationToken);
 
-        if (parentTask is null)
-            return Result.Failure(Error.NotFound("Task.NotFound", "Parent task not found"));
+        if (parentTask is null) return Result.Failure(Error.NotFound("Task.NotFound", "Parent task not found"));
+        
+        var hasAccess = await permissionService.VerifyAsync(Role.Member, parentTask.ProjectSpaceId, AccessLevel.Editor,parentTask.CreatorId, cancellationToken);
+        if (!hasAccess) return Result.Failure(MemberError.DontHavePermission);
 
         var lastOrderKey = await db.ProjectTasks
             .Where(t => t.ParentTaskId == parentTask.Id && t.DeletedAt == null)
@@ -36,14 +34,14 @@ public class CreateSubTaskHandler(
         var result = await db.ExecuteInTransactionAsync(async () =>
         {
             var document = Document.Create(
-                parentTask.ProjectWorkspaceId,
+                workspaceContext.WorkspaceId,
                 request.Name,
-                context.CurrentMember.Id
+                workspaceContext.CurrentMember.Id
             );
             db.Documents.Add(document);
 
             subTask = ProjectTask.Create(
-               projectWorkspaceId: parentTask.ProjectWorkspaceId,
+               projectWorkspaceId: workspaceContext.WorkspaceId,
                projectSpaceId: parentTask.ProjectSpaceId,
                projectFolderId: parentTask.ProjectFolderId,
                name: request.Name,
@@ -51,7 +49,7 @@ public class CreateSubTaskHandler(
                defaultDocumentId: document.Id,
                color: "#FFFFFF",
                icon: null,
-               creatorId: context.CurrentMember.Id,
+               creatorId: workspaceContext.CurrentMember.Id,
                statusId: null,
                priority: request.Priority,
                startDate: null,
@@ -70,7 +68,7 @@ public class CreateSubTaskHandler(
         if (result.IsSuccess && subTask is not null)
         {
             await realtimeService.NotifyEntitiesUpdatedAsync(
-                context.TryGetWorkspaceId().Value,
+                workspaceContext.WorkspaceId,
                 new EntityBatchUpdate { Tasks = [TaskRecord.FromDomain(subTask)] },
                 cancellationToken
             );

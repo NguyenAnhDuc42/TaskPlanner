@@ -17,12 +17,8 @@ public class CreateFolderHandler(
              .FirstOrDefaultAsync(cancellationToken);
         if (space is null) return Result.Failure(SpaceError.NotFound);
 
-        var isCreator = space.CreatorId == workspaceContext.CurrentMember.Id;
-        if (!isCreator)
-        {
-            var hasAccess = await permissionService.VerifyAsync(Role.Member, request.SpaceId, AccessLevel.Editor, cancellationToken);
-            if (!hasAccess) return Result.Failure(MemberError.DontHavePermission);
-        }
+        var hasAccess = await permissionService.VerifyAsync(Role.Member, request.SpaceId, AccessLevel.Editor, space.CreatorId, cancellationToken);
+        if (!hasAccess) return Result.Failure(MemberError.DontHavePermission);
 
         ProjectFolder? folder = null;
         var result = await db.ExecuteInTransactionAsync(async () =>

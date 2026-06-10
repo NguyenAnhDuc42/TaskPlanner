@@ -10,6 +10,18 @@ public record CommentRecord
     public bool IsEdited { get; init; }
     public DateTimeOffset CreatedAt { get; init; }
     public DateTimeOffset? UpdatedAt { get; init; }
+
+    public static CommentRecord FromDomain(Comment c) => new()
+    {
+        Id = c.Id,
+        Content = c.Content,
+        CreatorId = c.CreatorId ?? Guid.Empty,
+        TaskId = c.ProjectTaskId,
+        ParentCommentId = c.ParentCommentId,
+        IsEdited = c.IsEdited,
+        CreatedAt = c.CreatedAt,
+        UpdatedAt = c.UpdatedAt
+    };
 }
 
 public record AttachmentRecord

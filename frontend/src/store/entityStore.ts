@@ -1,8 +1,9 @@
 import { createEntityAdapter, createSlice, type PayloadAction } from '@reduxjs/toolkit';
-import type { SpaceRecord, FolderRecord, TaskRecord, AssigneeRecord } from "@/types/projects";
+import type { SpaceRecord, FolderRecord, TaskRecord, AssigneeRecord, CommentRecord, WorkflowRecord } from "@/types/projects";
 import type { MemberRecord } from "@/types/workspace/member-record";
 import type { Status } from "@/types/status";
 import type { EntityAccessRecord } from "@/types/workspace";
+import type { RootState } from "./index";
 
 // ─── UTILITY: GRANULAR DEEP MERGE (LAST WRITE WINS) ───
 function safeMergeEntity<T extends { id: string }>(
@@ -41,6 +42,8 @@ export const adapters = {
   statuses: createEntityAdapter<Status>(),
   entityAccess: createEntityAdapter<EntityAccessRecord>(),
   assignees: createEntityAdapter<AssigneeRecord>(),
+  workflows: createEntityAdapter<WorkflowRecord>(),
+  comments: createEntityAdapter<CommentRecord>(),
 };
 
 // ─── REDUX SLICES WITH SAFE MERGE TRANSACTIONS (Strict Typed + removeMany) ───
@@ -198,11 +201,57 @@ export const assigneeSlice = createSlice({
   }
 });
 
+export const workflowSlice = createSlice({
+  name: 'workflows',
+  initialState: adapters.workflows.getInitialState(),
+  reducers: {
+    upsert(state, action: PayloadAction<Partial<WorkflowRecord> & { id: string }>) {
+      const existing = state.entities[action.payload.id];
+      const merged = safeMergeEntity(existing, action.payload);
+      adapters.workflows.upsertOne(state, merged);
+    },
+    upsertMany(state, action: PayloadAction<Partial<WorkflowRecord>[]>) {
+      action.payload.forEach((item) => {
+        if (!item.id) return;
+        const existing = state.entities[item.id];
+        const merged = safeMergeEntity(existing, item);
+        adapters.workflows.upsertOne(state, merged);
+      });
+    },
+    remove: adapters.workflows.removeOne,
+    removeMany: adapters.workflows.removeMany,
+  }
+});
+
+export const commentSlice = createSlice({
+  name: 'comments',
+  initialState: adapters.comments.getInitialState(),
+  reducers: {
+    upsert(state, action: PayloadAction<Partial<CommentRecord> & { id: string }>) {
+      const existing = state.entities[action.payload.id];
+      const merged = safeMergeEntity(existing, action.payload);
+      adapters.comments.upsertOne(state, merged);
+    },
+    upsertMany(state, action: PayloadAction<Partial<CommentRecord>[]>) {
+      action.payload.forEach((item) => {
+        if (!item.id) return;
+        const existing = state.entities[item.id];
+        const merged = safeMergeEntity(existing, item);
+        adapters.comments.upsertOne(state, merged);
+      });
+    },
+    remove: adapters.comments.removeOne,
+    removeMany: adapters.comments.removeMany,
+  }
+});
+
 // Central selectors
-export const spaceSelectors  = adapters.spaces.getSelectors((s: any) => s.spaces);
-export const folderSelectors = adapters.folders.getSelectors((s: any) => s.folders);
-export const taskSelectors   = adapters.tasks.getSelectors((s: any) => s.tasks);
-export const memberSelectors = adapters.members.getSelectors((s: any) => s.members);
-export const statusSelectors = adapters.statuses.getSelectors((s: any) => s.statuses);
-export const entityAccessSelectors = adapters.entityAccess.getSelectors((s: any) => s.entityAccess);
-export const assigneeSelectors = adapters.assignees.getSelectors((s: any) => s.assignees);
+export const spaceSelectors  = adapters.spaces.getSelectors((s: RootState) => s.spaces);
+export const folderSelectors = adapters.folders.getSelectors((s: RootState) => s.folders);
+export const taskSelectors   = adapters.tasks.getSelectors((s: RootState) => s.tasks);
+export const memberSelectors = adapters.members.getSelectors((s: RootState) => s.members);
+export const statusSelectors = adapters.statuses.getSelectors((s: RootState) => s.statuses);
+export const entityAccessSelectors = adapters.entityAccess.getSelectors((s: RootState) => s.entityAccess);
+export const assigneeSelectors = adapters.assignees.getSelectors((s: RootState) => s.assignees);
+export const workflowSelectors = adapters.workflows.getSelectors((s: RootState) => s.workflows);
+export const commentSelectors = adapters.comments.getSelectors((s: RootState) => s.comments);

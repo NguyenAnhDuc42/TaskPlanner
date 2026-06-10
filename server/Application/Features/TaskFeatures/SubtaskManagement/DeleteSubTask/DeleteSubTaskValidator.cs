@@ -8,6 +8,5 @@ public class DeleteSubTaskValidator : AbstractValidator<DeleteSubTaskCommand>
     {
         RuleFor(x => x.TaskId).NotEmpty();
         RuleFor(x => x.ParentTaskId).NotEmpty();
-        RuleFor(x => x.SpaceId).NotEmpty();
     }
 }

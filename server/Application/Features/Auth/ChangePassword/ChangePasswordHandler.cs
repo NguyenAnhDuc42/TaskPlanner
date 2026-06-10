@@ -13,13 +13,13 @@ public class ChangePasswordHandler : ICommandHandler<ChangePasswordCommand>
         _passwordService = passwordService;
     }
 
-    public async Task<Result> Handle(ChangePasswordCommand request, CancellationToken ct)
+    public async Task<Result> Handle(ChangePasswordCommand request, CancellationToken cancellationToken)
     {
         var userId = _currentUserService.CurrentUserId();
         if (userId == Guid.Empty) 
             return UserError.NotFound;
         
-        var user = await _db.Users.FindAsync(new object[] { userId }, ct);
+        var user = await _db.Users.FindAsync(new object[] { userId }, cancellationToken);
         if (user is null) 
             return UserError.NotFound;
 
@@ -34,7 +34,7 @@ public class ChangePasswordHandler : ICommandHandler<ChangePasswordCommand>
         var newHash = _passwordService.HashPassword(request.NewPassword);
         user.ChangePassword(newHash);
 
-        await _db.SaveChangesAsync(ct);
+        await _db.SaveChangesAsync(cancellationToken);
         return Result.Success();
     }
 }

@@ -8,7 +8,7 @@ namespace Application;
 
 public class UpdateDocumentBlocksHandler(TaskPlanDbContext db, WorkspaceContext context) : ICommandHandler<UpdateDocumentBlocksCommand>
 {
-    public async Task<Result> Handle(UpdateDocumentBlocksCommand request, CancellationToken ct)
+    public async Task<Result> Handle(UpdateDocumentBlocksCommand request, CancellationToken cancellationToken)
     {
         var incomingBlocks = request.Blocks;
 
@@ -30,7 +30,7 @@ public class UpdateDocumentBlocksHandler(TaskPlanDbContext db, WorkspaceContext 
         var idsToFetch = toDeleteIds.Concat(toUpdateItems.Select(x => x.Id!.Value)).Distinct().ToList();
         var existingBlocksMap = await db.DocumentBlocks
             .Where(b => idsToFetch.Contains(b.Id))
-            .ToDictionaryAsync(b => b.Id, ct);
+            .ToDictionaryAsync(b => b.Id, cancellationToken);
 
         // 3. EXECUTE DELETES
         var blocksToRemove = toDeleteIds
@@ -64,7 +64,7 @@ public class UpdateDocumentBlocksHandler(TaskPlanDbContext db, WorkspaceContext 
         if (newBlocks.Any()) db.DocumentBlocks.AddRange(newBlocks);
 
         // 6. SAVE: One trip to the DB for everything
-        await db.SaveChangesAsync(ct);
+        await db.SaveChangesAsync(cancellationToken);
 
         return Result.Success();
     }

@@ -4,7 +4,7 @@ namespace Application;
 
 public class GetFolderDetailHandler(TaskPlanDbContext db, WorkspaceContext workspaceContext) : IQueryHandler<GetFolderDetailQuery, FolderDetailResponse>
 {
-    public async Task<Result<FolderDetailResponse>> Handle(GetFolderDetailQuery request, CancellationToken ct)
+    public async Task<Result<FolderDetailResponse>> Handle(GetFolderDetailQuery request, CancellationToken cancellationToken)
     {
         // Only select columns shown on the folder view page
         const string sql = @"

@@ -4,13 +4,13 @@ namespace Application;
 
 public class LinkAttachmentHandler(TaskPlanDbContext db, WorkspaceContext context) : ICommandHandler<LinkAttachmentCommand>
 {
-    public async Task<Result> Handle(LinkAttachmentCommand request, CancellationToken ct)
+    public async Task<Result> Handle(LinkAttachmentCommand request, CancellationToken cancellationToken)
     {
         // AUTHORIZATION: Only Member or above can link attachments to entities
         if (context.CurrentMember.Role > Role.Member)
             return Result.Failure(MemberError.DontHavePermission);
 
-        var attachment = await db.Attachments.FirstOrDefaultAsync(x => x.Id == request.AttachmentId, ct);
+        var attachment = await db.Attachments.FirstOrDefaultAsync(x => x.Id == request.AttachmentId, cancellationToken);
         if (attachment == null) 
             return Result.Failure(AttachmentError.NotFound);
         
@@ -24,8 +24,8 @@ public class LinkAttachmentHandler(TaskPlanDbContext db, WorkspaceContext contex
             request.ParentEntityType == EntityType.Comment ? request.ParentEntityId : null,
             context.CurrentMember.Id);
 
-        await db.EntityAssetLinks.AddAsync(link, ct);
-        await db.SaveChangesAsync(ct);
+        await db.EntityAssetLinks.AddAsync(link, cancellationToken);
+        await db.SaveChangesAsync(cancellationToken);
         
         return Result.Success();
     }

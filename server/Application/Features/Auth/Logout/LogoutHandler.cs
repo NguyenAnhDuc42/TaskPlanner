@@ -6,7 +6,7 @@ public class LogoutHandler(
     CookieService cookieService
 ) : ICommandHandler<LogoutCommand>
 {
-    public async Task<Result> Handle(LogoutCommand request, CancellationToken ct)
+    public async Task<Result> Handle(LogoutCommand request, CancellationToken cancellationToken)
     {
         var refreshToken = cookieService.GetRefreshTokenFromCookies();
         
@@ -15,12 +15,12 @@ public class LogoutHandler(
         if (string.IsNullOrWhiteSpace(refreshToken))
             return Result.Success();
 
-        var session = await db.Sessions.ByRefreshToken(refreshToken).FirstOrDefaultAsync(ct);
+        var session = await db.Sessions.ByRefreshToken(refreshToken).FirstOrDefaultAsync(cancellationToken);
 
         if (session != null)
         {
             db.Sessions.Remove(session); 
-            await db.SaveChangesAsync(ct);
+            await db.SaveChangesAsync(cancellationToken);
         }
 
         return Result.Success();

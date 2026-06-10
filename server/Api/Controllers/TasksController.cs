@@ -14,81 +14,81 @@ public class TasksController : ControllerBase
     }
 
     [HttpPost]
-    public async Task<IActionResult> Create([FromBody] CreateTaskCommand command, CancellationToken ct)
+    public async Task<IActionResult> Create([FromBody] CreateTaskCommand command, CancellationToken cancellationToken)
     {
-        var result = await _handler.SendAsync<CreateTaskCommand, Guid>(command, ct);
+        var result = await _handler.SendAsync(command, cancellationToken);
         return result.ToActionResult();
     }
 
     [HttpGet("{id:guid}")]
-    public async Task<IActionResult> GetDetail(Guid id, CancellationToken ct)
+    public async Task<IActionResult> GetDetail(Guid id, CancellationToken cancellationToken)
     {
         var query = new GetTaskDetailQuery(id);
-        var result = await _handler.QueryAsync<GetTaskDetailQuery, List<TaskRecord>>(query, ct);
+        var result = await _handler.QueryAsync<GetTaskDetailQuery, List<TaskRecord>>(query, cancellationToken);
         return result.ToActionResult();
     }
 
     [HttpPut("{id:guid}")]
-    public async Task<IActionResult> Update(Guid id, [FromBody] UpdateTaskCommand command, CancellationToken ct)
+    public async Task<IActionResult> Update(Guid id, [FromBody] UpdateTaskCommand command, CancellationToken cancellationToken)
     {
-        var result = await _handler.SendAsync(command with { TaskId = id }, ct);
+        var result = await _handler.SendAsync(command with { TaskId = id }, cancellationToken);
         return result.ToActionResult();
     }
 
     [HttpDelete("{id:guid}")]
-    public async Task<IActionResult> Delete(Guid id, CancellationToken ct)
+    public async Task<IActionResult> Delete(Guid id, CancellationToken cancellationToken)
     {
-        var result = await _handler.SendAsync(new DeleteTaskCommand(id), ct);
+        var result = await _handler.SendAsync(new DeleteTaskCommand(id), cancellationToken);
         return result.ToActionResult();
     }
 
     [HttpGet("{taskId:guid}/assignees")]
-    public async Task<IActionResult> GetTaskAssignees(Guid taskId, CancellationToken ct)
+    public async Task<IActionResult> GetTaskAssignees(Guid taskId, CancellationToken cancellationToken)
     {
-        var result = await _handler.QueryAsync<GetTaskAssigneesQuery, List<AssigneeRecord>>(new GetTaskAssigneesQuery(taskId), ct);
+        var result = await _handler.QueryAsync<GetTaskAssigneesQuery, List<AssigneeRecord>>(new GetTaskAssigneesQuery(taskId), cancellationToken);
         return result.ToActionResult();
     }
 
     [HttpPut("{taskId:guid}/assignees")]
-    public async Task<IActionResult> UpdateAssignees(Guid taskId, [FromBody] List<AssigneeChangeValue> changes, CancellationToken ct)
+    public async Task<IActionResult> UpdateAssignees(Guid taskId, [FromBody] List<AssigneeChangeValue> changes, CancellationToken cancellationToken)
     {
         var command = new UpdateTaskAssigneesCommand(taskId, changes);
-        var result = await _handler.SendAsync(command, ct);
+        var result = await _handler.SendAsync(command, cancellationToken);
         return result.ToActionResult();
     }
 
     [HttpGet("{id:guid}/comments")]
-    public async Task<IActionResult> GetComments(Guid id, CancellationToken ct)
+    public async Task<IActionResult> GetComments(Guid id, CancellationToken cancellationToken)
     {
-        var result = await _handler.QueryAsync<GetCommentsQuery, List<CommentRecord>>(new GetCommentsQuery(id), ct);
+        var result = await _handler.QueryAsync<GetCommentsQuery, List<CommentRecord>>(new GetCommentsQuery(id), cancellationToken);
         return result.ToActionResult();
     }
 
     [HttpPost("{id:guid}/comments")]
-    public async Task<IActionResult> AddComment(Guid id, [FromBody] AddCommentRequest request, CancellationToken ct)
+    public async Task<IActionResult> AddComment(Guid id, [FromBody] AddCommentRequest request, CancellationToken cancellationToken)
     {
-        var result = await _handler.SendAsync<AddCommentCommand, CommentRecord>(new AddCommentCommand(id, request.Content, request.ParentCommentId), ct);
+        var result = await _handler.SendAsync<AddCommentCommand, CommentRecord>(new AddCommentCommand(id, request.Content, request.ParentCommentId), cancellationToken);
         return result.ToActionResult();
     }
 
     [HttpPost("{parentTaskId:guid}/subtasks")]
-    public async Task<IActionResult> CreateSubTask(Guid parentTaskId, [FromBody] CreateSubTaskCommand command, CancellationToken ct)
+    public async Task<IActionResult> CreateSubTask(Guid parentTaskId, [FromBody] CreateSubTaskCommand command, CancellationToken cancellationToken)
     {
-        var result = await _handler.SendAsync(command with { ParentTaskId = parentTaskId }, ct);
+        var result = await _handler.SendAsync(command with { ParentTaskId = parentTaskId }, cancellationToken);
         return result.ToActionResult();
     }
 
     [HttpPut("{parentTaskId:guid}/subtasks/{subTaskId:guid}")]
-    public async Task<IActionResult> UpdateSubTask(Guid parentTaskId, Guid subTaskId, [FromBody] UpdateSubTaskCommand command, CancellationToken ct)
+    public async Task<IActionResult> UpdateSubTask(Guid parentTaskId, Guid subTaskId, [FromBody] UpdateSubTaskCommand command, CancellationToken cancellationToken)
     {
-        var result = await _handler.SendAsync(command with { ParentTaskId = parentTaskId, TaskId = subTaskId }, ct);
+        var result = await _handler.SendAsync(command with { ParentTaskId = parentTaskId, TaskId = subTaskId }, cancellationToken);
         return result.ToActionResult();
     }
 
     [HttpDelete("{parentTaskId:guid}/subtasks/{subTaskId:guid}")]
-    public async Task<IActionResult> DeleteSubTask(Guid parentTaskId, Guid subTaskId, [FromQuery] Guid spaceId, CancellationToken ct)
+    public async Task<IActionResult> DeleteSubTask(Guid parentTaskId, Guid subTaskId, [FromQuery] Guid spaceId, CancellationToken cancellationToken)
     {
-        var result = await _handler.SendAsync(new DeleteSubTaskCommand(spaceId, parentTaskId, subTaskId), ct);
+        var result = await _handler.SendAsync(new DeleteSubTaskCommand(parentTaskId, subTaskId), cancellationToken);
         return result.ToActionResult();
     }
 }

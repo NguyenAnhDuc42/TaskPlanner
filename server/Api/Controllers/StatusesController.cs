@@ -9,10 +9,10 @@ public class StatusesController(IHandler handler) : ControllerBase
     public async Task<IActionResult> GetAvailableStatuses(
         [FromQuery] Guid? spaceId,
         [FromQuery] Guid? folderId,
-        CancellationToken ct)
+        CancellationToken cancellationToken)
     {
         var result = await handler.QueryAsync<GetAvailableStatusesQuery, List<StatusRecord>>(
-            new GetAvailableStatusesQuery(spaceId, folderId), ct);
+            new GetAvailableStatusesQuery(spaceId, folderId), cancellationToken);
         return result.ToActionResult();
     }
 
@@ -20,9 +20,9 @@ public class StatusesController(IHandler handler) : ControllerBase
     public async Task<IActionResult> UpdateWorkflowStatuses(
         Guid workflowId, 
         [FromBody] List<StatusUpdateValue> statuses, 
-        CancellationToken ct)
+        CancellationToken cancellationToken)
     {
-        var result = await handler.SendAsync(new UpdateWorkflowStatusesCommand(workflowId, statuses), ct);
+        var result = await handler.SendAsync(new UpdateWorkflowStatusesCommand(workflowId, statuses), cancellationToken);
         return result.ToActionResult();
     }
 }

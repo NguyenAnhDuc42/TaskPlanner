@@ -3,7 +3,7 @@ namespace Application;
 
 public class UploadAttachmentHandler(TaskPlanDbContext db, WorkspaceContext context) : ICommandHandler<UploadAttachmentCommand>
 {
-    public async Task<Result> Handle(UploadAttachmentCommand request, CancellationToken ct)
+    public async Task<Result> Handle(UploadAttachmentCommand request, CancellationToken cancellationToken)
     {
         // AUTHORIZATION: Only Members or above can upload attachments
         if (context.CurrentMember.Role > Role.Member)
@@ -21,7 +21,7 @@ public class UploadAttachmentHandler(TaskPlanDbContext db, WorkspaceContext cont
             };
 
             // 1. Persist Master Asset (Workspace Pool)
-            await db.Attachments.AddAsync(attachment, ct);
+            await db.Attachments.AddAsync(attachment, cancellationToken);
 
             // 2. Create the Relation (The Universal Link)
             Guid? spaceId = request.EntityType == EntityType.ProjectSpace ? request.ParentEntityId : null;
@@ -39,8 +39,8 @@ public class UploadAttachmentHandler(TaskPlanDbContext db, WorkspaceContext cont
                 commentId,
                 context.CurrentMember.Id);
 
-            await db.EntityAssetLinks.AddAsync(link, ct);
-            await db.SaveChangesAsync(ct);
+            await db.EntityAssetLinks.AddAsync(link, cancellationToken);
+            await db.SaveChangesAsync(cancellationToken);
 
             return Result.Success();
         }

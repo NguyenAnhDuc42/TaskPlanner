@@ -9,9 +9,9 @@ public class GetCurrentUserHandler : IQueryHandler<GetCurrentUserQuery, GetCurre
         _currentUserService = currentUserService;
     }
 
-    public async Task<Result<GetCurrentUserDto>> Handle(GetCurrentUserQuery request, CancellationToken ct)
+    public async Task<Result<GetCurrentUserDto>> Handle(GetCurrentUserQuery request, CancellationToken cancellationToken)
     {
-        var user = await _currentUserService.CurrentUserAsync(ct);
+        var user = await _currentUserService.CurrentUserAsync(cancellationToken);
         
         return Result<GetCurrentUserDto>.Success(new GetCurrentUserDto(
             Id: user.Id,
