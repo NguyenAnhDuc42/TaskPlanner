@@ -1,5 +1,16 @@
 namespace Application;
 
+public record WorkspaceSnippetRecord
+{
+    public Guid Id { get; init; }
+    public string Name { get; init; } = null!;
+    public string? Icon { get; init; }
+    public string? Color { get; init; }
+    public Role? Role { get; init; }
+    public bool? IsPinned { get; init; }
+    public int? MemberCount { get; init; }
+}
+
 public record WorkspaceRecord
 {
     public Guid Id { get; init; }

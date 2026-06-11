@@ -7,6 +7,8 @@ import { PrivacyToggle, IconColorPicker, AttributeButton } from "./form-elements
 import { User } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useUser } from "@/features/auth/api";
+import { useSelector } from "react-redux";
+import { memberSelectors } from "@/store/entityStore";
 
 interface CreateSpaceFormProps {
   readonly onSuccess?: (id: string) => void;
@@ -62,7 +64,8 @@ function spaceFormReducer(state: SpaceFormState, action: SpaceFormAction): Space
 }
 
 export function CreateSpaceForm({ onSuccess, onCancel }: Readonly<CreateSpaceFormProps>) {
-  const { workspaceId, registry } = useWorkspace();
+  const { workspaceId } = useWorkspace();
+  const allMembers = useSelector(memberSelectors.selectAll);
   const { data: currentUser } = useUser();
   const [createSpaceMutation, { isLoading: isCreating }] = useCreateSpaceMutation();
   const [state, dispatch] = useReducer(spaceFormReducer, initialSpaceState);
@@ -133,7 +136,7 @@ export function CreateSpaceForm({ onSuccess, onCancel }: Readonly<CreateSpaceFor
               Invite Workspace Members
             </div>
             <div className="max-h-[180px] overflow-y-auto mt-1 flex flex-col gap-0.5 [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-thumb]:bg-white/[0.05]">
-              {Object.values(registry.memberMap).reduce((acc: React.ReactNode[], member: any) => {
+              {allMembers.reduce((acc: React.ReactNode[], member: any) => {
                 const isCurrentUser = member.email && currentUser?.email && member.email.toLowerCase() === currentUser.email.toLowerCase();
                 if (!isCurrentUser) {
                   const targetId = member.id || member.workspaceMemberId;

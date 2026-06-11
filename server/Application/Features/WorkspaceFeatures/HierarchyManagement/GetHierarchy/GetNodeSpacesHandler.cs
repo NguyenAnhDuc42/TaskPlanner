@@ -4,7 +4,7 @@ using Dapper;
 
 namespace Application;
 
-public class GetNodeSpacesHandler(TaskPlanDbContext db, CursorHelper cursorHelper) : IQueryHandler<GetNodeSpacesQuery, PagedResult<SpaceRecord>>
+public class GetNodeSpacesHandler(TaskPlanDbContext db, CursorHelper cursorHelper, WorkspaceContext workspaceContext) : IQueryHandler<GetNodeSpacesQuery, PagedResult<SpaceRecord>>
 {
     public async Task<Result<PagedResult<SpaceRecord>>> Handle(GetNodeSpacesQuery request, CancellationToken cancellationToken)
     {
@@ -42,6 +42,17 @@ public class GetNodeSpacesHandler(TaskPlanDbContext db, CursorHelper cursorHelpe
                   OR order_key > @CursorOrderKey::text
                   OR (order_key = @CursorOrderKey::text AND id > @CursorSpaceId::uuid)
               )
+              AND (
+                  @Role >= @AdminRole
+                  OR is_private = false
+                  OR EXISTS (
+                      SELECT 1 FROM entity_access ea
+                      WHERE ea.project_space_id = project_spaces.id
+                      AND ea.workspace_member_id = @WorkspaceMemberId
+                      AND ea.access_level = ANY(@ValidAccessLevels)
+                      AND ea.deleted_at IS NULL
+                  )
+              )
             ORDER BY order_key, id
             LIMIT @PageSize;";
         var cursorData = request.Pagination.Cursor != null ? cursorHelper.DecodeCursor(request.Pagination.Cursor) : null;
@@ -54,7 +65,11 @@ public class GetNodeSpacesHandler(TaskPlanDbContext db, CursorHelper cursorHelpe
             WorkspaceId = request.WorkspaceId,
             CursorOrderKey = cursorOrderKey,
             CursorSpaceId = cursorSpaceId != null ? (Guid?)Guid.Parse(cursorSpaceId) : null,
-            PageSize = request.Pagination.PageSize + 1
+            PageSize = request.Pagination.PageSize + 1,
+            Role = (int)workspaceContext.CurrentMember.Role,
+            AdminRole = (int)Role.Admin,
+            WorkspaceMemberId = workspaceContext.CurrentMember.Id,
+            ValidAccessLevels = new[] { "Viewer", "Editor", "Manager" }
         };
 
         var mappedSpaces = (await connection.QueryAsync<SpaceRecord>(sql, parameters)).AsList();

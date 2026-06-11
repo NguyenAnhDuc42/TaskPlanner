@@ -8,7 +8,7 @@ public class CreateTaskHandler(TaskPlanDbContext db, WorkspaceContext workspaceC
 
         var hasPermission = await VerifyPermission(request.ParentType, request.ParentId, permissionService, cancellationToken);
         if (!hasPermission) return Result.Failure(MemberError.DontHavePermission);
-        var ancestors = await HierarchyHelper.GetAncestorChain(db, request.ParentId, request.ParentType, cancellationToken);
+        var ancestors = await HierarchyHelper.GetAncestorChain(db, request.ParentId, request.ParentType);
         ProjectTask? task = null;
         List<TaskAssignment> assigee = [];
 

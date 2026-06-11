@@ -96,7 +96,6 @@ public static class DependencyInjection
         services.AddScoped<TokenService>();
         services.AddScoped<RealtimeService>();
         services.AddTransient<ExternalAuthService>();
-        services.AddSingleton<PasswordService>();
         services.AddHttpContextAccessor();
         
         // Cursor Helper Configuration

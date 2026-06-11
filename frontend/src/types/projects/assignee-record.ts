@@ -1,5 +1,5 @@
 export interface AssigneeRecord {
-  id: string; // Composite ID: `${taskId}_${workspaceMemberId}`
+  id: string;
   taskId: string;
   workspaceMemberId: string;
 }

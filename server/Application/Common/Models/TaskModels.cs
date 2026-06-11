@@ -30,6 +30,14 @@ public record AttachmentRecord
     public string Name { get; init; } = null!;
     public string Url { get; init; } = null!;
     public long SizeBytes { get; init; }
+
+    public static AttachmentRecord FromDomain(Attachment a, EntityAssetLink? link = null) => new()
+    {
+        Id = a.Id,
+        Name = a.FileName,
+        Url = a.StoragePath,
+        SizeBytes = a.SizeBytes
+    };
 }
 
 public record AssigneeRecord

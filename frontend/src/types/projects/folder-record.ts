@@ -2,18 +2,18 @@ import { Priority } from "../priority";
 
 export interface FolderRecord {
     id: string;
-    workspaceId?: string;   // ancestor: workspace
-    spaceId?: string;       // ancestor: space (was parentId)
+    workspaceId?: string;
+    spaceId?: string;
     name: string;
-    createdAt: string; // ISO 8601 string
+    createdAt: string;
     statusId?: string;
     priority?: Priority;
-    startDate?: string; // ISO 8601 string
-    dueDate?: string;   // ISO 8601 string
+    startDate?: string;
+    dueDate?: string;
     orderKey?: string;
     icon?: string;
     color?: string;
     isPrivate?: boolean;
     hasTasks?: boolean;
-    workflowId?: string;   // resolved workflow — folder's own if set, else inherited from parent space
+    workflowId?: string;  
 }

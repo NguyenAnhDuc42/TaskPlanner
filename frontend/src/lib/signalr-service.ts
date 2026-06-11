@@ -4,9 +4,10 @@ import {
   HubConnectionState,
   LogLevel,
 } from "@microsoft/signalr";
-import type { SpaceRecord, FolderRecord, TaskRecord, AssigneeRecord } from "@/types/projects";
-import type { MemberRecord } from "@/types/workspace/member-record";
-import type { EntityAccessRecord } from "@/types/workspace";
+import type { SpaceRecord, FolderRecord, TaskRecord, AssigneeRecord, CommentRecord, AttachmentRecord } from "@/types/projects";
+import type { MemberRecord, WorkspaceRecord, EntityAccessRecord } from "@/types/workspace";
+import type { Status } from "@/types/status";
+import type { DocumentBlockRecord } from "@/types/document";
 
 // The transactional update packet (1 level deep flat entities for multiple rows and types)
 export interface EntityBatchUpdate {
@@ -16,6 +17,11 @@ export interface EntityBatchUpdate {
   members?: (Partial<MemberRecord> & { id: string })[];
   assignees?: (Partial<AssigneeRecord> & { id: string })[];
   entityAccess?: (Partial<EntityAccessRecord> & { id: string })[];
+  workspaces?: (Partial<WorkspaceRecord> & { id: string })[];
+  statuses?: (Partial<Status> & { id: string })[];
+  comments?: (Partial<CommentRecord> & { id: string })[];
+  documentBlocks?: (Partial<DocumentBlockRecord> & { id: string })[];
+  attachments?: (Partial<AttachmentRecord> & { id: string })[];
 }
 
 // The transactional deletion packet
@@ -26,6 +32,11 @@ export interface EntityBatchDelete {
   memberIds?: string[];
   assigneeIds?: string[];
   entityAccessIds?: string[];
+  workspaceIds?: string[];
+  statusIds?: string[];
+  commentIds?: string[];
+  documentBlockIds?: string[];
+  attachmentIds?: string[];
 }
 
 // 1. Strict contract for all SignalR events (Zero loose types, decoupled from specific view features)

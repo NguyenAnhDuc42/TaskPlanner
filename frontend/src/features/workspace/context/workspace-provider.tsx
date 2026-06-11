@@ -6,19 +6,10 @@ import {
   type ReactNode,
 } from "react";
 import { useNavigate, useLocation } from "@tanstack/react-router";
-import {
-  useGetWorkspaceDetailQuery,
-  useGetWorkspaceWorkflowsQuery,
-  useGetWorkspaceMembersQuery,
-} from "../api";
-import { useWorkspaces } from "@/features/main/home-screen/api";
-import type { Status } from "@/types/status";
+import { useGetWorkspaceDetailQuery } from "../api";
 import type { ContentPage } from "../type";
 import { WorkspaceContext } from "./workspace-context";
-import type { WorkspaceRegistry } from "./workspace-context";
 import { useWorkspaceUIStore } from "./use-workspace-ui-store";
-import type { WorkflowRecord } from "@/types/projects";
-import type { MemberRecord } from "@/types/workspace/member-record";
 import { useWorkspaceSignalR } from "./use-workspace-signalr";
 
 export function useWorkspace() {
@@ -27,7 +18,6 @@ export function useWorkspace() {
     return {
       workspaceId: "",
       workspace: undefined,
-      workspaces: [],
       isLoading: true,
       isError: false,
       error: null,
@@ -47,7 +37,6 @@ export function useWorkspace() {
         setSidebarWidthLocal: () => {},
         setContextWidthLocal: () => {},
       },
-      registry: { statusMap: {}, memberMap: {}, workflows: [] },
     } as any;
   }
   return context;
@@ -76,7 +65,6 @@ export function useWorkspaceSession() {
       },
       workspaceId: "",
       isLoading: true,
-      registry: { statusMap: {}, memberMap: {}, workflows: [] },
     };
   }
 
@@ -85,118 +73,59 @@ export function useWorkspaceSession() {
     actions: context.actions,
     workspaceId: context.workspaceId,
     isLoading: context.isLoading,
-    registry: (context as any).registry,
   };
 }
 
-// ─── Provider ────────────────────────────────────────────
+// ─── Provider ─────────────────────────────────────────────────────────────────
+// Fetches are fired by the route loader — this provider just subscribes to the
+// workspace detail for permissions/role and owns the UI state for the session.
 
 interface WorkspaceProviderProps {
   workspaceId: string;
   children: ReactNode;
 }
 
-export function WorkspaceProvider({
-  workspaceId,
-  children,
-}: WorkspaceProviderProps) {
-  const navigate = useNavigate();
-  const location = useLocation();
+export function WorkspaceProvider({ workspaceId, children }: WorkspaceProviderProps) {
+  const navigate  = useNavigate();
+  const location  = useLocation();
 
-  // 1. Fetch Workspace Data via RTK Query
-  const {
-    data: workspace,
-    isLoading: isWorkspaceLoading,
-    error,
-    isError,
-  } = useGetWorkspaceDetailQuery(workspaceId);
+  // Workspace detail — role, permissions. Data already in cache from route loader.
+  const { data: workspace, isLoading, error, isError } = useGetWorkspaceDetailQuery(workspaceId);
 
-  // 2. Fetch Registry Data (Workflows & Members) via RTK Query
-  const { data: workflows = [], isLoading: isWorkflowsLoading } =
-    useGetWorkspaceWorkflowsQuery(workspaceId);
-  const { data: memberData, isLoading: isMembersLoading } =
-    useGetWorkspaceMembersQuery(workspaceId);
-
-  // 2.5. Fetch Workspaces List (for switcher)
-  const { data: workspacesData, isLoading: isWorkspacesLoading } = useWorkspaces({});
-  const workspaces = useMemo(() => {
-    return workspacesData?.pages.flatMap((page) => page.items) ?? [];
-  }, [workspacesData]);
-
-  // Backward compatibility for registry
-  const registry = useMemo((): WorkspaceRegistry => {
-    const statusMap: Record<string, Status> = {};
-    const memberMap: Record<string, MemberRecord> = {};
-
-    workflows.forEach((wf: WorkflowRecord) => {
-      wf.statuses?.forEach((status: Status) => {
-        const sid = status.id || (status as any).id;
-        status.id = sid; // ensure id is always populated
-        statusMap[sid] = status;
-      });
-    });
-
-    const members = memberData?.items || [];
-    members.forEach((m: MemberRecord) => {
-      memberMap[m.workspaceMemberId || m.id] = m;
-    });
-
-    return {
-      statusMap,
-      memberMap,
-      workflows,
-    };
-  }, [workflows, memberData]);
-
-  // 4. Local UI State (Managed via Zustand Store)
+  // UI state — persisted per workspace via Zustand
   const { getSettings, updateSettings, hoveredIcon, setHoveredIcon } = useWorkspaceUIStore();
   const settings = getSettings(workspaceId);
-  
-  const sidebarWidth = settings.sidebarWidth;
-  const contextWidth = settings.contextWidth;
-  const isInnerSidebarOpen = settings.isInnerSidebarOpen;
+  const { sidebarWidth, contextWidth, isInnerSidebarOpen } = settings;
 
-  // 5. Derive Active Icon from URL (Source of Truth)
-  const pathname = location.pathname;
+  // Active icon derived from URL — never stale
   const activeIcon = useMemo(() => {
-    const segments = pathname.split("/");
-    const icon = segments[3] || "projects";
-    return icon as ContentPage;
-  }, [pathname]);
+    const segments = location.pathname.split("/");
+    return (segments[3] || "projects") as ContentPage;
+  }, [location.pathname]);
 
   const updateSidebarWidth = useCallback(
-    (newWidth: number) => {
-      updateSettings(workspaceId, { sidebarWidth: newWidth, isInnerSidebarOpen: newWidth > 0 });
-    },
+    (w: number) => updateSettings(workspaceId, { sidebarWidth: w, isInnerSidebarOpen: w > 0 }),
     [workspaceId, updateSettings],
   );
 
   const updateContextWidth = useCallback(
-    (newWidth: number) => {
-      updateSettings(workspaceId, { contextWidth: newWidth });
-    },
+    (w: number) => updateSettings(workspaceId, { contextWidth: w }),
     [workspaceId, updateSettings],
   );
 
   const toggleInnerSidebar = useCallback(() => {
-    const nextOpen = !isInnerSidebarOpen;
-    updateSettings(workspaceId, { isInnerSidebarOpen: nextOpen });
-
-    if (nextOpen && sidebarWidth < 10) {
-      updateSettings(workspaceId, { sidebarWidth: 260 });
-    }
+    const next = !isInnerSidebarOpen;
+    updateSettings(workspaceId, { isInnerSidebarOpen: next });
+    if (next && sidebarWidth < 10) updateSettings(workspaceId, { sidebarWidth: 260 });
   }, [workspaceId, isInnerSidebarOpen, sidebarWidth, updateSettings]);
 
-  // Temporary bridges for old context actions (so we don't break layout yet)
-  const setSidebarOpenLocal = useCallback((isOpen: boolean) => updateSettings(workspaceId, { isInnerSidebarOpen: isOpen }), [workspaceId, updateSettings]);
-  const setSidebarWidthLocal = useCallback((width: number) => updateSettings(workspaceId, { sidebarWidth: width }), [workspaceId, updateSettings]);
-  const setContextWidthLocal = useCallback((width: number) => updateSettings(workspaceId, { contextWidth: width }), [workspaceId, updateSettings]);
+  const setSidebarOpenLocal  = useCallback((v: boolean) => updateSettings(workspaceId, { isInnerSidebarOpen: v }), [workspaceId, updateSettings]);
+  const setSidebarWidthLocal = useCallback((v: number)  => updateSettings(workspaceId, { sidebarWidth: v }),       [workspaceId, updateSettings]);
+  const setContextWidthLocal = useCallback((v: number)  => updateSettings(workspaceId, { contextWidth: v }),       [workspaceId, updateSettings]);
 
-  // 6. Lifecycle Effects (SignalR, Redirects)
+  // Save last visited workspace + redirect on access errors
   useEffect(() => {
-    if (workspace && !isError) {
-      localStorage.setItem("lastWorkspaceId", workspaceId);
-    }
+    if (workspace && !isError) localStorage.setItem("lastWorkspaceId", workspaceId);
   }, [workspaceId, workspace, isError]);
 
   useEffect(() => {
@@ -209,29 +138,17 @@ export function WorkspaceProvider({
     }
   }, [isError, error, navigate]);
 
-  // 6.5. Realtime Sync (SignalR)
+  // Realtime — joins SignalR group, dispatches entity updates directly into Redux
   useWorkspaceSignalR(workspaceId);
-
-  // 7. Memoized Context Value
-  const isLoading =
-    isWorkspaceLoading || isWorkflowsLoading || isMembersLoading || isWorkspacesLoading;
 
   const value = useMemo(
     () => ({
       workspaceId,
       workspace,
-      workspaces,
-      registry,
       isLoading,
       isError,
       error,
-      ui: {
-        activeIcon,
-        hoveredIcon,
-        isInnerSidebarOpen,
-        sidebarWidth,
-        contextWidth,
-      },
+      ui: { activeIcon, hoveredIcon, isInnerSidebarOpen, sidebarWidth, contextWidth },
       actions: {
         toggleInnerSidebar,
         setHoveredIcon,
@@ -243,31 +160,12 @@ export function WorkspaceProvider({
       },
     }),
     [
-      workspaceId,
-      workspace,
-      workspaces,
-      registry,
-      isLoading,
-      isError,
-      error,
-      activeIcon,
-      hoveredIcon,
-      isInnerSidebarOpen,
-      sidebarWidth,
-      contextWidth,
-      toggleInnerSidebar,
-      setHoveredIcon,
-      updateSidebarWidth,
-      updateContextWidth,
-      setSidebarOpenLocal,
-      setSidebarWidthLocal,
-      setContextWidthLocal,
+      workspaceId, workspace, isLoading, isError, error,
+      activeIcon, hoveredIcon, isInnerSidebarOpen, sidebarWidth, contextWidth,
+      toggleInnerSidebar, setHoveredIcon, updateSidebarWidth, updateContextWidth,
+      setSidebarOpenLocal, setSidebarWidthLocal, setContextWidthLocal,
     ],
   );
 
-  return (
-    <WorkspaceContext.Provider value={value}>
-      {children}
-    </WorkspaceContext.Provider>
-  );
+  return <WorkspaceContext.Provider value={value}>{children}</WorkspaceContext.Provider>;
 }

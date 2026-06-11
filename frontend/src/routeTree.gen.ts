@@ -19,7 +19,6 @@ import { Route as AuthSignInRouteImport } from './routes/auth/sign-in'
 import { Route as WorkspacesWorkspaceIdIndexRouteImport } from './routes/workspaces/$workspaceId/index'
 import { Route as WorkspacesWorkspaceIdSettingsRouteImport } from './routes/workspaces/$workspaceId/settings'
 import { Route as WorkspacesWorkspaceIdMembersRouteImport } from './routes/workspaces/$workspaceId/members'
-import { Route as WorkspacesWorkspaceIdCommunicationsRouteImport } from './routes/workspaces/$workspaceId/communications'
 import { Route as WorkspacesWorkspaceIdCommandCenterRouteImport } from './routes/workspaces/$workspaceId/command-center'
 import { Route as WorkspacesWorkspaceIdTasksTaskIdRouteImport } from './routes/workspaces/$workspaceId/tasks/$taskId'
 import { Route as WorkspacesWorkspaceIdSpacesSpaceIdRouteImport } from './routes/workspaces/$workspaceId/spaces/$spaceId'
@@ -78,12 +77,6 @@ const WorkspacesWorkspaceIdMembersRoute =
     path: '/members',
     getParentRoute: () => WorkspacesWorkspaceIdRoute,
   } as any)
-const WorkspacesWorkspaceIdCommunicationsRoute =
-  WorkspacesWorkspaceIdCommunicationsRouteImport.update({
-    id: '/communications',
-    path: '/communications',
-    getParentRoute: () => WorkspacesWorkspaceIdRoute,
-  } as any)
 const WorkspacesWorkspaceIdCommandCenterRoute =
   WorkspacesWorkspaceIdCommandCenterRouteImport.update({
     id: '/command-center',
@@ -118,7 +111,6 @@ export interface FileRoutesByFullPath {
   '/workspaces/$workspaceId': typeof WorkspacesWorkspaceIdRouteWithChildren
   '/auth/': typeof AuthIndexRoute
   '/workspaces/$workspaceId/command-center': typeof WorkspacesWorkspaceIdCommandCenterRoute
-  '/workspaces/$workspaceId/communications': typeof WorkspacesWorkspaceIdCommunicationsRoute
   '/workspaces/$workspaceId/members': typeof WorkspacesWorkspaceIdMembersRoute
   '/workspaces/$workspaceId/settings': typeof WorkspacesWorkspaceIdSettingsRoute
   '/workspaces/$workspaceId/': typeof WorkspacesWorkspaceIdIndexRoute
@@ -133,7 +125,6 @@ export interface FileRoutesByTo {
   '/auth/sign-up': typeof AuthSignUpRoute
   '/auth': typeof AuthIndexRoute
   '/workspaces/$workspaceId/command-center': typeof WorkspacesWorkspaceIdCommandCenterRoute
-  '/workspaces/$workspaceId/communications': typeof WorkspacesWorkspaceIdCommunicationsRoute
   '/workspaces/$workspaceId/members': typeof WorkspacesWorkspaceIdMembersRoute
   '/workspaces/$workspaceId/settings': typeof WorkspacesWorkspaceIdSettingsRoute
   '/workspaces/$workspaceId': typeof WorkspacesWorkspaceIdIndexRoute
@@ -151,7 +142,6 @@ export interface FileRoutesById {
   '/workspaces/$workspaceId': typeof WorkspacesWorkspaceIdRouteWithChildren
   '/auth/': typeof AuthIndexRoute
   '/workspaces/$workspaceId/command-center': typeof WorkspacesWorkspaceIdCommandCenterRoute
-  '/workspaces/$workspaceId/communications': typeof WorkspacesWorkspaceIdCommunicationsRoute
   '/workspaces/$workspaceId/members': typeof WorkspacesWorkspaceIdMembersRoute
   '/workspaces/$workspaceId/settings': typeof WorkspacesWorkspaceIdSettingsRoute
   '/workspaces/$workspaceId/': typeof WorkspacesWorkspaceIdIndexRoute
@@ -170,7 +160,6 @@ export interface FileRouteTypes {
     | '/workspaces/$workspaceId'
     | '/auth/'
     | '/workspaces/$workspaceId/command-center'
-    | '/workspaces/$workspaceId/communications'
     | '/workspaces/$workspaceId/members'
     | '/workspaces/$workspaceId/settings'
     | '/workspaces/$workspaceId/'
@@ -185,7 +174,6 @@ export interface FileRouteTypes {
     | '/auth/sign-up'
     | '/auth'
     | '/workspaces/$workspaceId/command-center'
-    | '/workspaces/$workspaceId/communications'
     | '/workspaces/$workspaceId/members'
     | '/workspaces/$workspaceId/settings'
     | '/workspaces/$workspaceId'
@@ -202,7 +190,6 @@ export interface FileRouteTypes {
     | '/workspaces/$workspaceId'
     | '/auth/'
     | '/workspaces/$workspaceId/command-center'
-    | '/workspaces/$workspaceId/communications'
     | '/workspaces/$workspaceId/members'
     | '/workspaces/$workspaceId/settings'
     | '/workspaces/$workspaceId/'
@@ -290,13 +277,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof WorkspacesWorkspaceIdMembersRouteImport
       parentRoute: typeof WorkspacesWorkspaceIdRoute
     }
-    '/workspaces/$workspaceId/communications': {
-      id: '/workspaces/$workspaceId/communications'
-      path: '/communications'
-      fullPath: '/workspaces/$workspaceId/communications'
-      preLoaderRoute: typeof WorkspacesWorkspaceIdCommunicationsRouteImport
-      parentRoute: typeof WorkspacesWorkspaceIdRoute
-    }
     '/workspaces/$workspaceId/command-center': {
       id: '/workspaces/$workspaceId/command-center'
       path: '/command-center'
@@ -344,7 +324,6 @@ const AuthRouteWithChildren = AuthRoute._addFileChildren(AuthRouteChildren)
 
 interface WorkspacesWorkspaceIdRouteChildren {
   WorkspacesWorkspaceIdCommandCenterRoute: typeof WorkspacesWorkspaceIdCommandCenterRoute
-  WorkspacesWorkspaceIdCommunicationsRoute: typeof WorkspacesWorkspaceIdCommunicationsRoute
   WorkspacesWorkspaceIdMembersRoute: typeof WorkspacesWorkspaceIdMembersRoute
   WorkspacesWorkspaceIdSettingsRoute: typeof WorkspacesWorkspaceIdSettingsRoute
   WorkspacesWorkspaceIdIndexRoute: typeof WorkspacesWorkspaceIdIndexRoute
@@ -356,8 +335,6 @@ interface WorkspacesWorkspaceIdRouteChildren {
 const WorkspacesWorkspaceIdRouteChildren: WorkspacesWorkspaceIdRouteChildren = {
   WorkspacesWorkspaceIdCommandCenterRoute:
     WorkspacesWorkspaceIdCommandCenterRoute,
-  WorkspacesWorkspaceIdCommunicationsRoute:
-    WorkspacesWorkspaceIdCommunicationsRoute,
   WorkspacesWorkspaceIdMembersRoute: WorkspacesWorkspaceIdMembersRoute,
   WorkspacesWorkspaceIdSettingsRoute: WorkspacesWorkspaceIdSettingsRoute,
   WorkspacesWorkspaceIdIndexRoute: WorkspacesWorkspaceIdIndexRoute,

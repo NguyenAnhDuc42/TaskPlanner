@@ -9,7 +9,7 @@ export interface ProblemDetails {
   status?: number;
   detail?: string;
   instance?: string;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 /**
@@ -39,6 +39,7 @@ export class ApiError extends Error {
     
     // 2. Extract remaining metadata into 'details', removing duplicates
     if (data) {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const { title, status, detail, ...rest } = data;
       this.details = Object.keys(rest).length > 0 ? rest : null;
     } else {

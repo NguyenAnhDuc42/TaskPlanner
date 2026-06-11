@@ -1,8 +1,7 @@
 import { useMemo } from "react";
-import { useWorkspace } from "@/features/workspace/context/workspace-provider";
 import { StatusBadge } from "@/components/status-badge";
 import { useSelector } from "react-redux";
-import { statusSelectors } from "@/store/entityStore";
+import { statusSelectors, workflowSelectors } from "@/store/entityStore";
 import type { Status } from "@/types/status";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
@@ -23,14 +22,14 @@ export function StatusSelect({
   align = "start",
   trigger,
 }: Readonly<StatusSelectProps>) {
-  const { registry } = useWorkspace();
+  const allWorkflows = useSelector(workflowSelectors.selectAll);
 
   const workflow = useMemo(() => {
     if (!workflowId) return null;
-    return registry.workflows.find((w: any) => 
+    return allWorkflows.find((w) =>
       w.id?.toLowerCase() === workflowId?.toLowerCase()
     );
-  }, [workflowId, registry.workflows]);
+  }, [workflowId, allWorkflows]);
 
   const allStatuses = useSelector(statusSelectors.selectAll);
   const statuses = useMemo(() => {

@@ -21,6 +21,7 @@ public class CreateFolderHandler(
         if (!hasAccess) return Result.Failure(MemberError.DontHavePermission);
 
         ProjectFolder? folder = null;
+        Guid? createdWorkflowId = null;
         var result = await db.ExecuteInTransactionAsync(async () =>
         {
             var maxKey = await db.ProjectFolders
@@ -63,13 +64,15 @@ public class CreateFolderHandler(
             var statuses = Status.CreateFolderStarterSet(workspaceContext.WorkspaceId, workflow.Id, workspaceContext.CurrentMember.Id);
             db.Statuses.AddRange(statuses);
 
+            createdWorkflowId = workflow.Id;
+
             return Result.Success();
         }, cancellationToken);
         if (result.IsSuccess)
         {
             await realtimeService.NotifyEntitiesUpdatedAsync(
                 workspaceContext.WorkspaceId,
-                new EntityBatchUpdate { Folders = [FolderRecord.FromDomain(folder!)] },
+                new EntityBatchUpdate { Folders = [FolderRecord.FromDomain(folder!, createdWorkflowId)] },
                 cancellationToken);
         }
 

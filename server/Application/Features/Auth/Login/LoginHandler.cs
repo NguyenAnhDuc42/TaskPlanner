@@ -7,7 +7,6 @@ namespace Application;
 
 public class LoginHandler(
     TaskPlanDbContext db, 
-    PasswordService passwordService, 
     TokenService tokenService, 
     CookieService cookieService, 
     IHttpContextAccessor httpContextAccessor,
@@ -29,7 +28,7 @@ public class LoginHandler(
         var user = await db.Users.ByEmail(request.email).AsNoTracking().FirstOrDefaultAsync(cancellationToken);
         
         // 2. Validate Credentials & Track Attempts
-        if (user is null || !passwordService.VerifyPassword(request.password, user.PasswordHash!)) 
+        if (user is null || !PasswordService.VerifyPassword(request.password, user.PasswordHash!)) 
         {
             var attempts = cache.GetOrCreate(lockoutKey, entry =>
             {

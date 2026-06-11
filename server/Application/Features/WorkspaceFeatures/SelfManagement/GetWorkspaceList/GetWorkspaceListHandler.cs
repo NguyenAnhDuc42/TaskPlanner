@@ -29,13 +29,13 @@ public class GetWorkspaceListHandler(
     CurrentUserService currentUserService,
     CursorHelper cursorHelper,
     HybridCache cache
-) : IQueryHandler<GetWorksapceListQuery, PagedResult<WorkspaceRecord>>
+) : IQueryHandler<GetWorksapceListQuery, PagedResult<WorkspaceSnippetRecord>>
 {
-    public async Task<Result<PagedResult<WorkspaceRecord>>> Handle(GetWorksapceListQuery request, CancellationToken cancellationToken)
+    public async Task<Result<PagedResult<WorkspaceSnippetRecord>>> Handle(GetWorksapceListQuery request, CancellationToken cancellationToken)
     {
         var currentUserId = currentUserService.CurrentUserId();
         if (currentUserId == Guid.Empty) 
-            return Result<PagedResult<WorkspaceRecord>>.Failure(UserError.NotFound);
+            return Result<PagedResult<WorkspaceSnippetRecord>>.Failure(UserError.NotFound);
 
         var cacheKey = WorkspaceCacheKeys.WorkspaceList(currentUserId, request);
         
@@ -102,13 +102,13 @@ public class GetWorkspaceListHandler(
                 ? EncodeNextCursor(rows[^1])
                 : null;
 
-            return new PagedResult<WorkspaceRecord>(items, nextCursor, hasMore);
+            return new PagedResult<WorkspaceSnippetRecord>(items, nextCursor, hasMore);
         },
         new HybridCacheEntryOptions { Expiration = TimeSpan.FromMinutes(5) },
         new[] { $"user:{currentUserId}:workspaces" },
         cancellationToken);
 
-        return Result<PagedResult<WorkspaceRecord>>.Success(result);
+        return Result<PagedResult<WorkspaceSnippetRecord>>.Success(result);
     }
 
     private void DecodeCursor(string? cursor, out DateTimeOffset? ts, out Guid? id)
@@ -134,23 +134,18 @@ public class GetWorkspaceListHandler(
         }
     }
 
-    private static List<WorkspaceRecord> Map(List<WorkspaceRow> rows)
+    private static List<WorkspaceSnippetRecord> Map(List<WorkspaceRow> rows)
     {
         
-        return rows.Select(x => new WorkspaceRecord
+        return rows.Select(x => new WorkspaceSnippetRecord
         {
             Id = x.Id,
             Name = x.Name,
             Icon = x.Icon,
             Color = x.Color,
-            Description = x.Description,
             Role = x.Role,
             MemberCount = x.MemberCount,
-            IsArchived = x.IsArchived,
-            IsPinned = x.IsPinned,
-            CanEdit = x.MembershipStatus == MembershipStatus.Active && (x.Role == Role.Owner || x.Role == Role.Admin),
-            CanManageMembers = x.MembershipStatus == MembershipStatus.Active && (x.Role == Role.Owner || x.Role == Role.Admin),
-            CanPinWorkspace = x.MembershipStatus == MembershipStatus.Active
+            IsPinned = x.IsPinned
         }).ToList();
     }
 

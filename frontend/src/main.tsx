@@ -1,8 +1,6 @@
 import { StrictMode } from "react";
 import ReactDOM from "react-dom/client";
 import { RouterProvider, createRouter } from "@tanstack/react-router";
-import { QueryClientProvider } from "@tanstack/react-query";
-import { queryClient } from "./lib/query-client";
 import { AuthProvider, useAuth } from "./features/auth/auth-context";
 import { routeTree } from "./routeTree.gen";
 
@@ -22,6 +20,7 @@ declare module "@tanstack/react-router" {
   }
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 function InnerApp() {
   const auth = useAuth();
   return <RouterProvider router={router} context={{ auth }} />;
@@ -50,11 +49,9 @@ apiEvents.onTokenRefreshed.push(() => {
 root.render(
   <StrictMode>
     <Provider store={store}>
-      <QueryClientProvider client={queryClient}>
-        <AuthProvider>
-          <InnerApp />
-        </AuthProvider>
-      </QueryClientProvider>
+      <AuthProvider>
+        <InnerApp />
+      </AuthProvider>
     </Provider>
   </StrictMode>
 );

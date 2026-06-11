@@ -5,12 +5,10 @@ namespace Application;
 public class ResetPasswordHandler : ICommandHandler<ResetPasswordCommand>
 {
     private readonly TaskPlanDbContext _db;
-    private readonly PasswordService _passwordService;
 
-    public ResetPasswordHandler(TaskPlanDbContext db, PasswordService passwordService)
+    public ResetPasswordHandler(TaskPlanDbContext db)
     {
         _db = db;
-        _passwordService = passwordService;
     }
 
     public async Task<Result> Handle(ResetPasswordCommand request, CancellationToken cancellationToken)
@@ -25,7 +23,7 @@ public class ResetPasswordHandler : ICommandHandler<ResetPasswordCommand>
         if (user == null)
             return Result.Failure(Error.NotFound("User.NotFound", "User associated with this token not found."));
 
-        var newPasswordHash = _passwordService.HashPassword(request.NewPassword);
+        var newPasswordHash = PasswordService.HashPassword(request.NewPassword);
         user.ChangePassword(newPasswordHash);
         resetToken.MarkAsUsed();
         

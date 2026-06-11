@@ -1,5 +1,9 @@
 using FluentValidation;
 using Microsoft.AspNetCore.Mvc;
+using Domain;
+using Microsoft.EntityFrameworkCore;
+using Application;
+using System.Diagnostics;
 
 namespace Api;
 
@@ -21,14 +25,15 @@ public class ExceptionHandlingMiddleware
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Unhandled exception on {RequestPath}: {Message}", context.Request.Path, ex.Message);
-            await HandleExceptionAsync(context, ex);
+            var traceId = Activity.Current?.Id ?? context.TraceIdentifier;
+            _logger.LogError(ex, "Unhandled exception on {RequestPath} [TraceId: {TraceId}]: {Message}", context.Request.Path, traceId, ex.Message);
+            await HandleExceptionAsync(context, ex, traceId);
         }
     }
 
-    private static Task HandleExceptionAsync(HttpContext context, Exception ex)
+    private static Task HandleExceptionAsync(HttpContext context, Exception ex, string traceId)
     {
-        ProblemDetails problem = new ProblemDetails();
+        ProblemDetails problem;
         switch (ex)
         {
             case ValidationException validationEx:
@@ -61,12 +66,45 @@ public class ExceptionHandlingMiddleware
                     Status = StatusCodes.Status400BadRequest
                 };
                 break;
+            case BusinessRuleException businessEx:
+                problem = new ProblemDetails
+                {
+                    Title = "Business Rule Violation",
+                    Detail = businessEx.Message,
+                    Status = StatusCodes.Status400BadRequest
+                };
+                break;
+            case KeyNotFoundException keyNotFoundEx:
+                problem = new ProblemDetails
+                {
+                    Title = "Not Found",
+                    Detail = keyNotFoundEx.Message,
+                    Status = StatusCodes.Status404NotFound
+                };
+                break;
+            case DbUpdateConcurrencyException:
+                problem = new ProblemDetails
+                {
+                    Title = "Conflict",
+                    Detail = "The resource was modified by another user. Please refresh and try again.",
+                    Status = StatusCodes.Status409Conflict
+                };
+                break;
+            case OperationCanceledException:
+                problem = new ProblemDetails
+                {
+                    Title = "Request Canceled",
+                    Detail = "The request was canceled by the client.",
+                    Status = 499 // Client Closed Request
+                };
+                break;
             default:
                 problem = new ProblemDetails
                 {
                     Title = "Internal Server Error",
                     Detail = "An unexpected error occurred. Please try again later.",
-                    Status = StatusCodes.Status500InternalServerError
+                    Status = StatusCodes.Status500InternalServerError,
+                    Extensions = { ["traceId"] = traceId }
                 };
                 break;
         }

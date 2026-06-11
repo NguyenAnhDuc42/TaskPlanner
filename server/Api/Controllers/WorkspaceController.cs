@@ -61,7 +61,7 @@ namespace Api
             var filter = new WorkspaceFilter(name, owned, isArchived);
             var query = new GetWorksapceListQuery(pagination, filter);
 
-            var result = await _handler.QueryAsync<GetWorksapceListQuery, PagedResult<WorkspaceRecord>>(query, cancellationToken);
+            var result = await _handler.QueryAsync<GetWorksapceListQuery, PagedResult<WorkspaceSnippetRecord>>(query, cancellationToken);
             return result.ToActionResult();
         }
 

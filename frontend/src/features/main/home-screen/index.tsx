@@ -95,7 +95,7 @@ export function WorkspaceHomeScreen() {
                       borderColor: `${workspace.color}40`,
                     }}
                   >
-                    <DynamicIcon name={workspace.icon} color={workspace.color} size={18} />
+                    <DynamicIcon name={workspace.icon || "LayoutGrid"} color={workspace.color || "#6366f1"} size={18} />
                   </div>
                   
                   {/* Info */}
@@ -111,7 +111,7 @@ export function WorkspaceHomeScreen() {
 
                 {/* Right side affordance */}
                 <div className="flex items-center gap-2">
-                  <RoleBadge role={workspace.role} />
+                  <RoleBadge role={workspace.role as any || "Member"} />
                   <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-foreground group-hover:translate-x-0.5 transition-all" />
                 </div>
               </div>

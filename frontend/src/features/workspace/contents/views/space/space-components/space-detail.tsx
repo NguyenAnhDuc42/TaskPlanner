@@ -5,9 +5,8 @@ import  { useState, useMemo } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import type { EntityAccessRecord } from "@/types/workspace";
 import { StatusBadge } from "@/components/status-badge";
-import { useWorkspace } from "@/features/workspace/context/workspace-provider";
 import { useSelector } from "react-redux";
-import { entityAccessSelectors } from "@/store/entityStore";
+import { entityAccessSelectors, memberSelectors } from "@/store/entityStore";
 import { SpaceAccessDialog } from "./space-access-dialog";
 import { CreateStatusForm } from "@/features/workspace/components/forms/create-status-form";
 import { SpaceDocumentsPanel } from "./space-documents-panel";
@@ -23,8 +22,8 @@ interface SpaceAccessMemberRowProps {
 }
 
 export function SpaceAccessMemberRow({ access, spaceCreatorId, onAccessChange }: Readonly<SpaceAccessMemberRowProps>) {
-  const { registry } = useWorkspace();
-  const profile = registry.memberMap[access.workspaceMemberId];
+  const members = useSelector(memberSelectors.selectEntities);
+  const profile = members[access.workspaceMemberId];
   if (!profile) return null;
 
   const name = profile.name || "Unknown User";
@@ -78,7 +77,6 @@ export function SpaceAccessMemberRow({ access, spaceCreatorId, onAccessChange }:
 
 export function SpaceDetail({ spaceId }: SpaceDetailProps) {
   const space = useSpaceDetail(spaceId);
-  useWorkspace();
 
   // Collapse toggle state for sidebar lists
   const [isMembersCollapsed, setIsMembersCollapsed] = useState(false);

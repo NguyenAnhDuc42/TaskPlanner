@@ -38,7 +38,7 @@ public class GetFolderTasksHandler(
         var template = builder.AddTemplate(BaseSelect);
         var parameters = new DynamicParameters();
 
-        ApplyBaseFilters(builder, parameters, workspaceContext.WorkspaceId, request.FolderId);
+        ApplyBaseFilters(builder, parameters, workspaceContext, request.FolderId);
 
         var cursorData = request.Cursor is not null
             ? cursorHelper.DecodeCursor(request.Cursor)
@@ -61,7 +61,7 @@ public class GetFolderTasksHandler(
     private static void ApplyBaseFilters(
         SqlBuilder builder,
         DynamicParameters parameters,
-        Guid workspaceId,
+        WorkspaceContext workspaceContext,
         Guid folderId)
     {
         builder.Where("project_workspace_id = @WorkspaceId");
@@ -69,7 +69,30 @@ public class GetFolderTasksHandler(
         builder.Where("is_archived = false");
         builder.Where("project_folder_id = @FolderId");
 
-        parameters.Add("WorkspaceId", workspaceId);
+        var role = (int)workspaceContext.CurrentMember.Role;
+        if (role < (int)Role.Admin)
+        {
+            builder.Where(@"
+                EXISTS (
+                    SELECT 1 FROM project_spaces ps
+                    WHERE ps.id = project_tasks.project_space_id
+                    AND (
+                        ps.is_private = false
+                        OR EXISTS (
+                            SELECT 1 FROM entity_access ea
+                            WHERE ea.project_space_id = ps.id
+                            AND ea.workspace_member_id = @WorkspaceMemberId
+                            AND ea.access_level = ANY(@ValidAccessLevels)
+                            AND ea.deleted_at IS NULL
+                        )
+                    )
+                )
+            ");
+            parameters.Add("WorkspaceMemberId", workspaceContext.CurrentMember.Id);
+            parameters.Add("ValidAccessLevels", new[] { "Viewer", "Editor", "Manager" });
+        }
+
+        parameters.Add("WorkspaceId", workspaceContext.WorkspaceId);
         parameters.Add("FolderId", folderId);
     }
 

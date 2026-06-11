@@ -18,7 +18,16 @@ export function useResize({
   onResizeEnd,
 }: UseResizeOptions) {
   const [width, setWidth] = useState(initialWidth);
+  const [prevInitialWidth, setPrevInitialWidth] = useState(initialWidth);
   const [isResizing, setIsResizing] = useState(false);
+
+  // Sync with external initialWidth changes during render (recommended over useEffect)
+  if (initialWidth !== prevInitialWidth) {
+    setPrevInitialWidth(initialWidth);
+    if (!isResizing) {
+      setWidth(initialWidth);
+    }
+  }
   
   // Refs to maintain stable values across renders and closures
   const startXRef = useRef<number>(0);
@@ -28,16 +37,12 @@ export function useResize({
   const currentWidthRef = useRef(width);
 
   // Keep refs in sync
-  onResizeRef.current = onResize;
-  onResizeEndRef.current = onResizeEnd;
-  currentWidthRef.current = width;
-
-  // Sync with external initialWidth changes
   useEffect(() => {
-    if (!isResizing) {
-      setWidth(initialWidth);
-    }
-  }, [initialWidth, isResizing]);
+    onResizeRef.current = onResize;
+    onResizeEndRef.current = onResizeEnd;
+    currentWidthRef.current = width;
+  }, [onResize, onResizeEnd, width]);
+
 
   const startResizing = useCallback(
     (e: React.MouseEvent) => {

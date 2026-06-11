@@ -1,6 +1,7 @@
 import { createEntityAdapter, createSlice, type PayloadAction } from '@reduxjs/toolkit';
-import type { SpaceRecord, FolderRecord, TaskRecord, AssigneeRecord, CommentRecord, WorkflowRecord } from "@/types/projects";
-import type { MemberRecord } from "@/types/workspace/member-record";
+import type { SpaceRecord, FolderRecord, TaskRecord, AssigneeRecord, CommentRecord, WorkflowRecord, AttachmentRecord } from "@/types/projects";
+import type { DocumentBlockRecord } from "@/types/document";
+import type { MemberRecord, WorkspaceSnippetRecord } from "@/types/workspace";
 import type { Status } from "@/types/status";
 import type { EntityAccessRecord } from "@/types/workspace";
 import type { RootState } from "./index";
@@ -44,6 +45,9 @@ export const adapters = {
   assignees: createEntityAdapter<AssigneeRecord>(),
   workflows: createEntityAdapter<WorkflowRecord>(),
   comments: createEntityAdapter<CommentRecord>(),
+  workspaces: createEntityAdapter<WorkspaceSnippetRecord>(),
+  attachments: createEntityAdapter<AttachmentRecord>(),
+  documentBlocks: createEntityAdapter<DocumentBlockRecord>(),
 };
 
 // ─── REDUX SLICES WITH SAFE MERGE TRANSACTIONS (Strict Typed + removeMany) ───
@@ -66,6 +70,28 @@ export const spaceSlice = createSlice({
     },
     remove: adapters.spaces.removeOne,
     removeMany: adapters.spaces.removeMany,
+  }
+});
+
+export const workspaceSlice = createSlice({
+  name: 'workspaces',
+  initialState: adapters.workspaces.getInitialState(),
+  reducers: {
+    upsert(state, action: PayloadAction<Partial<WorkspaceSnippetRecord> & { id: string }>) {
+      const existing = state.entities[action.payload.id];
+      const merged = safeMergeEntity(existing, action.payload);
+      adapters.workspaces.upsertOne(state, merged);
+    },
+    upsertMany(state, action: PayloadAction<Partial<WorkspaceSnippetRecord>[]>) {
+      action.payload.forEach((item) => {
+        if (!item.id) return;
+        const existing = state.entities[item.id];
+        const merged = safeMergeEntity(existing, item);
+        adapters.workspaces.upsertOne(state, merged);
+      });
+    },
+    remove: adapters.workspaces.removeOne,
+    removeMany: adapters.workspaces.removeMany,
   }
 });
 
@@ -245,6 +271,50 @@ export const commentSlice = createSlice({
   }
 });
 
+export const attachmentSlice = createSlice({
+  name: 'attachments',
+  initialState: adapters.attachments.getInitialState(),
+  reducers: {
+    upsert(state, action: PayloadAction<Partial<AttachmentRecord> & { id: string }>) {
+      const existing = state.entities[action.payload.id];
+      const merged = safeMergeEntity(existing, action.payload);
+      adapters.attachments.upsertOne(state, merged);
+    },
+    upsertMany(state, action: PayloadAction<Partial<AttachmentRecord>[]>) {
+      action.payload.forEach((item) => {
+        if (!item.id) return;
+        const existing = state.entities[item.id];
+        const merged = safeMergeEntity(existing, item);
+        adapters.attachments.upsertOne(state, merged);
+      });
+    },
+    remove: adapters.attachments.removeOne,
+    removeMany: adapters.attachments.removeMany,
+  }
+});
+
+export const documentBlockSlice = createSlice({
+  name: 'documentBlocks',
+  initialState: adapters.documentBlocks.getInitialState(),
+  reducers: {
+    upsert(state, action: PayloadAction<Partial<DocumentBlockRecord> & { id: string }>) {
+      const existing = state.entities[action.payload.id];
+      const merged = safeMergeEntity(existing, action.payload);
+      adapters.documentBlocks.upsertOne(state, merged);
+    },
+    upsertMany(state, action: PayloadAction<Partial<DocumentBlockRecord>[]>) {
+      action.payload.forEach((item) => {
+        if (!item.id) return;
+        const existing = state.entities[item.id];
+        const merged = safeMergeEntity(existing, item);
+        adapters.documentBlocks.upsertOne(state, merged);
+      });
+    },
+    remove: adapters.documentBlocks.removeOne,
+    removeMany: adapters.documentBlocks.removeMany,
+  }
+});
+
 // Central selectors
 export const spaceSelectors  = adapters.spaces.getSelectors((s: RootState) => s.spaces);
 export const folderSelectors = adapters.folders.getSelectors((s: RootState) => s.folders);
@@ -253,5 +323,8 @@ export const memberSelectors = adapters.members.getSelectors((s: RootState) => s
 export const statusSelectors = adapters.statuses.getSelectors((s: RootState) => s.statuses);
 export const entityAccessSelectors = adapters.entityAccess.getSelectors((s: RootState) => s.entityAccess);
 export const assigneeSelectors = adapters.assignees.getSelectors((s: RootState) => s.assignees);
-export const workflowSelectors = adapters.workflows.getSelectors((s: RootState) => s.workflows);
-export const commentSelectors = adapters.comments.getSelectors((s: RootState) => s.comments);
+export const workflowSelectors    = adapters.workflows.getSelectors((s: RootState) => s.workflows);
+export const commentSelectors      = adapters.comments.getSelectors((s: RootState) => s.comments);
+export const workspaceSelectors    = adapters.workspaces.getSelectors((s: RootState) => s.workspaces);
+export const attachmentSelectors   = adapters.attachments.getSelectors((s: RootState) => s.attachments);
+export const documentBlockSelectors = adapters.documentBlocks.getSelectors((s: RootState) => s.documentBlocks);

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useSelector } from "react-redux";
 import { taskSelectors } from "@/store/entityStore";
@@ -15,6 +15,7 @@ import { useGetTaskDetailQuery, useUpdateTaskMutation } from "../task-api";
 import { TaskAssignees } from "../task-components/task-assignees";
 import { TaskComments } from "../task-components/task-comments";
 import { TaskSubtasks } from "../task-components/task-subtasks";
+import type { Priority } from "@/types/priority";
 
 interface TaskDetailCanvasProps {
   taskId?: string;
@@ -28,12 +29,12 @@ export function TaskDetailCanvas({ taskId }: TaskDetailCanvasProps) {
   const [updateTask] = useUpdateTaskMutation();
 
   const [localName, setLocalName] = useState("");
+  const [prevTaskName, setPrevTaskName] = useState("");
 
-  useEffect(() => {
-    if (task?.name) {
-      setLocalName(task.name);
-    }
-  }, [task?.name]);
+  if (task?.name && task.name !== prevTaskName) {
+    setPrevTaskName(task.name);
+    setLocalName(task.name);
+  }
 
   if (!taskId) {
     return (
@@ -57,7 +58,7 @@ export function TaskDetailCanvas({ taskId }: TaskDetailCanvasProps) {
     updateTask({ taskId, patches: { statusId } });
   };
 
-  const handlePriorityChange = (priority: any) => {
+  const handlePriorityChange = (priority: Priority) => {
     updateTask({ taskId, patches: { priority } });
   };
 

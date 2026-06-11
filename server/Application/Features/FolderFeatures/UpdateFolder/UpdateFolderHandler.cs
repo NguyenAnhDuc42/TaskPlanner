@@ -27,9 +27,10 @@ public class UpdateFolderHandler(TaskPlanDbContext db, WorkspaceContext workspac
         var affectedRows = await db.SaveChangesAsync(cancellationToken);
         if (affectedRows > 0)
         {
+
             await realtimeService.NotifyEntitiesUpdatedAsync(
                 workspaceContext.TryGetWorkspaceId().Value,
-                new EntityBatchUpdate { Folders = [FolderRecord.FromDomain(folder)] },
+                new EntityBatchUpdate { Folders = [FolderRecord.FromDomain(folder, workflowId: null)] },
                 cancellationToken);
         }
 

@@ -76,7 +76,7 @@ public class BatchUpdateFolderTasksHandler(
 
 
         var missing = requestedIds.FirstOrDefault(id => !existingIds.Contains(id));
-        if (missing != default)
+        if (missing != Guid.Empty)
             return Result.Failure(Error.NotFound("Task.NotFound", $"Task {missing} not found in folder {request.FolderId}"));
 
         await ApplyOrderKeyBatch(connection, request, workspaceId, cancellationToken);

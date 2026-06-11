@@ -2,7 +2,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Application;
 
-public class DeleteAttachmentHandler(TaskPlanDbContext db, WorkspaceContext context) : ICommandHandler<DeleteAttachmentCommand>
+public class DeleteAttachmentHandler(TaskPlanDbContext db, WorkspaceContext context, PermissionService permissionService, RealtimeService realtimeService) : ICommandHandler<DeleteAttachmentCommand>
 {
     public async Task<Result> Handle(DeleteAttachmentCommand request, CancellationToken cancellationToken)
     {
@@ -10,12 +10,20 @@ public class DeleteAttachmentHandler(TaskPlanDbContext db, WorkspaceContext cont
         if (attachment == null) 
             return Result.Failure(AttachmentError.NotFound);
 
-        if (context.CurrentMember.Role > Role.Admin && attachment.CreatorId != context.CurrentMember.Id)
-            return Result.Failure(MemberError.DontHavePermission);
+        var hasAccess = await permissionService.VerifyAsync(Role.Admin, creatorId: attachment.CreatorId, cancellationToken: cancellationToken);
+        if (!hasAccess) return Result.Failure(MemberError.DontHavePermission);
         
         attachment.SoftDelete();
-        await db.SaveChangesAsync(cancellationToken);
+        var affected = await db.SaveChangesAsync(cancellationToken);
         
+        if (affected > 0)
+        {
+            await realtimeService.NotifyEntitiesDeletedAsync(
+                context.WorkspaceId,
+                new EntityBatchDelete { AttachmentIds = [attachment.Id] },
+                cancellationToken);
+        }
+
         return Result.Success();
     }
 }

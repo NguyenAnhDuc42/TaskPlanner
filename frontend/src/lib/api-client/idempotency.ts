@@ -1,4 +1,4 @@
-export async function generateRequestHash(method: string, url: string, data: any, params: any): Promise<string> {
+export async function generateRequestHash(method: string, url: string, data: unknown, params: unknown): Promise<string> {
   const signature = {
     method: method.toLowerCase(),
     url,

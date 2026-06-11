@@ -9,20 +9,23 @@ import { cn } from "@/lib/utils";
 
 
 import { useWorkspace } from "../context/workspace-provider";
+import { useSelector } from "react-redux";
+import { workspaceSelectors } from "@/store/entityStore";
+import type { WorkspaceSnippetRecord } from "@/types/workspace";
 import { Pin } from "lucide-react";
 import { DynamicIcon } from "@/components/dynamic-icon";
 import { useNavigate } from "@tanstack/react-router";
-import type { WorkspaceSummary } from "@/features/main/home-screen/type";
 import { CreateWorkspaceForm } from "@/features/main/home-screen/components/create-workspace-form";
 import { useSetWorkspacePin } from "@/features/main/home-screen/api";
 
 export function WorkspaceSwitcher() {
   const [open, setOpen] = useState(false);
-  const { workspaces, workspaceId } = useWorkspace();
+  const { workspaceId } = useWorkspace();
+  const workspaces = useSelector(workspaceSelectors.selectAll);
   const navigate = useNavigate();
   const { mutate: setPin } = useSetWorkspacePin();
 
-  const activeWorkspace = workspaces.find((ws: WorkspaceSummary) => ws.id === workspaceId) || workspaces[0];
+  const activeWorkspace = workspaces.find((ws: WorkspaceSnippetRecord) => ws.id === workspaceId) || workspaces[0];
 
   const [showCreateForm, setShowCreateForm] = useState(false);
 
@@ -37,7 +40,7 @@ export function WorkspaceSwitcher() {
               className="h-5 w-5 rounded flex items-center justify-center border border-white/10 shadow-sm"
               style={{ backgroundColor: activeWorkspace.color || "#6366f1" }}
             >
-              <DynamicIcon name={activeWorkspace.icon} size={12} className="text-white" />
+              <DynamicIcon name={activeWorkspace.icon || "LayoutGrid"} size={12} className="text-white" />
             </div>
             <span className="text-[11px] font-black uppercase tracking-tight opacity-70 group-hover:opacity-100 transition-opacity">
               {activeWorkspace.name}
@@ -53,7 +56,7 @@ export function WorkspaceSwitcher() {
             <span className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/50">Workspaces</span>
           </div>
           <div className="space-y-0.5">
-            {workspaces.map((ws: WorkspaceSummary) => {
+            {workspaces.map((ws: WorkspaceSnippetRecord) => {
               return (
                 <button
                   key={ws.id}
@@ -85,7 +88,7 @@ export function WorkspaceSwitcher() {
                       className="h-4 w-4 rounded-sm flex items-center justify-center text-[10px] font-black text-white uppercase shadow-sm"
                       style={{ backgroundColor: ws.color || "#6366f1" }}
                     >
-                      <DynamicIcon name={ws.icon} size={10} />
+                      <DynamicIcon name={ws.icon || "LayoutGrid"} size={10} />
                     </div>
                     {ws.name}
                   </div>

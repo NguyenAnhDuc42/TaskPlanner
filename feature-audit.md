@@ -249,22 +249,22 @@ Summarize Space Checkngi need update to be like what is in BatchUpdate
 ## Workflow Features
 
 ### UpdateWorkflowStatusesHandler.cs (Command)
-- **[REALTIME]** ❌ Uses `NotifyWorkspaceAsync`.
-- **[PERM]** ❌ Manual `CurrentMember.Role` check.
+- **[REALTIME]** ⏭️ Skipped per user request.
+- **[PERM]** ⏭️ Skipped per user request.
 - **[CQRS]** ✅ Returns `Result`.
 - **[OPTIMIZE]** ✅ Optimized EF Core query.
 - **[CACHE]** ⚠️ Needs verification.
 
 ### ReorderStatusesHandler.cs (Command)
-- **[REALTIME]** ❌ Uses `NotifyWorkspaceAsync`.
-- **[PERM]** ❌ Manual `CurrentMember.Role` check.
+- **[REALTIME]** ⏭️ Skipped per user request.
+- **[PERM]** ⏭️ Skipped per user request.
 - **[CQRS]** ✅ Returns `Result`.
 - **[OPTIMIZE]** ✅ Optimized EF Core query.
 - **[CACHE]** ⚠️ Needs verification.
 
 ### SetLayerWorkflowHandler.cs (Command)
-- **[REALTIME]** ❌ Does not broadcast `EntityBatchUpdate`.
-- **[PERM]** ❌ Manual `CurrentMember.Role` check.
+- **[REALTIME]** ⏭️ Skipped per user request.
+- **[PERM]** ⏭️ Skipped per user request.
 - **[CQRS]** ✅ Returns `Result`.
 - **[OPTIMIZE]** ✅ Optimized EF Core query.
 - **[CACHE]** ⚠️ Needs verification.
@@ -285,8 +285,8 @@ Summarize Space Checkngi need update to be like what is in BatchUpdate
 ## Document Features
 
 ### UpdateDocumentBlocksHandler.cs (Command)
-- **[REALTIME]** ❌ Does not broadcast `EntityBatchUpdate`.
-- **[PERM]** ❌ Missing `PermissionService`.
+- **[REALTIME]** ✅ Broadcasts `EntityBatchUpdate`.
+- **[PERM]** ✅ Uses `PermissionService`.
 - **[CQRS]** ✅ Returns `Result`.
 - **[OPTIMIZE]** ✅ Optimized EF Core query.
 - **[CACHE]** ⚠️ Needs verification.
@@ -296,22 +296,22 @@ Summarize Space Checkngi need update to be like what is in BatchUpdate
 ## Attachment Features
 
 ### UploadAttachmentHandler.cs (Command)
-- **[REALTIME]** ❌ Does not broadcast `EntityBatchUpdate`.
-- **[PERM]** ❌ Manual `CurrentMember.Role` check.
+- **[REALTIME]** ✅ Broadcasts `EntityBatchUpdate`.
+- **[PERM]** ✅ Uses `PermissionService`.
 - **[CQRS]** ✅ Returns `Result`.
 - **[OPTIMIZE]** ✅ Optimized EF Core query.
 - **[CACHE]** ⚠️ Needs verification.
 
 ### LinkAttachmentHandler.cs (Command)
-- **[REALTIME]** ❌ Does not broadcast `EntityBatchUpdate`.
-- **[PERM]** ❌ Manual `CurrentMember.Role` check.
+- **[REALTIME]** ✅ Broadcasts `EntityBatchUpdate`.
+- **[PERM]** ✅ Uses `PermissionService`.
 - **[CQRS]** ✅ Returns `Result`.
 - **[OPTIMIZE]** ✅ Optimized EF Core query.
 - **[CACHE]** ⚠️ Needs verification.
 
 ### DeleteAttachmentHandler.cs (Command)
-- **[REALTIME]** ❌ Does not broadcast `EntityBatchDelete`.
-- **[PERM]** ❌ Manual `CurrentMember.Role` check.
+- **[REALTIME]** ✅ Broadcasts `EntityBatchDelete`.
+- **[PERM]** ✅ Uses `PermissionService`.
 - **[CQRS]** ✅ Returns `Result`.
 - **[OPTIMIZE]** ✅ Optimized EF Core query.
 - **[CACHE]** ⚠️ Needs verification.
@@ -324,7 +324,7 @@ Summarize Space Checkngi need update to be like what is in BatchUpdate
 ### ChangePasswordHandler.cs (Command)
 - **[PERM]** N/A
 - **[CQRS]** ✅ Returns `Result`.
-- **[OPTIMIZE]** ❌ Uses `FindAsync`. Should be `FirstOrDefaultAsync`.
+- **[OPTIMIZE]** ✅ Uses `FirstOrDefaultAsync`.
 
 ### Login/Register/Logout/ForgotPassword/ResetPassword/ExternalLogin/RefreshToken/UpdateProfile
 - **[OPTIMIZE]** ✅ Compliant.

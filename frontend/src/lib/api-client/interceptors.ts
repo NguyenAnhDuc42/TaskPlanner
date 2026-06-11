@@ -11,10 +11,10 @@ let isRefreshing = false;
 let isRedirecting = false;
 let failedQueue: Array<{
   resolve: (value: unknown) => void;
-  reject: (reason?: any) => void;
+  reject: (reason?: unknown) => void;
 }> = [];
 
-const processQueue = (error: any, token: any = null) => {
+const processQueue = (error: unknown, token: unknown = null) => {
   failedQueue.forEach((prom) => {
     if (error) prom.reject(error);
     else prom.resolve(token);
@@ -68,19 +68,20 @@ export function setupInterceptors() {
 
   api.interceptors.response.use(
     (response) => response,
-    async (error: any) => {
-      const originalRequest = error.config;
+    async (error: unknown) => {
+      const isAxiosErr = axios.isAxiosError(error);
+      const originalRequest = isAxiosErr ? error.config : undefined;
       const isAuthRequest = originalRequest?.url?.includes("/auth/") && 
                            !originalRequest?.url?.includes("/auth/me");
 
-      if (error.response?.status === 401 && !originalRequest._retry && !isAuthRequest) {
+      if (isAxiosErr && error.response?.status === 401 && !(originalRequest as any)?._retry && !isAuthRequest) {
         if (isRefreshing) {
           return new Promise((resolve, reject) => {
             failedQueue.push({ resolve, reject });
           }).then(() => api(originalRequest)).catch((err) => { throw err; });
         }
 
-        originalRequest._retry = true;
+        if (originalRequest) (originalRequest as any)._retry = true;
         isRefreshing = true;
 
         try {
@@ -98,24 +99,24 @@ export function setupInterceptors() {
             globalThis.location.href = "/auth/sign-in";
           }
           
-          throw new ApiError(error);
+          throw isAxiosErr ? new ApiError(error as any) : error;
         } finally {
           isRefreshing = false;
         }
       }
 
-      if (error.response?.status === 403 && originalRequest?.url?.includes("/workspaces/")) {
+      if (isAxiosErr && error.response?.status === 403 && originalRequest?.url?.includes("/workspaces/")) {
         toast.error("You do not have access to this workspace.");
         isRedirecting = true;
         globalThis.location.href = "/";
-        throw new ApiError(error);
+        throw new ApiError(error as any);
       }
 
-      if (error.response?.status >= 500) {
+      if (isAxiosErr && (error.response?.status ?? 0) >= 500) {
         toast.error("A server error occurred. Please try again later.");
       }
 
-      throw axios.isAxiosError(error) ? new ApiError(error) : error;
+      throw isAxiosErr ? new ApiError(error as any) : error;
     }
   );
 }

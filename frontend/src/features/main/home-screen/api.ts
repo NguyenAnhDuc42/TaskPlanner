@@ -1,6 +1,8 @@
 import { z } from "zod";
-import type { createWorkspaceSchema, WorkspaceSummary } from "./type";
+import type { createWorkspaceSchema } from "./type";
+import type { WorkspaceSnippetRecord } from "@/types/workspace";
 import { workspaceApi } from "@/store/workspaceApi";
+import { workspaceSlice } from "@/store/entityStore";
 import { toast } from "sonner";
 import type { PagedResult } from "@/types/paged-result";
 import { useNavigate, useSearch } from "@tanstack/react-router";
@@ -11,7 +13,7 @@ type CreateWorkspaceValues = z.infer<typeof createWorkspaceSchema>;
 
 export const homeWorkspaceApi = workspaceApi.injectEndpoints({
   endpoints: (build) => ({
-    getWorkspaces: build.query<PagedResult<WorkspaceSummary>, {
+    getWorkspaces: build.query<PagedResult<WorkspaceSnippetRecord>, {
       name?: string;
       owned?: boolean;
       isArchived?: boolean;
@@ -36,9 +38,15 @@ export const homeWorkspaceApi = workspaceApi.injectEndpoints({
       forceRefetch({ currentArg, previousArg }) {
         return currentArg !== previousArg;
       },
+      async onQueryStarted(_, { dispatch, queryFulfilled }) {
+        try {
+          const { data } = await queryFulfilled;
+          dispatch(workspaceSlice.actions.upsertMany(data.items));
+        } catch {}
+      },
       providesTags: ["Spaces"],
     }),
-    createWorkspace: build.mutation<WorkspaceSummary, CreateWorkspaceValues & { strictJoin?: boolean }>({
+    createWorkspace: build.mutation<WorkspaceSnippetRecord, CreateWorkspaceValues & { strictJoin?: boolean }>({
       query: (values) => ({ url: "/workspaces", method: "POST", data: values }),
       invalidatesTags: ["Spaces"],
     }),

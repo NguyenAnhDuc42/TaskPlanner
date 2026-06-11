@@ -15,6 +15,17 @@ public class GetSpaceDocumentsHandler(TaskPlanDbContext db, WorkspaceContext wor
             FROM project_spaces s
             JOIN documents d ON d.id = s.default_document_id AND d.deleted_at IS NULL
             WHERE s.id = @SpaceId AND s.project_workspace_id = @WorkspaceId AND s.deleted_at IS NULL
+              AND (
+                  @Role >= @AdminRole
+                  OR s.is_private = false
+                  OR EXISTS (
+                      SELECT 1 FROM entity_access ea
+                      WHERE ea.project_space_id = s.id
+                      AND ea.workspace_member_id = @WorkspaceMemberId
+                      AND ea.access_level = ANY(@ValidAccessLevels)
+                      AND ea.deleted_at IS NULL
+                  )
+              )
 
             UNION ALL
 
@@ -24,16 +35,32 @@ public class GetSpaceDocumentsHandler(TaskPlanDbContext db, WorkspaceContext wor
                 false AS IsDefault
             FROM entity_asset_links link
             JOIN documents d ON d.id = link.asset_id AND d.deleted_at IS NULL
+            JOIN project_spaces s ON s.id = link.project_space_id AND s.deleted_at IS NULL
             WHERE link.project_space_id = @SpaceId 
               AND link.asset_type = 'Document' 
               AND link.project_workspace_id = @WorkspaceId 
-              AND link.deleted_at IS NULL;";
+              AND link.deleted_at IS NULL
+              AND (
+                  @Role >= @AdminRole
+                  OR s.is_private = false
+                  OR EXISTS (
+                      SELECT 1 FROM entity_access ea
+                      WHERE ea.project_space_id = s.id
+                      AND ea.workspace_member_id = @WorkspaceMemberId
+                      AND ea.access_level = ANY(@ValidAccessLevels)
+                      AND ea.deleted_at IS NULL
+                  )
+              );";
 
         var connection = db.Database.GetDbConnection();
         var parameters = new
         {
             SpaceId = request.SpaceId,
-            WorkspaceId = workspaceContext.WorkspaceId
+            WorkspaceId = workspaceContext.WorkspaceId,
+            Role = (int)workspaceContext.CurrentMember.Role,
+            AdminRole = (int)Role.Admin,
+            WorkspaceMemberId = workspaceContext.CurrentMember.Id,
+            ValidAccessLevels = new[] { "Viewer", "Editor", "Manager" }
         };
 
         var documents = (await connection.QueryAsync<SpaceDocumentRecord>(sql, parameters)).AsList();

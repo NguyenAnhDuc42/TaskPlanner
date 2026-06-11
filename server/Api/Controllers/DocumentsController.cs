@@ -8,6 +8,7 @@ namespace Api;
 
 [Route("api/documents")]
 [ApiController]
+[Microsoft.AspNetCore.Authorization.Authorize]
 public class DocumentsController : ControllerBase
 {
     private readonly IHandler _handler;

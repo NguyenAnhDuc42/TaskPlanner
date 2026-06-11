@@ -66,8 +66,9 @@ public record FolderRecord
     public string? Icon { get; init; }
     public string? Color { get; init; }
     public bool? HasTasks { get; init; }
+    public Guid? WorkflowId { get; init; }
 
-    public static FolderRecord FromDomain(ProjectFolder f) => new()
+    public static FolderRecord FromDomain(ProjectFolder f, Guid? workflowId) => new()
     {
         Id = f.Id,
         WorkspaceId = f.ProjectWorkspaceId,
@@ -81,7 +82,8 @@ public record FolderRecord
         OrderKey = f.OrderKey,
         Icon = f.Icon,
         Color = f.Color,
-        HasTasks = null  // computed, not on domain entity
+        HasTasks = null,
+        WorkflowId = workflowId
     };
 }
 

@@ -5,7 +5,6 @@ namespace Application;
 
 public class RegisterHandler(
     TaskPlanDbContext db, 
-    PasswordService passwordService, 
     TokenService tokenService, 
     CookieService cookieService, 
     IHttpContextAccessor httpContextAccessor
@@ -16,7 +15,7 @@ public class RegisterHandler(
         var exists = await db.Users.ByEmail(request.email).AsNoTracking().AnyAsync(cancellationToken);
         if (exists) return Result<RegisterResponse>.Failure(UserError.DuplicateEmail);
 
-        var passwordHash = passwordService.HashPassword(request.password);
+        var passwordHash = PasswordService.HashPassword(request.password);
         var user = User.Create(request.username, request.email, passwordHash);
         
         await db.Users.AddAsync(user, cancellationToken);

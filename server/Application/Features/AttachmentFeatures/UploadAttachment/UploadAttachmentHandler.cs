@@ -1,13 +1,13 @@
 using Microsoft.EntityFrameworkCore;
 namespace Application;
 
-public class UploadAttachmentHandler(TaskPlanDbContext db, WorkspaceContext context) : ICommandHandler<UploadAttachmentCommand>
+public class UploadAttachmentHandler(TaskPlanDbContext db, WorkspaceContext context, PermissionService permissionService, RealtimeService realtimeService) : ICommandHandler<UploadAttachmentCommand>
 {
     public async Task<Result> Handle(UploadAttachmentCommand request, CancellationToken cancellationToken)
     {
         // AUTHORIZATION: Only Members or above can upload attachments
-        if (context.CurrentMember.Role > Role.Member)
-            return Result.Failure(MemberError.DontHavePermission);
+        var hasAccess = await permissionService.VerifyAsync(Role.Member, cancellationToken: cancellationToken);
+        if (!hasAccess) return Result.Failure(MemberError.DontHavePermission);
 
         try
         {
@@ -40,7 +40,15 @@ public class UploadAttachmentHandler(TaskPlanDbContext db, WorkspaceContext cont
                 context.CurrentMember.Id);
 
             await db.EntityAssetLinks.AddAsync(link, cancellationToken);
-            await db.SaveChangesAsync(cancellationToken);
+            var affected = await db.SaveChangesAsync(cancellationToken);
+
+            if (affected > 0)
+            {
+                await realtimeService.NotifyEntitiesUpdatedAsync(
+                    context.WorkspaceId,
+                    new EntityBatchUpdate { Attachments = [AttachmentRecord.FromDomain(attachment, link)] },
+                    cancellationToken);
+            }
 
             return Result.Success();
         }

@@ -9,8 +9,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { useGetEntityAccessQuery, useUpdateEntityAccessMutation, useSpaceDetail } from "../space-api";
-import { entityAccessSelectors } from "@/store/entityStore";
-import { useWorkspace } from "@/features/workspace/context/workspace-provider";
+import { entityAccessSelectors, memberSelectors } from "@/store/entityStore";
 import type { MemberRecord, EntityAccessRecord } from "@/types/workspace";
 import type { AccessLevel } from "@/types/access-level";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -101,9 +100,7 @@ export function SpaceAccessDialog({ spaceId, trigger }: Readonly<SpaceAccessDial
   const space = useSpaceDetail(spaceId);
   const entityAccessList = useSelector(entityAccessSelectors.selectAll).filter(ea => ea.spaceId === spaceId);
   const [updateEntityAccess] = useUpdateEntityAccessMutation();
-  const { registry } = useWorkspace();
-
-  const allWorkspaceMembers = Object.values(registry.memberMap) as MemberRecord[];
+  const allWorkspaceMembers = useSelector(memberSelectors.selectAll);
 
   return (
     <Dialog>

@@ -34,16 +34,16 @@ public class GetFolderDetailHandler(TaskPlanDbContext db, WorkspaceContext works
             WHERE wf.project_folder_id = @FolderId LIMIT 1;";
 
         var connection = db.Database.GetDbConnection();
-        using var multi = await connection.QueryMultipleAsync(
-            sql, new { FolderId = request.FolderId, WorkspaceId = workspaceContext.WorkspaceId });
+        using var multi = await connection.QueryMultipleAsync(sql, new { FolderId = request.FolderId, WorkspaceId = workspaceContext.WorkspaceId });
 
         var folder = await multi.ReadFirstOrDefaultAsync<FolderRecord>();
-        if (folder == null)
-            return Result<FolderDetailResponse>.Failure(Error.NotFound("Folder.NotFound", $"Folder {request.FolderId} not found"));
+        if (folder == null) return Result<FolderDetailResponse>.Failure(Error.NotFound("Folder.NotFound", $"Folder {request.FolderId} not found"));
 
         var space = await multi.ReadFirstOrDefaultAsync<BreadcrumbInfo>();
         var parentWorkflowId = await multi.ReadFirstOrDefaultAsync<Guid?>();
         var workflowId = await multi.ReadFirstOrDefaultAsync<Guid?>();
+
+        folder = folder with { WorkflowId = workflowId };
 
         List<StatusRecord> spaceStatuses = new();
         if (parentWorkflowId.HasValue)
@@ -65,7 +65,7 @@ public class GetFolderDetailHandler(TaskPlanDbContext db, WorkspaceContext works
             })).AsList();
         }
 
-        List<StatusRecord> taskStatuses = new();
+        List<StatusRecord> taskStatuses;
         if (workflowId.HasValue)
         {
             var taskStatusSql = @"
@@ -86,7 +86,6 @@ public class GetFolderDetailHandler(TaskPlanDbContext db, WorkspaceContext works
         }
         else
         {
-            // Folder has no custom workflow — tasks inherit space statuses
             taskStatuses = spaceStatuses;
         }
 

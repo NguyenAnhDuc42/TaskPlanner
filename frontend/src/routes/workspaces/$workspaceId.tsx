@@ -10,7 +10,7 @@ import { store } from "@/store";
 import { workspaceFeatureApi } from "@/features/workspace/api";
 import { getCookie } from "@/lib/cookie-utils";
 
-export const workspaceSearchSchema = z.object({});
+import { workspaceSearchSchema } from "./workspace-search-schema";
 
 export const Route = createFileRoute("/workspaces/$workspaceId")({
   beforeLoad: async () => {

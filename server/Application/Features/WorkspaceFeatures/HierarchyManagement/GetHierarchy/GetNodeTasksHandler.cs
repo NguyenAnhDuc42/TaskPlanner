@@ -4,7 +4,7 @@ using Dapper;
 
 namespace Application;
 
-public class GetNodeTasksHandler(TaskPlanDbContext db, CursorHelper cursorHelper) : IQueryHandler<GetNodeTasksQuery, PagedResult<TaskRecord>>
+public class GetNodeTasksHandler(TaskPlanDbContext db, CursorHelper cursorHelper, WorkspaceContext workspaceContext) : IQueryHandler<GetNodeTasksQuery, PagedResult<TaskRecord>>
 {
     public async Task<Result<PagedResult<TaskRecord>>> Handle(GetNodeTasksQuery request, CancellationToken cancellationToken)
     {
@@ -38,6 +38,23 @@ public class GetNodeTasksHandler(TaskPlanDbContext db, CursorHelper cursorHelper
                   OR t.order_key > @CursorOrderKey::text
                   OR (t.order_key = @CursorOrderKey::text AND t.id > @CursorTaskId::uuid)
               )
+              AND (
+                  @Role >= @AdminRole
+                  OR EXISTS (
+                      SELECT 1 FROM project_spaces ps
+                      WHERE ps.id = t.project_space_id
+                      AND (
+                          ps.is_private = false
+                          OR EXISTS (
+                              SELECT 1 FROM entity_access ea
+                              WHERE ea.project_space_id = ps.id
+                              AND ea.workspace_member_id = @WorkspaceMemberId
+                              AND ea.access_level = ANY(@ValidAccessLevels)
+                              AND ea.deleted_at IS NULL
+                          )
+                      )
+                  )
+              )
             ORDER BY t.order_key, t.id
             LIMIT @PageSize;";
         var cursorData = request.Pagination.Cursor != null ? cursorHelper.DecodeCursor(request.Pagination.Cursor) : null;
@@ -52,7 +69,11 @@ public class GetNodeTasksHandler(TaskPlanDbContext db, CursorHelper cursorHelper
             ParentType = request.ParentType,
             CursorOrderKey = cursorOrderKey,
             CursorTaskId = cursorTaskId != null ? (Guid?)Guid.Parse(cursorTaskId) : null,
-            PageSize = request.Pagination.PageSize + 1
+            PageSize = request.Pagination.PageSize + 1,
+            Role = (int)workspaceContext.CurrentMember.Role,
+            AdminRole = (int)Role.Admin,
+            WorkspaceMemberId = workspaceContext.CurrentMember.Id,
+            ValidAccessLevels = new[] { "Viewer", "Editor", "Manager" }
         };
 
         var mappedTasks = (await connection.QueryAsync<TaskRecord>(sql, parameters)).AsList();

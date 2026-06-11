@@ -21,14 +21,14 @@ export const WeightToPriority: Record<number, Priority> = {
   0: Priority.Low,
 };
 
-export function getPriorityWeight(item: any): number {
+export function getPriorityWeight(item: { priority?: string; orderKey?: string } | null | undefined): number {
   if (!item || item.priority === "no-priority") {
     return 1; // Default Normal weight (1)
   }
   return PriorityWeight[item.priority as Priority] ?? 1;
 }
 
-export const prioritySort = (a: any, b: any) => {
+export const prioritySort = (a: { priority?: string; orderKey?: string }, b: { priority?: string; orderKey?: string }) => {
   const pA = getPriorityWeight(a);
   const pB = getPriorityWeight(b);
   if (pA !== pB) {

@@ -5,7 +5,6 @@ import { Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { memberSelectors } from "@/store/entityStore";
-import { useWorkspace } from "@/features/workspace/context/workspace-provider";
 import { useGetTaskCommentsQuery, useAddCommentMutation } from "../task-api";
 
 interface TaskCommentsProps {
@@ -13,7 +12,7 @@ interface TaskCommentsProps {
 }
 
 export function TaskComments({ taskId }: TaskCommentsProps) {
-  const { registry } = useWorkspace();
+  const members = useSelector(memberSelectors.selectEntities);
   const allMembers = useSelector(memberSelectors.selectAll);
 
   const { data: comments = [] } = useGetTaskCommentsQuery(taskId, {
@@ -40,7 +39,7 @@ export function TaskComments({ taskId }: TaskCommentsProps) {
 
       <div className="space-y-4 max-h-[300px] overflow-y-auto pr-2 [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-thumb]:bg-muted-foreground/20 hover:[&::-webkit-scrollbar-thumb]:bg-muted-foreground/45 [&::-webkit-scrollbar-track]:bg-transparent">
         {comments.map((comment) => {
-          const creator = registry.memberMap[comment.creatorId] || allMembers.find((m) => m.id === comment.creatorId || m.workspaceMemberId === comment.creatorId);
+          const creator = members[comment.creatorId] || allMembers.find((m) => m.id === comment.creatorId || m.workspaceMemberId === comment.creatorId);
           const name = creator?.name || "Unknown User";
           const initials = name.split(" ").map((n: string) => n[0]).join("").slice(0, 2).toUpperCase();
           return (

@@ -29,6 +29,7 @@
     <PackageVersion Include="Dapper.SqlBuilder" Version="2.1.66" />
     <PackageVersion Include="Microsoft.AspNetCore.Authorization" Version="10.0.5" />
     <PackageVersion Include="Microsoft.AspNetCore.Http" Version="2.3.9" />
+    <PackageVersion Include="Serilog" Version="4.3.1" />
     <!-- API & Web Layer -->
     <PackageVersion Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.5" />
     <PackageVersion Include="Microsoft.AspNetCore.JsonPatch" Version="10.0.5" />

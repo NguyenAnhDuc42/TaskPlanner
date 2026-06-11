@@ -6,8 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { memberSelectors, assigneeSelectors, entityAccessSelectors } from "@/store/entityStore";
-import type { RootState } from "@/store";
-import { useWorkspace } from "@/features/workspace/context/workspace-provider";
+
 import { useGetTaskAssigneesQuery, useUpdateTaskAssigneesMutation } from "../task-api";
 import { useGetEntityAccessQuery } from "../../space/space-api";
 
@@ -17,7 +16,7 @@ interface TaskAssigneesProps {
 }
 
 export function TaskAssignees({ taskId, spaceId }: TaskAssigneesProps) {
-  const { registry } = useWorkspace();
+  const members = useSelector(memberSelectors.selectEntities);
   const allMembers = useSelector(memberSelectors.selectAll);
 
   useGetTaskAssigneesQuery(taskId, {
@@ -63,7 +62,7 @@ export function TaskAssignees({ taskId, spaceId }: TaskAssigneesProps) {
   return (
     <div className="flex flex-wrap items-center gap-1.5 min-h-7">
       {assignees.map((assignee) => {
-        const member = registry.memberMap[assignee.workspaceMemberId] || allMembers.find(m => m.id === assignee.workspaceMemberId || m.workspaceMemberId === assignee.workspaceMemberId);
+        const member = members[assignee.workspaceMemberId] || allMembers.find(m => m.id === assignee.workspaceMemberId || m.workspaceMemberId === assignee.workspaceMemberId);
         if (!member) return null;
         const initials = member.name.split(" ").map((n: string) => n[0]).join("").slice(0, 2).toUpperCase();
         return (

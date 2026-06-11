@@ -6,10 +6,34 @@ using System.Threading.Tasks;
 
 namespace Application;
 
-public class UpdateDocumentBlocksHandler(TaskPlanDbContext db, WorkspaceContext context) : ICommandHandler<UpdateDocumentBlocksCommand>
+public class UpdateDocumentBlocksHandler(TaskPlanDbContext db, WorkspaceContext context, PermissionService permissionService, RealtimeService realtimeService) : ICommandHandler<UpdateDocumentBlocksCommand>
 {
     public async Task<Result> Handle(UpdateDocumentBlocksCommand request, CancellationToken cancellationToken)
     {
+        var docCreatorId = await db.Documents
+            .Where(d => d.Id == request.DocumentId)
+            .Select(d => d.CreatorId)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (docCreatorId == null) return Result.Failure(Error.NotFound("Document.NotFound", "Document not found"));
+
+        var spaceId = await db.ProjectSpaces
+            .Where(s => s.DefaultDocumentId == request.DocumentId)
+            .Select(s => (Guid?)s.Id)
+            .FirstOrDefaultAsync(cancellationToken)
+            ?? await db.ProjectTasks
+                .Where(t => t.DefaultDocumentId == request.DocumentId)
+                .Select(t => (Guid?)t.ProjectSpaceId)
+                .FirstOrDefaultAsync(cancellationToken)
+            ?? await db.EntityAssetLinks
+                .Where(l => l.AssetId == request.DocumentId && l.AssetType == AssetType.Document && l.ProjectSpaceId != null)
+                .Select(l => l.ProjectSpaceId)
+                .FirstOrDefaultAsync(cancellationToken)
+            ?? Guid.Empty;
+
+        var hasAccess = await permissionService.VerifyAsync(Role.Member, spaceId, AccessLevel.Editor, docCreatorId, cancellationToken);
+        if (!hasAccess) return Result.Failure(MemberError.DontHavePermission);
+
         var incomingBlocks = request.Blocks;
 
         // 1. CATEGORIZE: Split the incoming list into three buckets
@@ -64,7 +88,32 @@ public class UpdateDocumentBlocksHandler(TaskPlanDbContext db, WorkspaceContext 
         if (newBlocks.Any()) db.DocumentBlocks.AddRange(newBlocks);
 
         // 6. SAVE: One trip to the DB for everything
-        await db.SaveChangesAsync(cancellationToken);
+        var affected = await db.SaveChangesAsync(cancellationToken);
+
+        if (affected > 0)
+        {
+            var updatedRecords = existingBlocksMap.Values
+                .Where(b => toUpdateItems.Any(i => i.Id == b.Id))
+                .Concat(newBlocks)
+                .Select(b => new DocumentBlockRecord { Id = b.Id, Type = b.Type, Content = b.Content, OrderKey = b.OrderKey })
+                .ToList();
+
+            if (updatedRecords.Any())
+            {
+                await realtimeService.NotifyEntitiesUpdatedAsync(
+                    context.WorkspaceId,
+                    new EntityBatchUpdate { DocumentBlocks = updatedRecords },
+                    cancellationToken);
+            }
+
+            if (toDeleteIds.Any())
+            {
+                await realtimeService.NotifyEntitiesDeletedAsync(
+                    context.WorkspaceId,
+                    new EntityBatchDelete { DocumentBlockIds = toDeleteIds },
+                    cancellationToken);
+            }
+        }
 
         return Result.Success();
     }

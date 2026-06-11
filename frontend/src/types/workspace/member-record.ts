@@ -10,6 +10,6 @@ export interface MemberRecord {
     avatarUrl?: string;
     role?: Role;
     status?: MembershipStatus;
-    createdAt?: string; // ISO 8601 string
-    joinedAt?: string;  // ISO 8601 string
+    createdAt?: string;
+    joinedAt?: string;
 }

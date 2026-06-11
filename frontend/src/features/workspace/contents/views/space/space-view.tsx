@@ -9,8 +9,7 @@ import { PopoverFormWrapper } from "@/components/popover-wrapper";
 import { UniversalPicker } from "@/components/universal-picker";
 import type { SpaceRecord } from "@/types/projects";
 import { useSelector } from "react-redux";
-import { entityAccessSelectors } from "@/store/entityStore";
-import { useWorkspace } from "@/features/workspace/context/workspace-provider";
+import { entityAccessSelectors, memberSelectors } from "@/store/entityStore";
 import { SpaceAccessDialog } from "./space-components/space-access-dialog";
 
 import { SpaceDetail } from "./space-components/space-detail";
@@ -20,7 +19,7 @@ interface SpaceViewProps {
   spaceId: string;
 }
 
-export function SpaceView({ spaceId }: SpaceViewProps) {
+export function SpaceView({ spaceId }: Readonly<SpaceViewProps>) {
   const [isWorkflowOpen, setIsWorkflowOpen] = React.useState(false);
   const [activeTab, setActiveTab] = React.useState<"detail" | "items">("items");
   
@@ -32,7 +31,7 @@ export function SpaceView({ spaceId }: SpaceViewProps) {
   // Fetch access lists to trigger Redux cache upsertion
   useGetEntityAccessQuery(spaceId);
   const entityAccessList = useSelector(entityAccessSelectors.selectAll).filter(ea => ea.spaceId === spaceId);
-  const { registry } = useWorkspace();
+  const members = useSelector(memberSelectors.selectEntities);
 
   const currentAccessMembers = entityAccessList.filter(a => a.haveAccess);
 
@@ -89,7 +88,7 @@ export function SpaceView({ spaceId }: SpaceViewProps) {
             {/* Space Members Avatar Pile */}
             <div className="flex items-center -space-x-1.5 mr-0.5 select-none">
               {currentAccessMembers.slice(0, 4).map((access) => {
-                const profile = registry.memberMap[access.workspaceMemberId];
+                const profile = members[access.workspaceMemberId];
                 if (!profile) return null;
                 const name = profile.name || "User";
                 const initials = name.split(" ").map((w: string) => w[0]).slice(0, 2).join("").toUpperCase();
