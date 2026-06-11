@@ -21,11 +21,11 @@ export const membersApi = workspaceApi.injectEndpoints({
         method: "GET",
         params,
       }),
-      async onQueryStarted(_arg, { dispatch, queryFulfilled }) {
+      async onQueryStarted(_, { dispatch, queryFulfilled }) {
         try {
           const { data } = await queryFulfilled;
           dispatch(memberSlice.actions.upsertMany(data.items));
-        } catch {}
+        } catch { /* ignore */ }
       },
       // Infinite scroll: reuse cache based only on filters
       serializeQueryArgs: ({ endpointName, queryArgs }) => {

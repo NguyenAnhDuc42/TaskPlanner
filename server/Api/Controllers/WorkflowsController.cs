@@ -3,6 +3,7 @@ namespace Api;
 
 [Route("api/[controller]")]
 [ApiController]
+[Microsoft.AspNetCore.Authorization.Authorize]
 public class WorkflowsController(IHandler handler) : ControllerBase
 {
     [HttpGet]

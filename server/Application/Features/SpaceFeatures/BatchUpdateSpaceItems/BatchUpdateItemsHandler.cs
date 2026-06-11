@@ -192,7 +192,7 @@ public class BatchUpdateSpaceItemsHandler(TaskPlanDbContext db, WorkspaceContext
             @"UPDATE project_tasks t SET priority = v.priority, updated_at = NOW()
               FROM UNNEST(@Ids, @Priorities) AS v(id, priority)
               WHERE t.id = v.id AND t.project_workspace_id = @WorkspaceId",
-            new { Ids = rows.Select(r => r.Id).ToArray(), Priorities = rows.Select(r => r.Priority!.Value).ToArray(), WorkspaceId = workspaceId },
+            new { Ids = rows.Select(r => r.Id).ToArray(), Priorities = rows.Select(r => (int)r.Priority!.Value).ToArray(), WorkspaceId = workspaceId },
             cancellationToken: cancellationToken));
     }
 
@@ -205,7 +205,7 @@ public class BatchUpdateSpaceItemsHandler(TaskPlanDbContext db, WorkspaceContext
             @"UPDATE project_folders f SET priority = v.priority, updated_at = NOW()
               FROM UNNEST(@Ids, @Priorities) AS v(id, priority)
               WHERE f.id = v.id AND f.project_workspace_id = @WorkspaceId",
-            new { Ids = rows.Select(r => r.Id).ToArray(), Priorities = rows.Select(r => r.Priority!.Value).ToArray(), WorkspaceId = workspaceId },
+            new { Ids = rows.Select(r => r.Id).ToArray(), Priorities = rows.Select(r => (int)r.Priority!.Value).ToArray(), WorkspaceId = workspaceId },
             cancellationToken: cancellationToken));
     }
 

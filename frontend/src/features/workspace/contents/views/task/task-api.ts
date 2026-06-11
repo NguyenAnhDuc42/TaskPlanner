@@ -2,6 +2,8 @@ import { workspaceApi } from "@/store/workspaceApi";
 import { taskSlice, assigneeSlice } from "@/store/entityStore";
 import type { TaskRecord } from "@/types/projects/task-record";
 import type { CommentRecord, AssigneeRecord } from "@/types/projects";
+import type { RootState } from "@/store";
+import { toast } from "sonner";
 
 export const taskApi = workspaceApi.injectEndpoints({
   endpoints: (build) => ({
@@ -11,11 +13,11 @@ export const taskApi = workspaceApi.injectEndpoints({
         method: "GET",
       }),
       providesTags: (_result, _error, id) => [{ type: "Tasks" as const, id }],
-      async onQueryStarted(_taskId, { dispatch, queryFulfilled }) {
+      async onQueryStarted(_, { dispatch, queryFulfilled }) {
         try {
           const { data } = await queryFulfilled;
           dispatch(taskSlice.actions.upsertMany(data));
-        } catch {}
+        } catch { /* ignore */ }
       },
     }),
 
@@ -27,7 +29,7 @@ export const taskApi = workspaceApi.injectEndpoints({
       }),
       invalidatesTags: (_result, _error, { taskId }) => [{ type: "Tasks" as const, id: taskId }],
       async onQueryStarted({ taskId, patches }, { dispatch, queryFulfilled, getState }) {
-        const state = getState() as any;
+        const state = getState() as RootState;
         const originalTask = state.tasks.entities[taskId];
         dispatch(taskSlice.actions.upsert({ id: taskId, ...patches }));
         try {
@@ -36,6 +38,7 @@ export const taskApi = workspaceApi.injectEndpoints({
           if (originalTask) {
             dispatch(taskSlice.actions.upsert(originalTask));
           }
+          toast.error("Failed to update task. Your changes have been reverted.");
         }
       }
     }),
@@ -46,7 +49,7 @@ export const taskApi = workspaceApi.injectEndpoints({
         method: "GET",
       }),
       providesTags: (_result, _error, id) => [{ type: "Tasks" as const, id: `assignees-${id}` }],
-      async onQueryStarted(_taskId, { dispatch, queryFulfilled }) {
+      async onQueryStarted(_, { dispatch, queryFulfilled }) {
         try {
           const { data } = await queryFulfilled;
           const mappedAssignees = data.map(a => ({
@@ -55,7 +58,7 @@ export const taskApi = workspaceApi.injectEndpoints({
             workspaceMemberId: a.workspaceMemberId
           }));
           dispatch(assigneeSlice.actions.upsertMany(mappedAssignees));
-        } catch {}
+        } catch { /* ignore */ }
       },
     }),
 
@@ -67,8 +70,8 @@ export const taskApi = workspaceApi.injectEndpoints({
       }),
       invalidatesTags: (_result, _error, { taskId }) => [{ type: "Tasks" as const, id: `assignees-${taskId}` }],
       async onQueryStarted({ taskId, changes }, { dispatch, queryFulfilled, getState }) {
-        const state = getState() as any;
-        const allAssignees: AssigneeRecord[] = Object.values(state.assignees.entities);
+        const state = getState() as RootState;
+        const allAssignees: AssigneeRecord[] = Object.values(state.assignees.entities) as AssigneeRecord[];
         const originalAssignees = allAssignees.filter(a => a && a.taskId === taskId);
 
         // Optimistically apply modifications to the store
@@ -93,10 +96,11 @@ export const taskApi = workspaceApi.injectEndpoints({
           await queryFulfilled;
         } catch {
           // Rollback on failure
-          const updatedAllAssignees: AssigneeRecord[] = Object.values((getState() as any).assignees.entities);
+          const updatedAllAssignees: AssigneeRecord[] = Object.values((getState() as RootState).assignees.entities) as AssigneeRecord[];
           const currentAssignees = updatedAllAssignees.filter(a => a && a.taskId === taskId);
           dispatch(assigneeSlice.actions.removeMany(currentAssignees.map(a => a.id)));
           dispatch(assigneeSlice.actions.upsertMany(originalAssignees));
+          toast.error("Failed to update task assignees. Your changes have been reverted.");
         }
       }
     }),

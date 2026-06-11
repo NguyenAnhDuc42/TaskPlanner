@@ -1,9 +1,10 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.SignalR;
+using Microsoft.Extensions.Logging;
 
 namespace Application;
 
-public class RealtimeService(IHubContext<WorkspaceHub> HubContext, IHttpContextAccessor HttpContextAccessor)
+public class RealtimeService(IHubContext<WorkspaceHub> HubContext, IHttpContextAccessor HttpContextAccessor, ILogger<RealtimeService> Logger)
 {
     private string? GetSenderConnectionId()
     {
@@ -17,35 +18,55 @@ public class RealtimeService(IHubContext<WorkspaceHub> HubContext, IHttpContextA
 
     public async Task NotifyWorkspaceAsync(Guid workspaceId, string eventName, object data, CancellationToken cancellationToken = default)
     {
-        var senderConnectionId = GetSenderConnectionId();
-        if (!string.IsNullOrEmpty(senderConnectionId))
+        var sw = System.Diagnostics.Stopwatch.StartNew();
+        try
         {
-            await HubContext.Clients
-                .GroupExcept($"workspace:{workspaceId}", new[] { senderConnectionId })
-                .SendAsync(eventName, data, cancellationToken);
+            var senderConnectionId = GetSenderConnectionId();
+            if (!string.IsNullOrEmpty(senderConnectionId))
+            {
+                await HubContext.Clients
+                    .GroupExcept($"workspace:{workspaceId}", new[] { senderConnectionId })
+                    .SendAsync(eventName, data, cancellationToken);
+                Logger.LogInformation("[REALTIME] Successfully broadcasted '{EventName}' to workspace {WorkspaceId} (except sender {ConnectionId}) in {ElapsedMs}ms", eventName, workspaceId, senderConnectionId, sw.ElapsedMilliseconds);
+            }
+            else
+            {
+                await HubContext.Clients
+                    .Group($"workspace:{workspaceId}")
+                    .SendAsync(eventName, data, cancellationToken);
+                Logger.LogInformation("[REALTIME] Successfully broadcasted '{EventName}' to workspace {WorkspaceId} (all connected clients) in {ElapsedMs}ms", eventName, workspaceId, sw.ElapsedMilliseconds);
+            }
         }
-        else
+        catch (Exception ex)
         {
-            await HubContext.Clients
-                .Group($"workspace:{workspaceId}")
-                .SendAsync(eventName, data, cancellationToken);
+            Logger.LogError(ex, "[REALTIME] FAILED to broadcast '{EventName}' to workspace {WorkspaceId} after {ElapsedMs}ms", eventName, workspaceId, sw.ElapsedMilliseconds);
         }
     }
 
     public async Task NotifyUserAsync(Guid userId, string eventName, object data, CancellationToken cancellationToken = default)
     {
-        var senderConnectionId = GetSenderConnectionId();
-        if (!string.IsNullOrEmpty(senderConnectionId))
+        var sw = System.Diagnostics.Stopwatch.StartNew();
+        try
         {
-            await HubContext.Clients
-                .GroupExcept($"user:{userId}", new[] { senderConnectionId })
-                .SendAsync(eventName, data, cancellationToken);
+            var senderConnectionId = GetSenderConnectionId();
+            if (!string.IsNullOrEmpty(senderConnectionId))
+            {
+                await HubContext.Clients
+                    .GroupExcept($"user:{userId}", new[] { senderConnectionId })
+                    .SendAsync(eventName, data, cancellationToken);
+                Logger.LogInformation("[REALTIME] Successfully broadcasted '{EventName}' to user {UserId} (except sender {ConnectionId}) in {ElapsedMs}ms", eventName, userId, senderConnectionId, sw.ElapsedMilliseconds);
+            }
+            else
+            {
+                await HubContext.Clients
+                    .Group($"user:{userId}")
+                    .SendAsync(eventName, data, cancellationToken);
+                Logger.LogInformation("[REALTIME] Successfully broadcasted '{EventName}' to user {UserId} (all connected clients) in {ElapsedMs}ms", eventName, userId, sw.ElapsedMilliseconds);
+            }
         }
-        else
+        catch (Exception ex)
         {
-            await HubContext.Clients
-                .Group($"user:{userId}")
-                .SendAsync(eventName, data, cancellationToken);
+            Logger.LogError(ex, "[REALTIME] FAILED to broadcast '{EventName}' to user {UserId} after {ElapsedMs}ms", eventName, userId, sw.ElapsedMilliseconds);
         }
     }
 

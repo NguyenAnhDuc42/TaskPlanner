@@ -42,7 +42,7 @@ export const homeWorkspaceApi = workspaceApi.injectEndpoints({
         try {
           const { data } = await queryFulfilled;
           dispatch(workspaceSlice.actions.upsertMany(data.items));
-        } catch {}
+        } catch { /* ignore */ }
       },
       providesTags: ["Spaces"],
     }),

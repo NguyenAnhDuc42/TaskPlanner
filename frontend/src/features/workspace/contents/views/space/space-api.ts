@@ -11,6 +11,7 @@ import type { AccessLevel } from "@/types/access-level";
 import type { EntityAccessRecord } from "@/types/workspace";
 import type { SpaceDocumentRecord } from "@/types/document";
 import { RowAction } from "@/types/row-action";
+import { toast } from "sonner";
 
 
 export interface GetSpaceItemsResponse {
@@ -40,23 +41,23 @@ export const spaceApi = workspaceApi.injectEndpoints({
   endpoints: (build) => ({
     getSpaceDetail: build.query<SpaceRecord, string>({
       query: (spaceId) => ({ url: `/spaces/${spaceId}`, method: "GET" }),
-      async onQueryStarted(_spaceId, { dispatch, queryFulfilled }) {
+      async onQueryStarted(_, { dispatch, queryFulfilled }) {
         try {
           const { data } = await queryFulfilled;
           dispatch(spaceSlice.actions.upsert(data));
-        } catch {}
+        } catch { /* ignore */ }
       }
     }),
 
     getSpaceItems: build.query<GetSpaceItemsResponse, string>({
       query: (spaceId) => ({ url: `/spaces/${spaceId}/items`, method: "GET" }),
-      async onQueryStarted(_spaceId, { dispatch, queryFulfilled }) {
+      async onQueryStarted(_, { dispatch, queryFulfilled }) {
         try {
           const { data } = await queryFulfilled;
           dispatch(folderSlice.actions.upsertMany(data.folders));
           dispatch(taskSlice.actions.upsertMany(data.tasks));
           dispatch(statusSlice.actions.upsertMany(data.statuses));
-        } catch {}
+        } catch { /* ignore */ }
       }
     }),
 
@@ -66,7 +67,7 @@ export const spaceApi = workspaceApi.injectEndpoints({
         method: "POST",
         data: { updates }
       }),
-      async onQueryStarted({ spaceId: _spaceId, updates }, { dispatch, queryFulfilled, getState }) {
+      async onQueryStarted({ spaceId: _, updates }, { dispatch, queryFulfilled, getState }) {
         const state = getState() as RootState;
 
         // Snapshot original folders and tasks for rollback
@@ -133,15 +134,15 @@ export const spaceApi = workspaceApi.injectEndpoints({
     getEntityAccess: build.query<EntityAccessRecord[], string>({
       query: (spaceId) => ({ url: `/spaces/${spaceId}/access`, method: "GET" }),
       providesTags: (_result, _error, spaceId) => [{ type: "EntityAccess" as const, id: `access-${spaceId}` }],
-      async onQueryStarted(_spaceId, { dispatch, queryFulfilled }) {
+      async onQueryStarted(_, { dispatch, queryFulfilled }) {
         try {
           const { data } = await queryFulfilled;
           // Filter out rows without database Guid ids (accessLevel = None / HaveAccess = false)
           const mapped = data
             .filter(item => item.id)
-            .map(item => ({ ...item, id: item.id! }));
+            .map(item => ({ ...item, id:item.id }));
           dispatch(entityAccessSlice.actions.upsertMany(mapped));
-        } catch {}
+        } catch { /* ignore */ }
       }
     }),
 

@@ -119,7 +119,6 @@ export function SpaceBoard({ spaceId, onWorkflowOpen }: Readonly<SpaceBoardProps
     };
 
     if (type === "folder") {
-      dispatch(folderSlice.actions.upsert(updates));
       updateFolderField({ 
         folderId: itemId, 
         patches: { 
@@ -128,7 +127,6 @@ export function SpaceBoard({ spaceId, onWorkflowOpen }: Readonly<SpaceBoardProps
         } 
       });
     } else {
-      dispatch(taskSlice.actions.upsert(updates));
       updateTask({ 
         taskId: itemId, 
         patches: { 
@@ -140,12 +138,6 @@ export function SpaceBoard({ spaceId, onWorkflowOpen }: Readonly<SpaceBoardProps
   }, [dispatch, updateFolderField, updateTask]);
 
   const handlePriorityChange = useCallback((itemId: string, type: "task" | "folder", priority: Priority) => {
-    const updates = { id: itemId, priority };
-    if (type === "folder") {
-      dispatch(folderSlice.actions.upsert(updates));
-    } else {
-      dispatch(taskSlice.actions.upsert(updates));
-    }
 
     batchUpdate({
       spaceId,

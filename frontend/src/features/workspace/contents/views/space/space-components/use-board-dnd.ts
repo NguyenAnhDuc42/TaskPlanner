@@ -214,12 +214,6 @@ export function useBoardDnd({
   // FIX: Wrap the heavy state tracking modifications in a microtask 
   // so the browser can close the pointer drop handler instantly.
   queueMicrotask(() => {
-    if (activeItem.__type === "folder") {
-      dispatch(folderSlice.actions.upsert(updates));
-    } else {
-      dispatch(taskSlice.actions.upsert(updates));
-    }
-
     batchUpdate({
       spaceId,
       updates: [

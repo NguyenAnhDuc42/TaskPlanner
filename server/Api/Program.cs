@@ -14,7 +14,9 @@ builder.Host.UseSerilog((context, loggerConfig) =>
 {
     loggerConfig.ReadFrom.Configuration(context.Configuration)
                 .Enrich.FromLogContext()
-                .WriteTo.Console(outputTemplate: "[{Timestamp:HH:mm:ss} {Level:u3}] [User: {UserId}] {Message:lj} {Properties:j}{NewLine}{Exception}");
+                .WriteTo.Console(
+                    outputTemplate: "[{Timestamp:HH:mm:ss} {Level:u3}] [User: {UserId}] {Message:lj}{NewLine}{Exception}"
+                );
 });
 
 // --- 1. Aspire Defaults ---
@@ -89,17 +91,7 @@ if (app.Environment.IsDevelopment())
 
 
 
-app.UseMiddleware<LogContextMiddleware>();
-app.UseMiddleware<ExceptionHandlingMiddleware>();
-app.UseMiddleware<WorkspaceContextMiddleware>();
-app.UseRateLimiter();
-
-// --- Middleware ---
-if (app.Environment.IsDevelopment())
-{
-    // Scalar documentation is now auto-mapped in MapDefaultEndpoints() from ServiceDefaults
-}
-
+// --- Middleware Pipeline ---
 app.UseRouting();
 app.UseCors(CorsPolicy);
 
@@ -110,8 +102,26 @@ if (!app.Environment.IsDevelopment())
 
 app.UseAuthentication();
 app.UseAuthorization();
-app.UseMiddleware<IdempotencyMiddleware>();
 
+// Now that we have Auth, push the User ID into the logging context
+app.UseMiddleware<LogContextMiddleware>();
+app.UseMiddleware<ExceptionHandlingMiddleware>();
+
+// Request Start Logger for visual clarity
+app.Use(async (context, next) =>
+{
+    var logger = context.RequestServices.GetRequiredService<ILogger<Program>>();
+    logger.LogInformation("\n\n>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>\n[REQUEST START] {Method} {Path}", context.Request.Method, context.Request.Path);
+    await next(context);
+});
+
+app.UseSerilogRequestLogging(options => {
+    options.MessageTemplate = "[REQUEST END] HTTP {RequestMethod} {RequestPath} responded {StatusCode} in {Elapsed:0.0000} ms\n<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<\n\n";
+});
+
+app.UseMiddleware<WorkspaceContextMiddleware>();
+app.UseMiddleware<IdempotencyMiddleware>();
+app.UseRateLimiter();
 
 app.MapHub<WorkspaceHub>("/hubs/workspace");
 app.MapControllers();

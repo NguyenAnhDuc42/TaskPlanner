@@ -1,8 +1,9 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Hybrid;
 
 namespace Application;
 
-public class RemoveMembersHandler(TaskPlanDbContext db, RealtimeService realtimeService, PermissionService permissionService) : ICommandHandler<RemoveMembersCommand>
+public class RemoveMembersHandler(TaskPlanDbContext db, RealtimeService realtimeService, PermissionService permissionService, HybridCache cache) : ICommandHandler<RemoveMembersCommand>
 {
     public async Task<Result> Handle(RemoveMembersCommand request, CancellationToken cancellationToken)
     {
@@ -17,7 +18,10 @@ public class RemoveMembersHandler(TaskPlanDbContext db, RealtimeService realtime
                 .SetProperty(wm => wm.DeletedAt, DateTimeOffset.UtcNow)
                 .SetProperty(wm => wm.UpdatedAt, DateTimeOffset.UtcNow), cancellationToken);
         
-        if (affected > 0){
+        if (affected > 0)
+        {
+            await cache.RemoveByTagAsync(WorkspaceCacheKeys.WorkspaceMembersTag(request.WorkspaceId), cancellationToken);
+
             await realtimeService.NotifyEntitiesDeletedAsync(
                 request.WorkspaceId, 
                 new EntityBatchDelete { MemberIds = request.MemberIds }, 

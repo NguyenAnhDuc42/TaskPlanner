@@ -12,9 +12,9 @@ public class GetTaskAssigneesHandler(TaskPlanDbContext db) : IQueryHandler<GetTa
         if (task == null) return TaskError.NotFound;
 
         const string sql = @"
-            SELECT ta.id AS Id, ta.task_id AS TaskId, ta.workspace_member_id AS WorkspaceMemberId
+            SELECT ta.id AS Id, ta.project_task_id AS TaskId, ta.workspace_member_id AS WorkspaceMemberId
             FROM task_assignments ta
-            WHERE ta.task_id = @TaskId
+            WHERE ta.project_task_id = @TaskId
               AND ta.deleted_at IS NULL";
 
         var connection = db.Database.GetDbConnection();

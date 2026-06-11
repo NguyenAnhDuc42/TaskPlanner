@@ -10,6 +10,7 @@ import type { PagedResult } from "@/types/paged-result";
 import { Priority } from "@/types/priority";
 import type { Status } from "@/types/status";
 import type { BreadcrumbInfo } from "@/types/breadcrumb-info";
+import { toast } from "sonner";
 
 
 export interface FolderDetailResponse {
@@ -47,13 +48,13 @@ export const folderApi = workspaceApi.injectEndpoints({
   endpoints: (build) => ({
     getFolderDetail: build.query<FolderDetailResponse, string>({
       query: (folderId) => ({ url: `/folders/${folderId}`, method: 'GET' }),
-      async onQueryStarted(_folderId, { dispatch, queryFulfilled }) {
+      async onQueryStarted(_, { dispatch, queryFulfilled }) {
         try {
           const { data } = await queryFulfilled;
           dispatch(folderSlice.actions.upsert({ ...data.folder, workflowId: data.workflowId ?? undefined }));
           dispatch(statusSlice.actions.upsertMany(data.spaceStatuses));
           dispatch(statusSlice.actions.upsertMany(data.taskStatuses));
-        } catch {}
+        } catch { /* ignore */ }
       }
     }),
 
@@ -67,7 +68,7 @@ export const folderApi = workspaceApi.injectEndpoints({
         try {
           const { data } = await queryFulfilled;
           dispatch(taskSlice.actions.upsertMany(data.items));
-        } catch {}
+        } catch { /* ignore */ }
       }
     }),
 
@@ -93,6 +94,7 @@ export const folderApi = workspaceApi.injectEndpoints({
         } catch {
           // 3. Rollback on failure
           dispatch(taskSlice.actions.upsertMany(originalTasks));
+          toast.error("Failed to update tasks. Your changes have been reverted.");
         }
       }
     }),
@@ -113,10 +115,10 @@ export const folderApi = workspaceApi.injectEndpoints({
         try {
           await queryFulfilled;
         } catch {
-
           if (originalFolder) {
             dispatch(folderSlice.actions.upsert(originalFolder));
           }
+          toast.error("Failed to update folder. Your changes have been reverted.");
         }
       }
     })

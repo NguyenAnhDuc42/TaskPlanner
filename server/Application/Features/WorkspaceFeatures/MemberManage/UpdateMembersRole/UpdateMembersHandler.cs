@@ -1,7 +1,9 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Hybrid;
+
 namespace Application;
 
-public class UpdateMembersHandler(TaskPlanDbContext db, PermissionService permissionService, RealtimeService realtimeService) : ICommandHandler<UpdateMembersCommand>
+public class UpdateMembersHandler(TaskPlanDbContext db, PermissionService permissionService, RealtimeService realtimeService, HybridCache cache) : ICommandHandler<UpdateMembersCommand>
 {
     public async Task<Result> Handle(UpdateMembersCommand request, CancellationToken cancellationToken)
     {
@@ -26,6 +28,8 @@ public class UpdateMembersHandler(TaskPlanDbContext db, PermissionService permis
 
         if (affected > 0)
         {
+            await cache.RemoveByTagAsync(WorkspaceCacheKeys.WorkspaceMembersTag(request.WorkspaceId), cancellationToken);
+
             var records = workspaceMembers.Select(wm => MemberRecord.FromDomain(wm, wm.User)).ToList();
             if (records.Count > 0)
             {

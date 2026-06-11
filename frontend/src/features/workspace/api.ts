@@ -6,6 +6,7 @@ import type { PagedResult } from "@/types/paged-result";
 import type { MemberRecord } from "@/types/workspace/member-record";
 import type { WorkflowRecord } from "@/types/projects";
 import type { Status } from "@/types/status";
+import { toast } from "sonner";
 
 import { RowAction } from "@/types/row-action";
 
@@ -40,7 +41,7 @@ export const workspaceFeatureApi = workspaceApi.injectEndpoints({
         try {
           const { data } = await queryFulfilled;
           dispatch(memberSlice.actions.upsertMany(data.items));
-        } catch {}
+        } catch { /* ignore */ }
       },
     }),
 
@@ -60,7 +61,7 @@ export const workspaceFeatureApi = workspaceApi.injectEndpoints({
             });
           });
           dispatch(statusSlice.actions.upsertMany(statuses));
-        } catch {}
+        } catch { /* ignore */ }
       },
     }),
 
@@ -72,13 +73,13 @@ export const workspaceFeatureApi = workspaceApi.injectEndpoints({
       }),
       invalidatesTags: ["Tasks", "Folders", "Spaces"],
       async onQueryStarted({ workflowId, workspaceId, statuses, optimisticStatuses }, { dispatch, queryFulfilled, getState }) {
-        let patchResult: any;
+        let patchResult: { undo: () => void } | undefined;
         const state = getState() as RootState;
 
         // Snapshot original state of ALL statuses in this workspace workflow for rollback
         const originalStatuses: Status[] = [];
         if (workspaceId) {
-          const workspaceWorkflows = (state as any).workspaceApi?.queries?.[`getWorkspaceWorkflows("${workspaceId}")`]?.data as WorkflowRecord[] | undefined;
+          const workspaceWorkflows = workspaceFeatureApi.endpoints.getWorkspaceWorkflows.select(workspaceId)(state)?.data;
           const wf = workspaceWorkflows?.find(w => w.id === workflowId);
           if (wf?.statuses) {
             originalStatuses.push(...wf.statuses);
@@ -122,6 +123,7 @@ export const workspaceFeatureApi = workspaceApi.injectEndpoints({
           if (originalStatuses.length > 0) {
             dispatch(statusSlice.actions.upsertMany(originalStatuses));
           }
+          toast.error("Failed to update workflow statuses. Your changes have been reverted.");
         }
       }
     }),
@@ -135,7 +137,6 @@ export const {
   useUpdateWorkflowStatusesMutation,
 } = workspaceFeatureApi;
 
-// Backwards-compatible hook wrapper for status updates to avoid breaking current forms
 export function useUpdateWorkflowStatuses() {
   const [trigger, result] = useUpdateWorkflowStatusesMutation();
   return {

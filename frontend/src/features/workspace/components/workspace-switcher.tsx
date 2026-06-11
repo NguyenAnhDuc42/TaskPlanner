@@ -16,11 +16,13 @@ import { Pin } from "lucide-react";
 import { DynamicIcon } from "@/components/dynamic-icon";
 import { useNavigate } from "@tanstack/react-router";
 import { CreateWorkspaceForm } from "@/features/main/home-screen/components/create-workspace-form";
-import { useSetWorkspacePin } from "@/features/main/home-screen/api";
+import { useSetWorkspacePin, useGetWorkspacesQuery } from "@/features/main/home-screen/api";
 
 export function WorkspaceSwitcher() {
   const [open, setOpen] = useState(false);
   const { workspaceId } = useWorkspace();
+  useGetWorkspacesQuery({ direction: "Ascending" });
+
   const workspaces = useSelector(workspaceSelectors.selectAll);
   const navigate = useNavigate();
   const { mutate: setPin } = useSetWorkspacePin();

@@ -8,6 +8,7 @@ import type { EntityLayerType } from "@/types/entity-layer-type";
 import { createSelector } from "@reduxjs/toolkit";
 import { useMemo } from "react";
 import type { Priority } from "@/types/priority";
+import { toast } from "sonner";
 
 export interface CreateSpaceRequest {
   name: string;
@@ -82,7 +83,7 @@ export const hierarchyApi = workspaceApi.injectEndpoints({
         try {
           const { data } = await queryFulfilled;
           dispatch(spaceSlice.actions.upsertMany(data.items));
-        } catch {}
+        } catch { /* ignore */ }
       }
     }),
 
@@ -105,7 +106,7 @@ export const hierarchyApi = workspaceApi.injectEndpoints({
         try {
           const { data } = await queryFulfilled;
           dispatch(folderSlice.actions.upsertMany(data.items));
-        } catch {}
+        } catch { /* ignore */ }
       }
     }),
 
@@ -128,7 +129,7 @@ export const hierarchyApi = workspaceApi.injectEndpoints({
         try {
           const { data } = await queryFulfilled;
           dispatch(taskSlice.actions.upsertMany(data.items));
-        } catch {}
+        } catch { /* ignore */ }
       }
     }),
 
@@ -167,6 +168,7 @@ export const hierarchyApi = workspaceApi.injectEndpoints({
         } catch {
           // server failed, remove temp
           dispatch(spaceSlice.actions.remove(tempId))
+          toast.error("Failed to create space.");
         }
       }
     }),
@@ -209,6 +211,7 @@ export const hierarchyApi = workspaceApi.injectEndpoints({
           dispatch(folderSlice.actions.upsert(realFolder))
         } catch {
           dispatch(folderSlice.actions.remove(tempId))
+          toast.error("Failed to create folder.");
         }
       }
     }),
@@ -255,31 +258,53 @@ export const hierarchyApi = workspaceApi.injectEndpoints({
           dispatch(taskSlice.actions.upsert(realTask))
         } catch {
           dispatch(taskSlice.actions.remove(tempId))
+          toast.error("Failed to create task.");
         }
       }
     }),
 
     deleteSpace: build.mutation<void, { workspaceId: string; spaceId: string }>({
       query: ({ spaceId }) => ({ url: `/spaces/${spaceId}`, method: "DELETE" }),
-      async onQueryStarted({ spaceId }, { dispatch, queryFulfilled }) {
+      async onQueryStarted({ spaceId }, { dispatch, queryFulfilled, getState }) {
+        const state = getState() as RootState;
+        const originalSpace = spaceSelectors.selectById(state, spaceId);
         dispatch(spaceSlice.actions.remove(spaceId));
-        try { await queryFulfilled; } catch {}
+        try { 
+          await queryFulfilled; 
+        } catch {
+          if (originalSpace) dispatch(spaceSlice.actions.upsert(originalSpace));
+          toast.error("Failed to delete space.");
+        }
       }
     }),
 
     deleteFolder: build.mutation<void, { workspaceId: string; folderId: string }>({
       query: ({ folderId }) => ({ url: `/folders/${folderId}`, method: "DELETE" }),
-      async onQueryStarted({ folderId }, { dispatch, queryFulfilled }) {
+      async onQueryStarted({ folderId }, { dispatch, queryFulfilled, getState }) {
+        const state = getState() as RootState;
+        const originalFolder = folderSelectors.selectById(state, folderId);
         dispatch(folderSlice.actions.remove(folderId));
-        try { await queryFulfilled; } catch {}
+        try { 
+          await queryFulfilled; 
+        } catch {
+          if (originalFolder) dispatch(folderSlice.actions.upsert(originalFolder));
+          toast.error("Failed to delete folder.");
+        }
       }
     }),
 
     deleteTask: build.mutation<void, { workspaceId: string; taskId: string }>({
       query: ({ taskId }) => ({ url: `/tasks/${taskId}`, method: "DELETE" }),
-      async onQueryStarted({ taskId }, { dispatch, queryFulfilled }) {
+      async onQueryStarted({ taskId }, { dispatch, queryFulfilled, getState }) {
+        const state = getState() as RootState;
+        const originalTask = taskSelectors.selectById(state, taskId);
         dispatch(taskSlice.actions.remove(taskId));
-        try { await queryFulfilled; } catch {}
+        try { 
+          await queryFulfilled; 
+        } catch {
+          if (originalTask) dispatch(taskSlice.actions.upsert(originalTask));
+          toast.error("Failed to delete task.");
+        }
       }
     }),
 

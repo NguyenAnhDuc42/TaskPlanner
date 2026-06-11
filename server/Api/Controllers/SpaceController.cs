@@ -1,8 +1,10 @@
 using Microsoft.AspNetCore.Mvc;
+
 namespace Api
 {
     [Route("api/[controller]")]
     [ApiController]
+    [Microsoft.AspNetCore.Authorization.Authorize]
     public class SpacesController : ControllerBase
     {
         private readonly IHandler _handler;

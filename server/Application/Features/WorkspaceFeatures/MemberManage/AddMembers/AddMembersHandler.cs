@@ -1,8 +1,10 @@
 using Microsoft.EntityFrameworkCore;
 
+using Microsoft.Extensions.Caching.Hybrid;
+
 namespace Application;
 
-public class AddMembersHandler(TaskPlanDbContext db, WorkspaceContext context,PermissionService permissionService,RealtimeService realtimeService) : ICommandHandler<AddMembersCommand>
+public class AddMembersHandler(TaskPlanDbContext db, WorkspaceContext context,PermissionService permissionService,RealtimeService realtimeService, HybridCache cache) : ICommandHandler<AddMembersCommand>
 {
     public async Task<Result> Handle(AddMembersCommand request, CancellationToken cancellationToken)
     {
@@ -15,13 +17,16 @@ public class AddMembersHandler(TaskPlanDbContext db, WorkspaceContext context,Pe
         var members = request.Members;
         if (!members.Any()) return Result.Success();
 
-        var emails = members.Select(m => m.Email).ToList();
+        var lowerEmails = members.Select(m => m.Email.ToLower()).ToList();
 
         var users = await db.Users
-            .Where(u => emails.Contains(u.Email) && u.DeletedAt == null)
+            .Where(u => lowerEmails.Contains(u.Email.ToLower()) && u.DeletedAt == null)
             .ToListAsync(cancellationToken);
 
-        if (!users.Any()) return Result.Success();
+        if (users.Count != lowerEmails.Count)
+        {
+            return Result.Failure(Error.NotFound("User.NotFound", "One or more email addresses do not belong to a registered user. Check for typos."));
+        }
 
         var existingUserIds = await db.WorkspaceMembers
             .Where(wm => wm.ProjectWorkspaceId == workspace.Id && wm.DeletedAt == null)
@@ -29,7 +34,7 @@ public class AddMembersHandler(TaskPlanDbContext db, WorkspaceContext context,Pe
             .ToHashSetAsync(cancellationToken);
 
         var newMembersToInsert = new List<WorkspaceMember>();
-        var memberRoleByEmail = members.ToDictionary(m => m.Email, m => m.Role);
+        var memberRoleByEmail = members.ToDictionary(m => m.Email, m => m.Role, StringComparer.OrdinalIgnoreCase);
         foreach (var user in users)
         {
             if (existingUserIds.Contains(user.Id)) continue;
@@ -46,6 +51,11 @@ public class AddMembersHandler(TaskPlanDbContext db, WorkspaceContext context,Pe
             newMembersToInsert.Add(newMember);
         }
 
+        if (newMembersToInsert.Count == 0)
+        {
+            return Result.Failure(Error.Conflict("Member.AlreadyExists", "All specified users are already members of this workspace."));
+        }
+
         if (newMembersToInsert.Count > 0)
         {
             await db.WorkspaceMembers.AddRangeAsync(newMembersToInsert, cancellationToken);
@@ -53,6 +63,8 @@ public class AddMembersHandler(TaskPlanDbContext db, WorkspaceContext context,Pe
 
             if (affected > 0)
             {
+                await cache.RemoveByTagAsync(WorkspaceCacheKeys.WorkspaceMembersTag(request.WorkspaceId), cancellationToken);
+
                 var userLookup = users.ToDictionary(u => u.Id);
                 var records = newMembersToInsert
                     .Select(wm => MemberRecord.FromDomain(wm, userLookup[wm.UserId]))
