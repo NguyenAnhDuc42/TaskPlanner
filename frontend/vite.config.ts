@@ -27,6 +27,12 @@ export default defineConfig({
         changeOrigin: true,
         secure: false,
       },
+      "/hubs": {
+        target: "https://localhost:7285",
+        changeOrigin: true,
+        secure: false,
+        ws: true,
+      },
     },
   },
 });

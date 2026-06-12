@@ -1,9 +1,14 @@
 import { workspaceApi } from "@/store/workspaceApi";
-import { taskSlice, assigneeSlice } from "@/store/entityStore";
+import { taskSlice, assigneeSlice, commentSlice } from "@/store/entityStore";
 import type { TaskRecord } from "@/types/projects/task-record";
 import type { CommentRecord, AssigneeRecord } from "@/types/projects";
 import type { RootState } from "@/store";
 import { toast } from "sonner";
+
+export type UpdateTaskPayload = Partial<TaskRecord> & {
+  clearStartDate?: boolean;
+  clearDueDate?: boolean;
+};
 
 export const taskApi = workspaceApi.injectEndpoints({
   endpoints: (build) => ({
@@ -21,7 +26,7 @@ export const taskApi = workspaceApi.injectEndpoints({
       },
     }),
 
-    updateTask: build.mutation<void, { taskId: string; patches: Partial<TaskRecord> }>({
+    updateTask: build.mutation<void, { taskId: string; patches: UpdateTaskPayload }>({
       query: ({ taskId, patches }) => ({
         url: `/tasks/${taskId}`,
         method: "PUT",
@@ -31,7 +36,12 @@ export const taskApi = workspaceApi.injectEndpoints({
       async onQueryStarted({ taskId, patches }, { dispatch, queryFulfilled, getState }) {
         const state = getState() as RootState;
         const originalTask = state.tasks.entities[taskId];
-        dispatch(taskSlice.actions.upsert({ id: taskId, ...patches }));
+        const optimisticPatches = {
+          ...patches,
+          ...(patches.clearStartDate ? { startDate: null } : {}),
+          ...(patches.clearDueDate ? { dueDate: null } : {}),
+        };
+        dispatch(taskSlice.actions.upsert({ id: taskId, ...optimisticPatches }));
         try {
           await queryFulfilled;
         } catch {
@@ -72,7 +82,7 @@ export const taskApi = workspaceApi.injectEndpoints({
       async onQueryStarted({ taskId, changes }, { dispatch, queryFulfilled, getState }) {
         const state = getState() as RootState;
         const allAssignees: AssigneeRecord[] = Object.values(state.assignees.entities) as AssigneeRecord[];
-        const originalAssignees = allAssignees.filter(a => a && a.taskId === taskId);
+        const originalAssignees = allAssignees.filter(a => a?.taskId === taskId);
 
         // Optimistically apply modifications to the store
         changes.forEach(c => {
@@ -85,10 +95,8 @@ export const taskApi = workspaceApi.injectEndpoints({
                 dispatch(assigneeSlice.actions.remove(found.id));
               }
             }
-          } else {
-            if (c.id) {
-              dispatch(assigneeSlice.actions.upsert({ id: c.id, taskId, workspaceMemberId: c.memberId }));
-            }
+          } else if (c.id) {
+            dispatch(assigneeSlice.actions.upsert({ id: c.id, taskId, workspaceMemberId: c.memberId }));
           }
         });
 
@@ -97,7 +105,7 @@ export const taskApi = workspaceApi.injectEndpoints({
         } catch {
           // Rollback on failure
           const updatedAllAssignees: AssigneeRecord[] = Object.values((getState() as RootState).assignees.entities) as AssigneeRecord[];
-          const currentAssignees = updatedAllAssignees.filter(a => a && a.taskId === taskId);
+          const currentAssignees = updatedAllAssignees.filter(a => a?.taskId === taskId);
           dispatch(assigneeSlice.actions.removeMany(currentAssignees.map(a => a.id)));
           dispatch(assigneeSlice.actions.upsertMany(originalAssignees));
           toast.error("Failed to update task assignees. Your changes have been reverted.");
@@ -111,6 +119,12 @@ export const taskApi = workspaceApi.injectEndpoints({
         method: "GET",
       }),
       providesTags: (_result, _error, id) => [{ type: "Tasks" as const, id: `comments-${id}` }],
+      async onQueryStarted(_, { dispatch, queryFulfilled }) {
+        try {
+          const { data } = await queryFulfilled;
+          dispatch(commentSlice.actions.upsertMany(data));
+        } catch { /* ignore */ }
+      },
     }),
 
     addComment: build.mutation<CommentRecord, { taskId: string; content: string; parentCommentId?: string }>({
@@ -118,6 +132,14 @@ export const taskApi = workspaceApi.injectEndpoints({
         url: `/tasks/${taskId}/comments`,
         method: "POST",
         data: { content, parentCommentId },
+      }),
+      invalidatesTags: (_result, _error, { taskId }) => [{ type: "Tasks" as const, id: `comments-${taskId}` }],
+    }),
+
+    deleteComment: build.mutation<void, { taskId: string; commentId: string }>({
+      query: ({ taskId, commentId }) => ({
+        url: `/tasks/${taskId}/comments/${commentId}`,
+        method: "DELETE",
       }),
       invalidatesTags: (_result, _error, { taskId }) => [{ type: "Tasks" as const, id: `comments-${taskId}` }],
     }),
@@ -143,5 +165,6 @@ export const {
   useUpdateTaskAssigneesMutation,
   useGetTaskCommentsQuery,
   useAddCommentMutation,
+  useDeleteCommentMutation,
   useCreateSubTaskMutation,
 } = taskApi;

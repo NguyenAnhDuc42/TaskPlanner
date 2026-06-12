@@ -154,7 +154,7 @@ export const hierarchyApi = workspaceApi.injectEndpoints({
           // remove temp, add real
           dispatch(spaceSlice.actions.remove(tempId))
           
-          const spaceId = typeof data === 'string' ? data : (data as any).id || (data as any).value || tempId;
+          const spaceId = typeof data === 'string' ? data : (data as { id?: string; value?: string }).id || (data as { id?: string; value?: string }).value || tempId;
           const realSpace: SpaceRecord = {
             id: spaceId,
             workspaceId,
@@ -195,7 +195,7 @@ export const hierarchyApi = workspaceApi.injectEndpoints({
           const { data } = await queryFulfilled
           dispatch(folderSlice.actions.remove(tempId))
           
-          const folderId = typeof data === 'string' ? data : (data as any).id || (data as any).value || tempId;
+          const folderId = typeof data === 'string' ? data : (data as { id?: string; value?: string }).id || (data as { id?: string; value?: string }).value || tempId;
           const realFolder: FolderRecord = {
             id: folderId,
             spaceId: body.spaceId,
@@ -240,7 +240,7 @@ export const hierarchyApi = workspaceApi.injectEndpoints({
           const { data } = await queryFulfilled
           dispatch(taskSlice.actions.remove(tempId))
           
-          const taskId = typeof data === 'string' ? data : (data as any).id || (data as any).value || tempId;
+          const taskId = typeof data === 'string' ? data : (data as { id?: string; value?: string }).id || (data as { id?: string; value?: string }).value || tempId;
           const realTask: TaskRecord = {
             id: taskId,
             name: body.name,
@@ -308,123 +308,7 @@ export const hierarchyApi = workspaceApi.injectEndpoints({
       }
     }),
 
-    // moveItem: build.mutation<void, { workspaceId: string; body: MoveItemRequest }>({
-    //   query: ({ workspaceId, body }) => ({ url: `/workspaces/${workspaceId}/nodes/move`, method: "POST", data: body }),
-    //   async onQueryStarted({ workspaceId, body }, { dispatch, queryFulfilled, getState }) {
-    //     const state = getState() as RootState;
-    //     const itemId = body.itemId;
-
-    //     const originalSpace = body.itemType === "ProjectSpace" ? spaceSelectors.selectById(state, itemId) : null;
-    //     const originalFolder = body.itemType === "ProjectFolder" ? folderSelectors.selectById(state, itemId) : null;
-    //     const originalTask = body.itemType === "ProjectTask" ? taskSelectors.selectById(state, itemId) : null;
-
-    //     if (body.itemType === "ProjectSpace") {
-    //       if (originalSpace && body.newOrderKey) {
-    //         dispatch(spaceSlice.actions.upsert({ ...originalSpace, orderKey: body.newOrderKey }));
-    //       }
-    //     } 
-    //     else if (body.itemType === "ProjectFolder") {
-    //       if (originalFolder && body.newOrderKey) {
-    //         dispatch(folderSlice.actions.upsert({ ...originalFolder, orderKey: body.newOrderKey, spaceId: body.targetParentId }));
- 
-    //         const targetSpace = spaceSelectors.selectById(state, body.targetParentId);
-    //         if (targetSpace) {
-    //           dispatch(spaceSlice.actions.upsert({ ...targetSpace, hasFolders: true }));
-    //         }
-    //       }
-    //     } 
-    //     else if (body.itemType === "ProjectTask") {
-    //       if (originalTask && body.newOrderKey) {
-    //         const isTargetSpace = body.targetParentType === "ProjectSpace";
-    //         dispatch(taskSlice.actions.upsert({ 
-    //           ...originalTask, 
-    //           orderKey: body.newOrderKey, 
-    //           spaceId: isTargetSpace ? body.targetParentId : originalTask.spaceId,
-    //           folderId: isTargetSpace ? undefined : body.targetParentId
-    //         }));
-
     
-    //         if (isTargetSpace) {
-    //           const targetSpace = spaceSelectors.selectById(state, body.targetParentId);
-    //           if (targetSpace) {
-    //             dispatch(spaceSlice.actions.upsert({ ...targetSpace, hasTasks: true }));
-    //           }
-    //         } else {
-    //           const targetFolder = folderSelectors.selectById(state, body.targetParentId);
-    //           if (targetFolder) {
-    //             dispatch(folderSlice.actions.upsert({ ...targetFolder, hasTasks: true }));
-    //           }
-    //         }
-    //       }
-    //     }
-
-    //     let patchResult: any;
-    //     if (body.itemType === "ProjectFolder") {
-    //       patchResult = dispatch(
-    //         hierarchyApi.util.updateQueryData("getNodeFolders", { workspaceId, nodeId: body.targetParentId, cursor: null }, (draft) => {
-    //           if (!draft || !draft.items) return;
-              
-    //           const itemIndex = draft.items.findIndex(f => f.id === itemId);
-    //           if (itemIndex === -1) {
-    //             const folder = originalFolder || folderSelectors.selectById(state, itemId);
-    //             if (folder) {
-    //               draft.items.push({ ...folder, orderKey: body.newOrderKey ?? "", spaceId: body.targetParentId });
-    //             }
-    //           } else {
-    //             draft.items[itemIndex].orderKey = body.newOrderKey ?? draft.items[itemIndex].orderKey;
-    //           }
-    //           draft.items.sort((a, b) => (a.orderKey ?? "").localeCompare(b.orderKey ?? ""));
-    //         })
-    //       );
-    //     }
-
-    //     else if (body.itemType === "ProjectTask") {
-    //       patchResult = dispatch(
-    //         hierarchyApi.util.updateQueryData(
-    //           "getNodeTasks", 
-    //           { workspaceId, nodeId: body.targetParentId, parentType: body.targetParentType as EntityLayerType, cursor: null }, 
-    //           (draft) => {
-    //             if (!draft || !draft.items) return;
-
-    //             const itemIndex = draft.items.findIndex(t => t.id === itemId);
-    //             if (itemIndex === -1) {
-    //               const task = originalTask || taskSelectors.selectById(state, itemId);
-    //               if (task) {
-    //                 const isTargetSpace = body.targetParentType === "ProjectSpace";
-    //                 draft.items.push({
-    //                   ...task,
-    //                   orderKey: body.newOrderKey ?? "",
-    //                   spaceId: isTargetSpace ? body.targetParentId : task.spaceId,
-    //                   folderId: isTargetSpace ? undefined : body.targetParentId
-    //                 });
-    //               }
-    //             } else {
-    //               draft.items[itemIndex].orderKey = body.newOrderKey ?? draft.items[itemIndex].orderKey;
-    //             }
-    //             draft.items.sort((a, b) => (a.orderKey ?? "").localeCompare(b.orderKey ?? ""));
-    //           }
-    //         )
-    //       );
-    //     }
-
-    //     try {
-    //       await queryFulfilled;
-    //     } catch {
-    //       if (patchResult) {
-    //         patchResult.undo();
-    //       }
-    //       if (originalSpace) {
-    //         dispatch(spaceSlice.actions.upsert(originalSpace));
-    //       }
-    //       if (originalFolder) {
-    //         dispatch(folderSlice.actions.upsert(originalFolder));
-    //       }
-    //       if (originalTask) {
-    //         dispatch(taskSlice.actions.upsert(originalTask));
-    //       }
-    //     }
-    //   }
-    // }),
 
     batchMoveItems: build.mutation<void, { workspaceId: string; command: BatchMoveCommand }>({
       query: ({ workspaceId, command }) => ({

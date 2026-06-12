@@ -4,6 +4,7 @@ import { useSelector } from "react-redux";
 import { statusSelectors, workflowSelectors } from "@/store/entityStore";
 import type { Status } from "@/types/status";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { cn } from "@/lib/utils";
 
 interface StatusSelectProps {
   value?: string;
@@ -47,8 +48,8 @@ export function StatusSelect({
   }, [value, allStatuses]);
 
   const statusesByCategory = useMemo(() => {
-    const grouped: Record<string, any[]> = {};
-    statuses.forEach((status: any) => {
+    const grouped: Record<string, Status[]> = {};
+    statuses.forEach((status: Status) => {
       const cat = status.category || "Other";
       if (!grouped[cat]) grouped[cat] = [];
       grouped[cat].push(status);
@@ -79,16 +80,25 @@ export function StatusSelect({
               <div className="px-1.5 py-0.5">
                 <span className="text-[7px] font-black uppercase tracking-[0.1em] text-muted-foreground/30">{category}</span>
               </div>
-              {cats.map((status: any) => (
-                <button
-                  key={status.statusId || status.id}
-                  type="button"
-                  onClick={() => onChange(status.statusId || status.id)}
-                  className="px-1.5 py-0.5 text-xs text-left rounded-sm hover:bg-muted transition-colors flex items-center w-full"
-                >
-                  <StatusBadge status={status} className="w-full justify-start border-none bg-transparent hover:bg-transparent text-[10px] p-0 h-auto" />
-                </button>
-              ))}
+              {cats.map((status: Status) => {
+                const statusId = status.id;
+                const isSelected = value?.toLowerCase() === statusId?.toLowerCase();
+                return (
+                  <button
+                    key={statusId}
+                    type="button"
+                    onClick={() => {
+                      if (!isSelected) onChange(statusId);
+                    }}
+                    className={cn(
+                      "px-1.5 py-0.5 text-xs text-left rounded-sm transition-colors flex items-center w-full",
+                      isSelected ? "bg-muted ring-1 ring-border shadow-sm" : "hover:bg-muted/50"
+                    )}
+                  >
+                    <StatusBadge status={status} className="w-full justify-start border-none bg-transparent hover:bg-transparent text-[10px] p-0 h-auto" />
+                  </button>
+                );
+              })}
             </div>
           ))}
         </div>

@@ -1,17 +1,23 @@
 import { useState } from "react";
 import { useSelector } from "react-redux";
-import { Plus, Trash2 } from "lucide-react";
+import { Plus, Trash2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { taskSelectors } from "@/store/entityStore";
 import type { RootState } from "@/store";
-import { useCreateSubTaskMutation, useUpdateTaskMutation } from "../task-api";
+import { 
+  useCreateSubTaskMutation, 
+  useUpdateTaskMutation, 
+  type UpdateTaskPayload 
+} from "../task-api";
 import { StatusSelect } from "@/components/status-select";
 import { PrioritySelect } from "@/components/priority-select";
 import { PriorityBadge } from "@/components/priority-badge";
 import { DateSelect } from "@/components/date-select";
+import { DebouncedInput } from "@/components/debounced-input";
 import { useWorkspace } from "@/features/workspace/context/workspace-provider";
 import { useDeleteTaskMutation } from "../../../hierarchy/hierarchy-api";
+import type { Priority } from "@/types/priority";
 
 interface TaskSubtasksProps {
   taskId: string;
@@ -28,8 +34,16 @@ export function TaskSubtasks({ taskId }: Readonly<TaskSubtasksProps>) {
   );
 
   const [createSubTask, { isLoading: isCreating }] = useCreateSubTaskMutation();
-  const [updateTask] = useUpdateTaskMutation();
-  const [deleteTask] = useDeleteTaskMutation();
+  const [updateTaskMutation] = useUpdateTaskMutation();
+  const [deleteTaskMutation] = useDeleteTaskMutation();
+
+  const updateSubtask = ({ subtaskId, patches }: { subtaskId: string; patches: UpdateTaskPayload }) => {
+    updateTaskMutation({ taskId: subtaskId, patches });
+  };
+
+  const deleteSubtask = ({ subtaskId }: { subtaskId: string }) => {
+    deleteTaskMutation({ workspaceId: workspaceId || "", taskId: subtaskId });
+  };
 
   const [newSubtaskName, setNewSubtaskName] = useState("");
   const [isAdding, setIsAdding] = useState(false);
@@ -53,23 +67,25 @@ export function TaskSubtasks({ taskId }: Readonly<TaskSubtasksProps>) {
   };
 
   const handleStatusChange = (subtaskId: string, statusId: string) => {
-    updateTask({ taskId: subtaskId, patches: { statusId } });
+    updateSubtask({ subtaskId, patches: { statusId } });
   };
 
-  const handlePriorityChange = (subtaskId: string, priority: any) => {
-    updateTask({ taskId: subtaskId, patches: { priority } });
+  const handlePriorityChange = (subtaskId: string, priority: Priority) => {
+    updateSubtask({ subtaskId, patches: { priority } });
   };
 
   const handleDateChange = (subtaskId: string, field: "startDate" | "dueDate", date: Date | undefined) => {
-    updateTask({
-      taskId: subtaskId,
-      patches: { [field]: date ? date.toISOString() : undefined },
+    updateSubtask({
+      subtaskId,
+      patches: date 
+        ? { [field]: date.toISOString() } 
+        : { [field === "startDate" ? "clearStartDate" : "clearDueDate"]: true },
     });
   };
 
   const handleDeleteSubtask = (subtaskId: string) => {
     if (confirm("Are you sure you want to delete this subtask?")) {
-      deleteTask({ workspaceId: workspaceId || "", taskId: subtaskId });
+      deleteSubtask({ subtaskId });
     }
   };
 
@@ -95,20 +111,24 @@ export function TaskSubtasks({ taskId }: Readonly<TaskSubtasksProps>) {
         {subtasks.map((subtask) => (
           <div
             key={subtask.id}
-            className="flex flex-wrap items-center justify-between gap-3 p-2 rounded-lg border border-border/30 bg-muted/5 hover:bg-muted/10 transition-colors"
+            className="group flex items-center justify-between gap-4 p-2.5 rounded-md hover:bg-muted/30 border border-transparent hover:border-border/30 transition-all"
           >
-            <div className="flex items-center gap-2.5 flex-1 min-w-[200px]">
-              <StatusSelect
-                value={subtask.statusId || ""}
-                onChange={(statusId) => handleStatusChange(subtask.id, statusId)}
-                workflowId={subtask.parentWorkflowId}
-              />
-              <input
+            <div className="flex items-center gap-3 flex-1 min-w-[200px]">
+              <div className="pr-3 border-r border-border/40 shrink-0 h-6 flex items-center">
+                <StatusSelect
+                  value={subtask.statusId || ""}
+                  onChange={(statusId) => handleStatusChange(subtask.id, statusId)}
+                  workflowId={parentTask?.parentWorkflowId}
+                />
+              </div>
+              <DebouncedInput
                 value={subtask.name}
-                onChange={(e) =>
-                  updateTask({ taskId: subtask.id, patches: { name: e.target.value } })
-                }
-                className="text-xs font-medium text-foreground bg-transparent border-none p-0 focus:outline-none focus:ring-0 flex-1"
+                onChange={(val) => {
+                  if (val.trim() && val !== subtask.name) {
+                    updateSubtask({ subtaskId: subtask.id, patches: { name: val } });
+                  }
+                }}
+                className="text-xs font-medium text-foreground bg-transparent border-none p-0 focus:outline-none focus:ring-0 flex-1 h-auto"
               />
             </div>
 
@@ -148,29 +168,29 @@ export function TaskSubtasks({ taskId }: Readonly<TaskSubtasksProps>) {
         )}
 
         {isAdding && (
-          <form onSubmit={handleAddSubtask} className="flex gap-2 items-center p-2 rounded-lg border border-primary/20 bg-primary/5">
+          <form onSubmit={handleAddSubtask} className="flex gap-2 items-center p-1.5 rounded-md border border-border/40 bg-muted/20 mt-1">
             <Input
-              placeholder="Subtask name..."
+              placeholder="What needs to be done?"
               value={newSubtaskName}
               onChange={(e) => setNewSubtaskName(e.target.value)}
-              className="text-xs h-8 bg-muted/20 border-none flex-1 focus-visible:ring-1"
+              className="text-xs h-8 bg-transparent border-none flex-1 focus-visible:ring-0 px-2"
               autoFocus
             />
-            <div className="flex items-center gap-1.5">
-              <Button type="submit" size="sm" className="h-8 text-xs px-3" disabled={isCreating || !newSubtaskName.trim()}>
-                Create
+            <div className="flex items-center gap-1 pr-0.5">
+              <Button type="submit" size="sm" className="h-7 text-[10px] font-semibold px-3 rounded-md" disabled={isCreating || !newSubtaskName.trim()}>
+                Add
               </Button>
               <Button
                 type="button"
                 variant="ghost"
-                size="sm"
+                size="icon"
                 onClick={() => {
                   setIsAdding(false);
                   setNewSubtaskName("");
                 }}
-                className="h-8 text-xs px-3"
+                className="h-7 w-7 rounded-md text-muted-foreground hover:bg-muted hover:text-foreground"
               >
-                Cancel
+                <X className="h-3.5 w-3.5" />
               </Button>
             </div>
           </form>

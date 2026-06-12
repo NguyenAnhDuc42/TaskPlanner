@@ -53,7 +53,7 @@ type SignalRListener<E extends keyof SignalREvents> = {
 class SignalRService {
   private connection: HubConnection | null = null;
   private startPromise: Promise<void> | null = null;
-  private readonly url: string = "https://localhost:7285/hubs/workspace";
+  private readonly url: string = "/hubs/workspace";
   private pendingListeners: SignalRListener<keyof SignalREvents>[] = [];
   private reconnectCallbacks: Array<() => void> = [];
 

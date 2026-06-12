@@ -3,30 +3,6 @@ import { useGetDocumentBlocksQuery, useUpdateDocumentBlocksMutation } from "./do
 import { BlockType } from "@/types/block-type";
 import type { DocumentBlockRecord } from "@/types/document/document-block-record";
 import type { DocumentBlockValue, TiptapDoc } from "./document-types";
-import { Extension } from "@tiptap/react";
-
-// Custom extension to keep track of DB IDs on Tiptap nodes
-export const IdExtension = Extension.create({
-  name: "idTracking",
-  addGlobalAttributes() {
-    return [
-      {
-        types: ["paragraph", "heading", "taskItem"],
-        attributes: {
-          id: {
-            default: null,
-            parseHTML: element => element.getAttribute("data-id"),
-            renderHTML: attributes => {
-              if (!attributes.id) return {};
-              return { "data-id": attributes.id };
-            },
-            keepOnSplit: false,
-          },
-        },
-      },
-    ];
-  },
-});
 
 export function useBlockEditorSync(documentId: string) {
   const { data: blocks } = useGetDocumentBlocksQuery(documentId);
@@ -56,9 +32,9 @@ export function useBlockEditorSync(documentId: string) {
     return { type: "doc", content: [] };
   }, [blocks]);
 
-  const latestJsonRef = useRef<any>(null);
+  const latestJsonRef = useRef<Record<string, unknown> | null>(null);
 
-  const performSave = (json: any) => {
+  const performSave = (json: Record<string, unknown>) => {
     const contentStr = JSON.stringify(json);
     const currentBlocks = blocksRef.current;
     const firstBlock = currentBlocks?.[0];
@@ -95,7 +71,7 @@ export function useBlockEditorSync(documentId: string) {
   };
 
   // Handle the debounced save
-  const handleUpdate = (json: any) => {
+  const handleUpdate = (json: Record<string, unknown>) => {
     if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
     latestJsonRef.current = json;
 

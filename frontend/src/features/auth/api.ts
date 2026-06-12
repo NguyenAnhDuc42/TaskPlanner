@@ -12,17 +12,28 @@ export interface RegisterResponse {
   user: User;
 }
 
+export interface LoginRequest {
+  email?: string;
+  password?: string;
+}
+
+export interface RegisterRequest {
+  name?: string;
+  email?: string;
+  password?: string;
+}
+
 export const authApi = workspaceApi.injectEndpoints({
   endpoints: (build) => ({
     getMe: build.query<User | null, void>({
       query: () => ({ url: "/auth/me", method: "GET" }),
       providesTags: ["User"],
     }),
-    login: build.mutation<LoginResponse, any>({
+    login: build.mutation<LoginResponse, LoginRequest>({
       query: (values) => ({ url: "/auth/login", method: "POST", data: values }),
       invalidatesTags: ["User", "UserPreference"],
     }),
-    register: build.mutation<RegisterResponse, any>({
+    register: build.mutation<RegisterResponse, RegisterRequest>({
       query: (values) => ({
         url: "/auth/register",
         method: "POST",

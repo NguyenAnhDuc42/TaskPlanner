@@ -20,7 +20,9 @@ public class UpdateTaskHandler(TaskPlanDbContext db, WorkspaceContext workspaceC
             icon: request.Icon,
             priority: request.Priority,
             startDate: request.StartDate,
+            clearStartDate: request.ClearStartDate,
             dueDate: request.DueDate,
+            clearDueDate: request.ClearDueDate,
             storyPoints: request.StoryPoints,
             timeEstimateSeconds: request.TimeEstimate
         );

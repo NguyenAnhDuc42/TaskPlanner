@@ -64,7 +64,7 @@ export function useWorkspaceSignalR(workspaceId: string) {
 
     const handleReconnect = () => {
       console.log("[SignalR] Reconnected. Syncing active screen views...");
-      dispatch(workspaceApi.util.invalidateTags(['Spaces', 'Folders', 'Tasks', 'Members']));
+      dispatch(workspaceApi.util.invalidateTags(['Spaces', 'Folders', 'Tasks', 'Members', 'User', 'UserPreference', 'EntityAccess', 'Workflows', 'Comments', 'Documents']));
     };
 
     signalRService.on("EntitiesUpdated", onEntitiesUpdated);

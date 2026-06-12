@@ -72,6 +72,13 @@ public class TasksController : ControllerBase
         return result.ToActionResult();
     }
 
+    [HttpDelete("{id:guid}/comments/{commentId:guid}")]
+    public async Task<IActionResult> DeleteComment(Guid id, Guid commentId, CancellationToken cancellationToken)
+    {
+        var result = await _handler.SendAsync(new DeleteCommentCommand(id, commentId), cancellationToken);
+        return result.ToActionResult();
+    }
+
     [HttpPost("{parentTaskId:guid}/subtasks")]
     public async Task<IActionResult> CreateSubTask(Guid parentTaskId, [FromBody] CreateSubTaskCommand command, CancellationToken cancellationToken)
     {
@@ -93,5 +100,3 @@ public class TasksController : ControllerBase
         return result.ToActionResult();
     }
 }
-
-

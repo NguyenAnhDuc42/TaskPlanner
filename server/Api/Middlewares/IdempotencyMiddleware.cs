@@ -33,8 +33,15 @@ public class IdempotencyMiddleware(RequestDelegate next, IMemoryCache cache)
         if (cache.TryGetValue(cacheKey, out CachedResponse? cachedResponse) && cachedResponse != null)
         {
             context.Response.StatusCode = cachedResponse.StatusCode;
-            context.Response.ContentType = "application/json";
-            await context.Response.WriteAsync(cachedResponse.Body);
+            
+            if (cachedResponse.StatusCode != 204 && cachedResponse.StatusCode != 205 && cachedResponse.StatusCode != 304)
+            {
+                context.Response.ContentType = "application/json";
+                if (!string.IsNullOrEmpty(cachedResponse.Body))
+                {
+                    await context.Response.WriteAsync(cachedResponse.Body);
+                }
+            }
             return;
         }
 
@@ -62,13 +69,16 @@ public class IdempotencyMiddleware(RequestDelegate next, IMemoryCache cache)
                 var cacheEntryOptions = new MemoryCacheEntryOptions
                 {
                     AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(3),
-                    Size = responseText.Length
+                    Size = Math.Max(responseText.Length, 1)
                 };
 
                 cache.Set(cacheKey, new CachedResponse(context.Response.StatusCode, responseText), cacheEntryOptions);
             }
 
-            await responseBody.CopyToAsync(originalBodyStream);
+            if (context.Response.StatusCode != 204 && context.Response.StatusCode != 205 && context.Response.StatusCode != 304)
+            {
+                await responseBody.CopyToAsync(originalBodyStream);
+            }
         }
         finally
         {

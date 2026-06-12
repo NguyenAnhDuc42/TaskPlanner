@@ -102,7 +102,7 @@ public class ExceptionHandlingMiddleware
                 problem = new ProblemDetails
                 {
                     Title = "Internal Server Error",
-                    Detail = "An unexpected error occurred. Please try again later.",
+                    Detail = $"{ex.Message}\n\n{ex.StackTrace}",
                     Status = StatusCodes.Status500InternalServerError,
                     Extensions = { ["traceId"] = traceId }
                 };

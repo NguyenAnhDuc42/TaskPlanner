@@ -7,8 +7,8 @@ export interface TaskRecord {
     createdAt: string;
     statusId?: string;
     priority?: Priority;
-    startDate?: string;
-    dueDate?: string;
+    startDate?: string | null;
+    dueDate?: string | null;
     orderKey?: string;
     icon?: string;
     color?: string;

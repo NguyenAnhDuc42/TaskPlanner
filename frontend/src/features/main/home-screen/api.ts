@@ -11,20 +11,22 @@ import { signalRService } from "@/lib/signalr-service";
 
 type CreateWorkspaceValues = z.infer<typeof createWorkspaceSchema>;
 
+export interface WorkspaceFilters {
+  name?: string;
+  owned?: boolean;
+  isArchived?: boolean;
+  variant?: string;
+  direction?: "Ascending" | "Descending";
+}
+
 export const homeWorkspaceApi = workspaceApi.injectEndpoints({
   endpoints: (build) => ({
-    getWorkspaces: build.query<PagedResult<WorkspaceSnippetRecord>, {
-      name?: string;
-      owned?: boolean;
-      isArchived?: boolean;
-      variant?: string;
-      direction?: "Ascending" | "Descending";
-      cursor?: string | null;
-    }>({
+    getWorkspaces: build.query<PagedResult<WorkspaceSnippetRecord>, WorkspaceFilters & { cursor?: string | null; }>({
       query: (params) => ({ url: "/workspaces", method: "GET", params }),
       // Infinite scroll: reuse cache based only on filters
       serializeQueryArgs: ({ endpointName, queryArgs }) => {
-        const { cursor, ...filters } = queryArgs;
+        const filters = { ...queryArgs };
+        delete filters.cursor;
         return `${endpointName}_${JSON.stringify(filters)}`;
       },
       merge: (currentCache, newItems, { arg }) => {
@@ -80,15 +82,16 @@ export function useCreateWorkspace() {
         const result = await createTrigger(values).unwrap();
         toast.success("Workspace created successfully");
         return result;
-      } catch (error: any) {
-        toast.error(error.message || "Failed to create workspace");
+      } catch (error: unknown) {
+        const err = error as { message?: string; data?: { Description?: string } };
+        toast.error(err.data?.Description || err.message || "Failed to create workspace");
         throw error;
       }
     },
   };
 }
 
-export function useWorkspaces(filters: any) {
+export function useWorkspaces(filters: WorkspaceFilters) {
   const [cursor, setCursor] = React.useState<string | null>(null);
 
   const [prevFilters, setPrevFilters] = React.useState(filters);
@@ -121,8 +124,9 @@ export function useSetWorkspacePin() {
       try {
         await pinTrigger(payload).unwrap();
         toast.success("Workspace pin updated!");
-      } catch (error: any) {
-        toast.error(error.message || "Failed to update pin");
+      } catch (error: unknown) {
+        const err = error as { message?: string; data?: { Description?: string } };
+        toast.error(err.data?.Description || err.message || "Failed to update pin");
       }
     },
   };
@@ -140,8 +144,9 @@ export function useJoinWorkspaceByCode() {
           toast.success("Joined workspace successfully");
         }
         return data;
-      } catch (error: any) {
-        toast.error(error.message || "Failed to join workspace");
+      } catch (error: unknown) {
+        const err = error as { message?: string; data?: { Description?: string } };
+        toast.error(err.data?.Description || err.message || "Failed to join workspace");
         throw error;
       }
     },
@@ -149,8 +154,8 @@ export function useJoinWorkspaceByCode() {
 }
 
 export function useWorkspaceHome() {
-  const search = useSearch({ from: "/" }) as any;
-  const navigate = useNavigate();
+  const search = useSearch({ from: "/" }) as WorkspaceFilters;
+  const navigate = useNavigate({ from: "/" });
   const { refetch } = useGetWorkspacesQuery({ ...search });
 
   const {
@@ -188,7 +193,7 @@ export function useWorkspaceHome() {
   }, [refetch]);
 
   const handleCreateWorkspace = React.useCallback(
-    (data: any) => {
+    (data: CreateWorkspaceValues) => {
       createInternal({ ...data, strictJoin: false });
     },
     [createInternal],
@@ -207,8 +212,8 @@ export function useWorkspaceHome() {
 
   const handleSearchChange = React.useCallback(
     (name: string) => {
-      (navigate as any)({
-        search: (prev: any) => ({ ...prev, name: name || undefined }),
+      navigate({
+        search: (prev: WorkspaceFilters) => ({ ...prev, name: name || undefined }),
         replace: true,
       });
     },
@@ -216,9 +221,9 @@ export function useWorkspaceHome() {
   );
 
   const handleFilterChange = React.useCallback(
-    (newFilters: any) => {
-      (navigate as any)({
-        search: (prev: any) => ({ ...prev, ...newFilters }),
+    (newFilters: Partial<WorkspaceFilters>) => {
+      navigate({
+        search: (prev: WorkspaceFilters) => ({ ...prev, ...newFilters }),
       });
     },
     [navigate],

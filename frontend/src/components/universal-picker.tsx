@@ -10,7 +10,7 @@ import {
   Box, Package, Database, Cloud, HardDrive, Cpu
 } from "lucide-react"
 
-const ICON_MAP: Record<string, React.ComponentType<any>> = {
+const ICON_MAP: Record<string, React.ElementType> = {
   LayoutGrid, Folder, FileText, CheckSquare, Calendar, Clock, User, Users,
   Settings, Bell, Inbox, Hash, Star, Heart, Flag, Bookmark, Tag, Search,
   Zap, Flame, Target, Trophy, Gamepad2, Code2, Terminal, Layers, Component,
@@ -404,7 +404,3 @@ export function UniversalPicker({
 }
 
 // ============================================================================
-// EXPORTS FOR ADVANCED USAGE
-// ============================================================================
-
-export { PickerConfig, IconSearchEngine, useIconColorPicker }

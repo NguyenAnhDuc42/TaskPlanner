@@ -11,7 +11,6 @@ import type { AccessLevel } from "@/types/access-level";
 import type { EntityAccessRecord } from "@/types/workspace";
 import type { SpaceDocumentRecord } from "@/types/document";
 import { RowAction } from "@/types/row-action";
-import { toast } from "sonner";
 
 
 export interface GetSpaceItemsResponse {
@@ -64,10 +63,10 @@ export const spaceApi = workspaceApi.injectEndpoints({
     batchUpdateSpaceItems: build.mutation<void, { spaceId: string; updates: BatchUpdateSpaceItemValue[] }>({
       query: ({ spaceId, updates }) => ({
         url: `/spaces/${spaceId}/batch-update`,
-        method: "POST",
+        method: "PUT",
         data: { updates }
       }),
-      async onQueryStarted({ spaceId: _, updates }, { dispatch, queryFulfilled, getState }) {
+      async onQueryStarted({ updates }, { dispatch, queryFulfilled, getState }) {
         const state = getState() as RootState;
 
         // Snapshot original folders and tasks for rollback

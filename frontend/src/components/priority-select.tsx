@@ -2,6 +2,7 @@ import * as React from "react";
 import { Priority } from "@/types/priority";
 import { PriorityBadge } from "@/components/priority-badge";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { cn } from "@/lib/utils";
 
 interface PrioritySelectProps {
   readonly value?: Priority;
@@ -11,7 +12,7 @@ interface PrioritySelectProps {
 }
 
 export function PrioritySelect({
-  value: _value,
+  value,
   onChange,
   align = "start",
   trigger,
@@ -35,19 +36,27 @@ export function PrioritySelect({
             Priority.Normal,
             Priority.High,
             Priority.Urgent,
-          ].map((p) => (
-            <button
-              key={p}
-              type="button"
-              className="px-1.5 py-1 text-xs text-left rounded-sm hover:bg-muted transition-colors flex items-center w-full"
-              onClick={() => onChange(p)}
-            >
-              <PriorityBadge
-                priority={p}
-                className="w-full justify-start border-none bg-transparent hover:bg-transparent"
-              />
-            </button>
-          ))}
+          ].map((p) => {
+            const isSelected = p === value;
+            return (
+              <button
+                key={p}
+                type="button"
+                className={cn(
+                  "px-1.5 py-1 text-xs text-left rounded-sm transition-colors flex items-center w-full",
+                  isSelected ? "bg-muted ring-1 ring-border shadow-sm" : "hover:bg-muted/50"
+                )}
+                onClick={() => {
+                  if (!isSelected) onChange(p);
+                }}
+              >
+                <PriorityBadge
+                  priority={p}
+                  className="w-full justify-start border-none bg-transparent hover:bg-transparent"
+                />
+              </button>
+            );
+          })}
         </div>
       </PopoverContent>
     </Popover>

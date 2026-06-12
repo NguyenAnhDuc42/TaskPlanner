@@ -1,7 +1,7 @@
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar as ShadcnCalendar } from "@/components/ui/calendar";
 import { DateBadge } from "@/components/date-badge";
-import { Calendar } from "lucide-react";
+import { Calendar, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface DateSelectProps {
@@ -26,58 +26,76 @@ export function DateSelect({
   const isSm = size === "sm";
 
   return (
-    <Popover>
-      <PopoverTrigger asChild>
-        <button 
-          type="button" 
-          className="outline-none focus:outline-none shrink-0"
+    <div className="inline-flex items-center gap-1 group">
+      <Popover>
+        <PopoverTrigger asChild>
+          <button 
+            type="button" 
+            className="outline-none focus:outline-none shrink-0"
+            onClick={(e) => e.stopPropagation()}
+            onPointerDown={(e) => e.stopPropagation()}
+          >
+            {startDate || dueDate ? (
+              <DateBadge
+                startDate={startDate}
+                dueDate={dueDate}
+                className={triggerClassName}
+              />
+            ) : (
+              <div className={cn(
+                "flex items-center gap-1.5 px-2 rounded-sm bg-muted/30 text-muted-foreground/50 transition-colors cursor-pointer select-none border border-border/5",
+                isSm 
+                  ? "h-5 text-[9px] font-bold hover:bg-muted/50" 
+                  : "h-6 text-[10px] font-semibold hover:bg-muted/60"
+              )}>
+                <Calendar className={isSm ? "h-2.5 w-2.5 opacity-70" : "h-3 w-3 opacity-60"} />
+                <span>No Date</span>
+              </div>
+            )}
+          </button>
+        </PopoverTrigger>
+        <PopoverContent
+          className="w-auto p-3 border border-border shadow-xl rounded-xl bg-popover flex flex-col gap-3"
+          align={align}
           onClick={(e) => e.stopPropagation()}
           onPointerDown={(e) => e.stopPropagation()}
         >
-          {startDate || dueDate ? (
-            <DateBadge
-              startDate={startDate}
-              dueDate={dueDate}
-              className={triggerClassName}
-            />
-          ) : (
-            <div className={cn(
-              "flex items-center gap-1.5 px-2 rounded-sm bg-muted/30 text-muted-foreground/50 transition-colors cursor-pointer select-none border border-border/5",
-              isSm 
-                ? "h-5 text-[9px] font-bold hover:bg-muted/50" 
-                : "h-7 px-2.5 rounded-md border-border/50 bg-muted/10 hover:bg-muted/20 text-xs"
-            )}>
-              <Calendar className={isSm ? "h-2.5 w-2.5 opacity-50" : "h-3.5 w-3.5 opacity-60"} />
-              <span>No Date</span>
+          <div className="flex gap-4">
+            <div className="flex flex-col gap-1.5">
+              <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Start Date</span>
+              <ShadcnCalendar
+                mode="single"
+                selected={startDate ? new Date(startDate) : undefined}
+                onSelect={onStartDateChange}
+              />
             </div>
-          )}
-        </button>
-      </PopoverTrigger>
-      <PopoverContent
-        className="w-auto p-3 border border-border shadow-xl rounded-xl bg-popover flex flex-col gap-3"
-        align={align}
-        onClick={(e) => e.stopPropagation()}
-        onPointerDown={(e) => e.stopPropagation()}
-      >
-        <div className="flex gap-4">
-          <div className="flex flex-col gap-1.5">
-            <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Start Date</span>
-            <ShadcnCalendar
-              mode="single"
-              selected={startDate ? new Date(startDate) : undefined}
-              onSelect={onStartDateChange}
-            />
+            <div className="flex flex-col gap-1.5">
+              <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Due Date</span>
+              <ShadcnCalendar
+                mode="single"
+                selected={dueDate ? new Date(dueDate) : undefined}
+                onSelect={onDueDateChange}
+              />
+            </div>
           </div>
-          <div className="flex flex-col gap-1.5">
-            <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Due Date</span>
-            <ShadcnCalendar
-              mode="single"
-              selected={dueDate ? new Date(dueDate) : undefined}
-              onSelect={onDueDateChange}
-            />
-          </div>
+        </PopoverContent>
+      </Popover>
+      {(startDate || dueDate) && (
+        <div
+          role="button"
+          tabIndex={0}
+          className="opacity-0 group-hover:opacity-100 p-0.5 rounded-full bg-muted hover:bg-destructive hover:text-destructive-foreground transition-all cursor-pointer border border-border/20 shrink-0"
+          onClick={(e) => {
+            e.stopPropagation();
+            e.preventDefault();
+            onStartDateChange(undefined);
+            onDueDateChange(undefined);
+          }}
+          onPointerDown={(e) => e.stopPropagation()}
+        >
+          <X className="h-3 w-3" />
         </div>
-      </PopoverContent>
-    </Popover>
+      )}
+    </div>
   );
 }

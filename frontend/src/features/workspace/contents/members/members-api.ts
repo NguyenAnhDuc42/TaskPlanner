@@ -29,7 +29,8 @@ export const membersApi = workspaceApi.injectEndpoints({
       },
       // Infinite scroll: reuse cache based only on filters
       serializeQueryArgs: ({ endpointName, queryArgs }) => {
-        const { cursor, ...filters } = queryArgs;
+        const filters = { ...queryArgs };
+        delete filters.cursor;
         return `${endpointName}_${JSON.stringify(filters)}`;
       },
       merge: (currentCache, newItems, { arg }) => {
@@ -45,7 +46,7 @@ export const membersApi = workspaceApi.injectEndpoints({
       },
       providesTags: ["Members"],
     }),
-    addMembers: build.mutation<any, { workspaceId: string; values: z.infer<typeof addMembersSchema> }>({
+    addMembers: build.mutation<void, { workspaceId: string; values: z.infer<typeof addMembersSchema> }>({
       query: ({ workspaceId, values }) => ({
         url: `/workspaces/${workspaceId}/members`,
         method: "POST",
@@ -53,7 +54,7 @@ export const membersApi = workspaceApi.injectEndpoints({
       }),
       invalidatesTags: ["Members"],
     }),
-    updateMembers: build.mutation<any, { workspaceId: string; values: z.infer<typeof updateMembersSchema> }>({
+    updateMembers: build.mutation<void, { workspaceId: string; values: z.infer<typeof updateMembersSchema> }>({
       query: ({ workspaceId, values }) => ({
         url: `/workspaces/${workspaceId}/members`,
         method: "PATCH",
@@ -61,7 +62,7 @@ export const membersApi = workspaceApi.injectEndpoints({
       }),
       invalidatesTags: ["Members"],
     }),
-    removeMembers: build.mutation<any, { workspaceId: string; memberIds: string[] }>({
+    removeMembers: build.mutation<void, { workspaceId: string; memberIds: string[] }>({
       query: ({ workspaceId, memberIds }) => ({
         url: `/workspaces/${workspaceId}/members`,
         method: "DELETE",
@@ -122,8 +123,9 @@ export function useAddMembers(workspaceId: string) {
         const result = await addTrigger({ workspaceId, values }).unwrap();
         toast.success("Members added successfully");
         return result;
-      } catch (error: any) {
-        toast.error(error.message || "Failed to add members");
+      } catch (error: unknown) {
+        const err = error as { message?: string; data?: { Description?: string } };
+        toast.error(err.data?.Description || err.message || "Failed to add members");
         throw error;
       }
     },
@@ -139,8 +141,9 @@ export function useUpdateMembers(workspaceId: string) {
         const result = await updateTrigger({ workspaceId, values }).unwrap();
         toast.success("Members updated successfully");
         return result;
-      } catch (error: any) {
-        toast.error(error.message || "Failed to update members");
+      } catch (error: unknown) {
+        const err = error as { message?: string; data?: { Description?: string } };
+        toast.error(err.data?.Description || err.message || "Failed to update members");
         throw error;
       }
     },
@@ -156,8 +159,9 @@ export function useRemoveMembers(workspaceId: string) {
         const result = await removeTrigger({ workspaceId, memberIds }).unwrap();
         toast.success("Members removed successfully");
         return result;
-      } catch (error: any) {
-        toast.error(error.message || "Failed to remove members");
+      } catch (error: unknown) {
+        const err = error as { message?: string; data?: { Description?: string } };
+        toast.error(err.data?.Description || err.message || "Failed to remove members");
         throw error;
       }
     },

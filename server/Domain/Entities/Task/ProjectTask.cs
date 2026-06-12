@@ -114,7 +114,9 @@
             Guid? statusId = null,
             Priority? priority = null,
             DateTimeOffset? startDate = null,
+            bool clearStartDate = false,
             DateTimeOffset? dueDate = null,
+            bool clearDueDate = false,
             int? storyPoints = null,
             long? timeEstimateSeconds = null,
             string? orderKey = null,
@@ -133,8 +135,11 @@
                 if (StatusId != newStatus) { StatusId = newStatus; updated = true; }
             }
             if (priority != null && Priority != priority) { Priority = priority.Value; updated = true; }
-            if (startDate != null && StartDate != startDate) { StartDate = startDate; updated = true; }
-            if (dueDate != null && DueDate != dueDate) { DueDate = dueDate; updated = true; }
+            if (clearStartDate && StartDate != null) { StartDate = null; updated = true; }
+            else if (startDate != null && StartDate != startDate) { StartDate = startDate; updated = true; }
+            
+            if (clearDueDate && DueDate != null) { DueDate = null; updated = true; }
+            else if (dueDate != null && DueDate != dueDate) { DueDate = dueDate; updated = true; }
             if (storyPoints != null && StoryPoints != storyPoints) { StoryPoints = storyPoints; updated = true; }
             if (timeEstimateSeconds != null && TimeEstimateSeconds != timeEstimateSeconds) { TimeEstimateSeconds = timeEstimateSeconds; updated = true; }
             if (orderKey != null && OrderKey != orderKey) { OrderKey = orderKey; updated = true; }

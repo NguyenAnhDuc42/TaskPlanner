@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useSelector } from "react-redux";
 import { taskSelectors } from "@/store/entityStore";
@@ -9,8 +8,9 @@ import { PriorityBadge } from "@/components/priority-badge";
 import { UniversalPicker } from "@/components/universal-picker";
 import { DynamicIcon } from "@/components/dynamic-icon";
 import { BlockEditor } from "@/components/blockbase/block-editor";
-import { ViewSkeleton } from "@/components/view-skeleton";
+import { TaskViewSkeleton } from "./task-view-skeleton";
 import { DateSelect } from "@/components/date-select";
+import { DebouncedInput } from "@/components/debounced-input";
 import { useGetTaskDetailQuery, useUpdateTaskMutation } from "../task-api";
 import { TaskAssignees } from "../task-components/task-assignees";
 import { TaskComments } from "../task-components/task-comments";
@@ -22,19 +22,11 @@ interface TaskDetailCanvasProps {
 }
 
 export function TaskDetailCanvas({ taskId }: TaskDetailCanvasProps) {
-  const { isLoading } = useGetTaskDetailQuery(taskId || "", {
+  const { isLoading, isError } = useGetTaskDetailQuery(taskId || "", {
     skip: !taskId,
   });
   const task = useSelector((state: RootState) => taskSelectors.selectById(state, taskId || ""));
   const [updateTask] = useUpdateTaskMutation();
-
-  const [localName, setLocalName] = useState("");
-  const [prevTaskName, setPrevTaskName] = useState("");
-
-  if (task?.name && task.name !== prevTaskName) {
-    setPrevTaskName(task.name);
-    setLocalName(task.name);
-  }
 
   if (!taskId) {
     return (
@@ -44,15 +36,21 @@ export function TaskDetailCanvas({ taskId }: TaskDetailCanvasProps) {
     );
   }
 
-  if (isLoading || !task) {
-    return <ViewSkeleton />;
+  if (isError) {
+    return (
+      <div className="flex flex-col items-center justify-center h-full text-destructive/80 space-y-2">
+        <DynamicIcon name="AlertTriangle" size={32} />
+        <span className="text-sm font-medium">Failed to load task</span>
+        <span className="text-xs text-muted-foreground">The task may have been deleted, or there was a server error.</span>
+      </div>
+    );
   }
 
-  const handleNameBlur = () => {
-    if (localName.trim() && localName !== task.name) {
-      updateTask({ taskId, patches: { name: localName.trim() } });
-    }
-  };
+  if (isLoading || !task) {
+    return <TaskViewSkeleton />;
+  }
+
+
 
   const handleStatusChange = (statusId: string) => {
     updateTask({ taskId, patches: { statusId } });
@@ -63,11 +61,17 @@ export function TaskDetailCanvas({ taskId }: TaskDetailCanvasProps) {
   };
 
   const handleStartDateChange = (date: Date | undefined) => {
-    updateTask({ taskId, patches: { startDate: date ? date.toISOString() : undefined } });
+    updateTask({
+      taskId,
+      patches: date ? { startDate: date.toISOString() } : { clearStartDate: true },
+    });
   };
 
   const handleDueDateChange = (date: Date | undefined) => {
-    updateTask({ taskId, patches: { dueDate: date ? date.toISOString() : undefined } });
+    updateTask({
+      taskId,
+      patches: date ? { dueDate: date.toISOString() } : { clearDueDate: true },
+    });
   };
 
   return (
@@ -94,10 +98,13 @@ export function TaskDetailCanvas({ taskId }: TaskDetailCanvasProps) {
               </PopoverContent>
             </Popover>
 
-            <input
-              value={localName}
-              onChange={(e) => setLocalName(e.target.value)}
-              onBlur={handleNameBlur}
+            <DebouncedInput
+              value={task.name || ""}
+              onChange={(val) => {
+                if (val.trim() && val !== task.name) {
+                  updateTask({ taskId, patches: { name: val.trim() } });
+                }
+              }}
               placeholder="Untitled Task"
               className="text-2xl font-black text-foreground border-none p-0 focus-visible:ring-0 bg-transparent h-auto outline-none w-full"
             />
@@ -138,15 +145,12 @@ export function TaskDetailCanvas({ taskId }: TaskDetailCanvasProps) {
 
           {/* Document Section (Rich Text Editor) */}
           <div className="space-y-3">
-            <h3 className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground/70 border-b border-border/50 pb-2">
-              Document
-            </h3>
             {task.defaultDocumentId ? (
-              <div className="min-h-[150px] border border-border/10 rounded-lg p-2 bg-muted/5">
+              <div className="min-h-[150px] border border-border/10 rounded-lg p-2 bg-muted/5 mt-4">
                 <BlockEditor documentId={task.defaultDocumentId} placeholder="Type '/' for commands..." />
               </div>
             ) : (
-              <div className="text-xs text-muted-foreground italic">No document available for this task.</div>
+              <div className="text-xs text-muted-foreground italic mt-4">No document available for this task.</div>
             )}
           </div>
 

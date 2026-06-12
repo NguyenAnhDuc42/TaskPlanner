@@ -13,7 +13,7 @@ export function EntityViewFrame({
   children,
   className,
   ...props
-}: EntityViewFrameProps) {
+}: Readonly<EntityViewFrameProps>) {
   return (
     <div className={cn("flex flex-col h-full w-full bg-background", className)} {...props}>
       {/* Top Header Row */}
