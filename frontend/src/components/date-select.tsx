@@ -9,6 +9,7 @@ interface DateSelectProps {
   dueDate?: string | null;
   onStartDateChange: (date: Date | undefined) => void;
   onDueDateChange: (date: Date | undefined) => void;
+  onClearDates?: () => void;
   align?: "start" | "center" | "end";
   triggerClassName?: string;
   size?: "sm" | "md";
@@ -19,6 +20,7 @@ export function DateSelect({
   dueDate,
   onStartDateChange,
   onDueDateChange,
+  onClearDates,
   align = "start",
   triggerClassName,
   size = "md",
@@ -88,8 +90,12 @@ export function DateSelect({
           onClick={(e) => {
             e.stopPropagation();
             e.preventDefault();
-            onStartDateChange(undefined);
-            onDueDateChange(undefined);
+            if (onClearDates) {
+              onClearDates();
+            } else {
+              onStartDateChange(undefined);
+              onDueDateChange(undefined);
+            }
           }}
           onPointerDown={(e) => e.stopPropagation()}
         >
