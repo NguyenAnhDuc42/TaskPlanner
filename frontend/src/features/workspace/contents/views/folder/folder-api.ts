@@ -41,6 +41,8 @@ export interface BatchUpdateFolderTaskValue {
   dueDate?: string | null;
   orderKey?: string | null;
   isDeleted?: boolean | null;
+  clearStartDate?: boolean;
+  clearDueDate?: boolean;
 }
 
 // 1. Inject Folder endpoints directly into our central base query (100% Type-Safe)
@@ -87,7 +89,12 @@ export const folderApi = workspaceApi.injectEndpoints({
           .filter((t): t is TaskRecord => !!t);
 
         // 2. Perform Optimistic Update instantly on Redux
-        dispatch(taskSlice.actions.upsertMany(updates as Partial<TaskRecord>[]));
+        const optimisticUpdates = updates.map(u => ({
+          ...u,
+          ...(u.clearStartDate ? { startDate: null } : {}),
+          ...(u.clearDueDate ? { dueDate: null } : {}),
+        }));
+        dispatch(taskSlice.actions.upsertMany(optimisticUpdates as Partial<TaskRecord>[]));
 
         try {
           await queryFulfilled;

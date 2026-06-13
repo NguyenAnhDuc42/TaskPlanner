@@ -2,6 +2,7 @@ import { useState, useCallback, useRef, useEffect } from "react";
 
 interface UseResizeOptions {
   initialWidth: number;
+  currentWidth?: number;
   minWidth: number;
   maxWidth: number;
   direction: "left" | "right";
@@ -11,6 +12,7 @@ interface UseResizeOptions {
 
 export function useResize({
   initialWidth,
+  currentWidth,
   minWidth,
   maxWidth,
   direction,
@@ -44,12 +46,19 @@ export function useResize({
   }, [onResize, onResizeEnd, width]);
 
 
+  const externalCurrentWidthRef = useRef(currentWidth);
+  useEffect(() => {
+    externalCurrentWidthRef.current = currentWidth;
+  }, [currentWidth]);
+
   const startResizing = useCallback(
     (e: React.MouseEvent) => {
       e.preventDefault();
       
       startXRef.current = e.clientX;
-      startWidthRef.current = currentWidthRef.current;
+      const startingWidth = externalCurrentWidthRef.current ?? currentWidthRef.current;
+      startWidthRef.current = startingWidth;
+      setWidth(startingWidth);
       setIsResizing(true);
 
       const onMouseMove = (moveEvent: MouseEvent) => {

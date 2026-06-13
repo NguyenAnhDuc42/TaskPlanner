@@ -112,6 +112,7 @@ export function FolderView() {
 
   return (
     <EntityViewFrame
+      className= "bg-card/30"
       topHeader={
         <div className="flex items-center justify-between w-full">
           <Breadcrumb className="text-xs">

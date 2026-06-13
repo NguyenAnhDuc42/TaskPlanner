@@ -1,14 +1,13 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useSelector } from "react-redux";
-import { Plus, Trash2, X } from "lucide-react";
+import { Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { taskSelectors } from "@/store/entityStore";
 import type { RootState } from "@/store";
-import { 
-  useCreateSubTaskMutation, 
-  useUpdateTaskMutation, 
-  type UpdateTaskPayload 
+import {
+  useCreateSubTaskMutation,
+  useUpdateTaskMutation,
+  type UpdateTaskPayload,
 } from "../task-api";
 import { StatusSelect } from "@/components/status-select";
 import { PrioritySelect } from "@/components/priority-select";
@@ -18,6 +17,17 @@ import { DebouncedInput } from "@/components/debounced-input";
 import { useWorkspace } from "@/features/workspace/context/workspace-provider";
 import { useDeleteTaskMutation } from "../../../hierarchy/hierarchy-api";
 import type { Priority } from "@/types/priority";
+import { useNavigate, useLocation } from "@tanstack/react-router";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface TaskSubtasksProps {
   taskId: string;
@@ -25,6 +35,8 @@ interface TaskSubtasksProps {
 
 export function TaskSubtasks({ taskId }: Readonly<TaskSubtasksProps>) {
   const { workspaceId } = useWorkspace();
+  const navigate = useNavigate();
+
   const subtasks = useSelector((state: RootState) =>
     taskSelectors.selectAll(state).filter((t) => t.parentTaskId === taskId)
   );
@@ -45,24 +57,34 @@ export function TaskSubtasks({ taskId }: Readonly<TaskSubtasksProps>) {
     deleteTaskMutation({ workspaceId: workspaceId || "", taskId: subtaskId });
   };
 
-  const [newSubtaskName, setNewSubtaskName] = useState("");
-  const [isAdding, setIsAdding] = useState(false);
+  // New subtask draft state
+  const [draftName, setDraftName] = useState("");
+  const [draftStatusId, setDraftStatusId] = useState<string | undefined>(undefined);
+  const [draftPriority, setDraftPriority] = useState<Priority>("Low");
+  const [deleteSubtaskId, setDeleteSubtaskId] = useState<string | null>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
-  const handleAddSubtask = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newSubtaskName.trim()) return;
-
+  const handleCreateSubtask = async () => {
+    if (!draftName.trim() || isCreating) return;
     try {
       await createSubTask({
-        spaceId: parentTask?.spaceId || "",
         parentTaskId: taskId,
-        name: newSubtaskName.trim(),
-        priority: "Low",
+        name: draftName.trim(),
+        priority: draftPriority,
+        statusId: draftStatusId,
       }).unwrap();
-      setNewSubtaskName("");
-      setIsAdding(false);
+      setDraftName("");
+      setDraftStatusId(undefined);
+      setDraftPriority("Low");
     } catch (err) {
       console.error("Failed to create subtask", err);
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      handleCreateSubtask();
     }
   };
 
@@ -77,44 +99,51 @@ export function TaskSubtasks({ taskId }: Readonly<TaskSubtasksProps>) {
   const handleDateChange = (subtaskId: string, field: "startDate" | "dueDate", date: Date | undefined) => {
     updateSubtask({
       subtaskId,
-      patches: date 
-        ? { [field]: date.toISOString() } 
+      patches: date
+        ? { [field]: date.toISOString() }
         : { [field === "startDate" ? "clearStartDate" : "clearDueDate"]: true },
     });
   };
 
   const handleDeleteSubtask = (subtaskId: string) => {
-    if (confirm("Are you sure you want to delete this subtask?")) {
-      deleteSubtask({ subtaskId });
+    setDeleteSubtaskId(subtaskId);
+  };
+
+  const confirmDelete = () => {
+    if (deleteSubtaskId) {
+      deleteSubtask({ subtaskId: deleteSubtaskId });
+      setDeleteSubtaskId(null);
     }
   };
 
-  return (
-    <div className="space-y-4 pt-6 border-t border-border/30">
-      <div className="flex items-center justify-between">
-        <h3 className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground/70">
-          Subtasks
-        </h3>
-        {!isAdding && (
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setIsAdding(true)}
-            className="h-6 px-2 text-[10px] text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-md"
-          >
-            <Plus className="h-3 w-3 mr-1" /> Add Subtask
-          </Button>
-        )}
-      </div>
+  const location = useLocation();
+  const handleOpenSubtask = (subtaskId: string) => {
+    navigate({
+      to: location.pathname,
+      search: {
+        ...(location.search as Record<string, unknown>),
+        contextPanel: { type: "task", id: subtaskId },
+      },
+    });
+  };
 
-      <div className="space-y-2">
+  return (
+    <div className="space-y-3 pt-5 border-t border-border/30">
+      <h3 className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground/70">
+        Subtasks
+      </h3>
+
+      <div className="space-y-1">
+        {/* Existing subtasks */}
         {subtasks.map((subtask) => (
           <div
             key={subtask.id}
-            className="group flex items-center justify-between gap-4 p-2.5 rounded-md hover:bg-muted/30 border border-transparent hover:border-border/30 transition-all"
+            onDoubleClick={() => handleOpenSubtask(subtask.id)}
+            className="group flex items-center justify-between gap-2 px-2 py-1 rounded-md border border-border/40 hover:border-border/70 bg-muted/10 hover:bg-muted/20 transition-all select-none"
           >
-            <div className="flex items-center gap-3 flex-1 min-w-[200px]">
-              <div className="pr-3 border-r border-border/40 shrink-0 h-6 flex items-center">
+            {/* Left: Status + Name */}
+            <div className="flex items-center gap-2 flex-1 min-w-0">
+              <div className="shrink-0">
                 <StatusSelect
                   value={subtask.statusId || ""}
                   onChange={(statusId) => handleStatusChange(subtask.id, statusId)}
@@ -128,11 +157,12 @@ export function TaskSubtasks({ taskId }: Readonly<TaskSubtasksProps>) {
                     updateSubtask({ subtaskId: subtask.id, patches: { name: val } });
                   }
                 }}
-                className="text-xs font-medium text-foreground bg-transparent border-none p-0 focus:outline-none focus:ring-0 flex-1 h-auto"
+                className="text-[11px] font-medium text-foreground bg-transparent border-none p-0 focus:outline-none focus:ring-0 flex-1 h-auto min-w-0 truncate"
               />
             </div>
 
-            <div className="flex items-center gap-2">
+            {/* Right: Priority + Date + Delete */}
+            <div className="flex items-center gap-1.5 shrink-0">
               <PrioritySelect
                 value={subtask.priority || "Low"}
                 onChange={(priority) => handlePriorityChange(subtask.id, priority)}
@@ -155,47 +185,79 @@ export function TaskSubtasks({ taskId }: Readonly<TaskSubtasksProps>) {
                 variant="ghost"
                 size="icon"
                 onClick={() => handleDeleteSubtask(subtask.id)}
-                className="h-7 w-7 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-md shrink-0"
+                className="h-5 w-5 text-muted-foreground/40 hover:text-destructive hover:bg-destructive/10 rounded shrink-0 opacity-0 group-hover:opacity-100 transition-opacity"
               >
-                <Trash2 className="h-3.5 w-3.5" />
+                <Trash2 className="h-3 w-3" />
               </Button>
             </div>
           </div>
         ))}
 
-        {subtasks.length === 0 && !isAdding && (
-          <p className="text-xs text-muted-foreground/50 italic py-2">No subtasks yet.</p>
-        )}
-
-        {isAdding && (
-          <form onSubmit={handleAddSubtask} className="flex gap-2 items-center p-1.5 rounded-md border border-border/40 bg-muted/20 mt-1">
-            <Input
-              placeholder="What needs to be done?"
-              value={newSubtaskName}
-              onChange={(e) => setNewSubtaskName(e.target.value)}
-              className="text-xs h-8 bg-transparent border-none flex-1 focus-visible:ring-0 px-2"
-              autoFocus
+        {/* Always-visible new subtask row */}
+        <div
+          className="flex items-center gap-2 px-2 py-1 rounded-md border border-dashed border-border/40 hover:border-border/70 hover:bg-muted/10 transition-all cursor-text"
+          onClick={() => inputRef.current?.focus()}
+        >
+          {/* Status picker for draft */}
+          <div className="shrink-0">
+            <StatusSelect
+              value={draftStatusId || ""}
+              onChange={setDraftStatusId}
+              workflowId={parentTask?.parentWorkflowId}
             />
-            <div className="flex items-center gap-1 pr-0.5">
-              <Button type="submit" size="sm" className="h-7 text-[10px] font-semibold px-3 rounded-md" disabled={isCreating || !newSubtaskName.trim()}>
-                Add
-              </Button>
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                onClick={() => {
-                  setIsAdding(false);
-                  setNewSubtaskName("");
-                }}
-                className="h-7 w-7 rounded-md text-muted-foreground hover:bg-muted hover:text-foreground"
-              >
-                <X className="h-3.5 w-3.5" />
-              </Button>
-            </div>
-          </form>
-        )}
+          </div>
+
+          {/* Name input */}
+          <input
+            ref={inputRef}
+            type="text"
+            placeholder="Add a subtask..."
+            value={draftName}
+            onChange={(e) => setDraftName(e.target.value)}
+            onKeyDown={handleKeyDown}
+            onBlur={handleCreateSubtask}
+            className="flex-1 min-w-0 text-[11px] bg-transparent border-none outline-none text-foreground placeholder:text-muted-foreground/40"
+          />
+
+          {/* Priority picker for draft */}
+          <div className="shrink-0">
+            <PrioritySelect
+              value={draftPriority}
+              onChange={setDraftPriority}
+              trigger={
+                <button type="button" className="cursor-pointer focus:outline-none bg-transparent border-none p-0">
+                  <PriorityBadge priority={draftPriority} />
+                </button>
+              }
+            />
+          </div>
+
+          {/* Submit hint */}
+          {draftName.trim() && (
+            <span className="text-[9px] text-muted-foreground/50 shrink-0">↵ to add</span>
+          )}
+        </div>
       </div>
+
+      <AlertDialog open={!!deleteSubtaskId} onOpenChange={(open) => !open && setDeleteSubtaskId(null)}>
+        <AlertDialogContent className="rounded-md">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete subtask</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this subtask? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

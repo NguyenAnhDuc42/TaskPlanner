@@ -41,7 +41,9 @@ export function SpaceView({ spaceId }: Readonly<SpaceViewProps>) {
   };
 
   return (
-    <EntityViewFrame>
+    <EntityViewFrame
+      className="bg-card/30"
+    >
       <div className="h-full w-full flex flex-col bg-background/25 p-1 gap-1 overflow-hidden relative">
         {/* Ambient background accent glow */}
         <div 

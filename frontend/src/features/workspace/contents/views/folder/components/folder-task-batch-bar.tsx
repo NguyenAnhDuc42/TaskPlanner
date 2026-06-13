@@ -16,7 +16,7 @@ import { useState } from "react";
 
 import type { Status } from "@/types/status";
 
-type PendingUpdates = Pick<BatchUpdateFolderTaskValue, "statusId" | "priority" | "startDate" | "dueDate">;
+type PendingUpdates = Pick<BatchUpdateFolderTaskValue, "statusId" | "priority" | "startDate" | "dueDate" | "clearStartDate" | "clearDueDate">;
 
 interface FolderTaskBatchBarProps {
   folderId: string;
@@ -121,13 +121,13 @@ export function FolderTaskBatchBar({ folderId, checkedTaskIds, onClear, statuses
               title="Set Dates"
             >
               <Calendar className="h-3.5 w-3.5" />
-              {(pendingUpdates.startDate || pendingUpdates.dueDate) && (
+              {(pendingUpdates.startDate || pendingUpdates.dueDate || pendingUpdates.clearStartDate || pendingUpdates.clearDueDate) && (
                 <span className="text-[10px] font-bold">
-                  {pendingUpdates.startDate
+                  {pendingUpdates.clearStartDate ? "Cleared" : pendingUpdates.startDate
                     ? new Date(pendingUpdates.startDate).toLocaleDateString(undefined, { month: "short", day: "numeric" })
                     : "..."}{" "}
                   -{" "}
-                  {pendingUpdates.dueDate
+                  {pendingUpdates.clearDueDate ? "Cleared" : pendingUpdates.dueDate
                     ? new Date(pendingUpdates.dueDate).toLocaleDateString(undefined, { month: "short", day: "numeric" })
                     : "..."}
                 </span>
@@ -143,7 +143,7 @@ export function FolderTaskBatchBar({ folderId, checkedTaskIds, onClear, statuses
                 type="date"
                 className="h-8 text-xs"
                 defaultValue={pendingUpdates.startDate ? pendingUpdates.startDate.split("T")[0] : ""}
-                onBlur={(e) => updateLocal({ startDate: e.target.value ? new Date(e.target.value).toISOString() : undefined })}
+                onBlur={(e) => updateLocal({ startDate: e.target.value ? new Date(e.target.value).toISOString() : undefined, clearStartDate: !e.target.value })}
               />
             </div>
             <div className="flex flex-col gap-1.5">
@@ -152,7 +152,7 @@ export function FolderTaskBatchBar({ folderId, checkedTaskIds, onClear, statuses
                 type="date"
                 className="h-8 text-xs"
                 defaultValue={pendingUpdates.dueDate ? pendingUpdates.dueDate.split("T")[0] : ""}
-                onBlur={(e) => updateLocal({ dueDate: e.target.value ? new Date(e.target.value).toISOString() : undefined })}
+                onBlur={(e) => updateLocal({ dueDate: e.target.value ? new Date(e.target.value).toISOString() : undefined, clearDueDate: !e.target.value })}
               />
             </div>
           </div>

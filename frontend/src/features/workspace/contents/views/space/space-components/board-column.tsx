@@ -39,7 +39,7 @@ export const BoardColumn = React.memo(function BoardColumn({
   onTaskClick: (id: string) => void;
   onFolderClick: (id: string) => void;
   onPriorityChange: (id: string, type: "task" | "folder", priority: Priority) => void;
-  onDateChange: (id: string, type: "task" | "folder", startDate: Date | undefined, dueDate: Date | undefined) => void;
+  onDateChange: (id: string, type: "task" | "folder", patches: { startDate?: string; dueDate?: string; clearStartDate?: boolean; clearDueDate?: boolean }) => void;
 }) {
   const { setNodeRef, isOver } = useDroppable({
     id: statusId,
@@ -167,23 +167,4 @@ export const BoardColumn = React.memo(function BoardColumn({
       </Dialog>
     </StatusGroup>
   );
-},(prevProps, nextProps) => {
-  // If basic column configs change, re-render
-  if (prevProps.statusId !== nextProps.statusId) return false;
-  if (prevProps.name !== nextProps.name) return false;
-  if (prevProps.color !== nextProps.color) return false;
-  if (prevProps.category !== nextProps.category) return false;
-  if (prevProps.spaceId !== nextProps.spaceId) return false;
-
-  // FAST PATH: If the items array reference is identical, DO NOT re-render
-  if (prevProps.items === nextProps.items) return true;
-  
-  // If items were added or removed from this specific column, re-render
-  if (prevProps.items.length !== nextProps.items.length) return false;
-
-  // Deep check only IDs to see if items swapped positions inside this column
-  return prevProps.items.every((item, idx) => {
-    const nextItem = nextProps.items[idx];
-    return item?.id === nextItem?.id && item?.orderKey === nextItem?.orderKey;
-  });
 });

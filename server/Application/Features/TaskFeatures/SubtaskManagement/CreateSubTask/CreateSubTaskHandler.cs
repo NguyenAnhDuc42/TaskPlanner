@@ -50,7 +50,7 @@ public class CreateSubTaskHandler(
                color: "#FFFFFF",
                icon: null,
                creatorId: workspaceContext.CurrentMember.Id,
-               statusId: null,
+               statusId: request.StatusId,
                priority: request.Priority,
                startDate: null,
                dueDate: null,

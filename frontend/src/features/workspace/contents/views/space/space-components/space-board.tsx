@@ -22,8 +22,6 @@ import { StatusBadge } from "@/components/status-badge";
 import { GitMerge, SlidersHorizontal } from "lucide-react";
 import { useSmartWheelScroll } from "@/features/workspace/contents/views/space/utils/use-smart-wheel-scroll";
 import { useEdgeScroll } from "@/features/workspace/contents/views/space/utils/use-edge-scroll";
-
-import { folderSlice, taskSlice } from "@/store/entityStore";
 import { useUpdateTaskMutation } from "../../task/task-api";
 import { useUpdateFolderFieldMutation } from "../../folder/folder-api";
 
@@ -56,34 +54,25 @@ export function SpaceBoard({ spaceId, onWorkflowOpen }: Readonly<SpaceBoardProps
         : [...prev, statusId]
     );
   }, []);
-  const stableColumnsRef = useRef<Record<string, BoardItem[]>>({});
   const [batchUpdate] = useBatchUpdateSpaceItemsMutation();
 
   const columns = useMemo(() => {
-  const nextCols: Record<string, BoardItem[]> = {};
-  
-  statuses.forEach((s) => { nextCols[s.id] = []; });
-  nextCols["unclassified"] = [];
+    const nextCols: Record<string, BoardItem[]> = {};
+    
+    statuses.forEach((s) => { nextCols[s.id] = []; });
+    nextCols["unclassified"] = [];
 
-  boardItems.forEach((item) => {
-    const colId = item.statusId && nextCols[item.statusId] ? item.statusId : "unclassified";
-    nextCols[colId].push(item);
-  });
+    boardItems.forEach((item) => {
+      const colId = item.statusId && nextCols[item.statusId] ? item.statusId : "unclassified";
+      nextCols[colId].push(item);
+    });
 
-  Object.keys(nextCols).forEach((colId) => {
-    nextCols[colId].sort(prioritySort);
-  });
-  Object.keys(nextCols).forEach((key) => {
-    const prev = stableColumnsRef.current[key];
-    const curr = nextCols[key];
-    if (prev?.length === curr.length && prev.every((v, i) => v.id === curr[i].id && v.orderKey === curr[i].orderKey)) {
-      nextCols[key] = prev;
-    }
-  });
+    Object.keys(nextCols).forEach((colId) => {
+      nextCols[colId].sort(prioritySort);
+    });
 
-  stableColumnsRef.current = nextCols;
-  return nextCols;
-}, [boardItems, statuses]);
+    return nextCols;
+  }, [boardItems, statuses]);
 
   const { sensors, draggedItem, handleDragStart, handleDragEnd } = useBoardDnd({
     spaceId,
@@ -111,31 +100,13 @@ export function SpaceBoard({ spaceId, onWorkflowOpen }: Readonly<SpaceBoardProps
   const [updateTask] = useUpdateTaskMutation();
   const [updateFolderField] = useUpdateFolderFieldMutation();
 
-  const handleDateChange = useCallback((itemId: string, type: "task" | "folder", startDate: Date | undefined, dueDate: Date | undefined) => {
-    const updates = { 
-      id: itemId, 
-      startDate: startDate?.toISOString(), 
-      dueDate: dueDate?.toISOString() 
-    };
-
+  const handleDateChange = useCallback((itemId: string, type: "task" | "folder", patches: { startDate?: string; dueDate?: string; clearStartDate?: boolean; clearDueDate?: boolean }) => {
     if (type === "folder") {
-      updateFolderField({ 
-        folderId: itemId, 
-        patches: { 
-          startDate: updates.startDate, 
-          dueDate: updates.dueDate 
-        } 
-      });
+      updateFolderField({ folderId: itemId, patches });
     } else {
-      updateTask({ 
-        taskId: itemId, 
-        patches: { 
-          startDate: updates.startDate, 
-          dueDate: updates.dueDate 
-        } 
-      });
+      updateTask({ taskId: itemId, patches });
     }
-  }, [dispatch, updateFolderField, updateTask]);
+  }, [updateFolderField, updateTask]);
 
   const handlePriorityChange = useCallback((itemId: string, type: "task" | "folder", priority: Priority) => {
 

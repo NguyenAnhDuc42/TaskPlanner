@@ -12,5 +12,7 @@ public record BatchUpdateFolderTaskValue(
     DateTimeOffset? StartDate = null,
     DateTimeOffset? DueDate = null,
     string? OrderKey = null,
-    bool? IsDeleted = null
+    bool? IsDeleted = null,
+    bool ClearStartDate = false,
+    bool ClearDueDate = false
 );

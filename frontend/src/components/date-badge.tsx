@@ -20,9 +20,9 @@ export function DateBadge({ startDate, dueDate, className, onClick }: Readonly<D
   if (startDate && dueDate) {
     text = `${formatShort(startDate)} - ${formatShort(dueDate)}`;
   } else if (startDate) {
-    text = formatShort(startDate);
+    text = `${formatShort(startDate)} →`;
   } else if (dueDate) {
-    text = formatShort(dueDate);
+    text = `→ ${formatShort(dueDate)}`;
   }
 
   return (

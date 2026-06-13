@@ -142,13 +142,48 @@ export const taskApi = workspaceApi.injectEndpoints({
         method: "DELETE",
       }),
       invalidatesTags: (_result, _error, { taskId }) => [{ type: "Tasks" as const, id: `comments-${taskId}` }],
+      async onQueryStarted({ commentId }, { dispatch, queryFulfilled, getState }) {
+        const state = getState() as RootState;
+        const originalComment = state.comments.entities[commentId];
+        dispatch(commentSlice.actions.remove(commentId));
+        try {
+          await queryFulfilled;
+        } catch {
+          if (originalComment) {
+            dispatch(commentSlice.actions.upsert(originalComment));
+          }
+          toast.error("Failed to delete comment.");
+        }
+      }
     }),
 
-    createSubTask: build.mutation<void, { spaceId: string; parentTaskId: string; name: string; priority: string }>({
-      query: ({ spaceId, parentTaskId, name, priority }) => ({
+    deleteTask: build.mutation<void, string>({
+      query: (taskId) => ({
+        url: `/tasks/${taskId}`,
+        method: "DELETE",
+      }),
+      invalidatesTags: (_result, _error, taskId) => [{ type: "Tasks" as const, id: taskId }],
+      async onQueryStarted(taskId, { dispatch, queryFulfilled, getState }) {
+        const state = getState() as RootState;
+        const originalTask = state.tasks.entities[taskId];
+        
+        dispatch(taskSlice.actions.remove(taskId));
+        try {
+          await queryFulfilled;
+        } catch {
+          if (originalTask) {
+            dispatch(taskSlice.actions.upsert(originalTask));
+          }
+          toast.error("Failed to delete task. Your changes have been reverted.");
+        }
+      }
+    }),
+
+    createSubTask: build.mutation<void, { parentTaskId: string; name: string; priority: string; statusId?: string }>({
+      query: ({ parentTaskId, name, priority, statusId }) => ({
         url: `/tasks/${parentTaskId}/subtasks`,
         method: "POST",
-        data: { spaceId, name, priority },
+        data: { name, priority, statusId },
       }),
       invalidatesTags: (_result, _error, { parentTaskId }) => [
         { type: "Tasks" as const, id: parentTaskId },
@@ -167,4 +202,5 @@ export const {
   useAddCommentMutation,
   useDeleteCommentMutation,
   useCreateSubTaskMutation,
+  useDeleteTaskMutation,
 } = taskApi;

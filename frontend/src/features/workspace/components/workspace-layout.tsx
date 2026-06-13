@@ -9,7 +9,7 @@ import { useResize } from "@/hooks/use-resize";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { LoadingComponent } from "@/components/loading-component";
-import { ChevronLeft, X } from "lucide-react";
+import { ChevronLeft, X, Maximize2 } from "lucide-react";
 import type { ContentPage } from "../type";
 
 export function WorkspaceLayout() {
@@ -42,6 +42,19 @@ export function WorkspaceLayout() {
     });
   };
 
+  const handleExpandContextPanel = () => {
+    if (contextData?.type === "task" && contextData.id) {
+      (navigate as any)({
+        to: `/workspaces/$workspaceId/tasks/$taskId`,
+        params: { workspaceId, taskId: contextData.id },
+        search: (prev: any) => {
+          const { contextPanel, ...rest } = prev;
+          return rest;
+        },
+      });
+    }
+  };
+
   // ─── Resize Handlers ────────────────────────────────
   const {
     width: sidebarWidth,
@@ -49,7 +62,7 @@ export function WorkspaceLayout() {
     startResizing: startResizingSidebar,
   } = useResize({
     initialWidth: ui.sidebarWidth,
-    minWidth: 50,
+    minWidth: 10,
     maxWidth: 500,
     direction: "left",
     onResize: (newWidth) => {
@@ -65,20 +78,41 @@ export function WorkspaceLayout() {
     },
   });
 
+  const iconRailWidth = 55; // 55px approximate for rail + borders
+  const currentSidebarWidth = ui.isInnerSidebarOpen ? ui.sidebarWidth : 0;
+  const availableWidth = (globalThis.innerWidth ?? 1350) - iconRailWidth - currentSidebarWidth;
+  const maxContextWidth = availableWidth - 10; // Exactly 20px left for the main area
+  const expandThreshold = maxContextWidth - 10;
+
   const {
     width: contextWidth,
     isResizing: isResizingContext,
     startResizing: startResizingContext,
   } = useResize({
-    initialWidth: ui.contextWidth,
-    minWidth: 50,
-    maxWidth: 800,
+    initialWidth: ui.contextWidth === 0 ? 300 : ui.contextWidth,
+    currentWidth: ui.contextWidth === 0 ? 300 : ui.contextWidth,
+    minWidth: 10,
+    maxWidth: maxContextWidth,
     direction: "right",
     onResize: (newWidth) => {
-      actions.setContextWidthLocal(newWidth);
+      if (newWidth === 0) {
+        if (contextData) handleCloseContextPanel();
+        actions.setContextWidthLocal(300);
+      } else if (newWidth >= expandThreshold) {
+        if (contextData) handleExpandContextPanel();
+        actions.setContextWidthLocal(300);
+      } else {
+        actions.setContextWidthLocal(newWidth);
+      }
     },
     onResizeEnd: (newWidth) => {
-      actions.updateContextWidth(newWidth);
+      if (newWidth >= expandThreshold) {
+        actions.updateContextWidth(300);
+      } else if (newWidth === 0) {
+        actions.updateContextWidth(300);
+      } else {
+        actions.updateContextWidth(newWidth);
+      }
     },
   });
 
@@ -256,21 +290,28 @@ export function WorkspaceLayout() {
               !isResizingContext && "transition-all duration-300",
             )}
           >
-            <div className="h-9 flex items-center justify-between px-4 flex-shrink-0 border-b border-border bg-muted/10">
-              <h2 className="font-black text-[11px] uppercase tracking-widest text-foreground">
-                {ui.activeIcon}
-              </h2>
+            <div className="h-8 flex items-center justify-between px-2 flex-shrink-0 border-b border-border bg-card/30 gap-1">
+              <Button
+                size="icon"
+                variant="ghost"
+                onClick={handleExpandContextPanel}
+                className="h-6 w-6 text-muted-foreground hover:text-foreground hover:bg-muted rounded-md transition-colors"
+                title="Open in full view"
+              >
+                <Maximize2 className="h-3.5 w-3.5" />
+              </Button>
               <Button
                 size="icon"
                 variant="ghost"
                 onClick={handleCloseContextPanel}
                 className="h-6 w-6 text-muted-foreground hover:text-foreground hover:bg-muted rounded-md transition-colors"
+                title="Close"
               >
                 <X className="h-3.5 w-3.5" />
               </Button>
             </div>
 
-            <div className="flex-1 p-2 min-h-0 overflow-auto">
+            <div className="flex-1 p-2 min-h-0 overflow-auto bg-card/30">
               <ContextPanelRenderer data={contextData} />
             </div>
 

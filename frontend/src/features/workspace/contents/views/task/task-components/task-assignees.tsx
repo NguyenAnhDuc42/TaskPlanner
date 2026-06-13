@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useSelector } from "react-redux";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { UserPlus, Check } from "lucide-react";
+import { UserPlus, Check, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -29,10 +29,8 @@ export function TaskAssignees({ taskId, spaceId }: Readonly<TaskAssigneesProps>)
   const allAssignees = useSelector(assigneeSelectors.selectAll);
   const assignees = allAssignees.filter(a => a.taskId === taskId);
 
-  // Retrieve the task's space to check privacy
   const space = useSelector((state: RootState) => state.spaces.entities[spaceId || ""]);
 
-  // Fetch access permissions if the space is private
   useGetEntityAccessQuery(spaceId || "", {
     skip: !spaceId || !space?.isPrivate,
   });
@@ -61,32 +59,41 @@ export function TaskAssignees({ taskId, spaceId }: Readonly<TaskAssigneesProps>)
   );
 
   return (
-    <div className="flex items-center gap-2">
-      {assignees.length > 0 && (
-        <div className="flex -space-x-1.5">
-          {assignees.map((assignee) => {
-            const member = members[assignee.workspaceMemberId] || allMembers.find(m => m.id === assignee.workspaceMemberId || m.workspaceMemberId === assignee.workspaceMemberId);
-            if (!member) return null;
-            const initials = member.name.split(" ").map((n: string) => n[0]).join("").slice(0, 2).toUpperCase();
-            return (
-              <Avatar key={assignee.workspaceMemberId} className="h-6 w-6 border-[1.5px] border-background bg-muted">
-                {member.avatarUrl && <AvatarImage src={member.avatarUrl} alt={member.name} />}
-                <AvatarFallback className="text-[8px] font-bold bg-primary/20 text-primary">{initials}</AvatarFallback>
-              </Avatar>
-            );
-          })}
-        </div>
-      )}
+    <div className="flex flex-wrap items-center gap-1.5 min-h-7">
+      {assignees.map((assignee) => {
+        const member = members[assignee.workspaceMemberId] || allMembers.find(m => m.id === assignee.workspaceMemberId || m.workspaceMemberId === assignee.workspaceMemberId);
+        if (!member) return null;
+        const initials = member.name.split(" ").map((n: string) => n[0]).join("").slice(0, 2).toUpperCase();
+        return (
+          <div key={assignee.workspaceMemberId} className="flex items-center gap-1 bg-muted/30 border border-border/50 rounded-md pl-1 pr-1.5 py-0.5 text-[10px] h-5.5 select-none leading-none">
+            <Avatar className="h-3.5 w-3.5 rounded-sm">
+              {member.avatarUrl && <AvatarImage src={member.avatarUrl} alt={member.name} />}
+              <AvatarFallback className="text-[7px] bg-primary/20 text-primary leading-none flex items-center justify-center rounded-sm">{initials}</AvatarFallback>
+            </Avatar>
+            <span className="max-w-[80px] truncate font-medium">{member.name}</span>
+            <button
+              type="button"
+              onClick={() => handleToggleAssignee(assignee.workspaceMemberId)}
+              className="text-muted-foreground hover:text-foreground ml-0.5"
+            >
+              <X className="h-2.5 w-2.5" />
+            </button>
+          </div>
+        );
+      })}
 
       <Popover>
         <PopoverTrigger asChild>
-          <Button variant="ghost" size="icon" className="h-6 w-6 rounded-full border border-dashed border-border/50 hover:bg-muted/50 text-muted-foreground hover:text-foreground shrink-0">
-            <UserPlus className="h-3 w-3" />
+          <Button variant="ghost" size="sm" className="h-5.5 px-1.5 text-[10px] text-muted-foreground hover:text-foreground border border-dashed border-border/50 hover:bg-muted/50 rounded-md">
+            <UserPlus className="h-2.5 w-2.5 mr-1" /> Add Assignee
           </Button>
         </PopoverTrigger>
-        <PopoverContent className="w-56 p-1.5 bg-card border border-border/60 shadow-lg rounded-md" align="start">
+        <PopoverContent className="w-60 p-2 bg-popover border border-border shadow-md rounded-md" align="start">
+          <div className="px-2 py-1.5 border-b border-border/10 mb-2">
+            <span className="text-[8px] font-black uppercase tracking-wider text-muted-foreground/50">Assign Members</span>
+          </div>
           <Input
-            placeholder="Search team..."
+            placeholder="Filter members..."
             value={assigneeSearch}
             onChange={(e) => setAssigneeSearch(e.target.value)}
             className="h-7 text-xs mb-1.5 bg-transparent border-none focus-visible:ring-0 px-2"

@@ -176,8 +176,8 @@ public class BatchUpdateFolderTasksHandler(
         Guid workspaceId,
         CancellationToken cancellationToken)
     {
-        var startRows = request.Updates.Where(u => u.StartDate is not null).ToArray();
-        var dueRows = request.Updates.Where(u => u.DueDate is not null).ToArray();
+        var startRows = request.Updates.Where(u => u.StartDate is not null || u.ClearStartDate).ToArray();
+        var dueRows = request.Updates.Where(u => u.DueDate is not null || u.ClearDueDate).ToArray();
 
         if (startRows.Length > 0)
         {
@@ -190,7 +190,7 @@ public class BatchUpdateFolderTasksHandler(
                 new
                 {
                     Ids = startRows.Select(r => r.Id).ToArray(),
-                    Dates = startRows.Select(r => r.StartDate!.Value).ToArray(),
+                    Dates = startRows.Select(r => r.ClearStartDate ? (DateTimeOffset?)null : r.StartDate!.Value).ToArray(),
                     WorkspaceId = workspaceId
                 }, cancellationToken: cancellationToken));
         }
@@ -206,7 +206,7 @@ public class BatchUpdateFolderTasksHandler(
                     new
                     {
                     Ids = dueRows.Select(r => r.Id).ToArray(),
-                    Dates = dueRows.Select(r => r.DueDate!.Value).ToArray(),
+                    Dates = dueRows.Select(r => r.ClearDueDate ? (DateTimeOffset?)null : r.DueDate!.Value).ToArray(),
                     WorkspaceId = workspaceId
                 }, cancellationToken: cancellationToken));
         }

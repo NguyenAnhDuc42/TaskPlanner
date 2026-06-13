@@ -3,7 +3,12 @@ using Domain;
 
 namespace Application;
 
-public class DeleteCommentHandler(TaskPlanDbContext db, WorkspaceContext workspaceContext, PermissionService permissionService) : ICommandHandler<DeleteCommentCommand>
+public class DeleteCommentHandler(
+    TaskPlanDbContext db, 
+    WorkspaceContext workspaceContext, 
+    PermissionService permissionService,
+    RealtimeService realtimeService
+) : ICommandHandler<DeleteCommentCommand>
 {
     public async Task<Result> Handle(DeleteCommentCommand request, CancellationToken cancellationToken)
     {
@@ -21,6 +26,11 @@ public class DeleteCommentHandler(TaskPlanDbContext db, WorkspaceContext workspa
 
         db.Comments.Remove(comment);
         await db.SaveChangesAsync(cancellationToken);
+
+        await realtimeService.NotifyEntitiesDeletedAsync(
+            workspaceContext.WorkspaceId,
+            new EntityBatchDelete { CommentIds = [comment.Id] },
+            cancellationToken);
 
         return Result.Success();
     }

@@ -9,16 +9,17 @@ import { InlinePriorityPicker } from "./inline-priority-picker";
 import { DynamicIcon } from "@/components/dynamic-icon";
 import { User } from "lucide-react";
 import { DateSelect } from "@/components/date-select";
+import type { FolderRecord, TaskRecord } from "@/types/projects";
 
 export interface BoardItemCardProps {
   item: BoardItem;
   onClick?: () => void;
   onPriorityChange?: (priority: Priority) => void;
-  onDateChange?: (startDate: Date | undefined, dueDate: Date | undefined) => void;
+  onDateChange?: (patches: { startDate?: string; dueDate?: string; clearStartDate?: boolean; clearDueDate?: boolean }) => void;
   isDragging?: boolean;
   style?: React.CSSProperties;
   dragRef?: (node: HTMLElement | null) => void;
-  dragProps?: any;
+  dragProps?: Record<string, unknown>;
 }
 
 export const BoardItemCard = React.memo(function BoardItemCard({
@@ -77,7 +78,7 @@ export const BoardItemCard = React.memo(function BoardItemCard({
         {/* 1. Priority Picker & Assignee Avatar Row (Top) */}
         <div className="flex items-center justify-between text-[10px] font-medium leading-none">
           <InlinePriorityPicker
-            priority={(item as any).priority as Priority}
+            priority={(item as TaskRecord | FolderRecord).priority as Priority}
             onPriorityChange={onPriorityChange || (() => {})}
           />
           <div className="flex items-center gap-2">
@@ -118,8 +119,9 @@ export const BoardItemCard = React.memo(function BoardItemCard({
               <DateSelect
                 startDate={item.startDate}
                 dueDate={item.dueDate}
-                onStartDateChange={(date) => onDateChange?.(date, item.dueDate ? new Date(item.dueDate) : undefined)}
-                onDueDateChange={(date) => onDateChange?.(item.startDate ? new Date(item.startDate) : undefined, date)}
+                onStartDateChange={(date) => onDateChange?.(date ? { startDate: date.toISOString() } : { clearStartDate: true })}
+                onDueDateChange={(date) => onDateChange?.(date ? { dueDate: date.toISOString() } : { clearDueDate: true })}
+                onClearDates={() => onDateChange?.({ clearStartDate: true, clearDueDate: true })}
                 size="sm"
                 align="start"
                 triggerClassName={cn(
@@ -153,7 +155,7 @@ export const SortableBoardItem = React.memo(function SortableBoardItem({
   onTaskClick: (id: string) => void;
   onFolderClick: (id: string) => void;
   onPriorityChange: (id: string, type: "task" | "folder", priority: Priority) => void;
-  onDateChange: (id: string, type: "task" | "folder", startDate: Date | undefined, dueDate: Date | undefined) => void;
+  onDateChange: (id: string, type: "task" | "folder", patches: { startDate?: string; dueDate?: string; clearStartDate?: boolean; clearDueDate?: boolean }) => void;
 }) {
   const {
     attributes,
@@ -184,8 +186,8 @@ export const SortableBoardItem = React.memo(function SortableBoardItem({
     onPriorityChange(item.id, item.__type, p);
   }, [item.id, item.__type, onPriorityChange]);
 
-  const handleDateSelect = React.useCallback((start: Date | undefined, due: Date | undefined) => {
-    onDateChange(item.id, item.__type, start, due);
+  const handleDateSelect = React.useCallback((patches: { startDate?: string; dueDate?: string; clearStartDate?: boolean; clearDueDate?: boolean }) => {
+    onDateChange(item.id, item.__type, patches);
   }, [item.id, item.__type, onDateChange]);
 
   return (

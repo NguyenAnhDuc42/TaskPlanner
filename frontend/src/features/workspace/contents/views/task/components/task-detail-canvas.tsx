@@ -109,6 +109,7 @@ export function TaskDetailCanvas({ taskId }: TaskDetailCanvasProps) {
                   updateTask({ taskId, patches: { name: val.trim() } });
                 }
               }}
+              debounceMs={1500}
               placeholder="Untitled Task"
               className="text-2xl font-black text-foreground border-none p-0 focus-visible:ring-0 bg-transparent h-auto outline-none w-full"
             />
@@ -159,8 +160,8 @@ export function TaskDetailCanvas({ taskId }: TaskDetailCanvasProps) {
             )}
           </div>
 
-          {/* Subtasks Section */}
-          <TaskSubtasks taskId={taskId} />
+          {/* Subtasks Section (Only for top-level tasks) */}
+          {!task.parentTaskId && <TaskSubtasks taskId={taskId} />}
 
           {/* Comments Section */}
           <TaskComments taskId={taskId} />

@@ -46,7 +46,7 @@ export function SortableTaskItem({
       .sort((a, b) => (a.orderKey || "").localeCompare(b.orderKey || ""));
   }, [folder?.workflowId, statuses]);
 
-  const onUpdateTaskField = (fields: Partial<TaskRecord>) => {
+  const onUpdateTaskField = (fields: Partial<TaskRecord> & { clearStartDate?: boolean; clearDueDate?: boolean }) => {
     batchUpdate([{ id: task.id, ...fields }]);
   };
 
@@ -176,8 +176,9 @@ export function SortableTaskItem({
             <DateSelect
               startDate={task.startDate}
               dueDate={task.dueDate}
-              onStartDateChange={(date) => onUpdateTaskField({ startDate: date?.toISOString() ?? undefined })}
-              onDueDateChange={(date) => onUpdateTaskField({ dueDate: date?.toISOString() ?? undefined })}
+              onStartDateChange={(date) => onUpdateTaskField(date ? { startDate: date.toISOString() } : { clearStartDate: true })}
+              onDueDateChange={(date) => onUpdateTaskField(date ? { dueDate: date.toISOString() } : { clearDueDate: true })}
+              onClearDates={() => onUpdateTaskField({ clearStartDate: true, clearDueDate: true })}
               size="sm"
               triggerClassName="h-5 px-1.5 text-[9px] font-bold border border-border/5 rounded-sm"
             />

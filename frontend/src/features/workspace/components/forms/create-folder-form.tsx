@@ -114,8 +114,8 @@ export function CreateFolderForm({
       dispatch({ type: "RESET" });
 
       onSuccess?.((result as any).id);
-    } catch (error) {
-      toast.error("Failed to create folder");
+    } catch {
+      toast.error("Failed to create folder",);
     }
   };
 
