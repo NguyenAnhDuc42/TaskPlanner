@@ -1,14 +1,19 @@
 import * as React from "react";
-import { Filter, Plus } from "lucide-react";
+import { Plus } from "lucide-react";
 import { useParams } from "@tanstack/react-router";
-import { useGetFolderTasksQuery, useFolderTasksList, useBatchUpdateFolderTasksMutation } from "../folder-api";
+import { useGetFolderTasksQuery, useBatchUpdateFolderTasksMutation, type TaskFilter, folderApi, useFolderStatuses } from "../folder-api";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import { CreateTaskForm } from "@/features/workspace/components/forms/create-task-form";
 import { EntityLayerType } from "@/types/entity-layer-type";
 import { SortableTaskItem } from "./sortable-task-item";
-import { useDispatch } from "react-redux";
-import { taskSlice } from "@/store/entityStore";
+import { useSelector, useDispatch } from "react-redux";
+import type { AppDispatch } from "@/store";
+import { taskSlice, taskSelectors } from "@/store/entityStore";
+import { createSelector } from "@reduxjs/toolkit";
 import { createPortal } from "react-dom";
+import { TaskFilterPopover } from "./task-filter-popover";
+import { useGetWorkspaceMembersQuery } from "@/features/workspace/api";
+import { useDebounce } from "@/hooks/use-debounce";
 import {
   DndContext,
   closestCenter,
@@ -42,11 +47,64 @@ export function FolderTaskList({
   checkedTaskIds = new Set(),
   onToggleCheck,
 }: FolderTaskListProps) {
-  const { folderId } = useParams({ strict: false }) as { folderId: string };
-  const dispatch = useDispatch();
+  const { workspaceId, folderId } = useParams({ strict: false }) as { workspaceId: string; folderId: string };
+  const dispatch = useDispatch<AppDispatch>();
   const [createOpen, setCreateOpen] = React.useState(false);
-  const { isLoading } = useGetFolderTasksQuery({ folderId, cursor: null });
-  const tasks = useFolderTasksList(folderId);
+  
+  const [filter, setFilter] = React.useState<TaskFilter>({});
+  const [searchInput, setSearchInput] = React.useState("");
+  const debouncedSearch = useDebounce(searchInput, 300);
+
+  React.useEffect(() => {
+    setFilter(prev => ({ ...prev, search: debouncedSearch || undefined }));
+  }, [debouncedSearch]);
+
+  const folderStatuses = useFolderStatuses(folderId);
+  const { data: membersData } = useGetWorkspaceMembersQuery(workspaceId);
+  const members = membersData?.items || [];
+
+  const { data: queryData, isLoading, isFetching } = useGetFolderTasksQuery({ folderId, cursor: null, filter });
+  
+  const fetchedTaskIds = React.useMemo(() => {
+    return queryData?.items.map(t => t.id) || [];
+  }, [queryData?.items]);
+
+  const selectTasks = React.useMemo(() => {
+    return createSelector(
+      [taskSelectors.selectEntities],
+      (entities) => fetchedTaskIds
+        .map(id => entities[id])
+        .filter((t): t is TaskRecord => !!t)
+    );
+  }, [fetchedTaskIds]);
+
+  const tasks = useSelector(selectTasks);
+  
+  const observerTarget = React.useRef<HTMLDivElement>(null);
+
+  React.useEffect(() => {
+    const target = observerTarget.current;
+    if (!target) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && queryData?.hasNextPage && !isFetching) {
+          dispatch(
+            folderApi.endpoints.getFolderTasks.initiate({
+              folderId,
+              cursor: queryData.nextCursor,
+              filter,
+            })
+          );
+        }
+      },
+      { threshold: 0.1 }
+    );
+
+    observer.observe(target);
+    return () => observer.unobserve(target);
+  }, [dispatch, folderId, queryData?.hasNextPage, queryData?.nextCursor, isFetching, filter]);
+
   const sortableItems = React.useMemo(() => tasks.map(t => t.id), [tasks]);
   const [batchUpdate] = useBatchUpdateFolderTasksMutation();
 
@@ -86,14 +144,24 @@ export function FolderTaskList({
 
       {/* Search / Filter Bar */}
       <div className="px-1.5 py-1 border-b border-border/15 shrink-0 flex items-center gap-1">
-        <div className="h-7 flex-1 bg-muted/30 rounded-md border border-border/30 flex items-center px-2.5 text-[11px] text-muted-foreground/50">
-          Search tasks...
-        </div>
-        <button className="h-7 w-7 flex items-center justify-center rounded-md hover:bg-muted/50 text-muted-foreground transition-colors shrink-0">
-          <Filter className="h-3.5 w-3.5" />
-        </button>
+        <input
+          type="text"
+          placeholder="Search tasks..."
+          value={searchInput}
+          onChange={(e) => setSearchInput(e.target.value)}
+          className="h-7 flex-1 bg-muted/30 rounded-md border border-border/30 flex items-center px-2.5 text-[11px] text-foreground/80 outline-none focus:bg-muted/50 transition-colors placeholder:text-muted-foreground/50"
+        />
+        <TaskFilterPopover
+          filter={filter}
+          onChange={setFilter}
+          statuses={folderStatuses}
+          members={members}
+        />
         <div className="w-[1px] h-3.5 bg-border shrink-0" />
-        <button className="h-7 w-7 flex items-center justify-center rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition-colors shrink-0 shadow-sm">
+        <button 
+          className="h-7 w-7 flex items-center justify-center rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition-colors shrink-0 shadow-sm"
+          onClick={() => setCreateOpen(true)}
+        >
           <Plus className="h-4 w-4" />
         </button>
       </div>
@@ -144,6 +212,13 @@ export function FolderTaskList({
           )}
         </DndContext>
 
+        {/* Intersection Observer Target */}
+        <div ref={observerTarget} className="h-4 w-full flex items-center justify-center my-2">
+          {isFetching && tasks.length > 0 && (
+            <span className="text-[10px] text-muted-foreground animate-pulse">Loading more...</span>
+          )}
+        </div>
+
         {/* Create Task */}
         <Dialog open={createOpen} onOpenChange={setCreateOpen}>
           <DialogTrigger asChild>
@@ -152,7 +227,7 @@ export function FolderTaskList({
               <span className="text-[11px] font-semibold text-muted-foreground">Create Task</span>
             </button>
           </DialogTrigger>
-          <DialogContent className="max-w-2xl p-0" showCloseButton={false}>
+          <DialogContent className="max-w-2xl p-0">
             <CreateTaskForm
               parentId={folderId}
               parentType={EntityLayerType.ProjectFolder}

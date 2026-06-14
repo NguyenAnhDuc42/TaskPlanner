@@ -21,7 +21,11 @@ public class UpdateFolderHandler(TaskPlanDbContext db, WorkspaceContext workspac
             startDate: request.StartDate,
             dueDate: request.DueDate,
             statusId: request.StatusId,
-            priority: request.Priority
+            priority: request.Priority,
+            clearStartDate: request.ClearStartDate,
+            clearDueDate: request.ClearDueDate,
+            clearStatusId: request.ClearStatusId,
+            clearPriority: request.ClearPriority
         );
 
         var affectedRows = await db.SaveChangesAsync(cancellationToken);

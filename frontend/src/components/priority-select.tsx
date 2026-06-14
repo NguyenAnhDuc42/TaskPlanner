@@ -1,7 +1,15 @@
 import * as React from "react";
 import { Priority } from "@/types/priority";
 import { PriorityBadge } from "@/components/priority-badge";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuTrigger,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+} from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 
 interface PrioritySelectProps {
@@ -18,47 +26,36 @@ export function PrioritySelect({
   trigger,
 }: PrioritySelectProps) {
   return (
-    <Popover>
-      <PopoverTrigger asChild>
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
         {trigger}
-      </PopoverTrigger>
-      <PopoverContent
-        className="w-32 p-1 bg-popover border border-border shadow-md rounded-md"
+      </DropdownMenuTrigger>
+      <DropdownMenuContent
         align={align}
-        onFocusOutside={(e) => e.preventDefault()}
+        className="w-40"
       >
-        <div className="border-b border-border/10 mb-1">
-          <span className="text-[8px] font-black uppercase tracking-wider text-muted-foreground/50">Select Priority</span>
-        </div>
-        <div className="flex flex-col gap-0.5">
+        <DropdownMenuLabel>Priority</DropdownMenuLabel>
+        <DropdownMenuSeparator />
+        <DropdownMenuRadioGroup value={value} onValueChange={(val) => onChange(val as Priority)}>
           {[
             Priority.Low,
             Priority.Normal,
             Priority.High,
             Priority.Urgent,
-          ].map((p) => {
-            const isSelected = p === value;
-            return (
-              <button
-                key={p}
-                type="button"
-                className={cn(
-                  "px-1.5 py-1 text-xs text-left rounded-sm transition-colors flex items-center w-full",
-                  isSelected ? "bg-muted ring-1 ring-border shadow-sm" : "hover:bg-muted/50"
-                )}
-                onClick={() => {
-                  if (!isSelected) onChange(p);
-                }}
-              >
-                <PriorityBadge
-                  priority={p}
-                  className="w-full justify-start border-none bg-transparent hover:bg-transparent"
-                />
-              </button>
-            );
-          })}
-        </div>
-      </PopoverContent>
-    </Popover>
+          ].map((p) => (
+            <DropdownMenuRadioItem
+              key={p}
+              value={p}
+              className={cn(value === p && "bg-muted shadow-sm")}
+            >
+              <PriorityBadge
+                priority={p}
+                className="w-full justify-start border-none bg-transparent hover:bg-transparent p-0 h-auto"
+              />
+            </DropdownMenuRadioItem>
+          ))}
+        </DropdownMenuRadioGroup>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }

@@ -68,6 +68,7 @@ public class GetFolderTasksHandler(
         builder.Where("deleted_at IS NULL");
         builder.Where("is_archived = false");
         builder.Where("project_folder_id = @FolderId");
+        builder.Where("parent_task_id IS NULL");
 
         var role = (int)workspaceContext.CurrentMember.Role;
         if (role < (int)Role.Admin)
@@ -131,7 +132,7 @@ public class GetFolderTasksHandler(
         if (filter.Priorities is { Count: > 0 })
         {
             builder.Where("priority = ANY(@Priorities)");
-            parameters.Add("Priorities", filter.Priorities.Select(p => (int)p).ToArray());
+            parameters.Add("Priorities", filter.Priorities.Select(p => p.ToString()).ToArray());
         }
 
         if (filter.StartDate.HasValue)
@@ -144,6 +145,18 @@ public class GetFolderTasksHandler(
         {
             builder.Where("due_date <= @DueDate");
             parameters.Add("DueDate", filter.DueDate.Value);
+        }
+
+        if (filter.AssigneeIds is { Count: > 0 })
+        {
+            builder.Where(@"
+                EXISTS (
+                    SELECT 1 FROM task_assignments ta 
+                    WHERE ta.project_task_id = project_tasks.id 
+                    AND ta.workspace_member_id = ANY(@AssigneeIds)
+                    AND ta.deleted_at IS NULL
+                )");
+            parameters.Add("AssigneeIds", filter.AssigneeIds);
         }
     }
 

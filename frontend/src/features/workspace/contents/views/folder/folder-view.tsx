@@ -1,6 +1,6 @@
 import { EntityViewFrame } from "../entity-view-frame";
 import { FolderTaskList } from "./components/folder-task-list";
-import { Folder, Trash2, MoreHorizontal, GitMerge, Circle } from "lucide-react";
+import { Folder, Trash2, MoreVertical, GitMerge, Circle } from "lucide-react";
 import { TaskDetailCanvas } from "../task/components/task-detail-canvas";
 import * as React from "react";
 import { useParams, Link } from "@tanstack/react-router";
@@ -67,12 +67,20 @@ export function FolderView() {
     if (tasks.length > 0) {
       const exists = tasks.some(t => t.id === selectedTaskId);
       if (!selectedTaskId || !exists) {
-        setSelectedTaskId(tasks[0].id);
+        const lastVisited = localStorage.getItem(`lastVisitedTask_${folderId}`);
+        const lastVisitedExists = lastVisited && tasks.some(t => t.id === lastVisited);
+        setSelectedTaskId(lastVisitedExists ? lastVisited : tasks[0].id);
       }
     } else {
       setSelectedTaskId(undefined);
     }
-  }, [tasks, selectedTaskId]);
+  }, [tasks, selectedTaskId, folderId]);
+
+  React.useEffect(() => {
+    if (selectedTaskId) {
+      localStorage.setItem(`lastVisitedTask_${folderId}`, selectedTaskId);
+    }
+  }, [selectedTaskId, folderId]);
 
   const allStatuses = useSelector(statusSelectors.selectAll);
 
@@ -87,7 +95,7 @@ export function FolderView() {
       .sort((a, b) => (a.orderKey || "").localeCompare(b.orderKey || ""));
   }, [folder?.workflowId, allStatuses]);
 
-  const updateField = (patches: Partial<FolderRecord>) => {
+  const updateField = (patches: Partial<FolderRecord> & { clearStartDate?: boolean; clearDueDate?: boolean; clearStatusId?: boolean; clearPriority?: boolean }) => {
     updateFolderField({ folderId, patches });
   };
 
@@ -156,7 +164,7 @@ export function FolderView() {
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground">
-                <MoreHorizontal className="h-4 w-4" />
+                <MoreVertical className="h-4 w-4" />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
@@ -254,8 +262,8 @@ export function FolderView() {
             <DateSelect
               startDate={folder?.startDate}
               dueDate={folder?.dueDate}
-              onStartDateChange={(date) => updateField({ startDate: date?.toISOString() })}
-              onDueDateChange={(date) => updateField({ dueDate: date?.toISOString() })}
+              onStartDateChange={(date) => updateField({ startDate: date?.toISOString(), clearStartDate: !date })}
+              onDueDateChange={(date) => updateField({ dueDate: date?.toISOString(), clearDueDate: !date })}
               align="end"
               size="sm"
               triggerClassName="h-5 px-2 text-[10px] font-semibold rounded-md border border-border/10 bg-muted/40 hover:bg-muted/75 hover:text-foreground text-muted-foreground transition-all cursor-pointer shadow-sm"

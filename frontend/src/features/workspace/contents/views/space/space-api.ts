@@ -206,7 +206,7 @@ export function useSpaceBoardItems(spaceId: string) {
           }));
 
         const spaceTasks = tasks
-          .filter((t) => t.spaceId?.toLowerCase() === targetSpaceId && !t.folderId)
+          .filter((t) => t.spaceId?.toLowerCase() === targetSpaceId && !t.folderId && !t.parentTaskId)
           .map((t) => ({
             ...t,
             __type: "task" as const,

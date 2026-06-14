@@ -1,5 +1,6 @@
-import { useRef, useState } from "react";
+import { useRef, useState, useMemo } from "react";
 import { useSelector } from "react-redux";
+import { createSelector } from "@reduxjs/toolkit";
 import { Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { taskSelectors } from "@/store/entityStore";
@@ -37,9 +38,14 @@ export function TaskSubtasks({ taskId }: Readonly<TaskSubtasksProps>) {
   const { workspaceId } = useWorkspace();
   const navigate = useNavigate();
 
-  const subtasks = useSelector((state: RootState) =>
-    taskSelectors.selectAll(state).filter((t) => t.parentTaskId === taskId)
-  );
+  const selectSubtasks = useMemo(() => 
+    createSelector(
+      [taskSelectors.selectAll],
+      (tasks) => tasks.filter((t) => t.parentTaskId === taskId)
+    ),
+  [taskId]);
+
+  const subtasks = useSelector(selectSubtasks);
 
   const parentTask = useSelector((state: RootState) =>
     taskSelectors.selectById(state, taskId)

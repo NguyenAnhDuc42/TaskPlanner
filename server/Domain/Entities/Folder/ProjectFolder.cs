@@ -85,7 +85,11 @@ public sealed class ProjectFolder : TenantEntity
         DateTimeOffset? dueDate = null,
         Guid? statusId = null,
         Priority? priority = null,
-        string? orderKey = null)
+        string? orderKey = null,
+        bool clearStartDate = false,
+        bool clearDueDate = false,
+        bool clearStatusId = false,
+        bool clearPriority = false)
     {
         EnsureNotArchived();
         bool updated = false;
@@ -95,10 +99,19 @@ public sealed class ProjectFolder : TenantEntity
         if (color != null && Color != color) { Color = color; updated = true; }
         if (icon != null && Icon != icon) { Icon = icon; updated = true; }
         if (isPrivate != null && IsPrivate != isPrivate) { IsPrivate = isPrivate.Value; updated = true; }
-        if (startDate != null && StartDate != startDate) { StartDate = startDate; updated = true; }
-        if (dueDate != null && DueDate != dueDate) { DueDate = dueDate; updated = true; }
-        if (statusId != null && StatusId != statusId) { StatusId = statusId; updated = true; }
-        if (priority != null && Priority != priority) { Priority = priority; updated = true; }
+
+        if (clearStartDate && StartDate != null) { StartDate = null; updated = true; }
+        else if (startDate != null && StartDate != startDate) { StartDate = startDate; updated = true; }
+
+        if (clearDueDate && DueDate != null) { DueDate = null; updated = true; }
+        else if (dueDate != null && DueDate != dueDate) { DueDate = dueDate; updated = true; }
+
+        if (clearStatusId && StatusId != null) { StatusId = null; updated = true; }
+        else if (statusId != null && StatusId != statusId) { StatusId = statusId; updated = true; }
+
+        if (clearPriority && Priority != null) { Priority = null; updated = true; }
+        else if (priority != null && Priority != priority) { Priority = priority; updated = true; }
+
         if (orderKey != null && OrderKey != orderKey) { OrderKey = orderKey; updated = true; }
 
         if (updated) UpdateTimestamp();

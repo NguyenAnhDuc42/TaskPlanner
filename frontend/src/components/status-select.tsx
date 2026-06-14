@@ -1,9 +1,19 @@
+import * as React from "react";
 import { useMemo } from "react";
 import { StatusBadge } from "@/components/status-badge";
 import { useSelector } from "react-redux";
 import { statusSelectors, workflowSelectors } from "@/store/entityStore";
 import type { Status } from "@/types/status";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuTrigger,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+} from "@/components/ui/dropdown-menu";
+import { IconCheck } from "@tabler/icons-react";
 import { cn } from "@/lib/utils";
 
 interface StatusSelectProps {
@@ -58,51 +68,45 @@ export function StatusSelect({
   }, [statuses]);
 
   return (
-    <Popover>
-      <PopoverTrigger asChild>
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
         {trigger || (
           <button type="button" className="cursor-pointer focus:outline-none bg-transparent border-none p-0">
             <StatusBadge status={currentStatus} variant="pill" />
           </button>
         )}
-      </PopoverTrigger>
-      <PopoverContent
+      </DropdownMenuTrigger>
+      <DropdownMenuContent
         align={align}
-        className="w-44 p-1 bg-popover border border-border shadow-md rounded-md"
-        onFocusOutside={(e) => e.preventDefault()}
+        className="w-48 max-h-[300px] overflow-y-auto"
       >
-        <div className="px-1.5 py-0.5 border-b border-border/10">
-          <span className="text-[8px] font-black uppercase tracking-wider text-muted-foreground/50">Select Status</span>
-        </div>
-        <div className="max-h-40 overflow-y-auto  flex flex-col gap-1 [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-thumb]:bg-muted-foreground/20 hover:[&::-webkit-scrollbar-thumb]:bg-muted-foreground/45 [&::-webkit-scrollbar-track]:bg-transparent">
-          {Object.entries(statusesByCategory).map(([category, cats]) => (
-            <div key={category} className="flex flex-col gap-0.5">
-              <div className="px-1.5 py-0.5">
-                <span className="text-[7px] font-black uppercase tracking-[0.1em] text-muted-foreground/30">{category}</span>
-              </div>
+        <DropdownMenuLabel>Status</DropdownMenuLabel>
+        
+        {Object.entries(statusesByCategory).map(([category, cats]) => (
+          <React.Fragment key={category}>
+            <DropdownMenuSeparator />
+            <DropdownMenuGroup>
+              <DropdownMenuLabel className="text-[9px] text-muted-foreground/60">{category}</DropdownMenuLabel>
               {cats.map((status: Status) => {
                 const statusId = status.id;
                 const isSelected = value?.toLowerCase() === statusId?.toLowerCase();
                 return (
-                  <button
+                  <DropdownMenuItem
                     key={statusId}
-                    type="button"
-                    onClick={() => {
+                    onSelect={() => {
                       if (!isSelected) onChange(statusId);
                     }}
-                    className={cn(
-                      "px-1.5 py-0.5 text-xs text-left rounded-sm transition-colors flex items-center w-full",
-                      isSelected ? "bg-muted ring-1 ring-border shadow-sm" : "hover:bg-muted/50"
-                    )}
+                    className={cn("gap-2", isSelected && "bg-muted shadow-sm")}
                   >
                     <StatusBadge status={status} className="w-full justify-start border-none bg-transparent hover:bg-transparent text-[10px] p-0 h-auto" />
-                  </button>
+                    {isSelected && <IconCheck className="ml-auto size-4" />}
+                  </DropdownMenuItem>
                 );
               })}
-            </div>
-          ))}
-        </div>
-      </PopoverContent>
-    </Popover>
+            </DropdownMenuGroup>
+          </React.Fragment>
+        ))}
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }
