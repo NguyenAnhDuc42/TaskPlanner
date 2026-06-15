@@ -119,9 +119,17 @@ export const workspaceFeatureApi = workspaceApi.injectEndpoints({
           if (patchResult) {
             patchResult.undo();
           }
-          // Rollback Entity Store status slice changes
           if (originalStatuses.length > 0) {
             dispatch(statusSlice.actions.upsertMany(originalStatuses));
+          }
+          if (optimisticStatuses) {
+            const originalIds = new Set(originalStatuses.map(s => s.id));
+            const newlyCreatedIds = optimisticStatuses
+              .filter(s => !originalIds.has(s.id))
+              .map(s => s.id as string);
+            if (newlyCreatedIds.length > 0) {
+              dispatch(statusSlice.actions.removeMany(newlyCreatedIds));
+            }
           }
           toast.error("Failed to update workflow statuses. Your changes have been reverted.");
         }

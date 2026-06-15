@@ -274,7 +274,7 @@ export function FolderView() {
               onClick={() => setIsWorkflowOpen(true)}
             >
               <GitMerge className="h-3 w-3 opacity-80" />
-              <span>Workflow</span>
+              <span>Folder Workflow</span>
             </button>
           </div>
         </div>

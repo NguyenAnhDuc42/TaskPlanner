@@ -8,7 +8,7 @@ import { EntityLayerType } from "@/types/entity-layer-type";
 import { SortableTaskItem } from "./sortable-task-item";
 import { useSelector, useDispatch } from "react-redux";
 import type { AppDispatch } from "@/store";
-import { taskSlice, taskSelectors } from "@/store/entityStore";
+import { taskSelectors } from "@/store/entityStore";
 import { createSelector } from "@reduxjs/toolkit";
 import { createPortal } from "react-dom";
 import { TaskFilterPopover } from "./task-filter-popover";
@@ -75,6 +75,7 @@ export function FolderTaskList({
       (entities) => fetchedTaskIds
         .map(id => entities[id])
         .filter((t): t is TaskRecord => !!t)
+        .sort((a, b) => (a.orderKey || "").localeCompare(b.orderKey || ""))
     );
   }, [fetchedTaskIds]);
 
@@ -131,11 +132,7 @@ export function FolderTaskList({
       id: t.id,
       orderKey: String(idx).padStart(6, "0"),
     }));
-
-    // Optimistic update
-    dispatch(taskSlice.actions.upsertMany(updates));
-
-    // Backend sync (rollback handled inside mutation lifecycle)
+    
     batchUpdate({ folderId, updates });
   }
 

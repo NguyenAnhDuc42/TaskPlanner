@@ -31,7 +31,8 @@ public static class PipelineDecorator
             using (LogContext.PushProperty("UserId", userId))
             using (LogContext.PushProperty("WorkspaceId", workspaceId))
             {
-                logger.LogInformation("Executing command {RequestName}", requestName);
+                var payload = System.Text.Json.JsonSerializer.Serialize(command);
+                logger.LogInformation("Executing command {RequestName} with Payload: {Payload}", requestName, payload);
                 var sw = Stopwatch.StartNew();
 
                 try
@@ -51,7 +52,11 @@ public static class PipelineDecorator
                         var authDb = serviceProvider.GetRequiredService<TaskPlanDbContext>();
                         var cache = serviceProvider.GetRequiredService<IMemoryCache>();
                         var authResult = await AuthorizeInternalAsync(workspaceContext, userId, workspaceId, authDb, cache, cancellationToken);
-                        if (authResult is not null) return Result<TResponse>.Failure(authResult.Error!);
+                        if (authResult is not null) 
+                        {
+                            logger.LogWarning("Command {RequestName} failed authorization: {Error}", requestName, authResult.Error);
+                            return Result<TResponse>.Failure(authResult.Error!);
+                        }
                     }
 
                     // 4. Execution with Transaction Safety
@@ -104,7 +109,8 @@ public static class PipelineDecorator
             using (LogContext.PushProperty("UserId", userId))
             using (LogContext.PushProperty("WorkspaceId", workspaceId))
             {
-                logger.LogInformation("Executing command {RequestName}", requestName);
+                var payload = System.Text.Json.JsonSerializer.Serialize(command);
+                logger.LogInformation("Executing command {RequestName} with Payload: {Payload}", requestName, payload);
                 var sw = Stopwatch.StartNew();
 
                 try
@@ -122,7 +128,11 @@ public static class PipelineDecorator
                         var authDb = serviceProvider.GetRequiredService<TaskPlanDbContext>();
                         var cache = serviceProvider.GetRequiredService<IMemoryCache>();
                         var authResult = await AuthorizeInternalAsync(workspaceContext, userId, workspaceId, authDb, cache, cancellationToken);
-                        if (authResult is not null) return authResult;
+                        if (authResult is not null) 
+                        {
+                            logger.LogWarning("Command {RequestName} failed authorization: {Error}", requestName, authResult.Error);
+                            return authResult;
+                        }
                     }
 
                     // 4. Execution with Transaction Safety

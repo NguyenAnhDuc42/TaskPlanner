@@ -1,7 +1,6 @@
 import axios from "axios";
 import { api } from "./client";
 import { apiEvents } from "./events";
-import { generateRequestHash } from "./idempotency";
 import { ApiError } from "@/types/api-error";
 import { deleteCookie, getCookie } from "../cookie-utils";
 import { toast } from "sonner";
@@ -51,16 +50,8 @@ export function setupInterceptors() {
 
     const isMutating = ["post", "put", "delete", "patch"].includes(config.method?.toLowerCase() || "");
     if (isMutating && !config.headers["X-Idempotency-Key"]) {
-      try {
-        config.headers["X-Idempotency-Key"] = await generateRequestHash(
-          config.method || "post",
-          config.url || "",
-          config.data,
-          config.params
-        );
-      } catch {
-        config.headers["X-Idempotency-Key"] = crypto.randomUUID();
-      }
+  
+      config.headers["X-Idempotency-Key"] = crypto.randomUUID();
     }
 
     return config;
@@ -74,14 +65,14 @@ export function setupInterceptors() {
       const isAuthRequest = originalRequest?.url?.includes("/auth/") && 
                            !originalRequest?.url?.includes("/auth/me");
 
-      if (isAxiosErr && error.response?.status === 401 && !(originalRequest as any)?._retry && !isAuthRequest) {
+      if (isAxiosErr && originalRequest && error.response?.status === 401 && !(originalRequest as any)?._retry && !isAuthRequest) {
         if (isRefreshing) {
           return new Promise((resolve, reject) => {
             failedQueue.push({ resolve, reject });
           }).then(() => api(originalRequest)).catch((err) => { throw err; });
         }
 
-        if (originalRequest) (originalRequest as any)._retry = true;
+        (originalRequest as any)._retry = true;
         isRefreshing = true;
 
         try {

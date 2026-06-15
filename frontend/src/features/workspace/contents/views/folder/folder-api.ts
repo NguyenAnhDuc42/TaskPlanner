@@ -117,8 +117,9 @@ export const folderApi = workspaceApi.injectEndpoints({
         try {
           await queryFulfilled;
         } catch {
-          // 3. Rollback on failure
-          dispatch(taskSlice.actions.upsertMany(originalTasks));
+          if (originalTasks.length > 0) {
+            dispatch(taskSlice.actions.upsertMany(originalTasks));
+          }
           toast.error("Failed to update tasks. Your changes have been reverted.");
         }
       }

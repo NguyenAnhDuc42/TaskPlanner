@@ -28,6 +28,7 @@ public class GetNodeTasksHandler(TaskPlanDbContext db, CursorHelper cursorHelper
             WHERE t.project_workspace_id = @WorkspaceId
               AND t.deleted_at IS NULL
               AND t.is_archived = false
+              AND t.parent_task_id IS NULL
               AND (
                   (@ParentType = 'ProjectFolder' AND t.project_folder_id = @ParentId)
                   OR

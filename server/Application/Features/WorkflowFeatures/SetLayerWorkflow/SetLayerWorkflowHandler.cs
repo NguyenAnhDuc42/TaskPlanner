@@ -2,12 +2,13 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Application;
 
-public class SetLayerWorkflowHandler(TaskPlanDbContext db, WorkspaceContext context) 
+public class SetLayerWorkflowHandler(TaskPlanDbContext db, WorkspaceContext context, PermissionService permissionService) 
     : ICommandHandler<SetLayerWorkflowCommand>
 {
     public async Task<Result> Handle(SetLayerWorkflowCommand request, CancellationToken cancellationToken)
     {
-        if (context.CurrentMember.Role > Role.Admin)
+        var hasAccess = await permissionService.VerifyAsync(Role.Admin, cancellationToken: cancellationToken);
+        if (!hasAccess)
             return Result.Failure(MemberError.DontHavePermission);
 
         if (!request.WorkflowId.HasValue)

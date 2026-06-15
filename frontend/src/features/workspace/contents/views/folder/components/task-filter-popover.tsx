@@ -1,4 +1,4 @@
-import * as React from "react";
+
 import { ListFilter } from "lucide-react";
 import { Priority } from "@/types/priority";
 import { PriorityBadge } from "@/components/priority-badge";

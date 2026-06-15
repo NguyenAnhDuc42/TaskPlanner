@@ -94,33 +94,40 @@ public class CreateTaskHandler(TaskPlanDbContext db, WorkspaceContext workspaceC
         switch (entityType)
         {
             case EntityLayerType.ProjectFolder:
-                var isFolderCreator = await db.ProjectFolders
+                var folder = await db.ProjectFolders
                     .AsNoTracking()
                     .Where(f => f.Id == entityId && f.DeletedAt == null)
-                    .Select(f => new { f.CreatorId })
+                    .Select(f => new { f.CreatorId, f.ProjectSpaceId })
                     .FirstOrDefaultAsync(cancellationToken);
-                if (isFolderCreator?.CreatorId != workspaceContext.CurrentMember.Id)
+                
+                if (folder == null) return false;
+                
+                if (folder.CreatorId != workspaceContext.CurrentMember.Id)
                 {
-                    var hasAccess = await permissionService.VerifyAsync(Role.Member, spaceId: entityId, requiredAccess: AccessLevel.Editor, cancellationToken: cancellationToken);
+                    var hasAccess = await permissionService.VerifyAsync(Role.Member, spaceId: folder.ProjectSpaceId, requiredAccess: AccessLevel.Editor, cancellationToken: cancellationToken);
                     if (!hasAccess) return false;
                 }
-                break;
+                return true;
+                
             case EntityLayerType.ProjectSpace:
                 var isSpaceCreator = await db.ProjectSpaces
                     .AsNoTracking()
                     .Where(s => s.Id == entityId && s.DeletedAt == null)
                     .Select(s => new { s.CreatorId })
                     .FirstOrDefaultAsync(cancellationToken);
-                if (isSpaceCreator?.CreatorId != workspaceContext.CurrentMember.Id)
+                    
+                if (isSpaceCreator == null) return false;
+                
+                if (isSpaceCreator.CreatorId != workspaceContext.CurrentMember.Id)
                 {
                     var hasAccess = await permissionService.VerifyAsync(Role.Member, spaceId: entityId, requiredAccess: AccessLevel.Editor, cancellationToken: cancellationToken);
                     if (!hasAccess) return false;
                 }
-                break;
+                return true;
+                
             default:
                 return false;
         }
-        return false;
     }
 
     private async Task<List<TaskAssignment>> CreateAssignmentsAsync(CreateTaskCommand request, Guid workspaceId, Guid taskId, CancellationToken cancellationToken)

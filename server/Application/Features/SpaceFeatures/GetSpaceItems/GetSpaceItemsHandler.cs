@@ -34,12 +34,13 @@ public class GetSpaceItemsHandler(TaskPlanDbContext db, WorkspaceContext workspa
               AND is_archived = false
             ORDER BY order_key;
 
-            SELECT id AS Id, @WorkspaceId AS WorkspaceId, project_space_id AS SpaceId, project_folder_id AS FolderId, name AS Name, created_at AS CreatedAt, status_id AS StatusId, priority AS Priority, due_date AS DueDate, start_date AS StartDate, order_key AS OrderKey, custom_icon as Icon, custom_color as Color
+            SELECT id AS Id, @WorkspaceId AS WorkspaceId, project_space_id AS SpaceId, project_folder_id AS FolderId, name AS Name, created_at AS CreatedAt, status_id AS StatusId, priority AS Priority, due_date AS DueDate, start_date AS StartDate, order_key AS OrderKey, custom_icon as Icon, custom_color as Color, parent_task_id AS ParentTaskId
             FROM project_tasks
             WHERE project_workspace_id = @WorkspaceId 
               AND deleted_at IS NULL 
               AND is_archived = false
               AND project_space_id = @SpaceId AND project_folder_id IS NULL
+              AND parent_task_id IS NULL
             ORDER BY order_key;";
 
         var connection = db.Database.GetDbConnection();

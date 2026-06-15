@@ -23,8 +23,8 @@ public class Status : TenantEntity
         InitializeAudit(creatorId);
     }
 
-    public static Status Create(Guid projectWorkspaceId, Guid workflowId, string name, string color, StatusCategory category, Guid creatorId, string? orderKey = null)
-        => new Status(Guid.NewGuid(), projectWorkspaceId, workflowId, name, color, category, creatorId, orderKey ?? FractionalIndex.Start());
+    public static Status Create(Guid projectWorkspaceId, Guid workflowId, string name, string color, StatusCategory category, Guid creatorId, string? orderKey = null, Guid? id = null)
+        => new Status(id ?? Guid.NewGuid(), projectWorkspaceId, workflowId, name, color, category, creatorId, orderKey ?? FractionalIndex.Start());
 
     public static List<Status> CreateStarterSet(Guid projectWorkspaceId, Guid workflowId, Guid creatorId)
     {

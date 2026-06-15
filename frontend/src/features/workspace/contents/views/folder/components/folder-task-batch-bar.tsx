@@ -120,7 +120,7 @@ export function FolderTaskBatchBar({ folderId, checkedTaskIds, onClear, statuses
             className="h-7 px-3 bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 text-primary-foreground rounded-md text-[11px] font-bold tracking-wide shadow-md transition-all hover:scale-105 active:scale-95"
             onClick={applyChanges}
           >
-            Apply Changes
+            Apply
           </button>
         )}
 

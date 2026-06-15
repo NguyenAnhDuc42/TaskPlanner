@@ -1,11 +1,12 @@
 using Microsoft.EntityFrameworkCore;
 namespace Application;
 
-public class MoveItemHandler(TaskPlanDbContext db, WorkspaceContext context, RealtimeService realtime) : ICommandHandler<MoveItemCommand>
+public class MoveItemHandler(TaskPlanDbContext db, WorkspaceContext context, RealtimeService realtime, PermissionService permissionService) : ICommandHandler<MoveItemCommand>
 {
     public async Task<Result> Handle(MoveItemCommand request, CancellationToken cancellationToken)
     {
-        if (context.CurrentMember.Role > Role.Admin) 
+        var hasAccess = await permissionService.VerifyAsync(Role.Admin, cancellationToken: cancellationToken);
+        if (!hasAccess) 
             return Result.Failure(MemberError.DontHavePermission);
 
         var newOrderKey = request.NewOrderKey ?? await ResolveOrderKey(request, cancellationToken);

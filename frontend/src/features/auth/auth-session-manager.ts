@@ -26,13 +26,11 @@ class AuthSessionManager {
 
     const expiryTime = Number(atexp) * 1000;
     const now = Date.now();
-    const delay = expiryTime - this.REFRESH_BUFFER - now;
+    // If the local clock is way ahead, delay could be negative forever. 
+    // Enforce a minimum 5 second delay to prevent rapid-fire infinite loops.
+    const delay = Math.max(expiryTime - this.REFRESH_BUFFER - now, 5000);
 
-    if (delay <= 0) {
-      this.checkAndRefresh();
-    } else {
-      this.timeoutId = window.setTimeout(() => this.checkAndRefresh(), delay);
-    }
+    this.timeoutId = window.setTimeout(() => this.checkAndRefresh(), delay);
   }
 
   private async checkAndRefresh() {
@@ -41,6 +39,7 @@ class AuthSessionManager {
       apiEvents.onTokenRefreshed.forEach(cb => cb());
       this.scheduleNextCheck();
     } catch (error) {
+      console.error("Token refresh failed", error);
       this.stop();
       deleteCookie("is_logged_in");
       deleteCookie("atexp");

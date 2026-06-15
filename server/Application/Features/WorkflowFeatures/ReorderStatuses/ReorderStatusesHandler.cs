@@ -1,11 +1,12 @@
 using Microsoft.EntityFrameworkCore;
 namespace Application;
 
-public class ReorderStatusesHandler(TaskPlanDbContext db, WorkspaceContext context, RealtimeService realtime) : ICommandHandler<ReorderStatusesCommand>
+public class ReorderStatusesHandler(TaskPlanDbContext db, WorkspaceContext context, RealtimeService realtime, PermissionService permissionService) : ICommandHandler<ReorderStatusesCommand>
 {
     public async Task<Result> Handle(ReorderStatusesCommand request, CancellationToken cancellationToken)
     {
-        if (context.CurrentMember.Role > Role.Admin) 
+        var hasAccess = await permissionService.VerifyAsync(Role.Admin, cancellationToken: cancellationToken);
+        if (!hasAccess) 
             return Result.Failure(MemberError.DontHavePermission);
 
         var status = await db.Statuses.FirstOrDefaultAsync(s => s.Id == request.StatusId, cancellationToken);

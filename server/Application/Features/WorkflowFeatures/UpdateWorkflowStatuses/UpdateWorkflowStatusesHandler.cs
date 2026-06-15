@@ -7,14 +7,16 @@ public class UpdateWorkflowStatusesHandler(
     TaskPlanDbContext db,
     WorkspaceContext context,
     HybridCache cache,
-    RealtimeService realtime)
+    RealtimeService realtime,
+    PermissionService permissionService)
     : ICommandHandler<UpdateWorkflowStatusesCommand>
 {
     public async Task<Result> Handle(
         UpdateWorkflowStatusesCommand request,
         CancellationToken cancellationToken)
     {
-        if (context.CurrentMember.Role > Role.Admin)
+        var hasAccess = await permissionService.VerifyAsync(Role.Admin, cancellationToken: cancellationToken);
+        if (!hasAccess)
             return Result.Failure(MemberError.DontHavePermission);
 
         var workflow = await db.Workflows
@@ -97,7 +99,8 @@ public class UpdateWorkflowStatusesHandler(
             dto.Color,
             dto.Category,
             context.CurrentMember.Id,
-            orderKey);
+            orderKey,
+            dto.Id);
 
         workflow.AddStatus(status);
     }

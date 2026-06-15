@@ -490,8 +490,10 @@ export function useTasksByParent(parentId: string) {
       [taskSelectors.selectAll],
       (tasks) => tasks
         .filter(t => 
-          t.folderId === parentId || 
-          (t.spaceId === parentId && !t.folderId)
+          !t.parentTaskId && (
+            t.folderId === parentId || 
+            (t.spaceId === parentId && !t.folderId)
+          )
         )
         .sort((a, b) => (a.orderKey ?? "").localeCompare(b.orderKey ?? ""))
     );

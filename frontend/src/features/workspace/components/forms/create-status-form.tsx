@@ -218,7 +218,7 @@ export function CreateStatusForm({
   currentStatuses,
   onApplyChanges,
 }: CreateStatusFormProps) {
-  const { registry, workspaceId: currentWorkspaceId } = useWorkspace();
+  const { workspaceId: currentWorkspaceId } = useWorkspace();
   const { mutate: updateStatuses } = useUpdateWorkflowStatuses();
 
   const allStatuses = useSelector(statusSelectors.selectAll);
@@ -366,7 +366,7 @@ export function CreateStatusForm({
                     onBlur={() => {
                       if (name.trim()) {
                         const newStatus: Status = {
-                          id: `temp-${Date.now()}`,
+                          id: crypto.randomUUID(),
                           workflowId: workflowId || "",
                           name: name.trim(),
                           color: PRESET_COLORS[0],
@@ -381,7 +381,7 @@ export function CreateStatusForm({
                     onKeyDown={(e) => {
                       if (e.key === "Enter" && name.trim()) {
                         const newStatus: Status = {
-                          id: `temp-${Date.now()}`,
+                          id: crypto.randomUUID(),
                           workflowId: workflowId || "",
                           name: name.trim(),
                           color: PRESET_COLORS[0],
@@ -426,7 +426,7 @@ export function CreateStatusForm({
                 const { payloads, clonedStatuses } = buildStatusUpdatePayloads(localStatuses, resolvedCurrentStatuses || []);
                 updateStatuses({ 
                   workflowId, 
-                  workspaceId: registry.workspaceId || currentWorkspaceId, 
+                  workspaceId: currentWorkspaceId, 
                   statuses: payloads, 
                   optimisticStatuses: clonedStatuses 
                 });
@@ -445,9 +445,9 @@ export function CreateStatusForm({
 }
 
 function buildStatusUpdatePayloads(
-  localStatuses: any[],
-  resolvedCurrentStatuses: any[]
-): { payloads: StatusUpdatePayload[]; clonedStatuses: any[] } {
+  localStatuses: Status[],
+  resolvedCurrentStatuses: Status[]
+): { payloads: StatusUpdatePayload[]; clonedStatuses: Status[] } {
   const originalStatuses = resolvedCurrentStatuses || [];
   const newIds = new Set(localStatuses.map(s => s.id));
   const payloads: StatusUpdatePayload[] = [];
@@ -472,7 +472,7 @@ function buildStatusUpdatePayloads(
   const clonedStatuses = localStatuses.map(s => ({ ...s }));
 
   // Group cloned statuses by category
-  const categoryGroups: Record<string, any[]> = {};
+  const categoryGroups: Record<string, Status[]> = {};
   for (const s of clonedStatuses) {
     if (!categoryGroups[s.category]) {
       categoryGroups[s.category] = [];
@@ -482,7 +482,7 @@ function buildStatusUpdatePayloads(
 
   // Creates & Updates
   for (const s of clonedStatuses) {
-    const isNew = s.id && typeof s.id === 'string' && s.id.startsWith("temp-");
+    const isNew = !originalStatuses.some(orig => orig.id === s.id);
     const catGroup = categoryGroups[s.category] || [];
     const idx = catGroup.findIndex(item => item.id === s.id);
     
@@ -492,7 +492,7 @@ function buildStatusUpdatePayloads(
     s.orderKey = fractionalBetween(prevKey, nextKey);
 
     payloads.push({
-      id: isNew ? null : s.id,
+      id: s.id,
       name: s.name,
       color: s.color,
       category: s.category,
