@@ -16,7 +16,7 @@ public class FoldersController : ControllerBase
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] CreateFolderCommand command, CancellationToken cancellationToken)
     {
-        var result = await _handler.SendAsync(command, cancellationToken);
+        var result = await _handler.SendAsync<CreateFolderCommand, Guid>(command, cancellationToken);
         return result.ToActionResult();
     }
 

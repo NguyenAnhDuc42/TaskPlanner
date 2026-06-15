@@ -1,13 +1,19 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 namespace Application;
 
-public class CreateTaskHandler(TaskPlanDbContext db, WorkspaceContext workspaceContext, PermissionService permissionService, RealtimeService realtimeService) : ICommandHandler<CreateTaskCommand>
+public class CreateTaskHandler(TaskPlanDbContext db, WorkspaceContext workspaceContext, PermissionService permissionService, RealtimeService realtimeService, ILogger<CreateTaskHandler> logger) : ICommandHandler<CreateTaskCommand, Guid>
 {
-    public async Task<Result> Handle(CreateTaskCommand request, CancellationToken cancellationToken)
+    public async Task<Result<Guid>> Handle(CreateTaskCommand request, CancellationToken cancellationToken)
     {
+        logger.LogInformation("Attempting to create task '{TaskName}' in {ParentType} {ParentId}", request.Name, request.ParentType, request.ParentId);
 
         var hasPermission = await VerifyPermission(request.ParentType, request.ParentId, permissionService, cancellationToken);
-        if (!hasPermission) return Result.Failure(MemberError.DontHavePermission);
+        if (!hasPermission) 
+        {
+            logger.LogWarning("Access denied for user {UserId} to create task in {ParentType} {ParentId}", workspaceContext.CurrentMember.Id, request.ParentType, request.ParentId);
+            return Result<Guid>.Failure(MemberError.DontHavePermission);
+        }
         var ancestors = await HierarchyHelper.GetAncestorChain(db, request.ParentId, request.ParentType);
         ProjectTask? task = null;
         List<TaskAssignment> assigee = [];
@@ -57,19 +63,48 @@ public class CreateTaskHandler(TaskPlanDbContext db, WorkspaceContext workspaceC
                 cancellationToken);
 
 
-            return Result.Success();
+            logger.LogInformation("Successfully created task {TaskId} in database", task.Id);
+            return Result<Guid>.Success(task.Id);
         }, cancellationToken);
 
         if (result.IsSuccess)
         {
+            logger.LogInformation("Broadcasting entity updates for created task {TaskId}", task!.Id);
+            var update = new EntityBatchUpdate
+            {
+                Tasks = [TaskRecord.FromDomain(task!)],
+                Assignees = assigee.Select(AssigneeRecord.FromDomain).ToList()
+            };
+
+            if (request.ParentType == EntityLayerType.ProjectFolder)
+            {
+                var folder = await db.ProjectFolders.AsNoTracking().FirstOrDefaultAsync(f => f.Id == request.ParentId, cancellationToken);
+                if (folder != null) 
+                {
+                    var workflowId = await db.Workflows.Where(w => w.ProjectFolderId == folder.Id).Select(w => w.Id).FirstOrDefaultAsync(cancellationToken);
+                    update.Folders = [FolderRecord.FromDomain(folder, workflowId) with { HasTasks = true }];
+                }
+            }
+            else if (request.ParentType == EntityLayerType.ProjectSpace)
+            {
+                var space = await db.ProjectSpaces.AsNoTracking().FirstOrDefaultAsync(s => s.Id == request.ParentId, cancellationToken);
+                if (space != null) 
+                {
+                    var workflowId = await db.Workflows.Where(w => w.ProjectSpaceId == space.Id).Select(w => w.Id).FirstOrDefaultAsync(cancellationToken);
+                    update.Spaces = [SpaceRecord.FromDomain(space, workflowId) with { HasTasks = true }];
+                }
+            }
+
             await realtimeService.NotifyEntitiesUpdatedAsync(
              workspaceContext.WorkspaceId,
-             new EntityBatchUpdate
-             {
-                 Tasks = [TaskRecord.FromDomain(task!)],
-                 Assignees = assigee.Select(AssigneeRecord.FromDomain).ToList()
-             },
+             update,
              cancellationToken);
+             
+            logger.LogInformation("Successfully completed CreateTaskHandler for task {TaskId}", task.Id);
+        }
+        else
+        {
+            logger.LogError("Failed to create task '{TaskName}' due to transaction failure", request.Name);
         }
 
         return result;

@@ -11,7 +11,7 @@ public class UpdateDocumentBlocksHandler(TaskPlanDbContext db, WorkspaceContext 
     public async Task<Result> Handle(UpdateDocumentBlocksCommand request, CancellationToken cancellationToken)
     {
         var docCreatorId = await db.Documents
-            .Where(d => d.Id == request.DocumentId)
+            .Where(d => d.Id == request.DocumentId && d.DeletedAt == null)
             .Select(d => d.CreatorId)
             .FirstOrDefaultAsync(cancellationToken);
 

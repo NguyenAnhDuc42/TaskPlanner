@@ -1,24 +1,34 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 namespace Application;
 
 public class CreateFolderHandler(
     TaskPlanDbContext db,
     WorkspaceContext workspaceContext,
     PermissionService permissionService,
-    RealtimeService realtimeService
-) : ICommandHandler<CreateFolderCommand>
+    RealtimeService realtimeService,
+    ILogger<CreateFolderHandler> logger
+) : ICommandHandler<CreateFolderCommand, Guid>
 {
-    public async Task<Result> Handle(CreateFolderCommand request, CancellationToken cancellationToken)
+    public async Task<Result<Guid>> Handle(CreateFolderCommand request, CancellationToken cancellationToken)
     {
+        logger.LogInformation("Attempting to create folder '{FolderName}' in space {SpaceId}", request.Name, request.SpaceId);
+        
         var space = await db.ProjectSpaces
              .AsNoTracking()
-             .Where(s => s.Id == request.SpaceId && s.DeletedAt == null)
-             .Select(s => new { s.Id, s.CreatorId })
-             .FirstOrDefaultAsync(cancellationToken);
-        if (space is null) return Result.Failure(SpaceError.NotFound);
+             .FirstOrDefaultAsync(s => s.Id == request.SpaceId && s.DeletedAt == null, cancellationToken);
+        if (space is null) 
+        {
+            logger.LogWarning("Space {SpaceId} not found or deleted", request.SpaceId);
+            return Result<Guid>.Failure(SpaceError.NotFound);
+        }
 
         var hasAccess = await permissionService.VerifyAsync(Role.Member, request.SpaceId, AccessLevel.Editor, space.CreatorId, cancellationToken);
-        if (!hasAccess) return Result.Failure(MemberError.DontHavePermission);
+        if (!hasAccess) 
+        {
+            logger.LogWarning("Access denied for user {UserId} to create folder in space {SpaceId}", workspaceContext.CurrentMember.Id, request.SpaceId);
+            return Result<Guid>.Failure(MemberError.DontHavePermission);
+        }
 
         ProjectFolder? folder = null;
         Guid? createdWorkflowId = null;
@@ -66,14 +76,26 @@ public class CreateFolderHandler(
 
             createdWorkflowId = workflow.Id;
 
-            return Result.Success();
+            logger.LogInformation("Successfully created folder {FolderId} and workflow {WorkflowId} in database", folder.Id, workflow.Id);
+            return Result<Guid>.Success(folder.Id);
         }, cancellationToken);
+        
         if (result.IsSuccess)
         {
+            var spaceWorkflowId = await db.Workflows.Where(w => w.ProjectSpaceId == space.Id).Select(w => w.Id).FirstOrDefaultAsync(cancellationToken);
+            var spaceRecord = SpaceRecord.FromDomain(space, spaceWorkflowId) with { HasFolders = true };
+            
+            logger.LogInformation("Broadcasting entity updates for created folder {FolderId}", folder!.Id);
             await realtimeService.NotifyEntitiesUpdatedAsync(
                 workspaceContext.WorkspaceId,
-                new EntityBatchUpdate { Folders = [FolderRecord.FromDomain(folder!, createdWorkflowId)] },
+                new EntityBatchUpdate { Folders = [FolderRecord.FromDomain(folder!, createdWorkflowId)], Spaces = [spaceRecord] },
                 cancellationToken);
+                
+            logger.LogInformation("Successfully completed CreateFolderHandler for folder {FolderId}", folder.Id);
+        }
+        else
+        {
+            logger.LogError("Failed to create folder '{FolderName}' due to transaction failure", request.Name);
         }
 
         return result;

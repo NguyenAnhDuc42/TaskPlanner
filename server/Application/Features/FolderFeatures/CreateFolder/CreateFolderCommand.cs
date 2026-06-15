@@ -9,5 +9,5 @@ public record class CreateFolderCommand(
     Priority? Priority = null,
     DateTimeOffset? StartDate = null,
     DateTimeOffset? DueDate = null
-) : ICommandRequest, IAuthorizedWorkspaceRequest;
+) : ICommandRequest<Guid>, IAuthorizedWorkspaceRequest;
 

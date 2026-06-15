@@ -150,30 +150,16 @@ export const hierarchyApi = workspaceApi.injectEndpoints({
         dispatch(spaceSlice.actions.upsert(optimistic))
 
         try {
-          const { data } = await queryFulfilled
-          // remove temp, add real
-          dispatch(spaceSlice.actions.remove(tempId))
-          
-          const spaceId = typeof data === 'string' ? data : (data as { id?: string; value?: string }).id || (data as { id?: string; value?: string }).value || tempId;
-          const realSpace: SpaceRecord = {
-            id: spaceId,
-            workspaceId,
-            name: body.name,
-            isPrivate: body.isPrivate,
-            color: body.color ?? null,
-            icon: body.icon ?? null,
-          } as SpaceRecord;
-
-          dispatch(spaceSlice.actions.upsert(realSpace))
+          await queryFulfilled;
+          dispatch(spaceSlice.actions.remove(tempId));
         } catch {
-          // server failed, remove temp
-          dispatch(spaceSlice.actions.remove(tempId))
+          dispatch(spaceSlice.actions.remove(tempId));
           toast.error("Failed to create space.");
         }
       }
     }),
 
-    createFolder: build.mutation<FolderRecord, { workspaceId: string; body: CreateFolderRequest }>({
+    createFolder: build.mutation<string, { workspaceId: string; body: CreateFolderRequest }>({
       query: ({ body }) => ({ url: `/folders`, method: "POST", data: body }),
       async onQueryStarted({ body }, { dispatch, queryFulfilled }) {
         const tempId = `temp_${crypto.randomUUID()}`
@@ -192,31 +178,16 @@ export const hierarchyApi = workspaceApi.injectEndpoints({
         dispatch(folderSlice.actions.upsert(optimistic))
 
         try {
-          const { data } = await queryFulfilled
-          dispatch(folderSlice.actions.remove(tempId))
-          
-          const folderId = typeof data === 'string' ? data : (data as { id?: string; value?: string }).id || (data as { id?: string; value?: string }).value || tempId;
-          const realFolder: FolderRecord = {
-            id: folderId,
-            spaceId: body.spaceId,
-            name: body.name,
-            color: body.color ?? null,
-            icon: body.icon ?? null,
-            statusId: body.statusId ?? null,
-            priority: body.priority ?? null,
-            startDate: body.startDate ?? null,
-            dueDate: body.dueDate ?? null,
-          } as FolderRecord;
-
-          dispatch(folderSlice.actions.upsert(realFolder))
+          await queryFulfilled;
+          dispatch(folderSlice.actions.remove(tempId));
         } catch {
-          dispatch(folderSlice.actions.remove(tempId))
+          dispatch(folderSlice.actions.remove(tempId));
           toast.error("Failed to create folder.");
         }
       }
     }),
 
-    createTask: build.mutation<TaskRecord, { workspaceId: string; body: CreateTaskRequest }>({
+    createTask: build.mutation<string, { workspaceId: string; body: CreateTaskRequest }>({
       query: ({ body }) => ({ url: `/tasks`, method: "POST", data: body }),
       async onQueryStarted({ body }, { dispatch, queryFulfilled }) {
         const tempId = `temp_${crypto.randomUUID()}`
@@ -237,27 +208,10 @@ export const hierarchyApi = workspaceApi.injectEndpoints({
         dispatch(taskSlice.actions.upsert(optimistic))
 
         try {
-          const { data } = await queryFulfilled
-          dispatch(taskSlice.actions.remove(tempId))
-          
-          const taskId = typeof data === 'string' ? data : (data as { id?: string; value?: string }).id || (data as { id?: string; value?: string }).value || tempId;
-          const realTask: TaskRecord = {
-            id: taskId,
-            name: body.name,
-            folderId: body.parentType === "ProjectFolder" ? body.parentId : null,
-            spaceId:  body.parentType === "ProjectSpace"  ? body.parentId : null,
-            icon: body.icon ?? null,
-            color: body.color ?? null,
-            statusId: body.statusId ?? null,
-            priority: body.priority ?? null,
-            startDate: body.startDate ?? null,
-            dueDate: body.dueDate ?? null,
-            createdAt: new Date().toISOString(),
-          } as TaskRecord;
-
-          dispatch(taskSlice.actions.upsert(realTask))
+          await queryFulfilled;
+          dispatch(taskSlice.actions.remove(tempId));
         } catch {
-          dispatch(taskSlice.actions.remove(tempId))
+          dispatch(taskSlice.actions.remove(tempId));
           toast.error("Failed to create task.");
         }
       }

@@ -28,6 +28,7 @@ import { useDeleteSpaceMutation } from "../../hierarchy-api";
 import { useDispatch } from "react-redux";
 import { spaceSlice } from "@/store/entityStore";
 import { EntityMenuContext, DeleteConfirmationDialog } from "./shared";
+import { useNavigate } from "@tanstack/react-router";
 
 interface SpaceContextMenuProps {
   spaceId: string;
@@ -45,6 +46,7 @@ export function SpaceContextMenu({
   const [activeForm, setActiveForm] = useState<"task" | "folder" | "settings" | null>(null);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [deleteSpace] = useDeleteSpaceMutation();
+  
 
   const handleDelete = () => {
     deleteSpace({ workspaceId: workspaceId || "", spaceId });
@@ -95,6 +97,7 @@ export function SpaceContextMenu({
   }, [spaceId, workspaceId]);
 
   const contextValue = React.useMemo(() => ({ renderMenuItems }), [renderMenuItems]);
+  const navigate = useNavigate()
 
   return (
     <EntityMenuContext.Provider value={contextValue}>
@@ -133,9 +136,13 @@ export function SpaceContextMenu({
       >
         <CreateFolderForm 
           spaceId={spaceId}
-          onSuccess={() => {
+          onSuccess={(folderId) => {
             setActiveForm(null);
             dispatch(spaceSlice.actions.upsert({ id: spaceId, hasFolders: true }));
+            navigate({
+              to: "/workspaces/$workspaceId/folders/$folderId",
+              params: { workspaceId, folderId },
+            });
           }}
           onCancel={() => setActiveForm(null)}
         />

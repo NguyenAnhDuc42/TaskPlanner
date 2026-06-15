@@ -102,9 +102,9 @@ export const FolderNodeItem = React.memo(function FolderNodeItem({
             <button
               type="button"
               className="flex-1 text-left text-[11px] font-semibold truncate outline-none select-none"
-              onClick={() =>
-                navigate({
-                  to: `/workspaces/${workspaceId}/folders/${folder.id}`,
+              onClick={() => navigate({
+                  to: "/workspaces/$workspaceId/folders/$folderId",
+                  params: { workspaceId, folderId: folder.id },
                 })
               }
             >

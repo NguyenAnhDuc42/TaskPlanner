@@ -22,7 +22,7 @@ public class UpdateWorkflowStatusesHandler(
         var workflow = await db.Workflows
             .Include(x => x.Statuses)
             .FirstOrDefaultAsync(
-                x => x.Id == request.WorkflowId,
+                x => x.Id == request.WorkflowId && x.DeletedAt == null,
                 cancellationToken);
 
         if (workflow is null)

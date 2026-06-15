@@ -70,9 +70,10 @@ export const TaskNodeItem = React.memo(function TaskNodeItem({
           <button
             type="button"
             className="flex-1 text-left flex items-center outline-none select-none min-w-0"
-            onClick={() =>
-              navigate({ to: `/workspaces/${workspaceId}/tasks/${task.id}` })
-            }
+            onClick={() => navigate({
+                to: "/workspaces/$workspaceId/tasks/$taskId", 
+                params: { workspaceId, taskId: task.id } 
+              })}
           >
             <div className="w-5 h-5 flex items-center justify-center shrink-0 mr-2">
               {task.icon ? (

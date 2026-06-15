@@ -1,15 +1,26 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 namespace Application;
 
-public class UpdateTaskHandler(TaskPlanDbContext db, WorkspaceContext workspaceContext, PermissionService permissionService, RealtimeService realtimeService) : ICommandHandler<UpdateTaskCommand>
+public class UpdateTaskHandler(TaskPlanDbContext db, WorkspaceContext workspaceContext, PermissionService permissionService, RealtimeService realtimeService, ILogger<UpdateTaskHandler> logger) : ICommandHandler<UpdateTaskCommand>
 {
     public async Task<Result> Handle(UpdateTaskCommand request, CancellationToken cancellationToken)
     {
+        logger.LogInformation("Attempting to update task {TaskId}", request.TaskId);
+        
         var task = await db.ProjectTasks.FirstOrDefaultAsync(t => t.Id == request.TaskId && t.DeletedAt == null, cancellationToken);
-        if (task == null) return Result.Failure(TaskError.NotFound);
+        if (task == null) 
+        {
+            logger.LogWarning("Task {TaskId} not found or deleted", request.TaskId);
+            return Result.Failure(TaskError.NotFound);
+        }
 
         var hasAccess = await permissionService.VerifyAsync(Role.Member, task.ProjectSpaceId, AccessLevel.Editor, task.CreatorId, cancellationToken);
-        if (!hasAccess) return Result.Failure(MemberError.DontHavePermission);
+        if (!hasAccess) 
+        {
+            logger.LogWarning("Access denied for user {UserId} to update task {TaskId}", workspaceContext.CurrentMember.Id, task.Id);
+            return Result.Failure(MemberError.DontHavePermission);
+        }
 
         var slug = request.Name != null ? SlugHelper.GenerateSlug(request.Name) : null;
 
@@ -40,10 +51,17 @@ public class UpdateTaskHandler(TaskPlanDbContext db, WorkspaceContext workspaceC
         var affectedRows = await db.SaveChangesAsync(cancellationToken);
         if (affectedRows > 0)
         {
+            logger.LogInformation("Broadcasting entity updates for updated task {TaskId}", task.Id);
             await realtimeService.NotifyEntitiesUpdatedAsync(
                 workspaceContext.WorkspaceId,
                 new EntityBatchUpdate { Tasks = new List<TaskRecord> { TaskRecord.FromDomain(task) } },
                 cancellationToken);
+                
+            logger.LogInformation("Successfully updated task {TaskId}", task.Id);
+        }
+        else
+        {
+            logger.LogError("Failed to save updates for task {TaskId}", task.Id);
         }
 
         return Result.Success();

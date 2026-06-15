@@ -50,15 +50,15 @@ export function FolderView() {
   const [isWorkflowOpen, setIsWorkflowOpen] = React.useState(false);
   const [selectedTaskId, setSelectedTaskId] = React.useState<string | undefined>(undefined);
 
-  // Load folder + statuses into Redux (single source of truth)
-  const { isLoading } = useGetFolderDetailQuery(folderId);
+  const { data: detailResponse, isLoading } = useGetFolderDetailQuery(folderId);
 
-  // Read folder reactively from Redux (real-time safe)
-  const folder = useFolderDetail(folderId);
+  const folderRecord = useFolderDetail(folderId);
+  const folder = detailResponse?.folder ?? folderRecord;
   const tasks = useFolderTasksList(folderId);
-  const parentSpace = useSpaceDetail(folder?.spaceId ?? "");
+  
+  const parentSpaceRecord = useSpaceDetail(folder?.spaceId ?? "");
+  const parentSpace = detailResponse?.space ?? parentSpaceRecord;
 
-  // Load parent space details to ensure we always have the workflow of the space above it
   useGetSpaceDetailQuery(folder?.spaceId ?? "", { skip: !folder?.spaceId });
 
   const [updateFolderField] = useUpdateFolderFieldMutation();
@@ -206,6 +206,7 @@ export function FolderView() {
             </PopoverFormWrapper>
 
             <input
+              key={folderId}
               className="h-6 px-1 w-56 text-xs font-bold text-foreground/90 tracking-tight bg-transparent border-none outline-none hover:bg-muted/20 focus:bg-muted/40 transition-all rounded cursor-text"
               defaultValue={folder?.name ?? "Folder"}
               onBlur={(e) => {
@@ -224,7 +225,7 @@ export function FolderView() {
             <StatusSelect
               value={folder?.statusId || undefined}
               onChange={(statusId) => updateField({ statusId })}
-              workflowId={parentSpace?.workflowId}
+              workflowId={parentSpaceRecord?.workflowId}
               statuses={spaceStatuses}
               align="end"
               trigger={

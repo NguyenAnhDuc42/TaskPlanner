@@ -109,11 +109,8 @@ export function CreateFolderForm({
         },
       }).unwrap();
       toast.success("Folder created");
-
-      // Reset form state cleanly upon success
       dispatch({ type: "RESET" });
-
-      onSuccess?.((result as any).id);
+      onSuccess?.(result);
     } catch {
       toast.error("Failed to create folder",);
     }

@@ -28,7 +28,7 @@ interface CreateTaskFormProps {
   readonly parentId: string;
   readonly parentType: EntityLayerType;
   readonly defaultStatusId?: string;
-  readonly onSuccess?: (task: any) => void;
+  readonly onSuccess?: (taskId: string) => void;
   readonly onCancel?: () => void;
 }
 
@@ -147,7 +147,7 @@ export function CreateTaskForm({
           parentId,
           parentType,
           name: state.name,
-          priority: state.priority as any,
+          priority: state.priority.toString(),
           icon: state.icon,
           color: state.color,
           statusId: state.selectedStatusId,
@@ -156,8 +156,9 @@ export function CreateTaskForm({
         },
       }).unwrap();
       toast.success("Task created");
-      onSuccess?.((result as any).id);
+      onSuccess?.(result);
     } catch (error) {
+      console.error(error);
       toast.error("Failed to create task");
     }
   };

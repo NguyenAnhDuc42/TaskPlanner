@@ -51,13 +51,15 @@ export const folderApi = workspaceApi.injectEndpoints({
   endpoints: (build) => ({
     getFolderDetail: build.query<FolderDetailResponse, string>({
       query: (folderId) => ({ url: `/folders/${folderId}`, method: 'GET' }),
-      async onQueryStarted(_, { dispatch, queryFulfilled }) {
+      async onQueryStarted(folderId, { dispatch, queryFulfilled }) {
         try {
           const { data } = await queryFulfilled;
           dispatch(folderSlice.actions.upsert({ ...data.folder, workflowId: data.workflowId ?? undefined }));
           dispatch(statusSlice.actions.upsertMany(data.spaceStatuses));
           dispatch(statusSlice.actions.upsertMany(data.taskStatuses));
-        } catch { /* ignore */ }
+        } catch (error) {
+          console.error(`[folderApi] Failed to fetch details for folder ${folderId}:`, error);
+        }
       }
     }),
 
@@ -84,11 +86,13 @@ export const folderApi = workspaceApi.injectEndpoints({
       forceRefetch({ currentArg, previousArg }) {
         return currentArg?.cursor !== previousArg?.cursor;
       },
-      async onQueryStarted(_, { dispatch, queryFulfilled }) {
+      async onQueryStarted({ folderId }, { dispatch, queryFulfilled }) {
         try {
           const { data } = await queryFulfilled;
           dispatch(taskSlice.actions.upsertMany(data.items));
-        } catch { /* ignore */ }
+        } catch (error) {
+          console.error(`[folderApi] Failed to fetch tasks for folder ${folderId}:`, error);
+        }
       }
     }),
 

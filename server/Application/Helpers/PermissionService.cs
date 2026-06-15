@@ -16,11 +16,11 @@ public class PermissionService(TaskPlanDbContext db, WorkspaceContext context)
         if (spaceId.HasValue != requiredAccess.HasValue) throw new ArgumentException("spaceId and requiredAccess must both be provided or both be null");
 
         var currentMember = context.CurrentMember;
-        if (currentMember is null) return false;
+        if (!currentMember.Role.IsAtLeast(requiredRole)) return false;
 
-        if (currentMember.Role.IsAtLeast(requiredRole)) return true;
+        if (currentMember.Role.IsAtLeast(Role.Admin)) return true;
 
-        if (!spaceId.HasValue) return false;
+        if (!spaceId.HasValue) return true; 
 
         var spaceInfo = await db.ProjectSpaces.AsNoTracking()
             .Where(s => s.Id == spaceId.Value && s.DeletedAt == null)

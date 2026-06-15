@@ -46,7 +46,17 @@ export function TaskDetailCanvas({ taskId }: TaskDetailCanvasProps) {
     );
   }
 
-  if (isLoading || !task) {
+  if (!isLoading && !task) {
+    return (
+      <div className="flex flex-col items-center justify-center h-full text-destructive/80 space-y-2">
+        <DynamicIcon name="AlertTriangle" size={32} />
+        <span className="text-sm font-medium">Task Not Found</span>
+        <span className="text-xs text-muted-foreground">The task may have been deleted by another user.</span>
+      </div>
+    );
+  }
+
+  if (isLoading) {
     return <TaskViewSkeleton />;
   }
 

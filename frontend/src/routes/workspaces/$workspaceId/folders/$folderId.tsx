@@ -4,16 +4,15 @@ import { ViewSkeleton } from "@/components/view-skeleton";
 import { store } from "@/store";
 import { folderApi } from "@/features/workspace/contents/views/folder/folder-api";
 
-export const Route = createFileRoute(
-  "/workspaces/$workspaceId/folders/$folderId",
+export const Route = createFileRoute("/workspaces/$workspaceId/folders/$folderId",
 )({
-  loader: ({ params: { folderId } }) =>
-    Promise.all([
-      store.dispatch(folderApi.endpoints.getFolderDetail.initiate(folderId)),
-      store.dispatch(
-        folderApi.endpoints.getFolderTasks.initiate({ folderId, cursor: null })
-      ),
-    ]),
+  loader: async ({ params: { folderId } }) => {
+    const [detail, tasks] = await Promise.all([
+      store.dispatch(folderApi.endpoints.getFolderDetail.initiate(folderId)).unwrap(),
+      store.dispatch(folderApi.endpoints.getFolderTasks.initiate({ folderId, cursor: null })).unwrap(),
+    ]);
+    return { detail, tasks };
+  },
   component: FolderContent,
   pendingComponent: ViewSkeleton,
   pendingMs: 0,

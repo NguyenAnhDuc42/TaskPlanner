@@ -14,7 +14,7 @@ public class UpdateTaskAssigneesHandler(
     {
         var task = await db.ProjectTasks
             .Include(t => t.Assignees)
-            .FirstOrDefaultAsync(t => t.Id == request.TaskId, cancellationToken);
+            .FirstOrDefaultAsync(t => t.Id == request.TaskId && t.DeletedAt == null, cancellationToken);
             
         if (task == null) return Result.Failure(TaskError.NotFound);
 

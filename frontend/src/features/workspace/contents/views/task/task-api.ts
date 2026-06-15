@@ -18,11 +18,13 @@ export const taskApi = workspaceApi.injectEndpoints({
         method: "GET",
       }),
       providesTags: (_result, _error, id) => [{ type: "Tasks" as const, id }],
-      async onQueryStarted(_, { dispatch, queryFulfilled }) {
+      async onQueryStarted(taskId, { dispatch, queryFulfilled }) {
         try {
           const { data } = await queryFulfilled;
           dispatch(taskSlice.actions.upsertMany(data));
-        } catch { /* ignore */ }
+        } catch (error) {
+          console.error(`[taskApi] Failed to fetch details for task ${taskId}:`, error);
+        }
       },
     }),
 
@@ -59,7 +61,7 @@ export const taskApi = workspaceApi.injectEndpoints({
         method: "GET",
       }),
       providesTags: (_result, _error, id) => [{ type: "Tasks" as const, id: `assignees-${id}` }],
-      async onQueryStarted(_, { dispatch, queryFulfilled }) {
+      async onQueryStarted(taskId, { dispatch, queryFulfilled }) {
         try {
           const { data } = await queryFulfilled;
           const mappedAssignees = data.map(a => ({
@@ -68,7 +70,9 @@ export const taskApi = workspaceApi.injectEndpoints({
             workspaceMemberId: a.workspaceMemberId
           }));
           dispatch(assigneeSlice.actions.upsertMany(mappedAssignees));
-        } catch { /* ignore */ }
+        } catch (error) {
+          console.error(`[taskApi] Failed to fetch assignees for task ${taskId}:`, error);
+        }
       },
     }),
 
@@ -103,7 +107,6 @@ export const taskApi = workspaceApi.injectEndpoints({
         try {
           await queryFulfilled;
         } catch {
-          // Rollback on failure
           const updatedAllAssignees: AssigneeRecord[] = Object.values((getState() as RootState).assignees.entities) as AssigneeRecord[];
           const currentAssignees = updatedAllAssignees.filter(a => a?.taskId === taskId);
           dispatch(assigneeSlice.actions.removeMany(currentAssignees.map(a => a.id)));
@@ -119,11 +122,13 @@ export const taskApi = workspaceApi.injectEndpoints({
         method: "GET",
       }),
       providesTags: (_result, _error, id) => [{ type: "Tasks" as const, id: `comments-${id}` }],
-      async onQueryStarted(_, { dispatch, queryFulfilled }) {
+      async onQueryStarted(taskId, { dispatch, queryFulfilled }) {
         try {
           const { data } = await queryFulfilled;
           dispatch(commentSlice.actions.upsertMany(data));
-        } catch { /* ignore */ }
+        } catch (error) {
+          console.error(`[taskApi] Failed to fetch comments for task ${taskId}:`, error);
+        }
       },
     }),
 
