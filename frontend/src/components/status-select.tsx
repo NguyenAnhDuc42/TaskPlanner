@@ -79,6 +79,8 @@ export function StatusSelect({
       <DropdownMenuContent
         align={align}
         className="w-48 max-h-[300px] overflow-y-auto"
+        onClick={(e) => e.stopPropagation()}
+        onPointerDown={(e) => e.stopPropagation()}
       >
         <DropdownMenuLabel>Status</DropdownMenuLabel>
         

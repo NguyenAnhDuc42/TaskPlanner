@@ -184,6 +184,12 @@ export function TaskSubtasks({ taskId }: Readonly<TaskSubtasksProps>) {
                 dueDate={subtask.dueDate}
                 onStartDateChange={(d) => handleDateChange(subtask.id, "startDate", d)}
                 onDueDateChange={(d) => handleDateChange(subtask.id, "dueDate", d)}
+                onClearDates={() => {
+                  updateSubtask({
+                    subtaskId: subtask.id,
+                    patches: { clearStartDate: true, clearDueDate: true }
+                  });
+                }}
                 size="sm"
               />
 

@@ -8,9 +8,9 @@ public class CreateFolderHandler(
     PermissionService permissionService,
     RealtimeService realtimeService,
     ILogger<CreateFolderHandler> logger
-) : ICommandHandler<CreateFolderCommand, Guid>
+) : ICommandHandler<CreateFolderCommand, FolderRecord>
 {
-    public async Task<Result<Guid>> Handle(CreateFolderCommand request, CancellationToken cancellationToken)
+    public async Task<Result<FolderRecord>> Handle(CreateFolderCommand request, CancellationToken cancellationToken)
     {
         logger.LogInformation("Attempting to create folder '{FolderName}' in space {SpaceId}", request.Name, request.SpaceId);
         
@@ -20,18 +20,19 @@ public class CreateFolderHandler(
         if (space is null) 
         {
             logger.LogWarning("Space {SpaceId} not found or deleted", request.SpaceId);
-            return Result<Guid>.Failure(SpaceError.NotFound);
+            return Result<FolderRecord>.Failure(SpaceError.NotFound);
         }
 
         var hasAccess = await permissionService.VerifyAsync(Role.Member, request.SpaceId, AccessLevel.Editor, space.CreatorId, cancellationToken);
         if (!hasAccess) 
         {
             logger.LogWarning("Access denied for user {UserId} to create folder in space {SpaceId}", workspaceContext.CurrentMember.Id, request.SpaceId);
-            return Result<Guid>.Failure(MemberError.DontHavePermission);
+            return Result<FolderRecord>.Failure(MemberError.DontHavePermission);
         }
 
         ProjectFolder? folder = null;
         Guid? createdWorkflowId = null;
+        List<Status> createdStatuses = new();
         var result = await db.ExecuteInTransactionAsync(async () =>
         {
             var maxKey = await db.ProjectFolders
@@ -73,11 +74,12 @@ public class CreateFolderHandler(
 
             var statuses = Status.CreateFolderStarterSet(workspaceContext.WorkspaceId, workflow.Id, workspaceContext.CurrentMember.Id);
             db.Statuses.AddRange(statuses);
+            createdStatuses.AddRange(statuses);
 
             createdWorkflowId = workflow.Id;
 
             logger.LogInformation("Successfully created folder {FolderId} and workflow {WorkflowId} in database", folder.Id, workflow.Id);
-            return Result<Guid>.Success(folder.Id);
+            return Result<FolderRecord>.Success(FolderRecord.FromDomain(folder!, createdWorkflowId));
         }, cancellationToken);
         
         if (result.IsSuccess)
@@ -86,10 +88,14 @@ public class CreateFolderHandler(
             var spaceRecord = SpaceRecord.FromDomain(space, spaceWorkflowId) with { HasFolders = true };
             
             logger.LogInformation("Broadcasting entity updates for created folder {FolderId}", folder!.Id);
-            await realtimeService.NotifyEntitiesUpdatedAsync(
+            _ = realtimeService.NotifyEntitiesUpdatedAsync(
                 workspaceContext.WorkspaceId,
-                new EntityBatchUpdate { Folders = [FolderRecord.FromDomain(folder!, createdWorkflowId)], Spaces = [spaceRecord] },
-                cancellationToken);
+                new EntityBatchUpdate { 
+                    Folders = [result.Value], 
+                    Spaces = [spaceRecord],
+                    Statuses = createdStatuses.Select(StatusRecord.FromDomain).ToList()
+                },
+                default);
                 
             logger.LogInformation("Successfully completed CreateFolderHandler for folder {FolderId}", folder.Id);
         }

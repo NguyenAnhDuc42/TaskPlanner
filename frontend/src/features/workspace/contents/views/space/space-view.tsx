@@ -73,8 +73,10 @@ export function SpaceView({ spaceId }: Readonly<SpaceViewProps>) {
             </PopoverFormWrapper>
 
             <input
+              key={spaceId}
               className="h-6 px-1 w-56 text-xs font-bold text-foreground/90 tracking-tight bg-transparent border-none outline-none hover:bg-muted/20 focus:bg-muted/40 transition-all rounded cursor-text"
               defaultValue={space?.name ?? "Space"}
+              onPointerDown={(e) => e.stopPropagation()}
               onBlur={(e) => {
                 if (e.target.value && e.target.value !== space?.name) {
                   updateField({ name: e.target.value });

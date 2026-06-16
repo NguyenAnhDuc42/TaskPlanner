@@ -141,8 +141,8 @@ export function CreateTaskForm({
     if (!state.name.trim()) return;
 
     try {
-      const result = await createTaskMutation({
-        workspaceId,
+      const { id: newId } = await createTaskMutation({
+        workspaceId: workspaceId || "",
         body: {
           parentId,
           parentType,
@@ -156,7 +156,7 @@ export function CreateTaskForm({
         },
       }).unwrap();
       toast.success("Task created");
-      onSuccess?.(result);
+      onSuccess?.(newId);
     } catch (error) {
       console.error(error);
       toast.error("Failed to create task");

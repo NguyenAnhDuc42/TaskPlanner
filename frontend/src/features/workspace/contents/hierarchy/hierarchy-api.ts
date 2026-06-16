@@ -4,7 +4,7 @@ import { useSelector } from "react-redux";
 import type { RootState } from "@/store";
 import type { SpaceRecord, FolderRecord, TaskRecord } from "@/types/projects";
 import type { PagedResult } from "@/types/paged-result";
-import type { EntityLayerType } from "@/types/entity-layer-type";
+import { EntityLayerType } from "@/types/entity-layer-type";
 import { createSelector } from "@reduxjs/toolkit";
 import { useMemo } from "react";
 import type { Priority } from "@/types/priority";
@@ -135,84 +135,43 @@ export const hierarchyApi = workspaceApi.injectEndpoints({
 
     createSpace: build.mutation<SpaceRecord, { workspaceId: string; body: CreateSpaceRequest }>({
       query: ({ body }) => ({ url: `/spaces`, method: "POST", data: body }),
-      async onQueryStarted({ workspaceId, body }, { dispatch, queryFulfilled }) {
-        // optimistic — fake id until server responds
-        const tempId = `temp_${crypto.randomUUID()}`
-        const optimistic: SpaceRecord = {
-          id: tempId,
-          workspaceId,
-          name: body.name,
-          isPrivate: body.isPrivate,
-          color: body.color ?? null,
-          icon: body.icon ?? null,
-        } as SpaceRecord
-
-        dispatch(spaceSlice.actions.upsert(optimistic))
-
+      async onQueryStarted(_, { dispatch, queryFulfilled }) {
         try {
-          await queryFulfilled;
-          dispatch(spaceSlice.actions.remove(tempId));
-        } catch {
-          dispatch(spaceSlice.actions.remove(tempId));
-          toast.error("Failed to create space.");
+          const { data } = await queryFulfilled;
+          dispatch(spaceSlice.actions.upsert(data));
+        } catch (error) {
+          console.error("Create space API call failed:", error);
         }
       }
     }),
 
-    createFolder: build.mutation<string, { workspaceId: string; body: CreateFolderRequest }>({
+    createFolder: build.mutation<FolderRecord, { workspaceId: string; body: CreateFolderRequest }>({
       query: ({ body }) => ({ url: `/folders`, method: "POST", data: body }),
       async onQueryStarted({ body }, { dispatch, queryFulfilled }) {
-        const tempId = `temp_${crypto.randomUUID()}`
-        const optimistic: FolderRecord = {
-          id: tempId,
-          name: body.name,
-          spaceId: body.spaceId,
-          color: body.color ?? null,
-          icon: body.icon ?? null,
-          statusId: body.statusId ?? null,
-          priority: body.priority ?? null,
-          startDate: body.startDate ?? null,
-          dueDate: body.dueDate ?? null,
-        } as FolderRecord
-
-        dispatch(folderSlice.actions.upsert(optimistic))
-
         try {
-          await queryFulfilled;
-          dispatch(folderSlice.actions.remove(tempId));
-        } catch {
-          dispatch(folderSlice.actions.remove(tempId));
-          toast.error("Failed to create folder.");
+          const { data } = await queryFulfilled;
+          dispatch(folderSlice.actions.upsert(data));
+          dispatch(spaceSlice.actions.upsert({ id: body.spaceId, hasFolders: true }));
+        } catch (error) {
+          console.error("Create folder API call failed:", error);
         }
       }
     }),
 
-    createTask: build.mutation<string, { workspaceId: string; body: CreateTaskRequest }>({
+    createTask: build.mutation<TaskRecord, { workspaceId: string; body: CreateTaskRequest }>({
       query: ({ body }) => ({ url: `/tasks`, method: "POST", data: body }),
       async onQueryStarted({ body }, { dispatch, queryFulfilled }) {
-        const tempId = `temp_${crypto.randomUUID()}`
-        const optimistic: TaskRecord = {
-          id: tempId,
-          name: body.name,
-          folderId: body.parentType === "ProjectFolder" ? body.parentId : null,
-          spaceId:  body.parentType === "ProjectSpace"  ? body.parentId : null,
-          icon: body.icon ?? null,
-          color: body.color ?? null,
-          statusId: body.statusId ?? null,
-          priority: body.priority ?? null,
-          startDate: body.startDate ?? null,
-          dueDate: body.dueDate ?? null,
-          createdAt: new Date().toISOString(),
-        } as TaskRecord
-
-        dispatch(taskSlice.actions.upsert(optimistic))
-
         try {
-          await queryFulfilled;
-          dispatch(taskSlice.actions.remove(tempId));
-        } catch {
-          dispatch(taskSlice.actions.remove(tempId));
-          toast.error("Failed to create task.");
+          const { data } = await queryFulfilled;
+          dispatch(taskSlice.actions.upsert(data));
+          
+          if (body.parentType === EntityLayerType.ProjectSpace) {
+            dispatch(spaceSlice.actions.upsert({ id: body.parentId, hasTasks: true }));
+          } else if (body.parentType === EntityLayerType.ProjectFolder) {
+            dispatch(folderSlice.actions.upsert({ id: body.parentId, hasTasks: true }));
+          }
+        } catch (error) {
+          console.error("Create task API call failed:", error);
         }
       }
     }),
@@ -271,12 +230,9 @@ export const hierarchyApi = workspaceApi.injectEndpoints({
         data: command
       }),
       async onQueryStarted({ workspaceId, command }, { dispatch, queryFulfilled, getState }) {
-        // NOTE: Entity store upserts (hasTasks, parent changes, orderKey) happen immediately
-        // in the handler files. Here we only patch the lazy-loaded node query caches.
         const state = getState() as RootState;
         const patches: { undo: () => void }[] = [];
 
-        // Space cache patches
         command.spaces?.forEach((move) => {
           const space = spaceSelectors.selectById(state, move.itemId);
           if (space) {
@@ -296,7 +252,6 @@ export const hierarchyApi = workspaceApi.injectEndpoints({
           }
         });
 
-        // Folder cache patches
         command.folders?.forEach((move) => {
           const folder = folderSelectors.selectById(state, move.itemId);
           if (folder) {
@@ -318,7 +273,6 @@ export const hierarchyApi = workspaceApi.injectEndpoints({
             );
             patches.push(patch);
 
-            // Remove from old parent folder query cache if moved to a different space
             if (move.targetParentId && folder.spaceId && move.targetParentId !== folder.spaceId) {
               const removePatch = dispatch(
                 hierarchyApi.util.updateQueryData("getNodeFolders", { workspaceId, nodeId: folder.spaceId, cursor: null }, (draft) => {
@@ -334,7 +288,6 @@ export const hierarchyApi = workspaceApi.injectEndpoints({
           }
         });
 
-        // Task cache patches
         command.tasks?.forEach((move) => {
           const task = taskSelectors.selectById(state, move.itemId);
           if (task) {
@@ -363,7 +316,6 @@ export const hierarchyApi = workspaceApi.injectEndpoints({
             );
             patches.push(patch);
 
-            // Remove from old container query cache if parent container changed
             const oldContainerId = task.folderId ?? task.spaceId;
             const oldParentType = (task.folderId ? "ProjectFolder" : "ProjectSpace") as EntityLayerType;
             if (oldContainerId && (oldContainerId !== containerNodeId || oldParentType !== parentType)) {
@@ -388,7 +340,6 @@ export const hierarchyApi = workspaceApi.injectEndpoints({
         try {
           await queryFulfilled;
         } catch {
-          // Rollback the optimistic query cache patches on failure
           patches.forEach((p) => p.undo());
         }
       }

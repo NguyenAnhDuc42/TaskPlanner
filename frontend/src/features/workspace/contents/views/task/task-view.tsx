@@ -38,12 +38,13 @@ export function TaskView({ taskId }: Readonly<TaskViewProps>) {
 
   const space = useSpaceDetail(task?.spaceId ?? "");
   const folder = useFolderDetail(task?.folderId ?? "");
+  const parentTask = useSelector((state: RootState) => task?.parentTaskId ? taskSelectors.selectById(state, task.parentTaskId) : undefined);
 
   const handleDelete = async () => {
     if (confirm("Are you sure you want to delete this task?")) {
       try {
         await deleteTask({ workspaceId: workspaceId || "", taskId }).unwrap();
-        navigate({ to: "/workspaces/$workspaceId", params: { workspaceId } });
+        navigate({ to: "/workspaces/$workspaceId", params: { workspaceId: workspaceId || "" } });
       } catch (err) {
         console.error("Failed to delete task", err);
       }
@@ -95,6 +96,28 @@ export function TaskView({ taskId }: Readonly<TaskViewProps>) {
                           className="stroke-[2.5] shrink-0"
                         />
                         <span>{folder.name}</span>
+                      </Link>
+                    </BreadcrumbLink>
+                  </BreadcrumbItem>
+                  <BreadcrumbSeparator className="[&>svg]:w-3 [&>svg]:h-3" />
+                </>
+              )}
+              {parentTask && (
+                <>
+                  <BreadcrumbItem>
+                    <BreadcrumbLink asChild>
+                      <Link
+                        to="/workspaces/$workspaceId/tasks/$taskId"
+                        params={{ workspaceId, taskId: parentTask.id }}
+                        className="flex items-center gap-1.5 text-muted-foreground hover:text-foreground transition-colors"
+                      >
+                        <DynamicIcon
+                          name={parentTask.icon || "CheckSquare"}
+                          size={11}
+                          color={parentTask.color || "#6366f1"}
+                          className="stroke-[2.5] shrink-0"
+                        />
+                        <span>{parentTask.name}</span>
                       </Link>
                     </BreadcrumbLink>
                   </BreadcrumbItem>

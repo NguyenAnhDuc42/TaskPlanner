@@ -1,17 +1,20 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 namespace Application;
 
 public class CreateSpaceHandler(
     TaskPlanDbContext db,
     WorkspaceContext context,
     PermissionService permissionService,
-    RealtimeService realtimeService
-) : ICommandHandler<CreateSpaceCommand>
+    RealtimeService realtimeService,
+    ILogger<CreateSpaceHandler> logger
+) : ICommandHandler<CreateSpaceCommand, SpaceRecord>
 {
-    public async Task<Result> Handle(CreateSpaceCommand request, CancellationToken cancellationToken)
+    public async Task<Result<SpaceRecord>> Handle(CreateSpaceCommand request, CancellationToken cancellationToken)
     {
+        logger.LogInformation("Attempting to create space {SpaceName} by member {MemberId}", request.name, context.CurrentMember.Id);
         var hasAccess = await permissionService.VerifyAsync(Role.Member, cancellationToken: cancellationToken);
-        if (!hasAccess) return Result.Failure(MemberError.DontHavePermission);
+        if (!hasAccess) return Result<SpaceRecord>.Failure(MemberError.DontHavePermission);
 
         ProjectSpace? space = null;
         EntityAccess? creatorAccess = null;
@@ -71,18 +74,21 @@ public class CreateSpaceHandler(
             );
             await db.EntityAccesses.AddAsync(creatorAccess, cancellationToken);
 
-            return Result.Success();
+            var record = SpaceRecord.FromDomain(space!, workflow!.Id);
+            return Result<SpaceRecord>.Success(record);
         }, cancellationToken);
+        
         if (result.IsSuccess)
         {
-            await realtimeService.NotifyEntitiesUpdatedAsync(
+            logger.LogInformation("Broadcasting entity updates for created space {SpaceId}", result.Value.Id);
+            _ = realtimeService.NotifyEntitiesUpdatedAsync(
                 context.TryGetWorkspaceId().Value,
                new EntityBatchUpdate
                {
-                   Spaces = [SpaceRecord.FromDomain(space!, workflow!.Id)],
+                   Spaces = [result.Value],
                    EntityAccess = [EntityAccessRecord.FromDomain(creatorAccess!)]
                },
-                cancellationToken
+                default
             );
         }
         return result;

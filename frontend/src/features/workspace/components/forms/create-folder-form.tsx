@@ -95,7 +95,7 @@ export function CreateFolderForm({
     if (!state.name.trim()) return;
 
     try {
-      const result = await createFolderMutation({
+      const { id: newId } = await createFolderMutation({
         workspaceId,
         body: {
           spaceId,
@@ -110,7 +110,7 @@ export function CreateFolderForm({
       }).unwrap();
       toast.success("Folder created");
       dispatch({ type: "RESET" });
-      onSuccess?.(result);
+      onSuccess?.(newId);
     } catch {
       toast.error("Failed to create folder",);
     }

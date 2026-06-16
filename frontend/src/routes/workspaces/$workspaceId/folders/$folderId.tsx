@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useParams } from "@tanstack/react-router";
 import { FolderView } from "@/features/workspace/contents/views/folder/folder-view";
 import { ViewSkeleton } from "@/components/view-skeleton";
 import { store } from "@/store";
@@ -19,5 +19,6 @@ export const Route = createFileRoute("/workspaces/$workspaceId/folders/$folderId
 });
 
 function FolderContent() {
-  return <FolderView />;
+  const { folderId } = useParams({ from: "/workspaces/$workspaceId/folders/$folderId" });
+  return <FolderView folderId={folderId} />;
 }

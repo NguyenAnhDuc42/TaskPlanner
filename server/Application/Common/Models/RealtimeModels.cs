@@ -41,3 +41,5 @@ public class EntityBatchDelete
     public List<Guid>? DocumentBlockIds { get; set; }
     public List<Guid>? AttachmentIds { get; set; }
 }
+
+public record EntityCreatedResponse(Guid Id, EntityBatchUpdate Batch);

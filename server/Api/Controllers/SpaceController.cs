@@ -17,7 +17,7 @@ namespace Api
         [HttpPost]
         public async Task<IActionResult> Create([FromBody] CreateSpaceCommand command, CancellationToken cancellationToken)
         {
-            var result = await _handler.SendAsync(command, cancellationToken);
+            var result = await _handler.SendAsync<CreateSpaceCommand, SpaceRecord>(command, cancellationToken);
             return result.ToActionResult();
         }
 

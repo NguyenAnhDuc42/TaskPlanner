@@ -1,18 +1,29 @@
 using Microsoft.EntityFrameworkCore;
 
+using Microsoft.Extensions.Logging;
+
 namespace Application;
 
-public class UpdateSpaceHandler(TaskPlanDbContext db, WorkspaceContext context, PermissionService permissionService, RealtimeService realtimeService) : ICommandHandler<UpdateSpaceCommand>
+public class UpdateSpaceHandler(TaskPlanDbContext db, WorkspaceContext context, PermissionService permissionService, RealtimeService realtimeService, ILogger<UpdateSpaceHandler> logger) : ICommandHandler<UpdateSpaceCommand>
 {
     public async Task<Result> Handle(UpdateSpaceCommand request, CancellationToken cancellationToken)
     {
+        logger.LogInformation("Attempting to update space {SpaceId}", request.SpaceId);
         var space = await db.ProjectSpaces.FirstOrDefaultAsync(s => s.Id == request.SpaceId && s.DeletedAt == null, cancellationToken);
 
-        if (space == null) return Result.Failure(SpaceError.NotFound);
+        if (space == null) 
+        {
+            logger.LogWarning("Space {SpaceId} not found or deleted", request.SpaceId);
+            return Result.Failure(SpaceError.NotFound);
+        }
         if (space.ProjectWorkspaceId != context.WorkspaceId) return Result.Failure(SpaceError.NotFound);
 
         var hasAccess = await permissionService.VerifyAsync(Role.Member, request.SpaceId, AccessLevel.Manager, space.CreatorId, cancellationToken);
-        if (!hasAccess) return Result.Failure(MemberError.DontHavePermission);
+        if (!hasAccess) 
+        {
+            logger.LogWarning("Access denied for user {UserId} to update space {SpaceId}", context.CurrentMember.Id, space.Id);
+            return Result.Failure(MemberError.DontHavePermission);
+        }
 
         var slug = request.Name != null ? SlugHelper.GenerateSlug(request.Name) : null;
 
@@ -26,6 +37,7 @@ public class UpdateSpaceHandler(TaskPlanDbContext db, WorkspaceContext context, 
         var affectedRows = await db.SaveChangesAsync(cancellationToken);
         if (affectedRows > 0)
         {
+            logger.LogInformation("Broadcasting entity updates for updated space {SpaceId}", space.Id);
             await realtimeService.NotifyEntitiesUpdatedAsync(
                 context.TryGetWorkspaceId().Value,
                 new EntityBatchUpdate { Spaces = [SpaceRecord.FromDomain(space, workflowId: null)] },

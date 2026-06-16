@@ -101,7 +101,6 @@ export function HierarchySidebar() {
               }
             >
               <CreateSpaceForm
-                onSuccess={() => setIsHeaderCreateOpen(false)}
                 onCancel={() => setIsHeaderCreateOpen(false)}
               />
             </DialogFormWrapper>
@@ -140,7 +139,6 @@ export function HierarchySidebar() {
                         }
                       >
                         <CreateSpaceForm
-                          onSuccess={() => setIsInlineCreateOpen(false)}
                           onCancel={() => setIsInlineCreateOpen(false)}
                         />
                       </DialogFormWrapper>

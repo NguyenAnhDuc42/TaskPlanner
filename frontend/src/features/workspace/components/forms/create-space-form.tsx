@@ -9,6 +9,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { useUser } from "@/features/auth/api";
 import { useSelector } from "react-redux";
 import { memberSelectors } from "@/store/entityStore";
+import type { MemberRecord } from "@/types/workspace";
 
 interface CreateSpaceFormProps {
   readonly onSuccess?: (id: string) => void;
@@ -75,8 +76,8 @@ export function CreateSpaceForm({ onSuccess, onCancel }: Readonly<CreateSpaceFor
     if (!state.name.trim()) return;
 
     try {
-      const result = await createSpaceMutation({
-        workspaceId,
+      const { id: newId } = await createSpaceMutation({ 
+        workspaceId: workspaceId || "", 
         body: { 
           name: state.name, 
           isPrivate: state.isPrivate, 
@@ -89,8 +90,9 @@ export function CreateSpaceForm({ onSuccess, onCancel }: Readonly<CreateSpaceFor
       
       dispatch({ type: "RESET" });
 
-      onSuccess?.((result as any).id);
+      onSuccess?.(newId);
     } catch (error) {
+      console.error(error);
       toast.error("Failed to create space");
     }
   };
@@ -136,10 +138,10 @@ export function CreateSpaceForm({ onSuccess, onCancel }: Readonly<CreateSpaceFor
               Invite Workspace Members
             </div>
             <div className="max-h-[180px] overflow-y-auto mt-1 flex flex-col gap-0.5 [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-thumb]:bg-white/[0.05]">
-              {allMembers.reduce((acc: React.ReactNode[], member: any) => {
+              {allMembers.reduce((acc: React.ReactNode[], member: MemberRecord) => {
                 const isCurrentUser = member.email && currentUser?.email && member.email.toLowerCase() === currentUser.email.toLowerCase();
                 if (!isCurrentUser) {
-                  const targetId = member.id || member.workspaceMemberId;
+                  const targetId = member.id || member.workspaceMemberId || "";
                   const isSelected = state.selectedMemberIds.includes(targetId);
                   const initials = (member.name || "U").split(" ").map((w: string) => w[0]).slice(0, 2).join("").toUpperCase();
                   acc.push(

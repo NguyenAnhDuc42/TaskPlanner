@@ -6,5 +6,5 @@ public record CreateSpaceCommand(
     string icon,
     bool isPrivate,
     List<Guid>? memberIdsToInvite = null
-) : ICommandRequest, IAuthorizedWorkspaceRequest;
+) : ICommandRequest<SpaceRecord>, IAuthorizedWorkspaceRequest;
 

@@ -33,6 +33,8 @@ export function PrioritySelect({
       <DropdownMenuContent
         align={align}
         className="w-40"
+        onClick={(e) => e.stopPropagation()}
+        onPointerDown={(e) => e.stopPropagation()}
       >
         <DropdownMenuLabel>Priority</DropdownMenuLabel>
         <DropdownMenuSeparator />

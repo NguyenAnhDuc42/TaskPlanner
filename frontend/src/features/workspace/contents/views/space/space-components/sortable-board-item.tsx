@@ -5,7 +5,8 @@ import { Priority } from "@/types/priority";
 import type { BoardItem } from "../space-api";
 import { cn } from "@/lib/utils";
 import { format, isBefore, startOfDay } from "date-fns";
-import { InlinePriorityPicker } from "./inline-priority-picker";
+import { PrioritySelect } from "@/components/priority-select";
+import { PriorityBadge } from "@/components/priority-badge";
 import { DynamicIcon } from "@/components/dynamic-icon";
 import { User } from "lucide-react";
 import { DateSelect } from "@/components/date-select";
@@ -77,9 +78,20 @@ export const BoardItemCard = React.memo(function BoardItemCard({
       <div className="flex flex-col gap-1.5 w-full h-full">
         {/* 1. Priority Picker & Assignee Avatar Row (Top) */}
         <div className="flex items-center justify-between text-[10px] font-medium leading-none">
-          <InlinePriorityPicker
-            priority={(item as TaskRecord | FolderRecord).priority as Priority}
-            onPriorityChange={onPriorityChange || (() => {})}
+          <PrioritySelect
+            value={(item as TaskRecord | FolderRecord).priority as Priority}
+            onChange={(p) => onPriorityChange?.(p)}
+            align="start"
+            trigger={
+              <button 
+                type="button" 
+                className="cursor-pointer focus:outline-none bg-transparent border-none p-0 hover:opacity-80 transition-opacity"
+                onClick={(e) => e.stopPropagation()}
+                onPointerDown={(e) => e.stopPropagation()}
+              >
+                <PriorityBadge priority={(item as TaskRecord | FolderRecord).priority as Priority} />
+              </button>
+            }
           />
           <div className="flex items-center gap-2">
             <div className="h-4 w-4 rounded-full bg-white/[0.03] flex items-center justify-center border border-white/[0.05]">

@@ -2,17 +2,23 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 namespace Application;
 
-public class CreateTaskHandler(TaskPlanDbContext db, WorkspaceContext workspaceContext, PermissionService permissionService, RealtimeService realtimeService, ILogger<CreateTaskHandler> logger) : ICommandHandler<CreateTaskCommand, Guid>
+public class CreateTaskHandler(
+    TaskPlanDbContext db,
+    WorkspaceContext workspaceContext,
+    PermissionService permissionService,
+    RealtimeService realtimeService,
+    ILogger<CreateTaskHandler> logger
+) : ICommandHandler<CreateTaskCommand, TaskRecord>
 {
-    public async Task<Result<Guid>> Handle(CreateTaskCommand request, CancellationToken cancellationToken)
+    public async Task<Result<TaskRecord>> Handle(CreateTaskCommand request, CancellationToken cancellationToken)
     {
-        logger.LogInformation("Attempting to create task '{TaskName}' in {ParentType} {ParentId}", request.Name, request.ParentType, request.ParentId);
+        logger.LogInformation("Attempting to create task '{TaskName}' under {ParentType} {ParentId}", request.Name, request.ParentType, request.ParentId);
 
         var hasPermission = await VerifyPermission(request.ParentType, request.ParentId, permissionService, cancellationToken);
         if (!hasPermission) 
         {
             logger.LogWarning("Access denied for user {UserId} to create task in {ParentType} {ParentId}", workspaceContext.CurrentMember.Id, request.ParentType, request.ParentId);
-            return Result<Guid>.Failure(MemberError.DontHavePermission);
+            return Result<TaskRecord>.Failure(MemberError.DontHavePermission);
         }
         var ancestors = await HierarchyHelper.GetAncestorChain(db, request.ParentId, request.ParentType);
         ProjectTask? task = null;
@@ -64,7 +70,7 @@ public class CreateTaskHandler(TaskPlanDbContext db, WorkspaceContext workspaceC
 
 
             logger.LogInformation("Successfully created task {TaskId} in database", task.Id);
-            return Result<Guid>.Success(task.Id);
+            return Result<TaskRecord>.Success(TaskRecord.FromDomain(task!));
         }, cancellationToken);
 
         if (result.IsSuccess)
@@ -72,7 +78,7 @@ public class CreateTaskHandler(TaskPlanDbContext db, WorkspaceContext workspaceC
             logger.LogInformation("Broadcasting entity updates for created task {TaskId}", task!.Id);
             var update = new EntityBatchUpdate
             {
-                Tasks = [TaskRecord.FromDomain(task!)],
+                Tasks = [result.Value],
                 Assignees = assigee.Select(AssigneeRecord.FromDomain).ToList()
             };
 
@@ -95,10 +101,10 @@ public class CreateTaskHandler(TaskPlanDbContext db, WorkspaceContext workspaceC
                 }
             }
 
-            await realtimeService.NotifyEntitiesUpdatedAsync(
+            _ = realtimeService.NotifyEntitiesUpdatedAsync(
              workspaceContext.WorkspaceId,
              update,
-             cancellationToken);
+             default);
              
             logger.LogInformation("Successfully completed CreateTaskHandler for task {TaskId}", task.Id);
         }

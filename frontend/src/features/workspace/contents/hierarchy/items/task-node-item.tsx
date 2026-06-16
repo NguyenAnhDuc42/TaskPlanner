@@ -75,6 +75,7 @@ export const TaskNodeItem = React.memo(function TaskNodeItem({
                 params: { workspaceId, taskId: task.id } 
               })}
           >
+            <div className="w-1 h-1 rounded-full bg-muted-foreground/30 mr-1 shrink-0" />
             <div className="w-5 h-5 flex items-center justify-center shrink-0 mr-2">
               {task.icon ? (
                 <DynamicIcon name={task.icon} color={task.color} size={14} />
