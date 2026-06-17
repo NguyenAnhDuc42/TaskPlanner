@@ -2,6 +2,8 @@ import React from "react";
 import { useWorkspace } from "@/features/workspace/context/workspace-provider";
 import { useGetNodeTasksQuery, useTasksByParent } from "../hierarchy-api";
 import { EntityLayerType } from "@/types/entity-layer-type";
+import { useDispatch } from "react-redux";
+import { folderSlice, spaceSlice } from "@/store/entityStore";
 import {
   SortableContext,
   verticalListSortingStrategy,
@@ -27,6 +29,7 @@ export const NodeTasksList = React.memo(function NodeTasksList({
   spaceId: string;
 }) {
   const { workspaceId } = useWorkspace();
+  const dispatch = useDispatch();
   
   // 1. Fetch child tasks using Redux Query
   const { isLoading } = useGetNodeTasksQuery(
@@ -36,6 +39,16 @@ export const NodeTasksList = React.memo(function NodeTasksList({
     
   // 2. Select tasks dynamically from our centralized store
   const tasks = useTasksByParent(nodeId);
+
+  React.useEffect(() => {
+    if (isExpanded && !isLoading && tasks.length === 0) {
+      if (parentType === EntityLayerType.ProjectFolder) {
+        dispatch(folderSlice.actions.upsert({ id: nodeId, hasTasks: false }));
+      } else if (parentType === EntityLayerType.ProjectSpace) {
+        dispatch(spaceSlice.actions.upsert({ id: nodeId, hasTasks: false }));
+      }
+    }
+  }, [isExpanded, isLoading, tasks.length, parentType, nodeId, dispatch]);
 
   if (!isExpanded) return null;
 

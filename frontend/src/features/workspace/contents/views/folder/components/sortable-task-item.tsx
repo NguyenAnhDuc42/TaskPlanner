@@ -1,6 +1,6 @@
 import * as React from "react";
 import { cn } from "@/lib/utils";
-import { Check, MoreHorizontal, FileText } from "lucide-react";
+import { Check, FileText, MoreVertical } from "lucide-react";
 import { StatusBadge } from "@/components/status-badge";
 import { PriorityBadge } from "@/components/priority-badge";
 import { DateSelect } from "@/components/date-select";
@@ -131,7 +131,7 @@ export function SortableTaskItem({
             </span>
           </div>
           <div className="w-4 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground shrink-0 cursor-grab active:cursor-grabbing">
-            <MoreHorizontal className="h-3.5 w-3.5" />
+            <MoreVertical className="h-3.5 w-3.5" />
           </div>
         </div>
 

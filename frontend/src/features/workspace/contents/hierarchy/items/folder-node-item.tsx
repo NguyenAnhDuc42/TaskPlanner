@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import * as Icons from "lucide-react";
 import { ChevronRight, MoreHorizontal, Lock, type LucideIcon } from "lucide-react";
-import { useNavigate, useLocation } from "@tanstack/react-router";
+import { useNavigate, useLocation, useRouter } from "@tanstack/react-router";
 import { useWorkspace } from "@/features/workspace/context/workspace-provider";
 import { cn } from "@/lib/utils";
 import { Collapsible, CollapsibleContent } from "@/components/ui/collapsible";
@@ -34,6 +34,7 @@ export const FolderNodeItem = React.memo(function FolderNodeItem({
   
   const location = useLocation();
   const navigate = useNavigate();
+  const router = useRouter();
   const { workspaceId } = useWorkspace();
 
 
@@ -71,8 +72,8 @@ export const FolderNodeItem = React.memo(function FolderNodeItem({
               type="button"
               className="relative flex items-center justify-center w-5 h-5 shrink-0 cursor-pointer rounded-sm hover:bg-background/50 group/icon mr-1.5"
               onMouseEnter={() => {
-                if (isOpen || !workspaceId) return;
-                prefetchTasks({ workspaceId: workspaceId || "", nodeId: folder.id, parentType: EntityLayerConst.ProjectFolder, cursor: null });
+                if (isOpen || !workspaceId || !folder.hasTasks) return;
+                prefetchTasks({ workspaceId, nodeId: folder.id, parentType: EntityLayerConst.ProjectFolder, cursor: null });
               }}
               onClick={(e) => {
                 if (!folder.hasTasks) return;
@@ -102,6 +103,14 @@ export const FolderNodeItem = React.memo(function FolderNodeItem({
             <button
               type="button"
               className="flex-1 text-left text-[11px] font-semibold truncate outline-none select-none"
+              onMouseDown={() => {
+                if (workspaceId) {
+                  router.preloadRoute({
+                    to: "/workspaces/$workspaceId/folders/$folderId",
+                    params: { workspaceId, folderId: folder.id },
+                  });
+                }
+              }}
               onClick={() => navigate({
                   to: "/workspaces/$workspaceId/folders/$folderId",
                   params: { workspaceId, folderId: folder.id },

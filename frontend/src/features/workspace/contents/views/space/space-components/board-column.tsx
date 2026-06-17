@@ -70,6 +70,10 @@ export const BoardColumn = React.memo(function BoardColumn({
       category={category}
       totalCount={items.length}
       className="w-[280px] min-h-[400px] shrink-0 flex flex-col"
+      onCreateClick={() => {
+        setCreateType("task");
+        setCreateOpen(true);
+      }}
     >
       <div
         ref={setNodeRef}

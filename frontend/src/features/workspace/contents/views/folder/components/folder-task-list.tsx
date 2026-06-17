@@ -35,6 +35,7 @@ import { restrictToVerticalAxis } from "@dnd-kit/modifiers";
 import type { TaskRecord } from "@/types/projects";
 
 type FolderTaskListProps = Readonly<{
+  folderIdProp?: string;
   onSelectTask?: (taskId: string) => void;
   selectedTaskId?: string;
   checkedTaskIds?: Set<string>;
@@ -42,12 +43,16 @@ type FolderTaskListProps = Readonly<{
 }>;
 
 export function FolderTaskList({
+  folderIdProp,
   onSelectTask,
   selectedTaskId = "1",
   checkedTaskIds = new Set(),
   onToggleCheck,
 }: FolderTaskListProps) {
-  const { workspaceId, folderId } = useParams({ strict: false }) as { workspaceId: string; folderId: string };
+  const params = useParams({ strict: false }) as { workspaceId: string; folderId?: string };
+  const workspaceId = params.workspaceId;
+  const folderId = folderIdProp || params.folderId || "";
+  
   const dispatch = useDispatch<AppDispatch>();
   const [createOpen, setCreateOpen] = React.useState(false);
   

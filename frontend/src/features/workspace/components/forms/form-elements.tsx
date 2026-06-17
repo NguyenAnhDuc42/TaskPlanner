@@ -48,7 +48,7 @@ export function PrivacyToggle({ isPrivate, onChange }: { isPrivate: boolean; onC
     <div className="flex bg-muted/20 p-0.5 rounded-lg border border-border/10 w-fit">
       <button
         type="button"
-        onClick={() => onChange(false)}
+        onClick={(e) => {e.stopPropagation(); onChange(false)}}
         className={cn(
           "flex items-center gap-1.5 px-2 h-5 rounded-[5px] text-[9px] font-medium transition-all",
           !isPrivate ? "bg-background shadow-sm text-foreground ring-1 ring-border/20" : "text-muted-foreground hover:text-foreground"
@@ -59,7 +59,7 @@ export function PrivacyToggle({ isPrivate, onChange }: { isPrivate: boolean; onC
       </button>
       <button
         type="button"
-        onClick={() => onChange(true)}
+        onClick={(e) => {e.stopPropagation(); onChange(true)}}
         className={cn(
           "flex items-center gap-1.5 px-2 h-5 rounded-[5px] text-[9px] font-medium transition-all",
           isPrivate ? "bg-background shadow-sm text-foreground ring-1 ring-border/20" : "text-muted-foreground hover:text-foreground"

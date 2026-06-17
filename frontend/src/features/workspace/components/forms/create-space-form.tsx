@@ -98,7 +98,7 @@ export function CreateSpaceForm({ onSuccess, onCancel }: Readonly<CreateSpaceFor
   };
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col w-full">
+    <form onSubmit={handleSubmit} className="flex flex-col w-full" onClick={(e) => e.stopPropagation()}>
       {/* Main Header / Input Section */}
       <div className="px-3 pt-2.5 pb-2">
         <div className="flex items-center gap-3">
@@ -113,6 +113,7 @@ export function CreateSpaceForm({ onSuccess, onCancel }: Readonly<CreateSpaceFor
           <input
             placeholder="Space name"
             aria-label="Space name"
+            onClick={e => e.stopPropagation()}
             value={state.name}
             onChange={(e) => dispatch({ type: "SET_NAME", payload: e.target.value })}
             className="flex-1 bg-transparent border-none focus:ring-0 text-[13px] font-semibold placeholder:text-muted-foreground/30 py-0 outline-none tracking-tight"

@@ -1,7 +1,7 @@
 import { useRef, useState, useMemo } from "react";
 import { useSelector } from "react-redux";
 import { createSelector } from "@reduxjs/toolkit";
-import { Trash2 } from "lucide-react";
+import { Trash2, Maximize2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { taskSelectors } from "@/store/entityStore";
 import type { RootState } from "@/store";
@@ -167,8 +167,21 @@ export function TaskSubtasks({ taskId }: Readonly<TaskSubtasksProps>) {
               />
             </div>
 
-            {/* Right: Priority + Date + Delete */}
+            {/* Right: Expand + Priority + Date + Delete */}
             <div className="flex items-center gap-1.5 shrink-0">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleOpenSubtask(subtask.id);
+                }}
+                className="h-5 w-5 text-muted-foreground/40 hover:text-foreground hover:bg-muted/50 rounded shrink-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                title="Open subtask"
+              >
+                <Maximize2 className="h-3 w-3" />
+              </Button>
+
               <PrioritySelect
                 value={subtask.priority || "Low"}
                 onChange={(priority) => handlePriorityChange(subtask.id, priority)}

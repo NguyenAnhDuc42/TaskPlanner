@@ -35,9 +35,24 @@ export function useWorkspaceSignalR(workspaceId: string) {
     manageConnection();
 
     const onEntitiesUpdated = (payload: import("@/lib/signalr-service").EntityBatchUpdate) => {
+      console.log("[SignalR] EntitiesUpdated:", payload);
       if (payload.spaces)         dispatch(spaceSlice.actions.upsertMany(payload.spaces));
-      if (payload.folders)        dispatch(folderSlice.actions.upsertMany(payload.folders));
-      if (payload.tasks)          dispatch(taskSlice.actions.upsertMany(payload.tasks));
+      if (payload.folders) {
+        dispatch(folderSlice.actions.upsertMany(payload.folders));
+        payload.folders.forEach(f => {
+          if (f.spaceId) dispatch(spaceSlice.actions.upsert({ id: f.spaceId, hasFolders: true }));
+        });
+      }
+      if (payload.tasks) {
+        dispatch(taskSlice.actions.upsertMany(payload.tasks));
+        payload.tasks.forEach(t => {
+          if (t.folderId) {
+            dispatch(folderSlice.actions.upsert({ id: t.folderId, hasTasks: true }));
+          } else if (t.spaceId) {
+            dispatch(spaceSlice.actions.upsert({ id: t.spaceId, hasTasks: true }));
+          }
+        });
+      }
       if (payload.members)        dispatch(memberSlice.actions.upsertMany(payload.members));
       if (payload.assignees)      dispatch(assigneeSlice.actions.upsertMany(payload.assignees));
       if (payload.entityAccess)   dispatch(entityAccessSlice.actions.upsertMany(payload.entityAccess));

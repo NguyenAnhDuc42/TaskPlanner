@@ -1,6 +1,5 @@
 import { useRef, useMemo, useCallback, useState } from "react";
-import { useParams, useNavigate } from "@tanstack/react-router";
-import { useDispatch } from "react-redux";
+import { useNavigate } from "@tanstack/react-router";
 import { createPortal } from "react-dom";
 import {
   DndContext,
@@ -18,12 +17,11 @@ import {
 import { BoardItemCard } from "./sortable-board-item";
 import { useBoardDnd } from "./use-board-dnd";
 import { BoardColumn } from "./board-column";
-import { StatusBadge } from "@/components/status-badge";
-import { GitMerge, SlidersHorizontal } from "lucide-react";
 import { useSmartWheelScroll } from "@/features/workspace/contents/views/space/utils/use-smart-wheel-scroll";
 import { useEdgeScroll } from "@/features/workspace/contents/views/space/utils/use-edge-scroll";
 import { useUpdateTaskMutation } from "../../task/task-api";
 import { useUpdateFolderFieldMutation } from "../../folder/folder-api";
+import { SpaceFilterBar } from "./space-filter-bar";
 
 interface SpaceBoardProps {
   spaceId: string;
@@ -31,13 +29,8 @@ interface SpaceBoardProps {
 }
 
 export function SpaceBoard({ spaceId, onWorkflowOpen }: Readonly<SpaceBoardProps>) {
-  const dispatch = useDispatch();
-  const navigate = useNavigate();
-  
-  // 1. CRITICAL FIX: Destructure the string primitive immediately. 
-  // Do not depend on the raw params object inside useCallback dependencies.
-  const params = useParams({ strict: false }) as Record<string, string>;
-  const workspaceId = params?.workspaceId;
+  const navigate = useNavigate({ from: "/workspaces/$workspaceId/spaces/$spaceId" });
+
 
   const containerRef = useRef<HTMLDivElement | null>(null);
 
@@ -47,13 +40,6 @@ export function SpaceBoard({ spaceId, onWorkflowOpen }: Readonly<SpaceBoardProps
 
   const [hiddenStatusIds, setHiddenStatusIds] = useState<string[]>([]);
 
-  const toggleStatusVisibility = useCallback((statusId: string) => {
-    setHiddenStatusIds((prev) =>
-      prev.includes(statusId)
-        ? prev.filter((id) => id !== statusId)
-        : [...prev, statusId]
-    );
-  }, []);
   const [batchUpdate] = useBatchUpdateSpaceItemsMutation();
 
   const columns = useMemo(() => {
@@ -88,14 +74,28 @@ export function SpaceBoard({ spaceId, onWorkflowOpen }: Readonly<SpaceBoardProps
 
   // 2. Click handles are now completely static during a drag execution
   const handleTaskClick = useCallback((id: string) => {
-    if (!workspaceId) return;
-    navigate({ to: `/workspaces/${workspaceId}/tasks/${id}` });
-  }, [workspaceId, navigate]);
+    navigate({
+      search: (prev) => {
+        const searchParams = prev as Record<string, unknown>;
+        return {
+          ...searchParams,
+          contextPanel: { type: "task", id }
+        };
+      }
+    });
+  }, [navigate]);
 
   const handleFolderClick = useCallback((id: string) => {
-    if (!workspaceId) return;
-    navigate({ to: `/workspaces/${workspaceId}/folders/${id}` });
-  }, [workspaceId, navigate]);
+    navigate({
+      search: (prev) => {
+        const searchParams = prev as Record<string, unknown>;
+        return {
+          ...searchParams,
+          contextPanel: { type: "folder", id }
+        };
+      }
+    });
+  }, [navigate]);
 
   const [updateTask] = useUpdateTaskMutation();
   const [updateFolderField] = useUpdateFolderFieldMutation();
@@ -120,7 +120,7 @@ export function SpaceBoard({ spaceId, onWorkflowOpen }: Readonly<SpaceBoardProps
         },
       ],
     });
-  }, [spaceId, batchUpdate, dispatch]);
+  }, [spaceId, batchUpdate]);
 
   const columnsToRender = useMemo(() => {
     const cols = statuses.map((s) => ({
@@ -154,41 +154,12 @@ export function SpaceBoard({ spaceId, onWorkflowOpen }: Readonly<SpaceBoardProps
 
   return (
     <>
-      <div className="px-2 py-2 flex items-center shrink-0 select-none gap-1 bg-background/20 backdrop-blur-sm">
-        {onWorkflowOpen && (
-          <button
-            className="flex items-center h-6 gap-1 px-2 rounded-md bg-muted/40 text-[10px] text-muted-foreground font-semibold hover:bg-muted/80 hover:text-foreground border border-border/30 transition-all cursor-pointer shrink-0"
-            onClick={onWorkflowOpen}
-          >
-            <GitMerge className="h-3.5 w-3.5 opacity-70" />
-            <span>Workflow</span>
-          </button>
-        )}
-
-        <div className="flex items-center gap-1 overflow-x-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] h-6">
-          {statuses.map((status) => (
-            <button
-              key={status.id}
-              onClick={() => toggleStatusVisibility(status.id)}
-              className={`cursor-pointer shrink-0 transition-all duration-200 ${
-                hiddenStatusIds.includes(status.id) ? "opacity-25 saturate-[0.1]" : ""
-              }`}
-            >
-              <StatusBadge status={status} variant="outline" className="h-6 flex items-center" />
-            </button>
-          ))}
-        </div>
-
-        <button
-          className="ml-auto flex items-center h-6 gap-1 px-2 rounded-md bg-muted/40 text-[10px] text-muted-foreground font-semibold hover:bg-muted/80 hover:text-foreground border border-border/30 transition-all cursor-pointer shrink-0"
-          onClick={() => {
-            console.log("Filter clicked");
-          }}
-        >
-          <SlidersHorizontal className="h-3 w-3 opacity-70" />
-          <span>Filter</span>
-        </button>
-      </div>
+      <SpaceFilterBar 
+        statuses={statuses}
+        hiddenStatusIds={hiddenStatusIds}
+        setHiddenStatusIds={setHiddenStatusIds}
+        onWorkflowOpen={onWorkflowOpen}
+      />
 
       <DndContext
         sensors={sensors}

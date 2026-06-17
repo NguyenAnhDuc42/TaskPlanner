@@ -13,19 +13,19 @@ import { ChevronLeft, X, Maximize2 } from "lucide-react";
 import type { ContentPage } from "../type";
 
 export function WorkspaceLayout() {
-  const navigate = useNavigate();
+  const navigate = useNavigate({ from: "/workspaces/$workspaceId" });
   const location = useLocation();
   const { workspaceId, ui, actions } = useWorkspace();
   const hoverTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // ─── Context Panel (from router search) ──────────────
-  const contextData = (location.search as any)?.contextPanel;
+  const contextData = location.search?.contextPanel;
   const isContextOpen = !!contextData;
 
   // ─── Navigation Handlers ────────────────────────────
   const handleSelectIcon = (icon: ContentPage) => {
     const targetRoute = icon === "projects" ? "" : icon;
-    (navigate as any)({
+    navigate({
       to: `/workspaces/$workspaceId/${targetRoute}`,
       params: { workspaceId },
       search: {}, // Close context panel when switching icons
@@ -35,22 +35,34 @@ export function WorkspaceLayout() {
   const handleCloseContextPanel = () => {
     navigate({
       to: location.pathname,
-      search: (prev: any) => {
-        const { contextPanel, ...rest } = prev;
-        return rest;
+      search: (prev) => {
+        const searchParams = { ...(prev as Record<string, unknown>) };
+        delete searchParams.contextPanel;
+        return searchParams;
       },
     });
   };
 
   const handleExpandContextPanel = () => {
-    if (contextData?.type === "task" && contextData.id) {
-      (navigate as any)({
+    if (!contextData) return;
+    
+    const searchUpdater = (prev: Record<string, unknown>) => {
+      const searchParams = { ...prev };
+      delete searchParams.contextPanel;
+      return searchParams;
+    };
+
+    if (contextData.type === "task" && contextData.id) {
+      navigate({
         to: `/workspaces/$workspaceId/tasks/$taskId`,
         params: { workspaceId, taskId: contextData.id },
-        search: (prev: any) => {
-          const { contextPanel, ...rest } = prev;
-          return rest;
-        },
+        search: searchUpdater,
+      });
+    } else if (contextData.type === "folder" && contextData.id) {
+      navigate({
+        to: `/workspaces/$workspaceId/folders/$folderId`,
+        params: { workspaceId, folderId: contextData.id },
+        search: searchUpdater,
       });
     }
   };
@@ -291,27 +303,43 @@ export function WorkspaceLayout() {
             )}
           >
             <div className="h-8 flex items-center justify-between px-2 flex-shrink-0 border-b border-border bg-card/30 gap-1">
-              <Button
-                size="icon"
-                variant="ghost"
-                onClick={handleExpandContextPanel}
-                className="h-6 w-6 text-muted-foreground hover:text-foreground hover:bg-muted rounded-md transition-colors"
-                title="Open in full view"
-              >
-                <Maximize2 className="h-3.5 w-3.5" />
-              </Button>
-              <Button
-                size="icon"
-                variant="ghost"
-                onClick={handleCloseContextPanel}
-                className="h-6 w-6 text-muted-foreground hover:text-foreground hover:bg-muted rounded-md transition-colors"
-                title="Close"
-              >
-                <X className="h-3.5 w-3.5" />
-              </Button>
+              {/* Left Side: Back button */}
+              <div className="flex items-center gap-1">
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  onClick={() => window.history.back()}
+                  className="h-6 w-6 text-muted-foreground hover:text-foreground hover:bg-muted rounded-md transition-colors"
+                  title="Go back"
+                >
+                  <ChevronLeft className="h-3.5 w-3.5" />
+                </Button>
+              </div>
+
+              {/* Right Side: Expand & Close */}
+              <div className="flex items-center gap-1 ml-auto">
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  onClick={handleExpandContextPanel}
+                  className="h-6 w-6 text-muted-foreground hover:text-foreground hover:bg-muted rounded-md transition-colors"
+                  title="Open in full view"
+                >
+                  <Maximize2 className="h-3.5 w-3.5" />
+                </Button>
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  onClick={handleCloseContextPanel}
+                  className="h-6 w-6 text-muted-foreground hover:text-foreground hover:bg-muted rounded-md transition-colors"
+                  title="Close"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </Button>
+              </div>
             </div>
 
-            <div className="flex-1 p-2 min-h-0 overflow-auto bg-card/30">
+            <div className="flex-1 p-1 min-h-0 overflow-auto bg-card/30">
               <ContextPanelRenderer data={contextData} />
             </div>
 

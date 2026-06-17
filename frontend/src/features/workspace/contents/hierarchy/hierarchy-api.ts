@@ -102,10 +102,13 @@ export const hierarchyApi = workspaceApi.injectEndpoints({
         currentCache.hasNextPage = newItems.hasNextPage;
         return currentCache;
       },
-      async onQueryStarted(_, { dispatch, queryFulfilled }) {
+      async onQueryStarted({ nodeId, cursor }, { dispatch, queryFulfilled }) {
         try {
           const { data } = await queryFulfilled;
           dispatch(folderSlice.actions.upsertMany(data.items));
+          if (cursor === null && data.items.length === 0) {
+            dispatch(spaceSlice.actions.upsert({ id: nodeId, hasFolders: false }));
+          }
         } catch { /* ignore */ }
       }
     }),
@@ -125,10 +128,17 @@ export const hierarchyApi = workspaceApi.injectEndpoints({
         currentCache.hasNextPage = newItems.hasNextPage;
         return currentCache;
       },
-      async onQueryStarted(_, { dispatch, queryFulfilled }) {
+      async onQueryStarted({ nodeId, parentType, cursor }, { dispatch, queryFulfilled }) {
         try {
           const { data } = await queryFulfilled;
           dispatch(taskSlice.actions.upsertMany(data.items));
+          if (cursor === null && data.items.length === 0) {
+            if (parentType === EntityLayerType.ProjectSpace) {
+              dispatch(spaceSlice.actions.upsert({ id: nodeId, hasTasks: false }));
+            } else if (parentType === EntityLayerType.ProjectFolder) {
+              dispatch(folderSlice.actions.upsert({ id: nodeId, hasTasks: false }));
+            }
+          }
         } catch { /* ignore */ }
       }
     }),

@@ -1,7 +1,8 @@
-import { MoreHorizontal, Plus } from "lucide-react";
+import { MoreVertical, Plus } from "lucide-react";
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import { StatusBadge } from "@/components/status-badge";
+import type { Status } from "@/types/status";
 
 interface StatusGroupProps {
   id: string;
@@ -11,6 +12,7 @@ interface StatusGroupProps {
   totalCount: number;
   children: ReactNode;
   className?: string;
+  onCreateClick?: () => void;
 }
 
 export function StatusGroup({
@@ -20,6 +22,7 @@ export function StatusGroup({
   totalCount,
   children,
   className,
+  onCreateClick,
 }: Readonly<StatusGroupProps>) {
   return (
     <div 
@@ -31,17 +34,20 @@ export function StatusGroup({
       {/* Column Header */}
       <div className="flex items-center justify-between px-3 py-2 group/header border-b border-border/10 bg-transparent">
         <div className="flex items-center gap-3">
-          <StatusBadge status={{ name: statusName, color: color, category } as any} variant="outline" />
+          <StatusBadge status={{ name: statusName, color: color, category } as Status} variant="outline" />
           <span className="text-[9px] font-black text-muted-foreground/40 px-2 py-0.5 rounded-md bg-white/[0.02] border border-white/[0.03]">
             {totalCount}
           </span>
         </div>
         <div className="flex items-center gap-0.5 opacity-0 group-hover/header:opacity-100 transition-all duration-200">
-          <button className="p-1.5 hover:bg-white/5 rounded-md text-muted-foreground/30 hover:text-foreground transition-all active:scale-90">
+          <button 
+            onClick={onCreateClick}
+            className="p-1.5 hover:bg-white/5 rounded-md text-muted-foreground/30 hover:text-foreground transition-all active:scale-90"
+          >
             <Plus className="h-3.5 w-3.5" />
           </button>
           <button className="p-1.5 hover:bg-white/5 rounded-md text-muted-foreground/30 hover:text-foreground transition-all active:scale-90">
-            <MoreHorizontal className="h-3.5 w-3.5" />
+            <MoreVertical className="h-3.5 w-3.5" />
           </button>
         </div>
       </div>

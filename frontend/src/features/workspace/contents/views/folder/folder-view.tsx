@@ -1,9 +1,9 @@
 import { EntityViewFrame } from "../entity-view-frame";
 import { FolderTaskList } from "./components/folder-task-list";
-import { Folder, Trash2, MoreVertical, GitMerge, Circle } from "lucide-react";
+import { Folder, Trash2, MoreVertical, GitMerge, Circle, Maximize2 } from "lucide-react";
 import { TaskDetailCanvas } from "../task/components/task-detail-canvas";
 import * as React from "react";
-import { useParams, Link } from "@tanstack/react-router";
+import { useParams, Link, useNavigate } from "@tanstack/react-router";
 import { useSpaceDetail, useGetSpaceDetailQuery, useSpaceStatuses } from "../space/space-api";
 import { DynamicIcon } from "@/components/dynamic-icon";
 import {
@@ -39,6 +39,7 @@ import { PopoverFormWrapper } from "@/components/popover-wrapper";
 import { UniversalPicker } from "@/components/universal-picker";
 import { CreateStatusForm } from "@/features/workspace/components/forms/create-status-form";
 import type { FolderRecord } from "@/types/projects/folder-record";
+import { cn } from "@/lib/utils";
 
 interface FolderViewProps {
   folderId: string;
@@ -116,6 +117,8 @@ export function FolderView({ folderId }: Readonly<FolderViewProps>) {
       return next;
     });
   };
+
+  const navigate = useNavigate();
 
   if (isLoading) {
     return <div className="p-8 text-sm text-muted-foreground animate-pulse">Loading folder...</div>;
@@ -287,7 +290,10 @@ export function FolderView({ folderId }: Readonly<FolderViewProps>) {
         {/* Floating Content Area */}
         <div className="flex-1 flex gap-1 overflow-hidden relative">
           {/* Left Card: Folder Task List Column */}
-          <div className="w-[280px] rounded-md border border-border/40 bg-card/35 backdrop-blur-md shadow-sm overflow-hidden flex flex-col shrink-0">
+          <div className={cn(
+            "rounded-md border border-border/40 bg-card/35 backdrop-blur-md shadow-sm overflow-hidden flex flex-col shrink-0 transition-all duration-300",
+            selectedTaskId ? "w-[280px]" : "flex-1 w-full"
+          )}>
             <FolderTaskList
               checkedTaskIds={checkedTaskIds}
               onToggleCheck={toggleCheck}
@@ -297,9 +303,27 @@ export function FolderView({ folderId }: Readonly<FolderViewProps>) {
           </div>
 
           {/* Right Card: Task Detail Canvas */}
-          <div className="flex-1 rounded-md border border-border/40 bg-card/35 backdrop-blur-md shadow-sm overflow-hidden flex flex-col">
-            <TaskDetailCanvas taskId={selectedTaskId} />
-          </div>
+          {selectedTaskId && (
+            <div className="flex-1 rounded-md border border-border/40 bg-card/35 backdrop-blur-md shadow-sm overflow-hidden flex flex-col relative group">
+              <div className="absolute top-1.5 right-1.5 z-10 opacity-0 group-hover:opacity-100 transition-opacity">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7  text-muted-foreground hover:text-foreground backdrop-blur-md"
+                  title="Open full view"
+                  onClick={() => {
+                    navigate({
+                      to: `/workspaces/$workspaceId/tasks/$taskId`,
+                      params: { workspaceId, taskId: selectedTaskId }
+                    });
+                  }}
+                >
+                  <Maximize2 className="h-3.5 w-3.5" />
+                </Button>
+              </div>
+              <TaskDetailCanvas taskId={selectedTaskId} />
+            </div>
+          )}
         </div>
       </div>
 

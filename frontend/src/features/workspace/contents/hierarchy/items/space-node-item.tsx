@@ -1,7 +1,7 @@
 import React from "react";
 import * as Icons from "lucide-react";
 import { ChevronRight, MoreHorizontal, Lock, type LucideIcon } from "lucide-react";
-import { useNavigate, useLocation } from "@tanstack/react-router";
+import { useNavigate, useLocation, useRouter } from "@tanstack/react-router";
 import { useWorkspace } from "@/features/workspace/context/workspace-provider";
 import { cn } from "@/lib/utils";
 import { Collapsible, CollapsibleContent } from "@/components/ui/collapsible";
@@ -25,7 +25,7 @@ interface SpaceNodeItemProps {
 
 export const SpaceNodeItem = React.memo(function SpaceNodeItem({
   spaceId,
-  isForcedOpen,
+  isForcedOpen = false,
 }: SpaceNodeItemProps) {
   const { workspaceId } = useWorkspace();
   
@@ -38,6 +38,7 @@ export const SpaceNodeItem = React.memo(function SpaceNodeItem({
   const prefetchTasks = hierarchyApi.usePrefetch("getNodeTasks");
 
   const navigate = useNavigate();
+  const router = useRouter();
   const location = useLocation();
   const [isOpen, setIsOpen] = React.useState(false);
 
@@ -80,8 +81,8 @@ export const SpaceNodeItem = React.memo(function SpaceNodeItem({
               className="relative flex items-center justify-center w-5 h-5 shrink-0 cursor-pointer rounded-sm hover:bg-background/50 group/icon mr-1.5"
               onMouseEnter={() => {
                 if (effectiveOpen || !workspaceId) return;
-                prefetchFolders({ workspaceId: workspaceId || "", nodeId: space.id, cursor: null });
-                prefetchTasks({ workspaceId: workspaceId || "", nodeId: space.id, parentType: EntityLayerConst.ProjectSpace, cursor: null });
+                if (space.hasFolders) prefetchFolders({ workspaceId, nodeId: space.id, cursor: null });
+                if (space.hasTasks) prefetchTasks({ workspaceId, nodeId: space.id, parentType: EntityLayerConst.ProjectSpace, cursor: null });
               }}
               onClick={(e) => {
                 if (!hasChildren) return;
@@ -109,6 +110,14 @@ export const SpaceNodeItem = React.memo(function SpaceNodeItem({
             <button
               type="button"
               className="flex-1 text-left text-[11px] font-bold truncate outline-none select-none"
+              onMouseDown={() => {
+                if (workspaceId) {
+                  router.preloadRoute({
+                    to: "/workspaces/$workspaceId/spaces/$spaceId",
+                    params: { workspaceId, spaceId: space.id },
+                  });
+                }
+              }}
               onClick={() => navigate({
                   to: "/workspaces/$workspaceId/spaces/$spaceId",
                   params: { workspaceId, spaceId: space.id },

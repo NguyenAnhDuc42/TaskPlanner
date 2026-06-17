@@ -3,6 +3,8 @@ import { FolderNodeItem } from "@/features/workspace/contents/hierarchy/items/fo
 import { useWorkspace } from "@/features/workspace/context/workspace-provider";
 import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import React from "react";
+import { useDispatch } from "react-redux";
+import { spaceSlice } from "@/store/entityStore";
 
 const FolderSkeleton = () => (
   <div className="flex items-center gap-2 pl-4 py-1 opacity-20 animate-pulse">
@@ -19,6 +21,7 @@ export const NodeFoldersList = React.memo(function NodeFoldersList({
   isExpanded: boolean;
 }) {
   const { workspaceId } = useWorkspace();
+  const dispatch = useDispatch();
   
   const { isLoading } = useGetNodeFoldersQuery(
     { workspaceId: workspaceId || "", nodeId: spaceId, cursor: null },
@@ -26,6 +29,12 @@ export const NodeFoldersList = React.memo(function NodeFoldersList({
   );
   
   const folders = useFoldersBySpace(spaceId);
+
+  React.useEffect(() => {
+    if (isExpanded && !isLoading && folders.length === 0) {
+      dispatch(spaceSlice.actions.upsert({ id: spaceId, hasFolders: false }));
+    }
+  }, [isExpanded, isLoading, folders.length, spaceId, dispatch]);
 
   if (!isExpanded) return null;
 

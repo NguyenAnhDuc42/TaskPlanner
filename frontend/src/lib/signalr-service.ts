@@ -116,7 +116,7 @@ class SignalRService {
     this.pendingListeners = [];
   }
 
-  // 3. 100% Type-Safe Event subscription
+
   public on<E extends keyof SignalREvents>(
     eventName: E,
     callback: (data: SignalREvents[E]) => void

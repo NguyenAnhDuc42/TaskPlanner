@@ -1,5 +1,5 @@
 import React from "react";
-import { useLocation, useNavigate } from "@tanstack/react-router";
+import { useLocation, useNavigate, useRouter } from "@tanstack/react-router";
 import { useWorkspace } from "@/features/workspace/context/workspace-provider";
 import { cn } from "@/lib/utils";
 import { CheckSquare, MoreHorizontal } from "lucide-react";
@@ -35,6 +35,7 @@ export const TaskNodeItem = React.memo(function TaskNodeItem({
   const task = useSelector((state: RootState) => taskSelectors.selectById(state, taskId));
   
   const navigate = useNavigate();
+  const router = useRouter();
   const { workspaceId } = useWorkspace();
   const location = useLocation();
   
@@ -70,6 +71,12 @@ export const TaskNodeItem = React.memo(function TaskNodeItem({
           <button
             type="button"
             className="flex-1 text-left flex items-center outline-none select-none min-w-0"
+            onMouseDown={() => {
+              router.preloadRoute({
+                to: "/workspaces/$workspaceId/tasks/$taskId", 
+                params: { workspaceId, taskId: task.id } 
+              });
+            }}
             onClick={() => navigate({
                 to: "/workspaces/$workspaceId/tasks/$taskId", 
                 params: { workspaceId, taskId: task.id } 

@@ -85,7 +85,6 @@ export function CreateFolderForm({
   const [createFolderMutation, { isLoading: isCreating }] = useCreateFolderMutation();
   const [state, dispatch] = useReducer(folderFormReducer, initialFolderState);
 
-  // Lazy-load Space Record details and items (including statuses)
   const { data: space } = useGetSpaceDetailQuery(spaceId);
   useGetSpaceItemsQuery(spaceId);
   const spaceStatuses = useSpaceStatuses(spaceId);

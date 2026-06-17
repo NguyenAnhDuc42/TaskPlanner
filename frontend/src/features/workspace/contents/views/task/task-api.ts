@@ -34,7 +34,6 @@ export const taskApi = workspaceApi.injectEndpoints({
         method: "PUT",
         data: patches,
       }),
-      invalidatesTags: (_result, _error, { taskId }) => [{ type: "Tasks" as const, id: taskId }],
       async onQueryStarted({ taskId, patches }, { dispatch, queryFulfilled, getState }) {
         const state = getState() as RootState;
         const originalTask = state.tasks.entities[taskId];

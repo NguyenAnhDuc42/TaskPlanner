@@ -18,6 +18,9 @@ function safeMergeEntity<T extends { id: string }>(
   (Object.keys(incoming) as Array<keyof T>).forEach((key) => {
     const val = incoming[key];
     if (val !== undefined) {
+      if (val === null && (key === "hasTasks" || key === "hasFolders" || key === "hasChildren")) {
+        return;
+      }
       if (Array.isArray(val)) {
         merged[key] = [...val] as unknown as T[keyof T];
       } else if (val && typeof val === 'object') {

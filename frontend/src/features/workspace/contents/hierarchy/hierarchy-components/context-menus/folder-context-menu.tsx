@@ -102,7 +102,6 @@ export function FolderContextMenu({
           parentType={EntityLayerType.ProjectFolder}
           onSuccess={() => {
             setActiveForm(null);
-            // Relational state sync on success
             dispatch(folderSlice.actions.upsert({ id: folderId, hasTasks: true }));
           }}
           onCancel={() => setActiveForm(null)}
