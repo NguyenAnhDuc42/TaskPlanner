@@ -43,11 +43,14 @@ public class UpdateFolderHandler(TaskPlanDbContext db, WorkspaceContext workspac
         if (affectedRows > 0)
         {
             logger.LogInformation("Broadcasting entity updates for updated folder {FolderId}", folder.Id);
-            await realtimeService.NotifyEntitiesUpdatedAsync(
+            _ = realtimeService.NotifyEntitiesUpdatedAsync(
                 workspaceContext.TryGetWorkspaceId().Value,
                 new EntityBatchUpdate { Folders = [FolderRecord.FromDomain(folder, workflowId: null)] },
-                cancellationToken);
-                
+                default)
+            .ContinueWith(t =>
+                logger.LogError(t.Exception, "Failed to send real-time notification for updated folder {FolderId}", folder.Id),
+                TaskContinuationOptions.OnlyOnFaulted);
+
             logger.LogInformation("Successfully updated folder {FolderId}", folder.Id);
         }
         else

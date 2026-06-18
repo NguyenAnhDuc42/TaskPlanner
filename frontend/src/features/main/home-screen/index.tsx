@@ -8,6 +8,7 @@ import { useNavigate } from "@tanstack/react-router";
 import { ChevronRight, Pin } from "lucide-react";
 import { cn } from "@/lib/utils";
 import React from "react";
+import type { Role } from "@/types/role";
 
 export function WorkspaceHomeScreen() {
   const {
@@ -111,7 +112,7 @@ export function WorkspaceHomeScreen() {
 
                 {/* Right side affordance */}
                 <div className="flex items-center gap-2">
-                  <RoleBadge role={workspace.role as any || "Member"} />
+                  <RoleBadge role={workspace.role as Role} />
                   <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-foreground group-hover:translate-x-0.5 transition-all" />
                 </div>
               </div>

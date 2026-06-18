@@ -10,6 +10,7 @@ import { entityAccessSelectors, memberSelectors } from "@/store/entityStore";
 import { SpaceAccessDialog } from "./space-access-dialog";
 import { CreateStatusForm } from "@/features/workspace/components/forms/create-status-form";
 import { SpaceDocumentsPanel } from "./space-documents-panel";
+import { RowAction } from "@/types/row-action";
 
 interface SpaceDetailProps {
   spaceId: string;
@@ -110,7 +111,7 @@ export function SpaceDetail({ spaceId }: SpaceDetailProps) {
 
   // Handle changing member access level on click/select
   const handleAccessChange = async (memberId: string, newLevel: AccessLevel, isCreate: boolean) => {
-    const action = isCreate ? "Create" : (newLevel === "None" ? "Delete" : "Update");
+    const action = isCreate ? RowAction.Create : (newLevel === "None" ? RowAction.Delete : RowAction.Update);
     const access = entityAccessList.find((a) => a.workspaceMemberId === memberId);
 
     try {

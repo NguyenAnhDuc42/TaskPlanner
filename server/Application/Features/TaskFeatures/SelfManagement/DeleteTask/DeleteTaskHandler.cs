@@ -65,7 +65,12 @@ public class DeleteTaskHandler(TaskPlanDbContext db, WorkspaceContext workspaceC
             if (update.Folders != null || update.Spaces != null)
             {
                 logger.LogInformation("Broadcasting hasTasks update for parent of deleted task {TaskId}", task.Id);
-                await realtimeService.NotifyEntitiesUpdatedAsync(workspaceContext.WorkspaceId, update, cancellationToken);
+                _ = realtimeService
+                .NotifyEntitiesUpdatedAsync(workspaceContext.WorkspaceId, update, default)
+                .ContinueWith(t =>
+                    logger.LogError(t.Exception, "Failed to send real-time notification for updated parent of deleted task {TaskId}", task.Id),
+                    TaskContinuationOptions.OnlyOnFaulted
+                );
             }
             
             logger.LogInformation("Successfully deleted task {TaskId}", task.Id);

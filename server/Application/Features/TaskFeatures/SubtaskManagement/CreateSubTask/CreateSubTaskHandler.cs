@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 
 namespace Application;
 
@@ -6,6 +7,7 @@ public class CreateSubTaskHandler(
     TaskPlanDbContext db,
     WorkspaceContext workspaceContext,
     RealtimeService realtimeService,
+    ILogger<CreateSubTaskHandler> logger,
     PermissionService permissionService
 ) : ICommandHandler<CreateSubTaskCommand>
 {
@@ -67,11 +69,14 @@ public class CreateSubTaskHandler(
         
         if (result.IsSuccess && subTask is not null)
         {
-            await realtimeService.NotifyEntitiesUpdatedAsync(
+            _ = realtimeService
+            .NotifyEntitiesUpdatedAsync(
                 workspaceContext.WorkspaceId,
                 new EntityBatchUpdate { Tasks = [TaskRecord.FromDomain(subTask)] },
-                cancellationToken
-            );
+                default)
+            .ContinueWith(t =>
+                logger.LogError(t.Exception, "Failed to send real-time notification for created subtask {SubTaskId}", subTask.Id),
+                TaskContinuationOptions.OnlyOnFaulted);
         }
 
         return result;

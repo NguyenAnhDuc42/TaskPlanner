@@ -1,10 +1,17 @@
 using Dapper;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using System.Data.Common;
 
 namespace Application;
 
-public class BatchUpdateSpaceItemsHandler(TaskPlanDbContext db, WorkspaceContext workspaceContext, PermissionService permissionService, RealtimeService realTimeService) : ICommandHandler<BatchUpdateSpaceItemsCommand>
+public class BatchUpdateSpaceItemsHandler(
+    TaskPlanDbContext db, 
+    WorkspaceContext workspaceContext, 
+    PermissionService permissionService, 
+    RealtimeService realTimeService,
+    ILogger<BatchUpdateSpaceItemsHandler> logger) 
+    : ICommandHandler<BatchUpdateSpaceItemsCommand>
 {
      public async Task<Result> Handle(BatchUpdateSpaceItemsCommand request, CancellationToken cancellationToken)
     {
@@ -65,16 +72,17 @@ public class BatchUpdateSpaceItemsHandler(TaskPlanDbContext db, WorkspaceContext
 
         if (result.IsSuccess)
         {
-            await realTimeService.NotifyEntitiesUpdatedAsync(
-                workspaceContext.WorkspaceId,
+            _ =  realTimeService
+            .NotifyEntitiesUpdatedAsync(workspaceContext.WorkspaceId,
                 new EntityBatchUpdate
                 {
                     Tasks = taskRecords.Count > 0 ? taskRecords : null,
                     Folders = folderRecords.Count > 0 ? folderRecords : null
-                },
-                cancellationToken);
+                }, default)
+            .ContinueWith(t =>
+                logger.LogError(t.Exception, "Failed to send real-time notification for batch updated items in space {SpaceId}", request.SpaceId), 
+                TaskContinuationOptions.OnlyOnFaulted);
         }
-
         return result;
     }
 

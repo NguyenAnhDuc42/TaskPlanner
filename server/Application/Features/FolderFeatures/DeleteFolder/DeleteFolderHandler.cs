@@ -48,10 +48,14 @@ public class DeleteFolderHandler(
                     var spaceRecord = SpaceRecord.FromDomain(space, workflowId) with { HasFolders = false };
                     
                     logger.LogInformation("Broadcasting hasFolders=false update for space {SpaceId} since last folder was deleted", space.Id);
-                    await realtimeService.NotifyEntitiesUpdatedAsync(
+                    _ = realtimeService
+                    .NotifyEntitiesUpdatedAsync(
                         workspaceContext.TryGetWorkspaceId().Value,
                         new EntityBatchUpdate { Spaces = [spaceRecord] },
-                        cancellationToken);
+                        default)
+                    .ContinueWith(t => 
+                        logger.LogError(t.Exception, "Failed to send real-time notification for updated space {SpaceId} after folder deletion", space.Id), 
+                        TaskContinuationOptions.OnlyOnFaulted);
                 }
             }
             logger.LogInformation("Successfully deleted folder {FolderId}", folder.Id);

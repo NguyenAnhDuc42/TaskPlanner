@@ -1,5 +1,5 @@
 using Microsoft.EntityFrameworkCore;
-
+using Microsoft.Extensions.Logging;
 
 namespace Application;
 
@@ -7,7 +7,8 @@ public class EntityAccessBatchHandler(
     TaskPlanDbContext db,
     WorkspaceContext workspaceContext,
     PermissionService permissionService,
-    RealtimeService realtimeService
+    RealtimeService realtimeService,
+    ILogger<EntityAccessBatchHandler> logger
 ) : ICommandHandler<EntityAccessBatchCommand>, IAuthorizedWorkspaceRequest
 {
 
@@ -123,10 +124,13 @@ public class EntityAccessBatchHandler(
 
             if (updatedRecords.Count > 0)
             {
-                await realtimeService.NotifyEntitiesUpdatedAsync(
+                _ = realtimeService.NotifyEntitiesUpdatedAsync(
                     workspaceContext.WorkspaceId,
                     new EntityBatchUpdate { EntityAccess = updatedRecords },
-                    cancellationToken);
+                    default)
+                .ContinueWith(t =>
+                    logger.LogError(t.Exception, "Failed to send real-time notification for updated entity access"),
+                    TaskContinuationOptions.OnlyOnFaulted);
             }
 
             var deletedIds = existingAccesses
@@ -136,10 +140,13 @@ public class EntityAccessBatchHandler(
 
             if (deletedIds.Count > 0)
             {
-                await realtimeService.NotifyEntitiesDeletedAsync(
+                _ = realtimeService.NotifyEntitiesDeletedAsync(
                     workspaceContext.WorkspaceId,
                     new EntityBatchDelete { EntityAccessIds = deletedIds },
-                    cancellationToken);
+                    default)
+                .ContinueWith(t =>
+                    logger.LogError(t.Exception, "Failed to send real-time notification for deleted entity access"),
+                    TaskContinuationOptions.OnlyOnFaulted);
             }
         }
         

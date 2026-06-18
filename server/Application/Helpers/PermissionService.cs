@@ -1,9 +1,10 @@
 using Microsoft.EntityFrameworkCore;
-using Domain;
+using Microsoft.Extensions.Logging;
+
 
 namespace Application;
 
-public class PermissionService(TaskPlanDbContext db, WorkspaceContext context)
+public class PermissionService(TaskPlanDbContext db, WorkspaceContext context, ILogger<PermissionService> logger)
 {
 
     public async Task<bool> VerifyAsync(
@@ -16,6 +17,7 @@ public class PermissionService(TaskPlanDbContext db, WorkspaceContext context)
         if (spaceId.HasValue != requiredAccess.HasValue) throw new ArgumentException("spaceId and requiredAccess must both be provided or both be null");
 
         var currentMember = context.CurrentMember;
+        logger.LogInformation("Verifying permissions for user {UserId} with role {UserRole} against required role {RequiredRole} and access level {RequiredAccess} in space {SpaceId}", currentMember.UserId, currentMember.Role, requiredRole, requiredAccess, spaceId);
         if (!currentMember.Role.IsAtLeast(requiredRole)) return false;
 
         if (currentMember.Role.IsAtLeast(Role.Admin)) return true;

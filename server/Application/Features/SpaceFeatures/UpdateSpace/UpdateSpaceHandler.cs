@@ -4,7 +4,13 @@ using Microsoft.Extensions.Logging;
 
 namespace Application;
 
-public class UpdateSpaceHandler(TaskPlanDbContext db, WorkspaceContext context, PermissionService permissionService, RealtimeService realtimeService, ILogger<UpdateSpaceHandler> logger) : ICommandHandler<UpdateSpaceCommand>
+public class UpdateSpaceHandler(
+    TaskPlanDbContext db, 
+    WorkspaceContext context, 
+    PermissionService permissionService, 
+    RealtimeService realtimeService, 
+    ILogger<UpdateSpaceHandler> logger) 
+    : ICommandHandler<UpdateSpaceCommand>
 {
     public async Task<Result> Handle(UpdateSpaceCommand request, CancellationToken cancellationToken)
     {
@@ -38,10 +44,14 @@ public class UpdateSpaceHandler(TaskPlanDbContext db, WorkspaceContext context, 
         if (affectedRows > 0)
         {
             logger.LogInformation("Broadcasting entity updates for updated space {SpaceId}", space.Id);
-            await realtimeService.NotifyEntitiesUpdatedAsync(
+            _ = realtimeService
+            .NotifyEntitiesUpdatedAsync(
                 context.TryGetWorkspaceId().Value,
                 new EntityBatchUpdate { Spaces = [SpaceRecord.FromDomain(space, workflowId: null)] },
-                cancellationToken);
+                default)
+            .ContinueWith(t =>
+                logger.LogError(t.Exception, "Failed to send real-time notification for updated space {SpaceId}", space.Id), 
+                TaskContinuationOptions.OnlyOnFaulted);
         }
 
         return Result.Success();

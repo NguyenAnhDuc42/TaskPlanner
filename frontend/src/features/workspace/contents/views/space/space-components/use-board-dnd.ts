@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { useDispatch } from "react-redux";
 import {
   useSensor,
   useSensors,
@@ -8,18 +7,18 @@ import {
   type DragStartEvent,
   type DragEndEvent,
 } from "@dnd-kit/core";
-import { folderSlice, taskSlice } from "@/store/entityStore";
 import { fractionalBetween } from "@/features/workspace/contents/hierarchy/utils/fractional-index";
 import { getPriorityWeight, WeightToPriority, type Priority } from "@/types/priority";
-import type { BoardItem } from "../space-api";
+import type { BatchUpdateSpaceItemValue, BoardItem } from "../space-api";
 import type { Status } from "@/types/status";
+import { EntityLayerType } from "@/types/entity-layer-type";
 
 interface UseBoardDndProps {
   spaceId: string;
   boardItems: BoardItem[];
   statuses: Status[];
   columns: Record<string, BoardItem[]>;
-  batchUpdate: (args: any) => void;
+  batchUpdate: (args: { spaceId: string; updates: BatchUpdateSpaceItemValue[] }) => void;
 }
 
 interface PositionResult {
@@ -116,7 +115,6 @@ function resolveSameColumnPosition(
 
   const resolvedWeight = getPriorityWeight({ priority: resolvedPriority });
 
-  // Streamlined neighborhood scans
   let prevItemOfSamePriority: BoardItem | null = null;
   let nextItemOfSamePriority: BoardItem | null = null;
 
@@ -152,7 +150,7 @@ export function useBoardDnd({
   columns,
   batchUpdate,
 }: UseBoardDndProps) {
-  const dispatch = useDispatch();
+
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
@@ -204,22 +202,14 @@ export function useBoardDnd({
 
   const { prevItemOfSamePriority, nextItemOfSamePriority, resolvedPriority, tempOrderKey } = position;
 
-  const updates = {
-    id: rawActiveId,
-    statusId: resolvedStatusId ?? undefined,
-    priority: resolvedPriority,
-    orderKey: tempOrderKey,
-  };
 
-  // FIX: Wrap the heavy state tracking modifications in a microtask 
-  // so the browser can close the pointer drop handler instantly.
   queueMicrotask(() => {
     batchUpdate({
       spaceId,
       updates: [
         {
           id: rawActiveId,
-          type: activeItem.__type === "folder" ? "ProjectFolder" : "ProjectTask",
+          type: activeItem.__type === "folder" ? EntityLayerType.ProjectFolder : EntityLayerType.ProjectTask,
           statusId: resolvedStatusId,
           priority: resolvedPriority,
           orderKey: tempOrderKey,

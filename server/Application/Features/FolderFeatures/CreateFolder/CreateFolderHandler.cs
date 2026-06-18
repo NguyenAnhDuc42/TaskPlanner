@@ -45,7 +45,6 @@ public class CreateFolderHandler(
             var orderKey = maxKey is null ? FractionalIndex.Start() : FractionalIndex.After(maxKey);
             var slug = SlugHelper.GenerateSlug(request.Name);
 
-            // 2. Create the folder 
             folder = ProjectFolder.Create(
                 projectWorkspaceId: workspaceContext.WorkspaceId,
                 projectSpaceId: space.Id,
@@ -88,14 +87,16 @@ public class CreateFolderHandler(
             var spaceRecord = SpaceRecord.FromDomain(space, spaceWorkflowId) with { HasFolders = true };
             
             logger.LogInformation("Broadcasting entity updates for created folder {FolderId}", folder!.Id);
-            _ = realtimeService.NotifyEntitiesUpdatedAsync(
-                workspaceContext.WorkspaceId,
+            _ = realtimeService
+            .NotifyEntitiesUpdatedAsync(workspaceContext.WorkspaceId,
                 new EntityBatchUpdate { 
                     Folders = [result.Value], 
                     Spaces = [spaceRecord],
                     Statuses = createdStatuses.Select(StatusRecord.FromDomain).ToList()
-                },
-                default);
+                },default)
+            .ContinueWith(t =>
+                logger.LogError(t.Exception, "Failed to send real-time notification for created folder {FolderId}", folder.Id), 
+                TaskContinuationOptions.OnlyOnFaulted);
                 
             logger.LogInformation("Successfully completed CreateFolderHandler for folder {FolderId}", folder.Id);
         }

@@ -161,27 +161,7 @@ export const taskApi = workspaceApi.injectEndpoints({
       }
     }),
 
-    deleteTask: build.mutation<void, string>({
-      query: (taskId) => ({
-        url: `/tasks/${taskId}`,
-        method: "DELETE",
-      }),
-      invalidatesTags: (_result, _error, taskId) => [{ type: "Tasks" as const, id: taskId }],
-      async onQueryStarted(taskId, { dispatch, queryFulfilled, getState }) {
-        const state = getState() as RootState;
-        const originalTask = state.tasks.entities[taskId];
-        
-        dispatch(taskSlice.actions.remove(taskId));
-        try {
-          await queryFulfilled;
-        } catch {
-          if (originalTask) {
-            dispatch(taskSlice.actions.upsert(originalTask));
-          }
-          toast.error("Failed to delete task. Your changes have been reverted.");
-        }
-      }
-    }),
+
 
     createSubTask: build.mutation<void, { parentTaskId: string; name: string; priority: string; statusId?: string }>({
       query: ({ parentTaskId, name, priority, statusId }) => ({
@@ -206,5 +186,4 @@ export const {
   useAddCommentMutation,
   useDeleteCommentMutation,
   useCreateSubTaskMutation,
-  useDeleteTaskMutation,
 } = taskApi;

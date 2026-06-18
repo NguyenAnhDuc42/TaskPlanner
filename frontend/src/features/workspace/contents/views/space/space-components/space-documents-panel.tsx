@@ -18,7 +18,6 @@ export function SpaceDocumentsPanel({ spaceId }: SpaceDocumentsPanelProps) {
   const [newTabName, setNewTabName] = useState("");
   const isSavingTabRef = React.useRef(false);
 
-  // Sync active document ID with defaultDocumentId when spaceId or defaultDocumentId changes
   React.useEffect(() => {
     if (space?.defaultDocumentId) {
       setActiveDocId(space.defaultDocumentId);

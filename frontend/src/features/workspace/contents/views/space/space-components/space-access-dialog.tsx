@@ -19,11 +19,13 @@ interface SpaceAccessDialogProps {
   trigger: React.ReactNode;
 }
 
+import { RowAction } from "@/types/row-action";
+
 interface SpaceAccessDialogRowProps {
   member: MemberRecord;
   isCreator: boolean;
   access?: EntityAccessRecord;
-  onUpdateAccess: (newLevel: AccessLevel | "None", action: "Create" | "Update" | "Delete") => void;
+  onUpdateAccess: (newLevel: AccessLevel, action: RowAction) => void;
 }
 
 export function SpaceAccessDialogRow({ member, isCreator, access, onUpdateAccess }: Readonly<SpaceAccessDialogRowProps>) {
@@ -33,15 +35,15 @@ export function SpaceAccessDialogRow({ member, isCreator, access, onUpdateAccess
 
   const handleToggleCheckbox = () => {
     if (isCreator) return;
-    const action = haveAccess ? "Delete" : "Create";
+    const action = haveAccess ? RowAction.Delete : RowAction.Create;
     const nextLevel = haveAccess ? "None" : "Viewer";
-    onUpdateAccess(nextLevel, action);
+    onUpdateAccess(nextLevel as AccessLevel, action);
   };
 
   const handleLevelSelect = (e: React.ChangeEvent<HTMLSelectElement>) => {
     if (isCreator) return;
-    const newLevel = e.target.value as AccessLevel | "None";
-    const action = newLevel === "None" ? "Delete" : (haveAccess ? "Update" : "Create");
+    const newLevel = e.target.value as AccessLevel;
+    const action = newLevel === "None" ? RowAction.Delete : (haveAccess ? RowAction.Update : RowAction.Create);
     onUpdateAccess(newLevel, action);
   };
 

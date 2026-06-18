@@ -1,13 +1,14 @@
 using Microsoft.EntityFrameworkCore;
-using Domain;
+using Microsoft.Extensions.Logging;
 
 namespace Application;
 
 public class DeleteCommentHandler(
-    TaskPlanDbContext db, 
-    WorkspaceContext workspaceContext, 
+    TaskPlanDbContext db,
+    WorkspaceContext workspaceContext,
     PermissionService permissionService,
-    RealtimeService realtimeService
+    RealtimeService realtimeService,
+    ILogger<DeleteCommentHandler> logger
 ) : ICommandHandler<DeleteCommentCommand>
 {
     public async Task<Result> Handle(DeleteCommentCommand request, CancellationToken cancellationToken)
@@ -25,12 +26,18 @@ public class DeleteCommentHandler(
         }
 
         db.Comments.Remove(comment);
-        await db.SaveChangesAsync(cancellationToken);
-
-        await realtimeService.NotifyEntitiesDeletedAsync(
-            workspaceContext.WorkspaceId,
-            new EntityBatchDelete { CommentIds = [comment.Id] },
-            cancellationToken);
+        var affected = await db.SaveChangesAsync(cancellationToken);
+        if (affected > 0)
+        {
+            await realtimeService
+            .NotifyEntitiesDeletedAsync(
+                workspaceContext.WorkspaceId,
+                new EntityBatchDelete { CommentIds = [comment.Id] },
+                cancellationToken)
+            .ContinueWith(t =>
+                logger.LogError(t.Exception, "Failed to send real-time notification for deleted comment {CommentId}", comment.Id),
+                TaskContinuationOptions.OnlyOnFaulted);
+        }
 
         return Result.Success();
     }

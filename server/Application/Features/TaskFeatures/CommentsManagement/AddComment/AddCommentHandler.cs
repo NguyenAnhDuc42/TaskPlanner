@@ -1,5 +1,5 @@
 using Microsoft.EntityFrameworkCore;
-
+using Microsoft.Extensions.Logging;
 
 namespace Application;
 
@@ -7,7 +7,9 @@ public class AddCommentHandler(
     TaskPlanDbContext db,
     WorkspaceContext workspaceContext,
     PermissionService permissionService,
-    RealtimeService realtimeService
+    RealtimeService realtimeService,
+    ILogger<AddCommentHandler> logger
+
 ) : ICommandHandler<AddCommentCommand, CommentRecord>
 {
     public async Task<Result<CommentRecord>> Handle(AddCommentCommand request, CancellationToken cancellationToken)
@@ -44,10 +46,14 @@ public class AddCommentHandler(
 
         if (affected > 0)
         {
-            await realtimeService.NotifyEntitiesUpdatedAsync(
+            _ = realtimeService
+            .NotifyEntitiesUpdatedAsync(
                 workspaceContext.WorkspaceId,
                 new EntityBatchUpdate { Comments = [dto] },
-                cancellationToken);
+                default)
+            .ContinueWith(t =>
+                logger.LogError(t.Exception, "Failed to send real-time notification for added comment {CommentId}", comment.Id),
+                TaskContinuationOptions.OnlyOnFaulted);
         }
 
         return Result<CommentRecord>.Success(dto);

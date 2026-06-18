@@ -52,10 +52,14 @@ public class UpdateTaskHandler(TaskPlanDbContext db, WorkspaceContext workspaceC
         if (affectedRows > 0)
         {
             logger.LogInformation("Broadcasting entity updates for updated task {TaskId}", task.Id);
-            await realtimeService.NotifyEntitiesUpdatedAsync(
+            _ =  realtimeService
+            .NotifyEntitiesUpdatedAsync(
                 workspaceContext.WorkspaceId,
                 new EntityBatchUpdate { Tasks = new List<TaskRecord> { TaskRecord.FromDomain(task) } },
-                cancellationToken);
+                default)
+            .ContinueWith(t =>
+                logger.LogError(t.Exception, "Failed to send real-time notification for updated task {TaskId}", task.Id), 
+                TaskContinuationOptions.OnlyOnFaulted);
                 
             logger.LogInformation("Successfully updated task {TaskId}", task.Id);
         }

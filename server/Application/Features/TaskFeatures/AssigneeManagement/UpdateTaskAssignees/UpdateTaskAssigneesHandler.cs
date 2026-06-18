@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 
 
 namespace Application;
@@ -7,7 +8,8 @@ public class UpdateTaskAssigneesHandler(
     TaskPlanDbContext db,
     WorkspaceContext workspaceContext,
     PermissionService permissionService,
-    RealtimeService realtime
+    RealtimeService realtime,
+    ILogger<UpdateTaskAssigneesHandler> logger
 ) : ICommandHandler<UpdateTaskAssigneesCommand>
 {
     public async Task<Result> Handle(UpdateTaskAssigneesCommand request, CancellationToken cancellationToken )
@@ -23,7 +25,7 @@ public class UpdateTaskAssigneesHandler(
 
         var memberIdsToProcess = request.Changes.Select(c => c.MemberId).ToList();
 
-        // Validate members exist in workspace and are active
+
         var activeMemberIds = await db.WorkspaceMembers
             .Where(wm => memberIdsToProcess.Contains(wm.Id) && wm.DeletedAt == null)
             .Select(wm => wm.Id)
@@ -75,7 +77,9 @@ public class UpdateTaskAssigneesHandler(
                     WorkspaceMemberId = a.WorkspaceMemberId
                 }).ToList()
             };
-            await realtime.NotifyEntitiesUpdatedAsync(workspaceContext.WorkspaceId, updatePayload, cancellationToken);
+            _ = realtime
+            .NotifyEntitiesUpdatedAsync(workspaceContext.WorkspaceId, updatePayload, default)
+            .ContinueWith(t => logger.LogError(t.Exception, "Failed to send realtime notification for added assignees"), TaskContinuationOptions.OnlyOnFaulted);
         }
 
         if (deletedAssigneeIds.Count > 0)
@@ -84,7 +88,9 @@ public class UpdateTaskAssigneesHandler(
             {
                 AssigneeIds = deletedAssigneeIds
             };
-            await realtime.NotifyEntitiesDeletedAsync(workspaceContext.WorkspaceId, deletePayload, cancellationToken);
+            _ = realtime
+            .NotifyEntitiesDeletedAsync(workspaceContext.WorkspaceId, deletePayload, default)
+            .ContinueWith(t => logger.LogError(t.Exception, "Failed to send realtime notification for deleted assignees"), TaskContinuationOptions.OnlyOnFaulted);
         }
 
         return Result.Success();

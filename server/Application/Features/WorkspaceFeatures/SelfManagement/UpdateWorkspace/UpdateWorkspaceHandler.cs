@@ -1,12 +1,14 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Hybrid;
+using Microsoft.Extensions.Logging;
 namespace Application;
 
 public class UpdateWorkspaceHandler(
-    TaskPlanDbContext db, 
+    TaskPlanDbContext db,
     WorkspaceContext context,
-    HybridCache cache, 
+    HybridCache cache,
     RealtimeService realtime,
+    ILogger<UpdateWorkspaceHandler> logger,
     PermissionService permissionService
 ) : ICommandHandler<UpdateWorkspaceCommand>
 {
@@ -42,10 +44,14 @@ public class UpdateWorkspaceHandler(
             await cache.RemoveByTagAsync(WorkspaceCacheKeys.WorkspaceListTag(context.CurrentMember.UserId), cancellationToken);
             await cache.RemoveByTagAsync(WorkspaceCacheKeys.WorkspaceMembersTag(workspace.Id), cancellationToken);
 
-            await realtime.NotifyEntitiesUpdatedAsync(workspace.Id, new EntityBatchUpdate
+            _ = realtime.NotifyEntitiesUpdatedAsync(workspace.Id, new EntityBatchUpdate
             {
                 Workspaces = [WorkspaceRecord.FromDomain(workspace, context.CurrentMember)]
-            }, cancellationToken);
+            }, cancellationToken)
+            .ContinueWith(t =>
+                logger.LogError(t.Exception, "Failed to send workspace update notification for workspace {WorkspaceId}", workspace.Id), 
+                TaskContinuationOptions.OnlyOnFaulted
+            );
         }
 
         return Result.Success();

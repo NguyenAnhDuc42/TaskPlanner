@@ -15,7 +15,7 @@ public class CreateTaskHandler(
         logger.LogInformation("Attempting to create task '{TaskName}' under {ParentType} {ParentId}", request.Name, request.ParentType, request.ParentId);
 
         var hasPermission = await VerifyPermission(request.ParentType, request.ParentId, permissionService, cancellationToken);
-        if (!hasPermission) 
+        if (!hasPermission)
         {
             logger.LogWarning("Access denied for user {UserId} to create task in {ParentType} {ParentId}", workspaceContext.CurrentMember.Id, request.ParentType, request.ParentId);
             return Result<TaskRecord>.Failure(MemberError.DontHavePermission);
@@ -85,7 +85,7 @@ public class CreateTaskHandler(
             if (request.ParentType == EntityLayerType.ProjectFolder)
             {
                 var folder = await db.ProjectFolders.AsNoTracking().FirstOrDefaultAsync(f => f.Id == request.ParentId, cancellationToken);
-                if (folder != null) 
+                if (folder != null)
                 {
                     var workflowId = await db.Workflows.Where(w => w.ProjectFolderId == folder.Id).Select(w => w.Id).FirstOrDefaultAsync(cancellationToken);
                     update.Folders = [FolderRecord.FromDomain(folder, workflowId) with { HasTasks = true }];
@@ -94,18 +94,19 @@ public class CreateTaskHandler(
             else if (request.ParentType == EntityLayerType.ProjectSpace)
             {
                 var space = await db.ProjectSpaces.AsNoTracking().FirstOrDefaultAsync(s => s.Id == request.ParentId, cancellationToken);
-                if (space != null) 
+                if (space != null)
                 {
                     var workflowId = await db.Workflows.Where(w => w.ProjectSpaceId == space.Id).Select(w => w.Id).FirstOrDefaultAsync(cancellationToken);
                     update.Spaces = [SpaceRecord.FromDomain(space, workflowId) with { HasTasks = true }];
                 }
             }
 
-            _ = realtimeService.NotifyEntitiesUpdatedAsync(
-             workspaceContext.WorkspaceId,
-             update,
-             default);
-             
+            _ = realtimeService
+            .NotifyEntitiesUpdatedAsync(workspaceContext.WorkspaceId,update,default)
+            .ContinueWith(t =>
+                logger.LogError(t.Exception, "Failed to send real-time notification for created task {TaskId}", task.Id), 
+                TaskContinuationOptions.OnlyOnFaulted);
+
             logger.LogInformation("Successfully completed CreateTaskHandler for task {TaskId}", task.Id);
         }
         else
@@ -140,32 +141,32 @@ public class CreateTaskHandler(
                     .Where(f => f.Id == entityId && f.DeletedAt == null)
                     .Select(f => new { f.CreatorId, f.ProjectSpaceId })
                     .FirstOrDefaultAsync(cancellationToken);
-                
+
                 if (folder == null) return false;
-                
+
                 if (folder.CreatorId != workspaceContext.CurrentMember.Id)
                 {
                     var hasAccess = await permissionService.VerifyAsync(Role.Member, spaceId: folder.ProjectSpaceId, requiredAccess: AccessLevel.Editor, cancellationToken: cancellationToken);
                     if (!hasAccess) return false;
                 }
                 return true;
-                
+
             case EntityLayerType.ProjectSpace:
                 var isSpaceCreator = await db.ProjectSpaces
                     .AsNoTracking()
                     .Where(s => s.Id == entityId && s.DeletedAt == null)
                     .Select(s => new { s.CreatorId })
                     .FirstOrDefaultAsync(cancellationToken);
-                    
+
                 if (isSpaceCreator == null) return false;
-                
+
                 if (isSpaceCreator.CreatorId != workspaceContext.CurrentMember.Id)
                 {
                     var hasAccess = await permissionService.VerifyAsync(Role.Member, spaceId: entityId, requiredAccess: AccessLevel.Editor, cancellationToken: cancellationToken);
                     if (!hasAccess) return false;
                 }
                 return true;
-                
+
             default:
                 return false;
         }

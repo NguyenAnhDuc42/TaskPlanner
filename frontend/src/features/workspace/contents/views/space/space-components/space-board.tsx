@@ -20,8 +20,9 @@ import { BoardColumn } from "./board-column";
 import { useSmartWheelScroll } from "@/features/workspace/contents/views/space/utils/use-smart-wheel-scroll";
 import { useEdgeScroll } from "@/features/workspace/contents/views/space/utils/use-edge-scroll";
 import { useUpdateTaskMutation } from "../../task/task-api";
-import { useUpdateFolderFieldMutation } from "../../folder/folder-api";
 import { SpaceFilterBar } from "./space-filter-bar";
+import { EntityLayerType } from "@/types/entity-layer-type";
+import { useUpdateFolderFieldMutation } from "../../folder/folder-api";
 
 interface SpaceBoardProps {
   spaceId: string;
@@ -115,7 +116,7 @@ export function SpaceBoard({ spaceId, onWorkflowOpen }: Readonly<SpaceBoardProps
       updates: [
         {
           id: itemId,
-          type: type === "folder" ? "ProjectFolder" : "ProjectTask",
+          type: type === "folder" ? EntityLayerType.ProjectFolder : EntityLayerType.ProjectTask,
           priority,
         },
       ],

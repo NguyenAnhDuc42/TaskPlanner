@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 
 namespace Application;
 
@@ -6,6 +7,7 @@ public class DeleteSubTaskHandler(
     TaskPlanDbContext db,
     WorkspaceContext workspaceContext,
     RealtimeService realtimeService,
+    ILogger<DeleteSubTaskHandler> logger,
     PermissionService permissionService
 ) : ICommandHandler<DeleteSubTaskCommand>
 {
@@ -31,12 +33,19 @@ public class DeleteSubTaskHandler(
         if (subTask is null) return Result.Failure(TaskError.NotFound);
 
         subTask.SoftDelete();
-        await db.SaveChangesAsync(cancellationToken);
+        var affectedRows = await db.SaveChangesAsync(cancellationToken);
 
-        await realtimeService.NotifyEntitiesDeletedAsync(
-            workspaceContext.WorkspaceId,
-            new EntityBatchDelete { TaskIds = [subTask.Id] },
-            cancellationToken);
+        if (affectedRows > 0)
+        {
+            _ = realtimeService
+            .NotifyEntitiesDeletedAsync(
+                workspaceContext.WorkspaceId,
+                new EntityBatchDelete { TaskIds = [subTask.Id] },
+                default)
+            .ContinueWith(t =>
+                logger.LogError(t.Exception, "Failed to send real-time notification for deleted subtask {SubTaskId}", subTask.Id),
+                TaskContinuationOptions.OnlyOnFaulted);
+        }
 
         return Result.Success();
     }

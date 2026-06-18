@@ -11,6 +11,7 @@ import type { AccessLevel } from "@/types/access-level";
 import type { EntityAccessRecord } from "@/types/workspace";
 import type { SpaceDocumentRecord } from "@/types/document";
 import { RowAction } from "@/types/row-action";
+import { EntityLayerType } from "@/types/entity-layer-type";
 
 
 export interface GetSpaceItemsResponse {
@@ -28,7 +29,7 @@ export interface EntityAccessRowsValue {
 
 export interface BatchUpdateSpaceItemValue {
   id: string;
-  type: "ProjectFolder" | "ProjectTask";
+  type: EntityLayerType;
   statusId?: string | null;
   priority?: string | null;
   orderKey?: string | null;
@@ -74,7 +75,7 @@ export const spaceApi = workspaceApi.injectEndpoints({
         const originalTasks: TaskRecord[] = [];
 
         updates.forEach((u) => {
-          if (u.type === "ProjectFolder") {
+          if (u.type === EntityLayerType.ProjectFolder) {
             const folder = folderSelectors.selectById(state, u.id);
             if (folder) originalFolders.push(folder);
           } else {
@@ -84,8 +85,8 @@ export const spaceApi = workspaceApi.injectEndpoints({
         });
 
         // Optimistically update standard status fields on folders & tasks
-        const folderUpdates = updates.filter((u) => u.type === "ProjectFolder");
-        const taskUpdates = updates.filter((u) => u.type === "ProjectTask");
+        const folderUpdates = updates.filter((u) => u.type === EntityLayerType.ProjectFolder);
+        const taskUpdates = updates.filter((u) => u.type === EntityLayerType.ProjectTask);
 
         if (folderUpdates.length > 0) {
           dispatch(folderSlice.actions.upsertMany(folderUpdates as Partial<FolderRecord>[]));
