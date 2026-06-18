@@ -13,7 +13,6 @@ public class TaskPlanDbContext : DbContext
         _httpContextAccessor = httpContextAccessor;
     }
 
-    // Dynamic Tenant ID from current HTTP Request
     public Guid? CurrentTenantId => _httpContextAccessor?.HttpContext?.Items["WorkspaceId"] as Guid?;
 
     // DbSet properties for entities
@@ -26,7 +25,6 @@ public class TaskPlanDbContext : DbContext
     public DbSet<ProjectFolder> ProjectFolders { get; set; }
     public DbSet<ProjectTask> ProjectTasks { get; set; }
     public DbSet<Workflow> Workflows { get; set; }
-    public DbSet<ViewDefinition> ViewDefinitions { get; set; }
     public DbSet<Document> Documents { get; set; }
     public DbSet<DocumentBlock> DocumentBlocks { get; set; }
 
@@ -38,6 +36,7 @@ public class TaskPlanDbContext : DbContext
     public DbSet<AttachmentLink> AttachmentLinks { get; set; }
 
     // Support Entities
+    public DbSet<Favorite> Favorites { get; set; }
     public DbSet<Attachment> Attachments { get; set; }
     public DbSet<Comment> Comments { get; set; }
     public DbSet<Status> Statuses { get; set; }

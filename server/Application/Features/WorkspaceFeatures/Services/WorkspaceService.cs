@@ -40,8 +40,6 @@ public class WorkspaceService(
                 var spaceStatuses = Status.CreateSpaceStarterSet(workspace.Id, spaceWorkflow.Id, creatorId);
                 await db.Statuses.AddRangeAsync(spaceStatuses);
 
-                db.ViewDefinitions.AddRange(
-                    ViewDefinition.CreateDefaults(workspace.Id, space.Id, null, creatorId));
 
                 // 3. Create Default Folder
                 var folderDoc = Document.Create(workspace.Id, "Getting Started", creatorId);
@@ -50,8 +48,6 @@ public class WorkspaceService(
                 var folder = ProjectFolder.CreateDefault(workspace.Id, space.Id, creatorId);
                 await db.ProjectFolders.AddAsync(folder);
                 
-                db.ViewDefinitions.AddRange(
-                    ViewDefinition.CreateDefaults(workspace.Id, space.Id, folder.Id, creatorId));
 
                 // 4. Create Starter Tasks
                 var firstStatus = spaceStatuses.First(s => s.Category == StatusCategory.NotStarted);

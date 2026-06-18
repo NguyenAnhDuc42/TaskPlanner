@@ -8,7 +8,7 @@ import { StatusBadge } from "@/components/status-badge";
 import { useSelector } from "react-redux";
 import { entityAccessSelectors, memberSelectors } from "@/store/entityStore";
 import { SpaceAccessDialog } from "./space-access-dialog";
-import { CreateStatusForm } from "@/features/workspace/components/forms/create-status-form";
+import { CreateStatusForm } from "@/features/workspace/components/forms/workflow-management-form";
 import { SpaceDocumentsPanel } from "./space-documents-panel";
 import { RowAction } from "@/types/row-action";
 

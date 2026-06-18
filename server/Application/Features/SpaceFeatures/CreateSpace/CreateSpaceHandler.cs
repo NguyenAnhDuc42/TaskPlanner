@@ -81,7 +81,7 @@ public class CreateSpaceHandler(
         {
             logger.LogInformation("Broadcasting entity updates for created space {SpaceId}", result.Value.Id);
             _ = realtimeService
-            .NotifyEntitiesUpdatedAsync(context.TryGetWorkspaceId().Value,
+            .NotifyEntitiesUpdatedAsync(context.WorkspaceId,
                new EntityBatchUpdate {
                    Spaces = [result.Value],
                    EntityAccess = [EntityAccessRecord.FromDomain(creatorAccess!)]

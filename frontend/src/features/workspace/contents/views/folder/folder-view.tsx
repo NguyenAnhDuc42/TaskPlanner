@@ -37,7 +37,7 @@ import { DateSelect } from "@/components/date-select";
 import { FolderTaskBatchBar } from "./components/folder-task-batch-bar";
 import { PopoverFormWrapper } from "@/components/popover-wrapper";
 import { UniversalPicker } from "@/components/universal-picker";
-import { CreateStatusForm } from "@/features/workspace/components/forms/create-status-form";
+import { CreateStatusForm } from "@/features/workspace/components/forms/workflow-management-form";
 import type { FolderRecord } from "@/types/projects/folder-record";
 import { cn } from "@/lib/utils";
 
@@ -56,8 +56,7 @@ export function FolderView({ folderId }: Readonly<FolderViewProps>) {
 
   const { data: detailResponse, isLoading } = useGetFolderDetailQuery(folderId);
 
-  const folderRecord = useFolderDetail(folderId);
-  const folder = detailResponse?.folder ?? folderRecord;
+  const folder = useFolderDetail(folderId);
   const tasks = useFolderTasksList(folderId);
   
   const parentSpaceRecord = useSpaceDetail(folder?.spaceId ?? "");
@@ -282,7 +281,7 @@ export function FolderView({ folderId }: Readonly<FolderViewProps>) {
               onClick={() => setIsWorkflowOpen(true)}
             >
               <GitMerge className="h-3 w-3 opacity-80" />
-              <span>Folder Workflow</span>
+              <span>Workflow</span>
             </button>
           </div>
         </div>

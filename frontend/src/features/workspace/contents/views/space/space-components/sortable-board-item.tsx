@@ -8,7 +8,7 @@ import { format, isBefore, startOfDay } from "date-fns";
 import { PrioritySelect } from "@/components/priority-select";
 import { PriorityBadge } from "@/components/priority-badge";
 import { DynamicIcon } from "@/components/dynamic-icon";
-import { MoreVertical, Maximize2, User } from "lucide-react";
+import { Maximize2, User } from "lucide-react";
 import { DateSelect } from "@/components/date-select";
 import type { FolderRecord, TaskRecord } from "@/types/projects";
 import { useRouter, useNavigate } from "@tanstack/react-router";
@@ -111,13 +111,6 @@ export const BoardItemCard = React.memo(function BoardItemCard({
               }}
             >
               <Maximize2 className="h-3 w-3" />
-            </button>
-            <button 
-              type="button" 
-              className="p-0.5 hover:bg-white/10 rounded-sm hover:text-white transition-colors" 
-              onClick={(e) => { e.stopPropagation(); /* TODO: menu */ }}
-            >
-              <MoreVertical className="h-3 w-3" />
             </button>
           </div>
         </div>

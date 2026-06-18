@@ -2,18 +2,12 @@ import React from "react";
 import { useLocation, useNavigate, useRouter } from "@tanstack/react-router";
 import { useWorkspace } from "@/features/workspace/context/workspace-provider";
 import { cn } from "@/lib/utils";
-import { CheckSquare, MoreHorizontal } from "lucide-react";
+import { CheckSquare, MoreVertical } from "lucide-react";
 import { useSelector } from "react-redux";
 import { taskSelectors } from "@/store/entityStore";
 import type { RootState } from "@/store";
-
 import { SortableItem } from "../dnd/sortable-item";
-
-import {
-  EntityLayerType,
-  EntityLayerType as EntityLayerConst,
-} from "@/types/entity-layer-type";
-
+import { EntityLayerType, EntityLayerType as EntityLayerConst,} from "@/types/entity-layer-type";
 import { DynamicIcon } from "@/components/dynamic-icon";
 import { TaskContextMenu } from "../hierarchy-components/context-menus/task-context-menu";
 import { EntityMenuTrigger } from "../hierarchy-components/context-menus/shared";
@@ -102,7 +96,7 @@ export const TaskNodeItem = React.memo(function TaskNodeItem({
                   className="h-4 w-4 p-0.5 flex items-center justify-center rounded-sm hover:bg-muted-foreground/10 text-muted-foreground hover:text-primary transition-colors"
                   onClick={(e) => e.stopPropagation()}
                 >
-                  <MoreHorizontal className="h-3.5 w-3.5" />
+                  <MoreVertical className="h-3.5 w-3.5" />
                 </button>
               </EntityMenuTrigger>
             </div>

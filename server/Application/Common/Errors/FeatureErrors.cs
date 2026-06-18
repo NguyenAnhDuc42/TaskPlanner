@@ -26,6 +26,7 @@ public static class FolderError
 public static class TaskError
 {
     public static readonly Error NotFound = Error.NotFound("Task.NotFound", "The task with the specified identifier was not found.");
+    
 }
 
 public static class AuthError
@@ -34,10 +35,6 @@ public static class AuthError
     public static readonly Error InvalidSession = Error.Unauthorized("Auth.InvalidSession", "Invalid or expired session.");
 }
 
-public static class ViewError
-{
-    public static readonly Error NotFound = Error.NotFound("View.NotFound", "The view with the specified identifier was not found.");
-}
 
 public static class MemberError
 {

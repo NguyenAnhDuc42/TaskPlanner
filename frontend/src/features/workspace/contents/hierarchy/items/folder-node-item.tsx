@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import * as Icons from "lucide-react";
-import { ChevronRight, MoreHorizontal, Lock, type LucideIcon } from "lucide-react";
+import { ChevronRight, MoreVertical, Lock, type LucideIcon } from "lucide-react";
 import { useNavigate, useLocation, useRouter } from "@tanstack/react-router";
 import { useWorkspace } from "@/features/workspace/context/workspace-provider";
 import { cn } from "@/lib/utils";
@@ -9,10 +9,8 @@ import { useSelector } from "react-redux";
 import { folderSelectors } from "@/store/entityStore";
 import { hierarchyApi } from "../hierarchy-api";
 import type { RootState } from "@/store";
-
 import { SortableItem } from "../dnd/sortable-item";
-import { NodeTasksList } from "./node-tasks-list";
-
+import { NodeTasksList } from "./task-node-list";
 import { EntityLayerType as EntityLayerConst } from "@/types/entity-layer-type";
 import { FolderContextMenu } from "../hierarchy-components/context-menus/folder-context-menu";
 import { EntityMenuTrigger } from "../hierarchy-components/context-menus/shared";
@@ -132,7 +130,7 @@ export const FolderNodeItem = React.memo(function FolderNodeItem({
                     className="h-4 w-4 p-0.5 flex items-center justify-center rounded-sm hover:bg-muted-foreground/10 text-muted-foreground hover:text-primary transition-colors"
                     onClick={(e) => e.stopPropagation()}
                   >
-                    <MoreHorizontal className="h-3.5 w-3.5" />
+                    <MoreVertical className="h-3.5 w-3.5" />
                   </button>
                 </EntityMenuTrigger>
               </div>

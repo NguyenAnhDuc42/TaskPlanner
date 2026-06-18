@@ -1,4 +1,4 @@
-import { MoreVertical, Plus } from "lucide-react";
+import { Plus } from "lucide-react";
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import { StatusBadge } from "@/components/status-badge";
@@ -45,9 +45,6 @@ export function StatusGroup({
             className="p-1.5 hover:bg-white/5 rounded-md text-muted-foreground/30 hover:text-foreground transition-all active:scale-90"
           >
             <Plus className="h-3.5 w-3.5" />
-          </button>
-          <button className="p-1.5 hover:bg-white/5 rounded-md text-muted-foreground/30 hover:text-foreground transition-all active:scale-90">
-            <MoreVertical className="h-3.5 w-3.5" />
           </button>
         </div>
       </div>

@@ -9,10 +9,63 @@ import { useResize } from "@/hooks/use-resize";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { LoadingComponent } from "@/components/loading-component";
-import { ChevronLeft, X, Maximize2 } from "lucide-react";
+import { ChevronLeft, X, Maximize2, LogOut, User } from "lucide-react";
 import type { ContentPage } from "../type";
+import { useLogout, useGetMeQuery } from "@/features/auth/api";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+
+function UserMenu() {
+  const { data: user } = useGetMeQuery();
+  const { mutate: logout } = useLogout();
+
+  const initials = user?.name
+    ? user.name.split(" ").map((w: string) => w[0]).slice(0, 2).join("").toUpperCase()
+    : "?";
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <button
+          type="button"
+          className="h-7 w-7 rounded-lg bg-gradient-to-tr from-primary/20 to-primary/5 border border-primary/20 flex items-center justify-center cursor-pointer hover:border-primary/40 transition-colors shadow-sm outline-none"
+        >
+          <span className="text-[10px] font-black text-primary">{initials}</span>
+        </button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-52 bg-popover border border-border/30 shadow-xl rounded-lg p-1">
+        <DropdownMenuLabel className="px-2 py-1.5">
+          <p className="text-xs font-bold text-foreground/90 truncate">{user?.name ?? "User"}</p>
+          <p className="text-[10px] text-muted-foreground/50 font-medium truncate">{user?.email ?? ""}</p>
+        </DropdownMenuLabel>
+        <DropdownMenuSeparator className="bg-border/20 my-1" />
+        <DropdownMenuItem
+          className="flex items-center gap-2 px-2 py-1.5 text-xs font-medium text-muted-foreground/70 hover:text-foreground cursor-pointer rounded-md"
+        >
+          <User className="h-3.5 w-3.5" />
+          Profile
+        </DropdownMenuItem>
+        <DropdownMenuSeparator className="bg-border/20 my-1" />
+        <DropdownMenuItem
+          className="flex items-center gap-2 px-2 py-1.5 text-xs font-medium text-destructive/80 hover:text-destructive hover:bg-destructive/10 cursor-pointer rounded-md"
+          onClick={() => logout()}
+        >
+          <LogOut className="h-3.5 w-3.5" />
+          Sign out
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
 
 export function WorkspaceLayout() {
+
   const navigate = useNavigate({ from: "/workspaces/$workspaceId" });
   const location = useLocation();
   const { workspaceId, ui, actions } = useWorkspace();
@@ -180,9 +233,7 @@ export function WorkspaceLayout() {
             </svg>
           </Button>
           <div className="h-6 w-px bg-border/50 mx-1" />
-          <div className="h-7 w-7 rounded-lg bg-gradient-to-tr from-primary/20 to-primary/5 border border-primary/20 flex items-center justify-center cursor-pointer hover:border-primary/40 transition-colors shadow-sm">
-            <span className="text-[10px] font-black text-primary">AD</span>
-          </div>
+          <UserMenu />
         </div>
       </header>
 

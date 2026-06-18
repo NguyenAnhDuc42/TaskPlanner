@@ -78,7 +78,7 @@ public class CreateTaskHandler(
             logger.LogInformation("Broadcasting entity updates for created task {TaskId}", task!.Id);
             var update = new EntityBatchUpdate
             {
-                Tasks = [result.Value],
+                Tasks = result.Value is not null ? [result.Value] : null,
                 Assignees = assigee.Select(AssigneeRecord.FromDomain).ToList()
             };
 

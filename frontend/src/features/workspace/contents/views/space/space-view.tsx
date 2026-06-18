@@ -3,7 +3,7 @@ import { EntityViewFrame } from "../entity-view-frame";
 import { SpaceBoard } from "./space-components/space-board";
 import { useSpaceDetail, useGetSpaceItemsQuery, useGetSpaceDetailQuery, useUpdateSpaceFieldMutation, useGetEntityAccessQuery } from "./space-api";
 import { Folder, Layout, FileText, GitMerge, Lock, Unlock, MoreVertical } from "lucide-react";
-import { CreateStatusForm } from "@/features/workspace/components/forms/create-status-form";
+import { CreateStatusForm } from "@/features/workspace/components/forms/workflow-management-form";
 import { cn } from "@/lib/utils";
 import { PopoverFormWrapper } from "@/components/popover-wrapper";
 import { UniversalPicker } from "@/components/universal-picker";

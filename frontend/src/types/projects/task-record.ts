@@ -22,5 +22,6 @@ export interface TaskRecord {
     timeEstimateSeconds?: number;
     parentType?: string;
     parentTaskId?: string;
+    isFavorite?: boolean;
 }
 

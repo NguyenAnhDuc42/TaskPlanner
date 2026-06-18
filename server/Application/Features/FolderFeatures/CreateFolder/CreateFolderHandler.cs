@@ -90,7 +90,7 @@ public class CreateFolderHandler(
             _ = realtimeService
             .NotifyEntitiesUpdatedAsync(workspaceContext.WorkspaceId,
                 new EntityBatchUpdate { 
-                    Folders = [result.Value], 
+                    Folders = result.Value is not null ? [result.Value] : null, 
                     Spaces = [spaceRecord],
                     Statuses = createdStatuses.Select(StatusRecord.FromDomain).ToList()
                 },default)

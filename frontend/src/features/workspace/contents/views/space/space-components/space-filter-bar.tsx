@@ -71,7 +71,8 @@ export function SpaceFilterBar({
             </div>
           );
         })}
-        {onWorkflowOpen && (
+      </div>
+      {onWorkflowOpen && (
           <button
             className="flex items-center justify-center h-6 w-6 rounded-full bg-muted/40 text-muted-foreground hover:bg-muted/80 hover:text-foreground border border-border/30 transition-all cursor-pointer shrink-0 ml-1"
             onClick={onWorkflowOpen}
@@ -80,7 +81,6 @@ export function SpaceFilterBar({
             <Plus className="h-3 w-3" />
           </button>
         )}
-      </div>
 
       <button
         className="ml-auto flex items-center h-6 gap-1 px-2 rounded-md bg-muted/40 text-[10px] text-muted-foreground font-semibold hover:bg-muted/80 hover:text-foreground border border-border/30 transition-all cursor-pointer shrink-0"

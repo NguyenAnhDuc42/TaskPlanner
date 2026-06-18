@@ -4,10 +4,7 @@ import { useGetNodeTasksQuery, useTasksByParent } from "../hierarchy-api";
 import { EntityLayerType } from "@/types/entity-layer-type";
 import { useDispatch } from "react-redux";
 import { folderSlice, spaceSlice } from "@/store/entityStore";
-import {
-  SortableContext,
-  verticalListSortingStrategy,
-} from "@dnd-kit/sortable";
+import { SortableContext,verticalListSortingStrategy,} from "@dnd-kit/sortable";
 import { TaskNodeItem } from "./task-node-item";
 
 const TaskSkeleton = () => (
