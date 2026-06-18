@@ -15,7 +15,7 @@ public class LogoutHandler(
         if (string.IsNullOrWhiteSpace(refreshToken))
             return Result.Success();
 
-        var session = await db.Sessions.ByRefreshToken(refreshToken).FirstOrDefaultAsync(cancellationToken);
+        var session = await db.Sessions.FirstOrDefaultAsync(s => s.RefreshToken == refreshToken, cancellationToken);
 
         if (session != null)
         {

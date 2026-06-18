@@ -17,15 +17,13 @@ public class JoinWorkspaceByCodeHandler(
 
         var normalizedCode = request.JoinCode.Trim().ToUpperInvariant();
         var workspace = await db.ProjectWorkspaces
-            .ByJoinCode(normalizedCode)
-            .WhereNotDeleted()
-            .FirstOrDefaultAsync(cancellationToken);
+            .FirstOrDefaultAsync(w => w.JoinCode == normalizedCode && w.DeletedAt == null, cancellationToken);
 
         if (workspace == null) return Result<JoinWorkspaceByCodeResult>.Failure(Error.Validation("Workspace.InvalidJoinCode", "Invalid join code."));
         if (workspace.IsArchived) return Result<JoinWorkspaceByCodeResult>.Failure(Error.Validation("Workspace.Archived", "Cannot join an archived workspace."));
 
         var existingMember = await db.WorkspaceMembers
-        .FirstOrDefaultAsync(m => m.UserId == currentUserId, cancellationToken);
+        .FirstOrDefaultAsync(m => m.UserId == currentUserId && m.DeletedAt == null, cancellationToken);
 
         JoinWorkspaceByCodeResult dataResult;
         if (existingMember is null)

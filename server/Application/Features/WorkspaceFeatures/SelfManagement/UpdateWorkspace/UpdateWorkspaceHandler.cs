@@ -17,9 +17,8 @@ public class UpdateWorkspaceHandler(
         var hasAccess = await permissionService.VerifyAsync(Role.Admin, cancellationToken: cancellationToken);
         if (!hasAccess) return Result.Failure(MemberError.DontHavePermission);
 
-        var workspace = await db.ProjectWorkspaces
-            .ById(request.Id)
-            .FirstOrDefaultAsync(cancellationToken);
+        var workspace = await db.ProjectWorkspaces.FirstOrDefaultAsync(w => w.Id == request.Id && w.DeletedAt == null, cancellationToken);
+
 
         if (workspace == null) return Result.Failure(WorkspaceError.NotFound);
 

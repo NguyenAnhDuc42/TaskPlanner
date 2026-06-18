@@ -57,20 +57,19 @@ public class MoveItemHandler(TaskPlanDbContext db, WorkspaceContext context, Rea
         {
             EntityLayerType.ProjectSpace => await db.ProjectSpaces
                                  .AsNoTracking()
-                                 .ByWorkspace(context.WorkspaceId)
+                                 .Where(s => s.ProjectWorkspaceId == request.TargetParentId && s.DeletedAt == null)
                                  .MaxAsync(s => s.OrderKey, cancellationToken),
 
             EntityLayerType.ProjectFolder => await db.ProjectFolders
                                  .AsNoTracking()
-                                 .BySpace(request.TargetParentId.GetValueOrDefault())
+                                 .Where(f => f.ProjectSpaceId == request.TargetParentId.GetValueOrDefault() && f.DeletedAt == null)
                                  .MaxAsync(f => f.OrderKey, cancellationToken),
 
             EntityLayerType.ProjectTask => await db.ProjectTasks
                                  .AsNoTracking()
-                                 .Where(t => (request.TargetParentId.HasValue && t.ProjectFolderId == request.TargetParentId) ||
-                                            (!request.TargetParentId.HasValue && t.ProjectSpaceId == request.ItemId && t.ProjectFolderId == null)) // ItemId is parent for Space moves
+                                 .Where(t => (request.TargetParentId.HasValue && t.ProjectFolderId == request.TargetParentId && t.DeletedAt == null) ||
+                                            (!request.TargetParentId.HasValue && t.ProjectSpaceId == request.ItemId && t.ProjectFolderId == null && t.DeletedAt == null))
                                  .MaxAsync(t => t.OrderKey, cancellationToken),
-
             _ => null
         };
     }

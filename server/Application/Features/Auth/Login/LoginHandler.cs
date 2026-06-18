@@ -25,7 +25,7 @@ public class LoginHandler(
             return Result<LoginResponse>.Failure(Error.Validation("Auth.Locked", "Too many failed login attempts. Please try again in 15 minutes."));
         }
 
-        var user = await db.Users.ByEmail(request.email).AsNoTracking().FirstOrDefaultAsync(cancellationToken);
+        var user = await db.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Email == request.email, cancellationToken);
         
         // 2. Validate Credentials & Track Attempts
         if (user is null || !PasswordService.VerifyPassword(request.password, user.PasswordHash!)) 

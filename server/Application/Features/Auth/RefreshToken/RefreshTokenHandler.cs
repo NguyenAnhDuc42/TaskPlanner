@@ -17,9 +17,8 @@ public class RefreshTokenHandler(
         }
 
         var session = await db.Sessions
-            .ByRefreshToken(refreshToken)
             .Include(s => s.User)
-            .FirstOrDefaultAsync(cancellationToken);
+            .FirstOrDefaultAsync(s => s.RefreshToken == refreshToken, cancellationToken);
         
         if (session is null || !session.IsActive || session.User is null) 
         {

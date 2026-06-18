@@ -12,7 +12,7 @@ public class RegisterHandler(
 {
     public async Task<Result<RegisterResponse>> Handle(RegisterCommand request, CancellationToken cancellationToken)
     {
-        var exists = await db.Users.ByEmail(request.email).AsNoTracking().AnyAsync(cancellationToken);
+        var exists = await db.Users.AsNoTracking().AnyAsync(u => u.Email == request.email, cancellationToken);
         if (exists) return Result<RegisterResponse>.Failure(UserError.DuplicateEmail);
 
         var passwordHash = PasswordService.HashPassword(request.password);
@@ -20,7 +20,6 @@ public class RegisterHandler(
         
         await db.Users.AddAsync(user, cancellationToken);
 
-        // Automatically create a default workspace for the new user
         var defaultWorkspace = ProjectWorkspace.Create(
             name: $"{user.Name}'s Workspace",
             slug: $"{user.Name.ToLower().Replace(" ", "-")}-{Guid.NewGuid().ToString("N")[..4]}",
@@ -31,8 +30,7 @@ public class RegisterHandler(
             creatorId: user.Id
         );
         await db.ProjectWorkspaces.AddAsync(defaultWorkspace, cancellationToken);
- 
-        // Best Practice: Automatically log in the user after registration
+    
         var httpContext = httpContextAccessor.HttpContext;
         var userAgent = httpContext?.Request.Headers["User-Agent"].ToString() ?? "Unknown";
         var ipAddress = httpContext?.Connection.RemoteIpAddress?.ToString() ?? "Unknown";

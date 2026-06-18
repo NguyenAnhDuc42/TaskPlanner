@@ -23,8 +23,7 @@ public class CreateSpaceHandler(
         {
             var maxKey = await db.ProjectSpaces
                 .AsNoTracking()
-                .ByWorkspace(context.WorkspaceId)
-                .WhereNotDeleted()
+                .Where(s => s.ProjectWorkspaceId == context.WorkspaceId && s.DeletedAt == null)
                 .MaxAsync(s => s.OrderKey, cancellationToken);
 
             var orderKey = maxKey is null ? FractionalIndex.Start() : FractionalIndex.After(maxKey);
