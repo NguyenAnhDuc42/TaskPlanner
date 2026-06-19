@@ -1,406 +1,238 @@
 import * as React from "react"
 import { Input } from "@/components/ui/input"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { ScrollArea } from "@/components/ui/scroll-area"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { DynamicIcon } from "@/components/dynamic-icon"
 import { cn } from "@/lib/utils"
 import {
   LayoutGrid, Folder, FileText, CheckSquare, Calendar, Clock, User, Users,
   Settings, Bell, Inbox, Hash, Star, Heart, Flag, Bookmark, Tag, Search,
   Zap, Flame, Target, Trophy, Gamepad2, Code2, Terminal, Layers, Component,
-  Box, Package, Database, Cloud, HardDrive, Cpu
+  Box, Package, Database, Cloud, HardDrive, Cpu,
 } from "lucide-react"
 
 const ICON_MAP: Record<string, React.ElementType> = {
   LayoutGrid, Folder, FileText, CheckSquare, Calendar, Clock, User, Users,
   Settings, Bell, Inbox, Hash, Star, Heart, Flag, Bookmark, Tag, Search,
   Zap, Flame, Target, Trophy, Gamepad2, Code2, Terminal, Layers, Component,
-  Box, Package, Database, Cloud, HardDrive, Cpu
+  Box, Package, Database, Cloud, HardDrive, Cpu,
 }
 
-// ============================================================================
-// DOMAIN ABSTRACTIONS
-// ============================================================================
+const AVAILABLE_ICONS = Object.keys(ICON_MAP)
 
-/**
- * Immutable configuration for the picker.
- * Validates icon names at construction time, not render time.
- */
-class PickerConfig {
-  readonly availableIcons: readonly string[]
-  readonly availableColors: readonly string[]
-  readonly searchDebounceMs: number
+const DEFAULT_COLORS = [
+  "#6366f1", "#06b6d4", "#10b981", "#f59e0b", "#ef4444", "#ec4899",
+]
 
-  constructor(
-    icons: string[],
-    colors: string[],
-    debounceMs: number = 150
-  ) {
-    this.availableIcons = Object.freeze(icons)
-    this.availableColors = Object.freeze(colors)
-    this.searchDebounceMs = debounceMs
-  }
-}
+// ─── Trigger size presets ─────────────────────────────────────────────────────
 
-/**
- * Encapsulates search logic and filtering.
- * Memoizes predicates to avoid allocation thrashing.
- */
-class IconSearchEngine {
-  private readonly queryCache = new Map<string, string[]>()
-  private readonly maxCacheSize = 20
+const SIZE = {
+  sm: { button: "p-1 rounded-sm border border-border/15 bg-background/80 hover:bg-muted/60 shadow-sm", iconSize: 12 },
+  md: { button: "h-6 w-6 rounded-sm bg-muted/20 hover:bg-muted/50 flex items-center justify-center", iconSize: 16 },
+  lg: { button: "h-9 w-9 rounded-md border border-border/50 bg-muted/20 hover:bg-muted/40 flex items-center justify-center", iconSize: 20 },
+} as const
 
-  search(query: string, icons: readonly string[]): string[] {
-    if (!query.trim()) return Array.from(icons)
+// ─── Sub-components ───────────────────────────────────────────────────────────
 
-    const cached = this.queryCache.get(query)
-    if (cached) return cached
-
-    const normalized = query.toLowerCase()
-    const results = icons.filter((name) =>
-      name.toLowerCase().includes(normalized)
-    )
-
-    // Simple LRU: if cache exceeds max, clear oldest half
-    if (this.queryCache.size >= this.maxCacheSize) {
-      const keys = Array.from(this.queryCache.keys())
-      keys.slice(0, Math.floor(this.maxCacheSize / 2)).forEach((k) =>
-        this.queryCache.delete(k)
-      )
-    }
-
-    this.queryCache.set(query, results)
-    return results
-  }
-
-  clear() {
-    this.queryCache.clear()
-  }
-}
-
-// ============================================================================
-// CUSTOM HOOK: STATE MANAGEMENT WITH DEBOUNCING
-// ============================================================================
-
-interface UseIconColorPickerProps {
-  initialIcon: string
-  initialColor: string
-  config: PickerConfig
-}
-
-interface UseIconColorPickerReturn {
-  selectedIcon: string
-  selectedColor: string
-  searchQuery: string
-  filteredIcons: string[]
-  setSelectedIcon: (icon: string) => void
-  setSelectedColor: (color: string) => void
-  setSearchQuery: (query: string) => void
-}
-
-function useIconColorPicker({
-  initialIcon,
-  initialColor,
-  config,
-}: UseIconColorPickerProps): UseIconColorPickerReturn {
-  const [selectedIcon, setSelectedIcon] = React.useState(initialIcon)
-  const [selectedColor, setSelectedColor] = React.useState(initialColor)
-  const [searchQuery, setSearchQuery] = React.useState("")
-  const [debouncedQuery, setDebouncedQuery] = React.useState("")
-
-  // Debounce search query
-  React.useEffect(() => {
-    const timer = setTimeout(
-      () => setDebouncedQuery(searchQuery),
-      config.searchDebounceMs
-    )
-    return () => clearTimeout(timer)
-  }, [searchQuery, config.searchDebounceMs])
-
-  // Search engine instance (shared across renders)
-  const searchEngine = React.useMemo(() => new IconSearchEngine(), [])
-
-  // Filter icons based on debounced query
-  const filteredIcons = React.useMemo(() => {
-    return searchEngine.search(debouncedQuery, config.availableIcons)
-  }, [debouncedQuery, config.availableIcons, searchEngine])
-
-  return {
-    selectedIcon,
-    selectedColor,
-    searchQuery,
-    filteredIcons,
-    setSelectedIcon,
-    setSelectedColor,
-    setSearchQuery,
-  }
-}
-
-// ============================================================================
-// ICON RENDERER: CACHED ICON LOOKUP
-// ============================================================================
-
-interface IconRendererProps {
-  name: string
-  isActive: boolean
-  onClick: () => void
-}
-
-/**
- * Memoized icon renderer.
- * Fails loudly if icon doesn't exist (caught at config validation, not here).
- */
-const IconRenderer = React.memo(function IconRenderer({
-  name,
-  isActive,
-  onClick,
-}: IconRendererProps) {
+const IconButton = React.memo(function IconButton({
+  name, isActive, activeColor, onClick,
+}: { name: string; isActive: boolean; activeColor: string; onClick: () => void }) {
   const Icon = ICON_MAP[name]
-
-  if (!Icon) {
-    return <LayoutGrid className="h-5 w-5" />
-  }
-
+  if (!Icon) return null
   return (
     <button
-      aria-label={`Select icon ${name}`}
-      className={cn(
-        "w-10 h-10 flex items-center justify-center rounded-lg transition-all duration-150",
-        isActive
-          ? "bg-primary/20 text-primary"
-          : "hover:bg-muted text-muted-foreground hover:text-foreground"
-      )}
-      onClick={onClick}
-      title={name}
       type="button"
+      title={name}
+      onClick={onClick}
+      className={cn(
+        "w-8 h-8 flex items-center justify-center rounded-sm transition-all",
+        isActive
+          ? "bg-muted shadow-sm ring-1 ring-border"
+          : "text-muted-foreground hover:text-foreground hover:bg-muted/60",
+      )}
+      style={isActive ? { color: activeColor } : undefined}
     >
-      <Icon className="h-5 w-5" />
+      <Icon className="h-4 w-4" />
     </button>
   )
 })
 
-// ============================================================================
-// COLOR SWATCH: ISOLATED RENDERING
-// ============================================================================
-
-interface ColorSwatchProps {
-  color: string
-  isSelected: boolean
-  onClick: () => void
-}
-
 const ColorSwatch = React.memo(function ColorSwatch({
-  color,
-  isSelected,
-  onClick,
-}: ColorSwatchProps) {
+  color, isSelected, onClick,
+}: { color: string; isSelected: boolean; onClick: () => void }) {
   return (
     <button
-      aria-label={`Select color ${color}`}
+      type="button"
+      title={color}
+      onClick={onClick}
       className={cn(
-        "w-6 h-6 rounded-full flex-shrink-0 transition-all duration-150 hover:scale-110 active:scale-95",
+        "w-5 h-5 rounded-full transition-all hover:scale-110 active:scale-95",
         isSelected
-          ? "ring-2 ring-primary ring-offset-2 ring-offset-background"
-          : "ring-1 ring-border hover:ring-2 hover:ring-primary/50"
+          ? "ring-2 ring-offset-1 ring-offset-background ring-foreground/40 scale-110"
+          : "ring-1 ring-border hover:ring-foreground/20",
       )}
       style={{ backgroundColor: color }}
-      onClick={onClick}
-      title={color}
-      type="button"
     />
   )
 })
 
-// ============================================================================
-// MAIN COMPONENT
-// ============================================================================
+// ─── Picker panel (reusable headlessly if ever needed) ────────────────────────
 
-interface UniversalPickerProps {
-  selectedIcon: string
-  selectedColor: string
+function PickerPanel({
+  icon, color, colors, onSelect,
+}: {
+  icon: string
+  color: string
+  colors: string[]
   onSelect: (icon: string, color: string) => void
-  config?: PickerConfig
-}
-
-const DEFAULT_CONFIG = new PickerConfig(
-  [
-    "LayoutGrid",
-    "Folder",
-    "FileText",
-    "CheckSquare",
-    "Calendar",
-    "Clock",
-    "User",
-    "Users",
-    "Settings",
-    "Bell",
-    "Inbox",
-    "Hash",
-    "Star",
-    "Heart",
-    "Flag",
-    "Bookmark",
-    "Tag",
-    "Search",
-    "Zap",
-    "Flame",
-    "Target",
-    "Trophy",
-    "Gamepad2",
-    "Code2",
-    "Terminal",
-    "Layers",
-    "Component",
-    "Box",
-    "Package",
-    "Database",
-    "Cloud",
-    "HardDrive",
-    "Cpu",
-  ],
-  ["#6366f1", "#06b6d4", "#10b981", "#f59e0b", "#ef4444", "#ec4899"] // Reduced: 6 instead of 10
-)
-
-export function UniversalPicker({
-  selectedIcon,
-  selectedColor,
-  onSelect,
-  config = DEFAULT_CONFIG,
-}: Readonly<UniversalPickerProps>) {
-  const {
-    selectedIcon: localIcon,
-    selectedColor: localColor,
-    searchQuery,
-    filteredIcons,
-    setSelectedIcon,
-    setSelectedColor,
-    setSearchQuery,
-  } = useIconColorPicker({
-    initialIcon: selectedIcon,
-    initialColor: selectedColor,
-    config,
-  })
-
-  const handleSelectIcon = (icon: string) => {
-    setSelectedIcon(icon)
-    onSelect(icon, localColor)
-  }
-
-  const handleSelectColor = (color: string) => {
-    setSelectedColor(color)
-    onSelect(localIcon, color)
-  }
-
-  const [customColor, setCustomColor] = React.useState(localColor)
+}) {
+  const [localIcon, setLocalIcon] = React.useState(icon)
+  const [localColor, setLocalColor] = React.useState(color)
+  const [search, setSearch] = React.useState("")
+  const [tab, setTab] = React.useState<"icons" | "emojis">("icons")
   const colorInputRef = React.useRef<HTMLInputElement>(null)
 
-  const handleCustomColor = (color: string) => {
-    handleSelectColor(color)
-  }
+  // Sync with external prop changes (e.g. parent resets the value)
+  React.useEffect(() => { setLocalIcon(icon) }, [icon])
+  React.useEffect(() => { setLocalColor(color) }, [color])
+
+  const filteredIcons = React.useMemo(() => {
+    if (!search.trim()) return AVAILABLE_ICONS
+    const q = search.toLowerCase()
+    return AVAILABLE_ICONS.filter((name) => name.toLowerCase().includes(q))
+  }, [search])
+
+  const selectIcon = (i: string) => { setLocalIcon(i); onSelect(i, localColor) }
+  const selectColor = (c: string) => { setLocalColor(c); onSelect(localIcon, c) }
 
   return (
-    <div
-      className="w-80 flex flex-col gap-0 bg-background border border-border shadow-xl rounded-xl overflow-hidden"
-      onClick={(e) => e.stopPropagation()}
-    >
-      {/* Color Bar - Fixed at Top */}
-      <div className="flex items-center justify-center gap-2 px-4 py-3 bg-muted/10 border-b border-border/50">
-        <div className="flex items-center gap-1.5">
-          {config.availableColors.map((color) => (
-            <ColorSwatch
-              key={color}
-              color={color}
-              isSelected={localColor === color}
-              onClick={() => handleSelectColor(color)}
-            />
+    <div className="w-72 flex flex-col bg-popover border border-border shadow-md rounded-md overflow-hidden">
+      {/* Color row */}
+      <div className="flex items-center gap-2 px-3 py-2.5 border-b border-border/50">
+        <span className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/50 shrink-0">
+          Color
+        </span>
+        <div className="flex items-center gap-1.5 flex-1">
+          {colors.map((c) => (
+            <ColorSwatch key={c} color={c} isSelected={localColor === c} onClick={() => selectColor(c)} />
           ))}
         </div>
-
-        {/* Custom Color Picker Circle Button */}
         <button
-          onClick={() => {
-            setTimeout(() => colorInputRef.current?.click(), 0)
-          }}
-          className="w-6 h-6 rounded-full flex-shrink-0 flex items-center justify-center bg-gradient-to-br from-red-500 via-green-500 to-blue-500 hover:shadow-lg transition-all hover:scale-110"
-          title="Pick custom color"
           type="button"
+          title="Custom color"
+          onClick={() => setTimeout(() => colorInputRef.current?.click(), 0)}
+          className="w-5 h-5 rounded-full shrink-0 bg-linear-to-br from-red-500 via-green-500 to-blue-500 ring-1 ring-border hover:scale-110 transition-transform"
         >
           <input
             ref={colorInputRef}
             type="color"
-            value={customColor}
-            onChange={(e) => {
-              setCustomColor(e.target.value)
-              handleCustomColor(e.target.value)
-            }}
-            className="opacity-0 w-0 h-0 cursor-pointer"
+            value={localColor}
+            onChange={(e) => selectColor(e.target.value)}
+            className="opacity-0 w-0 h-0"
           />
         </button>
       </div>
 
-      {/* Tabs & Icons - Main Section */}
-      <div className="p-3">
-        <Tabs defaultValue="icons" className="w-full">
-          <TabsList className="grid w-full grid-cols-2 p-1 bg-muted/50 h-9 rounded-lg">
-            <TabsTrigger
-              value="icons"
-              className="text-[11px] font-bold uppercase tracking-wider rounded-md data-[state=active]:bg-background data-[state=active]:shadow-sm"
-            >
-              Icons
-            </TabsTrigger>
-            <TabsTrigger
-              value="emojis"
-              className="text-[11px] font-bold uppercase tracking-wider rounded-md data-[state=active]:bg-background data-[state=active]:shadow-sm"
-            >
-              Emojis
-            </TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="icons" className="mt-0 flex flex-col gap-3">
-            {/* Search Input */}
-            <div className="relative">
-              <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
-              <Input
-                placeholder="Search icons..."
-                className="pl-8 h-9 text-[11px] bg-muted/30 border-none rounded-lg"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                type="search"
-                aria-label="Search icons"
-              />
-            </div>
-
-            {/* Icon Grid */}
-            <ScrollArea className="h-48 rounded-lg border border-border/50 bg-muted/10">
-              {filteredIcons.length > 0 ? (
-                <div className="grid grid-cols-6 gap-1 p-2">
-                  {filteredIcons.map((name) => (
-                    <IconRenderer
-                      key={name}
-                      name={name}
-                      isActive={localIcon === name}
-                      onClick={() => handleSelectIcon(name)}
-                    />
-                  ))}
-                </div>
-              ) : (
-                <div className="flex items-center justify-center h-full text-muted-foreground text-[11px] font-semibold">
-                  No icons found
-                </div>
-              )}
-            </ScrollArea>
-          </TabsContent>
-
-          <TabsContent
-            value="emojis"
-            className="mt-0 h-60 flex items-center justify-center text-muted-foreground text-[11px] font-bold uppercase tracking-widest italic opacity-50"
+      {/* Tab bar */}
+      <div className="flex border-b border-border/50">
+        {(["icons", "emojis"] as const).map((t) => (
+          <button
+            key={t}
+            type="button"
+            onClick={() => setTab(t)}
+            className={cn(
+              "flex-1 py-1.5 text-[10px] font-black uppercase tracking-wider transition-colors",
+              tab === t
+                ? "text-foreground border-b-2 border-primary"
+                : "text-muted-foreground/50 hover:text-muted-foreground",
+            )}
           >
-            Emojis coming soon
-          </TabsContent>
-        </Tabs>
-        </div>
+            {t}
+          </button>
+        ))}
       </div>
 
+      {tab === "icons" ? (
+        <div className="flex flex-col">
+          <div className="px-2 pt-2 pb-1">
+            <div className="relative">
+              <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground/40" />
+              <Input
+                placeholder="Search icons..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="h-7 pl-6 text-[11px] bg-muted/30 border-border/40 rounded-sm focus-visible:ring-0"
+              />
+            </div>
+          </div>
+          <ScrollArea className="h-44">
+            {filteredIcons.length > 0 ? (
+              <div className="grid grid-cols-7 gap-0.5 p-2">
+                {filteredIcons.map((name) => (
+                  <IconButton
+                    key={name}
+                    name={name}
+                    isActive={localIcon === name}
+                    activeColor={localColor}
+                    onClick={() => selectIcon(name)}
+                  />
+                ))}
+              </div>
+            ) : (
+              <div className="flex items-center justify-center h-full text-[11px] text-muted-foreground/50">
+                No icons found
+              </div>
+            )}
+          </ScrollArea>
+        </div>
+      ) : (
+        <div className="h-44 flex items-center justify-center text-[10px] font-black uppercase tracking-widest text-muted-foreground/30">
+          Coming soon
+        </div>
+      )}
+    </div>
   )
 }
 
-// ============================================================================
+// ─── Public component ─────────────────────────────────────────────────────────
+
+interface UniversalPickerProps {
+  icon: string
+  color: string
+  onSelect: (icon: string, color: string) => void
+  size?: keyof typeof SIZE
+  align?: "start" | "end" | "center"
+  colors?: string[]
+}
+
+export function UniversalPicker({
+  icon,
+  color,
+  onSelect,
+  size = "md",
+  align = "start",
+  colors = DEFAULT_COLORS,
+}: Readonly<UniversalPickerProps>) {
+  const { button, iconSize } = SIZE[size]
+
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <button
+          type="button"
+          className={cn("cursor-pointer transition-colors shrink-0 focus:outline-none", button)}
+          style={{ color }}
+        >
+          <DynamicIcon name={icon || "LayoutGrid"} size={iconSize} color={color} />
+        </button>
+      </PopoverTrigger>
+      <PopoverContent
+        align={align}
+        sideOffset={6}
+        className="w-fit p-0 border-none shadow-none bg-transparent"
+      >
+        <PickerPanel icon={icon} color={color} colors={colors} onSelect={onSelect} />
+      </PopoverContent>
+    </Popover>
+  )
+}

@@ -60,10 +60,10 @@ export const FolderNodeItem = React.memo(function FolderNodeItem({
         >
           <div
             className={cn(
-              "flex items-center w-full px-1 py-0.5 rounded-sm transition-colors mb-px group",
+              "flex items-center px-1 py-0.5 rounded-sm transition-colors mb-px group border",
               isActive
-                ? "bg-primary/10 text-foreground"
-                : "text-muted-foreground hover:bg-muted hover:text-foreground",
+                ? "bg-primary/10 text-primary border-primary/25"
+                : "text-muted-foreground border-transparent hover:bg-muted/50 hover:text-foreground hover:border-border/30",
             )}
           >
             <button
@@ -100,7 +100,7 @@ export const FolderNodeItem = React.memo(function FolderNodeItem({
             
             <button
               type="button"
-              className="flex-1 text-left text-[11px] font-semibold truncate outline-none select-none"
+              className="flex-1 text-left text-[11px] font-semibold outline-none select-none whitespace-nowrap"
               onMouseDown={() => {
                 if (workspaceId) {
                   router.preloadRoute({
@@ -118,22 +118,19 @@ export const FolderNodeItem = React.memo(function FolderNodeItem({
               {folder.name}
             </button>
 
-            <div className="flex items-center gap-0.5 min-w-fit">
+            <div className="flex items-center gap-0.5 ml-1 shrink-0">
               {folder.isPrivate && (
-                <Lock className="h-3 w-3 text-muted-foreground/40 shrink-0 mr-1" />
+                <Lock className="h-3 w-3 text-muted-foreground/40 shrink-0" />
               )}
-
-              <div className="w-0 group-hover:w-4 overflow-hidden opacity-0 group-hover:opacity-100 transition-all duration-300 ease-in-out">
-                <EntityMenuTrigger>
-                  <button
-                    type="button"
-                    className="h-4 w-4 p-0.5 flex items-center justify-center rounded-sm hover:bg-muted-foreground/10 text-muted-foreground hover:text-primary transition-colors"
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    <MoreVertical className="h-3.5 w-3.5" />
-                  </button>
-                </EntityMenuTrigger>
-              </div>
+              <EntityMenuTrigger>
+                <button
+                  type="button"
+                  className="h-4 w-4 p-0.5 flex items-center justify-center rounded-sm hover:bg-muted-foreground/10 text-muted-foreground hover:text-primary transition-colors"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <MoreVertical className="h-3.5 w-3.5" />
+                </button>
+              </EntityMenuTrigger>
             </div>
           </div>
         </FolderContextMenu>

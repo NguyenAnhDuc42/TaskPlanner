@@ -1,62 +1,164 @@
+/// <summary>
+/// C# port of the 'fractional-indexing' npm package.
+/// Produces keys in the same format so frontend safeKey() accepts them.
+///
+/// Format: {prefix}{intDigits}{optFracDigits}
+///   Prefix 'a'=1 digit, 'b'=2, ..., 'z'=26  (positive integers)
+///   Prefix 'Z'=1 digit before "a0", 'Y'=2, ...
+///   Digit set (base-62): "0-9 A-Z a-z"
+///   Sequence: "a0" → "a1" → ... → "az" → "b00" → ...
+/// </summary>
 public static class FractionalIndex
 {
-    private const string Alphabet = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
-    private const int AlphabetLength = 62;
+    private const string D = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
+    private const int B = 62;
+    private const char MidChar = 'V'; // D[31], midpoint of digit set
 
-    private static readonly int[] AlphabetIndex = BuildIndex();
+    // ─── Public API ────────────────────────────────────────────────────────────
 
-    private static int[] BuildIndex()
+    public static string Start()                         => "a0";
+    public static string After(string? key)              => GenerateBetween(key, null);
+    public static string Before(string? key)             => GenerateBetween(null, key);
+    public static string Between(string? lo, string? hi) => GenerateBetween(lo, hi);
+
+    public static string GenerateBetween(string? lo, string? hi)
     {
-        var index = new int[128];
-        Array.Fill(index, -1);
-        for (int i = 0; i < AlphabetLength; i++)
-            index[Alphabet[i]] = i;
-        return index;
+        if (lo == null && hi == null) return "a0";
+        if (lo != null) Validate(lo);
+        if (hi != null) Validate(hi);
+
+        if (lo == null) return BeforeKey(hi!);
+        if (hi == null) return AfterKey(lo);
+
+        if (string.CompareOrdinal(lo, hi) >= 0)
+            throw new ArgumentException($"lo must be < hi (lo={lo}, hi={hi})");
+
+        return Midpoint(lo, hi);
     }
 
-    private static int GetIndex(char c) => c < 128 ? AlphabetIndex[c] : -1;
+    // ─── After (append): increment integer part, drop fraction ────────────────
 
-    public static string Between(string? before, string? after)
+    private static string AfterKey(string key)
     {
-        ReadOnlySpan<char> b = before.AsSpan();
-        ReadOnlySpan<char> a = after.AsSpan();
+        var (p, intPart, _) = Parse(key);
+        var inc = Increment(intPart);
+        if (inc.Length == intPart.Length)
+            return p + inc;
 
-        if (b.IsEmpty && a.IsEmpty) return "V";
+        // Integer overflowed — advance prefix
+        var next = (char)(p + 1);
+        if (next > 'z') throw new InvalidOperationException("FractionalIndex: key space exhausted");
+        return next + new string('0', IntLen(next));
+    }
 
-        int length = Math.Max(b.Length, a.Length) + 1;
-        var result = new System.Text.StringBuilder(length);
+    // ─── Before (prepend): decrement integer part, drop fraction ──────────────
 
-        for (int i = 0; i < length; i++)
+    private static string BeforeKey(string key)
+    {
+        var (p, intPart, _) = Parse(key);
+        var dec = Decrement(intPart);
+        if (dec != null)
+            return p + dec;
+
+        // Integer underflowed — shrink prefix
+        var prev = (char)(p - 1);
+        if (prev < 'A') throw new InvalidOperationException("FractionalIndex: key space exhausted");
+        return prev + new string('z', IntLen(prev));
+    }
+
+    // ─── Midpoint between lo and hi ────────────────────────────────────────────
+
+    private static string Midpoint(string lo, string hi)
+    {
+        var (loP, loInt, _) = Parse(lo);
+        var (hiP, hiInt, _) = Parse(hi);
+
+        if (loP == hiP)
         {
-            char bc = i < b.Length ? b[i] : '\0';
-            char ac = i < a.Length ? a[i] : (char)127;
+            // Same prefix: try to find a midpoint integer
+            var mid = IntegerMidpoint(loInt, hiInt); // length == IntLen(loP)
+            if (mid != loInt)
+                return loP + mid;
 
-            if (bc == ac) { result.Append(bc); continue; }
-
-            int bIdx = GetIndex(bc);           // -1 if below alphabet floor
-            int aIdx = GetIndex(ac);
-            if (aIdx == -1) aIdx = AlphabetLength; // above alphabet ceiling
-
-            int midIdx = (Math.Max(bIdx, 0) + aIdx) / 2;
-
-            if (midIdx > bIdx)
-            {
-                result.Append(Alphabet[midIdx]);
-                break;
-            }
-
-            result.Append(bc);
-            if (i >= b.Length - 1)
-            {
-                result.Append(Alphabet[AlphabetLength / 2]);
-                break;
-            }
+            // Integers are adjacent — no room; append a fraction digit after lo
+            // We keep appending until we find a key strictly < hi
+            var candidate = lo + MidChar;
+            if (string.CompareOrdinal(candidate, hi) < 0)
+                return candidate;
+            return lo + '0' + MidChar; // go deeper
         }
 
-        return result.ToString();
+        // Different prefixes — AfterKey(lo) is safe as long as it's < hi
+        var after = AfterKey(lo);
+        if (string.CompareOrdinal(after, hi) < 0)
+            return after;
+
+        // after >= hi (keys are very close): append fraction to lo
+        return lo + MidChar;
     }
 
-    public static string Start()             => "V";
-    public static string After(string key)  => Between(key, null);
-    public static string Before(string key) => Between(null, key);
+    // Find midpoint of two fixed-length base-62 strings of the same length
+    private static string IntegerMidpoint(string lo, string hi)
+    {
+        int n = lo.Length; // == hi.Length == IntLen(prefix)
+        var result = new char[n];
+        int rem = 0;
+
+        for (int i = 0; i < n; i++)
+        {
+            int l = D.IndexOf(lo[i]);
+            int h = D.IndexOf(hi[i]);
+            int cur = rem * B + l + h;
+            result[i] = D[cur / 2];
+            rem = cur % 2;
+        }
+
+        return new string(result);
+    }
+
+    // ─── Base-62 increment / decrement ────────────────────────────────────────
+
+    private static string Increment(string digits)
+    {
+        var arr = digits.ToCharArray();
+        for (int i = arr.Length - 1; i >= 0; i--)
+        {
+            int idx = D.IndexOf(arr[i]);
+            if (idx < B - 1) { arr[i] = D[idx + 1]; return new string(arr); }
+            arr[i] = '0';
+        }
+        return "1" + new string('0', digits.Length); // full carry → longer
+    }
+
+    private static string? Decrement(string digits)
+    {
+        var arr = digits.ToCharArray();
+        for (int i = arr.Length - 1; i >= 0; i--)
+        {
+            int idx = D.IndexOf(arr[i]);
+            if (idx > 0) { arr[i] = D[idx - 1]; return new string(arr).TrimEnd('0').PadLeft(1, '0'); }
+            arr[i] = D[B - 1]; // 'z'
+        }
+        return null; // full borrow → caller shrinks prefix
+    }
+
+    // ─── Parsing / validation ─────────────────────────────────────────────────
+
+    private static (char prefix, string intPart, string fracPart) Parse(string key)
+    {
+        if (string.IsNullOrEmpty(key)) throw new ArgumentException("Empty key");
+        char p = key[0];
+        int n = IntLen(p);
+        if (key.Length < 1 + n) throw new ArgumentException($"Key too short for prefix '{p}': {key}");
+        return (p, key[1..(1 + n)], key[(1 + n)..]);
+    }
+
+    private static void Validate(string key) => Parse(key);
+
+    private static int IntLen(char prefix)
+    {
+        if (prefix >= 'a' && prefix <= 'z') return prefix - 'a' + 1;
+        if (prefix >= 'A' && prefix <= 'Z') return 'Z' - prefix + 1;
+        throw new ArgumentException($"Invalid fractional-index prefix: '{prefix}'");
+    }
 }

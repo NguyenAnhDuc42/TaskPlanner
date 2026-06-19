@@ -242,7 +242,7 @@ export function useSpaceStatuses(spaceId: string) {
             const weightA = statusCategoryWeight[a.category] ?? 4;
             const weightB = statusCategoryWeight[b.category] ?? 4;
             if (weightA !== weightB) return weightA - weightB;
-            return (a.orderKey || "").localeCompare(b.orderKey || "");
+            return ((a.orderKey ?? "") < (b.orderKey ?? "") ? -1 : 1);
           });
       }
     ),

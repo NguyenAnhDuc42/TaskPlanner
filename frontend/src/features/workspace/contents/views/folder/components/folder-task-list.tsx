@@ -2,7 +2,7 @@ import * as React from "react";
 import { Plus } from "lucide-react";
 import { useParams } from "@tanstack/react-router";
 import { useGetFolderTasksQuery, useBatchUpdateFolderTasksMutation, type TaskFilter, folderApi, useFolderStatuses } from "../folder-api";
-import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
+import { DialogFormWrapper } from "@/components/dialog-form-wrapper";
 import { CreateTaskForm } from "@/features/workspace/components/forms/create-task-form";
 import { EntityLayerType } from "@/types/entity-layer-type";
 import { SortableTaskItem } from "./sortable-task-item";
@@ -80,7 +80,7 @@ export function FolderTaskList({
       (entities) => fetchedTaskIds
         .map(id => entities[id])
         .filter((t): t is TaskRecord => !!t)
-        .sort((a, b) => (a.orderKey || "").localeCompare(b.orderKey || ""))
+        .sort((a, b) => ((a.orderKey ?? "") < (b.orderKey ?? "") ? -1 : 1))
     );
   }, [fetchedTaskIds]);
 
@@ -222,22 +222,27 @@ export function FolderTaskList({
         </div>
 
         {/* Create Task */}
-        <Dialog open={createOpen} onOpenChange={setCreateOpen}>
-          <DialogTrigger asChild>
-            <button className="w-full flex items-center justify-center py-2 px-3 rounded-md bg-muted/40 hover:bg-muted/70 text-foreground transition-all border border-border/40 hover:border-border/80 mt-2 gap-1.5 cursor-pointer shadow-sm active:scale-[0.98]">
+        <DialogFormWrapper
+          title="Create New Task"
+          open={createOpen}
+          onOpenChange={setCreateOpen}
+          trigger={
+            <button
+              onClick={() => setCreateOpen(true)}
+              className="w-full flex items-center justify-center py-2 px-3 rounded-md bg-muted/40 hover:bg-muted/70 text-foreground transition-all border border-border/40 hover:border-border/80 mt-2 gap-1.5 cursor-pointer shadow-sm active:scale-[0.98]"
+            >
               <Plus className="h-3.5 w-3.5 text-muted-foreground" />
               <span className="text-[11px] font-semibold text-muted-foreground">Create Task</span>
             </button>
-          </DialogTrigger>
-          <DialogContent className="max-w-2xl p-0">
-            <CreateTaskForm
-              parentId={folderId}
-              parentType={EntityLayerType.ProjectFolder}
-              onSuccess={() => setCreateOpen(false)}
-              onCancel={() => setCreateOpen(false)}
-            />
-          </DialogContent>
-        </Dialog>
+          }
+        >
+          <CreateTaskForm
+            parentId={folderId}
+            parentType={EntityLayerType.ProjectFolder}
+            onSuccess={() => setCreateOpen(false)}
+            onCancel={() => setCreateOpen(false)}
+          />
+        </DialogFormWrapper>
       </div>
     </div>
   );

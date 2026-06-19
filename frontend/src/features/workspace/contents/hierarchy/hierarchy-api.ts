@@ -79,6 +79,9 @@ export const hierarchyApi = workspaceApi.injectEndpoints({
         currentCache.hasNextPage = newItems.hasNextPage;
         return currentCache;
       },
+      forceRefetch({ currentArg, previousArg }) {
+        return currentArg?.cursor !== previousArg?.cursor;
+      },
       async onQueryStarted(_, { dispatch, queryFulfilled }) {
         try {
           const { data } = await queryFulfilled;
@@ -101,6 +104,9 @@ export const hierarchyApi = workspaceApi.injectEndpoints({
         currentCache.nextCursor = newItems.nextCursor;
         currentCache.hasNextPage = newItems.hasNextPage;
         return currentCache;
+      },
+      forceRefetch({ currentArg, previousArg }) {
+        return currentArg?.cursor !== previousArg?.cursor;
       },
       async onQueryStarted({ nodeId, cursor }, { dispatch, queryFulfilled }) {
         try {
@@ -127,6 +133,9 @@ export const hierarchyApi = workspaceApi.injectEndpoints({
         currentCache.nextCursor = newItems.nextCursor;
         currentCache.hasNextPage = newItems.hasNextPage;
         return currentCache;
+      },
+      forceRefetch({ currentArg, previousArg }) {
+        return currentArg?.cursor !== previousArg?.cursor;
       },
       async onQueryStarted({ nodeId, parentType, cursor }, { dispatch, queryFulfilled }) {
         try {
@@ -255,7 +264,7 @@ export const hierarchyApi = workspaceApi.injectEndpoints({
                 } else {
                   draft.items[idx].orderKey = move.newOrderKey;
                 }
-                draft.items.sort((a, b) => (a.orderKey ?? "").localeCompare(b.orderKey ?? ""));
+                draft.items.sort((a, b) => ((a.orderKey ?? "") < (b.orderKey ?? "") ? -1 : 1));
               })
             );
             patches.push(patch);
@@ -278,7 +287,7 @@ export const hierarchyApi = workspaceApi.injectEndpoints({
                   draft.items[idx].orderKey = move.newOrderKey;
                   draft.items[idx].spaceId = targetSpaceId;
                 }
-                draft.items.sort((a, b) => (a.orderKey ?? "").localeCompare(b.orderKey ?? ""));
+                draft.items.sort((a, b) => ((a.orderKey ?? "") < (b.orderKey ?? "") ? -1 : 1));
               })
             );
             patches.push(patch);
@@ -320,7 +329,7 @@ export const hierarchyApi = workspaceApi.injectEndpoints({
                   } else {
                     draft.items[idx].orderKey = move.newOrderKey;
                   }
-                  draft.items.sort((a, b) => (a.orderKey ?? "").localeCompare(b.orderKey ?? ""));
+                  draft.items.sort((a, b) => ((a.orderKey ?? "") < (b.orderKey ?? "") ? -1 : 1));
                 }
               )
             );
@@ -379,7 +388,7 @@ export function useSpaces(workspaceId: string) {
       [spaceSelectors.selectAll],
       (spaces) => spaces
         .filter(s => s.workspaceId === workspaceId)
-        .sort((a, b) => (a.orderKey ?? "").localeCompare(b.orderKey ?? ""))
+        .sort((a, b) => ((a.orderKey ?? "") < (b.orderKey ?? "") ? -1 : 1))
     ),
   [workspaceId]);
 
@@ -392,7 +401,7 @@ export function useFoldersBySpace(spaceId: string) {
       [folderSelectors.selectAll],
       (folders) => folders
         .filter(f => f.spaceId === spaceId)
-        .sort((a, b) => (a.orderKey ?? "").localeCompare(b.orderKey ?? ""))
+        .sort((a, b) => ((a.orderKey ?? "") < (b.orderKey ?? "") ? -1 : 1))
     );
   }, [spaceId]);
 
@@ -410,7 +419,7 @@ export function useTasksByParent(parentId: string) {
             (t.spaceId === parentId && !t.folderId)
           )
         )
-        .sort((a, b) => (a.orderKey ?? "").localeCompare(b.orderKey ?? ""))
+        .sort((a, b) => ((a.orderKey ?? "") < (b.orderKey ?? "") ? -1 : 1))
     );
   }, [parentId]);
 

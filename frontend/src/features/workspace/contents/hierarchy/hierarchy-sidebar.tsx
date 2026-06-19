@@ -107,8 +107,8 @@ export function HierarchySidebar() {
           </CollapsibleTrigger>
 
           <CollapsibleContent className="flex-1 min-h-0 overflow-hidden data-[state=open]:flex data-[state=closed]:hidden">
-            <ScrollArea className="h-full w-full">
-              <div className="px-1 pt-0.5 pb-2 flex flex-col">
+            <div className="h-full w-full overflow-y-auto overflow-x-auto [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar]:h-1 [&::-webkit-scrollbar-thumb]:bg-muted-foreground/20 hover:[&::-webkit-scrollbar-thumb]:bg-muted-foreground/40 [&::-webkit-scrollbar-track]:bg-transparent">
+              <div className="px-1 pt-0.5 pb-2 flex flex-col min-w-fit">
                 <DndContext
                   sensors={sensors}
                   collisionDetection={closestCenter}
@@ -173,7 +173,7 @@ export function HierarchySidebar() {
                   </DragOverlay>
                 </DndContext>
               </div>
-            </ScrollArea>
+            </div>
           </CollapsibleContent>
         </Collapsible>
       </div>

@@ -1,10 +1,11 @@
 import React from "react";
-import { useWorkspace } from "@/features/workspace/context/workspace-provider";
-import { useGetNodeTasksQuery, useTasksByParent } from "../hierarchy-api";
-import { EntityLayerType } from "@/types/entity-layer-type";
 import { useDispatch } from "react-redux";
+import type { AppDispatch } from "@/store";
+import { useWorkspace } from "@/features/workspace/context/workspace-provider";
+import { useGetNodeTasksQuery, useTasksByParent, hierarchyApi } from "../hierarchy-api";
+import { EntityLayerType } from "@/types/entity-layer-type";
 import { folderSlice, spaceSlice } from "@/store/entityStore";
-import { SortableContext,verticalListSortingStrategy,} from "@dnd-kit/sortable";
+import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { TaskNodeItem } from "./task-node-item";
 
 const TaskSkeleton = () => (
@@ -26,15 +27,13 @@ export const NodeTasksList = React.memo(function NodeTasksList({
   spaceId: string;
 }) {
   const { workspaceId } = useWorkspace();
-  const dispatch = useDispatch();
-  
-  // 1. Fetch child tasks using Redux Query
-  const { isLoading } = useGetNodeTasksQuery(
+  const dispatch = useDispatch<AppDispatch>();
+
+  const { isLoading, isFetching, data } = useGetNodeTasksQuery(
     { workspaceId: workspaceId || "", nodeId, parentType, cursor: null },
-    { skip: !isExpanded } // Only query if expanded
+    { skip: !isExpanded },
   );
-    
-  // 2. Select tasks dynamically from our centralized store
+
   const tasks = useTasksByParent(nodeId);
 
   React.useEffect(() => {
@@ -59,23 +58,46 @@ export const NodeTasksList = React.memo(function NodeTasksList({
     );
   }
 
-  // Always render SortableContext even when empty — required so DND can drop into empty layers
+  const loadMore = () => {
+    if (!data?.nextCursor || isFetching) return;
+    dispatch(
+      hierarchyApi.endpoints.getNodeTasks.initiate({
+        workspaceId: workspaceId || "",
+        nodeId,
+        parentType,
+        cursor: data.nextCursor,
+      }),
+    );
+  };
+
   return (
-    <SortableContext
-      items={tasks.map((t) => `task-${t.id}`)}
-      strategy={verticalListSortingStrategy}
-    >
-      <div className="flex flex-col">
-        {tasks.map((t) => (
-          <TaskNodeItem
-            key={t.id}
-            taskId={t.id}
-            parentId={nodeId}
-            parentType={parentType}
-            spaceId={spaceId}
-          />
-        ))}
-      </div>
-    </SortableContext>
+    <>
+      <SortableContext
+        items={tasks.map((t) => `task-${t.id}`)}
+        strategy={verticalListSortingStrategy}
+      >
+        <div className="flex flex-col">
+          {tasks.map((t) => (
+            <TaskNodeItem
+              key={t.id}
+              taskId={t.id}
+              parentId={nodeId}
+              parentType={parentType}
+              spaceId={spaceId}
+            />
+          ))}
+        </div>
+      </SortableContext>
+
+      {data?.hasNextPage && (
+        <button
+          onClick={loadMore}
+          disabled={isFetching}
+          className="text-[10px] text-muted-foreground/40 hover:text-primary py-0.5 px-1 text-left transition-colors disabled:opacity-40 font-mono uppercase tracking-tight"
+        >
+          {isFetching ? "Loading..." : "Load more"}
+        </button>
+      )}
+    </>
   );
 });

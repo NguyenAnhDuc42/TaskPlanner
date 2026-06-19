@@ -149,7 +149,7 @@ export function useHierarchyDnd({ workspaceId, batchMoveItems }: UseHierarchyDnd
         toast.error("Network error occurred while moving items");
         rollback();
       }
-    }, 4000);
+    }, 800);
   };
 
   const handleDragStart = (event: DragStartEvent) => {
@@ -160,55 +160,60 @@ export function useHierarchyDnd({ workspaceId, batchMoveItems }: UseHierarchyDnd
 
   const handleDragEnd = async (event: DragEndEvent) => {
     const { active, over } = event;
+
+    // Update the entity store BEFORE clearing activeItem so the DOM order is
+    // already correct when the drag overlay disappears. Clearing first causes
+    // a visible snap-back: overlay gone → item reverts to old DOM slot → then
+    // React re-renders the new order → item jumps again.
+    if (over && active.id !== over.id) {
+      const activeData = active.data.current as DragItemData | undefined;
+      const overData = over.data.current as DragItemData | undefined;
+
+      if (activeData && overData) {
+        if (activeData.type === EntityLayerConst.ProjectSpace) {
+          recordOriginalSpace(activeData.id);
+          handleSpaceMove(activeData, overData, triggerDebouncedBatchMove);
+        }
+        else if (activeData.type === EntityLayerConst.ProjectFolder) {
+          recordOriginalFolder(activeData.id);
+          recordOriginalSpace(activeData.spaceId);
+          if (overData.type === EntityLayerConst.ProjectSpace) {
+            recordOriginalSpace(overData.id);
+          } else if (overData.type === EntityLayerConst.ProjectFolder) {
+            recordOriginalSpace(overData.spaceId);
+          }
+          handleFolderMove(activeData, overData, triggerDebouncedBatchMove);
+        }
+        else if (activeData.type === EntityLayerConst.ProjectTask) {
+          recordOriginalTask(activeData.id);
+          if (activeData.parentType === EntityLayerConst.ProjectFolder) {
+            recordOriginalFolder(activeData.parentId);
+          } else {
+            recordOriginalSpace(activeData.parentId);
+          }
+          let targetSpaceId: string | undefined;
+          let targetFolderId: string | null = null;
+          if (overData.type === EntityLayerConst.ProjectSpace) {
+            targetSpaceId = overData.id;
+          } else if (overData.type === EntityLayerConst.ProjectFolder) {
+            targetSpaceId = overData.spaceId;
+            targetFolderId = overData.id;
+          } else if (overData.type === EntityLayerConst.ProjectTask) {
+            targetSpaceId = overData.spaceId;
+            targetFolderId = overData.parentType === EntityLayerConst.ProjectFolder ? overData.parentId : null;
+          }
+          if (targetFolderId) {
+            recordOriginalFolder(targetFolderId);
+          } else if (targetSpaceId) {
+            recordOriginalSpace(targetSpaceId);
+          }
+          handleTaskMove(activeData, overData, triggerDebouncedBatchMove);
+        }
+      }
+    }
+
+    // Clear the overlay only after store is updated
     setActiveItem(null);
-    
-    if (!over || active.id === over.id) return;
-
-    const activeData = active.data.current as DragItemData | undefined;
-    const overData = over.data.current as DragItemData | undefined;
-
-    if (!activeData || !overData) return;
-
-    // Direct, type-safe movement routing using our debounced batch pipeline
-    if (activeData.type === EntityLayerConst.ProjectSpace) {
-      recordOriginalSpace(activeData.id);
-      handleSpaceMove(activeData, overData, triggerDebouncedBatchMove);
-    } 
-    else if (activeData.type === EntityLayerConst.ProjectFolder) {
-      recordOriginalFolder(activeData.id);
-      recordOriginalSpace(activeData.spaceId);
-      if (overData.type === EntityLayerConst.ProjectSpace) {
-        recordOriginalSpace(overData.id);
-      } else if (overData.type === EntityLayerConst.ProjectFolder) {
-        recordOriginalSpace(overData.spaceId);
-      }
-      handleFolderMove(activeData, overData, triggerDebouncedBatchMove);
-    }
-    else if (activeData.type === EntityLayerConst.ProjectTask) {
-      recordOriginalTask(activeData.id);
-      if (activeData.parentType === EntityLayerConst.ProjectFolder) {
-        recordOriginalFolder(activeData.parentId);
-      } else {
-        recordOriginalSpace(activeData.parentId);
-      }
-      let targetSpaceId: string | undefined;
-      let targetFolderId: string | null = null;
-      if (overData.type === EntityLayerConst.ProjectSpace) {
-        targetSpaceId = overData.id;
-      } else if (overData.type === EntityLayerConst.ProjectFolder) {
-        targetSpaceId = overData.spaceId;
-        targetFolderId = overData.id;
-      } else if (overData.type === EntityLayerConst.ProjectTask) {
-        targetSpaceId = overData.spaceId;
-        targetFolderId = overData.parentType === EntityLayerConst.ProjectFolder ? overData.parentId : null;
-      }
-      if (targetFolderId) {
-        recordOriginalFolder(targetFolderId);
-      } else if (targetSpaceId) {
-        recordOriginalSpace(targetSpaceId);
-      }
-      handleTaskMove(activeData, overData, triggerDebouncedBatchMove);
-    }
   };
 
   return {

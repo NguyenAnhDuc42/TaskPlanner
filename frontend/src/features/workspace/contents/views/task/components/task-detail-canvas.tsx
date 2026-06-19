@@ -1,4 +1,3 @@
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useSelector } from "react-redux";
 import { taskSelectors } from "@/store/entityStore";
 import type { RootState } from "@/store";
@@ -95,22 +94,12 @@ export function TaskDetailCanvas({ taskId }: TaskDetailCanvasProps) {
         <div className="w-full p-4 md:p-8 space-y-6">
           {/* Header Title Area */}
           <div className="flex items-start gap-3">
-            <Popover>
-              <PopoverTrigger asChild>
-                <button className="h-9 w-9 flex items-center justify-center rounded-lg border border-border/50 bg-muted/20 hover:bg-muted/40 transition-colors shrink-0">
-                  <DynamicIcon name={task.icon || "CheckSquare"} color={task.color || ""} size={24} />
-                </button>
-              </PopoverTrigger>
-              <PopoverContent className="p-0 border-none bg-transparent shadow-none" align="start">
-                <UniversalPicker
-                  selectedIcon={task.icon || "CheckSquare"}
-                  selectedColor={task.color || "#6366f1"}
-                  onSelect={(icon, color) => {
-                    updateTask({ taskId, patches: { icon, color } });
-                  }}
-                />
-              </PopoverContent>
-            </Popover>
+            <UniversalPicker
+              icon={task.icon || "CheckSquare"}
+              color={task.color || "#6366f1"}
+              onSelect={(icon, color) => updateTask({ taskId, patches: { icon, color } })}
+              size="lg"
+            />
 
             <DebouncedInput
               value={task.name || ""}

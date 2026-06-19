@@ -26,7 +26,7 @@ export function handleFolderMove(
   // Retrieve and sort current sibling folders under source space
   const sourceFoldersList = Object.values(state.folders.entities)
     .filter((f): f is typeof f & { id: string } => !!f && f.spaceId === sourceSpaceId)
-    .sort((a, b) => (a.orderKey || "").localeCompare(b.orderKey || ""));
+    .sort((a, b) => ((a.orderKey ?? "") < (b.orderKey ?? "") ? -1 : 1));
 
   const sourceFolders = sourceFoldersList.map(f => f.id);
 
@@ -35,7 +35,7 @@ export function handleFolderMove(
     ? sourceFoldersList
     : Object.values(state.folders.entities)
         .filter((f): f is typeof f & { id: string } => !!f && f.spaceId === targetSpaceId)
-        .sort((a, b) => (a.orderKey || "").localeCompare(b.orderKey || ""));
+        .sort((a, b) => ((a.orderKey ?? "") < (b.orderKey ?? "") ? -1 : 1));
 
   const targetFolders = targetFoldersList.map(f => f.id);
 

@@ -4,7 +4,6 @@ import {
   Lock, 
   Calendar as CalendarIcon, 
 } from "lucide-react";
-import * as Icons from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import { UniversalPicker } from "@/components/universal-picker";
@@ -73,37 +72,12 @@ export function PrivacyToggle({ isPrivate, onChange }: { isPrivate: boolean; onC
 }
 
 // --- ICON & COLOR PICKER ---
-export function IconColorPicker({ 
-  icon, 
-  color, 
-  onChange 
-}: Readonly<{ 
-  icon: string; 
-  color: string; 
-  onChange: (icon: string, color: string) => void 
-}>) {
-  const SelectedIcon = (Icons as any)[icon] || Icons.LayoutGrid;
-
-  return (
-    <Popover>
-      <PopoverTrigger asChild>
-        <button 
-          type="button"
-          className="h-6 w-6 rounded-md hover:bg-muted/50 flex items-center justify-center transition-colors shrink-0"
-          style={{ color: color }}
-        >
-          <SelectedIcon className="h-4 w-4" />
-        </button>
-      </PopoverTrigger>
-      <PopoverContent className="w-fit p-0 border border-border/50 shadow-xl rounded-xl bg-background overflow-hidden" align="start" sideOffset={8}>
-        <UniversalPicker 
-          selectedIcon={icon} 
-          selectedColor={color} 
-          onSelect={onChange} 
-        />
-      </PopoverContent>
-    </Popover>
-  );
+export function IconColorPicker({
+  icon,
+  color,
+  onChange,
+}: Readonly<{ icon: string; color: string; onChange: (icon: string, color: string) => void }>) {
+  return <UniversalPicker icon={icon} color={color} onSelect={onChange} size="md" />;
 }
 
 // --- DATE PICKER ---

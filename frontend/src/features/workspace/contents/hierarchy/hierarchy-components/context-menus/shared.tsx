@@ -70,7 +70,7 @@ export function EntityMenuTrigger({ children }: { children: React.ReactNode }) {
 
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger asChild>
+      <DropdownMenuTrigger asChild onPointerDown={(e) => e.stopPropagation()}>
         {children}
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start" side="right" className="w-52 bg-background/95 backdrop-blur-md border-border/50 shadow-2xl rounded-xl p-1.5 animate-in fade-in-0 zoom-in-95">

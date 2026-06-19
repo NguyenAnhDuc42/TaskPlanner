@@ -15,7 +15,7 @@ import { useGetSpaceDetailQuery, useGetSpaceItemsQuery, useSpaceStatuses } from 
 import type { Status } from "@/types/status";
 import { Priority } from "@/types/priority";
 import { PriorityBadge } from "@/components/priority-badge";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { PrioritySelect } from "@/components/priority-select";
 
 interface CreateFolderFormProps {
   readonly spaceId: string;
@@ -165,38 +165,16 @@ export function CreateFolderForm({
           }
         />
 
-        <Popover>
-          <PopoverTrigger asChild>
+        <PrioritySelect
+          value={state.priority}
+          onChange={(p) => dispatch({ type: "SET_PRIORITY", payload: p })}
+          align="start"
+          trigger={
             <AttributeButton>
               <PriorityBadge priority={state.priority} />
             </AttributeButton>
-          </PopoverTrigger>
-          <PopoverContent
-            className="w-32 p-1 bg-popover border border-border shadow-md rounded-md"
-            align="start"
-          >
-            <div className="flex flex-col gap-0.5">
-              {[
-                Priority.Low,
-                Priority.Normal,
-                Priority.High,
-                Priority.Urgent,
-              ].map((p) => (
-                <button
-                  key={p}
-                  type="button"
-                  className="px-1 py-1 text-xs text-left rounded-sm hover:bg-muted transition-colors flex items-center cursor-pointer"
-                  onClick={() => dispatch({ type: "SET_PRIORITY", payload: p })}
-                >
-                  <PriorityBadge
-                    priority={p}
-                    className="w-full justify-start"
-                  />
-                </button>
-              ))}
-            </div>
-          </PopoverContent>
-        </Popover>
+          }
+        />
 
         <DateSelect
           startDate={state.startDate?.toISOString()}

@@ -136,7 +136,6 @@ export function WorkspaceLayout() {
       } else if (newWidth > 0 && !ui.isInnerSidebarOpen) {
         actions.setSidebarOpenLocal(true);
       }
-      actions.setSidebarWidthLocal(newWidth);
     },
     onResizeEnd: (newWidth) => {
       actions.updateSidebarWidth(newWidth);
@@ -162,12 +161,8 @@ export function WorkspaceLayout() {
     onResize: (newWidth) => {
       if (newWidth === 0) {
         if (contextData) handleCloseContextPanel();
-        actions.setContextWidthLocal(300);
       } else if (newWidth >= expandThreshold) {
         if (contextData) handleExpandContextPanel();
-        actions.setContextWidthLocal(300);
-      } else {
-        actions.setContextWidthLocal(newWidth);
       }
     },
     onResizeEnd: (newWidth) => {

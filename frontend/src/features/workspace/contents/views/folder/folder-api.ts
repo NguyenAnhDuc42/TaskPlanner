@@ -187,7 +187,7 @@ export function useFolderTasksList(folderId: string) {
       [taskSelectors.selectAll],
       (tasks) => tasks
         .filter((t): t is TaskRecord => t.folderId === folderId && !t.parentTaskId)
-        .sort((a, b) => (a.orderKey || "").localeCompare(b.orderKey || ""))
+        .sort((a, b) => ((a.orderKey ?? "") < (b.orderKey ?? "") ? -1 : 1))
     ),
   [folderId]);
 
@@ -215,7 +215,7 @@ export function useFolderStatuses(folderId: string) {
             const weightA = statusCategoryWeight[a.category] ?? 4;
             const weightB = statusCategoryWeight[b.category] ?? 4;
             if (weightA !== weightB) return weightA - weightB;
-            return (a.orderKey || "").localeCompare(b.orderKey || "");
+            return ((a.orderKey ?? "") < (b.orderKey ?? "") ? -1 : 1);
           });
       }
     ),

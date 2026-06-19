@@ -1,6 +1,6 @@
 import { EntityViewFrame } from "../entity-view-frame";
 import { FolderTaskList } from "./components/folder-task-list";
-import { Folder, Trash2, MoreVertical, GitMerge, Circle, Maximize2 } from "lucide-react";
+import {  Trash2, MoreVertical, GitMerge, Circle, Maximize2 } from "lucide-react";
 import { TaskDetailCanvas } from "../task/components/task-detail-canvas";
 import * as React from "react";
 import { useParams, Link, useNavigate } from "@tanstack/react-router";
@@ -35,7 +35,6 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { DateSelect } from "@/components/date-select";
 import { FolderTaskBatchBar } from "./components/folder-task-batch-bar";
-import { PopoverFormWrapper } from "@/components/popover-wrapper";
 import { UniversalPicker } from "@/components/universal-picker";
 import { CreateStatusForm } from "@/features/workspace/components/forms/workflow-management-form";
 import type { FolderRecord } from "@/types/projects/folder-record";
@@ -95,7 +94,7 @@ export function FolderView({ folderId }: Readonly<FolderViewProps>) {
     if (!targetWorkflowId) return [];
     return allStatuses
       .filter(s => s.workflowId?.toLowerCase() === targetWorkflowId.toLowerCase())
-      .sort((a, b) => (a.orderKey || "").localeCompare(b.orderKey || ""));
+      .sort((a, b) => ((a.orderKey ?? "") < (b.orderKey ?? "") ? -1 : 1));
   }, [folder?.workflowId, allStatuses]);
 
   const updateField = (patches: Partial<FolderRecord> & { clearStartDate?: boolean; clearDueDate?: boolean; clearStatusId?: boolean; clearPriority?: boolean }) => {
@@ -185,30 +184,19 @@ export function FolderView({ folderId }: Readonly<FolderViewProps>) {
       <div className="h-full w-full flex flex-col bg-background/25 p-1 gap-1 overflow-hidden relative">
         {/* Ambient background accent glow */}
         <div 
-          className="absolute right-12 bottom-12 w-[350px] h-[350px] rounded-full blur-[120px] opacity-[0.05] pointer-events-none transition-all duration-700"
+          className="absolute right-12 bottom-12 w-87.5 h-87.5 rounded-full blur-[120px] opacity-[0.05] pointer-events-none transition-all duration-700"
           style={{ backgroundColor: folder?.color || "#6366f1" }}
         />
 
         {/* Integrated Floating Folder Header Bar */}
         <div className="flex items-center justify-between px-1.5 py-1 rounded-md border border-border/30 bg-card/30 backdrop-blur-md shadow-sm shrink-0">
           <div className="flex items-center gap-1.5">
-            <PopoverFormWrapper
-              trigger={
-                <button className="flex items-center justify-center p-0.5 hover:bg-muted/65 rounded-md transition-all cursor-pointer focus:outline-none border border-border/10 shadow-sm bg-background/80">
-                  {folder?.icon ? (
-                    <DynamicIcon name={folder.icon} className="h-3 w-3" color={folder.color} />
-                  ) : (
-                    <Folder className="h-3 w-3" color={folder?.color} />
-                  )}
-                </button>
-              }
-            >
-              <UniversalPicker
-                selectedIcon={folder?.icon ?? "Folder"}
-                selectedColor={folder?.color ?? "#6366f1"}
-                onSelect={(icon, color) => updateField({ icon, color })}
-              />
-            </PopoverFormWrapper>
+            <UniversalPicker
+              icon={folder?.icon ?? "Folder"}
+              color={folder?.color ?? "#6366f1"}
+              onSelect={(icon, color) => updateField({ icon, color })}
+              size="sm"
+            />
 
             <input
               key={folderId}
@@ -291,7 +279,7 @@ export function FolderView({ folderId }: Readonly<FolderViewProps>) {
           {/* Left Card: Folder Task List Column */}
           <div className={cn(
             "rounded-md border border-border/40 bg-card/35 backdrop-blur-md shadow-sm overflow-hidden flex flex-col shrink-0 transition-all duration-300",
-            selectedTaskId ? "w-[280px]" : "flex-1 w-full"
+            selectedTaskId ? "w-70" : "flex-1 w-full"
           )}>
             <FolderTaskList
               checkedTaskIds={checkedTaskIds}

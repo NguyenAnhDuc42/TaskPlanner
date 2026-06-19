@@ -368,7 +368,7 @@ export function CreateStatusForm({
     if (!workflowId) return [];
     return allStatuses
       .filter((s: Status) => s.workflowId?.toLowerCase() === workflowId.toLowerCase())
-      .sort((a, b) => (a.orderKey || "").localeCompare(b.orderKey || ""));
+      .sort((a, b) => ((a.orderKey ?? "") < (b.orderKey ?? "") ? -1 : 1));
   }, [currentStatuses, allStatuses, workflowId]);
 
   const [localStatuses, setLocalStatuses] = useState<Status[]>(() => resolvedCurrentStatuses);

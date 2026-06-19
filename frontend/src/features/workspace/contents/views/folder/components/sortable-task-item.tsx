@@ -43,7 +43,7 @@ export function SortableTaskItem({
     if (!targetWorkflowId) return [];
     return statuses
       .filter(s => s.workflowId?.toLowerCase() === targetWorkflowId.toLowerCase())
-      .sort((a, b) => (a.orderKey || "").localeCompare(b.orderKey || ""));
+      .sort((a, b) => ((a.orderKey ?? "") < (b.orderKey ?? "") ? -1 : 1));
   }, [folder?.workflowId, statuses]);
 
   const onUpdateTaskField = (fields: Partial<TaskRecord> & { clearStartDate?: boolean; clearDueDate?: boolean }) => {

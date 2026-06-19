@@ -15,7 +15,7 @@ export function handleSpaceMove(
   const state = store.getState();
   const spacesList = Object.values(state.spaces.entities)
     .filter((s): s is typeof s & { id: string } => !!s)
-    .sort((a, b) => (a.orderKey || "").localeCompare(b.orderKey || ""));
+    .sort((a, b) => ((a.orderKey ?? "") < (b.orderKey ?? "") ? -1 : 1));
 
   const oldIndex = spacesList.findIndex(s => s.id === activeData.id);
   const newIndex = spacesList.findIndex(s => s.id === overData.id);

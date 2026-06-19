@@ -1,13 +1,17 @@
-import { createFileRoute, useParams } from "@tanstack/react-router";
+import { createFileRoute, redirect, useParams } from "@tanstack/react-router";
 import { TaskView } from "@/features/workspace/contents/views/task/task-view";
 import { ViewSkeleton } from "@/components/view-skeleton";
 import { store } from "@/store";
 import { taskApi } from "@/features/workspace/contents/views/task/task-api";
 
 export const Route = createFileRoute("/workspaces/$workspaceId/tasks/$taskId")({
-  loader: async ({ params: { taskId } }) => {
-    const detail = await store.dispatch(taskApi.endpoints.getTaskDetail.initiate(taskId)).unwrap();
-    return { detail };
+  loader: async ({ params: { workspaceId, taskId } }) => {
+    try {
+      const detail = await store.dispatch(taskApi.endpoints.getTaskDetail.initiate(taskId)).unwrap();
+      return { detail };
+    } catch {
+      throw redirect({ to: "/workspaces/$workspaceId", params: { workspaceId } });
+    }
   },
   component: TaskContent,
   pendingComponent: ViewSkeleton,

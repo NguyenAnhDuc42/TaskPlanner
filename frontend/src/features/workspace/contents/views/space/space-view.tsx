@@ -2,10 +2,9 @@ import * as React from "react";
 import { EntityViewFrame } from "../entity-view-frame";
 import { SpaceBoard } from "./space-components/space-board";
 import { useSpaceDetail, useGetSpaceItemsQuery, useGetSpaceDetailQuery, useUpdateSpaceFieldMutation, useGetEntityAccessQuery } from "./space-api";
-import { Folder, Layout, FileText, GitMerge, Lock, Unlock, MoreVertical } from "lucide-react";
+import { Layout, FileText, GitMerge, Lock, Unlock, MoreVertical } from "lucide-react";
 import { CreateStatusForm } from "@/features/workspace/components/forms/workflow-management-form";
 import { cn } from "@/lib/utils";
-import { PopoverFormWrapper } from "@/components/popover-wrapper";
 import { UniversalPicker } from "@/components/universal-picker";
 import type { SpaceRecord } from "@/types/projects";
 import { useSelector } from "react-redux";
@@ -13,7 +12,7 @@ import { entityAccessSelectors, memberSelectors } from "@/store/entityStore";
 import { SpaceAccessDialog } from "./space-components/space-access-dialog";
 
 import { SpaceDetail } from "./space-components/space-detail";
-import { DynamicIcon } from "@/components/dynamic-icon";
+
 
 interface SpaceViewProps {
   spaceId: string;
@@ -47,30 +46,19 @@ export function SpaceView({ spaceId }: Readonly<SpaceViewProps>) {
       <div className="h-full w-full flex flex-col bg-background/25 p-1 gap-1 overflow-hidden relative">
         {/* Ambient background accent glow */}
         <div 
-          className="absolute right-12 bottom-12 w-[350px] h-[350px] rounded-full blur-[120px] opacity-[0.05] pointer-events-none transition-all duration-700"
+          className="absolute right-12 bottom-12 w-87.5 h-87.5 rounded-full blur-[120px] opacity-[0.05] pointer-events-none transition-all duration-700"
           style={{ backgroundColor: space?.color || "#3b82f6" }}
         />
 
         {/* Integrated Floating Space Header Bar */}
         <div className="flex items-center justify-between px-2 py-1 rounded-md border border-border/30 bg-card/30 backdrop-blur-md shadow-sm shrink-0">
           <div className="flex items-center gap-1.5">
-            <PopoverFormWrapper
-              trigger={
-                <button className="flex items-center justify-center p-0.5 hover:bg-muted/65 rounded-md transition-all cursor-pointer focus:outline-none border border-border/10 shadow-sm bg-background/80">
-                  {space?.icon ? (
-                    <DynamicIcon name={space.icon} className="h-3 w-3" color={space.color} />
-                  ) : (
-                    <Folder className="h-3 w-3" color={space?.color} />
-                  )}
-                </button>
-              }
-            >
-              <UniversalPicker
-                selectedIcon={space?.icon ?? "Folder"}
-                selectedColor={space?.color ?? "#3b82f6"}
-                onSelect={(icon, color) => updateField({ icon, color })}
-              />
-            </PopoverFormWrapper>
+            <UniversalPicker
+              icon={space?.icon ?? "Folder"}
+              color={space?.color ?? "#3b82f6"}
+              onSelect={(icon, color) => updateField({ icon, color })}
+              size="sm"
+            />
 
             <input
               key={spaceId}

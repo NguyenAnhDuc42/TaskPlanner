@@ -42,7 +42,7 @@ export function handleTaskMove(
         ? (t.folderId === sourceContainerId)
         : (t.spaceId === sourceContainerId && !t.folderId);
     })
-    .sort((a, b) => (a.orderKey || "").localeCompare(b.orderKey || ""))
+    .sort((a, b) => ((a.orderKey ?? "") < (b.orderKey ?? "") ? -1 : 1))
     .map(t => t.id);
 
   // Retrieve and sort tasks for target container
@@ -55,7 +55,7 @@ export function handleTaskMove(
             ? (t.folderId === targetContainerId)
             : (t.spaceId === targetContainerId && !t.folderId);
         })
-        .sort((a, b) => (a.orderKey || "").localeCompare(b.orderKey || ""))
+        .sort((a, b) => ((a.orderKey ?? "") < (b.orderKey ?? "") ? -1 : 1))
         .map(t => t.id);
 
   // Guard: dropping onto itself or its current parent header

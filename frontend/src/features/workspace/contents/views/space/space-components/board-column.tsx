@@ -7,7 +7,7 @@ import { Priority } from "@/types/priority";
 import { StatusGroup } from "./status-group";
 import { SortableBoardItem } from "./sortable-board-item";
 import type { BoardItem } from "../space-api";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { DialogFormWrapper } from "@/components/dialog-form-wrapper";
 import { CreateTaskForm } from "@/features/workspace/components/forms/create-task-form";
 import { CreateFolderForm } from "@/features/workspace/components/forms/create-folder-form";
 import { EntityLayerType } from "@/types/entity-layer-type";
@@ -72,10 +72,8 @@ export const BoardColumn = React.memo(function BoardColumn({
       category={category}
       totalCount={items.length}
       className="w-[280px] min-h-[400px] shrink-0 flex flex-col"
-      onCreateClick={() => {
-        setCreateType("task");
-        setCreateOpen(true);
-      }}
+      onCreateTask={() => { setCreateType("task"); setCreateOpen(true); }}
+      onCreateFolder={() => { setCreateType("folder"); setCreateOpen(true); }}
     >
       <div
         ref={setNodeRef}
@@ -140,38 +138,33 @@ export const BoardColumn = React.memo(function BoardColumn({
         </DropdownMenu>
       </div>
 
-      {/* Programmatic Dialog Wrapper */}
-      <Dialog open={createOpen} onOpenChange={handleOpenChange}>
-        <DialogContent className="max-w-2xl p-0" showCloseButton={false}>
-          {createType === "task" ? (
-            <CreateTaskForm
-              parentId={spaceId}
-              parentType={EntityLayerType.ProjectSpace}
-              defaultStatusId={statusId === "unclassified" ? undefined : statusId}
-              onSuccess={() => {
-                setCreateOpen(false);
-                setCreateType(null);
-              }}
-              onCancel={() => {
-                setCreateOpen(false);
-                setCreateType(null);
-              }}
-            />
-          ) : createType === "folder" ? (
-            <CreateFolderForm
-              spaceId={spaceId}
-              onSuccess={() => {
-                setCreateOpen(false);
-                setCreateType(null);
-              }}
-              onCancel={() => {
-                setCreateOpen(false);
-                setCreateType(null);
-              }}
-            />
-          ) : null}
-        </DialogContent>
-      </Dialog>
+      <DialogFormWrapper
+        open={createOpen && createType === "task"}
+        onOpenChange={(open) => { if (!open) handleOpenChange(false); }}
+        title="Create New Task"
+        trigger={null}
+      >
+        <CreateTaskForm
+          parentId={spaceId}
+          parentType={EntityLayerType.ProjectSpace}
+          defaultStatusId={statusId === "unclassified" ? undefined : statusId}
+          onSuccess={() => { setCreateOpen(false); setCreateType(null); }}
+          onCancel={() => { setCreateOpen(false); setCreateType(null); }}
+        />
+      </DialogFormWrapper>
+
+      <DialogFormWrapper
+        open={createOpen && createType === "folder"}
+        onOpenChange={(open) => { if (!open) handleOpenChange(false); }}
+        title="Create New Folder"
+        trigger={null}
+      >
+        <CreateFolderForm
+          spaceId={spaceId}
+          onSuccess={() => { setCreateOpen(false); setCreateType(null); }}
+          onCancel={() => { setCreateOpen(false); setCreateType(null); }}
+        />
+      </DialogFormWrapper>
     </StatusGroup>
   );
 });
