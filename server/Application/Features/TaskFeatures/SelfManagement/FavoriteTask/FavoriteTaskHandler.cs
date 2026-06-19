@@ -25,6 +25,6 @@ public class FavoriteTaskHandler(
             return Result<TaskRecord>.Success(new TaskRecord{Id = command.TaskId,IsFavorite = true});
         }
 
-        return Result<TaskRecord>.Failure(TaskError.NotFound);
+        return Result<TaskRecord>.Failure(CommonError.DatabaseError);
     }
 }

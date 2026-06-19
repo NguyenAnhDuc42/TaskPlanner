@@ -1,428 +1,579 @@
-import { useMemo, useState } from "react";
+"use client";
+
+import { useState, useMemo } from "react";
 import type { MemberRecord } from "@/types/workspace/member-record";
+import type { Role } from "@/types/role";
+import { ROLE_LABELS } from "@/types/role";
+import type { MembershipStatus } from "@/types/membership-status";
+import { MEMBERSHIP_STATUS_LABELS } from "@/types/membership-status";
 import { Button } from "@/components/ui/button";
-import {
-  Filter,
-  MoreVertical,
-  Plus,
-  Search,
-  Check,
-  Trash2,
-  X,
-} from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   DropdownMenu,
-  DropdownMenuCheckboxItem,
   DropdownMenuContent,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
   DropdownMenuItem,
+  DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Checkbox } from "@/components/ui/checkbox";
 import { RoleBadge } from "@/components/role-badge";
+import { Save, Plus, Trash2, Search, Undo2, Check, X } from "lucide-react";
+import { cn } from "@/lib/utils";
 
-import type { Role } from "@/types/role";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import type { MembershipStatus } from "@/types/membership-status";
+// ─── Types ───────────────────────────────────────────────────────────────────
+
+type PendingAdd = { tempId: string; email: string; role: Role };
+type DirtyUpdate = { role?: Role; status?: MembershipStatus };
+
+export interface MemberSavePayload {
+  adds: { email: string; role: Role }[];
+  updates: { memberId: string; role?: Role; status?: MembershipStatus }[];
+  removes: string[];
+}
 
 interface Props {
   members?: MemberRecord[];
-  onAddMember?: () => void;
-  onDeleteMember?: (id: string) => void;
-  onBatchUpdate?: (ids: string[], role?: Role, status?: MembershipStatus) => void;
-  onBatchDelete?: (ids: string[]) => void;
+  currentUserId?: string;
+  isSaving?: boolean;
+  onSave: (payload: MemberSavePayload) => Promise<void>;
 }
 
-export function MemberList({
-  members,
-  onAddMember,
-  onDeleteMember,
-  onBatchUpdate,
-  onBatchDelete,
-}: Props) {
-  const [searchQuery, setSearchQuery] = useState("");
-  const [selectedRoles, setSelectedRoles] = useState<string[]>([]);
-  const [selectedMembers, setSelectedMembers] = useState<string[]>([]);
-  const [selectedRole, setSelectedRole] = useState<Role | "">("");
-  const [selectedStatus, setSelectedStatus] = useState<MembershipStatus | "">(
-    "",
-  );
+// ─── Constants ────────────────────────────────────────────────────────────────
 
-  const toggleMemberSelection = (id: string) => {
-    setSelectedMembers((prev) =>
-      prev.includes(id) ? prev.filter((m) => m !== id) : [...prev, id],
-    );
-  };
+const ASSIGNABLE_ROLES = (Object.keys(ROLE_LABELS) as Role[]).filter(
+  (r) => r !== "None" && r !== "Owner",
+);
+const ASSIGNABLE_STATUSES = (Object.keys(MEMBERSHIP_STATUS_LABELS) as MembershipStatus[]).filter(
+  (s) => s === "Active" || s === "Suspended",
+);
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-  const uniqueRoles = useMemo(
-    () => [...new Set(members?.map((m) => m.role || "Member"))],
-    [members],
+// ─── Status pill (mirrors StatusBadge pill variant) ──────────────────────────
+
+const STATUS_COLORS: Record<MembershipStatus, { bg: string; text: string }> = {
+  Active:    { bg: "bg-emerald-500/15", text: "text-emerald-400" },
+  Suspended: { bg: "bg-red-500/15",     text: "text-red-400"     },
+  Pending:   { bg: "bg-amber-500/15",   text: "text-amber-400"   },
+  Invited:   { bg: "bg-blue-500/15",    text: "text-blue-400"    },
+};
+
+function StatusPill({ status }: { status: MembershipStatus }) {
+  const { bg, text } = STATUS_COLORS[status] ?? STATUS_COLORS.Active;
+  return (
+    <span className={cn("inline-flex items-center h-5 px-2 rounded-sm text-[10px] font-semibold", bg, text)}>
+      {status}
+    </span>
   );
+}
+
+// ─── Component ────────────────────────────────────────────────────────────────
+
+export function MemberList({ members = [], currentUserId, isSaving, onSave }: Props) {
+  const [searchQuery, setSearchQuery]           = useState("");
+  const [selectedIds, setSelectedIds]           = useState<Set<string>>(new Set());
+  const [pendingUpdates, setPendingUpdates]     = useState<Map<string, DirtyUpdate>>(new Map());
+  const [pendingRemoves, setPendingRemoves]     = useState<Set<string>>(new Set());
+  const [pendingAdds, setPendingAdds]           = useState<PendingAdd[]>([]);
+  const [addEmail, setAddEmail]                 = useState("");
+  const [addRole, setAddRole]                   = useState<Role>("Guest");
+  const [batchRole, setBatchRole]               = useState<Role | "">("");
+  const [batchStatus, setBatchStatus]           = useState<MembershipStatus | "">("");
+
+  const dirtyCount = pendingUpdates.size + pendingRemoves.size + pendingAdds.length;
 
   const filteredMembers = useMemo(() => {
-    return members?.filter((member) => {
-      const matchesSearch =
-        member.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (member.email || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (member.role || "Member").toLowerCase().includes(searchQuery.toLowerCase());
-
-      const matchesRole =
-        selectedRoles.length === 0 || selectedRoles.includes(member.role || "Guest");
-
-      return matchesSearch && matchesRole;
-    });
-  }, [members, searchQuery, selectedRoles]);
-
-  const handleRoleToggle = (role: string) => {
-    setSelectedRoles((prev) =>
-      prev.includes(role) ? prev.filter((r) => r !== role) : [...prev, role],
+    if (!searchQuery) return members;
+    const q = searchQuery.toLowerCase();
+    return members.filter(
+      (m) => m.name.toLowerCase().includes(q) || (m.email ?? "").toLowerCase().includes(q),
     );
+  }, [members, searchQuery]);
+
+  const allVisibleSelected =
+    filteredMembers.length > 0 &&
+    filteredMembers.every((m) => selectedIds.has(m.id));
+
+  // ─── Selection ────────────────────────────────────────────────────────────
+
+  const toggleSelect = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
   };
 
-  const hasFilters = selectedRoles.length > 0 || searchQuery !== "";
+  const toggleSelectAll = () => {
+    if (allVisibleSelected) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(filteredMembers.map((m) => m.id)));
+    }
+  };
+
+  const clearSelection = () => {
+    setSelectedIds(new Set());
+    setBatchRole("");
+    setBatchStatus("");
+  };
+
+  // ─── Inline edit ──────────────────────────────────────────────────────────
+
+  const markUpdate = (memberId: string, patch: DirtyUpdate) => {
+    setPendingUpdates((prev) => {
+      const next = new Map(prev);
+      next.set(memberId, { ...(next.get(memberId) ?? {}), ...patch });
+      return next;
+    });
+  };
+
+  const toggleRemove = (memberId: string) => {
+    setPendingRemoves((prev) => {
+      const next = new Set(prev);
+      if (next.has(memberId)) next.delete(memberId);
+      else next.add(memberId);
+      return next;
+    });
+    setPendingUpdates((prev) => {
+      if (!prev.has(memberId)) return prev;
+      const next = new Map(prev);
+      next.delete(memberId);
+      return next;
+    });
+  };
+
+  // ─── Batch (floating bar) ─────────────────────────────────────────────────
+
+  const applyBatch = () => {
+    if (!batchRole && !batchStatus) return;
+    selectedIds.forEach((id) => {
+      const patch: DirtyUpdate = {};
+      if (batchRole)   patch.role   = batchRole as Role;
+      if (batchStatus) patch.status = batchStatus as MembershipStatus;
+      markUpdate(id, patch);
+    });
+    clearSelection();
+  };
+
+  const batchRemove = () => {
+    selectedIds.forEach((id) => {
+      if (id === currentUserId) return; // never queue self-removal
+      setPendingRemoves((prev) => new Set([...prev, id]));
+    });
+    clearSelection();
+  };
+
+  // ─── Add row ──────────────────────────────────────────────────────────────
+
+  const commitAddRow = () => {
+    const email = addEmail.trim();
+    if (!EMAIL_RE.test(email)) return;
+    if (pendingAdds.some((a) => a.email === email)) { setAddEmail(""); return; }
+    setPendingAdds((prev) => [...prev, { tempId: crypto.randomUUID(), email, role: addRole }]);
+    setAddEmail("");
+  };
+
+  const removePendingAdd = (tempId: string) =>
+    setPendingAdds((prev) => prev.filter((a) => a.tempId !== tempId));
+
+  const updatePendingAddRole = (tempId: string, role: Role) =>
+    setPendingAdds((prev) => prev.map((a) => (a.tempId === tempId ? { ...a, role } : a)));
+
+  // ─── Save / discard ───────────────────────────────────────────────────────
+
+  const handleSave = async () => {
+    if (dirtyCount === 0 || isSaving) return;
+    await onSave({
+      adds: pendingAdds.map(({ email, role }) => ({ email, role })),
+      updates: [...pendingUpdates.entries()].map(([memberId, patch]) => ({ memberId, ...patch })),
+      removes: [...pendingRemoves],
+    });
+    setPendingUpdates(new Map());
+    setPendingRemoves(new Set());
+    setPendingAdds([]);
+  };
+
+  const handleDiscard = () => {
+    setPendingUpdates(new Map());
+    setPendingRemoves(new Set());
+    setPendingAdds([]);
+    setAddEmail("");
+  };
+
+  // ─── Render ───────────────────────────────────────────────────────────────
 
   return (
-    <div className="h-full flex flex-col bg-background relative overflow-hidden">
-      {/* Header with Controls */}
-      <div className="border-b border-border px-2 py-1 flex items-center justify-between gap-2">
-        {/* Search */}
-        <div className="relative flex-1 max-w-md">
+    <div className="h-full flex flex-col bg-background overflow-hidden relative">
+
+      {/* Header */}
+      <div className="border-b border-border px-2 py-1 flex items-center gap-2">
+        <div className="relative flex-1 max-w-xs">
           <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground/40" />
           <Input
             placeholder="Search members..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-7 h-7 text-[10px] rounded-sm bg-muted/20 border-border/10 focus:bg-muted/40 transition-colors placeholder:text-muted-foreground/30"
+            className="pl-7 h-7 text-[10px] rounded-sm bg-muted/20 border-border/10 placeholder:text-muted-foreground/30"
           />
         </div>
 
-        {/* Actions */}
-        <div className="flex items-center gap-1.5">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
+        <div className="ml-auto flex items-center gap-1.5">
+          {dirtyCount > 0 && (
+            <>
               <Button
-                variant={hasFilters ? "default" : "outline"}
+                variant="ghost"
                 size="sm"
-                className="h-7 gap-1 rounded-sm text-[10px] font-bold uppercase tracking-tight px-2"
+                onClick={handleDiscard}
+                disabled={isSaving}
+                className="h-7 px-2 rounded-sm text-[10px] font-bold uppercase tracking-tight text-muted-foreground"
               >
-                <Filter className="h-3.5 w-3.5" />
-                Filter
+                Discard
               </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-48 rounded-sm">
-              <div className="px-2 py-1.5">
-                <p className="text-[10px] font-black uppercase tracking-wider text-muted-foreground mb-2">
-                  Role
-                </p>
-                {uniqueRoles.map((role) => (
-                  <DropdownMenuCheckboxItem
-                    key={role}
-                    checked={selectedRoles.includes(role)}
-                    onCheckedChange={() => handleRoleToggle(role)}
-                    className="text-[11px]"
-                  >
-                    {role}
-                  </DropdownMenuCheckboxItem>
-                ))}
-              </div>
-
-              {hasFilters && (
-                <>
-                  <DropdownMenuSeparator />
-                  <button
-                    onClick={() => {
-                      setSearchQuery("");
-                      setSelectedRoles([]);
-                    }}
-                    className="w-full text-left px-2 py-1.5 text-[10px] font-bold text-muted-foreground hover:text-foreground transition-colors uppercase tracking-tight"
-                  >
-                    Clear filters
-                  </button>
-                </>
-              )}
-            </DropdownMenuContent>
-          </DropdownMenu>
-
-          <Button
-            onClick={onAddMember}
-            size="sm"
-            className="h-7 gap-1 rounded-sm text-[10px] font-bold uppercase tracking-tight px-2"
-          >
-            <Plus className="h-3.5 w-3.5" />
-            Add Member
-          </Button>
+              <Button
+                size="sm"
+                onClick={handleSave}
+                disabled={isSaving}
+                className="h-7 px-3 rounded-sm text-[10px] font-bold uppercase tracking-tight gap-1.5"
+              >
+                <Save className="h-3 w-3" />
+                {isSaving ? "Saving..." : `Save ${dirtyCount} change${dirtyCount !== 1 ? "s" : ""}`}
+              </Button>
+            </>
+          )}
         </div>
       </div>
 
-      {/* Members Table */}
+      {/* Table */}
       <div className="flex-1 overflow-auto">
-        {filteredMembers?.length === 0 ? (
-          <div className="h-full flex items-center justify-center">
-            <div className="text-center space-y-3">
-              <p className="text-[11px] text-muted-foreground">
-                No members found
-              </p>
-              {hasFilters && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="h-7 rounded-sm text-[10px] font-bold uppercase tracking-tight"
-                  onClick={() => {
-                    setSearchQuery("");
-                    setSelectedRoles([]);
-                  }}
-                >
-                  Clear filters
-                </Button>
-              )}
-            </div>
+        {/* Column headers */}
+        <div className="grid grid-cols-[28px_3fr_140px_140px_80px_36px] text-[9px] font-black uppercase tracking-wider text-muted-foreground/40 border-b border-border/40 bg-muted/10 sticky top-0 z-10">
+          <div className="flex items-center justify-center py-1.5">
+            <Checkbox
+              className="rounded-sm h-3.5 w-3.5"
+              checked={allVisibleSelected}
+              onCheckedChange={toggleSelectAll}
+            />
           </div>
-        ) : (
-          <div className="px-1 py-2">
-            {/* Table Header */}
-            <div className="grid grid-cols-[45px_3fr_1fr_1fr_80px_55px] gap-0 text-[9px] font-black uppercase tracking-wider text-muted-foreground/50 border-b border-border/40 items-center bg-muted/20">
-              <div className="flex items-center justify-center py-0.5 border-r border-border/10">
-                <Checkbox
-                 className="rounded-sm"
-                  checked={
-                    selectedMembers.length === filteredMembers?.length &&
-                    filteredMembers?.length > 0
-                  }
-                  onCheckedChange={() => {
-                    if (selectedMembers.length === filteredMembers?.length) {
-                      setSelectedMembers([]);
-                    } else {
-                      setSelectedMembers(
-                        filteredMembers?.map((m) => m.id) || [],
-                      );
-                    }
-                  }}
-                />
-              </div>
-              <div className="px-2 py-0.5 border-r border-border/10">
-                Member
-              </div>
-              <div className="px-2 py-0.5 border-r border-border/10">Role</div>
-              <div className="px-2 py-0.5 border-r border-border/10">Status</div>
-              <div className="px-2 py-0.5 border-r border-border/10">Joined</div>
-              <div className="text-right px-2 py-0.5">Actions</div>
-            </div>
+          <div className="px-3 py-1.5">Member</div>
+          <div className="px-3 py-1.5">Role</div>
+          <div className="px-3 py-1.5">Status</div>
+          <div className="px-3 py-1.5">Joined</div>
+          <div />
+        </div>
 
-            {/* Table Body */}
-            <div className="divide-y divide-border/30 border-b border-border/30">
-              {filteredMembers?.map((member) => (
-                <div
-                  key={member.id}
-                  className="grid grid-cols-[45px_3fr_1fr_1fr_80px_55px] gap-0 text-[11px] items-center hover:bg-muted/5 transition-colors"
-                >
-                  {/* Checkbox Column */}
-                  <div className="flex items-center justify-center py-2 border-r border-border/10 h-full">
-                    <Checkbox
-                      className="rounded-sm"
-                      checked={selectedMembers.includes(member.id)}
-                      onCheckedChange={() => toggleMemberSelection(member.id)}
-                    />
-                  </div>
+        <div className="divide-y divide-border/20">
+          {/* Existing members */}
+          {filteredMembers.map((member) => {
+            const isRemoved   = pendingRemoves.has(member.id);
+            const isDirty     = pendingUpdates.has(member.id);
+            const isSelected  = selectedIds.has(member.id);
+            const isSelf      = member.userId === currentUserId;
+            const patch       = pendingUpdates.get(member.id) ?? {};
+            const displayRole = patch.role ?? member.role ?? "Guest";
+            const displayStatus = patch.status ?? member.status ?? "Active";
 
-                  {/* Member Column */}
-                  <div className="flex items-center gap-3 min-w-0 px-3 py-2 border-r border-border/10 h-full">
-                    <Avatar className="h-6 w-6 rounded-sm shrink-0">
-                      <AvatarImage src={member.avatarUrl || ""} />
-                      <AvatarFallback className="text-[10px] bg-muted rounded-sm">
-                        {member.name.substring(0, 1)}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="flex flex-col min-w-0">
-                      <span className="font-medium text-foreground truncate">
+            return (
+              <div
+                key={member.id}
+                className={cn(
+                  "grid grid-cols-[28px_3fr_140px_140px_80px_36px] items-center text-[11px] transition-colors",
+                  isRemoved  ? "bg-destructive/5 border-l-2 border-destructive/30 opacity-50"
+                  : isDirty  ? "bg-amber-500/5 border-l-2 border-amber-500/40"
+                  : isSelected ? "bg-primary/5"
+                  : "hover:bg-muted/5",
+                )}
+              >
+                {/* Checkbox */}
+                <div className="flex items-center justify-center py-2">
+                  <Checkbox
+                    className="rounded-sm h-3.5 w-3.5"
+                    checked={isSelected}
+                    onCheckedChange={() => toggleSelect(member.id)}
+                    disabled={isRemoved}
+                  />
+                </div>
+
+                {/* Name / Email */}
+                <div className="flex items-center gap-2.5 px-3 py-2 min-w-0">
+                  <Avatar className="h-6 w-6 rounded-sm shrink-0">
+                    <AvatarImage src={member.avatarUrl ?? ""} />
+                    <AvatarFallback className="text-[9px] bg-muted rounded-sm">{member.name[0]}</AvatarFallback>
+                  </Avatar>
+                  <div className="flex flex-col min-w-0">
+                    <div className="flex items-center gap-1.5">
+                      <span className={cn("font-medium truncate", isRemoved && "line-through text-muted-foreground")}>
                         {member.name}
                       </span>
-                      <span className="text-muted-foreground/60 text-[10px] truncate">
-                        {member.email || ""}
-                      </span>
+                      {isSelf && (
+                        <span className="text-[8px] font-black uppercase tracking-wider text-primary/50 bg-primary/10 px-1 rounded-sm leading-4">
+                          You
+                        </span>
+                      )}
                     </div>
-                  </div>
-
-                  {/* Role Column */}
-                  <div className="px-3 py-2 border-r border-border/10 h-full flex items-center">
-                    <RoleBadge role={member.role || "Guest"} />
-                  </div>
-
-                  {/* Status Column */}
-                  <div className="px-3 py-2 border-r border-border/10 h-full flex items-center">
-                    <span className="text-muted-foreground/60 text-[10px] uppercase font-bold tracking-tight">
-                      {member.status || "Active"}
-                    </span>
-                  </div>
-
-                  {/* Joined Column */}
-                  <div className="px-3 py-2 border-r border-border/10 h-full flex items-center">
-                    <span className="text-muted-foreground/60 text-[10px]">
-                      {member.joinedAt ? new Date(member.joinedAt).toLocaleDateString() : "Invited"}
-                    </span>
-                  </div>
-
-                  {/* Actions Column */}
-                  <div className="text-right px-3 py-2 h-full flex items-center justify-end">
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-6 w-6 p-0 hover:bg-muted rounded-sm"
-                        >
-                          <MoreVertical className="h-3.5 w-3.5 text-muted-foreground/40" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent
-                        align="end"
-                        className="rounded-sm w-36"
-                      >
-                        <DropdownMenuItem className="text-[11px] py-1">
-                          Tasks
-                        </DropdownMenuItem>
-                        <DropdownMenuItem className="text-[11px] py-1">
-                          Suspend
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          onClick={() => onDeleteMember?.(member.id)}
-                          className="text-[11px] py-1 text-destructive focus:text-destructive focus:bg-destructive/10"
-                        >
-                          Remove
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
+                    <span className="text-muted-foreground/50 text-[10px] truncate">{member.email}</span>
                   </div>
                 </div>
-              ))}
+
+                {/* Role */}
+                <div className="px-2 py-1.5">
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild disabled={isRemoved}>
+                      <button
+                        type="button"
+                        className="cursor-pointer focus:outline-none hover:opacity-80 transition-opacity disabled:opacity-50 disabled:cursor-default"
+                      >
+                        <RoleBadge role={displayRole} />
+                      </button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="start" className="w-32 rounded-sm" onClick={(e) => e.stopPropagation()}>
+                      {ASSIGNABLE_ROLES.map((r) => (
+                        <DropdownMenuItem
+                          key={r}
+                          onSelect={() => markUpdate(member.id, { role: r })}
+                          className="gap-2 text-[11px]"
+                        >
+                          <RoleBadge role={r} />
+                          {displayRole === r && <Check className="ml-auto h-3 w-3 text-primary" />}
+                        </DropdownMenuItem>
+                      ))}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
+
+                {/* Status */}
+                <div className="px-2 py-1.5">
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild disabled={isRemoved}>
+                      <button
+                        type="button"
+                        className="cursor-pointer focus:outline-none hover:opacity-80 transition-opacity disabled:opacity-50 disabled:cursor-default"
+                      >
+                        <StatusPill status={displayStatus as MembershipStatus} />
+                      </button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="start" className="w-36 rounded-sm" onClick={(e) => e.stopPropagation()}>
+                      {ASSIGNABLE_STATUSES.map((s) => (
+                        <DropdownMenuItem
+                          key={s}
+                          onSelect={() => markUpdate(member.id, { status: s })}
+                          className="gap-2 text-[11px]"
+                        >
+                          <StatusPill status={s} />
+                          {displayStatus === s && <Check className="ml-auto h-3 w-3 text-primary" />}
+                        </DropdownMenuItem>
+                      ))}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
+
+                {/* Joined */}
+                <div className="px-3 py-2 text-muted-foreground/40 text-[10px]">
+                  {member.joinedAt
+                    ? new Date(member.joinedAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })
+                    : "Invited"}
+                </div>
+
+                {/* Delete / Undo — hidden for self */}
+                <div className="flex items-center justify-center">
+                  {!isSelf && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => toggleRemove(member.id)}
+                      className={cn(
+                        "h-6 w-6 p-0 rounded-sm",
+                        isRemoved
+                          ? "text-amber-500 hover:text-foreground hover:bg-muted"
+                          : "text-muted-foreground/20 hover:text-destructive hover:bg-destructive/10",
+                      )}
+                    >
+                      {isRemoved ? <Undo2 className="h-3 w-3" /> : <Trash2 className="h-3 w-3" />}
+                    </Button>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+
+          {/* Pending adds */}
+          {pendingAdds.map((add) => (
+            <div
+              key={add.tempId}
+              className="grid grid-cols-[28px_3fr_140px_140px_80px_36px] items-center text-[11px] bg-primary/5 border-l-2 border-primary/30"
+            >
+              <div />
+              <div className="flex items-center gap-2.5 px-3 py-2 min-w-0">
+                <div className="h-6 w-6 rounded-sm bg-primary/10 flex items-center justify-center shrink-0">
+                  <Plus className="h-3 w-3 text-primary/40" />
+                </div>
+                <div className="flex flex-col min-w-0">
+                  <span className="font-medium text-primary/80 truncate">{add.email}</span>
+                  <span className="text-[9px] text-primary/40 font-mono uppercase tracking-wider">Pending invite</span>
+                </div>
+              </div>
+
+              <div className="px-2 py-1.5">
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <button type="button" className="cursor-pointer focus:outline-none hover:opacity-80 transition-opacity">
+                      <RoleBadge role={add.role} />
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="start" className="w-32 rounded-sm">
+                    {ASSIGNABLE_ROLES.map((r) => (
+                      <DropdownMenuItem key={r} onSelect={() => updatePendingAddRole(add.tempId, r)} className="gap-2 text-[11px]">
+                        <RoleBadge role={r} />
+                        {add.role === r && <Check className="ml-auto h-3 w-3 text-primary" />}
+                      </DropdownMenuItem>
+                    ))}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+
+              <div className="px-3 py-2 text-muted-foreground/30 text-[9px] font-mono">—</div>
+              <div className="px-3 py-2 text-muted-foreground/30 text-[9px] font-mono">—</div>
+
+              <div className="flex items-center justify-center">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => removePendingAdd(add.tempId)}
+                  className="h-6 w-6 p-0 rounded-sm text-muted-foreground/20 hover:text-destructive hover:bg-destructive/10"
+                >
+                  <Trash2 className="h-3 w-3" />
+                </Button>
+              </div>
             </div>
+          ))}
+
+          {/* Add row */}
+          <div className="grid grid-cols-[28px_3fr_140px_140px_80px_36px] items-center border-dashed border-b border-border/20 hover:bg-muted/5 transition-colors group">
+            <div />
+            <div className="flex items-center gap-2.5 px-3 py-1.5">
+              <div className="h-6 w-6 rounded-sm border border-dashed border-border/30 group-focus-within:border-primary/40 flex items-center justify-center shrink-0 transition-colors">
+                <Plus className="h-3 w-3 text-muted-foreground/20 group-focus-within:text-primary/40" />
+              </div>
+              <Input
+                placeholder="Add by email and press Enter..."
+                value={addEmail}
+                onChange={(e) => setAddEmail(e.target.value)}
+                onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); commitAddRow(); } }}
+                onBlur={commitAddRow}
+                className="h-6 border-none bg-transparent text-[11px] px-0 placeholder:text-muted-foreground/25 focus-visible:ring-0 shadow-none"
+              />
+            </div>
+
+            <div className="px-2 py-1.5">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button type="button" className="cursor-pointer focus:outline-none hover:opacity-80 transition-opacity">
+                    <RoleBadge role={addRole} />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start" className="w-32 rounded-sm">
+                  {ASSIGNABLE_ROLES.map((r) => (
+                    <DropdownMenuItem key={r} onSelect={() => setAddRole(r)} className="gap-2 text-[11px]">
+                      <RoleBadge role={r} />
+                      {addRole === r && <Check className="ml-auto h-3 w-3 text-primary" />}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+
+            <div /><div /><div />
           </div>
-        )}
+        </div>
       </div>
 
-      {/* Floating Action Bar */}
-      {selectedMembers.length > 0 && (
-        <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-50 animate-in fade-in slide-in-from-bottom-5 duration-300">
-          <div className="flex items-center gap-2 px-2.5 py-1.5 rounded-md bg-card/90 backdrop-blur-xl border border-border shadow-lg">
-            <div className="flex items-center gap-1.5 px-2 py-1 rounded-sm bg-primary/10 border border-primary/20 h-7">
-              <span className="text-[11px] font-bold font-mono text-primary">
-                {selectedMembers.length}
-              </span>
-              <span className="text-[10px] font-black font-mono text-primary uppercase tracking-wider">
-                Selected
-              </span>
+      {/* Floating multi-select action bar */}
+      {selectedIds.size > 0 && (
+        <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-50 animate-in fade-in slide-in-from-bottom-4 duration-200">
+          <div className="flex items-center gap-2 px-2.5 py-1.5 rounded-md bg-card/95 backdrop-blur-xl border border-border shadow-lg">
+            {/* Count */}
+            <div className="flex items-center gap-1 px-2 py-1 rounded-sm bg-primary/10 border border-primary/20 h-7">
+              <span className="text-[11px] font-black font-mono text-primary">{selectedIds.size}</span>
+              <span className="text-[9px] font-black font-mono text-primary uppercase tracking-wider">Selected</span>
             </div>
 
-            <div className="h-6 w-px bg-border/50" />
+            <div className="h-5 w-px bg-border/50" />
 
-            <div className="flex items-center gap-1.5">
-              <Select
-                value={selectedRole}
-                onValueChange={(v) => setSelectedRole(v as Role)}
-              >
-                <SelectTrigger className="w-24 h-7 px-2 rounded-sm bg-background/50 border-border/50 text-[10px] font-medium hover:bg-accent transition-colors">
-                  <SelectValue placeholder="Role" />
-                </SelectTrigger>
-                <SelectContent className="rounded-sm border-border/50 bg-card/95 backdrop-blur-xl">
-                  <SelectItem
-                    value="Admin"
-                    className="text-[10px] tracking-tight py-1"
-                  >
-                    Admin
-                  </SelectItem>
-                  <SelectItem
-                    value="Member"
-                    className="text-[10px] tracking-tight py-1"
-                  >
-                    Member
-                  </SelectItem>
-                  <SelectItem
-                    value="Guest"
-                    className="text-[10px] tracking-tight py-1"
-                  >
-                    Guest
-                  </SelectItem>
-                </SelectContent>
-              </Select>
-
-              <Select
-                value={selectedStatus}
-                onValueChange={(v) => setSelectedStatus(v as MembershipStatus)}
-              >
-                <SelectTrigger className="w-24 h-7 px-2 rounded-sm bg-background/50 border-border/50 text-[10px] font-medium hover:bg-accent transition-colors">
-                  <SelectValue placeholder="Status" />
-                </SelectTrigger>
-                <SelectContent className="rounded-sm border-border/50 bg-card/95 backdrop-blur-xl">
-                  <SelectItem
-                    value="Active"
-                    className="text-[10px] tracking-tight py-1"
-                  >
-                    Active
-                  </SelectItem>
-                  <SelectItem
-                    value="Suspended"
-                    className="text-[10px] tracking-tight py-1"
-                  >
-                    Suspend
-                  </SelectItem>
-                </SelectContent>
-              </Select>
-
-              {(selectedRole || selectedStatus) && (
-                <Button
-                  size="sm"
-                  className="h-7 px-3 rounded-sm bg-primary text-primary-foreground hover:bg-primary/90 transition-all font-bold text-[10px] uppercase tracking-tight gap-1"
-                  onClick={() => {
-                    onBatchUpdate?.(
-                      selectedMembers,
-                      selectedRole || undefined,
-                      selectedStatus || undefined,
-                    );
-                    setSelectedMembers([]);
-                    setSelectedRole("");
-                    setSelectedStatus("");
-                  }}
+            {/* Batch role */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button
+                  type="button"
+                  className="h-7 px-2 rounded-sm bg-background/50 border border-border/50 hover:bg-accent text-[10px] font-medium transition-colors flex items-center gap-1.5"
                 >
-                  <Check className="h-3 w-3" />
-                  Apply
-                </Button>
-              )}
+                  {batchRole ? <RoleBadge role={batchRole as Role} /> : <span className="text-muted-foreground">Role</span>}
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start" className="w-32 rounded-sm">
+                {ASSIGNABLE_ROLES.map((r) => (
+                  <DropdownMenuItem key={r} onSelect={() => setBatchRole(r)} className="gap-2 text-[11px]">
+                    <RoleBadge role={r} />
+                    {batchRole === r && <Check className="ml-auto h-3 w-3 text-primary" />}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
 
+            {/* Batch status */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button
+                  type="button"
+                  className="h-7 px-2 rounded-sm bg-background/50 border border-border/50 hover:bg-accent text-[10px] font-medium transition-colors flex items-center gap-1.5"
+                >
+                  {batchStatus
+                    ? <StatusPill status={batchStatus as MembershipStatus} />
+                    : <span className="text-muted-foreground">Status</span>}
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start" className="w-36 rounded-sm">
+                {ASSIGNABLE_STATUSES.map((s) => (
+                  <DropdownMenuItem key={s} onSelect={() => setBatchStatus(s)} className="gap-2 text-[11px]">
+                    <StatusPill status={s} />
+                    {batchStatus === s && <Check className="ml-auto h-3 w-3 text-primary" />}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+
+            {(batchRole || batchStatus) && (
               <Button
                 size="sm"
-                variant="outline"
-                className="h-7 w-7 p-0 rounded-sm bg-background/50 border-border/50 hover:bg-destructive/10 hover:text-destructive hover:border-destructive/30 transition-all"
-                onClick={() => {
-                  onBatchDelete?.(selectedMembers);
-                  setSelectedMembers([]);
-                }}
-                title="Remove selected"
+                onClick={applyBatch}
+                className="h-7 px-3 rounded-sm text-[10px] font-bold uppercase tracking-tight gap-1"
               >
-                <Trash2 className="h-4 w-4" />
+                <Check className="h-3 w-3" />
+                Apply
               </Button>
+            )}
 
-              <div className="h-6 w-px bg-border/50" />
+            <div className="h-5 w-px bg-border/50" />
 
-              <Button
-                size="sm"
-                variant="ghost"
-                className="h-7 w-7 p-0 rounded-sm hover:bg-muted transition-colors"
-                onClick={() => {
-                  setSelectedMembers([]);
-                  setSelectedRole("");
-                  setSelectedStatus("");
-                }}
-              >
-                <X className="h-4 w-4 text-muted-foreground/40" />
-              </Button>
-            </div>
+            {/* Batch delete */}
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={batchRemove}
+              className="h-7 w-7 p-0 rounded-sm bg-background/50 border-border/50 hover:bg-destructive/10 hover:text-destructive hover:border-destructive/30 transition-all"
+              title="Remove selected"
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+            </Button>
+
+            {/* Clear */}
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={clearSelection}
+              className="h-7 w-7 p-0 rounded-sm hover:bg-muted"
+            >
+              <X className="h-3.5 w-3.5 text-muted-foreground/50" />
+            </Button>
           </div>
         </div>
       )}

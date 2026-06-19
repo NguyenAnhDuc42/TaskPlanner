@@ -1,85 +1,88 @@
 using Microsoft.EntityFrameworkCore;
-
 using Microsoft.Extensions.Caching.Hybrid;
+using Microsoft.Extensions.Logging;
 
 namespace Application;
 
-public class AddMembersHandler(TaskPlanDbContext db, WorkspaceContext context,PermissionService permissionService,RealtimeService realtimeService, HybridCache cache) : ICommandHandler<AddMembersCommand>
+public class AddMembersHandler(
+    TaskPlanDbContext db,
+    WorkspaceContext context,
+    PermissionService permissionService,
+    RealtimeService realtimeService,
+    HybridCache cache,
+    ILogger<AddMembersHandler> logger
+) : ICommandHandler<AddMembersCommand>
 {
     public async Task<Result> Handle(AddMembersCommand request, CancellationToken cancellationToken)
     {
-        var hasAccess = await permissionService.VerifyAsync(Role.Admin,cancellationToken: cancellationToken);
+        var hasAccess = await permissionService.VerifyAsync(Role.Admin, cancellationToken: cancellationToken);
         if (!hasAccess) return Result.Failure(MemberError.DontHavePermission);
 
-        var workspace = await db.ProjectWorkspaces.FirstOrDefaultAsync(w => w.Id == request.WorkspaceId && w.DeletedAt == null,cancellationToken);
+        var workspace = await db.ProjectWorkspaces
+            .FirstOrDefaultAsync(w => w.Id == request.WorkspaceId && w.DeletedAt == null, cancellationToken);
         if (workspace == null) return Result.Failure(WorkspaceError.NotFound);
 
-        var members = request.Members;
-        if (!members.Any()) return Result.Success();
+        if (request.Members.Count == 0) return Result.Success();
 
-        var lowerEmails = members.Select(m => m.Email.ToLower()).ToList();
+        // Cannot assign a role higher than your own
+        var callerRole = context.CurrentMember.Role;
+        if (request.Members.Any(m => !callerRole.IsAtLeast(m.Role)))
+            return Result.Failure(Error.Forbidden("Member.RoleEscalation", "You cannot assign a role higher than your own."));
 
+        var lowerEmails = request.Members.Select(m => m.Email.ToLower()).ToList();
+
+        // Happy path: match only users that exist — unknown emails are silently skipped
         var users = await db.Users
             .Where(u => lowerEmails.Contains(u.Email.ToLower()) && u.DeletedAt == null)
             .ToListAsync(cancellationToken);
 
-        if (users.Count != lowerEmails.Count)
-        {
-            return Result.Failure(Error.NotFound("User.NotFound", "One or more email addresses do not belong to a registered user. Check for typos."));
-        }
+        if (users.Count == 0)
+            return Result.Failure(Error.NotFound("User.NoneFound", "None of the provided email addresses belong to registered users."));
 
         var existingUserIds = await db.WorkspaceMembers
             .Where(wm => wm.ProjectWorkspaceId == workspace.Id && wm.DeletedAt == null)
             .Select(wm => wm.UserId)
             .ToHashSetAsync(cancellationToken);
 
-        var newMembersToInsert = new List<WorkspaceMember>();
-        var memberRoleByEmail = members.ToDictionary(m => m.Email, m => m.Role, StringComparer.OrdinalIgnoreCase);
-        foreach (var user in users)
-        {
-            if (existingUserIds.Contains(user.Id)) continue;
-            var requestedRole = memberRoleByEmail[user.Email];
-            var newMember = new WorkspaceMember(
-                userId: user.Id,
+        var memberRoleByEmail = request.Members.ToDictionary(m => m.Email, m => m.Role, StringComparer.OrdinalIgnoreCase);
+
+        // Skip users that are already members
+        var newMembers = users
+            .Where(u => !existingUserIds.Contains(u.Id))
+            .Select(u => new WorkspaceMember(
+                userId: u.Id,
                 projectWorkspaceId: workspace.Id,
-                role: requestedRole,
+                role: memberRoleByEmail[u.Email],
                 status: MembershipStatus.Active,
                 creatorId: context.CurrentMember.Id,
-                joinMethod: "Invite"
-            );
+                joinMethod: "Invite"))
+            .ToList();
 
-            newMembersToInsert.Add(newMember);
-        }
-
-        if (newMembersToInsert.Count == 0)
-        {
+        if (newMembers.Count == 0)
             return Result.Failure(Error.Conflict("Member.AlreadyExists", "All specified users are already members of this workspace."));
-        }
 
-        if (newMembersToInsert.Count > 0)
+        await db.WorkspaceMembers.AddRangeAsync(newMembers, cancellationToken);
+        var affected = await db.SaveChangesAsync(cancellationToken);
+
+        if (affected > 0)
         {
-            await db.WorkspaceMembers.AddRangeAsync(newMembersToInsert, cancellationToken);
-            var affected = await db.SaveChangesAsync(cancellationToken);
+            await cache.RemoveByTagAsync(WorkspaceCacheKeys.WorkspaceMembersTag(request.WorkspaceId), cancellationToken);
 
-            if (affected > 0)
-            {
-                await cache.RemoveByTagAsync(WorkspaceCacheKeys.WorkspaceMembersTag(request.WorkspaceId), cancellationToken);
+            var userLookup = users.ToDictionary(u => u.Id);
+            var records = newMembers
+                .Select(wm => MemberRecord.FromDomain(wm, userLookup[wm.UserId]))
+                .ToList();
 
-                var userLookup = users.ToDictionary(u => u.Id);
-                var records = newMembersToInsert
-                    .Select(wm => MemberRecord.FromDomain(wm, userLookup[wm.UserId]))
-                    .ToList();
-                await realtimeService.NotifyEntitiesUpdatedAsync(
+            _ = realtimeService
+                .NotifyEntitiesUpdatedAsync(
                     request.WorkspaceId,
                     new EntityBatchUpdate { Members = records },
-                    cancellationToken
-                );
-            }
+                    default)
+                .ContinueWith(
+                    t => logger.LogError(t.Exception, "Failed to send realtime notification for AddMembers in workspace {WorkspaceId}", request.WorkspaceId),
+                    TaskContinuationOptions.OnlyOnFaulted);
         }
 
         return Result.Success();
     }
 }
-
-
-

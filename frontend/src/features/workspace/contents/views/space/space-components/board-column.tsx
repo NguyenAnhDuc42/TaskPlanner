@@ -25,6 +25,7 @@ export const BoardColumn = React.memo(function BoardColumn({
   category,
   items,
   spaceId,
+  selectedItemId,
   onTaskClick,
   onFolderClick,
   onPriorityChange,
@@ -36,6 +37,7 @@ export const BoardColumn = React.memo(function BoardColumn({
   category: string;
   items: BoardItem[];
   spaceId: string;
+  selectedItemId?: string;
   onTaskClick: (id: string) => void;
   onFolderClick: (id: string) => void;
   onPriorityChange: (id: string, type: "task" | "folder", priority: Priority) => void;
@@ -92,6 +94,7 @@ export const BoardColumn = React.memo(function BoardColumn({
               <SortableBoardItem
                 key={`${item.__type}-${item.id}`}
                 item={item}
+                isSelected={selectedItemId === item.id}
                 onTaskClick={onTaskClick}
                 onFolderClick={onFolderClick}
                 onPriorityChange={onPriorityChange}

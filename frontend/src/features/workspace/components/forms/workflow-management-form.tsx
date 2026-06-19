@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef, useCallback, useMemo } from "react";
+import { useState, useRef, useCallback, useMemo, useEffect } from "react";
 import { Plus, Trash2, Check, GripVertical } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -240,7 +240,6 @@ function StatusCard({
 function CategoryColumn({
   category,
   statuses,
-  workflowId,
   onUpdateName,
   onUpdateColor,
   onDelete,
@@ -372,13 +371,9 @@ export function CreateStatusForm({
       .sort((a, b) => (a.orderKey || "").localeCompare(b.orderKey || ""));
   }, [currentStatuses, allStatuses, workflowId]);
 
-  const [localStatuses, setLocalStatuses] = useState<Status[]>(resolvedCurrentStatuses);
+  const [localStatuses, setLocalStatuses] = useState<Status[]>(() => resolvedCurrentStatuses);
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const draggingItem = localStatuses.find((s) => s.id === draggingId) ?? null;
-
-  useEffect(() => {
-    if (isOpen) setLocalStatuses(resolvedCurrentStatuses);
-  }, [isOpen, resolvedCurrentStatuses]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 4 } })
@@ -451,6 +446,7 @@ export function CreateStatusForm({
   return (
     <Dialog open={isOpen} onOpenChange={(open) => { if (!open) handleSave(); }}>
       <DialogContent
+        key={isOpen ? "open" : "closed"}
         className="max-w-[960px] w-full bg-background border border-border/30 text-foreground p-0 rounded-xl overflow-hidden shadow-2xl"
         showCloseButton={false}
       >

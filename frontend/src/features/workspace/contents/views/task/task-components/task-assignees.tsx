@@ -50,7 +50,7 @@ export function TaskAssignees({ taskId, spaceId }: Readonly<TaskAssigneesProps>)
   };
 
   const allowedMembers = space?.isPrivate
-    ? allMembers.filter(m => spaceAccessList.some(ea => ea.workspaceMemberId === m.id || ea.workspaceMemberId === m.workspaceMemberId))
+    ? allMembers.filter(m => spaceAccessList.some(ea => ea.workspaceMemberId === m.id))
     : allMembers;
 
   const filteredMembers = allowedMembers.filter((m) =>
@@ -61,7 +61,7 @@ export function TaskAssignees({ taskId, spaceId }: Readonly<TaskAssigneesProps>)
   return (
     <div className="flex flex-wrap items-center gap-1.5 min-h-7">
       {assignees.map((assignee) => {
-        const member = members[assignee.workspaceMemberId] || allMembers.find(m => m.id === assignee.workspaceMemberId || m.workspaceMemberId === assignee.workspaceMemberId);
+        const member = members[assignee.workspaceMemberId];
         if (!member) return null;
         const initials = member.name.split(" ").map((n: string) => n[0]).join("").slice(0, 2).toUpperCase();
         return (
@@ -101,7 +101,7 @@ export function TaskAssignees({ taskId, spaceId }: Readonly<TaskAssigneesProps>)
           />
           <div className="max-h-[200px] overflow-y-auto flex flex-col pr-1 [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-thumb]:bg-muted-foreground/20">
             {filteredMembers.map((member) => {
-              const memberId = member.workspaceMemberId || member.id;
+              const memberId = member.id;
               const isAssigned = assignees.some((a) => a.workspaceMemberId === memberId);
               const initials = member.name.split(" ").map((n: string) => n[0]).join("").slice(0, 2).toUpperCase();
               return (

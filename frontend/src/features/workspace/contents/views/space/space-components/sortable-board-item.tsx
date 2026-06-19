@@ -16,6 +16,7 @@ import { useWorkspace } from "@/features/workspace/context/workspace-provider";
 
 export interface BoardItemCardProps {
   item: BoardItem;
+  isSelected?: boolean;
   onClick?: () => void;
   onDoubleClick?: () => void;
   onMouseDown?: () => void;
@@ -30,6 +31,7 @@ export interface BoardItemCardProps {
 
 export const BoardItemCard = React.memo(function BoardItemCard({
   item,
+  isSelected,
   onClick,
   onDoubleClick,
   onMouseDown,
@@ -80,7 +82,10 @@ export const BoardItemCard = React.memo(function BoardItemCard({
         }
       }}
       className={cn(
-        "group relative flex flex-col gap-1.5 p-2 rounded-lg cursor-grab active:cursor-grabbing select-none border outline-none shadow-sm shrink-0 w-full bg-muted/40 text-card-foreground border-border/50 hover:bg-muted/60",
+        "group relative flex flex-col gap-1.5 p-2 rounded-lg cursor-grab active:cursor-grabbing select-none border outline-none shadow-sm shrink-0 w-full text-card-foreground",
+        isSelected
+          ? "bg-primary/5 border-primary/30"
+          : "bg-muted/40 border-border/50 hover:bg-muted/60",
         isDragging && "opacity-0 pointer-events-none border-transparent bg-transparent shadow-none"
       )}
       style={style}
@@ -97,7 +102,10 @@ export const BoardItemCard = React.memo(function BoardItemCard({
                 className="stroke-[2.5]"
               />
             </div>
-            <h4 className="text-[12px] font-medium leading-tight text-zinc-300 group-hover:text-white transition-colors truncate w-full pr-2">
+            <h4 className={cn(
+              "text-[12px] font-medium leading-tight transition-colors truncate w-full pr-2",
+              isSelected ? "text-primary font-bold" : "text-zinc-300 group-hover:text-white"
+            )}>
               {item.name}
             </h4>
           </div>
@@ -187,12 +195,14 @@ export const BoardItemCard = React.memo(function BoardItemCard({
 
 export const SortableBoardItem = React.memo(function SortableBoardItem({
   item,
+  isSelected,
   onTaskClick,
   onFolderClick,
   onPriorityChange,
   onDateChange,
 }: {
   item: BoardItem;
+  isSelected?: boolean;
   onTaskClick: (id: string) => void;
   onFolderClick: (id: string) => void;
   onPriorityChange: (id: string, type: "task" | "folder", priority: Priority) => void;
@@ -218,7 +228,7 @@ export const SortableBoardItem = React.memo(function SortableBoardItem({
     transition: isDragging ? undefined : transition,
   }), [isDragging, transform, transition]);
 
-  // Memoize callbacks to prevent unnecessary re-renders of the child BoardItemCard
+  
   const handleClick = React.useCallback(() => {
     if (item.__type === "task") {
       onTaskClick(item.id);
@@ -268,6 +278,7 @@ export const SortableBoardItem = React.memo(function SortableBoardItem({
   return (
     <BoardItemCard
       item={item}
+      isSelected={isSelected}
       onClick={handleClick}
       onDoubleClick={handleOpenPage}
       onMouseDown={handleMouseDown}

@@ -1,5 +1,5 @@
 import { useRef, useMemo, useCallback, useState } from "react";
-import { useNavigate } from "@tanstack/react-router";
+import { useNavigate, useSearch } from "@tanstack/react-router";
 import { createPortal } from "react-dom";
 import {
   DndContext,
@@ -31,7 +31,8 @@ interface SpaceBoardProps {
 
 export function SpaceBoard({ spaceId, onWorkflowOpen }: Readonly<SpaceBoardProps>) {
   const navigate = useNavigate({ from: "/workspaces/$workspaceId/spaces/$spaceId" });
-
+  const search = useSearch({ strict: false }) as { contextPanel?: { type: string; id: string } };
+  const selectedItemId = search.contextPanel?.id;
 
   const containerRef = useRef<HTMLDivElement | null>(null);
 
@@ -181,6 +182,7 @@ export function SpaceBoard({ spaceId, onWorkflowOpen }: Readonly<SpaceBoardProps
               category={col.category}
               items={col.items}
               spaceId={spaceId}
+              selectedItemId={selectedItemId}
               onTaskClick={handleTaskClick}
               onFolderClick={handleFolderClick}
               onPriorityChange={handlePriorityChange}

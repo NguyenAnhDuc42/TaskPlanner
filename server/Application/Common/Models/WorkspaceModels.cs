@@ -57,10 +57,10 @@ public record WorkspaceRecord
     };
 }
 
-public record MemberRecord 
+public record MemberRecord
 {
-    public Guid Id { get; init; }
-    public Guid? WorkspaceMemberId { get; init; }
+    public Guid Id { get; init; }       // WorkspaceMember.Id — workspace-scoped identity
+    public Guid? UserId { get; init; }  // User.Id — for lookups by user (e.g. comment.creatorId)
     public string Name { get; init; } = null!;
     public string? Email { get; init; }
     public string? AvatarUrl { get; init; }
@@ -71,8 +71,8 @@ public record MemberRecord
 
     public static MemberRecord FromDomain(WorkspaceMember wm, User user) => new()
     {
-        Id = user.Id,
-        WorkspaceMemberId = wm.Id,
+        Id = wm.Id,
+        UserId = user.Id,
         Name = user.Name,
         Email = user.Email,
         Role = wm.Role,

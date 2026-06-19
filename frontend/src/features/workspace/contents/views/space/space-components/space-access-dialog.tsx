@@ -129,12 +129,12 @@ export function SpaceAccessDialog({ spaceId, trigger }: Readonly<SpaceAccessDial
               </thead>
               <tbody className="divide-y divide-border/10 text-muted-foreground/95">
                 {allWorkspaceMembers.map((member) => {
-                  const isCreator = !!(space?.creatorId && (member.id === space.creatorId || member.workspaceMemberId === space.creatorId));
-                  const access = entityAccessList.find(a => a.workspaceMemberId === member.id || a.workspaceMemberId === member.workspaceMemberId);
+                  const isCreator = !!(space?.creatorId && member.id === space.creatorId);
+                  const access = entityAccessList.find(a => a.workspaceMemberId === member.id);
 
                   return (
                     <SpaceAccessDialogRow
-                      key={member.id || member.workspaceMemberId}
+                      key={member.id}
                       member={member}
                       isCreator={isCreator}
                       access={access}
@@ -143,7 +143,7 @@ export function SpaceAccessDialog({ spaceId, trigger }: Readonly<SpaceAccessDial
                           spaceId,
                           rows: [{
                             id: access?.id,
-                            memberId: member.id || member.workspaceMemberId || "",
+                            memberId: member.id,
                             accessLevel: newLevel === "None" ? "Viewer" : newLevel,
                             action
                           }]

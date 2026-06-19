@@ -140,8 +140,7 @@ export function TaskFilterPopover({ filter, onChange, statuses, members }: TaskF
             </DropdownMenuSubTrigger>
             <DropdownMenuSubContent className="w-56">
               {members.map(m => {
-                const assigneeId = m.workspaceMemberId;
-                if (!assigneeId) return null;
+                const assigneeId = m.id;
                 
                 return (
                 <DropdownMenuCheckboxItem

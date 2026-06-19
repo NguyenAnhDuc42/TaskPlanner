@@ -41,7 +41,10 @@ public static class MemberError
     public static readonly Error DontHavePermission = Error.Forbidden("Member.DontHavePermission", "You do not have permission to perform this action.");
     public static readonly Error NotFound = Error.NotFound("Member.NotFound", "The member with the specified identifier was not found.");
 }
-
+public static class FavoriteError
+{
+    public static readonly Error NotFound = Error.NotFound("Favorite.NotFound", "The favorite item with the specified identifier was not found.");
+}
 public static class AttachmentError
 {
     public static readonly Error NotFound = Error.NotFound("Attachment.NotFound", "The attachment with the specified identifier was not found.");
@@ -52,6 +55,11 @@ public static class WorkflowError
 {
     public static readonly Error NotFound = Error.NotFound("Workflow.NotFound", "The workflow with the specified identifier was not found.");
     public static readonly Error IntegrityViolation = Error.Failure("Workflow.IntegrityViolation", "The workflow must have at least one status in each completion category.");
+}
+
+public static class CommonError
+{
+     public static readonly Error DatabaseError = Error.Failure("Common.DatabaseError",  "An unexpected database error occurred.");
 }
 
 

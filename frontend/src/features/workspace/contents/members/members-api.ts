@@ -60,7 +60,7 @@ export const membersApi = workspaceApi.injectEndpoints({
         method: "PATCH",
         data: values,
       }),
-      invalidatesTags: ["Members"],
+      // SignalR upserts the updated members into the entity store — no refetch needed
     }),
     removeMembers: build.mutation<void, { workspaceId: string; memberIds: string[] }>({
       query: ({ workspaceId, memberIds }) => ({
@@ -68,7 +68,8 @@ export const membersApi = workspaceApi.injectEndpoints({
         method: "DELETE",
         data: { memberIds },
       }),
-      invalidatesTags: ["Members"],
+      // SignalR removes deleted members from the entity store — selectById returns undefined
+      // and the !!r filter in members-index drops them without a refetch
     }),
   }),
 });

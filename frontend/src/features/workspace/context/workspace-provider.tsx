@@ -76,9 +76,6 @@ export function useWorkspaceSession() {
   };
 }
 
-// ─── Provider ─────────────────────────────────────────────────────────────────
-// Fetches are fired by the route loader — this provider just subscribes to the
-// workspace detail for permissions/role and owns the UI state for the session.
 
 interface WorkspaceProviderProps {
   workspaceId: string;

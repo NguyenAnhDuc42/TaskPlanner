@@ -142,7 +142,7 @@ export function CreateSpaceForm({ onSuccess, onCancel }: Readonly<CreateSpaceFor
               {allMembers.reduce((acc: React.ReactNode[], member: MemberRecord) => {
                 const isCurrentUser = member.email && currentUser?.email && member.email.toLowerCase() === currentUser.email.toLowerCase();
                 if (!isCurrentUser) {
-                  const targetId = member.id || member.workspaceMemberId || "";
+                  const targetId = member.id;
                   const isSelected = state.selectedMemberIds.includes(targetId);
                   const initials = (member.name || "U").split(" ").map((w: string) => w[0]).slice(0, 2).join("").toUpperCase();
                   acc.push(

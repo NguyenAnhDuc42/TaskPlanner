@@ -24,9 +24,9 @@ public class GetMembersHandler(
 
             var sql = request.pagination.Direction == SortDirection.Ascending
                 ? @"
-                SELECT 
-                    u.id AS Id,
-                    wm.id AS WorkspaceMemberId,
+                SELECT
+                    wm.id AS Id,
+                    u.id AS UserId,
                     wm.created_at AS CreatedAt,
                     wm.joined_at AS JoinedAt,
                     u.name AS Name,
@@ -36,22 +36,22 @@ public class GetMembersHandler(
                 FROM users u
                 JOIN workspace_members wm ON wm.user_id = u.id AND wm.project_workspace_id = @WorkspaceId
                 WHERE wm.deleted_at IS NULL AND
-                    (@name IS NULL OR u.name ILIKE '%' || @name || '%') AND 
-                    (@email IS NULL OR u.email ILIKE '%' || @email || '%') AND 
+                    (@name IS NULL OR u.name ILIKE '%' || @name || '%') AND
+                    (@email IS NULL OR u.email ILIKE '%' || @email || '%') AND
                     (@role::text IS NULL OR wm.role::text = @role) AND
                     (
                         @cursorTimestamp IS NULL OR
                             (
-                                COALESCE(wm.joined_at, wm.created_at) > @cursorTimestamp OR 
-                                (COALESCE(wm.joined_at, wm.created_at) = @cursorTimestamp AND u.id > @cursorId)
+                                COALESCE(wm.joined_at, wm.created_at) > @cursorTimestamp OR
+                                (COALESCE(wm.joined_at, wm.created_at) = @cursorTimestamp AND wm.id > @cursorId)
                             )
                     )
-                ORDER BY COALESCE(wm.joined_at, wm.created_at) ASC, u.id ASC
+                ORDER BY COALESCE(wm.joined_at, wm.created_at) ASC, wm.id ASC
                 LIMIT @pageSizePLusOne;"
                 : @"
-                SELECT 
-                    u.id AS Id,
-                    wm.id AS WorkspaceMemberId,
+                SELECT
+                    wm.id AS Id,
+                    u.id AS UserId,
                     wm.created_at AS CreatedAt,
                     wm.joined_at AS JoinedAt,
                     u.name AS Name,
@@ -61,17 +61,17 @@ public class GetMembersHandler(
                 FROM users u
                 JOIN workspace_members wm ON wm.user_id = u.id AND wm.project_workspace_id = @WorkspaceId
                 WHERE wm.deleted_at IS NULL AND
-                    (@name IS NULL OR u.name ILIKE '%' || @name || '%') AND 
-                    (@email IS NULL OR u.email ILIKE '%' || @email || '%') AND 
+                    (@name IS NULL OR u.name ILIKE '%' || @name || '%') AND
+                    (@email IS NULL OR u.email ILIKE '%' || @email || '%') AND
                     (@role::text IS NULL OR wm.role::text = @role) AND
                     (
                         @cursorTimestamp IS NULL OR
                             (
-                                COALESCE(wm.joined_at, wm.created_at) < @cursorTimestamp OR 
-                                (COALESCE(wm.joined_at, wm.created_at) = @cursorTimestamp AND u.id < @cursorId)
+                                COALESCE(wm.joined_at, wm.created_at) < @cursorTimestamp OR
+                                (COALESCE(wm.joined_at, wm.created_at) = @cursorTimestamp AND wm.id < @cursorId)
                             )
                     )
-                ORDER BY COALESCE(wm.joined_at, wm.created_at) DESC, u.id DESC
+                ORDER BY COALESCE(wm.joined_at, wm.created_at) DESC, wm.id DESC
                 LIMIT @pageSizePLusOne;";
 
             var connection = db.Database.GetDbConnection();

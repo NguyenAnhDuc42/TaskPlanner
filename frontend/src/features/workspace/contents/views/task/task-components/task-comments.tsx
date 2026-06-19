@@ -72,11 +72,11 @@ export function TaskComments({ taskId }: Readonly<TaskCommentsProps>) {
 
       <div className="space-y-4 max-h-[300px] overflow-y-auto pr-2 [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-thumb]:bg-muted-foreground/20 hover:[&::-webkit-scrollbar-thumb]:bg-muted-foreground/45 [&::-webkit-scrollbar-track]:bg-transparent">
         {comments.map((comment) => {
-          const creator = members[comment.creatorId] || allMembers.find((m) => m.id === comment.creatorId || m.workspaceMemberId === comment.creatorId);
+          const creator = allMembers.find((m) => m.userId === comment.creatorId);
           const name = creator?.name || "Unknown User";
           const initials = name.split(" ").map((n: string) => n[0]).join("").slice(0, 2).toUpperCase();
           const parentComment = comment.parentCommentId ? comments.find(c => c.id === comment.parentCommentId) : null;
-          const parentMember = parentComment ? allMembers.find(m => m.id === parentComment.creatorId || m.workspaceMemberId === parentComment.creatorId) : null;
+          const parentMember = parentComment ? allMembers.find(m => m.userId === parentComment.creatorId) : null;
           const parentName = parentMember ? parentMember.name : "Unknown User";
 
           return (
