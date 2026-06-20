@@ -2,7 +2,8 @@ import { z } from "zod";
 import type { createWorkspaceSchema } from "./type";
 import type { WorkspaceSnippetRecord } from "@/types/workspace";
 import { workspaceApi } from "@/store/workspaceApi";
-import { workspaceSlice } from "@/store/entityStore";
+import { workspaceSlice, workspaceSelectors } from "@/store/entityStore";
+import type { RootState } from "@/store";
 import { toast } from "sonner";
 import type { PagedResult } from "@/types/paged-result";
 import { useNavigate, useSearch } from "@tanstack/react-router";
@@ -50,11 +51,24 @@ export const homeWorkspaceApi = workspaceApi.injectEndpoints({
     }),
     createWorkspace: build.mutation<WorkspaceSnippetRecord, CreateWorkspaceValues & { strictJoin?: boolean }>({
       query: (values) => ({ url: "/workspaces", method: "POST", data: values }),
-      invalidatesTags: ["Spaces"],
+      async onQueryStarted(_, { dispatch, queryFulfilled }) {
+        try {
+          const { data } = await queryFulfilled;
+          dispatch(workspaceSlice.actions.upsert(data));
+        } catch { /* ignore */ }
+      },
     }),
-    setWorkspacePin: build.mutation<void, { workspaceId: string; isPinned: boolean }>({
+    setWorkspacePin: build.mutation<boolean, { workspaceId: string; isPinned: boolean }>({
       query: (payload) => ({ url: `/workspaces/${payload.workspaceId}/pin`, method: "PUT", data: { isPinned: payload.isPinned } }),
-      invalidatesTags: ["Spaces"],
+      async onQueryStarted({ workspaceId, isPinned }, { dispatch, queryFulfilled, getState }) {
+        const prev = workspaceSelectors.selectById(getState() as RootState, workspaceId);
+        dispatch(workspaceSlice.actions.upsert({ id: workspaceId, isPinned }));
+        try {
+          await queryFulfilled;
+        } catch {
+          if (prev) dispatch(workspaceSlice.actions.upsert(prev));
+        }
+      },
     }),
     joinWorkspace: build.mutation<{
       workspaceId: string;
@@ -194,7 +208,7 @@ export function useWorkspaceHome() {
 
   const handleCreateWorkspace = React.useCallback(
     (data: CreateWorkspaceValues) => {
-      createInternal({ ...data, strictJoin: false });
+      createInternal({ ...data, theme: "Dark" });
     },
     [createInternal],
   );

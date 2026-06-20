@@ -18,6 +18,7 @@ import type { SpaceRecord, FolderRecord, TaskRecord } from "@/types/projects";
 import { store } from "@/store";
 import { spaceSlice, folderSlice, taskSlice } from "@/store/entityStore";
 import { toast } from "sonner";
+import { useWorkspaceRole } from "@/features/workspace/context/use-workspace-role";
 
 // Discriminated union — each move type carries only what it needs
 type PendingMove =
@@ -31,6 +32,7 @@ interface UseHierarchyDndProps {
 }
 
 export function useHierarchyDnd({ workspaceId, batchMoveItems }: UseHierarchyDndProps) {
+  const { canCreateContent } = useWorkspaceRole();
   const [activeItem, setActiveItem] = useState<DragItemData | null>(null);
 
   // Buffered moves Map (itemId → latest move for that item) to avoid redundant requests
@@ -89,14 +91,9 @@ export function useHierarchyDnd({ workspaceId, batchMoveItems }: UseHierarchyDnd
     originalTasksRef.current.clear();
   };
 
-  const sensors = useSensors(
-    useSensor(PointerSensor, {
-      activationConstraint: { distance: 3 },
-    }),
-    useSensor(KeyboardSensor, {
-      coordinateGetter: sortableKeyboardCoordinates,
-    })
-  );
+  const pointerSensor = useSensor(PointerSensor, { activationConstraint: { distance: 3 } });
+  const keyboardSensor = useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates });
+  const sensors = useSensors(pointerSensor, keyboardSensor);
 
   // Clean timeouts on unmount to prevent leaks
   useEffect(() => {
@@ -153,12 +150,14 @@ export function useHierarchyDnd({ workspaceId, batchMoveItems }: UseHierarchyDnd
   };
 
   const handleDragStart = (event: DragStartEvent) => {
+    if (!canCreateContent) return;
     const data = event.active.data.current;
     if (!data) return;
     setActiveItem(data as DragItemData);
   };
 
   const handleDragEnd = async (event: DragEndEvent) => {
+    if (!canCreateContent) { setActiveItem(null); return; }
     const { active, over } = event;
 
     // Update the entity store BEFORE clearing activeItem so the DOM order is

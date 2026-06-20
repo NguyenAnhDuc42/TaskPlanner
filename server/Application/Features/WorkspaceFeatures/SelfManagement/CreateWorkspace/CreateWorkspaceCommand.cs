@@ -7,5 +7,5 @@ public record CreateWorkspaceCommand(
     string Icon,
     Theme Theme,
     bool StrictJoin
-) : ICommandRequest<Guid>;
+) : ICommandRequest<WorkspaceSnippetRecord>;
 

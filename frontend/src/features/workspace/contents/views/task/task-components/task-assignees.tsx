@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useWorkspaceRole } from "@/features/workspace/context/use-workspace-role";
 import { useSelector } from "react-redux";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { UserPlus, Check, X } from "lucide-react";
@@ -34,6 +35,7 @@ export function TaskAssignees({ taskId, spaceId }: Readonly<TaskAssigneesProps>)
   );
   const spaceAccessList = entityAccessList.filter((ea) => ea.haveAccess);
 
+  const { canCreateContent } = useWorkspaceRole();
   const [search, setSearch] = useState("");
 
   const handleToggle = (memberId: string) => {
@@ -78,19 +80,21 @@ export function TaskAssignees({ taskId, spaceId }: Readonly<TaskAssigneesProps>)
               </AvatarFallback>
             </Avatar>
             <span className="max-w-20 truncate font-medium">{member.name}</span>
-            <button
-              type="button"
-              onClick={() => handleToggle(assignee.workspaceMemberId)}
-              className="text-muted-foreground hover:text-foreground ml-0.5 transition-colors"
-            >
-              <X className="h-2.5 w-2.5" />
-            </button>
+            {canCreateContent && (
+              <button
+                type="button"
+                onClick={() => handleToggle(assignee.workspaceMemberId)}
+                className="text-muted-foreground hover:text-foreground ml-0.5 transition-colors"
+              >
+                <X className="h-2.5 w-2.5" />
+              </button>
+            )}
           </div>
         );
       })}
 
-      {/* Add assignee — Popover styled as DropdownMenuContent */}
-      <Popover onOpenChange={(open) => { if (!open) setSearch(""); }}>
+      {/* Add assignee — Members+ only */}
+      {canCreateContent && <Popover onOpenChange={(open) => { if (!open) setSearch(""); }}>
         <PopoverTrigger asChild>
           <button
             type="button"
@@ -160,7 +164,7 @@ export function TaskAssignees({ taskId, spaceId }: Readonly<TaskAssigneesProps>)
             )}
           </div>
         </PopoverContent>
-      </Popover>
+      </Popover>}
     </div>
   );
 }

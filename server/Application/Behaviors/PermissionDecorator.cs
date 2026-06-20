@@ -19,7 +19,7 @@ public static class PermissionDecorator
 
         var member = await db.WorkspaceMembers
             .AsNoTracking()
-            .ByMember(workspaceId, userId)
+            .Where(m => m.ProjectWorkspaceId == workspaceId && m.UserId == userId)
             .FirstOrDefaultAsync(cancellationToken);
 
         if (member == null)

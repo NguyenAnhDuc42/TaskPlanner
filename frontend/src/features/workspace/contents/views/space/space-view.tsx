@@ -1,4 +1,5 @@
 import * as React from "react";
+import { useWorkspaceRole } from "@/features/workspace/context/use-workspace-role";
 import { EntityViewFrame } from "../entity-view-frame";
 import { SpaceBoard } from "./space-components/space-board";
 import { useSpaceDetail, useGetSpaceItemsQuery, useGetSpaceDetailQuery, useUpdateSpaceFieldMutation, useGetEntityAccessQuery } from "./space-api";
@@ -21,6 +22,7 @@ interface SpaceViewProps {
 export function SpaceView({ spaceId }: Readonly<SpaceViewProps>) {
   const [isWorkflowOpen, setIsWorkflowOpen] = React.useState(false);
   const [activeTab, setActiveTab] = React.useState<"detail" | "items">("items");
+  const { isAdmin } = useWorkspaceRole();
   
   // Load space details & items into Redux
   const space = useSpaceDetail(spaceId);
@@ -100,18 +102,20 @@ export function SpaceView({ spaceId }: Readonly<SpaceViewProps>) {
                 );
               })}
 
-              <SpaceAccessDialog
-                spaceId={spaceId}
-                trigger={
-                  <button className="h-5 w-5 rounded-full bg-muted/65 hover:bg-muted border border-border/20 flex items-center justify-center text-[9px] font-bold text-muted-foreground shrink-0 shadow-sm transition-all cursor-pointer">
-                    +
-                  </button>
-                }
-              />
+              {isAdmin && (
+                <SpaceAccessDialog
+                  spaceId={spaceId}
+                  trigger={
+                    <button className="h-5 w-5 rounded-full bg-muted/65 hover:bg-muted border border-border/20 flex items-center justify-center text-[9px] font-bold text-muted-foreground shrink-0 shadow-sm transition-all cursor-pointer">
+                      +
+                    </button>
+                  }
+                />
+              )}
             </div>
 
-            {/* Public/Private Toggle Switcher */}
-            {space && (
+            {/* Public/Private Toggle Switcher — Admin only */}
+            {space && isAdmin && (
               <button
                 onClick={() => updateField({ isPrivate: !space.isPrivate })}
                 className={cn(
@@ -137,13 +141,15 @@ export function SpaceView({ spaceId }: Readonly<SpaceViewProps>) {
             )}
 
             {/* View Switcher Toggle Buttons */}
-            <button
-              className="flex items-center h-5 gap-1.5 px-2.5 rounded-md bg-muted/45 text-[10px] text-muted-foreground font-semibold hover:bg-muted hover:text-foreground transition-all cursor-pointer border border-border/10 shadow-sm"
-              onClick={() => setIsWorkflowOpen(true)}
-            >
-              <GitMerge className="h-3 w-3 opacity-80" />
-              <span>Workflow</span>
-            </button>
+            {isAdmin && (
+              <button
+                className="flex items-center h-5 gap-1.5 px-2.5 rounded-md bg-muted/45 text-[10px] text-muted-foreground font-semibold hover:bg-muted hover:text-foreground transition-all cursor-pointer border border-border/10 shadow-sm"
+                onClick={() => setIsWorkflowOpen(true)}
+              >
+                <GitMerge className="h-3 w-3 opacity-80" />
+                <span>Workflow</span>
+              </button>
+            )}
 
             <div className="flex items-center bg-muted/45 border border-border/10 rounded-md p-0.5 shadow-sm">
               <button 
@@ -186,7 +192,7 @@ export function SpaceView({ spaceId }: Readonly<SpaceViewProps>) {
         {/* Content Area */}
         <div className="flex-1 rounded-md border border-border/40 bg-card/30 backdrop-blur-md shadow-sm overflow-hidden flex flex-col relative">
           {activeTab === "items" ? (
-            <SpaceBoard spaceId={spaceId} onWorkflowOpen={() => setIsWorkflowOpen(true)} />
+            <SpaceBoard spaceId={spaceId} onWorkflowOpen={isAdmin ? () => setIsWorkflowOpen(true) : undefined} />
           ) : (
             <SpaceDetail spaceId={spaceId} />
           )}

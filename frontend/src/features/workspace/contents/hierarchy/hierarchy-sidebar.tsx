@@ -1,4 +1,5 @@
 import { useWorkspace } from "@/features/workspace/context/workspace-provider";
+import { useWorkspaceRole } from "@/features/workspace/context/use-workspace-role";
 import { useBatchMoveItemsMutation } from "./hierarchy-api";
 import {
   EntityLayerType as EntityLayerConst,
@@ -32,6 +33,7 @@ export function HierarchySidebar() {
   const deferredSearchQuery = useDeferredValue(searchQuery);
   const [isHeaderCreateOpen, setIsHeaderCreateOpen] = useState(false);
   const [isInlineCreateOpen, setIsInlineCreateOpen] = useState(false);
+  const { canCreateSpace } = useWorkspaceRole();
 
   const [batchMoveItems] = useBatchMoveItemsMutation();
 
@@ -88,21 +90,21 @@ export function HierarchySidebar() {
                 Items
               </span>
             </CollapsibleTrigger>
-            <DialogFormWrapper
-              title="Create New Space"
-              open={isHeaderCreateOpen}
-              onOpenChange={setIsHeaderCreateOpen}
-              trigger={
-                <Plus
-                  className="h-3 w-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-none hover:text-primary cursor-pointer"
-                  onClick={() => setIsHeaderCreateOpen(true)}
-                />
-              }
-            >
-              <CreateSpaceForm
-                onCancel={() => setIsHeaderCreateOpen(false)}
-              />
-            </DialogFormWrapper>
+            {canCreateSpace && (
+              <DialogFormWrapper
+                title="Create New Space"
+                open={isHeaderCreateOpen}
+                onOpenChange={setIsHeaderCreateOpen}
+                trigger={
+                  <Plus
+                    className="h-3 w-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-none hover:text-primary cursor-pointer"
+                    onClick={() => setIsHeaderCreateOpen(true)}
+                  />
+                }
+              >
+                <CreateSpaceForm onCancel={() => setIsHeaderCreateOpen(false)} />
+              </DialogFormWrapper>
+            )}
           </div>
 
           <CollapsibleContent className="flex-1 min-h-0 overflow-hidden data-[state=open]:flex data-[state=closed]:hidden">
@@ -117,7 +119,7 @@ export function HierarchySidebar() {
                 >
                   <SpaceNodeList searchQuery={deferredSearchQuery} />
 
-                  {!searchQuery && (
+                  {!searchQuery && canCreateSpace && (
                     <div className="mb-px">
                       <DialogFormWrapper
                         title="Create New Space"
@@ -137,9 +139,7 @@ export function HierarchySidebar() {
                           </button>
                         }
                       >
-                        <CreateSpaceForm
-                          onCancel={() => setIsInlineCreateOpen(false)}
-                        />
+                        <CreateSpaceForm onCancel={() => setIsInlineCreateOpen(false)} />
                       </DialogFormWrapper>
                     </div>
                   )}

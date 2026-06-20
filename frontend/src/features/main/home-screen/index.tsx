@@ -5,10 +5,11 @@ import { DynamicIcon } from "@/components/dynamic-icon";
 import { RoleBadge } from "@/components/role-badge";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "@tanstack/react-router";
-import { ChevronRight, Pin } from "lucide-react";
+import { Pin, Plus, LogIn, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import React from "react";
 import type { Role } from "@/types/role";
+import type { WorkspaceSnippetRecord } from "@/types/workspace";
 
 export function WorkspaceHomeScreen() {
   const {
@@ -36,84 +37,76 @@ export function WorkspaceHomeScreen() {
     }
   };
 
+  const handleEnter = (ws: WorkspaceSnippetRecord) => {
+    localStorage.setItem("lastWorkspaceId", ws.id);
+    navigate({ to: `/workspaces/${ws.id}` });
+  };
+
+  const canPin = (ws: WorkspaceSnippetRecord) => !!ws.role;
+
   return (
     <div className="flex flex-col items-center justify-center h-screen bg-background overflow-hidden relative">
-      {/* Subtle Background Glows */}
-      <div className="absolute inset-0 bg-grid-white/[0.02] -z-10" />
-      <div className="absolute h-96 w-96 bg-primary/10 rounded-full blur-3xl -z-10 top-1/4 left-1/4 animate-pulse" />
-      <div className="absolute h-96 w-96 bg-secondary/10 rounded-full blur-3xl -z-10 bottom-1/4 right-1/4 animate-pulse" />
+      <div className="absolute h-[500px] w-[500px] bg-primary/5 rounded-full blur-[120px] -z-10 top-1/4 left-1/3" />
 
-      <div className="w-full max-w-md flex flex-col gap-6 p-6">
+      <div className="w-full max-w-sm flex flex-col gap-3 px-4">
         {/* Header */}
-        <div className="text-center space-y-1">
-          <h1 className="text-2xl font-black tracking-tight text-foreground">Your Workspaces</h1>
-          <p className="text-muted-foreground text-xs">Choose a workspace to continue working</p>
+        <div className="mb-1">
+          <h1 className="text-lg font-black tracking-tight text-foreground">Workspaces</h1>
+          <p className="text-[11px] text-muted-foreground/60">Select a workspace to continue</p>
         </div>
 
-        {/* Workspace List Container */}
-        <div className="bg-muted/20 backdrop-blur-md border border-border/40 rounded-md p-2 space-y-1 max-h-[50vh] overflow-y-auto no-scrollbar shadow-2xl">
+        {/* List */}
+        <div className="flex flex-col gap-0.5 max-h-[55vh] overflow-y-auto">
           {isWorkspacesLoading ? (
-            <div className="p-4 text-center text-muted-foreground text-sm">Loading...</div>
+            <div className="py-8 text-center text-xs text-muted-foreground/40">Loading...</div>
           ) : workspaces.length === 0 ? (
-            <div className="p-4 text-center text-muted-foreground text-sm">No workspaces found.</div>
+            <div className="py-8 text-center text-xs text-muted-foreground/40">No workspaces yet.</div>
           ) : (
-            workspaces.map((workspace) => (
+            workspaces.map((ws) => (
               <div
-                key={workspace.id}
+                key={ws.id}
                 role="button"
                 tabIndex={0}
-                className="flex items-center justify-between p-3 bg-background/40 hover:bg-background/80 border border-transparent hover:border-border/40 rounded-md cursor-pointer transition-all duration-200 group outline-none focus-visible:ring-1 focus-visible:ring-primary"
-                onClick={() => {
-                  localStorage.setItem("lastWorkspaceId", workspace.id);
-                  navigate({ to: `/workspaces/${workspace.id}` });
-                }}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" || e.key === " ") {
-                    localStorage.setItem("lastWorkspaceId", workspace.id);
-                    navigate({ to: `/workspaces/${workspace.id}` });
-                  }
-                }}
+                className="flex items-center gap-2.5 px-2 py-2 rounded-md border border-transparent hover:bg-muted/40 hover:border-border/30 cursor-pointer transition-colors group outline-none focus-visible:ring-1 focus-visible:ring-primary"
+                onClick={() => handleEnter(ws)}
+                onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && handleEnter(ws)}
               >
-                <div className="flex items-center gap-3">
-                  {/* Pin Button on the far left */}
-                  <Button
-                    size="icon"
-                    variant="ghost"
-                    className="h-6 w-6 text-muted-foreground hover:text-foreground rounded-md shrink-0"
+                {/* Pin */}
+                {canPin(ws) && (
+                  <button
+                    type="button"
+                    className="shrink-0 h-5 w-5 flex items-center justify-center rounded hover:bg-muted-foreground/10 transition-colors"
                     onClick={(e) => {
                       e.stopPropagation();
-                      handlePinWorkspace?.(workspace.id, !workspace.isPinned);
+                      handlePinWorkspace?.(ws.id, !ws.isPinned);
                     }}
                   >
-                    <Pin className={cn("h-3 w-3", workspace.isPinned && "fill-primary text-primary")} />
-                  </Button>
+                    <Pin className={cn("h-2.5 w-2.5 transition-colors", ws.isPinned ? "fill-primary text-primary" : "text-muted-foreground/30 hover:text-muted-foreground")} />
+                  </button>
+                )}
 
-                  {/* Icon */}
-                  <div 
-                    className="h-9 w-9 rounded-md flex items-center justify-center text-sm font-bold border border-border/10 shrink-0"
-                    style={{
-                      backgroundColor: `${workspace.color}15`,
-                      borderColor: `${workspace.color}40`,
-                    }}
-                  >
-                    <DynamicIcon name={workspace.icon || "LayoutGrid"} color={workspace.color || "#6366f1"} size={18} />
-                  </div>
-                  
-                  {/* Info */}
-                  <div>
-                    <h3 className="font-bold text-sm text-foreground group-hover:text-primary transition-colors">
-                      {workspace.name}
-                    </h3>
-                    <p className="text-[10px] text-muted-foreground font-mono uppercase">
-                      {workspace.memberCount} members
-                    </p>
-                  </div>
+                {/* Icon */}
+                <div
+                  className="h-7 w-7 rounded-md flex items-center justify-center shrink-0 border"
+                  style={{ backgroundColor: `${ws.color || "#6366f1"}18`, borderColor: `${ws.color || "#6366f1"}30` }}
+                >
+                  <DynamicIcon name={ws.icon || "LayoutGrid"} color={ws.color || "#6366f1"} size={14} />
                 </div>
 
-                {/* Right side affordance */}
-                <div className="flex items-center gap-2">
-                  <RoleBadge role={workspace.role as Role} />
-                  <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-foreground group-hover:translate-x-0.5 transition-all" />
+                {/* Info */}
+                <div className="flex-1 min-w-0">
+                  <p className="text-[12px] font-semibold text-foreground/90 truncate group-hover:text-primary transition-colors">
+                    {ws.name}
+                  </p>
+                  {ws.memberCount != null && (
+                    <p className="text-[10px] text-muted-foreground/50">{ws.memberCount} members</p>
+                  )}
+                </div>
+
+                {/* Right */}
+                <div className="flex items-center gap-1.5 shrink-0">
+                  {ws.role && <RoleBadge role={ws.role as Role} />}
+                  <ChevronRight className="h-3 w-3 text-muted-foreground/30 group-hover:text-muted-foreground transition-colors" />
                 </div>
               </div>
             ))
@@ -121,20 +114,23 @@ export function WorkspaceHomeScreen() {
         </div>
 
         {/* Actions */}
-        <div className="flex items-center justify-between gap-4">
+        <div className="flex items-center gap-2 pt-1 border-t border-border/30">
           <Button
-            variant="outline"
-            className="rounded-md border-border/40 hover:bg-muted/50 flex-1 h-10 text-xs font-bold"
+            size="sm"
+            className="flex-1 h-8 text-[11px] font-semibold gap-1.5"
             onClick={() => setIsCreateModalOpen(true)}
           >
-            Create Workspace
+            <Plus className="h-3.5 w-3.5" />
+            New Workspace
           </Button>
           <Button
-            variant="ghost"
-            className="text-muted-foreground rounded-md hover:text-foreground text-xs font-bold h-10"
+            size="sm"
+            variant="outline"
+            className="h-8 text-[11px] font-semibold gap-1.5 border-border/40"
             onClick={() => setIsJoinModalOpen(true)}
           >
-            Join with Code
+            <LogIn className="h-3.5 w-3.5" />
+            Join
           </Button>
         </div>
       </div>

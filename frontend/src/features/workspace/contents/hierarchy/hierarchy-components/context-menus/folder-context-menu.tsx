@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { EntityLayerType } from "@/types/entity-layer-type";
 import { useWorkspace } from "@/features/workspace/context/workspace-provider";
+import { useWorkspaceRole } from "@/features/workspace/context/use-workspace-role";
 import { DialogFormWrapper } from "@/components/dialog-form-wrapper";
 import { CreateTaskForm } from "@/features/workspace/components/forms/create-task-form";
 import { useDeleteFolderMutation } from "../../hierarchy-api";
@@ -37,6 +38,7 @@ export function FolderContextMenu({
   children,
 }: FolderContextMenuProps) {
   const { workspaceId } = useWorkspace();
+  const { canCreateContent, isAdmin } = useWorkspaceRole();
   const dispatch = useDispatch();
   const [activeForm, setActiveForm] = useState<"task" | null>(null);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
@@ -53,29 +55,34 @@ export function FolderContextMenu({
 
     return (
       <>
-        <Item className="gap-2 cursor-pointer" onSelect={() => setActiveForm("task")}>
-          <Plus className="h-3.5 w-3.5" />
-          <span>Create Task</span>
-        </Item>
+        {canCreateContent && (
+          <Item className="gap-2 cursor-pointer" onSelect={() => setActiveForm("task")}>
+            <Plus className="h-3.5 w-3.5" />
+            <span>Create Task</span>
+          </Item>
+        )}
 
-        <Separator className="bg-border/50" />
+        {canCreateContent && <Separator className="bg-border/50" />}
 
         <Item className="gap-2 cursor-pointer">
           <Copy className="h-3.5 w-3.5" />
           <span>Copy Link</span>
         </Item>
-        
+
         <Item className="gap-2 cursor-pointer">
           <ExternalLink className="h-3.5 w-3.5" />
           <span>Open in New Tab</span>
         </Item>
 
-        <Separator className="bg-border/50" />
-
-        <Item variant="destructive" className="gap-2 cursor-pointer" onSelect={() => setIsDeleteOpen(true)}>
-          <Trash2 className="h-3.5 w-3.5" />
-          <span>Delete Folder</span>
-        </Item>
+        {isAdmin && (
+          <>
+            <Separator className="bg-border/50" />
+            <Item variant="destructive" className="gap-2 cursor-pointer" onSelect={() => setIsDeleteOpen(true)}>
+              <Trash2 className="h-3.5 w-3.5" />
+              <span>Delete Folder</span>
+            </Item>
+          </>
+        )}
       </>
     );
   };

@@ -241,7 +241,7 @@ public static class PipelineDecorator
             entry.Size = 1;
             return await db.WorkspaceMembers
                 .AsNoTracking()
-                .ByMember(workspaceId.Value, userId)
+                .Where(m => m.ProjectWorkspaceId == workspaceId.Value && m.UserId == userId)
                 .FirstOrDefaultAsync(cancellationToken);
         });
 

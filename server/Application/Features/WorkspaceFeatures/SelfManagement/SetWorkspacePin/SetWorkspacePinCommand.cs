@@ -1,5 +1,5 @@
 namespace Application;
 
-public record SetWorkspacePinCommand(Guid WorkspaceId, bool IsPinned) : ICommandRequest;
+public record SetWorkspacePinCommand(Guid WorkspaceId, bool IsPinned) : ICommandRequest<bool>;
 
 

@@ -30,7 +30,7 @@ export function IconRail({ onSelectIcon, onCommandCenter }: Readonly<IconRailPro
   const { state, actions } = useWorkspaceSession();
 
   return (
-    <div className="flex flex-col gap-0.5 h-full w-fit flex-shrink-0">
+    <div className="flex flex-col gap-0.5 h-full w-fit shrink-0">
       {/* Top Card */}
       <div className="flex flex-col items-center gap-0.5 shrink-0 bg-background border border-border rounded-md shadow-sm p-1">
         {/* Expand — only when inner sidebar is closed */}
@@ -39,7 +39,7 @@ export function IconRail({ onSelectIcon, onCommandCenter }: Readonly<IconRailPro
             <Button
               variant="ghost"
               size="icon"
-              className="w-7 h-7 rounded-md text-[var(--theme-text-normal)] hover:text-[var(--theme-text-hover)] hover:bg-[var(--theme-item-hover)] transition-all duration-200"
+              className="w-7 h-7 rounded-md text-(--theme-text-normal) hover:text-(--theme-text-hover) hover:bg-(--theme-item-hover) transition-all duration-200"
               onClick={actions.toggleInnerSidebar}
             >
               <PanelLeftOpen className="h-[18px] w-[18px]" />

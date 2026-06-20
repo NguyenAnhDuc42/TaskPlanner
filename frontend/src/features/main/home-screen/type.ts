@@ -2,39 +2,11 @@ import type { Role } from "@/types/role";
 import { z } from "zod";
 
 export const createWorkspaceSchema = z.object({
-  name: z
-    .string()
-    .trim()
-    .min(2, "Name must be at least 2 characters")
-    .max(100, "Name must be less than 100 characters"),
-
-  description: z
-    .string()
-    .trim()
-    .max(500, "Description must be less than 500 characters")
-    .optional(),
-
-  color: z
-    .string()
-    .regex(/^#([0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/, "Color must be a valid hex"),
-
-  icon: z.string().min(1, "Icon is required").max(50, "Icon is too long"),
-
-  variant: z.union([
-    z.literal("Personal"),
-    z.literal("Team"),
-    z.literal("Company"),
-  ]),
-
-  theme: z.union([
-    z.literal("Light"),
-    z.literal("Dark"),
-    z.literal("System"),
-    z.literal("Mars"),
-    z.literal("DeepSpace"),
-    z.literal("Boreal"),
-  ]),
-
+  name: z.string().trim().min(2).max(100),
+  description: z.string().trim().max(500).optional(),
+  color: z.string().regex(/^#([0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/),
+  icon: z.string().min(1).max(50),
+  theme: z.string().default("System"),
   strictJoin: z.boolean(),
 });
 

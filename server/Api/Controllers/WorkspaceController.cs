@@ -17,7 +17,7 @@ namespace Api
         [HttpPost]
         public async Task<IActionResult> CreateWorkspace([FromBody] CreateWorkspaceCommand command, CancellationToken cancellationToken)
         {
-            var result = await _handler.SendAsync<CreateWorkspaceCommand, Guid>(command, cancellationToken);
+            var result = await _handler.SendAsync<CreateWorkspaceCommand, WorkspaceSnippetRecord>(command, cancellationToken);
             return result.ToActionResult();
         }
 
@@ -34,7 +34,7 @@ namespace Api
             [FromBody] SetWorkspacePinCommand command,
             CancellationToken cancellationToken)
         {
-            var result = await _handler.SendAsync(command with { WorkspaceId = id }, cancellationToken);
+            var result = await _handler.SendAsync<SetWorkspacePinCommand, bool>(command with { WorkspaceId = id }, cancellationToken);
             return result.ToActionResult();
         }
 
