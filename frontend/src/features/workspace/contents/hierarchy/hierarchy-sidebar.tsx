@@ -76,16 +76,18 @@ export function HierarchySidebar() {
           onOpenChange={setIsHierarchyOpen}
           className="flex flex-col h-full overflow-hidden"
         >
-          <CollapsibleTrigger className="w-full h-7 flex items-center gap-2 px-1 hover:bg-muted/50 transition-colors group flex-none bg-card/35 sticky top-0 z-10">
-            <ChevronDown
-              className={cn(
-                "h-3 w-3 text-muted-foreground transition-transform duration-200",
-                !isHierarchyOpen && "-rotate-90",
-              )}
-            />
-            <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider flex-1 text-left">
-              Items
-            </span>
+          <div className="w-full h-7 flex items-center gap-2 px-1 flex-none bg-card/35 sticky top-0 z-10 group hover:bg-muted/50 transition-colors">
+            <CollapsibleTrigger className="flex items-center gap-2 flex-1 min-w-0">
+              <ChevronDown
+                className={cn(
+                  "h-3 w-3 text-muted-foreground transition-transform duration-200",
+                  !isHierarchyOpen && "-rotate-90",
+                )}
+              />
+              <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider text-left">
+                Items
+              </span>
+            </CollapsibleTrigger>
             <DialogFormWrapper
               title="Create New Space"
               open={isHeaderCreateOpen}
@@ -93,10 +95,7 @@ export function HierarchySidebar() {
               trigger={
                 <Plus
                   className="h-3 w-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-none hover:text-primary cursor-pointer"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setIsHeaderCreateOpen(true);
-                  }}
+                  onClick={() => setIsHeaderCreateOpen(true)}
                 />
               }
             >
@@ -104,7 +103,7 @@ export function HierarchySidebar() {
                 onCancel={() => setIsHeaderCreateOpen(false)}
               />
             </DialogFormWrapper>
-          </CollapsibleTrigger>
+          </div>
 
           <CollapsibleContent className="flex-1 min-h-0 overflow-hidden data-[state=open]:flex data-[state=closed]:hidden">
             <div className="h-full w-full overflow-y-auto overflow-x-auto [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar]:h-1 [&::-webkit-scrollbar-thumb]:bg-muted-foreground/20 hover:[&::-webkit-scrollbar-thumb]:bg-muted-foreground/40 [&::-webkit-scrollbar-track]:bg-transparent">

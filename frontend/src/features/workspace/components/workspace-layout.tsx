@@ -251,7 +251,8 @@ export function WorkspaceLayout() {
           <IconRail onSelectIcon={handleSelectIcon} onCommandCenter={handleCommandCenter} />
 
           {/* ─── Hover Peek Frame ───────────────────────────── */}
-          {ui.hoveredIcon && !ui.isInnerSidebarOpen && SidebarRegistry({ page: ui.hoveredIcon }) !== null && (
+          {ui.hoveredIcon && SidebarRegistry({ page: ui.hoveredIcon }) !== null &&
+           (!ui.isInnerSidebarOpen || SidebarRegistry({ page: ui.activeIcon }) === null) && (
             <div
               className="absolute top-0 left-[44px] h-full w-64 z-50 animate-in fade-in slide-in-from-left-1 duration-200"
               onMouseEnter={() => {
@@ -263,15 +264,8 @@ export function WorkspaceLayout() {
                 }, 300);
               }}
             >
-              <div className="h-full w-full bg-background border border-border rounded-md shadow-xl flex flex-col overflow-hidden">
-                <div className="flex items-center justify-between px-3 py-2 flex-shrink-0 border-b border-border bg-muted/30">
-                  <h2 className="font-black text-[10px] uppercase tracking-widest text-foreground/70">
-                    Quick Look: {ui.hoveredIcon}
-                  </h2>
-                </div>
-                <div className="flex-1 min-h-0 overflow-hidden p-1">
-                  <SidebarRegistry page={ui.hoveredIcon} />
-                </div>
+              <div className="h-full w-full bg-background border border-border rounded-md shadow-xl overflow-hidden">
+                <SidebarRegistry page={ui.hoveredIcon} />
               </div>
             </div>
           )}

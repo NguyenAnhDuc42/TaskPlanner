@@ -19,6 +19,7 @@ export interface EntityMenuContextType {
   renderMenuItems: (isContext: boolean) => React.ReactNode;
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const EntityMenuContext = createContext<EntityMenuContextType | null>(null);
 
 export interface DeleteConfirmationDialogProps {
@@ -73,7 +74,12 @@ export function EntityMenuTrigger({ children }: { children: React.ReactNode }) {
       <DropdownMenuTrigger asChild onPointerDown={(e) => e.stopPropagation()}>
         {children}
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="start" side="right" className="w-52 bg-background/95 backdrop-blur-md border-border/50 shadow-2xl rounded-xl p-1.5 animate-in fade-in-0 zoom-in-95">
+      <DropdownMenuContent
+        align="start"
+        side="right"
+        onCloseAutoFocus={(e) => e.preventDefault()}
+        className="w-52 bg-background/95 backdrop-blur-md border-border/50 shadow-2xl rounded-xl p-1.5 animate-in fade-in-0 zoom-in-95"
+      >
         {context.renderMenuItems(false)}
       </DropdownMenuContent>
     </DropdownMenu>

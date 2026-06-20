@@ -164,7 +164,7 @@ export function CreateTaskForm({
   };
 
   return (
-    <form onSubmit={onSubmit} className="flex flex-col w-full bg-background border border-border/30 rounded-md overflow-hidden text-foreground">
+    <form onSubmit={onSubmit} className="flex flex-col w-full">
       {/* Main Header / Input Section */}
       <div className="px-3 pt-2 pb-2">
         <div className="flex items-center gap-3">
@@ -181,14 +181,15 @@ export function CreateTaskForm({
             aria-label="Task title"
             value={state.name}
             onChange={(e) => dispatch({ type: "SET_NAME", payload: e.target.value })}
-            className="flex-1 bg-transparent border-none focus:ring-0 text-[13px] font-semibold placeholder:text-muted-foreground/30 py-0 outline-none resize-none min-h-[22px]"
+            className="flex-1 bg-transparent border-none focus:ring-0 text-[13px] font-semibold placeholder:text-muted-foreground/30 py-0 outline-none resize-none min-h-5.5"
             rows={1}
             onKeyDown={(e) => {
               if (e.key === " ") {
                 e.stopPropagation();
               }
-              if (e.key === "Enter" && !e.shiftKey) {
+              if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) {
                 e.preventDefault();
+                e.stopPropagation();
                 onSubmit();
               }
             }}

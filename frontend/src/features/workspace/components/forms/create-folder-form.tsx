@@ -135,7 +135,7 @@ export function CreateFolderForm({
             onChange={(e) => dispatch({ type: "SET_NAME", payload: e.target.value })}
             className="flex-1 bg-transparent border-none focus:ring-0 text-[13px] font-semibold placeholder:text-muted-foreground/30 py-0 outline-none tracking-tight"
             onKeyDown={(e) => {
-              if (e.key === " ") {
+              if (e.key === " " || e.key === "Enter") {
                 e.stopPropagation();
               }
             }}
