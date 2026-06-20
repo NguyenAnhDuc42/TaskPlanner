@@ -1,7 +1,7 @@
 import React from "react";
 import { useDispatch } from "react-redux";
 import type { AppDispatch } from "@/store";
-import { useWorkspace } from "@/features/workspace/context/workspace-provider";
+import { useWorkspace } from "@/features/workspace/context/workspace-context";
 import { useGetNodeTasksQuery, useTasksByParent, hierarchyApi } from "../hierarchy-api";
 import { EntityLayerType } from "@/types/entity-layer-type";
 import { folderSlice, spaceSlice } from "@/store/entityStore";

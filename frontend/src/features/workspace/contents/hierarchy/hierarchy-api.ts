@@ -9,6 +9,7 @@ import { createSelector } from "@reduxjs/toolkit";
 import { useMemo } from "react";
 import type { Priority } from "@/types/priority";
 import { toast } from "sonner";
+import { extractErrorMessage } from "@/types/api-error";
 
 export interface CreateSpaceRequest {
   name: string;
@@ -203,9 +204,9 @@ export const hierarchyApi = workspaceApi.injectEndpoints({
         dispatch(spaceSlice.actions.remove(spaceId));
         try { 
           await queryFulfilled; 
-        } catch {
+        } catch (err) {
           if (originalSpace) dispatch(spaceSlice.actions.upsert(originalSpace));
-          toast.error("Failed to delete space.");
+          toast.error(extractErrorMessage(err, "Failed to delete space."));
         }
       }
     }),
@@ -218,9 +219,9 @@ export const hierarchyApi = workspaceApi.injectEndpoints({
         dispatch(folderSlice.actions.remove(folderId));
         try { 
           await queryFulfilled; 
-        } catch {
+        } catch (err) {
           if (originalFolder) dispatch(folderSlice.actions.upsert(originalFolder));
-          toast.error("Failed to delete folder.");
+          toast.error(extractErrorMessage(err, "Failed to delete folder."));
         }
       }
     }),
@@ -233,9 +234,9 @@ export const hierarchyApi = workspaceApi.injectEndpoints({
         dispatch(taskSlice.actions.remove(taskId));
         try { 
           await queryFulfilled; 
-        } catch {
+        } catch (err) {
           if (originalTask) dispatch(taskSlice.actions.upsert(originalTask));
-          toast.error("Failed to delete task.");
+          toast.error(extractErrorMessage(err, "Failed to delete task."));
         }
       }
     }),

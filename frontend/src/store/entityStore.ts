@@ -4,6 +4,7 @@ import type { DocumentBlockRecord } from "@/types/document";
 import type { MemberRecord, WorkspaceSnippetRecord } from "@/types/workspace";
 import type { Status } from "@/types/status";
 import type { EntityAccessRecord } from "@/types/workspace";
+import type { FavoriteRecord } from "@/types/projects/favorite-record";
 import type { RootState } from "./index";
 
 // ─── UTILITY: GRANULAR DEEP MERGE (LAST WRITE WINS) ───
@@ -51,6 +52,7 @@ export const adapters = {
   workspaces: createEntityAdapter<WorkspaceSnippetRecord>(),
   attachments: createEntityAdapter<AttachmentRecord>(),
   documentBlocks: createEntityAdapter<DocumentBlockRecord>(),
+  favorites: createEntityAdapter<FavoriteRecord>(),
 };
 
 // ─── REDUX SLICES WITH SAFE MERGE TRANSACTIONS (Strict Typed + removeMany) ───
@@ -318,6 +320,28 @@ export const documentBlockSlice = createSlice({
   }
 });
 
+export const favoriteSlice = createSlice({
+  name: 'favorites',
+  initialState: adapters.favorites.getInitialState(),
+  reducers: {
+    upsert(state, action: PayloadAction<Partial<FavoriteRecord> & { id: string }>) {
+      const existing = state.entities[action.payload.id];
+      const merged = safeMergeEntity(existing, action.payload);
+      adapters.favorites.upsertOne(state, merged);
+    },
+    upsertMany(state, action: PayloadAction<Partial<FavoriteRecord>[]>) {
+      action.payload.forEach((item) => {
+        if (!item.id) return;
+        const existing = state.entities[item.id];
+        const merged = safeMergeEntity(existing, item);
+        adapters.favorites.upsertOne(state, merged);
+      });
+    },
+    remove: adapters.favorites.removeOne,
+    removeMany: adapters.favorites.removeMany,
+  }
+});
+
 // Central selectors
 export const spaceSelectors  = adapters.spaces.getSelectors((s: RootState) => s.spaces);
 export const folderSelectors = adapters.folders.getSelectors((s: RootState) => s.folders);
@@ -331,3 +355,4 @@ export const commentSelectors      = adapters.comments.getSelectors((s: RootStat
 export const workspaceSelectors    = adapters.workspaces.getSelectors((s: RootState) => s.workspaces);
 export const attachmentSelectors   = adapters.attachments.getSelectors((s: RootState) => s.attachments);
 export const documentBlockSelectors = adapters.documentBlocks.getSelectors((s: RootState) => s.documentBlocks);
+export const favoriteSelectors = adapters.favorites.getSelectors((s: RootState) => s.favorites);

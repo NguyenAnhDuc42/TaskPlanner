@@ -12,7 +12,7 @@ import { Maximize2, User } from "lucide-react";
 import { DateSelect } from "@/components/date-select";
 import type { FolderRecord, TaskRecord } from "@/types/projects";
 import { useRouter, useNavigate } from "@tanstack/react-router";
-import { useWorkspace } from "@/features/workspace/context/workspace-provider";
+import { useWorkspace } from "@/features/workspace/context/workspace-context";
 
 export interface BoardItemCardProps {
   item: BoardItem;

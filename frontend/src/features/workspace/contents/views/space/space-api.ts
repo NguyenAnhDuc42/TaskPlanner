@@ -49,6 +49,7 @@ export const spaceApi = workspaceApi.injectEndpoints({
       }
     }),
 
+    // Unfiltered — upserts everything into the entity store (used by SpaceView to bootstrap data)
     getSpaceItems: build.query<GetSpaceItemsResponse, string>({
       query: (spaceId) => ({ url: `/spaces/${spaceId}/items`, method: "GET" }),
       async onQueryStarted(_, { dispatch, queryFulfilled }) {
@@ -60,6 +61,7 @@ export const spaceApi = workspaceApi.injectEndpoints({
         } catch { /* ignore */ }
       }
     }),
+
 
     batchUpdateSpaceItems: build.mutation<void, { spaceId: string; updates: BatchUpdateSpaceItemValue[] }>({
       query: ({ spaceId, updates }) => ({

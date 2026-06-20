@@ -1,6 +1,6 @@
 import { useGetNodeFoldersQuery, useFoldersBySpace, hierarchyApi } from "@/features/workspace/contents/hierarchy/hierarchy-api";
 import { FolderNodeItem } from "@/features/workspace/contents/hierarchy/items/folder-node-item";
-import { useWorkspace } from "@/features/workspace/context/workspace-provider";
+import { useWorkspace } from "@/features/workspace/context/workspace-context";
 import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import React from "react";
 import { useDispatch } from "react-redux";

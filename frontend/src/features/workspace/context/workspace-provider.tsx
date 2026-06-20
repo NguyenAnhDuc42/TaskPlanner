@@ -1,5 +1,4 @@
 import {
-  useContext,
   useEffect,
   useCallback,
   useMemo,
@@ -12,70 +11,6 @@ import { WorkspaceContext } from "./workspace-context";
 import { useWorkspaceUIStore } from "./use-workspace-ui-store";
 import { useWorkspaceSignalR } from "./use-workspace-signalr";
 
-export function useWorkspace() {
-  const context = useContext(WorkspaceContext);
-  if (!context) {
-    return {
-      workspaceId: "",
-      workspace: undefined,
-      isLoading: true,
-      isError: false,
-      error: null,
-      ui: {
-        activeIcon: "projects" as const,
-        hoveredIcon: null,
-        isInnerSidebarOpen: true,
-        sidebarWidth: 260,
-        contextWidth: 350,
-      },
-      actions: {
-        toggleInnerSidebar: () => {},
-        setHoveredIcon: () => {},
-        updateSidebarWidth: () => {},
-        updateContextWidth: () => {},
-        setSidebarOpenLocal: () => {},
-        setSidebarWidthLocal: () => {},
-        setContextWidthLocal: () => {},
-      },
-    } as any;
-  }
-  return context;
-}
-
-export function useWorkspaceSession() {
-  const context = useContext(WorkspaceContext);
-
-  if (!context) {
-    return {
-      state: {
-        activeIcon: "projects" as const,
-        hoveredIcon: null,
-        isInnerSidebarOpen: true,
-        sidebarWidth: 260,
-        contextWidth: 350,
-      },
-      actions: {
-        toggleInnerSidebar: () => {},
-        setHoveredIcon: () => {},
-        updateSidebarWidth: () => {},
-        updateContextWidth: () => {},
-        setSidebarOpenLocal: () => {},
-        setSidebarWidthLocal: () => {},
-        setContextWidthLocal: () => {},
-      },
-      workspaceId: "",
-      isLoading: true,
-    };
-  }
-
-  return {
-    state: context.ui,
-    actions: context.actions,
-    workspaceId: context.workspaceId,
-    isLoading: context.isLoading,
-  };
-}
-
 
 interface WorkspaceProviderProps {
   workspaceId: string;
@@ -86,15 +21,12 @@ export function WorkspaceProvider({ workspaceId, children }: WorkspaceProviderPr
   const navigate  = useNavigate();
   const location  = useLocation();
 
-  // Workspace detail — role, permissions. Data already in cache from route loader.
   const { data: workspace, isLoading, error, isError } = useGetWorkspaceDetailQuery(workspaceId);
 
-  // UI state — persisted per workspace via Zustand
   const { getSettings, updateSettings, hoveredIcon, setHoveredIcon } = useWorkspaceUIStore();
   const settings = getSettings(workspaceId);
   const { sidebarWidth, contextWidth, isInnerSidebarOpen } = settings;
 
-  // Active icon derived from URL — never stale
   const activeIcon = useMemo(() => {
     const segments = location.pathname.split("/");
     return (segments[3] || "projects") as ContentPage;
@@ -127,7 +59,8 @@ export function WorkspaceProvider({ workspaceId, children }: WorkspaceProviderPr
 
   useEffect(() => {
     if (isError && error) {
-      const status = (error as any)?.response?.status;
+      const err = error as { status?: number };
+      const status = err.status;
       if (status === 403 || status === 404) {
         localStorage.removeItem("lastWorkspaceId");
         navigate({ to: "/" });

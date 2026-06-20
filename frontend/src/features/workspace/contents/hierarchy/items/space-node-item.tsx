@@ -2,7 +2,7 @@ import React from "react";
 import * as Icons from "lucide-react";
 import { ChevronRight, MoreVertical, Lock, type LucideIcon } from "lucide-react";
 import { useNavigate, useLocation, useRouter } from "@tanstack/react-router";
-import { useWorkspace } from "@/features/workspace/context/workspace-provider";
+import { useWorkspace } from "@/features/workspace/context/workspace-context";
 import { cn } from "@/lib/utils";
 import { Collapsible, CollapsibleContent } from "@/components/ui/collapsible";
 import { useSelector } from "react-redux";

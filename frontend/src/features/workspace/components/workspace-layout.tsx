@@ -1,6 +1,6 @@
 import { Suspense, useRef } from "react";
 import { useLocation, useNavigate, Outlet } from "@tanstack/react-router";
-import { useWorkspace } from "../context/workspace-provider";
+import { useWorkspace } from "../context/workspace-context";
 import { SidebarRegistry } from "./sidebar-registry";
 import { IconRail } from "./icon-rail";
 import { ContextPanelRenderer } from "./context-panel-renderer";

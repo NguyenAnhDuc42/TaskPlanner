@@ -1,6 +1,6 @@
 import React from "react";
 import { useLocation, useNavigate, useRouter } from "@tanstack/react-router";
-import { useWorkspace } from "@/features/workspace/context/workspace-provider";
+import { useWorkspace } from "@/features/workspace/context/workspace-context";
 import { cn } from "@/lib/utils";
 import { CheckSquare, MoreVertical } from "lucide-react";
 import { useSelector } from "react-redux";

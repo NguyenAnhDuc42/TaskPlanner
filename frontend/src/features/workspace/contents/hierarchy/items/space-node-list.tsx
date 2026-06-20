@@ -1,7 +1,7 @@
 import React, { useMemo } from "react";
 import { useDispatch } from "react-redux";
 import type { AppDispatch } from "@/store";
-import { useWorkspace } from "@/features/workspace/context/workspace-provider";
+import { useWorkspace } from "@/features/workspace/context/workspace-context";
 import { useGetNodeSpacesQuery, useSpaces, hierarchyApi } from "../hierarchy-api";
 import { SpaceNodeItem } from "./space-node-item";
 import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";

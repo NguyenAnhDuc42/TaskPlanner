@@ -1,3 +1,5 @@
+import type { AccessLevel } from "@/types/access-level";
+
 export interface SpaceRecord {
     id: string;
     workspaceId?: string;
@@ -18,5 +20,6 @@ export interface SpaceRecord {
     hasFolders?: boolean;
     hasTasks?: boolean;
     creatorId?: string;
+    accessLevel?: AccessLevel;
+    isFavorite?: boolean;
 }
-

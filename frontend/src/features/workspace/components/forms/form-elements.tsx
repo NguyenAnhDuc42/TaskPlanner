@@ -14,7 +14,7 @@ export const AttributeButton = forwardRef<
   HTMLButtonElement,
   { 
     children: React.ReactNode; 
-    icon?: any; 
+    icon?: React.ElementType; 
     className?: string;
     active?: boolean;
     onClick?: () => void;

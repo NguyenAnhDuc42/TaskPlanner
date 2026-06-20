@@ -1,7 +1,8 @@
 import { useReducer, useMemo } from "react";
 import { useCreateTaskMutation } from "../../contents/hierarchy/hierarchy-api";
+import { extractErrorMessage } from "@/types/api-error";
 import { Button } from "@/components/ui/button";
-import { useWorkspace } from "../../context/workspace-provider";
+import { useWorkspace } from "../../context/workspace-context";
 import { EntityLayerType } from "@/types/entity-layer-type";
 import { Priority } from "@/types/priority";
 import { Circle, User } from "lucide-react";
@@ -159,7 +160,7 @@ export function CreateTaskForm({
       onSuccess?.(newId);
     } catch (error) {
       console.error(error);
-      toast.error("Failed to create task");
+      toast.error(extractErrorMessage(error, "Failed to create task"));
     }
   };
 

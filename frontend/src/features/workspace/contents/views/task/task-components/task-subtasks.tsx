@@ -15,7 +15,7 @@ import { PrioritySelect } from "@/components/priority-select";
 import { PriorityBadge } from "@/components/priority-badge";
 import { DateSelect } from "@/components/date-select";
 import { DebouncedInput } from "@/components/debounced-input";
-import { useWorkspace } from "@/features/workspace/context/workspace-provider";
+import { useWorkspace } from "@/features/workspace/context/workspace-context";
 import { useDeleteTaskMutation } from "../../../hierarchy/hierarchy-api";
 import type { Priority } from "@/types/priority";
 import { useNavigate, useLocation } from "@tanstack/react-router";

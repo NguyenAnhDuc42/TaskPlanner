@@ -11,7 +11,7 @@ import {
   LogOut,
 } from "lucide-react";
 import { useNavigate } from "@tanstack/react-router";
-import { useWorkspaceSession } from "../context/workspace-provider";
+import { useWorkspaceSession } from "../context/workspace-context";
 import type { ContentPage } from "../type";
 
 const NAV_ICONS: { id: ContentPage; icon: React.ElementType; hasSidebar?: boolean }[] = [

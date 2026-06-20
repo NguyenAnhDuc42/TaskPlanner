@@ -27,6 +27,7 @@ public record TaskRecord
     public string? ParentType { get; init; }
     public Guid? ParentTaskId { get; init; }
     public bool? IsFavorite {get; init;}
+    public AccessLevel? AccessLevel { get; init; }
 
     public static TaskRecord FromDomain(ProjectTask t) => new()
     {
@@ -68,6 +69,8 @@ public record FolderRecord
     public string? Color { get; init; }
     public bool? HasTasks { get; init; }
     public Guid? WorkflowId { get; init; }
+    public AccessLevel? AccessLevel { get; init; }
+    public bool? IsFavorite { get; init; }
 
     public static FolderRecord FromDomain(ProjectFolder f, Guid? workflowId) => new()
     {

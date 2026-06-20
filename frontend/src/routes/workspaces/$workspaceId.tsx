@@ -1,8 +1,6 @@
 import { createFileRoute, redirect } from "@tanstack/react-router";
-import {
-  WorkspaceProvider,
-  useWorkspace,
-} from "@/features/workspace/context/workspace-provider";
+import { WorkspaceProvider } from "@/features/workspace/context/workspace-provider";
+import { useWorkspace } from "@/features/workspace/context/workspace-context";
 import { WorkspaceLayout } from "@/features/workspace/components/workspace-layout";
 import { z } from "zod";
 import { Loader2 } from "lucide-react";

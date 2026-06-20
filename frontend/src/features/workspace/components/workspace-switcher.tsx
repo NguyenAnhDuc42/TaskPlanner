@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { ChevronDown, Check, Plus, Pin, LogIn } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useWorkspace } from "../context/workspace-provider";
+import { useWorkspace } from "../context/workspace-context";
 import { useSelector } from "react-redux";
 import { workspaceSelectors } from "@/store/entityStore";
 import type { WorkspaceSnippetRecord } from "@/types/workspace";

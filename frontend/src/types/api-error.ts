@@ -50,3 +50,33 @@ export class ApiError extends Error {
     Object.setPrototypeOf(this, ApiError.prototype);
   }
 }
+
+/**
+ * Safely extracts a human-readable message from an unknown error object.
+ * Handles both standard ApiErrors and RTK Query wrapped errors without using 'any'.
+ */
+export function extractErrorMessage(error: unknown, fallback: string = "An unexpected error occurred."): string {
+  if (!error || typeof error !== "object") return fallback;
+
+  // 1. If it's an RTK Query onQueryStarted error wrapper: { error: { data: { message } } }
+  if ("error" in error && typeof error.error === "object" && error.error !== null) {
+    const rtkError = error.error as Record<string, unknown>;
+    if ("data" in rtkError && typeof rtkError.data === "object" && rtkError.data !== null) {
+      const data = rtkError.data as Record<string, unknown>;
+      if (typeof data.message === "string") return data.message;
+    }
+  }
+
+  // 2. If it's an RTK Query unwrap() error wrapper: { data: { message } }
+  if ("data" in error && typeof error.data === "object" && error.data !== null) {
+    const data = error.data as Record<string, unknown>;
+    if (typeof data.message === "string") return data.message;
+  }
+
+  // 3. If it's an Error instance
+  if (error instanceof Error && error.message) {
+    return error.message;
+  }
+
+  return fallback;
+}

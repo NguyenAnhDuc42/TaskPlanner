@@ -24,6 +24,7 @@ import { SpaceFilterBar } from "./space-filter-bar";
 import { EntityLayerType } from "@/types/entity-layer-type";
 import { useUpdateFolderFieldMutation } from "../../folder/folder-api";
 
+
 interface SpaceBoardProps {
   spaceId: string;
   onWorkflowOpen?: () => void;
@@ -46,7 +47,7 @@ export function SpaceBoard({ spaceId, onWorkflowOpen }: Readonly<SpaceBoardProps
 
   const columns = useMemo(() => {
     const nextCols: Record<string, BoardItem[]> = {};
-    
+
     statuses.forEach((s) => { nextCols[s.id] = []; });
     nextCols["unclassified"] = [];
 
@@ -156,7 +157,7 @@ export function SpaceBoard({ spaceId, onWorkflowOpen }: Readonly<SpaceBoardProps
 
   return (
     <>
-      <SpaceFilterBar 
+      <SpaceFilterBar
         statuses={statuses}
         hiddenStatusIds={hiddenStatusIds}
         setHiddenStatusIds={setHiddenStatusIds}
@@ -171,7 +172,7 @@ export function SpaceBoard({ spaceId, onWorkflowOpen }: Readonly<SpaceBoardProps
       >
         <div
           ref={containerRef}
-          className="flex-1 flex gap-2 px-2 overflow-x-auto overflow-y-hidden select-none [&::-webkit-scrollbar]:h-1.5 [&::-webkit-scrollbar-thumb]:bg-white/[0.05] [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-white/[0.15] [&::-webkit-scrollbar-track]:bg-transparent"
+          className="flex-1 flex gap-2 px-2 overflow-x-auto overflow-y-hidden select-none [&::-webkit-scrollbar]:h-1.5 [&::-webkit-scrollbar-thumb]:bg-white/5 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-white/[0.15] [&::-webkit-scrollbar-track]:bg-transparent"
         >
           {columnsToRender.map((col) => (
             <BoardColumn
@@ -196,7 +197,7 @@ export function SpaceBoard({ spaceId, onWorkflowOpen }: Readonly<SpaceBoardProps
             {draggedItem ? (
               // Add layout-stable inline styles to prevent container shifting on mount
               <div 
-                className="rotate-3 scale-105 opacity-90 pointer-events-none w-[268px] contain-layout"
+                className="rotate-3 scale-105 opacity-90 pointer-events-none w-67 contain-layout"
                 style={{ willChange: "transform" }}
               >
                 <BoardItemCard item={draggedItem} isDragging={false} />

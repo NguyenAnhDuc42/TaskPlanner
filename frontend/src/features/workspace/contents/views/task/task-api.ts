@@ -4,6 +4,7 @@ import type { TaskRecord } from "@/types/projects/task-record";
 import type { CommentRecord, AssigneeRecord } from "@/types/projects";
 import type { RootState } from "@/store";
 import { toast } from "sonner";
+import { extractErrorMessage } from "@/types/api-error";
 
 export type UpdateTaskPayload = Partial<TaskRecord> & {
   clearStartDate?: boolean;
@@ -45,11 +46,11 @@ export const taskApi = workspaceApi.injectEndpoints({
         dispatch(taskSlice.actions.upsert({ id: taskId, ...optimisticPatches }));
         try {
           await queryFulfilled;
-        } catch {
+        } catch (err) {
           if (originalTask) {
             dispatch(taskSlice.actions.upsert(originalTask));
           }
-          toast.error("Failed to update task. Your changes have been reverted.");
+          toast.error(extractErrorMessage(err, "Failed to update task. Your changes have been reverted."));
         }
       }
     }),
@@ -105,12 +106,12 @@ export const taskApi = workspaceApi.injectEndpoints({
 
         try {
           await queryFulfilled;
-        } catch {
+        } catch (err) {
           const updatedAllAssignees: AssigneeRecord[] = Object.values((getState() as RootState).assignees.entities) as AssigneeRecord[];
           const currentAssignees = updatedAllAssignees.filter(a => a?.taskId === taskId);
           dispatch(assigneeSlice.actions.removeMany(currentAssignees.map(a => a.id)));
           dispatch(assigneeSlice.actions.upsertMany(originalAssignees));
-          toast.error("Failed to update task assignees. Your changes have been reverted.");
+          toast.error(extractErrorMessage(err, "Failed to update task assignees. Your changes have been reverted."));
         }
       }
     }),
@@ -152,11 +153,11 @@ export const taskApi = workspaceApi.injectEndpoints({
         dispatch(commentSlice.actions.remove(commentId));
         try {
           await queryFulfilled;
-        } catch {
+        } catch (err) {
           if (originalComment) {
             dispatch(commentSlice.actions.upsert(originalComment));
           }
-          toast.error("Failed to delete comment.");
+          toast.error(extractErrorMessage(err, "Failed to delete comment."));
         }
       }
     }),

@@ -27,7 +27,7 @@ import {
 } from "@/components/ui/dialog";
 import { StatusCategory } from "@/types/status-category";
 import type { Status } from "@/types/status";
-import { useWorkspace } from "@/features/workspace/context/workspace-provider";
+import { useWorkspace } from "@/features/workspace/context/workspace-context";
 import { useUpdateWorkflowStatuses } from "@/features/workspace/api";
 import { RowAction } from "@/types/row-action";
 import type { StatusUpdatePayload } from "@/features/workspace/api";

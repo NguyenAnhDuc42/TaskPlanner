@@ -98,6 +98,8 @@ public record SpaceRecord
     public Guid? CreatorId { get; init; }
     public bool? HasFolders { get; init; }
     public bool? HasTasks { get; init; }
+    public AccessLevel? AccessLevel { get; init; }
+    public bool? IsFavorite { get; init; }
 
     public static SpaceRecord FromDomain(ProjectSpace s,Guid? workflowId) => new()
     {
@@ -132,5 +134,23 @@ public record EntityAccessRecord
         WorkspaceMemberId = ea.WorkspaceMemberId,
         AccessLevel = ea.AccessLevel,
         HaveAccess = true
+    };
+}
+
+public record FavoriteRecord
+{
+    public Guid Id { get; init; }
+    public Guid EntityId { get; init; }
+    public EntityLayerType EntityLayerType { get; init; }
+    public string OrderKey { get; init; } = null!;
+    public Guid WorkspaceId { get; init; }
+
+    public static FavoriteRecord FromDomain(Favorite f, Guid workspaceId) => new()
+    {
+        Id = f.Id,
+        EntityId = f.EntityId,
+        EntityLayerType = f.EntityLayerType,
+        OrderKey = f.OrderKey,
+        WorkspaceId = workspaceId
     };
 }

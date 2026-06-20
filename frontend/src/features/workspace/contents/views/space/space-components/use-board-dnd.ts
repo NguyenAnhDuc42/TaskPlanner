@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useWorkspaceRole } from "@/features/workspace/context/use-workspace-role";
 import {
   useSensor,
   useSensors,
@@ -150,7 +151,7 @@ export function useBoardDnd({
   columns,
   batchUpdate,
 }: UseBoardDndProps) {
-
+  const { canCreateContent } = useWorkspaceRole();
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
@@ -160,20 +161,19 @@ export function useBoardDnd({
   const [draggedItem, setDraggedItem] = useState<BoardItem | null>(null);
 
   function handleDragStart(event: DragStartEvent) {
+    if (!canCreateContent) return;
     const rawActiveId = parseDndId(event.active.id);
     const item = boardItems.find((i) => i.id === rawActiveId);
-    if (item) {
-      setDraggedItem(item);
-    }
+    if (item) setDraggedItem(item);
   }
 
   function handleDragEnd(event: DragEndEvent) {
   const { active, over } = event;
-  const snapshotCols = columns; 
+  const snapshotCols = columns;
 
   setDraggedItem(null);
 
-  if (!over) return;
+  if (!canCreateContent || !over) return;
 
   const rawActiveId = parseDndId(active.id);
   const overId = over.id as string;

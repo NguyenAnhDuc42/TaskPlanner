@@ -1,7 +1,8 @@
 import { useReducer } from "react";
 import { useCreateSpaceMutation } from "../../contents/hierarchy/hierarchy-api";
+import { extractErrorMessage } from "@/types/api-error";
 import { Button } from "@/components/ui/button";
-import { useWorkspace } from "../../context/workspace-provider";
+import { useWorkspace } from "../../context/workspace-context";
 import { toast } from "sonner";
 import { PrivacyToggle, IconColorPicker, AttributeButton } from "./form-elements";
 import { User } from "lucide-react";
@@ -93,7 +94,7 @@ export function CreateSpaceForm({ onSuccess, onCancel }: Readonly<CreateSpaceFor
       onSuccess?.(newId);
     } catch (error) {
       console.error(error);
-      toast.error("Failed to create space");
+      toast.error(extractErrorMessage(error, "Failed to create space"));
     }
   };
 

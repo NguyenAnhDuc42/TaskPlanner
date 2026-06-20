@@ -36,7 +36,12 @@ export function useWorkspaceSignalR(workspaceId: string) {
 
     const onEntitiesUpdated = (payload: import("@/lib/signalr-service").EntityBatchUpdate) => {
       console.log("[SignalR] EntitiesUpdated:", payload);
-      if (payload.spaces)         dispatch(spaceSlice.actions.upsertMany(payload.spaces));
+      if (payload.spaces) {
+        dispatch(spaceSlice.actions.upsertMany(payload.spaces));
+        if (payload.spaces.some(s => s.isPrivate)) {
+          dispatch(workspaceApi.util.invalidateTags(['Spaces', 'Folders', 'Tasks']));
+        }
+      }
       if (payload.folders) {
         dispatch(folderSlice.actions.upsertMany(payload.folders));
         payload.folders.forEach(f => {

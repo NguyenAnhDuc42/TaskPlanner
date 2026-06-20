@@ -6,6 +6,7 @@ public class GetFolderDetailHandler(TaskPlanDbContext db, WorkspaceContext works
 {
     public async Task<Result<FolderDetailResponse>> Handle(GetFolderDetailQuery request, CancellationToken cancellationToken)
     {
+        var isOwner = workspaceContext.CurrentMember.Role == Domain.Role.Owner;
         // Only select columns shown on the folder view page
         const string sql = @"
             SELECT 
@@ -17,9 +18,17 @@ public class GetFolderDetailHandler(TaskPlanDbContext db, WorkspaceContext works
                 f.status_id   AS StatusId,
                 f.priority    AS Priority,
                 f.start_date  AS StartDate,
-                f.due_date    AS DueDate
+                f.due_date    AS DueDate,
+                ea.access_level AS AccessLevel,
+                CAST(CASE WHEN fav.id IS NOT NULL THEN 1 ELSE 0 END AS BOOLEAN) AS IsFavorite
             FROM project_folders f
-            WHERE f.id = @FolderId AND f.project_workspace_id = @WorkspaceId AND f.deleted_at IS NULL;
+            INNER JOIN project_spaces s ON s.id = f.project_space_id AND s.deleted_at IS NULL
+            LEFT JOIN entity_access ea ON ea.project_space_id = s.id 
+                AND ea.workspace_member_id = @MemberId 
+                AND ea.deleted_at IS NULL
+            LEFT JOIN favorites fav ON fav.entity_id = f.id AND fav.workspace_member_id = @MemberId
+            WHERE f.id = @FolderId AND f.project_workspace_id = @WorkspaceId AND f.deleted_at IS NULL
+              AND (s.is_private = false OR ea.id IS NOT NULL OR @IsOwner = true);
 
             SELECT s.name AS Name, s.custom_icon AS Icon, s.custom_color AS Color
             FROM project_spaces s
@@ -34,7 +43,12 @@ public class GetFolderDetailHandler(TaskPlanDbContext db, WorkspaceContext works
             WHERE wf.project_folder_id = @FolderId LIMIT 1;";
 
         var connection = db.Database.GetDbConnection();
-        using var multi = await connection.QueryMultipleAsync(sql, new { FolderId = request.FolderId, WorkspaceId = workspaceContext.WorkspaceId });
+        using var multi = await connection.QueryMultipleAsync(sql, new { 
+            FolderId = request.FolderId, 
+            WorkspaceId = workspaceContext.WorkspaceId,
+            MemberId = workspaceContext.CurrentMember.Id,
+            IsOwner = isOwner
+        });
 
         var folder = await multi.ReadFirstOrDefaultAsync<FolderRecord>();
         if (folder == null) return Result<FolderDetailResponse>.Failure(Error.NotFound("Folder.NotFound", $"Folder {request.FolderId} not found"));

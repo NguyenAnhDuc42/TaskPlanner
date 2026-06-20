@@ -3,6 +3,8 @@ import type { BaseQueryFn } from '@reduxjs/toolkit/query/react';
 import { api } from '@/lib/api-client';
 import type { AxiosRequestConfig, AxiosError } from 'axios';
 
+import { ApiError } from '@/types/api-error';
+
 // Custom baseQuery using the existing Axios instance with important interceptors/middlewares
 export const axiosBaseQuery = (): BaseQueryFn<
   {
@@ -19,6 +21,18 @@ export const axiosBaseQuery = (): BaseQueryFn<
       const result = await api({ url, method, data, params });
       return { data: result.data };
     } catch (axiosError) {
+      if (axiosError instanceof ApiError) {
+        return {
+          error: {
+            status: axiosError.status,
+            data: { 
+              message: axiosError.message, 
+              code: axiosError.code, 
+              details: axiosError.details 
+            },
+          },
+        };
+      }
       const err = axiosError as AxiosError;
       return {
         error: {
@@ -32,6 +46,6 @@ export const axiosBaseQuery = (): BaseQueryFn<
 export const workspaceApi = createApi({
   reducerPath: 'workspaceApi',
   baseQuery: axiosBaseQuery(),
-  tagTypes: ['Spaces', 'Folders', 'Tasks', 'Members', 'User', 'UserPreference', 'EntityAccess', 'Workflows', 'Comments', 'Documents'],
+  tagTypes: ['Spaces', 'Folders', 'Tasks', 'Members', 'User', 'UserPreference', 'EntityAccess', 'Workflows', 'Comments', 'Documents', 'Favorites'],
   endpoints: () => ({}), // Endpoints will be injected by features
 });

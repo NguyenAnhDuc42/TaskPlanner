@@ -22,6 +22,11 @@ public class FavoriteConfiguration : TenantEntityConfiguration<Favorite>
         builder.Property(x => x.EntityLayerType)
             .HasColumnName("entity_layer_type")
             .IsRequired();
+            
+        builder.Property(x => x.OrderKey)
+            .HasColumnName("order_key")
+            .IsRequired()
+            .HasMaxLength(255);
 
         builder.HasIndex(x => x.WorkspaceMemberId);
         builder.HasIndex(x => new

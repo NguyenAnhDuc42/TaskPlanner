@@ -1,4 +1,6 @@
 import { Priority } from "../priority";
+import type { AccessLevel } from "@/types/access-level";
+import type { EntityLayerType } from "@/types/entity-layer-type";
 
 export interface TaskRecord {
     id: string;
@@ -20,8 +22,9 @@ export interface TaskRecord {
     isArchived?: boolean;
     storyPoints?: number;
     timeEstimateSeconds?: number;
-    parentType?: string;
+    parentType?: EntityLayerType;
     parentTaskId?: string;
     isFavorite?: boolean;
+    accessLevel?: AccessLevel;
 }
 

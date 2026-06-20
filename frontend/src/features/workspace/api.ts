@@ -1,10 +1,11 @@
 import { workspaceApi } from "@/store/workspaceApi";
-import { memberSlice, statusSlice, statusSelectors } from "@/store/entityStore";
+import { memberSlice, statusSlice, statusSelectors, favoriteSlice, spaceSlice, folderSlice, taskSlice } from "@/store/entityStore";
 import type { RootState } from "@/store";
 import type { WorkspaceRecord } from "@/types/workspace/workspace-record";
 import type { PagedResult } from "@/types/paged-result";
 import type { MemberRecord } from "@/types/workspace/member-record";
 import type { WorkflowRecord } from "@/types/projects";
+import type { FavoriteRecord } from "@/types/projects/favorite-record";
 import type { Status } from "@/types/status";
 import { toast } from "sonner";
 
@@ -135,6 +136,63 @@ export const workspaceFeatureApi = workspaceApi.injectEndpoints({
         }
       }
     }),
+    toggleFavorite: build.mutation<void, { workspaceId: string; entityId: string; entityLayerType: string }>({
+      query: ({ workspaceId, entityId, entityLayerType }) => ({
+        url: `/workspaces/${workspaceId}/favorites/toggle`,
+        method: "POST",
+        data: { entityId, entityLayerType },
+      }),
+      async onQueryStarted({ entityId, entityLayerType }, { dispatch, queryFulfilled, getState }) {
+        const state = getState() as RootState;
+        let oldIsFavorite: boolean | undefined;
+
+        if (entityLayerType === 'ProjectSpace') {
+          const space = state.spaces.entities[entityId];
+          if (space) {
+            oldIsFavorite = space.isFavorite;
+            dispatch(spaceSlice.actions.upsert({ id: entityId, isFavorite: !oldIsFavorite }));
+          }
+        } else if (entityLayerType === 'ProjectFolder') {
+          const folder = state.folders.entities[entityId];
+          if (folder) {
+            oldIsFavorite = folder.isFavorite;
+            dispatch(folderSlice.actions.upsert({ id: entityId, isFavorite: !oldIsFavorite }));
+          }
+        } else if (entityLayerType === 'ProjectTask') {
+          const task = state.tasks.entities[entityId];
+          if (task) {
+            oldIsFavorite = task.isFavorite;
+            dispatch(taskSlice.actions.upsert({ id: entityId, isFavorite: !oldIsFavorite }));
+          }
+        }
+
+        try {
+          await queryFulfilled;
+        } catch {
+          if (oldIsFavorite !== undefined) {
+            if (entityLayerType === 'ProjectSpace') dispatch(spaceSlice.actions.upsert({ id: entityId, isFavorite: oldIsFavorite }));
+            else if (entityLayerType === 'ProjectFolder') dispatch(folderSlice.actions.upsert({ id: entityId, isFavorite: oldIsFavorite }));
+            else if (entityLayerType === 'ProjectTask') dispatch(taskSlice.actions.upsert({ id: entityId, isFavorite: oldIsFavorite }));
+          }
+          toast.error("Failed to update favorite status.");
+        }
+      },
+      invalidatesTags: ["Favorites"],
+    }),
+
+    getFavorites: build.query<FavoriteRecord[], string>({
+      query: (workspaceId) => ({
+        url: `/workspaces/${workspaceId}/favorites`,
+        method: "GET",
+      }),
+      providesTags: ["Favorites"],
+      async onQueryStarted(_, { dispatch, queryFulfilled }) {
+        try {
+          const { data } = await queryFulfilled;
+          dispatch(favoriteSlice.actions.upsertMany(data));
+        } catch { /* ignore */ }
+      },
+    }),
   }),
 });
 
@@ -143,6 +201,8 @@ export const {
   useGetWorkspaceMembersQuery,
   useGetWorkspaceWorkflowsQuery,
   useUpdateWorkflowStatusesMutation,
+  useGetFavoritesQuery,
+  useToggleFavoriteMutation,
 } = workspaceFeatureApi;
 
 export function useUpdateWorkflowStatuses() {

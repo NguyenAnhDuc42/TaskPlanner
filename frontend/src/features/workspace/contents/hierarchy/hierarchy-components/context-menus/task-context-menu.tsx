@@ -15,7 +15,7 @@ import {
   Copy, 
   ExternalLink,
 } from "lucide-react";
-import { useWorkspace } from "@/features/workspace/context/workspace-provider";
+import { useWorkspace } from "@/features/workspace/context/workspace-context";
 import { useDeleteTaskMutation } from "../../hierarchy-api";
 import { EntityMenuContext, DeleteConfirmationDialog } from "./shared";
 

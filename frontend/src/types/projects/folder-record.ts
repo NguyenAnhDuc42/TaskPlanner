@@ -1,4 +1,5 @@
 import { Priority } from "../priority";
+import type { AccessLevel } from "@/types/access-level";
 
 export interface FolderRecord {
     id: string;
@@ -16,4 +17,6 @@ export interface FolderRecord {
     isPrivate?: boolean;
     hasTasks?: boolean;
     workflowId?: string;  
+    accessLevel?: AccessLevel;
+    isFavorite?: boolean;
 }

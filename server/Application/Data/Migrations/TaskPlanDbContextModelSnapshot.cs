@@ -17,7 +17,7 @@ namespace Application
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "10.0.5")
+                .HasAnnotation("ProductVersion", "10.0.9")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
@@ -447,6 +447,63 @@ namespace Application
                     b.HasIndex("ProjectTaskId");
 
                     b.ToTable("entity_asset_links", (string)null);
+                });
+
+            modelBuilder.Entity("Domain.Favorite", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid?>("CreatorId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("creator_id");
+
+                    b.Property<DateTimeOffset?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("deleted_at");
+
+                    b.Property<Guid>("EntityId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("entity_id");
+
+                    b.Property<string>("EntityLayerType")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("entity_layer_type");
+
+                    b.Property<string>("OrderKey")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)")
+                        .HasColumnName("order_key");
+
+                    b.Property<Guid>("ProjectWorkspaceId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("project_workspace_id");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<Guid>("WorkspaceMemberId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("workspace_member_id");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ProjectWorkspaceId");
+
+                    b.HasIndex("WorkspaceMemberId");
+
+                    b.HasIndex("WorkspaceMemberId", "EntityLayerType", "EntityId")
+                        .IsUnique();
+
+                    b.ToTable("favorites", (string)null);
                 });
 
             modelBuilder.Entity("Domain.PasswordResetToken", b =>
@@ -1119,81 +1176,6 @@ namespace Application
                     b.ToTable("users", (string)null);
                 });
 
-            modelBuilder.Entity("Domain.ViewDefinition", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .HasColumnType("uuid")
-                        .HasColumnName("id");
-
-                    b.Property<DateTimeOffset>("CreatedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("created_at");
-
-                    b.Property<Guid?>("CreatorId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("creator_id");
-
-                    b.Property<DateTimeOffset?>("DeletedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("deleted_at");
-
-                    b.Property<string>("DisplayConfigJson")
-                        .HasColumnType("jsonb")
-                        .HasColumnName("display_config_json");
-
-                    b.Property<string>("FilterConfig")
-                        .IsRequired()
-                        .HasColumnType("jsonb")
-                        .HasColumnName("filter_config_json");
-
-                    b.Property<bool>("IsDefault")
-                        .HasColumnType("boolean")
-                        .HasColumnName("is_default");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)")
-                        .HasColumnName("name");
-
-                    b.Property<string>("OrderKey")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("order_key");
-
-                    b.Property<Guid?>("ProjectFolderId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("project_folder_id");
-
-                    b.Property<Guid?>("ProjectSpaceId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("project_space_id");
-
-                    b.Property<Guid>("ProjectWorkspaceId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("project_workspace_id");
-
-                    b.Property<DateTimeOffset>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("updated_at");
-
-                    b.Property<string>("ViewType")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)")
-                        .HasColumnName("view_type");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ProjectFolderId");
-
-                    b.HasIndex("ProjectSpaceId");
-
-                    b.HasIndex("ProjectWorkspaceId");
-
-                    b.ToTable("view_definitions", (string)null);
-                });
-
             modelBuilder.Entity("Domain.Workflow", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1360,6 +1342,15 @@ namespace Application
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("Domain.Favorite", b =>
+                {
+                    b.HasOne("Domain.ProjectWorkspace", null)
+                        .WithMany()
+                        .HasForeignKey("ProjectWorkspaceId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("Domain.ProjectFolder", b =>
                 {
                     b.HasOne("Domain.ProjectSpace", null)
@@ -1455,15 +1446,6 @@ namespace Application
                     b.HasOne("Domain.WorkspaceMember", null)
                         .WithMany()
                         .HasForeignKey("WorkspaceMemberId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-                });
-
-            modelBuilder.Entity("Domain.ViewDefinition", b =>
-                {
-                    b.HasOne("Domain.ProjectWorkspace", null)
-                        .WithMany()
-                        .HasForeignKey("ProjectWorkspaceId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
                 });

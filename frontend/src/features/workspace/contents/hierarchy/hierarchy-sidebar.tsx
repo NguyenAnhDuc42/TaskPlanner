@@ -1,4 +1,4 @@
-import { useWorkspace } from "@/features/workspace/context/workspace-provider";
+import { useWorkspace } from "@/features/workspace/context/workspace-context";
 import { useWorkspaceRole } from "@/features/workspace/context/use-workspace-role";
 import { useBatchMoveItemsMutation } from "./hierarchy-api";
 import {

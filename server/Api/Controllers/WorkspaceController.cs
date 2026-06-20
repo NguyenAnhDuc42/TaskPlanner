@@ -177,6 +177,25 @@ namespace Api
             return result.ToActionResult();
         }
 
+        [HttpGet("{id:guid}/favorites")]
+        public async Task<IActionResult> GetFavorites(
+            Guid id,
+            CancellationToken cancellationToken)
+        {
+            var result = await _handler.QueryAsync<GetFavoritesQuery, List<FavoriteRecord>>(new GetFavoritesQuery(), cancellationToken);
+            return result.ToActionResult();
+        }
+
+        [HttpPost("{id:guid}/favorites/toggle")]
+        public async Task<IActionResult> ToggleFavorite(
+            Guid id,
+            [FromBody] ToggleFavoriteCommand command,
+            CancellationToken cancellationToken)
+        {
+            var result = await _handler.SendAsync(command, cancellationToken);
+            return result.ToActionResult();
+        }
+
     }
 
 

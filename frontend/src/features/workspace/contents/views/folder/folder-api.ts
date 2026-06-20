@@ -12,6 +12,7 @@ import type { Status } from "@/types/status";
 import { StatusCategory } from "@/types/status-category";
 import type { BreadcrumbInfo } from "@/types/breadcrumb-info";
 import { toast } from "sonner";
+import { extractErrorMessage } from "@/types/api-error";
 
 
 export interface FolderDetailResponse {
@@ -111,20 +112,32 @@ export const folderApi = workspaceApi.injectEndpoints({
           .filter((t): t is TaskRecord => !!t);
 
         // 2. Perform Optimistic Update instantly on Redux
-        const optimisticUpdates = updates.map(u => ({
-          ...u,
-          ...(u.clearStartDate ? { startDate: null } : {}),
-          ...(u.clearDueDate ? { dueDate: null } : {}),
-        }));
-        dispatch(taskSlice.actions.upsertMany(optimisticUpdates as Partial<TaskRecord>[]));
+        const optimisticUpdates = updates
+          .filter(u => !u.isDeleted)
+          .map(u => ({
+            ...u,
+            ...(u.clearStartDate ? { startDate: null } : {}),
+            ...(u.clearDueDate ? { dueDate: null } : {}),
+          }));
+          
+        const deletedIds = updates
+          .filter(u => u.isDeleted)
+          .map(u => u.id);
+
+        if (optimisticUpdates.length > 0) {
+          dispatch(taskSlice.actions.upsertMany(optimisticUpdates as Partial<TaskRecord>[]));
+        }
+        if (deletedIds.length > 0) {
+          dispatch(taskSlice.actions.removeMany(deletedIds));
+        }
 
         try {
           await queryFulfilled;
-        } catch {
+        } catch (err) {
           if (originalTasks.length > 0) {
             dispatch(taskSlice.actions.upsertMany(originalTasks));
           }
-          toast.error("Failed to update tasks. Your changes have been reverted.");
+          toast.error(extractErrorMessage(err, "Failed to update tasks. Your changes have been reverted."));
         }
       }
     }),
@@ -150,11 +163,11 @@ export const folderApi = workspaceApi.injectEndpoints({
 
         try {
           await queryFulfilled;
-        } catch {
+        } catch (err) {
           if (originalFolder) {
             dispatch(folderSlice.actions.upsert(originalFolder));
           }
-          toast.error("Failed to update folder. Your changes have been reverted.");
+          toast.error(extractErrorMessage(err, "Failed to update folder. Your changes have been reverted."));
         }
       }
     })

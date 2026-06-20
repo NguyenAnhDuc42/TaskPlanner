@@ -78,7 +78,7 @@ export function StatusSelect({
       </DropdownMenuTrigger>
       <DropdownMenuContent
         align={align}
-        className="w-48 max-h-[300px] overflow-y-auto"
+        className="w-48 max-h-[300px] overflow-y-auto [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:bg-muted-foreground/20 hover:[&::-webkit-scrollbar-thumb]:bg-muted-foreground/40 [&::-webkit-scrollbar-track]:bg-transparent"
         onClick={(e) => e.stopPropagation()}
         onPointerDown={(e) => e.stopPropagation()}
       >

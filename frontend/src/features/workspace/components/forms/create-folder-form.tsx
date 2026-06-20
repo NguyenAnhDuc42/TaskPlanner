@@ -1,7 +1,8 @@
 import { useReducer } from "react";
 import { useCreateFolderMutation } from "../../contents/hierarchy/hierarchy-api";
+import { extractErrorMessage } from "@/types/api-error";
 import { Button } from "@/components/ui/button";
-import { useWorkspace } from "../../context/workspace-provider";
+import { useWorkspace } from "../../context/workspace-context";
 import { toast } from "sonner";
 import {
   IconColorPicker,
@@ -110,8 +111,8 @@ export function CreateFolderForm({
       toast.success("Folder created");
       dispatch({ type: "RESET" });
       onSuccess?.(newId);
-    } catch {
-      toast.error("Failed to create folder",);
+    } catch (error) {
+      toast.error(extractErrorMessage(error, "Failed to create folder"));
     }
   };
 

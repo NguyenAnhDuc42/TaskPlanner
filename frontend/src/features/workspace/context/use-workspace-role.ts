@@ -1,20 +1,18 @@
-import { useWorkspace } from "./workspace-provider";
+import { useWorkspace } from "./workspace-context";
 import type { Role } from "@/types/role";
 
 export interface WorkspaceRole {
   role: Role | undefined;
-  // Role tier booleans
   isOwner: boolean;
-  isAdmin: boolean;   // Admin or Owner
-  isMember: boolean;  // Member, Admin, or Owner
+  isAdmin: boolean;
+  isMember: boolean;
   isGuest: boolean;
-  // Permission flags (from backend WorkspaceRecord)
-  canEditWorkspace: boolean;    // Owner only — rename/recolor/delete workspace
-  canManageMembers: boolean;    // Admin+
-  canInviteMembers: boolean;    // Admin+
-  canCreateSpace: boolean;      // Admin+
-  canDeleteSpace: boolean;      // Admin+
-  canCreateContent: boolean;    // Member+ — folders, tasks
+  canEditWorkspace: boolean;
+  canManageMembers: boolean;
+  canInviteMembers: boolean;
+  canCreateSpace: boolean;
+  canDeleteSpace: boolean;
+  canCreateContent: boolean;
 }
 
 export function useWorkspaceRole(): WorkspaceRole {
@@ -25,7 +23,7 @@ export function useWorkspaceRole(): WorkspaceRole {
   const isOwner  = workspace?.isOwned ?? role === "Owner";
   const isAdmin  = isOwner || workspace?.canEdit === true || role === "Admin";
   const isMember = isAdmin || role === "Member";
-  const isGuest  = !isMember && !!role; // has a role but below Member
+  const isGuest  = !isMember && !!role;
 
   return {
     role,
