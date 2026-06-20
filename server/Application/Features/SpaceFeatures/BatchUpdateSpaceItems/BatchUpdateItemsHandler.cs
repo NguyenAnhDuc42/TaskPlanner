@@ -220,14 +220,18 @@ public class BatchUpdateSpaceItemsHandler(
     private static string? ResolveOrderKey(string? explicitOrderKey, string? previousItemOrderKey, string? nextItemOrderKey)
     {
         if (explicitOrderKey != null) return explicitOrderKey;
-        if (previousItemOrderKey == null && nextItemOrderKey == null) return null;
-        if (previousItemOrderKey != null && nextItemOrderKey != null)
+
+        var prevValid = FractionalIndex.IsValid(previousItemOrderKey);
+        var nextValid = FractionalIndex.IsValid(nextItemOrderKey);
+
+        if (!prevValid && !nextValid) return null;
+        if (prevValid && nextValid)
         {
             if (string.Compare(previousItemOrderKey, nextItemOrderKey, StringComparison.Ordinal) >= 0)
                 return FractionalIndex.After(previousItemOrderKey);
             return FractionalIndex.Between(previousItemOrderKey, nextItemOrderKey);
         }
-        if (previousItemOrderKey != null) return FractionalIndex.After(previousItemOrderKey);
+        if (prevValid) return FractionalIndex.After(previousItemOrderKey!);
         return FractionalIndex.Before(nextItemOrderKey!);
     }
 }

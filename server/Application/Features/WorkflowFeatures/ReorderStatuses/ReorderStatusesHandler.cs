@@ -49,7 +49,7 @@ public class ReorderStatusesHandler(TaskPlanDbContext db, WorkspaceContext conte
             .Where(s => s.WorkflowId == workflowId)
             .MaxAsync(s => s.OrderKey, cancellationToken);
 
-        return maxKey is null ? FractionalIndex.Start() : FractionalIndex.After(maxKey);
+        return FractionalIndex.SafeAfter(maxKey);
     }
 }
 

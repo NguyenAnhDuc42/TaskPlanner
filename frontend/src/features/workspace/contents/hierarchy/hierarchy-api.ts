@@ -69,7 +69,7 @@ export const hierarchyApi = workspaceApi.injectEndpoints({
       query: ({ workspaceId, cursor }) => ({
         url: `/workspaces/${workspaceId}/nodes/spaces`,
         method: "GET",
-        params: { cursor }
+        params: { cursor, pageSize: 10 }
       }),
       serializeQueryArgs: ({ endpointName, queryArgs }) => `${endpointName}_${queryArgs.workspaceId}`,
       merge: (currentCache, newItems) => {
@@ -95,7 +95,7 @@ export const hierarchyApi = workspaceApi.injectEndpoints({
       query: ({ workspaceId, nodeId, cursor }) => ({
         url: `/workspaces/${workspaceId}/nodes/${nodeId}/folders`,
         method: "GET",
-        params: { cursor }
+        params: { cursor, pageSize: 10 }
       }),
       serializeQueryArgs: ({ endpointName, queryArgs }) => `${endpointName}_${queryArgs.nodeId}`,
       merge: (currentCache, newItems) => {
@@ -124,7 +124,7 @@ export const hierarchyApi = workspaceApi.injectEndpoints({
       query: ({ workspaceId, nodeId, parentType, cursor }) => ({
         url: `/workspaces/${workspaceId}/nodes/${nodeId}/tasks`,
         method: "GET",
-        params: { parentType, cursor }
+        params: { parentType, cursor, pageSize: 10 }
       }),
       serializeQueryArgs: ({ endpointName, queryArgs }) => `${endpointName}_${queryArgs.nodeId}`,
       merge: (currentCache, newItems) => {

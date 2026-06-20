@@ -39,7 +39,7 @@ public class GetNodeSpacesHandler(TaskPlanDbContext db, CursorHelper cursorHelpe
               AND is_archived = false
               AND (
                   @CursorOrderKey::text IS NULL
-                  OR order_key > @CursorOrderKey::text
+                  OR order_key COLLATE ""C"" > @CursorOrderKey::text
                   OR (order_key = @CursorOrderKey::text AND id > @CursorSpaceId::uuid)
               )
               AND (
@@ -53,7 +53,7 @@ public class GetNodeSpacesHandler(TaskPlanDbContext db, CursorHelper cursorHelpe
                       AND ea.deleted_at IS NULL
                   )
               )
-            ORDER BY order_key, id
+            ORDER BY order_key COLLATE ""C"", id
             LIMIT @PageSize;";
         var cursorData = request.Pagination.Cursor != null ? cursorHelper.DecodeCursor(request.Pagination.Cursor) : null;
         var cursorOrderKey = cursorData?.Values.GetValueOrDefault("OrderKey")?.ToString();

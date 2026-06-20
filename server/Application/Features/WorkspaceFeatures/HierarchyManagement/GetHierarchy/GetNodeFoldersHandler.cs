@@ -31,7 +31,7 @@ public class GetNodeFoldersHandler(TaskPlanDbContext db, CursorHelper cursorHelp
               AND f.is_archived = false
               AND (
                   @CursorOrderKey::text IS NULL
-                  OR f.order_key > @CursorOrderKey::text
+                  OR f.order_key COLLATE ""C"" > @CursorOrderKey::text
                   OR (f.order_key = @CursorOrderKey::text AND f.id > @CursorFolderId::uuid)
               )
               AND (
@@ -51,7 +51,7 @@ public class GetNodeFoldersHandler(TaskPlanDbContext db, CursorHelper cursorHelp
                       )
                   )
               )
-            ORDER BY f.order_key, f.id
+            ORDER BY f.order_key COLLATE ""C"", f.id
             LIMIT @PageSize;";
         var cursorData = request.Pagination.Cursor != null ? cursorHelper.DecodeCursor(request.Pagination.Cursor) : null;
         var cursorOrderKey = cursorData?.Values.GetValueOrDefault("OrderKey")?.ToString();

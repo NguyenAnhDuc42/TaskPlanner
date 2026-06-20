@@ -126,6 +126,9 @@ app.UseRateLimiter();
 app.MapHub<WorkspaceHub>("/hubs/workspace");
 app.MapControllers();
 
+// One-time startup migration: reset any order_key values that use the old incompatible format
+await OrderKeyMigration.RunAsync(app.Services);
+
 await app.RunAsync();
 
 

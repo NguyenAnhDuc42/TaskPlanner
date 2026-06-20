@@ -36,7 +36,7 @@ public class GetNodeTasksHandler(TaskPlanDbContext db, CursorHelper cursorHelper
               )
               AND (
                   @CursorOrderKey::text IS NULL
-                  OR t.order_key > @CursorOrderKey::text
+                  OR t.order_key COLLATE ""C"" > @CursorOrderKey::text
                   OR (t.order_key = @CursorOrderKey::text AND t.id > @CursorTaskId::uuid)
               )
               AND (
@@ -56,7 +56,7 @@ public class GetNodeTasksHandler(TaskPlanDbContext db, CursorHelper cursorHelper
                       )
                   )
               )
-            ORDER BY t.order_key, t.id
+            ORDER BY t.order_key COLLATE ""C"", t.id
             LIMIT @PageSize;";
         var cursorData = request.Pagination.Cursor != null ? cursorHelper.DecodeCursor(request.Pagination.Cursor) : null;
         var cursorOrderKey = cursorData?.Values.GetValueOrDefault("OrderKey")?.ToString();

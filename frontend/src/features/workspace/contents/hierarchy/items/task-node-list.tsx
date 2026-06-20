@@ -61,12 +61,10 @@ export const NodeTasksList = React.memo(function NodeTasksList({
   const loadMore = () => {
     if (!data?.nextCursor || isFetching) return;
     dispatch(
-      hierarchyApi.endpoints.getNodeTasks.initiate({
-        workspaceId: workspaceId || "",
-        nodeId,
-        parentType,
-        cursor: data.nextCursor,
-      }),
+      hierarchyApi.endpoints.getNodeTasks.initiate(
+        { workspaceId: workspaceId || "", nodeId, parentType, cursor: data.nextCursor },
+        { subscribe: false }
+      ),
     );
   };
 

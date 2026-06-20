@@ -1,13 +1,4 @@
-/// <summary>
-/// C# port of the 'fractional-indexing' npm package.
-/// Produces keys in the same format so frontend safeKey() accepts them.
-///
-/// Format: {prefix}{intDigits}{optFracDigits}
-///   Prefix 'a'=1 digit, 'b'=2, ..., 'z'=26  (positive integers)
-///   Prefix 'Z'=1 digit before "a0", 'Y'=2, ...
-///   Digit set (base-62): "0-9 A-Z a-z"
-///   Sequence: "a0" → "a1" → ... → "az" → "b00" → ...
-/// </summary>
+namespace Domain;
 public static class FractionalIndex
 {
     private const string D = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
@@ -20,6 +11,17 @@ public static class FractionalIndex
     public static string After(string? key)              => GenerateBetween(key, null);
     public static string Before(string? key)             => GenerateBetween(null, key);
     public static string Between(string? lo, string? hi) => GenerateBetween(lo, hi);
+
+    public static bool IsValid(string? key)
+    {
+        if (string.IsNullOrEmpty(key)) return false;
+        try { Parse(key); return true; }
+        catch { return false; }
+    }
+
+    /// <summary>Returns After(key) when key is valid, otherwise Start().</summary>
+    public static string SafeAfter(string? key) =>
+        IsValid(key) ? After(key) : Start();
 
     public static string GenerateBetween(string? lo, string? hi)
     {
@@ -46,8 +48,11 @@ public static class FractionalIndex
             return p + inc;
 
         // Integer overflowed — advance prefix
+        if (p == 'Z') return "a0"; // negative → positive boundary (matches npm package)
+        if (p == 'z') throw new InvalidOperationException("FractionalIndex: key space exhausted");
         var next = (char)(p + 1);
-        if (next > 'z') throw new InvalidOperationException("FractionalIndex: key space exhausted");
+        // Skip the gap between 'Z'(90) and 'a'(97): '[', '\', ']', '^', '_', '`'
+        if (next > 'Z' && next < 'a') next = 'a';
         return next + new string('0', IntLen(next));
     }
 
@@ -61,7 +66,10 @@ public static class FractionalIndex
             return p + dec;
 
         // Integer underflowed — shrink prefix
+        if (p == 'a') return "Z" + new string('z', IntLen('Z')); // positive → negative boundary
         var prev = (char)(p - 1);
+        // Skip the gap between 'Z'(90) and 'a'(97)
+        if (prev > 'Z' && prev < 'a') prev = 'Z';
         if (prev < 'A') throw new InvalidOperationException("FractionalIndex: key space exhausted");
         return prev + new string('z', IntLen(prev));
     }

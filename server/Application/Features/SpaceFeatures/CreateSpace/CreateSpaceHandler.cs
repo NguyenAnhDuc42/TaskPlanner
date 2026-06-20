@@ -26,7 +26,7 @@ public class CreateSpaceHandler(
                 .Where(s => s.ProjectWorkspaceId == context.WorkspaceId && s.DeletedAt == null)
                 .MaxAsync(s => s.OrderKey, cancellationToken);
 
-            var orderKey = maxKey is null ? FractionalIndex.Start() : FractionalIndex.After(maxKey);
+            var orderKey = FractionalIndex.SafeAfter(maxKey);
             var slug = SlugHelper.GenerateSlug(request.name);
 
             var document = Document.Create(

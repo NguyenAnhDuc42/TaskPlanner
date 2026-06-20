@@ -52,11 +52,10 @@ export const NodeFoldersList = React.memo(function NodeFoldersList({
   const loadMore = () => {
     if (!data?.nextCursor || isFetching) return;
     dispatch(
-      hierarchyApi.endpoints.getNodeFolders.initiate({
-        workspaceId: workspaceId || "",
-        nodeId: spaceId,
-        cursor: data.nextCursor,
-      }),
+      hierarchyApi.endpoints.getNodeFolders.initiate(
+        { workspaceId: workspaceId || "", nodeId: spaceId, cursor: data.nextCursor },
+        { subscribe: false }
+      ),
     );
   };
 

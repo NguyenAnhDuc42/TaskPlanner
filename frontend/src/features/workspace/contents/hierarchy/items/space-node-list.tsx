@@ -31,10 +31,10 @@ export const SpaceNodeList = React.memo(function SpaceNodeList({
   const loadMore = () => {
     if (!data?.nextCursor || isFetching) return;
     dispatch(
-      hierarchyApi.endpoints.getNodeSpaces.initiate({
-        workspaceId: workspaceId || "",
-        cursor: data.nextCursor,
-      }),
+      hierarchyApi.endpoints.getNodeSpaces.initiate(
+        { workspaceId: workspaceId || "", cursor: data.nextCursor },
+        { subscribe: false }
+      ),
     );
   };
 

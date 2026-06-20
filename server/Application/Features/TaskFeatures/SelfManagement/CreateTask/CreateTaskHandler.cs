@@ -121,13 +121,13 @@ public class CreateTaskHandler(
     private async Task<string> ResolveFolderOrderKey(Guid folderId, CancellationToken cancellationToken)
     {
         var maxKey = await db.ProjectTasks.AsNoTracking().Where(t => t.ProjectFolderId == folderId).MaxAsync(t => (string?)t.OrderKey, cancellationToken);
-        return maxKey is null ? FractionalIndex.Start() : FractionalIndex.After(maxKey);
+        return FractionalIndex.SafeAfter(maxKey);
     }
 
     private async Task<string> ResolveSpaceOrderKey(Guid spaceId, CancellationToken cancellationToken)
     {
         var maxKey = await db.ProjectTasks.AsNoTracking().Where(t => t.ProjectSpaceId == spaceId).MaxAsync(t => (string?)t.OrderKey, cancellationToken);
-        return maxKey is null ? FractionalIndex.Start() : FractionalIndex.After(maxKey);
+        return FractionalIndex.SafeAfter(maxKey);
     }
 
 

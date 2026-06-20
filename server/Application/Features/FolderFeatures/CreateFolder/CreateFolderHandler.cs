@@ -42,7 +42,7 @@ public class CreateFolderHandler(
                   .OrderByDescending(k => k)
                   .FirstOrDefaultAsync(cancellationToken);
 
-            var orderKey = maxKey is null ? FractionalIndex.Start() : FractionalIndex.After(maxKey);
+            var orderKey = FractionalIndex.SafeAfter(maxKey);
             var slug = SlugHelper.GenerateSlug(request.Name);
 
             folder = ProjectFolder.Create(

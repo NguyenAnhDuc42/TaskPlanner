@@ -48,7 +48,7 @@ public class MoveItemHandler(TaskPlanDbContext db, WorkspaceContext context, Rea
         if (request.NextItemOrderKey != null) return FractionalIndex.Before(request.NextItemOrderKey);
 
         var maxKey = await GetMaxOrderKey(request, cancellationToken);
-        return maxKey is null ? FractionalIndex.Start() : FractionalIndex.After(maxKey);
+        return FractionalIndex.SafeAfter(maxKey);
     }
 
     private async Task<string?> GetMaxOrderKey(MoveItemCommand request, CancellationToken cancellationToken)
