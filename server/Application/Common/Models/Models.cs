@@ -26,7 +26,8 @@ public record TaskRecord
     public long? TimeEstimateSeconds { get; init; }
     public string? ParentType { get; init; }
     public Guid? ParentTaskId { get; init; }
-    public bool? IsFavorite {get; init;}
+    public bool? IsFavorite { get; init; }
+    public string? FavoriteOrderKey { get; init; }
     public AccessLevel? AccessLevel { get; init; }
 
     public static TaskRecord FromDomain(ProjectTask t) => new()
@@ -71,6 +72,7 @@ public record FolderRecord
     public Guid? WorkflowId { get; init; }
     public AccessLevel? AccessLevel { get; init; }
     public bool? IsFavorite { get; init; }
+    public string? FavoriteOrderKey { get; init; }
 
     public static FolderRecord FromDomain(ProjectFolder f, Guid? workflowId) => new()
     {

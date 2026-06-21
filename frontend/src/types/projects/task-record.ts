@@ -25,6 +25,7 @@ export interface TaskRecord {
     parentType?: EntityLayerType;
     parentTaskId?: string;
     isFavorite?: boolean;
+    favoriteOrderKey?: string;
     accessLevel?: AccessLevel;
 }
 

@@ -9,7 +9,7 @@ public class GetNodeTasksHandler(TaskPlanDbContext db, CursorHelper cursorHelper
     public async Task<Result<PagedResult<TaskRecord>>> Handle(GetNodeTasksQuery request, CancellationToken cancellationToken)
     {
         const string sql = @"
-            SELECT 
+            SELECT
                 t.id AS Id,
                 t.name AS Name,
                 t.status_id AS StatusId,
@@ -20,11 +20,17 @@ public class GetNodeTasksHandler(TaskPlanDbContext db, CursorHelper cursorHelper
                 t.project_workspace_id AS WorkspaceId,
                 t.custom_color AS Color,
                 t.custom_icon AS Icon,
-                CASE 
+                CASE
                     WHEN t.project_folder_id IS NOT NULL THEN 'ProjectFolder'
                     ELSE 'ProjectSpace'
-                END AS ParentType
+                END AS ParentType,
+                (fav.entity_id IS NOT NULL) AS IsFavorite,
+                fav.order_key AS FavoriteOrderKey
             FROM project_tasks t
+            LEFT JOIN favorites fav
+                ON fav.entity_id = t.id
+                AND fav.entity_layer_type = 'ProjectTask'
+                AND fav.workspace_member_id = @WorkspaceMemberId
             WHERE t.project_workspace_id = @WorkspaceId
               AND t.deleted_at IS NULL
               AND t.is_archived = false

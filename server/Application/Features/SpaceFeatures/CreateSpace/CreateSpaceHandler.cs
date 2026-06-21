@@ -79,15 +79,15 @@ public class CreateSpaceHandler(
         
         if (result.IsSuccess)
         {
-            logger.LogInformation("Broadcasting entity updates for created space {SpaceId}", result.Value.Id);
+            logger.LogInformation("Broadcasting entity updates for created space {SpaceId}", result.Value?.Id);
             _ = realtimeService
             .NotifyEntitiesUpdatedAsync(context.WorkspaceId,
                new EntityBatchUpdate {
-                   Spaces = [result.Value],
+                   Spaces = [result.Value!],
                    EntityAccess = [EntityAccessRecord.FromDomain(creatorAccess!)]
                },default)
             .ContinueWith(t =>
-                logger.LogError(t.Exception, "Failed to send real-time notification for created space {SpaceId}", result.Value.Id), 
+                logger.LogError(t.Exception, "Failed to send real-time notification for created space {SpaceId}", result.Value?.Id),
                 TaskContinuationOptions.OnlyOnFaulted);
         }
         return result;

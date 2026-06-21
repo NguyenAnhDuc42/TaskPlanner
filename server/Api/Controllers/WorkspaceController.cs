@@ -180,9 +180,11 @@ namespace Api
         [HttpGet("{id:guid}/favorites")]
         public async Task<IActionResult> GetFavorites(
             Guid id,
+            [FromQuery] CursorPaginationRequest pagination,
             CancellationToken cancellationToken)
         {
-            var result = await _handler.QueryAsync<GetFavoritesQuery, List<FavoriteRecord>>(new GetFavoritesQuery(), cancellationToken);
+            var result = await _handler.QueryAsync<GetFavoritesQuery, GetFavoritesResponse>(
+                new GetFavoritesQuery(pagination), cancellationToken);
             return result.ToActionResult();
         }
 
@@ -192,7 +194,7 @@ namespace Api
             [FromBody] ToggleFavoriteCommand command,
             CancellationToken cancellationToken)
         {
-            var result = await _handler.SendAsync(command, cancellationToken);
+            var result = await _handler.SendAsync<ToggleFavoriteCommand, ToggleFavoriteResponse>(command, cancellationToken);
             return result.ToActionResult();
         }
 

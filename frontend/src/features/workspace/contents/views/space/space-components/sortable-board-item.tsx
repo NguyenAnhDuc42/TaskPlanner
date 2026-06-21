@@ -1,6 +1,7 @@
 import React from "react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
+import { useWorkspaceRole } from "@/features/workspace/context/use-workspace-role";
 import { Priority } from "@/types/priority";
 import type { BoardItem } from "../space-api";
 import { cn } from "@/lib/utils";
@@ -208,6 +209,7 @@ export const SortableBoardItem = React.memo(function SortableBoardItem({
   onPriorityChange: (id: string, type: "task" | "folder", priority: Priority) => void;
   onDateChange: (id: string, type: "task" | "folder", patches: { startDate?: string; dueDate?: string; clearStartDate?: boolean; clearDueDate?: boolean }) => void;
 }) {
+  const { canCreateContent } = useWorkspaceRole();
   const {
     attributes,
     listeners,
@@ -288,7 +290,7 @@ export const SortableBoardItem = React.memo(function SortableBoardItem({
       isDragging={isDragging}
       style={style}
       dragRef={setNodeRef}
-      dragProps={{ ...attributes, ...listeners }}
+      dragProps={{ ...attributes, ...(canCreateContent ? listeners : {}) }}
     />
   );
 });

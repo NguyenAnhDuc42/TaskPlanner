@@ -1,12 +1,13 @@
 import { workspaceApi } from "@/store/workspaceApi";
-import { memberSlice, statusSlice, statusSelectors, favoriteSlice, spaceSlice, folderSlice, taskSlice } from "@/store/entityStore";
+import { memberSlice, statusSlice, statusSelectors, spaceSlice, folderSlice, taskSlice, spaceSelectors, folderSelectors, taskSelectors } from "@/store/entityStore";
 import type { RootState } from "@/store";
 import type { WorkspaceRecord } from "@/types/workspace/workspace-record";
 import type { PagedResult } from "@/types/paged-result";
 import type { MemberRecord } from "@/types/workspace/member-record";
 import type { WorkflowRecord } from "@/types/projects";
-import type { FavoriteRecord } from "@/types/projects/favorite-record";
+import type { SpaceRecord, FolderRecord, TaskRecord } from "@/types/projects";
 import type { Status } from "@/types/status";
+import { EntityLayerType } from "@/types/entity-layer-type";
 import { toast } from "sonner";
 
 import { RowAction } from "@/types/row-action";
@@ -77,7 +78,6 @@ export const workspaceFeatureApi = workspaceApi.injectEndpoints({
         let patchResult: { undo: () => void } | undefined;
         const state = getState() as RootState;
 
-        // Snapshot original state of ALL statuses in this workspace workflow for rollback
         const originalStatuses: Status[] = [];
         if (workspaceId) {
           const workspaceWorkflows = workspaceFeatureApi.endpoints.getWorkspaceWorkflows.select(workspaceId)(state)?.data;
@@ -85,7 +85,6 @@ export const workspaceFeatureApi = workspaceApi.injectEndpoints({
           if (wf?.statuses) {
             originalStatuses.push(...wf.statuses);
           } else {
-            // Backup from status selectors if query cache state isn't populated
             const allStatuses = statusSelectors.selectAll(state);
             const wfStatuses = allStatuses.filter(s => s.workflowId === workflowId);
             originalStatuses.push(...wfStatuses);
@@ -136,7 +135,7 @@ export const workspaceFeatureApi = workspaceApi.injectEndpoints({
         }
       }
     }),
-    toggleFavorite: build.mutation<void, { workspaceId: string; entityId: string; entityLayerType: string }>({
+    toggleFavorite: build.mutation<{ isFavorite: boolean; favoriteOrderKey: string | null }, { workspaceId: string; entityId: string; entityLayerType: EntityLayerType }>({
       query: ({ workspaceId, entityId, entityLayerType }) => ({
         url: `/workspaces/${workspaceId}/favorites/toggle`,
         method: "POST",
@@ -144,52 +143,68 @@ export const workspaceFeatureApi = workspaceApi.injectEndpoints({
       }),
       async onQueryStarted({ entityId, entityLayerType }, { dispatch, queryFulfilled, getState }) {
         const state = getState() as RootState;
-        let oldIsFavorite: boolean | undefined;
 
-        if (entityLayerType === 'ProjectSpace') {
-          const space = state.spaces.entities[entityId];
-          if (space) {
-            oldIsFavorite = space.isFavorite;
-            dispatch(spaceSlice.actions.upsert({ id: entityId, isFavorite: !oldIsFavorite }));
-          }
-        } else if (entityLayerType === 'ProjectFolder') {
-          const folder = state.folders.entities[entityId];
-          if (folder) {
-            oldIsFavorite = folder.isFavorite;
-            dispatch(folderSlice.actions.upsert({ id: entityId, isFavorite: !oldIsFavorite }));
-          }
-        } else if (entityLayerType === 'ProjectTask') {
-          const task = state.tasks.entities[entityId];
-          if (task) {
-            oldIsFavorite = task.isFavorite;
-            dispatch(taskSlice.actions.upsert({ id: entityId, isFavorite: !oldIsFavorite }));
-          }
-        }
+        // Snapshot for rollback
+        const prevSpace  = entityLayerType === EntityLayerType.ProjectSpace  ? spaceSelectors.selectById(state, entityId)  : undefined;
+        const prevFolder = entityLayerType === EntityLayerType.ProjectFolder ? folderSelectors.selectById(state, entityId) : undefined;
+        const prevTask   = entityLayerType === EntityLayerType.ProjectTask   ? taskSelectors.selectById(state, entityId)   : undefined;
+
+        // Optimistic flip for instant UI feedback
+        if (entityLayerType === EntityLayerType.ProjectSpace && prevSpace)
+          dispatch(spaceSlice.actions.upsert({ id: entityId, isFavorite: !prevSpace.isFavorite }));
+        else if (entityLayerType === EntityLayerType.ProjectFolder && prevFolder)
+          dispatch(folderSlice.actions.upsert({ id: entityId, isFavorite: !prevFolder.isFavorite }));
+        else if (entityLayerType === EntityLayerType.ProjectTask && prevTask)
+          dispatch(taskSlice.actions.upsert({ id: entityId, isFavorite: !prevTask.isFavorite }));
 
         try {
-          await queryFulfilled;
+          const { data } = await queryFulfilled;
+          // Confirm with server's authoritative isFavorite + favoriteOrderKey
+          if (entityLayerType === EntityLayerType.ProjectSpace)
+            dispatch(spaceSlice.actions.upsert({ id: entityId, isFavorite: data.isFavorite, favoriteOrderKey: data.favoriteOrderKey ?? undefined }));
+          else if (entityLayerType === EntityLayerType.ProjectFolder)
+            dispatch(folderSlice.actions.upsert({ id: entityId, isFavorite: data.isFavorite, favoriteOrderKey: data.favoriteOrderKey ?? undefined }));
+          else if (entityLayerType === EntityLayerType.ProjectTask)
+            dispatch(taskSlice.actions.upsert({ id: entityId, isFavorite: data.isFavorite, favoriteOrderKey: data.favoriteOrderKey ?? undefined }));
         } catch {
-          if (oldIsFavorite !== undefined) {
-            if (entityLayerType === 'ProjectSpace') dispatch(spaceSlice.actions.upsert({ id: entityId, isFavorite: oldIsFavorite }));
-            else if (entityLayerType === 'ProjectFolder') dispatch(folderSlice.actions.upsert({ id: entityId, isFavorite: oldIsFavorite }));
-            else if (entityLayerType === 'ProjectTask') dispatch(taskSlice.actions.upsert({ id: entityId, isFavorite: oldIsFavorite }));
-          }
-          toast.error("Failed to update favorite status.");
+          // Rollback to pre-toggle snapshot
+          if (entityLayerType === EntityLayerType.ProjectSpace && prevSpace)
+            dispatch(spaceSlice.actions.upsert({ id: entityId, isFavorite: prevSpace.isFavorite, favoriteOrderKey: prevSpace.favoriteOrderKey }));
+          else if (entityLayerType === EntityLayerType.ProjectFolder && prevFolder)
+            dispatch(folderSlice.actions.upsert({ id: entityId, isFavorite: prevFolder.isFavorite, favoriteOrderKey: prevFolder.favoriteOrderKey }));
+          else if (entityLayerType === EntityLayerType.ProjectTask && prevTask)
+            dispatch(taskSlice.actions.upsert({ id: entityId, isFavorite: prevTask.isFavorite, favoriteOrderKey: prevTask.favoriteOrderKey }));
+          toast.error("Failed to update favorite.");
         }
       },
-      invalidatesTags: ["Favorites"],
     }),
 
-    getFavorites: build.query<FavoriteRecord[], string>({
-      query: (workspaceId) => ({
+    getFavorites: build.query<{ spaces: SpaceRecord[]; folders: FolderRecord[]; tasks: TaskRecord[]; nextCursor: string | null; hasNextPage: boolean }, { workspaceId: string; cursor: string | null }>({
+      query: ({ workspaceId, cursor }) => ({
         url: `/workspaces/${workspaceId}/favorites`,
         method: "GET",
+        params: { cursor, pageSize: 10 },
       }),
-      providesTags: ["Favorites"],
+      serializeQueryArgs: ({ endpointName, queryArgs }) => `${endpointName}_${queryArgs.workspaceId}`,
+      merge: (currentCache, newItems) => {
+        if (!currentCache) return newItems;
+        // Append paged items into the cache list (for cursor tracking)
+        currentCache.spaces  = [...currentCache.spaces,  ...newItems.spaces];
+        currentCache.folders = [...currentCache.folders, ...newItems.folders];
+        currentCache.tasks   = [...currentCache.tasks,   ...newItems.tasks];
+        currentCache.nextCursor  = newItems.nextCursor;
+        currentCache.hasNextPage = newItems.hasNextPage;
+        return currentCache;
+      },
+      forceRefetch({ currentArg, previousArg }) {
+        return currentArg?.cursor !== previousArg?.cursor;
+      },
       async onQueryStarted(_, { dispatch, queryFulfilled }) {
         try {
           const { data } = await queryFulfilled;
-          dispatch(favoriteSlice.actions.upsertMany(data));
+          if (data.spaces.length)  dispatch(spaceSlice.actions.upsertMany(data.spaces));
+          if (data.folders.length) dispatch(folderSlice.actions.upsertMany(data.folders));
+          if (data.tasks.length)   dispatch(taskSlice.actions.upsertMany(data.tasks));
         } catch { /* ignore */ }
       },
     }),

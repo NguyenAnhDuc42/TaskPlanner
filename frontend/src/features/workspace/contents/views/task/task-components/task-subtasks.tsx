@@ -16,6 +16,7 @@ import { PriorityBadge } from "@/components/priority-badge";
 import { DateSelect } from "@/components/date-select";
 import { DebouncedInput } from "@/components/debounced-input";
 import { useWorkspace } from "@/features/workspace/context/workspace-context";
+import { useWorkspaceRole } from "@/features/workspace/context/use-workspace-role";
 import { useDeleteTaskMutation } from "../../../hierarchy/hierarchy-api";
 import type { Priority } from "@/types/priority";
 import { useNavigate, useLocation } from "@tanstack/react-router";
@@ -36,6 +37,7 @@ interface TaskSubtasksProps {
 
 export function TaskSubtasks({ taskId }: Readonly<TaskSubtasksProps>) {
   const { workspaceId } = useWorkspace();
+  const { canCreateContent } = useWorkspaceRole();
   const navigate = useNavigate();
 
   const selectSubtasks = useMemo(() => 
@@ -206,20 +208,21 @@ export function TaskSubtasks({ taskId }: Readonly<TaskSubtasksProps>) {
                 size="sm"
               />
 
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => handleDeleteSubtask(subtask.id)}
-                className="h-5 w-5 text-muted-foreground/40 hover:text-destructive hover:bg-destructive/10 rounded shrink-0 opacity-0 group-hover:opacity-100 transition-opacity"
-              >
-                <Trash2 className="h-3 w-3" />
-              </Button>
+              {canCreateContent && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => handleDeleteSubtask(subtask.id)}
+                  className="h-5 w-5 text-muted-foreground/40 hover:text-destructive hover:bg-destructive/10 rounded shrink-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                >
+                  <Trash2 className="h-3 w-3" />
+                </Button>
+              )}
             </div>
           </div>
         ))}
 
-        {/* Always-visible new subtask row */}
-        <div
+        {canCreateContent && <div
           className="flex items-center gap-2 px-2 py-1 rounded-md border border-dashed border-border/40 hover:border-border/70 hover:bg-muted/10 transition-all cursor-text"
           onClick={() => inputRef.current?.focus()}
         >
@@ -261,7 +264,7 @@ export function TaskSubtasks({ taskId }: Readonly<TaskSubtasksProps>) {
           {draftName.trim() && (
             <span className="text-[9px] text-muted-foreground/50 shrink-0">↵ to add</span>
           )}
-        </div>
+        </div>}
       </div>
 
       <AlertDialog open={!!deleteSubtaskId} onOpenChange={(open) => !open && setDeleteSubtaskId(null)}>

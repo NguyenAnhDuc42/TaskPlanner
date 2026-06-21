@@ -11,6 +11,8 @@ import { useMemo, useState } from "react";
 import { useParams } from "@tanstack/react-router";
 import { useSelector } from "react-redux";
 import { useUser } from "@/features/auth/api";
+import { ViewSkeleton } from "@/components/view-skeleton";
+import { NotFoundScreen } from "@/components/not-found-screen";
 import { memberSelectors } from "@/store/entityStore";
 import type { RootState } from "@/store";
 import type { MemberRecord } from "@/types/workspace/member-record";
@@ -21,7 +23,7 @@ export default function MembersIndex() {
   });
   const { data: currentUser } = useUser();
 
-  const { data, isLoading, fetchNextPage, hasNextPage, isFetchingNextPage } =
+  const { data, isLoading, isError, fetchNextPage, hasNextPage, isFetchingNextPage } =
     useMembers(workspaceId);
 
   const { mutate: addMembers, isPending: isAdding } = useAddMembers(workspaceId);
@@ -59,13 +61,8 @@ export default function MembersIndex() {
     await Promise.all(ops);
   };
 
-  if (isLoading && members.length === 0) {
-    return (
-      <div className="flex items-center justify-center p-8 text-muted-foreground animate-pulse text-sm">
-        Loading members...
-      </div>
-    );
-  }
+  if (isLoading && members.length === 0) return <ViewSkeleton />;
+  if (isError) return <NotFoundScreen title="Failed to load members" description="Something went wrong loading the member list. Try refreshing the page." />;
 
   return (
     <div className="h-full flex flex-col">

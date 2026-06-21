@@ -22,6 +22,7 @@ export const Route = createFileRoute("/workspaces/$workspaceId")({
   }),
   validateSearch: (search) => workspaceSearchSchema.parse(search),
   loader: ({ params: { workspaceId } }) => {
+    store.dispatch(workspaceFeatureApi.endpoints.getFavorites.initiate({ workspaceId, cursor: null }));
     return Promise.all([
       store.dispatch(workspaceFeatureApi.endpoints.getWorkspaceDetail.initiate(workspaceId)),
       store.dispatch(workspaceFeatureApi.endpoints.getWorkspaceMembers.initiate(workspaceId)),

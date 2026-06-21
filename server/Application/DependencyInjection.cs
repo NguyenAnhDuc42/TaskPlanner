@@ -53,7 +53,6 @@ public static class DependencyInjection
                            ?? new CacheSettings();
         services.Configure<CacheSettings>(config.GetSection(CacheSettings.SectionName));
 
-        // 1. L1 Cache: Strict RAM limit to prevent OOM kills in low-resource environments
         services.AddMemoryCache(options => 
         {
             options.SizeLimit = 1024 * 1024 * cacheSettings.MemoryCacheLimitMB; 

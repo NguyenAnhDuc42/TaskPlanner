@@ -9,6 +9,8 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { MoreVertical, Trash2 } from "lucide-react";
+import { FavoriteButton } from "@/components/favorite-button";
+import { EntityLayerType } from "@/types/entity-layer-type";
 import { useDeleteTaskMutation } from "../../hierarchy/hierarchy-api";
 import {
   Breadcrumb,
@@ -25,6 +27,9 @@ import { useSelector } from "react-redux";
 import { taskSelectors } from "@/store/entityStore";
 import type { RootState } from "@/store";
 import { DynamicIcon } from "@/components/dynamic-icon";
+import { DeleteConfirmationDialog } from "../../hierarchy/hierarchy-components/context-menus/shared";
+import { useState } from "react";
+import { useWorkspaceRole } from "@/features/workspace/context/use-workspace-role";
 
 interface TaskViewProps {
   taskId: string;
@@ -33,7 +38,9 @@ interface TaskViewProps {
 export function TaskView({ taskId }: Readonly<TaskViewProps>) {
   const { workspaceId } = useParams({ strict: false }) as { workspaceId: string };
   const navigate = useNavigate();
+  const { canCreateContent } = useWorkspaceRole();
   const [deleteTask] = useDeleteTaskMutation();
+  const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const task = useSelector((state: RootState) => taskSelectors.selectById(state, taskId));
 
   const space = useSpaceDetail(task?.spaceId ?? "");
@@ -41,13 +48,11 @@ export function TaskView({ taskId }: Readonly<TaskViewProps>) {
   const parentTask = useSelector((state: RootState) => task?.parentTaskId ? taskSelectors.selectById(state, task.parentTaskId) : undefined);
 
   const handleDelete = async () => {
-    if (confirm("Are you sure you want to delete this task?")) {
-      try {
-        await deleteTask({ workspaceId: workspaceId || "", taskId }).unwrap();
-        navigate({ to: "/workspaces/$workspaceId", params: { workspaceId: workspaceId || "" } });
-      } catch (err) {
-        console.error("Failed to delete task", err);
-      }
+    try {
+      await deleteTask({ workspaceId: workspaceId || "", taskId }).unwrap();
+      navigate({ to: "/workspaces/$workspaceId", params: { workspaceId: workspaceId || "" } });
+    } catch (err) {
+      console.error("Failed to delete task", err);
     }
   };
 
@@ -133,6 +138,14 @@ export function TaskView({ taskId }: Readonly<TaskViewProps>) {
                     className="stroke-[2.5] shrink-0"
                   />
                   {task?.name ?? "Task Detail"}
+                  {task && (
+                    <FavoriteButton
+                      entityId={task.id}
+                      entityLayerType={EntityLayerType.ProjectTask}
+                      iconSize={13}
+                      className="opacity-100"
+                    />
+                  )}
                 </BreadcrumbPage>
               </BreadcrumbItem>
             </BreadcrumbList>
@@ -145,13 +158,15 @@ export function TaskView({ taskId }: Readonly<TaskViewProps>) {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuItem
-                onClick={handleDelete}
-                className="text-destructive focus:text-destructive focus:bg-destructive/10 cursor-pointer"
-              >
-                <Trash2 className="h-4 w-4 mr-2" />
-                Delete Task
-              </DropdownMenuItem>
+              {canCreateContent && (
+                <DropdownMenuItem
+                  onClick={() => setIsDeleteOpen(true)}
+                  className="text-destructive focus:text-destructive focus:bg-destructive/10 cursor-pointer"
+                >
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Delete Task
+                </DropdownMenuItem>
+              )}
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
@@ -160,6 +175,14 @@ export function TaskView({ taskId }: Readonly<TaskViewProps>) {
       <div className="h-full w-full flex flex-col bg-transparent overflow-hidden relative">
         <TaskDetailCanvas taskId={taskId} />
       </div>
+
+      <DeleteConfirmationDialog
+        open={isDeleteOpen}
+        onOpenChange={setIsDeleteOpen}
+        title="Delete Task"
+        description={`Are you sure you want to delete "${task?.name}"? This action cannot be undone.`}
+        onConfirm={handleDelete}
+      />
     </EntityViewFrame>
   );
 }

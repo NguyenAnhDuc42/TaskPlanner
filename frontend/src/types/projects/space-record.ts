@@ -22,4 +22,5 @@ export interface SpaceRecord {
     creatorId?: string;
     accessLevel?: AccessLevel;
     isFavorite?: boolean;
+    favoriteOrderKey?: string;
 }

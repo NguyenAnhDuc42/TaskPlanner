@@ -1,8 +1,10 @@
 import React from "react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
+import { useWorkspaceRole } from "@/features/workspace/context/use-workspace-role";
 
 export function SortableItem({ id, data, children }: Readonly<{ id: string; data: Record<string, unknown>; children: React.ReactNode }>) {
+  const { canCreateContent } = useWorkspaceRole();
   const {
     attributes,
     listeners,
@@ -22,7 +24,7 @@ export function SortableItem({ id, data, children }: Readonly<{ id: string; data
   };
 
   return (
-    <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
+    <div ref={setNodeRef} style={style} {...attributes} {...(canCreateContent ? listeners : {})}>
       {children}
     </div>
   );

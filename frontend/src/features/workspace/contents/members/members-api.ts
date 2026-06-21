@@ -99,7 +99,7 @@ export function useMembers(
     }
   }, [filters]);
 
-  const { data, isLoading, isFetching } = useGetMembersQuery({ workspaceId, ...filters, cursor });
+  const { data, isLoading, isFetching, isError } = useGetMembersQuery({ workspaceId, ...filters, cursor });
 
   const fetchNextPage = React.useCallback(() => {
     if (data?.nextCursor) {
@@ -110,6 +110,7 @@ export function useMembers(
   return {
     data: data ? { pages: [data] } : undefined,
     isLoading,
+    isError,
     isFetchingNextPage: isFetching && cursor !== null,
     hasNextPage: !!data?.nextCursor,
     fetchNextPage,

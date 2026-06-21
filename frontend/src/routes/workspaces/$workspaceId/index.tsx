@@ -1,12 +1,13 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { workspaceSearchSchema } from "../workspace-search-schema";
-import CommandCenterIndex from "@/features/workspace/contents/command-center/command-center-index";
+import { ComingSoon } from "@/components/coming-soon";
 
 export const Route = createFileRoute("/workspaces/$workspaceId/")({
   validateSearch: (search) => workspaceSearchSchema.parse(search),
-  component: WorkspaceIndex,
+  component: () => (
+    <ComingSoon
+      title="Command Center"
+      description="A keyboard-first power hub for searching, navigating, and running commands across your entire workspace."
+    />
+  ),
 });
-
-function WorkspaceIndex() {
-  return <CommandCenterIndex />;
-}

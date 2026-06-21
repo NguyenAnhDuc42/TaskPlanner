@@ -9,51 +9,57 @@ public class GetNodeSpacesHandler(TaskPlanDbContext db, CursorHelper cursorHelpe
     public async Task<Result<PagedResult<SpaceRecord>>> Handle(GetNodeSpacesQuery request, CancellationToken cancellationToken)
     {
         const string sql = @"
-            SELECT 
-                id AS Id,
-                project_workspace_id AS WorkspaceId,
-                name AS Name,
-                custom_color AS Color,
-                custom_icon AS Icon,
-                is_private AS IsPrivate,
-                order_key AS OrderKey,
-                created_at AS CreatedAt,
+            SELECT
+                ps.id AS Id,
+                ps.project_workspace_id AS WorkspaceId,
+                ps.name AS Name,
+                ps.custom_color AS Color,
+                ps.custom_icon AS Icon,
+                ps.is_private AS IsPrivate,
+                ps.order_key AS OrderKey,
+                ps.created_at AS CreatedAt,
                 EXISTS (
                     SELECT 1 FROM project_folders f
-                    WHERE f.project_space_id = project_spaces.id
+                    WHERE f.project_space_id = ps.id
                       AND f.deleted_at IS NULL
                       AND f.is_archived = false
                     LIMIT 1
                 ) AS HasFolders,
                 EXISTS (
                     SELECT 1 FROM project_tasks t
-                    WHERE t.project_space_id = project_spaces.id
+                    WHERE t.project_space_id = ps.id
                       AND t.project_folder_id IS NULL
                       AND t.deleted_at IS NULL
                       AND t.is_archived = false
                     LIMIT 1
-                ) AS HasTasks
-            FROM project_spaces
-            WHERE project_workspace_id = @WorkspaceId
-              AND deleted_at IS NULL
-              AND is_archived = false
+                ) AS HasTasks,
+                (fav.entity_id IS NOT NULL) AS IsFavorite,
+                fav.order_key AS FavoriteOrderKey
+            FROM project_spaces ps
+            LEFT JOIN favorites fav
+                ON fav.entity_id = ps.id
+                AND fav.entity_layer_type = 'ProjectSpace'
+                AND fav.workspace_member_id = @WorkspaceMemberId
+            WHERE ps.project_workspace_id = @WorkspaceId
+              AND ps.deleted_at IS NULL
+              AND ps.is_archived = false
               AND (
                   @CursorOrderKey::text IS NULL
-                  OR order_key COLLATE ""C"" > @CursorOrderKey::text
-                  OR (order_key = @CursorOrderKey::text AND id > @CursorSpaceId::uuid)
+                  OR ps.order_key COLLATE ""C"" > @CursorOrderKey::text
+                  OR (ps.order_key = @CursorOrderKey::text AND ps.id > @CursorSpaceId::uuid)
               )
               AND (
                   @Role >= @AdminRole
-                  OR is_private = false
+                  OR ps.is_private = false
                   OR EXISTS (
                       SELECT 1 FROM entity_access ea
-                      WHERE ea.project_space_id = project_spaces.id
+                      WHERE ea.project_space_id = ps.id
                       AND ea.workspace_member_id = @WorkspaceMemberId
                       AND ea.access_level = ANY(@ValidAccessLevels)
                       AND ea.deleted_at IS NULL
                   )
               )
-            ORDER BY order_key COLLATE ""C"", id
+            ORDER BY ps.order_key COLLATE ""C"", ps.id
             LIMIT @PageSize;";
         var cursorData = request.Pagination.Cursor != null ? cursorHelper.DecodeCursor(request.Pagination.Cursor) : null;
         var cursorOrderKey = cursorData?.Values.GetValueOrDefault("OrderKey")?.ToString();

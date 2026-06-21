@@ -19,4 +19,5 @@ export interface FolderRecord {
     workflowId?: string;  
     accessLevel?: AccessLevel;
     isFavorite?: boolean;
+    favoriteOrderKey?: string;
 }

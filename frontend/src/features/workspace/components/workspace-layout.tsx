@@ -178,7 +178,7 @@ export function WorkspaceLayout() {
 
   const handleCommandCenter = () => {
     navigate({
-      to: "/workspaces/$workspaceId/command-center",
+      to: "/workspaces/$workspaceId",
       params: { workspaceId },
     });
   };
@@ -188,7 +188,7 @@ export function WorkspaceLayout() {
       {/* ═══════════════════════════════════════════════════
           HEADER BAR: Search & Global Actions
       ═══════════════════════════════════════════════════ */}
-      <header className="h-9 w-full flex-shrink-0 flex items-center justify-center relative px-1 bg-background border border-border rounded-md shadow-sm">
+      <header className="h-9 w-full shrink-0 flex items-center justify-center relative px-1 bg-background border border-border rounded-md shadow-sm">
         {/* Left Side: Workspace Switcher */}
         <div className="absolute left-1 flex items-center gap-2">
           <WorkspaceSwitcher />

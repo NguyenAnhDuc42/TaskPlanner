@@ -3,7 +3,9 @@ import { useWorkspaceRole } from "@/features/workspace/context/use-workspace-rol
 import { EntityViewFrame } from "../entity-view-frame";
 import { SpaceBoard } from "./space-components/space-board";
 import { useSpaceDetail, useGetSpaceItemsQuery, useGetSpaceDetailQuery, useUpdateSpaceFieldMutation, useGetEntityAccessQuery } from "./space-api";
-import { Layout, FileText, GitMerge, Lock, Unlock, MoreVertical } from "lucide-react";
+import { Layout, FileText, GitMerge, Lock, Unlock, MoreVertical, Trash2 } from "lucide-react";
+import { FavoriteButton } from "@/components/favorite-button";
+import { EntityLayerType } from "@/types/entity-layer-type";
 import { CreateStatusForm } from "@/features/workspace/components/forms/workflow-management-form";
 import { cn } from "@/lib/utils";
 import { UniversalPicker } from "@/components/universal-picker";
@@ -11,8 +13,17 @@ import type { SpaceRecord } from "@/types/projects";
 import { useSelector } from "react-redux";
 import { entityAccessSelectors, memberSelectors } from "@/store/entityStore";
 import { SpaceAccessDialog } from "./space-components/space-access-dialog";
-
+import { useNavigate } from "@tanstack/react-router";
+import { useDeleteSpaceMutation } from "../../hierarchy/hierarchy-api";
+import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { SpaceDetail } from "./space-components/space-detail";
+import { DeleteConfirmationDialog } from "../../hierarchy/hierarchy-components/context-menus/shared";
 
 
 interface SpaceViewProps {
@@ -21,8 +32,12 @@ interface SpaceViewProps {
 
 export function SpaceView({ spaceId }: Readonly<SpaceViewProps>) {
   const [isWorkflowOpen, setIsWorkflowOpen] = React.useState(false);
+  const [isDeleteOpen, setIsDeleteOpen] = React.useState(false);
   const [activeTab, setActiveTab] = React.useState<"detail" | "items">("items");
+  const [isEditingName, setIsEditingName] = React.useState(false);
   const { isAdmin } = useWorkspaceRole();
+  const navigate = useNavigate();
+  const [deleteSpace] = useDeleteSpaceMutation();
   
   // Load space details & items into Redux
   const space = useSpaceDetail(spaceId);
@@ -41,44 +56,86 @@ export function SpaceView({ spaceId }: Readonly<SpaceViewProps>) {
     updateSpaceField({ spaceId, patches });
   };
 
+  const handleDelete = async () => {
+    await deleteSpace({ workspaceId: space?.workspaceId?.toString() ?? "", spaceId });
+    navigate({ to: "/workspaces/$workspaceId", params: { workspaceId: space?.workspaceId?.toString() ?? "" } });
+  };
+
   return (
     <EntityViewFrame
       className="bg-card/30"
-    >
-      <div className="h-full w-full flex flex-col bg-background/25 p-1 gap-1 overflow-hidden relative">
-        {/* Ambient background accent glow */}
-        <div 
-          className="absolute right-12 bottom-12 w-87.5 h-87.5 rounded-full blur-[120px] opacity-[0.05] pointer-events-none transition-all duration-700"
-          style={{ backgroundColor: space?.color || "#3b82f6" }}
-        />
-
-        {/* Integrated Floating Space Header Bar */}
-        <div className="flex items-center justify-between px-2 py-1 rounded-md border border-border/30 bg-card/30 backdrop-blur-md shadow-sm shrink-0">
-          <div className="flex items-center gap-1.5">
+      topHeader={
+        <div className="flex items-center justify-between w-full">
+          <div className="flex items-center gap-1.5 text-xs min-w-0">
             <UniversalPicker
-              icon={space?.icon ?? "Folder"}
+              icon={space?.icon ?? "LayoutGrid"}
               color={space?.color ?? "#3b82f6"}
               onSelect={(icon, color) => updateField({ icon, color })}
               size="sm"
             />
-
-            <input
-              key={spaceId}
-              className="h-6 px-1 w-56 text-xs font-bold text-foreground/90 tracking-tight bg-transparent border-none outline-none hover:bg-muted/20 focus:bg-muted/40 transition-all rounded cursor-text"
-              defaultValue={space?.name ?? "Space"}
-              onPointerDown={(e) => e.stopPropagation()}
-              onBlur={(e) => {
-                if (e.target.value && e.target.value !== space?.name) {
-                  updateField({ name: e.target.value });
-                }
-              }}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") e.currentTarget.blur();
-              }}
-            />
+            {isEditingName ? (
+              <input
+                autoFocus
+                key={`edit-${spaceId}`}
+                defaultValue={space?.name ?? ""}
+                className="h-6 px-1 text-xs font-bold text-foreground/90 tracking-tight border-none outline-none bg-muted/40 rounded cursor-text min-w-0 max-w-56"
+                onBlur={(e) => {
+                  setIsEditingName(false);
+                  if (e.target.value && e.target.value !== space?.name) updateField({ name: e.target.value });
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") e.currentTarget.blur();
+                  if (e.key === "Escape") setIsEditingName(false);
+                }}
+              />
+            ) : (
+              <span
+                onClick={() => setIsEditingName(true)}
+                className="font-medium text-foreground truncate cursor-text hover:bg-muted/20 px-1 rounded"
+              >
+                {space?.name ?? "Space"}
+              </span>
+            )}
+            {space && (
+              <FavoriteButton
+                entityId={spaceId}
+                entityLayerType={EntityLayerType.ProjectSpace}
+                iconSize={13}
+                className="opacity-100 shrink-0"
+              />
+            )}
           </div>
 
-          <div className="flex items-center gap-2.5">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground">
+                <MoreVertical className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              {isAdmin && (
+                <DropdownMenuItem
+                  onClick={() => setIsDeleteOpen(true)}
+                  className="text-destructive focus:text-destructive focus:bg-destructive/10 cursor-pointer"
+                >
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Delete Space
+                </DropdownMenuItem>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      }
+    >
+      <div className="h-full w-full flex flex-col bg-background/25 p-1 gap-1 overflow-hidden relative">
+        {/* Ambient background accent glow */}
+        <div
+          className="absolute right-12 bottom-12 w-87.5 h-87.5 rounded-full blur-[120px] opacity-[0.05] pointer-events-none transition-all duration-700"
+          style={{ backgroundColor: space?.color || "#3b82f6" }}
+        />
+
+        {/* Controls toolbar */}
+        <div className="flex items-center justify-end gap-2.5 px-2 py-1 rounded-md border border-border/30 bg-card/30 backdrop-blur-md shadow-sm shrink-0">
             {/* Space Members Avatar Pile */}
             <div className="flex items-center -space-x-1.5 mr-0.5 select-none">
               {currentAccessMembers.slice(0, 4).map((access) => {
@@ -86,22 +143,18 @@ export function SpaceView({ spaceId }: Readonly<SpaceViewProps>) {
                 if (!profile) return null;
                 const name = profile.name || "User";
                 const initials = name.split(" ").map((w: string) => w[0]).slice(0, 2).join("").toUpperCase();
-
                 const colors = ["bg-cyan-500", "bg-purple-500", "bg-indigo-500", "bg-teal-500", "bg-emerald-500", "bg-amber-500"];
                 const colorIdx = (initials.charCodeAt(0) + (initials.charCodeAt(1) || 0)) % colors.length;
-                const avatarBg = colors[colorIdx];
-
                 return (
                   <div
                     key={access.workspaceMemberId}
-                    className={`h-5 w-5 rounded-full ${avatarBg} border border-background flex items-center justify-center text-[8px] font-black text-white shrink-0 shadow-sm hover:translate-y-[-1px] transition-transform cursor-pointer`}
+                    className={`h-5 w-5 rounded-full ${colors[colorIdx]} border border-background flex items-center justify-center text-[8px] font-black text-white shrink-0 shadow-sm hover:-translate-y-px transition-transform cursor-pointer`}
                     title={`${name} (${access.accessLevel})`}
                   >
                     {initials}
                   </div>
                 );
               })}
-
               {isAdmin && (
                 <SpaceAccessDialog
                   spaceId={spaceId}
@@ -114,7 +167,7 @@ export function SpaceView({ spaceId }: Readonly<SpaceViewProps>) {
               )}
             </div>
 
-            {/* Public/Private Toggle Switcher — Admin only */}
+            {/* Public/Private toggle — admin only */}
             {space && isAdmin && (
               <button
                 onClick={() => updateField({ isPrivate: !space.isPrivate })}
@@ -126,21 +179,11 @@ export function SpaceView({ spaceId }: Readonly<SpaceViewProps>) {
                 )}
                 title={space.isPrivate ? "Click to make Public" : "Click to make Private"}
               >
-                {space.isPrivate ? (
-                  <>
-                    <Lock className="h-2 w-2" />
-                    <span>Private</span>
-                  </>
-                ) : (
-                  <>
-                    <Unlock className="h-2 w-2" />
-                    <span>Public</span>
-                  </>
-                )}
+                {space.isPrivate ? <><Lock className="h-2 w-2" /><span>Private</span></> : <><Unlock className="h-2 w-2" /><span>Public</span></>}
               </button>
             )}
 
-            {/* View Switcher Toggle Buttons */}
+            {/* Workflow — admin only */}
             {isAdmin && (
               <button
                 className="flex items-center h-5 gap-1.5 px-2.5 rounded-md bg-muted/45 text-[10px] text-muted-foreground font-semibold hover:bg-muted hover:text-foreground transition-all cursor-pointer border border-border/10 shadow-sm"
@@ -151,45 +194,32 @@ export function SpaceView({ spaceId }: Readonly<SpaceViewProps>) {
               </button>
             )}
 
+            {/* Board / Detail tabs */}
             <div className="flex items-center bg-muted/45 border border-border/10 rounded-md p-0.5 shadow-sm">
-              <button 
+              <button
                 onClick={() => setActiveTab("items")}
                 className={cn(
                   "flex items-center gap-1 h-5 px-2 rounded-sm text-[10px] font-semibold transition-all cursor-pointer",
-                  activeTab === "items" 
-                    ? "bg-background text-foreground shadow-sm animate-in fade-in duration-200" 
-                    : "text-muted-foreground hover:text-foreground"
+                  activeTab === "items" ? "bg-background text-foreground shadow-sm animate-in fade-in duration-200" : "text-muted-foreground hover:text-foreground"
                 )}
               >
                 <Layout className="h-2.5 w-2.5" />
                 <span>Board</span>
               </button>
-              <button 
+              <button
                 onClick={() => setActiveTab("detail")}
                 className={cn(
                   "flex items-center gap-1 h-5 px-2 rounded-sm text-[10px] font-semibold transition-all cursor-pointer",
-                  activeTab === "detail" 
-                    ? "bg-background text-foreground shadow-sm animate-in fade-in duration-200" 
-                    : "text-muted-foreground hover:text-foreground"
+                  activeTab === "detail" ? "bg-background text-foreground shadow-sm animate-in fade-in duration-200" : "text-muted-foreground hover:text-foreground"
                 )}
               >
                 <FileText className="h-2.5 w-2.5" />
                 <span>Detail</span>
               </button>
             </div>
-
-            {/* 3-dot vertical menu */}
-            <button
-              className="h-5 w-5 flex items-center justify-center rounded-md hover:bg-white/[0.06] text-muted-foreground/50 hover:text-foreground transition-all cursor-pointer border border-transparent hover:border-border/20"
-              title="More options"
-            >
-              <MoreVertical className="h-3.5 w-3.5" />
-            </button>
-
-          </div>
         </div>
 
-        {/* Content Area */}
+        {/* Content area */}
         <div className="flex-1 rounded-md border border-border/40 bg-card/30 backdrop-blur-md shadow-sm overflow-hidden flex flex-col relative">
           {activeTab === "items" ? (
             <SpaceBoard spaceId={spaceId} onWorkflowOpen={isAdmin ? () => setIsWorkflowOpen(true) : undefined} />
@@ -206,6 +236,14 @@ export function SpaceView({ spaceId }: Readonly<SpaceViewProps>) {
           workflowId={space.workflowId}
         />
       )}
+
+      <DeleteConfirmationDialog
+        open={isDeleteOpen}
+        onOpenChange={setIsDeleteOpen}
+        title="Delete Space"
+        description={`Are you sure you want to delete "${space?.name}"? This will delete all folders and tasks inside it and cannot be undone.`}
+        onConfirm={handleDelete}
+      />
     </EntityViewFrame>
   );
 }

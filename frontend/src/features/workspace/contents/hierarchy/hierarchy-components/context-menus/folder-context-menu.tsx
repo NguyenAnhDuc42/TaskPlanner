@@ -10,21 +10,18 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
-import { 
-  Plus, 
-  Trash2, 
-  Copy, 
-  ExternalLink,
-} from "lucide-react";
+import {Plus, Trash2,Copy, ExternalLink,Star} from "lucide-react";
 import { EntityLayerType } from "@/types/entity-layer-type";
 import { useWorkspace } from "@/features/workspace/context/workspace-context";
 import { useWorkspaceRole } from "@/features/workspace/context/use-workspace-role";
 import { DialogFormWrapper } from "@/components/dialog-form-wrapper";
 import { CreateTaskForm } from "@/features/workspace/components/forms/create-task-form";
 import { useDeleteFolderMutation } from "../../hierarchy-api";
-import { useDispatch } from "react-redux";
-import { folderSlice } from "@/store/entityStore";
+import { useDispatch, useSelector } from "react-redux";
+import { folderSlice, folderSelectors } from "@/store/entityStore";
+import { useToggleFavoriteMutation } from "@/features/workspace/api";
 import { EntityMenuContext, DeleteConfirmationDialog } from "./shared";
+import type { RootState } from "@/store";
 
 interface FolderContextMenuProps {
   folderId: string;
@@ -39,6 +36,8 @@ export function FolderContextMenu({
 }: FolderContextMenuProps) {
   const { workspaceId } = useWorkspace();
   const { canCreateContent, isAdmin } = useWorkspaceRole();
+  const [toggleFavorite] = useToggleFavoriteMutation();
+  const isFavorite = useSelector((state: RootState) => !!folderSelectors.selectById(state, folderId)?.isFavorite);
   const dispatch = useDispatch();
   const [activeForm, setActiveForm] = useState<"task" | null>(null);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
@@ -63,6 +62,16 @@ export function FolderContextMenu({
         )}
 
         {canCreateContent && <Separator className="bg-border/50" />}
+
+        <Item
+          className="gap-2 cursor-pointer"
+          onSelect={() => workspaceId && toggleFavorite({ workspaceId, entityId: folderId, entityLayerType: EntityLayerType.ProjectFolder })}
+        >
+          <Star className={`h-3.5 w-3.5 ${isFavorite ? "fill-amber-400 text-amber-400" : ""}`} />
+          <span>{isFavorite ? "Unfavorite" : "Favorite"}</span>
+        </Item>
+
+        <Separator className="bg-border/50" />
 
         <Item className="gap-2 cursor-pointer">
           <Copy className="h-3.5 w-3.5" />

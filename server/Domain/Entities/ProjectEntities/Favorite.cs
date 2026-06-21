@@ -9,4 +9,9 @@ public class Favorite : TenantEntity
 
     public Favorite() { }
 
+    public Favorite(Guid workspaceId)
+    {
+        Id = Guid.NewGuid();
+        ProjectWorkspaceId = workspaceId;
+    }
 }

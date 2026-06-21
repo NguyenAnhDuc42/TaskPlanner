@@ -10,14 +10,21 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
-import { 
-  Trash2, 
-  Copy, 
+import {
+  Trash2,
+  Copy,
   ExternalLink,
+  Star,
 } from "lucide-react";
+import { EntityLayerType } from "@/types/entity-layer-type";
 import { useWorkspace } from "@/features/workspace/context/workspace-context";
+import { useWorkspaceRole } from "@/features/workspace/context/use-workspace-role";
 import { useDeleteTaskMutation } from "../../hierarchy-api";
+import { useToggleFavoriteMutation } from "@/features/workspace/api";
+import { useSelector } from "react-redux";
+import { taskSelectors } from "@/store/entityStore";
 import { EntityMenuContext, DeleteConfirmationDialog } from "./shared";
+import type { RootState } from "@/store";
 
 interface TaskContextMenuProps {
   taskId: string;
@@ -32,20 +39,33 @@ export function TaskContextMenu({
   taskName,
 }: TaskContextMenuProps) {
   const { workspaceId } = useWorkspace();
+  const { canCreateContent } = useWorkspaceRole();
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [deleteTask] = useDeleteTaskMutation();
+  const [toggleFavorite] = useToggleFavoriteMutation();
+  const isFavorite = useSelector((state: RootState) => !!taskSelectors.selectById(state, taskId)?.isFavorite);
 
   const handleDelete = () => {
     deleteTask({ workspaceId: workspaceId || "", taskId });
     setIsDeleteOpen(false);
   };
 
-  const renderMenuItems = React.useCallback((isContext: boolean) => {
+  const renderMenuItems = (isContext: boolean) => {
     const Item = isContext ? ContextMenuItem : DropdownMenuItem;
     const Separator = isContext ? ContextMenuSeparator : DropdownMenuSeparator;
 
     return (
       <>
+        <Item
+          className="gap-2 cursor-pointer"
+          onSelect={() => workspaceId && toggleFavorite({ workspaceId, entityId: taskId, entityLayerType: EntityLayerType.ProjectTask })}
+        >
+          <Star className={`h-3.5 w-3.5 ${isFavorite ? "fill-amber-400 text-amber-400" : ""}`} />
+          <span>{isFavorite ? "Unfavorite" : "Favorite"}</span>
+        </Item>
+
+        <Separator className="bg-border/50" />
+
         <Item className="gap-2 cursor-pointer">
           <Copy className="h-3.5 w-3.5" />
           <span>Copy Link</span>
@@ -56,20 +76,21 @@ export function TaskContextMenu({
           <span>Open in New Tab</span>
         </Item>
 
-        <Separator className="bg-border/50" />
-
-        <Item variant="destructive" className="gap-2 cursor-pointer" onSelect={() => setIsDeleteOpen(true)}>
-          <Trash2 className="h-3.5 w-3.5" />
-          <span>Delete Task</span>
-        </Item>
+        {canCreateContent && (
+          <>
+            <Separator className="bg-border/50" />
+            <Item variant="destructive" className="gap-2 cursor-pointer" onSelect={() => setIsDeleteOpen(true)}>
+              <Trash2 className="h-3.5 w-3.5" />
+              <span>Delete Task</span>
+            </Item>
+          </>
+        )}
       </>
     );
-  }, [taskId, workspaceId]);
-
-  const contextValue = React.useMemo(() => ({ renderMenuItems }), [renderMenuItems]);
+  };
 
   return (
-    <EntityMenuContext.Provider value={contextValue}>
+    <EntityMenuContext.Provider value={{ renderMenuItems }}>
       <ContextMenu>
         <ContextMenuTrigger asChild>
           {children}

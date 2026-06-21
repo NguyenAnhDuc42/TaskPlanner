@@ -15,7 +15,6 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import { cn } from "@/lib/utils";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { useState, useDeferredValue } from "react";
 
 // Modularized Components & Hooks
@@ -25,10 +24,11 @@ import { FolderNodeItem } from "./items/folder-node-item";
 import { TaskNodeItem } from "./items/task-node-item";
 import { CreateSpaceForm } from "../../components/forms/create-space-form";
 import { SpaceNodeList } from "./items/space-node-list";
+import { FavoriteNodeList } from "./items/favorite-node-list";
+import { Star } from "lucide-react";
 export function HierarchySidebar() {
   const { workspaceId } = useWorkspace();
   const [isHierarchyOpen, setIsHierarchyOpen] = useState(true);
-  const [isDocsOpen, setIsDocsOpen] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const deferredSearchQuery = useDeferredValue(searchQuery);
   const [isHeaderCreateOpen, setIsHeaderCreateOpen] = useState(false);
@@ -177,39 +177,24 @@ export function HierarchySidebar() {
         </Collapsible>
       </div>
 
-      {/* DOCS & TASKS SECTION (PANE 2) */}
-      <div
-        className={cn(
-          "flex flex-col min-h-0 overflow-hidden bg-background",
-          isDocsOpen && !isHierarchyOpen ? "flex-1" : "flex-none",
-        )}
-      >
-        <Collapsible
-          open={isDocsOpen}
-          onOpenChange={setIsDocsOpen}
-          className="flex flex-col h-full overflow-hidden"
-        >
-          <CollapsibleTrigger className="w-full h-7 flex items-center gap-2 px-1 hover:bg-muted/50 transition-colors group flex-none bg-background sticky top-0 z-10">
-            <ChevronDown
-              className={cn(
-                "h-3 w-3 text-muted-foreground transition-transform duration-200",
-                !isDocsOpen && "-rotate-90",
-              )}
-            />
-            <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider text-left">
-              Docs & Tasks
+      {/* FAVORITES SECTION */}
+      <div className="flex flex-col min-h-0 flex-none border-b border-border/40">
+        <Collapsible className="flex flex-col overflow-hidden">
+          <CollapsibleTrigger className="w-full h-7 flex items-center gap-2 px-1 hover:bg-muted/50 transition-colors group flex-none bg-card/35 sticky top-0 z-10">
+            <ChevronDown className="h-3 w-3 text-muted-foreground transition-transform duration-200 group-data-[state=closed]:-rotate-90" />
+            <Star className="h-3 w-3 text-muted-foreground/60" />
+            <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider text-left flex-1">
+              Favorites
             </span>
           </CollapsibleTrigger>
-
-          <CollapsibleContent className="flex-1 min-h-0 overflow-hidden data-[state=open]:flex data-[state=closed]:hidden">
-            <ScrollArea className="h-full w-full">
-              <div className="px-2 pt-0.5 pb-2 flex flex-col">
-                {/* Future Stuff */}
-              </div>
-            </ScrollArea>
+          <CollapsibleContent className="overflow-hidden data-[state=open]:block data-[state=closed]:hidden">
+            <div className="px-1 pt-0.5 pb-2 flex flex-col max-h-48 overflow-y-auto [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-thumb]:bg-muted-foreground/20">
+              <FavoriteNodeList />
+            </div>
           </CollapsibleContent>
         </Collapsible>
       </div>
+
     </div>
   );
 }

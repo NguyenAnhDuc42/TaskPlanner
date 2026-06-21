@@ -8,6 +8,7 @@ import { EntityLayerType } from "@/types/entity-layer-type";
 import { SortableTaskItem } from "./sortable-task-item";
 import { useSelector, useDispatch } from "react-redux";
 import type { AppDispatch } from "@/store";
+import { useWorkspaceRole } from "@/features/workspace/context/use-workspace-role";
 import { taskSelectors } from "@/store/entityStore";
 import { createSelector } from "@reduxjs/toolkit";
 import { createPortal } from "react-dom";
@@ -54,6 +55,7 @@ export function FolderTaskList({
   const folderId = folderIdProp || params.folderId || "";
   
   const dispatch = useDispatch<AppDispatch>();
+  const { canCreateContent } = useWorkspaceRole();
   const [createOpen, setCreateOpen] = React.useState(false);
   
   const [filter, setFilter] = React.useState<TaskFilter>({});
@@ -69,20 +71,16 @@ export function FolderTaskList({
   const members = membersData?.items || [];
 
   const { data: queryData, isLoading, isFetching } = useGetFolderTasksQuery({ folderId, cursor: null, filter });
-  
-  const fetchedTaskIds = React.useMemo(() => {
-    return queryData?.items.map(t => t.id) || [];
-  }, [queryData?.items]);
 
-  const selectTasks = React.useMemo(() => {
-    return createSelector(
-      [taskSelectors.selectEntities],
-      (entities) => fetchedTaskIds
-        .map(id => entities[id])
-        .filter((t): t is TaskRecord => !!t)
+  // Read directly from entity store — covers paginated loads + newly created tasks
+  const selectTasks = React.useMemo(() =>
+    createSelector(
+      [taskSelectors.selectAll],
+      (all) => all
+        .filter((t): t is TaskRecord => t.folderId === folderId && !t.parentTaskId)
         .sort((a, b) => ((a.orderKey ?? "") < (b.orderKey ?? "") ? -1 : 1))
-    );
-  }, [fetchedTaskIds]);
+    ),
+  [folderId]);
 
   const tasks = useSelector(selectTasks);
   
@@ -221,8 +219,8 @@ export function FolderTaskList({
           )}
         </div>
 
-        {/* Create Task */}
-        <DialogFormWrapper
+        {/* Create Task — members and above only */}
+        {canCreateContent && <DialogFormWrapper
           title="Create New Task"
           open={createOpen}
           onOpenChange={setCreateOpen}
@@ -242,7 +240,7 @@ export function FolderTaskList({
             onSuccess={() => setCreateOpen(false)}
             onCancel={() => setCreateOpen(false)}
           />
-        </DialogFormWrapper>
+        </DialogFormWrapper>}
       </div>
     </div>
   );
