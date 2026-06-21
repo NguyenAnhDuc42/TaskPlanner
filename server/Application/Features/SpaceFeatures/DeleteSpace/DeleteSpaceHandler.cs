@@ -22,7 +22,7 @@ public class DeleteSpaceHandler(
         }
         if (space.ProjectWorkspaceId != context.WorkspaceId) return Result.Failure(SpaceError.NotFound);
 
-        var hasAccess = await permissionService.VerifyAsync(Role.Member, request.SpaceId, AccessLevel.Manager, space.CreatorId, cancellationToken);
+        var hasAccess = await permissionService.VerifyAsync(Role.Admin, request.SpaceId, AccessLevel.Manager, space.CreatorId, cancellationToken);
         if (!hasAccess)
         {
             logger.LogWarning("Access denied for user {UserId} to delete space {SpaceId}", context.CurrentMember.Id, space.Id);

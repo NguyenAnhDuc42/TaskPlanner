@@ -135,7 +135,24 @@ export function SpaceView({ spaceId }: Readonly<SpaceViewProps>) {
         />
 
         {/* Controls toolbar */}
-        <div className="flex items-center justify-end gap-2.5 px-2 py-1 rounded-md border border-border/30 bg-card/30 backdrop-blur-md shadow-sm shrink-0">
+        <div className="flex items-center justify-between px-2 py-1 rounded-md border border-border/30 bg-card/30 backdrop-blur-md shadow-sm shrink-0">
+          {/* Public/Private toggle — admin only, sits on the left */}
+          {space && isAdmin ? (
+            <button
+              onClick={() => updateField({ isPrivate: !space.isPrivate })}
+              className={cn(
+                "flex items-center gap-1 h-5 px-1.5 rounded-md border text-[9px] font-bold cursor-pointer transition-all select-none",
+                space.isPrivate
+                  ? "bg-rose-500/10 border-rose-500/30 text-rose-400 hover:bg-rose-500/20"
+                  : "bg-emerald-500/10 border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/20"
+              )}
+              title={space.isPrivate ? "Click to make Public" : "Click to make Private"}
+            >
+              {space.isPrivate ? <><Lock className="h-2 w-2" /><span>Private</span></> : <><Unlock className="h-2 w-2" /><span>Public</span></>}
+            </button>
+          ) : <div />}
+
+          <div className="flex items-center gap-2.5">
             {/* Space Members Avatar Pile */}
             <div className="flex items-center -space-x-1.5 mr-0.5 select-none">
               {currentAccessMembers.slice(0, 4).map((access) => {
@@ -166,22 +183,6 @@ export function SpaceView({ spaceId }: Readonly<SpaceViewProps>) {
                 />
               )}
             </div>
-
-            {/* Public/Private toggle — admin only */}
-            {space && isAdmin && (
-              <button
-                onClick={() => updateField({ isPrivate: !space.isPrivate })}
-                className={cn(
-                  "flex items-center gap-1 h-5 px-1.5 rounded-md border text-[9px] font-bold cursor-pointer transition-all select-none",
-                  space.isPrivate
-                    ? "bg-rose-500/10 border-rose-500/30 text-rose-400 hover:bg-rose-500/20"
-                    : "bg-emerald-500/10 border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/20"
-                )}
-                title={space.isPrivate ? "Click to make Public" : "Click to make Private"}
-              >
-                {space.isPrivate ? <><Lock className="h-2 w-2" /><span>Private</span></> : <><Unlock className="h-2 w-2" /><span>Public</span></>}
-              </button>
-            )}
 
             {/* Workflow — admin only */}
             {isAdmin && (
@@ -217,6 +218,7 @@ export function SpaceView({ spaceId }: Readonly<SpaceViewProps>) {
                 <span>Detail</span>
               </button>
             </div>
+          </div>
         </div>
 
         {/* Content area */}

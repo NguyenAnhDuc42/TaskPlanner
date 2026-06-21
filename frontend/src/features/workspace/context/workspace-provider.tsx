@@ -23,9 +23,7 @@ export function WorkspaceProvider({ workspaceId, children }: WorkspaceProviderPr
 
   const { data: workspace, isLoading, error, isError } = useGetWorkspaceDetailQuery(workspaceId);
 
-  const { getSettings, updateSettings, hoveredIcon, setHoveredIcon } = useWorkspaceUIStore();
-  const settings = getSettings(workspaceId);
-  const { sidebarWidth, contextWidth, isInnerSidebarOpen } = settings;
+  const { sidebarWidth, contextWidth, isInnerSidebarOpen, updateSettings, hoveredIcon, setHoveredIcon } = useWorkspaceUIStore();
 
   const activeIcon = useMemo(() => {
     const segments = location.pathname.split("/");
@@ -33,24 +31,24 @@ export function WorkspaceProvider({ workspaceId, children }: WorkspaceProviderPr
   }, [location.pathname]);
 
   const updateSidebarWidth = useCallback(
-    (w: number) => updateSettings(workspaceId, { sidebarWidth: w, isInnerSidebarOpen: w > 0 }),
-    [workspaceId, updateSettings],
+    (w: number) => updateSettings({ sidebarWidth: w, isInnerSidebarOpen: w > 0 }),
+    [updateSettings],
   );
 
   const updateContextWidth = useCallback(
-    (w: number) => updateSettings(workspaceId, { contextWidth: w }),
-    [workspaceId, updateSettings],
+    (w: number) => updateSettings({ contextWidth: w }),
+    [updateSettings],
   );
 
   const toggleInnerSidebar = useCallback(() => {
     const next = !isInnerSidebarOpen;
-    updateSettings(workspaceId, { isInnerSidebarOpen: next });
-    if (next && sidebarWidth < 10) updateSettings(workspaceId, { sidebarWidth: 260 });
-  }, [workspaceId, isInnerSidebarOpen, sidebarWidth, updateSettings]);
+    updateSettings({ isInnerSidebarOpen: next });
+    if (next && sidebarWidth < 10) updateSettings({ sidebarWidth: 260 });
+  }, [isInnerSidebarOpen, sidebarWidth, updateSettings]);
 
-  const setSidebarOpenLocal  = useCallback((v: boolean) => updateSettings(workspaceId, { isInnerSidebarOpen: v }), [workspaceId, updateSettings]);
-  const setSidebarWidthLocal = useCallback((v: number)  => updateSettings(workspaceId, { sidebarWidth: v }),       [workspaceId, updateSettings]);
-  const setContextWidthLocal = useCallback((v: number)  => updateSettings(workspaceId, { contextWidth: v }),       [workspaceId, updateSettings]);
+  const setSidebarOpenLocal  = useCallback((v: boolean) => updateSettings({ isInnerSidebarOpen: v }), [updateSettings]);
+  const setSidebarWidthLocal = useCallback((v: number)  => updateSettings({ sidebarWidth: v }),       [updateSettings]);
+  const setContextWidthLocal = useCallback((v: number)  => updateSettings({ contextWidth: v }),       [updateSettings]);
 
   // Save last visited workspace + redirect on access errors
   useEffect(() => {

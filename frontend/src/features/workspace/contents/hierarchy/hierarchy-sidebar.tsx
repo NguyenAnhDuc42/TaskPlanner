@@ -29,6 +29,7 @@ import { Star } from "lucide-react";
 export function HierarchySidebar() {
   const { workspaceId } = useWorkspace();
   const [isHierarchyOpen, setIsHierarchyOpen] = useState(true);
+  const [isFavoritesOpen, setIsFavoritesOpen] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const deferredSearchQuery = useDeferredValue(searchQuery);
   const [isHeaderCreateOpen, setIsHeaderCreateOpen] = useState(false);
@@ -90,6 +91,14 @@ export function HierarchySidebar() {
                 Items
               </span>
             </CollapsibleTrigger>
+            <button
+              type="button"
+              onClick={() => setIsHierarchyOpen(!isHierarchyOpen)}
+              className="h-4 w-4 flex items-center justify-center rounded-sm hover:bg-muted-foreground/10 text-muted-foreground/50 hover:text-foreground transition-colors shrink-0"
+              title={isHierarchyOpen ? "Collapse" : "Expand"}
+            >
+              <ChevronDown className={cn("h-3 w-3 transition-transform duration-200", !isHierarchyOpen && "-rotate-90")} />
+            </button>
             {canCreateSpace && (
               <DialogFormWrapper
                 title="Create New Space"
@@ -179,14 +188,24 @@ export function HierarchySidebar() {
 
       {/* FAVORITES SECTION */}
       <div className="flex flex-col min-h-0 flex-none border-b border-border/40">
-        <Collapsible className="flex flex-col overflow-hidden">
-          <CollapsibleTrigger className="w-full h-7 flex items-center gap-2 px-1 hover:bg-muted/50 transition-colors group flex-none bg-card/35 sticky top-0 z-10">
-            <ChevronDown className="h-3 w-3 text-muted-foreground transition-transform duration-200 group-data-[state=closed]:-rotate-90" />
-            <Star className="h-3 w-3 text-muted-foreground/60" />
-            <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider text-left flex-1">
-              Favorites
-            </span>
-          </CollapsibleTrigger>
+        <Collapsible open={isFavoritesOpen} onOpenChange={setIsFavoritesOpen} className="flex flex-col overflow-hidden">
+          <div className="w-full h-7 flex items-center gap-2 px-1 flex-none bg-card/35 sticky top-0 z-10 hover:bg-muted/50 transition-colors">
+            <CollapsibleTrigger className="flex items-center gap-2 flex-1 min-w-0">
+              <ChevronDown className={cn("h-3 w-3 text-muted-foreground transition-transform duration-200", !isFavoritesOpen && "-rotate-90")} />
+              <Star className="h-3 w-3 text-muted-foreground/60" />
+              <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider text-left">
+                Favorites
+              </span>
+            </CollapsibleTrigger>
+            <button
+              type="button"
+              onClick={() => setIsFavoritesOpen(!isFavoritesOpen)}
+              className="h-4 w-4 flex items-center justify-center rounded-sm hover:bg-muted-foreground/10 text-muted-foreground/50 hover:text-foreground transition-colors shrink-0"
+              title={isFavoritesOpen ? "Collapse" : "Expand"}
+            >
+              <ChevronDown className={cn("h-3 w-3 transition-transform duration-200", !isFavoritesOpen && "-rotate-90")} />
+            </button>
+          </div>
           <CollapsibleContent className="overflow-hidden data-[state=open]:block data-[state=closed]:hidden">
             <div className="px-1 pt-0.5 pb-2 flex flex-col max-h-48 overflow-y-auto [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-thumb]:bg-muted-foreground/20">
               <FavoriteNodeList />

@@ -16,10 +16,17 @@ public class DeleteTaskHandler(TaskPlanDbContext db, WorkspaceContext workspaceC
             return Result.Failure(TaskError.NotFound);
         }
 
-        var hasAccess = await permissionService.VerifyAsync(Role.Member, task.ProjectSpaceId, AccessLevel.Editor, task.CreatorId, cancellationToken);
-        if (!hasAccess) 
+        var memberId = workspaceContext.CurrentMember.Id;
+        bool isCreator = task.CreatorId == memberId;
+
+        // Creators (Member+) can delete their own tasks; otherwise require Admin
+        var hasAccess = isCreator
+            ? workspaceContext.CurrentMember.Role.IsAtLeast(Role.Member)
+            : await permissionService.VerifyAsync(Role.Admin, task.ProjectSpaceId, AccessLevel.Editor, cancellationToken: cancellationToken);
+
+        if (!hasAccess)
         {
-            logger.LogWarning("Access denied for user {UserId} to delete task {TaskId}", workspaceContext.CurrentMember.Id, task.Id);
+            logger.LogWarning("Access denied for user {UserId} to delete task {TaskId}", memberId, task.Id);
             return Result.Failure(MemberError.DontHavePermission);
         }
 

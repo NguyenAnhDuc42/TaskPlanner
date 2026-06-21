@@ -21,7 +21,7 @@ public class DeleteFolderHandler(
             return Result.Failure(FolderError.NotFound);
         }
 
-        var hasAccess = await permissionService.VerifyAsync(Role.Member, folder.ProjectSpaceId, AccessLevel.Editor, folder.CreatorId, cancellationToken);
+        var hasAccess = await permissionService.VerifyAsync(Role.Admin, folder.ProjectSpaceId, AccessLevel.Editor, folder.CreatorId, cancellationToken);
         if (!hasAccess) 
         {
             logger.LogWarning("Access denied for user {UserId} to delete folder {FolderId}", workspaceContext.CurrentMember.Id, request.FolderId);

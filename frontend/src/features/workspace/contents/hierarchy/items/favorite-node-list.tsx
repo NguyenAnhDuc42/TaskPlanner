@@ -40,17 +40,17 @@ export const FavoriteNodeList = React.memo(function FavoriteNodeList() {
 
   const favorites = useMemo(() => {
     const items = [
-      ...allSpaces.filter(s => s.isFavorite).map(s => ({
+      ...allSpaces.filter(s => s.isFavorite && s.workspaceId === workspaceId).map(s => ({
         id: s.id, name: s.name, icon: s.icon, color: s.color,
         entityLayerType: EntityLayerType.ProjectSpace,
         favoriteOrderKey: s.favoriteOrderKey,
       })),
-      ...allFolders.filter(f => f.isFavorite).map(f => ({
+      ...allFolders.filter(f => f.isFavorite && f.workspaceId === workspaceId).map(f => ({
         id: f.id, name: f.name, icon: f.icon, color: f.color,
         entityLayerType: EntityLayerType.ProjectFolder,
         favoriteOrderKey: f.favoriteOrderKey,
       })),
-      ...allTasks.filter(t => t.isFavorite).map(t => ({
+      ...allTasks.filter(t => t.isFavorite && t.workspaceId === workspaceId).map(t => ({
         id: t.id, name: t.name, icon: t.icon, color: t.color,
         entityLayerType: EntityLayerType.ProjectTask,
         favoriteOrderKey: t.favoriteOrderKey,
@@ -59,7 +59,7 @@ export const FavoriteNodeList = React.memo(function FavoriteNodeList() {
     return items.sort((a, b) =>
       ((a.favoriteOrderKey ?? "") < (b.favoriteOrderKey ?? "") ? -1 : 1)
     );
-  }, [allSpaces, allFolders, allTasks]);
+  }, [allSpaces, allFolders, allTasks, workspaceId]);
 
   const getIsActive = (id: string, type: EntityLayerType) => {
     if (type === EntityLayerType.ProjectSpace)  return location.pathname.includes(`/spaces/${id}`);
