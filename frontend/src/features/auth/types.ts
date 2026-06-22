@@ -4,9 +4,6 @@ export interface User {
   name: string;
 }
 
-export type LoginResponse = void;
-export type RegisterResponse = void;
-
 // RFC 7807 Problem Details
 export interface ProblemDetails {
   type?: string;

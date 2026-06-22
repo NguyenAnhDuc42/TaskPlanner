@@ -19,7 +19,7 @@ public class LogoutHandler(
 
         if (session != null)
         {
-            db.Sessions.Remove(session); 
+            session.Revoke();
             await db.SaveChangesAsync(cancellationToken);
         }
 

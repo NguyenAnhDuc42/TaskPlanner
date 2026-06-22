@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { toast } from "sonner";
 import { useForm } from "@tanstack/react-form";
-import { useRegister } from "../api";
+import { useRegister } from "../../auth-api";
 import { useNavigate, Link } from "@tanstack/react-router";
 import { Eye, EyeOff, Loader2, Github, Chrome, ArrowRight, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -24,6 +24,7 @@ export function SignUpForm() {
       try {
         await register(value);
         toast.success("Account created! Welcome 🎉");
+        localStorage.removeItem("lastWorkspaceId");
         navigate({ to: "/" });
       } catch (err: unknown) {
         const e = err as { data?: { detail?: string }; message?: string };

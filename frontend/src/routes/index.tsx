@@ -22,15 +22,23 @@ export const Route = createFileRoute("/")({
       throw redirect({ to: "/auth/sign-in" });
     }
 
-    // Try to redirect to last active workspace from LocalStorage
     const lastWorkspaceId = typeof window !== "undefined" ? localStorage.getItem("lastWorkspaceId") : null;
 
-    // Only redirect if select is NOT true
     if (lastWorkspaceId && !search.select) {
-      throw redirect({
-        to: "/workspaces/$workspaceId",
-        params: { workspaceId: lastWorkspaceId },
-      });
+      const attempts = parseInt(sessionStorage.getItem("lastWorkspaceRedirectAttempts") ?? "0");
+
+      if (attempts >= 2) {
+        localStorage.removeItem("lastWorkspaceId");
+        sessionStorage.removeItem("lastWorkspaceRedirectAttempts");
+      } else {
+        sessionStorage.setItem("lastWorkspaceRedirectAttempts", String(attempts + 1));
+        throw redirect({
+          to: "/workspaces/$workspaceId",
+          params: { workspaceId: lastWorkspaceId },
+        });
+      }
+    } else {
+      sessionStorage.removeItem("lastWorkspaceRedirectAttempts");
     }
   },
   loaderDeps: ({ search }) => search,

@@ -24,7 +24,6 @@ export const homeWorkspaceApi = workspaceApi.injectEndpoints({
   endpoints: (build) => ({
     getWorkspaces: build.query<PagedResult<WorkspaceSnippetRecord>, WorkspaceFilters & { cursor?: string | null; }>({
       query: (params) => ({ url: "/workspaces", method: "GET", params }),
-      // Infinite scroll: reuse cache based only on filters
       serializeQueryArgs: ({ endpointName, queryArgs }) => {
         const filters = { ...queryArgs };
         delete filters.cursor;
@@ -47,7 +46,7 @@ export const homeWorkspaceApi = workspaceApi.injectEndpoints({
           dispatch(workspaceSlice.actions.upsertMany(data.items));
         } catch { /* ignore */ }
       },
-      providesTags: ["Spaces"],
+      providesTags: ["Workspaces"],
     }),
     createWorkspace: build.mutation<WorkspaceSnippetRecord, CreateWorkspaceValues & { strictJoin?: boolean }>({
       query: (values) => ({ url: "/workspaces", method: "POST", data: values }),
@@ -76,7 +75,7 @@ export const homeWorkspaceApi = workspaceApi.injectEndpoints({
       isNewMember: boolean;
     }, string>({
       query: (joinCode) => ({ url: "/workspaces/join", method: "POST", data: { joinCode } }),
-      invalidatesTags: ["Spaces"],
+      invalidatesTags: ["Workspaces"],
     }),
   }),
 });
@@ -207,7 +206,7 @@ export function useWorkspaceHome() {
   }, [refetch]);
 
   const handleCreateWorkspace = React.useCallback(
-    (data: CreateWorkspaceValues) => {
+    (data: Omit<CreateWorkspaceValues, "theme">) => {
       createInternal({ ...data, theme: "Dark" });
     },
     [createInternal],

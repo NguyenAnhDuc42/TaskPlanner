@@ -29,7 +29,7 @@ export const workspaceFeatureApi = workspaceApi.injectEndpoints({
         url: `/workspaces/${workspaceId}/me/permissions`,
         method: "GET",
       }),
-      providesTags: (_result, _error, id) => [{ type: "Spaces" as const, id }],
+      providesTags: (_result, _error, id) => [{ type: "Workspaces" as const, id }],
     }),
 
     getWorkspaceMembers: build.query<PagedResult<MemberRecord>, string>({

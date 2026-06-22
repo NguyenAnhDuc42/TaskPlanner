@@ -50,6 +50,10 @@ public class ProjectSpaceConfiguration : TenantEntityConfiguration<ProjectSpace>
         builder.Property(s => s.IsArchived)
             .HasColumnName("is_archived");
 
+        // Cursor pagination: spaces within a workspace
+        builder.HasIndex(s => new { s.ProjectWorkspaceId, s.OrderKey, s.Id })
+            .HasFilter("deleted_at IS NULL AND is_archived = false")
+            .HasDatabaseName("IX_project_spaces_workspace_order_key");
     }
 }
 

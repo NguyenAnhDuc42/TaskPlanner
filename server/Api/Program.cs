@@ -1,12 +1,9 @@
-using System.Security.Claims;
-using Npgsql;
+
 using System.Text.Json.Serialization;
-using Application;
 using System.Threading.RateLimiting;
-using Microsoft.AspNetCore.RateLimiting;
 using Scalar.AspNetCore;
-using Api;
 using Serilog;
+
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -32,11 +29,13 @@ builder.Services.AddHttpContextAccessor();
 
 const string CorsPolicy = "AllowFrontend";
 
+var appSettings = builder.Configuration.GetSection(AppSettings.SectionName).Get<AppSettings>() ?? new AppSettings();
+
 builder.Services.AddCors(options =>
 {
     options.AddPolicy(CorsPolicy, policy =>
     {
-        policy.WithOrigins("https://localhost:5173")
+        policy.WithOrigins(appSettings.FrontendUrl)
             .AllowAnyHeader()
             .AllowAnyMethod()
             .AllowCredentials();
@@ -75,6 +74,57 @@ builder.Services.AddRateLimiter(options =>
 
 
 var app = builder.Build();
+
+// --- Auth Configuration Summary ---
+{
+    var startupLogger = app.Services.GetRequiredService<ILogger<Program>>();
+
+    if (startupLogger.IsEnabled(LogLevel.Information))
+    {
+        var cfg = builder.Configuration;
+
+        var jwt     = cfg.GetSection(JwtSettings.SectionName).Get<JwtSettings>()       ?? new JwtSettings();
+        var app_    = cfg.GetSection(AppSettings.SectionName).Get<AppSettings>()        ?? new AppSettings();
+        var cookies = cfg.GetSection(CookieSettings.SectionName).Get<CookieSettings>()  ?? new CookieSettings();
+        var email   = cfg.GetSection(EmailSettings.SectionName).Get<EmailSettings>()    ?? new EmailSettings();
+        var oauth   = cfg.GetSection(OAuthSettings.SectionName).Get<OAuthSettings>()    ?? new OAuthSettings();
+
+        var jwtSecret    = string.IsNullOrWhiteSpace(jwt.SecretKey)          ? "⚠ NOT SET" : $"SET ({jwt.SecretKey.Length} chars)";
+        var emailStatus  = string.IsNullOrWhiteSpace(email.Host)             ? "⚠ NOT CONFIGURED (forgot-password disabled)" : $"{email.Host}:{email.Port}";
+        var googleStatus = string.IsNullOrWhiteSpace(oauth.Google.ClientId)  ? "DISABLED" : "ENABLED";
+        var githubStatus = string.IsNullOrWhiteSpace(oauth.GitHub.ClientId)  ? "DISABLED" : "ENABLED";
+
+        startupLogger.LogInformation("""
+
+        ══════════════════════════════════════════════════
+          AUTH CONFIGURATION
+        ══════════════════════════════════════════════════
+          URLs
+            Frontend  :  {FrontendUrl}
+            Backend   :  {BackendUrl}
+          JWT
+            Secret    :  {JwtSecret}
+            Access    :  {AccessMin} min
+            Refresh   :  {RefreshDays} days
+          Cookies
+            Domain    :  {CookieDomain}
+            Secure    :  {Secure}
+            SameSite  :  {SameSite}
+          Email (SMTP)
+            Host      :  {EmailHost}
+            From      :  {FromAddress} ({FromName})
+          OAuth
+            Google    :  {Google}
+            GitHub    :  {GitHub}
+        ══════════════════════════════════════════════════
+        """,
+            app_.FrontendUrl, app_.BackendUrl,
+            jwtSecret, jwt.Expiration, jwt.RefreshExpiration,
+            cookies.Domain, cookies.UseSecure, cookies.SameSite,
+            emailStatus, email.FromAddress, email.FromName,
+            googleStatus, githubStatus);
+    }
+}
 
 // --- 3. Aspire Endpoints & Monitoring ---
 app.MapDefaultEndpoints(); // Standardizes /health and /alive across all containers

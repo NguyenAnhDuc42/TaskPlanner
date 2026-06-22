@@ -5,6 +5,7 @@ namespace Domain;
 public class Session : Entity
 {
     public string RefreshToken { get; private set; } = string.Empty;
+    public string? PreviousRefreshToken { get; private set; }
     public Guid UserId { get; private set; }
     public DateTimeOffset ExpiresAt { get; private set; }
     public DateTimeOffset? RevokedAt { get; private set; }
@@ -55,6 +56,7 @@ public class Session : Entity
         if (RevokedAt.HasValue) throw new InvalidOperationException("Cannot rotate token on a revoked session.");
         if (string.IsNullOrWhiteSpace(newRefreshToken)) throw new ArgumentException("Token cannot be empty.", nameof(newRefreshToken));
 
+        PreviousRefreshToken = RefreshToken;
         RefreshToken = newRefreshToken;
         LastTokenRotationAt = DateTimeOffset.UtcNow;
     }

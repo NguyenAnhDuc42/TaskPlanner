@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { toast } from "sonner";
 import { useForm } from "@tanstack/react-form";
-import { useLogin } from "../api";
+import { useLogin } from "../../auth-api";
 import { useNavigate, Link } from "@tanstack/react-router";
 import { Eye, EyeOff, Loader2, Github, Chrome, ArrowRight } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -17,6 +17,7 @@ export default function SignInForm() {
       try {
         await login(value);
         toast.success("Welcome back!");
+        localStorage.removeItem("lastWorkspaceId");
         navigate({ to: "/" });
       } catch (err: unknown) {
         const e = err as { data?: { detail?: string }; message?: string };
@@ -113,12 +114,12 @@ export default function SignInForm() {
                   <label htmlFor="password" className="block text-xs font-semibold text-foreground/70 tracking-wide">
                     Password
                   </label>
-                  <a
-                    href="/forgot-password"
+                  <Link
+                    to="/auth/forgot-password"
                     className="text-[11px] text-muted-foreground/50 hover:text-foreground transition-colors"
                   >
                     Forgot password?
-                  </a>
+                  </Link>
                 </div>
                 <div className="relative">
                   <input

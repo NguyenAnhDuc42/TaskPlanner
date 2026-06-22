@@ -4,8 +4,9 @@ import type { PagedResult } from "@/types/paged-result";
 import { toast } from "sonner";
 import type z from "zod";
 import React from "react";
-import { memberSlice } from "@/store/entityStore";
+import { memberSlice, memberSelectors } from "@/store/entityStore";
 import type { MemberRecord } from "@/types/workspace/member-record";
+import type { RootState } from "@/store";
 
 export const membersApi = workspaceApi.injectEndpoints({
   endpoints: (build) => ({
@@ -60,7 +61,38 @@ export const membersApi = workspaceApi.injectEndpoints({
         method: "PATCH",
         data: values,
       }),
-      // SignalR upserts the updated members into the entity store — no refetch needed
+      async onQueryStarted({ values }, { dispatch, queryFulfilled, getState }) {
+        const state = getState() as RootState;
+        const currentMembers = memberSelectors.selectEntities(state);
+        
+        const updates: MemberRecord[] = [];
+        values.members.forEach((update) => {
+          const existing = currentMembers[update.memberId];
+          if (existing) {
+            updates.push({
+              ...existing,
+              role: update.role ?? existing.role,
+              status: update.status ?? existing.status,
+            });
+          }
+        });
+
+        if (updates.length > 0) {
+          dispatch(memberSlice.actions.upsertMany(updates));
+        }
+
+        try {
+          await queryFulfilled;
+        } catch {
+          // Revert on failure
+          const reverts: MemberRecord[] = [];
+          values.members.forEach((update) => {
+            const existing = currentMembers[update.memberId];
+            if (existing) reverts.push(existing);
+          });
+          if (reverts.length > 0) dispatch(memberSlice.actions.upsertMany(reverts));
+        }
+      },
     }),
     removeMembers: build.mutation<void, { workspaceId: string; memberIds: string[] }>({
       query: ({ workspaceId, memberIds }) => ({
@@ -68,8 +100,24 @@ export const membersApi = workspaceApi.injectEndpoints({
         method: "DELETE",
         data: { memberIds },
       }),
-      // SignalR removes deleted members from the entity store — selectById returns undefined
-      // and the !!r filter in members-index drops them without a refetch
+      async onQueryStarted({ memberIds }, { dispatch, queryFulfilled, getState }) {
+        const state = getState() as RootState;
+        const currentMembers = memberSelectors.selectEntities(state);
+        
+        const reverts: MemberRecord[] = [];
+        memberIds.forEach((id) => {
+          const existing = currentMembers[id];
+          if (existing) reverts.push(existing);
+        });
+
+        dispatch(memberSlice.actions.removeMany(memberIds));
+
+        try {
+          await queryFulfilled;
+        } catch {
+          if (reverts.length > 0) dispatch(memberSlice.actions.upsertMany(reverts));
+        }
+      },
     }),
   }),
 });

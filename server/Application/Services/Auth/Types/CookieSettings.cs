@@ -4,6 +4,8 @@ namespace Application;
 
 public class CookieSettings
 {
+    public const string SectionName = "CookieSettings";
+
     public bool UseSecure { get; set; } = true;
     public string AccessTokenCookieName { get; set; } = "acct";
     public string RefreshTokenCookieName { get; set; } = "rft";

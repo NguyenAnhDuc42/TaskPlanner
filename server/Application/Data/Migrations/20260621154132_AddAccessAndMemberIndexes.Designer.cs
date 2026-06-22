@@ -3,17 +3,20 @@ using System;
 using Application;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
 #nullable disable
 
-namespace Application
+namespace Application.Data.Migrations
 {
     [DbContext(typeof(TaskPlanDbContext))]
-    partial class TaskPlanDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260621154132_AddAccessAndMemberIndexes")]
+    partial class AddAccessAndMemberIndexes
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -982,11 +985,6 @@ namespace Application
                     b.Property<DateTimeOffset?>("LastTokenRotationAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("last_token_rotation_at");
-
-                    b.Property<string>("PreviousRefreshToken")
-                        .HasMaxLength(256)
-                        .HasColumnType("character varying(256)")
-                        .HasColumnName("previous_refresh_token");
 
                     b.Property<string>("RefreshToken")
                         .IsRequired()

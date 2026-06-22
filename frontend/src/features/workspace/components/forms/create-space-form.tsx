@@ -7,7 +7,7 @@ import { toast } from "sonner";
 import { PrivacyToggle, IconColorPicker, AttributeButton } from "./form-elements";
 import { User } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { useUser } from "@/features/auth/api";
+import { useUser } from "@/features/auth/auth-api";
 import { useSelector } from "react-redux";
 import { memberSelectors } from "@/store/entityStore";
 import type { MemberRecord } from "@/types/workspace";

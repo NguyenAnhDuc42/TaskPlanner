@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, type ReactNode } from "react";
 import type { User } from "./types";
-import { useLogout, useUser } from "./api";
+import { useLogout, useUser } from "./auth-api";
 import { sessionManager } from "./auth-session-manager";
 
 export interface AuthContextType {

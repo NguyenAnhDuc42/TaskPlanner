@@ -25,6 +25,12 @@ public class EntityAccessConfiguration : EntityConfiguration<EntityAccess>
         builder.HasIndex(x => x.ProjectFolderId);
         builder.HasIndex(x => x.ProjectTaskId);
 
+        // Compound partial index for the per-space permission check subquery
+        // (project_space_id, workspace_member_id) WHERE deleted_at IS NULL
+        builder.HasIndex(x => new { x.ProjectSpaceId, x.WorkspaceMemberId })
+            .HasFilter("deleted_at IS NULL")
+            .HasDatabaseName("IX_entity_access_space_member_active");
+
     }
 }
 

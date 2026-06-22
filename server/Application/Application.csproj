@@ -27,6 +27,8 @@
     <PackageReference Include="Microsoft.Extensions.Caching.StackExchangeRedis" />
     <PackageReference Include="BCrypt.Net-Next" />
     <PackageReference Include="CloudinaryDotNet" />
+    <PackageReference Include="MailKit" />
+    <PackageReference Include="MimeKit" />
   </ItemGroup>
 
 </Project>

@@ -3,17 +3,20 @@ using System;
 using Application;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
 #nullable disable
 
-namespace Application
+namespace Application.Data.Migrations
 {
     [DbContext(typeof(TaskPlanDbContext))]
-    partial class TaskPlanDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260621120704_AddPaginationIndexes")]
+    partial class AddPaginationIndexes
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -378,10 +381,6 @@ namespace Application
                     b.HasIndex("ProjectWorkspaceId");
 
                     b.HasIndex("WorkspaceMemberId");
-
-                    b.HasIndex("ProjectSpaceId", "WorkspaceMemberId")
-                        .HasDatabaseName("IX_entity_access_space_member_active")
-                        .HasFilter("deleted_at IS NULL");
 
                     b.ToTable("entity_access", (string)null);
                 });
@@ -982,11 +981,6 @@ namespace Application
                     b.Property<DateTimeOffset?>("LastTokenRotationAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("last_token_rotation_at");
-
-                    b.Property<string>("PreviousRefreshToken")
-                        .HasMaxLength(256)
-                        .HasColumnType("character varying(256)")
-                        .HasColumnName("previous_refresh_token");
 
                     b.Property<string>("RefreshToken")
                         .IsRequired()

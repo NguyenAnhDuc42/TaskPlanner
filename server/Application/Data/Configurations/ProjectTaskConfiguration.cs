@@ -90,6 +90,16 @@ public class ProjectTaskConfiguration : TenantEntityConfiguration<ProjectTask>
         builder.HasIndex(t => t.StatusId);
         builder.HasIndex(t => t.ProjectSpaceId);
         builder.HasIndex(t => t.ProjectFolderId);
+
+        // Cursor pagination: tasks within a folder
+        builder.HasIndex(t => new { t.ProjectFolderId, t.OrderKey, t.Id })
+            .HasFilter("deleted_at IS NULL AND is_archived = false")
+            .HasDatabaseName("IX_project_tasks_folder_order_key");
+
+        // Cursor pagination: tasks directly in a space (no folder)
+        builder.HasIndex(t => new { t.ProjectWorkspaceId, t.ProjectSpaceId, t.OrderKey, t.Id })
+            .HasFilter("deleted_at IS NULL AND is_archived = false AND project_folder_id IS NULL")
+            .HasDatabaseName("IX_project_tasks_space_order_key");
     }
 }
 

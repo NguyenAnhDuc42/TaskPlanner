@@ -12,6 +12,7 @@ public class SessionConfiguration : EntityConfiguration<Session>
 
         builder.Property(s => s.UserId).HasColumnName("user_id").IsRequired();
         builder.Property(s => s.RefreshToken).HasColumnName("refresh_token").IsRequired().HasMaxLength(256);
+        builder.Property(s => s.PreviousRefreshToken).HasColumnName("previous_refresh_token").HasMaxLength(256);
         builder.Property(s => s.ExpiresAt).HasColumnName("expires_at").IsRequired();
         builder.Property(x => x.RevokedAt).HasColumnName("revoked_at");
         builder.Property(x => x.UserAgent).HasColumnName("user_agent").HasMaxLength(500);

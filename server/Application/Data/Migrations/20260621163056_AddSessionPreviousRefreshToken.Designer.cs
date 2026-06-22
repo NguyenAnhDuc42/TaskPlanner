@@ -3,17 +3,20 @@ using System;
 using Application;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
 #nullable disable
 
-namespace Application
+namespace Application.Data.Migrations
 {
     [DbContext(typeof(TaskPlanDbContext))]
-    partial class TaskPlanDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260621163056_AddSessionPreviousRefreshToken")]
+    partial class AddSessionPreviousRefreshToken
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder

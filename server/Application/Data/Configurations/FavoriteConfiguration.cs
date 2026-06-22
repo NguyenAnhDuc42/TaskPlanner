@@ -37,6 +37,9 @@ public class FavoriteConfiguration : TenantEntityConfiguration<Favorite>
         })
         .IsUnique();
 
-
+        // Cursor pagination: favorites for a member in a workspace
+        builder.HasIndex(x => new { x.WorkspaceMemberId, x.ProjectWorkspaceId, x.OrderKey, x.Id })
+            .HasFilter("deleted_at IS NULL")
+            .HasDatabaseName("IX_favorites_member_workspace_order_key");
     }
 }

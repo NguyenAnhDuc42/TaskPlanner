@@ -10,7 +10,7 @@ import { MemberList, type MemberSavePayload } from "./member-components/member-l
 import { useMemo, useState } from "react";
 import { useParams } from "@tanstack/react-router";
 import { useSelector } from "react-redux";
-import { useUser } from "@/features/auth/api";
+import { useUser } from "@/features/auth/auth-api";
 import { ViewSkeleton } from "@/components/view-skeleton";
 import { NotFoundScreen } from "@/components/not-found-screen";
 import { memberSelectors } from "@/store/entityStore";

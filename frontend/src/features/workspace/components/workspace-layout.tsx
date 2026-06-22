@@ -1,4 +1,4 @@
-import { Suspense, useRef } from "react";
+import { Suspense, useRef, useState } from "react";
 import { useLocation, useNavigate, Outlet } from "@tanstack/react-router";
 import { useWorkspace } from "../context/workspace-context";
 import { SidebarRegistry } from "./sidebar-registry";
@@ -11,7 +11,8 @@ import { Button } from "@/components/ui/button";
 import { LoadingComponent } from "@/components/loading-component";
 import { ChevronLeft, X, Maximize2, LogOut, User } from "lucide-react";
 import type { ContentPage } from "../type";
-import { useLogout, useGetMeQuery } from "@/features/auth/api";
+import { useLogout, useGetMeQuery } from "@/features/auth/auth-api";
+import { ProfileModal } from "@/features/auth/profile/components/profile-modal";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -21,7 +22,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-function UserMenu() {
+function UserMenu({ onOpenProfile }: { onOpenProfile: () => void }) {
   const { data: user } = useGetMeQuery();
   const { mutate: logout } = useLogout();
 
@@ -47,6 +48,7 @@ function UserMenu() {
         <DropdownMenuSeparator className="bg-border/20 my-1" />
         <DropdownMenuItem
           className="flex items-center gap-2 px-2 py-1.5 text-xs font-medium text-muted-foreground/70 hover:text-foreground cursor-pointer rounded-md"
+          onClick={onOpenProfile}
         >
           <User className="h-3.5 w-3.5" />
           Profile
@@ -65,6 +67,7 @@ function UserMenu() {
 }
 
 export function WorkspaceLayout() {
+  const [profileOpen, setProfileOpen] = useState(false);
 
   const navigate = useNavigate({ from: "/workspaces/$workspaceId" });
   const location = useLocation();
@@ -228,7 +231,7 @@ export function WorkspaceLayout() {
             </svg>
           </Button>
           <div className="h-6 w-px bg-border/50 mx-1" />
-          <UserMenu />
+          <UserMenu onOpenProfile={() => setProfileOpen(true)} />
         </div>
       </header>
 
@@ -400,6 +403,8 @@ export function WorkspaceLayout() {
           </div>
         )}
       </div>
+
+      <ProfileModal open={profileOpen} onOpenChange={setProfileOpen} />
     </div>
   );
 }

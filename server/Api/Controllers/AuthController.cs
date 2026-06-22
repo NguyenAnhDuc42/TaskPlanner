@@ -1,16 +1,17 @@
+using System.Security.Claims;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Options;
+
+
 namespace Api;
 
-[Route("api/[controller]")]
+[Route("api/auth")]
 [ApiController]
-public class AuthController : ControllerBase
+public class AuthController(IHandler handler, IOptions<AppSettings> appOptions) : ControllerBase
 {
-    private readonly IHandler _handler;
-
-    public AuthController(IHandler iHandler)
-    {
-        _handler = iHandler;
-    }
+    private readonly IHandler _handler = handler;
+    private readonly string _frontendUrl = appOptions.Value.FrontendUrl;
 
     [HttpPost("login")]
     public async Task<IActionResult> Login([FromBody] LoginRequest request, CancellationToken cancellationToken)
@@ -57,12 +58,44 @@ public class AuthController : ControllerBase
         return result.ToActionResult();
     }
 
-    [HttpPost("external-login")]
-    public async Task<IActionResult> ExternalLogin([FromBody] ExternalLoginRequest request, CancellationToken cancellationToken)
+    [HttpGet("external-login/{provider}")]
+    public IActionResult ExternalLogin(string provider)
     {
-        var command = new ExternalLoginCommand(request.Provider, request.Token);
-        var result = await _handler.SendAsync<ExternalLoginCommand, LoginResponse>(command, cancellationToken);
-        return result.ToActionResult();
+        var scheme = provider.ToLower() switch
+        {
+            "google" => "Google",
+            "github" => "GitHub",
+            _ => provider
+        };
+        var finishUrl = Url.Action(nameof(OAuthFinish), "Auth", new { provider }, Request.Scheme);
+        var props = new AuthenticationProperties { RedirectUri = finishUrl };
+        return Challenge(props, scheme);
+    }
+
+    // Called by OAuth middleware after successful token exchange — NOT the OAuth callback path
+    [HttpGet("oauth-finish/{provider}")]
+    public async Task<IActionResult> OAuthFinish(string provider, CancellationToken cancellationToken)
+    {
+        var result = await HttpContext.AuthenticateAsync("External");
+        if (!result.Succeeded)
+            return Redirect($"{_frontendUrl}/auth/sign-in?error=oauth_failed");
+
+        var claims = result.Principal!.Claims;
+        var externalId = claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
+        var email = claims.FirstOrDefault(c => c.Type == ClaimTypes.Email)?.Value;
+        var name = claims.FirstOrDefault(c => c.Type == ClaimTypes.Name)?.Value;
+
+        if (string.IsNullOrEmpty(externalId) || string.IsNullOrEmpty(email))
+            return Redirect($"{_frontendUrl}/auth/sign-in?error=oauth_missing_info");
+
+        var command = new OAuthCallbackCommand(provider, externalId, email, string.IsNullOrWhiteSpace(name) ? email : name);
+        var cmdResult = await _handler.SendAsync<OAuthCallbackCommand, LoginResponse>(command, cancellationToken);
+
+        if (!cmdResult.IsSuccess)
+            return Redirect($"{_frontendUrl}/auth/sign-in?error=oauth_failed");
+
+        await HttpContext.SignOutAsync("External");
+        return Redirect($"{_frontendUrl}/?select=true");
     }
 
     [HttpPost("change-password")]

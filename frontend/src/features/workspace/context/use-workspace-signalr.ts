@@ -1,5 +1,7 @@
 import { useEffect } from "react";
 import { useDispatch } from "react-redux";
+import { useUser } from "@/features/auth/auth-api";
+import { store } from "@/store";
 import { signalRService } from "@/lib/signalr-service";
 import {
   spaceSlice,
@@ -13,12 +15,14 @@ import {
   workspaceSlice,
   attachmentSlice,
   documentBlockSlice,
+  memberSelectors,
 } from "@/store/entityStore";
 import { workspaceApi } from "@/store/workspaceApi";
 import type { AppDispatch } from "@/store";
 
 export function useWorkspaceSignalR(workspaceId: string) {
   const dispatch = useDispatch<AppDispatch>();
+  const { data: currentUser } = useUser();
 
   useEffect(() => {
     if (!workspaceId) return;
@@ -58,7 +62,12 @@ export function useWorkspaceSignalR(workspaceId: string) {
           }
         });
       }
-      if (payload.members)        dispatch(memberSlice.actions.upsertMany(payload.members));
+      if (payload.members) {
+        dispatch(memberSlice.actions.upsertMany(payload.members));
+        if (currentUser?.id && payload.members.some(m => m.userId === currentUser.id)) {
+          dispatch(workspaceApi.util.invalidateTags([{ type: "Workspaces", id: workspaceId }]));
+        }
+      }
       if (payload.assignees)      dispatch(assigneeSlice.actions.upsertMany(payload.assignees));
       if (payload.entityAccess)   dispatch(entityAccessSlice.actions.upsertMany(payload.entityAccess));
       if (payload.statuses)       dispatch(statusSlice.actions.upsertMany(payload.statuses));
@@ -72,7 +81,19 @@ export function useWorkspaceSignalR(workspaceId: string) {
       if (payload.spaceIds)          dispatch(spaceSlice.actions.removeMany(payload.spaceIds));
       if (payload.folderIds)         dispatch(folderSlice.actions.removeMany(payload.folderIds));
       if (payload.taskIds)           dispatch(taskSlice.actions.removeMany(payload.taskIds));
-      if (payload.memberIds)         dispatch(memberSlice.actions.removeMany(payload.memberIds));
+      if (payload.memberIds) {
+        const currentMembers = memberSelectors.selectEntities(store.getState());
+        const isCurrentUserDeleted = payload.memberIds.some(id => {
+          const m = currentMembers[id];
+          return m && m.userId === currentUser?.id;
+        });
+
+        dispatch(memberSlice.actions.removeMany(payload.memberIds));
+
+        if (isCurrentUserDeleted) {
+          dispatch(workspaceApi.util.invalidateTags([{ type: "Workspaces", id: workspaceId }]));
+        }
+      }
       if (payload.assigneeIds)       dispatch(assigneeSlice.actions.removeMany(payload.assigneeIds));
       if (payload.entityAccessIds)   dispatch(entityAccessSlice.actions.removeMany(payload.entityAccessIds));
       if (payload.statusIds)         dispatch(statusSlice.actions.removeMany(payload.statusIds));
@@ -84,7 +105,7 @@ export function useWorkspaceSignalR(workspaceId: string) {
 
     const handleReconnect = () => {
       console.log("[SignalR] Reconnected. Syncing active screen views...");
-      dispatch(workspaceApi.util.invalidateTags(['Spaces', 'Folders', 'Tasks', 'Members', 'User', 'UserPreference', 'EntityAccess', 'Workflows', 'Comments', 'Documents']));
+      dispatch(workspaceApi.util.invalidateTags(['Workspaces', 'Spaces', 'Folders', 'Tasks', 'Members', 'User', 'UserPreference', 'EntityAccess', 'Workflows', 'Comments', 'Documents']));
     };
 
     signalRService.on("EntitiesUpdated", onEntitiesUpdated);
@@ -97,5 +118,5 @@ export function useWorkspaceSignalR(workspaceId: string) {
       signalRService.offReconnected(handleReconnect);
       signalRService.invoke("LeaveWorkspace", workspaceId).catch(() => {});
     };
-  }, [workspaceId, dispatch]);
+  }, [workspaceId, dispatch, currentUser?.id]);
 }

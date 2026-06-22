@@ -1,4 +1,4 @@
-using System;
+
 using System.Security.Claims;
 using System.Text;
 using System.IdentityModel.Tokens.Jwt;
@@ -6,18 +6,19 @@ using Microsoft.Extensions.Logging;
 using Microsoft.IdentityModel.Tokens;
 using System.Security.Cryptography;
 using Microsoft.Extensions.Options;
-using Microsoft.EntityFrameworkCore;
 
 namespace Application;
 
-public class TokenService 
+public class TokenService
 {
     private readonly JwtSettings _jwtSettings;
+    private readonly AppSettings _appSettings;
     private readonly ILogger<TokenService> _logger;
 
-    public TokenService(IOptions<JwtSettings> jwtSettings, ILogger<TokenService> logger)
+    public TokenService(IOptions<JwtSettings> jwtSettings, IOptions<AppSettings> appSettings, ILogger<TokenService> logger)
     {
         _jwtSettings = jwtSettings.Value;
+        _appSettings = appSettings.Value;
         _logger = logger;
     }
 
@@ -84,8 +85,8 @@ public class TokenService
         };
 
         var token = new JwtSecurityToken(
-            issuer: _jwtSettings.Issuer,
-            audience: _jwtSettings.Audience,
+            issuer: _appSettings.BackendUrl,
+            audience: _appSettings.FrontendUrl,
             claims: claims,
             expires: expiresAt.UtcDateTime, // JwtSecurityToken only accepts DateTime
             signingCredentials: creds
@@ -110,8 +111,8 @@ public class TokenService
             ValidateAudience = true,
             ValidateLifetime = true,
             ValidateIssuerSigningKey = true,
-            ValidIssuer = _jwtSettings.Issuer,
-            ValidAudience = _jwtSettings.Audience,
+            ValidIssuer = _appSettings.BackendUrl,
+            ValidAudience = _appSettings.FrontendUrl,
             IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_jwtSettings.SecretKey)),
             ClockSkew = TimeSpan.Zero
         };
