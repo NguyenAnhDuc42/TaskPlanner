@@ -43,23 +43,6 @@ public class GetNodeFoldersHandler(TaskPlanDbContext db, CursorHelper cursorHelp
                   OR f.order_key COLLATE ""C"" > @CursorOrderKey::text
                   OR (f.order_key = @CursorOrderKey::text AND f.id > @CursorFolderId::uuid)
               )
-              AND (
-                  @Role >= @AdminRole
-                  OR EXISTS (
-                      SELECT 1 FROM project_spaces ps
-                      WHERE ps.id = f.project_space_id
-                      AND (
-                          ps.is_private = false
-                          OR EXISTS (
-                              SELECT 1 FROM entity_access ea
-                              WHERE ea.project_space_id = ps.id
-                              AND ea.workspace_member_id = @WorkspaceMemberId
-                              AND ea.access_level = ANY(@ValidAccessLevels)
-                              AND ea.deleted_at IS NULL
-                          )
-                      )
-                  )
-              )
             ORDER BY f.order_key COLLATE ""C"", f.id
             LIMIT @PageSize;";
         var cursorData = request.Pagination.Cursor != null ? cursorHelper.DecodeCursor(request.Pagination.Cursor) : null;
@@ -67,6 +50,24 @@ public class GetNodeFoldersHandler(TaskPlanDbContext db, CursorHelper cursorHelp
         var cursorFolderId = cursorData?.Values.GetValueOrDefault("Id")?.ToString();
 
         var connection = db.Database.GetDbConnection();
+
+        var isAdmin = workspaceContext.CurrentMember.Role >= Role.Admin;
+        if (!isAdmin)
+        {
+            const string accessSql = @"
+                SELECT EXISTS (
+                    SELECT 1 FROM project_spaces ps
+                    LEFT JOIN entity_access ea ON ea.project_space_id = ps.id
+                        AND ea.workspace_member_id = @MemberId AND ea.deleted_at IS NULL
+                    WHERE ps.id = @SpaceId AND ps.deleted_at IS NULL
+                      AND (ps.is_private = false OR ea.id IS NOT NULL)
+                )";
+            var hasAccess = await connection.ExecuteScalarAsync<bool>(accessSql,
+                new { SpaceId = request.NodeId, MemberId = workspaceContext.CurrentMember.Id });
+            if (!hasAccess)
+                return Result<PagedResult<FolderRecord>>.Success(new PagedResult<FolderRecord>([], null, false));
+        }
+
         var parameters = new
         {
             WorkspaceId = request.WorkspaceId,
@@ -74,10 +75,7 @@ public class GetNodeFoldersHandler(TaskPlanDbContext db, CursorHelper cursorHelp
             CursorOrderKey = cursorOrderKey,
             CursorFolderId = cursorFolderId != null ? (Guid?)Guid.Parse(cursorFolderId) : null,
             PageSize = request.Pagination.PageSize + 1,
-            Role = (int)workspaceContext.CurrentMember.Role,
-            AdminRole = (int)Role.Admin,
             WorkspaceMemberId = workspaceContext.CurrentMember.Id,
-            ValidAccessLevels = new[] { "Viewer", "Editor", "Manager" }
         };
 
         var mappedFolders = (await connection.QueryAsync<FolderRecord>(sql, parameters)).AsList();

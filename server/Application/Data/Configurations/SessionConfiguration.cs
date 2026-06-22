@@ -21,6 +21,8 @@ public class SessionConfiguration : EntityConfiguration<Session>
 
         // Indexes
         builder.HasIndex(s => s.UserId);
+        builder.HasIndex (s => s.RefreshToken);
+        builder.HasIndex (s => s.PreviousRefreshToken);
         builder.HasIndex(s => new { s.UserId, s.RevokedAt, s.ExpiresAt });
 
     }

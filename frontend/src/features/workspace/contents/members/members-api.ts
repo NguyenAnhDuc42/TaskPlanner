@@ -26,7 +26,9 @@ export const membersApi = workspaceApi.injectEndpoints({
         try {
           const { data } = await queryFulfilled;
           dispatch(memberSlice.actions.upsertMany(data.items));
-        } catch { /* ignore */ }
+        } catch (error) {
+          console.error("[membersApi] Failed to sync members to store:", error);
+        }
       },
       // Infinite scroll: reuse cache based only on filters
       serializeQueryArgs: ({ endpointName, queryArgs }) => {

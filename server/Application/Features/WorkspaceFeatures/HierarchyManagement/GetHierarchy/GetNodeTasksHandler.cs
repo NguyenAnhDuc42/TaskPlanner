@@ -45,23 +45,6 @@ public class GetNodeTasksHandler(TaskPlanDbContext db, CursorHelper cursorHelper
                   OR t.order_key COLLATE ""C"" > @CursorOrderKey::text
                   OR (t.order_key = @CursorOrderKey::text AND t.id > @CursorTaskId::uuid)
               )
-              AND (
-                  @Role >= @AdminRole
-                  OR EXISTS (
-                      SELECT 1 FROM project_spaces ps
-                      WHERE ps.id = t.project_space_id
-                      AND (
-                          ps.is_private = false
-                          OR EXISTS (
-                              SELECT 1 FROM entity_access ea
-                              WHERE ea.project_space_id = ps.id
-                              AND ea.workspace_member_id = @WorkspaceMemberId
-                              AND ea.access_level = ANY(@ValidAccessLevels)
-                              AND ea.deleted_at IS NULL
-                          )
-                      )
-                  )
-              )
             ORDER BY t.order_key COLLATE ""C"", t.id
             LIMIT @PageSize;";
         var cursorData = request.Pagination.Cursor != null ? cursorHelper.DecodeCursor(request.Pagination.Cursor) : null;
@@ -69,6 +52,30 @@ public class GetNodeTasksHandler(TaskPlanDbContext db, CursorHelper cursorHelper
         var cursorTaskId = cursorData?.Values.GetValueOrDefault("Id")?.ToString();
 
         var connection = db.Database.GetDbConnection();
+
+        var isAdmin = workspaceContext.CurrentMember.Role >= Role.Admin;
+        if (!isAdmin)
+        {
+            var spaceId = request.ParentType == "ProjectSpace"
+                ? request.ParentId
+                : await connection.ExecuteScalarAsync<Guid>(
+                    "SELECT project_space_id FROM project_folders WHERE id = @Id AND deleted_at IS NULL",
+                    new { Id = request.ParentId });
+
+            const string accessSql = @"
+                SELECT EXISTS (
+                    SELECT 1 FROM project_spaces ps
+                    LEFT JOIN entity_access ea ON ea.project_space_id = ps.id
+                        AND ea.workspace_member_id = @MemberId AND ea.deleted_at IS NULL
+                    WHERE ps.id = @SpaceId AND ps.deleted_at IS NULL
+                      AND (ps.is_private = false OR ea.id IS NOT NULL)
+                )";
+            var hasAccess = await connection.ExecuteScalarAsync<bool>(accessSql,
+                new { SpaceId = spaceId, MemberId = workspaceContext.CurrentMember.Id });
+            if (!hasAccess)
+                return Result<PagedResult<TaskRecord>>.Success(new PagedResult<TaskRecord>([], null, false));
+        }
+
         var parameters = new
         {
             WorkspaceId = request.WorkspaceId,
@@ -77,10 +84,7 @@ public class GetNodeTasksHandler(TaskPlanDbContext db, CursorHelper cursorHelper
             CursorOrderKey = cursorOrderKey,
             CursorTaskId = cursorTaskId != null ? (Guid?)Guid.Parse(cursorTaskId) : null,
             PageSize = request.Pagination.PageSize + 1,
-            Role = (int)workspaceContext.CurrentMember.Role,
-            AdminRole = (int)Role.Admin,
             WorkspaceMemberId = workspaceContext.CurrentMember.Id,
-            ValidAccessLevels = new[] { "Viewer", "Editor", "Manager" }
         };
 
         var mappedTasks = (await connection.QueryAsync<TaskRecord>(sql, parameters)).AsList();

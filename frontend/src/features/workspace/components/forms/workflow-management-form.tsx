@@ -444,7 +444,7 @@ export function CreateStatusForm({
   }, [workflowId, localStatuses, resolvedCurrentStatuses, updateStatuses, currentWorkspaceId, onApplyChanges, onClose]);
 
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => { if (!open) handleSave(); }}>
+    <Dialog open={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
       <DialogContent
         key={isOpen ? "open" : "closed"}
         className="max-w-[960px] w-full bg-background border border-border/30 text-foreground p-0 rounded-xl overflow-hidden shadow-2xl"

@@ -87,7 +87,9 @@ export const hierarchyApi = workspaceApi.injectEndpoints({
         try {
           const { data } = await queryFulfilled;
           dispatch(spaceSlice.actions.upsertMany(data.items));
-        } catch { /* ignore */ }
+        } catch (error) {
+          console.error("[hierarchyApi] Failed to sync spaces to store:", error);
+        }
       }
     }),
 
@@ -116,7 +118,9 @@ export const hierarchyApi = workspaceApi.injectEndpoints({
           if (cursor === null && data.items.length === 0) {
             dispatch(spaceSlice.actions.upsert({ id: nodeId, hasFolders: false }));
           }
-        } catch { /* ignore */ }
+        } catch (error) {
+          console.error("[hierarchyApi] Failed to sync folders to store:", error);
+        }
       }
     }),
 
@@ -149,7 +153,9 @@ export const hierarchyApi = workspaceApi.injectEndpoints({
               dispatch(folderSlice.actions.upsert({ id: nodeId, hasTasks: false }));
             }
           }
-        } catch { /* ignore */ }
+        } catch (error) {
+          console.error("[hierarchyApi] Failed to sync tasks to store:", error);
+        }
       }
     }),
 

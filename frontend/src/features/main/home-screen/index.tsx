@@ -5,13 +5,69 @@ import { DynamicIcon } from "@/components/dynamic-icon";
 import { RoleBadge } from "@/components/role-badge";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "@tanstack/react-router";
-import { Pin, Plus, LogIn, ChevronRight } from "lucide-react";
+import { Pin, Plus, LogIn, ChevronRight, User, LogOut } from "lucide-react";
 import { cn } from "@/lib/utils";
-import React from "react";
+import React, { useState } from "react";
 import type { Role } from "@/types/role";
 import type { WorkspaceSnippetRecord } from "@/types/workspace";
+import { useLogout, useGetMeQuery } from "@/features/auth/auth-api";
+import { ProfileModal } from "@/features/auth/profile/components/profile-modal";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+
+function UserMenu({ onOpenProfile }: { onOpenProfile: () => void }) {
+  const { data: user } = useGetMeQuery();
+  const { mutate: logout } = useLogout();
+
+  const initials = user?.name
+    ? user.name.split(" ").map((w: string) => w[0]).slice(0, 2).join("").toUpperCase()
+    : "?";
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <button
+          type="button"
+          className="h-7 w-7 rounded-lg bg-linear-to-tr from-primary/20 to-primary/5 border border-primary/20 flex items-center justify-center cursor-pointer hover:border-primary/40 transition-colors shadow-sm outline-none"
+        >
+          <span className="text-[10px] font-black text-primary">{initials}</span>
+        </button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-52 bg-popover border border-border/30 shadow-xl rounded-lg p-1">
+        <DropdownMenuLabel className="px-2 py-1.5">
+          <p className="text-xs font-bold text-foreground/90 truncate">{user?.name ?? "User"}</p>
+          <p className="text-[10px] text-muted-foreground/50 font-medium truncate">{user?.email ?? ""}</p>
+        </DropdownMenuLabel>
+        <DropdownMenuSeparator className="bg-border/20 my-1" />
+        <DropdownMenuItem
+          className="flex items-center gap-2 px-2 py-1.5 text-xs font-medium text-muted-foreground/70 hover:text-foreground cursor-pointer rounded-md"
+          onClick={onOpenProfile}
+        >
+          <User className="h-3.5 w-3.5" />
+          Profile
+        </DropdownMenuItem>
+        <DropdownMenuSeparator className="bg-border/20 my-1" />
+        <DropdownMenuItem
+          className="flex items-center gap-2 px-2 py-1.5 text-xs font-medium text-destructive/80 hover:text-destructive hover:bg-destructive/10 cursor-pointer rounded-md"
+          onClick={() => logout()}
+        >
+          <LogOut className="h-3.5 w-3.5" />
+          Sign out
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
 
 export function WorkspaceHomeScreen() {
+  const [profileOpen, setProfileOpen] = useState(false);
+
   const {
     workspaces,
     isWorkspacesLoading,
@@ -47,6 +103,11 @@ export function WorkspaceHomeScreen() {
   return (
     <div className="flex flex-col items-center justify-center h-screen bg-background overflow-hidden relative">
       <div className="absolute h-[500px] w-[500px] bg-primary/5 rounded-full blur-[120px] -z-10 top-1/4 left-1/3" />
+
+      {/* Top-right user menu */}
+      <div className="absolute top-3 right-3">
+        <UserMenu onOpenProfile={() => setProfileOpen(true)} />
+      </div>
 
       <div className="w-full max-w-sm flex flex-col gap-3 px-4">
         {/* Header */}
@@ -148,6 +209,8 @@ export function WorkspaceHomeScreen() {
         isLoading={isJoining}
         onJoin={handleJoin}
       />
+
+      <ProfileModal open={profileOpen} onOpenChange={setProfileOpen} />
     </div>
   );
 }

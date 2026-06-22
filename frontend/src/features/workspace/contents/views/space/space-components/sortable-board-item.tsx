@@ -14,6 +14,8 @@ import { DateSelect } from "@/components/date-select";
 import type { FolderRecord, TaskRecord } from "@/types/projects";
 import { useRouter, useNavigate } from "@tanstack/react-router";
 import { useWorkspace } from "@/features/workspace/context/workspace-context";
+import { TaskContextMenu } from "@/features/workspace/contents/hierarchy/hierarchy-components/context-menus/task-context-menu";
+import { FolderContextMenu } from "@/features/workspace/contents/hierarchy/hierarchy-components/context-menus/folder-context-menu";
 
 export interface BoardItemCardProps {
   item: BoardItem;
@@ -28,6 +30,7 @@ export interface BoardItemCardProps {
   style?: React.CSSProperties;
   dragRef?: (node: HTMLElement | null) => void;
   dragProps?: Record<string, unknown>;
+  canCreateContent?: boolean;
 }
 
 export const BoardItemCard = React.memo(function BoardItemCard({
@@ -43,6 +46,7 @@ export const BoardItemCard = React.memo(function BoardItemCard({
   style,
   dragRef,
   dragProps,
+  canCreateContent,
 }: BoardItemCardProps) {
   const itemColor = item.color || (item.__type === "folder" ? "#3b82f6" : "#6b7280");
   const isOverdue = React.useMemo(() => {
@@ -58,8 +62,8 @@ export const BoardItemCard = React.memo(function BoardItemCard({
       } else if (item.startDate) {
         text = `Start: ${format(new Date(item.startDate), "MMM d")}`;
       } else if (item.dueDate) {
-        text = isOverdue 
-          ? `Overdue: ${format(new Date(item.dueDate), "MMM d")}` 
+        text = isOverdue
+          ? `Overdue: ${format(new Date(item.dueDate), "MMM d")}`
           : `Due: ${format(new Date(item.dueDate), "MMM d")}`;
       }
     }
@@ -92,7 +96,7 @@ export const BoardItemCard = React.memo(function BoardItemCard({
       style={style}
     >
       <div className="flex flex-col gap-1.5 w-full h-full">
-        {/* Row 1: Icon, Name (Left) | Expand, MoreVertical (Right) */}
+        {/* Row 1: Icon, Name (Left) | Expand (Right) */}
         <div className="flex items-center justify-between mt-0.5">
           <div className="flex items-center gap-2 min-w-0 flex-1">
             <div className="shrink-0 h-4.5 w-4.5 flex items-center justify-center" style={{ color: itemColor }}>
@@ -111,67 +115,79 @@ export const BoardItemCard = React.memo(function BoardItemCard({
             </h4>
           </div>
           <div className="flex items-center shrink-0 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity">
-            <button 
-              type="button" 
-              className="p-0.5 hover:bg-white/10 rounded-sm hover:text-white transition-colors" 
-              onClick={(e) => { 
-                e.stopPropagation(); 
-                onMaximizeClick?.();
-              }}
+            <button
+              type="button"
+              className="p-0.5 hover:bg-white/10 rounded-sm hover:text-white transition-colors"
+              onClick={(e) => { e.stopPropagation(); onMaximizeClick?.(); }}
             >
               <Maximize2 className="h-3 w-3" />
             </button>
           </div>
         </div>
 
-        {/* Row 2: Priority, Date (Left) | Created (Right) */}
+        {/* Row 2: Priority, Date (Left) */}
         <div className="flex items-center justify-between text-[10px] font-medium leading-none mt-1 w-full gap-2">
           <div className="flex items-center gap-1.5 flex-wrap">
-            <PrioritySelect
-              value={(item as TaskRecord | FolderRecord).priority as Priority}
-              onChange={(p) => onPriorityChange?.(p)}
-              align="start"
-              trigger={
-                <button 
-                  type="button" 
-                  className="cursor-pointer focus:outline-none bg-transparent border-none p-0 hover:opacity-80 transition-opacity"
-                  onClick={(e) => e.stopPropagation()}
-                  onPointerDown={(e) => e.stopPropagation()}
-                >
-                  <PriorityBadge priority={(item as TaskRecord | FolderRecord).priority as Priority} />
-                </button>
-              }
-            />
+            {canCreateContent ? (
+              <PrioritySelect
+                value={(item as TaskRecord | FolderRecord).priority as Priority}
+                onChange={(p) => onPriorityChange?.(p)}
+                align="start"
+                trigger={
+                  <button
+                    type="button"
+                    className="cursor-pointer focus:outline-none bg-transparent border-none p-0 hover:opacity-80 transition-opacity"
+                    onClick={(e) => e.stopPropagation()}
+                    onPointerDown={(e) => e.stopPropagation()}
+                  >
+                    <PriorityBadge priority={(item as TaskRecord | FolderRecord).priority as Priority} />
+                  </button>
+                }
+              />
+            ) : (
+              <PriorityBadge priority={(item as TaskRecord | FolderRecord).priority as Priority} />
+            )}
 
-            <DateSelect
-              startDate={item.startDate}
-              dueDate={item.dueDate}
-              onStartDateChange={(date) => onDateChange?.(date ? { startDate: date.toISOString() } : { clearStartDate: true })}
-              onDueDateChange={(date) => onDateChange?.(date ? { dueDate: date.toISOString() } : { clearDueDate: true })}
-              onClearDates={() => onDateChange?.({ clearStartDate: true, clearDueDate: true })}
-              size="sm"
-              align="start"
-              triggerClassName={cn(
-                "h-5 px-1.5 text-[8px] font-black uppercase tracking-wider border border-border/5 rounded w-fit leading-none",
-                isOverdue 
-                  ? "bg-red-500/10 text-red-400 border-red-500/20 hover:bg-red-500/20" 
-                  : "bg-white/[0.02] text-zinc-500 border-white/[0.04] hover:bg-white/[0.06]"
-              )}
-            />
+            {canCreateContent ? (
+              <DateSelect
+                startDate={item.startDate}
+                dueDate={item.dueDate}
+                onStartDateChange={(date) => onDateChange?.(date ? { startDate: date.toISOString() } : { clearStartDate: true })}
+                onDueDateChange={(date) => onDateChange?.(date ? { dueDate: date.toISOString() } : { clearDueDate: true })}
+                onClearDates={() => onDateChange?.({ clearStartDate: true, clearDueDate: true })}
+                size="sm"
+                align="start"
+                triggerClassName={cn(
+                  "h-5 px-1.5 text-[8px] font-black uppercase tracking-wider border border-border/5 rounded w-fit leading-none",
+                  isOverdue
+                    ? "bg-red-500/10 text-red-400 border-red-500/20 hover:bg-red-500/20"
+                    : "bg-white/[0.02] text-zinc-500 border-white/[0.04] hover:bg-white/[0.06]"
+                )}
+              />
+            ) : dateInfo.show ? (
+              <span className={cn(
+                "h-5 px-1.5 text-[8px] font-black uppercase tracking-wider border border-border/5 rounded w-fit leading-none flex items-center",
+                isOverdue
+                  ? "bg-red-500/10 text-red-400 border-red-500/20"
+                  : "bg-white/[0.02] text-zinc-500 border-white/[0.04]"
+              )}>
+                {dateInfo.text}
+              </span>
+            ) : null}
           </div>
         </div>
 
-        {/* Row 3: Assignee Mock (Left) | Folder Tag & Created (Right) */}
+        {/* Row 3: Assignee (Left) | Folder Tag & Created (Right) */}
         <div className="flex items-center justify-between text-[10px] font-medium leading-none mt-1 w-full gap-2">
           <div className="flex items-center gap-2">
             <div className="h-4 w-4 rounded-full bg-white/[0.03] flex items-center justify-center border border-white/[0.05]">
               <User className="h-2.5 w-2.5 opacity-30 group-hover:opacity-50 transition-opacity" />
             </div>
           </div>
-          
+
           <div className="flex items-center gap-1.5 ml-auto">
             {item.__type === "folder" && (
-              <span 
+              <span
                 className="px-1.5 py-0.5 rounded text-[8px] uppercase font-black tracking-widest border shrink-0"
                 style={{
                   backgroundColor: `${itemColor}0e`,
@@ -230,42 +246,26 @@ export const SortableBoardItem = React.memo(function SortableBoardItem({
     transition: isDragging ? undefined : transition,
   }), [isDragging, transform, transition]);
 
-  
   const handleClick = React.useCallback(() => {
-    if (item.__type === "task") {
-      onTaskClick(item.id);
-    } else {
-      onFolderClick(item.id);
-    }
+    if (item.__type === "task") onTaskClick(item.id);
+    else onFolderClick(item.id);
   }, [item.id, item.__type, onTaskClick, onFolderClick]);
 
   const handleOpenPage = React.useCallback(() => {
     if (!workspaceId) return;
     if (item.__type === "task") {
-      navigate({
-        to: "/workspaces/$workspaceId/tasks/$taskId",
-        params: { workspaceId, taskId: item.id },
-      });
+      navigate({ to: "/workspaces/$workspaceId/tasks/$taskId", params: { workspaceId, taskId: item.id } });
     } else {
-      navigate({
-        to: "/workspaces/$workspaceId/folders/$folderId",
-        params: { workspaceId, folderId: item.id },
-      });
+      navigate({ to: "/workspaces/$workspaceId/folders/$folderId", params: { workspaceId, folderId: item.id } });
     }
   }, [item.id, item.__type, workspaceId, navigate]);
 
   const handleMouseDown = React.useCallback(() => {
     if (!workspaceId) return;
     if (item.__type === "task") {
-      router.preloadRoute({
-        to: "/workspaces/$workspaceId/tasks/$taskId",
-        params: { workspaceId, taskId: item.id },
-      });
+      router.preloadRoute({ to: "/workspaces/$workspaceId/tasks/$taskId", params: { workspaceId, taskId: item.id } });
     } else {
-      router.preloadRoute({
-        to: "/workspaces/$workspaceId/folders/$folderId",
-        params: { workspaceId, folderId: item.id },
-      });
+      router.preloadRoute({ to: "/workspaces/$workspaceId/folders/$folderId", params: { workspaceId, folderId: item.id } });
     }
   }, [item.id, item.__type, workspaceId, router]);
 
@@ -277,7 +277,7 @@ export const SortableBoardItem = React.memo(function SortableBoardItem({
     onDateChange(item.id, item.__type, patches);
   }, [item.id, item.__type, onDateChange]);
 
-  return (
+  const card = (
     <BoardItemCard
       item={item}
       isSelected={isSelected}
@@ -291,6 +291,21 @@ export const SortableBoardItem = React.memo(function SortableBoardItem({
       style={style}
       dragRef={setNodeRef}
       dragProps={{ ...attributes, ...(canCreateContent ? listeners : {}) }}
+      canCreateContent={canCreateContent}
     />
+  );
+
+  if (item.__type === "task") {
+    return (
+      <TaskContextMenu taskId={item.id} taskName={item.name} parentId="">
+        <div>{card}</div>
+      </TaskContextMenu>
+    );
+  }
+
+  return (
+    <FolderContextMenu folderId={item.id} folderName={item.name}>
+      <div>{card}</div>
+    </FolderContextMenu>
   );
 });

@@ -59,9 +59,10 @@ public class TasksController : ControllerBase
     }
 
     [HttpGet("{id:guid}/comments")]
-    public async Task<IActionResult> GetComments(Guid id, CancellationToken cancellationToken)
+    public async Task<IActionResult> GetComments(Guid id, [FromQuery] string? cursor, [FromQuery] int pageSize = 15, CancellationToken cancellationToken = default)
     {
-        var result = await _handler.QueryAsync<GetCommentsQuery, List<CommentRecord>>(new GetCommentsQuery(id), cancellationToken);
+        var pagination = new CursorPaginationRequest(cursor, pageSize);
+        var result = await _handler.QueryAsync<GetCommentsQuery, PagedResult<CommentRecord>>(new GetCommentsQuery(id, pagination), cancellationToken);
         return result.ToActionResult();
     }
 

@@ -14,11 +14,13 @@ public static class WorkflowHelper
         if (folderId.HasValue)
             return await db.Workflows
                 .Include(w => w.Statuses)
+                .AsNoTracking()
                 .FirstOrDefaultAsync(w => w.ProjectWorkspaceId == workspaceId && w.ProjectFolderId == folderId.Value, cancellationToken);
 
         if (spaceId.HasValue)
             return await db.Workflows
                 .Include(w => w.Statuses)
+                .AsNoTracking()
                 .FirstOrDefaultAsync(w => w.ProjectWorkspaceId == workspaceId && w.ProjectSpaceId == spaceId.Value && w.ProjectFolderId == null, cancellationToken);
 
         return null;

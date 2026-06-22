@@ -5,6 +5,7 @@ using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 using Serilog.Context;
 using System.Diagnostics;
+using System.Text.Json;
 
 namespace Application;
 public static class PipelineDecorator
@@ -31,8 +32,7 @@ public static class PipelineDecorator
             using (LogContext.PushProperty("UserId", userId))
             using (LogContext.PushProperty("WorkspaceId", workspaceId))
             {
-                var payload = System.Text.Json.JsonSerializer.Serialize(command);
-                logger.LogInformation("Executing command {RequestName} with Payload: {Payload}", requestName, payload);
+                var payload = JsonSerializer.Serialize(command);
                 var sw = Stopwatch.StartNew();
 
                 try
@@ -109,8 +109,7 @@ public static class PipelineDecorator
             using (LogContext.PushProperty("UserId", userId))
             using (LogContext.PushProperty("WorkspaceId", workspaceId))
             {
-                var payload = System.Text.Json.JsonSerializer.Serialize(command);
-                logger.LogInformation("Executing command {RequestName} with Payload: {Payload}", requestName, payload);
+                var payload = JsonSerializer.Serialize(command);
                 var sw = Stopwatch.StartNew();
 
                 try

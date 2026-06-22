@@ -1,9 +1,6 @@
-using Microsoft.EntityFrameworkCore;
 using System.Text.Json;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Hybrid;
-using Microsoft.Extensions.Logging;
-
-using NpgsqlTypes;
 using Dapper;
 
 namespace Application;
@@ -21,7 +18,6 @@ public class WorkspaceRow
     public int MemberCount { get; init; }
     public bool IsArchived { get; init; }
     public bool IsPinned { get; init; }
-    public string? MembersJson { get; init; }
 }
 
 public class GetWorkspaceListHandler(
@@ -49,10 +45,7 @@ public class GetWorkspaceListHandler(
                 ? @"
                 SELECT w.id AS Id, w.updated_at AS UpdatedAt, w.name AS Name, w.custom_icon AS Icon, w.custom_color AS Color,
                        w.description AS Description, w.is_archived AS IsArchived, wm.role AS Role, wm.status AS MembershipStatus, wm.is_pinned AS IsPinned,
-                       (SELECT COUNT(*) FROM workspace_members WHERE project_workspace_id = w.id AND deleted_at IS NULL) AS MemberCount,
-                       (SELECT json_agg(json_build_object('Id', u.id, 'Name', u.name, 'Role', m.role))
-                        FROM (SELECT user_id, role FROM workspace_members WHERE project_workspace_id = w.id AND deleted_at IS NULL ORDER BY created_at ASC LIMIT 5) m
-                        JOIN users u ON u.id = m.user_id) AS MembersJson
+                       (SELECT COUNT(*) FROM workspace_members WHERE project_workspace_id = w.id AND deleted_at IS NULL) AS MemberCount
                 FROM project_workspaces w
                 JOIN workspace_members wm ON wm.project_workspace_id = w.id AND wm.user_id = @CurrentUserId AND wm.deleted_at IS NULL
                 WHERE w.deleted_at IS NULL AND
@@ -65,10 +58,7 @@ public class GetWorkspaceListHandler(
                 : @"
                 SELECT w.id AS Id, w.updated_at AS UpdatedAt, w.name AS Name, w.custom_icon AS Icon, w.custom_color AS Color,
                        w.description AS Description, w.is_archived AS IsArchived, wm.role AS Role, wm.status AS MembershipStatus, wm.is_pinned AS IsPinned,
-                       (SELECT COUNT(*) FROM workspace_members WHERE project_workspace_id = w.id AND deleted_at IS NULL) AS MemberCount,
-                       (SELECT json_agg(json_build_object('Id', u.id, 'Name', u.name, 'Role', m.role))
-                        FROM (SELECT user_id, role FROM workspace_members WHERE project_workspace_id = w.id AND deleted_at IS NULL ORDER BY created_at ASC LIMIT 5) m
-                        JOIN users u ON u.id = m.user_id) AS MembersJson
+                       (SELECT COUNT(*) FROM workspace_members WHERE project_workspace_id = w.id AND deleted_at IS NULL) AS MemberCount
                 FROM project_workspaces w
                 JOIN workspace_members wm ON wm.project_workspace_id = w.id AND wm.user_id = @CurrentUserId AND wm.deleted_at IS NULL
                 WHERE w.deleted_at IS NULL AND

@@ -1,12 +1,12 @@
 import { useState } from "react";
 import { useSelector } from "react-redux";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Send, CornerDownRight, Trash2, X } from "lucide-react";
+import { Send, CornerDownRight, Trash2, X, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { memberSelectors, commentSelectors } from "@/store/entityStore";
 import { toast } from "sonner";
-import { useGetTaskCommentsQuery, useAddCommentMutation, useDeleteCommentMutation } from "../task-api";
+import { useTaskComments, useAddCommentMutation, useDeleteCommentMutation } from "../task-api";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -23,12 +23,9 @@ interface TaskCommentsProps {
 }
 
 export function TaskComments({ taskId }: Readonly<TaskCommentsProps>) {
-  const members = useSelector(memberSelectors.selectEntities);
   const allMembers = useSelector(memberSelectors.selectAll);
 
-  useGetTaskCommentsQuery(taskId, {
-    skip: !taskId,
-  });
+  const { isLoading, isFetchingNextPage, hasNextPage, fetchNextPage } = useTaskComments(taskId);
 
   const allComments = useSelector(commentSelectors.selectAll);
   const comments = allComments
@@ -50,11 +47,7 @@ export function TaskComments({ taskId }: Readonly<TaskCommentsProps>) {
       setReplyingTo(null);
     } catch {
       toast.error("Failed to add comment. Please try again.");
-      }
-  };
-
-  const handleDeleteComment = (commentId: string) => {
-    setDeleteCommentId(commentId);
+    }
   };
 
   const confirmDelete = () => {
@@ -71,62 +64,83 @@ export function TaskComments({ taskId }: Readonly<TaskCommentsProps>) {
       </h3>
 
       <div className="space-y-4 max-h-[300px] overflow-y-auto pr-2 [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-thumb]:bg-muted-foreground/20 hover:[&::-webkit-scrollbar-thumb]:bg-muted-foreground/45 [&::-webkit-scrollbar-track]:bg-transparent">
-        {comments.map((comment) => {
-          const creator = allMembers.find((m) => m.userId === comment.creatorId);
-          const name = creator?.name || "Unknown User";
-          const initials = name.split(" ").map((n: string) => n[0]).join("").slice(0, 2).toUpperCase();
-          const parentComment = comment.parentCommentId ? comments.find(c => c.id === comment.parentCommentId) : null;
-          const parentMember = parentComment ? allMembers.find(m => m.userId === parentComment.creatorId) : null;
-          const parentName = parentMember ? parentMember.name : "Unknown User";
+        {/* Load more — top, since oldest-first order */}
+        {hasNextPage && (
+          <button
+            type="button"
+            onClick={fetchNextPage}
+            disabled={isFetchingNextPage}
+            className="w-full flex items-center justify-center gap-1.5 py-1.5 text-[10px] font-semibold text-muted-foreground/60 hover:text-foreground transition-colors"
+          >
+            {isFetchingNextPage ? (
+              <Loader2 className="h-3 w-3 animate-spin" />
+            ) : (
+              "Load earlier comments"
+            )}
+          </button>
+        )}
 
-          return (
-            <div key={comment.id} className="flex gap-3 group">
-              <Avatar className="h-7 w-7 mt-0.5 shrink-0 rounded-md">
-                {creator?.avatarUrl && <AvatarImage src={creator.avatarUrl} alt={name} />}
-                <AvatarFallback className="text-[10px] bg-primary/20 text-primary font-bold rounded-md">{initials}</AvatarFallback>
-              </Avatar>
-              <div className="flex flex-col gap-1 min-w-0 flex-1">
-                <div className="flex items-center gap-2">
-                  <span className="font-semibold text-foreground text-xs">{name}</span>
-                  <span className="text-[10px] text-muted-foreground/60 font-medium">
-                    {new Date(comment.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                  </span>
-                </div>
+        {isLoading ? (
+          <div className="flex items-center justify-center py-4">
+            <Loader2 className="h-4 w-4 animate-spin text-muted-foreground/40" />
+          </div>
+        ) : comments.length === 0 ? (
+          <p className="text-xs text-muted-foreground/50 italic py-2">No comments yet. Start the conversation!</p>
+        ) : (
+          comments.map((comment) => {
+            const creator = allMembers.find((m) => m.userId === comment.creatorId);
+            const name = creator?.name || "Unknown User";
+            const initials = name.split(" ").map((n: string) => n[0]).join("").slice(0, 2).toUpperCase();
+            const parentComment = comment.parentCommentId ? comments.find(c => c.id === comment.parentCommentId) : null;
+            const parentMember = parentComment ? allMembers.find(m => m.userId === parentComment.creatorId) : null;
+            const parentName = parentMember ? parentMember.name : "Unknown User";
 
-                {parentComment && (
-                  <div className="flex flex-col gap-0.5 pl-2.5 py-1.5 border-l-2 border-primary/30 bg-muted/20 rounded-r-md mt-0.5 mb-1.5">
-                    <span className="text-[9px] font-bold text-primary/80 flex items-center gap-1">
-                      <CornerDownRight className="h-2 w-2" /> Replying to {parentName}
+            return (
+              <div key={comment.id} className="flex gap-3 group">
+                <Avatar className="h-7 w-7 mt-0.5 shrink-0 rounded-md">
+                  {creator?.avatarUrl && <AvatarImage src={creator.avatarUrl} alt={name} />}
+                  <AvatarFallback className="text-[10px] bg-primary/20 text-primary font-bold rounded-md">{initials}</AvatarFallback>
+                </Avatar>
+                <div className="flex flex-col gap-1 min-w-0 flex-1">
+                  <div className="flex items-center gap-2">
+                    <span className="font-semibold text-foreground text-xs">{name}</span>
+                    <span className="text-[10px] text-muted-foreground/60 font-medium">
+                      {new Date(comment.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                     </span>
-                    <span className="text-[10px] text-muted-foreground truncate opacity-80 italic line-clamp-2 whitespace-normal">{parentComment.content}</span>
                   </div>
-                )}
 
-                <div className="bg-muted/30 rounded-md px-3 py-2 text-xs text-foreground/90 leading-relaxed border border-border/5">
-                  {comment.content}
-                </div>
-                <div className="flex items-center gap-3 pt-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <button 
-                    type="button"
-                    onClick={() => setReplyingTo({ id: comment.id, name, content: comment.content })}
-                    className="text-[10px] font-semibold text-muted-foreground hover:text-foreground flex items-center gap-1 transition-colors"
-                  >
-                    <CornerDownRight className="h-3 w-3" /> Reply
-                  </button>
-                  <button 
-                    type="button"
-                    onClick={() => handleDeleteComment(comment.id)}
-                    className="text-[10px] font-semibold text-muted-foreground hover:text-destructive flex items-center gap-1 transition-colors"
-                  >
-                    <Trash2 className="h-3 w-3" /> Delete
-                  </button>
+                  {parentComment && (
+                    <div className="flex flex-col gap-0.5 pl-2.5 py-1.5 border-l-2 border-primary/30 bg-muted/20 rounded-r-md mt-0.5 mb-1.5">
+                      <span className="text-[9px] font-bold text-primary/80 flex items-center gap-1">
+                        <CornerDownRight className="h-2 w-2" /> Replying to {parentName}
+                      </span>
+                      <span className="text-[10px] text-muted-foreground truncate opacity-80 italic line-clamp-2 whitespace-normal">{parentComment.content}</span>
+                    </div>
+                  )}
+
+                  <div className="bg-muted/30 rounded-md px-3 py-2 text-xs text-foreground/90 leading-relaxed border border-border/5">
+                    {comment.content}
+                  </div>
+                  <div className="flex items-center gap-3 pt-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button
+                      type="button"
+                      onClick={() => setReplyingTo({ id: comment.id, name, content: comment.content })}
+                      className="text-[10px] font-semibold text-muted-foreground hover:text-foreground flex items-center gap-1 transition-colors"
+                    >
+                      <CornerDownRight className="h-3 w-3" /> Reply
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setDeleteCommentId(comment.id)}
+                      className="text-[10px] font-semibold text-muted-foreground hover:text-destructive flex items-center gap-1 transition-colors"
+                    >
+                      <Trash2 className="h-3 w-3" /> Delete
+                    </button>
+                  </div>
                 </div>
               </div>
-            </div>
-          );
-        })}
-        {comments.length === 0 && (
-          <p className="text-xs text-muted-foreground/50 italic py-2">No comments yet. Start the conversation!</p>
+            );
+          })
         )}
       </div>
 
@@ -148,11 +162,11 @@ export function TaskComments({ taskId }: Readonly<TaskCommentsProps>) {
               onChange={(e) => setNewCommentText(e.target.value)}
               className="text-xs min-h-9 h-auto py-2 bg-transparent border-none pr-10 focus-visible:ring-0 shadow-none"
             />
-            <Button 
-              type="submit" 
-              size="icon" 
+            <Button
+              type="submit"
+              size="icon"
               variant="ghost"
-              className="absolute right-1 bottom-1 h-7 w-7 text-primary hover:bg-primary/10 hover:text-primary transition-colors rounded-md" 
+              className="absolute right-1 bottom-1 h-7 w-7 text-primary hover:bg-primary/10 hover:text-primary transition-colors rounded-md"
               disabled={!newCommentText.trim()}
             >
               <Send className="h-3.5 w-3.5" />
@@ -161,7 +175,7 @@ export function TaskComments({ taskId }: Readonly<TaskCommentsProps>) {
         </form>
       </div>
 
-      <AlertDialog  open={!!deleteCommentId} onOpenChange={(open) => !open && setDeleteCommentId(null)}>
+      <AlertDialog open={!!deleteCommentId} onOpenChange={(open) => !open && setDeleteCommentId(null)}>
         <AlertDialogContent className="rounded-md">
           <AlertDialogHeader>
             <AlertDialogTitle>Delete comment</AlertDialogTitle>
@@ -171,7 +185,7 @@ export function TaskComments({ taskId }: Readonly<TaskCommentsProps>) {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction 
+            <AlertDialogAction
               onClick={confirmDelete}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >

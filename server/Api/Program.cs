@@ -153,8 +153,7 @@ if (!app.Environment.IsDevelopment())
 
 app.UseAuthentication();
 app.UseAuthorization();
-
-// Now that we have Auth, push the User ID into the logging context
+app.UseRateLimiter();
 app.UseMiddleware<LogContextMiddleware>();
 app.UseMiddleware<ExceptionHandlingMiddleware>();
 
@@ -172,7 +171,7 @@ app.UseSerilogRequestLogging(options => {
 
 app.UseMiddleware<WorkspaceContextMiddleware>();
 app.UseMiddleware<IdempotencyMiddleware>();
-app.UseRateLimiter();
+
 
 app.MapHub<WorkspaceHub>("/hubs/workspace");
 app.MapControllers();

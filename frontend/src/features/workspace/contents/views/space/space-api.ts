@@ -45,7 +45,9 @@ export const spaceApi = workspaceApi.injectEndpoints({
         try {
           const { data } = await queryFulfilled;
           dispatch(spaceSlice.actions.upsert(data));
-        } catch { /* ignore */ }
+        } catch (error) {
+          console.error("[spaceApi] Failed to sync space detail to store:", error);
+        }
       }
     }),
 
@@ -58,7 +60,9 @@ export const spaceApi = workspaceApi.injectEndpoints({
           dispatch(folderSlice.actions.upsertMany(data.folders));
           dispatch(taskSlice.actions.upsertMany(data.tasks));
           dispatch(statusSlice.actions.upsertMany(data.statuses));
-        } catch { /* ignore */ }
+        } catch (error) {
+          console.error("[spaceApi] Failed to sync space items to store:", error);
+        }
       }
     }),
 
@@ -144,7 +148,9 @@ export const spaceApi = workspaceApi.injectEndpoints({
             .filter(item => item.id)
             .map(item => ({ ...item, id:item.id }));
           dispatch(entityAccessSlice.actions.upsertMany(mapped));
-        } catch { /* ignore */ }
+        } catch (error) {
+          console.error("[spaceApi] Failed to sync entity access to store:", error);
+        }
       }
     }),
 

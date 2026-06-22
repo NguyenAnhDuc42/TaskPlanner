@@ -9,6 +9,7 @@ import type { PagedResult } from "@/types/paged-result";
 import { useNavigate, useSearch } from "@tanstack/react-router";
 import React from "react";
 import { signalRService } from "@/lib/signalr-service";
+import { useSelector } from "react-redux";
 
 type CreateWorkspaceValues = z.infer<typeof createWorkspaceSchema>;
 
@@ -44,7 +45,9 @@ export const homeWorkspaceApi = workspaceApi.injectEndpoints({
         try {
           const { data } = await queryFulfilled;
           dispatch(workspaceSlice.actions.upsertMany(data.items));
-        } catch { /* ignore */ }
+        } catch (error) {
+          console.error("[homeApi] Failed to sync workspaces to store:", error);
+        }
       },
       providesTags: ["Workspaces"],
     }),
@@ -54,7 +57,9 @@ export const homeWorkspaceApi = workspaceApi.injectEndpoints({
         try {
           const { data } = await queryFulfilled;
           dispatch(workspaceSlice.actions.upsert(data));
-        } catch { /* ignore */ }
+        } catch (error) {
+          console.error("[homeApi] Failed to sync created workspace to store:", error);
+        }
       },
     }),
     setWorkspacePin: build.mutation<boolean, { workspaceId: string; isPinned: boolean }>({
@@ -172,16 +177,24 @@ export function useWorkspaceHome() {
   const { refetch } = useGetWorkspacesQuery({ ...search });
 
   const {
-    data,
     isLoading: isWorkspacesLoading,
     fetchNextPage,
     hasNextPage,
     isFetchingNextPage,
   } = useWorkspaces(search);
 
+  const allWorkspaces = useSelector(workspaceSelectors.selectAll);
   const workspaces = React.useMemo(() => {
-    return data?.pages.flatMap((page) => page.items) ?? [];
-  }, [data]);
+    let filtered = allWorkspaces;
+    if (search.name) {
+      const lower = search.name.toLowerCase();
+      filtered = filtered.filter((ws) => ws.name.toLowerCase().includes(lower));
+    }
+    if (search.owned) {
+      filtered = filtered.filter((ws) => ws.role === "Owner");
+    }
+    return filtered;
+  }, [allWorkspaces, search.name, search.owned]);
 
   const { mutate: createInternal } = useCreateWorkspace();
   const { mutate: setWorkspacePin } = useSetWorkspacePin();

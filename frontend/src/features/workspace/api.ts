@@ -43,7 +43,9 @@ export const workspaceFeatureApi = workspaceApi.injectEndpoints({
         try {
           const { data } = await queryFulfilled;
           dispatch(memberSlice.actions.upsertMany(data.items));
-        } catch { /* ignore */ }
+        } catch (error) {
+          console.error("[workspaceApi] Failed to sync members to store:", error);
+        }
       },
     }),
 
@@ -63,7 +65,9 @@ export const workspaceFeatureApi = workspaceApi.injectEndpoints({
             });
           });
           dispatch(statusSlice.actions.upsertMany(statuses));
-        } catch { /* ignore */ }
+        } catch (error) {
+          console.error("[workspaceApi] Failed to sync workflow statuses to store:", error);
+        }
       },
     }),
 
@@ -205,7 +209,9 @@ export const workspaceFeatureApi = workspaceApi.injectEndpoints({
           if (data.spaces.length)  dispatch(spaceSlice.actions.upsertMany(data.spaces));
           if (data.folders.length) dispatch(folderSlice.actions.upsertMany(data.folders));
           if (data.tasks.length)   dispatch(taskSlice.actions.upsertMany(data.tasks));
-        } catch { /* ignore */ }
+        } catch (error) {
+          console.error("[workspaceApi] Failed to sync favorites to store:", error);
+        }
       },
     }),
   }),

@@ -3,8 +3,10 @@ import { taskSlice, assigneeSlice, commentSlice } from "@/store/entityStore";
 import type { TaskRecord } from "@/types/projects/task-record";
 import type { CommentRecord, AssigneeRecord } from "@/types/projects";
 import type { RootState } from "@/store";
+import type { PagedResult } from "@/types/paged-result";
 import { toast } from "sonner";
 import { extractErrorMessage } from "@/types/api-error";
+import { useState, useCallback } from "react";
 
 export type UpdateTaskPayload = Partial<TaskRecord> & {
   clearStartDate?: boolean;
@@ -116,16 +118,27 @@ export const taskApi = workspaceApi.injectEndpoints({
       }
     }),
 
-    getTaskComments: build.query<CommentRecord[], string>({
-      query: (taskId) => ({
+    getTaskComments: build.query<PagedResult<CommentRecord>, { taskId: string; cursor?: string | null }>({
+      query: ({ taskId, cursor }) => ({
         url: `/tasks/${taskId}/comments`,
         method: "GET",
+        params: cursor ? { cursor } : undefined,
       }),
-      providesTags: (_result, _error, id) => [{ type: "Tasks" as const, id: `comments-${id}` }],
-      async onQueryStarted(taskId, { dispatch, queryFulfilled }) {
+      serializeQueryArgs: ({ queryArgs }) => `getTaskComments_${queryArgs.taskId}`,
+      merge: (cache, newPage, { arg }) => {
+        if (!arg.cursor) {
+          cache.items = newPage.items;
+        } else {
+          cache.items.push(...newPage.items);
+        }
+        cache.nextCursor = newPage.nextCursor;
+        cache.hasNextPage = newPage.hasNextPage;
+      },
+      forceRefetch: ({ currentArg, previousArg }) => currentArg?.cursor !== previousArg?.cursor,
+      async onQueryStarted({ taskId }, { dispatch, queryFulfilled }) {
         try {
           const { data } = await queryFulfilled;
-          dispatch(commentSlice.actions.upsertMany(data));
+          dispatch(commentSlice.actions.upsertMany(data.items));
         } catch (error) {
           console.error(`[taskApi] Failed to fetch comments for task ${taskId}:`, error);
         }
@@ -138,7 +151,20 @@ export const taskApi = workspaceApi.injectEndpoints({
         method: "POST",
         data: { content, parentCommentId },
       }),
-      invalidatesTags: (_result, _error, { taskId }) => [{ type: "Tasks" as const, id: `comments-${taskId}` }],
+      async onQueryStarted({ taskId }, { dispatch, queryFulfilled }) {
+        try {
+          const { data } = await queryFulfilled;
+          dispatch(commentSlice.actions.upsert(data));
+          // Reset cursor so the merged cache shows the new comment
+          dispatch(taskApi.util.updateQueryData("getTaskComments", { taskId }, (draft) => {
+            if (!draft.items.some((c) => c.id === data.id)) {
+              draft.items.push(data);
+            }
+          }));
+        } catch (error) {
+          console.error("[taskApi] Failed to sync new comment to cache:", error);
+        }
+      },
     }),
 
     deleteComment: build.mutation<void, { taskId: string; commentId: string }>({
@@ -146,11 +172,13 @@ export const taskApi = workspaceApi.injectEndpoints({
         url: `/tasks/${taskId}/comments/${commentId}`,
         method: "DELETE",
       }),
-      invalidatesTags: (_result, _error, { taskId }) => [{ type: "Tasks" as const, id: `comments-${taskId}` }],
-      async onQueryStarted({ commentId }, { dispatch, queryFulfilled, getState }) {
+      async onQueryStarted({ taskId, commentId }, { dispatch, queryFulfilled, getState }) {
         const state = getState() as RootState;
         const originalComment = state.comments.entities[commentId];
         dispatch(commentSlice.actions.remove(commentId));
+        dispatch(taskApi.util.updateQueryData("getTaskComments", { taskId }, (draft) => {
+          draft.items = draft.items.filter((c) => c.id !== commentId);
+        }));
         try {
           await queryFulfilled;
         } catch (err) {
@@ -188,3 +216,23 @@ export const {
   useDeleteCommentMutation,
   useCreateSubTaskMutation,
 } = taskApi;
+
+export function useTaskComments(taskId: string) {
+  const [cursor, setCursor] = useState<string | null>(null);
+
+  const { data, isLoading, isFetching } = useGetTaskCommentsQuery(
+    { taskId, cursor },
+    { skip: !taskId }
+  );
+
+  const fetchNextPage = useCallback(() => {
+    if (data) setCursor(data.nextCursor ?? null);
+  }, [data]);
+
+  return {
+    isLoading,
+    isFetchingNextPage: isFetching && cursor !== null,
+    hasNextPage: !!data?.hasNextPage,
+    fetchNextPage,
+  };
+}
