@@ -58,7 +58,6 @@ export function TaskView({ taskId }: Readonly<TaskViewProps>) {
 
   return (
     <EntityViewFrame
-      className="bg-card/30"
       topHeader={
         <div className="flex items-center justify-between w-full">
           <Breadcrumb className="text-xs">
@@ -74,7 +73,7 @@ export function TaskView({ taskId }: Readonly<TaskViewProps>) {
                       >
                         <DynamicIcon
                           name={space.icon || "Layout"}
-                          size={11}
+                          size={15}
                           color={space.color || "#3b82f6"}
                           className="stroke-[2.5] shrink-0"
                         />
@@ -96,7 +95,7 @@ export function TaskView({ taskId }: Readonly<TaskViewProps>) {
                       >
                         <DynamicIcon
                           name={folder.icon || "Folder"}
-                          size={11}
+                          size={15}
                           color={folder.color || "#6366f1"}
                           className="stroke-[2.5] shrink-0"
                         />
@@ -118,7 +117,7 @@ export function TaskView({ taskId }: Readonly<TaskViewProps>) {
                       >
                         <DynamicIcon
                           name={parentTask.icon || "CheckSquare"}
-                          size={11}
+                          size={15}
                           color={parentTask.color || "#6366f1"}
                           className="stroke-[2.5] shrink-0"
                         />
@@ -133,7 +132,7 @@ export function TaskView({ taskId }: Readonly<TaskViewProps>) {
                 <BreadcrumbPage className="font-medium text-foreground flex items-center gap-1.5">
                   <DynamicIcon
                     name={task?.icon || "CheckSquare"}
-                    size={11}
+                    size={15}
                     color={task?.color || "#6366f1"}
                     className="stroke-[2.5] shrink-0"
                   />
@@ -172,7 +171,7 @@ export function TaskView({ taskId }: Readonly<TaskViewProps>) {
         </div>
       }
     >
-      <div className="h-full w-full flex flex-col bg-transparent overflow-hidden relative">
+      <div className="h-full w-full flex flex-col bg-card overflow-hidden relative">
         <TaskDetailCanvas taskId={taskId} />
       </div>
 

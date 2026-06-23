@@ -65,10 +65,19 @@ public sealed class ProjectWorkspace : Entity
     public void AddMember(Guid userId, Role role, Guid actorId, string? joinMethod = "Manual", Theme theme = Theme.Dark)
     {
         EnsureNotArchived();
-        
+
         var newMember = WorkspaceMember.Create(userId, this.Id, role, MembershipStatus.Active, actorId, joinMethod, theme);
         _members.Add(newMember);
-        
+
+        UpdateTimestamp();
+    }
+
+    public void AddMemberByCode(Guid userId, Guid actorId, Theme theme = Theme.Dark)
+    {
+        EnsureNotArchived();
+        var status = StrictJoin ? MembershipStatus.Pending : MembershipStatus.Active;
+        var newMember = WorkspaceMember.Create(userId, this.Id, Role.Member, status, actorId, "Code", theme);
+        _members.Add(newMember);
         UpdateTimestamp();
     }
 

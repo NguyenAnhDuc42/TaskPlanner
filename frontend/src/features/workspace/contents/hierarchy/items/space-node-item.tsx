@@ -1,6 +1,6 @@
 import React from "react";
-import * as Icons from "lucide-react";
-import { ChevronRight, MoreVertical, Lock, type LucideIcon } from "lucide-react";
+import { ChevronRight, MoreVertical, Lock } from "lucide-react";
+import { DynamicIcon } from "@/components/dynamic-icon";
 import { useNavigate, useLocation, useRouter } from "@tanstack/react-router";
 import { useWorkspace } from "@/features/workspace/context/workspace-context";
 import { cn } from "@/lib/utils";
@@ -42,8 +42,6 @@ export const SpaceNodeItem = React.memo(function SpaceNodeItem({
   if (!space) return null;
 
   const isActive = location.pathname.includes(`/spaces/${space.id}`);
-  const iconName = (space.icon ?? "LayoutGrid") as keyof typeof Icons;
-  const IconComponent: LucideIcon =(Icons[iconName] as unknown as LucideIcon) ?? Icons.LayoutGrid;
   const spaceColor = space.color || "var(--primary)";
 
   const effectiveOpen = isForcedOpen || isOpen; 
@@ -86,12 +84,14 @@ export const SpaceNodeItem = React.memo(function SpaceNodeItem({
                 setIsOpen(!isOpen);
               }}
             >
-              <IconComponent
+              <DynamicIcon
+                name={space.icon || "LayoutGrid"}
+                size={14}
+                color={spaceColor}
                 className={cn(
-                  "h-3.5 w-3.5 absolute transition-none",
+                  "absolute transition-none",
                   hasChildren && "group-hover/icon:opacity-0",
                 )}
-                style={{ color: spaceColor }}
               />
               {hasChildren && (
                 <ChevronRight

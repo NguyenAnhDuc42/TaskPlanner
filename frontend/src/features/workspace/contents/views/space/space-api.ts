@@ -1,9 +1,9 @@
 import { workspaceApi } from "@/store/workspaceApi";
 import { spaceSlice, folderSlice, taskSlice, statusSlice, entityAccessSlice, folderSelectors, taskSelectors, statusSelectors } from "@/store/entityStore";
-import { useSelector } from "react-redux";
+import { useSelector, useDispatch } from "react-redux";
 import { createSelector } from "@reduxjs/toolkit";
-import { useMemo } from "react";
-import type { RootState } from "@/store";
+import { useMemo, useEffect } from "react";
+import type { RootState, AppDispatch } from "@/store";
 import type { SpaceRecord, FolderRecord, TaskRecord } from "@/types/projects";
 import type { Status } from "@/types/status";
 import { StatusCategory } from "@/types/status-category";
@@ -18,6 +18,8 @@ export interface GetSpaceItemsResponse {
   folders: FolderRecord[];
   tasks: TaskRecord[];
   statuses: Status[];
+  hasNextPage: boolean;
+  nextCursor: string | null;
 }
 
 export interface EntityAccessRowsValue {
@@ -25,6 +27,14 @@ export interface EntityAccessRowsValue {
   memberId: string;
   accessLevel: AccessLevel;
   action: RowAction;
+}
+
+export interface SpaceBoardFilter {
+  priorities?: string[];
+  folderIds?: string[]; // "__none__" = tasks with no folder (direct space tasks)
+  search?: string;
+  startDate?: string;
+  dueDate?: string;
 }
 
 export interface BatchUpdateSpaceItemValue {
@@ -51,9 +61,12 @@ export const spaceApi = workspaceApi.injectEndpoints({
       }
     }),
 
-    // Unfiltered — upserts everything into the entity store (used by SpaceView to bootstrap data)
-    getSpaceItems: build.query<GetSpaceItemsResponse, string>({
-      query: (spaceId) => ({ url: `/spaces/${spaceId}/items`, method: "GET" }),
+    getSpaceItems: build.query<GetSpaceItemsResponse, { spaceId: string; cursor?: string | null }>({
+      query: ({ spaceId, cursor }) => ({
+        url: `/spaces/${spaceId}/items`,
+        method: "GET",
+        params: cursor ? { cursor } : undefined,
+      }),
       async onQueryStarted(_, { dispatch, queryFulfilled }) {
         try {
           const { data } = await queryFulfilled;
@@ -190,6 +203,30 @@ export const {
   useGetSpaceDocumentsQuery,
   useCreateSpaceDocumentMutation,
 } = spaceApi;
+
+// Eagerly loads all space tasks in 200-item batches, chaining until hasNextPage = false.
+// Each batch upserts into entity store via onQueryStarted — no view state needed.
+export function useSpaceItemsFullLoad(spaceId: string) {
+  const dispatch = useDispatch<AppDispatch>();
+  const { data, isSuccess } = useGetSpaceItemsQuery({ spaceId, cursor: null }, { skip: !spaceId });
+
+  useEffect(() => {
+    if (!spaceId || !isSuccess || !data?.hasNextPage || !data?.nextCursor) return;
+
+    async function fetchRemaining(cursor: string) {
+      const result = await dispatch(
+        spaceApi.endpoints.getSpaceItems.initiate({ spaceId, cursor }, { subscribe: false })
+      );
+      if (result.data?.hasNextPage && result.data?.nextCursor) {
+        await fetchRemaining(result.data.nextCursor);
+      }
+    }
+
+    fetchRemaining(data.nextCursor);
+  }, [isSuccess, data?.hasNextPage, data?.nextCursor, spaceId, dispatch]);
+
+  return { isLoading: !isSuccess, isFullyLoaded: isSuccess && !data?.hasNextPage };
+}
 
 // Selectors
 export function useSpaceDetail(spaceId: string) {

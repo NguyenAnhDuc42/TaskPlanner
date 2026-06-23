@@ -23,6 +23,7 @@ export const BoardColumn = React.memo(function BoardColumn({
   onTaskClick,
   onPriorityChange,
   onDateChange,
+  onHide,
 }: {
   statusId: string;
   name: string;
@@ -34,6 +35,7 @@ export const BoardColumn = React.memo(function BoardColumn({
   onTaskClick: (id: string) => void;
   onPriorityChange: (id: string, priority: Priority) => void;
   onDateChange: (id: string, patches: { startDate?: string; dueDate?: string; clearStartDate?: boolean; clearDueDate?: boolean }) => void;
+  onHide?: () => void;
 }) {
   const { setNodeRef, isOver } = useDroppable({ id: statusId });
   const itemIds = useMemo(() =>
@@ -53,6 +55,7 @@ export const BoardColumn = React.memo(function BoardColumn({
       totalCount={items.length}
       className="w-[280px] min-h-[400px] shrink-0 flex flex-col"
       onCreateTask={canCreateContent ? () => setCreateOpen(true) : undefined}
+      onHide={onHide}
     >
       <div
         ref={setNodeRef}

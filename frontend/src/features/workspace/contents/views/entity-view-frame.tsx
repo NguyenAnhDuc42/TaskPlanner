@@ -15,7 +15,7 @@ export function EntityViewFrame({
   ...props
 }: Readonly<EntityViewFrameProps>) {
   return (
-    <div className={cn("flex flex-col h-full w-full bg-background", className)} {...props}>
+    <div className={cn("flex flex-col h-full w-full", className)} {...props}>
       {/* Top Header Row */}
       {topHeader && (
         <div className="flex items-center justify-between h-8 px-4 border-b border-border shrink-0">

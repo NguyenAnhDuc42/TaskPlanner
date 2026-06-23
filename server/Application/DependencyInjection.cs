@@ -106,6 +106,7 @@ public static class DependencyInjection
         services.Configure<CursorEncryptionOptions>(config.GetSection(CursorEncryptionOptions.SectionName));
         services.AddScoped<CursorHelper>();
         services.AddScoped<PermissionService>();
+        services.AddScoped<NotificationService>();
         #endregion
 
         #region Email

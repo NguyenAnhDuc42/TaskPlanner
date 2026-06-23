@@ -28,8 +28,8 @@ public class JoinWorkspaceByCodeHandler(
         JoinWorkspaceByCodeResult dataResult;
         if (existingMember is null)
         {
+            workspace.AddMemberByCode(currentUserId, currentUserId);
             var status = workspace.StrictJoin ? MembershipStatus.Pending : MembershipStatus.Active;
-            workspace.AddMember(currentUserId, Role.Member, currentUserId, "Code");
             dataResult = new JoinWorkspaceByCodeResult(workspace.Id, status.ToString(), true);
         }
         else if (existingMember.DeletedAt != null)

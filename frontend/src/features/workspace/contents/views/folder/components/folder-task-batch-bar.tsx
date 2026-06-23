@@ -47,7 +47,7 @@ export function FolderTaskBatchBar({ folderId, checkedTaskIds, onClear, statuses
   const pendingCount = Object.keys(pendingUpdates).length;
 
   return (
-    <div className="absolute bottom-8 left-1/2 -translate-x-1/2 bg-background/80 backdrop-blur-md border border-border shadow-xl rounded-md px-3 py-1.5 flex items-center gap-3 z-50 animate-in slide-in-from-bottom-4 fade-in duration-200">
+    <div className="absolute bottom-8 left-1/2 -translate-x-1/2 bg-popover text-popover-foreground border border-border shadow-xl rounded-md px-3 py-1.5 flex items-center gap-3 z-50 animate-in slide-in-from-bottom-4 fade-in duration-200">
       <div className="flex items-center gap-2 pl-1">
         <span className="flex h-5 w-5 items-center justify-center rounded-md bg-primary/20 text-primary text-[10px] font-bold">
           {checkedTaskIds.size}

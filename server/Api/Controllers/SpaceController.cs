@@ -45,9 +45,9 @@ namespace Api
         }
 
         [HttpGet("{id:guid}/items")]
-        public async Task<IActionResult> GetItems(Guid id, CancellationToken cancellationToken)
+        public async Task<IActionResult> GetItems(Guid id, [FromQuery] string? cursor, CancellationToken cancellationToken)
         {
-            var result = await _handler.QueryAsync<GetSpaceItemsQuery, GetSpaceItemsResponse>(new GetSpaceItemsQuery(id), cancellationToken);
+            var result = await _handler.QueryAsync<GetSpaceItemsQuery, GetSpaceItemsResponse>(new GetSpaceItemsQuery(id, cursor), cancellationToken);
             return result.ToActionResult();
         }
 

@@ -63,7 +63,7 @@ export function StatusSelect({
       <DropdownMenuTrigger asChild>
         {trigger || (
           <button type="button" className="cursor-pointer focus:outline-none bg-transparent border-none p-0">
-            <StatusBadge status={currentStatus} variant="pill" />
+            <StatusBadge status={currentStatus} variant="outline" />
           </button>
         )}
       </DropdownMenuTrigger>
@@ -89,7 +89,7 @@ export function StatusSelect({
                     onSelect={() => { if (!isSelected) onChange(statusId); }}
                     className={cn("gap-2", isSelected && "bg-muted shadow-sm")}
                   >
-                    <StatusBadge status={status} className="w-full justify-start border-none bg-transparent hover:bg-transparent text-[10px] p-0 h-auto" />
+                    <StatusBadge variant="outline" status={status} className="w-full justify-start pointer-events-none" />
                     {isSelected && <IconCheck className="ml-auto size-4" />}
                   </DropdownMenuItem>
                 );

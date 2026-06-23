@@ -2,7 +2,7 @@ import * as React from "react";
 import { useWorkspaceRole } from "@/features/workspace/context/use-workspace-role";
 import { EntityViewFrame } from "../entity-view-frame";
 import { SpaceBoard } from "./space-components/space-board";
-import { useSpaceDetail, useGetSpaceItemsQuery, useGetSpaceDetailQuery, useUpdateSpaceFieldMutation, useGetEntityAccessQuery } from "./space-api";
+import { useSpaceDetail, useGetSpaceDetailQuery, useUpdateSpaceFieldMutation, useGetEntityAccessQuery } from "./space-api";
 import { Layout, FileText, GitMerge, Lock, Unlock, MoreVertical, Trash2 } from "lucide-react";
 import { FavoriteButton } from "@/components/favorite-button";
 import { EntityLayerType } from "@/types/entity-layer-type";
@@ -42,8 +42,6 @@ export function SpaceView({ spaceId }: Readonly<SpaceViewProps>) {
   // Load space details & items into Redux
   const space = useSpaceDetail(spaceId);
   useGetSpaceDetailQuery(spaceId);
-  useGetSpaceItemsQuery(spaceId);
-
   // Fetch access lists to trigger Redux cache upsertion
   useGetEntityAccessQuery(spaceId);
   const entityAccessList = useSelector(entityAccessSelectors.selectAll).filter(ea => ea.spaceId === spaceId);
@@ -63,10 +61,9 @@ export function SpaceView({ spaceId }: Readonly<SpaceViewProps>) {
 
   return (
     <EntityViewFrame
-      className="bg-card/30"
       topHeader={
         <div className="flex items-center justify-between w-full">
-          <div className="flex items-center gap-1.5 text-xs min-w-0">
+          <div className="flex items-center gap-1 text-xs min-w-0">
             <UniversalPicker
               icon={space?.icon ?? "LayoutGrid"}
               color={space?.color ?? "#3b82f6"}
@@ -127,7 +124,7 @@ export function SpaceView({ spaceId }: Readonly<SpaceViewProps>) {
         </div>
       }
     >
-      <div className="h-full w-full flex flex-col bg-background/25 p-1 gap-1 overflow-hidden relative">
+      <div className="h-full w-full flex flex-col bg-transparent p-1 gap-1 overflow-hidden relative">
         {/* Ambient background accent glow */}
         <div
           className="absolute right-12 bottom-12 w-87.5 h-87.5 rounded-full blur-[120px] opacity-[0.05] pointer-events-none transition-all duration-700"
@@ -135,7 +132,7 @@ export function SpaceView({ spaceId }: Readonly<SpaceViewProps>) {
         />
 
         {/* Controls toolbar */}
-        <div className="flex items-center justify-between px-2 py-1 rounded-md border border-border/30 bg-card/30 backdrop-blur-md shadow-sm shrink-0">
+        <div className="flex items-center justify-between px-2 py-1 rounded-md border border-border bg-card shadow-sm shrink-0">
           {/* Public/Private toggle — admin only, sits on the left */}
           {space && isAdmin ? (
             <button
@@ -222,7 +219,7 @@ export function SpaceView({ spaceId }: Readonly<SpaceViewProps>) {
         </div>
 
         {/* Content area */}
-        <div className="flex-1 rounded-md border border-border/40 bg-card/30 backdrop-blur-md shadow-sm overflow-hidden flex flex-col relative">
+        <div className="flex-1 rounded-md border border-border bg-card shadow-sm overflow-hidden flex flex-col relative">
           {activeTab === "items" ? (
             <SpaceBoard spaceId={spaceId} onWorkflowOpen={isAdmin ? () => setIsWorkflowOpen(true) : undefined} />
           ) : (

@@ -1,5 +1,4 @@
 import * as React from "react"
-import { Input } from "@/components/ui/input"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { DynamicIcon } from "@/components/dynamic-icon"
@@ -8,31 +7,49 @@ import {
   LayoutGrid, Folder, FileText, CheckSquare, Calendar, Clock, User, Users,
   Settings, Bell, Inbox, Hash, Star, Heart, Flag, Bookmark, Tag, Search,
   Zap, Flame, Target, Trophy, Gamepad2, Code2, Terminal, Layers, Component,
-  Box, Package, Database, Cloud, HardDrive, Cpu,
+  Box, Package, Database, Cloud, HardDrive, Cpu, BarChart2, PieChart, TrendingUp,
+  Lock, Unlock, Shield, Eye, EyeOff, Link, Mail, Phone, MapPin, Home,
+  Briefcase, Clipboard, List, AlignLeft, Image, Video, Music, Mic, Headphones,
+  Monitor, Tablet, Smartphone, Printer, Camera, Globe, Wifi, Bluetooth,
+  Battery, Sun, Moon, Wind, Droplets, Leaf, Trees, Bug, Rocket, Anchor,
 } from "lucide-react"
 
 const ICON_MAP: Record<string, React.ElementType> = {
   LayoutGrid, Folder, FileText, CheckSquare, Calendar, Clock, User, Users,
   Settings, Bell, Inbox, Hash, Star, Heart, Flag, Bookmark, Tag, Search,
   Zap, Flame, Target, Trophy, Gamepad2, Code2, Terminal, Layers, Component,
-  Box, Package, Database, Cloud, HardDrive, Cpu,
+  Box, Package, Database, Cloud, HardDrive, Cpu, BarChart2, PieChart, TrendingUp,
+  Lock, Unlock, Shield, Eye, EyeOff, Link, Mail, Phone, MapPin, Home,
+  Briefcase, Clipboard, List, AlignLeft, Image, Video, Music, Mic, Headphones,
+  Monitor, Tablet, Smartphone, Printer, Camera, Globe, Wifi, Bluetooth,
+  Battery, Sun, Moon, Wind, Droplets, Leaf, Trees, Bug, Rocket, Anchor,
 }
 
 const AVAILABLE_ICONS = Object.keys(ICON_MAP)
 
-const DEFAULT_COLORS = [
-  "#6366f1", "#06b6d4", "#10b981", "#f59e0b", "#ef4444", "#ec4899",
+const EMOJIS = [
+  "😀","😃","😄","😁","😆","🤣","😂","😊","😇","🥰",
+  "😍","🤩","🥳","😎","🤓","🧐","🤔","😤","😠","🤬",
+  "❤️","🧡","💛","💚","💙","💜","🖤","🤍","💯","✅",
+  "❌","⭐","🌟","💫","✨","🔥","⚡","💥","🎯","🚀",
+  "🏆","🥇","🎖️","🎉","🎊","🎈","🎁","🏅","🏵️","🎗️",
+  "💡","🔑","🔒","🛠️","⚙️","🔧","🔔","💬","📌","📎",
+  "📁","📂","🗂️","📊","📈","📉","📝","✏️","📋","📅",
+  "💼","🧳","👜","📦","📫","📧","💌","📱","💻","🖥️",
+  "🎨","🎭","🎵","🎶","🎮","🕹️","🎲","♟️","🧩","🃏",
+  "🌈","🌊","🌙","☀️","⛅","🌍","🌿","🍀","🌸","🌺",
 ]
 
-// ─── Trigger size presets ─────────────────────────────────────────────────────
+const DEFAULT_COLORS = [
+  "#6366f1", "#06b6d4", "#10b981", "#f59e0b", "#ef4444", "#ec4899",
+  "#8b5cf6", "#14b8a6", "#f97316", "#84cc16",
+]
 
 const SIZE = {
   sm: { button: "p-1 rounded-sm border border-border/15 bg-background/80 hover:bg-muted/60 shadow-sm", iconSize: 12 },
   md: { button: "h-6 w-6 rounded-sm bg-muted/20 hover:bg-muted/50 flex items-center justify-center", iconSize: 16 },
   lg: { button: "h-9 w-9 rounded-md border border-border/50 bg-muted/20 hover:bg-muted/40 flex items-center justify-center", iconSize: 20 },
 } as const
-
-// ─── Sub-components ───────────────────────────────────────────────────────────
 
 const IconButton = React.memo(function IconButton({
   name, isActive, activeColor, onClick,
@@ -45,14 +62,14 @@ const IconButton = React.memo(function IconButton({
       title={name}
       onClick={onClick}
       className={cn(
-        "w-8 h-8 flex items-center justify-center rounded-sm transition-all",
+        "w-11 h-11 flex items-center justify-center rounded-md transition-all",
         isActive
           ? "bg-muted shadow-sm ring-1 ring-border"
           : "text-muted-foreground hover:text-foreground hover:bg-muted/60",
       )}
       style={isActive ? { color: activeColor } : undefined}
     >
-      <Icon className="h-4 w-4" />
+      <Icon className="h-6 w-6" />
     </button>
   )
 })
@@ -76,8 +93,6 @@ const ColorSwatch = React.memo(function ColorSwatch({
   )
 })
 
-// ─── Picker panel (reusable headlessly if ever needed) ────────────────────────
-
 function PickerPanel({
   icon, color, colors, onSelect,
 }: {
@@ -90,11 +105,10 @@ function PickerPanel({
   const [localColor, setLocalColor] = React.useState(color)
   const [search, setSearch] = React.useState("")
   const [tab, setTab] = React.useState<"icons" | "emojis">("icons")
-  const colorInputRef = React.useRef<HTMLInputElement>(null)
+  const [hexInput, setHexInput] = React.useState(color)
 
-  // Sync with external prop changes (e.g. parent resets the value)
   React.useEffect(() => { setLocalIcon(icon) }, [icon])
-  React.useEffect(() => { setLocalColor(color) }, [color])
+  React.useEffect(() => { setLocalColor(color); setHexInput(color) }, [color])
 
   const filteredIcons = React.useMemo(() => {
     if (!search.trim()) return AVAILABLE_ICONS
@@ -102,35 +116,45 @@ function PickerPanel({
     return AVAILABLE_ICONS.filter((name) => name.toLowerCase().includes(q))
   }, [search])
 
+  const filteredEmojis = React.useMemo(() => {
+    if (!search.trim()) return EMOJIS
+    return EMOJIS // emoji search not meaningful, show all
+  }, [search])
+
   const selectIcon = (i: string) => { setLocalIcon(i); onSelect(i, localColor) }
-  const selectColor = (c: string) => { setLocalColor(c); onSelect(localIcon, c) }
+  const selectColor = (c: string) => { setLocalColor(c); setHexInput(c); onSelect(localIcon, c) }
+
+  const handleHexChange = (val: string) => {
+    // Auto-prepend # if user types without it
+    const normalized = val.startsWith("#") ? val : `#${val}`
+    setHexInput(normalized)
+    if (/^#[0-9a-fA-F]{6}$/.test(normalized)) selectColor(normalized)
+  }
 
   return (
-    <div className="w-72 flex flex-col bg-popover border border-border shadow-md rounded-md overflow-hidden">
+    <div className="w-80 flex flex-col bg-popover border border-border shadow-md rounded-md overflow-hidden">
       {/* Color row */}
       <div className="flex items-center gap-2 px-3 py-2.5 border-b border-border/50">
         <span className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/50 shrink-0">
           Color
         </span>
-        <div className="flex items-center gap-1.5 flex-1">
+        <div className="flex items-center gap-1.5 flex-wrap flex-1">
           {colors.map((c) => (
             <ColorSwatch key={c} color={c} isSelected={localColor === c} onClick={() => selectColor(c)} />
           ))}
         </div>
-        <button
-          type="button"
-          title="Custom color"
-          onClick={() => setTimeout(() => colorInputRef.current?.click(), 0)}
-          className="w-5 h-5 rounded-full shrink-0 bg-linear-to-br from-red-500 via-green-500 to-blue-500 ring-1 ring-border hover:scale-110 transition-transform"
-        >
+        <div className="flex items-center gap-1 shrink-0">
+          <div className="w-4 h-4 rounded-full ring-1 ring-border shrink-0" style={{ backgroundColor: localColor }} />
           <input
-            ref={colorInputRef}
-            type="color"
-            value={localColor}
-            onChange={(e) => selectColor(e.target.value)}
-            className="opacity-0 w-0 h-0"
+            type="text"
+            value={hexInput}
+            maxLength={7}
+            placeholder="#000000"
+            onChange={(e) => handleHexChange(e.target.value)}
+            onPointerDown={(e) => e.stopPropagation()}
+            className="w-16 h-5 text-[9px] px-1.5 rounded border border-border/30 bg-muted/30 font-mono outline-none focus:border-primary/50 text-foreground/70"
           />
-        </button>
+        </div>
       </div>
 
       {/* Tab bar */}
@@ -157,17 +181,18 @@ function PickerPanel({
           <div className="px-2 pt-2 pb-1">
             <div className="relative">
               <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground/40" />
-              <Input
+              <input
                 placeholder="Search icons..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="h-7 pl-6 text-[11px] bg-muted/30 border-border/40 rounded-sm focus-visible:ring-0"
+                onPointerDown={(e) => e.stopPropagation()}
+                className="h-7 w-full pl-6 pr-2 text-[11px] bg-muted/30 border border-border/40 rounded-sm outline-none focus:border-primary/50 text-foreground/80 placeholder:text-muted-foreground/40"
               />
             </div>
           </div>
-          <ScrollArea className="h-44">
+          <ScrollArea className="h-48">
             {filteredIcons.length > 0 ? (
-              <div className="grid grid-cols-7 gap-0.5 p-2">
+              <div className="grid grid-cols-5 gap-0.5 p-2">
                 {filteredIcons.map((name) => (
                   <IconButton
                     key={name}
@@ -179,22 +204,34 @@ function PickerPanel({
                 ))}
               </div>
             ) : (
-              <div className="flex items-center justify-center h-full text-[11px] text-muted-foreground/50">
+              <div className="flex items-center justify-center h-full text-[11px] text-muted-foreground/50 py-8">
                 No icons found
               </div>
             )}
           </ScrollArea>
         </div>
       ) : (
-        <div className="h-44 flex items-center justify-center text-[10px] font-black uppercase tracking-widest text-muted-foreground/30">
-          Coming soon
-        </div>
+        <ScrollArea className="h-56">
+          <div className="grid grid-cols-7 gap-0.5 p-2">
+            {filteredEmojis.map((emoji, i) => (
+              <button
+                key={i}
+                type="button"
+                onClick={() => selectIcon(emoji)}
+                className={cn(
+                  "w-10 h-10 flex items-center justify-center rounded-md text-xl transition-all hover:bg-muted/60",
+                  localIcon === emoji && "bg-muted ring-1 ring-border"
+                )}
+              >
+                {emoji}
+              </button>
+            ))}
+          </div>
+        </ScrollArea>
       )}
     </div>
   )
 }
-
-// ─── Public component ─────────────────────────────────────────────────────────
 
 interface UniversalPickerProps {
   icon: string

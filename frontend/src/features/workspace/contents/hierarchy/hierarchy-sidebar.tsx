@@ -44,7 +44,7 @@ export function HierarchySidebar() {
     });
 
   return (
-    <div className="h-full flex flex-col bg-card/30 overflow-hidden select-none">
+    <div className="h-full flex flex-col bg-transparent overflow-hidden select-none">
       {/* Search & Actions */}
       <div className="h-8 px-1 flex items-center border-b border-border shrink-0">
         <div className="flex items-center gap-2 px-2 h-6 rounded-sm bg-muted/40 border border-border/10 focus-within:border-primary/30 focus-within:bg-muted/60 transition-all group flex-1">
@@ -78,7 +78,7 @@ export function HierarchySidebar() {
           onOpenChange={setIsHierarchyOpen}
           className="flex flex-col h-full overflow-hidden"
         >
-          <div className="w-full h-7 flex items-center gap-2 px-1 flex-none bg-card/35 sticky top-0 z-10 group hover:bg-muted/50 transition-colors">
+          <div className="w-full h-7 flex items-center gap-2 px-1 flex-none bg-background sticky top-0 z-10 group hover:bg-muted/50 transition-colors">
             <CollapsibleTrigger className="flex items-center gap-2 flex-1 min-w-0">
               <ChevronDown
                 className={cn(
@@ -180,7 +180,7 @@ export function HierarchySidebar() {
       {/* FAVORITES SECTION */}
       <div className="flex flex-col min-h-0 flex-none border-b border-border/40">
         <Collapsible open={isFavoritesOpen} onOpenChange={setIsFavoritesOpen} className="flex flex-col overflow-hidden">
-          <div className="w-full h-7 flex items-center gap-2 px-1 flex-none bg-card/35 sticky top-0 z-10 hover:bg-muted/50 transition-colors">
+          <div className="w-full h-7 flex items-center gap-2 px-1 flex-none bg-background sticky top-0 z-10 hover:bg-muted/50 transition-colors">
             <CollapsibleTrigger className="flex items-center gap-2 flex-1 min-w-0">
               <ChevronDown className={cn("h-3 w-3 text-muted-foreground transition-transform duration-200", !isFavoritesOpen && "-rotate-90")} />
               <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider text-left">

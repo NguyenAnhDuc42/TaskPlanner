@@ -3,11 +3,12 @@ using Microsoft.Extensions.Logging;
 
 namespace Application;
 
-public class AddCommentHandler(
+public partial class AddCommentHandler(
     TaskPlanDbContext db,
     WorkspaceContext workspaceContext,
     PermissionService permissionService,
     RealtimeService realtimeService,
+    NotificationService notificationService,
     ILogger<AddCommentHandler> logger
 
 ) : ICommandHandler<AddCommentCommand, CommentRecord>
@@ -17,7 +18,7 @@ public class AddCommentHandler(
         var task = await db.ProjectTasks
             .AsNoTracking()
             .Where(t => t.Id == request.TaskId && t.DeletedAt == null)
-            .Select(t => new { t.ProjectSpaceId, t.CreatorId })
+            .Select(t => new { t.ProjectSpaceId, t.CreatorId, t.Name, t.ProjectWorkspaceId })
             .FirstOrDefaultAsync(cancellationToken);
         
         if (task == null)
@@ -47,17 +48,61 @@ public class AddCommentHandler(
         if (affected > 0)
         {
             _ = realtimeService
-            .NotifyEntitiesUpdatedAsync(
-                workspaceContext.WorkspaceId,
-                new EntityBatchUpdate { Comments = [dto] },
-                default)
-            .ContinueWith(t =>
-                logger.LogError(t.Exception, "Failed to send real-time notification for added comment {CommentId}", comment.Id),
-                TaskContinuationOptions.OnlyOnFaulted);
+                .NotifyEntitiesUpdatedAsync(
+                    workspaceContext.WorkspaceId,
+                    new EntityBatchUpdate { Comments = [dto] },
+                    default)
+                .ContinueWith(t =>
+                    logger.LogError(t.Exception, "Failed to send real-time notification for added comment {CommentId}", comment.Id),
+                    TaskContinuationOptions.OnlyOnFaulted);
+
+            // Notify all assignees + task creator (excluding the commenter)
+            var actorUserId = workspaceContext.CurrentMember.UserId;
+            var recipientUserIds = await db.TaskAssignments
+                .Where(a => a.ProjectTaskId == request.TaskId && a.DeletedAt == null)
+                .Select(a => a.WorkspaceMemberId)
+                .Join(db.WorkspaceMembers.Where(m => m.DeletedAt == null), id => id, m => m.Id, (_, m) => m.UserId)
+                .ToListAsync(cancellationToken);
+
+            if (task.CreatorId.HasValue)
+                recipientUserIds.Add(task.CreatorId.Value);
+
+            var actor = await db.Users.AsNoTracking().Where(u => u.Id == actorUserId).Select(u => u.Name).FirstOrDefaultAsync(cancellationToken);
+            var actorName = actor ?? "Someone";
+
+            // Detect @mentions — find @Name patterns and notify those members too
+            var mentionedNames = MentionRegex.Matches(request.Content)
+                .Select(m => m.Groups[1].Value.Trim().ToLowerInvariant())
+                .Where(n => n.Length > 0)
+                .Distinct()
+                .ToList();
+
+            if (mentionedNames.Count > 0)
+            {
+                var mentionedUserIds = await db.WorkspaceMembers
+                    .Where(m => m.ProjectWorkspaceId == task.ProjectWorkspaceId && m.DeletedAt == null)
+                    .Join(db.Users, m => m.UserId, u => u.Id, (m, u) => new { m.UserId, u.Name })
+                    .Where(x => mentionedNames.Contains(x.Name.ToLower()))
+                    .Select(x => x.UserId)
+                    .ToListAsync(cancellationToken);
+
+                recipientUserIds.AddRange(mentionedUserIds);
+            }
+
+            foreach (var recipientId in recipientUserIds.Distinct().Where(id => id != actorUserId))
+            {
+                _ = notificationService.PushAsync(
+                    recipientId, actorUserId, task.ProjectWorkspaceId,
+                    "comment_added", "task", request.TaskId,
+                    $"{actorName} commented on \"{task.Name}\"",
+                    request.Content.Length > 100 ? request.Content[..100] + "…" : request.Content,
+                    cancellationToken);
+            }
         }
 
         return Result<CommentRecord>.Success(dto);
     }
+
+    private static readonly System.Text.RegularExpressions.Regex MentionRegex =
+        new(@"@([\w]+(?:\s[\w]+)*)(?=\s|$|[^a-zA-Z\s])", System.Text.RegularExpressions.RegexOptions.Compiled);
 }
-
-

@@ -8,6 +8,7 @@ import type { SpaceRecord, FolderRecord, TaskRecord, AssigneeRecord, CommentReco
 import type { MemberRecord, WorkspaceRecord, EntityAccessRecord } from "@/types/workspace";
 import type { Status } from "@/types/status";
 import type { DocumentBlockRecord } from "@/types/document";
+import type { NotificationRecord } from "@/types/notification-record";
 
 // The transactional update packet (1 level deep flat entities for multiple rows and types)
 export interface EntityBatchUpdate {
@@ -22,6 +23,7 @@ export interface EntityBatchUpdate {
   comments?: (Partial<CommentRecord> & { id: string })[];
   documentBlocks?: (Partial<DocumentBlockRecord> & { id: string })[];
   attachments?: (Partial<AttachmentRecord> & { id: string })[];
+  notifications?: NotificationRecord[];
 }
 
 // The transactional deletion packet

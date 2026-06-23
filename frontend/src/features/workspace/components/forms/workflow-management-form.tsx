@@ -97,9 +97,16 @@ function ColorPicker({
   selectedColor: string;
   onSelect: (c: string) => void;
 }) {
-  const customRef = useRef<HTMLInputElement>(null);
+  const [hexInput, setHexInput] = useState(selectedColor);
+
+  const handleHex = (val: string) => {
+    const normalized = val.startsWith("#") ? val : `#${val}`;
+    setHexInput(normalized);
+    if (/^#[0-9a-fA-F]{6}$/.test(normalized)) onSelect(normalized);
+  };
+
   return (
-    <div className="p-2 bg-popover border border-border/40 rounded-lg shadow-2xl w-[176px] flex flex-wrap gap-1.5">
+    <div className="p-2 bg-popover border border-border/40 rounded-lg shadow-2xl w-44 flex flex-wrap gap-1.5">
       {PRESET_COLORS.map((c) => (
         <button
           key={c}
@@ -111,24 +118,18 @@ function ColorPicker({
               : "ring-1 ring-white/10"
           )}
           style={{ backgroundColor: c }}
-          onClick={() => onSelect(c)}
+          onClick={() => { onSelect(c); setHexInput(c); }}
         />
       ))}
-      {/* Custom color button */}
-      <button
-        type="button"
-        className="h-5 w-5 rounded-full shrink-0 bg-gradient-to-br from-red-500 via-blue-500 to-emerald-500 hover:scale-110 active:scale-95 transition-all ring-1 ring-white/10"
-        onClick={() => customRef.current?.click()}
-        title="Custom color"
-      >
-        <input
-          ref={customRef}
-          type="color"
-          value={selectedColor}
-          onChange={(e) => onSelect(e.target.value)}
-          className="opacity-0 w-0 h-0 absolute"
-        />
-      </button>
+      <input
+        type="text"
+        value={hexInput}
+        maxLength={7}
+        placeholder="#000000"
+        onChange={(e) => handleHex(e.target.value)}
+        onMouseDown={(e) => e.stopPropagation()}
+        className="w-full mt-1 h-6 text-[10px] px-2 rounded border border-border/30 bg-muted/20 font-mono outline-none focus:border-primary/50 text-foreground/70"
+      />
     </div>
   );
 }
@@ -271,7 +272,7 @@ function CategoryColumn({
   return (
     <div
       className={cn(
-        "flex flex-col gap-2 rounded-xl border p-3 min-w-[220px] flex-1 shadow-sm",
+        "flex flex-col gap-2 rounded-xl border p-3 min-w-55 flex-1 shadow-sm",
         cfg.accent,
         cfg.glow
       )}
@@ -289,7 +290,7 @@ function CategoryColumn({
         </div>
         <button
           type="button"
-          className="h-4 w-4 flex items-center justify-center rounded text-muted-foreground/30 hover:text-foreground hover:bg-white/[0.06] transition-all"
+          className="h-4 w-4 flex items-center justify-center rounded text-muted-foreground/30 hover:text-foreground hover:bg-white/6 transition-all"
           onClick={() => { setAdding(true); setNewName(""); }}
         >
           <Plus className="h-3 w-3" />
@@ -338,7 +339,7 @@ function CategoryColumn({
       ) : (
         <button
           type="button"
-          className="flex items-center gap-1.5 h-8 px-2 rounded-md border border-dashed border-border/25 text-muted-foreground/30 hover:text-muted-foreground/70 hover:border-border/50 hover:bg-white/[0.02] transition-all shrink-0"
+          className="flex items-center gap-1.5 h-8 px-2 rounded-md border border-dashed border-border/25 text-muted-foreground/30 hover:text-muted-foreground/70 hover:border-border/50 hover:bg-white/2 transition-all shrink-0"
           onClick={() => { setAdding(true); setNewName(""); }}
         >
           <Plus className="h-3 w-3" />
@@ -446,7 +447,7 @@ export function CreateStatusForm({
     <Dialog open={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
       <DialogContent
         key={isOpen ? "open" : "closed"}
-        className="max-w-[960px] w-full bg-background border border-border/30 text-foreground p-0 rounded-xl overflow-hidden shadow-2xl"
+        className="max-w-240 w-full bg-background border border-border/30 text-foreground p-0 rounded-xl overflow-hidden shadow-2xl"
         showCloseButton={false}
       >
         {/* Header */}
@@ -477,7 +478,7 @@ export function CreateStatusForm({
           onDragStart={handleDragStart}
           onDragEnd={handleDragEnd}
         >
-          <div className="flex gap-3 p-4 overflow-x-auto [&::-webkit-scrollbar]:h-1.5 [&::-webkit-scrollbar-thumb]:bg-white/[0.06] [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-white/[0.12] [&::-webkit-scrollbar-track]:bg-transparent">
+          <div className="flex gap-3 p-4 overflow-x-auto [&::-webkit-scrollbar]:h-1.5 [&::-webkit-scrollbar-thumb]:bg-white/6 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-white/12 [&::-webkit-scrollbar-track]:bg-transparent">
             {CATEGORY_ORDER.map((cat) => (
               <CategoryColumn
                 key={cat}

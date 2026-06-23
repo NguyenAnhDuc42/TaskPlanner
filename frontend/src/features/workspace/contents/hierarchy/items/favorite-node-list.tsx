@@ -1,6 +1,5 @@
 import React, { useMemo, useCallback } from "react";
-import * as Icons from "lucide-react";
-import { CheckSquare } from "lucide-react";
+import { DynamicIcon } from "@/components/dynamic-icon";
 import { useNavigate, useLocation, useRouter } from "@tanstack/react-router";
 import { useDispatch, useSelector } from "react-redux";
 import type { AppDispatch } from "@/store";
@@ -62,8 +61,7 @@ function SortableFavItem({
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: fav.id });
 
   const isTask = fav.entityLayerType === EntityLayerType.ProjectTask;
-  const iconName = (fav.icon ?? (isTask ? "CheckSquare" : fav.entityLayerType === EntityLayerType.ProjectFolder ? "Folder" : "LayoutGrid")) as keyof typeof Icons;
-  const Icon = (Icons[iconName] as Icons.LucideIcon) ?? (isTask ? CheckSquare : Icons.LayoutGrid);
+  const iconName = fav.icon ?? (isTask ? "CheckSquare" : fav.entityLayerType === EntityLayerType.ProjectFolder ? "Folder" : "LayoutGrid");
 
   const button = (
     <button
@@ -83,7 +81,7 @@ function SortableFavItem({
       {...listeners}
     >
       <div className="w-5 h-5 flex items-center justify-center shrink-0 mr-1.5">
-        <Icon className="h-3.5 w-3.5 transition-none" style={{ color: fav.color || undefined }} />
+        <DynamicIcon name={iconName} size={14} color={fav.color || undefined} className="transition-none" />
       </div>
       <span className="text-[11px] font-semibold leading-tight truncate whitespace-nowrap">
         {fav.name ?? "—"}

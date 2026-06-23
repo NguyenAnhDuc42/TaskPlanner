@@ -57,12 +57,10 @@ export function StatusBadge({ status, className, showIcon = true, variant = "tex
   if (variant === "outline") {
     return (
       <div 
-        className={cn("flex items-center gap-1.5 px-2 py-0.5 rounded-md border text-[10px] font-semibold transition-all duration-300", className)}
+        className={cn("theme-adaptive-badge flex items-center h-5 gap-1.5 px-2 rounded-sm text-[10px] transition-all duration-300", className)}
         style={{ 
-          color: statusColor,
-          borderColor: `${statusColor}33`,
-          backgroundColor: `${statusColor}0a`
-        }}
+          "--status-color": statusColor,
+        } as React.CSSProperties}
       >
         {showIcon && (
           <Icon className="h-3 w-3" />

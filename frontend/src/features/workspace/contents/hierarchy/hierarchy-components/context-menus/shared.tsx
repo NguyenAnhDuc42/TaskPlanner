@@ -78,7 +78,7 @@ export function EntityMenuTrigger({ children }: { children: React.ReactNode }) {
         align="start"
         side="right"
         onCloseAutoFocus={(e) => e.preventDefault()}
-        className="w-52 bg-background/95 backdrop-blur-md border-border/50 shadow-2xl rounded-xl p-1.5 animate-in fade-in-0 zoom-in-95"
+        className="w-52 bg-popover border-border shadow-md rounded-md p-1 animate-in fade-in-0 zoom-in-95"
       >
         {context.renderMenuItems(false)}
       </DropdownMenuContent>

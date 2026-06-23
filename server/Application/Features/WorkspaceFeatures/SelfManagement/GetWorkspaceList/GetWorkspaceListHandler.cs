@@ -135,7 +135,8 @@ public class GetWorkspaceListHandler(
             Color = x.Color,
             Role = x.Role,
             MemberCount = x.MemberCount,
-            IsPinned = x.IsPinned
+            IsPinned = x.IsPinned,
+            MembershipStatus = x.MembershipStatus,
         }).ToList();
     }
 

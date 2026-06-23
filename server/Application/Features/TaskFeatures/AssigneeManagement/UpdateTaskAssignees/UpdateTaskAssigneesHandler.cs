@@ -9,6 +9,7 @@ public class UpdateTaskAssigneesHandler(
     WorkspaceContext workspaceContext,
     PermissionService permissionService,
     RealtimeService realtime,
+    NotificationService notificationService,
     ILogger<UpdateTaskAssigneesHandler> logger
 ) : ICommandHandler<UpdateTaskAssigneesCommand>
 {
@@ -16,7 +17,7 @@ public class UpdateTaskAssigneesHandler(
     {
         var task = await db.ProjectTasks
             .Include(t => t.Assignees)
-            .FirstOrDefaultAsync(t => t.Id == request.TaskId && t.DeletedAt == null, cancellationToken);
+            .FirstOrDefaultAsync(t => t.Id == request.TaskId && t.DeletedAt == null && t.ProjectWorkspaceId == workspaceContext.WorkspaceId, cancellationToken);
             
         if (task == null) return Result.Failure(TaskError.NotFound);
 
@@ -65,6 +66,30 @@ public class UpdateTaskAssigneesHandler(
         }
 
         await db.SaveChangesAsync(cancellationToken);
+
+        // Notify newly assigned members
+        if (toAdd.Count > 0)
+        {
+            var actorUserId = workspaceContext.CurrentMember.UserId;
+            var actorName = await db.Users.AsNoTracking()
+                .Where(u => u.Id == actorUserId)
+                .Select(u => u.Name)
+                .FirstOrDefaultAsync(cancellationToken);
+
+            var newlyAssignedUserIds = await db.WorkspaceMembers
+                .Where(m => toAdd.Select(a => a.WorkspaceMemberId).Contains(m.Id) && m.DeletedAt == null)
+                .Select(m => m.UserId)
+                .ToListAsync(cancellationToken);
+
+            foreach (var recipientId in newlyAssignedUserIds.Where(id => id != actorUserId))
+            {
+                _ = notificationService.PushAsync(
+                    recipientId, actorUserId, workspaceContext.WorkspaceId,
+                    "task_assigned", "task", request.TaskId,
+                    $"{actorName ?? "Someone"} assigned you to \"{task.Name}\"",
+                    cancellationToken: cancellationToken);
+            }
+        }
 
         if (toAdd.Count > 0)
         {

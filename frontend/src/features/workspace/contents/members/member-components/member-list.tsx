@@ -13,8 +13,9 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   DropdownMenu,
   DropdownMenuContent,
-  DropdownMenuItem,
   DropdownMenuTrigger,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
 } from "@/components/ui/dropdown-menu";
 import { RoleBadge } from "@/components/role-badge";
 import { Save, Plus, Trash2, Search, Undo2, Check, X } from "lucide-react";
@@ -57,14 +58,19 @@ const STATUS_COLORS: Record<MembershipStatus, { bg: string; text: string }> = {
   Invited:   { bg: "bg-blue-500/15",    text: "text-blue-400"    },
 };
 
-function StatusPill({ status }: { status: MembershipStatus }) {
+function StatusPill({ status, className }: { status: MembershipStatus, className?: string }) {
   const { bg, text } = STATUS_COLORS[status] ?? STATUS_COLORS.Active;
   return (
-    <span className={cn("inline-flex items-center h-5 px-2 rounded-sm text-[10px] font-semibold", bg, text)}>
+    <span className={cn("inline-flex items-center h-5 px-2 rounded-sm text-[10px] font-semibold", bg, text, className)}>
       {status}
     </span>
   );
 }
+
+// ─── Theme Background Hierarchy Standardization ─────────────────────────────
+
+// Standardize bg-background, bg-card, bg-muted, and bg-popover across the app
+// to ensure proper layout depth and preparation for future theme-switching.
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
@@ -245,24 +251,25 @@ export function MemberList({ members = [], currentUserId, isSaving, onSave }: Pr
       </div>
 
       {/* Table */}
-      <div className="flex-1 overflow-auto">
-        {/* Column headers */}
-        <div className="grid grid-cols-[28px_3fr_140px_140px_80px_36px] text-[9px] font-black uppercase tracking-wider text-muted-foreground/40 border-b border-border/40 bg-muted/10 sticky top-0 z-10">
-          <div className="flex items-center justify-center py-1.5">
-            <Checkbox
-              className="rounded-sm h-3.5 w-3.5"
-              checked={allVisibleSelected}
-              onCheckedChange={toggleSelectAll}
-            />
+      <div className="flex-1 overflow-auto p-4 bg-muted/10">
+        <div className="border border-border rounded-md bg-card shadow-sm overflow-hidden min-w-[700px]">
+          {/* Column headers */}
+          <div className="grid grid-cols-[28px_3fr_140px_140px_80px_36px] text-[10px] font-black uppercase tracking-wider text-muted-foreground/80 border-b border-border bg-muted/30 sticky top-0 z-10">
+            <div className="flex items-center justify-center py-2">
+              <Checkbox
+                className="rounded-sm h-3.5 w-3.5"
+                checked={allVisibleSelected}
+                onCheckedChange={toggleSelectAll}
+              />
+            </div>
+            <div className="px-3 py-2">Member</div>
+            <div className="px-3 py-2">Role</div>
+            <div className="px-3 py-2">Status</div>
+            <div className="px-3 py-2">Joined</div>
+            <div />
           </div>
-          <div className="px-3 py-1.5">Member</div>
-          <div className="px-3 py-1.5">Role</div>
-          <div className="px-3 py-1.5">Status</div>
-          <div className="px-3 py-1.5">Joined</div>
-          <div />
-        </div>
 
-        <div className="divide-y divide-border/20">
+          <div className="divide-y divide-border">
           {/* Existing members */}
           {filteredMembers.map((member) => {
             const isRemoved   = pendingRemoves.has(member.id);
@@ -326,17 +333,18 @@ export function MemberList({ members = [], currentUserId, isSaving, onSave }: Pr
                         <RoleBadge role={displayRole} />
                       </button>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent align="start" className="w-32 rounded-sm" onClick={(e) => e.stopPropagation()}>
-                      {ASSIGNABLE_ROLES.map((r) => (
-                        <DropdownMenuItem
-                          key={r}
-                          onSelect={() => markUpdate(member.id, { role: r })}
-                          className="gap-2 text-[11px]"
-                        >
-                          <RoleBadge role={r} />
-                          {displayRole === r && <Check className="ml-auto h-3 w-3 text-primary" />}
-                        </DropdownMenuItem>
-                      ))}
+                    <DropdownMenuContent align="start" className="w-32 rounded-md p-0 overflow-hidden" onClick={(e) => e.stopPropagation()}>
+                      <DropdownMenuRadioGroup value={displayRole} onValueChange={(val) => markUpdate(member.id, { role: val as Role })}>
+                        {ASSIGNABLE_ROLES.map((r) => (
+                          <DropdownMenuRadioItem
+                            key={r}
+                            value={r}
+                            className={cn("cursor-pointer", displayRole === r && "bg-muted shadow-sm")}
+                          >
+                            <RoleBadge role={r} className="w-full justify-start border-none bg-transparent hover:bg-transparent p-0 h-auto" />
+                          </DropdownMenuRadioItem>
+                        ))}
+                      </DropdownMenuRadioGroup>
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </div>
@@ -352,17 +360,18 @@ export function MemberList({ members = [], currentUserId, isSaving, onSave }: Pr
                         <StatusPill status={displayStatus as MembershipStatus} />
                       </button>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent align="start" className="w-36 rounded-sm" onClick={(e) => e.stopPropagation()}>
-                      {ASSIGNABLE_STATUSES.map((s) => (
-                        <DropdownMenuItem
-                          key={s}
-                          onSelect={() => markUpdate(member.id, { status: s })}
-                          className="gap-2 text-[11px]"
-                        >
-                          <StatusPill status={s} />
-                          {displayStatus === s && <Check className="ml-auto h-3 w-3 text-primary" />}
-                        </DropdownMenuItem>
-                      ))}
+                    <DropdownMenuContent align="start" className="w-36 rounded-md p-0 overflow-hidden" onClick={(e) => e.stopPropagation()}>
+                      <DropdownMenuRadioGroup value={displayStatus} onValueChange={(val) => markUpdate(member.id, { status: val as MembershipStatus })}>
+                        {ASSIGNABLE_STATUSES.map((s) => (
+                          <DropdownMenuRadioItem
+                            key={s}
+                            value={s}
+                            className={cn("cursor-pointer", displayStatus === s && "bg-muted shadow-sm")}
+                          >
+                            <StatusPill status={s} className="w-full justify-start border-none bg-transparent hover:bg-transparent p-0 h-auto" />
+                          </DropdownMenuRadioItem>
+                        ))}
+                      </DropdownMenuRadioGroup>
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </div>
@@ -420,13 +429,18 @@ export function MemberList({ members = [], currentUserId, isSaving, onSave }: Pr
                       <RoleBadge role={add.role} />
                     </button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="start" className="w-32 rounded-sm">
-                    {ASSIGNABLE_ROLES.map((r) => (
-                      <DropdownMenuItem key={r} onSelect={() => updatePendingAddRole(add.tempId, r)} className="gap-2 text-[11px]">
-                        <RoleBadge role={r} />
-                        {add.role === r && <Check className="ml-auto h-3 w-3 text-primary" />}
-                      </DropdownMenuItem>
-                    ))}
+                  <DropdownMenuContent align="start" className="w-32 rounded-md p-0 overflow-hidden">
+                    <DropdownMenuRadioGroup value={add.role} onValueChange={(val) => updatePendingAddRole(add.tempId, val as Role)}>
+                      {ASSIGNABLE_ROLES.map((r) => (
+                        <DropdownMenuRadioItem
+                          key={r}
+                          value={r}
+                          className={cn("cursor-pointer", add.role === r && "bg-muted shadow-sm")}
+                        >
+                          <RoleBadge role={r} className="w-full justify-start border-none bg-transparent hover:bg-transparent p-0 h-auto" />
+                        </DropdownMenuRadioItem>
+                      ))}
+                    </DropdownMenuRadioGroup>
                   </DropdownMenuContent>
                 </DropdownMenu>
               </div>
@@ -448,7 +462,7 @@ export function MemberList({ members = [], currentUserId, isSaving, onSave }: Pr
           ))}
 
           {/* Add row */}
-          <div className="grid grid-cols-[28px_3fr_140px_140px_80px_36px] items-center border-dashed border-b border-border/20 hover:bg-muted/5 transition-colors group">
+          <div className="grid grid-cols-[28px_3fr_140px_140px_80px_36px] items-center border-t border-dashed border-border/50 bg-muted/5 hover:bg-muted/10 transition-colors group">
             <div />
             <div className="flex items-center gap-2.5 px-3 py-1.5">
               <div className="h-6 w-6 rounded-sm border border-dashed border-border/30 group-focus-within:border-primary/40 flex items-center justify-center shrink-0 transition-colors">
@@ -471,19 +485,25 @@ export function MemberList({ members = [], currentUserId, isSaving, onSave }: Pr
                     <RoleBadge role={addRole} />
                   </button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="start" className="w-32 rounded-sm">
-                  {ASSIGNABLE_ROLES.map((r) => (
-                    <DropdownMenuItem key={r} onSelect={() => setAddRole(r)} className="gap-2 text-[11px]">
-                      <RoleBadge role={r} />
-                      {addRole === r && <Check className="ml-auto h-3 w-3 text-primary" />}
-                    </DropdownMenuItem>
-                  ))}
+                <DropdownMenuContent align="start" className="w-32 rounded-md p-0 overflow-hidden">
+                  <DropdownMenuRadioGroup value={addRole} onValueChange={(val) => setAddRole(val as Role)}>
+                    {ASSIGNABLE_ROLES.map((r) => (
+                      <DropdownMenuRadioItem
+                        key={r}
+                        value={r}
+                        className={cn("cursor-pointer", addRole === r && "bg-muted shadow-sm")}
+                      >
+                        <RoleBadge role={r} className="w-full justify-start border-none bg-transparent hover:bg-transparent p-0 h-auto" />
+                      </DropdownMenuRadioItem>
+                    ))}
+                  </DropdownMenuRadioGroup>
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>
 
             <div /><div /><div />
           </div>
+        </div>
         </div>
       </div>
 
@@ -509,13 +529,18 @@ export function MemberList({ members = [], currentUserId, isSaving, onSave }: Pr
                   {batchRole ? <RoleBadge role={batchRole as Role} /> : <span className="text-muted-foreground">Role</span>}
                 </button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="start" className="w-32 rounded-sm">
-                {ASSIGNABLE_ROLES.map((r) => (
-                  <DropdownMenuItem key={r} onSelect={() => setBatchRole(r)} className="gap-2 text-[11px]">
-                    <RoleBadge role={r} />
-                    {batchRole === r && <Check className="ml-auto h-3 w-3 text-primary" />}
-                  </DropdownMenuItem>
-                ))}
+              <DropdownMenuContent align="start" className="w-32 rounded-md p-0 overflow-hidden">
+                <DropdownMenuRadioGroup value={batchRole} onValueChange={(val) => setBatchRole(val as Role)}>
+                  {ASSIGNABLE_ROLES.map((r) => (
+                    <DropdownMenuRadioItem
+                      key={r}
+                      value={r}
+                      className={cn("cursor-pointer", batchRole === r && "bg-muted shadow-sm")}
+                    >
+                      <RoleBadge role={r} className="w-full justify-start border-none bg-transparent hover:bg-transparent p-0 h-auto" />
+                    </DropdownMenuRadioItem>
+                  ))}
+                </DropdownMenuRadioGroup>
               </DropdownMenuContent>
             </DropdownMenu>
 
@@ -531,13 +556,18 @@ export function MemberList({ members = [], currentUserId, isSaving, onSave }: Pr
                     : <span className="text-muted-foreground">Status</span>}
                 </button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="start" className="w-36 rounded-sm">
-                {ASSIGNABLE_STATUSES.map((s) => (
-                  <DropdownMenuItem key={s} onSelect={() => setBatchStatus(s)} className="gap-2 text-[11px]">
-                    <StatusPill status={s} />
-                    {batchStatus === s && <Check className="ml-auto h-3 w-3 text-primary" />}
-                  </DropdownMenuItem>
-                ))}
+              <DropdownMenuContent align="start" className="w-36 rounded-md p-0 overflow-hidden">
+                <DropdownMenuRadioGroup value={batchStatus} onValueChange={(val) => setBatchStatus(val as MembershipStatus)}>
+                  {ASSIGNABLE_STATUSES.map((s) => (
+                    <DropdownMenuRadioItem
+                      key={s}
+                      value={s}
+                      className={cn("cursor-pointer", batchStatus === s && "bg-muted shadow-sm")}
+                    >
+                      <StatusPill status={s} className="w-full justify-start border-none bg-transparent hover:bg-transparent p-0 h-auto" />
+                    </DropdownMenuRadioItem>
+                  ))}
+                </DropdownMenuRadioGroup>
               </DropdownMenuContent>
             </DropdownMenu>
 

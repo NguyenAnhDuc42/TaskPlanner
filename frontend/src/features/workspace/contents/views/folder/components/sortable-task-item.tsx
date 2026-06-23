@@ -87,7 +87,7 @@ export function SortableTaskItem({
         "w-full text-left flex items-start px-2.5 py-1.5 rounded-md transition-all group relative border shadow-sm outline-none cursor-pointer",
         isSelected
           ? "bg-primary/5 border-primary/30" 
-          : "bg-muted/40 border-border/50 hover:bg-muted/60"
+          : "bg-transparent border-transparent hover:bg-muted/50 hover:border-border",
       )}
     >
       <div
@@ -119,7 +119,7 @@ export function SortableTaskItem({
         <div className="flex items-center justify-between w-full gap-2">
           <div className="flex items-center gap-1.5 min-w-0">
             {task.icon ? (
-              <DynamicIcon name={task.icon} className="h-3.5 w-3.5 shrink-0" color={itemColor} />
+              <DynamicIcon name={task.icon} size={14} className="shrink-0" color={itemColor} />
             ) : (
               <FileText className="h-3.5 w-3.5 opacity-50 shrink-0" style={{ color: itemColor }} />
             )}
@@ -148,7 +148,7 @@ export function SortableTaskItem({
               statuses={taskStatuses}
               trigger={
                 <button type="button" className="cursor-pointer focus:outline-none">
-                  <StatusBadge status={statuses.find(s => s.id?.toLowerCase() === task.statusId?.toLowerCase())} />
+                  <StatusBadge variant="outline" status={statuses.find(s => s.id?.toLowerCase() === task.statusId?.toLowerCase())} />
                 </button>
               }
             />

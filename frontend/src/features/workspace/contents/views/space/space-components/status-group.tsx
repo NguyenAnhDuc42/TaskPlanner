@@ -1,4 +1,4 @@
-import { Plus } from "lucide-react";
+import { Plus, EyeOff } from "lucide-react";
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import { StatusBadge } from "@/components/status-badge";
@@ -20,6 +20,7 @@ interface StatusGroupProps {
   className?: string;
   onCreateTask?: () => void;
   onCreateFolder?: () => void;
+  onHide?: () => void;
 }
 
 export function StatusGroup({
@@ -31,18 +32,19 @@ export function StatusGroup({
   className,
   onCreateTask,
   onCreateFolder,
+  onHide,
 }: Readonly<StatusGroupProps>) {
   const hasCreate = onCreateTask || onCreateFolder;
 
   return (
     <div
       className={cn(
-        "shrink-0 flex flex-col bg-card/25 backdrop-blur-sm rounded-lg border border-border/30 overflow-hidden transition-all duration-300",
+        "shrink-0 flex flex-col bg-card rounded-lg border border-border shadow-sm overflow-hidden transition-all duration-300",
         className,
       )}
     >
       {/* Column Header */}
-      <div className="flex items-center justify-between px-3 py-2 group/header border-b border-border/10 bg-transparent">
+      <div className="flex items-center justify-between px-3 py-2 group/header border-b border-border bg-muted/10">
         <div className="flex items-center gap-3">
           <StatusBadge status={{ name: statusName, color: color, category } as Status} variant="outline" />
           <span className="text-[9px] font-black text-muted-foreground/40 px-2 py-0.5 rounded-md bg-white/[0.02] border border-white/[0.03]">
@@ -50,8 +52,17 @@ export function StatusGroup({
           </span>
         </div>
 
-        {hasCreate && (
-          <div className="flex items-center gap-0.5 opacity-0 group-hover/header:opacity-100 transition-all duration-200">
+        <div className="flex items-center gap-0.5 opacity-0 group-hover/header:opacity-100 transition-all duration-200">
+          {onHide && (
+            <button
+              onClick={onHide}
+              className="p-1.5 hover:bg-white/5 rounded-md text-muted-foreground/30 hover:text-foreground transition-all active:scale-90"
+              title="Hide column"
+            >
+              <EyeOff className="h-3.5 w-3.5" />
+            </button>
+          )}
+          {hasCreate && (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <button className="p-1.5 hover:bg-white/5 rounded-md text-muted-foreground/30 hover:text-foreground transition-all active:scale-90">
@@ -81,8 +92,8 @@ export function StatusGroup({
                 )}
               </DropdownMenuContent>
             </DropdownMenu>
-          </div>
-        )}
+          )}
+        </div>
       </div>
 
       {/* Items Area */}

@@ -85,11 +85,12 @@ export function WorkspaceSwitcher() {
 
         <PopoverContent
           align="start"
-          className="w-56 p-1.5 bg-background border border-border/40 shadow-xl rounded-lg"
+          className="w-56 p-0 gap-0 rounded-md border border-border shadow-md bg-background text-popover-foreground overflow-hidden"
         >
-          <p className="px-1.5 pb-1 text-[9px] font-black uppercase tracking-widest text-muted-foreground/40">
+          <div className="px-2 py-1.5 text-[10px] font-bold uppercase tracking-widest text-muted-foreground opacity-60">
             Workspaces
-          </p>
+          </div>
+          <div className="h-px w-full bg-border" />
 
           <div className="flex flex-col gap-px">
             {workspaces.map((ws: WorkspaceSnippetRecord) => {
@@ -97,13 +98,13 @@ export function WorkspaceSwitcher() {
               const canPin = !!ws.role;
 
               return (
-                <div
-                  key={ws.id}
-                  className={cn(
-                    "flex items-center gap-1 rounded-md transition-colors",
-                    isActive ? "bg-primary/8" : "hover:bg-muted/60"
-                  )}
-                >
+                  <div
+                    key={ws.id}
+                    className={cn(
+                      "flex items-center gap-1 rounded-none transition-colors",
+                      isActive ? "bg-muted" : "hover:bg-muted/60"
+                    )}
+                  >
                   {/* Pin — separate from nav row */}
                   {canPin && (
                     <button
@@ -121,7 +122,7 @@ export function WorkspaceSwitcher() {
                     disabled={isActive}
                     onClick={() => !isActive && handleEnter(ws)}
                     className={cn(
-                      "flex-1 flex items-center gap-2 px-1.5 py-1.5 rounded-md text-left transition-colors min-w-0",
+                      "flex-1 flex items-center gap-2 px-2 py-1.5 rounded-none text-left transition-colors min-w-0",
                       isActive ? "text-foreground cursor-default" : "text-muted-foreground hover:text-foreground cursor-pointer"
                     )}
                   >
@@ -142,12 +143,12 @@ export function WorkspaceSwitcher() {
             })}
           </div>
 
-          <div className="h-px bg-border/30 my-1" />
+          <div className="h-px w-full bg-border" />
 
-          <div className="flex flex-col gap-px">
+          <div className="flex flex-col gap-0">
             <button
               type="button"
-              className="flex items-center gap-2 px-1.5 py-1.5 rounded-md text-[11px] font-semibold text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors"
+              className="flex items-center gap-2 px-2 py-1.5 rounded-none text-[11px] font-semibold text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors"
               onClick={() => { setShowCreate(true); setOpen(false); }}
             >
               <Plus className="h-3.5 w-3.5" />
@@ -155,7 +156,7 @@ export function WorkspaceSwitcher() {
             </button>
             <button
               type="button"
-              className="flex items-center gap-2 px-1.5 py-1.5 rounded-md text-[11px] font-semibold text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors"
+              className="flex items-center gap-2 px-2 py-1.5 rounded-none text-[11px] font-semibold text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors"
               onClick={() => { setShowJoin(true); setOpen(false); }}
             >
               <LogIn className="h-3.5 w-3.5" />

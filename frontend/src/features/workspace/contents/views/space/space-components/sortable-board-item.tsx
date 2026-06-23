@@ -105,7 +105,7 @@ export const BoardItemCard = React.memo(function BoardItemCard({
             </div>
             <h4 className={cn(
               "text-[12px] font-medium leading-tight transition-colors truncate w-full pr-2",
-              isSelected ? "text-primary font-bold" : "text-zinc-300 group-hover:text-white"
+              isSelected ? "text-primary font-bold" : "text-foreground"
             )}>
               {item.folderName ? (
                 <>
@@ -125,7 +125,7 @@ export const BoardItemCard = React.memo(function BoardItemCard({
           <div className="flex items-center shrink-0 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity">
             <button
               type="button"
-              className="p-0.5 hover:bg-white/10 rounded-sm hover:text-white transition-colors"
+              className="p-0.5 hover:bg-black/5 rounded-sm hover:text-foreground transition-colors"
               onClick={(e) => { e.stopPropagation(); onMaximizeClick?.(); }}
             >
               <Maximize2 className="h-3 w-3" />
@@ -168,16 +168,16 @@ export const BoardItemCard = React.memo(function BoardItemCard({
                 triggerClassName={cn(
                   "h-5 px-1.5 text-[8px] font-black uppercase tracking-wider border border-border/5 rounded w-fit leading-none",
                   isOverdue
-                    ? "bg-red-500/10 text-red-400 border-red-500/20 hover:bg-red-500/20"
-                    : "bg-white/2 text-zinc-500 border-white/4 hover:bg-white/[0.06]"
+                    ? "bg-destructive/10 text-destructive border-destructive/20 hover:bg-destructive/20"
+                    : "bg-black/5 text-muted-foreground border-black/10 hover:bg-black/10"
                 )}
               />
             ) : dateInfo.show ? (
               <span className={cn(
                 "h-5 px-1.5 text-[8px] font-black uppercase tracking-wider border border-border/5 rounded w-fit leading-none flex items-center",
                 isOverdue
-                  ? "bg-red-500/10 text-red-400 border-red-500/20"
-                  : "bg-white/2 text-zinc-500 border-white/4"
+                  ? "bg-destructive/10 text-destructive border-destructive/20"
+                  : "bg-black/5 text-muted-foreground border-black/10"
               )}>
                 {dateInfo.text}
               </span>
@@ -187,7 +187,7 @@ export const BoardItemCard = React.memo(function BoardItemCard({
 
         {/* Row 3: Assignee | Created */}
         <div className="flex items-center justify-between text-[10px] font-medium leading-none mt-1 w-full gap-2">
-          <div className="h-4 w-4 rounded-full bg-white/3 flex items-center justify-center border border-white/5">
+          <div className="h-4 w-4 rounded-full bg-black/5 flex items-center justify-center border border-black/10">
             <User className="h-2.5 w-2.5 opacity-30 group-hover:opacity-50 transition-opacity" />
           </div>
           {dateInfo.createdText && (

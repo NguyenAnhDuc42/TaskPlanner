@@ -25,6 +25,12 @@ public static class PermissionDecorator
         if (member == null)
             return Result.Failure(MemberError.DontHavePermission);
 
+        if (member.Status == MembershipStatus.Pending)
+            return Result.Failure(Error.Forbidden("Member.PendingApproval", "Your membership is pending admin approval."));
+
+        if (member.Status == MembershipStatus.Suspended)
+            return Result.Failure(Error.Forbidden("Member.Suspended", "Your membership has been suspended."));
+
         workspaceContext.CurrentMember = member;
         return null;
     }

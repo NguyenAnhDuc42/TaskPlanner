@@ -2,6 +2,7 @@ import { createEntityAdapter, createSlice, type PayloadAction } from '@reduxjs/t
 import type { SpaceRecord, FolderRecord, TaskRecord, AssigneeRecord, CommentRecord, AttachmentRecord } from "@/types/projects";
 import type { DocumentBlockRecord } from "@/types/document";
 import type { MemberRecord, WorkspaceSnippetRecord } from "@/types/workspace";
+import type { NotificationRecord } from "@/types/notification-record";
 import type { Status } from "@/types/status";
 import type { EntityAccessRecord } from "@/types/workspace";
 import type { RootState } from "./index";
@@ -50,6 +51,7 @@ export const adapters = {
   workspaces: createEntityAdapter<WorkspaceSnippetRecord>(),
   attachments: createEntityAdapter<AttachmentRecord>(),
   documentBlocks: createEntityAdapter<DocumentBlockRecord>(),
+  notifications: createEntityAdapter<NotificationRecord>(),
 };
 
 // ─── REDUX SLICES WITH SAFE MERGE TRANSACTIONS (Strict Typed + removeMany) ───
@@ -295,6 +297,29 @@ export const documentBlockSlice = createSlice({
   }
 });
 
+export const notificationSlice = createSlice({
+  name: 'notifications',
+  initialState: adapters.notifications.getInitialState(),
+  reducers: {
+    upsert(state, action: PayloadAction<NotificationRecord>) {
+      adapters.notifications.upsertOne(state, action.payload);
+    },
+    upsertMany(state, action: PayloadAction<NotificationRecord[]>) {
+      adapters.notifications.upsertMany(state, action.payload);
+    },
+    markRead(state, action: PayloadAction<string[]>) {
+      action.payload.forEach(id => {
+        const entity = state.entities[id];
+        if (entity) adapters.notifications.updateOne(state, { id, changes: { isRead: true } });
+      });
+    },
+    markAllRead(state) {
+      const updates = Object.keys(state.entities).map(id => ({ id, changes: { isRead: true } }));
+      adapters.notifications.updateMany(state, updates);
+    },
+  }
+});
+
 // Central selectors
 export const spaceSelectors  = adapters.spaces.getSelectors((s: RootState) => s.spaces);
 export const folderSelectors = adapters.folders.getSelectors((s: RootState) => s.folders);
@@ -307,3 +332,4 @@ export const commentSelectors      = adapters.comments.getSelectors((s: RootStat
 export const workspaceSelectors    = adapters.workspaces.getSelectors((s: RootState) => s.workspaces);
 export const attachmentSelectors   = adapters.attachments.getSelectors((s: RootState) => s.attachments);
 export const documentBlockSelectors = adapters.documentBlocks.getSelectors((s: RootState) => s.documentBlocks);
+export const notificationSelectors  = adapters.notifications.getSelectors((s: RootState) => s.notifications);

@@ -39,7 +39,11 @@ public class UpdateMembersHandler(
         foreach (var wm in workspaceMembers)
         {
             var update = lookup[wm.Id];
-            wm.Update(update.Role, update.Status);
+            // Use ApproveMembership when activating so JoinedAt is set correctly
+            if (update.Status == MembershipStatus.Active && wm.Status != MembershipStatus.Active)
+                wm.ApproveMembership();
+            else
+                wm.Update(update.Role, update.Status);
         }
 
         var affected = await db.SaveChangesAsync(cancellationToken);

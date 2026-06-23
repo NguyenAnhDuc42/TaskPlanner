@@ -123,7 +123,7 @@ export function SpaceContextMenu({
         </ContextMenuTrigger>
         <ContextMenuContent
           onCloseAutoFocus={(e) => e.preventDefault()}
-          className="w-52 bg-background/95 backdrop-blur-md border-border/50 shadow-2xl rounded-xl p-1.5 animate-in fade-in-0 zoom-in-95"
+          className="w-52 bg-popover text-popover-foreground border-border/50 shadow-2xl rounded-xl p-1.5 animate-in fade-in-0 zoom-in-95"
         >
           {renderMenuItems(true)}
         </ContextMenuContent>

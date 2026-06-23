@@ -8,12 +8,17 @@ import {
 } from "@dnd-kit/core";
 import { Priority, prioritySort } from "@/types/priority";
 import {
-  useGetSpaceItemsQuery,
+  useSpaceItemsFullLoad,
   useSpaceBoardItems,
   useSpaceStatuses,
   useBatchUpdateSpaceItemsMutation,
   type BoardItem,
+  type SpaceBoardFilter,
 } from "../space-api";
+import { useSelector } from "react-redux";
+import { folderSelectors } from "@/store/entityStore";
+import type { RootState } from "@/store";
+import { useDebounce } from "@/hooks/use-debounce";
 import { BoardItemCard } from "./sortable-board-item";
 import { useBoardDnd } from "./use-board-dnd";
 import { BoardColumn } from "./board-column";
@@ -37,11 +42,33 @@ export function SpaceBoard({ spaceId, onWorkflowOpen }: Readonly<SpaceBoardProps
 
   const containerRef = useRef<HTMLDivElement | null>(null);
 
-  const { isLoading } = useGetSpaceItemsQuery(spaceId);
+  const { isLoading, isFullyLoaded } = useSpaceItemsFullLoad(spaceId);
   const boardItems = useSpaceBoardItems(spaceId);
   const statuses = useSpaceStatuses(spaceId);
 
   const [hiddenStatusIds, setHiddenStatusIds] = useState<string[]>([]);
+  const [hideUnclassified, setHideUnclassified] = useState(false);
+  const [filter, setFilter] = useState<SpaceBoardFilter>({});
+  const [searchInput, setSearchInput] = useState("");
+  const debouncedSearch = useDebounce(searchInput, 300);
+
+  const folders = useSelector((state: RootState) =>
+    folderSelectors.selectAll(state).filter(f => f.spaceId === spaceId)
+  );
+
+  const filteredItems = useMemo(() => {
+    return boardItems.filter(item => {
+      if (filter.priorities?.length && !filter.priorities.includes(item.priority ?? "")) return false;
+      if (filter.folderIds?.length) {
+        const fid = item.folderId ?? "__none__";
+        if (!filter.folderIds.includes(fid)) return false;
+      }
+      if (debouncedSearch && !item.name.toLowerCase().includes(debouncedSearch.toLowerCase())) return false;
+      if (filter.startDate && (!item.startDate || item.startDate < filter.startDate)) return false;
+      if (filter.dueDate && (!item.dueDate || item.dueDate > filter.dueDate)) return false;
+      return true;
+    });
+  }, [boardItems, filter, debouncedSearch]);
 
   const [batchUpdateMutation] = useBatchUpdateSpaceItemsMutation();
   const enqueue = useDebouncedSpaceBatch(batchUpdateMutation, spaceId);
@@ -52,7 +79,7 @@ export function SpaceBoard({ spaceId, onWorkflowOpen }: Readonly<SpaceBoardProps
     statuses.forEach((s) => { nextCols[s.id] = []; });
     nextCols["unclassified"] = [];
 
-    boardItems.forEach((item) => {
+    filteredItems.forEach((item) => {
       const colId = item.statusId && nextCols[item.statusId] ? item.statusId : "unclassified";
       nextCols[colId].push(item);
     });
@@ -62,10 +89,10 @@ export function SpaceBoard({ spaceId, onWorkflowOpen }: Readonly<SpaceBoardProps
     });
 
     return nextCols;
-  }, [boardItems, statuses]);
+  }, [filteredItems, statuses]);
 
   const { sensors, draggedItem, handleDragStart, handleDragEnd } = useBoardDnd({
-    boardItems,
+    boardItems: filteredItems,
     statuses,
     columns,
     enqueue,
@@ -75,7 +102,6 @@ export function SpaceBoard({ spaceId, onWorkflowOpen }: Readonly<SpaceBoardProps
   useSmartWheelScroll(containerRef, isDragging);
   useEdgeScroll(containerRef, isDragging);
 
-  // 2. Click handles are now completely static during a drag execution
   const handleTaskClick = useCallback((id: string) => {
     navigate({
       search: (prev) => {
@@ -98,27 +124,32 @@ export function SpaceBoard({ spaceId, onWorkflowOpen }: Readonly<SpaceBoardProps
     enqueue({ id: itemId, type: EntityLayerType.ProjectTask, priority });
   }, [enqueue]);
 
-  const columnsToRender = useMemo(() => {
-    const cols = statuses.map((s) => ({
-      id: s.id,
-      name: s.name,
-      color: s.color,
-      category: s.category,
-      items: columns[s.id] || [],
-    }));
+  const emptyStatusIds = useMemo(
+    () => statuses.filter(s => (columns[s.id]?.length ?? 0) === 0).map(s => s.id),
+    [statuses, columns]
+  );
 
-    if (columns["unclassified"] && columns["unclassified"].length > 0) {
-      cols.push({
-        id: "unclassified",
-        name: "Unclassified",
-        color: "#6b7280",
-        category: "NotStarted",
-        items: columns["unclassified"],
-      });
+  const allEmptyHidden = emptyStatusIds.length > 0 && emptyStatusIds.every(id => hiddenStatusIds.includes(id));
+
+  const handleToggleHideEmpty = useCallback(() => {
+    setHiddenStatusIds(prev =>
+      allEmptyHidden
+        ? prev.filter(id => !emptyStatusIds.includes(id))
+        : [...new Set([...prev, ...emptyStatusIds])]
+    );
+  }, [allEmptyHidden, emptyStatusIds]);
+
+  const columnsToRender = useMemo(() => {
+    const cols = statuses
+      .filter(s => !hiddenStatusIds.includes(s.id))
+      .map(s => ({ id: s.id, name: s.name, color: s.color, category: s.category, items: columns[s.id] || [] }));
+
+    if (!hideUnclassified) {
+      cols.push({ id: "unclassified", name: "Unclassified", color: "#6b7280", category: "NotStarted", items: columns["unclassified"] || [] });
     }
 
-    return cols.filter((col) => !hiddenStatusIds.includes(col.id));
-  }, [statuses, columns, hiddenStatusIds]);
+    return cols;
+  }, [statuses, columns, hiddenStatusIds, hideUnclassified]);
 
   if (isLoading && boardItems.length === 0) {
     return (
@@ -134,7 +165,18 @@ export function SpaceBoard({ spaceId, onWorkflowOpen }: Readonly<SpaceBoardProps
         statuses={statuses}
         hiddenStatusIds={hiddenStatusIds}
         setHiddenStatusIds={setHiddenStatusIds}
+        folders={folders}
+        filter={filter}
+        onFilterChange={setFilter}
+        searchInput={searchInput}
+        onSearchChange={setSearchInput}
         onWorkflowOpen={onWorkflowOpen}
+        isFullyLoaded={isFullyLoaded}
+        hideUnclassified={hideUnclassified}
+        onToggleUnclassified={() => setHideUnclassified(v => !v)}
+        hasEmptyStatuses={emptyStatusIds.length > 0}
+        allEmptyHidden={allEmptyHidden}
+        onToggleHideEmpty={handleToggleHideEmpty}
       />
 
       <DndContext
@@ -145,7 +187,7 @@ export function SpaceBoard({ spaceId, onWorkflowOpen }: Readonly<SpaceBoardProps
       >
         <div
           ref={containerRef}
-          className="flex-1 flex gap-2 px-2 overflow-x-auto overflow-y-hidden select-none [&::-webkit-scrollbar]:h-1.5 [&::-webkit-scrollbar-thumb]:bg-white/5 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-white/[0.15] [&::-webkit-scrollbar-track]:bg-transparent"
+          className="flex-1 flex pt-1 gap-2 px-2 overflow-x-auto overflow-y-hidden select-none [&::-webkit-scrollbar]:h-1.5 [&::-webkit-scrollbar-thumb]:bg-white/5 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-white/[0.15] [&::-webkit-scrollbar-track]:bg-transparent"
         >
           {columnsToRender.map((col) => (
             <BoardColumn
@@ -160,6 +202,7 @@ export function SpaceBoard({ spaceId, onWorkflowOpen }: Readonly<SpaceBoardProps
               onTaskClick={handleTaskClick}
               onPriorityChange={handlePriorityChange}
               onDateChange={handleDateChange}
+              onHide={col.id === "unclassified" ? () => setHideUnclassified(true) : undefined}
             />
           ))}
         </div>

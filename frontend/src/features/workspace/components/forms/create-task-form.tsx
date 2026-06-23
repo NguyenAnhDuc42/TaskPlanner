@@ -119,7 +119,7 @@ export function CreateTaskForm({
 
   // Lazy-load space items (populates space statuses into Redux)
   useGetSpaceDetailQuery(spaceId || "", { skip: !spaceId });
-  useGetSpaceItemsQuery(spaceId || "", { skip: !spaceId });
+  useGetSpaceItemsQuery({ spaceId: spaceId || "", cursor: null }, { skip: !spaceId });
 
   // Derive statuses from the space (all tasks in a folder now use space workflow)
   const allStatuses = useSelector((state: RootState) => statusSelectors.selectAll(state));

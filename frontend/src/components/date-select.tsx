@@ -57,10 +57,8 @@ export function DateSelect({
           </button>
         </PopoverTrigger>
         <PopoverContent
-          className="w-auto p-3 border border-border shadow-xl rounded-xl bg-popover flex flex-col gap-3"
+          className="w-auto p-3 border border-border shadow-xl rounded-md bg-popover flex flex-col gap-3"
           align={align}
-          onClick={(e) => e.stopPropagation()}
-          onPointerDown={(e) => e.stopPropagation()}
         >
           <div className="flex gap-4">
             <div className="flex flex-col gap-1.5">

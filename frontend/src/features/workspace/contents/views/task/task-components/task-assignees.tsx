@@ -107,26 +107,27 @@ export function TaskAssignees({ taskId, spaceId }: Readonly<TaskAssigneesProps>)
 
         <PopoverContent
           align="start"
-          className="w-48 p-0 rounded-md border border-border shadow-md bg-popover text-popover-foreground overflow-hidden"
+          className="w-48 p-0 gap-0 rounded-md border border-border shadow-md bg-background text-popover-foreground overflow-hidden"
         >
-          {/* Header — matches DropdownMenuLabel */}
-          <div className="px-2 py-1.5 text-xs font-semibold border-b border-border/40">
+          {/* Header */}
+          <div className="px-2 py-1.5 text-[10px] font-bold uppercase tracking-widest text-muted-foreground opacity-60">
             Assign Members
           </div>
+          <div className="h-px w-full bg-border" />
 
           {/* Search */}
-          <div className="p-1">
+          <div className="p-0 border-b border-border">
             <Input
               autoFocus
               placeholder="Filter members..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="h-7 text-[11px] bg-muted/30 border-0 focus-visible:ring-0 rounded-sm px-2"
+              className="h-8 text-[11px] bg-transparent border-0 focus-visible:ring-0 rounded-none px-2 w-full"
             />
           </div>
 
-          {/* Member list — matches DropdownMenuItem style */}
-          <div className="max-h-[200px] overflow-y-auto p-1 [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-thumb]:bg-muted-foreground/20">
+          {/* Member list */}
+          <div className="max-h-[200px] overflow-y-auto [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:bg-muted-foreground/20">
             {filteredMembers.length === 0 ? (
               <p className="text-[11px] text-muted-foreground/50 text-center py-3">No members found</p>
             ) : (
@@ -144,9 +145,9 @@ export function TaskAssignees({ taskId, spaceId }: Readonly<TaskAssigneesProps>)
                     type="button"
                     onClick={() => handleToggle(member.id)}
                     className={cn(
-                      "w-full flex items-center gap-2 px-2 py-1.5 text-[11px] text-left rounded-sm transition-colors",
+                      "w-full flex items-center gap-2 px-2 py-1.5 text-[11px] font-semibold text-left rounded-none transition-colors cursor-default outline-none select-none",
                       isAssigned
-                        ? "bg-muted text-foreground shadow-sm"
+                        ? "bg-muted text-foreground"
                         : "hover:bg-accent hover:text-accent-foreground",
                     )}
                   >

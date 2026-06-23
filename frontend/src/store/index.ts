@@ -1,7 +1,7 @@
 import { configureStore } from '@reduxjs/toolkit';
 import { setupListeners } from '@reduxjs/toolkit/query';
 import { workspaceApi } from './workspaceApi';
-import { spaceSlice, folderSlice, taskSlice, memberSlice, statusSlice, entityAccessSlice, assigneeSlice, commentSlice, workspaceSlice, attachmentSlice, documentBlockSlice } from './entityStore';
+import { spaceSlice, folderSlice, taskSlice, memberSlice, statusSlice, entityAccessSlice, assigneeSlice, commentSlice, workspaceSlice, attachmentSlice, documentBlockSlice, notificationSlice } from './entityStore';
 
 export const store = configureStore({
   reducer: {
@@ -16,6 +16,7 @@ export const store = configureStore({
     [workspaceSlice.name]: workspaceSlice.reducer,
     [attachmentSlice.name]: attachmentSlice.reducer,
     [documentBlockSlice.name]: documentBlockSlice.reducer,
+    [notificationSlice.name]: notificationSlice.reducer,
     [workspaceApi.reducerPath]: workspaceApi.reducer,
   },
   middleware: (getDefaultMiddleware) =>

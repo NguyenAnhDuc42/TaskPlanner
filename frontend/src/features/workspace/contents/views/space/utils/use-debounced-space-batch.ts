@@ -1,9 +1,8 @@
 import { useRef, useEffect, useLayoutEffect, useCallback } from "react";
 import { store } from "@/store";
-import { taskSlice, folderSlice } from "@/store/entityStore";
+import { taskSlice } from "@/store/entityStore";
 import type { BatchUpdateSpaceItemValue } from "../space-api";
-import { EntityLayerType } from "@/types/entity-layer-type";
-import type { TaskRecord, FolderRecord } from "@/types/projects";
+import type { TaskRecord } from "@/types/projects";
 
 /**
  * Accumulates space batch updates and fires one API call after `delay` ms of
@@ -43,11 +42,7 @@ export function useDebouncedSpaceBatch(
     pendingRef.current.set(update.id, { ...existing, ...update });
 
     // Optimistic store update immediately so UI reflects the change at once
-    if (update.type === EntityLayerType.ProjectTask) {
-      store.dispatch(taskSlice.actions.upsert(update as Partial<TaskRecord> & { id: string }));
-    } else {
-      store.dispatch(folderSlice.actions.upsert(update as Partial<FolderRecord> & { id: string }));
-    }
+    store.dispatch(taskSlice.actions.upsert(update as Partial<TaskRecord> & { id: string }));
 
     // Reset the debounce — only the last change in the window triggers the API
     if (timerRef.current) clearTimeout(timerRef.current);

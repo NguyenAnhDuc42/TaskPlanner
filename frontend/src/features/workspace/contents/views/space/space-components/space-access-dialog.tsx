@@ -49,43 +49,43 @@ export function SpaceAccessDialogRow({ member, isCreator, access, onUpdateAccess
 
   return (
     <tr className="hover:bg-white/[0.01] transition-colors">
-      <td className="p-1 text-center">
+      <td className="py-2 px-2 text-center">
         <input
           type="checkbox"
           checked={haveAccess}
           onChange={handleToggleCheckbox}
           disabled={isCreator}
-          className="h-3 w-3 rounded border-border/40 accent-primary cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+          className="h-3.5 w-3.5 rounded-sm border-border/40 accent-primary cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
         />
       </td>
-      <td className="p-1 flex items-center gap-1.5">
-        <Avatar className="h-4 w-4 shrink-0 text-[8px] font-black">
+      <td className="py-2 px-2 flex items-center gap-2">
+        <Avatar className="h-6 w-6 shrink-0 text-[9px] font-black rounded-sm">
           <AvatarImage src={member.avatarUrl} alt={member.name} />
-          <AvatarFallback className="bg-primary/20 text-white border border-border/20 leading-none flex items-center justify-center">
+          <AvatarFallback className="bg-primary/20 text-white border border-border/20 leading-none flex items-center justify-center rounded-sm">
             {initials}
           </AvatarFallback>
         </Avatar>
         <div>
-          <div className="font-bold text-[10px] text-foreground/95 leading-none flex items-center gap-1">
+          <div className="font-bold text-[11px] text-foreground/95 leading-none flex items-center gap-1.5">
             {member.name}
             {isCreator && (
-              <span className="text-[7px] bg-primary/25 text-primary px-1 rounded-sm uppercase tracking-wider font-extrabold scale-90 origin-left">
+              <span className="text-[8px] bg-primary/25 text-primary px-1.5 rounded-sm uppercase tracking-wider font-extrabold">
                 Owner
               </span>
             )}
           </div>
-          <div className="text-[8px] text-muted-foreground/45 mt-0.5">{member.email}</div>
+          <div className="text-[9px] text-muted-foreground/45 mt-0.5">{member.email}</div>
         </div>
       </td>
-      <td className="p-1 text-[9px] font-mono uppercase text-muted-foreground/60 leading-none">
+      <td className="py-2 px-2 text-[10px] font-mono uppercase text-muted-foreground/60">
         {member.role || "Member"}
       </td>
-      <td className="p-1 text-right pr-2">
+      <td className="py-2 px-2 text-right">
         <select
           value={currentLevel}
           onChange={handleLevelSelect}
           disabled={isCreator}
-          className="bg-background border border-border/25 rounded px-1 py-0.5 text-[9px] font-bold text-foreground/80 cursor-pointer disabled:cursor-not-allowed disabled:opacity-50 outline-none focus:border-primary/50 leading-none"
+          className="bg-background border border-border/25 rounded-sm px-1 py-0.5 text-[9px] font-bold text-foreground/80 cursor-pointer disabled:cursor-not-allowed disabled:opacity-50 outline-none focus:border-primary/50 leading-none"
         >
           <option value="None">None (Default)</option>
           <option value="Viewer">Viewer</option>
@@ -116,8 +116,8 @@ export function SpaceAccessDialog({ spaceId, trigger }: Readonly<SpaceAccessDial
           </DialogTitle>
         </DialogHeader>
         
-        <div className="mt-1 border border-border/20 rounded-md overflow-hidden bg-card/25">
-          <div className="max-h-[300px] overflow-y-auto [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-thumb]:bg-white/[0.05]">
+        <div className="mt-1 border border-border/20 rounded-md overflow-hidden bg-muted/10">
+          <div className="max-h-100 overflow-y-auto [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-thumb]:bg-white/5">
             <table className="w-full text-xs text-left">
               <thead className="bg-white/[0.02] border-b border-border/20 text-muted-foreground/75 font-mono text-[8px] uppercase tracking-wider">
                 <tr>

@@ -13,10 +13,11 @@ public class EntityBatchUpdate
     public List<CommentRecord>? Comments { get; set; }
     public List<DocumentBlockRecord>? DocumentBlocks { get; set; }
     public List<AttachmentRecord>? Attachments { get; set; }
+    public List<NotificationRecord>? Notifications { get; set; }
 
-    public bool HasAny => (Spaces?.Count > 0) || 
-                          (Folders?.Count > 0) || 
-                          (Tasks?.Count > 0) || 
+    public bool HasAny => (Spaces?.Count > 0) ||
+                          (Folders?.Count > 0) ||
+                          (Tasks?.Count > 0) ||
                           (Members?.Count > 0) ||
                           (Assignees?.Count > 0) ||
                           (EntityAccess?.Count > 0) ||
@@ -24,7 +25,8 @@ public class EntityBatchUpdate
                           (Statuses?.Count > 0) ||
                           (Comments?.Count > 0) ||
                           (DocumentBlocks?.Count > 0) ||
-                          (Attachments?.Count > 0);
+                          (Attachments?.Count > 0) ||
+                          (Notifications?.Count > 0);
 }
 
 public class EntityBatchDelete

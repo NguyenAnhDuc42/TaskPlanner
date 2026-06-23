@@ -1,6 +1,6 @@
 import React, { useState } from "react";
-import * as Icons from "lucide-react";
-import { ChevronRight, MoreVertical, Lock, type LucideIcon } from "lucide-react";
+import { ChevronRight, MoreVertical, Lock } from "lucide-react";
+import { DynamicIcon } from "@/components/dynamic-icon";
 import { useNavigate, useLocation, useRouter } from "@tanstack/react-router";
 import { useWorkspace } from "@/features/workspace/context/workspace-context";
 import { cn } from "@/lib/utils";
@@ -38,8 +38,6 @@ export const FolderNodeItem = React.memo(function FolderNodeItem({
 
   if (!folder) return null;
 
-  const iconName = (folder.icon ?? "Folder") as keyof typeof Icons;
-  const IconComponent: LucideIcon =(Icons[iconName] as unknown as LucideIcon) ?? Icons.Folder;
   const isActive = location.pathname.includes(`/folders/${folder.id}`);
 
   return (
@@ -79,12 +77,14 @@ export const FolderNodeItem = React.memo(function FolderNodeItem({
                 setIsOpen(!isOpen);
               }}
             >
-              <IconComponent
+              <DynamicIcon
+                name={folder.icon || "Folder"}
+                size={14}
+                color={folder.color}
                 className={cn(
-                  "h-3.5 w-3.5 absolute transition-none",
+                  "absolute transition-none",
                   folder.hasTasks && "group-hover/icon:opacity-0",
                 )}
-                style={{ color: folder.color }}
               />
               {/* Chevron shows whenever hasTasks=true — including after optimistic dispatch.
                   This is the fallback: if auto-expand doesn't fire, user clicks here. */}

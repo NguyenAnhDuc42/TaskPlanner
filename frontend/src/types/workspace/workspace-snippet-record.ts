@@ -8,4 +8,5 @@ export interface WorkspaceSnippetRecord {
     role?: Role;
     isPinned?: boolean;
     memberCount?: number;
+    membershipStatus?: "Active" | "Pending" | "Suspended" | "Invited";
 }

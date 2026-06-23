@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { useDispatch } from "react-redux";
 import { useUser } from "@/features/auth/auth-api";
 import { store } from "@/store";
+import { useNotificationSignalR } from "@/features/notifications/use-notification-signalr";
 import { signalRService } from "@/lib/signalr-service";
 import {
   spaceSlice,
@@ -23,6 +24,7 @@ import type { AppDispatch } from "@/store";
 export function useWorkspaceSignalR(workspaceId: string) {
   const dispatch = useDispatch<AppDispatch>();
   const { data: currentUser } = useUser();
+  useNotificationSignalR();
 
   useEffect(() => {
     if (!workspaceId) return;
@@ -75,6 +77,7 @@ export function useWorkspaceSignalR(workspaceId: string) {
       if (payload.workspaces)     dispatch(workspaceSlice.actions.upsertMany(payload.workspaces));
       if (payload.attachments)    dispatch(attachmentSlice.actions.upsertMany(payload.attachments));
       if (payload.documentBlocks) dispatch(documentBlockSlice.actions.upsertMany(payload.documentBlocks));
+      // notifications handled by useNotificationSignalR (global hook)
     };
 
     const onEntitiesDeleted = (payload: import("@/lib/signalr-service").EntityBatchDelete) => {
@@ -118,5 +121,5 @@ export function useWorkspaceSignalR(workspaceId: string) {
       signalRService.offReconnected(handleReconnect);
       signalRService.invoke("LeaveWorkspace", workspaceId).catch(() => {});
     };
-  }, [workspaceId, dispatch, currentUser?.id]);
+  }, [workspaceId, dispatch]);
 }

@@ -115,7 +115,6 @@ export function FolderView({ folderId }: Readonly<FolderViewProps>) {
 
   return (
     <EntityViewFrame
-      className= "bg-card/30"
       topHeader={
         <div className="flex items-center justify-between w-full">
           <Breadcrumb className="text-xs">
@@ -131,7 +130,7 @@ export function FolderView({ folderId }: Readonly<FolderViewProps>) {
                       >
                         <DynamicIcon
                           name={parentSpace.icon || "Folder"}
-                          size={11}
+                          size={15}
                           color={parentSpace.color || "#3b82f6"}
                           className="stroke-[2.5] shrink-0"
                         />
@@ -146,7 +145,7 @@ export function FolderView({ folderId }: Readonly<FolderViewProps>) {
                 <BreadcrumbPage className="font-medium text-foreground flex items-center gap-1.5">
                   <DynamicIcon
                     name={folder?.icon || "Folder"}
-                    size={11}
+                    size={15}
                     color={folder?.color || "#6366f1"}
                     className="stroke-[2.5] shrink-0"
                   />
@@ -185,7 +184,7 @@ export function FolderView({ folderId }: Readonly<FolderViewProps>) {
         </div>
       }
     >
-      <div className="h-full w-full flex flex-col bg-background/25 p-1 gap-1 overflow-hidden relative">
+      <div className="h-full w-full flex flex-col bg-transparent p-1 gap-1 overflow-hidden relative">
         {/* Ambient background accent glow */}
         <div 
           className="absolute right-12 bottom-12 w-87.5 h-87.5 rounded-full blur-[120px] opacity-[0.05] pointer-events-none transition-all duration-700"
@@ -193,13 +192,13 @@ export function FolderView({ folderId }: Readonly<FolderViewProps>) {
         />
 
         {/* Integrated Floating Folder Header Bar */}
-        <div className="flex items-center justify-between px-1.5 py-1 rounded-md border border-border/30 bg-card/30 backdrop-blur-md shadow-sm shrink-0">
+        <div className="flex items-center justify-between px-1.5 py-1 rounded-md border border-border bg-card shadow-sm shrink-0">
           <div className="flex items-center gap-1.5">
             <UniversalPicker
               icon={folder?.icon ?? "Folder"}
               color={folder?.color ?? "#6366f1"}
               onSelect={(icon, color) => updateField({ icon, color })}
-              size="sm"
+              size="md"
             />
 
             <input
@@ -236,7 +235,7 @@ export function FolderView({ folderId }: Readonly<FolderViewProps>) {
         <div className="flex-1 flex gap-1 overflow-hidden relative">
           {/* Left Card: Folder Task List Column */}
           <div className={cn(
-            "rounded-md border border-border/40 bg-card/35 backdrop-blur-md shadow-sm overflow-hidden flex flex-col shrink-0 transition-all duration-300",
+            "rounded-md border border-border bg-card shadow-sm overflow-hidden flex flex-col shrink-0 transition-all duration-300",
             selectedTaskId ? "w-70" : "flex-1 w-full"
           )}>
             <FolderTaskList
@@ -249,7 +248,7 @@ export function FolderView({ folderId }: Readonly<FolderViewProps>) {
 
           {/* Right Card: Task Detail Canvas */}
           {selectedTaskId && (
-            <div className="flex-1 rounded-md border border-border/40 bg-card/35 backdrop-blur-md shadow-sm overflow-hidden flex flex-col relative group">
+            <div className="flex-1 rounded-md border border-border bg-card shadow-sm overflow-hidden flex flex-col relative group">
               <div className="absolute top-1.5 right-1.5 z-10 opacity-0 group-hover:opacity-100 transition-opacity">
                 <Button
                   variant="ghost"

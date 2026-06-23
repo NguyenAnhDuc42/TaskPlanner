@@ -9,6 +9,7 @@ public record WorkspaceSnippetRecord
     public Role? Role { get; init; }
     public bool? IsPinned { get; init; }
     public int? MemberCount { get; init; }
+    public MembershipStatus MembershipStatus { get; init; } = MembershipStatus.Active;
 }
 
 public record WorkspaceRecord

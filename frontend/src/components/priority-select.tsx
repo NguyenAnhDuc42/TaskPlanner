@@ -52,7 +52,7 @@ export function PrioritySelect({
             >
               <PriorityBadge
                 priority={p}
-                className="w-full justify-start border-none bg-transparent hover:bg-transparent p-0 h-auto"
+                className="w-full justify-start pointer-events-none"
               />
             </DropdownMenuRadioItem>
           ))}

@@ -14,28 +14,28 @@ const getStyle = (p?: Priority) => {
   switch (p) {
     case Priority.Urgent:
       return {
-        bg: "bg-red-500/10 hover:bg-red-500/20",
-        text: "text-red-500",
-        icon: "fill-red-500/50"
+        bg: "bg-red-500 hover:bg-red-600 border-2 border-red-500 dark:bg-red-500/10 dark:hover:bg-red-500/20 dark:border dark:border-transparent",
+        text: "text-white font-bold dark:text-red-400 dark:font-semibold",
+        icon: "fill-white/90 dark:fill-red-500/50"
       };
     case Priority.High:
       return {
-        bg: "bg-orange-500/10 hover:bg-orange-500/20",
-        text: "text-orange-500",
-        icon: "fill-orange-500/50"
+        bg: "bg-orange-500 hover:bg-orange-600 border-2 border-orange-500 dark:bg-orange-500/10 dark:hover:bg-orange-500/20 dark:border dark:border-transparent",
+        text: "text-white font-bold dark:text-orange-400 dark:font-semibold",
+        icon: "fill-white/90 dark:fill-orange-500/50"
       };
     case Priority.Normal:
       return {
-        bg: "bg-blue-500/10 hover:bg-blue-500/20",
-        text: "text-blue-500",
-        icon: "fill-blue-500/50"
+        bg: "bg-blue-500 hover:bg-blue-600 border-2 border-blue-500 dark:bg-blue-500/10 dark:hover:bg-blue-500/20 dark:border dark:border-transparent",
+        text: "text-white font-bold dark:text-blue-400 dark:font-semibold",
+        icon: "fill-white/90 dark:fill-blue-500/50"
       };
     case Priority.Low:
     default:
       return {
-        bg: "bg-muted/50 hover:bg-muted/80",
-        text: "text-muted-foreground",
-        icon: "opacity-70"
+        bg: "bg-muted-foreground hover:bg-muted-foreground/90 border-2 border-muted-foreground dark:bg-muted/50 dark:hover:bg-muted/80 dark:border dark:border-transparent",
+        text: "text-white font-bold dark:text-muted-foreground dark:font-semibold",
+        icon: "opacity-90 dark:opacity-70"
       };
   }
 };

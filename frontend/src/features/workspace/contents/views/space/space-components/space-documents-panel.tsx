@@ -59,7 +59,7 @@ export function SpaceDocumentsPanel({ spaceId }: SpaceDocumentsPanelProps) {
   if (!space) return null;
 
   return (
-    <div className="rounded-md border border-border/25 overflow-hidden bg-card/10 shadow-sm">
+    <div className="rounded-md border border-border overflow-hidden bg-card shadow-sm">
       {/* Tab bar */}
       <div className="flex items-center gap-0 bg-white/[0.02] border-b border-border/15 px-2 pt-1 select-none overflow-x-auto">
         {/* Default Overview doc tab */}

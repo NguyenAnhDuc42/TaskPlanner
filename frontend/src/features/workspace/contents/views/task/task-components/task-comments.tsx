@@ -3,7 +3,7 @@ import { useSelector } from "react-redux";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Send, CornerDownRight, Trash2, X, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { MentionInput } from "@/components/mention-input";
 import { memberSelectors, commentSelectors } from "@/store/entityStore";
 import { toast } from "sonner";
 import { useTaskComments, useAddCommentMutation, useDeleteCommentMutation } from "../task-api";
@@ -144,7 +144,7 @@ export function TaskComments({ taskId }: Readonly<TaskCommentsProps>) {
         )}
       </div>
 
-      <div className="mt-2 relative bg-muted/10 rounded-md border border-border/40 p-1 flex flex-col gap-1 shadow-sm">
+      <div className="mt-2 relative bg-muted/10 rounded-md border border-border/40 p-1 flex flex-col gap-1 shadow-sm" style={{ position: "relative" }}>
         {replyingTo && (
           <div className="flex items-center justify-between px-2 py-1.5 bg-muted/40 rounded-sm border border-border/20 mx-1 mt-1">
             <div className="flex flex-col gap-0.5 overflow-hidden">
@@ -154,25 +154,25 @@ export function TaskComments({ taskId }: Readonly<TaskCommentsProps>) {
             <button type="button" onClick={() => setReplyingTo(null)} className="text-muted-foreground hover:text-foreground p-0.5 shrink-0"><X className="h-3 w-3"/></button>
           </div>
         )}
-        <form onSubmit={handleSendComment} className="flex items-end gap-2 w-full">
-          <div className="flex-1 relative">
-            <Input
-              placeholder="Write a comment..."
-              value={newCommentText}
-              onChange={(e) => setNewCommentText(e.target.value)}
-              className="text-xs min-h-9 h-auto py-2 bg-transparent border-none pr-10 focus-visible:ring-0 shadow-none"
-            />
-            <Button
-              type="submit"
-              size="icon"
-              variant="ghost"
-              className="absolute right-1 bottom-1 h-7 w-7 text-primary hover:bg-primary/10 hover:text-primary transition-colors rounded-md"
-              disabled={!newCommentText.trim()}
-            >
-              <Send className="h-3.5 w-3.5" />
-            </Button>
-          </div>
-        </form>
+        <div className="flex items-end gap-2 w-full">
+          <MentionInput
+            value={newCommentText}
+            onChange={setNewCommentText}
+            onSubmit={handleSendComment}
+            placeholder="Write a comment... (@mention)"
+            className="min-h-9 py-2 pr-10"
+          />
+          <Button
+            type="button"
+            size="icon"
+            variant="ghost"
+            onClick={handleSendComment}
+            className="absolute right-1 bottom-1 h-7 w-7 text-primary hover:bg-primary/10 hover:text-primary transition-colors rounded-md"
+            disabled={!newCommentText.trim()}
+          >
+            <Send className="h-3.5 w-3.5" />
+          </Button>
+        </div>
       </div>
 
       <AlertDialog open={!!deleteCommentId} onOpenChange={(open) => !open && setDeleteCommentId(null)}>
