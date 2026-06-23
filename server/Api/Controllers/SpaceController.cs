@@ -88,6 +88,20 @@ namespace Api
             var result = await _handler.SendAsync<CreateSpaceDocumentCommand, SpaceDocumentRecord>(command with { SpaceId = id }, cancellationToken);
             return result.ToActionResult();
         }
+
+        [HttpGet("statuses")]
+        public async Task<IActionResult> GetWorkspaceStatuses(CancellationToken cancellationToken)
+        {
+            var result = await _handler.QueryAsync<GetWorkspaceStatusesQuery, List<StatusRecord>>(new GetWorkspaceStatusesQuery(), cancellationToken);
+            return result.ToActionResult();
+        }
+
+        [HttpPut("{id:guid}/statuses")]
+        public async Task<IActionResult> UpdateStatuses(Guid id, [FromBody] List<StatusUpdateValue> statuses, CancellationToken cancellationToken)
+        {
+            var result = await _handler.SendAsync(new UpdateSpaceStatusesCommand(id, statuses), cancellationToken);
+            return result.ToActionResult();
+        }
     }
 
 

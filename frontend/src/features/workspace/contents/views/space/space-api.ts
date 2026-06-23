@@ -196,32 +196,21 @@ export function useSpaceDetail(spaceId: string) {
   return useSelector((state: RootState) => state.spaces.entities[spaceId]);
 }
 
-export type BoardItem =
-  | (FolderRecord & { __type: "folder" })
-  | (TaskRecord & { __type: "task" });
+export type BoardItem = TaskRecord & { __type: "task"; folderName?: string };
 
 export function useSpaceBoardItems(spaceId: string) {
   const selectBoardItemsForSpace = useMemo(() =>
     createSelector(
-      [folderSelectors.selectAll, taskSelectors.selectAll],
-      (folders, tasks) => {
+      [taskSelectors.selectAll, folderSelectors.selectEntities],
+      (tasks, folderMap) => {
         const targetSpaceId = spaceId.toLowerCase();
-
-        const spaceFolders = folders
-          .filter((f) => f.spaceId?.toLowerCase() === targetSpaceId)
-          .map((f) => ({
-            ...f,
-            __type: "folder" as const,
-          }));
-
-        const spaceTasks = tasks
-          .filter((t) => t.spaceId?.toLowerCase() === targetSpaceId && !t.folderId && !t.parentTaskId)
+        return tasks
+          .filter((t) => t.spaceId?.toLowerCase() === targetSpaceId && !t.parentTaskId)
           .map((t) => ({
             ...t,
             __type: "task" as const,
-          }));
-
-        return [...spaceFolders, ...spaceTasks] as BoardItem[];
+            folderName: t.folderId ? folderMap[t.folderId]?.name : undefined,
+          })) as BoardItem[];
       }
     ),
   [spaceId]);
@@ -242,10 +231,10 @@ export function useSpaceStatuses(spaceId: string) {
     createSelector(
       [statusSelectors.selectAll],
       (statuses: Status[]) => {
-        const targetWorkflowId = space?.workflowId;
-        if (!targetWorkflowId) return [];
+        const spaceId = space?.id;
+        if (!spaceId) return [];
         return statuses
-          .filter(s => s.workflowId?.toLowerCase() === targetWorkflowId.toLowerCase())
+          .filter(s => s.spaceId?.toLowerCase() === spaceId.toLowerCase())
           .sort((a, b) => {
             const weightA = statusCategoryWeight[a.category] ?? 4;
             const weightB = statusCategoryWeight[b.category] ?? 4;
@@ -254,7 +243,7 @@ export function useSpaceStatuses(spaceId: string) {
           });
       }
     ),
-  [space?.workflowId]);
+  [space?.id]);
 
   return useSelector(selectSpaceStatuses);
 }

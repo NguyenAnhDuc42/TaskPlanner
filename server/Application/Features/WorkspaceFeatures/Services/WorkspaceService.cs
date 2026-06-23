@@ -33,11 +33,7 @@ public class WorkspaceService(
                 var space = ProjectSpace.CreateDefault(workspace.Id, spaceDoc.Id, creatorId);
                 await db.ProjectSpaces.AddAsync(space);
                 
-                // Create Workflow for the Default Space!
-                var spaceWorkflow = Workflow.Create(workspace.Id, "Personal Space Workflow", "", creatorId, projectSpaceId: space.Id);
-                await db.Workflows.AddAsync(spaceWorkflow);
-                
-                var spaceStatuses = Status.CreateSpaceStarterSet(workspace.Id, spaceWorkflow.Id, creatorId);
+                var spaceStatuses = Status.CreateSpaceStarterSet(workspace.Id, space.Id, creatorId);
                 await db.Statuses.AddRangeAsync(spaceStatuses);
 
 

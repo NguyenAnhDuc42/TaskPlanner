@@ -18,7 +18,8 @@ public class CreateSpaceHandler(
 
         ProjectSpace? space = null;
         EntityAccess? creatorAccess = null;
-        Workflow? workflow = null;
+        List<Status> createdStatuses = new();
+
         var result = await db.ExecuteInTransactionAsync(async () =>
         {
             var maxKey = await db.ProjectSpaces
@@ -47,20 +48,11 @@ public class CreateSpaceHandler(
                 creatorId: context.CurrentMember.Id,
                 orderKey: orderKey
             );
-
             await db.ProjectSpaces.AddAsync(space, cancellationToken);
 
-            workflow = Workflow.Create(
-                context.WorkspaceId,
-                $"{request.name} Workflow",
-                $"Default workflow for {request.name} space",
-                context.CurrentMember.Id,
-                projectSpaceId: space.Id
-            );
-            await db.Workflows.AddAsync(workflow, cancellationToken);
-
-            var statuses = Status.CreateSpaceStarterSet(context.WorkspaceId, workflow.Id, context.CurrentMember.Id);
+            var statuses = Status.CreateSpaceStarterSet(context.WorkspaceId, space.Id, context.CurrentMember.Id);
             await db.Statuses.AddRangeAsync(statuses, cancellationToken);
+            createdStatuses.AddRange(statuses);
 
             creatorAccess = EntityAccess.Create(
                 projectWorkspaceId: context.WorkspaceId,
@@ -73,10 +65,9 @@ public class CreateSpaceHandler(
             );
             await db.EntityAccesses.AddAsync(creatorAccess, cancellationToken);
 
-            var record = SpaceRecord.FromDomain(space!, workflow!.Id);
-            return Result<SpaceRecord>.Success(record);
+            return Result<SpaceRecord>.Success(SpaceRecord.FromDomain(space!));
         }, cancellationToken);
-        
+
         if (result.IsSuccess)
         {
             logger.LogInformation("Broadcasting entity updates for created space {SpaceId}", result.Value?.Id);
@@ -84,8 +75,9 @@ public class CreateSpaceHandler(
             .NotifyEntitiesUpdatedAsync(context.WorkspaceId,
                new EntityBatchUpdate {
                    Spaces = [result.Value!],
-                   EntityAccess = [EntityAccessRecord.FromDomain(creatorAccess!)]
-               },default)
+                   EntityAccess = [EntityAccessRecord.FromDomain(creatorAccess!)],
+                   Statuses = createdStatuses.Select(StatusRecord.FromDomain).ToList()
+               }, default)
             .ContinueWith(t =>
                 logger.LogError(t.Exception, "Failed to send real-time notification for created space {SpaceId}", result.Value?.Id),
                 TaskContinuationOptions.OnlyOnFaulted);
@@ -93,6 +85,3 @@ public class CreateSpaceHandler(
         return result;
     }
 }
-
-
-

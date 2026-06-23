@@ -3,151 +3,77 @@ using Microsoft.Extensions.Caching.Hybrid;
 
 namespace Application;
 
-public class UpdateWorkflowStatusesHandler(
+public class UpdateSpaceStatusesHandler(
     TaskPlanDbContext db,
     WorkspaceContext context,
     HybridCache cache,
     RealtimeService realtime,
     PermissionService permissionService)
-    : ICommandHandler<UpdateWorkflowStatusesCommand>
+    : ICommandHandler<UpdateSpaceStatusesCommand>
 {
-    public async Task<Result> Handle(
-        UpdateWorkflowStatusesCommand request,
-        CancellationToken cancellationToken)
+    public async Task<Result> Handle(UpdateSpaceStatusesCommand request, CancellationToken cancellationToken)
     {
         var hasAccess = await permissionService.VerifyAsync(Role.Admin, cancellationToken: cancellationToken);
         if (!hasAccess)
             return Result.Failure(MemberError.DontHavePermission);
 
-        var workflow = await db.Workflows
-            .Include(x => x.Statuses)
-            .FirstOrDefaultAsync(
-                x => x.Id == request.WorkflowId && x.DeletedAt == null,
-                cancellationToken);
+        var existingStatuses = await db.Statuses
+            .Where(s => s.ProjectSpaceId == request.SpaceId && s.DeletedAt == null)
+            .ToDictionaryAsync(s => s.Id, cancellationToken);
 
-        if (workflow is null)
-            return Result.Failure(WorkflowError.NotFound);
-
-        var existingStatuses = workflow.Statuses
-            .ToDictionary(x => x.Id);
-
-        foreach (var status in request.Statuses)
+        foreach (var dto in request.Statuses)
         {
-            switch (status.Action)
+            switch (dto.Action)
             {
                 case RowAction.Create:
-                    ProcessCreate(status, workflow);
+                    var orderKey = ResolveOrderKey(dto.PreviousOrderKey, dto.NextOrderKey);
+                    var newStatus = Status.Create(
+                        context.WorkspaceId,
+                        request.SpaceId,
+                        dto.Name,
+                        dto.Color,
+                        dto.Category,
+                        context.CurrentMember.Id,
+                        orderKey,
+                        dto.Id);
+                    db.Statuses.Add(newStatus);
                     break;
 
                 case RowAction.Update:
-                    if (status.Id is null)
-                        continue;
-
-                    if (!existingStatuses.TryGetValue(
-                            status.Id.Value,
-                            out var statusToUpdate))
-                        continue;
-
-                    ProcessUpdate(statusToUpdate, status);
+                    if (dto.Id is null || !existingStatuses.TryGetValue(dto.Id.Value, out var toUpdate)) continue;
+                    toUpdate.Update(dto.Name, dto.Color, dto.Category, ResolveOrderKey(dto.PreviousOrderKey, dto.NextOrderKey));
                     break;
 
                 case RowAction.Delete:
-                    if (status.Id is null)
-                        continue;
-
-                    if (!existingStatuses.TryGetValue(
-                            status.Id.Value,
-                            out var statusToDelete))
-                        continue;
-
-                    ProcessDelete(statusToDelete, workflow);
+                    if (dto.Id is null || !existingStatuses.TryGetValue(dto.Id.Value, out var toDelete)) continue;
+                    db.Statuses.Remove(toDelete);
                     break;
             }
         }
 
         await db.SaveChangesAsync(cancellationToken);
 
-        await cache.RemoveByTagAsync(
-            $"Workflows-{context.WorkspaceId}",
-            cancellationToken);
-
-        await cache.RemoveByTagAsync(
-            $"Statuses-{context.WorkspaceId}",
-            cancellationToken);
+        await cache.RemoveByTagAsync($"Statuses-{context.WorkspaceId}", cancellationToken);
 
         await realtime.NotifyWorkspaceAsync(
             context.WorkspaceId,
-            "WorkflowUpdated",
-            new { WorkflowId = workflow.Id },
+            "StatusesUpdated",
+            new { SpaceId = request.SpaceId },
             cancellationToken);
 
         return Result.Success();
     }
 
-    private void ProcessCreate(
-        StatusUpdateValue dto,
-        Workflow workflow)
+    private static string? ResolveOrderKey(string? previousKey, string? nextKey)
     {
-        var orderKey = ResolveOrderKey(
-            dto.PreviousOrderKey,
-            dto.NextOrderKey);
-
-        var status = Status.Create(
-            workflow.ProjectWorkspaceId,
-            workflow.Id,
-            dto.Name,
-            dto.Color,
-            dto.Category,
-            context.CurrentMember.Id,
-            orderKey,
-            dto.Id);
-
-        workflow.AddStatus(status);
-    }
-
-    private void ProcessDelete(
-        Status status,
-        Workflow workflow)
-    {
-        workflow.RemoveStatus(status.Id);
-        db.Statuses.Remove(status);
-    }
-
-    private static void ProcessUpdate(
-        Status status,
-        StatusUpdateValue dto)
-    {
-        var orderKey = ResolveOrderKey(
-            dto.PreviousOrderKey,
-            dto.NextOrderKey);
-
-        status.Update(
-            dto.Name,
-            dto.Color,
-            dto.Category,
-            orderKey);
-    }
-
-    private static string? ResolveOrderKey(
-        string? previousKey,
-        string? nextKey)
-    {
-        if (previousKey is null && nextKey is null)
-            return null;
-
+        if (previousKey is null && nextKey is null) return null;
         if (previousKey is not null && nextKey is not null)
         {
-            return string.Compare(
-                       previousKey,
-                       nextKey,
-                       StringComparison.Ordinal) >= 0
+            return string.Compare(previousKey, nextKey, StringComparison.Ordinal) >= 0
                 ? FractionalIndex.After(previousKey)
                 : FractionalIndex.Between(previousKey, nextKey);
         }
-
-        if (previousKey is not null)
-            return FractionalIndex.After(previousKey);
-
+        if (previousKey is not null) return FractionalIndex.After(previousKey);
         return FractionalIndex.Before(nextKey!);
     }
 }

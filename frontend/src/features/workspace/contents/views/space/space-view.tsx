@@ -231,13 +231,11 @@ export function SpaceView({ spaceId }: Readonly<SpaceViewProps>) {
         </div>
       </div>
 
-      {space?.workflowId && (
-        <CreateStatusForm
-          isOpen={isWorkflowOpen}
-          onClose={() => setIsWorkflowOpen(false)}
-          workflowId={space.workflowId}
-        />
-      )}
+      <CreateStatusForm
+        isOpen={isWorkflowOpen}
+        onClose={() => setIsWorkflowOpen(false)}
+        spaceId={space?.id}
+      />
 
       <DeleteConfirmationDialog
         open={isDeleteOpen}

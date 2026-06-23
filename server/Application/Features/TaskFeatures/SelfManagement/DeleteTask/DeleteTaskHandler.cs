@@ -48,11 +48,8 @@ public class DeleteTaskHandler(TaskPlanDbContext db, WorkspaceContext workspaceC
                 if (!hasRemainingTasks)
                 {
                     var folder = await db.ProjectFolders.AsNoTracking().FirstOrDefaultAsync(f => f.Id == task.ProjectFolderId.Value, cancellationToken);
-                    if (folder != null) 
-                    {
-                        var workflowId = await db.Workflows.Where(w => w.ProjectFolderId == folder.Id).Select(w => w.Id).FirstOrDefaultAsync(cancellationToken);
-                        update.Folders = [FolderRecord.FromDomain(folder, workflowId) with { HasTasks = false }];
-                    }
+                    if (folder != null)
+                        update.Folders = [FolderRecord.FromDomain(folder) with { HasTasks = false }];
                 }
             }
             else
@@ -61,11 +58,8 @@ public class DeleteTaskHandler(TaskPlanDbContext db, WorkspaceContext workspaceC
                 if (!hasRemainingTasks)
                 {
                     var space = await db.ProjectSpaces.AsNoTracking().FirstOrDefaultAsync(s => s.Id == task.ProjectSpaceId, cancellationToken);
-                    if (space != null) 
-                    {
-                        var workflowId = await db.Workflows.Where(w => w.ProjectSpaceId == space.Id).Select(w => w.Id).FirstOrDefaultAsync(cancellationToken);
-                        update.Spaces = [SpaceRecord.FromDomain(space, workflowId) with { HasTasks = false }];
-                    }
+                    if (space != null)
+                        update.Spaces = [SpaceRecord.FromDomain(space) with { HasTasks = false }];
                 }
             }
 

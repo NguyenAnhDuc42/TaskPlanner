@@ -155,7 +155,7 @@ export function TaskSubtasks({ taskId }: Readonly<TaskSubtasksProps>) {
                 <StatusSelect
                   value={subtask.statusId || ""}
                   onChange={(statusId) => handleStatusChange(subtask.id, statusId)}
-                  workflowId={parentTask?.parentWorkflowId}
+                  spaceId={parentTask?.spaceId}
                 />
               </div>
               <DebouncedInput
@@ -231,7 +231,7 @@ export function TaskSubtasks({ taskId }: Readonly<TaskSubtasksProps>) {
             <StatusSelect
               value={draftStatusId || ""}
               onChange={setDraftStatusId}
-              workflowId={parentTask?.parentWorkflowId}
+              spaceId={parentTask?.spaceId}
             />
           </div>
 

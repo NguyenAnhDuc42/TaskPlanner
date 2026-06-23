@@ -10,8 +10,8 @@ public class StatusConfiguration : TenantEntityConfiguration<Status>
 
         builder.ToTable("statuses");
 
-        builder.Property(s => s.WorkflowId)
-            .HasColumnName("workflow_id")
+        builder.Property(s => s.ProjectSpaceId)
+            .HasColumnName("project_space_id")
             .IsRequired();
 
         builder.Property(x => x.Name)
@@ -34,16 +34,12 @@ public class StatusConfiguration : TenantEntityConfiguration<Status>
             .HasColumnName("order_key")
             .IsRequired();
 
-        builder.HasIndex(s => new { s.WorkflowId, s.OrderKey });
+        builder.HasIndex(s => new { s.ProjectSpaceId, s.OrderKey });
+        builder.HasIndex(s => s.ProjectSpaceId);
 
-        // Foreign Keys
-        builder.HasOne<Workflow>()
-            .WithMany(w => w.Statuses)
-            .HasForeignKey(x => x.WorkflowId)
+        builder.HasOne<ProjectSpace>()
+            .WithMany()
+            .HasForeignKey(s => s.ProjectSpaceId)
             .OnDelete(DeleteBehavior.Cascade);
-
-        builder.HasIndex(x => x.WorkflowId);
     }
 }
-
-

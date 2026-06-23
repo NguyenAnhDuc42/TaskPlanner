@@ -2,7 +2,7 @@ import * as React from "react";
 import { useMemo } from "react";
 import { StatusBadge } from "@/components/status-badge";
 import { useSelector } from "react-redux";
-import { statusSelectors, workflowSelectors } from "@/store/entityStore";
+import { statusSelectors } from "@/store/entityStore";
 import type { Status } from "@/types/status";
 import {
   DropdownMenu,
@@ -19,7 +19,7 @@ import { cn } from "@/lib/utils";
 interface StatusSelectProps {
   value?: string;
   onChange: (statusId: string) => void;
-  workflowId?: string;
+  spaceId?: string;
   statuses?: Status[];
   align?: "start" | "end" | "center";
   trigger?: React.ReactNode;
@@ -28,30 +28,21 @@ interface StatusSelectProps {
 export function StatusSelect({
   value,
   onChange,
-  workflowId,
+  spaceId,
   statuses: customStatuses,
   align = "start",
   trigger,
 }: Readonly<StatusSelectProps>) {
-  const allWorkflows = useSelector(workflowSelectors.selectAll);
-
-  const workflow = useMemo(() => {
-    if (!workflowId) return null;
-    return allWorkflows.find((w) =>
-      w.id?.toLowerCase() === workflowId?.toLowerCase()
-    );
-  }, [workflowId, allWorkflows]);
-
   const allStatuses = useSelector(statusSelectors.selectAll);
+
   const statuses = useMemo(() => {
     if (customStatuses) return customStatuses;
-    if (workflow?.statuses?.length) return workflow.statuses;
-    if (workflowId) {
-      const filtered = allStatuses.filter((s: Status) => s.workflowId?.toLowerCase() === workflowId?.toLowerCase());
+    if (spaceId) {
+      const filtered = allStatuses.filter((s: Status) => s.spaceId?.toLowerCase() === spaceId.toLowerCase());
       if (filtered.length > 0) return filtered;
     }
     return allStatuses;
-  }, [customStatuses, workflow, workflowId, allStatuses]);
+  }, [customStatuses, spaceId, allStatuses]);
 
   const currentStatus = useMemo(() => {
     return allStatuses.find((s: Status) => s.id?.toLowerCase() === value?.toLowerCase()) || null;
@@ -83,7 +74,7 @@ export function StatusSelect({
         onPointerDown={(e) => e.stopPropagation()}
       >
         <DropdownMenuLabel>Status</DropdownMenuLabel>
-        
+
         {Object.entries(statusesByCategory).map(([category, cats]) => (
           <React.Fragment key={category}>
             <DropdownMenuSeparator />
@@ -95,9 +86,7 @@ export function StatusSelect({
                 return (
                   <DropdownMenuItem
                     key={statusId}
-                    onSelect={() => {
-                      if (!isSelected) onChange(statusId);
-                    }}
+                    onSelect={() => { if (!isSelected) onChange(statusId); }}
                     className={cn("gap-2", isSelected && "bg-muted shadow-sm")}
                   >
                     <StatusBadge status={status} className="w-full justify-start border-none bg-transparent hover:bg-transparent text-[10px] p-0 h-auto" />

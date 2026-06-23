@@ -86,19 +86,13 @@ public class CreateTaskHandler(
             {
                 var folder = await db.ProjectFolders.AsNoTracking().FirstOrDefaultAsync(f => f.Id == request.ParentId, cancellationToken);
                 if (folder != null)
-                {
-                    var workflowId = await db.Workflows.Where(w => w.ProjectFolderId == folder.Id).Select(w => w.Id).FirstOrDefaultAsync(cancellationToken);
-                    update.Folders = [FolderRecord.FromDomain(folder, workflowId) with { HasTasks = true }];
-                }
+                    update.Folders = [FolderRecord.FromDomain(folder) with { HasTasks = true }];
             }
             else if (request.ParentType == EntityLayerType.ProjectSpace)
             {
                 var space = await db.ProjectSpaces.AsNoTracking().FirstOrDefaultAsync(s => s.Id == request.ParentId, cancellationToken);
                 if (space != null)
-                {
-                    var workflowId = await db.Workflows.Where(w => w.ProjectSpaceId == space.Id).Select(w => w.Id).FirstOrDefaultAsync(cancellationToken);
-                    update.Spaces = [SpaceRecord.FromDomain(space, workflowId) with { HasTasks = true }];
-                }
+                    update.Spaces = [SpaceRecord.FromDomain(space) with { HasTasks = true }];
             }
 
             _ = realtimeService

@@ -26,15 +26,12 @@ public class GetNodeFoldersHandler(TaskPlanDbContext db, CursorHelper cursorHelp
                     LIMIT 1
                 ) AS HasTasks,
                 (fav.entity_id IS NOT NULL) AS IsFavorite,
-                fav.order_key AS FavoriteOrderKey,
-                wf.id AS WorkflowId
+                fav.order_key AS FavoriteOrderKey
             FROM project_folders f
             LEFT JOIN favorites fav
                 ON fav.entity_id = f.id
                 AND fav.entity_layer_type = 'ProjectFolder'
                 AND fav.workspace_member_id = @WorkspaceMemberId
-            LEFT JOIN workflows wf
-                ON wf.project_folder_id = f.id
             WHERE f.project_space_id = @SpaceId
               AND f.deleted_at IS NULL
               AND f.is_archived = false

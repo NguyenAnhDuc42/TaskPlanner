@@ -1,8 +1,3 @@
-import type { Status } from "@/types/status";
-
-export interface WorkflowRecord {
-  id: string;
-  name: string;
-  workspaceId: string;
-  statuses?: Status[];
-}
+// WorkflowRecord removed — workflows no longer exist as a separate entity.
+// Statuses now belong directly to spaces via spaceId.
+export type WorkflowRecord = never;

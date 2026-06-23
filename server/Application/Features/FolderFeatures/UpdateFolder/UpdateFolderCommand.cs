@@ -7,12 +7,7 @@ public record UpdateFolderCommand(
     string? Icon,
     DateTimeOffset? StartDate = null,
     DateTimeOffset? DueDate = null,
-    Guid? StatusId = null,
-    Priority? Priority = null,
+    string? OrderKey = null,
     bool ClearStartDate = false,
-    bool ClearDueDate = false,
-    bool ClearStatusId = false,
-    bool ClearPriority = false
+    bool ClearDueDate = false
 ) : ICommandRequest, IAuthorizedWorkspaceRequest;
-
-

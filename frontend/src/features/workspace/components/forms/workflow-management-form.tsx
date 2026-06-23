@@ -41,7 +41,7 @@ import { createPortal } from "react-dom";
 interface CreateStatusFormProps {
   isOpen: boolean;
   onClose: () => void;
-  workflowId?: string;
+  spaceId?: string;
   currentStatuses?: Status[];
   onApplyChanges?: (statuses: Status[]) => void;
 }
@@ -247,7 +247,6 @@ function CategoryColumn({
 }: {
   category: StatusCategory;
   statuses: Status[];
-  workflowId: string;
   onUpdateName: (id: string, name: string) => void;
   onUpdateColor: (id: string, color: string) => void;
   onDelete: (id: string) => void;
@@ -355,7 +354,7 @@ function CategoryColumn({
 export function CreateStatusForm({
   isOpen,
   onClose,
-  workflowId,
+  spaceId,
   currentStatuses,
   onApplyChanges,
 }: CreateStatusFormProps) {
@@ -365,11 +364,11 @@ export function CreateStatusForm({
 
   const resolvedCurrentStatuses = useMemo(() => {
     if (currentStatuses) return currentStatuses;
-    if (!workflowId) return [];
+    if (!spaceId) return [];
     return allStatuses
-      .filter((s: Status) => s.workflowId?.toLowerCase() === workflowId.toLowerCase())
+      .filter((s: Status) => s.spaceId?.toLowerCase() === spaceId.toLowerCase())
       .sort((a, b) => ((a.orderKey ?? "") < (b.orderKey ?? "") ? -1 : 1));
-  }, [currentStatuses, allStatuses, workflowId]);
+  }, [currentStatuses, allStatuses, spaceId]);
 
   const [localStatuses, setLocalStatuses] = useState<Status[]>(() => resolvedCurrentStatuses);
   const [draggingId, setDraggingId] = useState<string | null>(null);
@@ -403,14 +402,14 @@ export function CreateStatusForm({
   const handleAdd = useCallback((category: StatusCategory, name: string) => {
     const newStatus: Status = {
       id: crypto.randomUUID(),
-      workflowId: workflowId ?? "",
+      spaceId: spaceId ?? "",
       name,
       color: PRESET_COLORS[Math.floor(Math.random() * 8)],
       category,
       orderKey: "",
     };
     setLocalStatuses((prev) => [...prev, newStatus]);
-  }, [workflowId]);
+  }, [spaceId]);
 
   const handleDragStart = useCallback((e: DragStartEvent) => {
     setDraggingId(String(e.active.id));
@@ -429,10 +428,10 @@ export function CreateStatusForm({
   }, []);
 
   const handleSave = useCallback(() => {
-    if (workflowId) {
+    if (spaceId) {
       const { payloads, clonedStatuses } = buildStatusUpdatePayloads(localStatuses, resolvedCurrentStatuses);
       updateStatuses({
-        workflowId,
+        spaceId,
         workspaceId: currentWorkspaceId,
         statuses: payloads,
         optimisticStatuses: clonedStatuses,
@@ -441,7 +440,7 @@ export function CreateStatusForm({
       onApplyChanges?.(localStatuses);
     }
     onClose();
-  }, [workflowId, localStatuses, resolvedCurrentStatuses, updateStatuses, currentWorkspaceId, onApplyChanges, onClose]);
+  }, [spaceId, localStatuses, resolvedCurrentStatuses, updateStatuses, currentWorkspaceId, onApplyChanges, onClose]);
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
@@ -484,7 +483,6 @@ export function CreateStatusForm({
                 key={cat}
                 category={cat}
                 statuses={grouped[cat]}
-                workflowId={workflowId ?? ""}
                 onUpdateName={handleUpdateName}
                 onUpdateColor={handleUpdateColor}
                 onDelete={handleDelete}

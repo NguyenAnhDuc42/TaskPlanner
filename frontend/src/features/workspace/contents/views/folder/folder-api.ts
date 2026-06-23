@@ -1,8 +1,10 @@
 import { workspaceApi } from "@/store/workspaceApi";
 import { folderSlice, taskSlice, statusSlice, taskSelectors, folderSelectors, statusSelectors } from "@/store/entityStore";
+import { store } from "@/store";
 import { useSelector } from "react-redux";
 import { createSelector } from "@reduxjs/toolkit";
-import { useMemo } from "react";
+import { useMemo, useRef, useEffect, useLayoutEffect, useCallback } from "react";
+import type { TaskRecord } from "@/types/projects/task-record";
 import type { RootState } from "@/store";
 import type { TaskRecord } from "@/types/projects/task-record";
 import type { FolderRecord } from "@/types/projects/folder-record";
@@ -18,12 +20,7 @@ import { extractErrorMessage } from "@/types/api-error";
 export interface FolderDetailResponse {
   folder: FolderRecord;
   space: BreadcrumbInfo;
-  folderStatus?: Status;
-  parentWorkflowId?: string; 
-  spaceStatuses: Status[]; 
-  taskStatuses: Status[]; 
-  workflowId?: string;
- 
+  spaceStatuses: Status[];
 }
 
 export interface TaskFilter {
@@ -55,9 +52,8 @@ export const folderApi = workspaceApi.injectEndpoints({
       async onQueryStarted(folderId, { dispatch, queryFulfilled }) {
         try {
           const { data } = await queryFulfilled;
-          dispatch(folderSlice.actions.upsert({ ...data.folder, workflowId: data.workflowId ?? undefined }));
+          dispatch(folderSlice.actions.upsert(data.folder));
           dispatch(statusSlice.actions.upsertMany(data.spaceStatuses));
-          dispatch(statusSlice.actions.upsertMany(data.taskStatuses));
         } catch (error) {
           console.error(`[folderApi] Failed to fetch details for folder ${folderId}:`, error);
         }
@@ -142,7 +138,7 @@ export const folderApi = workspaceApi.injectEndpoints({
       }
     }),
 
-    updateFolderField: build.mutation<void, { folderId: string; patches: Partial<FolderRecord> & { clearStartDate?: boolean; clearDueDate?: boolean; clearStatusId?: boolean; clearPriority?: boolean } }>({
+    updateFolderField: build.mutation<void, { folderId: string; patches: Partial<FolderRecord> & { clearStartDate?: boolean; clearDueDate?: boolean } }>({
       query: ({ folderId, patches }) => ({
         url: `/folders/${folderId}`,
         method: 'PUT',
@@ -156,8 +152,6 @@ export const folderApi = workspaceApi.injectEndpoints({
         const optimisticUpdates: Partial<FolderRecord> = { id: folderId, ...patches };
         if (patches.clearStartDate) optimisticUpdates.startDate = null as unknown as undefined;
         if (patches.clearDueDate) optimisticUpdates.dueDate = null as unknown as undefined;
-        if (patches.clearStatusId) optimisticUpdates.statusId = null as unknown as undefined;
-        if (patches.clearPriority) optimisticUpdates.priority = null as unknown as undefined;
 
         dispatch(folderSlice.actions.upsert(optimisticUpdates as FolderRecord));
 
@@ -190,6 +184,45 @@ export function useBatchUpdateFolderTasks(folderId: string) {
   };
 }
 
+export function useDebouncedFolderBatch(folderId: string, delay = 2000) {
+  const [mutate] = useBatchUpdateFolderTasksMutation();
+  const pendingRef = useRef<Map<string, BatchUpdateFolderTaskValue>>(new Map());
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const mutateRef = useRef(mutate);
+  const folderIdRef = useRef(folderId);
+  useLayoutEffect(() => { mutateRef.current = mutate; });
+  useLayoutEffect(() => { folderIdRef.current = folderId; });
+
+  useEffect(() => () => {
+    if (timerRef.current) clearTimeout(timerRef.current);
+    const updates = Array.from(pendingRef.current.values());
+    pendingRef.current.clear();
+    if (updates.length > 0) mutateRef.current({ folderId: folderIdRef.current, updates });
+  }, []);
+
+  return useCallback((updates: BatchUpdateFolderTaskValue[]) => {
+    updates.forEach(u => {
+      const existing = pendingRef.current.get(u.id);
+      pendingRef.current.set(u.id, { ...existing, ...u });
+    });
+
+    // Optimistic update immediately
+    const optimistic = updates
+      .filter(u => !u.isDeleted)
+      .map(u => ({ ...u, ...(u.clearStartDate ? { startDate: null } : {}), ...(u.clearDueDate ? { dueDate: null } : {}) }));
+    const deletedIds = updates.filter(u => u.isDeleted).map(u => u.id);
+    if (optimistic.length > 0) store.dispatch(taskSlice.actions.upsertMany(optimistic as Partial<TaskRecord>[]));
+    if (deletedIds.length > 0) store.dispatch(taskSlice.actions.removeMany(deletedIds));
+
+    if (timerRef.current) clearTimeout(timerRef.current);
+    timerRef.current = setTimeout(() => {
+      const toSend = Array.from(pendingRef.current.values());
+      pendingRef.current.clear();
+      if (toSend.length > 0) mutateRef.current({ folderId: folderIdRef.current, updates: toSend });
+    }, delay);
+  }, [delay]);
+}
+
 export function useFolderDetail(folderId: string) {
   return useSelector((state: RootState) => folderSelectors.selectById(state, folderId));
 }
@@ -220,10 +253,10 @@ export function useFolderStatuses(folderId: string) {
     createSelector(
       [statusSelectors.selectAll],
       (statuses: Status[]) => {
-        const targetWorkflowId = folder?.workflowId;
-        if (!targetWorkflowId) return [];
+        const spaceId = folder?.spaceId;
+        if (!spaceId) return [];
         return statuses
-          .filter(s => s.workflowId?.toLowerCase() === targetWorkflowId.toLowerCase())
+          .filter(s => s.spaceId?.toLowerCase() === spaceId.toLowerCase())
           .sort((a, b) => {
             const weightA = statusCategoryWeight[a.category] ?? 4;
             const weightB = statusCategoryWeight[b.category] ?? 4;
@@ -232,7 +265,7 @@ export function useFolderStatuses(folderId: string) {
           });
       }
     ),
-  [folder?.workflowId]);
+  [folder?.spaceId]);
 
   return useSelector(selectFolderStatuses);
 }

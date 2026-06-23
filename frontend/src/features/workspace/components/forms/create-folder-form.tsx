@@ -4,19 +4,8 @@ import { extractErrorMessage } from "@/types/api-error";
 import { Button } from "@/components/ui/button";
 import { useWorkspace } from "../../context/workspace-context";
 import { toast } from "sonner";
-import {
-  IconColorPicker,
-  AttributeButton,
-} from "./form-elements";
+import { IconColorPicker } from "./form-elements";
 import { DateSelect } from "@/components/date-select";
-import * as Icons from "lucide-react";
-import { StatusBadge } from "@/components/status-badge";
-import { StatusSelect } from "@/components/status-select";
-import { useGetSpaceDetailQuery, useGetSpaceItemsQuery, useSpaceStatuses } from "../../contents/views/space/space-api";
-import type { Status } from "@/types/status";
-import { Priority } from "@/types/priority";
-import { PriorityBadge } from "@/components/priority-badge";
-import { PrioritySelect } from "@/components/priority-select";
 
 interface CreateFolderFormProps {
   readonly spaceId: string;
@@ -28,8 +17,6 @@ interface FolderFormState {
   readonly name: string;
   readonly icon: string;
   readonly color: string;
-  readonly selectedStatusId: string | null;
-  readonly priority: Priority;
   readonly startDate: Date | undefined;
   readonly dueDate: Date | undefined;
 }
@@ -38,8 +25,6 @@ type FolderFormAction =
   | { readonly type: "SET_NAME"; readonly payload: string }
   | { readonly type: "SET_ICON"; readonly payload: string }
   | { readonly type: "SET_COLOR"; readonly payload: string }
-  | { readonly type: "SET_STATUS"; readonly payload: string | null }
-  | { readonly type: "SET_PRIORITY"; readonly payload: Priority }
   | { readonly type: "SET_START_DATE"; readonly payload: Date | undefined }
   | { readonly type: "SET_DUE_DATE"; readonly payload: Date | undefined }
   | { readonly type: "RESET" };
@@ -48,47 +33,26 @@ const initialFolderState: FolderFormState = {
   name: "",
   icon: "Folder",
   color: "#6366f1",
-  selectedStatusId: null,
-  priority: Priority.Normal,
   startDate: undefined,
   dueDate: undefined,
 };
 
 function folderFormReducer(state: FolderFormState, action: FolderFormAction): FolderFormState {
   switch (action.type) {
-    case "SET_NAME":
-      return { ...state, name: action.payload };
-    case "SET_ICON":
-      return { ...state, icon: action.payload };
-    case "SET_COLOR":
-      return { ...state, color: action.payload };
-    case "SET_STATUS":
-      return { ...state, selectedStatusId: action.payload };
-    case "SET_PRIORITY":
-      return { ...state, priority: action.payload };
-    case "SET_START_DATE":
-      return { ...state, startDate: action.payload };
-    case "SET_DUE_DATE":
-      return { ...state, dueDate: action.payload };
-    case "RESET":
-      return initialFolderState;
-    default:
-      return state;
+    case "SET_NAME":       return { ...state, name: action.payload };
+    case "SET_ICON":       return { ...state, icon: action.payload };
+    case "SET_COLOR":      return { ...state, color: action.payload };
+    case "SET_START_DATE": return { ...state, startDate: action.payload };
+    case "SET_DUE_DATE":   return { ...state, dueDate: action.payload };
+    case "RESET":          return initialFolderState;
+    default:               return state;
   }
 }
 
-export function CreateFolderForm({
-  spaceId,
-  onSuccess,
-  onCancel,
-}: Readonly<CreateFolderFormProps>) {
+export function CreateFolderForm({ spaceId, onSuccess, onCancel }: Readonly<CreateFolderFormProps>) {
   const { workspaceId } = useWorkspace();
   const [createFolderMutation, { isLoading: isCreating }] = useCreateFolderMutation();
   const [state, dispatch] = useReducer(folderFormReducer, initialFolderState);
-
-  const { data: space } = useGetSpaceDetailQuery(spaceId);
-  useGetSpaceItemsQuery(spaceId);
-  const spaceStatuses = useSpaceStatuses(spaceId);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -102,8 +66,6 @@ export function CreateFolderForm({
           name: state.name,
           color: state.color,
           icon: state.icon,
-          statusId: state.selectedStatusId,
-          priority: state.priority,
           startDate: state.startDate?.toISOString(),
           dueDate: state.dueDate?.toISOString(),
         },
@@ -118,7 +80,6 @@ export function CreateFolderForm({
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col w-full">
-      {/* Main Header / Input Section */}
       <div className="px-3 pt-2.5 pb-2">
         <div className="flex items-center gap-3">
           <IconColorPicker
@@ -136,47 +97,13 @@ export function CreateFolderForm({
             onChange={(e) => dispatch({ type: "SET_NAME", payload: e.target.value })}
             className="flex-1 bg-transparent border-none focus:ring-0 text-[13px] font-semibold placeholder:text-muted-foreground/30 py-0 outline-none tracking-tight"
             onKeyDown={(e) => {
-              if (e.key === " " || e.key === "Enter") {
-                e.stopPropagation();
-              }
+              if (e.key === " " || e.key === "Enter") e.stopPropagation();
             }}
           />
         </div>
       </div>
 
-      {/* Attribute Strip */}
       <div className="px-3 py-1.5 flex flex-nowrap items-center gap-1.5 border-t border-border/5 overflow-x-auto [&::-webkit-scrollbar]:hidden">
-        <StatusSelect
-          value={state.selectedStatusId || undefined}
-          onChange={(statusId) => dispatch({ type: "SET_STATUS", payload: statusId })}
-          workflowId={space?.workflowId}
-          statuses={spaceStatuses}
-          align="start"
-          trigger={
-            <AttributeButton icon={state.selectedStatusId ? undefined : Icons.Circle}>
-              {state.selectedStatusId ? (
-                <StatusBadge
-                  status={spaceStatuses.find((s: Status) => s.id?.toLowerCase() === state.selectedStatusId?.toLowerCase())}
-                  showIcon={true}
-                />
-              ) : (
-                "Status"
-              )}
-            </AttributeButton>
-          }
-        />
-
-        <PrioritySelect
-          value={state.priority}
-          onChange={(p) => dispatch({ type: "SET_PRIORITY", payload: p })}
-          align="start"
-          trigger={
-            <AttributeButton>
-              <PriorityBadge priority={state.priority} />
-            </AttributeButton>
-          }
-        />
-
         <DateSelect
           startDate={state.startDate?.toISOString()}
           dueDate={state.dueDate?.toISOString()}
@@ -188,7 +115,6 @@ export function CreateFolderForm({
         />
       </div>
 
-      {/* Footer */}
       <div className="px-3 py-1.5 bg-background flex items-center justify-end gap-2 border-t border-border/10">
         <Button
           type="button"

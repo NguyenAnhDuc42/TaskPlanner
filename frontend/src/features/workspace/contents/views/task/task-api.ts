@@ -6,7 +6,8 @@ import type { RootState } from "@/store";
 import type { PagedResult } from "@/types/paged-result";
 import { toast } from "sonner";
 import { extractErrorMessage } from "@/types/api-error";
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef, useEffect, useLayoutEffect } from "react";
+import { store } from "@/store";
 
 export type UpdateTaskPayload = Partial<TaskRecord> & {
   clearStartDate?: boolean;
@@ -216,6 +217,44 @@ export const {
   useDeleteCommentMutation,
   useCreateSubTaskMutation,
 } = taskApi;
+
+export function useDebouncedTaskUpdate(taskId: string, delay = 2000) {
+  const [updateTask] = useUpdateTaskMutation();
+  const pendingRef = useRef<UpdateTaskPayload>({});
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const updateTaskRef = useRef(updateTask);
+  useLayoutEffect(() => { updateTaskRef.current = updateTask; });
+
+  // Flush on unmount OR when taskId changes (user switches to a different task)
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+      const patches = { ...pendingRef.current };
+      pendingRef.current = {};
+      // taskId is captured from this render's closure — always the task being left
+      if (Object.keys(patches).length > 0) updateTaskRef.current({ taskId, patches });
+    };
+  }, [taskId]);
+
+  return useCallback((patches: UpdateTaskPayload) => {
+    pendingRef.current = { ...pendingRef.current, ...patches };
+
+    // Optimistic update immediately
+    store.dispatch(taskSlice.actions.upsert({
+      id: taskId,
+      ...patches,
+      ...(patches.clearStartDate ? { startDate: null } : {}),
+      ...(patches.clearDueDate ? { dueDate: null } : {}),
+    }));
+
+    if (timerRef.current) clearTimeout(timerRef.current);
+    timerRef.current = setTimeout(() => {
+      const toSend = { ...pendingRef.current };
+      pendingRef.current = {};
+      if (Object.keys(toSend).length > 0) updateTaskRef.current({ taskId, patches: toSend });
+    }, delay);
+  }, [taskId, delay]);
+}
 
 export function useTaskComments(taskId: string) {
   const [cursor, setCursor] = useState<string | null>(null);

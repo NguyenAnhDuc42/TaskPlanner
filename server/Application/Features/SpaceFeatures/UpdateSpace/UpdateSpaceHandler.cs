@@ -47,7 +47,7 @@ public class UpdateSpaceHandler(
             _ = realtimeService
             .NotifyEntitiesUpdatedAsync(
                 context.TryGetWorkspaceId().Value,
-                new EntityBatchUpdate { Spaces = [SpaceRecord.FromDomain(space, workflowId: null)] },
+                new EntityBatchUpdate { Spaces = [SpaceRecord.FromDomain(space)] },
                 default)
             .ContinueWith(t =>
                 logger.LogError(t.Exception, "Failed to send real-time notification for updated space {SpaceId}", space.Id), 

@@ -114,28 +114,20 @@ export function CreateTaskForm({
   const folder = useSelector((state: RootState) => state.folders.entities[parentId]);
   const spaceId = parentType === "ProjectSpace" ? parentId : folder?.spaceId;
 
-  // Lazy-load folder detail (populates workflowId + statuses into Redux) when parent is a folder
+  // Lazy-load folder detail (populates statuses into Redux) when parent is a folder
   useGetFolderDetailQuery(parentId, { skip: parentType !== "ProjectFolder" });
 
-  // Lazy-load space detail + items (populates space statuses into Redux)
-  const { data: space } = useGetSpaceDetailQuery(spaceId || "", { skip: !spaceId });
+  // Lazy-load space items (populates space statuses into Redux)
+  useGetSpaceDetailQuery(spaceId || "", { skip: !spaceId });
   useGetSpaceItemsQuery(spaceId || "", { skip: !spaceId });
 
-  // Resolve the correct workflowId:
-  // - Folder parent: use the folder's resolved workflowId (folder-own or inherited), stored after getFolderDetail fires
-  // - Space parent: use the space's workflowId directly
-  const targetWorkflowId =
-    parentType === "ProjectFolder"
-      ? (folder?.workflowId || space?.workflowId)
-      : space?.workflowId;
-
-  // Derive statuses from the RESOLVED workflow
+  // Derive statuses from the space (all tasks in a folder now use space workflow)
   const allStatuses = useSelector((state: RootState) => statusSelectors.selectAll(state));
   const statuses = useMemo(() => {
-    return targetWorkflowId
-      ? allStatuses.filter((s: Status) => s.workflowId?.toLowerCase() === targetWorkflowId.toLowerCase())
+    return spaceId
+      ? allStatuses.filter((s: Status) => s.spaceId?.toLowerCase() === spaceId.toLowerCase())
       : [];
-  }, [allStatuses, targetWorkflowId]);
+  }, [allStatuses, spaceId]);
 
   const onSubmit = async (e?: React.FormEvent) => {
     e?.preventDefault();
@@ -203,7 +195,7 @@ export function CreateTaskForm({
         <StatusSelect
           value={state.selectedStatusId || undefined}
           onChange={(statusId) => dispatch({ type: "SET_STATUS", payload: statusId })}
-          workflowId={targetWorkflowId}
+          spaceId={spaceId}
           align="start"
           trigger={
             <AttributeButton icon={state.selectedStatusId ? undefined : Circle}>

@@ -26,7 +26,7 @@ export const Route = createFileRoute("/workspaces/$workspaceId")({
     return Promise.all([
       store.dispatch(workspaceFeatureApi.endpoints.getWorkspaceDetail.initiate(workspaceId)),
       store.dispatch(workspaceFeatureApi.endpoints.getWorkspaceMembers.initiate(workspaceId)),
-      store.dispatch(workspaceFeatureApi.endpoints.getWorkspaceWorkflows.initiate(workspaceId)),
+      store.dispatch(workspaceFeatureApi.endpoints.getWorkspaceStatuses.initiate()),
     ]);
   },
   component: WorkspaceRoot,

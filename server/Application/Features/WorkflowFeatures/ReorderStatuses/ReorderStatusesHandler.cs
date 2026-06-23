@@ -6,13 +6,13 @@ public class ReorderStatusesHandler(TaskPlanDbContext db, WorkspaceContext conte
     public async Task<Result> Handle(ReorderStatusesCommand request, CancellationToken cancellationToken)
     {
         var hasAccess = await permissionService.VerifyAsync(Role.Admin, cancellationToken: cancellationToken);
-        if (!hasAccess) 
+        if (!hasAccess)
             return Result.Failure(MemberError.DontHavePermission);
 
         var status = await db.Statuses.FirstOrDefaultAsync(s => s.Id == request.StatusId, cancellationToken);
         if (status == null) return Result.Failure(Error.NotFound("Status.NotFound", "Status not found"));
 
-        var newOrderKey = request.NewOrderKey ?? await ResolveOrderKey(request, status.WorkflowId, cancellationToken);
+        var newOrderKey = request.NewOrderKey ?? await ResolveOrderKey(request, status.ProjectSpaceId, cancellationToken);
 
         var affected = await db.Statuses
             .Where(s => s.Id == request.StatusId)
@@ -22,9 +22,9 @@ public class ReorderStatusesHandler(TaskPlanDbContext db, WorkspaceContext conte
 
         if (affected > 0)
         {
-            await realtime.NotifyWorkspaceAsync(context.WorkspaceId, "StatusOrderChanged", new { 
-                request.StatusId, 
-                NewOrderKey = newOrderKey 
+            await realtime.NotifyWorkspaceAsync(context.WorkspaceId, "StatusOrderChanged", new {
+                request.StatusId,
+                NewOrderKey = newOrderKey
             }, cancellationToken);
             return Result.Success();
         }
@@ -32,26 +32,21 @@ public class ReorderStatusesHandler(TaskPlanDbContext db, WorkspaceContext conte
         return Result.Failure(Error.NotFound("Status.NotFound", "Status not found"));
     }
 
-    private async Task<string> ResolveOrderKey(ReorderStatusesCommand request, Guid workflowId, CancellationToken cancellationToken)
+    private async Task<string> ResolveOrderKey(ReorderStatusesCommand request, Guid spaceId, CancellationToken cancellationToken)
     {
         if (request.PreviousStatusOrderKey != null && request.NextStatusOrderKey != null)
         {
             if (string.Compare(request.PreviousStatusOrderKey, request.NextStatusOrderKey, StringComparison.Ordinal) >= 0)
                 return FractionalIndex.After(request.PreviousStatusOrderKey);
-
             return FractionalIndex.Between(request.PreviousStatusOrderKey, request.NextStatusOrderKey);
         }
-
         if (request.PreviousStatusOrderKey != null) return FractionalIndex.After(request.PreviousStatusOrderKey);
         if (request.NextStatusOrderKey != null) return FractionalIndex.Before(request.NextStatusOrderKey);
 
         var maxKey = await db.Statuses
-            .Where(s => s.WorkflowId == workflowId)
+            .Where(s => s.ProjectSpaceId == spaceId)
             .MaxAsync(s => s.OrderKey, cancellationToken);
 
         return FractionalIndex.SafeAfter(maxKey);
     }
 }
-
-
-

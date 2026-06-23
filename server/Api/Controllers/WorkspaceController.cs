@@ -188,6 +188,16 @@ namespace Api
             return result.ToActionResult();
         }
 
+        [HttpPut("{id:guid}/favorites/reorder")]
+        public async Task<IActionResult> ReorderFavorite(
+            Guid id,
+            [FromBody] ReorderFavoriteCommand command,
+            CancellationToken cancellationToken)
+        {
+            var result = await _handler.SendAsync(command, cancellationToken);
+            return result.ToActionResult();
+        }
+
         [HttpPost("{id:guid}/favorites/toggle")]
         public async Task<IActionResult> ToggleFavorite(
             Guid id,

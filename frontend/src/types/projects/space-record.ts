@@ -9,8 +9,6 @@ export interface SpaceRecord {
     isPrivate: boolean;
     orderKey?: string;
     description?: string;
-    parentWorkflowId?: string;
-    workflowId?: string;
     statusId?: string;
     defaultDocumentId?: string;
     startDate?: string;

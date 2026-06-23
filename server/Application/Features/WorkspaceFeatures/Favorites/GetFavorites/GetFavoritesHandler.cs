@@ -72,8 +72,7 @@ public class GetFavoritesHandler(
         {
             var rows = await conn.QueryAsync<FolderRecord>(@"
                 SELECT f.id AS Id, @WorkspaceId AS WorkspaceId, f.project_space_id AS SpaceId,
-                       f.name AS Name, f.status_id AS StatusId, f.priority AS Priority,
-                       f.start_date AS StartDate, f.due_date AS DueDate,
+                       f.name AS Name, f.start_date AS StartDate, f.due_date AS DueDate,
                        f.order_key AS OrderKey, f.custom_icon AS Icon, f.custom_color AS Color
                 FROM project_folders f WHERE f.id = ANY(@Ids) AND f.deleted_at IS NULL",
                 new { WorkspaceId = workspaceId, Ids = folderIds });

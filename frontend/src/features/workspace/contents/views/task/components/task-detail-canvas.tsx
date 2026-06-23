@@ -10,7 +10,7 @@ import { BlockEditor } from "@/components/blockbase/block-editor";
 import { TaskViewSkeleton } from "./task-view-skeleton";
 import { DateSelect } from "@/components/date-select";
 import { DebouncedInput } from "@/components/debounced-input";
-import { useGetTaskDetailQuery, useUpdateTaskMutation } from "../task-api";
+import { useGetTaskDetailQuery, useDebouncedTaskUpdate } from "../task-api";
 import { TaskAssignees } from "../task-components/task-assignees";
 import { TaskComments } from "../task-components/task-comments";
 import { TaskSubtasks } from "../task-components/task-subtasks";
@@ -25,7 +25,7 @@ export function TaskDetailCanvas({ taskId }: TaskDetailCanvasProps) {
     skip: !taskId,
   });
   const task = useSelector((state: RootState) => taskSelectors.selectById(state, taskId || ""));
-  const [updateTask] = useUpdateTaskMutation();
+  const updateTask = useDebouncedTaskUpdate(taskId || "");
 
   if (!taskId) {
     return (
@@ -62,29 +62,23 @@ export function TaskDetailCanvas({ taskId }: TaskDetailCanvasProps) {
 
 
   const handleStatusChange = (statusId: string) => {
-    updateTask({ taskId, patches: { statusId } });
+    updateTask({ statusId });
   };
 
   const handlePriorityChange = (priority: Priority) => {
-    updateTask({ taskId, patches: { priority } });
+    updateTask({ priority });
   };
 
   const handleStartDateChange = (date: Date | undefined) => {
-    updateTask({
-      taskId,
-      patches: date ? { startDate: date.toISOString() } : { clearStartDate: true },
-    });
+    updateTask(date ? { startDate: date.toISOString() } : { clearStartDate: true });
   };
 
   const handleDueDateChange = (date: Date | undefined) => {
-    updateTask({
-      taskId,
-      patches: date ? { dueDate: date.toISOString() } : { clearDueDate: true },
-    });
+    updateTask(date ? { dueDate: date.toISOString() } : { clearDueDate: true });
   };
 
   const handleClearDates = () => {
-    updateTask({ taskId, patches: { clearStartDate: true, clearDueDate: true } });
+    updateTask({ clearStartDate: true, clearDueDate: true });
   };
 
   return (
@@ -97,7 +91,7 @@ export function TaskDetailCanvas({ taskId }: TaskDetailCanvasProps) {
             <UniversalPicker
               icon={task.icon || "CheckSquare"}
               color={task.color || "#6366f1"}
-              onSelect={(icon, color) => updateTask({ taskId, patches: { icon, color } })}
+              onSelect={(icon, color) => updateTask({ icon, color })}
               size="lg"
             />
 
@@ -105,7 +99,7 @@ export function TaskDetailCanvas({ taskId }: TaskDetailCanvasProps) {
               value={task.name || ""}
               onChange={(val) => {
                 if (val.trim() && val !== task.name) {
-                  updateTask({ taskId, patches: { name: val.trim() } });
+                  updateTask({ name: val.trim() });
                 }
               }}
               debounceMs={1500}
@@ -121,7 +115,7 @@ export function TaskDetailCanvas({ taskId }: TaskDetailCanvasProps) {
               <StatusSelect
                 value={task.statusId}
                 onChange={handleStatusChange}
-                workflowId={task.parentWorkflowId}
+                spaceId={task.spaceId}
               />
 
               <PrioritySelect

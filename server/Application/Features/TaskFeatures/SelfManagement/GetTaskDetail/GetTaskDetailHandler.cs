@@ -15,20 +15,7 @@ public class GetTaskDetailHandler(TaskPlanDbContext db, WorkspaceContext workspa
                 t.default_document_id AS DefaultDocumentId,
                 t.is_archived AS IsArchived, t.priority AS Priority, 
                 t.story_points AS StoryPoints, t.time_estimate_seconds AS TimeEstimateSeconds,
-                t.status_id AS StatusId, 
-                (
-                     SELECT wf.id FROM workflows wf 
-                     WHERE (t.project_folder_id IS NOT NULL AND wf.project_folder_id = t.project_folder_id)
-                        OR (t.project_folder_id IS NULL AND wf.project_space_id = t.project_space_id AND wf.project_folder_id IS NULL)
-                        OR (wf.project_workspace_id = t.project_workspace_id AND wf.project_space_id IS NULL AND wf.project_folder_id IS NULL)
-                     ORDER BY 
-                         CASE 
-                             WHEN wf.project_folder_id = t.project_folder_id THEN 1
-                             WHEN wf.project_space_id = t.project_space_id THEN 2
-                             ELSE 3 
-                         END
-                     LIMIT 1
-                 ) AS ParentWorkflowId,
+                t.status_id AS StatusId,
                 t.start_date AS StartDate, t.due_date AS DueDate, t.created_at AS CreatedAt,
                 (SELECT b.content FROM document_blocks b WHERE b.document_id = t.default_document_id ORDER BY b.order_key LIMIT 1) AS Description,
                 t.parent_task_id AS ParentTaskId,

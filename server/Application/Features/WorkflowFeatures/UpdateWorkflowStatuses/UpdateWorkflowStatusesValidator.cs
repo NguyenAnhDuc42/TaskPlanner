@@ -1,11 +1,11 @@
 using FluentValidation;
 namespace Application;
 
-public class UpdateWorkflowStatusesValidator : AbstractValidator<UpdateWorkflowStatusesCommand>
+public class UpdateSpaceStatusesValidator : AbstractValidator<UpdateSpaceStatusesCommand>
 {
-    public UpdateWorkflowStatusesValidator()
+    public UpdateSpaceStatusesValidator()
     {
-        RuleFor(x => x.WorkflowId).NotEmpty().WithMessage("Workflow ID is required.");
+        RuleFor(x => x.SpaceId).NotEmpty().WithMessage("Space ID is required.");
         RuleFor(x => x.Statuses)
             .NotNull()
             .NotEmpty().WithMessage("At least one status must be provided.");
@@ -29,10 +29,8 @@ public class StatusUpdateValueValidator : AbstractValidator<StatusUpdateValue>
         RuleFor(x => x.Category)
             .IsInEnum().WithMessage("Invalid category.")
             .When(x => x.Action != RowAction.Delete);
-            
+
         RuleFor(x => x.Action)
             .IsInEnum().WithMessage("Invalid action.");
     }
 }
-
-

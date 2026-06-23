@@ -92,7 +92,6 @@ public record SpaceRecord
     public string? Icon { get; init; }
     public bool IsPrivate { get; init; }
     public string? OrderKey { get; init; }
-    public Guid? WorkflowId { get; init; }
     public Guid? DefaultDocumentId { get; init; }
     public DateTimeOffset? CreatedAt { get; init; }
     public Guid? CreatorId { get; init; }
@@ -102,7 +101,7 @@ public record SpaceRecord
     public bool? IsFavorite { get; init; }
     public string? FavoriteOrderKey { get; init; }
 
-    public static SpaceRecord FromDomain(ProjectSpace s,Guid? workflowId) => new()
+    public static SpaceRecord FromDomain(ProjectSpace s) => new()
     {
         Id = s.Id,
         WorkspaceId = s.ProjectWorkspaceId,
@@ -111,7 +110,6 @@ public record SpaceRecord
         Icon = s.Icon,
         IsPrivate = s.IsPrivate,
         OrderKey = s.OrderKey,
-        WorkflowId = workflowId ,
         DefaultDocumentId = s.DefaultDocumentId,
         CreatedAt = s.CreatedAt,
         CreatorId = s.CreatorId,

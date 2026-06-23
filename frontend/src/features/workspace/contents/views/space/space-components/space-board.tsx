@@ -19,10 +19,10 @@ import { useBoardDnd } from "./use-board-dnd";
 import { BoardColumn } from "./board-column";
 import { useSmartWheelScroll } from "@/features/workspace/contents/views/space/utils/use-smart-wheel-scroll";
 import { useEdgeScroll } from "@/features/workspace/contents/views/space/utils/use-edge-scroll";
+import { useDebouncedSpaceBatch } from "@/features/workspace/contents/views/space/utils/use-debounced-space-batch";
 import { useUpdateTaskMutation } from "../../task/task-api";
 import { SpaceFilterBar } from "./space-filter-bar";
 import { EntityLayerType } from "@/types/entity-layer-type";
-import { useUpdateFolderFieldMutation } from "../../folder/folder-api";
 
 
 interface SpaceBoardProps {
@@ -43,7 +43,8 @@ export function SpaceBoard({ spaceId, onWorkflowOpen }: Readonly<SpaceBoardProps
 
   const [hiddenStatusIds, setHiddenStatusIds] = useState<string[]>([]);
 
-  const [batchUpdate] = useBatchUpdateSpaceItemsMutation();
+  const [batchUpdateMutation] = useBatchUpdateSpaceItemsMutation();
+  const enqueue = useDebouncedSpaceBatch(batchUpdateMutation, spaceId);
 
   const columns = useMemo(() => {
     const nextCols: Record<string, BoardItem[]> = {};
@@ -64,11 +65,10 @@ export function SpaceBoard({ spaceId, onWorkflowOpen }: Readonly<SpaceBoardProps
   }, [boardItems, statuses]);
 
   const { sensors, draggedItem, handleDragStart, handleDragEnd } = useBoardDnd({
-    spaceId,
     boardItems,
     statuses,
     columns,
-    batchUpdate,
+    enqueue,
   });
 
   const isDragging = draggedItem !== null;
@@ -88,42 +88,15 @@ export function SpaceBoard({ spaceId, onWorkflowOpen }: Readonly<SpaceBoardProps
     });
   }, [navigate]);
 
-  const handleFolderClick = useCallback((id: string) => {
-    navigate({
-      search: (prev) => {
-        const searchParams = prev as Record<string, unknown>;
-        return {
-          ...searchParams,
-          contextPanel: { type: "folder", id }
-        };
-      }
-    });
-  }, [navigate]);
-
   const [updateTask] = useUpdateTaskMutation();
-  const [updateFolderField] = useUpdateFolderFieldMutation();
 
-  const handleDateChange = useCallback((itemId: string, type: "task" | "folder", patches: { startDate?: string; dueDate?: string; clearStartDate?: boolean; clearDueDate?: boolean }) => {
-    if (type === "folder") {
-      updateFolderField({ folderId: itemId, patches });
-    } else {
-      updateTask({ taskId: itemId, patches });
-    }
-  }, [updateFolderField, updateTask]);
+  const handleDateChange = useCallback((itemId: string, patches: { startDate?: string; dueDate?: string; clearStartDate?: boolean; clearDueDate?: boolean }) => {
+    updateTask({ taskId: itemId, patches });
+  }, [updateTask]);
 
-  const handlePriorityChange = useCallback((itemId: string, type: "task" | "folder", priority: Priority) => {
-
-    batchUpdate({
-      spaceId,
-      updates: [
-        {
-          id: itemId,
-          type: type === "folder" ? EntityLayerType.ProjectFolder : EntityLayerType.ProjectTask,
-          priority,
-        },
-      ],
-    });
-  }, [spaceId, batchUpdate]);
+  const handlePriorityChange = useCallback((itemId: string, priority: Priority) => {
+    enqueue({ id: itemId, type: EntityLayerType.ProjectTask, priority });
+  }, [enqueue]);
 
   const columnsToRender = useMemo(() => {
     const cols = statuses.map((s) => ({
@@ -185,7 +158,6 @@ export function SpaceBoard({ spaceId, onWorkflowOpen }: Readonly<SpaceBoardProps
               spaceId={spaceId}
               selectedItemId={selectedItemId}
               onTaskClick={handleTaskClick}
-              onFolderClick={handleFolderClick}
               onPriorityChange={handlePriorityChange}
               onDateChange={handleDateChange}
             />

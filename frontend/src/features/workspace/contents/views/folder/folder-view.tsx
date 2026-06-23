@@ -1,6 +1,6 @@
 import { EntityViewFrame } from "../entity-view-frame";
 import { FolderTaskList } from "./components/folder-task-list";
-import { Trash2, MoreVertical, GitMerge, Circle, Maximize2 } from "lucide-react";
+import { Trash2, MoreVertical, Maximize2 } from "lucide-react";
 import { FavoriteButton } from "@/components/favorite-button";
 import { EntityLayerType } from "@/types/entity-layer-type";
 import { TaskDetailCanvas } from "../task/components/task-detail-canvas";
@@ -17,12 +17,6 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 import { Button } from "@/components/ui/button";
-import { PriorityBadge } from "@/components/priority-badge";
-import { StatusBadge } from "@/components/status-badge";
-import { StatusSelect } from "@/components/status-select";
-import { PrioritySelect } from "@/components/priority-select";
-import { useSelector } from "react-redux";
-import { statusSelectors } from "@/store/entityStore";
 import { useWorkspaceRole } from "@/features/workspace/context/use-workspace-role";
 import {
   useGetFolderDetailQuery,
@@ -39,7 +33,6 @@ import {
 import { DateSelect } from "@/components/date-select";
 import { FolderTaskBatchBar } from "./components/folder-task-batch-bar";
 import { UniversalPicker } from "@/components/universal-picker";
-import { CreateStatusForm } from "@/features/workspace/components/forms/workflow-management-form";
 import type { FolderRecord } from "@/types/projects/folder-record";
 import { cn } from "@/lib/utils";
 import { useDeleteFolderMutation } from "../../hierarchy/hierarchy-api";
@@ -57,7 +50,6 @@ export function FolderView({ folderId }: Readonly<FolderViewProps>) {
   const { isAdmin } = useWorkspaceRole();
   const [deleteFolder] = useDeleteFolderMutation();
   const [checkedTaskIds, setCheckedTaskIds] = React.useState<Set<string>>(new Set());
-  const [isWorkflowOpen, setIsWorkflowOpen] = React.useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = React.useState(false);
   const [selectedTaskId, setSelectedTaskId] = React.useState<string | undefined>(undefined);
 
@@ -92,20 +84,11 @@ export function FolderView({ folderId }: Readonly<FolderViewProps>) {
     }
   }, [selectedTaskId, folderId]);
 
-  const allStatuses = useSelector(statusSelectors.selectAll);
-
-  // Retrieve space statuses & folder task statuses directly from Redux
   const spaceStatuses = useSpaceStatuses(folder?.spaceId ?? "");
 
-  const taskStatuses = React.useMemo(() => {
-    const targetWorkflowId = folder?.workflowId;
-    if (!targetWorkflowId) return [];
-    return allStatuses
-      .filter(s => s.workflowId?.toLowerCase() === targetWorkflowId.toLowerCase())
-      .sort((a, b) => ((a.orderKey ?? "") < (b.orderKey ?? "") ? -1 : 1));
-  }, [folder?.workflowId, allStatuses]);
+  const taskStatuses = spaceStatuses;
 
-  const updateField = (patches: Partial<FolderRecord> & { clearStartDate?: boolean; clearDueDate?: boolean; clearStatusId?: boolean; clearPriority?: boolean }) => {
+  const updateField = (patches: Partial<FolderRecord> & { clearStartDate?: boolean; clearDueDate?: boolean }) => {
     updateFolderField({ folderId, patches });
   };
 
@@ -236,45 +219,6 @@ export function FolderView({ folderId }: Readonly<FolderViewProps>) {
           </div>
 
           <div className="flex items-center gap-2">
-            {/* Status Selector */}
-            <StatusSelect
-              value={folder?.statusId || undefined}
-              onChange={(statusId) => updateField({ statusId })}
-              workflowId={parentSpaceRecord?.workflowId}
-              statuses={spaceStatuses}
-              align="end"
-              trigger={
-                <button type="button" className="cursor-pointer focus:outline-none bg-transparent border-none p-0">
-                  {folder?.statusId ? (
-                    <StatusBadge
-                      status={
-                        spaceStatuses.find((s) => s.id?.toLowerCase() === folder.statusId?.toLowerCase()) ||
-                        allStatuses.find((s) => s.id?.toLowerCase() === folder.statusId?.toLowerCase())
-                      }
-                      variant="pill"
-                    />
-                  ) : (
-                    <div className="flex items-center h-5 gap-1.5 px-2 rounded-sm bg-muted/50 text-[10px] text-muted-foreground font-semibold hover:bg-muted/80 transition-colors">
-                      <Circle className="h-3 w-3 opacity-70" />
-                      <span>Status</span>
-                    </div>
-                  )}
-                </button>
-              }
-            />
-
-            {/* Reusable Priority Selector */}
-            <PrioritySelect
-              value={folder?.priority}
-              onChange={(priority) => updateField({ priority })}
-              align="end"
-              trigger={
-                <button type="button" className="cursor-pointer focus:outline-none bg-transparent border-none p-0">
-                  <PriorityBadge priority={folder?.priority} />
-                </button>
-              }
-            />
-
             <DateSelect
               startDate={folder?.startDate}
               dueDate={folder?.dueDate}
@@ -285,15 +229,6 @@ export function FolderView({ folderId }: Readonly<FolderViewProps>) {
               triggerClassName="h-5 px-2 text-[10px] font-semibold rounded-md border border-border/10 bg-muted/40 hover:bg-muted/75 hover:text-foreground text-muted-foreground transition-all cursor-pointer shadow-sm"
             />
 
-            {isAdmin && (
-              <button
-                className="flex items-center h-5 gap-1.5 px-2.5 rounded-md bg-muted/45 text-[10px] text-muted-foreground font-semibold hover:bg-muted hover:text-foreground transition-all cursor-pointer border border-border/10 shadow-sm"
-                onClick={() => setIsWorkflowOpen(true)}
-              >
-                <GitMerge className="h-3 w-3 opacity-80" />
-                <span>Workflow</span>
-              </button>
-            )}
           </div>
         </div>
 
@@ -336,12 +271,6 @@ export function FolderView({ folderId }: Readonly<FolderViewProps>) {
           )}
         </div>
       </div>
-
-      <CreateStatusForm
-        isOpen={isWorkflowOpen}
-        onClose={() => setIsWorkflowOpen(false)}
-        workflowId={folder?.workflowId}
-      />
 
       <DeleteConfirmationDialog
         open={isDeleteOpen}

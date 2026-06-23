@@ -15,11 +15,10 @@ import type { Status } from "@/types/status";
 import { EntityLayerType } from "@/types/entity-layer-type";
 
 interface UseBoardDndProps {
-  spaceId: string;
   boardItems: BoardItem[];
   statuses: Status[];
   columns: Record<string, BoardItem[]>;
-  batchUpdate: (args: { spaceId: string; updates: BatchUpdateSpaceItemValue[] }) => void;
+  enqueue: (update: BatchUpdateSpaceItemValue) => void;
 }
 
 interface PositionResult {
@@ -145,11 +144,10 @@ function resolveSameColumnPosition(
 }
 
 export function useBoardDnd({
-  spaceId,
   boardItems,
   statuses,
   columns,
-  batchUpdate,
+  enqueue,
 }: UseBoardDndProps) {
   const { canCreateContent } = useWorkspaceRole();
 
@@ -203,21 +201,14 @@ export function useBoardDnd({
   const { prevItemOfSamePriority, nextItemOfSamePriority, resolvedPriority, tempOrderKey } = position;
 
 
-  queueMicrotask(() => {
-    batchUpdate({
-      spaceId,
-      updates: [
-        {
-          id: rawActiveId,
-          type: activeItem.__type === "folder" ? EntityLayerType.ProjectFolder : EntityLayerType.ProjectTask,
-          statusId: resolvedStatusId,
-          priority: resolvedPriority,
-          orderKey: tempOrderKey,
-          previousItemOrderKey: prevItemOfSamePriority?.orderKey ?? null,
-          nextItemOrderKey: nextItemOfSamePriority?.orderKey ?? null,
-        },
-      ],
-    });
+  enqueue({
+    id: rawActiveId,
+    type: EntityLayerType.ProjectTask,
+    statusId: resolvedStatusId,
+    priority: resolvedPriority,
+    orderKey: tempOrderKey,
+    previousItemOrderKey: prevItemOfSamePriority?.orderKey ?? null,
+    nextItemOrderKey: nextItemOfSamePriority?.orderKey ?? null,
   });
 }
   return { sensors, draggedItem, handleDragStart, handleDragEnd };

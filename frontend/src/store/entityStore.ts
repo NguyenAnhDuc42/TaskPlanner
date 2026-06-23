@@ -1,10 +1,9 @@
 import { createEntityAdapter, createSlice, type PayloadAction } from '@reduxjs/toolkit';
-import type { SpaceRecord, FolderRecord, TaskRecord, AssigneeRecord, CommentRecord, WorkflowRecord, AttachmentRecord } from "@/types/projects";
+import type { SpaceRecord, FolderRecord, TaskRecord, AssigneeRecord, CommentRecord, AttachmentRecord } from "@/types/projects";
 import type { DocumentBlockRecord } from "@/types/document";
 import type { MemberRecord, WorkspaceSnippetRecord } from "@/types/workspace";
 import type { Status } from "@/types/status";
 import type { EntityAccessRecord } from "@/types/workspace";
-import type { FavoriteRecord } from "@/types/projects/favorite-record";
 import type { RootState } from "./index";
 
 // ─── UTILITY: GRANULAR DEEP MERGE (LAST WRITE WINS) ───
@@ -47,12 +46,10 @@ export const adapters = {
   statuses: createEntityAdapter<Status>(),
   entityAccess: createEntityAdapter<EntityAccessRecord>(),
   assignees: createEntityAdapter<AssigneeRecord>(),
-  workflows: createEntityAdapter<WorkflowRecord>(),
   comments: createEntityAdapter<CommentRecord>(),
   workspaces: createEntityAdapter<WorkspaceSnippetRecord>(),
   attachments: createEntityAdapter<AttachmentRecord>(),
   documentBlocks: createEntityAdapter<DocumentBlockRecord>(),
-  favorites: createEntityAdapter<FavoriteRecord>(),
 };
 
 // ─── REDUX SLICES WITH SAFE MERGE TRANSACTIONS (Strict Typed + removeMany) ───
@@ -232,28 +229,6 @@ export const assigneeSlice = createSlice({
   }
 });
 
-export const workflowSlice = createSlice({
-  name: 'workflows',
-  initialState: adapters.workflows.getInitialState(),
-  reducers: {
-    upsert(state, action: PayloadAction<Partial<WorkflowRecord> & { id: string }>) {
-      const existing = state.entities[action.payload.id];
-      const merged = safeMergeEntity(existing, action.payload);
-      adapters.workflows.upsertOne(state, merged);
-    },
-    upsertMany(state, action: PayloadAction<Partial<WorkflowRecord>[]>) {
-      action.payload.forEach((item) => {
-        if (!item.id) return;
-        const existing = state.entities[item.id];
-        const merged = safeMergeEntity(existing, item);
-        adapters.workflows.upsertOne(state, merged);
-      });
-    },
-    remove: adapters.workflows.removeOne,
-    removeMany: adapters.workflows.removeMany,
-  }
-});
-
 export const commentSlice = createSlice({
   name: 'comments',
   initialState: adapters.comments.getInitialState(),
@@ -320,28 +295,6 @@ export const documentBlockSlice = createSlice({
   }
 });
 
-export const favoriteSlice = createSlice({
-  name: 'favorites',
-  initialState: adapters.favorites.getInitialState(),
-  reducers: {
-    upsert(state, action: PayloadAction<Partial<FavoriteRecord> & { id: string }>) {
-      const existing = state.entities[action.payload.id];
-      const merged = safeMergeEntity(existing, action.payload);
-      adapters.favorites.upsertOne(state, merged);
-    },
-    upsertMany(state, action: PayloadAction<Partial<FavoriteRecord>[]>) {
-      action.payload.forEach((item) => {
-        if (!item.id) return;
-        const existing = state.entities[item.id];
-        const merged = safeMergeEntity(existing, item);
-        adapters.favorites.upsertOne(state, merged);
-      });
-    },
-    remove: adapters.favorites.removeOne,
-    removeMany: adapters.favorites.removeMany,
-  }
-});
-
 // Central selectors
 export const spaceSelectors  = adapters.spaces.getSelectors((s: RootState) => s.spaces);
 export const folderSelectors = adapters.folders.getSelectors((s: RootState) => s.folders);
@@ -350,9 +303,7 @@ export const memberSelectors = adapters.members.getSelectors((s: RootState) => s
 export const statusSelectors = adapters.statuses.getSelectors((s: RootState) => s.statuses);
 export const entityAccessSelectors = adapters.entityAccess.getSelectors((s: RootState) => s.entityAccess);
 export const assigneeSelectors = adapters.assignees.getSelectors((s: RootState) => s.assignees);
-export const workflowSelectors    = adapters.workflows.getSelectors((s: RootState) => s.workflows);
 export const commentSelectors      = adapters.comments.getSelectors((s: RootState) => s.comments);
 export const workspaceSelectors    = adapters.workspaces.getSelectors((s: RootState) => s.workspaces);
 export const attachmentSelectors   = adapters.attachments.getSelectors((s: RootState) => s.attachments);
 export const documentBlockSelectors = adapters.documentBlocks.getSelectors((s: RootState) => s.documentBlocks);
-export const favoriteSelectors = adapters.favorites.getSelectors((s: RootState) => s.favorites);

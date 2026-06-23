@@ -19,7 +19,6 @@ public record TaskRecord
     public Guid? FolderId { get; init; }
 
     // Detailed properties
-    public Guid? ParentWorkflowId { get; init; }
     public Guid? DefaultDocumentId { get; init; }
     public bool? IsArchived { get; init; }
     public int? StoryPoints { get; init; }
@@ -61,35 +60,29 @@ public record FolderRecord
     public Guid? SpaceId { get; init; }
     public string Name { get; init; } = null!;
     public DateTimeOffset CreatedAt { get; init; }
-    public Guid? StatusId { get; init; }
-    public Priority? Priority { get; init; }
     public DateTimeOffset? StartDate { get; init; }
     public DateTimeOffset? DueDate { get; init; }
     public string? OrderKey { get; init; }
     public string? Icon { get; init; }
     public string? Color { get; init; }
     public bool? HasTasks { get; init; }
-    public Guid? WorkflowId { get; init; }
     public AccessLevel? AccessLevel { get; init; }
     public bool? IsFavorite { get; init; }
     public string? FavoriteOrderKey { get; init; }
 
-    public static FolderRecord FromDomain(ProjectFolder f, Guid? workflowId) => new()
+    public static FolderRecord FromDomain(ProjectFolder f) => new()
     {
         Id = f.Id,
         WorkspaceId = f.ProjectWorkspaceId,
         SpaceId = f.ProjectSpaceId,
         Name = f.Name,
         CreatedAt = f.CreatedAt,
-        StatusId = f.StatusId,
-        Priority = f.Priority,
         StartDate = f.StartDate,
         DueDate = f.DueDate,
         OrderKey = f.OrderKey,
         Icon = f.Icon,
         Color = f.Color,
         HasTasks = null,
-        WorkflowId = workflowId
     };
 }
 

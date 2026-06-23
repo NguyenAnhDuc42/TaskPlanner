@@ -88,8 +88,8 @@ public static class OrderKeyMigration
 
     private static async Task<int> ResetStatusesAsync(System.Data.Common.DbConnection conn, ILogger logger)
     {
-        var rows = (await conn.QueryAsync<(Guid Id, Guid WorkflowId, string? OrderKey)>(
-            "SELECT id, workflow_id, order_key FROM statuses WHERE deleted_at IS NULL ORDER BY workflow_id, order_key, id")).AsList();
+        var rows = (await conn.QueryAsync<(Guid Id, Guid SpaceId, string? OrderKey)>(
+            "SELECT id, project_space_id, order_key FROM statuses WHERE deleted_at IS NULL ORDER BY project_space_id, order_key, id")).AsList();
 
         var bad = rows.Where(r => !FractionalIndex.IsValid(r.OrderKey)).ToList();
         if (bad.Count == 0) return 0;
@@ -99,7 +99,7 @@ public static class OrderKeyMigration
         var ids = new List<Guid>();
         var keys = new List<string>();
 
-        foreach (var group in rows.GroupBy(r => r.WorkflowId))
+        foreach (var group in rows.GroupBy(r => r.SpaceId))
         {
             var list = group.ToList();
             var generated = GenerateKeys(list.Count);

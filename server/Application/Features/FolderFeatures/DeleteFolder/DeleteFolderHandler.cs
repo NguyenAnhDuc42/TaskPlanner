@@ -44,8 +44,7 @@ public class DeleteFolderHandler(
                 var space = await db.ProjectSpaces.AsNoTracking().FirstOrDefaultAsync(s => s.Id == folder.ProjectSpaceId, cancellationToken);
                 if (space != null)
                 {
-                    var workflowId = await db.Workflows.Where(w => w.ProjectSpaceId == space.Id).Select(w => w.Id).FirstOrDefaultAsync(cancellationToken);
-                    var spaceRecord = SpaceRecord.FromDomain(space, workflowId) with { HasFolders = false };
+                    var spaceRecord = SpaceRecord.FromDomain(space) with { HasFolders = false };
                     
                     logger.LogInformation("Broadcasting hasFolders=false update for space {SpaceId} since last folder was deleted", space.Id);
                     _ = realtimeService

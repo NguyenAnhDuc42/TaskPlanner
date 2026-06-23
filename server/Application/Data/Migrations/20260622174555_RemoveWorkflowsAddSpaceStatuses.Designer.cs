@@ -3,17 +3,20 @@ using System;
 using Application;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
 #nullable disable
 
-namespace Application
+namespace Application.Data.Migrations
 {
     [DbContext(typeof(TaskPlanDbContext))]
-    partial class TaskPlanDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260622174555_RemoveWorkflowsAddSpaceStatuses")]
+    partial class RemoveWorkflowsAddSpaceStatuses
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -626,6 +629,10 @@ namespace Application
                         .HasColumnType("text")
                         .HasColumnName("order_key");
 
+                    b.Property<string>("Priority")
+                        .HasColumnType("text")
+                        .HasColumnName("priority");
+
                     b.Property<Guid>("ProjectSpaceId")
                         .HasColumnType("uuid")
                         .HasColumnName("project_space_id");
@@ -644,6 +651,10 @@ namespace Application
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("start_date");
 
+                    b.Property<Guid?>("StatusId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("status_id");
+
                     b.Property<DateTimeOffset>("UpdatedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("updated_at");
@@ -653,6 +664,8 @@ namespace Application
                     b.HasIndex("ProjectSpaceId");
 
                     b.HasIndex("ProjectWorkspaceId");
+
+                    b.HasIndex("StatusId");
 
                     b.HasIndex("ProjectSpaceId", "Slug")
                         .IsUnique();
@@ -1326,6 +1339,11 @@ namespace Application
                         .HasForeignKey("ProjectWorkspaceId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+
+                    b.HasOne("Domain.Status", null)
+                        .WithMany()
+                        .HasForeignKey("StatusId")
+                        .OnDelete(DeleteBehavior.SetNull);
                 });
 
             modelBuilder.Entity("Domain.ProjectSpace", b =>

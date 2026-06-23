@@ -187,14 +187,12 @@ export function SpaceDetail({ spaceId }: SpaceDetailProps) {
             >
               Workflow <span className={`text-[8px] text-muted-foreground/60 transition-transform duration-200 inline-block ${isWorkflowCollapsed ? "" : "rotate-90"}`}>▶</span>
             </span>
-            {space.workflowId && (
-              <button
-                onClick={() => setIsWorkflowOpen(true)}
-                className="text-muted-foreground/60 hover:text-foreground text-[10px] font-bold cursor-pointer select-none px-1.5 py-0.5 rounded hover:bg-white/[0.03]"
-              >
-                +
-              </button>
-            )}
+            <button
+              onClick={() => setIsWorkflowOpen(true)}
+              className="text-muted-foreground/60 hover:text-foreground text-[10px] font-bold cursor-pointer select-none px-1.5 py-0.5 rounded hover:bg-white/[0.03]"
+            >
+              +
+            </button>
           </div>
           
           {!isWorkflowCollapsed && (
@@ -220,14 +218,12 @@ export function SpaceDetail({ spaceId }: SpaceDetailProps) {
 
       </div>
 
-      {space.workflowId && (
-        <CreateStatusForm
-          isOpen={isWorkflowOpen}
-          onClose={() => setIsWorkflowOpen(false)}
-          workflowId={space.workflowId}
-          currentStatuses={spaceStatuses}
-        />
-      )}
+      <CreateStatusForm
+        isOpen={isWorkflowOpen}
+        onClose={() => setIsWorkflowOpen(false)}
+        spaceId={space.id}
+        currentStatuses={spaceStatuses}
+      />
 
     </div>
   );

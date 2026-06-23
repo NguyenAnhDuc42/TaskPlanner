@@ -95,12 +95,21 @@ export function useHierarchyDnd({ workspaceId, batchMoveItems }: UseHierarchyDnd
   const keyboardSensor = useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates });
   const sensors = useSensors(pointerSensor, keyboardSensor);
 
-  // Clean timeouts on unmount to prevent leaks
+  // On unmount (navigation away): cancel the timer and flush any pending moves immediately
   useEffect(() => {
     return () => {
       if (debounceTimeoutRef.current) clearTimeout(debounceTimeoutRef.current);
+      const movesToSend = Array.from(pendingMovesRef.current.values());
+      pendingMovesRef.current.clear();
+      if (movesToSend.length === 0) return;
+      const command: BatchMoveCommand = {
+        spaces:  movesToSend.filter((m): m is Extract<PendingMove, { kind: "space" }>  => m.kind === "space") .map(m => ({ itemId: m.itemId, newOrderKey: m.newOrderKey })),
+        folders: movesToSend.filter((m): m is Extract<PendingMove, { kind: "folder" }> => m.kind === "folder").map(m => ({ itemId: m.itemId, targetParentId: m.targetParentId, newOrderKey: m.newOrderKey })),
+        tasks:   movesToSend.filter((m): m is Extract<PendingMove, { kind: "task" }>   => m.kind === "task")  .map(m => ({ itemId: m.itemId, targetSpaceId: m.targetSpaceId, targetFolderId: m.targetFolderId, newOrderKey: m.newOrderKey })),
+      };
+      batchMoveItems({ workspaceId, command });
     };
-  }, []);
+  }, [batchMoveItems, workspaceId]);
 
   // Debounce trigger: consolidates drag actions in a 500ms window,
   // then flushes into a typed BatchMoveCommand
@@ -146,7 +155,7 @@ export function useHierarchyDnd({ workspaceId, batchMoveItems }: UseHierarchyDnd
         toast.error("Network error occurred while moving items");
         rollback();
       }
-    }, 800);
+    }, 2000);
   };
 
   const handleDragStart = (event: DragStartEvent) => {

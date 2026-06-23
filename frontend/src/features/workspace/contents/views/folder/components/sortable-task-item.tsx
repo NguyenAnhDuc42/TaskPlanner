@@ -14,7 +14,7 @@ import type { RootState } from "@/store";
 import { StatusSelect } from "@/components/status-select";
 import { PrioritySelect } from "@/components/priority-select";
 import { useParams } from "@tanstack/react-router";
-import { useGetFolderDetailQuery, useBatchUpdateFolderTasks } from "../folder-api";
+import { useGetFolderDetailQuery, useDebouncedFolderBatch } from "../folder-api";
 
 export interface SortableTaskItemProps {
   task: TaskRecord;
@@ -34,20 +34,20 @@ export function SortableTaskItem({
   const statuses = useSelector(statusSelectors.selectAll);
   const { folderId } = useParams({ strict: false }) as { folderId: string };
   useGetFolderDetailQuery(folderId);
-  const { mutate: batchUpdate } = useBatchUpdateFolderTasks(folderId);
+  const enqueue = useDebouncedFolderBatch(folderId);
 
   const folder = useSelector((state: RootState) => folderSelectors.selectById(state, folderId));
 
   const taskStatuses = React.useMemo(() => {
-    const targetWorkflowId = folder?.workflowId;
-    if (!targetWorkflowId) return [];
+    const spaceId = folder?.spaceId;
+    if (!spaceId) return [];
     return statuses
-      .filter(s => s.workflowId?.toLowerCase() === targetWorkflowId.toLowerCase())
+      .filter(s => s.spaceId?.toLowerCase() === spaceId.toLowerCase())
       .sort((a, b) => ((a.orderKey ?? "") < (b.orderKey ?? "") ? -1 : 1));
-  }, [folder?.workflowId, statuses]);
+  }, [folder?.spaceId, statuses]);
 
   const onUpdateTaskField = (fields: Partial<TaskRecord> & { clearStartDate?: boolean; clearDueDate?: boolean }) => {
-    batchUpdate([{ id: task.id, ...fields }]);
+    enqueue([{ id: task.id, ...fields }]);
   };
 
   const {
@@ -144,7 +144,7 @@ export function SortableTaskItem({
             <StatusSelect
               value={task.statusId || undefined}
               onChange={(statusId) => onUpdateTaskField({ statusId })}
-              workflowId={taskStatuses[0]?.workflowId}
+              spaceId={folder?.spaceId}
               statuses={taskStatuses}
               trigger={
                 <button type="button" className="cursor-pointer focus:outline-none">

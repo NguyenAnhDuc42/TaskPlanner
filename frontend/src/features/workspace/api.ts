@@ -4,7 +4,6 @@ import type { RootState } from "@/store";
 import type { WorkspaceRecord } from "@/types/workspace/workspace-record";
 import type { PagedResult } from "@/types/paged-result";
 import type { MemberRecord } from "@/types/workspace/member-record";
-import type { WorkflowRecord } from "@/types/projects";
 import type { SpaceRecord, FolderRecord, TaskRecord } from "@/types/projects";
 import type { Status } from "@/types/status";
 import { EntityLayerType } from "@/types/entity-layer-type";
@@ -49,93 +48,49 @@ export const workspaceFeatureApi = workspaceApi.injectEndpoints({
       },
     }),
 
-    getWorkspaceWorkflows: build.query<WorkflowRecord[], string>({
-      query: (workspaceId) => ({
-        url: `/workflows`,
-        method: "GET",
-        params: { workspaceId },
-      }),
+    getWorkspaceStatuses: build.query<Status[], void>({
+      query: () => ({ url: `/spaces/statuses`, method: "GET" }),
       async onQueryStarted(_, { dispatch, queryFulfilled }) {
         try {
           const { data } = await queryFulfilled;
-          const statuses: Status[] = [];
-          data.forEach((wf) => {
-            wf.statuses?.forEach((status) => {
-              statuses.push(status);
-            });
-          });
-          dispatch(statusSlice.actions.upsertMany(statuses));
+          dispatch(statusSlice.actions.upsertMany(data));
         } catch (error) {
-          console.error("[workspaceApi] Failed to sync workflow statuses to store:", error);
+          console.error("[workspaceApi] Failed to sync statuses to store:", error);
         }
       },
     }),
 
-    updateWorkflowStatuses: build.mutation<void, { workflowId: string; workspaceId?: string; statuses: StatusUpdatePayload[]; optimisticStatuses?: Status[] }>({
-      query: ({ workflowId, statuses }) => ({
-        url: `/statuses/workflow/${workflowId}`,
+    updateWorkflowStatuses: build.mutation<void, { spaceId: string; workspaceId?: string; statuses: StatusUpdatePayload[]; optimisticStatuses?: Status[] }>({
+      query: ({ spaceId, statuses }) => ({
+        url: `/spaces/${spaceId}/statuses`,
         method: "PUT",
         data: statuses,
       }),
       invalidatesTags: ["Tasks", "Folders", "Spaces"],
-      async onQueryStarted({ workflowId, workspaceId, statuses, optimisticStatuses }, { dispatch, queryFulfilled, getState }) {
-        let patchResult: { undo: () => void } | undefined;
+      async onQueryStarted({ spaceId, optimisticStatuses, statuses }, { dispatch, queryFulfilled, getState }) {
         const state = getState() as RootState;
+        const originalStatuses = statusSelectors.selectAll(state).filter(s => s.spaceId === spaceId);
 
-        const originalStatuses: Status[] = [];
-        if (workspaceId) {
-          const workspaceWorkflows = workspaceFeatureApi.endpoints.getWorkspaceWorkflows.select(workspaceId)(state)?.data;
-          const wf = workspaceWorkflows?.find(w => w.id === workflowId);
-          if (wf?.statuses) {
-            originalStatuses.push(...wf.statuses);
-          } else {
-            const allStatuses = statusSelectors.selectAll(state);
-            const wfStatuses = allStatuses.filter(s => s.workflowId === workflowId);
-            originalStatuses.push(...wfStatuses);
-          }
-        }
-
-        if (workspaceId && optimisticStatuses) {
-          patchResult = dispatch(
-            workspaceFeatureApi.util.updateQueryData("getWorkspaceWorkflows", workspaceId, (draft) => {
-              const wf = draft.find(w => w.id === workflowId);
-              if (wf) {
-                wf.statuses = optimisticStatuses;
-              }
-            })
-          );
+        if (optimisticStatuses) {
           dispatch(statusSlice.actions.upsertMany(optimisticStatuses));
 
           const deletedIds = statuses.reduce<string[]>((acc, s) => {
-            if (s.action === RowAction.Delete && s.id != null) {
-              acc.push(s.id);
-            }
+            if (s.action === RowAction.Delete && s.id != null) acc.push(s.id);
             return acc;
           }, []);
-          if (deletedIds.length > 0) {
-            dispatch(statusSlice.actions.removeMany(deletedIds));
-          }
+          if (deletedIds.length > 0) dispatch(statusSlice.actions.removeMany(deletedIds));
         }
 
         try {
           await queryFulfilled;
         } catch {
-          if (patchResult) {
-            patchResult.undo();
-          }
-          if (originalStatuses.length > 0) {
-            dispatch(statusSlice.actions.upsertMany(originalStatuses));
-          }
+          dispatch(statusSlice.actions.upsertMany(originalStatuses));
           if (optimisticStatuses) {
             const originalIds = new Set(originalStatuses.map(s => s.id));
-            const newlyCreatedIds = optimisticStatuses
-              .filter(s => !originalIds.has(s.id))
-              .map(s => s.id as string);
-            if (newlyCreatedIds.length > 0) {
-              dispatch(statusSlice.actions.removeMany(newlyCreatedIds));
-            }
+            const newIds = optimisticStatuses.filter(s => !originalIds.has(s.id)).map(s => s.id);
+            if (newIds.length > 0) dispatch(statusSlice.actions.removeMany(newIds));
           }
-          toast.error("Failed to update workflow statuses. Your changes have been reverted.");
+          toast.error("Failed to update statuses. Your changes have been reverted.");
         }
       }
     }),
@@ -183,6 +138,43 @@ export const workspaceFeatureApi = workspaceApi.injectEndpoints({
       },
     }),
 
+    reorderFavorite: build.mutation<void, { workspaceId: string; entityId: string; entityType: EntityLayerType; previousOrderKey: string | null; nextOrderKey: string | null; newOrderKey: string }>({
+      query: ({ workspaceId, entityId, entityType, previousOrderKey, nextOrderKey }) => ({
+        url: `/workspaces/${workspaceId}/favorites/reorder`,
+        method: "PUT",
+        data: { entityId, entityLayerType: entityType, previousOrderKey, nextOrderKey },
+      }),
+      async onQueryStarted({ entityId, entityType, newOrderKey }, { dispatch, queryFulfilled, getState }) {
+        const state = getState() as RootState;
+        let original: string | undefined;
+
+        if (entityType === EntityLayerType.ProjectSpace) {
+          original = spaceSelectors.selectById(state, entityId)?.favoriteOrderKey;
+          dispatch(spaceSlice.actions.upsert({ id: entityId, favoriteOrderKey: newOrderKey }));
+        } else if (entityType === EntityLayerType.ProjectFolder) {
+          original = folderSelectors.selectById(state, entityId)?.favoriteOrderKey;
+          dispatch(folderSlice.actions.upsert({ id: entityId, favoriteOrderKey: newOrderKey }));
+        } else {
+          original = taskSelectors.selectById(state, entityId)?.favoriteOrderKey;
+          dispatch(taskSlice.actions.upsert({ id: entityId, favoriteOrderKey: newOrderKey }));
+        }
+
+        try {
+          await queryFulfilled;
+        } catch {
+          if (original !== undefined) {
+            if (entityType === EntityLayerType.ProjectSpace)
+              dispatch(spaceSlice.actions.upsert({ id: entityId, favoriteOrderKey: original }));
+            else if (entityType === EntityLayerType.ProjectFolder)
+              dispatch(folderSlice.actions.upsert({ id: entityId, favoriteOrderKey: original }));
+            else
+              dispatch(taskSlice.actions.upsert({ id: entityId, favoriteOrderKey: original }));
+          }
+          toast.error("Failed to reorder favorite.");
+        }
+      },
+    }),
+
     getFavorites: build.query<{ spaces: SpaceRecord[]; folders: FolderRecord[]; tasks: TaskRecord[]; nextCursor: string | null; hasNextPage: boolean }, { workspaceId: string; cursor: string | null }>({
       query: ({ workspaceId, cursor }) => ({
         url: `/workspaces/${workspaceId}/favorites`,
@@ -220,16 +212,17 @@ export const workspaceFeatureApi = workspaceApi.injectEndpoints({
 export const {
   useGetWorkspaceDetailQuery,
   useGetWorkspaceMembersQuery,
-  useGetWorkspaceWorkflowsQuery,
+  useGetWorkspaceStatusesQuery,
   useUpdateWorkflowStatusesMutation,
   useGetFavoritesQuery,
   useToggleFavoriteMutation,
+  useReorderFavoriteMutation,
 } = workspaceFeatureApi;
 
 export function useUpdateWorkflowStatuses() {
   const [trigger, result] = useUpdateWorkflowStatusesMutation();
   return {
-    mutate: (args: { workflowId: string; workspaceId?: string; statuses: StatusUpdatePayload[]; optimisticStatuses?: Status[] }) => trigger(args),
+    mutate: (args: { spaceId: string; workspaceId?: string; statuses: StatusUpdatePayload[]; optimisticStatuses?: Status[] }) => trigger(args),
     ...result,
   };
 }

@@ -1,17 +1,43 @@
-import React, { useMemo } from "react";
+import React, { useMemo, useCallback } from "react";
 import * as Icons from "lucide-react";
 import { CheckSquare } from "lucide-react";
 import { useNavigate, useLocation, useRouter } from "@tanstack/react-router";
 import { useDispatch, useSelector } from "react-redux";
 import type { AppDispatch } from "@/store";
 import { useWorkspace } from "@/features/workspace/context/workspace-context";
-import { useGetFavoritesQuery, workspaceFeatureApi } from "@/features/workspace/api";
+import { useGetFavoritesQuery, useReorderFavoriteMutation, workspaceFeatureApi } from "@/features/workspace/api";
 import { spaceSelectors, folderSelectors, taskSelectors } from "@/store/entityStore";
 import { EntityLayerType } from "@/types/entity-layer-type";
 import { cn } from "@/lib/utils";
 import { SpaceContextMenu } from "../hierarchy-components/context-menus/space-context-menu";
 import { FolderContextMenu } from "../hierarchy-components/context-menus/folder-context-menu";
 import { TaskContextMenu } from "../hierarchy-components/context-menus/task-context-menu";
+import {
+  DndContext,
+  PointerSensor,
+  closestCenter,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  verticalListSortingStrategy,
+  useSortable,
+  arrayMove,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+import { restrictToVerticalAxis } from "@dnd-kit/modifiers";
+import { fractionalBetween, fractionalAfter, fractionalBefore } from "@/features/workspace/contents/hierarchy/utils/fractional-index";
+
+type FavItem = {
+  id: string;
+  name?: string;
+  icon?: string;
+  color?: string;
+  entityLayerType: EntityLayerType;
+  favoriteOrderKey?: string;
+};
 
 function FavSkeleton() {
   return (
@@ -22,12 +48,63 @@ function FavSkeleton() {
   );
 }
 
+function SortableFavItem({
+  fav,
+  isActive: isRouteActive,
+  onMouseDown,
+  onClick,
+}: {
+  fav: FavItem;
+  isActive: boolean;
+  onMouseDown: () => void;
+  onClick: () => void;
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: fav.id });
+
+  const isTask = fav.entityLayerType === EntityLayerType.ProjectTask;
+  const iconName = (fav.icon ?? (isTask ? "CheckSquare" : fav.entityLayerType === EntityLayerType.ProjectFolder ? "Folder" : "LayoutGrid")) as keyof typeof Icons;
+  const Icon = (Icons[iconName] as Icons.LucideIcon) ?? (isTask ? CheckSquare : Icons.LayoutGrid);
+
+  const button = (
+    <button
+      ref={setNodeRef}
+      type="button"
+      style={{ transform: CSS.Transform.toString(transform), transition }}
+      onMouseDown={onMouseDown}
+      onClick={onClick}
+      className={cn(
+        "flex items-center px-1 py-0.5 rounded-sm transition-colors mb-px border w-full text-left outline-none select-none cursor-grab active:cursor-grabbing",
+        isDragging ? "opacity-50" : "",
+        isRouteActive
+          ? "bg-primary/10 text-primary border-primary/25"
+          : "text-muted-foreground border-transparent hover:bg-muted/50 hover:text-foreground hover:border-border/30",
+      )}
+      {...attributes}
+      {...listeners}
+    >
+      <div className="w-5 h-5 flex items-center justify-center shrink-0 mr-1.5">
+        <Icon className="h-3.5 w-3.5 transition-none" style={{ color: fav.color || undefined }} />
+      </div>
+      <span className="text-[11px] font-semibold leading-tight truncate whitespace-nowrap">
+        {fav.name ?? "—"}
+      </span>
+    </button>
+  );
+
+  if (fav.entityLayerType === EntityLayerType.ProjectSpace)
+    return <SpaceContextMenu key={fav.id} spaceId={fav.id} spaceName={fav.name ?? ""}>{button}</SpaceContextMenu>;
+  if (fav.entityLayerType === EntityLayerType.ProjectFolder)
+    return <FolderContextMenu key={fav.id} folderId={fav.id} folderName={fav.name ?? ""}>{button}</FolderContextMenu>;
+  return <TaskContextMenu key={fav.id} taskId={fav.id} taskName={fav.name ?? ""} parentId="">{button}</TaskContextMenu>;
+}
+
 export const FavoriteNodeList = React.memo(function FavoriteNodeList() {
   const { workspaceId } = useWorkspace();
   const dispatch = useDispatch<AppDispatch>();
   const navigate = useNavigate();
   const router = useRouter();
   const location = useLocation();
+  const [reorderFavorite] = useReorderFavoriteMutation();
 
   const { isLoading, isFetching, data } = useGetFavoritesQuery(
     { workspaceId: workspaceId || "", cursor: null },
@@ -38,8 +115,8 @@ export const FavoriteNodeList = React.memo(function FavoriteNodeList() {
   const allFolders = useSelector(folderSelectors.selectAll);
   const allTasks   = useSelector(taskSelectors.selectAll);
 
-  const favorites = useMemo(() => {
-    const items = [
+  const favorites = useMemo<FavItem[]>(() => {
+    const items: FavItem[] = [
       ...allSpaces.filter(s => s.isFavorite && s.workspaceId === workspaceId).map(s => ({
         id: s.id, name: s.name, icon: s.icon, color: s.color,
         entityLayerType: EntityLayerType.ProjectSpace,
@@ -60,6 +137,39 @@ export const FavoriteNodeList = React.memo(function FavoriteNodeList() {
       ((a.favoriteOrderKey ?? "") < (b.favoriteOrderKey ?? "") ? -1 : 1)
     );
   }, [allSpaces, allFolders, allTasks, workspaceId]);
+
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 4 } }));
+
+  const handleDragEnd = useCallback((event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id || !workspaceId) return;
+
+    const oldIndex = favorites.findIndex(f => f.id === active.id);
+    const newIndex = favorites.findIndex(f => f.id === over.id);
+    if (oldIndex === -1 || newIndex === -1) return;
+
+    const reordered = arrayMove(favorites, oldIndex, newIndex);
+    const moved = reordered[newIndex];
+    const prev = reordered[newIndex - 1]?.favoriteOrderKey ?? null;
+    const next = reordered[newIndex + 1]?.favoriteOrderKey ?? null;
+
+    const newOrderKey = prev && next
+      ? fractionalBetween(prev, next)
+      : prev
+        ? fractionalAfter(prev)
+        : next
+          ? fractionalBefore(next)
+          : moved.favoriteOrderKey ?? "";
+
+    reorderFavorite({
+      workspaceId,
+      entityId: moved.id,
+      entityType: moved.entityLayerType,
+      previousOrderKey: prev,
+      nextOrderKey: next,
+      newOrderKey,
+    });
+  }, [favorites, workspaceId, reorderFavorite]);
 
   const getIsActive = (id: string, type: EntityLayerType) => {
     if (type === EntityLayerType.ProjectSpace)  return location.pathname.includes(`/spaces/${id}`);
@@ -90,12 +200,10 @@ export const FavoriteNodeList = React.memo(function FavoriteNodeList() {
 
   const loadMore = () => {
     if (!data?.nextCursor || isFetching) return;
-    dispatch(
-      workspaceFeatureApi.endpoints.getFavorites.initiate(
-        { workspaceId: workspaceId || "", cursor: data.nextCursor },
-        { subscribe: false }
-      )
-    );
+    dispatch(workspaceFeatureApi.endpoints.getFavorites.initiate(
+      { workspaceId: workspaceId || "", cursor: data.nextCursor },
+      { subscribe: false }
+    ));
   };
 
   if (isLoading && favorites.length === 0) {
@@ -108,42 +216,27 @@ export const FavoriteNodeList = React.memo(function FavoriteNodeList() {
 
   return (
     <>
-      <div className="flex flex-col">
-        {favorites.map(fav => {
-          const isActive = getIsActive(fav.id, fav.entityLayerType);
-          const isTask = fav.entityLayerType === EntityLayerType.ProjectTask;
-          const iconName = (fav.icon ?? (isTask ? "CheckSquare" : fav.entityLayerType === EntityLayerType.ProjectFolder ? "Folder" : "LayoutGrid")) as keyof typeof Icons;
-          const Icon = (Icons[iconName] as Icons.LucideIcon) ?? (isTask ? CheckSquare : Icons.LayoutGrid);
+      <DndContext
+        sensors={sensors}
+        collisionDetection={closestCenter}
+        modifiers={[restrictToVerticalAxis]}
+        onDragEnd={handleDragEnd}
+      >
+        <SortableContext items={favorites.map(f => f.id)} strategy={verticalListSortingStrategy}>
+          <div className="flex flex-col">
+            {favorites.map(fav => (
+              <SortableFavItem
+                key={fav.id}
+                fav={fav}
+                isActive={getIsActive(fav.id, fav.entityLayerType)}
+                onMouseDown={() => handleMouseDown(fav.id, fav.entityLayerType)}
+                onClick={() => handleClick(fav.id, fav.entityLayerType)}
+              />
+            ))}
+          </div>
+        </SortableContext>
+      </DndContext>
 
-          const button = (
-            <button
-              key={`${fav.entityLayerType}-${fav.id}`}
-              type="button"
-              onMouseDown={() => handleMouseDown(fav.id, fav.entityLayerType)}
-              onClick={() => handleClick(fav.id, fav.entityLayerType)}
-              className={cn(
-                "flex items-center px-1 py-0.5 rounded-sm transition-colors mb-px border w-full text-left outline-none select-none",
-                isActive
-                  ? "bg-primary/10 text-primary border-primary/25"
-                  : "text-muted-foreground border-transparent hover:bg-muted/50 hover:text-foreground hover:border-border/30",
-              )}
-            >
-              <div className="w-5 h-5 flex items-center justify-center shrink-0 mr-1.5">
-                <Icon className="h-3.5 w-3.5 transition-none" style={{ color: fav.color || undefined }} />
-              </div>
-              <span className="text-[11px] font-semibold leading-tight truncate whitespace-nowrap">
-                {fav.name ?? "—"}
-              </span>
-            </button>
-          );
-
-          if (fav.entityLayerType === EntityLayerType.ProjectSpace)
-            return <SpaceContextMenu key={`${fav.entityLayerType}-${fav.id}`} spaceId={fav.id} spaceName={fav.name ?? ""}>{button}</SpaceContextMenu>;
-          if (fav.entityLayerType === EntityLayerType.ProjectFolder)
-            return <FolderContextMenu key={`${fav.entityLayerType}-${fav.id}`} folderId={fav.id} folderName={fav.name ?? ""}>{button}</FolderContextMenu>;
-          return <TaskContextMenu key={`${fav.entityLayerType}-${fav.id}`} taskId={fav.id} taskName={fav.name ?? ""} parentId="">{button}</TaskContextMenu>;
-        })}
-      </div>
       {data?.hasNextPage && (
         <button
           onClick={loadMore}

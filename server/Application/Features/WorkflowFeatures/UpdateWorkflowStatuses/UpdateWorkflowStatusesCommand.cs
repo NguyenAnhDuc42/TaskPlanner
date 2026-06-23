@@ -1,12 +1,12 @@
 namespace Application;
 
-public record UpdateWorkflowStatusesCommand(
-    Guid WorkflowId,
+public record UpdateSpaceStatusesCommand(
+    Guid SpaceId,
     List<StatusUpdateValue> Statuses
 ) : ICommandRequest, IAuthorizedWorkspaceRequest;
 
 public record StatusUpdateValue(
-    Guid? Id, 
+    Guid? Id,
     string Name,
     string Color,
     StatusCategory Category,
@@ -14,4 +14,3 @@ public record StatusUpdateValue(
     string? NextOrderKey,
     RowAction Action
 );
-

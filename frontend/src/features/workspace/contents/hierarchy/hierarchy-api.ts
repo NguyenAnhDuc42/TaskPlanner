@@ -7,7 +7,6 @@ import type { PagedResult } from "@/types/paged-result";
 import { EntityLayerType } from "@/types/entity-layer-type";
 import { createSelector } from "@reduxjs/toolkit";
 import { useMemo } from "react";
-import type { Priority } from "@/types/priority";
 import { toast } from "sonner";
 import { extractErrorMessage } from "@/types/api-error";
 
@@ -24,10 +23,8 @@ export interface CreateFolderRequest {
   name: string;
   color?: string;
   icon?: string;
-  statusId?: string | null;
   startDate?: string;
   dueDate?: string;
-  priority?: Priority;
 }
 
 export interface CreateTaskRequest {

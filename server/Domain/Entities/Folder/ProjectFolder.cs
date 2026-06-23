@@ -13,11 +13,10 @@ public sealed class ProjectFolder : TenantEntity
     public bool IsArchived { get; private set; }
     public DateTimeOffset? StartDate { get; private set; }
     public DateTimeOffset? DueDate { get; private set; }
-    public Guid? StatusId { get; private set; }
-    public Priority? Priority { get; private set; }
 
     private ProjectFolder() { }
-    private ProjectFolder(Guid id, Guid projectWorkspaceId, Guid projectSpaceId, string name, string slug, Guid defaultDocumentId, string orderKey, bool isPrivate, Guid creatorId, string color, string? icon, DateTimeOffset? startDate, DateTimeOffset? dueDate, Priority? priority = null, Guid? statusId = null)
+
+    private ProjectFolder(Guid id, Guid projectWorkspaceId, Guid projectSpaceId, string name, string slug, Guid defaultDocumentId, string orderKey, bool isPrivate, Guid creatorId, string color, string? icon, DateTimeOffset? startDate, DateTimeOffset? dueDate)
         : base(id, projectWorkspaceId)
     {
         ProjectSpaceId = projectSpaceId;
@@ -31,49 +30,33 @@ public sealed class ProjectFolder : TenantEntity
         IsArchived = false;
         StartDate = startDate;
         DueDate = dueDate;
-        Priority = priority;
-        StatusId = statusId;
-
-        // Audit is initialized in base constructor
         InitializeAudit(creatorId);
     }
 
-    public static ProjectFolder Create(Guid projectWorkspaceId, Guid projectSpaceId, string name, string slug, string orderKey, Guid creatorId,string? color = null, string? icon = null, DateTimeOffset? startDate = null, DateTimeOffset? dueDate = null, Priority? priority = null, Guid? statusId = null)
-{
-    return new ProjectFolder(
-        Guid.NewGuid(),
-        projectWorkspaceId,
-        projectSpaceId,
-        name,
-        slug,
-        Guid.Empty,
-        orderKey,
-        false,
-        creatorId,
-        color ?? "#FFFFFF",
-        icon,
-        startDate,
-        dueDate,
-        priority,
-        statusId);
-}
+    public static ProjectFolder Create(Guid projectWorkspaceId, Guid projectSpaceId, string name, string slug, string orderKey, Guid creatorId, string? color = null, string? icon = null, DateTimeOffset? startDate = null, DateTimeOffset? dueDate = null)
+    {
+        return new ProjectFolder(
+            Guid.NewGuid(),
+            projectWorkspaceId,
+            projectSpaceId,
+            name,
+            slug,
+            Guid.Empty,
+            orderKey,
+            false,
+            creatorId,
+            color ?? "#FFFFFF",
+            icon,
+            startDate,
+            dueDate);
+    }
 
     public static ProjectFolder CreateDefault(Guid projectWorkspaceId, Guid projectSpaceId, Guid creatorId)
     {
-        return Create(
-            projectWorkspaceId,
-            projectSpaceId,
-            "Getting Started",
-            "getting-started",
-            FractionalIndex.Start(),
-            creatorId: creatorId
-        );
+        return Create(projectWorkspaceId, projectSpaceId, "Getting Started", "getting-started", FractionalIndex.Start(), creatorId: creatorId);
     }
 
-    public void Delete()
-    {
-        SoftDelete();
-    }
+    public void Delete() => SoftDelete();
 
     public void Update(
         string? name = null,
@@ -83,13 +66,9 @@ public sealed class ProjectFolder : TenantEntity
         bool? isPrivate = null,
         DateTimeOffset? startDate = null,
         DateTimeOffset? dueDate = null,
-        Guid? statusId = null,
-        Priority? priority = null,
         string? orderKey = null,
         bool clearStartDate = false,
-        bool clearDueDate = false,
-        bool clearStatusId = false,
-        bool clearPriority = false)
+        bool clearDueDate = false)
     {
         EnsureNotArchived();
         bool updated = false;
@@ -105,12 +84,6 @@ public sealed class ProjectFolder : TenantEntity
 
         if (clearDueDate && DueDate != null) { DueDate = null; updated = true; }
         else if (dueDate != null && DueDate != dueDate) { DueDate = dueDate; updated = true; }
-
-        if (clearStatusId && StatusId != null) { StatusId = null; updated = true; }
-        else if (statusId != null && StatusId != statusId) { StatusId = statusId; updated = true; }
-
-        if (clearPriority && Priority != null) { Priority = null; updated = true; }
-        else if (priority != null && Priority != priority) { Priority = priority; updated = true; }
 
         if (orderKey != null && OrderKey != orderKey) { OrderKey = orderKey; updated = true; }
 
@@ -136,5 +109,3 @@ public sealed class ProjectFolder : TenantEntity
         if (IsArchived) throw new BusinessRuleException("Cannot modify an archived folder.");
     }
 }
-
-

@@ -9,14 +9,7 @@ import { SortableBoardItem } from "./sortable-board-item";
 import type { BoardItem } from "../space-api";
 import { DialogFormWrapper } from "@/components/dialog-form-wrapper";
 import { CreateTaskForm } from "@/features/workspace/components/forms/create-task-form";
-import { CreateFolderForm } from "@/features/workspace/components/forms/create-folder-form";
 import { EntityLayerType } from "@/types/entity-layer-type";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { useWorkspaceRole } from "@/features/workspace/context/use-workspace-role";
 
 export const BoardColumn = React.memo(function BoardColumn({
@@ -28,7 +21,6 @@ export const BoardColumn = React.memo(function BoardColumn({
   spaceId,
   selectedItemId,
   onTaskClick,
-  onFolderClick,
   onPriorityChange,
   onDateChange,
 }: {
@@ -40,31 +32,17 @@ export const BoardColumn = React.memo(function BoardColumn({
   spaceId: string;
   selectedItemId?: string;
   onTaskClick: (id: string) => void;
-  onFolderClick: (id: string) => void;
-  onPriorityChange: (id: string, type: "task" | "folder", priority: Priority) => void;
-  onDateChange: (id: string, type: "task" | "folder", patches: { startDate?: string; dueDate?: string; clearStartDate?: boolean; clearDueDate?: boolean }) => void;
+  onPriorityChange: (id: string, priority: Priority) => void;
+  onDateChange: (id: string, patches: { startDate?: string; dueDate?: string; clearStartDate?: boolean; clearDueDate?: boolean }) => void;
 }) {
-  const { setNodeRef, isOver } = useDroppable({
-    id: statusId,
-  });
-
-  const itemIds = useMemo(() => 
-    items
-      .filter((i) => i && i.id)
-      .map((i) => `${i.__type}-${i.id}`), 
+  const { setNodeRef, isOver } = useDroppable({ id: statusId });
+  const itemIds = useMemo(() =>
+    items.filter((i) => i?.id).map((i) => `task-${i.id}`),
     [items]
   );
 
   const { canCreateContent } = useWorkspaceRole();
   const [createOpen, setCreateOpen] = useState(false);
-  const [createType, setCreateType] = useState<"task" | "folder" | null>(null);
-
-  const handleOpenChange = (open: boolean) => {
-    setCreateOpen(open);
-    if (!open) {
-      setCreateType(null);
-    }
-  };
 
   return (
     <StatusGroup
@@ -74,71 +52,45 @@ export const BoardColumn = React.memo(function BoardColumn({
       category={category}
       totalCount={items.length}
       className="w-[280px] min-h-[400px] shrink-0 flex flex-col"
-      onCreateTask={canCreateContent ? () => { setCreateType("task"); setCreateOpen(true); } : undefined}
-      onCreateFolder={canCreateContent ? () => { setCreateType("folder"); setCreateOpen(true); } : undefined}
+      onCreateTask={canCreateContent ? () => setCreateOpen(true) : undefined}
     >
       <div
         ref={setNodeRef}
         className={cn(
           "flex flex-col flex-1 overflow-y-auto px-2 pb-2 pt-1 gap-2 rounded-md transition-colors status-column-scrollable",
-          "[&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:bg-white/[0.05] [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-white/[0.15] [&::-webkit-scrollbar-track]:bg-transparent",
-          isOver
-            ? "bg-white/[0.02] border border-dashed border-border/60"
-            : "border border-transparent",
+          "[&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:bg-white/5 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-white/15 [&::-webkit-scrollbar-track]:bg-transparent",
+          isOver ? "bg-white/2 border border-dashed border-border/60" : "border border-transparent",
         )}
       >
         <SortableContext items={itemIds} strategy={verticalListSortingStrategy}>
-          {items
-            .filter((item) => item && item.id)
-            .map((item) => (
-              <SortableBoardItem
-                key={`${item.__type}-${item.id}`}
-                item={item}
-                isSelected={selectedItemId === item.id}
-                onTaskClick={onTaskClick}
-                onFolderClick={onFolderClick}
-                onPriorityChange={onPriorityChange}
-                onDateChange={onDateChange}
-              />
-            ))}
+          {items.filter((item) => item?.id).map((item) => (
+            <SortableBoardItem
+              key={`task-${item.id}`}
+              item={item}
+              isSelected={selectedItemId === item.id}
+              onTaskClick={onTaskClick}
+              onPriorityChange={onPriorityChange}
+              onDateChange={onDateChange}
+            />
+          ))}
         </SortableContext>
       </div>
 
-      {/* Render the button and dropdown OUTSIDE the droppable DND-active container area! */}
       {canCreateContent && (
         <div className="px-2 pb-2 shrink-0">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <button className="w-full flex items-center justify-center py-2 rounded-md hover:bg-white/[0.04] text-muted-foreground/60 hover:text-foreground transition-all border border-dashed border-border/50 hover:border-border shrink-0 mt-1 gap-1 cursor-pointer active:scale-[0.98]">
-                <Plus className="h-3.5 w-3.5" />
-                <span className="text-[11px] font-semibold">Create Item</span>
-              </button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-40 bg-popover border border-border shadow-md rounded-md p-1">
-              <DropdownMenuItem
-                className="cursor-pointer flex items-center gap-2 text-xs hover:bg-muted p-1.5 rounded transition-colors"
-                onClick={() => { setCreateType("task"); setCreateOpen(true); }}
-              >
-                <Plus className="h-3.5 w-3.5 text-muted-foreground" />
-                <span className="font-medium text-foreground">Create Task</span>
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                className="cursor-pointer flex items-center gap-2 text-xs hover:bg-muted p-1.5 rounded transition-colors"
-                onClick={() => { setCreateType("folder"); setCreateOpen(true); }}
-              >
-                <svg className="h-3.5 w-3.5 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 13h6m-3-3v6m-9 1V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
-                </svg>
-                <span className="font-medium text-foreground">Create Folder</span>
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+          <button
+            onClick={() => setCreateOpen(true)}
+            className="w-full flex items-center justify-center py-2 rounded-md hover:bg-white/4 text-muted-foreground/60 hover:text-foreground transition-all border border-dashed border-border/50 hover:border-border shrink-0 mt-1 gap-1 cursor-pointer active:scale-[0.98]"
+          >
+            <Plus className="h-3.5 w-3.5" />
+            <span className="text-[11px] font-semibold">Create Task</span>
+          </button>
         </div>
       )}
 
       <DialogFormWrapper
-        open={createOpen && createType === "task"}
-        onOpenChange={(open) => { if (!open) handleOpenChange(false); }}
+        open={createOpen}
+        onOpenChange={setCreateOpen}
         title="Create New Task"
         trigger={null}
       >
@@ -146,21 +98,8 @@ export const BoardColumn = React.memo(function BoardColumn({
           parentId={spaceId}
           parentType={EntityLayerType.ProjectSpace}
           defaultStatusId={statusId === "unclassified" ? undefined : statusId}
-          onSuccess={() => { setCreateOpen(false); setCreateType(null); }}
-          onCancel={() => { setCreateOpen(false); setCreateType(null); }}
-        />
-      </DialogFormWrapper>
-
-      <DialogFormWrapper
-        open={createOpen && createType === "folder"}
-        onOpenChange={(open) => { if (!open) handleOpenChange(false); }}
-        title="Create New Folder"
-        trigger={null}
-      >
-        <CreateFolderForm
-          spaceId={spaceId}
-          onSuccess={() => { setCreateOpen(false); setCreateType(null); }}
-          onCancel={() => { setCreateOpen(false); setCreateType(null); }}
+          onSuccess={() => setCreateOpen(false)}
+          onCancel={() => setCreateOpen(false)}
         />
       </DialogFormWrapper>
     </StatusGroup>

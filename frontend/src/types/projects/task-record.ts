@@ -17,7 +17,6 @@ export interface TaskRecord {
     spaceId?: string | null;
     folderId?: string | null;
     description?: string;
-    parentWorkflowId?: string;
     defaultDocumentId?: string;
     isArchived?: boolean;
     storyPoints?: number;
