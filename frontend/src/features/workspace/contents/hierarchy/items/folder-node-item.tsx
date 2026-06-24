@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { ChevronRight, MoreVertical, Lock } from "lucide-react";
+import { ChevronRight, MoreVertical } from "lucide-react";
 import { DynamicIcon } from "@/components/dynamic-icon";
 import { useNavigate, useLocation, useRouter } from "@tanstack/react-router";
 import { useWorkspace } from "@/features/workspace/context/workspace-context";
@@ -58,7 +58,7 @@ export const FolderNodeItem = React.memo(function FolderNodeItem({
         >
           <div
             className={cn(
-              "flex items-center px-1 py-0.5 rounded-sm transition-colors mb-px group border",
+              "flex items-center px-1 py-0.5 rounded-md transition-colors mb-px group border",
               isActive
                 ? "bg-primary/10 text-primary border-primary/25"
                 : "text-muted-foreground border-transparent hover:bg-muted/50 hover:text-foreground hover:border-border/30",
@@ -119,9 +119,7 @@ export const FolderNodeItem = React.memo(function FolderNodeItem({
             </button>
 
             <div className="flex items-center gap-0.5 ml-1 shrink-0">
-              {folder.isPrivate && (
-                <Lock className="h-3 w-3 text-muted-foreground/40 shrink-0" />
-              )}
+
               <EntityMenuTrigger>
                 <button
                   type="button"

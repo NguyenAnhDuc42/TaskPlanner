@@ -15,9 +15,9 @@ public class JoinWorkspaceByCodeHandler(
         if (currentUserId == Guid.Empty)
             return Result<JoinWorkspaceByCodeResult>.Failure(Error.Unauthorized("User.NotAuthenticated", "User not authenticated."));
 
-        var normalizedCode = request.JoinCode.Trim().ToUpperInvariant();
+        var normalizedCode = request.JoinCode.Trim().ToLowerInvariant();
         var workspace = await db.ProjectWorkspaces
-            .FirstOrDefaultAsync(w => w.JoinCode == normalizedCode && w.DeletedAt == null, cancellationToken);
+            .FirstOrDefaultAsync(w => w.JoinCode.ToLower() == normalizedCode && w.DeletedAt == null, cancellationToken);
 
         if (workspace == null) return Result<JoinWorkspaceByCodeResult>.Failure(Error.Validation("Workspace.InvalidJoinCode", "Invalid join code."));
         if (workspace.IsArchived) return Result<JoinWorkspaceByCodeResult>.Failure(Error.Validation("Workspace.Archived", "Cannot join an archived workspace."));

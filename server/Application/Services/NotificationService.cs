@@ -1,5 +1,6 @@
 using Dapper;
 using Microsoft.EntityFrameworkCore;
+using Npgsql;
 
 namespace Application;
 
@@ -19,8 +20,9 @@ public class NotificationService(TaskPlanDbContext db, RealtimeService realtime)
         var id = Guid.NewGuid();
         var now = DateTimeOffset.UtcNow;
 
-        // Use Dapper directly to avoid EF change tracker scoping issues in fire-and-forget calls
-        var conn = db.Database.GetDbConnection();
+        var connectionString = db.Database.GetConnectionString();
+        await using var conn = new NpgsqlConnection(connectionString);
+        await conn.OpenAsync(cancellationToken);
         await conn.ExecuteAsync(@"
             INSERT INTO notifications
                 (id, recipient_user_id, actor_user_id, project_workspace_id, type, entity_type, entity_id, title, body, is_read, created_at, updated_at)
@@ -41,10 +43,6 @@ public class NotificationService(TaskPlanDbContext db, RealtimeService realtime)
             CreatedAt = now,
         };
 
-        _ = realtime.NotifyUserAsync(
-            recipientUserId,
-            "EntitiesUpdated",
-            new EntityBatchUpdate { Notifications = [record] },
-            cancellationToken);
+        _ = realtime.NotifyUserAsync(recipientUserId, "NewNotification", record, cancellationToken);
     }
 }

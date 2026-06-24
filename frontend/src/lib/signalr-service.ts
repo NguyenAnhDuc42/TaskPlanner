@@ -45,6 +45,7 @@ export interface EntityBatchDelete {
 export interface SignalREvents {
   EntitiesUpdated: EntityBatchUpdate;
   EntitiesDeleted: EntityBatchDelete;
+  NewNotification: NotificationRecord;
 }
 
 type SignalRListener<E extends keyof SignalREvents> = {

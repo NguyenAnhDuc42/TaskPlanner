@@ -180,7 +180,7 @@ export function SortableTaskItem({
               onDueDateChange={(date) => onUpdateTaskField(date ? { dueDate: date.toISOString() } : { clearDueDate: true })}
               onClearDates={() => onUpdateTaskField({ clearStartDate: true, clearDueDate: true })}
               size="sm"
-              triggerClassName="h-5 px-1.5 text-[9px] font-bold border border-border/5 rounded-sm"
+              triggerClassName="h-5 px-1.5 text-[9px] font-bold border border-border/5 rounded-md"
             />
           </div>
         </div>

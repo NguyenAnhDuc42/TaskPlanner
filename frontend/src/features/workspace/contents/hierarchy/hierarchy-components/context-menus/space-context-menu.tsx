@@ -10,7 +10,9 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
-import {Plus,FolderPlus,Settings,Trash2,Copy, ExternalLink,Star }from "lucide-react";
+import { Plus, FolderPlus, Settings, Trash2, Copy, ExternalLink, Star } from "lucide-react";
+import { toast } from "sonner";
+import { copyToClipboard } from "@/lib/copy-to-clipboard";
 import { EntityLayerType } from "@/types/entity-layer-type";
 import { useWorkspace } from "@/features/workspace/context/workspace-context";
 import { useWorkspaceRole } from "@/features/workspace/context/use-workspace-role";
@@ -82,12 +84,18 @@ export function SpaceContextMenu({
 
         <Separator className="bg-border/50" />
 
-        <Item className="gap-2 cursor-pointer">
+        <Item className="gap-2 cursor-pointer" onSelect={() => {
+          const url = `${window.location.origin}/workspaces/${workspaceId}/spaces/${spaceId}`;
+          copyToClipboard(url);
+          toast.success("Link copied");
+        }}>
           <Copy className="h-3.5 w-3.5" />
           <span>Copy Link</span>
         </Item>
 
-        <Item className="gap-2 cursor-pointer">
+        <Item className="gap-2 cursor-pointer" onSelect={() => {
+          window.open(`/workspaces/${workspaceId}/spaces/${spaceId}`, "_blank");
+        }}>
           <ExternalLink className="h-3.5 w-3.5" />
           <span>Open in New Tab</span>
         </Item>

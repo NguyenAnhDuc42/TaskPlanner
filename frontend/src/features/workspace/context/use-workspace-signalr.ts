@@ -2,7 +2,6 @@ import { useEffect } from "react";
 import { useDispatch } from "react-redux";
 import { useUser } from "@/features/auth/auth-api";
 import { store } from "@/store";
-import { useNotificationSignalR } from "@/features/notifications/use-notification-signalr";
 import { signalRService } from "@/lib/signalr-service";
 import {
   spaceSlice,
@@ -19,12 +18,13 @@ import {
   memberSelectors,
 } from "@/store/entityStore";
 import { workspaceApi } from "@/store/workspaceApi";
+import { hierarchyApi } from "@/features/workspace/contents/hierarchy/hierarchy-api";
 import type { AppDispatch } from "@/store";
 
 export function useWorkspaceSignalR(workspaceId: string) {
   const dispatch = useDispatch<AppDispatch>();
   const { data: currentUser } = useUser();
-  useNotificationSignalR();
+
 
   useEffect(() => {
     if (!workspaceId) return;
@@ -44,8 +44,10 @@ export function useWorkspaceSignalR(workspaceId: string) {
       console.log("[SignalR] EntitiesUpdated:", payload);
       if (payload.spaces) {
         dispatch(spaceSlice.actions.upsertMany(payload.spaces));
-        if (payload.spaces.some(s => s.isPrivate)) {
-          dispatch(workspaceApi.util.invalidateTags(['Spaces', 'Folders', 'Tasks']));
+        // If any space changed privacy, the current user's visibility may have changed
+        const hasPrivacyChange = payload.spaces.some(s => s.isPrivate !== undefined);
+        if (hasPrivacyChange) {
+          dispatch(hierarchyApi.util.invalidateTags(["Spaces"]));
         }
       }
       if (payload.folders) {
@@ -71,13 +73,25 @@ export function useWorkspaceSignalR(workspaceId: string) {
         }
       }
       if (payload.assignees)      dispatch(assigneeSlice.actions.upsertMany(payload.assignees));
-      if (payload.entityAccess)   dispatch(entityAccessSlice.actions.upsertMany(payload.entityAccess));
+      if (payload.entityAccess) {
+        dispatch(entityAccessSlice.actions.upsertMany(payload.entityAccess));
+        // If any entity_access update targets the current user's member → refetch hierarchy
+        // so private space visibility updates immediately (grant or revoke)
+        const currentMemberId = store.getState().members.ids.find(
+          id => store.getState().members.entities[id]?.userId === currentUser?.id
+        );
+        const affectsCurrentUser = payload.entityAccess.some(
+          ea => ea.workspaceMemberId === currentMemberId
+        );
+        if (affectsCurrentUser || payload.entityAccess.length === 0) {
+          dispatch(hierarchyApi.util.invalidateTags(["Spaces"]));
+        }
+      }
       if (payload.statuses)       dispatch(statusSlice.actions.upsertMany(payload.statuses));
       if (payload.comments)       dispatch(commentSlice.actions.upsertMany(payload.comments));
       if (payload.workspaces)     dispatch(workspaceSlice.actions.upsertMany(payload.workspaces));
       if (payload.attachments)    dispatch(attachmentSlice.actions.upsertMany(payload.attachments));
       if (payload.documentBlocks) dispatch(documentBlockSlice.actions.upsertMany(payload.documentBlocks));
-      // notifications handled by useNotificationSignalR (global hook)
     };
 
     const onEntitiesDeleted = (payload: import("@/lib/signalr-service").EntityBatchDelete) => {

@@ -11,6 +11,8 @@ public class WorkspaceDetailRow
     public string Theme { get; init; } = null!;
     public string? Color { get; init; }
     public string? Icon { get; init; }
+    public string? JoinCode { get; init; }
+    public bool StrictJoin { get; init; }
 }
 
 public class GetDetailWorkspaceHandler(TaskPlanDbContext db, WorkspaceContext context) : IQueryHandler<GetDetailWorkspaceQuery, WorkspaceRecord>
@@ -18,15 +20,17 @@ public class GetDetailWorkspaceHandler(TaskPlanDbContext db, WorkspaceContext co
     public async Task<Result<WorkspaceRecord>> Handle(GetDetailWorkspaceQuery request, CancellationToken cancellationToken)
     {
         const string sql = @"
-            SELECT 
+            SELECT
                 w.id AS WorkspaceId,
                 wm.role AS Role,
                 wm.theme AS Theme,
                 w.custom_color AS Color,
-                w.custom_icon AS Icon
+                w.custom_icon AS Icon,
+                w.join_code AS JoinCode,
+                w.strict_join AS StrictJoin
             FROM project_workspaces w
             JOIN workspace_members wm ON w.id = wm.project_workspace_id
-            WHERE w.id = @WorkspaceId 
+            WHERE w.id = @WorkspaceId
               AND wm.user_id = @UserId
               AND w.deleted_at IS NULL
               AND wm.deleted_at IS NULL";
@@ -49,7 +53,9 @@ public class GetDetailWorkspaceHandler(TaskPlanDbContext db, WorkspaceContext co
             CanEdit = row.Role == Role.Owner.ToString() || row.Role == Role.Admin.ToString(),
             CanInvite = row.Role == Role.Owner.ToString() || row.Role == Role.Admin.ToString(),
             CanManageMembers = row.Role == Role.Owner.ToString() || row.Role == Role.Admin.ToString(),
-            IsDashboardEnabled = false
+            IsDashboardEnabled = false,
+            JoinCode = (row.Role == Role.Owner.ToString() || row.Role == Role.Admin.ToString()) ? row.JoinCode : null,
+            StrictJoin = row.StrictJoin
         };
 
         return Result<WorkspaceRecord>.Success(dto);

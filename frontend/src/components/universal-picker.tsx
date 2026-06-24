@@ -46,8 +46,8 @@ const DEFAULT_COLORS = [
 ]
 
 const SIZE = {
-  sm: { button: "p-1 rounded-sm border border-border/15 bg-background/80 hover:bg-muted/60 shadow-sm", iconSize: 12 },
-  md: { button: "h-6 w-6 rounded-sm bg-muted/20 hover:bg-muted/50 flex items-center justify-center", iconSize: 16 },
+  sm: { button: "p-1 rounded-md border border-border/15 bg-background/80 hover:bg-muted/60 shadow-sm", iconSize: 12 },
+  md: { button: "h-6 w-6 rounded-md bg-muted/20 hover:bg-muted/50 flex items-center justify-center", iconSize: 16 },
   lg: { button: "h-9 w-9 rounded-md border border-border/50 bg-muted/20 hover:bg-muted/40 flex items-center justify-center", iconSize: 20 },
 } as const
 
@@ -186,7 +186,7 @@ function PickerPanel({
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 onPointerDown={(e) => e.stopPropagation()}
-                className="h-7 w-full pl-6 pr-2 text-[11px] bg-muted/30 border border-border/40 rounded-sm outline-none focus:border-primary/50 text-foreground/80 placeholder:text-muted-foreground/40"
+                className="h-7 w-full pl-6 pr-2 text-[11px] bg-muted/30 border border-border/40 rounded-md outline-none focus:border-primary/50 text-foreground/80 placeholder:text-muted-foreground/40"
               />
             </div>
           </div>

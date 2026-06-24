@@ -27,7 +27,7 @@ public class GetSpaceDetailHandler(TaskPlanDbContext db, WorkspaceContext worksp
                 AND ea.workspace_member_id = @MemberId AND ea.deleted_at IS NULL
             LEFT JOIN favorites fav ON fav.entity_id = s.id AND fav.workspace_member_id = @MemberId
             WHERE s.id = @SpaceId AND s.project_workspace_id = @WorkspaceId AND s.deleted_at IS NULL
-              AND (s.is_private = false OR ea.id IS NOT NULL OR @IsOwner = true);";
+              AND (s.is_private = false OR (ea.id IS NOT NULL AND ea.access_level IN ('Viewer', 'Editor', 'Manager')) OR @IsOwner = true);";
 
         var connection = db.Database.GetDbConnection();
         var space = await connection.QueryFirstOrDefaultAsync<SpaceRecord>(sql, new

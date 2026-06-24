@@ -1,5 +1,7 @@
 import { workspaceApi } from "@/store/workspaceApi";
 import { spaceSlice, folderSlice, taskSlice, statusSlice, entityAccessSlice, folderSelectors, taskSelectors, statusSelectors } from "@/store/entityStore";
+import { RowAction } from "@/types/row-action";
+import type { AccessLevel } from "@/types/access-level";
 import { useSelector, useDispatch } from "react-redux";
 import { createSelector } from "@reduxjs/toolkit";
 import { useMemo, useEffect } from "react";
@@ -7,10 +9,8 @@ import type { RootState, AppDispatch } from "@/store";
 import type { SpaceRecord, FolderRecord, TaskRecord } from "@/types/projects";
 import type { Status } from "@/types/status";
 import { StatusCategory } from "@/types/status-category";
-import type { AccessLevel } from "@/types/access-level";
 import type { EntityAccessRecord } from "@/types/workspace";
 import type { SpaceDocumentRecord } from "@/types/document";
-import { RowAction } from "@/types/row-action";
 import { EntityLayerType } from "@/types/entity-layer-type";
 
 
@@ -173,6 +173,30 @@ export const spaceApi = workspaceApi.injectEndpoints({
         method: "POST",
         data: rows
       }),
+      async onQueryStarted({ spaceId, rows }, { dispatch, queryFulfilled }) {
+        // Optimistic only for delete and level changes — NOT for create (avoids temp ID duplicates)
+        const deletedIds: string[] = [];
+
+        for (const row of rows) {
+          if (row.action === RowAction.Delete && row.id) {
+            deletedIds.push(row.id);
+            dispatch(entityAccessSlice.actions.remove(row.id));
+          } else if (row.action === RowAction.Update && row.id) {
+            dispatch(entityAccessSlice.actions.upsert({
+              id: row.id, spaceId,
+              workspaceMemberId: row.memberId,
+              accessLevel: row.accessLevel as AccessLevel,
+              haveAccess: true,
+            }));
+          }
+        }
+
+        try {
+          await queryFulfilled;
+        } catch {
+          // Refetch will restore correct state on failure
+        }
+      },
       invalidatesTags: (_result, _error, { spaceId }) => [{ type: "EntityAccess" as const, id: `access-${spaceId}` }],
     }),
 

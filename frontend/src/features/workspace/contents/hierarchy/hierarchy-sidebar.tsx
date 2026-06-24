@@ -47,7 +47,7 @@ export function HierarchySidebar() {
     <div className="h-full flex flex-col bg-transparent overflow-hidden select-none">
       {/* Search & Actions */}
       <div className="h-8 px-1 flex items-center border-b border-border shrink-0">
-        <div className="flex items-center gap-2 px-2 h-6 rounded-sm bg-muted/40 border border-border/10 focus-within:border-primary/30 focus-within:bg-muted/60 transition-all group flex-1">
+        <div className="flex items-center gap-2 px-2 h-6 rounded-md bg-secondary/60 border border-transparent focus-within:border-primary/30 focus-within:bg-secondary transition-all group flex-1 shadow-inner">
           <Search className="h-3 w-3 text-muted-foreground/40 group-focus-within:text-primary transition-colors shrink-0" />
           <input
             value={searchQuery}
@@ -78,7 +78,7 @@ export function HierarchySidebar() {
           onOpenChange={setIsHierarchyOpen}
           className="flex flex-col h-full overflow-hidden"
         >
-          <div className="w-full h-7 flex items-center gap-2 px-1 flex-none bg-background sticky top-0 z-10 group hover:bg-muted/50 transition-colors">
+          <div className="w-full h-7 flex items-center gap-2 px-1 flex-none bg-muted/30 sticky top-0 z-10 group hover:bg-muted/60 transition-colors">
             <CollapsibleTrigger className="flex items-center gap-2 flex-1 min-w-0">
               <ChevronDown
                 className={cn(
@@ -127,7 +127,7 @@ export function HierarchySidebar() {
                         onOpenChange={setIsInlineCreateOpen}
                         trigger={
                           <button
-                            className="flex items-center w-full px-1 py-0.5 rounded-sm transition-colors cursor-pointer hover:bg-muted text-muted-foreground/50 hover:text-primary group"
+                            className="flex items-center w-full px-1 py-0.5 rounded-md transition-colors cursor-pointer hover:bg-muted text-muted-foreground/50 hover:text-primary group"
                             onClick={() => setIsInlineCreateOpen(true)}
                           >
                             <div className="w-5 h-5 flex items-center justify-center shrink-0 mr-0.5">
@@ -180,7 +180,7 @@ export function HierarchySidebar() {
       {/* FAVORITES SECTION */}
       <div className="flex flex-col min-h-0 flex-none border-b border-border/40">
         <Collapsible open={isFavoritesOpen} onOpenChange={setIsFavoritesOpen} className="flex flex-col overflow-hidden">
-          <div className="w-full h-7 flex items-center gap-2 px-1 flex-none bg-background sticky top-0 z-10 hover:bg-muted/50 transition-colors">
+          <div className="w-full h-7 flex items-center gap-2 px-1 flex-none bg-muted/30 sticky top-0 z-10 hover:bg-muted/60 transition-colors">
             <CollapsibleTrigger className="flex items-center gap-2 flex-1 min-w-0">
               <ChevronDown className={cn("h-3 w-3 text-muted-foreground transition-transform duration-200", !isFavoritesOpen && "-rotate-90")} />
               <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider text-left">

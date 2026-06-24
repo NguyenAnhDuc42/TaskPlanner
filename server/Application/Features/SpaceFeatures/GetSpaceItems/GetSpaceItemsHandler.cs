@@ -17,7 +17,7 @@ public class GetSpaceItemsHandler(TaskPlanDbContext db, WorkspaceContext workspa
             LEFT JOIN entity_access ea ON ea.project_space_id = s.id
                 AND ea.workspace_member_id = @MemberId AND ea.deleted_at IS NULL
             WHERE s.id = @SpaceId AND s.project_workspace_id = @WorkspaceId AND s.deleted_at IS NULL
-              AND (s.is_private = false OR ea.id IS NOT NULL OR @IsOwner = true);",
+              AND (s.is_private = false OR (ea.id IS NOT NULL AND ea.access_level IN ('Viewer', 'Editor', 'Manager')) OR @IsOwner = true);",
             new { SpaceId = request.SpaceId, WorkspaceId = workspaceId, MemberId = memberId, IsOwner = isOwner });
 
         if (!hasAccess)

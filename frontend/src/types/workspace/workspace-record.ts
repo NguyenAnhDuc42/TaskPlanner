@@ -18,4 +18,6 @@ export interface WorkspaceRecord {
     memberCount?: number;
     isArchived?: boolean;
     isDashboardEnabled?: boolean;
+    joinCode?: string;
+    strictJoin?: boolean;
 }

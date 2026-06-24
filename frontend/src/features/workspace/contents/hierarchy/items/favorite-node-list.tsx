@@ -71,7 +71,7 @@ function SortableFavItem({
       onMouseDown={onMouseDown}
       onClick={onClick}
       className={cn(
-        "flex items-center px-1 py-0.5 rounded-sm transition-colors mb-px border w-full text-left outline-none select-none cursor-grab active:cursor-grabbing",
+        "flex items-center px-1 py-0.5 rounded-md transition-colors mb-px border w-full text-left outline-none select-none cursor-grab active:cursor-grabbing",
         isDragging ? "opacity-50" : "",
         isRouteActive
           ? "bg-primary/10 text-primary border-primary/25"

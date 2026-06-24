@@ -240,7 +240,7 @@ public static class PipelineDecorator
             entry.Size = 1;
             return await db.WorkspaceMembers
                 .AsNoTracking()
-                .Where(m => m.ProjectWorkspaceId == workspaceId.Value && m.UserId == userId)
+                .Where(m => m.ProjectWorkspaceId == workspaceId.Value && m.UserId == userId && m.DeletedAt == null)
                 .FirstOrDefaultAsync(cancellationToken);
         });
 

@@ -18,11 +18,10 @@ const NAV_ICONS: {
   id: ContentPage; 
   icon: React.ElementType; 
   hasSidebar?: boolean;
-  activeColorClass: string;
 }[] = [
-  { id: "projects", icon: Folder, hasSidebar: true, activeColorClass: "bg-chart-1/10 text-chart-1 shadow-sm shadow-chart-1/5" }, // Terracotta
-  { id: "members", icon: Users, hasSidebar: false, activeColorClass: "bg-chart-2/10 text-chart-2 shadow-sm shadow-chart-2/5" }, // Denim
-  { id: "inbox", icon: Inbox, hasSidebar: false, activeColorClass: "bg-chart-3/10 text-chart-3 shadow-sm shadow-chart-3/5" }, // Sage
+  { id: "projects", icon: Folder, hasSidebar: true },
+  { id: "members", icon: Users, hasSidebar: false },
+  { id: "inbox", icon: Inbox, hasSidebar: false },
 ];
 
 interface IconRailProps {
@@ -55,12 +54,12 @@ export function IconRail({ onSelectIcon, onCommandCenter }: Readonly<IconRailPro
 
         {/* Command Center */}
         <Button
-          variant={state.activeIcon === "command-center" ? "default" : "ghost"}
+          variant="ghost"
           size="icon"
           className={cn(
             "w-7 h-7 rounded-md transition-all duration-200",
             state.activeIcon === "command-center"
-              ? "theme-selected scale-105"
+              ? "bg-primary/10 text-primary"
               : "text-[var(--theme-text-normal)] hover:bg-[var(--theme-item-hover)] hover:text-[var(--theme-text-hover)]",
           )}
           onClick={onCommandCenter}
@@ -81,12 +80,12 @@ export function IconRail({ onSelectIcon, onCommandCenter }: Readonly<IconRailPro
           return (
             <Button
               key={item.id}
-              variant={isActive ? "default" : "ghost"}
+              variant="ghost"
               size="icon"
               className={cn(
                 "w-7 h-7 rounded-md transition-all duration-300",
                 isActive
-                  ? item.activeColorClass + " scale-110"
+                  ? "bg-primary/10 text-primary"
                   : "text-[var(--theme-text-normal)] hover:bg-[var(--theme-item-hover)] hover:text-[var(--theme-text-hover)]",
               )}
               onClick={() => onSelectIcon(item.id)}
@@ -110,12 +109,12 @@ export function IconRail({ onSelectIcon, onCommandCenter }: Readonly<IconRailPro
       {/* Bottom Card — Settings & Exit */}
       <div className="flex flex-col items-center gap-0.5 bg-card border border-border rounded-md shadow-sm p-1">
         <Button
-          variant={state.activeIcon === "settings" ? "default" : "ghost"}
+          variant="ghost"
           size="icon"
           className={cn(
             "w-7 h-7 rounded-md transition-all duration-200",
             state.activeIcon === "settings"
-              ? "theme-selected scale-105"
+              ? "bg-primary/10 text-primary"
               : "text-[var(--theme-text-normal)] hover:bg-[var(--theme-item-hover)] hover:text-[var(--theme-text-hover)]",
           )}
           onClick={() => onSelectIcon("settings")}

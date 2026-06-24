@@ -32,7 +32,7 @@ export function SpaceAccessMemberRow({ access, spaceCreatorId, onAccessChange }:
   const isCreator = !!(spaceCreatorId && access.workspaceMemberId === spaceCreatorId);
 
   return (
-    <div className="flex items-center gap-1.5 p-1 rounded-sm hover:bg-white/[0.02] transition-colors cursor-pointer group/member">
+    <div className="flex items-center gap-1.5 p-1 rounded-md hover:bg-white/2 transition-colors cursor-pointer group/member">
       <Avatar className="h-4 w-4 shrink-0 text-[8px] font-black">
         <AvatarImage src={profile.avatarUrl} alt={name} />
         <AvatarFallback className="bg-primary/20 text-white border border-border/20 leading-none flex items-center justify-center">
@@ -58,7 +58,7 @@ export function SpaceAccessMemberRow({ access, spaceCreatorId, onAccessChange }:
         value={isCreator ? "Manager" : access.accessLevel}
         onChange={(e) => onAccessChange(access.workspaceMemberId, e.target.value as AccessLevel)}
         disabled={isCreator}
-        className="ml-auto bg-background border border-border/25 rounded px-1 py-0.5 text-[9px] font-bold text-foreground/80 cursor-pointer disabled:cursor-not-allowed disabled:opacity-50 outline-none focus:border-primary/50 leading-none"
+        className="ml-auto bg-background border border-border/25 rounded-md px-1 py-0.5 text-[9px] font-bold text-foreground/80 cursor-pointer disabled:cursor-not-allowed disabled:opacity-50 outline-none focus:border-primary/50 leading-none"
         title={isCreator ? "Owner has full management access" : "Change access privilege"}
       >
         {isCreator ? (
@@ -203,7 +203,7 @@ export function SpaceDetail({ spaceId }: SpaceDetailProps) {
                 spaceStatuses.map((status) => {
                   const count = countPerStatus[status.id] || 0;
                   return (
-                    <div key={status.id} className="flex items-center justify-between p-1 rounded-sm hover:bg-white/[0.02] transition-colors cursor-pointer">
+                    <div key={status.id} className="flex items-center justify-between p-1 rounded-md hover:bg-white/2 transition-colors cursor-pointer">
                       <StatusBadge status={status} />
                       <span className="text-[8px] font-mono text-muted-foreground/40 font-bold">
                         {count} {count === 1 ? "Item" : "Items"}

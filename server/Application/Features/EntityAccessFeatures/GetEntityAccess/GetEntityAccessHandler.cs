@@ -9,15 +9,17 @@ public class GetEntityAccessHandler(TaskPlanDbContext db,WorkspaceContext worksp
     public async Task<Result<IReadOnlyList<EntityAccessRecord>>> Handle(GetEntityAccessQuery request, CancellationToken cancellationToken)
     {
         var query = """
-            SELECT 
+            SELECT
                 ea.id AS Id,
                 @SpaceId AS SpaceId,
                 wm.id AS WorkspaceMemberId,
                 ea.access_level AS AccessLevel,
-                ea.workspace_member_id IS NOT NULL AS HaveAccess 
+                ea.id IS NOT NULL AS HaveAccess
             FROM workspace_members wm
-            LEFT JOIN entity_access ea ON ea.workspace_member_id = wm.id AND ea.project_space_id = @SpaceId
-            Where wm.project_workspace_id = @WorkspaceId AND wm.deleted_at IS NULL
+            LEFT JOIN entity_access ea ON ea.workspace_member_id = wm.id
+                AND ea.project_space_id = @SpaceId
+                AND ea.deleted_at IS NULL
+            WHERE wm.project_workspace_id = @WorkspaceId AND wm.deleted_at IS NULL
         """;
 
         var connection = db.Database.GetDbConnection();

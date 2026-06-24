@@ -1,4 +1,4 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import { useSelector } from "react-redux";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Send, CornerDownRight, Trash2, X, Loader2 } from "lucide-react";
@@ -17,6 +17,30 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+
+// Renders comment text with @mention tokens as styled blocks.
+// New regex instance per call — avoids shared lastIndex bug with /g flag.
+// Pattern stops at space-then-@ so two adjacent mentions don't merge.
+function CommentContent({ content }: { content: string }) {
+  const re = /@((?:\w+)(?:\s(?!\s*@)\w+)*)/g;
+  const parts: React.ReactNode[] = [];
+  let last = 0;
+  let match: RegExpExecArray | null;
+  while ((match = re.exec(content)) !== null) {
+    if (match.index > last) parts.push(content.slice(last, match.index));
+    parts.push(
+      <span
+        key={match.index}
+        className="inline-flex items-center bg-primary/15 text-primary text-[10px] font-black px-2 py-0.5 rounded-md mx-0.5 align-middle border border-primary/20"
+      >
+        @{match[1]}
+      </span>
+    );
+    last = match.index + match[0].length;
+  }
+  if (last < content.length) parts.push(content.slice(last));
+  return <>{parts}</>;
+}
 
 interface TaskCommentsProps {
   taskId: string;
@@ -63,7 +87,7 @@ export function TaskComments({ taskId }: Readonly<TaskCommentsProps>) {
         Comments
       </h3>
 
-      <div className="space-y-4 max-h-[300px] overflow-y-auto pr-2 [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-thumb]:bg-muted-foreground/20 hover:[&::-webkit-scrollbar-thumb]:bg-muted-foreground/45 [&::-webkit-scrollbar-track]:bg-transparent">
+      <div className="space-y-4 max-h-75 overflow-y-auto pr-2 [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-thumb]:bg-muted-foreground/20 hover:[&::-webkit-scrollbar-thumb]:bg-muted-foreground/45 [&::-webkit-scrollbar-track]:bg-transparent">
         {/* Load more — top, since oldest-first order */}
         {hasNextPage && (
           <button
@@ -119,7 +143,7 @@ export function TaskComments({ taskId }: Readonly<TaskCommentsProps>) {
                   )}
 
                   <div className="bg-muted/30 rounded-md px-3 py-2 text-xs text-foreground/90 leading-relaxed border border-border/5">
-                    {comment.content}
+                    <CommentContent content={comment.content} />
                   </div>
                   <div className="flex items-center gap-3 pt-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
                     <button
@@ -146,7 +170,7 @@ export function TaskComments({ taskId }: Readonly<TaskCommentsProps>) {
 
       <div className="mt-2 relative bg-muted/10 rounded-md border border-border/40 p-1 flex flex-col gap-1 shadow-sm" style={{ position: "relative" }}>
         {replyingTo && (
-          <div className="flex items-center justify-between px-2 py-1.5 bg-muted/40 rounded-sm border border-border/20 mx-1 mt-1">
+          <div className="flex items-center justify-between px-2 py-1.5 bg-muted/40 rounded-md border border-border/20 mx-1 mt-1">
             <div className="flex flex-col gap-0.5 overflow-hidden">
               <span className="text-[9px] font-bold text-primary flex items-center gap-1"><CornerDownRight className="h-2.5 w-2.5"/> Replying to {replyingTo.name}</span>
               <span className="text-[10px] text-muted-foreground truncate">{replyingTo.content}</span>

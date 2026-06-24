@@ -46,6 +46,13 @@ public class EntityAccess : Entity
     {
         SoftDelete();
     }
+
+    public void Restore(AccessLevel accessLevel)
+    {
+        DeletedAt = null;
+        AccessLevel = accessLevel;
+        UpdateTimestamp();
+    }
 }
 
 

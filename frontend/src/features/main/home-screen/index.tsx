@@ -1,5 +1,4 @@
 import { toast } from "sonner";
-import { useNotificationSignalR } from "@/features/notifications/use-notification-signalr";
 import { NotificationBell } from "@/features/notifications/notification-bell";
 import { CreateWorkspaceForm } from "./components/create-workspace-form";
 import { JoinWorkspaceDialog } from "./components/join-workspace-dialog";
@@ -85,7 +84,6 @@ export function WorkspaceHomeScreen() {
 
   const [isJoining, setIsJoining] = React.useState(false);
   const { mutate: joinByCode } = useJoinWorkspaceByCode();
-  useNotificationSignalR();
   const navigate = useNavigate();
 
   const handleJoin = async (code: string) => {

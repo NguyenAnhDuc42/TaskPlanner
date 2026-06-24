@@ -107,6 +107,7 @@ public static class DependencyInjection
         services.AddScoped<CursorHelper>();
         services.AddScoped<PermissionService>();
         services.AddScoped<NotificationService>();
+        services.AddHostedService<CleanupService>();
         #endregion
 
         #region Email

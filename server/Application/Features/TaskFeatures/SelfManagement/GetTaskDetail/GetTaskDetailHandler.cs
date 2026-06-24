@@ -28,7 +28,7 @@ public class GetTaskDetailHandler(TaskPlanDbContext db, WorkspaceContext workspa
                 AND ea.deleted_at IS NULL
             LEFT JOIN favorites fav ON fav.entity_id = t.id AND fav.workspace_member_id = @MemberId
             WHERE t.id = @TaskId AND t.project_workspace_id = @WorkspaceId AND t.deleted_at IS NULL
-              AND (s.is_private = false OR ea.id IS NOT NULL OR @IsOwner = true);";
+              AND (s.is_private = false OR (ea.id IS NOT NULL AND ea.access_level IN ('Viewer', 'Editor', 'Manager')) OR @IsOwner = true);";
 
         var connection = db.Database.GetDbConnection();
         var parameters = new {
@@ -62,7 +62,7 @@ public class GetTaskDetailHandler(TaskPlanDbContext db, WorkspaceContext workspa
                 AND ea.deleted_at IS NULL
             LEFT JOIN favorites fav ON fav.entity_id = t.id AND fav.workspace_member_id = @MemberId
             WHERE t.parent_task_id = @TaskId AND t.project_workspace_id = @WorkspaceId AND t.deleted_at IS NULL
-              AND (s.is_private = false OR ea.id IS NOT NULL OR @IsOwner = true);";
+              AND (s.is_private = false OR (ea.id IS NOT NULL AND ea.access_level IN ('Viewer', 'Editor', 'Manager')) OR @IsOwner = true);";
 
         var subtasks = await connection.QueryAsync<TaskRecord>(subtasksSql, parameters);
 

@@ -77,25 +77,31 @@ public partial class AddCommentHandler(
                 .Distinct()
                 .ToList();
 
+            var mentionedUserIds = new HashSet<Guid>();
             if (mentionedNames.Count > 0)
             {
-                var mentionedUserIds = await db.WorkspaceMembers
+                var matched = await db.WorkspaceMembers
                     .Where(m => m.ProjectWorkspaceId == task.ProjectWorkspaceId && m.DeletedAt == null)
                     .Join(db.Users, m => m.UserId, u => u.Id, (m, u) => new { m.UserId, u.Name })
                     .Where(x => mentionedNames.Contains(x.Name.ToLower()))
                     .Select(x => x.UserId)
                     .ToListAsync(cancellationToken);
-
+                mentionedUserIds = matched.ToHashSet();
                 recipientUserIds.AddRange(mentionedUserIds);
             }
 
+            var snippet = request.Content.Length > 100 ? request.Content[..100] + "…" : request.Content;
             foreach (var recipientId in recipientUserIds.Distinct().Where(id => id != actorUserId))
             {
+                var isMention = mentionedUserIds.Contains(recipientId);
                 _ = notificationService.PushAsync(
                     recipientId, actorUserId, task.ProjectWorkspaceId,
-                    "comment_added", "task", request.TaskId,
-                    $"{actorName} commented on \"{task.Name}\"",
-                    request.Content.Length > 100 ? request.Content[..100] + "…" : request.Content,
+                    isMention ? "mention" : "comment_added",
+                    "task", request.TaskId,
+                    isMention
+                        ? $"{actorName} mentioned you in \"{task.Name}\""
+                        : $"{actorName} commented on \"{task.Name}\"",
+                    snippet,
                     cancellationToken);
             }
         }

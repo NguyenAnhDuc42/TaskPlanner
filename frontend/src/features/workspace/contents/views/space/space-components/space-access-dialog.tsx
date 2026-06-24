@@ -1,6 +1,6 @@
-import React from "react";
+import React, { useState, useCallback, useMemo } from "react";
 import { useSelector } from "react-redux";
-import { Shield } from "lucide-react";
+import { Shield, Save } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -8,154 +8,168 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { useGetEntityAccessQuery, useUpdateEntityAccessMutation, useSpaceDetail } from "../space-api";
+import { Button } from "@/components/ui/button";
+import { useGetEntityAccessQuery, useUpdateEntityAccessMutation } from "../space-api";
 import { entityAccessSelectors, memberSelectors } from "@/store/entityStore";
-import type { MemberRecord, EntityAccessRecord } from "@/types/workspace";
+import type { MemberRecord } from "@/types/workspace";
 import type { AccessLevel } from "@/types/access-level";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { RowAction } from "@/types/row-action";
+import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 
 interface SpaceAccessDialogProps {
   spaceId: string;
   trigger: React.ReactNode;
 }
 
-import { RowAction } from "@/types/row-action";
-
-interface SpaceAccessDialogRowProps {
-  member: MemberRecord;
-  isCreator: boolean;
-  access?: EntityAccessRecord;
-  onUpdateAccess: (newLevel: AccessLevel, action: RowAction) => void;
-}
-
-export function SpaceAccessDialogRow({ member, isCreator, access, onUpdateAccess }: Readonly<SpaceAccessDialogRowProps>) {
-  const haveAccess = isCreator ? true : (access ? access.haveAccess : false);
-  const currentLevel = isCreator ? "Manager" : (access && access.haveAccess ? access.accessLevel : "None");
-  const initials = (member.name || "U").split(" ").map((w: string) => w[0]).slice(0, 2).join("").toUpperCase();
-
-  const handleToggleCheckbox = () => {
-    if (isCreator) return;
-    const action = haveAccess ? RowAction.Delete : RowAction.Create;
-    const nextLevel = haveAccess ? "None" : "Viewer";
-    onUpdateAccess(nextLevel as AccessLevel, action);
-  };
-
-  const handleLevelSelect = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    if (isCreator) return;
-    const newLevel = e.target.value as AccessLevel;
-    const action = newLevel === "None" ? RowAction.Delete : (haveAccess ? RowAction.Update : RowAction.Create);
-    onUpdateAccess(newLevel, action);
-  };
-
-  return (
-    <tr className="hover:bg-white/[0.01] transition-colors">
-      <td className="py-2 px-2 text-center">
-        <input
-          type="checkbox"
-          checked={haveAccess}
-          onChange={handleToggleCheckbox}
-          disabled={isCreator}
-          className="h-3.5 w-3.5 rounded-sm border-border/40 accent-primary cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-        />
-      </td>
-      <td className="py-2 px-2 flex items-center gap-2">
-        <Avatar className="h-6 w-6 shrink-0 text-[9px] font-black rounded-sm">
-          <AvatarImage src={member.avatarUrl} alt={member.name} />
-          <AvatarFallback className="bg-primary/20 text-white border border-border/20 leading-none flex items-center justify-center rounded-sm">
-            {initials}
-          </AvatarFallback>
-        </Avatar>
-        <div>
-          <div className="font-bold text-[11px] text-foreground/95 leading-none flex items-center gap-1.5">
-            {member.name}
-            {isCreator && (
-              <span className="text-[8px] bg-primary/25 text-primary px-1.5 rounded-sm uppercase tracking-wider font-extrabold">
-                Owner
-              </span>
-            )}
-          </div>
-          <div className="text-[9px] text-muted-foreground/45 mt-0.5">{member.email}</div>
-        </div>
-      </td>
-      <td className="py-2 px-2 text-[10px] font-mono uppercase text-muted-foreground/60">
-        {member.role || "Member"}
-      </td>
-      <td className="py-2 px-2 text-right">
-        <select
-          value={currentLevel}
-          onChange={handleLevelSelect}
-          disabled={isCreator}
-          className="bg-background border border-border/25 rounded-sm px-1 py-0.5 text-[9px] font-bold text-foreground/80 cursor-pointer disabled:cursor-not-allowed disabled:opacity-50 outline-none focus:border-primary/50 leading-none"
-        >
-          <option value="None">None (Default)</option>
-          <option value="Viewer">Viewer</option>
-          <option value="Editor">Editor</option>
-          <option value="Manager">Manager</option>
-        </select>
-      </td>
-    </tr>
-  );
-}
+const LEVELS = ["None", "Viewer", "Editor", "Manager"] as const;
+type Level = typeof LEVELS[number];
 
 export function SpaceAccessDialog({ spaceId, trigger }: Readonly<SpaceAccessDialogProps>) {
   useGetEntityAccessQuery(spaceId);
-  const space = useSpaceDetail(spaceId);
   const entityAccessList = useSelector(entityAccessSelectors.selectAll).filter(ea => ea.spaceId === spaceId);
-  const [updateEntityAccess] = useUpdateEntityAccessMutation();
-  const allWorkspaceMembers = useSelector(memberSelectors.selectAll);
+  const [updateEntityAccess, { isLoading: isSaving }] = useUpdateEntityAccessMutation();
+  const allMembers = useSelector(memberSelectors.selectAll);
+
+  // pending: memberId → chosen level (local only until save)
+  const [pending, setPending] = useState<Map<string, Level>>(new Map());
+
+  const accessByMember = useMemo(() => {
+    const map = new Map<string, { id: string; level: AccessLevel }>();
+    entityAccessList.forEach(ea => {
+      if (ea.haveAccess) map.set(ea.workspaceMemberId, { id: ea.id, level: ea.accessLevel as AccessLevel });
+    });
+    return map;
+  }, [entityAccessList]);
+
+  const getDisplayLevel = useCallback((memberId: string): Level => {
+    if (pending.has(memberId)) return pending.get(memberId)!;
+    const ea = accessByMember.get(memberId);
+    return ea ? ea.level as Level : "None";
+  }, [pending, accessByMember]);
+
+  // Sort: members with access (or pending access) on top
+  const sortedMembers = useMemo(() => {
+    return [...allMembers].sort((a, b) => {
+      const aHas = getDisplayLevel(a.id) !== "None";
+      const bHas = getDisplayLevel(b.id) !== "None";
+      if (aHas && !bHas) return -1;
+      if (!aHas && bHas) return 1;
+      return 0;
+    });
+  }, [allMembers, getDisplayLevel]);
+
+  const dirtyCount = pending.size;
+
+  const handleDiscard = useCallback(() => setPending(new Map()), []);
+
+  const handleSave = useCallback(async () => {
+    if (pending.size === 0 || isSaving) return;
+
+    const rows: Parameters<typeof updateEntityAccess>[0]["rows"] = [];
+
+    for (const [memberId, newLevel] of pending.entries()) {
+      const existing = accessByMember.get(memberId);
+      if (newLevel === "None" && existing) {
+        rows.push({ id: existing.id, memberId, accessLevel: "Viewer", action: RowAction.Delete });
+      } else if (newLevel !== "None" && !existing) {
+        rows.push({ memberId, accessLevel: newLevel as AccessLevel, action: RowAction.Create });
+      } else if (newLevel !== "None" && existing && existing.level !== newLevel) {
+        rows.push({ id: existing.id, memberId, accessLevel: newLevel as AccessLevel, action: RowAction.Update });
+      }
+    }
+
+    if (rows.length === 0) { setPending(new Map()); return; }
+
+    try {
+      await updateEntityAccess({ spaceId, rows }).unwrap();
+      setPending(new Map());
+    } catch (err) {
+      const msg = (err as { data?: { Description?: string } })?.data?.Description;
+      toast.error(msg || "Failed to save access changes.");
+    }
+  }, [pending, accessByMember, spaceId, updateEntityAccess, isSaving]);
 
   return (
     <Dialog>
-      <DialogTrigger asChild>
-        {trigger}
-      </DialogTrigger>
-      <DialogContent className="max-w-xl bg-background border border-border/30 rounded-md p-1.5 text-foreground">
+      <DialogTrigger asChild>{trigger}</DialogTrigger>
+      <DialogContent className="max-w-sm bg-background border border-border/30 rounded-md p-1.5 text-foreground">
         <DialogHeader className="p-1 pb-1.5 border-b border-border/20">
-          <DialogTitle className="text-xs font-black text-foreground/90 flex items-center gap-1">
-            <Shield className="h-3.5 w-3.5 text-primary" /> Manage Space Access Permissions
+          <DialogTitle className="text-xs font-black text-foreground/90 flex items-center gap-1.5">
+            <Shield className="h-3.5 w-3.5 text-primary" /> Space Access
           </DialogTitle>
         </DialogHeader>
-        
-        <div className="mt-1 border border-border/20 rounded-md overflow-hidden bg-muted/10">
-          <div className="max-h-100 overflow-y-auto [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-thumb]:bg-white/5">
-            <table className="w-full text-xs text-left">
-              <thead className="bg-white/[0.02] border-b border-border/20 text-muted-foreground/75 font-mono text-[8px] uppercase tracking-wider">
-                <tr>
-                  <th className="p-1 font-semibold text-center w-8">Access</th>
-                  <th className="p-1 font-semibold">Workspace Member</th>
-                  <th className="p-1 font-semibold">Role</th>
-                  <th className="p-1 font-semibold text-right pr-2">Space Privilege</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border/10 text-muted-foreground/95">
-                {allWorkspaceMembers.map((member) => {
-                  const isCreator = !!(space?.creatorId && member.id === space.creatorId);
-                  const access = entityAccessList.find(a => a.workspaceMemberId === member.id);
 
-                  return (
-                    <SpaceAccessDialogRow
-                      key={member.id}
-                      member={member}
-                      isCreator={isCreator}
-                      access={access}
-                      onUpdateAccess={async (newLevel, action) => {
-                        await updateEntityAccess({
-                          spaceId,
-                          rows: [{
-                            id: access?.id,
-                            memberId: member.id,
-                            accessLevel: newLevel === "None" ? "Viewer" : newLevel,
-                            action
-                          }]
-                        }).unwrap();
-                      }}
-                    />
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+        <div className="max-h-80 overflow-y-auto divide-y divide-border/10 [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-thumb]:bg-white/5">
+          {sortedMembers.map(member => {
+            const isPrivileged = member.role === "Owner" || member.role === "Admin";
+            const displayLevel = isPrivileged ? "Manager" : getDisplayLevel(member.id);
+            const isDirty = pending.has(member.id);
+            const initials = member.name.split(" ").map((w: string) => w[0]).slice(0, 2).join("").toUpperCase();
+
+            return (
+              <div
+                key={member.id}
+                className={cn(
+                  "flex items-center gap-2.5 px-2 py-1.5 transition-colors",
+                  isDirty ? "bg-primary/10 border-l-2 border-primary/25" : "hover:bg-muted/20"
+                )}
+              >
+                <Avatar className="h-6 w-6 shrink-0 rounded-md">
+                  <AvatarImage src={member.avatarUrl} />
+                  <AvatarFallback className="text-[9px] bg-primary/10 text-primary font-black rounded-md">{initials}</AvatarFallback>
+                </Avatar>
+
+                <span className="flex-1 text-[11px] font-medium text-foreground/90 truncate">{member.name}</span>
+
+                {isPrivileged ? (
+                  <span className="text-[9px] font-black uppercase tracking-wider text-primary/60 bg-primary/10 px-1.5 py-0.5 rounded-md shrink-0">
+                    {member.role}
+                  </span>
+                ) : (
+                  <select
+                    value={displayLevel}
+                    disabled={isSaving}
+                    onChange={e => {
+                      const val = e.target.value as Level;
+                      const stored = accessByMember.get(member.id)?.level ?? "None";
+                      setPending(prev => {
+                        const next = new Map(prev);
+                        // If changed back to stored value, remove from pending
+                        if (val === stored) next.delete(member.id);
+                        else next.set(member.id, val);
+                        return next;
+                      });
+                    }}
+                    className={cn(
+                      "bg-background border rounded-md px-1.5 py-0.5 text-[9px] font-bold outline-none cursor-pointer shrink-0 disabled:opacity-50 disabled:cursor-not-allowed",
+                      displayLevel === "None"
+                        ? "border-border/20 text-muted-foreground/50"
+                        : "border-primary/25 text-primary"
+                    )}
+                  >
+                    {LEVELS.map(l => <option key={l} value={l}>{l}</option>)}
+                  </select>
+                )}
+              </div>
+            );
+          })}
         </div>
+
+        {dirtyCount > 0 && (
+          <div className="flex items-center justify-end gap-1.5 pt-1 border-t border-border/20">
+            <Button variant="ghost" size="sm" onClick={handleDiscard} disabled={isSaving}
+              className="h-6 px-2 text-[10px] font-bold uppercase tracking-tight text-muted-foreground">
+              Discard
+            </Button>
+            <Button size="sm" onClick={handleSave} disabled={isSaving}
+              className="h-6 px-2.5 text-[10px] font-bold uppercase tracking-tight gap-1">
+              <Save className="h-3 w-3" />
+              {isSaving ? "Saving..." : `Save ${dirtyCount} change${dirtyCount !== 1 ? "s" : ""}`}
+            </Button>
+          </div>
+        )}
       </DialogContent>
     </Dialog>
   );

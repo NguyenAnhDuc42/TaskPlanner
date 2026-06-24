@@ -199,7 +199,7 @@ export function WorkspaceLayout() {
         </div>
 
         {/* Centered Search Bar */}
-        <div className="relative w-full max-w-md rounded-sm">
+        <div className="relative w-full max-w-md rounded-md">
           <span className="absolute inset-y-0 left-0 flex items-center pl-2.5 pointer-events-none">
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -219,7 +219,7 @@ export function WorkspaceLayout() {
           <input
             type="text"
             placeholder="Search tasks, docs, members... (⌘K)"
-            className="w-full h-7 bg-muted/20 hover:bg-muted/40 focus:bg-background border-none rounded-sm pl-8 pr-3 text-[11px] font-medium placeholder:text-muted-foreground/40 transition-all outline-none ring-1 ring-border/20 focus:ring-primary/40 shadow-inner"
+            className="w-full h-7 bg-secondary/60 hover:bg-secondary/80 focus:bg-secondary/80 border border-transparent focus:border-primary/30 focus:ring-1 focus:ring-primary/20 rounded-md pl-8 pr-3 text-[11px] font-medium placeholder:text-muted-foreground/50 transition-all outline-none shadow-inner"
           />
         </div>
 

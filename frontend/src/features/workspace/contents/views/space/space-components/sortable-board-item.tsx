@@ -90,8 +90,8 @@ export const BoardItemCard = React.memo(function BoardItemCard({
       className={cn(
         "group relative flex flex-col gap-1.5 p-2 rounded-lg cursor-grab active:cursor-grabbing select-none border outline-none shadow-sm shrink-0 w-full text-card-foreground",
         isSelected
-          ? "bg-primary/5 border-primary/30"
-          : "bg-muted/40 border-border/50 hover:bg-muted/60",
+          ? "bg-primary/10 border-primary/50"
+          : "bg-card border-border/60 hover:border-border hover:shadow-md hover:bg-card",
         isDragging && "opacity-0 pointer-events-none border-transparent bg-transparent shadow-none"
       )}
       style={style}
@@ -125,7 +125,7 @@ export const BoardItemCard = React.memo(function BoardItemCard({
           <div className="flex items-center shrink-0 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity">
             <button
               type="button"
-              className="p-0.5 hover:bg-black/5 rounded-sm hover:text-foreground transition-colors"
+              className="p-0.5 hover:bg-muted/50 rounded-md hover:text-foreground transition-colors"
               onClick={(e) => { e.stopPropagation(); onMaximizeClick?.(); }}
             >
               <Maximize2 className="h-3 w-3" />
@@ -169,7 +169,7 @@ export const BoardItemCard = React.memo(function BoardItemCard({
                   "h-5 px-1.5 text-[8px] font-black uppercase tracking-wider border border-border/5 rounded w-fit leading-none",
                   isOverdue
                     ? "bg-destructive/10 text-destructive border-destructive/20 hover:bg-destructive/20"
-                    : "bg-black/5 text-muted-foreground border-black/10 hover:bg-black/10"
+                    : "bg-muted/30 text-muted-foreground border-border/50 hover:bg-muted/60"
                 )}
               />
             ) : dateInfo.show ? (
@@ -177,7 +177,7 @@ export const BoardItemCard = React.memo(function BoardItemCard({
                 "h-5 px-1.5 text-[8px] font-black uppercase tracking-wider border border-border/5 rounded w-fit leading-none flex items-center",
                 isOverdue
                   ? "bg-destructive/10 text-destructive border-destructive/20"
-                  : "bg-black/5 text-muted-foreground border-black/10"
+                  : "bg-muted/30 text-muted-foreground border-border/50"
               )}>
                 {dateInfo.text}
               </span>
@@ -187,7 +187,7 @@ export const BoardItemCard = React.memo(function BoardItemCard({
 
         {/* Row 3: Assignee | Created */}
         <div className="flex items-center justify-between text-[10px] font-medium leading-none mt-1 w-full gap-2">
-          <div className="h-4 w-4 rounded-full bg-black/5 flex items-center justify-center border border-black/10">
+          <div className="h-4 w-4 rounded-full bg-muted/30 flex items-center justify-center border border-border/50">
             <User className="h-2.5 w-2.5 opacity-30 group-hover:opacity-50 transition-opacity" />
           </div>
           {dateInfo.createdText && (

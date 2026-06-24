@@ -40,6 +40,10 @@ export function setupInterceptors() {
       const workspaceIdMatch = new RegExp(/\/workspaces\/([a-f\d-]+)/i).exec(globalThis.location.href);
       if (workspaceIdMatch) {
         config.headers["X-Workspace-Id"] = workspaceIdMatch[1];
+      } else {
+        // Fallback: loader sets this before API calls fire during navigation
+        const stored = sessionStorage.getItem("activeWorkspaceId");
+        if (stored) config.headers["X-Workspace-Id"] = stored;
       }
     }
 

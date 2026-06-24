@@ -56,14 +56,27 @@ public class GetFavoritesHandler(
         List<FolderRecord> folders = [];
         List<TaskRecord>   tasks   = [];
 
+        var isAdmin = workspaceContext.CurrentMember.Role.IsAtLeast(Role.Admin);
+
         if (spaceIds.Length > 0)
         {
             var rows = await conn.QueryAsync<SpaceRecord>(@"
                 SELECT id AS Id, project_workspace_id AS WorkspaceId, name AS Name,
                        custom_color AS Color, custom_icon AS Icon, is_private AS IsPrivate,
                        order_key AS OrderKey
-                FROM project_spaces WHERE id = ANY(@Ids) AND deleted_at IS NULL",
-                new { Ids = spaceIds });
+                FROM project_spaces
+                WHERE id = ANY(@Ids) AND deleted_at IS NULL
+                  AND (
+                      is_private = false
+                      OR @IsAdmin = true
+                      OR EXISTS (
+                          SELECT 1 FROM entity_access ea
+                          WHERE ea.project_space_id = id
+                          AND ea.workspace_member_id = @MemberId
+                          AND ea.deleted_at IS NULL
+                      )
+                  )",
+                new { Ids = spaceIds, IsAdmin = isAdmin, MemberId = memberId });
 
             spaces = rows.Select(r => r with { IsFavorite = true, FavoriteOrderKey = orderKeyMap.GetValueOrDefault(r.Id) }).AsList();
         }
@@ -74,8 +87,20 @@ public class GetFavoritesHandler(
                 SELECT f.id AS Id, @WorkspaceId AS WorkspaceId, f.project_space_id AS SpaceId,
                        f.name AS Name, f.start_date AS StartDate, f.due_date AS DueDate,
                        f.order_key AS OrderKey, f.custom_icon AS Icon, f.custom_color AS Color
-                FROM project_folders f WHERE f.id = ANY(@Ids) AND f.deleted_at IS NULL",
-                new { WorkspaceId = workspaceId, Ids = folderIds });
+                FROM project_folders f
+                JOIN project_spaces ps ON ps.id = f.project_space_id AND ps.deleted_at IS NULL
+                WHERE f.id = ANY(@Ids) AND f.deleted_at IS NULL
+                  AND (
+                      ps.is_private = false
+                      OR @IsAdmin = true
+                      OR EXISTS (
+                          SELECT 1 FROM entity_access ea
+                          WHERE ea.project_space_id = ps.id
+                          AND ea.workspace_member_id = @MemberId
+                          AND ea.deleted_at IS NULL
+                      )
+                  )",
+                new { WorkspaceId = workspaceId, Ids = folderIds, IsAdmin = isAdmin, MemberId = memberId });
 
             folders = rows.Select(r => r with { IsFavorite = true, FavoriteOrderKey = orderKeyMap.GetValueOrDefault(r.Id) }).AsList();
         }
@@ -88,8 +113,20 @@ public class GetFavoritesHandler(
                        t.priority AS Priority, t.due_date AS DueDate, t.start_date AS StartDate,
                        t.order_key AS OrderKey, t.custom_icon AS Icon, t.custom_color AS Color,
                        t.parent_task_id AS ParentTaskId
-                FROM project_tasks t WHERE t.id = ANY(@Ids) AND t.deleted_at IS NULL",
-                new { WorkspaceId = workspaceId, Ids = taskIds });
+                FROM project_tasks t
+                JOIN project_spaces ps ON ps.id = t.project_space_id AND ps.deleted_at IS NULL
+                WHERE t.id = ANY(@Ids) AND t.deleted_at IS NULL
+                  AND (
+                      ps.is_private = false
+                      OR @IsAdmin = true
+                      OR EXISTS (
+                          SELECT 1 FROM entity_access ea
+                          WHERE ea.project_space_id = ps.id
+                          AND ea.workspace_member_id = @MemberId
+                          AND ea.deleted_at IS NULL
+                      )
+                  )",
+                new { WorkspaceId = workspaceId, Ids = taskIds, IsAdmin = isAdmin, MemberId = memberId });
 
             tasks = rows.Select(r => r with { IsFavorite = true, FavoriteOrderKey = orderKeyMap.GetValueOrDefault(r.Id) }).AsList();
         }

@@ -1,5 +1,5 @@
 import * as React from "react";
-import { useWorkspaceRole } from "@/features/workspace/context/use-workspace-role";
+import { useSpaceAccess } from "@/features/workspace/context/use-space-access";
 import { EntityViewFrame } from "../entity-view-frame";
 import { SpaceBoard } from "./space-components/space-board";
 import { useSpaceDetail, useGetSpaceDetailQuery, useUpdateSpaceFieldMutation, useGetEntityAccessQuery } from "./space-api";
@@ -35,7 +35,7 @@ export function SpaceView({ spaceId }: Readonly<SpaceViewProps>) {
   const [isDeleteOpen, setIsDeleteOpen] = React.useState(false);
   const [activeTab, setActiveTab] = React.useState<"detail" | "items">("items");
   const [isEditingName, setIsEditingName] = React.useState(false);
-  const { isAdmin } = useWorkspaceRole();
+  const { canEdit, canManage } = useSpaceAccess(spaceId);
   const navigate = useNavigate();
   const [deleteSpace] = useDeleteSpaceMutation();
   
@@ -110,7 +110,7 @@ export function SpaceView({ spaceId }: Readonly<SpaceViewProps>) {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              {isAdmin && (
+              {canManage && (
                 <DropdownMenuItem
                   onClick={() => setIsDeleteOpen(true)}
                   className="text-destructive focus:text-destructive focus:bg-destructive/10 cursor-pointer"
@@ -134,7 +134,7 @@ export function SpaceView({ spaceId }: Readonly<SpaceViewProps>) {
         {/* Controls toolbar */}
         <div className="flex items-center justify-between px-2 py-1 rounded-md border border-border bg-card shadow-sm shrink-0">
           {/* Public/Private toggle — admin only, sits on the left */}
-          {space && isAdmin ? (
+          {space && canManage ? (
             <button
               onClick={() => updateField({ isPrivate: !space.isPrivate })}
               className={cn(
@@ -169,7 +169,7 @@ export function SpaceView({ spaceId }: Readonly<SpaceViewProps>) {
                   </div>
                 );
               })}
-              {isAdmin && (
+              {canManage && (
                 <SpaceAccessDialog
                   spaceId={spaceId}
                   trigger={
@@ -181,8 +181,8 @@ export function SpaceView({ spaceId }: Readonly<SpaceViewProps>) {
               )}
             </div>
 
-            {/* Workflow — admin only */}
-            {isAdmin && (
+            {/* Workflow — manager+ only */}
+            {canManage && (
               <button
                 className="flex items-center h-5 gap-1.5 px-2.5 rounded-md bg-muted/45 text-[10px] text-muted-foreground font-semibold hover:bg-muted hover:text-foreground transition-all cursor-pointer border border-border/10 shadow-sm"
                 onClick={() => setIsWorkflowOpen(true)}
@@ -193,11 +193,11 @@ export function SpaceView({ spaceId }: Readonly<SpaceViewProps>) {
             )}
 
             {/* Board / Detail tabs */}
-            <div className="flex items-center bg-muted/45 border border-border/10 rounded-md p-0.5 shadow-sm">
+            <div className="flex items-center bg-secondary/50 border border-transparent rounded-md p-0.5 shadow-inner">
               <button
                 onClick={() => setActiveTab("items")}
                 className={cn(
-                  "flex items-center gap-1 h-5 px-2 rounded-sm text-[10px] font-semibold transition-all cursor-pointer",
+                  "flex items-center gap-1 h-5 px-2 rounded-md text-[10px] font-semibold transition-all cursor-pointer",
                   activeTab === "items" ? "bg-background text-foreground shadow-sm animate-in fade-in duration-200" : "text-muted-foreground hover:text-foreground"
                 )}
               >
@@ -207,7 +207,7 @@ export function SpaceView({ spaceId }: Readonly<SpaceViewProps>) {
               <button
                 onClick={() => setActiveTab("detail")}
                 className={cn(
-                  "flex items-center gap-1 h-5 px-2 rounded-sm text-[10px] font-semibold transition-all cursor-pointer",
+                  "flex items-center gap-1 h-5 px-2 rounded-md text-[10px] font-semibold transition-all cursor-pointer",
                   activeTab === "detail" ? "bg-background text-foreground shadow-sm animate-in fade-in duration-200" : "text-muted-foreground hover:text-foreground"
                 )}
               >
@@ -219,9 +219,9 @@ export function SpaceView({ spaceId }: Readonly<SpaceViewProps>) {
         </div>
 
         {/* Content area */}
-        <div className="flex-1 rounded-md border border-border bg-card shadow-sm overflow-hidden flex flex-col relative">
+        <div className="flex-1 rounded-md border border-border bg-black/5 dark:bg-black/20 shadow-sm overflow-hidden flex flex-col relative">
           {activeTab === "items" ? (
-            <SpaceBoard spaceId={spaceId} onWorkflowOpen={isAdmin ? () => setIsWorkflowOpen(true) : undefined} />
+            <SpaceBoard spaceId={spaceId} onWorkflowOpen={canManage ? () => setIsWorkflowOpen(true) : undefined} />
           ) : (
             <SpaceDetail spaceId={spaceId} />
           )}

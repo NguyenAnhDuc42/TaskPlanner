@@ -71,7 +71,7 @@ export function TaskAssignees({ taskId, spaceId }: Readonly<TaskAssigneesProps>)
         return (
           <div
             key={assignee.workspaceMemberId}
-            className="flex items-center gap-1 bg-transparent hover:bg-muted/50 rounded-sm pl-1 pr-2 py-0 h-5 text-[10px] font-semibold select-none transition-colors duration-300"
+            className="flex items-center gap-1 bg-transparent hover:bg-muted/50 rounded-md pl-1 pr-2 py-0 h-5 text-[10px] font-semibold select-none transition-colors duration-300"
           >
             <Avatar className="h-3.5 w-3.5 rounded-sm">
               {member.avatarUrl && <AvatarImage src={member.avatarUrl} alt={member.name} />}
@@ -98,7 +98,7 @@ export function TaskAssignees({ taskId, spaceId }: Readonly<TaskAssigneesProps>)
         <PopoverTrigger asChild>
           <button
             type="button"
-            className="h-5.5 px-1.5 flex items-center gap-1 text-[10px] font-medium text-muted-foreground hover:text-foreground border border-dashed border-border/50 hover:border-border hover:bg-muted/40 rounded-sm transition-colors"
+            className="h-5.5 px-1.5 flex items-center gap-1 text-[10px] font-medium text-muted-foreground hover:text-foreground border border-dashed border-border/50 hover:border-border hover:bg-muted/40 rounded-md transition-colors"
           >
             <UserPlus className="h-2.5 w-2.5" />
             Add

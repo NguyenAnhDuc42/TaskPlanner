@@ -39,7 +39,7 @@ export function StatusGroup({
   return (
     <div
       className={cn(
-        "shrink-0 flex flex-col bg-card rounded-lg border border-border shadow-sm overflow-hidden transition-all duration-300",
+        "shrink-0 flex flex-col bg-black/5 dark:bg-muted/20 rounded-lg border border-border/50 shadow-sm overflow-hidden transition-all duration-300",
         className,
       )}
     >

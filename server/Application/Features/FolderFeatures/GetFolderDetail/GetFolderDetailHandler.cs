@@ -20,7 +20,7 @@ public class GetFolderDetailHandler(TaskPlanDbContext db, WorkspaceContext works
                 AND ea.workspace_member_id = @MemberId AND ea.deleted_at IS NULL
             LEFT JOIN favorites fav ON fav.entity_id = f.id AND fav.workspace_member_id = @MemberId
             WHERE f.id = @FolderId AND f.project_workspace_id = @WorkspaceId AND f.deleted_at IS NULL
-              AND (s.is_private = false OR ea.id IS NOT NULL OR @IsOwner = true);
+              AND (s.is_private = false OR (ea.id IS NOT NULL AND ea.access_level IN ('Viewer', 'Editor', 'Manager')) OR @IsOwner = true);
 
             SELECT s.name AS Name, s.custom_icon AS Icon, s.custom_color AS Color
             FROM project_spaces s

@@ -142,7 +142,7 @@ export function SpaceFilterBar({
           placeholder="Search..."
           value={searchInput}
           onChange={(e) => onSearchChange(e.target.value)}
-          className="h-7 w-36 bg-muted/30 rounded-md border border-border/30 px-2.5 text-[11px] text-foreground/80 outline-none focus:bg-muted/50 focus:w-48 transition-all placeholder:text-muted-foreground/50"
+          className="h-7 w-36 focus:w-48 bg-secondary/60 hover:bg-secondary/80 focus:bg-secondary/80 border border-transparent focus:border-primary/30 focus:ring-1 focus:ring-primary/20 rounded-md px-2.5 text-[11px] text-foreground/80 outline-none transition-all placeholder:text-muted-foreground/50 shadow-inner"
         />
         <SpaceBoardFilterPopover filter={filter} onChange={onFilterChange} folders={folders} />
       </div>

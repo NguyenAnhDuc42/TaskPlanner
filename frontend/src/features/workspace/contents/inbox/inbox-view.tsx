@@ -1,12 +1,13 @@
-import { useState, useCallback } from "react";
-import { useSelector } from "react-redux";
+import { useState, useCallback, useRef, useEffect } from "react";
+import { useSelector, useDispatch } from "react-redux";
 import { useNavigate } from "@tanstack/react-router";
-import { Bell, Check, Inbox } from "lucide-react";
+import { Bell, Check, Inbox, Loader2 } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";
 import { notificationSelectors } from "@/store/entityStore";
-import { useGetNotificationsQuery, useMarkNotificationsReadMutation } from "@/features/notifications/notifications-api";
+import { useGetNotificationsQuery, useMarkNotificationsReadMutation, notificationsApi } from "@/features/notifications/notifications-api";
+import type { AppDispatch } from "@/store";
 import type { NotificationRecord } from "@/types/notification-record";
 
 const TYPE_LABELS: Record<string, string> = {
@@ -28,11 +29,29 @@ function notificationPath(n: NotificationRecord): string | null {
 type Filter = "all" | "unread";
 
 export function InboxView() {
+  const dispatch = useDispatch<AppDispatch>();
   const navigate = useNavigate();
   const [filter, setFilter] = useState<Filter>("all");
+  const loadMoreRef = useRef<HTMLDivElement>(null);
 
-  const { isLoading } = useGetNotificationsQuery({ cursor: null });
+  const { isLoading, data, isFetching } = useGetNotificationsQuery({ cursor: null });
   const [markRead] = useMarkNotificationsReadMutation();
+
+  // Load more when bottom sentinel enters view
+  useEffect(() => {
+    const el = loadMoreRef.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting && data?.hasNextPage && !isFetching && data.nextCursor) {
+        dispatch(notificationsApi.endpoints.getNotifications.initiate(
+          { cursor: data.nextCursor },
+          { subscribe: false }
+        ));
+      }
+    }, { threshold: 0.1 });
+    observer.observe(el);
+    return () => observer.unobserve(el);
+  }, [data?.hasNextPage, data?.nextCursor, isFetching, dispatch]);
 
   const all = useSelector(notificationSelectors.selectAll)
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
@@ -73,7 +92,7 @@ export function InboxView() {
                 type="button"
                 onClick={() => setFilter(f)}
                 className={cn(
-                  "h-6 px-3 rounded-sm text-[10px] font-bold uppercase tracking-wide transition-colors",
+                  "h-6 px-3 rounded-md text-[10px] font-bold uppercase tracking-wide transition-colors",
                   filter === f
                     ? "bg-background text-foreground shadow-sm"
                     : "text-muted-foreground hover:text-foreground"
@@ -128,7 +147,7 @@ export function InboxView() {
             onClick={() => handleClick(n)}
             className={cn(
               "w-full flex items-start gap-4 px-6 py-4 text-left transition-colors hover:bg-muted/30",
-              !n.isRead && "bg-primary/[0.03] border-l-2 border-l-primary/40"
+              !n.isRead && "bg-primary/3 border-l-2 border-l-primary/40"
             )}
           >
             {/* Actor avatar */}
@@ -173,6 +192,13 @@ export function InboxView() {
             )}
           </button>
         ))}
+
+        {/* Intersection sentinel for auto load-more */}
+        <div ref={loadMoreRef} className="h-4 flex items-center justify-center">
+          {isFetching && (
+            <Loader2 className="h-3.5 w-3.5 text-muted-foreground/30 animate-spin" />
+          )}
+        </div>
       </div>
     </div>
   );

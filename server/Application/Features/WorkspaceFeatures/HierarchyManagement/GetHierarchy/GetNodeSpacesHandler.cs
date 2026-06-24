@@ -55,7 +55,6 @@ public class GetNodeSpacesHandler(TaskPlanDbContext db, CursorHelper cursorHelpe
                       SELECT 1 FROM entity_access ea
                       WHERE ea.project_space_id = ps.id
                       AND ea.workspace_member_id = @WorkspaceMemberId
-                      AND ea.access_level = ANY(@ValidAccessLevels)
                       AND ea.deleted_at IS NULL
                   )
               )
@@ -74,8 +73,7 @@ public class GetNodeSpacesHandler(TaskPlanDbContext db, CursorHelper cursorHelpe
             PageSize = request.Pagination.PageSize + 1,
             Role = (int)workspaceContext.CurrentMember.Role,
             AdminRole = (int)Role.Admin,
-            WorkspaceMemberId = workspaceContext.CurrentMember.Id,
-            ValidAccessLevels = new[] { "Viewer", "Editor", "Manager" }
+            WorkspaceMemberId = workspaceContext.CurrentMember.Id
         };
 
         var mappedSpaces = (await connection.QueryAsync<SpaceRecord>(sql, parameters)).AsList();

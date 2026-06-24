@@ -37,6 +37,10 @@ public record WorkspaceRecord
     public bool? IsArchived { get; init; }
     public bool? IsDashboardEnabled { get; init; }
 
+    // Invite — only populated for Admin/Owner
+    public string? JoinCode { get; init; }
+    public bool StrictJoin { get; init; }
+
     public static WorkspaceRecord FromDomain(ProjectWorkspace w, WorkspaceMember? currentMember = null) => new()
     {
         Id = w.Id,
@@ -54,7 +58,9 @@ public record WorkspaceRecord
         CanPinWorkspace = currentMember != null,
         MemberCount = null,
         IsArchived = w.IsArchived,
-        IsDashboardEnabled = null
+        IsDashboardEnabled = null,
+        JoinCode = currentMember?.Role.IsAtLeast(Domain.Role.Admin) == true ? w.JoinCode : null,
+        StrictJoin = w.StrictJoin
     };
 }
 

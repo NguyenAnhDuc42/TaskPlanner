@@ -4,10 +4,10 @@ import { signalRService } from "@/lib/signalr-service";
 import { notificationSlice } from "@/store/entityStore";
 import { useUser } from "@/features/auth/auth-api";
 import type { AppDispatch } from "@/store";
-import type { EntityBatchUpdate } from "@/lib/signalr-service";
+import type { NotificationRecord } from "@/types/notification-record";
 
-// Global hook — works on home screen AND workspace.
-// Joins the user's personal SignalR group and listens for notification pushes.
+// Global — called from root layout, works on / and everywhere.
+// Owns the user SignalR group + listens to the dedicated NewNotification event.
 export function useNotificationSignalR() {
   const dispatch = useDispatch<AppDispatch>();
   const { data: currentUser } = useUser();
@@ -20,18 +20,16 @@ export function useNotificationSignalR() {
       await signalRService.invoke("JoinUser", currentUser.id);
     };
 
-    setup().catch((err) => console.error("[NotificationSignalR] setup error:", err));
+    setup().catch((err) => console.error("[NotificationSignalR]", err));
 
-    const onEntitiesUpdated = (payload: EntityBatchUpdate) => {
-      if (payload.notifications?.length) {
-        dispatch(notificationSlice.actions.upsertMany(payload.notifications));
-      }
+    const onNewNotification = (record: NotificationRecord) => {
+      dispatch(notificationSlice.actions.upsert(record));
     };
 
-    signalRService.on("EntitiesUpdated", onEntitiesUpdated);
+    signalRService.on("NewNotification", onNewNotification);
 
     return () => {
-      signalRService.off("EntitiesUpdated", onEntitiesUpdated);
+      signalRService.off("NewNotification", onNewNotification);
     };
   }, [currentUser?.id, dispatch]);
 }

@@ -61,7 +61,7 @@ const STATUS_COLORS: Record<MembershipStatus, { bg: string; text: string }> = {
 function StatusPill({ status, className }: { status: MembershipStatus, className?: string }) {
   const { bg, text } = STATUS_COLORS[status] ?? STATUS_COLORS.Active;
   return (
-    <span className={cn("inline-flex items-center h-5 px-2 rounded-sm text-[10px] font-semibold", bg, text, className)}>
+    <span className={cn("inline-flex items-center h-5 px-2 rounded-md text-[10px] font-semibold", bg, text, className)}>
       {status}
     </span>
   );
@@ -220,7 +220,7 @@ export function MemberList({ members = [], currentUserId, isSaving, onSave }: Pr
             placeholder="Search members..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-7 h-7 text-[10px] rounded-sm bg-muted/20 border-border/10 placeholder:text-muted-foreground/30"
+            className="pl-7 h-7 text-[10px] rounded-md bg-muted/20 border-border/10 placeholder:text-muted-foreground/30"
           />
         </div>
 
@@ -232,7 +232,7 @@ export function MemberList({ members = [], currentUserId, isSaving, onSave }: Pr
                 size="sm"
                 onClick={handleDiscard}
                 disabled={isSaving}
-                className="h-7 px-2 rounded-sm text-[10px] font-bold uppercase tracking-tight text-muted-foreground"
+                className="h-7 px-2 rounded-md text-[10px] font-bold uppercase tracking-tight text-muted-foreground"
               >
                 Discard
               </Button>
@@ -240,7 +240,7 @@ export function MemberList({ members = [], currentUserId, isSaving, onSave }: Pr
                 size="sm"
                 onClick={handleSave}
                 disabled={isSaving}
-                className="h-7 px-3 rounded-sm text-[10px] font-bold uppercase tracking-tight gap-1.5"
+                className="h-7 px-3 rounded-md text-[10px] font-bold uppercase tracking-tight gap-1.5"
               >
                 <Save className="h-3 w-3" />
                 {isSaving ? "Saving..." : `Save ${dirtyCount} change${dirtyCount !== 1 ? "s" : ""}`}
@@ -251,13 +251,13 @@ export function MemberList({ members = [], currentUserId, isSaving, onSave }: Pr
       </div>
 
       {/* Table */}
-      <div className="flex-1 overflow-auto p-4 bg-muted/10">
+      <div className="flex-1 overflow-auto bg-muted/10">
         <div className="border border-border rounded-md bg-card shadow-sm overflow-hidden min-w-[700px]">
           {/* Column headers */}
           <div className="grid grid-cols-[28px_3fr_140px_140px_80px_36px] text-[10px] font-black uppercase tracking-wider text-muted-foreground/80 border-b border-border bg-muted/30 sticky top-0 z-10">
             <div className="flex items-center justify-center py-2">
               <Checkbox
-                className="rounded-sm h-3.5 w-3.5"
+                className="rounded-md h-3.5 w-3.5"
                 checked={allVisibleSelected}
                 onCheckedChange={toggleSelectAll}
               />
@@ -286,7 +286,7 @@ export function MemberList({ members = [], currentUserId, isSaving, onSave }: Pr
                 className={cn(
                   "grid grid-cols-[28px_3fr_140px_140px_80px_36px] items-center text-[11px] transition-colors",
                   isRemoved  ? "bg-destructive/5 border-l-2 border-destructive/30 opacity-50"
-                  : isDirty  ? "bg-amber-500/5 border-l-2 border-amber-500/40"
+                  : isDirty  ? "bg-primary/10 border-l-2 border-primary/25"
                   : isSelected ? "bg-primary/5"
                   : "hover:bg-muted/5",
                 )}
@@ -294,7 +294,7 @@ export function MemberList({ members = [], currentUserId, isSaving, onSave }: Pr
                 {/* Checkbox */}
                 <div className="flex items-center justify-center py-2">
                   <Checkbox
-                    className="rounded-sm h-3.5 w-3.5"
+                    className="rounded-md h-3.5 w-3.5"
                     checked={isSelected}
                     onCheckedChange={() => toggleSelect(member.id)}
                     disabled={isRemoved}
@@ -303,9 +303,9 @@ export function MemberList({ members = [], currentUserId, isSaving, onSave }: Pr
 
                 {/* Name / Email */}
                 <div className="flex items-center gap-2.5 px-3 py-2 min-w-0">
-                  <Avatar className="h-6 w-6 rounded-sm shrink-0">
+                  <Avatar className="h-6 w-6 rounded-md shrink-0">
                     <AvatarImage src={member.avatarUrl ?? ""} />
-                    <AvatarFallback className="text-[9px] bg-muted rounded-sm">{member.name[0]}</AvatarFallback>
+                    <AvatarFallback className="text-[9px] bg-muted rounded-md">{member.name[0]}</AvatarFallback>
                   </Avatar>
                   <div className="flex flex-col min-w-0">
                     <div className="flex items-center gap-1.5">
@@ -313,7 +313,7 @@ export function MemberList({ members = [], currentUserId, isSaving, onSave }: Pr
                         {member.name}
                       </span>
                       {isSelf && (
-                        <span className="text-[8px] font-black uppercase tracking-wider text-primary/50 bg-primary/10 px-1 rounded-sm leading-4">
+                        <span className="text-[8px] font-black uppercase tracking-wider text-primary/50 bg-primary/10 px-1 rounded-md leading-4">
                           You
                         </span>
                       )}
@@ -391,7 +391,7 @@ export function MemberList({ members = [], currentUserId, isSaving, onSave }: Pr
                       size="sm"
                       onClick={() => toggleRemove(member.id)}
                       className={cn(
-                        "h-6 w-6 p-0 rounded-sm",
+                        "h-6 w-6 p-0 rounded-md",
                         isRemoved
                           ? "text-amber-500 hover:text-foreground hover:bg-muted"
                           : "text-muted-foreground/20 hover:text-destructive hover:bg-destructive/10",
@@ -413,7 +413,7 @@ export function MemberList({ members = [], currentUserId, isSaving, onSave }: Pr
             >
               <div />
               <div className="flex items-center gap-2.5 px-3 py-2 min-w-0">
-                <div className="h-6 w-6 rounded-sm bg-primary/10 flex items-center justify-center shrink-0">
+                <div className="h-6 w-6 rounded-md bg-primary/10 flex items-center justify-center shrink-0">
                   <Plus className="h-3 w-3 text-primary/40" />
                 </div>
                 <div className="flex flex-col min-w-0">
@@ -453,7 +453,7 @@ export function MemberList({ members = [], currentUserId, isSaving, onSave }: Pr
                   variant="ghost"
                   size="sm"
                   onClick={() => removePendingAdd(add.tempId)}
-                  className="h-6 w-6 p-0 rounded-sm text-muted-foreground/20 hover:text-destructive hover:bg-destructive/10"
+                  className="h-6 w-6 p-0 rounded-md text-muted-foreground/20 hover:text-destructive hover:bg-destructive/10"
                 >
                   <Trash2 className="h-3 w-3" />
                 </Button>
@@ -465,7 +465,7 @@ export function MemberList({ members = [], currentUserId, isSaving, onSave }: Pr
           <div className="grid grid-cols-[28px_3fr_140px_140px_80px_36px] items-center border-t border-dashed border-border/50 bg-muted/5 hover:bg-muted/10 transition-colors group">
             <div />
             <div className="flex items-center gap-2.5 px-3 py-1.5">
-              <div className="h-6 w-6 rounded-sm border border-dashed border-border/30 group-focus-within:border-primary/40 flex items-center justify-center shrink-0 transition-colors">
+              <div className="h-6 w-6 rounded-md border border-dashed border-border/30 group-focus-within:border-primary/40 flex items-center justify-center shrink-0 transition-colors">
                 <Plus className="h-3 w-3 text-muted-foreground/20 group-focus-within:text-primary/40" />
               </div>
               <Input
@@ -512,7 +512,7 @@ export function MemberList({ members = [], currentUserId, isSaving, onSave }: Pr
         <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-50 animate-in fade-in slide-in-from-bottom-4 duration-200">
           <div className="flex items-center gap-2 px-2.5 py-1.5 rounded-md bg-card/95 backdrop-blur-xl border border-border shadow-lg">
             {/* Count */}
-            <div className="flex items-center gap-1 px-2 py-1 rounded-sm bg-primary/10 border border-primary/20 h-7">
+            <div className="flex items-center gap-1 px-2 py-1 rounded-md bg-primary/10 border border-primary/20 h-7">
               <span className="text-[11px] font-black font-mono text-primary">{selectedIds.size}</span>
               <span className="text-[9px] font-black font-mono text-primary uppercase tracking-wider">Selected</span>
             </div>
@@ -524,7 +524,7 @@ export function MemberList({ members = [], currentUserId, isSaving, onSave }: Pr
               <DropdownMenuTrigger asChild>
                 <button
                   type="button"
-                  className="h-7 px-2 rounded-sm bg-background/50 border border-border/50 hover:bg-accent text-[10px] font-medium transition-colors flex items-center gap-1.5"
+                  className="h-7 px-2 rounded-md bg-background/50 border border-border/50 hover:bg-accent text-[10px] font-medium transition-colors flex items-center gap-1.5"
                 >
                   {batchRole ? <RoleBadge role={batchRole as Role} /> : <span className="text-muted-foreground">Role</span>}
                 </button>
@@ -549,7 +549,7 @@ export function MemberList({ members = [], currentUserId, isSaving, onSave }: Pr
               <DropdownMenuTrigger asChild>
                 <button
                   type="button"
-                  className="h-7 px-2 rounded-sm bg-background/50 border border-border/50 hover:bg-accent text-[10px] font-medium transition-colors flex items-center gap-1.5"
+                  className="h-7 px-2 rounded-md bg-background/50 border border-border/50 hover:bg-accent text-[10px] font-medium transition-colors flex items-center gap-1.5"
                 >
                   {batchStatus
                     ? <StatusPill status={batchStatus as MembershipStatus} />
@@ -575,7 +575,7 @@ export function MemberList({ members = [], currentUserId, isSaving, onSave }: Pr
               <Button
                 size="sm"
                 onClick={applyBatch}
-                className="h-7 px-3 rounded-sm text-[10px] font-bold uppercase tracking-tight gap-1"
+                className="h-7 px-3 rounded-md text-[10px] font-bold uppercase tracking-tight gap-1"
               >
                 <Check className="h-3 w-3" />
                 Apply
@@ -589,7 +589,7 @@ export function MemberList({ members = [], currentUserId, isSaving, onSave }: Pr
               size="sm"
               variant="outline"
               onClick={batchRemove}
-              className="h-7 w-7 p-0 rounded-sm bg-background/50 border-border/50 hover:bg-destructive/10 hover:text-destructive hover:border-destructive/30 transition-all"
+              className="h-7 w-7 p-0 rounded-md bg-background/50 border-border/50 hover:bg-destructive/10 hover:text-destructive hover:border-destructive/30 transition-all"
               title="Remove selected"
             >
               <Trash2 className="h-3.5 w-3.5" />
@@ -600,7 +600,7 @@ export function MemberList({ members = [], currentUserId, isSaving, onSave }: Pr
               size="sm"
               variant="ghost"
               onClick={clearSelection}
-              className="h-7 w-7 p-0 rounded-sm hover:bg-muted"
+              className="h-7 w-7 p-0 rounded-md hover:bg-muted"
             >
               <X className="h-3.5 w-3.5 text-muted-foreground/50" />
             </Button>

@@ -145,8 +145,8 @@ export function TaskDetailCanvas({ taskId }: TaskDetailCanvasProps) {
           {/* Document Section (Rich Text Editor) */}
           <div className="space-y-3">
             {task.defaultDocumentId ? (
-              <div className="min-h-[150px] border border-border/10 rounded-lg p-2 bg-muted/5 mt-4">
-                <BlockEditor documentId={task.defaultDocumentId} placeholder="Type '/' for commands..." />
+              <div className="min-h-37.5 border border-border/10 rounded-lg p-2 bg-muted/5 mt-4">
+                <BlockEditor key={task.defaultDocumentId} documentId={task.defaultDocumentId} placeholder="Type '/' for commands..." />
               </div>
             ) : (
               <div className="text-xs text-muted-foreground italic mt-4">No document available for this task.</div>
