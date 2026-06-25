@@ -1,5 +1,7 @@
 import { workspaceApi } from "@/store/workspaceApi";
-import { spaceSlice, folderSlice, taskSlice, statusSlice, entityAccessSlice, folderSelectors, taskSelectors, statusSelectors } from "@/store/entityStore";
+import { spaceSlice, folderSlice, taskSlice, statusSlice, entityAccessSlice, entityAccessSelectors, folderSelectors, taskSelectors, statusSelectors } from "@/store/entityStore";
+import { toast } from "sonner";
+import { extractErrorMessage } from "@/types/api-error";
 import { RowAction } from "@/types/row-action";
 import type { AccessLevel } from "@/types/access-level";
 import { useSelector, useDispatch } from "react-redux";
@@ -134,13 +136,20 @@ export const spaceApi = workspaceApi.injectEndpoints({
         method: "POST",
         data: rows
       }),
-      async onQueryStarted({ spaceId, rows }, { dispatch, queryFulfilled }) {
+      async onQueryStarted({ spaceId, rows }, { dispatch, queryFulfilled, getState }) {
         // Optimistic only for delete and level changes — NOT for create (avoids temp ID duplicates)
-        const deletedIds: string[] = [];
+        const state = getState() as import("@/store").RootState;
+        const deletedSnapshots = rows
+          .filter(r => r.action === RowAction.Delete && r.id)
+          .map(r => entityAccessSelectors.selectById(state, r.id!))
+          .filter((ea): ea is import("@/types/workspace").EntityAccessRecord => !!ea);
+        const updatedSnapshots = rows
+          .filter(r => r.action === RowAction.Update && r.id)
+          .map(r => entityAccessSelectors.selectById(state, r.id!))
+          .filter((ea): ea is import("@/types/workspace").EntityAccessRecord => !!ea);
 
         for (const row of rows) {
           if (row.action === RowAction.Delete && row.id) {
-            deletedIds.push(row.id);
             dispatch(entityAccessSlice.actions.remove(row.id));
           } else if (row.action === RowAction.Update && row.id) {
             dispatch(entityAccessSlice.actions.upsert({
@@ -154,8 +163,10 @@ export const spaceApi = workspaceApi.injectEndpoints({
 
         try {
           await queryFulfilled;
-        } catch {
-          // Refetch will restore correct state on failure
+        } catch (err) {
+          if (deletedSnapshots.length > 0) dispatch(entityAccessSlice.actions.upsertMany(deletedSnapshots));
+          if (updatedSnapshots.length > 0) dispatch(entityAccessSlice.actions.upsertMany(updatedSnapshots));
+          toast.error(extractErrorMessage(err, "Failed to update access. Your changes have been reverted."));
         }
       },
       invalidatesTags: (_result, _error, { spaceId }) => [{ type: "EntityAccess" as const, id: `access-${spaceId}` }],

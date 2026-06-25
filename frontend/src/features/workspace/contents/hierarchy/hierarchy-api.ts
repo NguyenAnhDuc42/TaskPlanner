@@ -216,14 +216,33 @@ export const hierarchyApi = workspaceApi.injectEndpoints({
 
     deleteFolder: build.mutation<void, { workspaceId: string; folderId: string }>({
       query: ({ folderId }) => ({ url: `/folders/${folderId}`, method: "DELETE" }),
-      async onQueryStarted({ folderId }, { dispatch, queryFulfilled, getState }) {
+      async onQueryStarted({ workspaceId, folderId }, { dispatch, queryFulfilled, getState }) {
         const state = getState() as RootState;
         const originalFolder = folderSelectors.selectById(state, folderId);
+        const spaceId = originalFolder?.spaceId;
+
+        // Move orphaned tasks to space level immediately so they stay visible
+        const orphaned = taskSelectors.selectAll(state)
+          .filter(t => t.folderId === folderId)
+          .map(t => ({ id: t.id, folderId: null }));
+        if (orphaned.length > 0) dispatch(taskSlice.actions.upsertMany(orphaned));
+
         dispatch(folderSlice.actions.remove(folderId));
-        try { 
-          await queryFulfilled; 
+
+        try {
+          await queryFulfilled;
+          // Refetch space task list so sidebar shows the now-unfoldered tasks
+          if (spaceId) {
+            dispatch(hierarchyApi.endpoints.getNodeTasks.initiate(
+              { workspaceId, nodeId: spaceId, parentType: "ProjectSpace" as import("@/types/entity-layer-type").EntityLayerType, cursor: null },
+              { subscribe: false, forceRefetch: true }
+            ));
+          }
         } catch (err) {
           if (originalFolder) dispatch(folderSlice.actions.upsert(originalFolder));
+          if (orphaned.length > 0) dispatch(taskSlice.actions.upsertMany(
+            taskSelectors.selectAll(getState() as RootState).filter(t => orphaned.some(o => o.id === t.id))
+          ));
           toast.error(extractErrorMessage(err, "Failed to delete folder."));
         }
       }

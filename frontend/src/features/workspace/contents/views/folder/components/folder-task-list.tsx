@@ -11,27 +11,9 @@ import { useSpaceAccess } from "@/features/workspace/context/use-space-access";
 import { useFolderDetail } from "../folder-api";
 import { taskSelectors } from "@/store/entityStore";
 import { createSelector } from "@reduxjs/toolkit";
-import { createPortal } from "react-dom";
 import { TaskFilterPopover } from "./task-filter-popover";
 import { useDebounce } from "@/hooks/use-debounce";
-import {
-  DndContext,
-  closestCenter,
-  DragOverlay,
-  KeyboardSensor,
-  PointerSensor,
-  useSensor,
-  useSensors,
-  type DragEndEvent,
-  type DragStartEvent,
-} from "@dnd-kit/core";
-import {
-  arrayMove,
-  SortableContext,
-  sortableKeyboardCoordinates,
-  verticalListSortingStrategy,
-} from "@dnd-kit/sortable";
-import { restrictToVerticalAxis } from "@dnd-kit/modifiers";
+import { SortableList, SortableListItem } from "@/components/sortable-list";
 import type { TaskRecord } from "@/types/projects";
 
 type FolderTaskListProps = Readonly<{
@@ -88,35 +70,12 @@ export function FolderTaskList({
 
   const tasks = useSelector(selectTasks);
 
-  const sortableItems = React.useMemo(() => tasks.map(t => t.id), [tasks]);
   const [batchUpdate] = useBatchUpdateFolderTasksMutation();
 
-  const [draggedTask, setDraggedTask] = React.useState<TaskRecord | null>(null);
-  const pointerSensor = useSensor(PointerSensor, { activationConstraint: { distance: 5 } });
-  const keyboardSensor = useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates });
-  const sensors = useSensors(pointerSensor, keyboardSensor);
-
-  function handleDragStart(event: DragStartEvent) {
-    const task = tasks.find(t => t.id === event.active.id);
-    if (task) setDraggedTask(task);
-  }
-
-  function handleDragEnd(event: DragEndEvent) {
-    setDraggedTask(null);
-    const { active, over } = event;
-    if (!over || active.id === over.id) return;
-
-    const oldIndex = tasks.findIndex(t => t.id === active.id);
-    const newIndex = tasks.findIndex(t => t.id === over.id);
-    const newOrder = arrayMove(tasks, oldIndex, newIndex);
-
-    const updates = newOrder.map((t, idx) => ({
-      id: t.id,
-      orderKey: String(idx).padStart(6, "0"),
-    }));
-    
+  const handleReorder = React.useCallback((newTasks: TaskRecord[]) => {
+    const updates = newTasks.map((t, idx) => ({ id: t.id, orderKey: String(idx).padStart(6, "0") }));
     batchUpdate({ folderId, updates });
-  }
+  }, [folderId, batchUpdate]);
 
   return (
     <div className="flex flex-col h-full w-full bg-transparent relative">
@@ -163,42 +122,31 @@ export function FolderTaskList({
           <div className="p-4 text-xs text-muted-foreground text-center">No tasks in this folder.</div>
         )}
 
-        <DndContext
-          sensors={sensors}
-          collisionDetection={closestCenter}
-          modifiers={[restrictToVerticalAxis]}
-          onDragStart={handleDragStart}
-          onDragEnd={handleDragEnd}
+        <SortableList
+          items={tasks}
+          onReorder={handleReorder}
+          direction="vertical"
+          className="space-y-1"
+          renderOverlay={draggedId => {
+            const t = tasks.find(t => t.id === draggedId);
+            return t ? (
+              <div className="rotate-1 scale-[1.02] opacity-95 cursor-grabbing pointer-events-none shadow-2xl shadow-black/60">
+                <SortableTaskItem task={t} isSelected={false} isChecked={false} onSelect={() => {}} />
+              </div>
+            ) : null;
+          }}
         >
-          <SortableContext items={sortableItems} strategy={verticalListSortingStrategy}>
-            {tasks.map((task) => (
-              <SortableTaskItem
-                key={task.id}
-                task={task}
-                isSelected={selectedTaskId === task.id}
-                isChecked={checkedTaskIds.has(task.id)}
-                onSelect={() => onSelectTask?.(task.id)}
-                onToggleCheck={onToggleCheck}
-              />
-            ))}
-          </SortableContext>
-
-          {createPortal(
-            <DragOverlay dropAnimation={null}>
-              {draggedTask ? (
-                <div className="rotate-1 scale-[1.02] opacity-95 cursor-grabbing pointer-events-none shadow-2xl shadow-black/60">
-                  <SortableTaskItem
-                    task={draggedTask}
-                    isSelected={false}
-                    isChecked={false}
-                    onSelect={() => {}}
-                  />
-                </div>
-              ) : null}
-            </DragOverlay>,
-            document.body
-          )}
-        </DndContext>
+          {tasks.map((task) => (
+            <SortableTaskItem
+              key={task.id}
+              task={task}
+              isSelected={selectedTaskId === task.id}
+              isChecked={checkedTaskIds.has(task.id)}
+              onSelect={() => onSelectTask?.(task.id)}
+              onToggleCheck={onToggleCheck}
+            />
+          ))}
+        </SortableList>
 
 
         {/* Create Task — members and above only */}

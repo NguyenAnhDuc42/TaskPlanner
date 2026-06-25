@@ -2,6 +2,7 @@ import { workspaceApi } from "@/store/workspaceApi";
 import type { addMembersSchema, updateMembersSchema } from "./members-type";
 import type { PagedResult } from "@/types/paged-result";
 import { toast } from "sonner";
+import { extractErrorMessage } from "@/types/api-error";
 import type z from "zod";
 import React from "react";
 import { memberSlice, memberSelectors } from "@/store/entityStore";
@@ -175,9 +176,8 @@ export function useAddMembers(workspaceId: string) {
         const result = await addTrigger({ workspaceId, values }).unwrap();
         toast.success("Members added successfully");
         return result;
-      } catch (error: unknown) {
-        const err = error as { message?: string; data?: { Description?: string } };
-        toast.error(err.data?.Description || err.message || "Failed to add members");
+      } catch (error) {
+        toast.error(extractErrorMessage(error, "Failed to add members"));
         throw error;
       }
     },
@@ -193,9 +193,8 @@ export function useUpdateMembers(workspaceId: string) {
         const result = await updateTrigger({ workspaceId, values }).unwrap();
         toast.success("Members updated successfully");
         return result;
-      } catch (error: unknown) {
-        const err = error as { message?: string; data?: { Description?: string } };
-        toast.error(err.data?.Description || err.message || "Failed to update members");
+      } catch (error) {
+        toast.error(extractErrorMessage(error, "Failed to update members"));
         throw error;
       }
     },
@@ -211,9 +210,8 @@ export function useRemoveMembers(workspaceId: string) {
         const result = await removeTrigger({ workspaceId, memberIds }).unwrap();
         toast.success("Members removed successfully");
         return result;
-      } catch (error: unknown) {
-        const err = error as { message?: string; data?: { Description?: string } };
-        toast.error(err.data?.Description || err.message || "Failed to remove members");
+      } catch (error) {
+        toast.error(extractErrorMessage(error, "Failed to remove members"));
         throw error;
       }
     },

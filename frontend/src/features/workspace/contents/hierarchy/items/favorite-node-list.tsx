@@ -11,22 +11,7 @@ import { cn } from "@/lib/utils";
 import { SpaceContextMenu } from "../hierarchy-components/context-menus/space-context-menu";
 import { FolderContextMenu } from "../hierarchy-components/context-menus/folder-context-menu";
 import { TaskContextMenu } from "../hierarchy-components/context-menus/task-context-menu";
-import {
-  DndContext,
-  PointerSensor,
-  closestCenter,
-  useSensor,
-  useSensors,
-  type DragEndEvent,
-} from "@dnd-kit/core";
-import {
-  SortableContext,
-  verticalListSortingStrategy,
-  useSortable,
-  arrayMove,
-} from "@dnd-kit/sortable";
-import { CSS } from "@dnd-kit/utilities";
-import { restrictToVerticalAxis } from "@dnd-kit/modifiers";
+import { SortableList, SortableListItem } from "@/components/sortable-list";
 import { fractionalBetween, fractionalAfter, fractionalBefore } from "@/features/workspace/contents/hierarchy/utils/fractional-index";
 
 type FavItem = {
@@ -47,27 +32,27 @@ function FavSkeleton() {
   );
 }
 
-function SortableFavItem({
+function FavItemContent({
   fav,
   isActive: isRouteActive,
   onMouseDown,
   onClick,
+  dragHandleProps,
+  isDragging,
 }: {
   fav: FavItem;
   isActive: boolean;
   onMouseDown: () => void;
   onClick: () => void;
+  dragHandleProps: Record<string, unknown>;
+  isDragging: boolean;
 }) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: fav.id });
-
   const isTask = fav.entityLayerType === EntityLayerType.ProjectTask;
   const iconName = fav.icon ?? (isTask ? "CheckSquare" : fav.entityLayerType === EntityLayerType.ProjectFolder ? "Folder" : "LayoutGrid");
 
   const button = (
     <button
-      ref={setNodeRef}
       type="button"
-      style={{ transform: CSS.Transform.toString(transform), transition }}
       onMouseDown={onMouseDown}
       onClick={onClick}
       className={cn(
@@ -77,8 +62,7 @@ function SortableFavItem({
           ? "bg-primary/10 text-primary border-primary/25"
           : "text-muted-foreground border-transparent hover:bg-muted/50 hover:text-foreground hover:border-border/30",
       )}
-      {...attributes}
-      {...listeners}
+      {...dragHandleProps}
     >
       <div className="w-5 h-5 flex items-center justify-center shrink-0 mr-1.5">
         <DynamicIcon name={iconName} size={14} color={fav.color || undefined} className="transition-none" />
@@ -136,37 +120,19 @@ export const FavoriteNodeList = React.memo(function FavoriteNodeList() {
     );
   }, [allSpaces, allFolders, allTasks, workspaceId]);
 
-  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 4 } }));
-
-  const handleDragEnd = useCallback((event: DragEndEvent) => {
-    const { active, over } = event;
-    if (!over || active.id === over.id || !workspaceId) return;
-
-    const oldIndex = favorites.findIndex(f => f.id === active.id);
-    const newIndex = favorites.findIndex(f => f.id === over.id);
-    if (oldIndex === -1 || newIndex === -1) return;
-
-    const reordered = arrayMove(favorites, oldIndex, newIndex);
-    const moved = reordered[newIndex];
-    const prev = reordered[newIndex - 1]?.favoriteOrderKey ?? null;
-    const next = reordered[newIndex + 1]?.favoriteOrderKey ?? null;
-
+  const handleReorder = useCallback((reordered: FavItem[]) => {
+    if (!workspaceId) return;
+    const draggedIdx = reordered.findIndex((f, i) => favorites[i]?.id !== f.id);
+    const moved = reordered[draggedIdx];
+    if (!moved) return;
+    const prev = reordered[draggedIdx - 1]?.favoriteOrderKey ?? null;
+    const next = reordered[draggedIdx + 1]?.favoriteOrderKey ?? null;
     const newOrderKey = prev && next
       ? fractionalBetween(prev, next)
-      : prev
-        ? fractionalAfter(prev)
-        : next
-          ? fractionalBefore(next)
-          : moved.favoriteOrderKey ?? "";
-
-    reorderFavorite({
-      workspaceId,
-      entityId: moved.id,
-      entityType: moved.entityLayerType,
-      previousOrderKey: prev,
-      nextOrderKey: next,
-      newOrderKey,
-    });
+      : prev ? fractionalAfter(prev)
+      : next ? fractionalBefore(next)
+      : moved.favoriteOrderKey ?? "";
+    reorderFavorite({ workspaceId, entityId: moved.id, entityType: moved.entityLayerType, previousOrderKey: prev, nextOrderKey: next, newOrderKey });
   }, [favorites, workspaceId, reorderFavorite]);
 
   const getIsActive = (id: string, type: EntityLayerType) => {
@@ -214,26 +180,22 @@ export const FavoriteNodeList = React.memo(function FavoriteNodeList() {
 
   return (
     <>
-      <DndContext
-        sensors={sensors}
-        collisionDetection={closestCenter}
-        modifiers={[restrictToVerticalAxis]}
-        onDragEnd={handleDragEnd}
-      >
-        <SortableContext items={favorites.map(f => f.id)} strategy={verticalListSortingStrategy}>
-          <div className="flex flex-col">
-            {favorites.map(fav => (
-              <SortableFavItem
-                key={fav.id}
+      <SortableList items={favorites} onReorder={handleReorder} direction="vertical" className="flex flex-col" activationDistance={4}>
+        {favorites.map(fav => (
+          <SortableListItem key={fav.id} id={fav.id}>
+            {({ dragHandleProps, isDragging }) => (
+              <FavItemContent
                 fav={fav}
                 isActive={getIsActive(fav.id, fav.entityLayerType)}
                 onMouseDown={() => handleMouseDown(fav.id, fav.entityLayerType)}
                 onClick={() => handleClick(fav.id, fav.entityLayerType)}
+                dragHandleProps={dragHandleProps}
+                isDragging={isDragging}
               />
-            ))}
-          </div>
-        </SortableContext>
-      </DndContext>
+            )}
+          </SortableListItem>
+        ))}
+      </SortableList>
 
       {data?.hasNextPage && (
         <button

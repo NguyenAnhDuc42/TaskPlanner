@@ -27,13 +27,8 @@ import { useEdgeScroll } from "@/features/workspace/contents/views/space/utils/u
 import { useDebouncedSpaceBatch } from "@/features/workspace/contents/views/space/utils/use-debounced-space-batch";
 import { SpaceFilterBar } from "./space-filter-bar";
 import { EntityLayerType } from "@/types/entity-layer-type";
-import { DynamicIcon } from "@/components/dynamic-icon";
-import { Plus } from "lucide-react";
-import { toast } from "sonner";
 import { useWorkspace } from "@/features/workspace/context/workspace-context";
-import { useCreateFolderMutation, useDeleteFolderMutation } from "@/features/workspace/contents/hierarchy/hierarchy-api";
-import { extractErrorMessage } from "@/types/api-error";
-import { ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuSeparator, ContextMenuTrigger } from "@/components/ui/context-menu";
+import { FolderCardsBar } from "./folder-cards-bar";
 
 
 interface SpaceBoardProps {
@@ -59,14 +54,11 @@ export function SpaceBoard({ spaceId, onWorkflowOpen }: Readonly<SpaceBoardProps
   const debouncedSearch = useDebounce(searchInput, 300);
 
   const { workspaceId } = useWorkspace();
-  const [createFolder] = useCreateFolderMutation();
-  const [deleteFolder] = useDeleteFolderMutation();
-  const [isCreatingFolder, setIsCreatingFolder] = useState(false);
-  const [newFolderName, setNewFolderName] = useState("");
-  const folderCreateSubmittedRef = useRef(false);
 
   const folders = useSelector((state: RootState) =>
-    folderSelectors.selectAll(state).filter(f => f.spaceId === spaceId)
+    folderSelectors.selectAll(state)
+      .filter(f => f.spaceId === spaceId)
+      .sort((a, b) => ((a.orderKey ?? "") < (b.orderKey ?? "") ? -1 : 1))
   );
 
   const folderTaskCounts = useMemo(() => {
@@ -198,89 +190,12 @@ export function SpaceBoard({ spaceId, onWorkflowOpen }: Readonly<SpaceBoardProps
         onToggleHideEmpty={handleToggleHideEmpty}
       />
 
-      <div className="flex items-center gap-1.5 px-2 py-1.5 border-b border-border/15 overflow-x-auto shrink-0 [&::-webkit-scrollbar]:hidden">
-        {folders.map(folder => (
-          <ContextMenu key={folder.id}>
-            <ContextMenuTrigger asChild>
-              <button
-                type="button"
-                onClick={() => navigate({
-                  to: "/workspaces/$workspaceId/folders/$folderId",
-                  params: { workspaceId, folderId: folder.id }
-                })}
-                className="flex items-center gap-1.5 px-2.5 py-1 rounded-md border border-border/30 bg-card hover:border-border/60 hover:bg-muted/30 transition-all shrink-0 cursor-pointer group"
-              >
-                <DynamicIcon name={folder.icon || "Folder"} size={11} color={folder.color || "#6366f1"} />
-                <span className="text-[11px] font-medium text-foreground/80 group-hover:text-foreground">{folder.name}</span>
-                <span className="text-[9px] font-mono text-muted-foreground/50 bg-muted/40 px-1 rounded-sm">
-                  {folderTaskCounts[folder.id] ?? 0}
-                </span>
-              </button>
-            </ContextMenuTrigger>
-            <ContextMenuContent className="w-44 bg-popover border-border/50 shadow-2xl rounded-xl p-1.5">
-              <ContextMenuItem className="gap-2 cursor-pointer text-xs" onSelect={() => navigate({
-                to: "/workspaces/$workspaceId/folders/$folderId",
-                params: { workspaceId, folderId: folder.id }
-              })}>
-                <DynamicIcon name={folder.icon || "Folder"} size={12} color={folder.color || "#6366f1"} />
-                <span>Open</span>
-              </ContextMenuItem>
-              <ContextMenuSeparator />
-              <ContextMenuItem
-                variant="destructive"
-                className="gap-2 cursor-pointer text-xs"
-                onSelect={() => deleteFolder({ workspaceId, folderId: folder.id })
-                  .unwrap()
-                  .catch(err => toast.error(extractErrorMessage(err, "Failed to delete folder")))
-                }
-              >
-                <span>Delete Folder</span>
-              </ContextMenuItem>
-            </ContextMenuContent>
-          </ContextMenu>
-        ))}
-
-        {/* Inline create folder */}
-        {isCreatingFolder ? (
-          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md border border-primary/40 bg-primary/5 shrink-0">
-            <DynamicIcon name="Folder" size={11} color="#6366f1" />
-            <input
-              autoFocus
-              type="text"
-              value={newFolderName}
-              onChange={e => setNewFolderName(e.target.value)}
-              onKeyDown={e => {
-                if (e.key === "Escape") { setIsCreatingFolder(false); setNewFolderName(""); }
-                if (e.key === "Enter") e.currentTarget.blur();
-              }}
-              onBlur={() => {
-                if (folderCreateSubmittedRef.current) return;
-                folderCreateSubmittedRef.current = true;
-                const name = newFolderName.trim();
-                setIsCreatingFolder(false);
-                setNewFolderName("");
-                if (name) {
-                  createFolder({ workspaceId, body: { spaceId, name, color: "#6366f1", icon: "Folder" } })
-                    .unwrap()
-                    .catch(err => toast.error(extractErrorMessage(err, "Failed to create folder")));
-                }
-                setTimeout(() => { folderCreateSubmittedRef.current = false; }, 300);
-              }}
-              className="text-[11px] font-medium bg-transparent border-none outline-none w-24 text-foreground"
-              placeholder="Folder name..."
-            />
-          </div>
-        ) : (
-          <button
-            type="button"
-            onClick={() => setIsCreatingFolder(true)}
-            className="flex items-center gap-1 px-2 py-1 rounded-md text-muted-foreground/50 hover:text-muted-foreground hover:bg-muted/30 transition-all shrink-0 cursor-pointer"
-          >
-            <Plus className="h-3 w-3" />
-            <span className="text-[10px] font-medium">New</span>
-          </button>
-        )}
-      </div>
+      <FolderCardsBar
+        spaceId={spaceId}
+        workspaceId={workspaceId}
+        folders={folders}
+        folderTaskCounts={folderTaskCounts}
+      />
 
       <DndContext
         sensors={sensors}
@@ -290,7 +205,7 @@ export function SpaceBoard({ spaceId, onWorkflowOpen }: Readonly<SpaceBoardProps
       >
         <div
           ref={containerRef}
-          className="flex-1 flex pt-1 gap-2 px-2 overflow-x-auto overflow-y-hidden select-none [&::-webkit-scrollbar]:h-1.5 [&::-webkit-scrollbar-thumb]:bg-white/5 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-white/15 [&::-webkit-scrollbar-track]:bg-transparent"
+          className="flex-1 flex  gap-2 px-2 overflow-x-auto overflow-y-hidden select-none [&::-webkit-scrollbar]:h-1.5 [&::-webkit-scrollbar-thumb]:bg-white/5 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-white/15 [&::-webkit-scrollbar-track]:bg-transparent"
         >
           {columnsToRender.map((col) => (
             <BoardColumn
