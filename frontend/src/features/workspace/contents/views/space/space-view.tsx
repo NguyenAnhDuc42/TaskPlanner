@@ -5,10 +5,11 @@ import { SpaceBoard } from "./space-components/space-board";
 import { useSpaceDetail, useGetSpaceDetailQuery, useUpdateSpaceFieldMutation, useGetEntityAccessQuery } from "./space-api";
 import { Layout, FileText, GitMerge, Lock, Unlock, MoreVertical, Trash2 } from "lucide-react";
 import { FavoriteButton } from "@/components/favorite-button";
+import { DynamicIcon } from "@/components/dynamic-icon";
 import { EntityLayerType } from "@/types/entity-layer-type";
 import { CreateStatusForm } from "@/features/workspace/components/forms/workflow-management-form";
 import { cn } from "@/lib/utils";
-import { UniversalPicker } from "@/components/universal-picker";
+
 import type { SpaceRecord } from "@/types/projects";
 import { useSelector } from "react-redux";
 import { entityAccessSelectors, memberSelectors } from "@/store/entityStore";
@@ -33,9 +34,15 @@ interface SpaceViewProps {
 export function SpaceView({ spaceId }: Readonly<SpaceViewProps>) {
   const [isWorkflowOpen, setIsWorkflowOpen] = React.useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = React.useState(false);
-  const [activeTab, setActiveTab] = React.useState<"detail" | "items">("items");
-  const [isEditingName, setIsEditingName] = React.useState(false);
-  const { canEdit, canManage } = useSpaceAccess(spaceId);
+  const [activeTab, setActiveTab] = React.useState<"detail" | "items">(() => {
+    const saved = localStorage.getItem(`space-tab-${spaceId}`);
+    return saved === "items" ? "items" : "detail";
+  });
+  const handleTabChange = (tab: "detail" | "items") => {
+    setActiveTab(tab);
+    localStorage.setItem(`space-tab-${spaceId}`, tab);
+  };
+  const {canManage } = useSpaceAccess(spaceId);
   const navigate = useNavigate();
   const [deleteSpace] = useDeleteSpaceMutation();
   
@@ -63,36 +70,16 @@ export function SpaceView({ spaceId }: Readonly<SpaceViewProps>) {
     <EntityViewFrame
       topHeader={
         <div className="flex items-center justify-between w-full">
-          <div className="flex items-center gap-1 text-xs min-w-0">
-            <UniversalPicker
-              icon={space?.icon ?? "LayoutGrid"}
+          <div className="flex items-center gap-1.5 text-xs min-w-0">
+            <DynamicIcon
+              name={space?.icon ?? "LayoutGrid"}
+              size={14}
               color={space?.color ?? "#3b82f6"}
-              onSelect={(icon, color) => updateField({ icon, color })}
-              size="sm"
+              className="shrink-0"
             />
-            {isEditingName ? (
-              <input
-                autoFocus
-                key={`edit-${spaceId}`}
-                defaultValue={space?.name ?? ""}
-                className="h-6 px-1 text-xs font-bold text-foreground/90 tracking-tight border-none outline-none bg-muted/40 rounded cursor-text min-w-0 max-w-56"
-                onBlur={(e) => {
-                  setIsEditingName(false);
-                  if (e.target.value && e.target.value !== space?.name) updateField({ name: e.target.value });
-                }}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") e.currentTarget.blur();
-                  if (e.key === "Escape") setIsEditingName(false);
-                }}
-              />
-            ) : (
-              <span
-                onClick={() => setIsEditingName(true)}
-                className="font-medium text-foreground truncate cursor-text hover:bg-muted/20 px-1 rounded"
-              >
-                {space?.name ?? "Space"}
-              </span>
-            )}
+            <span className="font-semibold text-foreground/80 truncate">
+              {space?.name ?? "Space"}
+            </span>
             {space && (
               <FavoriteButton
                 entityId={spaceId}
@@ -125,12 +112,6 @@ export function SpaceView({ spaceId }: Readonly<SpaceViewProps>) {
       }
     >
       <div className="h-full w-full flex flex-col bg-transparent p-1 gap-1 overflow-hidden relative">
-        {/* Ambient background accent glow */}
-        <div
-          className="absolute right-12 bottom-12 w-87.5 h-87.5 rounded-full blur-[120px] opacity-[0.05] pointer-events-none transition-all duration-700"
-          style={{ backgroundColor: space?.color || "#3b82f6" }}
-        />
-
         {/* Controls toolbar */}
         <div className="flex items-center justify-between px-2 py-1 rounded-md border border-border bg-card shadow-sm shrink-0">
           {/* Public/Private toggle — admin only, sits on the left */}
@@ -192,27 +173,27 @@ export function SpaceView({ spaceId }: Readonly<SpaceViewProps>) {
               </button>
             )}
 
-            {/* Board / Detail tabs */}
+            {/* View tabs */}
             <div className="flex items-center bg-secondary/50 border border-transparent rounded-md p-0.5 shadow-inner">
               <button
-                onClick={() => setActiveTab("items")}
-                className={cn(
-                  "flex items-center gap-1 h-5 px-2 rounded-md text-[10px] font-semibold transition-all cursor-pointer",
-                  activeTab === "items" ? "bg-background text-foreground shadow-sm animate-in fade-in duration-200" : "text-muted-foreground hover:text-foreground"
-                )}
-              >
-                <Layout className="h-2.5 w-2.5" />
-                <span>Board</span>
-              </button>
-              <button
-                onClick={() => setActiveTab("detail")}
+                onClick={() => handleTabChange("detail")}
                 className={cn(
                   "flex items-center gap-1 h-5 px-2 rounded-md text-[10px] font-semibold transition-all cursor-pointer",
                   activeTab === "detail" ? "bg-background text-foreground shadow-sm animate-in fade-in duration-200" : "text-muted-foreground hover:text-foreground"
                 )}
               >
                 <FileText className="h-2.5 w-2.5" />
-                <span>Detail</span>
+                <span>Board</span>
+              </button>
+              <button
+                onClick={() => handleTabChange("items")}
+                className={cn(
+                  "flex items-center gap-1 h-5 px-2 rounded-md text-[10px] font-semibold transition-all cursor-pointer",
+                  activeTab === "items" ? "bg-background text-foreground shadow-sm animate-in fade-in duration-200" : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                <Layout className="h-2.5 w-2.5" />
+                <span>Tasks</span>
               </button>
             </div>
           </div>

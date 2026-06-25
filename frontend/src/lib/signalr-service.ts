@@ -46,6 +46,8 @@ export interface SignalREvents {
   EntitiesUpdated: EntityBatchUpdate;
   EntitiesDeleted: EntityBatchDelete;
   NewNotification: NotificationRecord;
+  AccessRevoked: { spaceId: string };
+  AccessGranted: { spaceId: string };
 }
 
 type SignalRListener<E extends keyof SignalREvents> = {

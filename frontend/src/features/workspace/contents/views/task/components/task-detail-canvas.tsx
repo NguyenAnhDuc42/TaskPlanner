@@ -11,6 +11,7 @@ import { TaskViewSkeleton } from "./task-view-skeleton";
 import { DateSelect } from "@/components/date-select";
 import { DebouncedInput } from "@/components/debounced-input";
 import { useGetTaskDetailQuery, useDebouncedTaskUpdate } from "../task-api";
+import { useSpaceAccess } from "@/features/workspace/context/use-space-access";
 import { TaskAssignees } from "../task-components/task-assignees";
 import { TaskComments } from "../task-components/task-comments";
 import { TaskSubtasks } from "../task-components/task-subtasks";
@@ -26,6 +27,7 @@ export function TaskDetailCanvas({ taskId }: TaskDetailCanvasProps) {
   });
   const task = useSelector((state: RootState) => taskSelectors.selectById(state, taskId || ""));
   const updateTask = useDebouncedTaskUpdate(taskId || "");
+  const { canEdit } = useSpaceAccess(task?.spaceId ?? "");
 
   if (!taskId) {
     return (
@@ -115,7 +117,7 @@ export function TaskDetailCanvas({ taskId }: TaskDetailCanvasProps) {
               <StatusSelect
                 value={task.statusId}
                 onChange={handleStatusChange}
-                spaceId={task.spaceId}
+                spaceId={task.spaceId!}
               />
 
               <PrioritySelect
@@ -142,16 +144,10 @@ export function TaskDetailCanvas({ taskId }: TaskDetailCanvasProps) {
             <TaskAssignees taskId={taskId} spaceId={task.spaceId} />
           </div>
 
-          {/* Document Section (Rich Text Editor) */}
-          <div className="space-y-3">
-            {task.defaultDocumentId ? (
-              <div className="min-h-37.5 border border-border/10 rounded-lg p-2 bg-muted/5 mt-4">
-                <BlockEditor key={task.defaultDocumentId} documentId={task.defaultDocumentId} placeholder="Type '/' for commands..." />
-              </div>
-            ) : (
-              <div className="text-xs text-muted-foreground italic mt-4">No document available for this task.</div>
-            )}
-          </div>
+          {/* Document Section */}
+          {task.defaultDocumentId && (
+            <BlockEditor key={task.defaultDocumentId} documentId={task.defaultDocumentId} editable={canEdit} />
+          )}
 
           {/* Subtasks Section (Only for top-level tasks) */}
           {!task.parentTaskId && <TaskSubtasks taskId={taskId} />}

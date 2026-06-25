@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { useWorkspaceRole } from "@/features/workspace/context/use-workspace-role";
 import { useSelector } from "react-redux";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { UserPlus, Check, X } from "lucide-react";
+import { UserAvatar } from "@/components/user-avatar";
 import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import type { RootState } from "@/store";
@@ -62,23 +62,17 @@ export function TaskAssignees({ taskId, spaceId }: Readonly<TaskAssigneesProps>)
       {assignees.map((assignee) => {
         const member = members[assignee.workspaceMemberId];
         if (!member) return null;
-        const initials = member.name
-          .split(" ")
-          .map((n: string) => n[0])
-          .join("")
-          .slice(0, 2)
-          .toUpperCase();
         return (
           <div
             key={assignee.workspaceMemberId}
             className="flex items-center gap-1 bg-transparent hover:bg-muted/50 rounded-md pl-1 pr-2 py-0 h-5 text-[10px] font-semibold select-none transition-colors duration-300"
           >
-            <Avatar className="h-3.5 w-3.5 rounded-sm">
-              {member.avatarUrl && <AvatarImage src={member.avatarUrl} alt={member.name} />}
-              <AvatarFallback className="text-[7px] bg-primary/20 text-primary leading-none flex items-center justify-center rounded-sm">
-                {initials}
-              </AvatarFallback>
-            </Avatar>
+            <UserAvatar
+              name={member.name}
+              avatarUrl={member.avatarUrl}
+              className="h-3.5 w-3.5 rounded-sm"
+              fallbackClassName="text-[7px] leading-none rounded-sm"
+            />
             <span className="max-w-20 truncate font-medium">{member.name}</span>
             {canCreateContent && (
               <button
@@ -133,12 +127,6 @@ export function TaskAssignees({ taskId, spaceId }: Readonly<TaskAssigneesProps>)
             ) : (
               filteredMembers.map((member) => {
                 const isAssigned = assignees.some((a) => a.workspaceMemberId === member.id);
-                const initials = member.name
-                  .split(" ")
-                  .map((n: string) => n[0])
-                  .join("")
-                  .slice(0, 2)
-                  .toUpperCase();
                 return (
                   <button
                     key={member.id}
@@ -151,12 +139,12 @@ export function TaskAssignees({ taskId, spaceId }: Readonly<TaskAssigneesProps>)
                         : "hover:bg-accent hover:text-accent-foreground",
                     )}
                   >
-                    <Avatar className="h-5 w-5 rounded-sm shrink-0">
-                      {member.avatarUrl && <AvatarImage src={member.avatarUrl} alt={member.name} />}
-                      <AvatarFallback className="text-[8px] bg-primary/10 text-primary rounded-sm">
-                        {initials}
-                      </AvatarFallback>
-                    </Avatar>
+                    <UserAvatar
+                      name={member.name}
+                      avatarUrl={member.avatarUrl}
+                      className="h-5 w-5 rounded-sm shrink-0"
+                      fallbackClassName="text-[8px] rounded-sm"
+                    />
                     <span className="truncate font-medium flex-1">{member.name}</span>
                     {isAssigned && <Check className="h-3.5 w-3.5 text-primary shrink-0" />}
                   </button>

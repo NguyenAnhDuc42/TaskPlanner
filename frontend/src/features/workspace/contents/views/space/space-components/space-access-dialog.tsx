@@ -11,9 +11,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { useGetEntityAccessQuery, useUpdateEntityAccessMutation } from "../space-api";
 import { entityAccessSelectors, memberSelectors } from "@/store/entityStore";
-import type { MemberRecord } from "@/types/workspace";
 import type { AccessLevel } from "@/types/access-level";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { UserAvatar } from "@/components/user-avatar";
 import { RowAction } from "@/types/row-action";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -49,9 +48,13 @@ export function SpaceAccessDialog({ spaceId, trigger }: Readonly<SpaceAccessDial
     return ea ? ea.level as Level : "None";
   }, [pending, accessByMember]);
 
-  // Sort: members with access (or pending access) on top
+  // Sort: admins/owners first (they bypass entity access), then members with access, then the rest
   const sortedMembers = useMemo(() => {
     return [...allMembers].sort((a, b) => {
+      const aPrivileged = a.role === "Owner" || a.role === "Admin";
+      const bPrivileged = b.role === "Owner" || b.role === "Admin";
+      if (aPrivileged && !bPrivileged) return -1;
+      if (!aPrivileged && bPrivileged) return 1;
       const aHas = getDisplayLevel(a.id) !== "None";
       const bHas = getDisplayLevel(b.id) !== "None";
       if (aHas && !bHas) return -1;
@@ -106,7 +109,6 @@ export function SpaceAccessDialog({ spaceId, trigger }: Readonly<SpaceAccessDial
             const isPrivileged = member.role === "Owner" || member.role === "Admin";
             const displayLevel = isPrivileged ? "Manager" : getDisplayLevel(member.id);
             const isDirty = pending.has(member.id);
-            const initials = member.name.split(" ").map((w: string) => w[0]).slice(0, 2).join("").toUpperCase();
 
             return (
               <div
@@ -116,10 +118,12 @@ export function SpaceAccessDialog({ spaceId, trigger }: Readonly<SpaceAccessDial
                   isDirty ? "bg-primary/10 border-l-2 border-primary/25" : "hover:bg-muted/20"
                 )}
               >
-                <Avatar className="h-6 w-6 shrink-0 rounded-md">
-                  <AvatarImage src={member.avatarUrl} />
-                  <AvatarFallback className="text-[9px] bg-primary/10 text-primary font-black rounded-md">{initials}</AvatarFallback>
-                </Avatar>
+                <UserAvatar
+                  name={member.name}
+                  avatarUrl={member.avatarUrl}
+                  className="h-6 w-6 rounded-md"
+                  fallbackClassName="rounded-md text-[9px]"
+                />
 
                 <span className="flex-1 text-[11px] font-medium text-foreground/90 truncate">{member.name}</span>
 

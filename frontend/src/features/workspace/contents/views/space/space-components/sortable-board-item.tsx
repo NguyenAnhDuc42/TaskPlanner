@@ -90,8 +90,8 @@ export const BoardItemCard = React.memo(function BoardItemCard({
       className={cn(
         "group relative flex flex-col gap-1.5 p-2 rounded-lg cursor-grab active:cursor-grabbing select-none border outline-none shadow-sm shrink-0 w-full text-card-foreground",
         isSelected
-          ? "bg-primary/10 border-primary/50"
-          : "bg-card border-border/60 hover:border-border hover:shadow-md hover:bg-card",
+          ? "bg-primary/5 border-primary/50"
+          : "bg-card border-border/60 hover:border-border hover:border-primary/50  hover:shadow-md hover:bg-card",
         isDragging && "opacity-0 pointer-events-none border-transparent bg-transparent shadow-none"
       )}
       style={style}
@@ -256,7 +256,7 @@ export const SortableBoardItem = React.memo(function SortableBoardItem({
   }, [item.id, onDateChange]);
 
   return (
-    <TaskContextMenu taskId={item.id} taskName={item.name} parentId="">
+    <TaskContextMenu taskId={item.id} taskName={item.name} parentId="" spaceId={item.spaceId ?? undefined}>
       <div>
         <BoardItemCard
           item={item}

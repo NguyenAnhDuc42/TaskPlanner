@@ -1,9 +1,10 @@
 import { workspaceApi } from "@/store/workspaceApi";
 import { folderSlice, taskSlice, statusSlice, taskSelectors, folderSelectors, statusSelectors } from "@/store/entityStore";
 import { store } from "@/store";
-import { useSelector } from "react-redux";
+import { useSelector, useDispatch } from "react-redux";
 import { createSelector } from "@reduxjs/toolkit";
 import { useMemo, useRef, useEffect, useLayoutEffect, useCallback } from "react";
+import type { AppDispatch } from "@/store";
 import type { TaskRecord } from "@/types/projects/task-record";
 import type { RootState } from "@/store";
 import type { TaskRecord } from "@/types/projects/task-record";
@@ -60,23 +61,17 @@ export const folderApi = workspaceApi.injectEndpoints({
       }
     }),
 
-    getFolderTasks: build.query<PagedResult<TaskRecord>, { folderId: string; cursor?: string | null; filter?: TaskFilter }>({
-      query: ({ folderId, cursor, filter }) => ({
+    getFolderTasks: build.query<PagedResult<TaskRecord>, { folderId: string; cursor?: string | null; limit?: number }>({
+      query: ({ folderId, cursor, limit = 200 }) => ({
         url: `/folders/${folderId}/tasks`,
         method: 'POST',
-        data: { cursor, limit: 15, filter }
+        data: { cursor, limit }
       }),
-      serializeQueryArgs: ({ queryArgs }) => {
-        const { cursor: _, ...rest } = queryArgs;
-        return rest;
-      },
+      serializeQueryArgs: ({ queryArgs }) => `getFolderTasks_${queryArgs.folderId}`,
       merge: (currentCache, newItems) => {
-        if (newItems.items) {
-          // ensure no duplicates
-          const existingIds = new Set(currentCache.items.map(i => i.id));
-          const newUnique = newItems.items.filter(i => !existingIds.has(i.id));
-          currentCache.items.push(...newUnique);
-        }
+        if (!newItems.items) return;
+        const existingIds = new Set(currentCache.items.map(i => i.id));
+        currentCache.items.push(...newItems.items.filter(i => !existingIds.has(i.id)));
         currentCache.nextCursor = newItems.nextCursor;
         currentCache.hasNextPage = newItems.hasNextPage;
       },
@@ -175,6 +170,31 @@ export const {
   useBatchUpdateFolderTasksMutation,
   useUpdateFolderFieldMutation,
 } = folderApi;
+
+export function useFolderTasksFullLoad(folderId: string) {
+  const dispatch = useDispatch<AppDispatch>();
+  const { data, isSuccess, isFetching } = useGetFolderTasksQuery(
+    { folderId, cursor: null },
+    { skip: !folderId }
+  );
+
+  useEffect(() => {
+    if (!folderId || !isSuccess || !data?.hasNextPage || !data?.nextCursor) return;
+
+    async function fetchRemaining(cursor: string) {
+      const result = await dispatch(
+        folderApi.endpoints.getFolderTasks.initiate({ folderId, cursor }, { subscribe: false })
+      );
+      if (result.data?.hasNextPage && result.data?.nextCursor) {
+        await fetchRemaining(result.data.nextCursor);
+      }
+    }
+
+    fetchRemaining(data.nextCursor);
+  }, [isSuccess, data?.hasNextPage, data?.nextCursor, folderId, dispatch]);
+
+  return { isLoading: !isSuccess, isFullyLoaded: isSuccess && !data?.hasNextPage, isFetching };
+}
 
 export function useBatchUpdateFolderTasks(folderId: string) {
   const [mutate, result] = useBatchUpdateFolderTasksMutation();

@@ -1,4 +1,7 @@
+import { useSelector } from "react-redux";
 import { useWorkspace } from "./workspace-context";
+import { useUser } from "@/features/auth/auth-api";
+import { memberSelectors } from "@/store/entityStore";
 import type { Role } from "@/types/role";
 
 export interface WorkspaceRole {
@@ -17,8 +20,12 @@ export interface WorkspaceRole {
 
 export function useWorkspaceRole(): WorkspaceRole {
   const { workspace } = useWorkspace();
+  const { data: currentUser } = useUser();
 
-  const role = workspace?.role;
+  // Read role from memberSlice (gets real-time SignalR updates) — fall back to workspace cache
+  const allMembers = useSelector(memberSelectors.selectAll);
+  const myMember = allMembers.find(m => m.userId === currentUser?.id);
+  const role = (myMember?.role as Role | undefined) ?? workspace?.role;
 
   const isOwner  = workspace?.isOwned ?? role === "Owner";
   const isAdmin  = isOwner || workspace?.canEdit === true || role === "Admin";

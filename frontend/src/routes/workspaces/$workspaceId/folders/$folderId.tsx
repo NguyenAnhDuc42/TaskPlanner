@@ -22,5 +22,5 @@ export const Route = createFileRoute("/workspaces/$workspaceId/folders/$folderId
 
 function FolderContent() {
   const { folderId } = useParams({ from: "/workspaces/$workspaceId/folders/$folderId" });
-  return <FolderView folderId={folderId} />;
+  return <FolderView key={folderId} folderId={folderId} />;
 }

@@ -10,7 +10,7 @@ import type { SpaceRecord, FolderRecord, TaskRecord } from "@/types/projects";
 import type { Status } from "@/types/status";
 import { StatusCategory } from "@/types/status-category";
 import type { EntityAccessRecord } from "@/types/workspace";
-import type { SpaceDocumentRecord } from "@/types/document";
+
 import { EntityLayerType } from "@/types/entity-layer-type";
 
 
@@ -86,46 +86,7 @@ export const spaceApi = workspaceApi.injectEndpoints({
         method: "PUT",
         data: { updates }
       }),
-      async onQueryStarted({ updates }, { dispatch, queryFulfilled, getState }) {
-        const state = getState() as RootState;
-
-        // Snapshot original folders and tasks for rollback
-        const originalFolders: FolderRecord[] = [];
-        const originalTasks: TaskRecord[] = [];
-
-        updates.forEach((u) => {
-          if (u.type === EntityLayerType.ProjectFolder) {
-            const folder = folderSelectors.selectById(state, u.id);
-            if (folder) originalFolders.push(folder);
-          } else {
-            const task = taskSelectors.selectById(state, u.id);
-            if (task) originalTasks.push(task);
-          }
-        });
-
-        // Optimistically update standard status fields on folders & tasks
-        const folderUpdates = updates.filter((u) => u.type === EntityLayerType.ProjectFolder);
-        const taskUpdates = updates.filter((u) => u.type === EntityLayerType.ProjectTask);
-
-        if (folderUpdates.length > 0) {
-          dispatch(folderSlice.actions.upsertMany(folderUpdates as Partial<FolderRecord>[]));
-        }
-        if (taskUpdates.length > 0) {
-          dispatch(taskSlice.actions.upsertMany(taskUpdates as Partial<TaskRecord>[]));
-        }
-
-        try {
-          await queryFulfilled;
-        } catch {
-          // Rollback on failure
-          if (originalFolders.length > 0) {
-            dispatch(folderSlice.actions.upsertMany(originalFolders));
-          }
-          if (originalTasks.length > 0) {
-            dispatch(taskSlice.actions.upsertMany(originalTasks));
-          }
-        }
-      }
+      // No onQueryStarted — useDebouncedSpaceBatch owns the optimistic update and rollback.
     }),
 
     updateSpaceField: build.mutation<void, { spaceId: string; patches: Partial<SpaceRecord> }>({
@@ -200,19 +161,6 @@ export const spaceApi = workspaceApi.injectEndpoints({
       invalidatesTags: (_result, _error, { spaceId }) => [{ type: "EntityAccess" as const, id: `access-${spaceId}` }],
     }),
 
-    getSpaceDocuments: build.query<SpaceDocumentRecord[], string>({
-      query: (spaceId) => ({ url: `/spaces/${spaceId}/documents`, method: "GET" }),
-      providesTags: (_result, _error, spaceId) => [{ type: "Spaces" as const, id: `docs-${spaceId}` }]
-    }),
-
-    createSpaceDocument: build.mutation<SpaceDocumentRecord, { spaceId: string; name: string }>({
-      query: ({ spaceId, name }) => ({
-        url: `/spaces/${spaceId}/documents`,
-        method: "POST",
-        data: { name }
-      }),
-      invalidatesTags: (_result, _error, { spaceId }) => [{ type: "Spaces" as const, id: `docs-${spaceId}` }]
-    })
   })
 });
 
@@ -224,8 +172,6 @@ export const {
   useUpdateSpaceFieldMutation,
   useGetEntityAccessQuery,
   useUpdateEntityAccessMutation,
-  useGetSpaceDocumentsQuery,
-  useCreateSpaceDocumentMutation,
 } = spaceApi;
 
 // Eagerly loads all space tasks in 200-item batches, chaining until hasNextPage = false.

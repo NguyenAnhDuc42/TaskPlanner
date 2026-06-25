@@ -28,6 +28,19 @@ public class DeleteFolderHandler(
             return Result.Failure(MemberError.DontHavePermission);
         }
 
+        // Tasks in this folder get moved to space level — otherwise they become invisible in the hierarchy
+        var orphanedTaskIds = await db.ProjectTasks
+            .Where(t => t.ProjectFolderId == request.FolderId && t.DeletedAt == null)
+            .Select(t => t.Id)
+            .ToListAsync(cancellationToken);
+
+        if (orphanedTaskIds.Count > 0)
+        {
+            await db.ProjectTasks
+                .Where(t => orphanedTaskIds.Contains(t.Id))
+                .ExecuteUpdateAsync(s => s.SetProperty(t => t.ProjectFolderId, (Guid?)null), cancellationToken);
+        }
+
         folder.Delete();
 
         var affectedRows = await db.SaveChangesAsync(cancellationToken);
@@ -37,6 +50,19 @@ public class DeleteFolderHandler(
                 workspaceContext.TryGetWorkspaceId().Value,
                 new EntityBatchDelete { FolderIds = [folder.Id] },
                 cancellationToken);
+
+            // Broadcast the now-unfoldered tasks so other clients update their stores
+            if (orphanedTaskIds.Count > 0)
+            {
+                var updatedTasks = await db.ProjectTasks.AsNoTracking()
+                    .Where(t => orphanedTaskIds.Contains(t.Id))
+                    .Select(t => TaskRecord.FromDomain(t))
+                    .ToListAsync(cancellationToken);
+                _ = realtimeService.NotifyEntitiesUpdatedAsync(
+                    workspaceContext.TryGetWorkspaceId().Value,
+                    new EntityBatchUpdate { Tasks = updatedTasks },
+                    default);
+            }
                 
             bool hasRemainingFolders = await db.ProjectFolders.AnyAsync(f => f.ProjectSpaceId == folder.ProjectSpaceId && f.DeletedAt == null, cancellationToken);
             if (!hasRemainingFolders)

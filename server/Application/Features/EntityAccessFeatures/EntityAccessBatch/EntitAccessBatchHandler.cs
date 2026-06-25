@@ -45,6 +45,7 @@ public class EntityAccessBatchHandler(
         var existingLookUpById = existingAccesses.ToDictionary(a => a.Id);
         var existingLookUpByMember = existingAccesses.ToDictionary(a => a.WorkspaceMemberId);
 
+        var deletedEntityAccessIds = new List<Guid>();
         foreach (var row in deleteAccess)
         {
             EntityAccess? entity = null;
@@ -56,7 +57,7 @@ public class EntityAccessBatchHandler(
             if (entity is null)
                 return Result.Failure(Error.Validation("Access.NotFound", "Cannot delete access because it does not exist."));
 
-            // Hard-delete — entity_access is a relationship record, no audit trail needed
+            deletedEntityAccessIds.Add(entity.Id);
             db.EntityAccesses.Remove(entity);
         }
 
@@ -112,8 +113,18 @@ public class EntityAccessBatchHandler(
             await db.EntityAccesses.AddRangeAsync(newAccess, cancellationToken);
         await db.SaveChangesAsync(cancellationToken);
 
-        // Notify workspace for updated/new records (admins, the space view, etc.)
-        var updatedRecords = newAccess.Select(EntityAccessRecord.FromDomain).ToList();
+        // Notify workspace: new/updated records go to all workspace members
+        var updatedRecords = newAccess
+            .Concat(updateAccess.SelectMany(row =>
+            {
+                EntityAccess? e = null;
+                if (row.Id.HasValue) existingLookUpById.TryGetValue(row.Id.Value, out e);
+                else existingLookUpByMember.TryGetValue(row.MemberId, out e);
+                return e != null ? (IEnumerable<EntityAccess>)[e] : [];
+            }))
+            .Select(EntityAccessRecord.FromDomain)
+            .ToList();
+
         if (updatedRecords.Count > 0)
         {
             _ = realtimeService.NotifyEntitiesUpdatedAsync(
@@ -122,31 +133,52 @@ public class EntityAccessBatchHandler(
                 default);
         }
 
-        var allAffectedMemberIds = revokedMemberIds.Union(grantedMemberIds).ToList();
-        if (allAffectedMemberIds.Count > 0)
+        // Revokes: workspace broadcast (removes from store for admins) + personal "AccessRevoked" to affected user
+        if (deletedEntityAccessIds.Count > 0)
         {
-            var affectedUsers = await db.WorkspaceMembers
-                .Where(m => allAffectedMemberIds.Contains(m.Id) && m.DeletedAt == null)
+            _ = realtimeService.NotifyEntitiesDeletedAsync(
+                workspaceContext.WorkspaceId,
+                new EntityBatchDelete { EntityAccessIds = deletedEntityAccessIds },
+                default);
+
+            var revokedUsers = await db.WorkspaceMembers
+                .Where(m => revokedMemberIds.Contains(m.Id) && m.DeletedAt == null)
                 .Select(m => new { m.Id, m.UserId })
                 .ToListAsync(cancellationToken);
 
-            foreach (var user in affectedUsers)
+            foreach (var user in revokedUsers)
             {
-                // Send the user their current active entity_access records for this space
-                // so their frontend can update store + refetch hierarchy
-                var userAccess = (await db.EntityAccesses
-                    .Where(ea => ea.WorkspaceMemberId == user.Id
-                              && ea.ProjectSpaceId == request.SpaceId
-                              && ea.DeletedAt == null)
-                    .ToListAsync(cancellationToken))
+                // Dedicated event so frontend always knows it affects the current user — no store lookup needed
+                _ = realtimeService.NotifyUserAsync(user.UserId, "AccessRevoked",
+                    new { SpaceId = request.SpaceId }, default);
+            }
+        }
+
+        // Grants: workspace broadcast + dedicated personal "AccessGranted" to affected user
+        if (grantedMemberIds.Count > 0)
+        {
+            var grantedUsers = await db.WorkspaceMembers
+                .Where(m => grantedMemberIds.Contains(m.Id) && m.DeletedAt == null)
+                .Select(m => new { m.Id, m.UserId })
+                .ToListAsync(cancellationToken);
+
+            foreach (var user in grantedUsers)
+            {
+                _ = realtimeService.NotifyUserAsync(user.UserId, "AccessGranted",
+                    new { SpaceId = request.SpaceId }, default);
+
+                var userAccess = newAccess
+                    .Where(ea => ea.WorkspaceMemberId == user.Id)
                     .Select(EntityAccessRecord.FromDomain)
                     .ToList();
 
-                _ = realtimeService.NotifyUserAsync(
-                    user.UserId,
-                    "EntitiesUpdated",
-                    new EntityBatchUpdate { EntityAccess = userAccess },
-                    default);
+                if (userAccess.Count > 0)
+                {
+                    _ = realtimeService.NotifyUserAsync(
+                        user.UserId, "EntitiesUpdated",
+                        new EntityBatchUpdate { EntityAccess = userAccess },
+                        default);
+                }
             }
         }
         

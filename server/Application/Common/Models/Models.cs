@@ -90,6 +90,7 @@ public record FolderRecord
 public record DocumentBlockRecord
 {
     public Guid Id { get; init; }
+    public Guid DocumentId { get; init; }
     public BlockType Type { get; init; }
     public string Content { get; init; } = null!;
     public string OrderKey { get; init; } = null!;

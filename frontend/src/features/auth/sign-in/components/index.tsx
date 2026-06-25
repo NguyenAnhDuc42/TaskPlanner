@@ -22,18 +22,18 @@ export function SignInPage() {
             <span className="text-sm font-black text-foreground/90 tracking-tight">TaskPlanner</span>
           </div>
           <h2 className="text-2xl font-black text-foreground/90 leading-tight mb-3">
-            Organize everything.<br />Ship faster.
+            Just trying to<br />get things done.
           </h2>
           <p className="text-sm text-muted-foreground/60 leading-relaxed">
-            A unified workspace for your tasks, projects, and team — built for developers who move fast.
+            A simple, personal workspace for my own tasks. Still a work in progress, but it's getting there.
           </p>
 
           {/* Feature list */}
           <div className="mt-8 space-y-3">
             {[
-              "Kanban boards with drag & drop",
-              "Real-time team collaboration",
-              "Custom workflows per project",
+              "It has boards, I guess",
+              "No teams, just me",
+              "Maybe some bugs",
             ].map((f) => (
               <div key={f} className="flex items-center gap-2.5 text-xs text-muted-foreground/60">
                 <div className="h-1.5 w-1.5 rounded-full bg-primary/60 shrink-0" />

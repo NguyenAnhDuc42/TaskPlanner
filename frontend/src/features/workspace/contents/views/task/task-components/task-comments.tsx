@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useSelector } from "react-redux";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { UserAvatar } from "@/components/user-avatar";
 import { Send, CornerDownRight, Trash2, X, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { MentionInput } from "@/components/mention-input";
@@ -18,25 +18,36 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
-// Renders comment text with @mention tokens as styled blocks.
-// New regex instance per call — avoids shared lastIndex bug with /g flag.
-// Pattern stops at space-then-@ so two adjacent mentions don't merge.
+// Renders comment text — handles new @[workspaceMemberId] tokens and legacy @Name text.
 function CommentContent({ content }: { content: string }) {
-  const re = /@((?:\w+)(?:\s(?!\s*@)\w+)*)/g;
+  const allMembers = useSelector(memberSelectors.selectEntities);
+
+  const idTokenRe  = /@\[([a-f0-9-]{36})\]/g;
+  const nameTokenRe = /@((?:\w+)(?:\s(?!\s*@)\w+)*)/g;
+
+  const segments: { index: number; length: number; label: string }[] = [];
+  let m: RegExpExecArray | null;
+
+  while ((m = idTokenRe.exec(content)) !== null) {
+    const member = allMembers[m[1]];
+    segments.push({ index: m.index, length: m[0].length, label: member?.name ?? `user` });
+  }
+  while ((m = nameTokenRe.exec(content)) !== null) {
+    if (segments.some(s => m!.index >= s.index && m!.index < s.index + s.length)) continue;
+    segments.push({ index: m.index, length: m[0].length, label: m[1] });
+  }
+  segments.sort((a, b) => a.index - b.index);
+
   const parts: React.ReactNode[] = [];
   let last = 0;
-  let match: RegExpExecArray | null;
-  while ((match = re.exec(content)) !== null) {
-    if (match.index > last) parts.push(content.slice(last, match.index));
+  for (const seg of segments) {
+    if (seg.index > last) parts.push(content.slice(last, seg.index));
     parts.push(
-      <span
-        key={match.index}
-        className="inline-flex items-center bg-primary/15 text-primary text-[10px] font-black px-2 py-0.5 rounded-md mx-0.5 align-middle border border-primary/20"
-      >
-        @{match[1]}
+      <span key={seg.index} className="inline-flex items-center bg-primary/15 text-primary text-[10px] font-black px-2 py-0.5 rounded-md mx-0.5 align-middle border border-primary/20">
+        @{seg.label}
       </span>
     );
-    last = match.index + match[0].length;
+    last = seg.index + seg.length;
   }
   if (last < content.length) parts.push(content.slice(last));
   return <>{parts}</>;
@@ -114,17 +125,18 @@ export function TaskComments({ taskId }: Readonly<TaskCommentsProps>) {
           comments.map((comment) => {
             const creator = allMembers.find((m) => m.userId === comment.creatorId);
             const name = creator?.name || "Unknown User";
-            const initials = name.split(" ").map((n: string) => n[0]).join("").slice(0, 2).toUpperCase();
             const parentComment = comment.parentCommentId ? comments.find(c => c.id === comment.parentCommentId) : null;
             const parentMember = parentComment ? allMembers.find(m => m.userId === parentComment.creatorId) : null;
             const parentName = parentMember ? parentMember.name : "Unknown User";
 
             return (
               <div key={comment.id} className="flex gap-3 group">
-                <Avatar className="h-7 w-7 mt-0.5 shrink-0 rounded-md">
-                  {creator?.avatarUrl && <AvatarImage src={creator.avatarUrl} alt={name} />}
-                  <AvatarFallback className="text-[10px] bg-primary/20 text-primary font-bold rounded-md">{initials}</AvatarFallback>
-                </Avatar>
+                <UserAvatar
+                  name={name}
+                  avatarUrl={creator?.avatarUrl || null}
+                  className="h-7 w-7 mt-0.5 shrink-0 rounded-md"
+                  fallbackClassName="text-[10px] font-bold rounded-md"
+                />
                 <div className="flex flex-col gap-1 min-w-0 flex-1">
                   <div className="flex items-center gap-2">
                     <span className="font-semibold text-foreground text-xs">{name}</span>

@@ -1,7 +1,8 @@
+import type { AxiosError, InternalAxiosRequestConfig } from "axios";
 import axios from "axios";
 import { api } from "./client";
 import { apiEvents } from "./events";
-import { ApiError } from "@/types/api-error";
+import { ApiError, type ProblemDetails } from "@/types/api-error";
 import { deleteCookie, getCookie } from "../cookie-utils";
 import { toast } from "sonner";
 import { signalRService } from "../signalr-service";
@@ -20,6 +21,11 @@ const processQueue = (error: unknown, token: unknown = null) => {
   });
   failedQueue = [];
 };
+
+// Define an extended interface for retry logic
+interface ExtendedAxiosRequestConfig extends InternalAxiosRequestConfig {
+  _retry?: boolean;
+}
 
 export function setupInterceptors() {
   api.interceptors.request.use(async (config) => {
@@ -65,18 +71,18 @@ export function setupInterceptors() {
     (response) => response,
     async (error: unknown) => {
       const isAxiosErr = axios.isAxiosError(error);
-      const originalRequest = isAxiosErr ? error.config : undefined;
+      const originalRequest = (isAxiosErr ? error.config : undefined) as ExtendedAxiosRequestConfig | undefined;
       const isAuthRequest = originalRequest?.url?.includes("/auth/") && 
                            !originalRequest?.url?.includes("/auth/me");
 
-      if (isAxiosErr && originalRequest && error.response?.status === 401 && !(originalRequest as any)?._retry && !isAuthRequest) {
+      if (isAxiosErr && originalRequest && error.response?.status === 401 && !originalRequest._retry && !isAuthRequest) {
         if (isRefreshing) {
           return new Promise((resolve, reject) => {
             failedQueue.push({ resolve, reject });
           }).then(() => api(originalRequest)).catch((err) => { throw err; });
         }
 
-        (originalRequest as any)._retry = true;
+        originalRequest._retry = true;
         isRefreshing = true;
 
         try {
@@ -94,7 +100,7 @@ export function setupInterceptors() {
             globalThis.location.href = "/auth/sign-in";
           }
           
-          throw isAxiosErr ? new ApiError(error as any) : error;
+          throw isAxiosErr ? new ApiError(error as AxiosError<ProblemDetails>) : error;
         } finally {
           isRefreshing = false;
         }
@@ -109,17 +115,17 @@ export function setupInterceptors() {
           toast.error("You do not have access to this workspace.");
           isRedirecting = true;
           globalThis.location.href = "/";
-          throw new ApiError(error as any);
+          throw new ApiError(error as AxiosError<ProblemDetails>);
         }
         toast.error("You don't have permission to do that.");
-        throw new ApiError(error as any);
+        throw new ApiError(error as AxiosError<ProblemDetails>);
       }
 
       if (isAxiosErr && (error.response?.status ?? 0) >= 500) {
         toast.error("A server error occurred. Please try again later.");
       }
 
-      throw isAxiosErr ? new ApiError(error as any) : error;
+      throw isAxiosErr ? new ApiError(error as AxiosError<ProblemDetails>) : error;
     }
   );
 }

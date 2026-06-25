@@ -9,8 +9,8 @@ public class DocumentBlock : TenantEntity
 
     private DocumentBlock() { }
 
-    private DocumentBlock(Guid workspaceId, Guid documentId, BlockType type, string content, string orderKey, Guid creatorId)
-        : base(Guid.NewGuid(), workspaceId)
+    private DocumentBlock(Guid id, Guid workspaceId, Guid documentId, BlockType type, string content, string orderKey, Guid creatorId)
+        : base(id, workspaceId)
     {
         DocumentId = documentId;
         Type = type;
@@ -21,9 +21,10 @@ public class DocumentBlock : TenantEntity
     }
 
     public static DocumentBlock Create(Guid workspaceId, Guid documentId, BlockType type, string content, string orderKey, Guid creatorId)
-    {
-        return new DocumentBlock(workspaceId, documentId, type, content, orderKey, creatorId);
-    }
+        => new(Guid.NewGuid(), workspaceId, documentId, type, content, orderKey, creatorId);
+
+    public static DocumentBlock CreateWithId(Guid id, Guid workspaceId, Guid documentId, BlockType type, string content, string orderKey, Guid creatorId)
+        => new(id, workspaceId, documentId, type, content, orderKey, creatorId);
 
     public void UpdateContent(string content)
     {

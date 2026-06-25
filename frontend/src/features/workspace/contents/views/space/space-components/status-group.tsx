@@ -47,7 +47,7 @@ export function StatusGroup({
       <div className="flex items-center justify-between px-3 py-2 group/header border-b border-border bg-muted/10">
         <div className="flex items-center gap-3">
           <StatusBadge status={{ name: statusName, color: color, category } as Status} variant="outline" />
-          <span className="text-[9px] font-black text-muted-foreground/40 px-2 py-0.5 rounded-md bg-white/[0.02] border border-white/[0.03]">
+          <span className="text-[9px] font-black text-muted-foreground/40 px-2 py-0.5 rounded-md bg-white/2 border border-white/3">
             {totalCount}
           </span>
         </div>

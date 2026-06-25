@@ -12,10 +12,11 @@ public class GetDocumentBlocksHandler(TaskPlanDbContext db) : IQueryHandler<GetD
     public async Task<Result<List<DocumentBlockRecord>>> Handle(GetDocumentBlocksQuery request, CancellationToken cancellationToken)
     {
         const string sql = @"
-            SELECT 
-                id AS Id, 
-                type AS Type, 
-                content AS Content, 
+            SELECT
+                id AS Id,
+                document_id AS DocumentId,
+                type AS Type,
+                content AS Content,
                 order_key AS OrderKey
             FROM document_blocks
             WHERE document_id = @DocumentId AND deleted_at IS NULL

@@ -9,7 +9,7 @@ import { MEMBERSHIP_STATUS_LABELS } from "@/types/membership-status";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { UserAvatar } from "@/components/user-avatar";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -210,18 +210,26 @@ export function MemberList({ members = [], currentUserId, isSaving, onSave }: Pr
   // ─── Render ───────────────────────────────────────────────────────────────
 
   return (
-    <div className="h-full flex flex-col bg-background overflow-hidden relative">
+    <div className="h-full flex flex-col bg-card/40 overflow-hidden relative">
 
       {/* Header */}
       <div className="border-b border-border px-2 py-1 flex items-center gap-2">
-        <div className="relative flex-1 max-w-xs">
-          <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground/40" />
-          <Input
-            placeholder="Search members..."
+        <div className="flex items-center gap-2 px-2 h-7 rounded-md bg-secondary/60 border border-transparent focus-within:border-primary/30 focus-within:bg-secondary transition-all group flex-1 max-w-xs shadow-inner">
+          <Search className="h-3 w-3 text-muted-foreground/40 group-focus-within:text-primary transition-colors shrink-0" />
+          <input
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-7 h-7 text-[10px] rounded-md bg-muted/20 border-border/10 placeholder:text-muted-foreground/30"
+            placeholder="Search members..."
+            className="flex-1 bg-transparent border-none outline-none text-[11px] font-medium text-foreground placeholder:text-muted-foreground/40 transition-all min-w-0"
           />
+          {searchQuery && (
+            <button
+              onClick={() => setSearchQuery("")}
+              className="text-muted-foreground/40 hover:text-foreground transition-colors shrink-0"
+            >
+              <X className="h-3 w-3" />
+            </button>
+          )}
         </div>
 
         <div className="ml-auto flex items-center gap-1.5">
@@ -251,8 +259,8 @@ export function MemberList({ members = [], currentUserId, isSaving, onSave }: Pr
       </div>
 
       {/* Table */}
-      <div className="flex-1 overflow-auto bg-muted/10">
-        <div className="border border-border rounded-md bg-card shadow-sm overflow-hidden min-w-[700px]">
+      <div className="flex-1 overflow-auto">
+        <div className="min-w-[700px]">
           {/* Column headers */}
           <div className="grid grid-cols-[28px_3fr_140px_140px_80px_36px] text-[10px] font-black uppercase tracking-wider text-muted-foreground/80 border-b border-border bg-muted/30 sticky top-0 z-10">
             <div className="flex items-center justify-center py-2">
@@ -303,10 +311,12 @@ export function MemberList({ members = [], currentUserId, isSaving, onSave }: Pr
 
                 {/* Name / Email */}
                 <div className="flex items-center gap-2.5 px-3 py-2 min-w-0">
-                  <Avatar className="h-6 w-6 rounded-md shrink-0">
-                    <AvatarImage src={member.avatarUrl ?? ""} />
-                    <AvatarFallback className="text-[9px] bg-muted rounded-md">{member.name[0]}</AvatarFallback>
-                  </Avatar>
+                  <UserAvatar
+                    name={member.name}
+                    avatarUrl={member.avatarUrl}
+                    className="h-6 w-6 rounded-md"
+                    fallbackClassName="text-[9px] rounded-md"
+                  />
                   <div className="flex flex-col min-w-0">
                     <div className="flex items-center gap-1.5">
                       <span className={cn("font-medium truncate", isRemoved && "line-through text-muted-foreground")}>

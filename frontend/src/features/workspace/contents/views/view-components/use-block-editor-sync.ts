@@ -1,97 +1,178 @@
-import { useEffect, useMemo, useRef } from "react";
-import { useGetDocumentBlocksQuery, useUpdateDocumentBlocksMutation } from "./document-api";
+import { useState, useEffect, useRef, useCallback } from "react";
+import {
+  useGetDocumentBlocksQuery,
+  useUpdateDocumentBlocksMutation,
+} from "./document-api";
 import { BlockType } from "@/types/block-type";
-import type { DocumentBlockRecord } from "@/types/document/document-block-record";
-import type { DocumentBlockValue, TiptapDoc } from "./document-types";
+
+type AnyBlock = {
+  id: string;
+  type: string;
+  props?: Record<string, unknown>;
+  [k: string]: unknown;
+};
+
+function getBlockType(
+  type: string,
+  props?: Record<string, unknown>,
+): BlockType {
+  switch (type) {
+    case "heading":
+      if (props?.level === 2) return BlockType.Heading2;
+      if (props?.level === 3) return BlockType.Heading3;
+      return BlockType.Heading1;
+    case "bulletListItem":
+      return BlockType.BulletList;
+    case "numberedListItem":
+      return BlockType.OrderedList;
+    case "checkListItem":
+      return BlockType.TaskItem;
+    default:
+      return BlockType.Paragraph;
+  }
+}
+
+function hashBlock(block: AnyBlock): string {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const { id, ...rest } = block;
+  void id;
+  return JSON.stringify(rest);
+}
 
 export function useBlockEditorSync(documentId: string) {
-  const { data: blocks } = useGetDocumentBlocksQuery(documentId);
+  const { data: dbBlocks, isSuccess } = useGetDocumentBlocksQuery(documentId, {
+    skip: !documentId,
+  });
   const [updateBlocks] = useUpdateDocumentBlocksMutation();
-  
-  const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  
-  // Track blocks in a ref so performSave always reads the fresh state
-  const blocksRef = useRef(blocks);
-  useEffect(() => {
-    blocksRef.current = blocks;
-  }, [blocks]);
 
-  // Convert flat DB blocks to Tiptap JSON
-  const initialContent = useMemo<TiptapDoc>(() => {
-    if (!blocks || blocks.length === 0) return { type: "doc", content: [] };
-    
-    const firstBlock = blocks[0];
-    if (firstBlock && firstBlock.content) {
+  // version increments when external SignalR update forces editor remount
+  const [ready, setReady] = useState<{
+    content: AnyBlock[] | undefined;
+    version: number;
+  } | null>(null);
+
+  const snapshotRef = useRef<Map<string, string>>(new Map());
+  const isInitRef = useRef(false);
+  const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const latestRef = useRef<AnyBlock[] | null>(null);
+
+  useEffect(() => {
+    if (!isSuccess) return;
+
+    const blocks: AnyBlock[] = [];
+    const snapshot = new Map<string, string>();
+
+    for (const db of dbBlocks ?? []) {
+      let parsed: AnyBlock;
       try {
-        return JSON.parse(firstBlock.content) as TiptapDoc;
-      } catch (e) {
-        console.error("Failed to parse document JSON", e);
+        parsed = JSON.parse(db.content) as AnyBlock;
+      } catch {
+        parsed = { id: db.id, type: "paragraph", props: {}, content: [], children: [] };
       }
+      if (parsed.type === "doc") {
+        parsed = { id: db.id, type: "paragraph", props: {}, content: [], children: [] };
+      }
+      const block: AnyBlock = { ...parsed, id: db.id };
+      blocks.push(block);
+      snapshot.set(db.id, hashBlock(block));
     }
-    
-    return { type: "doc", content: [] };
-  }, [blocks]);
 
-  const latestJsonRef = useRef<Record<string, unknown> | null>(null);
-
-  const performSave = (json: Record<string, unknown>) => {
-    const contentStr = JSON.stringify(json);
-    const currentBlocks = blocksRef.current;
-    const firstBlock = currentBlocks?.[0];
-    
-    const blocksToUpdate: DocumentBlockValue[] = [
-      {
-        id: firstBlock?.id,
-        content: contentStr,
-        orderKey: "A",
-        blockType: BlockType.Paragraph,
-        isDeleted: false
-      }
-    ];
-
-    // Mark all other blocks as deleted to clean up the DB
-    const deletedBlocks: DocumentBlockValue[] = [];
-    currentBlocks?.forEach((b: DocumentBlockRecord) => {
-      if (b.id !== firstBlock?.id) {
-        deletedBlocks.push({
-          id: b.id,
-          content: "",
-          orderKey: "",
-          blockType: BlockType.Paragraph,
-          isDeleted: true
-        });
-      }
-    });
-
-    const allBlocks = [...blocksToUpdate, ...deletedBlocks];
-    
-    if (allBlocks.length > 0) {
-      updateBlocks({ documentId, blocks: allBlocks });
+    if (!isInitRef.current) {
+      // First load
+      isInitRef.current = true;
+      snapshotRef.current = snapshot;
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setReady({ content: blocks.length > 0 ? blocks : undefined, version: 0 });
+      return;
     }
-  };
 
-  // Handle the debounced save
-  const handleUpdate = (json: Record<string, unknown>) => {
-    if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
-    latestJsonRef.current = json;
+    // External update (SignalR) — only re-init if user has no pending unsaved changes
+    if (saveTimerRef.current === null) {
+      snapshotRef.current = snapshot;
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setReady(prev => ({
+        content: blocks.length > 0 ? blocks : undefined,
+        version: (prev?.version ?? 0) + 1,
+      }));
+    }
+  }, [isSuccess, dbBlocks]);
 
-    saveTimeoutRef.current = setTimeout(() => {
-      performSave(json);
-      saveTimeoutRef.current = null;
-    }, 2500); // Decoupled & calm 2.5s debounce save duration
-  };
+  const performSave = useCallback(
+    (blocks: AnyBlock[]) => {
+      const prev = snapshotRef.current;
+      const next = new Map<string, string>();
+      const upserts: import("./document-api").DocumentBlockValue[] = [];
+      const deletes: import("./document-api").DocumentBlockValue[] = [];
+      const prevOrder = Array.from(prev.keys());
 
-  useEffect(() => {
-    return () => {
-      if (saveTimeoutRef.current && latestJsonRef.current) {
-        clearTimeout(saveTimeoutRef.current);
-        performSave(latestJsonRef.current);
+      blocks.forEach((block, index) => {
+        const hash = hashBlock(block);
+        const orderKey = String(index + 1).padStart(8, "0");
+        next.set(block.id, hash);
+
+        const isNew = !prev.has(block.id);
+        const changed = prev.get(block.id) !== hash;
+        const reordered = prevOrder.indexOf(block.id) !== index;
+
+        if (isNew || changed || reordered) {
+          // Strip id from content — backend stores content without the id field
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
+          const { id: _id, ...rest } = block;
+          upserts.push({
+            id: block.id,
+            content: JSON.stringify(rest),
+            orderKey,
+            blockType: getBlockType(block.type, block.props),
+            isDeleted: false,
+          });
+        }
+      });
+
+      for (const prevId of prev.keys()) {
+        if (!next.has(prevId)) {
+          deletes.push({
+            id: prevId,
+            content: "",
+            orderKey: "",
+            blockType: BlockType.Paragraph,
+            isDeleted: true,
+          });
+        }
       }
-    };
-  }, [documentId]);
+
+      snapshotRef.current = next;
+      const changes = [...upserts, ...deletes];
+      if (changes.length > 0) updateBlocks({ documentId, blocks: changes });
+    },
+    [documentId, updateBlocks],
+  );
+
+  const handleUpdate = useCallback(
+    (blocks: AnyBlock[]) => {
+      latestRef.current = blocks;
+      if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+      saveTimerRef.current = setTimeout(() => {
+        performSave(blocks);
+        saveTimerRef.current = null;
+      }, 2000);
+    },
+    [performSave],
+  );
+
+  useEffect(
+    () => () => {
+      if (saveTimerRef.current && latestRef.current) {
+        clearTimeout(saveTimerRef.current);
+        performSave(latestRef.current);
+      }
+    },
+    [performSave],
+  );
 
   return {
-    initialContent,
-    handleUpdate
+    initialContent: ready?.content,
+    handleUpdate,
+    isReady: ready !== null,
+    version: ready?.version ?? 0,
   };
 }

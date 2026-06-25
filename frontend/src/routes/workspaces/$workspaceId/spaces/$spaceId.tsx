@@ -23,5 +23,5 @@ export const Route = createFileRoute("/workspaces/$workspaceId/spaces/$spaceId")
 
 function SpaceContent() {
   const { spaceId } = useParams({ from: "/workspaces/$workspaceId/spaces/$spaceId" });
-  return <SpaceView spaceId={spaceId} />;
+  return <SpaceView key={spaceId} spaceId={spaceId} />;
 }

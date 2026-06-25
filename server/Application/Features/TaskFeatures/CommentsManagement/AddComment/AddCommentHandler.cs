@@ -70,21 +70,20 @@ public partial class AddCommentHandler(
             var actor = await db.Users.AsNoTracking().Where(u => u.Id == actorUserId).Select(u => u.Name).FirstOrDefaultAsync(cancellationToken);
             var actorName = actor ?? "Someone";
 
-            // Detect @mentions — find @Name patterns and notify those members too
-            var mentionedNames = MentionRegex.Matches(request.Content)
-                .Select(m => m.Groups[1].Value.Trim().ToLowerInvariant())
-                .Where(n => n.Length > 0)
+            // Detect @[workspaceMemberId] tokens — ID-stable, no name matching needed
+            var mentionedMemberIds = MentionRegex.Matches(request.Content)
+                .Select(m => m.Groups[1].Value)
+                .Where(id => Guid.TryParse(id, out _))
+                .Select(Guid.Parse)
                 .Distinct()
                 .ToList();
 
             var mentionedUserIds = new HashSet<Guid>();
-            if (mentionedNames.Count > 0)
+            if (mentionedMemberIds.Count > 0)
             {
                 var matched = await db.WorkspaceMembers
-                    .Where(m => m.ProjectWorkspaceId == task.ProjectWorkspaceId && m.DeletedAt == null)
-                    .Join(db.Users, m => m.UserId, u => u.Id, (m, u) => new { m.UserId, u.Name })
-                    .Where(x => mentionedNames.Contains(x.Name.ToLower()))
-                    .Select(x => x.UserId)
+                    .Where(m => mentionedMemberIds.Contains(m.Id) && m.DeletedAt == null)
+                    .Select(m => m.UserId)
                     .ToListAsync(cancellationToken);
                 mentionedUserIds = matched.ToHashSet();
                 recipientUserIds.AddRange(mentionedUserIds);
@@ -110,5 +109,5 @@ public partial class AddCommentHandler(
     }
 
     private static readonly System.Text.RegularExpressions.Regex MentionRegex =
-        new(@"@([\w]+(?:\s[\w]+)*)(?=\s|$|[^a-zA-Z\s])", System.Text.RegularExpressions.RegexOptions.Compiled);
+        new(@"@\[([a-f0-9\-]{36})\]", System.Text.RegularExpressions.RegexOptions.Compiled);
 }

@@ -10,7 +10,7 @@ import type { BoardItem } from "../space-api";
 import { DialogFormWrapper } from "@/components/dialog-form-wrapper";
 import { CreateTaskForm } from "@/features/workspace/components/forms/create-task-form";
 import { EntityLayerType } from "@/types/entity-layer-type";
-import { useWorkspaceRole } from "@/features/workspace/context/use-workspace-role";
+import { useSpaceAccess } from "@/features/workspace/context/use-space-access";
 
 export const BoardColumn = React.memo(function BoardColumn({
   statusId,
@@ -43,7 +43,7 @@ export const BoardColumn = React.memo(function BoardColumn({
     [items]
   );
 
-  const { canCreateContent } = useWorkspaceRole();
+  const { canEdit: canCreateContent } = useSpaceAccess(spaceId);
   const [createOpen, setCreateOpen] = useState(false);
 
   return (

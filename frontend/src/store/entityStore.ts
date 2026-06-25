@@ -333,3 +333,4 @@ export const workspaceSelectors    = adapters.workspaces.getSelectors((s: RootSt
 export const attachmentSelectors   = adapters.attachments.getSelectors((s: RootState) => s.attachments);
 export const documentBlockSelectors = adapters.documentBlocks.getSelectors((s: RootState) => s.documentBlocks);
 export const notificationSelectors  = adapters.notifications.getSelectors((s: RootState) => s.notifications);
+

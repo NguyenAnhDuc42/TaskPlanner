@@ -1,7 +1,7 @@
-import * as React from "react";
-import { useState } from "react";
-import { FileText, Plus } from "lucide-react";
-import { useSpaceDetail, useGetSpaceDocumentsQuery, useCreateSpaceDocumentMutation } from "../space-api";
+import { Lock, Unlock } from "lucide-react";
+import { useSpaceDetail, useUpdateSpaceFieldMutation } from "../space-api";
+import { useSpaceAccess } from "@/features/workspace/context/use-space-access";
+import { UniversalPicker } from "@/components/universal-picker";
 import { BlockEditor } from "@/components/blockbase/block-editor";
 
 interface SpaceDocumentsPanelProps {
@@ -10,129 +10,59 @@ interface SpaceDocumentsPanelProps {
 
 export function SpaceDocumentsPanel({ spaceId }: SpaceDocumentsPanelProps) {
   const space = useSpaceDetail(spaceId);
-  const { data: docTabs = [] } = useGetSpaceDocumentsQuery(spaceId);
-  const [createSpaceDocument] = useCreateSpaceDocumentMutation();
-
-  const [activeDocId, setActiveDocId] = useState<string | null>(null);
-  const [isCreatingTab, setIsCreatingTab] = useState(false);
-  const [newTabName, setNewTabName] = useState("");
-  const isSavingTabRef = React.useRef(false);
-
-  React.useEffect(() => {
-    if (space?.defaultDocumentId) {
-      setActiveDocId(space.defaultDocumentId);
-    } else {
-      setActiveDocId(null);
-    }
-  }, [spaceId, space?.defaultDocumentId]);
-
-  const handleAddTabClick = () => {
-    setIsCreatingTab(true);
-    setNewTabName("");
-    isSavingTabRef.current = false;
-  };
-
-  const handleConfirmAddTab = async () => {
-    if (isSavingTabRef.current) return;
-    isSavingTabRef.current = true;
-
-    const name = newTabName.trim();
-    if (!name) {
-      setIsCreatingTab(false);
-      return;
-    }
-
-    try {
-      const newDoc = await createSpaceDocument({ spaceId, name }).unwrap();
-      setActiveDocId(newDoc.id);
-    } catch (e) {
-      console.error("Failed to create space document:", e);
-    } finally {
-      setIsCreatingTab(false);
-    }
-  };
-
-  const handleCancelAddTab = () => {
-    setIsCreatingTab(false);
-  };
+  const { canEdit, canManage } = useSpaceAccess(spaceId);
+  const [updateSpaceField] = useUpdateSpaceFieldMutation();
 
   if (!space) return null;
 
   return (
-    <div className="rounded-md border border-border overflow-hidden bg-card shadow-sm">
-      {/* Tab bar */}
-      <div className="flex items-center gap-0 bg-white/[0.02] border-b border-border/15 px-2 pt-1 select-none overflow-x-auto">
-        {/* Default Overview doc tab */}
-        {space.defaultDocumentId && (
-          <div
-            onClick={() => setActiveDocId(space.defaultDocumentId || null)}
-            className={`flex items-center gap-1.5 pb-1.5 px-3 text-[11px] font-semibold border-b-2 cursor-pointer transition-all ${
-              activeDocId === space.defaultDocumentId
-                ? "border-primary text-foreground"
-                : "border-transparent text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            <FileText className="h-3 w-3" />
-            <span>Overview</span>
-          </div>
-        )}
+    <div className="flex flex-col h-full overflow-hidden">
 
-        {/* Custom document tabs */}
-        {docTabs.filter((tab) => !tab.isDefault).map((tab) => (
-          <div
-            key={tab.id}
-            onClick={() => setActiveDocId(tab.id)}
-            className={`flex items-center gap-1.5 pb-1.5 px-3 text-[11px] font-semibold border-b-2 cursor-pointer transition-all group relative ${
-              activeDocId === tab.id
-                ? "border-primary text-foreground"
-                : "border-transparent text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            <FileText className="h-3 w-3 text-sky-400" />
-            <span>{tab.name}</span>
-          </div>
-        ))}
-
-        {/* Inline Temporary Creating Tab */}
-        {isCreatingTab && (
-          <div className="flex items-center gap-1.5 pb-1.5 px-3 text-[11px] font-semibold border-b-2 border-primary text-foreground">
-            <FileText className="h-3 w-3 text-sky-400" />
+      {/* Space hero header */}
+      <div className="px-8 pt-8 pb-4 shrink-0">
+        <div className="flex items-center gap-3">
+          <UniversalPicker
+            icon={space.icon || "LayoutGrid"}
+            color={space.color || "#3b82f6"}
+            onSelect={(icon, color) => updateSpaceField({ spaceId, patches: { icon, color } })}
+            size="lg"
+          />
+          <div className="min-w-0 flex-1">
             <input
-              type="text"
-              aria-label="New document name"
-              value={newTabName}
-              onChange={(e) => setNewTabName(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") handleConfirmAddTab();
-                if (e.key === "Escape") handleCancelAddTab();
+              key={spaceId}
+              className="text-xl font-black text-foreground/90 tracking-tight leading-none bg-transparent border-none outline-none w-full hover:bg-muted/20 focus:bg-muted/30 px-1 rounded transition-colors"
+              defaultValue={space.name}
+              readOnly={!canManage}
+              onBlur={e => {
+                if (canManage && e.target.value.trim() && e.target.value !== space.name)
+                  updateSpaceField({ spaceId, patches: { name: e.target.value.trim() } });
               }}
-              onBlur={handleConfirmAddTab}
-              className="bg-transparent border-none outline-none text-[11px] font-semibold text-foreground w-20 py-0 px-0.5"
-              placeholder="Doc name..."
+              onKeyDown={e => { if (e.key === "Enter") e.currentTarget.blur(); }}
             />
+            <div className="px-1 mt-0.5">
+              {space.isPrivate ? (
+                <span className="flex items-center gap-0.5 text-[9px] font-bold text-rose-400/70 uppercase tracking-wider">
+                  <Lock className="h-2.5 w-2.5" /> Private
+                </span>
+              ) : (
+                <span className="flex items-center gap-0.5 text-[9px] font-bold text-emerald-400/70 uppercase tracking-wider">
+                  <Unlock className="h-2.5 w-2.5" /> Public
+                </span>
+              )}
+            </div>
           </div>
-        )}
-
-        {/* Add document button */}
-        <button
-          onClick={handleAddTabClick}
-          className="mb-1.5 ml-auto flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] text-muted-foreground/60 hover:text-muted-foreground hover:bg-muted/40 transition-all cursor-pointer"
-          title="Add document tab"
-        >
-          <Plus className="h-3 w-3" />
-          <span>Add Tab</span>
-        </button>
+        </div>
       </div>
 
-      {/* Document content */}
-      <div className="px-4 py-3">
-        {activeDocId ? (
-          <BlockEditor key={activeDocId} documentId={activeDocId} />
+      {/* Divider */}
+      <div className="mx-8 border-t border-border/15 shrink-0" />
+
+      {/* Document — fills remaining space */}
+      <div className="flex-1 overflow-y-auto px-8 py-4 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:bg-muted-foreground/20 hover:[&::-webkit-scrollbar-thumb]:bg-muted-foreground/40 [&::-webkit-scrollbar-track]:bg-transparent">
+        {space.defaultDocumentId ? (
+          <BlockEditor key={space.defaultDocumentId} documentId={space.defaultDocumentId} editable={canEdit} />
         ) : (
-          <div className="flex flex-col items-center justify-center py-10 text-center gap-2">
-            <FileText className="h-8 w-8 text-muted-foreground/20" />
-            <p className="text-xs text-muted-foreground/50 font-medium">No document selected.</p>
-          </div>
+          <p className="text-xs text-muted-foreground/40 px-1 mt-2">No document for this space yet.</p>
         )}
       </div>
     </div>

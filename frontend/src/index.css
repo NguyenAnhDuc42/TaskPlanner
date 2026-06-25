@@ -259,6 +259,13 @@
   display: none !important;
 }
 
+/* BlockNote: transparent bg, flush left alignment, checklist fix */
+.bn-editor { background: transparent !important; padding-inline: 0 !important; }
+[data-theming-mantine-provider] { background: transparent !important; }
+.bn-block-content[data-content-type="checkListItem"] { align-items: center !important; }
+
+
+
 /* Expand resize hitboxes to span the full edges */
 .react-resizable-handle,
 .react-resizable-handle-n,
@@ -374,7 +381,7 @@
   --card-foreground: oklch(0.98 0 0);
   --popover: oklch(0.17 0 0);
   --popover-foreground: oklch(0.98 0 0);
-  --primary: oklch(0.65 0 0); /* Softened white for less harsh select states */
+  --primary: oklch(0.80 0 0); /* Pure White for primary brand/actions */
   --primary-foreground: oklch(0.12 0 0); /* Black text */
   --secondary: oklch(0.22 0 0);
   --secondary-foreground: oklch(0.98 0 0);
@@ -403,7 +410,7 @@
   --card-foreground: oklch(0.12 0 0);
   --popover: oklch(0.99 0 0);
   --popover-foreground: oklch(0.12 0 0);
-  --primary: oklch(0.55 0 0); /* Softened black for less harsh select states */
+  --primary: oklch(0.12 0 0); /* Pure Black for primary brand/actions */
   --primary-foreground: oklch(0.98 0 0); /* White text */
   --secondary: oklch(0.92 0 0);
   --secondary-foreground: oklch(0.12 0 0);

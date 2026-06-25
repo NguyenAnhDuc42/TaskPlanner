@@ -1,4 +1,4 @@
-import { Plus, EyeOff, Eye } from "lucide-react";
+import { Plus, EyeOff, Eye, Search, X } from "lucide-react";
 import { StatusBadge } from "@/components/status-badge";
 import { useCallback } from "react";
 import { cn } from "@/lib/utils";
@@ -137,13 +137,23 @@ export function SpaceFilterBar({
             loading…
           </span>
         )}
-        <input
-          type="text"
-          placeholder="Search..."
-          value={searchInput}
-          onChange={(e) => onSearchChange(e.target.value)}
-          className="h-7 w-36 focus:w-48 bg-secondary/60 hover:bg-secondary/80 focus:bg-secondary/80 border border-transparent focus:border-primary/30 focus:ring-1 focus:ring-primary/20 rounded-md px-2.5 text-[11px] text-foreground/80 outline-none transition-all placeholder:text-muted-foreground/50 shadow-inner"
-        />
+        <div className="flex items-center gap-2 px-2 h-7 w-36 focus-within:w-48 rounded-md bg-secondary/60 border border-transparent focus-within:border-primary/30 focus-within:bg-secondary transition-all group shadow-inner">
+          <Search className="h-3 w-3 text-muted-foreground/40 group-focus-within:text-primary transition-colors shrink-0" />
+          <input
+            value={searchInput}
+            onChange={(e) => onSearchChange(e.target.value)}
+            placeholder="Search..."
+            className="flex-1 bg-transparent border-none outline-none text-[11px] font-medium text-foreground placeholder:text-muted-foreground/40 transition-all min-w-0"
+          />
+          {searchInput && (
+            <button
+              onClick={() => onSearchChange("")}
+              className="text-muted-foreground/40 hover:text-foreground transition-colors shrink-0"
+            >
+              <X className="h-3 w-3" />
+            </button>
+          )}
+        </div>
         <SpaceBoardFilterPopover filter={filter} onChange={onFilterChange} folders={folders} />
       </div>
     </div>

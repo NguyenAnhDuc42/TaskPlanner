@@ -1,19 +1,18 @@
 import * as React from "react";
-import { Plus } from "lucide-react";
+import { Plus, Search, X } from "lucide-react";
 import { useParams } from "@tanstack/react-router";
-import { useGetFolderTasksQuery, useBatchUpdateFolderTasksMutation, type TaskFilter, folderApi, useFolderStatuses } from "../folder-api";
+import { useBatchUpdateFolderTasksMutation, type TaskFilter, useFolderStatuses, useFolderTasksFullLoad } from "../folder-api";
 import { DialogFormWrapper } from "@/components/dialog-form-wrapper";
 import { CreateTaskForm } from "@/features/workspace/components/forms/create-task-form";
 import { EntityLayerType } from "@/types/entity-layer-type";
 import { SortableTaskItem } from "./sortable-task-item";
-import { useSelector, useDispatch } from "react-redux";
-import type { AppDispatch } from "@/store";
-import { useWorkspaceRole } from "@/features/workspace/context/use-workspace-role";
+import { useSelector } from "react-redux";
+import { useSpaceAccess } from "@/features/workspace/context/use-space-access";
+import { useFolderDetail } from "../folder-api";
 import { taskSelectors } from "@/store/entityStore";
 import { createSelector } from "@reduxjs/toolkit";
 import { createPortal } from "react-dom";
 import { TaskFilterPopover } from "./task-filter-popover";
-import { useGetWorkspaceMembersQuery } from "@/features/workspace/api";
 import { useDebounce } from "@/hooks/use-debounce";
 import {
   DndContext,
@@ -50,12 +49,11 @@ export function FolderTaskList({
   checkedTaskIds = new Set(),
   onToggleCheck,
 }: FolderTaskListProps) {
-  const params = useParams({ strict: false }) as { workspaceId: string; folderId?: string };
-  const workspaceId = params.workspaceId;
+  const params = useParams({ strict: false }) as { folderId?: string };
   const folderId = folderIdProp || params.folderId || "";
   
-  const dispatch = useDispatch<AppDispatch>();
-  const { canCreateContent } = useWorkspaceRole();
+  const folder = useFolderDetail(folderId);
+  const { canEdit: canCreateContent } = useSpaceAccess(folder?.spaceId ?? "");
   const [createOpen, setCreateOpen] = React.useState(false);
   
   const [filter, setFilter] = React.useState<TaskFilter>({});
@@ -67,47 +65,28 @@ export function FolderTaskList({
   }, [debouncedSearch]);
 
   const folderStatuses = useFolderStatuses(folderId);
-  const { data: membersData } = useGetWorkspaceMembersQuery(workspaceId);
-  const members = membersData?.items || [];
 
-  const { data: queryData, isLoading, isFetching } = useGetFolderTasksQuery({ folderId, cursor: null, filter });
+  const { isLoading } = useFolderTasksFullLoad(folderId);
 
-  // Read directly from entity store — covers paginated loads + newly created tasks
+  // Client-side filter on entity store — all tasks already loaded via full load
   const selectTasks = React.useMemo(() =>
     createSelector(
       [taskSelectors.selectAll],
       (all) => all
-        .filter((t): t is TaskRecord => t.folderId === folderId && !t.parentTaskId)
+        .filter((t): t is TaskRecord => {
+          if (t.folderId !== folderId || !!t.parentTaskId) return false;
+          if (filter.statusIds?.length && !filter.statusIds.includes(t.statusId ?? "")) return false;
+          if (filter.priorities?.length && !filter.priorities.includes(t.priority ?? "")) return false;
+          if (debouncedSearch && !t.name.toLowerCase().includes(debouncedSearch.toLowerCase())) return false;
+          if (filter.startDate && (!t.startDate || t.startDate < filter.startDate)) return false;
+          if (filter.dueDate && (!t.dueDate || t.dueDate > filter.dueDate)) return false;
+          return true;
+        })
         .sort((a, b) => ((a.orderKey ?? "") < (b.orderKey ?? "") ? -1 : 1))
     ),
-  [folderId]);
+  [folderId, filter, debouncedSearch]);
 
   const tasks = useSelector(selectTasks);
-  
-  const observerTarget = React.useRef<HTMLDivElement>(null);
-
-  React.useEffect(() => {
-    const target = observerTarget.current;
-    if (!target) return;
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0].isIntersecting && queryData?.hasNextPage && !isFetching) {
-          dispatch(
-            folderApi.endpoints.getFolderTasks.initiate({
-              folderId,
-              cursor: queryData.nextCursor,
-              filter,
-            })
-          );
-        }
-      },
-      { threshold: 0.1 }
-    );
-
-    observer.observe(target);
-    return () => observer.unobserve(target);
-  }, [dispatch, folderId, queryData?.hasNextPage, queryData?.nextCursor, isFetching, filter]);
 
   const sortableItems = React.useMemo(() => tasks.map(t => t.id), [tasks]);
   const [batchUpdate] = useBatchUpdateFolderTasksMutation();
@@ -144,18 +123,27 @@ export function FolderTaskList({
 
       {/* Search / Filter Bar */}
       <div className="px-1.5 py-1 border-b border-border/15 shrink-0 flex items-center gap-1">
-        <input
-          type="text"
-          placeholder="Search tasks..."
-          value={searchInput}
-          onChange={(e) => setSearchInput(e.target.value)}
-          className="h-7 flex-1 bg-muted/30 rounded-md border border-border/30 flex items-center px-2.5 text-[11px] text-foreground/80 outline-none focus:bg-muted/50 transition-colors placeholder:text-muted-foreground/50"
-        />
+        <div className="flex items-center gap-2 px-2 h-7 rounded-md bg-secondary/60 border border-transparent focus-within:border-primary/30 focus-within:bg-secondary transition-all group flex-1 shadow-inner">
+          <Search className="h-3 w-3 text-muted-foreground/40 group-focus-within:text-primary transition-colors shrink-0" />
+          <input
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
+            placeholder="Search tasks..."
+            className="flex-1 bg-transparent border-none outline-none text-[11px] font-medium text-foreground placeholder:text-muted-foreground/40 transition-all min-w-0"
+          />
+          {searchInput && (
+            <button
+              onClick={() => setSearchInput("")}
+              className="text-muted-foreground/40 hover:text-foreground transition-colors shrink-0"
+            >
+              <X className="h-3 w-3" />
+            </button>
+          )}
+        </div>
         <TaskFilterPopover
           filter={filter}
           onChange={setFilter}
           statuses={folderStatuses}
-          members={members}
         />
         <div className="w-[1px] h-3.5 bg-border shrink-0" />
         <button 
@@ -212,12 +200,6 @@ export function FolderTaskList({
           )}
         </DndContext>
 
-        {/* Intersection Observer Target */}
-        <div ref={observerTarget} className="h-4 w-full flex items-center justify-center my-2">
-          {isFetching && tasks.length > 0 && (
-            <span className="text-[10px] text-muted-foreground animate-pulse">Loading more...</span>
-          )}
-        </div>
 
         {/* Create Task — members and above only */}
         {canCreateContent && <DialogFormWrapper

@@ -6,8 +6,6 @@ import { StatusBadge } from "@/components/status-badge";
 import { Input } from "@/components/ui/input";
 import type { TaskFilter } from "../folder-api";
 import type { Status } from "@/types/status";
-import type { MemberRecord } from "@/types/workspace";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -24,14 +22,12 @@ interface TaskFilterPopoverProps {
   filter: TaskFilter;
   onChange: (filter: TaskFilter) => void;
   statuses: Status[];
-  members: MemberRecord[];
 }
 
-export function TaskFilterPopover({ filter, onChange, statuses, members }: TaskFilterPopoverProps) {
+export function TaskFilterPopover({ filter, onChange, statuses }: TaskFilterPopoverProps) {
   const activeFilterCount =
     (filter.statusIds?.length || 0) +
     (filter.priorities?.length || 0) +
-    (filter.assigneeIds?.length || 0) +
     (filter.startDate ? 1 : 0) +
     (filter.dueDate ? 1 : 0);
 
@@ -47,11 +43,7 @@ export function TaskFilterPopover({ filter, onChange, statuses, members }: TaskF
     onChange({ ...filter, priorities: newPriorities.length > 0 ? newPriorities : undefined });
   };
 
-  const toggleAssignee = (id: string) => {
-    const current = filter.assigneeIds || [];
-    const newAssignees = current.includes(id) ? current.filter(x => x !== id) : [...current, id];
-    onChange({ ...filter, assigneeIds: newAssignees.length > 0 ? newAssignees : undefined });
-  };
+
 
   const handleClearAll = () => {
     onChange({ search: filter.search }); // keep search, clear everything else
@@ -128,42 +120,6 @@ export function TaskFilterPopover({ filter, onChange, statuses, members }: TaskF
             ))}
           </DropdownMenuSubContent>
         </DropdownMenuSub>
-
-        {/* Assignees */}
-        {members.length > 0 && (
-          <DropdownMenuSub>
-            <DropdownMenuSubTrigger>
-              Assignees
-              {filter.assigneeIds?.length ? (
-                <span className="ml-1 text-[10px] text-muted-foreground bg-muted px-1.5 rounded-full">{filter.assigneeIds.length}</span>
-              ) : null}
-            </DropdownMenuSubTrigger>
-            <DropdownMenuSubContent className="w-56">
-              {members.map(m => {
-                const assigneeId = m.id;
-                
-                return (
-                <DropdownMenuCheckboxItem
-                  key={assigneeId}
-                  checked={filter.assigneeIds?.includes(assigneeId) || false}
-                  onCheckedChange={() => toggleAssignee(assigneeId)}
-                  onSelect={(e) => e.preventDefault()}
-                >
-                  <div className="flex items-center gap-2 overflow-hidden">
-                    <Avatar className="h-4 w-4 border border-border/50 shrink-0">
-                      <AvatarImage src={m.avatarUrl || undefined} />
-                      <AvatarFallback className="text-[8px] bg-primary/10 text-primary font-medium">
-                        {m.name.substring(0, 2).toUpperCase()}
-                      </AvatarFallback>
-                    </Avatar>
-                    <span className="text-xs truncate">{m.name}</span>
-                  </div>
-                </DropdownMenuCheckboxItem>
-                );
-              })}
-            </DropdownMenuSubContent>
-          </DropdownMenuSub>
-        )}
 
         {/* Dates */}
         <DropdownMenuSeparator />

@@ -2,7 +2,7 @@ import { useState, useCallback, useRef, useEffect } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { useNavigate } from "@tanstack/react-router";
 import { Bell, Check, Inbox, Loader2 } from "lucide-react";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { UserAvatar } from "@/components/user-avatar";
 import { cn } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";
 import { notificationSelectors } from "@/store/entityStore";
@@ -70,14 +70,14 @@ export function InboxView() {
   }, [markRead]);
 
   return (
-    <div className="h-full flex flex-col bg-background overflow-hidden">
+    <div className="h-full flex flex-col bg-card/40 overflow-hidden">
       {/* Header */}
       <div className="shrink-0 px-6 py-4 border-b border-border/30 flex items-center justify-between">
         <div className="flex items-center gap-2.5">
           <Inbox className="h-5 w-5 text-primary/70" />
           <h1 className="text-sm font-black tracking-tight text-foreground/90">Inbox</h1>
           {unreadCount > 0 && (
-            <span className="h-5 min-w-5 px-1.5 flex items-center justify-center rounded-full bg-primary text-[10px] font-black text-primary-foreground">
+            <span className="h-5 min-w-5 px-1.5 flex items-center justify-center rounded-md bg-primary text-[10px] font-black text-primary-foreground">
               {unreadCount}
             </span>
           )}
@@ -151,11 +151,11 @@ export function InboxView() {
             )}
           >
             {/* Actor avatar */}
-            <Avatar className="h-8 w-8 shrink-0 mt-0.5">
-              <AvatarFallback className="text-[10px] bg-primary/10 text-primary font-black">
-                {n.actorName ? n.actorName.slice(0, 2).toUpperCase() : "SY"}
-              </AvatarFallback>
-            </Avatar>
+            <UserAvatar
+              name={n.actorName || "System"}
+              className="h-8 w-8 shrink-0 mt-0.5 rounded-md"
+              fallbackClassName="text-[10px] rounded-md"
+            />
 
             <div className="flex-1 min-w-0">
               {/* Type badge + time */}

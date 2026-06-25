@@ -131,7 +131,7 @@ export default function CommandCenterIndex({ isFallback }: { isFallback?: boolea
 function HubCard({ title, description, icon: Icon, count, variant }: { 
   title: string, 
   description: string, 
-  icon: any, 
+  icon: React.ElementType, 
   count: string,
   variant?: "warning" | "default" 
 }) {
@@ -178,7 +178,7 @@ function MetaItem({ label, value }: { label: string, value: string }) {
   );
 }
 
-function QuickLink({ icon: Icon, label }: { icon: any, label: string }) {
+function QuickLink({ icon: Icon, label }: { icon: React.ElementType, label: string }) {
   return (
     <button className="w-full flex items-center justify-between px-3 py-2 rounded-md hover:bg-muted/40 transition-colors group">
       <div className="flex items-center gap-3">

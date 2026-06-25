@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { LoadingComponent } from "@/components/loading-component";
 import { ChevronLeft, X, Maximize2, LogOut, User } from "lucide-react";
 import { NotificationBell } from "@/features/notifications/notification-bell";
+import { UserAvatar } from "@/components/user-avatar";
 import type { ContentPage } from "../type";
 import { useLogout, useGetMeQuery } from "@/features/auth/auth-api";
 import { ProfileModal } from "@/features/auth/profile/components/profile-modal";
@@ -25,20 +26,18 @@ import {
 
 function UserMenu({ onOpenProfile }: { onOpenProfile: () => void }) {
   const { data: user } = useGetMeQuery();
-  const { mutate: logout } = useLogout();
-
-  const initials = user?.name
-    ? user.name.split(" ").map((w: string) => w[0]).slice(0, 2).join("").toUpperCase()
-    : "?";
+  const { mutate: logout } = useLogout()
 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <button
-          type="button"
-          className="h-7 w-7 rounded-md bg-gradient-to-tr from-primary/20 to-primary/5 border border-primary/20 flex items-center justify-center cursor-pointer hover:border-primary/40 transition-colors shadow-sm outline-none"
-        >
-          <span className="text-[10px] font-black text-primary">{initials}</span>
+        <button type="button" className="outline-none cursor-pointer hover:opacity-80 transition-opacity">
+          <UserAvatar
+            name={user?.name || "User"}
+            avatarUrl={null}
+            className="h-7 w-7 rounded-md"
+            fallbackClassName="text-[10px] rounded-md shadow-sm"
+          />
         </button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-52 p-0 overflow-hidden">
@@ -277,12 +276,12 @@ export function WorkspaceLayout() {
           <div
             style={{ width: isResizingSidebar ? sidebarWidth : ui.sidebarWidth }}
             className={cn(
-              "flex flex-col h-full flex-shrink-0 relative overflow-hidden",
+              "flex flex-col h-full shrink-0 relative overflow-hidden",
               "bg-card border border-border rounded-md shadow-sm",
               !isResizingSidebar && "transition-all duration-300",
             )}
           >
-            <div className="h-8 flex items-center justify-between pl-3 pr-1 flex-shrink-0 border-b border-border bg-muted/10">
+            <div className="h-8 flex items-center justify-between pl-3 pr-1 shrink-0 border-b border-border bg-muted/10">
               <h2 className="font-black text-[10px] uppercase tracking-[0.15em] text-foreground/70">
                 {["projects", "spaces", "folders", "tasks"].includes(ui.activeIcon || "") ? "PROJECTS" : ui.activeIcon}
               </h2>
@@ -325,7 +324,7 @@ export function WorkspaceLayout() {
         ═══════════════════════════════════════════════════ */}
         <div className="flex-1 min-w-0 h-full flex flex-col relative bg-card border border-border rounded-md shadow-sm overflow-hidden">
           <Suspense fallback={<LoadingComponent />}>
-            <Outlet />
+            <Outlet key={location.pathname} />
           </Suspense>
         </div>
 

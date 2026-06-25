@@ -1,56 +1,70 @@
 import { useRef, useEffect, useLayoutEffect, useCallback } from "react";
 import { store } from "@/store";
-import { taskSlice } from "@/store/entityStore";
+import { taskSlice, taskSelectors } from "@/store/entityStore";
 import type { BatchUpdateSpaceItemValue } from "../space-api";
 import type { TaskRecord } from "@/types/projects";
+import { toast } from "sonner";
+import { extractErrorMessage } from "@/types/api-error";
 
-/**
- * Accumulates space batch updates and fires one API call after `delay` ms of
- * inactivity. Each call immediately applies an optimistic store update so the
- * UI feels instant regardless of the debounce window.
- *
- * Multiple changes to the same item are merged (last-write-wins per field)
- * so rapid edits collapse into a single payload.
- */
+type BatchMutate = (args: { spaceId: string; updates: BatchUpdateSpaceItemValue[] }) => { unwrap: () => Promise<void> };
+
 export function useDebouncedSpaceBatch(
-  batchUpdate: (args: { spaceId: string; updates: BatchUpdateSpaceItemValue[] }) => void,
+  batchUpdate: BatchMutate,
   spaceId: string,
   delay = 2000,
 ): (update: BatchUpdateSpaceItemValue) => void {
   const pendingRef = useRef<Map<string, BatchUpdateSpaceItemValue>>(new Map());
+  // True originals — snapshotted BEFORE optimistic update, cleared after successful save
+  const originalsRef = useRef<Map<string, TaskRecord>>(new Map());
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Keep latest refs so the scheduled flush always uses current values
   const batchUpdateRef = useRef(batchUpdate);
   const spaceIdRef = useRef(spaceId);
   useLayoutEffect(() => { batchUpdateRef.current = batchUpdate; });
   useLayoutEffect(() => { spaceIdRef.current = spaceId; });
 
-  // On unmount (navigation away): cancel the timer and flush any pending updates immediately
   useEffect(() => () => {
     if (timerRef.current) clearTimeout(timerRef.current);
     const updates = Array.from(pendingRef.current.values());
     pendingRef.current.clear();
+    originalsRef.current.clear();
     if (updates.length > 0) {
       batchUpdateRef.current({ spaceId: spaceIdRef.current, updates });
     }
   }, []);
 
   return useCallback((update: BatchUpdateSpaceItemValue) => {
-    // Merge with any pending update for this item — last-write-wins per field
+    // Snapshot BEFORE the optimistic update — only on first touch per item per batch window
+    if (!originalsRef.current.has(update.id)) {
+      const task = taskSelectors.selectById(store.getState(), update.id);
+      if (task) originalsRef.current.set(update.id, task);
+    }
+
+    // Merge pending updates (last-write-wins per field)
     const existing = pendingRef.current.get(update.id);
     pendingRef.current.set(update.id, { ...existing, ...update });
 
-    // Optimistic store update immediately so UI reflects the change at once
+    // Optimistic update immediately
     store.dispatch(taskSlice.actions.upsert(update as Partial<TaskRecord> & { id: string }));
 
-    // Reset the debounce — only the last change in the window triggers the API
     if (timerRef.current) clearTimeout(timerRef.current);
-    timerRef.current = setTimeout(() => {
+    timerRef.current = setTimeout(async () => {
       const updates = Array.from(pendingRef.current.values());
+      const originals = Array.from(originalsRef.current.values());
       pendingRef.current.clear();
-      if (updates.length > 0) {
-        batchUpdateRef.current({ spaceId: spaceIdRef.current, updates });
+      originalsRef.current.clear();
+      timerRef.current = null;
+
+      if (updates.length === 0) return;
+
+      try {
+        await batchUpdateRef.current({ spaceId: spaceIdRef.current, updates }).unwrap();
+      } catch (err) {
+        // Revert to true pre-edit state
+        if (originals.length > 0) {
+          store.dispatch(taskSlice.actions.upsertMany(originals));
+        }
+        toast.error(extractErrorMessage(err, "Failed to save changes. Reverted."));
       }
     }, delay);
   }, [delay]);

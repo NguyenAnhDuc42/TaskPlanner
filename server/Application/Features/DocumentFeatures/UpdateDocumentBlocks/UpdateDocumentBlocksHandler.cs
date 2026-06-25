@@ -64,7 +64,8 @@ public class UpdateDocumentBlocksHandler(TaskPlanDbContext db, WorkspaceContext 
         
         if (blocksToRemove.Any()) db.DocumentBlocks.RemoveRange(blocksToRemove);
 
-        // 4. EXECUTE UPDATES
+        // 4. EXECUTE UPDATES — if ID provided but block not found in DB, treat as insert
+        var newBlocks = new List<DocumentBlock>();
         foreach (var item in toUpdateItems)
         {
             if (existingBlocksMap.TryGetValue(item.Id!.Value, out var existing))
@@ -73,17 +74,20 @@ public class UpdateDocumentBlocksHandler(TaskPlanDbContext db, WorkspaceContext 
                 if (item.OrderKey is not null) existing.UpdateOrderKey(item.OrderKey);
                 if (item.BlockType.HasValue) existing.UpdateType(item.BlockType.Value);
             }
+            else
+            {
+                // Client sent an ID that doesn't exist yet — insert with that ID
+                newBlocks.Add(DocumentBlock.CreateWithId(item.Id!.Value, context.WorkspaceId, request.DocumentId,
+                    item.BlockType ?? BlockType.Paragraph, item.Content ?? string.Empty, item.OrderKey ?? string.Empty, context.CurrentMember.Id));
+            }
         }
 
-        // 5. EXECUTE ADDS
-        var newBlocks = toAddItems.Select(item => DocumentBlock.Create(
-            context.WorkspaceId, 
-            request.DocumentId, 
-            item.BlockType ?? BlockType.Paragraph, 
-            item.Content ?? string.Empty, 
-            item.OrderKey ?? string.Empty, 
-            context.CurrentMember.Id
-        )).ToList();
+        // 5. EXECUTE ADDS (no ID provided)
+        newBlocks.AddRange(toAddItems.Select(item =>
+            item.Id.HasValue && item.Id != Guid.Empty
+                ? DocumentBlock.CreateWithId(item.Id.Value, context.WorkspaceId, request.DocumentId, item.BlockType ?? BlockType.Paragraph, item.Content ?? string.Empty, item.OrderKey ?? string.Empty, context.CurrentMember.Id)
+                : DocumentBlock.Create(context.WorkspaceId, request.DocumentId, item.BlockType ?? BlockType.Paragraph, item.Content ?? string.Empty, item.OrderKey ?? string.Empty, context.CurrentMember.Id)
+        ));
 
         if (newBlocks.Any()) db.DocumentBlocks.AddRange(newBlocks);
 
@@ -95,7 +99,7 @@ public class UpdateDocumentBlocksHandler(TaskPlanDbContext db, WorkspaceContext 
             var updatedRecords = existingBlocksMap.Values
                 .Where(b => toUpdateItems.Any(i => i.Id == b.Id))
                 .Concat(newBlocks)
-                .Select(b => new DocumentBlockRecord { Id = b.Id, Type = b.Type, Content = b.Content, OrderKey = b.OrderKey })
+                .Select(b => new DocumentBlockRecord { Id = b.Id, DocumentId = b.DocumentId, Type = b.Type, Content = b.Content, OrderKey = b.OrderKey })
                 .ToList();
 
             if (updatedRecords.Any())

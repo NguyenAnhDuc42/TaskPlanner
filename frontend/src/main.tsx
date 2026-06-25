@@ -30,10 +30,16 @@ function InnerApp() {
 const rootElement = document.getElementById("root")!;
 
 // Use a cached root to prevent "already been passed to createRoot()" warnings during Vite HMR
-let root = (window as any).__reactRoot;
+declare global {
+  interface Window {
+    __reactRoot?: ReactDOM.Root;
+  }
+}
+
+let root = window.__reactRoot;
 if (!root) {
   root = ReactDOM.createRoot(rootElement);
-  (window as any).__reactRoot = root;
+  window.__reactRoot = root;
 }
 
 import { Provider } from "react-redux";

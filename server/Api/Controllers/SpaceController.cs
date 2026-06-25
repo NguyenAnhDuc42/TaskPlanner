@@ -74,21 +74,6 @@ namespace Api
             return result.ToActionResult();
         }
 
-        [HttpGet("{id:guid}/documents")]
-        public async Task<IActionResult> GetDocuments(Guid id, CancellationToken cancellationToken)
-        {
-            var query = new GetSpaceDocumentsQuery(id);
-            var result = await _handler.QueryAsync<GetSpaceDocumentsQuery, List<SpaceDocumentRecord>>(query, cancellationToken);
-            return result.ToActionResult();
-        }
-
-        [HttpPost("{id:guid}/documents")]
-        public async Task<IActionResult> CreateDocument(Guid id, [FromBody] CreateSpaceDocumentCommand command, CancellationToken cancellationToken)
-        {
-            var result = await _handler.SendAsync<CreateSpaceDocumentCommand, SpaceDocumentRecord>(command with { SpaceId = id }, cancellationToken);
-            return result.ToActionResult();
-        }
-
         [HttpGet("statuses")]
         public async Task<IActionResult> GetWorkspaceStatuses(CancellationToken cancellationToken)
         {

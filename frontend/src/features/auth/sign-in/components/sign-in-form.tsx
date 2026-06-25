@@ -29,24 +29,24 @@ export default function SignInForm() {
   return (
     <div className="w-full space-y-6">
       {/* OAuth */}
-      <div className="grid grid-cols-2 gap-3">
+      <div className="flex flex-col gap-3">
         <button
           type="button"
           disabled={isPending}
           onClick={() => (window.location.href = "/api/auth/external-login/google")}
-          className="flex items-center justify-center gap-2 h-10 px-4 rounded-lg border border-border/40 bg-card/40 hover:bg-card/80 text-sm font-medium text-foreground/80 hover:text-foreground transition-all disabled:opacity-40 disabled:pointer-events-none"
+          className="flex items-center justify-center gap-3 h-11 px-4 rounded-xl border border-border/80 bg-secondary hover:bg-muted shadow-sm hover:shadow-md text-sm font-bold text-foreground transition-all active:scale-[0.98] disabled:opacity-40 disabled:pointer-events-none"
         >
-          <Chrome className="h-4 w-4" />
-          Google
+          <Chrome className="h-5 w-5" />
+          Continue with Google
         </button>
         <button
           type="button"
           disabled={isPending}
           onClick={() => (window.location.href = "/api/auth/external-login/github")}
-          className="flex items-center justify-center gap-2 h-10 px-4 rounded-lg border border-border/40 bg-card/40 hover:bg-card/80 text-sm font-medium text-foreground/80 hover:text-foreground transition-all disabled:opacity-40 disabled:pointer-events-none"
+          className="flex items-center justify-center gap-3 h-11 px-4 rounded-xl border border-border/80 bg-secondary hover:bg-muted shadow-sm hover:shadow-md text-sm font-bold text-foreground transition-all active:scale-[0.98] disabled:opacity-40 disabled:pointer-events-none"
         >
-          <Github className="h-4 w-4" />
-          GitHub
+          <Github className="h-5 w-5" />
+          Continue with GitHub
         </button>
       </div>
 
@@ -90,10 +90,10 @@ export default function SignInForm() {
                   disabled={isPending}
                   required
                   className={cn(
-                    "w-full h-10 px-3.5 rounded-lg border bg-card/30 text-sm text-foreground placeholder:text-muted-foreground/30 outline-none transition-all",
-                    "focus:ring-1 focus:ring-primary/50 focus:border-primary/50",
+                    "w-full h-11 px-4 rounded-xl border bg-secondary/30 text-sm text-foreground placeholder:text-muted-foreground/40 outline-none transition-all shadow-inner",
+                    "focus:ring-2 focus:ring-primary/30 focus:border-primary/60 focus:bg-background",
                     "disabled:opacity-50 disabled:cursor-not-allowed",
-                    invalid ? "border-destructive/60" : "border-border/40 hover:border-border/70"
+                    invalid ? "border-destructive/60" : "border-border/60 hover:border-border"
                   )}
                 />
                 {invalid && (
@@ -133,10 +133,10 @@ export default function SignInForm() {
                     disabled={isPending}
                     required
                     className={cn(
-                      "w-full h-10 px-3.5 pr-10 rounded-lg border bg-card/30 text-sm text-foreground placeholder:text-muted-foreground/30 outline-none transition-all",
-                      "focus:ring-1 focus:ring-primary/50 focus:border-primary/50",
+                      "w-full h-11 px-4 pr-10 rounded-xl border bg-secondary/30 text-sm text-foreground placeholder:text-muted-foreground/40 outline-none transition-all shadow-inner",
+                      "focus:ring-2 focus:ring-primary/30 focus:border-primary/60 focus:bg-background",
                       "disabled:opacity-50 disabled:cursor-not-allowed",
-                      invalid ? "border-destructive/60" : "border-border/40 hover:border-border/70"
+                      invalid ? "border-destructive/60" : "border-border/60 hover:border-border"
                     )}
                   />
                   <button
@@ -162,8 +162,8 @@ export default function SignInForm() {
           form="sign-in-form"
           disabled={isPending}
           className={cn(
-            "w-full h-10 rounded-lg font-semibold text-sm flex items-center justify-center gap-2 transition-all active:scale-[0.98]",
-            "bg-primary text-primary-foreground hover:bg-primary/90 shadow-lg shadow-primary/20",
+            "w-full h-11 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all active:scale-[0.98]",
+            "bg-primary text-primary-foreground hover:bg-primary/90 shadow-lg shadow-primary/25",
             "disabled:opacity-60 disabled:cursor-not-allowed disabled:active:scale-100"
           )}
         >

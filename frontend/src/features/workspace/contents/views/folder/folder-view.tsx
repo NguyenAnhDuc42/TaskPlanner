@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/breadcrumb";
 import { Button } from "@/components/ui/button";
 import { useWorkspaceRole } from "@/features/workspace/context/use-workspace-role";
+import { useSpaceAccess } from "@/features/workspace/context/use-space-access";
 import {
   useGetFolderDetailQuery,
   useFolderDetail,
@@ -48,20 +49,20 @@ export function FolderView({ folderId }: Readonly<FolderViewProps>) {
   };
 
   const { isAdmin } = useWorkspaceRole();
+  const folderForAccess = useFolderDetail(folderId);
+  const { canManage: canManageSpace } = useSpaceAccess(folderForAccess?.spaceId ?? "");
   const [deleteFolder] = useDeleteFolderMutation();
   const [checkedTaskIds, setCheckedTaskIds] = React.useState<Set<string>>(new Set());
   const [isDeleteOpen, setIsDeleteOpen] = React.useState(false);
   const [selectedTaskId, setSelectedTaskId] = React.useState<string | undefined>(undefined);
 
-  const { data: detailResponse, isLoading } = useGetFolderDetailQuery(folderId);
+  const { isLoading } = useGetFolderDetailQuery(folderId);
 
   const folder = useFolderDetail(folderId);
   const tasks = useFolderTasksList(folderId);
-  
-  const parentSpaceRecord = useSpaceDetail(folder?.spaceId ?? "");
-  const parentSpace = detailResponse?.space ?? parentSpaceRecord;
 
   useGetSpaceDetailQuery(folder?.spaceId ?? "", { skip: !folder?.spaceId });
+  const parentSpace = useSpaceDetail(folder?.spaceId ?? "");
 
   const [updateFolderField] = useUpdateFolderFieldMutation();
 
@@ -170,7 +171,7 @@ export function FolderView({ folderId }: Readonly<FolderViewProps>) {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              {isAdmin && (
+              {(isAdmin || canManageSpace) && (
                 <DropdownMenuItem
                   onClick={() => setIsDeleteOpen(true)}
                   className="text-destructive focus:text-destructive focus:bg-destructive/10 cursor-pointer"
@@ -185,12 +186,6 @@ export function FolderView({ folderId }: Readonly<FolderViewProps>) {
       }
     >
       <div className="h-full w-full flex flex-col bg-transparent p-1 gap-1 overflow-hidden relative">
-        {/* Ambient background accent glow */}
-        <div 
-          className="absolute right-12 bottom-12 w-87.5 h-87.5 rounded-full blur-[120px] opacity-[0.05] pointer-events-none transition-all duration-700"
-          style={{ backgroundColor: folder?.color || "#6366f1" }}
-        />
-
         {/* Integrated Floating Folder Header Bar */}
         <div className="flex items-center justify-between px-1.5 py-1 rounded-md border border-border bg-card shadow-sm shrink-0">
           <div className="flex items-center gap-1.5">

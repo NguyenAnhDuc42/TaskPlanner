@@ -95,12 +95,12 @@ export function useHierarchyDnd({ workspaceId, batchMoveItems }: UseHierarchyDnd
   const keyboardSensor = useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates });
   const sensors = useSensors(pointerSensor, keyboardSensor);
 
-  // On unmount (navigation away): cancel the timer and flush any pending moves immediately
   useEffect(() => {
+    const pendingMoves = pendingMovesRef.current;
     return () => {
       if (debounceTimeoutRef.current) clearTimeout(debounceTimeoutRef.current);
-      const movesToSend = Array.from(pendingMovesRef.current.values());
-      pendingMovesRef.current.clear();
+      const movesToSend = Array.from(pendingMoves.values());
+      pendingMoves.clear();
       if (movesToSend.length === 0) return;
       const command: BatchMoveCommand = {
         spaces:  movesToSend.filter((m): m is Extract<PendingMove, { kind: "space" }>  => m.kind === "space") .map(m => ({ itemId: m.itemId, newOrderKey: m.newOrderKey })),

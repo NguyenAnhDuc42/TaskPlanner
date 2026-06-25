@@ -3,8 +3,8 @@ import { Bell } from "lucide-react";
 import { useSelector } from "react-redux";
 import { useNavigate } from "@tanstack/react-router";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { notificationSelectors } from "@/store/entityStore";
+import { UserAvatar } from "@/components/user-avatar";
+import { notificationSelectors, memberSelectors } from "@/store/entityStore";
 import { useGetNotificationsQuery, useMarkNotificationsReadMutation } from "./notifications-api";
 import { cn } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";
@@ -28,6 +28,17 @@ export function NotificationBell() {
 
   const notifications = useSelector(notificationSelectors.selectAll)
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+  const memberEntities = useSelector(memberSelectors.selectEntities);
+
+  // Replace @[workspaceMemberId] tokens with @Name for display
+  const resolveBody = (body: string | undefined): string => {
+    if (!body) return "";
+    return body.replace(/@\[([a-f0-9-]{36})\]/g, (_, id) => {
+      const member = memberEntities[id];
+      return member ? `@${member.name}` : "@someone";
+    });
+  };
 
   const unreadCount = notifications.filter(n => !n.isRead).length;
   // Take the max so the count reflects both API-loaded and real-time SignalR arrivals
@@ -58,7 +69,7 @@ export function NotificationBell() {
         >
           <Bell className="h-4 w-4" />
           {displayCount > 0 && (
-            <span className="absolute -top-0.5 -right-0.5 h-4 min-w-4 px-0.5 flex items-center justify-center rounded-full bg-primary text-[9px] font-black text-primary-foreground leading-none">
+            <span className="absolute -top-0.5 -right-0.5 h-4 min-w-4 px-0.5 flex items-center justify-center rounded-md bg-primary text-[9px] font-black text-primary-foreground leading-none">
               {displayCount > 99 ? "99+" : displayCount}
             </span>
           )}
@@ -101,18 +112,18 @@ export function NotificationBell() {
               )}
             >
               {/* Actor avatar */}
-              <Avatar className="h-6 w-6 shrink-0 mt-0.5">
-                <AvatarFallback className="text-[9px] bg-primary/10 text-primary font-black">
-                  {n.actorName ? n.actorName.slice(0, 2).toUpperCase() : "?"}
-                </AvatarFallback>
-              </Avatar>
+              <UserAvatar
+                name={n.actorName || "System"}
+                className="h-6 w-6 shrink-0 mt-0.5 rounded-md"
+                fallbackClassName="text-[9px] rounded-md"
+              />
 
               <div className="flex-1 min-w-0">
                 <p className={cn("text-[11px] leading-snug", !n.isRead ? "text-foreground font-medium" : "text-muted-foreground/80")}>
                   {n.title}
                 </p>
                 {n.body && (
-                  <p className="text-[10px] text-muted-foreground/50 truncate mt-0.5">{n.body}</p>
+                  <p className="text-[10px] text-muted-foreground/50 truncate mt-0.5">{resolveBody(n.body)}</p>
                 )}
                 <p className="text-[9px] text-muted-foreground/35 mt-1 font-mono">
                   {formatDistanceToNow(new Date(n.createdAt), { addSuffix: true })}

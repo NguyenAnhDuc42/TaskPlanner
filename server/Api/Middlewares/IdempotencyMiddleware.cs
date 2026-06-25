@@ -52,9 +52,9 @@ public class IdempotencyMiddleware(RequestDelegate next, IMemoryCache cache)
             return;
         }
 
+        var originalBodyStream = context.Response.Body;
         try
         {
-            var originalBodyStream = context.Response.Body;
             using var responseBody = new MemoryStream();
             context.Response.Body = responseBody;
 
@@ -82,6 +82,7 @@ public class IdempotencyMiddleware(RequestDelegate next, IMemoryCache cache)
         }
         finally
         {
+            context.Response.Body = originalBodyStream;
             _inFlightRequests.TryRemove(cacheKey, out _);
         }
     }
