@@ -18,6 +18,7 @@ import {
   documentBlockSlice,
   memberSelectors,
   entityAccessSelectors,
+  taskSelectors,
 } from "@/store/entityStore";
 import { workspaceApi } from "@/store/workspaceApi";
 import { hierarchyApi } from "@/features/workspace/contents/hierarchy/hierarchy-api";

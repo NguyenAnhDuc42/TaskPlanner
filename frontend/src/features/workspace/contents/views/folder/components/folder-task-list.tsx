@@ -13,7 +13,7 @@ import { taskSelectors } from "@/store/entityStore";
 import { createSelector } from "@reduxjs/toolkit";
 import { TaskFilterPopover } from "./task-filter-popover";
 import { useDebounce } from "@/hooks/use-debounce";
-import { SortableList, SortableListItem } from "@/components/sortable-list";
+import { SortableList } from "@/components/sortable-list";
 import type { TaskRecord } from "@/types/projects";
 
 type FolderTaskListProps = Readonly<{

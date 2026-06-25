@@ -7,7 +7,6 @@ import { useMemo, useRef, useEffect, useLayoutEffect, useCallback } from "react"
 import type { AppDispatch } from "@/store";
 import type { TaskRecord } from "@/types/projects/task-record";
 import type { RootState } from "@/store";
-import type { TaskRecord } from "@/types/projects/task-record";
 import type { FolderRecord } from "@/types/projects/folder-record";
 import type { PagedResult } from "@/types/paged-result";
 import { Priority } from "@/types/priority";

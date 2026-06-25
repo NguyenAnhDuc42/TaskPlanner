@@ -46,20 +46,17 @@ export interface SignalREvents {
   EntitiesUpdated: EntityBatchUpdate;
   EntitiesDeleted: EntityBatchDelete;
   NewNotification: NotificationRecord;
-  AccessRevoked: { spaceId: string };
-  AccessGranted: { spaceId: string };
+  AccessRevoked: { spaceId?: string };
+  AccessGranted: { spaceId?: string };
 }
 
-type SignalRListener<E extends keyof SignalREvents> = {
-  eventName: E;
-  callback: (data: SignalREvents[E]) => void;
-};
+type AnySignalRListener = { eventName: string; callback: (data: unknown) => void };
 
 class SignalRService {
   private connection: HubConnection | null = null;
   private startPromise: Promise<void> | null = null;
   private readonly url: string = "/hubs/workspace";
-  private pendingListeners: SignalRListener<keyof SignalREvents>[] = [];
+  private pendingListeners: AnySignalRListener[] = [];
   private reconnectCallbacks: Array<() => void> = [];
 
   public async startConnection(): Promise<void> {
@@ -127,7 +124,7 @@ class SignalRService {
     callback: (data: SignalREvents[E]) => void
   ): void {
     if (!this.connection) {
-      this.pendingListeners.push({ eventName, callback });
+      this.pendingListeners.push({ eventName, callback: callback as (data: unknown) => void });
       return;
     }
     this.connection.on(eventName, callback as (data: unknown) => void);
@@ -139,7 +136,7 @@ class SignalRService {
   ): void {
     if (!this.connection) {
       this.pendingListeners = this.pendingListeners.filter(
-        l => !(l.eventName === eventName && l.callback === callback)
+        l => !(l.eventName === eventName && l.callback === (callback as (data: unknown) => void))
       );
       return;
     }

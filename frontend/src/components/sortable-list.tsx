@@ -21,7 +21,6 @@ import { useState } from "react";
 import {
   SortableContext,
   verticalListSortingStrategy,
-  horizontalListSortingStrategy,
   rectSortingStrategy,
   useSortable,
   arrayMove,
