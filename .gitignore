@@ -31,6 +31,7 @@ client/next-env.d.ts
 *.json
 !frontend/*.json
 !frontend/src/**/*.json
+!server/**/appsettings*.json
 *.mdf
 *.ldf
 
