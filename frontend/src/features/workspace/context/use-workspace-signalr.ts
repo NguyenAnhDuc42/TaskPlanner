@@ -187,6 +187,9 @@ export function useWorkspaceSignalR(workspaceId: string) {
 
     const handleReconnect = () => {
       console.log("[SignalR] Reconnected. Syncing active screen views...");
+      signalRService.invoke("JoinWorkspace", workspaceId).catch(() => {});
+      const userId = currentUserRef.current?.id;
+      if (userId) signalRService.invoke("JoinUser", userId).catch(() => {});
       dispatch(workspaceApi.util.invalidateTags(['Workspaces', 'Spaces', 'Folders', 'Tasks', 'Members', 'User', 'UserPreference', 'EntityAccess', 'Workflows', 'Comments', 'Documents']));
     };
 
