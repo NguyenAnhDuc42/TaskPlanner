@@ -2,6 +2,7 @@ import {
   HubConnection,
   HubConnectionBuilder,
   HubConnectionState,
+  HttpTransportType,
   LogLevel,
 } from "@microsoft/signalr";
 import type { SpaceRecord, FolderRecord, TaskRecord, AssigneeRecord, CommentRecord, AttachmentRecord } from "@/types/projects";
@@ -68,6 +69,8 @@ class SignalRService {
     this.connection = new HubConnectionBuilder()
       .withUrl(this.url, {
         withCredentials: true,
+        transport: HttpTransportType.WebSockets,
+        skipNegotiation: true,
       })
       .withAutomaticReconnect()
       .configureLogging(LogLevel.Information)
