@@ -42,6 +42,13 @@ builder.Services.AddCors(options =>
             .AllowAnyMethod()
             .AllowCredentials();
     });
+    options.AddPolicy("AllowSignalR", policy =>
+    {
+        policy.WithOrigins(appSettings.FrontendUrl)
+            .AllowAnyHeader()
+            .AllowAnyMethod()
+            .AllowCredentials();
+    });
 });
 
 // --- 2. Infrastructure & Data ---
@@ -179,7 +186,7 @@ app.UseMiddleware<WorkspaceContextMiddleware>();
 app.UseMiddleware<IdempotencyMiddleware>();
 
 
-app.MapHub<WorkspaceHub>("/hubs/workspace");
+app.MapHub<WorkspaceHub>("/hubs/workspace").RequireCors("AllowSignalR");
 app.MapControllers();
 
 // Apply pending EF Core migrations on startup

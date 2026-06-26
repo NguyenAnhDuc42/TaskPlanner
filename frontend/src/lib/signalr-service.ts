@@ -52,7 +52,7 @@ type AnySignalRListener = { eventName: string; callback: (data: unknown) => void
 class SignalRService {
   private connection: HubConnection | null = null;
   private startPromise: Promise<void> | null = null;
-  private readonly url: string = "/hubs/workspace";
+  private readonly url: string = `${import.meta.env.VITE_API_URL ?? ""}/hubs/workspace`;
   private pendingListeners: AnySignalRListener[] = [];
   private reconnectCallbacks: Array<() => void> = [];
 
