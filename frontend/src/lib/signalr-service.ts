@@ -2,6 +2,7 @@ import {
   HubConnection,
   HubConnectionBuilder,
   HubConnectionState,
+  HttpTransportType,
   LogLevel,
 } from "@microsoft/signalr";
 import type { SpaceRecord, FolderRecord, TaskRecord, AssigneeRecord, CommentRecord, AttachmentRecord } from "@/types/projects";
@@ -52,7 +53,7 @@ type AnySignalRListener = { eventName: string; callback: (data: unknown) => void
 class SignalRService {
   private connection: HubConnection | null = null;
   private startPromise: Promise<void> | null = null;
-  private readonly url: string = `${import.meta.env.VITE_API_URL ?? ""}/hubs/workspace`;
+  private readonly url: string = "/hubs/workspace";
   private pendingListeners: AnySignalRListener[] = [];
   private reconnectCallbacks: Array<() => void> = [];
 
@@ -68,6 +69,7 @@ class SignalRService {
     this.connection = new HubConnectionBuilder()
       .withUrl(this.url, {
         withCredentials: true,
+        transport: HttpTransportType.LongPolling,
       })
       .withAutomaticReconnect()
       .configureLogging(LogLevel.Information)
