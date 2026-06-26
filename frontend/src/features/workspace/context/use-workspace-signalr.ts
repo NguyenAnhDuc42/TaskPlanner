@@ -216,6 +216,7 @@ export function useWorkspaceSignalR(workspaceId: string) {
     signalRService.on("AccessRevoked", onAccessRevoked);
     signalRService.on("AccessGranted", onAccessGranted);
     signalRService.onReconnected(handleReconnect);
+    const unregisterVisibility = signalRService.registerVisibilityReconnect();
 
     return () => {
       signalRService.off("EntitiesUpdated", onEntitiesUpdated);
@@ -223,6 +224,7 @@ export function useWorkspaceSignalR(workspaceId: string) {
       signalRService.off("AccessRevoked", onAccessRevoked);
       signalRService.off("AccessGranted", onAccessGranted);
       signalRService.offReconnected(handleReconnect);
+      unregisterVisibility();
       signalRService.invoke("LeaveWorkspace", workspaceId).catch(() => {});
     };
   }, [workspaceId, dispatch]);

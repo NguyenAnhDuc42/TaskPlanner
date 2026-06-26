@@ -72,7 +72,7 @@ class SignalRService {
         transport: HttpTransportType.WebSockets,
         skipNegotiation: true,
       })
-      .withAutomaticReconnect()
+      .withAutomaticReconnect([0, 1000, 2000, 5000, 10000, 30000])
       .configureLogging(LogLevel.Information)
       .build();
 
@@ -168,6 +168,18 @@ class SignalRService {
       this.reconnectCallbacks = [];
       this.startPromise = null;
     }
+  }
+
+  public registerVisibilityReconnect(): () => void {
+    const handler = () => {
+      if (document.visibilityState === "visible" &&
+          this.connection?.state !== HubConnectionState.Connected &&
+          this.connection?.state !== HubConnectionState.Connecting) {
+        this.startConnection();
+      }
+    };
+    document.addEventListener("visibilitychange", handler);
+    return () => document.removeEventListener("visibilitychange", handler);
   }
 }
 
