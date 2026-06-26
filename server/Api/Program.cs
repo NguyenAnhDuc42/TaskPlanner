@@ -1,6 +1,7 @@
 
 using System.Text.Json.Serialization;
 using System.Threading.RateLimiting;
+using Microsoft.EntityFrameworkCore;
 using Scalar.AspNetCore;
 using Serilog;
 
@@ -176,8 +177,12 @@ app.UseMiddleware<IdempotencyMiddleware>();
 app.MapHub<WorkspaceHub>("/hubs/workspace");
 app.MapControllers();
 
-// One-time startup migration: reset any order_key values that use the old incompatible format
-await OrderKeyMigration.RunAsync(app.Services);
+// Apply pending EF Core migrations on startup
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<TaskPlanDbContext>();
+    await db.Database.MigrateAsync();
+}
 
 await app.RunAsync();
 

@@ -1,0 +1,14 @@
+<svg width="32" height="32" viewBox="0 0 256 256" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="logoGrad2" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#10b981" />
+      <stop offset="100%" stop-color="#3b82f6" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Outer Ring -->
+  <rect x="24" y="24" width="208" height="208" rx="64" stroke="url(#logoGrad2)" stroke-width="24" stroke-linecap="round" />
+  
+  <!-- Dynamic check/arrow -->
+  <path d="M80 128 L112 160 L176 96" stroke="url(#logoGrad2)" stroke-width="28" stroke-linecap="round" stroke-linejoin="round" />
+</svg>
