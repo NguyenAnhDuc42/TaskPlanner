@@ -1,4 +1,4 @@
-import { useRef, useMemo, useCallback, useState, useEffect } from "react";
+import { useRef, useMemo, useCallback, useState } from "react";
 import { useNavigate, useSearch } from "@tanstack/react-router";
 import { createPortal } from "react-dom";
 import {
@@ -139,15 +139,13 @@ export function SpaceBoard({ spaceId, onWorkflowOpen }: Readonly<SpaceBoardProps
     () => statuses.filter(s => (columns[s.id]?.length ?? 0) === 0).map(s => s.id),
     [statuses, columns]
   );
-
-  // Auto-hide empty columns once on first full load
-  const autoHiddenRef = useRef(false);
-  useEffect(() => {
-    if (isFullyLoaded && !autoHiddenRef.current && emptyStatusIds.length > 0) {
-      autoHiddenRef.current = true;
+  const [prevIsFullyLoaded, setPrevIsFullyLoaded] = useState(isFullyLoaded);
+  if (isFullyLoaded !== prevIsFullyLoaded) {
+    setPrevIsFullyLoaded(isFullyLoaded);
+    if (isFullyLoaded && emptyStatusIds.length > 0) {
       setHiddenStatusIds(prev => [...new Set([...prev, ...emptyStatusIds])]);
     }
-  }, [isFullyLoaded, emptyStatusIds]);
+  }
 
   const allEmptyHidden = emptyStatusIds.length > 0 && emptyStatusIds.every(id => hiddenStatusIds.includes(id));
 

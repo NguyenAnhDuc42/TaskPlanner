@@ -9,6 +9,7 @@ import { workspaceFeatureApi } from "@/features/workspace/api";
 import { getCookie } from "@/lib/cookie-utils";
 
 import { workspaceSearchSchema } from "./workspace-search-schema";
+import { ViewSkeleton } from "@/components/view-skeleton";
 
 export const Route = createFileRoute("/workspaces/$workspaceId")({
   beforeLoad: async () => {
@@ -31,6 +32,7 @@ export const Route = createFileRoute("/workspaces/$workspaceId")({
       store.dispatch(workspaceFeatureApi.endpoints.getWorkspaceStatuses.initiate()),
     ]);
   },
+  pendingComponent:ViewSkeleton,
   component: WorkspaceRoot,
 });
 

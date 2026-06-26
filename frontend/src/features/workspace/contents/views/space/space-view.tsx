@@ -35,12 +35,12 @@ export function SpaceView({ spaceId }: Readonly<SpaceViewProps>) {
   const [isWorkflowOpen, setIsWorkflowOpen] = React.useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = React.useState(false);
   const [activeTab, setActiveTab] = React.useState<"detail" | "items">(() => {
-    const saved = localStorage.getItem(`space-tab-${spaceId}`);
+    const saved = localStorage.getItem(`global-space-tab`);
     return saved === "items" ? "items" : "detail";
   });
   const handleTabChange = (tab: "detail" | "items") => {
     setActiveTab(tab);
-    localStorage.setItem(`space-tab-${spaceId}`, tab);
+    localStorage.setItem(`global-space-tab`, tab);
   };
   const {canManage } = useSpaceAccess(spaceId);
   const navigate = useNavigate();

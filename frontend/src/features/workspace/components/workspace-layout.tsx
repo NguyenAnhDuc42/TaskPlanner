@@ -280,52 +280,64 @@ export function WorkspaceLayout() {
         {/* ═══════════════════════════════════════════════════
             COLUMN 2: Inner Sidebar (resizable)
         ═══════════════════════════════════════════════════ */}
-        {ui.isInnerSidebarOpen && SidebarRegistry({ page: ui.activeIcon }) !== null && (
-          <div
-            style={{ width: isResizingSidebar ? sidebarWidth : ui.sidebarWidth }}
-            className={cn(
-              "flex flex-col h-full shrink-0 relative overflow-hidden",
-              "bg-card border border-border rounded-md shadow-sm",
-              !isResizingSidebar && "transition-all duration-300",
-            )}
-          >
-            <div className="h-8 flex items-center justify-between pl-3 pr-1 shrink-0 border-b border-border bg-muted/10">
-              <h2 className="font-black text-[10px] uppercase tracking-[0.15em] text-foreground/70">
-                {["projects", "spaces", "folders", "tasks"].includes(ui.activeIcon || "") ? "PROJECTS" : ui.activeIcon}
-              </h2>
-              <Button
-                size="icon"
-                variant="ghost"
-                onClick={actions.toggleInnerSidebar}
-                className="h-6 w-6 text-muted-foreground hover:text-foreground hover:bg-muted rounded-md transition-colors"
-              >
-                <ChevronLeft className="h-3.5 w-3.5" />
-              </Button>
-            </div>
-
-            <div className="flex-1 min-h-0 overflow-hidden">
-              <SidebarRegistry page={ui.activeIcon} />
-            </div>
-
-            {/* Resize Handle - Sit on the absolute edge */}
+        {(() => {
+          const hasSidebarContent = SidebarRegistry({ page: ui.activeIcon }) !== null;
+          const shouldShowSidebar = ui.isInnerSidebarOpen && hasSidebarContent;
+          const currentWidth = shouldShowSidebar ? (isResizingSidebar ? sidebarWidth : ui.sidebarWidth) : 0;
+          
+          return (
             <div
-              onMouseDown={startResizingSidebar}
+              style={{ width: currentWidth, opacity: currentWidth === 0 ? 0 : 1 }}
               className={cn(
-                "absolute top-0 -right-[3px] w-[6px] h-full cursor-col-resize z-50 group touch-none",
-                isResizingSidebar && "z-[100]",
+                "flex flex-col h-full shrink-0 relative overflow-hidden",
+                "bg-card rounded-md",
+                currentWidth > 0 && "border border-border shadow-sm",
+                !isResizingSidebar && "transition-all duration-300 ease-in-out",
               )}
             >
-              <div
-                className={cn(
-                  "h-full w-[1.5px] mx-auto transition-colors duration-200",
-                  isResizingSidebar
-                    ? "bg-primary"
-                    : "group-hover:bg-primary/50 bg-transparent",
-                )}
-              />
+              {/* Inner wrapper forces fixed width so content doesn't squish during animation */}
+              <div style={{ width: ui.sidebarWidth }} className="h-full flex flex-col flex-none">
+                <div className="h-8 flex items-center justify-between pl-3 pr-1 shrink-0 border-b border-border bg-muted/10">
+                  <h2 className="font-black text-[10px] uppercase tracking-[0.15em] text-foreground/70">
+                    {["projects", "spaces", "folders", "tasks"].includes(ui.activeIcon || "") ? "PROJECTS" : ui.activeIcon}
+                  </h2>
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    onClick={actions.toggleInnerSidebar}
+                    className="h-6 w-6 text-muted-foreground hover:text-foreground hover:bg-muted rounded-md transition-colors"
+                  >
+                    <ChevronLeft className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
+
+                <div className="flex-1 min-h-0 overflow-hidden">
+                  <SidebarRegistry page={ui.activeIcon} />
+                </div>
+              </div>
+
+              {/* Resize Handle - Sit on the absolute edge */}
+              {shouldShowSidebar && (
+                <div
+                  onMouseDown={startResizingSidebar}
+                  className={cn(
+                    "absolute top-0 -right-[3px] w-[6px] h-full cursor-col-resize z-50 group touch-none",
+                    isResizingSidebar && "z-[100]",
+                  )}
+                >
+                  <div
+                    className={cn(
+                      "h-full w-[1.5px] mx-auto transition-colors duration-200",
+                      isResizingSidebar
+                        ? "bg-primary"
+                        : "group-hover:bg-primary/50 bg-transparent",
+                    )}
+                  />
+                </div>
+              )}
             </div>
-          </div>
-        )}
+          );
+        })()}
 
         {/* ═══════════════════════════════════════════════════
             COLUMN 3: Main Canvas

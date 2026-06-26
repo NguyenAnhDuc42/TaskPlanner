@@ -8,6 +8,9 @@ import { routeTree } from "./routeTree.gen";
 // We pass undefined! for auth because it will be injected by the RouterProvider at runtime
 const router = createRouter({
   routeTree: routeTree,
+  defaultPreload: "intent",
+  defaultPendingMs: 0,
+  defaultPendingMinMs: 150,
   context: {
     auth: undefined!,
   },
