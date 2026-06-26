@@ -54,7 +54,7 @@ export function FolderView({ folderId }: Readonly<FolderViewProps>) {
   const [deleteFolder] = useDeleteFolderMutation();
   const [checkedTaskIds, setCheckedTaskIds] = React.useState<Set<string>>(new Set());
   const [isDeleteOpen, setIsDeleteOpen] = React.useState(false);
-  const [selectedTaskId, setSelectedTaskId] = React.useState<string | undefined>(undefined);
+  const [selectedTaskIdState, setSelectedTaskIdState] = React.useState<string | undefined>(undefined);
 
   const { isLoading } = useGetFolderDetailQuery(folderId);
 
@@ -66,18 +66,17 @@ export function FolderView({ folderId }: Readonly<FolderViewProps>) {
 
   const [updateFolderField] = useUpdateFolderFieldMutation();
 
-  React.useEffect(() => {
-    if (tasks.length > 0) {
-      const exists = tasks.some(t => t.id === selectedTaskId);
-      if (!selectedTaskId || !exists) {
-        const lastVisited = localStorage.getItem(`lastVisitedTask_${folderId}`);
-        const lastVisitedExists = lastVisited && tasks.some(t => t.id === lastVisited);
-        setSelectedTaskId(lastVisitedExists ? lastVisited : tasks[0].id);
-      }
-    } else {
-      setSelectedTaskId(undefined);
-    }
-  }, [tasks, selectedTaskId, folderId]);
+  const selectedTaskId = React.useMemo(() => {
+    if (tasks.length === 0) return undefined;
+    const exists = tasks.some(t => t.id === selectedTaskIdState);
+    if (selectedTaskIdState && exists) return selectedTaskIdState;
+    
+    const lastVisited = localStorage.getItem(`lastVisitedTask_${folderId}`);
+    const lastVisitedExists = lastVisited && tasks.some(t => t.id === lastVisited);
+    return lastVisitedExists ? lastVisited : tasks[0].id;
+  }, [tasks, selectedTaskIdState, folderId]);
+
+  const setSelectedTaskId = setSelectedTaskIdState;
 
   React.useEffect(() => {
     if (selectedTaskId) {

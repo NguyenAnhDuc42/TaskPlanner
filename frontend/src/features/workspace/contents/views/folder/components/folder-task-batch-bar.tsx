@@ -1,4 +1,4 @@
-import { CircleDashed, Flag, Trash2, X } from "lucide-react";
+import { Trash2, X } from "lucide-react";
 import { useBatchUpdateFolderTasks, type BatchUpdateFolderTaskValue } from "../folder-api";
 import { PriorityBadge } from "@/components/priority-badge";
 import { StatusBadge } from "@/components/status-badge";
@@ -57,7 +57,7 @@ export function FolderTaskBatchBar({ folderId, checkedTaskIds, onClear, statuses
 
       <div className="w-[1px] h-4 bg-border" />
 
-      <div className="flex items-center gap-1">
+      <div className="flex items-center gap-2 pr-10">
         {/* Status */}
         <StatusSelect
           value={pendingUpdates.statusId || undefined}
@@ -65,15 +65,11 @@ export function FolderTaskBatchBar({ folderId, checkedTaskIds, onClear, statuses
           statuses={statuses}
           align="center"
           trigger={
-            <button
-              className={`h-7 px-2 min-w-[28px] rounded-md flex items-center justify-center transition-colors ${pendingUpdates.statusId ? "bg-primary/10 hover:bg-primary/20" : "hover:bg-muted text-muted-foreground"}`}
-              title="Change Status"
-            >
-              {pendingUpdates.statusId ? (
-                <StatusBadge status={statuses.find(s => s.id?.toLowerCase() === pendingUpdates.statusId?.toLowerCase())} showIcon={false} />
-              ) : (
-                <CircleDashed className="h-3.5 w-3.5" />
-              )}
+            <button type="button" className="cursor-pointer hover:opacity-80 transition-opacity">
+              <StatusBadge
+                status={statuses.find(s => s.id?.toLowerCase() === pendingUpdates.statusId?.toLowerCase())}
+                variant="outline"
+              />
             </button>
           }
         />
@@ -84,15 +80,8 @@ export function FolderTaskBatchBar({ folderId, checkedTaskIds, onClear, statuses
           onChange={(priority) => updateLocal({ priority })}
           align="center"
           trigger={
-            <button
-              className={`h-7 px-2 min-w-[28px] rounded-md flex items-center justify-center transition-colors ${pendingUpdates.priority ? "bg-primary/10 hover:bg-primary/20" : "hover:bg-muted text-muted-foreground"}`}
-              title="Change Priority"
-            >
-              {pendingUpdates.priority ? (
-                <PriorityBadge priority={pendingUpdates.priority} showText={false} />
-              ) : (
-                <Flag className="h-3.5 w-3.5" />
-              )}
+            <button type="button" className="cursor-pointer hover:opacity-80 transition-opacity">
+              <PriorityBadge priority={pendingUpdates.priority ?? undefined} />
             </button>
           }
         />
@@ -105,10 +94,10 @@ export function FolderTaskBatchBar({ folderId, checkedTaskIds, onClear, statuses
           onDueDateChange={(date) => updateLocal({ dueDate: date?.toISOString(), clearDueDate: !date })}
           align="center"
           size="sm"
-          triggerClassName={`h-7 px-2 text-[10px] font-semibold rounded-md border border-transparent transition-all cursor-pointer ${
+          triggerClassName={`h-5 px-2 text-[10px] font-semibold rounded-md border transition-all cursor-pointer ${
             pendingUpdates.startDate || pendingUpdates.dueDate || pendingUpdates.clearStartDate || pendingUpdates.clearDueDate
-              ? "bg-primary/10 hover:bg-primary/20 text-primary"
-              : "bg-transparent hover:bg-muted text-muted-foreground"
+              ? "border-border/40 bg-primary/10 text-primary hover:bg-primary/20"
+              : "border-border/30 bg-muted/30 text-muted-foreground hover:bg-muted/60"
           }`}
         />
       </div>

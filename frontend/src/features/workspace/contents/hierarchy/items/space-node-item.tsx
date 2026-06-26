@@ -66,7 +66,7 @@ export const SpaceNodeItem = React.memo(function SpaceNodeItem({
             className={cn(
               "flex items-center px-1 py-0.5 rounded-md transition-colors mb-px group border",
               isActive
-                ? "bg-primary/10 text-primary border-primary/25"
+                ? "bg-primary/5 text-primary border-primary/25"
                 : "text-muted-foreground border-transparent hover:bg-muted/50 hover:text-foreground hover:border-border/30",
             )}
           >

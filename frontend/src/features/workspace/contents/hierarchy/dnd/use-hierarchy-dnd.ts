@@ -91,7 +91,7 @@ export function useHierarchyDnd({ workspaceId, batchMoveItems }: UseHierarchyDnd
     originalTasksRef.current.clear();
   };
 
-  const pointerSensor = useSensor(PointerSensor, { activationConstraint: { distance: 3 } });
+  const pointerSensor = useSensor(PointerSensor, { activationConstraint: { distance: 8 } });
   const keyboardSensor = useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates });
   const sensors = useSensors(pointerSensor, keyboardSensor);
 

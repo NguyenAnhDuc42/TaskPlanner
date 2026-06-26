@@ -137,37 +137,36 @@ export function SortableTaskItem({
 
         {/* Row 2: Status + Priority */}
         <div className="flex items-center gap-3">
-          <div 
-            onClick={(e) => e.stopPropagation()} 
-            onPointerDown={(e) => e.stopPropagation()}
-          >
-            <StatusSelect
-              value={task.statusId || undefined}
-              onChange={(statusId) => onUpdateTaskField({ statusId })}
-              spaceId={folder?.spaceId}
-              statuses={taskStatuses}
-              trigger={
-                <button type="button" className="cursor-pointer focus:outline-none">
-                  <StatusBadge variant="outline" status={statuses.find(s => s.id?.toLowerCase() === task.statusId?.toLowerCase())} />
-                </button>
-              }
-            />
-          </div>
-
-          <div 
-            onClick={(e) => e.stopPropagation()} 
-            onPointerDown={(e) => e.stopPropagation()}
-          >
-            <PrioritySelect
-              value={task.priority}
-              onChange={(priority) => onUpdateTaskField({ priority })}
-              trigger={
-                <button type="button" className="cursor-pointer focus:outline-none">
-                  <PriorityBadge priority={task.priority} />
-                </button>
-              }
-            />
-          </div>
+          <StatusSelect
+            value={task.statusId || undefined}
+            onChange={(statusId) => onUpdateTaskField({ statusId })}
+            spaceId={folder?.spaceId}
+            statuses={taskStatuses}
+            trigger={
+              <button
+                type="button"
+                className="cursor-pointer focus:outline-none"
+                onClick={(e) => e.stopPropagation()}
+                onPointerDown={(e) => e.stopPropagation()}
+              >
+                <StatusBadge variant="outline" status={statuses.find(s => s.id?.toLowerCase() === task.statusId?.toLowerCase())} />
+              </button>
+            }
+          />
+          <PrioritySelect
+            value={task.priority}
+            onChange={(priority) => onUpdateTaskField({ priority })}
+            trigger={
+              <button
+                type="button"
+                className="cursor-pointer focus:outline-none"
+                onClick={(e) => e.stopPropagation()}
+                onPointerDown={(e) => e.stopPropagation()}
+              >
+                <PriorityBadge priority={task.priority} />
+              </button>
+            }
+          />
         </div>
 
         {/* Row 3: Dates */}

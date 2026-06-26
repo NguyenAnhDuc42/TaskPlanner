@@ -47,7 +47,7 @@ export function HierarchySidebar() {
     <div className="h-full flex flex-col bg-transparent overflow-hidden select-none">
       {/* Search & Actions */}
       <div className="h-8 px-1 flex items-center border-b border-border shrink-0">
-        <div className="flex items-center gap-2 px-2 h-6 rounded-md bg-secondary/60 border border-transparent focus-within:border-primary/30 focus-within:bg-secondary transition-all group flex-1 shadow-inner">
+        <div className="flex items-center gap-2 px-2 h-6 rounded-md bg-secondary/60 border border-transparent focus-within:border-primary/30 focus-within:bg-secondary transition-all group flex-1 shadow-inner relative z-10">
           <Search className="h-3 w-3 text-muted-foreground/40 group-focus-within:text-primary transition-colors shrink-0" />
           <input
             value={searchQuery}
@@ -63,6 +63,14 @@ export function HierarchySidebar() {
               ✕
             </button>
           )}
+          {/* Coming Soon Dropdown */}
+          <div className="absolute top-[calc(100%+4px)] left-0 w-full bg-popover border border-border shadow-md rounded-md p-2 opacity-0 invisible group-focus-within:opacity-100 group-focus-within:visible transition-all z-50 translate-y-1 group-focus-within:translate-y-0">
+            <div className="flex flex-col items-center justify-center text-center py-4 text-muted-foreground">
+               <Search className="h-4 w-4 mb-1.5 opacity-20" />
+               <p className="text-[10px] font-semibold text-foreground/70">Elasticsearch Coming Soon</p>
+               <p className="text-[9px] mt-0.5 opacity-60">Global search is being wired up.</p>
+            </div>
+          </div>
         </div>
       </div>
 

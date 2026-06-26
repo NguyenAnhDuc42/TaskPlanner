@@ -98,38 +98,38 @@ export const BoardItemCard = React.memo(function BoardItemCard({
     >
       <div className="flex flex-col gap-1.5 w-full h-full">
         {/* Row 1: Icon, Name | Expand */}
-        <div className="flex items-center justify-between mt-0.5">
-          <div className="flex items-center gap-2 min-w-0 flex-1">
-            <div className="shrink-0" style={{ color: itemColor }}>
-              <DynamicIcon name={item.icon || "Circle"} size={13} color={itemColor} className="stroke-[2.5]" />
-            </div>
-            <h4 className={cn(
-              "text-[12px] font-medium leading-tight transition-colors truncate w-full pr-2",
-              isSelected ? "text-primary font-bold" : "text-foreground"
-            )}>
-              {item.folderName ? (
-                <>
-                  <span
-                    className="text-muted-foreground/50 font-normal hover:text-primary/70 transition-colors cursor-pointer"
-                    onClick={(e) => { e.stopPropagation(); onFolderClick?.(); }}
-                    onPointerDown={(e) => e.stopPropagation()}
-                  >
-                    {item.folderName.length > 12 ? `${item.folderName.slice(0, 12)}…` : item.folderName}
-                    {" › "}
-                  </span>
-                  {item.name}
-                </>
-              ) : item.name}
-            </h4>
-          </div>
-          <div className="flex items-center shrink-0 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity">
+        <div className="flex flex-col gap-0.5 mt-0.5">
+          {item.folderName && (
             <button
               type="button"
-              className="p-0.5 hover:bg-muted/50 rounded-md hover:text-foreground transition-colors"
-              onClick={(e) => { e.stopPropagation(); onMaximizeClick?.(); }}
+              onClick={(e) => { e.stopPropagation(); onFolderClick?.(); }}
+              onPointerDown={(e) => e.stopPropagation()}
+              className="text-[9px] font-semibold text-muted-foreground/40 hover:text-primary/70 transition-colors truncate text-left leading-none self-start"
             >
-              <Maximize2 className="h-3 w-3" />
+              {item.folderName}
             </button>
+          )}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2 min-w-0 flex-1">
+              <div className="shrink-0" style={{ color: itemColor }}>
+                <DynamicIcon name={item.icon || "Circle"} size={13} color={itemColor} className="stroke-[2.5]" />
+              </div>
+              <h4 className={cn(
+                "text-[12px] font-medium leading-tight truncate pr-2",
+                isSelected ? "text-primary font-bold" : "text-foreground"
+              )}>
+                {item.name}
+              </h4>
+            </div>
+            <div className="flex items-center shrink-0 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity">
+              <button
+                type="button"
+                className="p-0.5 hover:bg-muted/50 rounded-md hover:text-foreground transition-colors"
+                onClick={(e) => { e.stopPropagation(); onMaximizeClick?.(); }}
+              >
+                <Maximize2 className="h-3 w-3" />
+              </button>
+            </div>
           </div>
         </div>
 

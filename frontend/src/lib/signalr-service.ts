@@ -10,7 +10,6 @@ import type { Status } from "@/types/status";
 import type { DocumentBlockRecord } from "@/types/document";
 import type { NotificationRecord } from "@/types/notification-record";
 
-// The transactional update packet (1 level deep flat entities for multiple rows and types)
 export interface EntityBatchUpdate {
   spaces?: (Partial<SpaceRecord> & { id: string })[];
   folders?: (Partial<FolderRecord> & { id: string })[];
@@ -26,7 +25,6 @@ export interface EntityBatchUpdate {
   notifications?: NotificationRecord[];
 }
 
-// The transactional deletion packet
 export interface EntityBatchDelete {
   spaceIds?: string[];
   folderIds?: string[];
@@ -41,7 +39,6 @@ export interface EntityBatchDelete {
   attachmentIds?: string[];
 }
 
-// 1. Strict contract for all SignalR events (Zero loose types, decoupled from specific view features)
 export interface SignalREvents {
   EntitiesUpdated: EntityBatchUpdate;
   EntitiesDeleted: EntityBatchDelete;
@@ -76,7 +73,6 @@ class SignalRService {
       .configureLogging(LogLevel.Information)
       .build();
 
-    // 2. Strong reconnect event handling
     this.connection.onreconnected((connectionId) => {
       console.log("[SignalR] Reconnected with ID:", connectionId);
       this.reconnectCallbacks.forEach((cb) => cb());
@@ -84,7 +80,6 @@ class SignalRService {
 
     this.flushPendingListeners();
 
-    // The startPromise now wraps the entire connection retry chain so concurrent callers always await resolution
     this.startPromise = new Promise<void>((resolve, reject) => {
       const tryStart = async () => {
         try {

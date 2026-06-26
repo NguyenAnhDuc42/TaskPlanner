@@ -59,7 +59,7 @@ function FavItemContent({
         "flex items-center px-1 py-0.5 rounded-md transition-colors mb-px border w-full text-left outline-none select-none cursor-grab active:cursor-grabbing",
         isDragging ? "opacity-50" : "",
         isRouteActive
-          ? "bg-primary/10 text-primary border-primary/25"
+          ? "bg-primary/5 text-primary border-primary/25"
           : "text-muted-foreground border-transparent hover:bg-muted/50 hover:text-foreground hover:border-border/30",
       )}
       {...dragHandleProps}

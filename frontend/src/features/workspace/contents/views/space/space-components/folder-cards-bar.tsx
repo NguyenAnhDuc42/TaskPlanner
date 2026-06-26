@@ -236,7 +236,7 @@ export function FolderCardsBar({ spaceId, workspaceId, folders, folderTaskCounts
           className="flex items-center gap-1 px-2 py-1 rounded-md text-muted-foreground/40 hover:text-muted-foreground hover:bg-muted/30 transition-all shrink-0 cursor-pointer"
         >
           <Plus className="h-3 w-3" />
-          <span className="text-[10px] font-medium">New</span>
+          <span className="text-[10px] font-medium">New folder</span>
         </button>
       )}
     </div>

@@ -5,14 +5,7 @@ import { useWorkspaceRole } from "@/features/workspace/context/use-workspace-rol
 
 export function SortableItem({ id, data, children }: Readonly<{ id: string; data: Record<string, unknown>; children: React.ReactNode }>) {
   const { canCreateContent } = useWorkspaceRole();
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-    isDragging
-  } = useSortable({ id, data });
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id, data });
 
   const style = {
     transform: CSS.Translate.toString(transform),

@@ -1,6 +1,6 @@
 import * as React from "react";
 import { Priority } from "@/types/priority";
-import { PriorityBadge } from "@/components/priority-badge";
+import { Flag } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -19,6 +19,20 @@ interface PrioritySelectProps {
   readonly trigger: React.ReactNode;
 }
 
+const getPriorityColorClasses = (p: Priority) => {
+  switch (p) {
+    case Priority.Urgent:
+      return "text-red-600 dark:text-red-400 focus:bg-red-500/10 dark:focus:bg-red-500/20 focus:text-red-600 dark:focus:text-red-400";
+    case Priority.High:
+      return "text-orange-600 dark:text-orange-400 focus:bg-orange-500/10 dark:focus:bg-orange-500/20 focus:text-orange-600 dark:focus:text-orange-400";
+    case Priority.Normal:
+      return "text-blue-600 dark:text-blue-400 focus:bg-blue-500/10 dark:focus:bg-blue-500/20 focus:text-blue-600 dark:focus:text-blue-400";
+    case Priority.Low:
+    default:
+      return "text-muted-foreground focus:bg-muted focus:text-muted-foreground dark:focus:text-muted-foreground";
+  }
+};
+
 export function PrioritySelect({
   value,
   onChange,
@@ -36,7 +50,7 @@ export function PrioritySelect({
         onClick={(e) => e.stopPropagation()}
         onPointerDown={(e) => e.stopPropagation()}
       >
-        <DropdownMenuLabel>Priority</DropdownMenuLabel>
+        <DropdownMenuLabel className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold">Priority</DropdownMenuLabel>
         <DropdownMenuSeparator />
         <DropdownMenuRadioGroup value={value} onValueChange={(val) => onChange(val as Priority)}>
           {[
@@ -48,12 +62,13 @@ export function PrioritySelect({
             <DropdownMenuRadioItem
               key={p}
               value={p}
-              className={cn(value === p && "bg-muted shadow-sm")}
+              className={cn(
+                "flex items-center gap-2 cursor-pointer transition-colors font-medium",
+                getPriorityColorClasses(p)
+              )}
             >
-              <PriorityBadge
-                priority={p}
-                className="w-full justify-start pointer-events-none"
-              />
+              <Flag className="h-3.5 w-3.5" />
+              <span>{p}</span>
             </DropdownMenuRadioItem>
           ))}
         </DropdownMenuRadioGroup>

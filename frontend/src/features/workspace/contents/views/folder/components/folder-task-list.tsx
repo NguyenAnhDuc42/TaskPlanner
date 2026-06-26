@@ -38,19 +38,21 @@ export function FolderTaskList({
   const { canEdit: canCreateContent } = useSpaceAccess(folder?.spaceId ?? "");
   const [createOpen, setCreateOpen] = React.useState(false);
   
-  const [filter, setFilter] = React.useState<TaskFilter>({});
+  const [filterState, setFilterState] = React.useState<TaskFilter>({});
   const [searchInput, setSearchInput] = React.useState("");
   const debouncedSearch = useDebounce(searchInput, 300);
 
-  React.useEffect(() => {
-    setFilter(prev => ({ ...prev, search: debouncedSearch || undefined }));
-  }, [debouncedSearch]);
+  const filter: TaskFilter = React.useMemo(() => ({
+    ...filterState,
+    search: debouncedSearch || undefined
+  }), [filterState, debouncedSearch]);
+  
+  const setFilter = setFilterState;
 
   const folderStatuses = useFolderStatuses(folderId);
 
   const { isLoading } = useFolderTasksFullLoad(folderId);
 
-  // Client-side filter on entity store — all tasks already loaded via full load
   const selectTasks = React.useMemo(() =>
     createSelector(
       [taskSelectors.selectAll],
