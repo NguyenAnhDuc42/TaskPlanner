@@ -29,6 +29,7 @@ client/next-env.d.ts
 *.dll
 *.exe
 *.json
+!frontend/vercel.json
 *.mdf
 *.ldf
 
