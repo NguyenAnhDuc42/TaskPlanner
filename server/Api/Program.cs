@@ -1,6 +1,7 @@
 
 using System.Text.Json.Serialization;
 using System.Threading.RateLimiting;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
 using Scalar.AspNetCore;
 using Serilog;
@@ -144,6 +145,10 @@ if (app.Environment.IsDevelopment())
 
 
 // --- Middleware Pipeline ---
+app.UseForwardedHeaders(new ForwardedHeadersOptions
+{
+    ForwardedHeaders = ForwardedHeaders.XForwardedProto
+});
 app.UseRouting();
 app.UseCors(CorsPolicy);
 
