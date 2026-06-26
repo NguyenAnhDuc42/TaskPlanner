@@ -57,6 +57,29 @@ class SignalRService {
   private pendingListeners: AnySignalRListener[] = [];
   private reconnectCallbacks: Array<() => void> = [];
 
+  private buildConnection(): void {
+    this.connection = new HubConnectionBuilder()
+      .withUrl(this.url, {
+        withCredentials: true,
+        transport: HttpTransportType.WebSockets,
+        skipNegotiation: true,
+      })
+      .withAutomaticReconnect({
+        nextRetryDelayInMilliseconds: () => 5000, // retry forever every 5s
+      })
+      .configureLogging(LogLevel.Information)
+      .build();
+
+    this.connection.onreconnected((connectionId) => {
+      console.log("[SignalR] Reconnected with ID:", connectionId);
+      this.reconnectCallbacks.forEach((cb) => cb());
+    });
+
+    this.connection.onclose(() => {
+      console.log("[SignalR] Connection closed — will retry on next visibility or action");
+    });
+  }
+
   public async startConnection(): Promise<void> {
     if (this.connection?.state === HubConnectionState.Connected) {
       return;
@@ -66,22 +89,11 @@ class SignalRService {
       return this.startPromise;
     }
 
-    this.connection = new HubConnectionBuilder()
-      .withUrl(this.url, {
-        withCredentials: true,
-        transport: HttpTransportType.WebSockets,
-        skipNegotiation: true,
-      })
-      .withAutomaticReconnect([0, 1000, 2000, 5000, 10000, 30000])
-      .configureLogging(LogLevel.Information)
-      .build();
-
-    this.connection.onreconnected((connectionId) => {
-      console.log("[SignalR] Reconnected with ID:", connectionId);
-      this.reconnectCallbacks.forEach((cb) => cb());
-    });
-
-    this.flushPendingListeners();
+    // Rebuild connection if it was permanently closed
+    if (!this.connection || this.connection.state === HubConnectionState.Disconnected) {
+      this.buildConnection();
+      this.flushPendingListeners();
+    }
 
     this.startPromise = new Promise<void>((resolve, reject) => {
       const tryStart = async () => {
@@ -172,11 +184,12 @@ class SignalRService {
 
   public registerVisibilityReconnect(): () => void {
     const handler = () => {
-      if (document.visibilityState === "visible" &&
-          this.connection?.state !== HubConnectionState.Connected &&
-          this.connection?.state !== HubConnectionState.Connecting) {
-        this.startConnection();
-      }
+      if (document.visibilityState !== "visible") return;
+      const state = this.connection?.state;
+      if (state === HubConnectionState.Connected || state === HubConnectionState.Connecting || state === HubConnectionState.Reconnecting) return;
+      console.log("[SignalR] Tab visible, reconnecting...");
+      this.startPromise = null;
+      this.startConnection();
     };
     document.addEventListener("visibilitychange", handler);
     return () => document.removeEventListener("visibilitychange", handler);
