@@ -33,7 +33,7 @@ export default function SignInForm() {
         <button
           type="button"
           disabled={isPending}
-          onClick={() => (window.location.href = "/api/auth/external-login/google")}
+          onClick={() => (window.location.href = `${import.meta.env.VITE_API_URL ?? ""}/api/auth/external-login/google`)}
           className="flex items-center justify-center gap-3 h-11 px-4 rounded-xl border border-border/80 bg-secondary hover:bg-muted shadow-sm hover:shadow-md text-sm font-bold text-foreground transition-all active:scale-[0.98] disabled:opacity-40 disabled:pointer-events-none"
         >
           <Chrome className="h-5 w-5" />
@@ -42,7 +42,7 @@ export default function SignInForm() {
         <button
           type="button"
           disabled={isPending}
-          onClick={() => (window.location.href = "/api/auth/external-login/github")}
+          onClick={() => (window.location.href = `${import.meta.env.VITE_API_URL ?? ""}/api/auth/external-login/github`)}
           className="flex items-center justify-center gap-3 h-11 px-4 rounded-xl border border-border/80 bg-secondary hover:bg-muted shadow-sm hover:shadow-md text-sm font-bold text-foreground transition-all active:scale-[0.98] disabled:opacity-40 disabled:pointer-events-none"
         >
           <Github className="h-5 w-5" />
