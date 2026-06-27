@@ -1,6 +1,13 @@
 # TaskPlanner
 
-A personal task management application built to solve a real problem — I struggle with maintaining a consistent development schedule and keeping goals stable, so I built a tool to plan and track my own work.
+TaskPlanner is a collaborative task management platform inspired by tools like ClickUp and Notion. It began as a personal solution for organizing development work and evolved into a full-stack application exploring real-time collaboration, hierarchical workspaces, and scalable backend architecture
+
+## Technical Highlights
+- Vertical Slice Architecture with CQRS feature organization
+- Hierarchical workspace model (Workspace → Space → Folder → List → Task)
+- Role-based authorization with entity-level permissions
+- Optimistic UI with Redux entity store + SignalR synchronization
+- JWT + OAuth authentication
 
 ## Features
 
@@ -30,7 +37,7 @@ A personal task management application built to solve a real problem — I strug
 
 **Infrastructure**
 - Background job processing with Hangfire
-- Hybrid in-memory + distributed caching
+- Cache 
 - Rate limiting per user
 - Optimistic UI with real-time reconciliation
 
@@ -48,7 +55,7 @@ A personal task management application built to solve a real problem — I strug
 
 ## Architecture
 
-The backend follows **vertical slice architecture** — each feature is self-contained with its own command, handler, and validator. This reflects how I naturally think about problems: by feature, not by layer. There's enough abstraction to stay maintainable without over-engineering.
+The backend follows Vertical Slice Architecture, organizing each feature into isolated command/query handlers, validators, and endpoints. This keeps business logic localized and reduces coupling between features while remaining simple enough for a solo project.
 
 The frontend uses a Redux entity store for local state with RTK Query for server synchronization, sitting on top of a SignalR real-time layer.
 
@@ -66,7 +73,7 @@ The frontend uses a Redux entity store for local state with RTK Query for server
 
 ---
 
-## Patch Notes
+## Roadmap
 
 ### v0.1.0 — Initial Deploy `2026-06-26`
 - Deployed to Railway (API + PostgreSQL) and Vercel (Frontend)
