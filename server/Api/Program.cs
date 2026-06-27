@@ -154,7 +154,9 @@ if (app.Environment.IsDevelopment())
 // --- Middleware Pipeline ---
 app.UseForwardedHeaders(new ForwardedHeadersOptions
 {
-    ForwardedHeaders = ForwardedHeaders.XForwardedProto
+    ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto,
+    KnownIPNetworks = { },
+    KnownProxies = { }
 });
 app.UseRouting();
 app.UseCors(CorsPolicy);
