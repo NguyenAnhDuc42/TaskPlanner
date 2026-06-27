@@ -172,6 +172,12 @@ public static class DependencyInjection
                 opt.ClientId = oauthSettings.Google.ClientId;
                 opt.ClientSecret = oauthSettings.Google.ClientSecret;
                 opt.CallbackPath = "/api/auth/callback/google";
+                opt.Events.OnRedirectToAuthorizationEndpoint = ctx =>
+                {
+                    var uri = new UriBuilder(ctx.RedirectUri) { Scheme = "https", Port = -1 };
+                    ctx.Response.Redirect(uri.ToString());
+                    return Task.CompletedTask;
+                };
                 opt.AuthorizationEndpoint = "https://accounts.google.com/o/oauth2/v2/auth";
                 opt.TokenEndpoint = "https://oauth2.googleapis.com/token";
                 opt.UserInformationEndpoint = "https://www.googleapis.com/oauth2/v3/userinfo";
@@ -226,6 +232,12 @@ public static class DependencyInjection
                 opt.CorrelationCookie.SecurePolicy = CookieSecurePolicy.Always;
                 opt.Events = new OAuthEvents
                 {
+                    OnRedirectToAuthorizationEndpoint = ctx =>
+                    {
+                        var uri = new UriBuilder(ctx.RedirectUri) { Scheme = "https", Port = -1 };
+                        ctx.Response.Redirect(uri.ToString());
+                        return Task.CompletedTask;
+                    },
                     OnRemoteFailure = ctx =>
                     {
                         var logger = ctx.HttpContext.RequestServices.GetRequiredService<ILoggerFactory>().CreateLogger("OAuth");
