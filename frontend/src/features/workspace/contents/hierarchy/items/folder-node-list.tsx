@@ -3,9 +3,10 @@ import { FolderNodeItem } from "@/features/workspace/contents/hierarchy/items/fo
 import { useWorkspace } from "@/features/workspace/context/workspace-context";
 import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import React from "react";
-import { useDispatch } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import type { AppDispatch } from "@/store";
-import { spaceSlice } from "@/store/entityStore";
+import { spaceSlice, spaceSelectors } from "@/store/entityStore";
+import type { RootState } from "@/store";
 
 const FolderSkeleton = () => (
   <div className="flex items-center gap-2 pl-4 py-1 opacity-20 animate-pulse">
@@ -23,10 +24,11 @@ export const NodeFoldersList = React.memo(function NodeFoldersList({
 }) {
   const { workspaceId } = useWorkspace();
   const dispatch = useDispatch<AppDispatch>();
+  const hasFolders = useSelector((s: RootState) => spaceSelectors.selectById(s, spaceId)?.hasFolders);
 
   const { isLoading, isFetching, data } = useGetNodeFoldersQuery(
     { workspaceId: workspaceId || "", nodeId: spaceId, cursor: null },
-    { skip: !isExpanded },
+    { skip: !isExpanded || hasFolders === false },
   );
 
   const folders = useFoldersBySpace(spaceId);
