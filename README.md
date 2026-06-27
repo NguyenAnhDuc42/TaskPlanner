@@ -76,7 +76,7 @@ The frontend uses a Redux entity store for local state with RTK Query for server
 
 **Real-time is hard to get right.** The SignalR implementation works but isn't reliable. SSE fallback through Vercel's proxy generates excessive requests. WebSocket connections drop and the reconnect logic creates request storms. The lesson: don't bolt real-time onto a request-based system — design for it from the start.
 
-**Two data sources fight each other.** The frontend maintains both a Redux entity store and RTK Query cache simultaneously. They conflict, causing redundant fetches and UI inconsistencies. It works, but it's heavier than it should be. The right approach is a single local-first store with the server as the sync target, not the source of truth.
+**Two inconsistent data sources.** Architecture reflection. This project stores domain entities in both Redux and RTK Query, which requires unnecessary synchronization between two client-side caches. If I rebuilt it today, I'd use a local-first architecture with IndexedDB as the authoritative client-side data layer and the server as the synchronization target.
 
 **Ship first, iterate after.** The biggest mistake was trying to get everything right before shipping. The correct approach: define a scope, finish it, deploy it, then improve from real usage.
 
