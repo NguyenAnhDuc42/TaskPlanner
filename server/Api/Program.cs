@@ -8,6 +8,12 @@ using Serilog;
 
 
 var builder = WebApplication.CreateBuilder(args);
+builder.Services.Configure<ForwardedHeadersOptions>(options =>
+{
+    options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+    options.KnownIPNetworks.Clear();
+    options.KnownProxies.Clear();
+});
 
 builder.Host.UseSerilog((context, loggerConfig) => 
 {
@@ -152,12 +158,7 @@ if (app.Environment.IsDevelopment())
 
 
 // --- Middleware Pipeline ---
-app.UseForwardedHeaders(new ForwardedHeadersOptions
-{
-    ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto,
-    KnownIPNetworks = { },
-    KnownProxies = { }
-});
+app.UseForwardedHeaders();
 app.UseRouting();
 app.UseCors(CorsPolicy);
 
