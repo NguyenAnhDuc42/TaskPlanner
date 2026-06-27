@@ -54,6 +54,7 @@ export function useBlockEditorSync(documentId: string) {
   const snapshotRef = useRef<Map<string, string>>(new Map());
   const isInitRef = useRef(false);
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isSavingRef = useRef(false);
   const latestRef = useRef<AnyBlock[] | null>(null);
 
   useEffect(() => {
@@ -86,8 +87,8 @@ export function useBlockEditorSync(documentId: string) {
       return;
     }
 
-    // External update (SignalR) — only re-init if user has no pending unsaved changes
-    if (saveTimerRef.current === null) {
+    // External update (SignalR) — only re-init if user has no pending unsaved changes and no save in flight
+    if (saveTimerRef.current === null && !isSavingRef.current) {
       snapshotRef.current = snapshot;
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setReady(prev => ({
@@ -142,7 +143,12 @@ export function useBlockEditorSync(documentId: string) {
 
       snapshotRef.current = next;
       const changes = [...upserts, ...deletes];
-      if (changes.length > 0) updateBlocks({ documentId, blocks: changes });
+      if (changes.length > 0) {
+        isSavingRef.current = true;
+        updateBlocks({ documentId, blocks: changes }).finally(() => {
+          isSavingRef.current = false;
+        });
+      }
     },
     [documentId, updateBlocks],
   );
