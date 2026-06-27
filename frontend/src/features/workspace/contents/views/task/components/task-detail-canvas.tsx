@@ -84,7 +84,7 @@ export function TaskDetailCanvas({ taskId }: TaskDetailCanvasProps) {
   };
 
   return (
-    <div className="flex flex-col h-full w-full bg-transparent overflow-hidden">
+    <div className="flex flex-col h-full w-full bg-card overflow-hidden">
       {/* Task Content Scroll Area */}
       <div className="flex-1 overflow-y-auto [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:bg-muted-foreground/20 hover:[&::-webkit-scrollbar-thumb]:bg-muted-foreground/45 [&::-webkit-scrollbar-track]:bg-transparent">
         <div className="w-full p-4 md:p-8 space-y-6">

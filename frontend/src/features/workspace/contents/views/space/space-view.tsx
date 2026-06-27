@@ -200,7 +200,7 @@ export function SpaceView({ spaceId }: Readonly<SpaceViewProps>) {
         </div>
 
         {/* Content area */}
-        <div className="flex-1 rounded-md border border-border bg-black/5 dark:bg-black/20 shadow-sm overflow-hidden flex flex-col relative">
+        <div className="flex-1 rounded-md border border-border bg-card shadow-sm overflow-hidden flex flex-col relative">
           {activeTab === "items" ? (
             <SpaceBoard spaceId={spaceId} onWorkflowOpen={canManage ? () => setIsWorkflowOpen(true) : undefined} />
           ) : (
