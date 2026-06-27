@@ -9,6 +9,15 @@ TaskPlanner is a collaborative task management platform inspired by tools like C
 - Optimistic UI with Redux entity store + SignalR synchronization
 - JWT + OAuth authentication
 
+<img width="1598" height="721" alt="Image" src="https://github.com/user-attachments/assets/c986c18a-07be-40f0-91a2-0d888c1289a4" />
+
+<img width="1600" height="726" alt="Image" src="https://github.com/user-attachments/assets/31d8958e-2ba7-4434-9519-4d67aadf1e1b" />
+
+<img width="1600" height="730" alt="Image" src="https://github.com/user-attachments/assets/223a305f-b07a-4d24-8cb0-eafa014b7b2f" />
+
+<img width="1600" height="721" alt="Image" src="https://github.com/user-attachments/assets/ebc94090-d809-48f8-a465-31097e38c767" />
+
+
 ## Features
 
 **Workspace & Hierarchy**
