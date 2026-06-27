@@ -9,7 +9,7 @@ import type { PagedResult } from "@/types/paged-result";
 import { useNavigate, useSearch } from "@tanstack/react-router";
 import React from "react";
 import { signalRService } from "@/lib/signalr-service";
-import { useSelector } from "react-redux";
+import { useSelector, useDispatch } from "react-redux";
 
 type CreateWorkspaceValues = z.infer<typeof createWorkspaceSchema>;
 
@@ -152,6 +152,7 @@ export function useSetWorkspacePin() {
 
 export function useJoinWorkspaceByCode() {
   const [joinTrigger] = useJoinWorkspaceMutation();
+  const dispatch = useDispatch();
   return {
     mutate: async (joinCode: string) => {
       try {
@@ -160,6 +161,7 @@ export function useJoinWorkspaceByCode() {
           toast.info("Join request sent. Waiting for approval.");
         } else {
           toast.success("Joined workspace successfully");
+          dispatch(workspaceApi.util.invalidateTags(["Workspaces"]));
         }
         return data;
       } catch (error: unknown) {

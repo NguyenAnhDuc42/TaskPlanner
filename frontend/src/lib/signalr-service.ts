@@ -46,6 +46,7 @@ export interface SignalREvents {
   NewNotification: NotificationRecord;
   AccessRevoked: { spaceId?: string };
   AccessGranted: { spaceId?: string };
+  WorkspaceJoined: { workspaceId: string };
 }
 
 type AnySignalRListener = { eventName: string; callback: (data: unknown) => void };

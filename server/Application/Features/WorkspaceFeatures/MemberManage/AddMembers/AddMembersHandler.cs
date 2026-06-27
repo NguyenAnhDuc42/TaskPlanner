@@ -9,6 +9,7 @@ public class AddMembersHandler(
     WorkspaceContext context,
     PermissionService permissionService,
     RealtimeService realtimeService,
+    NotificationService notificationService,
     HybridCache cache,
     ILogger<AddMembersHandler> logger
 ) : ICommandHandler<AddMembersCommand>
@@ -81,6 +82,22 @@ public class AddMembersHandler(
                 .ContinueWith(
                     t => logger.LogError(t.Exception, "Failed to send realtime notification for AddMembers in workspace {WorkspaceId}", request.WorkspaceId),
                     TaskContinuationOptions.OnlyOnFaulted);
+
+            foreach (var member in newMembers)
+            {
+                var user = userLookup[member.UserId];
+                _ = notificationService.PushAsync(
+                    recipientUserId: member.UserId,
+                    actorUserId: context.CurrentMember.UserId,
+                    projectWorkspaceId: request.WorkspaceId,
+                    type: "WorkspaceInvite",
+                    entityType: "Workspace",
+                    entityId: request.WorkspaceId,
+                    title: $"You've been added to {workspace.Name}",
+                    cancellationToken: cancellationToken);
+
+                _ = realtimeService.NotifyUserAsync(member.UserId, "WorkspaceJoined", new { WorkspaceId = request.WorkspaceId }, cancellationToken);
+            }
         }
 
         return Result.Success();

@@ -3,6 +3,7 @@ import { useDispatch } from "react-redux";
 import { signalRService } from "@/lib/signalr-service";
 import { notificationSlice } from "@/store/entityStore";
 import { useUser } from "@/features/auth/auth-api";
+import { workspaceApi } from "@/store/workspaceApi";
 import type { AppDispatch } from "@/store";
 import type { NotificationRecord } from "@/types/notification-record";
 
@@ -26,10 +27,16 @@ export function useNotificationSignalR() {
       dispatch(notificationSlice.actions.upsert(record));
     };
 
+    const onWorkspaceJoined = () => {
+      dispatch(workspaceApi.util.invalidateTags(["Workspaces"]));
+    };
+
     signalRService.on("NewNotification", onNewNotification);
+    signalRService.on("WorkspaceJoined", onWorkspaceJoined);
 
     return () => {
       signalRService.off("NewNotification", onNewNotification);
+      signalRService.off("WorkspaceJoined", onWorkspaceJoined);
     };
   }, [currentUser?.id, dispatch]);
 }
