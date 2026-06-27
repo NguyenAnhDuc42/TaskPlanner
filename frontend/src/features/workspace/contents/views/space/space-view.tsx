@@ -111,7 +111,7 @@ export function SpaceView({ spaceId }: Readonly<SpaceViewProps>) {
         </div>
       }
     >
-      <div className="h-full w-full flex flex-col bg-transparent p-1 gap-1 overflow-hidden relative">
+      <div className="h-full w-full flex flex-col bg-card p-1 gap-1 overflow-hidden relative">
         {/* Controls toolbar */}
         <div className="flex items-center justify-between px-2 py-1 rounded-md border border-border bg-card shadow-sm shrink-0">
           {/* Public/Private toggle — admin only, sits on the left */}
