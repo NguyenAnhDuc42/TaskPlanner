@@ -184,8 +184,8 @@ public static class DependencyInjection
                 opt.Scope.Add("openid");
                 opt.Scope.Add("email");
                 opt.Scope.Add("profile");
-                opt.CorrelationCookie.SameSite = SameSiteMode.None;
-                opt.CorrelationCookie.SecurePolicy = CookieSecurePolicy.Always;
+                opt.CorrelationCookie.SameSite = SameSiteMode.Lax;
+                opt.CorrelationCookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
                 opt.Events = new OAuthEvents
                 {
                     OnRemoteFailure = ctx =>
@@ -228,8 +228,8 @@ public static class DependencyInjection
                 opt.TokenEndpoint = "https://github.com/login/oauth/access_token";
                 opt.UserInformationEndpoint = "https://api.github.com/user";
                 opt.Scope.Add("user:email");
-                opt.CorrelationCookie.SameSite = SameSiteMode.None;
-                opt.CorrelationCookie.SecurePolicy = CookieSecurePolicy.Always;
+                opt.CorrelationCookie.SameSite = SameSiteMode.Lax;
+                opt.CorrelationCookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
                 opt.Events = new OAuthEvents
                 {
                     OnRedirectToAuthorizationEndpoint = ctx =>
