@@ -46,9 +46,8 @@ TaskPlanner is a collaborative task management platform inspired by tools like C
 
 **Infrastructure**
 - Background job processing with Hangfire
-- Cache 
+- Hybrid in-memory + distributed caching
 - Rate limiting per user
-- Optimistic UI with real-time reconciliation
 
 ---
 
@@ -76,7 +75,7 @@ The frontend uses a Redux entity store for local state with RTK Query for server
 
 **Real-time is hard to get right.** The SignalR implementation works but isn't reliable. SSE fallback through Vercel's proxy generates excessive requests. WebSocket connections drop and the reconnect logic creates request storms. The lesson: don't bolt real-time onto a request-based system — design for it from the start.
 
-**Two inconsistent data sources.** Architecture reflection. This project stores domain entities in both Redux and RTK Query, which requires unnecessary synchronization between two client-side caches. If I rebuilt it today, I'd use a local-first architecture with IndexedDB as the authoritative client-side data layer and the server as the synchronization target.
+**Two data sources fight each other.** The frontend maintains both a Redux entity store and RTK Query cache simultaneously. They conflict, causing redundant fetches and UI inconsistencies. It works, but it's heavier than it should be. The right approach is a persistent local store (IndexedDB) as the source of truth, with a reactive in-memory layer on top — not two competing remote-cache systems. RTK Query and the entity store fight because neither truly owns the data. The fix is giving ownership to one layer and making the other derived from it. A true single source is impossible on the frontend due to IndexedDB's async nature — the goal is a clear ownership hierarchy, not literal consolidation.
 
 **Ship first, iterate after.** The biggest mistake was trying to get everything right before shipping. The correct approach: define a scope, finish it, deploy it, then improve from real usage.
 
@@ -94,8 +93,9 @@ The frontend uses a Redux entity store for local state with RTK Query for server
 - Invite by email and join by code
 
 ### Planned — v0.2.0
-- Sync engine: sequence-numbered event log + delta endpoint
-- Fix dual data source — migrate to single local-first store
-- Activity feed powered by event log
+- Custom domain — prerequisite for proper cookie security, OAuth, and CORS
+- Sync engine: sequence-numbered event log + delta endpoint replacing reconnect-and-refetch
+- Activity feed powered by the event log (same table, no extra work)
+- Migrate frontend to IndexedDB as persistent store with reactive in-memory layer on top
 - Modular backend architecture (Auth, Workspace, Hierarchy, Documents, Sync)
-- WebSocket stability improvements
+- WebSocket stability — remove SSE fallback dependency
