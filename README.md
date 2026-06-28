@@ -96,6 +96,6 @@ The frontend uses a Redux entity store for local state with RTK Query for server
 - Custom domain — prerequisite for proper cookie security, OAuth, and CORS
 - Sync engine: sequence-numbered event log + delta endpoint replacing reconnect-and-refetch
 - Activity feed powered by the event log (same table, no extra work)
-- Migrate frontend to IndexedDB as persistent store with reactive in-memory layer on top
+- Frontend data layer: IndexedDB as persistent store, reactive in-memory layer on top, server as sync target — clear ownership hierarchy replacing the current competing caches
 - Modular backend architecture (Auth, Workspace, Hierarchy, Documents, Sync)
 - WebSocket stability — remove SSE fallback dependency
