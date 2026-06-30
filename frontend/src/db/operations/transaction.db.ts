@@ -41,7 +41,7 @@ export class TransactionDB {
     }
   }
  
-  async getByModel(
+  async getByEntity(
     entityType: string,
     entityId: string
   ): Promise<PendingTransaction[]> {

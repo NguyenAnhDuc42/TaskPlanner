@@ -1,11 +1,11 @@
-import type { EntityType, SyncAction } from "./delta";
+import type { SyncEntityType, SyncAction } from "./delta";
 
 export type TransactionStatus = "pending" | "in_flight" | "failed";
 
 export interface PendingTransaction {
   id: string;
   action: SyncAction;
-  entityType: EntityType;
+  entityType: SyncEntityType;
   entityId:string
   data: Record<string,unknown>;
   previousData:  Record<string,unknown> | null;

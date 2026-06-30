@@ -3,7 +3,7 @@
 export interface DeltaPayload{
   syncId: number;
   action: SyncAction;
-  entityType: EntityType;
+  entityType: SyncEntityType;
   entityId: string;
   data: Record<string,unknown>;
   clientTraceId?: string;
@@ -17,12 +17,13 @@ export interface DeltaBatchPayload  {
 
 
 export type SyncAction ='C'|'U'|'D'
-export type EntityType =
+export type SyncEntityType =
 'Space'|
 'Folder'|
 'Task'|
 'Status'|
 'Comment'|
+'Document'|
 'DocumentBlock'|
 'Member'|
 'EntityAccess'

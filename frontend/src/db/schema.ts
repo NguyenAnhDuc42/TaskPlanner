@@ -1,4 +1,4 @@
-import type { DocumentBlockRecord } from "@/types/document";
+import type { DocumentBlockRecord, DocumentRecord } from "@/types/document";
 import type { CommentRecord, FolderRecord, SpaceRecord, TaskRecord } from "@/types/projects";
 import type { Status } from "@/types/status";
 import type { PendingTransaction, WorkspaceMetadata } from "@/types/sync";
@@ -60,6 +60,11 @@ export interface TaskPlanDB extends DBSchema {
     }
   }
 
+  documents:{
+    key:string;
+    value:DocumentRecord
+  }
+
   document_blocks:{
     key:string;
     value:DocumentBlockRecord
@@ -82,7 +87,7 @@ export interface TaskPlanDB extends DBSchema {
   }
 }
 
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 const dbCache = new Map<string, IDBPDatabase<TaskPlanDB>>()
 
 export async function openWorkspaceDB(workspaceId:string) : Promise<IDBPDatabase<TaskPlanDB>> {
@@ -91,31 +96,51 @@ export async function openWorkspaceDB(workspaceId:string) : Promise<IDBPDatabase
 
   const db = await openDB<TaskPlanDB>(`taskplan_${workspaceId}`,DB_VERSION, {
     upgrade(db){
-      db.createObjectStore('__metadata')
-      
-      const transactions = db.createObjectStore('__transactions' , {keyPath: 'id'})
-      transactions.createIndex('by-status','status')
-      transactions.createIndex('by-entity',['entityId','entityType'])
-      
-      db.createObjectStore('spaces' , {keyPath: 'id'})
+      if (!db.objectStoreNames.contains('__metadata')) {
+        db.createObjectStore('__metadata')
+      }
 
-      const folders = db.createObjectStore('folders' , {keyPath : 'id'})
-      folders.createIndex('by-space','spaceId')
+      if (!db.objectStoreNames.contains('__transactions')) {
+        const transactions = db.createObjectStore('__transactions' , {keyPath: 'id'})
+        transactions.createIndex('by-status','status')
+        transactions.createIndex('by-entity',['entityId','entityType'])
+      }
 
-      const tasks = db.createObjectStore('tasks' , {keyPath: 'id'})
-      tasks.createIndex('by-space','spaceId')
-      tasks.createIndex('by-folder','folderId')
-      tasks.createIndex('by-parent-task','parentTaskId')
-      tasks.createIndex('by-status','statusId')
+      if (!db.objectStoreNames.contains('spaces')) {
+        db.createObjectStore('spaces' , {keyPath: 'id'})
+      }
 
-      const comments = db.createObjectStore('comments', {keyPath : 'id'})
-      comments.createIndex('by-task','taskId')
+      if (!db.objectStoreNames.contains('folders')) {
+        const folders = db.createObjectStore('folders' , {keyPath : 'id'})
+        folders.createIndex('by-space','spaceId')
+      }
 
-      const statuses = db.createObjectStore('statuses', {keyPath : 'id'})
-      statuses.createIndex('by-space','spaceId')
+      if (!db.objectStoreNames.contains('tasks')) {
+        const tasks = db.createObjectStore('tasks' , {keyPath: 'id'})
+        tasks.createIndex('by-space','spaceId')
+        tasks.createIndex('by-folder','folderId')
+        tasks.createIndex('by-parent-task','parentTaskId')
+        tasks.createIndex('by-status','statusId')
+      }
 
-      const document_blocks = db.createObjectStore('document_blocks',{keyPath: 'id'})
-      document_blocks.createIndex('by-document','documentId')
+      if (!db.objectStoreNames.contains('comments')) {
+        const comments = db.createObjectStore('comments', {keyPath : 'id'})
+        comments.createIndex('by-task','taskId')
+      }
+
+      if (!db.objectStoreNames.contains('statuses')) {
+        const statuses = db.createObjectStore('statuses', {keyPath : 'id'})
+        statuses.createIndex('by-space','spaceId')
+      }
+
+      if (!db.objectStoreNames.contains('documents')) {
+        db.createObjectStore('documents',{keyPath: 'id'})
+      }
+
+      if (!db.objectStoreNames.contains('document_blocks')) {
+        const document_blocks = db.createObjectStore('document_blocks',{keyPath: 'id'})
+        document_blocks.createIndex('by-document','documentId')
+      }
 
       if (!db.objectStoreNames.contains('entity_access')) {
         const entity_access = db.createObjectStore('entity_access', {keyPath: 'id'})

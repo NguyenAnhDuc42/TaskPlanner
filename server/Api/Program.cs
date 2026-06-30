@@ -190,7 +190,9 @@ app.UseMiddleware<IdempotencyMiddleware>();
 
 
 app.MapHub<WorkspaceHub>("/hubs/workspace").RequireCors("AllowSignalR");
+app.MapHub<SyncHub>("/hubs/sync").RequireCors("AllowSignalR");
 app.MapControllers();
+app.MapAllEndpoints(typeof(Program).Assembly);
 
 // Apply pending EF Core migrations on startup
 using (var scope = app.Services.CreateScope())

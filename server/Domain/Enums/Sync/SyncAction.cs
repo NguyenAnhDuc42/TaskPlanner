@@ -3,9 +3,9 @@ using System.Text.Json.Serialization;
 namespace Domain;
 
 [JsonConverter(typeof(JsonStringEnumConverter))]
-public enum ViewType
+public enum SyncAction
 {
-    Overview,
-    Tasks
+    C, // Create
+    U, // Update
+    D  // Delete
 }
-

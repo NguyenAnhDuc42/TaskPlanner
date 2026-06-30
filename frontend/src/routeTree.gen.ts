@@ -14,6 +14,7 @@ import { Route as AboutRouteImport } from './routes/about'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthIndexRouteImport } from './routes/auth/index'
 import { Route as WorkspacesWorkspaceIdRouteImport } from './routes/workspaces/$workspaceId'
+import { Route as DevSyncTestRouteImport } from './routes/dev/sync-test'
 import { Route as AuthSignUpRouteImport } from './routes/auth/sign-up'
 import { Route as AuthSignInRouteImport } from './routes/auth/sign-in'
 import { Route as AuthResetPasswordRouteImport } from './routes/auth/reset-password'
@@ -50,6 +51,11 @@ const AuthIndexRoute = AuthIndexRouteImport.update({
 const WorkspacesWorkspaceIdRoute = WorkspacesWorkspaceIdRouteImport.update({
   id: '/workspaces/$workspaceId',
   path: '/workspaces/$workspaceId',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DevSyncTestRoute = DevSyncTestRouteImport.update({
+  id: '/dev/sync-test',
+  path: '/dev/sync-test',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthSignUpRoute = AuthSignUpRouteImport.update({
@@ -129,6 +135,7 @@ export interface FileRoutesByFullPath {
   '/auth/reset-password': typeof AuthResetPasswordRoute
   '/auth/sign-in': typeof AuthSignInRoute
   '/auth/sign-up': typeof AuthSignUpRoute
+  '/dev/sync-test': typeof DevSyncTestRoute
   '/workspaces/$workspaceId': typeof WorkspacesWorkspaceIdRouteWithChildren
   '/auth/': typeof AuthIndexRoute
   '/workspaces/$workspaceId/command-center': typeof WorkspacesWorkspaceIdCommandCenterRoute
@@ -147,6 +154,7 @@ export interface FileRoutesByTo {
   '/auth/reset-password': typeof AuthResetPasswordRoute
   '/auth/sign-in': typeof AuthSignInRoute
   '/auth/sign-up': typeof AuthSignUpRoute
+  '/dev/sync-test': typeof DevSyncTestRoute
   '/auth': typeof AuthIndexRoute
   '/workspaces/$workspaceId/command-center': typeof WorkspacesWorkspaceIdCommandCenterRoute
   '/workspaces/$workspaceId/inbox': typeof WorkspacesWorkspaceIdInboxRoute
@@ -166,6 +174,7 @@ export interface FileRoutesById {
   '/auth/reset-password': typeof AuthResetPasswordRoute
   '/auth/sign-in': typeof AuthSignInRoute
   '/auth/sign-up': typeof AuthSignUpRoute
+  '/dev/sync-test': typeof DevSyncTestRoute
   '/workspaces/$workspaceId': typeof WorkspacesWorkspaceIdRouteWithChildren
   '/auth/': typeof AuthIndexRoute
   '/workspaces/$workspaceId/command-center': typeof WorkspacesWorkspaceIdCommandCenterRoute
@@ -187,6 +196,7 @@ export interface FileRouteTypes {
     | '/auth/reset-password'
     | '/auth/sign-in'
     | '/auth/sign-up'
+    | '/dev/sync-test'
     | '/workspaces/$workspaceId'
     | '/auth/'
     | '/workspaces/$workspaceId/command-center'
@@ -205,6 +215,7 @@ export interface FileRouteTypes {
     | '/auth/reset-password'
     | '/auth/sign-in'
     | '/auth/sign-up'
+    | '/dev/sync-test'
     | '/auth'
     | '/workspaces/$workspaceId/command-center'
     | '/workspaces/$workspaceId/inbox'
@@ -223,6 +234,7 @@ export interface FileRouteTypes {
     | '/auth/reset-password'
     | '/auth/sign-in'
     | '/auth/sign-up'
+    | '/dev/sync-test'
     | '/workspaces/$workspaceId'
     | '/auth/'
     | '/workspaces/$workspaceId/command-center'
@@ -239,6 +251,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AboutRoute: typeof AboutRoute
   AuthRoute: typeof AuthRouteWithChildren
+  DevSyncTestRoute: typeof DevSyncTestRoute
   WorkspacesWorkspaceIdRoute: typeof WorkspacesWorkspaceIdRouteWithChildren
 }
 
@@ -277,6 +290,13 @@ declare module '@tanstack/react-router' {
       path: '/workspaces/$workspaceId'
       fullPath: '/workspaces/$workspaceId'
       preLoaderRoute: typeof WorkspacesWorkspaceIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/dev/sync-test': {
+      id: '/dev/sync-test'
+      path: '/dev/sync-test'
+      fullPath: '/dev/sync-test'
+      preLoaderRoute: typeof DevSyncTestRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/auth/sign-up': {
@@ -418,6 +438,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AboutRoute: AboutRoute,
   AuthRoute: AuthRouteWithChildren,
+  DevSyncTestRoute: DevSyncTestRoute,
   WorkspacesWorkspaceIdRoute: WorkspacesWorkspaceIdRouteWithChildren,
 }
 export const routeTree = rootRouteImport

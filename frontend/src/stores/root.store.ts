@@ -1,15 +1,16 @@
-import { 
-  MetadataDB, 
-  TaskDB, 
-  SpaceDB, 
-  FolderDB, 
-  StatusDB, 
-  MemberDB, 
-  CommentDB, 
-  DocumentBlockDB, 
-  EntityAccessDB, 
+import {
+  MetadataDB,
+  TaskDB,
+  SpaceDB,
+  FolderDB,
+  StatusDB,
+  MemberDB,
+  CommentDB,
+  DocumentDB,
+  DocumentBlockDB,
+  EntityAccessDB,
   TransactionDB,
-  type TaskPlanDB 
+  type TaskPlanDB
 } from "@/db";
 import { TaskStore } from "./task.store";
 import { SpaceStore } from "./space.store";
@@ -19,6 +20,7 @@ import { NotificationStore } from "./notification.store";
 import { StatusStore } from "./status.store";
 import { WorkspaceStore } from "./workspace.store";
 import { CommentStore } from "./comment.store";
+import { DocumentStore } from "./document.store";
 import { DocumentBlockStore } from "./document-block.store";
 import { EntityAccessStore } from "./entity-access.store";
 
@@ -44,6 +46,7 @@ export class RootStore {
   statusStore = new StatusStore();
   workspaceStore = new WorkspaceStore();
   commentStore = new CommentStore();
+  documentStore = new DocumentStore();
   documentBlockStore = new DocumentBlockStore();
   entityAccessStore = new EntityAccessStore();
 
@@ -54,6 +57,7 @@ export class RootStore {
   statusDB: StatusDB | null = null;
   memberDB: MemberDB | null = null;
   commentDB: CommentDB | null = null;
+  documentDB: DocumentDB | null = null;
   documentBlockDB: DocumentBlockDB | null = null;
   entityAccessDB: EntityAccessDB | null = null;
   metadataDB: MetadataDB | null = null;
@@ -118,6 +122,7 @@ export class RootStore {
     // Do not clear notificationStore here, as it belongs to the User, not a specific workspace.
     this.statusStore.clear();
     this.commentStore.clear();
+    this.documentStore.clear();
     this.documentBlockStore.clear();
     this.entityAccessStore.clear();
 
@@ -131,6 +136,7 @@ export class RootStore {
     this.statusDB = new StatusDB(this.db);
     this.memberDB = new MemberDB(this.db);
     this.commentDB = new CommentDB(this.db);
+    this.documentDB = new DocumentDB(this.db);
     this.documentBlockDB = new DocumentBlockDB(this.db);
     this.entityAccessDB = new EntityAccessDB(this.db);
     this.metadataDB = new MetadataDB(this.db, workspaceId);
@@ -143,13 +149,14 @@ export class RootStore {
     if (!this.db) return;
 
     // Fetch all records from IndexedDB in parallel for fast loading
-    const [tasks, spaces, folders, statuses, members, comments, blocks, accesses] = await Promise.all([
+    const [tasks, spaces, folders, statuses, members, comments, documents, blocks, accesses] = await Promise.all([
       this.taskDB!.getAll(),
       this.spaceDB!.getAll(),
       this.folderDB!.getAll(),
       this.statusDB!.getAll(),
       this.memberDB!.getAll(),
       this.commentDB!.getAll(),
+      this.documentDB!.getAll(),
       this.documentBlockDB!.getAll(),
       this.entityAccessDB!.getAll(),
     ]);
@@ -161,6 +168,7 @@ export class RootStore {
     this.statusStore.hydrate(statuses);
     this.memberStore.hydrate(members);
     this.commentStore.hydrate(comments);
+    this.documentStore.hydrate(documents);
     this.documentBlockStore.hydrate(blocks);
     this.entityAccessStore.hydrate(accesses);
   }
@@ -186,6 +194,7 @@ export function useNotificationStore(): NotificationStore { return useStore().no
 export function useStatusStore(): StatusStore { return useStore().statusStore }
 export function useWorkspaceStore(): WorkspaceStore { return useStore().workspaceStore }
 export function useCommentStore(): CommentStore { return useStore().commentStore }
+export function useDocumentStore(): DocumentStore { return useStore().documentStore }
 export function useDocumentBlockStore(): DocumentBlockStore { return useStore().documentBlockStore }
 export function useEntityAccessStore(): EntityAccessStore { return useStore().entityAccessStore }
 export function useIsOnline(): boolean { return useStore().isOnline }

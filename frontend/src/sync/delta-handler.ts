@@ -1,6 +1,7 @@
 import type { RootStore } from "@/stores/root.store";
 import type { TaskRecord } from "@/types/projects";
-import type { DeltaPayload, EntityType } from "@/types/sync/delta";
+import type { DocumentRecord } from "@/types/document";
+import type { DeltaPayload, SyncEntityType } from "@/types/sync/delta";
 
 type EntityApplier = {
   upsert: (data: Record<string, unknown>) => void;
@@ -9,9 +10,9 @@ type EntityApplier = {
   dbDelete: (id: string) => Promise<void>;
 };
 
-function getModelApplier(
+function getEntityApplier(
   rootStore: RootStore,
-  entityType: EntityType,
+  entityType: SyncEntityType,
 ): EntityApplier | null {
   switch (entityType) {
     case "Task":
@@ -21,6 +22,14 @@ function getModelApplier(
         remove: (id) => rootStore.taskStore.remove(id),
         dbPut: (data) => rootStore.taskDB!.put(data as unknown as TaskRecord),
         dbDelete: (id) => rootStore.taskDB!.delete(id),
+      };
+    case "Document":
+      return {
+        upsert: (data) =>
+          rootStore.documentStore.upsert(data as unknown as DocumentRecord),
+        remove: (id) => rootStore.documentStore.remove(id),
+        dbPut: (data) => rootStore.documentDB!.put(data as unknown as DocumentRecord),
+        dbDelete: (id) => rootStore.documentDB!.delete(id),
       };
     //more case
     default:
@@ -33,7 +42,7 @@ export async function applyDelta(
   rootStore: RootStore,
   delta: DeltaPayload,
 ): Promise<void> {
-  const applier = getModelApplier(rootStore, delta.entityType);
+  const applier = getEntityApplier(rootStore, delta.entityType);
   if (!applier) return;
 
   switch (delta.action) {
@@ -50,7 +59,7 @@ export async function applyDelta(
   if (delta.clientTraceId) {
     await rootStore.transactionDB!.dequeue(delta.clientTraceId);
   } else {
-    const pendingTxs = await rootStore.transactionDB!.getByModel(
+    const pendingTxs = await rootStore.transactionDB!.getByEntity(
       delta.entityType,
       delta.entityId,
     );

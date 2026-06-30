@@ -15,9 +15,9 @@ public class TasksController : ControllerBase
     }
 
     [HttpPost]
-    public async Task<IActionResult> Create([FromBody] CreateTaskCommand command, CancellationToken cancellationToken)
+    public async Task<IActionResult> Create([FromBody] Application.CreateTaskCommand command, CancellationToken cancellationToken)
     {
-        var result = await _handler.SendAsync<CreateTaskCommand, TaskRecord>(command, cancellationToken);
+        var result = await _handler.SendAsync<Application.CreateTaskCommand, TaskRecord>(command, cancellationToken);
         return result.ToActionResult();
     }
 

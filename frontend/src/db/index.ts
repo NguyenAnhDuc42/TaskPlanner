@@ -9,6 +9,7 @@ export * from "./operations/metadata.db";
 export * from "./operations/status.db";
 export * from "./operations/member.db";
 export * from "./operations/comment.db";
+export * from "./operations/document.db";
 export * from "./operations/document-block.db";
 export * from "./operations/entity-access.db";
 export * from "./operations/transaction.db";

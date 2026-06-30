@@ -10,6 +10,7 @@ import { TransactionQueue } from './transaction-queue'
 import type { TaskRecord } from '@/types/projects'
 import type { PendingTransaction } from '@/types/sync'
 import { api } from '@/lib/api-client'
+import { devLog } from './dev-log'
 
 interface BootstrapResponse {
   lastSyncId: number
@@ -31,6 +32,15 @@ export class SyncEngine {
 
   get transactionQueue(): TransactionQueue {
     return this.queue
+  }
+
+  /**
+   * Manually retry all pending transactions. Normally happens automatically
+   * on SignalR reconnect, but useful to trigger explicitly (e.g. after
+   * coming back online without a real connection drop).
+   */
+  async flushQueue(): Promise<void> {
+    await this.queue.flush((tx) => this.sendTransaction(tx))
   }
 
   /**
@@ -92,17 +102,20 @@ export class SyncEngine {
 
     // Live deltas
     this.connection.on('Delta', (delta: DeltaPayload) => {
+      devLog('[SyncEngine] Delta received:', delta.entityType, delta.action, delta.syncId)
       applyDelta(this.rootStore, delta)
     })
 
     // Batch deltas (catch-up on connect/reconnect)
     this.connection.on('DeltaBatch', (payload: DeltaBatchPayload) => {
+      devLog('[SyncEngine] DeltaBatch received:', payload.actions.length, 'events, latestSyncId:', payload.latestSyncId)
       applyDeltaBatch(this.rootStore, payload.actions)
     })
 
     // On reconnect, server sends catch-up automatically
     // but we also flush pending transactions
     this.connection.onreconnected(async () => {
+      devLog('[SyncEngine] Reconnected — server will push DeltaBatch catch-up automatically')
       await this.queue.flush((tx) => this.sendTransaction(tx))
     })
 
@@ -140,7 +153,10 @@ export class SyncEngine {
   }
 
   private getRequestConfig(tx: PendingTransaction): { method: string; url: string } {
-    const base = `/${tx.entityType.toLowerCase()}s`
+    // New sync-flow slices live under /sync to coexist with the old REST
+    // endpoints during migration. Once a slice's old route is removed,
+    // it can drop the suffix.
+    const base = `/${tx.entityType.toLowerCase()}s/sync`
     switch (tx.action) {
       case "C":
         return { method: 'POST', url: base }

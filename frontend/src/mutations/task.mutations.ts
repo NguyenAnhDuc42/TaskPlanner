@@ -1,7 +1,9 @@
 import type { RootStore } from '@/stores/root.store'
 import type { SyncEngine } from '@/sync/sync-engine'
 import type { TaskRecord } from '@/types/projects/task-record'
+import { Priority } from '@/types/priority'
 import { api } from '@/lib/api-client'
+import { devError } from '@/sync/dev-log'
 import axios from 'axios'
 
 export class TaskMutations {
@@ -14,11 +16,18 @@ export class TaskMutations {
   }
 
   // ── CREATE ──
-  async create(data: Omit<TaskRecord, 'id' | 'createdAt'>): Promise<TaskRecord> {
+  async create(data: Omit<TaskRecord, 'id' | 'createdAt'> & { spaceId?: string | null; folderId?: string | null }): Promise<TaskRecord> {
+    const id = crypto.randomUUID()
+    const defaultDocumentId = crypto.randomUUID()
+    const orderKey = data.orderKey ?? Date.now().toString(36)
+    const slug = `${data.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').slice(0, 40)}-${id.slice(0, 8)}`
+
     const record: TaskRecord = {
       ...data,
-      id: crypto.randomUUID(),
+      id,
       createdAt: new Date().toISOString(),
+      defaultDocumentId,
+      orderKey,
     }
 
     // 1. Optimistic — user sees it instantly
@@ -27,9 +36,30 @@ export class TaskMutations {
     // 2. Persist to IndexedDB
     try {
       await this.rootStore.taskDB!.put(record)
-    } catch {
+    } catch (err) {
       this.rootStore.taskStore.remove(record.id)
-      throw new Error('Failed to persist task locally')
+      devError('[TaskMutations] taskDB.put failed:', err)
+      throw new Error(`Failed to persist task locally: ${err instanceof Error ? err.message : String(err)}`)
+    }
+
+    // CreateTaskCommand shape on the backend — field names must match exactly,
+    // TaskRecord's shape is for local/read state, not the wire format. This is
+    // what gets enqueued AND sent, so offline-deferred sends use the same
+    // correct shape as an immediate online send.
+    const commandPayload = {
+      id,
+      defaultDocumentId,
+      projectWorkspaceId: this.rootStore.currentWorkspaceId,
+      projectSpaceId: data.spaceId ?? null,
+      projectFolderId: data.folderId ?? null,
+      name: data.name,
+      slug,
+      color: data.color ?? null,
+      icon: data.icon ?? null,
+      statusId: data.statusId ?? null,
+      priority: data.priority ?? Priority.Low,
+      orderKey,
+      parentTaskId: data.parentTaskId ?? null,
     }
 
     // 3. Enqueue transaction (tracks in-flight state)
@@ -37,7 +67,7 @@ export class TaskMutations {
       'C',
       'Task',
       record.id,
-      record as unknown as Record<string, unknown>,
+      commandPayload,
       null
     )
 
@@ -48,7 +78,7 @@ export class TaskMutations {
     }
 
     try {
-      await api.post('/tasks', record, {
+      await api.post('/tasks/sync', commandPayload, {
         headers: {
           'X-Workspace-Id': this.rootStore.currentWorkspaceId!,
           'X-Client-Trace-Id': tx.id,
@@ -109,7 +139,7 @@ export class TaskMutations {
     }
 
     try {
-      await api.put(`/tasks/${taskId}`, changes, {
+      await api.put(`/tasks/sync/${taskId}`, changes, {
         headers: {
           'X-Workspace-Id': this.rootStore.currentWorkspaceId!,
           'X-Client-Trace-Id': tx.id,
@@ -164,7 +194,7 @@ export class TaskMutations {
     }
 
     try {
-      await api.delete(`/tasks/${taskId}`, {
+      await api.delete(`/tasks/sync/${taskId}`, {
         headers: {
           'X-Workspace-Id': this.rootStore.currentWorkspaceId!,
           'X-Client-Trace-Id': tx.id,

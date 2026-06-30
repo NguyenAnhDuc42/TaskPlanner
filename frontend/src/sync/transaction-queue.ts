@@ -1,4 +1,4 @@
-import type { EntityType, SyncAction } from '@/types/sync/delta'
+import type { SyncEntityType, SyncAction } from '@/types/sync/delta'
 import type { PendingTransaction } from '@/types/sync/transaction'
 import type { RootStore } from '@/stores/root.store'
 
@@ -12,7 +12,7 @@ export class TransactionQueue {
 
   async enqueue(
     type: SyncAction,
-    entityType: EntityType,
+    entityType: SyncEntityType,
     entityId: string,
     data: Record<string, unknown>,
     previousData: Record<string, unknown> | null

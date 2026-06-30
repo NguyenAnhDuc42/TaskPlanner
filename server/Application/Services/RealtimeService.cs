@@ -4,7 +4,11 @@ using Microsoft.Extensions.Logging;
 
 namespace Application;
 
-public class RealtimeService(IHubContext<WorkspaceHub> HubContext, IHttpContextAccessor HttpContextAccessor, ILogger<RealtimeService> Logger)
+public class RealtimeService(
+    IHubContext<WorkspaceHub> HubContext,
+    IHubContext<SyncHub> SyncHubContext,
+    IHttpContextAccessor HttpContextAccessor,
+    ILogger<RealtimeService> Logger)
 {
     private string? GetSenderConnectionId()
     {
@@ -67,6 +71,71 @@ public class RealtimeService(IHubContext<WorkspaceHub> HubContext, IHttpContextA
         catch (Exception ex)
         {
             Logger.LogError(ex, "[REALTIME] FAILED to broadcast '{EventName}' to user {UserId} after {ElapsedMs}ms", eventName, userId, sw.ElapsedMilliseconds);
+        }
+    }
+
+    public async Task NotifySyncEventAsync(Guid workspaceId, SyncEventPayload payload, CancellationToken cancellationToken = default)
+    {
+        var sw = System.Diagnostics.Stopwatch.StartNew();
+        try
+        {
+            var senderConnectionId = GetSenderConnectionId();
+            if (!string.IsNullOrEmpty(senderConnectionId))
+            {
+                await SyncHubContext.Clients
+                    .GroupExcept($"workspace:{workspaceId}", new[] { senderConnectionId })
+                    .SendAsync("Delta", payload, cancellationToken);
+            }
+            else
+            {
+                await SyncHubContext.Clients
+                    .Group($"workspace:{workspaceId}")
+                    .SendAsync("Delta", payload, cancellationToken);
+            }
+            Logger.LogInformation("[REALTIME] Broadcasted sync Delta (syncId {SyncId}) to workspace {WorkspaceId} in {ElapsedMs}ms", payload.SyncId, workspaceId, sw.ElapsedMilliseconds);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "[REALTIME] FAILED to broadcast sync Delta to workspace {WorkspaceId} after {ElapsedMs}ms", workspaceId, sw.ElapsedMilliseconds);
+        }
+    }
+
+    public async Task NotifySyncEventBatchAsync(Guid workspaceId, IReadOnlyList<SyncEventPayload> payloads, CancellationToken cancellationToken = default)
+    {
+        if (payloads.Count == 0) return;
+        if (payloads.Count == 1)
+        {
+            await NotifySyncEventAsync(workspaceId, payloads[0], cancellationToken);
+            return;
+        }
+
+        var batch = new SyncDeltaBatch(
+            Actions: [.. payloads],
+            DatabaseVersion: SyncQueryService.CurrentDatabaseVersion,
+            LatestSyncId: payloads[^1].SyncId
+        );
+
+        var sw = System.Diagnostics.Stopwatch.StartNew();
+        try
+        {
+            var senderConnectionId = GetSenderConnectionId();
+            if (!string.IsNullOrEmpty(senderConnectionId))
+            {
+                await SyncHubContext.Clients
+                    .GroupExcept($"workspace:{workspaceId}", new[] { senderConnectionId })
+                    .SendAsync("DeltaBatch", batch, cancellationToken);
+            }
+            else
+            {
+                await SyncHubContext.Clients
+                    .Group($"workspace:{workspaceId}")
+                    .SendAsync("DeltaBatch", batch, cancellationToken);
+            }
+            Logger.LogInformation("[REALTIME] Broadcasted sync DeltaBatch ({Count} events) to workspace {WorkspaceId} in {ElapsedMs}ms", payloads.Count, workspaceId, sw.ElapsedMilliseconds);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "[REALTIME] FAILED to broadcast sync DeltaBatch to workspace {WorkspaceId} after {ElapsedMs}ms", workspaceId, sw.ElapsedMilliseconds);
         }
     }
 

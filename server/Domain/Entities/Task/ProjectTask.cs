@@ -71,6 +71,31 @@
                 parentTaskId: parentTaskId,
                 id: Guid.NewGuid());
         }
+        /// Prefer way to create an entity with a pre-defined ID.
+        public static ProjectTask Create(Guid id, Guid projectWorkspaceId, Guid? projectSpaceId, Guid? projectFolderId, string name, string slug, Guid defaultDocumentId, string? color, string? icon, Guid creatorId, Guid? statusId = null, Priority priority = Priority.Low, DateTimeOffset? startDate = null, DateTimeOffset? dueDate = null, int? storyPoints = null, long? timeEstimateSeconds = null, string? orderKey = null, Guid? parentTaskId = null)
+        {
+            if (id == Guid.Empty) throw new BusinessRuleException("Id cannot be empty.");
+
+            return new ProjectTask(
+                projectWorkspaceId: projectWorkspaceId,
+                projectSpaceId: projectSpaceId,
+                projectFolderId: projectFolderId,
+                name: name,
+                slug: slug,
+                defaultDocumentId: defaultDocumentId,
+                color: color ?? "#FFFFFF",
+                icon: icon,
+                creatorId: creatorId,
+                statusId: statusId,
+                priority: priority,
+                startDate: startDate,
+                dueDate: dueDate,
+                storyPoints: storyPoints,
+                timeEstimateSeconds: timeEstimateSeconds,
+                orderKey: orderKey ?? FractionalIndex.Start(),
+                parentTaskId: parentTaskId,
+                id: id);
+        }
 
         public static List<ProjectTask> CreateDefaults(Guid projectWorkspaceId, Guid spaceId, Guid folderId, Guid statusId, Guid creatorId, Guid exploreDocId, Guid standaloneDocId)
         {

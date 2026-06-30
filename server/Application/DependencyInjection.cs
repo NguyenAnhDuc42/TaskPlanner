@@ -15,6 +15,7 @@ using Microsoft.IdentityModel.Tokens;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.Extensions.Logging;
 using System.Threading.RateLimiting;
+using System.Reflection;
 namespace Application;
 
 public static class DependencyInjection
@@ -24,7 +25,15 @@ public static class DependencyInjection
         ValidateRequiredSecrets(config);
 
         #region Handlers Registration
-        services.Scan(scan => scan.FromAssemblyOf<ApplicationAssemblyMarker>()
+        // Scan both Application (legacy vertical-slice handlers) and the entry
+        // assembly (Api — new minimal-API sync slices) so handlers placed in
+        // either project get registered the same way.
+        var entryAssembly = Assembly.GetEntryAssembly();
+        var handlerAssemblies = entryAssembly is null
+            ? [typeof(ApplicationAssemblyMarker).Assembly]
+            : new[] { typeof(ApplicationAssemblyMarker).Assembly, entryAssembly };
+
+        services.Scan(scan => scan.FromAssemblies(handlerAssemblies)
             .AddClasses(classes => classes.AssignableTo(typeof(ICommandHandler<>)), publicOnly: false)
                 .AsImplementedInterfaces()
                 .WithScopedLifetime()
@@ -38,7 +47,10 @@ public static class DependencyInjection
         
         services.AddScoped<IHandler, HandlerDispatcher>();
         
-        services.AddValidatorsFromAssembly(typeof(DependencyInjection).Assembly);
+        foreach (var assembly in handlerAssemblies)
+        {
+            services.AddValidatorsFromAssembly(assembly);
+        }
         #endregion
 
         #region Pipelines
@@ -101,6 +113,7 @@ public static class DependencyInjection
         services.AddScoped<CookieService>();
         services.AddScoped<TokenService>();
         services.AddScoped<RealtimeService>();
+        services.AddScoped<SyncQueryService>();
         services.AddHttpContextAccessor();
 
         services.Configure<CursorEncryptionOptions>(config.GetSection(CursorEncryptionOptions.SectionName));
@@ -108,6 +121,7 @@ public static class DependencyInjection
         services.AddScoped<PermissionService>();
         services.AddScoped<NotificationService>();
         services.AddHostedService<CleanupService>();
+        services.AddScoped<IdempotencyService>();
         #endregion
 
         #region Email

@@ -6,8 +6,8 @@ public class Document : TenantEntity
 
     private Document() { }
 
-    private Document(Guid workspaceId, string name, Guid creatorId)
-        : base(Guid.NewGuid(), workspaceId)
+    private Document(Guid id, Guid workspaceId, string name, Guid creatorId)
+        : base(id, workspaceId)
     {
         Name = name;
 
@@ -16,7 +16,12 @@ public class Document : TenantEntity
 
     public static Document Create(Guid workspaceId, string name, Guid creatorId)
     {
-        return new Document(workspaceId, name, creatorId);
+        return new Document(Guid.NewGuid(), workspaceId, name, creatorId);
+    }
+
+    public static Document Create(Guid id, Guid workspaceId, string name, Guid creatorId)
+    {
+        return new Document(id, workspaceId, name, creatorId);
     }
 
     public void UpdateName(string name)
