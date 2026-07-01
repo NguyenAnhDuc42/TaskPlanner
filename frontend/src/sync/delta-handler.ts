@@ -33,15 +33,9 @@ function getEntityApplier(
         // Cascade: when a space is deleted, all its children are also gone.
         // dbDelete runs first (awaited), stores still have the entities at that point.
         remove: (id) => {
-          rootStore.folderStore.all
-            .filter(f => f.spaceId === id)
-            .forEach(f => rootStore.folderStore.remove(f.id))
-          rootStore.taskStore.all
-            .filter(t => t.spaceId === id)
-            .forEach(t => rootStore.taskStore.remove(t.id))
-          rootStore.statusStore.all
-            .filter((s: Status) => s.spaceId === id)
-            .forEach((s: Status) => rootStore.statusStore.remove(s.id))
+          rootStore.folderStore.all.filter(f => f.spaceId === id).forEach(f => rootStore.folderStore.remove(f.id))
+          rootStore.taskStore.all.filter(t => t.spaceId === id).forEach(t => rootStore.taskStore.remove(t.id))
+          rootStore.statusStore.all.filter((s: Status) => s.spaceId === id).forEach((s: Status) => rootStore.statusStore.remove(s.id))
           rootStore.spaceStore.remove(id)
         },
         dbPut: (data) => rootStore.spaceDB!.put(data as unknown as SpaceRecord),
@@ -116,10 +110,21 @@ export async function applyDelta(
 
   switch (delta.action) {
     case "C":
-    case "U":
+    case "U": {
+      // Guard: if the parent space was already cascade-deleted, discard this echo.
+      // This covers the race where a child's in-flight mutation echoes back after
+      // the Space D cascade already removed everything from the store.
+      const spaceId = delta.data.spaceId as string | undefined
+      if (spaceId && (delta.entityType === "Task" || delta.entityType === "Folder" || delta.entityType === "Status")) {
+        if (!rootStore.spaceStore.getById(spaceId)) {
+          await applier.dbDelete(delta.entityId)
+          break
+        }
+      }
       await applier.dbPut(delta.data);
       applier.upsert(delta.data);
       break;
+    }
     case "D":
       await cancelByEntityId?.(delta.entityId);
       await applier.dbDelete(delta.entityId);

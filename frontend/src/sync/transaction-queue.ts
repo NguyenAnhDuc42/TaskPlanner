@@ -37,11 +37,15 @@ export class TransactionQueue {
     await this.rootStore.transactionDB!.dequeue(txId)
   }
 
-  // Cancel all pending transactions for a given entity (used when a parent is deleted
-  // and its children's queued operations are now invalid).
+  // Cancel all pending AND in-flight transactions for a given entity.
+  // In-flight txs can't be un-sent but dequeuing prevents them from being retried,
+  // and the applyDelta parent-space guard prevents their echo from re-adding the entity.
   async cancelByEntityId(entityId: string): Promise<void> {
-    const pending = await this.rootStore.transactionDB!.getPending()
-    for (const tx of pending.filter(t => t.entityId === entityId)) {
+    const [pending, inFlight] = await Promise.all([
+      this.rootStore.transactionDB!.getPending(),
+      this.rootStore.transactionDB!.getInFlight(),
+    ])
+    for (const tx of [...pending, ...inFlight].filter(t => t.entityId === entityId)) {
       await this.rootStore.transactionDB!.dequeue(tx.id)
     }
   }

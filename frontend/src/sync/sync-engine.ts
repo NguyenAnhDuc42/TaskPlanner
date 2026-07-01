@@ -46,6 +46,9 @@ export class SyncEngine {
   }
 
   async forceBootstrap(workspaceId: string): Promise<void> {
+    // Hard reset to server ground truth — clears local state first
+    const { taskDB, spaceDB, folderDB, statusDB } = this.rootStore
+    await Promise.all([taskDB!.clear(), spaceDB!.clear(), folderDB!.clear(), statusDB!.clear()])
     await this.bootstrap(workspaceId)
   }
 
@@ -115,7 +118,7 @@ export class SyncEngine {
       .withUrl(
         `${api.defaults.baseURL?.replace('/api', '')}/hubs/sync?workspaceId=${workspaceId}&lastSyncId=${lastSyncId}`
       )
-      .withAutomaticReconnect()
+      .withAutomaticReconnect({ nextRetryDelayInMilliseconds: () => 5000 })
       .build()
 
     // Live deltas

@@ -73,6 +73,12 @@ public class DeleteSpaceHandler(
                     .SetProperty(f => f.DeletedAt, now)
                     .SetProperty(f => f.UpdatedAt, now), cancellationToken);
 
+            await db.Statuses
+                .Where(st => st.ProjectSpaceId == space.Id && st.DeletedAt == null)
+                .ExecuteUpdateAsync(s => s
+                    .SetProperty(st => st.DeletedAt, now)
+                    .SetProperty(st => st.UpdatedAt, now), cancellationToken);
+
             space.Delete();
 
             var syncPayload = JsonSerializer.Serialize(new { id = space.Id }, DeleteSpaceSerializerOptions.CamelCase);
