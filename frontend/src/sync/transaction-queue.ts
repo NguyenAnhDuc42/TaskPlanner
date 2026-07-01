@@ -19,7 +19,7 @@ export class TransactionQueue {
   ): Promise<PendingTransaction> {
     const tx: PendingTransaction = {
       id: crypto.randomUUID(),
-      action:type,
+      action: type,
       entityType,
       entityId,
       data,
@@ -37,28 +37,90 @@ export class TransactionQueue {
     await this.rootStore.transactionDB!.dequeue(txId)
   }
 
-  /**
-   * Flush all pending transactions to the server.
-   * Called on reconnect or after network recovery.
-   */
+  // Cancel all pending transactions for a given entity (used when a parent is deleted
+  // and its children's queued operations are now invalid).
+  async cancelByEntityId(entityId: string): Promise<void> {
+    const pending = await this.rootStore.transactionDB!.getPending()
+    for (const tx of pending.filter(t => t.entityId === entityId)) {
+      await this.rootStore.transactionDB!.dequeue(tx.id)
+    }
+  }
+
+  // Collapse redundant transactions for the same entity before sending.
+  // Rules (applied per-entityId group, oldest-first):
+  //   C+D  → cancel both (never reached server)
+  //   D    → cancel all preceding Us, keep D
+  //   C+U(s) → merge Us into C, send one C
+  //   U+U(s) → merge into one U (last-write-wins per field)
+  private squash(sorted: PendingTransaction[]): { toSend: PendingTransaction[]; toCancel: string[] } {
+    const groups = new Map<string, PendingTransaction[]>()
+    const groupFirstTime = new Map<string, number>()
+
+    for (const tx of sorted) {
+      if (!groups.has(tx.entityId)) {
+        groups.set(tx.entityId, [])
+        groupFirstTime.set(tx.entityId, tx.createdAt)
+      }
+      groups.get(tx.entityId)!.push(tx)
+    }
+
+    const toSend: PendingTransaction[] = []
+    const toCancel: string[] = []
+
+    for (const [, txs] of groups) {
+      const create = txs.find(t => t.action === 'C')
+      const del = txs.find(t => t.action === 'D')
+      const updates = txs.filter(t => t.action === 'U')
+
+      if (create && del) {
+        // C+D: entity never reached server → cancel everything
+        toCancel.push(...txs.map(t => t.id))
+      } else if (del) {
+        // D beats all pending Us
+        toCancel.push(...updates.map(t => t.id))
+        toSend.push(del)
+      } else if (create && updates.length > 0) {
+        // C+U(s): merge all updates into the create payload
+        const mergedData = updates.reduce((acc, u) => ({ ...acc, ...u.data }), { ...create.data })
+        toCancel.push(...updates.map(t => t.id))
+        toSend.push({ ...create, data: mergedData })
+      } else if (!create && updates.length > 1) {
+        // U+U(s): merge into one U
+        const mergedData = updates.reduce((acc, u) => ({ ...acc, ...u.data }), {} as Record<string, unknown>)
+        toCancel.push(...updates.slice(0, -1).map(t => t.id))
+        toSend.push({ ...updates[updates.length - 1], data: mergedData })
+      } else {
+        toSend.push(...txs)
+      }
+    }
+
+    // Preserve causal order by first-occurrence time of each entity group
+    toSend.sort((a, b) => (groupFirstTime.get(a.entityId) ?? 0) - (groupFirstTime.get(b.entityId) ?? 0))
+
+    return { toSend, toCancel }
+  }
+
   async flush(sendToServer: (tx: PendingTransaction) => Promise<void>): Promise<void> {
     if (this.flushing) return
     this.flushing = true
 
     try {
       const pending = await this.rootStore.transactionDB!.getPending()
+      if (pending.length === 0) return
 
-      // Process in order (oldest first)
       const sorted = pending.sort((a, b) => a.createdAt - b.createdAt)
+      const { toSend, toCancel } = this.squash(sorted)
 
-      for (const tx of sorted) {
+      // Dequeue transactions that were squashed away
+      for (const id of toCancel) {
+        await this.rootStore.transactionDB!.dequeue(id)
+      }
+
+      for (const tx of toSend) {
         await this.rootStore.transactionDB!.markInFlight(tx.id)
-
         try {
           await sendToServer(tx)
-          // Don't dequeue here — delta handler dequeues on SignalR confirmation
         } catch {
-          // Server rejected, mark back as pending for retry
           await this.rootStore.transactionDB!.markPending(tx.id)
           break
         }
@@ -68,14 +130,9 @@ export class TransactionQueue {
     }
   }
 
-  /**
-   * Recover in-flight transactions that were interrupted (e.g., tab closed).
-   * Called on app startup.
-   */
   async recoverInFlight(): Promise<void> {
     const inFlight = await this.rootStore.transactionDB!.getInFlight()
     for (const tx of inFlight) {
-      // Mark back as pending so flush() picks them up
       await this.rootStore.transactionDB!.markPending(tx.id)
     }
   }

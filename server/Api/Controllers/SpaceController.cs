@@ -15,9 +15,9 @@ namespace Api
         }
 
         [HttpPost]
-        public async Task<IActionResult> Create([FromBody] CreateSpaceCommand command, CancellationToken cancellationToken)
+        public async Task<IActionResult> Create([FromBody] Application.CreateSpaceCommand command, CancellationToken cancellationToken)
         {
-            var result = await _handler.SendAsync<CreateSpaceCommand, SpaceRecord>(command, cancellationToken);
+            var result = await _handler.SendAsync<Application.CreateSpaceCommand, SpaceRecord>(command, cancellationToken);
             return result.ToActionResult();
         }
 
@@ -30,7 +30,7 @@ namespace Api
         }
 
         [HttpPut("{id:guid}")]
-        public async Task<IActionResult> Update(Guid id, [FromBody] UpdateSpaceCommand command, CancellationToken cancellationToken)
+        public async Task<IActionResult> Update(Guid id, [FromBody] Application.UpdateSpaceCommand command, CancellationToken cancellationToken)
         {
             var result = await _handler.SendAsync(command with { SpaceId = id }, cancellationToken);
             return result.ToActionResult();
@@ -39,7 +39,7 @@ namespace Api
         [HttpDelete("{id:guid}")]
         public async Task<IActionResult> Delete(Guid id, CancellationToken cancellationToken)
         {
-            var command = new DeleteSpaceCommand(id);
+            var command = new Application.DeleteSpaceCommand(id);
             var result = await _handler.SendAsync(command, cancellationToken);
             return result.ToActionResult();
         }

@@ -36,7 +36,7 @@ src/
     schema.ts              — TaskPlanDB (workspace-scoped) schema + openWorkspaceDB/closeWorkspaceDB
     user-schema.ts          — UserDB (global) schema + openUserDB/closeUserDB
     index.ts                — re-exports everything in operations/
-    operations/*.db.ts      — one class per entity (TaskDB, SpaceDB, DocumentDB, ...), CRUD over one IDB store
+    operations/*.db.ts      — one class per entity (TaskDB, SpaceDB, FolderDB, DocumentDB, ...), CRUD over one IDB store
 
   stores/
     root.store.ts            — RootStore: owns all MobX stores + DB wrapper instances, switchWorkspace()/initUser()
@@ -44,12 +44,19 @@ src/
 
   sync/
     sync-engine.ts           — SyncEngine: init/bootstrap/connect/disconnect, owns the SignalR connection + TransactionQueue
+                               forceBootstrap(workspaceId) added — bypasses lastSyncId>0 skip for dev/testing
     delta-handler.ts         — applyDelta/applyDeltaBatch: routes a Delta to the right store+DB via getEntityApplier()
-    transaction-queue.ts     — TransactionQueue: enqueue/dequeue/flush/recoverInFlight over __transactions
+                               getEntityApplier() takes optional cancelByEntityId callback — called on every D action
+                               Space D case cascades: dbDelete cancels children's pending txs + deletes from all child DBs;
+                               remove() cascades children out of all MobX stores before removing the space itself
+    transaction-queue.ts     — TransactionQueue: enqueue/dequeue/flush/recoverInFlight/cancelByEntityId/squash
 
   mutations/
-    task.mutations.ts         — TaskMutations.create/update/delete — the only one wired up so far
-    (space/folder/member/status/document/workspace .mutations.ts exist as empty scaffolding)
+    task.mutations.ts         — TaskMutations.create/update/delete — fully implemented
+    space.mutations.ts        — SpaceMutations.create/update/delete — fully implemented
+    folder.mutations.ts       — FolderMutations.create/update/delete — fully implemented
+    workspace.mutations.ts    — WorkspaceMutations (server-first, no queue — see §10)
+    (member/status/document .mutations.ts are empty stubs)
 
   types/sync/
     delta.ts                 — DeltaPayload, DeltaBatchPayload, SyncAction ('C'|'U'|'D'), SyncEntityType (string union)
@@ -104,8 +111,39 @@ Not yet tested: Update, Delete (not built on backend yet).
 See `SYNC_SCENARIOS.md` for the full per-scenario status checklist (CRUD per entity, connection lifecycle, conflict edge cases, auth, app integration).
 
 ## 8. Unsolved Edge Cases / Future Work
-- **Transaction Squashing (Offline Edits):** If a user edits a task 5 times while offline, the queue currently has 5 separate `PUT` transactions. The backend will process them sequentially. In the future, the `TransactionQueue` could squash redundant updates for the same `entityId` before sending.
-- **Update/Delete mutations** — `TaskMutations.update`/`.delete` exist client-side (same enqueue/online/offline pattern as create) but have no backend slice yet (`/tasks/sync/{id}` PUT/DELETE return nothing — routes don't exist). Backend `Api/Features/TaskFeatures/UpdateTask/` folder exists but is empty.
-- **Other entity types** (Space, Folder, Member, Status, Comment, Document, DocumentBlock, EntityAccess) — DB/store scaffolding exists for all, but only Task has a working mutation + backend slice. `mutations/*.mutations.ts` for the others are empty stub files.
-- **Bootstrap is Task-only** — `GetBootstrapHandler` (backend) only returns Tasks. Spaces/Folders/etc. need their own bootstrap queries added before those entities can cold-load.
+- **Batch flush — NOT YET IMPLEMENTED.** Currently `TransactionQueue.flush()` sends one API call per pending transaction (sequential `for` loop with squashing). Planned: replace with a single `POST /api/sync/batch` sending all pending transactions in one round-trip. `SyncEngine.sendBatch(txs[])` replaces `sendTransaction(tx)`. Server returns per-item `{ traceId, success, error }` results — client dequeues successes, leaves failures as `pending`. See `BACKEND_SYNC_CONTEXT.md §11` for the full handler design.
+- **`workspace.mutations.ts` `update()`** — currently still calls `transactionQueue.enqueue()`, which is wrong: the queue lives in `TaskPlanDB` but workspace data lives in `UserDB`. Should be server-first (direct API call + manual `workspaceDB.put`) with no queue involvement, matching how `workspace.mutations.ts` `create()` already works.
 - **`RootStoreProvider` not mounted in the real app** — the whole sync system today only runs inside the isolated test page. Wiring it into the actual app (replacing/coexisting with the old Redux/RTK Query system) is unstarted.
+- **Member / Status / Comment / DocumentBlock mutations** — DB/store scaffolding exists, but no mutation logic and no backend sync slices. Status is managed via `UpdateSpaceStatusesCommand` (batch, not single-entity); Member via email lookup — both are staying on legacy endpoints for now.
+
+## 9. Queue Squashing Rules — IMPLEMENTED
+`TransactionQueue.squash()` runs inside `flush()` before any network calls. Groups pending transactions by `entityId`, applies rules in order, returns `{ toSend, toCancel }`. Cancelled IDs are dequeued from IndexedDB first, then `toSend` is flushed sequentially. Causal order is preserved via the first-occurrence timestamp of each entity group.
+
+Rules (oldest action first per `entityId`):
+
+1. **C + D → cancel both.** Entity was created and deleted before ever reaching the server — nothing to tell the server, zero network calls. Both removed from queue.
+2. **D beats all U.** Any `U` transactions for an entity that also has a `D` are cancelled — no point updating something about to be deleted. Only the `D` is sent.
+3. **C + U(s) → merge into one C.** Update payloads are merged (spread) into the create payload; a single `C` is sent with the final state. Server never sees a create followed by redundant updates for something it hasn't seen yet.
+4. **U + U(s) → merge into one U.** Last-write-wins per field via object spread. Single `U` sent.
+5. **Delete is locally eager.** All three delete mutations (`TaskMutations`, `SpaceMutations`, `FolderMutations`) remove from store + IndexedDB immediately on delete, before the API call returns. The incoming Delta confirmation is a no-op (entity already gone).
+
+**`cancelByEntityId(entityId)`** — new method on `TransactionQueue`. Cancels all pending txs for a given entity ID without flushing. Used in two places:
+- `SpaceMutations.delete()` — cancels pending child ops (folders, tasks) before removing the space locally
+- `delta-handler.ts` `applyDelta()` D case — cancels pending ops for the deleted entity on any client that receives a D delta, preventing queue-jam on 404 when another user deletes something you had edits queued for. Also called for Space D children inside `dbDelete` (Space cascade).
+
+**Cascade delete behavior:**
+- **Space D (initiator):** `SpaceMutations.delete()` cancels pending child txs → removes folders/tasks/statuses from all stores+DBs → removes space → enqueues D → calls API
+- **Space D (other client, via delta):** `delta-handler.ts` Space D `dbDelete` cancels child pending txs → deletes from all child IndexedDBs; `remove()` cascades children out of all MobX stores
+- **Folder D (initiator):** `FolderMutations.delete()` reparents tasks (`folderId = null`) in store+DB → removes folder → enqueues D → calls API. Backend emits Task U events with `folderId: null` for other clients.
+- **Folder D (other client):** Task U deltas arrive separately from backend (reparenting), processed by normal upsert path. `applyDelta` D case cancels any pending Folder U/C ops on this client.
+- **Task D:** Eager removal from store+DB. Delta D cancels any pending Task ops on other clients.
+
+**Open/not yet tested:**
+- Queue squashing scenarios (C+D cancel, D beats U, C+U merge, U+U merge) — logic is in `TransactionQueue.squash()` but not tested end-to-end with actual offline sequences via `/dev/sync-test`
+- Offline space/folder delete with pending child ops — the cancelByEntityId path exists but hasn't been deliberately exercised
+
+## 10. Workspace mutations — server-first, no queue
+Workspace data lives in `UserDB` (not `TaskPlanDB`), so it never goes through the `TransactionQueue` (which is in `TaskPlanDB`). Pattern:
+- `create()` / `update()` — call API directly, on success manually update `workspaceStore` + `workspaceDB`
+- No optimistic update, no queue entry, no Delta — the workspace list doesn't need sub-second latency
+- `workspace.mutations.ts` `update()` currently still calls `transactionQueue.enqueue()` — this is a bug, tracked in §8

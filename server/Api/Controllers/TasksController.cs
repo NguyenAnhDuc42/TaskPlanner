@@ -30,7 +30,7 @@ public class TasksController : ControllerBase
     }
 
     [HttpPut("{id:guid}")]
-    public async Task<IActionResult> Update(Guid id, [FromBody] UpdateTaskCommand command, CancellationToken cancellationToken)
+    public async Task<IActionResult> Update(Guid id, [FromBody] Application.UpdateTaskCommand command, CancellationToken cancellationToken)
     {
         var result = await _handler.SendAsync(command with { TaskId = id }, cancellationToken);
         return result.ToActionResult();
@@ -39,7 +39,7 @@ public class TasksController : ControllerBase
     [HttpDelete("{id:guid}")]
     public async Task<IActionResult> Delete(Guid id, CancellationToken cancellationToken)
     {
-        var result = await _handler.SendAsync(new DeleteTaskCommand(id), cancellationToken);
+        var result = await _handler.SendAsync(new Application.DeleteTaskCommand(id), cancellationToken);
         return result.ToActionResult();
     }
 

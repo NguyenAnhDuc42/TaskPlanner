@@ -32,18 +32,36 @@ public sealed class ProjectSpace : TenantEntity
     public static ProjectSpace Create(Guid projectWorkspaceId, string name, string slug, Guid defaultDocumentId, string? color, string? icon, bool isPrivate, Guid creatorId, string orderKey)
     {
         var space = new ProjectSpace(
-            Guid.NewGuid(), 
-            projectWorkspaceId, 
+            Guid.NewGuid(),
+            projectWorkspaceId,
             name,
             slug,
-            defaultDocumentId, 
-            color ?? "#FFFFFF", 
+            defaultDocumentId,
+            color ?? "#FFFFFF",
             icon,
-            isPrivate, 
-            creatorId, 
+            isPrivate,
+            creatorId,
             orderKey);
 
         return space;
+    }
+
+    /// Prefer way to create an entity with a pre-defined ID (client-dictated, for offline-first sync).
+    public static ProjectSpace Create(Guid id, Guid projectWorkspaceId, string name, string slug, Guid defaultDocumentId, string? color, string? icon, bool isPrivate, Guid creatorId, string orderKey)
+    {
+        if (id == Guid.Empty) throw new BusinessRuleException("Id cannot be empty.");
+
+        return new ProjectSpace(
+            id,
+            projectWorkspaceId,
+            name,
+            slug,
+            defaultDocumentId,
+            color ?? "#FFFFFF",
+            icon,
+            isPrivate,
+            creatorId,
+            orderKey);
     }
 
     public static ProjectSpace CreateDefault(Guid projectWorkspaceId, Guid defaultDocumentId, Guid creatorId)

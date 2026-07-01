@@ -15,14 +15,14 @@ namespace Api
         }
 
         [HttpPost]
-        public async Task<IActionResult> CreateWorkspace([FromBody] CreateWorkspaceCommand command, CancellationToken cancellationToken)
+        public async Task<IActionResult> CreateWorkspace([FromBody] Application.CreateWorkspaceCommand command, CancellationToken cancellationToken)
         {
-            var result = await _handler.SendAsync<CreateWorkspaceCommand, WorkspaceSnippetRecord>(command, cancellationToken);
+            var result = await _handler.SendAsync<Application.CreateWorkspaceCommand, WorkspaceSnippetRecord>(command, cancellationToken);
             return result.ToActionResult();
         }
 
         [HttpPatch("{id:guid}")]
-        public async Task<IActionResult> UpdateWorkspace(Guid id, [FromBody] UpdateWorkspaceCommand command, CancellationToken cancellationToken)
+        public async Task<IActionResult> UpdateWorkspace(Guid id, [FromBody] Application.UpdateWorkspaceCommand command, CancellationToken cancellationToken)
         {
             var result = await _handler.SendAsync(command with { Id = id }, cancellationToken);
             return result.ToActionResult();

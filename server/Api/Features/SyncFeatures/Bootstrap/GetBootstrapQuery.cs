@@ -5,5 +5,8 @@ public record GetBootstrapQuery(Guid WorkspaceId) : IQueryRequest<BootstrapResul
 public record BootstrapResult(
     long LastSyncId,
     int DatabaseVersion,
-    List<TaskRecord> Tasks
+    List<TaskRecord> Tasks,
+    List<SpaceRecord> Spaces,
+    List<FolderRecord> Folders,
+    List<StatusRecord> Statuses
 );

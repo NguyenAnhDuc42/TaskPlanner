@@ -1,12 +1,12 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
-
 namespace Application;
 
 public class PermissionService(TaskPlanDbContext db, WorkspaceContext context, ILogger<PermissionService> logger)
 {
-
+    // Used by Create* handlers that haven't pre-loaded the space entity.
+    // Queries ProjectSpaces + EntityAccesses in one round-trip.
     public async Task<bool> VerifyAsync(
         Role requiredRole,
         Guid? spaceId = null,
@@ -14,17 +14,16 @@ public class PermissionService(TaskPlanDbContext db, WorkspaceContext context, I
         Guid? creatorId = null,
         CancellationToken cancellationToken = default)
     {
-        if (spaceId.HasValue != requiredAccess.HasValue) throw new ArgumentException("spaceId and requiredAccess must both be provided or both be null");
+        if (spaceId.HasValue != requiredAccess.HasValue)
+            throw new ArgumentException("spaceId and requiredAccess must both be provided or both be null");
 
         var currentMember = context.CurrentMember;
-        if (logger.IsEnabled(LogLevel.Debug)) 
-        logger.LogDebug("Verifying permissions for user {UserId} with role {UserRole} against required role {RequiredRole} and access level {RequiredAccess} in space {SpaceId}", currentMember.UserId, currentMember.Role, requiredRole, requiredAccess, spaceId);
+        if (logger.IsEnabled(LogLevel.Debug))
+            logger.LogDebug("VerifyAsync: user {UserId} role {Role} required {RequiredRole} space {SpaceId}", currentMember.UserId, currentMember.Role, requiredRole, spaceId);
 
         if (!currentMember.Role.IsAtLeast(requiredRole)) return false;
-
         if (currentMember.Role.IsAtLeast(Role.Admin)) return true;
-
-        if (!spaceId.HasValue) return true; 
+        if (!spaceId.HasValue) return true;
 
         var info = await db.ProjectSpaces.AsNoTracking()
             .Where(s => s.Id == spaceId.Value && s.DeletedAt == null)
@@ -40,9 +39,30 @@ public class PermissionService(TaskPlanDbContext db, WorkspaceContext context, I
             .FirstOrDefaultAsync(cancellationToken);
 
         if (info is null) return false;
-        if (!info.IsPrivate) return true;
-        if (info.AccessLevel is null) return false;
+        return CheckSpaceAccess(info.IsPrivate, info.AccessLevel, requiredAccess, creatorId);
+    }
+
+    // Used by Update*/Delete* handlers that already loaded the entity (and thus have IsPrivate + callerAccessLevel).
+    // No DB query — pure logic.
+    public bool Verify(
+        Role requiredRole,
+        bool isPrivate,
+        AccessLevel? callerAccessLevel,
+        AccessLevel? requiredAccess = null,
+        Guid? creatorId = null)
+    {
+        var currentMember = context.CurrentMember;
+        if (!currentMember.Role.IsAtLeast(requiredRole)) return false;
+        if (currentMember.Role.IsAtLeast(Role.Admin)) return true;
+        return CheckSpaceAccess(isPrivate, callerAccessLevel, requiredAccess, creatorId);
+    }
+
+    private bool CheckSpaceAccess(bool isPrivate, AccessLevel? callerAccessLevel, AccessLevel? requiredAccess, Guid? creatorId)
+    {
+        var currentMember = context.CurrentMember;
+        if (!isPrivate) return true;
+        if (callerAccessLevel is null) return false;
         if (creatorId.HasValue && currentMember.Id == creatorId.Value) return true;
-        return info.AccessLevel.Value.IsAtLeast(requiredAccess!.Value);
+        return requiredAccess.HasValue && callerAccessLevel.Value.IsAtLeast(requiredAccess.Value);
     }
 }

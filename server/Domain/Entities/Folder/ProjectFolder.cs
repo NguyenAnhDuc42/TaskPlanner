@@ -51,6 +51,27 @@ public sealed class ProjectFolder : TenantEntity
             dueDate);
     }
 
+    /// Prefer way to create an entity with a pre-defined ID (client-dictated, for offline-first sync).
+    public static ProjectFolder Create(Guid id, Guid projectWorkspaceId, Guid projectSpaceId, string name, string slug, string orderKey, Guid creatorId, string? color = null, string? icon = null, DateTimeOffset? startDate = null, DateTimeOffset? dueDate = null)
+    {
+        if (id == Guid.Empty) throw new BusinessRuleException("Id cannot be empty.");
+
+        return new ProjectFolder(
+            id,
+            projectWorkspaceId,
+            projectSpaceId,
+            name,
+            slug,
+            Guid.Empty,
+            orderKey,
+            false,
+            creatorId,
+            color ?? "#FFFFFF",
+            icon,
+            startDate,
+            dueDate);
+    }
+
     public static ProjectFolder CreateDefault(Guid projectWorkspaceId, Guid projectSpaceId, Guid creatorId)
     {
         return Create(projectWorkspaceId, projectSpaceId, "Getting Started", "getting-started", FractionalIndex.Start(), creatorId: creatorId);

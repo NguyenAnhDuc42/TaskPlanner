@@ -41,22 +41,24 @@ public sealed class ProjectWorkspace : Entity
     }
 
     public static ProjectWorkspace Create(string name, string slug, string description, string? joinCode, string? color, string? icon, Guid creatorId, Theme theme = Theme.Dark, bool strictJoin = false)
+        => Create(Guid.NewGuid(), name, slug, description, joinCode, color, icon, creatorId, theme, strictJoin);
+
+    public static ProjectWorkspace Create(Guid id, string name, string slug, string description, string? joinCode, string? color, string? icon, Guid creatorId, Theme theme = Theme.Dark, bool strictJoin = false)
     {
         var workspace = new ProjectWorkspace(
-            Guid.NewGuid(), 
+            id,
             name,
             slug,
             description,
             string.IsNullOrWhiteSpace(joinCode) ? Guid.NewGuid().ToString("N")[..8] : joinCode,
             color ?? "#FFFFFF",
             icon,
-            strictJoin, 
+            strictJoin,
             creatorId);
-        
-        // Add creator as the first owner with their chosen theme
+
         var owner = WorkspaceMember.CreateOwner(creatorId, workspace.Id, creatorId, theme);
         workspace._members.Add(owner);
-        
+
         return workspace;
     }
 

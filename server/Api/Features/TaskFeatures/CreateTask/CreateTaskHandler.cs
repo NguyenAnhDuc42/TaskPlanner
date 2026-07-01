@@ -16,12 +16,28 @@ public class CreateTaskHandler(
     {
         logger.LogInformation("Attempting to create task '{TaskName}' under Workspace {WorkspaceId}", request.Name, request.ProjectWorkspaceId);
 
+        // If a folder is given, it's authoritative for which space the task actually lives in —
+        // never trust a client-supplied ProjectSpaceId that might not match the folder's real space
+        // (would otherwise let permission checks run against the wrong space, and corrupt hierarchy queries).
+        var effectiveSpaceId = request.ProjectSpaceId!.Value;
+        if (request.ProjectFolderId.HasValue)
+        {
+            var folder = await db.ProjectFolders.AsNoTracking()
+                .FirstOrDefaultAsync(f => f.Id == request.ProjectFolderId.Value && f.DeletedAt == null, cancellationToken);
+            if (folder is null)
+            {
+                logger.LogWarning("Folder {FolderId} not found or deleted", request.ProjectFolderId);
+                return Result<long>.Failure(FolderError.NotFound);
+            }
+            effectiveSpaceId = folder.ProjectSpaceId;
+        }
+
         // Permissions Check — ProjectSpaceId is required by the validator, so always space-scoped
-        var hasAccess = await permissionService.VerifyAsync(Role.Member, spaceId: request.ProjectSpaceId, requiredAccess: AccessLevel.Editor, cancellationToken: cancellationToken);
+        var hasAccess = await permissionService.VerifyAsync(Role.Member, spaceId: effectiveSpaceId, requiredAccess: AccessLevel.Editor, cancellationToken: cancellationToken);
 
         if (!hasAccess)
         {
-            logger.LogWarning("Access denied for user to create task in Space {SpaceId}", request.ProjectSpaceId);
+            logger.LogWarning("Access denied for user to create task in Space {SpaceId}", effectiveSpaceId);
             return Result<long>.Failure(MemberError.DontHavePermission);
         }
 
@@ -52,7 +68,7 @@ public class CreateTaskHandler(
             task = ProjectTask.Create(
                 id: request.Id,
                 projectWorkspaceId: request.ProjectWorkspaceId,
-                projectSpaceId: request.ProjectSpaceId,
+                projectSpaceId: effectiveSpaceId,
                 projectFolderId: request.ProjectFolderId,
                 name: request.Name,
                 slug: request.Slug,
@@ -72,9 +88,9 @@ public class CreateTaskHandler(
             var syncPayload = JsonSerializer.Serialize(new
             {
                 id = request.Id,
-                projectWorkspaceId = request.ProjectWorkspaceId,
-                projectSpaceId = request.ProjectSpaceId,
-                projectFolderId = request.ProjectFolderId,
+                workspaceId = request.ProjectWorkspaceId,
+                spaceId = effectiveSpaceId,
+                folderId = request.ProjectFolderId,
                 name = request.Name,
                 slug = request.Slug,
                 defaultDocumentId = request.DefaultDocumentId,

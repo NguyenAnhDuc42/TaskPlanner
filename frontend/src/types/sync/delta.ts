@@ -18,6 +18,7 @@ export interface DeltaBatchPayload  {
 
 export type SyncAction ='C'|'U'|'D'
 export type SyncEntityType =
+'Workspace'|
 'Space'|
 'Folder'|
 'Task'|

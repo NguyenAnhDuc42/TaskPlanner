@@ -7,7 +7,8 @@ import type { RootStore } from '@/stores/root.store'
 import type { DeltaPayload, DeltaBatchPayload } from '@/types/sync/delta'
 import { applyDelta, applyDeltaBatch } from './delta-handler'
 import { TransactionQueue } from './transaction-queue'
-import type { TaskRecord } from '@/types/projects'
+import type { TaskRecord, SpaceRecord, FolderRecord } from '@/types/projects'
+import type { Status } from '@/types/status'
 import type { PendingTransaction } from '@/types/sync'
 import { api } from '@/lib/api-client'
 import { devLog } from './dev-log'
@@ -16,8 +17,9 @@ interface BootstrapResponse {
   lastSyncId: number
   databaseVersion: number
   tasks: Record<string, unknown>[]
-  // spaces: Record<string, unknown>[]
-  // folders: Record<string, unknown>[]
+  spaces: Record<string, unknown>[]
+  folders: Record<string, unknown>[]
+  statuses: Record<string, unknown>[]
 }
 
 export class SyncEngine {
@@ -41,6 +43,10 @@ export class SyncEngine {
    */
   async flushQueue(): Promise<void> {
     await this.queue.flush((tx) => this.sendTransaction(tx))
+  }
+
+  async forceBootstrap(workspaceId: string): Promise<void> {
+    await this.bootstrap(workspaceId)
   }
 
   /**
@@ -76,16 +82,28 @@ export class SyncEngine {
     const data: BootstrapResponse = res.data
 
     // Populate IndexedDB
-    const { taskDB, metadataDB } = this.rootStore
-    await taskDB!.putMany(data.tasks as unknown as TaskRecord[])
-    // await spaceDB.putMany(data.spaces as any[])
+    const { taskDB, spaceDB, folderDB, statusDB, metadataDB } = this.rootStore
+    await Promise.all([
+      taskDB!.putMany(data.tasks as unknown as TaskRecord[]),
+      spaceDB!.putMany(data.spaces as unknown as SpaceRecord[]),
+      folderDB!.putMany(data.folders as unknown as FolderRecord[]),
+      statusDB!.putMany(data.statuses as unknown as Status[]),
+    ])
 
     // Set metadata
     await metadataDB!.setFullBootstrap(data.lastSyncId, data.databaseVersion)
 
     // Hydrate stores from what we just saved
-    const tasks = await taskDB!.getAll()
+    const [tasks, spaces, folders, statuses] = await Promise.all([
+      taskDB!.getAll(),
+      spaceDB!.getAll(),
+      folderDB!.getAll(),
+      statusDB!.getAll(),
+    ])
     this.rootStore.taskStore.hydrate(tasks)
+    this.rootStore.spaceStore.hydrate(spaces)
+    this.rootStore.folderStore.hydrate(folders)
+    this.rootStore.statusStore.hydrate(statuses)
   }
 
   // ── SignalR connection ──
@@ -103,13 +121,13 @@ export class SyncEngine {
     // Live deltas
     this.connection.on('Delta', (delta: DeltaPayload) => {
       devLog('[SyncEngine] Delta received:', delta.entityType, delta.action, delta.syncId)
-      applyDelta(this.rootStore, delta)
+      applyDelta(this.rootStore, delta, (id) => this.queue.cancelByEntityId(id))
     })
 
     // Batch deltas (catch-up on connect/reconnect)
     this.connection.on('DeltaBatch', (payload: DeltaBatchPayload) => {
       devLog('[SyncEngine] DeltaBatch received:', payload.actions.length, 'events, latestSyncId:', payload.latestSyncId)
-      applyDeltaBatch(this.rootStore, payload.actions)
+      applyDeltaBatch(this.rootStore, payload.actions, (id) => this.queue.cancelByEntityId(id))
     })
 
     // On reconnect, server sends catch-up automatically

@@ -14,9 +14,9 @@ public class FoldersController : ControllerBase
     }
 
     [HttpPost]
-    public async Task<IActionResult> Create([FromBody] CreateFolderCommand command, CancellationToken cancellationToken)
+    public async Task<IActionResult> Create([FromBody] Application.CreateFolderCommand command, CancellationToken cancellationToken)
     {
-        var result = await _handler.SendAsync<CreateFolderCommand, FolderRecord>(command, cancellationToken);
+        var result = await _handler.SendAsync<Application.CreateFolderCommand, FolderRecord>(command, cancellationToken);
         return result.ToActionResult();
     }
 
@@ -29,7 +29,7 @@ public class FoldersController : ControllerBase
     }
 
     [HttpPut("{id:guid}")]
-    public async Task<IActionResult> Update(Guid id, [FromBody] UpdateFolderCommand command, CancellationToken cancellationToken)
+    public async Task<IActionResult> Update(Guid id, [FromBody] Application.UpdateFolderCommand command, CancellationToken cancellationToken)
     {
         var result = await _handler.SendAsync(command with { FolderId = id }, cancellationToken);
         return result.ToActionResult();
@@ -38,7 +38,7 @@ public class FoldersController : ControllerBase
     [HttpDelete("{id:guid}")]
     public async Task<IActionResult> Delete(Guid id, CancellationToken cancellationToken)
     {
-        var result = await _handler.SendAsync(new DeleteFolderCommand(id), cancellationToken);
+        var result = await _handler.SendAsync(new Application.DeleteFolderCommand(id), cancellationToken);
         return result.ToActionResult();
     }
     

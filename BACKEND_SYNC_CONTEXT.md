@@ -10,9 +10,17 @@ The existing app is vertical-slice architecture inside the `Application` project
 ```
 Api/Features/
   TaskFeatures/CreateTask/        — CreateTaskCommand, CreateTaskHandler, CreateTaskValidator, CreateTaskEndpoint
-  TaskFeatures/UpdateTask/        — empty scaffold, not built
+  TaskFeatures/UpdateTask/        — UpdateTaskCommand, UpdateTaskHandler, UpdateTaskValidator, UpdateTaskEndpoint (PUT /api/tasks/sync/{id})
+  TaskFeatures/DeleteTask/        — DeleteTaskCommand, DeleteTaskHandler, DeleteTaskValidator, DeleteTaskEndpoint (DELETE /api/tasks/sync/{id})
+  SpaceFeatures/CreateSpace/      — CreateSpaceCommand, CreateSpaceHandler, CreateSpaceValidator, CreateSpaceEndpoint (POST /api/spaces/sync)
+  SpaceFeatures/UpdateSpace/      — UpdateSpaceCommand, UpdateSpaceHandler, UpdateSpaceValidator, UpdateSpaceEndpoint (PUT /api/spaces/sync/{id})
+  SpaceFeatures/DeleteSpace/      — DeleteSpaceCommand, DeleteSpaceHandler, DeleteSpaceValidator, DeleteSpaceEndpoint (DELETE /api/spaces/sync/{id})
+  FolderFeatures/CreateFolder/    — CreateFolderCommand, CreateFolderHandler, CreateFolderValidator, CreateFolderEndpoint (POST /api/folders/sync)
+  FolderFeatures/UpdateFolder/    — UpdateFolderCommand, UpdateFolderHandler, UpdateFolderValidator, UpdateFolderEndpoint (PUT /api/folders/sync/{id})
+  FolderFeatures/DeleteFolder/    — DeleteFolderCommand, DeleteFolderHandler, DeleteFolderValidator, DeleteFolderEndpoint (DELETE /api/folders/sync/{id})
   SyncFeatures/Bootstrap/         — GetBootstrapQuery, GetBootstrapHandler, GetBootstrapEndpoint
   SyncFeatures/GetChanges/        — GetChangesQuery, GetChangesHandler, GetChangesEndpoint
+  SyncFeatures/BatchFlush/        — BatchFlushCommand, BatchFlushHandler, BatchFlushEndpoint (POST /api/sync/batch) ⬜ not yet built
 Api/Extensions/
   EndpointMappingExtensions.cs    — reflection-based MapEndpoint() auto-registration (see §3)
   MinimalResultExtensions.cs      — Result→IResult conversion for minimal APIs (see §4 — IMPORTANT gotcha)
@@ -35,7 +43,34 @@ Domain/
 ## 2. Routing convention — `/sync` suffix
 New minimal-API mutation endpoints live at `/api/{entity}s/sync` (e.g. `POST /api/tasks/sync`), **not** the old `/api/tasks` REST route — that old route still exists (`TasksController`, old `Application.CreateTaskCommand`) serving the legacy frontend. The two coexist on different paths during migration. Query endpoints (bootstrap/changes) live at `/api/workspaces/{id}/sync/bootstrap` and `/api/workspaces/{id}/sync/changes?since={syncId}`.
 
-When adding `UpdateTask`/`DeleteTask`: use `PUT /api/tasks/sync/{id}` and `DELETE /api/tasks/sync/{id}` — the frontend's `SyncEngine.getRequestConfig()` already assumes this convention.
+`UpdateTask`/`DeleteTask` now exist at `PUT /api/tasks/sync/{id}` and `DELETE /api/tasks/sync/{id}` — matches what the frontend's `SyncEngine.getRequestConfig()` already assumed.
+
+**Naming collision gotcha (hit twice now):** the old `TasksController` (legacy MVC) takes `Application.UpdateTaskCommand`/`Application.DeleteTaskCommand` by unqualified name. When a new `Api.UpdateTaskCommand`/`Api.DeleteTaskCommand` is added in the same root namespace area, `TasksController.cs` stops compiling (ambiguous reference) — fully-qualify the legacy ones (`Application.UpdateTaskCommand`, `new Application.DeleteTaskCommand(id)`) in `TasksController.cs` whenever a new `Api`-namespaced command of the same name is introduced.
+
+**Update/Delete payload notes:**
+- `UpdateTaskHandler` loads the existing task, regenerates `slug` from `name` if `name` changed (mirrors legacy `UpdateTaskHandler`), applies `ProjectTask.Update(...)`, writes one `SyncEvent` (Action `U`) with the *post-update* entity snapshot as payload (not just the changed fields — the client's `applyDelta` does a full `dbPut`/`upsert`, so partial payloads would silently drop unmentioned fields client-side... actually re-verify this against `delta-handler.ts`'s `dbPut`, which calls `taskDB.put(data)` — IndexedDB `put` fully overwrites the record, so the delta payload must always be the *complete* entity, never a partial diff).
+- `DeleteTaskHandler` calls `task.SoftDelete()` (sets `DeletedAt`, **not** `Archive()`/`IsArchived`) — deliberately matches the legacy delete semantics and the frontend delta-handler's `'D'` action, which fully removes the entity from `TaskStore` + IndexedDB on apply. The frontend mutation's optimistic `isArchived: true` patch is just a same-tick placeholder before the real `Delta` arrives and removes it outright — don't be misled by that into making the backend set `IsArchived` instead of soft-deleting.
+- `ClearStartDate`/`ClearDueDate` exist on `UpdateTaskCommand` (mirroring the legacy command) but the frontend's `TaskMutations.update()` never sends them — date-clearing via the sync path is unimplemented client-side, tracked in `SYNC_SCENARIOS.md`.
+
+**Space slices — a bigger fan-out than Task.** `CreateSpace` doesn't just create one entity: mirroring the legacy `CreateSpaceHandler`, it also auto-creates a default `Document`, a 4-status starter set (`Status.CreateSpaceStarterSet` — Planned/In Progress/Paused/Completed), and an `EntityAccess` row granting the creator `Manager` access. That's **7 `SyncEvent` rows in one create** (1 Document + 1 Space + 4 Status + 1 EntityAccess), all sharing the same `ClientTraceId`, broadcast as a single `NotifySyncEventBatchAsync` call. Only `Document`/`Space` IDs are client-dictated (added an explicit-id `ProjectSpace.Create(id, ...)` overload, same pattern as `ProjectTask`/`Document`); the 4 Statuses and the EntityAccess row keep server-generated IDs since nothing needs to optimistically reference them before the space exists.
+
+`UpdateSpace` is single-entity, same shape as `UpdateTask`. `DeleteSpace` always requires `Role.Admin` (no "creator can delete their own" bypass like Task has) — mirrors the legacy `DeleteSpaceHandler` exactly.
+
+**`DeleteSpace` — tombstone approach (cascade via client, not server events).** The backend does NOT emit individual D events for each child folder/task. Instead:
+1. `ExecuteUpdateAsync` bulk soft-deletes all tasks in the space (`deleted_at`, `updated_at` set atomically)
+2. `ExecuteUpdateAsync` bulk soft-deletes all folders in the space
+3. `space.Delete()` soft-deletes the space itself
+4. A **single Space D SyncEvent** is emitted and broadcast via `NotifySyncEventAsync`
+
+The client that receives Space D is responsible for cascading removal of all children locally (see `FRONTEND_SYNC_CONTEXT.md §9` — delta-handler Space D case). This is deliberate: emitting one event per child entity would create O(n) SignalR messages and require the client to process them individually, when a single Space D with client-side cascade is equivalent and far cheaper.
+
+**`DeleteFolder` — reparent tasks, then tombstone.** Backend emits N Task U events (one per orphaned task, with `folderId: null`) + one Folder D event, broadcast as a single `NotifySyncEventBatchAsync` call. The client initiating the delete reparents tasks locally immediately; other clients receive the Task U deltas and reparent via the normal upsert path.
+
+**Folder slices** follow the same naming-collision gotcha as Space — had to fully-qualify `Application.CreateFolderCommand` etc. in the legacy `FolderController.cs` when the new `Api`-namespaced commands were added.
+
+**Same naming-collision gotcha as Task** — had to fully-qualify `Application.CreateSpaceCommand`/`UpdateSpaceCommand`/`DeleteSpaceCommand` in the legacy `SpacesController.cs` (`server/Api/Controllers/SpaceController.cs`) once the new `Api`-namespaced commands of the same name were added. This is now the third time this exact issue has been hit (Task, then Task again for Update/Delete, now Space) — expect it every time a new entity gets sync slices; check the corresponding legacy `*Controller.cs` first.
+
+**Frontend note:** `delta-handler.ts`'s `getEntityApplier()` only handles `"Task"` and `"Document"` cases today — `Space`, `Status`, and `EntityAccess` deltas will hit the `default` branch and get dropped with a `console.warn`. The backend slices are real and tested at the DB level, but nothing client-side stores Space/Status/EntityAccess data yet. That's expected — backend-first per the agreed plan — but don't be surprised when `/dev/sync-test` shows no visible effect for spaces until the frontend catches up.
 
 ## 3. Endpoint registration — NOT automatic by default
 Minimal API `app.MapGet/MapPost(...)` calls only take effect if actually invoked. New slices follow the convention: a static class named `XEndpoint` with a `public static void MapEndpoint(IEndpointRouteBuilder app)` method. These are **not** called individually in `Program.cs` — instead `EndpointMappingExtensions.MapAllEndpoints(this IEndpointRouteBuilder app, Assembly assembly)` reflects over the assembly, finds every static class with that exact method signature, and invokes it. Wired in `Program.cs` as `app.MapAllEndpoints(typeof(Program).Assembly)`.
@@ -96,12 +131,49 @@ Initially `CreateTaskCommand.ProjectSpaceId` was nullable and the permission che
 
 ## 10. What's proven vs not — see `SYNC_SCENARIOS.md`
 The full scenario-by-scenario checklist (per-entity CRUD, connection lifecycle, conflict edge cases, auth, app integration) now lives in `SYNC_SCENARIOS.md` at the repo root — update it the moment a scenario is built/tested rather than relying on this doc's prose. Quick summary as of last test session:
-✅ `CreateTask` — online, offline+flush, reconnect catch-up, batched broadcast, Document delta — all manually tested via `/dev/sync-test` + direct Postgres queries against `sync_events`
-⬜ `UpdateTask`/`DeleteTask` — not built (`Api/Features/TaskFeatures/UpdateTask/` is an empty folder)
-⬜ Any entity besides Task/Document — no handlers, no bootstrap support
-⬜ Bootstrap — Task-only; Spaces/Folders/etc. need their own queries added to `GetBootstrapHandler`/`BootstrapResult`
+✅ `CreateTask/UpdateTask/DeleteTask` — online, offline+flush, reconnect catch-up — all manually tested via `/dev/sync-test` + direct Postgres queries
+✅ `CreateSpace/UpdateSpace` — online tested
+✅ `DeleteSpace` cascade — online tested for both initiator and receiving client (matching `deleted_at` timestamps in DB confirm bulk ExecuteUpdateAsync fired atomically)
+✅ `CreateFolder/UpdateFolder` — online tested
+✅ `DeleteFolder` reparent — built + online tested; Task U events with `folderId: null` confirmed in `sync_events`
+🔶 Bootstrap (Spaces/Folders/Statuses) — queries added to `GetBootstrapHandler`, builds clean, not manually tested cold-start end-to-end
+🔶 Offline Space/Folder delete with pending child ops — frontend `cancelByEntityId` logic built, not deliberately tested
+⬜ Batch flush (`POST /api/sync/batch`) — not built
 ⬜ Auth on `SyncHub` — currently unguarded like the old `WorkspaceHub`
 
-## 11. Local dev setup notes
+## 11. Batch flush — `POST /api/sync/batch`
+Replaces the current N-sequential-API-calls flush with one HTTP round-trip.
+
+**Request body:**
+```json
+{ "items": [{ "traceId": "uuid", "entityType": "Task", "action": "C", "entityId": "uuid", "data": {...} }, ...] }
+```
+Items must arrive in causal order (oldest-first — the client sorts by `createdAt` before sending, same as sequential flush).
+
+**Handler logic:**
+```
+foreach item in order:
+  if IdempotencyService.HasProcessed(item.traceId) → skip (already applied from a prior flush attempt)
+  switch item.entityType + item.action:
+    Task/C → run CreateTask logic inline (same domain writes as CreateTaskHandler)
+    Task/U → run UpdateTask logic inline
+    Task/D → run DeleteTask logic inline
+    Space/C → run CreateSpace logic inline
+    ... etc.
+  collect SyncEvent payloads
+broadcast all collected SyncEvents as one NotifySyncEventBatchAsync call
+return { results: [{ traceId, syncEventId, success, error }] }
+```
+
+**Key design rules:**
+- Each item still gets its own idempotency check — so a partial flush retry (connection dropped mid-batch) is safe to resend in full.
+- **Do NOT stop on first failure** — unlike the sequential flush which `break`s on error, the batch handler should continue processing remaining items and report per-item `success/error` in the response. The client then dequeues successes and leaves failures as `pending`.
+- All DB writes happen in **separate transactions per item** — NOT one giant transaction for the whole batch. If item 3 fails, items 1–2 are already committed and shouldn't be rolled back.
+- Broadcast is one single `DeltaBatch` at the end covering all successfully-written SyncEvents.
+- The handler needs direct access to domain services (same dependencies as the individual handlers) — it cannot simply re-call `IHandler.SendAsync` for each item because that would re-run middleware (WorkspaceContext, IdempotencyMiddleware) redundantly. Process inline with shared services.
+
+**Frontend change:** `TransactionQueue.flush()` replaces the `for` loop with a single `POST /api/sync/batch` call. `SyncEngine.sendBatch(txs[])` replaces `sendTransaction(tx)`. On response, dequeue all `traceId`s where `success: true`; leave failures as `pending`. SignalR still delivers the DeltaBatch confirmation as usual.
+
+## 12. Local dev setup notes
 - EF migrations need `TASKPLAN_CONNECTION_STRING` env var set (design-time factory has no other fallback locally) — see `DesignTimeDbContextFactory.cs`.
 - `appsettings.Development.json` now has `AppSettings:FrontendUrl/BackendUrl` = `https://localhost:5173`/`https://localhost:7285` and `CookieSettings:Domain` = `""` (host-only cookie) — these were emptied during an earlier production-deploy cleanup pass and had to be restored for local dev to work (cookies wouldn't persist, login appeared to "succeed" then bounce back to sign-in).

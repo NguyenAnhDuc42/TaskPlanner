@@ -5,6 +5,7 @@ import { Priority } from '@/types/priority'
 import { api } from '@/lib/api-client'
 import { devError } from '@/sync/dev-log'
 import axios from 'axios'
+import { toJS } from 'mobx'
 
 export class TaskMutations {
   private rootStore : RootStore
@@ -107,8 +108,11 @@ export class TaskMutations {
 
   // ── UPDATE ──
   async update(taskId: string, changes: Partial<TaskRecord>): Promise<void> {
-    const previous = this.rootStore.taskStore.getById(taskId)
-    if (!previous) throw new Error(`Task ${taskId} not found`)
+    const stored = this.rootStore.taskStore.getById(taskId)
+    if (!stored) throw new Error(`Task ${taskId} not found`)
+    // MobX observable.map values are deep-observable Proxies — must unwrap
+    // before they touch IndexedDB or structuredClone throws "could not be cloned".
+    const previous = toJS(stored)
 
     const merged = { ...previous, ...changes }
 
@@ -162,17 +166,16 @@ export class TaskMutations {
 
   // ── DELETE ──
   async delete(taskId: string): Promise<void> {
-    const previous = this.rootStore.taskStore.getById(taskId)
-    if (!previous) throw new Error(`Task ${taskId} not found`)
+    const stored = this.rootStore.taskStore.getById(taskId)
+    if (!stored) throw new Error(`Task ${taskId} not found`)
+    const previous = toJS(stored)
 
-    const archived = { ...previous, isArchived: true }
-
-    // 1. Optimistic
-    this.rootStore.taskStore.upsert(archived)
+    // 1. Eager local removal — don't wait for the Delta confirmation
+    this.rootStore.taskStore.remove(taskId)
 
     // 2. Persist
     try {
-      await this.rootStore.taskDB!.put(archived)
+      await this.rootStore.taskDB!.delete(taskId)
     } catch {
       this.rootStore.taskStore.upsert(previous)
       throw new Error('Failed to persist delete locally')
@@ -215,3 +218,4 @@ export class TaskMutations {
     }
   }
 }
+
