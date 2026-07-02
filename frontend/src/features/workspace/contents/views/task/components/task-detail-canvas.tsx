@@ -1,6 +1,5 @@
-import { useSelector } from "react-redux";
-import { taskSelectors } from "@/store/entityStore";
-import type { RootState } from "@/store";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef } from "react";
+import { observer } from "mobx-react-lite";
 import { StatusSelect } from "@/components/status-select";
 import { PrioritySelect } from "@/components/priority-select";
 import { PriorityBadge } from "@/components/priority-badge";
@@ -10,23 +9,56 @@ import { BlockEditor } from "@/components/blockbase/block-editor";
 import { TaskViewSkeleton } from "./task-view-skeleton";
 import { DateSelect } from "@/components/date-select";
 import { DebouncedInput } from "@/components/debounced-input";
-import { useGetTaskDetailQuery, useDebouncedTaskUpdate } from "../task-api";
 import { useSpaceAccess } from "@/features/workspace/context/use-space-access";
 import { TaskAssignees } from "../task-components/task-assignees";
 import { TaskComments } from "../task-components/task-comments";
 import { TaskSubtasks } from "../task-components/task-subtasks";
 import type { Priority } from "@/types/priority";
+import type { TaskRecord } from "@/types/projects/task-record";
+import { useStore } from "@/stores/root.store";
+import { useSyncEngine, useSyncReady } from "@/sync/sync-provider";
+import { TaskMutations } from "@/mutations/task.mutations";
 
 interface TaskDetailCanvasProps {
   taskId?: string;
 }
 
-export function TaskDetailCanvas({ taskId }: TaskDetailCanvasProps) {
-  const { isLoading, isError } = useGetTaskDetailQuery(taskId || "", {
-    skip: !taskId,
-  });
-  const task = useSelector((state: RootState) => taskSelectors.selectById(state, taskId || ""));
-  const updateTask = useDebouncedTaskUpdate(taskId || "");
+// Debounced wrapper around TaskMutations.update() — coalesces rapid field edits (typing,
+// picker changes) into one queued/sent mutation, same shape as the old useDebouncedTaskUpdate
+// but backed by the sync engine instead of RTK Query.
+function useDebouncedTaskUpdate(taskMutations: TaskMutations, taskId: string, delay = 1500) {
+  const pendingRef = useRef<Partial<TaskRecord>>({});
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const taskIdRef = useRef(taskId);
+  useLayoutEffect(() => { taskIdRef.current = taskId; });
+
+  const flush = useCallback(() => {
+    if (timerRef.current) clearTimeout(timerRef.current);
+    const patches = { ...pendingRef.current };
+    pendingRef.current = {};
+    if (Object.keys(patches).length > 0) {
+      taskMutations.update(taskIdRef.current, patches).catch((err) => console.error("Failed to update task", err));
+    }
+  }, [taskMutations]);
+
+  // Flush on unmount OR when taskId changes (user switches to a different task)
+  useEffect(() => flush, [taskId, flush]);
+
+  return useCallback((patches: Partial<TaskRecord>) => {
+    pendingRef.current = { ...pendingRef.current, ...patches };
+    if (timerRef.current) clearTimeout(timerRef.current);
+    timerRef.current = setTimeout(flush, delay);
+  }, [delay, flush]);
+}
+
+export const TaskDetailCanvas = observer(function TaskDetailCanvas({ taskId }: TaskDetailCanvasProps) {
+  const rootStore = useStore();
+  const syncEngine = useSyncEngine();
+  const { ready, error } = useSyncReady();
+  const taskMutations = useMemo(() => new TaskMutations(rootStore, syncEngine), [rootStore, syncEngine]);
+
+  const task = taskId ? rootStore.taskStore.getById(taskId) : undefined;
+  const updateTask = useDebouncedTaskUpdate(taskMutations, taskId || "");
   const { canEdit } = useSpaceAccess(task?.spaceId ?? "");
 
   if (!taskId) {
@@ -37,7 +69,7 @@ export function TaskDetailCanvas({ taskId }: TaskDetailCanvasProps) {
     );
   }
 
-  if (isError) {
+  if (error) {
     return (
       <div className="flex flex-col items-center justify-center h-full text-destructive/80 space-y-2">
         <DynamicIcon name="AlertTriangle" size={32} />
@@ -47,7 +79,7 @@ export function TaskDetailCanvas({ taskId }: TaskDetailCanvasProps) {
     );
   }
 
-  if (!isLoading && !task) {
+  if (ready && !task) {
     return (
       <div className="flex flex-col items-center justify-center h-full text-destructive/80 space-y-2">
         <DynamicIcon name="AlertTriangle" size={32} />
@@ -57,11 +89,9 @@ export function TaskDetailCanvas({ taskId }: TaskDetailCanvasProps) {
     );
   }
 
-  if (isLoading) {
+  if (!ready || !task) {
     return <TaskViewSkeleton />;
   }
-
-
 
   const handleStatusChange = (statusId: string) => {
     updateTask({ statusId });
@@ -72,15 +102,15 @@ export function TaskDetailCanvas({ taskId }: TaskDetailCanvasProps) {
   };
 
   const handleStartDateChange = (date: Date | undefined) => {
-    updateTask(date ? { startDate: date.toISOString() } : { clearStartDate: true });
+    updateTask({ startDate: date ? date.toISOString() : null });
   };
 
   const handleDueDateChange = (date: Date | undefined) => {
-    updateTask(date ? { dueDate: date.toISOString() } : { clearDueDate: true });
+    updateTask({ dueDate: date ? date.toISOString() : null });
   };
 
   const handleClearDates = () => {
-    updateTask({ clearStartDate: true, clearDueDate: true });
+    updateTask({ startDate: null, dueDate: null });
   };
 
   return (
@@ -158,4 +188,4 @@ export function TaskDetailCanvas({ taskId }: TaskDetailCanvasProps) {
       </div>
     </div>
   );
-}
+});

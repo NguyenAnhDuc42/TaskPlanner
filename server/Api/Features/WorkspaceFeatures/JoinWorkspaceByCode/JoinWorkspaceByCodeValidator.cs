@@ -1,0 +1,13 @@
+using FluentValidation;
+
+namespace Api;
+
+public class JoinWorkspaceByCodeValidator : AbstractValidator<JoinWorkspaceByCodeCommand>
+{
+    public JoinWorkspaceByCodeValidator()
+    {
+        RuleFor(x => x.JoinCode)
+            .NotEmpty().WithMessage("Join code is required.")
+            .MaximumLength(32).WithMessage("Join code is too long.");
+    }
+}

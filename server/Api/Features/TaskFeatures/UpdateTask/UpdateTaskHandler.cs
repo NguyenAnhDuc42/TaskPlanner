@@ -6,7 +6,7 @@ namespace Api;
 public class UpdateTaskHandler(
     TaskPlanDbContext db,
     WorkspaceContext workspaceContext,
-    PermissionService permissionService,
+    SyncPermissionService syncPermission,
     RealtimeService realtimeService,
     IdempotencyService idempotencyService,
     ILogger<UpdateTaskHandler> logger
@@ -16,30 +16,16 @@ public class UpdateTaskHandler(
     {
         logger.LogInformation("Attempting to update task {TaskId}", request.TaskId);
 
-        var memberId = workspaceContext.CurrentMember?.Id ?? Guid.Empty;
-        var taskData = await db.ProjectTasks
-            .Where(t => t.Id == request.TaskId && t.DeletedAt == null)
-            .Select(t => new {
-                Task = t,
-                SpaceIsPrivate = db.ProjectSpaces.Where(s => s.Id == t.ProjectSpaceId).Select(s => s.IsPrivate).FirstOrDefault(),
-                CallerAccess = db.EntityAccesses
-                    .Where(ea => ea.ProjectSpaceId == t.ProjectSpaceId && ea.WorkspaceMemberId == memberId && ea.DeletedAt == null)
-                    .Select(ea => (AccessLevel?)ea.AccessLevel).FirstOrDefault()
-            })
-            .FirstOrDefaultAsync(cancellationToken);
+        var task = await db.ProjectTasks
+            .FirstOrDefaultAsync(t => t.Id == request.TaskId && t.DeletedAt == null, cancellationToken);
 
-        var task = taskData?.Task;
         if (task == null)
         {
             logger.LogWarning("Task {TaskId} not found or deleted", request.TaskId);
             return Result<long>.Failure(TaskError.NotFound);
         }
 
-        if (!permissionService.Verify(Role.Member, taskData!.SpaceIsPrivate, taskData.CallerAccess, AccessLevel.Editor, task.CreatorId))
-        {
-            logger.LogWarning("Access denied for user to update task {TaskId}", task.Id);
-            return Result<long>.Failure(MemberError.DontHavePermission);
-        }
+        syncPermission.RequireCreatorOrAdmin(task.CreatorId ?? Guid.Empty);
 
         SyncEvent? syncEvent = null;
 

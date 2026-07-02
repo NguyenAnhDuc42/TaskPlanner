@@ -60,6 +60,7 @@ builder.Services.AddCors(options =>
 // --- 2. Infrastructure & Data ---
 
 builder.Services.AddApplication(builder.Configuration);
+builder.Services.AddScoped<SyncPermissionService>();
 builder.EnrichNpgsqlDbContext<TaskPlanDbContext>();
 
 var rateLimitSettings = builder.Configuration.GetSection(RateLimitSettings.SectionName).Get<RateLimitSettings>() ?? new RateLimitSettings();

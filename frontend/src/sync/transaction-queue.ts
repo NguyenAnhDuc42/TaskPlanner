@@ -104,7 +104,7 @@ export class TransactionQueue {
     return { toSend, toCancel }
   }
 
-  async flush(sendToServer: (tx: PendingTransaction) => Promise<void>): Promise<void> {
+  async flush(sendBatch: (txs: PendingTransaction[]) => Promise<{ traceId: string; success: boolean; error?: string | null }[]>): Promise<void> {
     if (this.flushing) return
     this.flushing = true
 
@@ -115,18 +115,29 @@ export class TransactionQueue {
       const sorted = pending.sort((a, b) => a.createdAt - b.createdAt)
       const { toSend, toCancel } = this.squash(sorted)
 
-      // Dequeue transactions that were squashed away
       for (const id of toCancel) {
         await this.rootStore.transactionDB!.dequeue(id)
       }
 
+      if (toSend.length === 0) return
+
       for (const tx of toSend) {
         await this.rootStore.transactionDB!.markInFlight(tx.id)
-        try {
-          await sendToServer(tx)
-        } catch {
+      }
+
+      try {
+        const results = await sendBatch(toSend)
+        // Mark failed items back to pending so they retry next flush.
+        // Successful items are dequeued by the SignalR DeltaBatch (clientTraceId matching).
+        for (const r of results) {
+          if (!r.success) {
+            await this.rootStore.transactionDB!.markPending(r.traceId)
+          }
+        }
+      } catch {
+        // Network error — mark all back to pending
+        for (const tx of toSend) {
           await this.rootStore.transactionDB!.markPending(tx.id)
-          break
         }
       }
     } finally {

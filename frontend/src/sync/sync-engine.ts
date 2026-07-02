@@ -36,13 +36,8 @@ export class SyncEngine {
     return this.queue
   }
 
-  /**
-   * Manually retry all pending transactions. Normally happens automatically
-   * on SignalR reconnect, but useful to trigger explicitly (e.g. after
-   * coming back online without a real connection drop).
-   */
   async flushQueue(): Promise<void> {
-    await this.queue.flush((tx) => this.sendTransaction(tx))
+    await this.queue.flush((txs) => this.sendBatch(txs))
   }
 
   async forceBootstrap(workspaceId: string): Promise<void> {
@@ -137,13 +132,13 @@ export class SyncEngine {
     // but we also flush pending transactions
     this.connection.onreconnected(async () => {
       devLog('[SyncEngine] Reconnected — server will push DeltaBatch catch-up automatically')
-      await this.queue.flush((tx) => this.sendTransaction(tx))
+      await this.queue.flush((txs) => this.sendBatch(txs))
     })
 
     await this.connection.start()
 
     // Flush any pending transactions from previous session
-    await this.queue.flush((tx) => this.sendTransaction(tx))
+    await this.queue.flush((txs) => this.sendBatch(txs))
   }
 
   private async disconnect(): Promise<void> {
@@ -158,35 +153,19 @@ export class SyncEngine {
 
   // ── Send mutations to server ──
 
-  private async sendTransaction(tx: PendingTransaction): Promise<void> {
+  private async sendBatch(txs: PendingTransaction[]): Promise<{ traceId: string; success: boolean; error?: string | null }[]> {
     const workspaceId = this.rootStore.currentWorkspaceId
-    const config = this.getRequestConfig(tx)
-
-    await api.request({
-      method: config.method,
-      url: config.url,
-      headers: {
-        'X-Workspace-Id': workspaceId!,
-        'X-Client-Trace-Id': tx.id,
-      },
-      data: tx.action === 'D' ? undefined : tx.data,
+    const response = await api.post('/sync/batch', {
+      items: txs.map(tx => ({
+        traceId: tx.id,
+        entityType: tx.entityType,
+        action: tx.action,
+        entityId: tx.entityId,
+        data: tx.action === 'D' ? null : tx.data,
+      })),
+    }, {
+      headers: { 'X-Workspace-Id': workspaceId! },
     })
-  }
-
-  private getRequestConfig(tx: PendingTransaction): { method: string; url: string } {
-    // New sync-flow slices live under /sync to coexist with the old REST
-    // endpoints during migration. Once a slice's old route is removed,
-    // it can drop the suffix.
-    const base = `/${tx.entityType.toLowerCase()}s/sync`
-    switch (tx.action) {
-      case "C":
-        return { method: 'POST', url: base }
-      case "U":
-        return { method: 'PUT', url: `${base}/${tx.entityId}` }
-      case "D":
-        return { method: 'DELETE', url: `${base}/${tx.entityId}` }
-      default:
-        return { method: 'POST', url: base }
-    }
+    return response.data.results
   }
 }

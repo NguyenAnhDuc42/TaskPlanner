@@ -6,7 +6,7 @@ namespace Api;
 public class CreateFolderHandler(
     TaskPlanDbContext db,
     WorkspaceContext workspaceContext,
-    PermissionService permissionService,
+    SyncPermissionService syncPermission,
     RealtimeService realtimeService,
     IdempotencyService idempotencyService,
     ILogger<CreateFolderHandler> logger
@@ -25,12 +25,7 @@ public class CreateFolderHandler(
             return Result<long>.Failure(SpaceError.NotFound);
         }
 
-        var hasAccess = await permissionService.VerifyAsync(Role.Member, spaceId: request.SpaceId, requiredAccess: AccessLevel.Editor, cancellationToken: cancellationToken);
-        if (!hasAccess)
-        {
-            logger.LogWarning("Access denied for user to create folder in space {SpaceId}", request.SpaceId);
-            return Result<long>.Failure(MemberError.DontHavePermission);
-        }
+        syncPermission.RequireMember();
 
         var creatorId = workspaceContext.CurrentMember?.Id ?? Guid.Empty;
         ProjectFolder? folder = null;

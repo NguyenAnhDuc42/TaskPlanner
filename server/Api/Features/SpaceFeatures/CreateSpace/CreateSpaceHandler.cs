@@ -6,7 +6,7 @@ namespace Api;
 public class CreateSpaceHandler(
     TaskPlanDbContext db,
     WorkspaceContext workspaceContext,
-    PermissionService permissionService,
+    SyncPermissionService syncPermission,
     RealtimeService realtimeService,
     IdempotencyService idempotencyService,
     ILogger<CreateSpaceHandler> logger
@@ -15,13 +15,7 @@ public class CreateSpaceHandler(
     public async Task<Result<long>> Handle(CreateSpaceCommand request, CancellationToken cancellationToken)
     {
         logger.LogInformation("Attempting to create space '{SpaceName}' under Workspace {WorkspaceId}", request.Name, workspaceContext.WorkspaceId);
-
-        var hasAccess = await permissionService.VerifyAsync(Role.Member, cancellationToken: cancellationToken);
-        if (!hasAccess)
-        {
-            logger.LogWarning("Access denied for user to create space in Workspace {WorkspaceId}", workspaceContext.WorkspaceId);
-            return Result<long>.Failure(MemberError.DontHavePermission);
-        }
+        syncPermission.RequireMember();
 
         var creatorId = workspaceContext.CurrentMember?.Id ?? Guid.Empty;
         ProjectSpace? space = null;
@@ -53,16 +47,6 @@ public class CreateSpaceHandler(
                 creatorId: creatorId
             );
             db.Documents.Add(document);
-            events.Add(new SyncEvent
-            {
-                ProjectWorkspaceId = workspaceContext.WorkspaceId,
-                EntityType = SyncEntityType.Document,
-                EntityId = document.Id,
-                Action = SyncAction.C,
-                Payload = JsonSerializer.Serialize(new { id = document.Id, workspaceId = workspaceContext.WorkspaceId, name = request.Name }, jsonOptions),
-                ClientTraceId = request.TraceId,
-                AuthorUserId = creatorId
-            });
 
             space = ProjectSpace.Create(
                 id: request.Id,

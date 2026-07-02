@@ -27,4 +27,5 @@ export type SyncEntityType =
 'Document'|
 'DocumentBlock'|
 'Member'|
-'EntityAccess'
+'EntityAccess'|
+'Assignee'

@@ -18,6 +18,9 @@ Api/Features/
   FolderFeatures/CreateFolder/    — CreateFolderCommand, CreateFolderHandler, CreateFolderValidator, CreateFolderEndpoint (POST /api/folders/sync)
   FolderFeatures/UpdateFolder/    — UpdateFolderCommand, UpdateFolderHandler, UpdateFolderValidator, UpdateFolderEndpoint (PUT /api/folders/sync/{id})
   FolderFeatures/DeleteFolder/    — DeleteFolderCommand, DeleteFolderHandler, DeleteFolderValidator, DeleteFolderEndpoint (DELETE /api/folders/sync/{id})
+  CommentFeatures/Create|Update|DeleteComment/  — CRUD at /api/comments/sync (POST, PUT/DELETE {id}); Create requires Viewer, Update is creator-only, Delete is creator-bypass-or-Editor; soft-delete (diverges from legacy hard-delete, deliberate — see below)
+  DocumentFeatures/Update|DeleteDocument/        — Update/Delete at /api/documents/sync/{id}; no standalone Create (Document is only ever created as a Task/Space side-effect); scoped via DocumentScopeResolver
+  DocumentBlockFeatures/Create|Update|DeleteDocumentBlock/ — single-entity CRUD at /api/document-blocks/sync (replaces legacy bulk PUT /documents/{id}/blocks for the sync path — one SyncEvent per block, matches TransactionQueue's one-transaction-per-mutation model); scoped via DocumentScopeResolver
   SyncFeatures/Bootstrap/         — GetBootstrapQuery, GetBootstrapHandler, GetBootstrapEndpoint
   SyncFeatures/GetChanges/        — GetChangesQuery, GetChangesHandler, GetChangesEndpoint
   SyncFeatures/BatchFlush/        — BatchFlushCommand, BatchFlushHandler, BatchFlushEndpoint (POST /api/sync/batch) ⬜ not yet built
@@ -59,8 +62,9 @@ New minimal-API mutation endpoints live at `/api/{entity}s/sync` (e.g. `POST /ap
 **`DeleteSpace` — tombstone approach (cascade via client, not server events).** The backend does NOT emit individual D events for each child folder/task. Instead:
 1. `ExecuteUpdateAsync` bulk soft-deletes all tasks in the space (`deleted_at`, `updated_at` set atomically)
 2. `ExecuteUpdateAsync` bulk soft-deletes all folders in the space
-3. `space.Delete()` soft-deletes the space itself
-4. A **single Space D SyncEvent** is emitted and broadcast via `NotifySyncEventAsync`
+3. `ExecuteUpdateAsync` bulk soft-deletes all **statuses** in the space (critical — missing this caused stale statuses to appear in bootstrap; `statuses.deleted_at IS NULL` was erroneously true for statuses from deleted spaces)
+4. `space.Delete()` soft-deletes the space itself
+5. A **single Space D SyncEvent** is emitted and broadcast via `NotifySyncEventAsync`
 
 The client that receives Space D is responsible for cascading removal of all children locally (see `FRONTEND_SYNC_CONTEXT.md §9` — delta-handler Space D case). This is deliberate: emitting one event per child entity would create O(n) SignalR messages and require the client to process them individually, when a single Space D with client-side cascade is equivalent and far cheaper.
 
@@ -70,7 +74,27 @@ The client that receives Space D is responsible for cascading removal of all chi
 
 **Same naming-collision gotcha as Task** — had to fully-qualify `Application.CreateSpaceCommand`/`UpdateSpaceCommand`/`DeleteSpaceCommand` in the legacy `SpacesController.cs` (`server/Api/Controllers/SpaceController.cs`) once the new `Api`-namespaced commands of the same name were added. This is now the third time this exact issue has been hit (Task, then Task again for Update/Delete, now Space) — expect it every time a new entity gets sync slices; check the corresponding legacy `*Controller.cs` first.
 
-**Frontend note:** `delta-handler.ts`'s `getEntityApplier()` only handles `"Task"` and `"Document"` cases today — `Space`, `Status`, and `EntityAccess` deltas will hit the `default` branch and get dropped with a `console.warn`. The backend slices are real and tested at the DB level, but nothing client-side stores Space/Status/EntityAccess data yet. That's expected — backend-first per the agreed plan — but don't be surprised when `/dev/sync-test` shows no visible effect for spaces until the frontend catches up.
+**Frontend note (corrected — the line below was stale):** `delta-handler.ts`'s `getEntityApplier()` actually already handles `Workspace`, `Space`, `Folder`, `Task`, `Document`, `Status`, and `EntityAccess` — only `Comment` and `DocumentBlock` still hit the `default` branch and get dropped with a `console.warn`. Don't trust this doc's age on frontend claims — check `delta-handler.ts` directly, it's moved faster than this doc was updated.
+
+**Workspace/Status/Member/EntityAccess pass (added after Comment/Document/DocumentBlock).** Ported the remaining entities per the local-first-vs-backend-first split Duc specified:
+- **Workspace**: `CreateWorkspace`/`UpdateWorkspace` already existed under `Api/Features/WorkspaceFeatures` but were legacy-pattern-in-new-clothing — no `SyncEvent`, no idempotency, no broadcast. **This was a live bug**: the frontend's `WorkspaceMutations.update()` (`frontend/src/mutations/workspace.mutations.ts`) enqueues into `TransactionQueue` and waits for a `Delta` to dequeue the transaction — since `UpdateWorkspaceHandler` never emitted one, every workspace rename got stuck in the queue forever, silently. Fixed: both now follow the full pattern (idempotency + transaction + `SyncEvent` + `NotifySyncEventAsync`). Also built `DeleteWorkspaceCommand` from scratch — no reachable delete-workspace endpoint existed anywhere (`Application.DeleteWorkspaceCommand` existed but no controller route ever called it), yet the frontend's `delete()` was already calling `DELETE /api/workspaces/{id}` (no `/sync` suffix, matching its backend-first/no-queue design) — that call was a live 404 until now.
+- **Status**: `UpdateSpaceStatusesCommand` ported to `Api/Features/StatusFeatures/UpdateSpaceStatuses` as a batch endpoint (`PUT /api/statuses/sync/batch`) — one call carries a list of `StatusUpdateValue` rows each tagged with `RowAction` (Create/Update/Delete), emits one `SyncEvent` per row, broadcasts as a single `NotifySyncEventBatchAsync`. Delete rows now soft-delete (legacy hard-deleted via `db.Statuses.Remove`).
+- **Member**: only `UpdateMembers` (role/status) and `RemoveMembers` ported — no `Create` slice, since member creation stays email-invite-based on the legacy `POST /workspaces/{id}/members` route by design. Same batch-row shape as Status/EntityAccess for update; remove takes a flat `List<Guid>`. Routes: `PUT /api/members/sync/batch`, `POST /api/members/sync/remove` (POST not DELETE — a body-bearing batch delete is unreliable over DELETE across HTTP clients).
+- **EntityAccess**: `EntityAccessBatchCommand` ported to `Api/Features/EntityAccessFeatures/EntityAccessBatch` (`PUT /api/entity-access/sync/batch`), same Create/Update/Delete-row-with-RowAction shape. Delete rows now soft-delete via `entity.Remove()` (which already called `SoftDelete()` — the legacy handler was bypassing its own domain method and hard-deleting via `db.EntityAccesses.Remove` instead).
+- **Naming collision gotcha hit again** (5th+ time) for all four: `SpaceController.cs` (`UpdateStatuses`, `UpdateAccess`) and `WorkspaceController.cs` (`UpdateMembers`, `RemoveMembers`) all needed their legacy command *and* value-type references fully qualified as `Application.X` once the same-named `Api.X` types were added — including the DTO type used directly as an MVC action parameter (`[FromBody] Application.UpdateMembersCommand`), not just constructor calls.
+
+**Frontend state found while researching this pass**: `WorkspaceMutations` (`workspace.mutations.ts`) already fully implements the create=backend-first / update=local-first-queued / delete=backend-first-no-queue split — nothing needed there beyond the backend fix above. `member.mutations.ts` and `status.mutations.ts` are still genuine empty stubs (1 line each). There is no `entity-access.mutations.ts` file at all yet. All the relevant MobX stores + IndexedDB wrappers (`memberStore`/`memberDB`, `statusStore`/`statusDB`, `entityAccessStore`/`entityAccessDB`) are already wired in `root.store.ts`, so only the mutation classes are missing on the frontend side.
+
+**Note: `AccessLevel`/`EntityAccess`-based permission checking is being stripped project-wide.** Confirmed directive: `EntityAccess` (private-space, per-member access-level grants) is itself considered legacy now. Task/Space/Folder/Document/DocumentBlock/Status Create/Update/Delete handlers all use `Api.SyncPermissionService` (`server/Api/Common/SyncPermissionService.cs` — `RequireMember()`, `RequireAdmin()`, `RequireCreatorOrAdmin(creatorId)`, pure workspace-role checks, no space privacy/`AccessLevel` at all). `UpdateSpaceStatusesHandler` and `DeleteDocumentHandler` were both migrated off `PermissionService`/`AccessLevel` to match (previously the last two holdouts). `DocumentScopeResolver.cs` is now dead code — nothing calls it anymore, left in place rather than deleted unprompted. **`EntityAccessBatchHandler` is the one deliberate exception** — still uses `PermissionService.VerifyAsync` with `AccessLevel.Editor`, left as-is on purpose since the whole `EntityAccess` feature is being phased out and isn't worth further investment. Don't use `PermissionService`/`AccessLevel` as the reference pattern for any new slice — use `SyncPermissionService`.
+
+**Subtask/Assignee/Favorite pass.** 
+- **Subtask needed no new work** — a subtask is just a `ProjectTask` row with `ParentTaskId` set, and `CreateTaskCommand`/`UpdateTaskCommand` already accept `ParentTaskId`. The legacy `CreateSubTask`/`UpdateSubTask`/`DeleteSubTask` commands (`Application/Features/TaskFeatures/SubtaskManagement/`) are narrower, pre-sync-architecture versions of the same thing — left untouched, not ported.
+- **Assignee**: built `Api/Features/AssigneeFeatures/{CreateAssignee,DeleteAssignee}` — single-entity (not the legacy diff/changeset `UpdateTaskAssigneesCommand`), matching the rest of the system's one-mutation-per-entity convention. `TaskAssignment.Create()` gained an explicit-id overload (mirroring Comment/Document/DocumentBlock). New `SyncEntityType.Assignee` enum value added. Routes: `POST /api/assignees/sync`, `DELETE /api/assignees/sync/{id}`.
+- **Favorite**: built `Api/Features/FavoriteFeatures/{ToggleFavorite,ReorderFavorite}` — **deliberately backend-first with no `SyncEvent`/broadcast at all** (same bucket as Workspace mutations), because Favorite is personal (`WorkspaceMemberId`-scoped) and the SyncHub group broadcasts to the *entire* workspace — broadcasting favorite-toggle events would leak "who favorited what" to every other member. `ToggleFavorite` still uses `IdempotencyService` (a retried toggle without dedup would double-flip the state — unlike other bypasses, it returns the *actual current state* on a trace replay, not a no-op `0`, since the client needs the real result). No `GetFavorites`-equivalent read endpoint was built (matches the established pattern in this migration: Get/list queries aren't part of this port — see §11 gap list). Routes: `POST /api/favorites/toggle`, `PUT /api/favorites/reorder`, no `/sync` suffix (matches `DeleteWorkspaceEndpoint`'s backend-first convention).
+- **Notifications** ported too, same read-replica treatment as Workspace: `Api/Features/NotificationFeatures/{FetchNotifications,MarkNotificationsRead}` (`GET /api/notifications/sync`, `PUT /api/notifications/sync/read`), no `SyncEvent`, plain Dapper port of the legacy handlers.
+- **OrderKey is purely client-computed now, project-wide** — confirmed mid-session: no handler should resolve `PreviousOrderKey`/`NextOrderKey` into a `FractionalIndex` value server-side anymore. `UpdateSpaceStatusesCommand`'s `StatusUpdateValue` was changed from `PreviousOrderKey`/`NextOrderKey` to a plain `OrderKey` field (client sends the final value directly, like Task/Space/Folder always did). `ReorderFavoriteCommand`/`ToggleFavoriteCommand` were built this way from the start.
+
+**Comment/Document/DocumentBlock slices (added after the initial Task/Space/Folder pass) — same naming-collision gotcha, hit a 4th time.** `Api.DeleteCommentCommand` collided with the legacy `Application.DeleteCommentCommand` referenced unqualified in `TasksController.cs` — fully-qualified it (`new Application.DeleteCommentCommand(id, commentId)`). Design notes: `Comment.Create()` gained an explicit-id overload (mirroring Document/DocumentBlock) since offline-created comments need a client-dictated id. Comment/DocumentBlock deletes are soft-deletes here even though the legacy handlers (`DeleteCommentHandler`, `UpdateDocumentBlocksHandler`) hard-delete — deliberate, so offline clients get a tombstone `D` SyncEvent instead of silently losing reconciliation. DocumentBlock mutations are single-entity (Create/Update/Delete) rather than the legacy bulk `PUT /documents/{id}/blocks` list endpoint, to match the one-SyncEvent-per-entity model the rest of the sync system uses. `DocumentScopeResolver` (new shared helper in `Api/Features/DocumentFeatures/`) resolves a Document's owning space via the same cascading lookup as legacy `UpdateDocumentBlocksHandler` (Space.DefaultDocumentId → Task.DefaultDocumentId → EntityAssetLink), reused across all 5 Document/DocumentBlock handlers that need permission scoping.
 
 ## 3. Endpoint registration — NOT automatic by default
 Minimal API `app.MapGet/MapPost(...)` calls only take effect if actually invoked. New slices follow the convention: a static class named `XEndpoint` with a `public static void MapEndpoint(IEndpointRouteBuilder app)` method. These are **not** called individually in `Program.cs` — instead `EndpointMappingExtensions.MapAllEndpoints(this IEndpointRouteBuilder app, Assembly assembly)` reflects over the assembly, finds every static class with that exact method signature, and invokes it. Wired in `Program.cs` as `app.MapAllEndpoints(typeof(Program).Assembly)`.
@@ -129,19 +153,51 @@ Initially `CreateTaskCommand.ProjectSpaceId` was nullable and the permission che
 
 `PermissionService.VerifyAsync(requiredRole, spaceId, requiredAccess, ...)` has a hard contract: `spaceId` and `requiredAccess` must both be null or both be provided — passing one without the other throws `ArgumentException`. Keep this in mind for any future handler with optional space scoping.
 
-## 10. What's proven vs not — see `SYNC_SCENARIOS.md`
+## 10. PermissionService — sync `Verify()` for Update*/Delete* handlers
+Update and Delete handlers were making two separate queries to the space table: one to load the entity (which joins to space for private/access), and one inside `PermissionService.VerifyAsync()` which re-queried spaces independently. Fixed by loading both in one `Select` projection:
+
+```csharp
+// Space handlers: project Space + CallerAccess in one query
+var spaceData = await db.ProjectSpaces
+    .Where(s => s.Id == request.SpaceId && s.DeletedAt == null)
+    .Select(s => new {
+        Space = s,
+        CallerAccess = db.EntityAccesses
+            .Where(ea => ea.ProjectSpaceId == s.Id && ea.WorkspaceMemberId == memberId && ea.DeletedAt == null)
+            .Select(ea => (AccessLevel?)ea.AccessLevel).FirstOrDefault()
+    })
+    .FirstOrDefaultAsync(ct);
+
+// Folder/Task handlers: also pull SpaceIsPrivate as correlated subquery
+.Select(t => new {
+    Task = t,
+    SpaceIsPrivate = db.ProjectSpaces.Where(s => s.Id == t.ProjectSpaceId).Select(s => s.IsPrivate).FirstOrDefault(),
+    CallerAccess = db.EntityAccesses...
+})
+```
+
+`PermissionService` now has a **sync `Verify()`** (pure logic, no DB) alongside the existing `VerifyAsync()` (does a DB query). Update*/Delete* handlers use sync `Verify()` since they already have the space data. Create* handlers keep `VerifyAsync()` since they don't have it yet.
+
+```csharp
+// Pure logic — no DB call, takes pre-loaded values
+public bool Verify(Role requiredRole, bool isPrivate, AccessLevel? callerAccessLevel, AccessLevel? requiredAccess = null, Guid? creatorId = null)
+```
+
+EF Core tracks an entity even when projected inside `Select(e => new { Entity = e, ... })` (EF Core 5+), so `space.Delete()` / `folder.Delete()` etc. still work on the projected entity.
+
+## 11. What's proven vs not — see `SYNC_SCENARIOS.md`
 The full scenario-by-scenario checklist (per-entity CRUD, connection lifecycle, conflict edge cases, auth, app integration) now lives in `SYNC_SCENARIOS.md` at the repo root — update it the moment a scenario is built/tested rather than relying on this doc's prose. Quick summary as of last test session:
 ✅ `CreateTask/UpdateTask/DeleteTask` — online, offline+flush, reconnect catch-up — all manually tested via `/dev/sync-test` + direct Postgres queries
 ✅ `CreateSpace/UpdateSpace` — online tested
-✅ `DeleteSpace` cascade — online tested for both initiator and receiving client (matching `deleted_at` timestamps in DB confirm bulk ExecuteUpdateAsync fired atomically)
+✅ `DeleteSpace` cascade — online + multi-client tested end-to-end (other client receives Space D and cascades children); DB confirms matching `deleted_at` timestamps including statuses
 ✅ `CreateFolder/UpdateFolder` — online tested
 ✅ `DeleteFolder` reparent — built + online tested; Task U events with `folderId: null` confirmed in `sync_events`
-🔶 Bootstrap (Spaces/Folders/Statuses) — queries added to `GetBootstrapHandler`, builds clean, not manually tested cold-start end-to-end
-🔶 Offline Space/Folder delete with pending child ops — frontend `cancelByEntityId` logic built, not deliberately tested
+✅ Bootstrap (Spaces/Folders/Statuses) — `GetBootstrapHandler` returns all four entity types, tested cold-start + force re-bootstrap; stale bootstrap bug fixed on frontend
+🔶 Offline Space/Folder delete with pending child ops — `cancelByEntityId` + parent-space guard built and partially exercised, not fully deliberate end-to-end
 ⬜ Batch flush (`POST /api/sync/batch`) — not built
 ⬜ Auth on `SyncHub` — currently unguarded like the old `WorkspaceHub`
 
-## 11. Batch flush — `POST /api/sync/batch`
+## 12. Batch flush — `POST /api/sync/batch`
 Replaces the current N-sequential-API-calls flush with one HTTP round-trip.
 
 **Request body:**
@@ -174,6 +230,6 @@ return { results: [{ traceId, syncEventId, success, error }] }
 
 **Frontend change:** `TransactionQueue.flush()` replaces the `for` loop with a single `POST /api/sync/batch` call. `SyncEngine.sendBatch(txs[])` replaces `sendTransaction(tx)`. On response, dequeue all `traceId`s where `success: true`; leave failures as `pending`. SignalR still delivers the DeltaBatch confirmation as usual.
 
-## 12. Local dev setup notes
+## 13. Local dev setup notes
 - EF migrations need `TASKPLAN_CONNECTION_STRING` env var set (design-time factory has no other fallback locally) — see `DesignTimeDbContextFactory.cs`.
 - `appsettings.Development.json` now has `AppSettings:FrontendUrl/BackendUrl` = `https://localhost:5173`/`https://localhost:7285` and `CookieSettings:Domain` = `""` (host-only cookie) — these were emptied during an earlier production-deploy cleanup pass and had to be restored for local dev to work (cookies wouldn't persist, login appeared to "succeed" then bounce back to sign-in).

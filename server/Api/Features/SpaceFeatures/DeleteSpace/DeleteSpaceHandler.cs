@@ -11,7 +11,7 @@ file static class DeleteSpaceSerializerOptions
 public class DeleteSpaceHandler(
     TaskPlanDbContext db,
     WorkspaceContext workspaceContext,
-    PermissionService permissionService,
+    SyncPermissionService syncPermission,
     RealtimeService realtimeService,
     IdempotencyService idempotencyService,
     ILogger<DeleteSpaceHandler> logger
@@ -21,18 +21,9 @@ public class DeleteSpaceHandler(
     {
         logger.LogInformation("Attempting to delete space {SpaceId}", request.SpaceId);
 
-        var memberId = workspaceContext.CurrentMember?.Id ?? Guid.Empty;
-        var spaceData = await db.ProjectSpaces
-            .Where(s => s.Id == request.SpaceId && s.DeletedAt == null)
-            .Select(s => new {
-                Space = s,
-                CallerAccess = db.EntityAccesses
-                    .Where(ea => ea.ProjectSpaceId == s.Id && ea.WorkspaceMemberId == memberId && ea.DeletedAt == null)
-                    .Select(ea => (AccessLevel?)ea.AccessLevel).FirstOrDefault()
-            })
-            .FirstOrDefaultAsync(cancellationToken);
+        var space = await db.ProjectSpaces
+            .FirstOrDefaultAsync(s => s.Id == request.SpaceId && s.DeletedAt == null, cancellationToken);
 
-        var space = spaceData?.Space;
         if (space == null)
         {
             logger.LogWarning("Space {SpaceId} not found or already deleted", request.SpaceId);
@@ -40,11 +31,7 @@ public class DeleteSpaceHandler(
         }
         if (space.ProjectWorkspaceId != workspaceContext.WorkspaceId) return Result<long>.Failure(SpaceError.NotFound);
 
-        if (!permissionService.Verify(Role.Admin, space.IsPrivate, spaceData!.CallerAccess, AccessLevel.Manager, space.CreatorId))
-        {
-            logger.LogWarning("Access denied for user to delete space {SpaceId}", space.Id);
-            return Result<long>.Failure(MemberError.DontHavePermission);
-        }
+        syncPermission.RequireAdmin();
 
         SyncEvent? syncEvent = null;
 

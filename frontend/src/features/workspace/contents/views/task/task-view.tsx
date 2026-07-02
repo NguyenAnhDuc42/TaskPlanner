@@ -1,3 +1,5 @@
+import { useMemo } from "react";
+import { observer } from "mobx-react-lite";
 import { EntityViewFrame } from "../entity-view-frame";
 import { TaskDetailCanvas } from "./components/task-detail-canvas";
 import { useNavigate, useParams } from "@tanstack/react-router";
@@ -11,7 +13,6 @@ import { Button } from "@/components/ui/button";
 import { MoreVertical, Trash2 } from "lucide-react";
 import { FavoriteButton } from "@/components/favorite-button";
 import { EntityLayerType } from "@/types/entity-layer-type";
-import { useDeleteTaskMutation } from "../../hierarchy/hierarchy-api";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -23,33 +24,35 @@ import {
 import { Link } from "@tanstack/react-router";
 import { useSpaceDetail } from "../space/space-api";
 import { useFolderDetail } from "../folder/folder-api";
-import { useSelector } from "react-redux";
-import { taskSelectors } from "@/store/entityStore";
-import type { RootState } from "@/store";
 import { DynamicIcon } from "@/components/dynamic-icon";
 import { DeleteConfirmationDialog } from "../../hierarchy/hierarchy-components/context-menus/shared";
 import { useState } from "react";
 import { useWorkspaceRole } from "@/features/workspace/context/use-workspace-role";
+import { useStore } from "@/stores/root.store";
+import { useSyncEngine } from "@/sync/sync-provider";
+import { TaskMutations } from "@/mutations/task.mutations";
 
 interface TaskViewProps {
   taskId: string;
 }
 
-export function TaskView({ taskId }: Readonly<TaskViewProps>) {
+export const TaskView = observer(function TaskView({ taskId }: Readonly<TaskViewProps>) {
   const { workspaceId } = useParams({ strict: false }) as { workspaceId: string };
   const navigate = useNavigate();
   const { canCreateContent } = useWorkspaceRole();
-  const [deleteTask] = useDeleteTaskMutation();
+  const rootStore = useStore();
+  const syncEngine = useSyncEngine();
+  const taskMutations = useMemo(() => new TaskMutations(rootStore, syncEngine), [rootStore, syncEngine]);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
-  const task = useSelector((state: RootState) => taskSelectors.selectById(state, taskId));
+  const task = rootStore.taskStore.getById(taskId);
 
   const space = useSpaceDetail(task?.spaceId ?? "");
   const folder = useFolderDetail(task?.folderId ?? "");
-  const parentTask = useSelector((state: RootState) => task?.parentTaskId ? taskSelectors.selectById(state, task.parentTaskId) : undefined);
+  const parentTask = task?.parentTaskId ? rootStore.taskStore.getById(task.parentTaskId) : undefined;
 
   const handleDelete = async () => {
     try {
-      await deleteTask({ workspaceId: workspaceId || "", taskId }).unwrap();
+      await taskMutations.delete(taskId);
       navigate({ to: "/workspaces/$workspaceId", params: { workspaceId: workspaceId || "" } });
     } catch (err) {
       console.error("Failed to delete task", err);
@@ -184,4 +187,4 @@ export function TaskView({ taskId }: Readonly<TaskViewProps>) {
       />
     </EntityViewFrame>
   );
-}
+});

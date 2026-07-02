@@ -11,20 +11,23 @@ public class TaskAssignment : Entity
 
     private TaskAssignment() { }
 
-    private TaskAssignment(Guid projectTaskId, Guid workspaceMemberId, Guid creatorId, string? notes = null, int? estimatedHours = null)
-        : base(Guid.NewGuid())
+    private TaskAssignment(Guid id, Guid projectTaskId, Guid workspaceMemberId, Guid creatorId, string? notes = null, int? estimatedHours = null)
+        : base(id)
     {
         ProjectTaskId = projectTaskId;
         WorkspaceMemberId = workspaceMemberId;
         Notes = notes;
         EstimatedHours = estimatedHours;
-        
+
         // Audit is initialized in base constructor
         InitializeAudit(creatorId);
     }
 
     public static TaskAssignment Create(Guid projectTaskId, Guid workspaceMemberId, Guid creatorId, string? notes = null, int? estimatedHours = null) =>
-        new(projectTaskId, workspaceMemberId, creatorId, notes, estimatedHours);
+        new(Guid.NewGuid(), projectTaskId, workspaceMemberId, creatorId, notes, estimatedHours);
+
+    public static TaskAssignment Create(Guid id, Guid projectTaskId, Guid workspaceMemberId, Guid creatorId, string? notes = null, int? estimatedHours = null) =>
+        new(id, projectTaskId, workspaceMemberId, creatorId, notes, estimatedHours);
 
     public void MarkCompleted(int? actualHours = null)
     {

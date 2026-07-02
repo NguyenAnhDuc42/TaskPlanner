@@ -8,9 +8,17 @@ public static class CreateWorkspaceEndpoint
     {
         app.MapPost("/api/workspaces/sync", async (
             [FromBody] CreateWorkspaceCommand request,
+            [FromHeader(Name = "X-Client-Trace-Id")] string? traceId,
             [FromServices] IHandler dispatcher,
             CancellationToken cancellationToken) =>
         {
+            if (string.IsNullOrWhiteSpace(traceId))
+            {
+                return Results.BadRequest(new { Error = "X-Client-Trace-Id header is required for offline sync." });
+            }
+
+            request.TraceId = traceId;
+
             var result = await dispatcher.SendAsync<CreateWorkspaceCommand, Guid>(request, cancellationToken);
 
             if (!result.IsSuccess)

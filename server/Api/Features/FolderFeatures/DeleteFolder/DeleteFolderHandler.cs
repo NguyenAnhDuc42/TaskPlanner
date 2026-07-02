@@ -6,7 +6,7 @@ namespace Api;
 public class DeleteFolderHandler(
     TaskPlanDbContext db,
     WorkspaceContext workspaceContext,
-    PermissionService permissionService,
+    SyncPermissionService syncPermission,
     RealtimeService realtimeService,
     IdempotencyService idempotencyService,
     ILogger<DeleteFolderHandler> logger
@@ -16,30 +16,16 @@ public class DeleteFolderHandler(
     {
         logger.LogInformation("Attempting to delete folder {FolderId}", request.FolderId);
 
-        var memberId = workspaceContext.CurrentMember?.Id ?? Guid.Empty;
-        var folderData = await db.ProjectFolders
-            .Where(f => f.Id == request.FolderId && f.DeletedAt == null)
-            .Select(f => new {
-                Folder = f,
-                SpaceIsPrivate = db.ProjectSpaces.Where(s => s.Id == f.ProjectSpaceId).Select(s => s.IsPrivate).FirstOrDefault(),
-                CallerAccess = db.EntityAccesses
-                    .Where(ea => ea.ProjectSpaceId == f.ProjectSpaceId && ea.WorkspaceMemberId == memberId && ea.DeletedAt == null)
-                    .Select(ea => (AccessLevel?)ea.AccessLevel).FirstOrDefault()
-            })
-            .FirstOrDefaultAsync(cancellationToken);
+        var folder = await db.ProjectFolders
+            .FirstOrDefaultAsync(f => f.Id == request.FolderId && f.DeletedAt == null, cancellationToken);
 
-        var folder = folderData?.Folder;
         if (folder == null)
         {
             logger.LogWarning("Folder {FolderId} not found or already deleted", request.FolderId);
             return Result<long>.Failure(FolderError.NotFound);
         }
 
-        if (!permissionService.Verify(Role.Admin, folderData!.SpaceIsPrivate, folderData.CallerAccess, AccessLevel.Editor, folder.CreatorId))
-        {
-            logger.LogWarning("Access denied for user to delete folder {FolderId}", folder.Id);
-            return Result<long>.Failure(MemberError.DontHavePermission);
-        }
+        syncPermission.RequireCreatorOrAdmin(folder.CreatorId ?? Guid.Empty);
 
         List<SyncEvent> events = [];
         var creatorId = workspaceContext.CurrentMember?.Id ?? Guid.Empty;

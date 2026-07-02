@@ -2,6 +2,7 @@ import { createFileRoute, redirect } from "@tanstack/react-router";
 import { WorkspaceProvider } from "@/features/workspace/context/workspace-provider";
 import { useWorkspace } from "@/features/workspace/context/workspace-context";
 import { WorkspaceLayout } from "@/features/workspace/components/workspace-layout";
+import { SyncProvider } from "@/sync/sync-provider";
 import { z } from "zod";
 import { Loader2 } from "lucide-react";
 import { store } from "@/store";
@@ -40,9 +41,11 @@ function WorkspaceRoot() {
   const { workspaceId } = Route.useParams();
 
   return (
-    <WorkspaceProvider workspaceId={workspaceId}>
-      <WorkspaceContent />
-    </WorkspaceProvider>
+    <SyncProvider workspaceId={workspaceId}>
+      <WorkspaceProvider workspaceId={workspaceId}>
+        <WorkspaceContent />
+      </WorkspaceProvider>
+    </SyncProvider>
   );
 }
 

@@ -56,4 +56,30 @@ public static class CommonError
      public static readonly Error DatabaseError = Error.Failure("Common.DatabaseError",  "An unexpected database error occurred.");
 }
 
+public static class CommentError
+{
+    public static readonly Error NotFound = Error.NotFound("Comment.NotFound", "The comment with the specified identifier was not found.");
+}
+
+public static class DocumentError
+{
+    public static readonly Error NotFound = Error.NotFound("Document.NotFound", "The document with the specified identifier was not found.");
+}
+
+public static class DocumentBlockError
+{
+    public static readonly Error NotFound = Error.NotFound("DocumentBlock.NotFound", "The document block with the specified identifier was not found.");
+}
+
+public static class EntityAccessError
+{
+    public static readonly Error NotFound = Error.NotFound("Access.NotFound", "One or more of the specified access rows were not found.");
+    public static readonly Error InvalidMember = Error.Validation("Member.Invalid", "One or more of the specified members are not part of this workspace.");
+}
+
+public static class AssigneeError
+{
+    public static readonly Error NotFound = Error.NotFound("Assignee.NotFound", "The assignee with the specified identifier was not found.");
+}
+
 

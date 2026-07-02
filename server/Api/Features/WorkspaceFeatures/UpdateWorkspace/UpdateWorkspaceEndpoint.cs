@@ -9,25 +9,23 @@ public static class UpdateWorkspaceEndpoint
         app.MapPut("/api/workspaces/sync/{id:guid}", async (
             Guid id,
             [FromBody] UpdateWorkspaceCommand request,
+            [FromHeader(Name = "X-Client-Trace-Id")] string? traceId,
             [FromServices] IHandler dispatcher,
             CancellationToken cancellationToken) =>
         {
-            request.WorkspaceId = id;
-
-            var result = await dispatcher.SendAsync<UpdateWorkspaceCommand, Guid>(request, cancellationToken);
-
-            if (!result.IsSuccess)
-                return Results.BadRequest(result.Error);
-
-            return Results.Ok(new
+            if (string.IsNullOrWhiteSpace(traceId))
             {
-                id = result.Value,
-                name = request.Name,
-                slug = request.Name != null ? SlugHelper.GenerateSlug(request.Name) : null,
-                color = request.Color,
-                icon = request.Icon,
-                description = request.Description
-            });
+                return Results.BadRequest(new { Error = "X-Client-Trace-Id header is required for offline sync." });
+            }
+
+            request.WorkspaceId = id;
+            request.TraceId = traceId;
+
+            var result = await dispatcher.SendAsync<UpdateWorkspaceCommand, long>(request, cancellationToken);
+
+            return result.IsSuccess
+                ? Results.Ok(new { SyncEventId = result.Value })
+                : Results.BadRequest(result.Error);
         })
         .RequireAuthorization()
         .WithTags("WorkspacesSync");

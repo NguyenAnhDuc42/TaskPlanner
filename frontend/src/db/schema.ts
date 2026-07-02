@@ -1,5 +1,5 @@
 import type { DocumentBlockRecord, DocumentRecord } from "@/types/document";
-import type { CommentRecord, FolderRecord, SpaceRecord, TaskRecord } from "@/types/projects";
+import type { AssigneeRecord, CommentRecord, FolderRecord, SpaceRecord, TaskRecord } from "@/types/projects";
 import type { Status } from "@/types/status";
 import type { PendingTransaction, WorkspaceMetadata } from "@/types/sync";
 import type { EntityAccessRecord, MemberRecord } from "@/types/workspace";
@@ -85,9 +85,17 @@ export interface TaskPlanDB extends DBSchema {
     key:string;
     value:MemberRecord
   }
+
+  assignees:{
+    key:string;
+    value:AssigneeRecord
+    indexes: {
+      'by-task': string
+    }
+  }
 }
 
-const DB_VERSION = 2;
+const DB_VERSION = 3;
 const dbCache = new Map<string, IDBPDatabase<TaskPlanDB>>()
 
 export async function openWorkspaceDB(workspaceId:string) : Promise<IDBPDatabase<TaskPlanDB>> {
@@ -149,6 +157,11 @@ export async function openWorkspaceDB(workspaceId:string) : Promise<IDBPDatabase
 
       if (!db.objectStoreNames.contains('members')) {
         db.createObjectStore('members',{keyPath:'id'})
+      }
+
+      if (!db.objectStoreNames.contains('assignees')) {
+        const assignees = db.createObjectStore('assignees', {keyPath: 'id'})
+        assignees.createIndex('by-task','taskId')
       }
     }
   })

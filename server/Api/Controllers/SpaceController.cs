@@ -67,9 +67,9 @@ namespace Api
         }
 
         [HttpPost("{id:guid}/access")]
-        public async Task<IActionResult> UpdateAccess(Guid id, [FromBody] System.Collections.Generic.IEnumerable<EntityAccessRowsValue> rows, CancellationToken cancellationToken)
+        public async Task<IActionResult> UpdateAccess(Guid id, [FromBody] System.Collections.Generic.IEnumerable<Application.EntityAccessRowsValue> rows, CancellationToken cancellationToken)
         {
-            var command = new EntityAccessBatchCommand(id, rows);
+            var command = new Application.EntityAccessBatchCommand(id, rows);
             var result = await _handler.SendAsync(command, cancellationToken);
             return result.ToActionResult();
         }
@@ -82,9 +82,9 @@ namespace Api
         }
 
         [HttpPut("{id:guid}/statuses")]
-        public async Task<IActionResult> UpdateStatuses(Guid id, [FromBody] List<StatusUpdateValue> statuses, CancellationToken cancellationToken)
+        public async Task<IActionResult> UpdateStatuses(Guid id, [FromBody] List<Application.StatusUpdateValue> statuses, CancellationToken cancellationToken)
         {
-            var result = await _handler.SendAsync(new UpdateSpaceStatusesCommand(id, statuses), cancellationToken);
+            var result = await _handler.SendAsync(new Application.UpdateSpaceStatusesCommand(id, statuses), cancellationToken);
             return result.ToActionResult();
         }
     }

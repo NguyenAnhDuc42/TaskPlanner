@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import {
   useGetDocumentBlocksQuery,
-  useUpdateDocumentBlocksMutation,
+  useSaveDocumentBlocksMutation,
+  type BlockSaveItem,
 } from "./document-api";
 import { BlockType } from "@/types/block-type";
 
@@ -33,9 +34,8 @@ function getBlockType(
 }
 
 function hashBlock(block: AnyBlock): string {
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const { id, ...rest } = block;
-  void id;
+  const { id: _id, ...rest } = block;
+  void _id;
   return JSON.stringify(rest);
 }
 
@@ -43,9 +43,8 @@ export function useBlockEditorSync(documentId: string) {
   const { data: dbBlocks, isSuccess } = useGetDocumentBlocksQuery(documentId, {
     skip: !documentId,
   });
-  const [updateBlocks] = useUpdateDocumentBlocksMutation();
+  const [saveBlocks] = useSaveDocumentBlocksMutation();
 
-  // version increments when external SignalR update forces editor remount
   const [ready, setReady] = useState<{
     content: AnyBlock[] | undefined;
     version: number;
@@ -79,18 +78,15 @@ export function useBlockEditorSync(documentId: string) {
     }
 
     if (!isInitRef.current) {
-      // First load
       isInitRef.current = true;
       snapshotRef.current = snapshot;
-      // eslint-disable-next-line react-hooks/set-state-in-effect
       setReady({ content: blocks.length > 0 ? blocks : undefined, version: 0 });
       return;
     }
 
-    // External update (SignalR) — only re-init if user has no pending unsaved changes and no save in flight
+    // External update (SignalR) — only re-init if no pending unsaved changes
     if (saveTimerRef.current === null && !isSavingRef.current) {
       snapshotRef.current = snapshot;
-      // eslint-disable-next-line react-hooks/set-state-in-effect
       setReady(prev => ({
         content: blocks.length > 0 ? blocks : undefined,
         version: (prev?.version ?? 0) + 1,
@@ -102,8 +98,7 @@ export function useBlockEditorSync(documentId: string) {
     (blocks: AnyBlock[]) => {
       const prev = snapshotRef.current;
       const next = new Map<string, string>();
-      const upserts: import("./document-api").DocumentBlockValue[] = [];
-      const deletes: import("./document-api").DocumentBlockValue[] = [];
+      const changes: BlockSaveItem[] = [];
       const prevOrder = Array.from(prev.keys());
 
       blocks.forEach((block, index) => {
@@ -116,14 +111,13 @@ export function useBlockEditorSync(documentId: string) {
         const reordered = prevOrder.indexOf(block.id) !== index;
 
         if (isNew || changed || reordered) {
-          // Strip id from content — backend stores content without the id field
-          // eslint-disable-next-line @typescript-eslint/no-unused-vars
           const { id: _id, ...rest } = block;
-          upserts.push({
+          void _id;
+          changes.push({
             id: block.id,
+            type: getBlockType(block.type, block.props),
             content: JSON.stringify(rest),
             orderKey,
-            blockType: getBlockType(block.type, block.props),
             isDeleted: false,
           });
         }
@@ -131,26 +125,25 @@ export function useBlockEditorSync(documentId: string) {
 
       for (const prevId of prev.keys()) {
         if (!next.has(prevId)) {
-          deletes.push({
+          changes.push({
             id: prevId,
+            type: BlockType.Paragraph,
             content: "",
             orderKey: "",
-            blockType: BlockType.Paragraph,
             isDeleted: true,
           });
         }
       }
 
       snapshotRef.current = next;
-      const changes = [...upserts, ...deletes];
       if (changes.length > 0) {
         isSavingRef.current = true;
-        updateBlocks({ documentId, blocks: changes }).finally(() => {
+        saveBlocks({ documentId, blocks: changes }).finally(() => {
           isSavingRef.current = false;
         });
       }
     },
-    [documentId, updateBlocks],
+    [documentId, saveBlocks],
   );
 
   const handleUpdate = useCallback(

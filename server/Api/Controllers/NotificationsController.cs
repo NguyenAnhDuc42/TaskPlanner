@@ -21,7 +21,7 @@ public class NotificationsController(IHandler handler) : ControllerBase
 
     [HttpPut("read")]
     public async Task<IActionResult> MarkRead(
-        [FromBody] MarkNotificationsReadCommand command,
+        [FromBody] Application.MarkNotificationsReadCommand command,
         CancellationToken cancellationToken)
     {
         var result = await handler.SendAsync(command, cancellationToken);

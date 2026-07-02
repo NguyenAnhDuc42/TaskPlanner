@@ -24,6 +24,9 @@ public class Comment : Entity
     public static Comment Create(string content, Guid creatorId, Guid projectTaskId, Guid? parentCommentId = null)
         => new Comment(Guid.NewGuid(), content, creatorId, projectTaskId, parentCommentId);
 
+    public static Comment Create(Guid id, string content, Guid creatorId, Guid projectTaskId, Guid? parentCommentId = null)
+        => new Comment(id, content, creatorId, projectTaskId, parentCommentId);
+
     public void UpdateContent(string newContent)
     {
         Content = newContent;

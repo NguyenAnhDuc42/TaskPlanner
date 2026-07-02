@@ -1,9 +1,11 @@
 import type { RootStore } from "@/stores/root.store";
-import type { TaskRecord, SpaceRecord, FolderRecord } from "@/types/projects";
+import type { TaskRecord, SpaceRecord, FolderRecord, CommentRecord, AssigneeRecord } from "@/types/projects";
 import type { DocumentRecord } from "@/types/document";
+import type { DocumentBlockRecord } from "@/types/document/document-block-record";
 import type { Status } from "@/types/status";
 import type { EntityAccessRecord } from "@/types/workspace/entity-access-record";
 import type { WorkspaceRecord } from "@/types/workspace/workspace-record";
+import type { MemberRecord } from "@/types/workspace/member-record";
 import type { DeltaPayload, SyncEntityType } from "@/types/sync/delta";
 
 type EntityApplier = {
@@ -78,6 +80,14 @@ function getEntityApplier(
         dbDelete: (id) => rootStore.documentDB!.delete(id),
       };
 
+    case "DocumentBlock":
+      return {
+        upsert: (data) => rootStore.documentBlockStore.upsert(data as unknown as DocumentBlockRecord),
+        remove: (id) => rootStore.documentBlockStore.remove(id),
+        dbPut: (data) => rootStore.documentBlockDB!.put(data as unknown as DocumentBlockRecord),
+        dbDelete: (id) => rootStore.documentBlockDB!.delete(id),
+      };
+
     case "Status":
       return {
         upsert: (data) => rootStore.statusStore.upsert(data as unknown as Status),
@@ -92,6 +102,30 @@ function getEntityApplier(
         remove: (id) => rootStore.entityAccessStore.remove(id),
         dbPut: (data) => rootStore.entityAccessDB!.put(data as unknown as EntityAccessRecord),
         dbDelete: (id) => rootStore.entityAccessDB!.delete(id),
+      };
+
+    case "Comment":
+      return {
+        upsert: (data) => rootStore.commentStore.upsert(data as unknown as CommentRecord),
+        remove: (id) => rootStore.commentStore.remove(id),
+        dbPut: (data) => rootStore.commentDB!.put(data as unknown as CommentRecord),
+        dbDelete: (id) => rootStore.commentDB!.delete(id),
+      };
+
+    case "Assignee":
+      return {
+        upsert: (data) => rootStore.assigneeStore.upsert(data as unknown as AssigneeRecord),
+        remove: (id) => rootStore.assigneeStore.remove(id),
+        dbPut: (data) => rootStore.assigneeDB!.put(data as unknown as AssigneeRecord),
+        dbDelete: (id) => rootStore.assigneeDB!.delete(id),
+      };
+
+    case "Member":
+      return {
+        upsert: (data) => rootStore.memberStore.upsert(data as unknown as MemberRecord),
+        remove: (id) => rootStore.memberStore.remove(id),
+        dbPut: (data) => rootStore.memberDB!.put(data as unknown as MemberRecord),
+        dbDelete: (id) => rootStore.memberDB!.delete(id),
       };
 
     default:

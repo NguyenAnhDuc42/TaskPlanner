@@ -4,6 +4,7 @@ public class CreateWorkspaceHandler(
     TaskPlanDbContext db,
     CurrentUserService currentUserService,
     WorkspaceService workspaceService,
+    IdempotencyService idempotencyService,
     ILogger<CreateWorkspaceHandler> logger
 ) : ICommandHandler<CreateWorkspaceCommand, Guid>
 {
@@ -15,25 +16,43 @@ public class CreateWorkspaceHandler(
 
         logger.LogInformation("Creating workspace '{WorkspaceName}' for user {UserId}", request.Name, creatorUserId);
 
-        var workspace = ProjectWorkspace.Create(
-            id: request.Id,
-            name: request.Name,
-            slug: SlugHelper.GenerateSlug(request.Name),
-            description: request.Description ?? string.Empty,
-            joinCode: null,
-            color: request.Color,
-            icon: request.Icon,
-            creatorId: creatorUserId,
-            theme: request.Theme ?? Theme.Dark,
-            strictJoin: request.StrictJoin ?? false
-        );
+        ProjectWorkspace? workspace = null;
 
-        db.ProjectWorkspaces.Add(workspace);
-        await db.SaveChangesAsync(cancellationToken);
+        var result = await db.ExecuteInTransactionAsync(async () =>
+        {
+            var hasProcessed = await idempotencyService.HasProcessedAsync(request.TraceId, cancellationToken);
+            if (hasProcessed)
+            {
+                logger.LogInformation("Idempotent bypass for trace {TraceId}. Skipping.", request.TraceId);
+                return Result<Guid>.Success(request.Id);
+            }
 
-        workspaceService.InitializeInBackground(workspace.Id, creatorUserId);
+            workspace = ProjectWorkspace.Create(
+                id: request.Id,
+                name: request.Name,
+                slug: SlugHelper.GenerateSlug(request.Name),
+                description: request.Description ?? string.Empty,
+                joinCode: null,
+                color: request.Color,
+                icon: request.Icon,
+                creatorId: creatorUserId,
+                theme: request.Theme ?? Theme.Dark,
+                strictJoin: request.StrictJoin ?? false
+            );
 
-        logger.LogInformation("Created workspace {WorkspaceId}", workspace.Id);
-        return Result<Guid>.Success(workspace.Id);
+            db.ProjectWorkspaces.Add(workspace);
+
+            idempotencyService.MarkAsProcessed(request.TraceId);
+
+            return Result<Guid>.Success(workspace.Id);
+        }, cancellationToken);
+
+        if (result.IsSuccess && workspace != null)
+        {
+            workspaceService.InitializeInBackground(workspace.Id, creatorUserId);
+        }
+
+        logger.LogInformation("Created workspace {WorkspaceId}", result.Value);
+        return result;
     }
 }

@@ -1,0 +1,27 @@
+using Microsoft.AspNetCore.Mvc;
+
+namespace Api;
+
+public static class FetchNotificationsEndpoint
+{
+    public static void MapEndpoint(IEndpointRouteBuilder app)
+    {
+        // /sync suffix to coexist with the legacy GET /api/Notifications route.
+        app.MapGet("/api/notifications/sync", async (
+            [FromQuery] string? cursor,
+            [FromQuery] int limit,
+            [FromQuery] bool unreadOnly,
+            [FromServices] IHandler dispatcher,
+            CancellationToken cancellationToken) =>
+        {
+            var query = new FetchNotificationsQuery(cursor, limit == 0 ? 20 : limit, unreadOnly);
+            var result = await dispatcher.QueryAsync<FetchNotificationsQuery, FetchNotificationsResult>(query, cancellationToken);
+
+            return result.IsSuccess
+                ? Results.Ok(result.Value)
+                : Results.BadRequest(result.Error);
+        })
+        .RequireAuthorization()
+        .WithTags("NotificationsSync");
+    }
+}

@@ -40,10 +40,10 @@ namespace Api
 
         [HttpPost("join")]
         public async Task<IActionResult> JoinWorkspaceByCode(
-            [FromBody] JoinWorkspaceByCodeCommand command,
+            [FromBody] Application.JoinWorkspaceByCodeCommand command,
             CancellationToken cancellationToken)
         {
-            var result = await _handler.SendAsync<JoinWorkspaceByCodeCommand, JoinWorkspaceByCodeResult>(command, cancellationToken);
+            var result = await _handler.SendAsync<Application.JoinWorkspaceByCodeCommand, Application.JoinWorkspaceByCodeResult>(command, cancellationToken);
             return result.ToActionResult();
         }
 
@@ -140,7 +140,7 @@ namespace Api
         [HttpPatch("{id:guid}/members")]
         public async Task<IActionResult> UpdateMembers(
             Guid id,
-            [FromBody] UpdateMembersCommand command,
+            [FromBody] Application.UpdateMembersCommand command,
             CancellationToken cancellationToken)
         {
             var result = await _handler.SendAsync(command with { WorkspaceId = id }, cancellationToken);
@@ -150,7 +150,7 @@ namespace Api
         [HttpDelete("{id:guid}/members")]
         public async Task<IActionResult> RemoveMembers(
             Guid id,
-            [FromBody] RemoveMembersCommand command,
+            [FromBody] Application.RemoveMembersCommand command,
             CancellationToken cancellationToken)
         {
             var result = await _handler.SendAsync(command with { WorkspaceId = id }, cancellationToken);
@@ -191,7 +191,7 @@ namespace Api
         [HttpPut("{id:guid}/favorites/reorder")]
         public async Task<IActionResult> ReorderFavorite(
             Guid id,
-            [FromBody] ReorderFavoriteCommand command,
+            [FromBody] Application.ReorderFavoriteCommand command,
             CancellationToken cancellationToken)
         {
             var result = await _handler.SendAsync(command, cancellationToken);
@@ -201,10 +201,10 @@ namespace Api
         [HttpPost("{id:guid}/favorites/toggle")]
         public async Task<IActionResult> ToggleFavorite(
             Guid id,
-            [FromBody] ToggleFavoriteCommand command,
+            [FromBody] Application.ToggleFavoriteCommand command,
             CancellationToken cancellationToken)
         {
-            var result = await _handler.SendAsync<ToggleFavoriteCommand, ToggleFavoriteResponse>(command, cancellationToken);
+            var result = await _handler.SendAsync<Application.ToggleFavoriteCommand, ToggleFavoriteResponse>(command, cancellationToken);
             return result.ToActionResult();
         }
 

@@ -14,5 +14,6 @@ public enum SyncEntityType
     Document,
     DocumentBlock,
     Member,
-    EntityAccess
+    EntityAccess,
+    Assignee
 }

@@ -76,7 +76,7 @@ public class TasksController : ControllerBase
     [HttpDelete("{id:guid}/comments/{commentId:guid}")]
     public async Task<IActionResult> DeleteComment(Guid id, Guid commentId, CancellationToken cancellationToken)
     {
-        var result = await _handler.SendAsync(new DeleteCommentCommand(id, commentId), cancellationToken);
+        var result = await _handler.SendAsync(new Application.DeleteCommentCommand(id, commentId), cancellationToken);
         return result.ToActionResult();
     }
 

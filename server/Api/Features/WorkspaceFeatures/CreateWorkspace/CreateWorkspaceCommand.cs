@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 namespace Api;
 
 // NOT IAuthorizedWorkspaceRequest — there is no workspace yet when creating one.
@@ -11,4 +13,8 @@ public record CreateWorkspaceCommand(
     string? Description,
     bool? StrictJoin,
     Theme? Theme
-) : ICommandRequest<Guid>;
+) : ICommandRequest<Guid>
+{
+    [JsonIgnore]
+    public string TraceId { get; set; } = string.Empty;
+}
