@@ -89,7 +89,8 @@ public sealed class ProjectFolder : TenantEntity
         DateTimeOffset? dueDate = null,
         string? orderKey = null,
         bool clearStartDate = false,
-        bool clearDueDate = false)
+        bool clearDueDate = false,
+        Guid? spaceId = null)
     {
         EnsureNotArchived();
         bool updated = false;
@@ -99,6 +100,8 @@ public sealed class ProjectFolder : TenantEntity
         if (color != null && Color != color) { Color = color; updated = true; }
         if (icon != null && Icon != icon) { Icon = icon; updated = true; }
         if (isPrivate != null && IsPrivate != isPrivate) { IsPrivate = isPrivate.Value; updated = true; }
+        // No "clear" sentinel — a folder always belongs to some space.
+        if (spaceId.HasValue && spaceId.Value != Guid.Empty && ProjectSpaceId != spaceId) { ProjectSpaceId = spaceId.Value; updated = true; }
 
         if (clearStartDate && StartDate != null) { StartDate = null; updated = true; }
         else if (startDate != null && StartDate != startDate) { StartDate = startDate; updated = true; }

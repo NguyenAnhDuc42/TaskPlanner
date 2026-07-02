@@ -1,56 +1,51 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
+import { observer } from "mobx-react-lite";
 import { useWorkspaceRole } from "@/features/workspace/context/use-workspace-role";
 import { useSelector } from "react-redux";
 import { UserPlus, Check, X } from "lucide-react";
 import { UserAvatar } from "@/components/user-avatar";
 import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import type { RootState } from "@/store";
-import { memberSelectors, assigneeSelectors, entityAccessSelectors } from "@/store/entityStore";
+import { memberSelectors } from "@/store/entityStore";
 import { cn } from "@/lib/utils";
 
-import { useGetTaskAssigneesQuery, useUpdateTaskAssigneesMutation } from "../task-api";
-import { useGetEntityAccessQuery } from "../../space/space-api";
+import { useStore } from "@/stores/root.store";
+import { useSyncEngine } from "@/sync/sync-provider";
+import { AssigneeMutations } from "@/mutations/assignee.mutations";
 
 interface TaskAssigneesProps {
   taskId: string;
-  spaceId?: string | null;
 }
 
-export function TaskAssignees({ taskId, spaceId }: Readonly<TaskAssigneesProps>) {
+export const TaskAssignees = observer(function TaskAssignees({ taskId }: Readonly<TaskAssigneesProps>) {
   const members = useSelector(memberSelectors.selectEntities);
   const allMembers = useSelector(memberSelectors.selectAll);
 
-  useGetTaskAssigneesQuery(taskId, { skip: !taskId });
-  const [updateTaskAssignees] = useUpdateTaskAssigneesMutation();
+  const rootStore = useStore();
+  const syncEngine = useSyncEngine();
+  const assigneeMutations = useMemo(() => new AssigneeMutations(rootStore, syncEngine), [rootStore, syncEngine]);
 
-  const allAssignees = useSelector(assigneeSelectors.selectAll);
-  const assignees = allAssignees.filter((a) => a.taskId === taskId);
-
-  const space = useSelector((state: RootState) => state.spaces.entities[spaceId || ""]);
-  useGetEntityAccessQuery(spaceId || "", { skip: !spaceId || !space?.isPrivate });
-
-  const entityAccessList = useSelector(entityAccessSelectors.selectAll).filter(
-    (ea) => ea.spaceId === spaceId,
-  );
-  const spaceAccessList = entityAccessList.filter((ea) => ea.haveAccess);
+  // Assignee is now Bootstrap+Delta covered (like Task/Space/Folder/Status/DocumentBlock) — no
+  // bridge fetch needed, plain MobX read.
+  const assignees = rootStore.assigneeStore.getByTask(taskId);
 
   const { canCreateContent } = useWorkspaceRole();
   const [search, setSearch] = useState("");
 
-  const handleToggle = (memberId: string) => {
+  const handleToggle = async (memberId: string) => {
     const existing = assignees.find((a) => a.workspaceMemberId === memberId);
-    updateTaskAssignees({
-      taskId,
-      changes: [{ id: existing?.id, memberId, isDelete: !!existing }],
-    });
+    try {
+      if (existing) {
+        await assigneeMutations.delete(existing.id);
+      } else {
+        await assigneeMutations.create(taskId, memberId);
+      }
+    } catch (err) {
+      console.error("Failed to toggle assignee", err);
+    }
   };
 
-  const allowedMembers = space?.isPrivate
-    ? allMembers.filter((m) => spaceAccessList.some((ea) => ea.workspaceMemberId === m.id))
-    : allMembers;
-
-  const filteredMembers = allowedMembers.filter(
+  const filteredMembers = allMembers.filter(
     (m) =>
       m.name.toLowerCase().includes(search.toLowerCase()) ||
       m.email?.toLowerCase().includes(search.toLowerCase()),
@@ -156,4 +151,4 @@ export function TaskAssignees({ taskId, spaceId }: Readonly<TaskAssigneesProps>)
       </Popover>}
     </div>
   );
-}
+});

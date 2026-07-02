@@ -1,21 +1,16 @@
 import * as React from "react";
-import { useSpaceAccess } from "@/features/workspace/context/use-space-access";
+import { observer } from "mobx-react-lite";
+import { useWorkspaceRole } from "@/features/workspace/context/use-workspace-role";
 import { EntityViewFrame } from "../entity-view-frame";
 import { SpaceBoard } from "./space-components/space-board";
-import { useSpaceDetail, useGetSpaceDetailQuery, useUpdateSpaceFieldMutation, useGetEntityAccessQuery } from "./space-api";
-import { Layout, FileText, GitMerge, Lock, Unlock, MoreVertical, Trash2 } from "lucide-react";
+import { Layout, FileText, GitMerge, MoreVertical, Trash2 } from "lucide-react";
 import { FavoriteButton } from "@/components/favorite-button";
 import { DynamicIcon } from "@/components/dynamic-icon";
 import { EntityLayerType } from "@/types/entity-layer-type";
 import { CreateStatusForm } from "@/features/workspace/components/forms/workflow-management-form";
 import { cn } from "@/lib/utils";
 
-import type { SpaceRecord } from "@/types/projects";
-import { useSelector } from "react-redux";
-import { entityAccessSelectors, memberSelectors } from "@/store/entityStore";
-import { SpaceAccessDialog } from "./space-components/space-access-dialog";
 import { useNavigate } from "@tanstack/react-router";
-import { useDeleteSpaceMutation } from "../../hierarchy/hierarchy-api";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -25,13 +20,16 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { SpaceDetail } from "./space-components/space-detail";
 import { DeleteConfirmationDialog } from "../../hierarchy/hierarchy-components/context-menus/shared";
+import { useStore } from "@/stores/root.store";
+import { useSyncEngine, useSyncReady } from "@/sync/sync-provider";
+import { SpaceMutations } from "@/mutations/space.mutations";
 
 
 interface SpaceViewProps {
   spaceId: string;
 }
 
-export function SpaceView({ spaceId }: Readonly<SpaceViewProps>) {
+export const SpaceView = observer(function SpaceView({ spaceId }: Readonly<SpaceViewProps>) {
   const [isWorkflowOpen, setIsWorkflowOpen] = React.useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = React.useState(false);
   const [activeTab, setActiveTab] = React.useState<"detail" | "items">(() => {
@@ -42,29 +40,47 @@ export function SpaceView({ spaceId }: Readonly<SpaceViewProps>) {
     setActiveTab(tab);
     localStorage.setItem(`global-space-tab`, tab);
   };
-  const {canManage } = useSpaceAccess(spaceId);
+  const { isAdmin: canManage } = useWorkspaceRole();
   const navigate = useNavigate();
-  const [deleteSpace] = useDeleteSpaceMutation();
-  
-  // Load space details & items into Redux
-  const space = useSpaceDetail(spaceId);
-  useGetSpaceDetailQuery(spaceId);
-  // Fetch access lists to trigger Redux cache upsertion
-  useGetEntityAccessQuery(spaceId);
-  const entityAccessList = useSelector(entityAccessSelectors.selectAll).filter(ea => ea.spaceId === spaceId);
-  const members = useSelector(memberSelectors.selectEntities);
+  const rootStore = useStore();
+  const syncEngine = useSyncEngine();
+  const { ready, error } = useSyncReady();
+  const spaceMutations = React.useMemo(() => new SpaceMutations(rootStore, syncEngine), [rootStore, syncEngine]);
 
-  const currentAccessMembers = entityAccessList.filter(a => a.haveAccess);
-
-  const [updateSpaceField] = useUpdateSpaceFieldMutation();
-  const updateField = (patches: Partial<SpaceRecord>) => {
-    updateSpaceField({ spaceId, patches });
-  };
+  const space = rootStore.spaceStore.getById(spaceId);
 
   const handleDelete = async () => {
-    await deleteSpace({ workspaceId: space?.workspaceId?.toString() ?? "", spaceId });
-    navigate({ to: "/workspaces/$workspaceId", params: { workspaceId: space?.workspaceId?.toString() ?? "" } });
+    const workspaceId = space?.workspaceId ?? "";
+    try {
+      await spaceMutations.delete(spaceId);
+      navigate({ to: "/workspaces/$workspaceId", params: { workspaceId } });
+    } catch (err) {
+      console.error("Failed to delete space", err);
+    }
   };
+
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center h-full text-destructive/80 space-y-2 p-8">
+        <DynamicIcon name="AlertTriangle" size={32} />
+        <span className="text-sm font-medium">Failed to load space</span>
+      </div>
+    );
+  }
+
+  if (ready && !space) {
+    return (
+      <div className="flex flex-col items-center justify-center h-full text-destructive/80 space-y-2 p-8">
+        <DynamicIcon name="AlertTriangle" size={32} />
+        <span className="text-sm font-medium">Space Not Found</span>
+        <span className="text-xs text-muted-foreground">The space may have been deleted by another user.</span>
+      </div>
+    );
+  }
+
+  if (!ready || !space) {
+    return <div className="p-8 text-sm text-muted-foreground animate-pulse">Loading space...</div>;
+  }
 
   return (
     <EntityViewFrame
@@ -113,55 +129,8 @@ export function SpaceView({ spaceId }: Readonly<SpaceViewProps>) {
     >
       <div className="h-full w-full flex flex-col bg-card p-1 gap-1 overflow-hidden relative">
         {/* Controls toolbar */}
-        <div className="flex items-center justify-between px-2 py-1 rounded-md border border-border bg-card shadow-sm shrink-0">
-          {/* Public/Private toggle — admin only, sits on the left */}
-          {space && canManage ? (
-            <button
-              onClick={() => updateField({ isPrivate: !space.isPrivate })}
-              className={cn(
-                "flex items-center gap-1 h-5 px-1.5 rounded-md border text-[9px] font-bold cursor-pointer transition-all select-none",
-                space.isPrivate
-                  ? "bg-rose-500/10 border-rose-500/30 text-rose-400 hover:bg-rose-500/20"
-                  : "bg-emerald-500/10 border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/20"
-              )}
-              title={space.isPrivate ? "Click to make Public" : "Click to make Private"}
-            >
-              {space.isPrivate ? <><Lock className="h-2 w-2" /><span>Private</span></> : <><Unlock className="h-2 w-2" /><span>Public</span></>}
-            </button>
-          ) : <div />}
-
+        <div className="flex items-center justify-end px-2 py-1 rounded-md border border-border bg-card shadow-sm shrink-0">
           <div className="flex items-center gap-2.5">
-            {/* Space Members Avatar Pile */}
-            <div className="flex items-center -space-x-1.5 mr-0.5 select-none">
-              {currentAccessMembers.slice(0, 4).map((access) => {
-                const profile = members[access.workspaceMemberId];
-                if (!profile) return null;
-                const name = profile.name || "User";
-                const initials = name.split(" ").map((w: string) => w[0]).slice(0, 2).join("").toUpperCase();
-                const colors = ["bg-cyan-500", "bg-purple-500", "bg-indigo-500", "bg-teal-500", "bg-emerald-500", "bg-amber-500"];
-                const colorIdx = (initials.charCodeAt(0) + (initials.charCodeAt(1) || 0)) % colors.length;
-                return (
-                  <div
-                    key={access.workspaceMemberId}
-                    className={`h-5 w-5 rounded-full ${colors[colorIdx]} border border-background flex items-center justify-center text-[8px] font-black text-white shrink-0 shadow-sm hover:-translate-y-px transition-transform cursor-pointer`}
-                    title={`${name} (${access.accessLevel})`}
-                  >
-                    {initials}
-                  </div>
-                );
-              })}
-              {canManage && (
-                <SpaceAccessDialog
-                  spaceId={spaceId}
-                  trigger={
-                    <button className="h-5 w-5 rounded-full bg-muted/65 hover:bg-muted border border-border/20 flex items-center justify-center text-[9px] font-bold text-muted-foreground shrink-0 shadow-sm transition-all cursor-pointer">
-                      +
-                    </button>
-                  }
-                />
-              )}
-            </div>
-
             {/* Workflow — manager+ only */}
             {canManage && (
               <button
@@ -224,4 +193,4 @@ export function SpaceView({ spaceId }: Readonly<SpaceViewProps>) {
       />
     </EntityViewFrame>
   );
-}
+});

@@ -15,7 +15,9 @@ public record UpdateTaskCommand(
     int? StoryPoints,
     long? TimeEstimateSeconds,
     string? OrderKey,
-    Guid? ParentTaskId
+    Guid? ParentTaskId,
+    Guid? SpaceId,
+    Guid? FolderId
 ) : ICommandRequest<long>, IAuthorizedWorkspaceRequest
 {
     [JsonIgnore]

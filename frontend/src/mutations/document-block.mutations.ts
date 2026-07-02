@@ -2,11 +2,20 @@ import type { RootStore } from '@/stores/root.store'
 import type { SyncEngine } from '@/sync/sync-engine'
 import type { DocumentBlockRecord } from '@/types/document/document-block-record'
 import type { BlockType } from '@/types/block-type'
+import type { PendingTransaction } from '@/types/sync/transaction'
 import { api } from '@/lib/api-client'
 import { devError } from '@/sync/dev-log'
 import axios from 'axios'
 import { toJS } from 'mobx'
 
+// A single block-editor "save" can create, update, AND delete several blocks at once (typed in
+// block 3, added block 7, removed block 2). Each block is its own entity — that's 3 separate
+// SyncEvents, not one merged event — but they should all reach the server in ONE HTTP call.
+// The *Local() methods below do only the local part (store/IndexedDB/enqueue, no network) so a
+// caller can queue up N block changes, then trigger a single shared flush (TransactionQueue
+// already sends everything pending in one POST /api/sync/batch call — squash() only merges
+// transactions that share the same entityId, so N different blocks stay as N separate items).
+// The non-Local methods keep the old immediate-send behavior for single standalone block actions.
 export class DocumentBlockMutations {
   private rootStore: RootStore
   private syncEngine: SyncEngine
@@ -16,9 +25,9 @@ export class DocumentBlockMutations {
     this.syncEngine = syncEngine
   }
 
-  // ── CREATE ──
-  async create(data: { documentId: string; type: BlockType; content: string; orderKey: string }): Promise<DocumentBlockRecord> {
-    const id = crypto.randomUUID()
+  // ── CREATE (local-only) ──
+  async createLocal(data: { id?: string; documentId: string; type: BlockType; content: string; orderKey: string }): Promise<{ record: DocumentBlockRecord; tx: PendingTransaction }> {
+    const id = data.id ?? crypto.randomUUID()
 
     const record: DocumentBlockRecord = {
       id,
@@ -49,17 +58,23 @@ export class DocumentBlockMutations {
       orderKey: data.orderKey,
     }
 
-    // 3. Enqueue transaction
+    // 3. Enqueue transaction — no network call here
     const tx = await this.syncEngine.transactionQueue.enqueue('C', 'DocumentBlock', record.id, commandPayload, null)
 
-    // 4. Synchronous API call
+    return { record, tx }
+  }
+
+  // ── CREATE (immediate) ──
+  async create(data: { documentId: string; type: BlockType; content: string; orderKey: string }): Promise<DocumentBlockRecord> {
+    const { record, tx } = await this.createLocal(data)
+
     if (!this.rootStore.isOnline) {
       console.warn('App is offline. Skipping API request. Will sync later.')
       return record
     }
 
     try {
-      await api.post('/document-blocks/sync', commandPayload, {
+      await api.post('/document-blocks/sync', tx.data, {
         headers: {
           'X-Workspace-Id': this.rootStore.currentWorkspaceId!,
           'X-Client-Trace-Id': tx.id,
@@ -80,8 +95,8 @@ export class DocumentBlockMutations {
     return record
   }
 
-  // ── UPDATE ──
-  async update(blockId: string, changes: Partial<Pick<DocumentBlockRecord, 'content' | 'orderKey' | 'type'>>): Promise<void> {
+  // ── UPDATE (local-only) ──
+  async updateLocal(blockId: string, changes: Partial<Pick<DocumentBlockRecord, 'content' | 'orderKey' | 'type'>>): Promise<{ previous: DocumentBlockRecord; tx: PendingTransaction }> {
     const stored = this.rootStore.documentBlockStore.getById(blockId)
     if (!stored) throw new Error(`Document block ${blockId} not found`)
     const previous = toJS(stored)
@@ -99,23 +114,29 @@ export class DocumentBlockMutations {
       throw new Error('Failed to persist update locally')
     }
 
-    // 3. Enqueue
+    // 3. Enqueue — no network call here
     const tx = await this.syncEngine.transactionQueue.enqueue(
       'U',
       'DocumentBlock',
       blockId,
-      merged as unknown as Record<string, unknown>,
+      changes as unknown as Record<string, unknown>,
       previous as unknown as Record<string, unknown>
     )
 
-    // 4. Synchronous API call
+    return { previous, tx }
+  }
+
+  // ── UPDATE (immediate) ──
+  async update(blockId: string, changes: Partial<Pick<DocumentBlockRecord, 'content' | 'orderKey' | 'type'>>): Promise<void> {
+    const { previous, tx } = await this.updateLocal(blockId, changes)
+
     if (!this.rootStore.isOnline) {
       console.warn('App is offline. Skipping API request. Will sync later.')
       return
     }
 
     try {
-      await api.put(`/document-blocks/sync/${blockId}`, changes, {
+      await api.put(`/document-blocks/sync/${blockId}`, tx.data, {
         headers: {
           'X-Workspace-Id': this.rootStore.currentWorkspaceId!,
           'X-Client-Trace-Id': tx.id,
@@ -134,8 +155,8 @@ export class DocumentBlockMutations {
     }
   }
 
-  // ── DELETE ──
-  async delete(blockId: string): Promise<void> {
+  // ── DELETE (local-only) ──
+  async deleteLocal(blockId: string): Promise<{ previous: DocumentBlockRecord; tx: PendingTransaction }> {
     const stored = this.rootStore.documentBlockStore.getById(blockId)
     if (!stored) throw new Error(`Document block ${blockId} not found`)
     const previous = toJS(stored)
@@ -151,7 +172,7 @@ export class DocumentBlockMutations {
       throw new Error('Failed to persist delete locally')
     }
 
-    // 3. Enqueue
+    // 3. Enqueue — no network call here
     const tx = await this.syncEngine.transactionQueue.enqueue(
       'D',
       'DocumentBlock',
@@ -160,7 +181,13 @@ export class DocumentBlockMutations {
       previous as unknown as Record<string, unknown>
     )
 
-    // 4. Synchronous API call
+    return { previous, tx }
+  }
+
+  // ── DELETE (immediate) ──
+  async delete(blockId: string): Promise<void> {
+    const { previous, tx } = await this.deleteLocal(blockId)
+
     if (!this.rootStore.isOnline) {
       console.warn('App is offline. Skipping API request. Will sync later.')
       return

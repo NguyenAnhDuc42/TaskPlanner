@@ -8,7 +8,6 @@ import {
   CommentDB,
   DocumentDB,
   DocumentBlockDB,
-  EntityAccessDB,
   AssigneeDB,
   TransactionDB,
   type TaskPlanDB
@@ -23,7 +22,6 @@ import { WorkspaceStore } from "./workspace.store";
 import { CommentStore } from "./comment.store";
 import { DocumentStore } from "./document.store";
 import { DocumentBlockStore } from "./document-block.store";
-import { EntityAccessStore } from "./entity-access.store";
 import { AssigneeStore } from "./assignee.store";
 
 import type { IDBPDatabase } from "idb";
@@ -50,7 +48,6 @@ export class RootStore {
   commentStore = new CommentStore();
   documentStore = new DocumentStore();
   documentBlockStore = new DocumentBlockStore();
-  entityAccessStore = new EntityAccessStore();
   assigneeStore = new AssigneeStore();
 
   // DBs
@@ -62,7 +59,6 @@ export class RootStore {
   commentDB: CommentDB | null = null;
   documentDB: DocumentDB | null = null;
   documentBlockDB: DocumentBlockDB | null = null;
-  entityAccessDB: EntityAccessDB | null = null;
   assigneeDB: AssigneeDB | null = null;
   metadataDB: MetadataDB | null = null;
   transactionDB: TransactionDB | null = null;
@@ -128,7 +124,6 @@ export class RootStore {
     this.commentStore.clear();
     this.documentStore.clear();
     this.documentBlockStore.clear();
-    this.entityAccessStore.clear();
     this.assigneeStore.clear();
 
     this.db = await openWorkspaceDB(workspaceId);
@@ -143,7 +138,6 @@ export class RootStore {
     this.commentDB = new CommentDB(this.db);
     this.documentDB = new DocumentDB(this.db);
     this.documentBlockDB = new DocumentBlockDB(this.db);
-    this.entityAccessDB = new EntityAccessDB(this.db);
     this.assigneeDB = new AssigneeDB(this.db);
     this.metadataDB = new MetadataDB(this.db, workspaceId);
     this.transactionDB = new TransactionDB(this.db);
@@ -155,7 +149,7 @@ export class RootStore {
     if (!this.db) return;
 
     // Fetch all records from IndexedDB in parallel for fast loading
-    const [tasks, spaces, folders, statuses, members, comments, documents, blocks, accesses, assignees] = await Promise.all([
+    const [tasks, spaces, folders, statuses, members, comments, documents, blocks, assignees] = await Promise.all([
       this.taskDB!.getAll(),
       this.spaceDB!.getAll(),
       this.folderDB!.getAll(),
@@ -164,7 +158,6 @@ export class RootStore {
       this.commentDB!.getAll(),
       this.documentDB!.getAll(),
       this.documentBlockDB!.getAll(),
-      this.entityAccessDB!.getAll(),
       this.assigneeDB!.getAll(),
     ]);
 
@@ -177,7 +170,6 @@ export class RootStore {
     this.commentStore.hydrate(comments);
     this.documentStore.hydrate(documents);
     this.documentBlockStore.hydrate(blocks);
-    this.entityAccessStore.hydrate(accesses);
     this.assigneeStore.hydrate(assignees);
   }
 }
@@ -204,6 +196,5 @@ export function useWorkspaceStore(): WorkspaceStore { return useStore().workspac
 export function useCommentStore(): CommentStore { return useStore().commentStore }
 export function useDocumentStore(): DocumentStore { return useStore().documentStore }
 export function useDocumentBlockStore(): DocumentBlockStore { return useStore().documentBlockStore }
-export function useEntityAccessStore(): EntityAccessStore { return useStore().entityAccessStore }
 export function useAssigneeStore(): AssigneeStore { return useStore().assigneeStore }
 export function useIsOnline(): boolean { return useStore().isOnline }

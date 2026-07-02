@@ -7,7 +7,7 @@ export interface TaskRecord {
     workspaceId?: string;
     name: string;
     createdAt: string;
-    statusId?: string;
+    statusId?: string | null;
     priority?: Priority;
     startDate?: string | null;
     dueDate?: string | null;

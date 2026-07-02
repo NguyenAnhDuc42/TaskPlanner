@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
+import { observer } from "mobx-react-lite";
 import {
   ContextMenu,
   ContextMenuContent,
@@ -19,14 +20,13 @@ import { copyToClipboard } from "@/lib/copy-to-clipboard";
 import { EntityLayerType } from "@/types/entity-layer-type";
 import { useWorkspace } from "@/features/workspace/context/workspace-context";
 import { useWorkspaceRole } from "@/features/workspace/context/use-workspace-role";
-import { useDeleteTaskMutation, useBatchMoveItemsMutation } from "../../hierarchy-api";
-import { useToggleFavoriteMutation } from "@/features/workspace/api";
-import { useSelector, useDispatch } from "react-redux";
-import { taskSelectors, folderSelectors, taskSlice } from "@/store/entityStore";
-import type { AppDispatch } from "@/store";
+import { useStore } from "@/stores/root.store";
+import { useSyncEngine } from "@/sync/sync-provider";
+import { useDebouncedFlush } from "@/sync/use-debounced-flush";
+import { TaskMutations } from "@/mutations/task.mutations";
+import { FavoriteMutations } from "@/mutations/favorite.mutations";
 import { EntityMenuContext, DeleteConfirmationDialog } from "./shared";
 import { DynamicIcon } from "@/components/dynamic-icon";
-import type { RootState } from "@/store";
 
 interface TaskContextMenuProps {
   taskId: string;
@@ -36,7 +36,7 @@ interface TaskContextMenuProps {
   children: React.ReactNode;
 }
 
-export function TaskContextMenu({
+export const TaskContextMenu = observer(function TaskContextMenu({
   taskId,
   children,
   taskName,
@@ -44,31 +44,24 @@ export function TaskContextMenu({
 }: TaskContextMenuProps) {
   const { workspaceId } = useWorkspace();
   const { canCreateContent } = useWorkspaceRole();
-  const dispatch = useDispatch<AppDispatch>();
+  const rootStore = useStore();
+  const syncEngine = useSyncEngine();
+  const taskMutations = useMemo(() => new TaskMutations(rootStore, syncEngine), [rootStore, syncEngine]);
+  const favoriteMutations = useMemo(() => new FavoriteMutations(rootStore), [rootStore]);
+  const { scheduleFlush } = useDebouncedFlush(syncEngine);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
-  const [deleteTask] = useDeleteTaskMutation();
-  const [batchMove] = useBatchMoveItemsMutation();
-  const [toggleFavorite] = useToggleFavoriteMutation();
-  const isFavorite = useSelector((state: RootState) => !!taskSelectors.selectById(state, taskId)?.isFavorite);
-  const task = useSelector((state: RootState) => taskSelectors.selectById(state, taskId));
-  const spaceFolders = useSelector((state: RootState) =>
-    spaceId ? folderSelectors.selectAll(state).filter(f => f.spaceId === spaceId) : []
-  );
+  const isFavorite = !!rootStore.taskStore.getById(taskId)?.isFavorite;
+  const task = rootStore.taskStore.getById(taskId);
+  const spaceFolders = spaceId ? rootStore.folderStore.getBySpace(spaceId) : [];
 
   const handleMoveToFolder = (targetFolderId: string | null) => {
-    if (!workspaceId || !task?.spaceId) return;
-    // Optimistic — update store immediately so board reflects the move at once
-    dispatch(taskSlice.actions.upsert({ id: taskId, folderId: targetFolderId }));
-    batchMove({
-      workspaceId,
-      command: {
-        tasks: [{ itemId: taskId, targetSpaceId: task.spaceId, targetFolderId, newOrderKey: task.orderKey ?? "00000001" }],
-      },
-    });
+    if (!task?.spaceId) return;
+    taskMutations.updateLocal(taskId, { folderId: targetFolderId }).catch((err) => console.error("Failed to move task", err));
+    scheduleFlush();
   };
 
   const handleDelete = () => {
-    deleteTask({ workspaceId: workspaceId || "", taskId });
+    taskMutations.delete(taskId).catch((err) => console.error("Failed to delete task", err));
     setIsDeleteOpen(false);
   };
 
@@ -80,7 +73,7 @@ export function TaskContextMenu({
       <>
         <Item
           className="gap-2 cursor-pointer"
-          onSelect={() => workspaceId && toggleFavorite({ workspaceId, entityId: taskId, entityLayerType: EntityLayerType.ProjectTask })}
+          onSelect={() => favoriteMutations.toggle(taskId, EntityLayerType.ProjectTask).catch((err) => console.error("Failed to toggle favorite", err))}
         >
           <Star className={`h-3.5 w-3.5 ${isFavorite ? "fill-amber-400 text-amber-400" : ""}`} />
           <span>{isFavorite ? "Unfavorite" : "Favorite"}</span>
@@ -166,4 +159,4 @@ export function TaskContextMenu({
       />
     </EntityMenuContext.Provider>
   );
-}
+});

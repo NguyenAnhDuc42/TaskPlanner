@@ -1,8 +1,6 @@
 import React, { forwardRef } from "react";
-import { 
-  Globe, 
-  Lock, 
-  Calendar as CalendarIcon, 
+import {
+  Calendar as CalendarIcon,
 } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
@@ -41,35 +39,6 @@ export const AttributeButton = forwardRef<
 });
 AttributeButton.displayName = "AttributeButton";
 
-// --- PRIVACY TOGGLE ---
-export function PrivacyToggle({ isPrivate, onChange }: { isPrivate: boolean; onChange: (v: boolean) => void }) {
-  return (
-    <div className="flex bg-muted/20 p-0.5 rounded-lg border border-border/10 w-fit">
-      <button
-        type="button"
-        onClick={(e) => {e.stopPropagation(); onChange(false)}}
-        className={cn(
-          "flex items-center gap-1.5 px-2 h-5 rounded-[5px] text-[9px] font-medium transition-all",
-          !isPrivate ? "bg-background shadow-sm text-foreground ring-1 ring-border/20" : "text-muted-foreground hover:text-foreground"
-        )}
-      >
-        <Globe className="h-2.5 w-2.5" />
-        Public
-      </button>
-      <button
-        type="button"
-        onClick={(e) => {e.stopPropagation(); onChange(true)}}
-        className={cn(
-          "flex items-center gap-1.5 px-2 h-5 rounded-[5px] text-[9px] font-medium transition-all",
-          isPrivate ? "bg-background shadow-sm text-foreground ring-1 ring-border/20" : "text-muted-foreground hover:text-foreground"
-        )}
-      >
-        <Lock className="h-2.5 w-2.5" />
-        Private
-      </button>
-    </div>
-  );
-}
 
 // --- ICON & COLOR PICKER ---
 export function IconColorPicker({

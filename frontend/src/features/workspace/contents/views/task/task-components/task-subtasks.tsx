@@ -1,25 +1,20 @@
 import { useRef, useState, useMemo } from "react";
-import { useSelector } from "react-redux";
-import { createSelector } from "@reduxjs/toolkit";
+import { observer } from "mobx-react-lite";
 import { Trash2, Maximize2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { taskSelectors } from "@/store/entityStore";
-import type { RootState } from "@/store";
-import {
-  useCreateSubTaskMutation,
-  useUpdateTaskMutation,
-  type UpdateTaskPayload,
-} from "../task-api";
 import { StatusSelect } from "@/components/status-select";
 import { PrioritySelect } from "@/components/priority-select";
 import { PriorityBadge } from "@/components/priority-badge";
 import { DateSelect } from "@/components/date-select";
 import { DebouncedInput } from "@/components/debounced-input";
-import { useWorkspace } from "@/features/workspace/context/workspace-context";
 import { useWorkspaceRole } from "@/features/workspace/context/use-workspace-role";
-import { useDeleteTaskMutation } from "../../../hierarchy/hierarchy-api";
 import type { Priority } from "@/types/priority";
+import type { TaskRecord } from "@/types/projects/task-record";
 import { useNavigate, useLocation } from "@tanstack/react-router";
+import { useStore } from "@/stores/root.store";
+import { useSyncEngine } from "@/sync/sync-provider";
+import { useDebouncedFlush } from "@/sync/use-debounced-flush";
+import { TaskMutations } from "@/mutations/task.mutations";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -35,34 +30,29 @@ interface TaskSubtasksProps {
   taskId: string;
 }
 
-export function TaskSubtasks({ taskId }: Readonly<TaskSubtasksProps>) {
-  const { workspaceId } = useWorkspace();
+export const TaskSubtasks = observer(function TaskSubtasks({ taskId }: Readonly<TaskSubtasksProps>) {
   const { canCreateContent } = useWorkspaceRole();
   const navigate = useNavigate();
+  const rootStore = useStore();
+  const syncEngine = useSyncEngine();
+  const taskMutations = useMemo(() => new TaskMutations(rootStore, syncEngine), [rootStore, syncEngine]);
+  const { scheduleFlush } = useDebouncedFlush(syncEngine);
 
-  const selectSubtasks = useMemo(() => 
-    createSelector(
-      [taskSelectors.selectAll],
-      (tasks) => tasks.filter((t) => t.parentTaskId === taskId)
-    ),
-  [taskId]);
+  const subtasks = rootStore.taskStore.getSubTask(taskId);
+  const parentTask = rootStore.taskStore.getById(taskId);
 
-  const subtasks = useSelector(selectSubtasks);
+  const [isCreating, setIsCreating] = useState(false);
 
-  const parentTask = useSelector((state: RootState) =>
-    taskSelectors.selectById(state, taskId)
-  );
-
-  const [createSubTask, { isLoading: isCreating }] = useCreateSubTaskMutation();
-  const [updateTaskMutation] = useUpdateTaskMutation();
-  const [deleteTaskMutation] = useDeleteTaskMutation();
-
-  const updateSubtask = ({ subtaskId, patches }: { subtaskId: string; patches: UpdateTaskPayload }) => {
-    updateTaskMutation({ taskId: subtaskId, patches });
+  // Instant local write (store/IndexedDB/queue) + debounced network flush — same pattern as
+  // TaskDetailCanvas. squash() merges multiple pending updates for the same subtask into one
+  // send, so quick successive edits to one row still cost one network call.
+  const updateSubtask = (subtaskId: string, patches: Partial<TaskRecord>) => {
+    taskMutations.updateLocal(subtaskId, patches).catch((err) => console.error("Failed to apply local subtask update", err));
+    scheduleFlush();
   };
 
-  const deleteSubtask = ({ subtaskId }: { subtaskId: string }) => {
-    deleteTaskMutation({ workspaceId: workspaceId || "", taskId: subtaskId });
+  const deleteSubtask = (subtaskId: string) => {
+    taskMutations.delete(subtaskId).catch((err) => console.error("Failed to delete subtask", err));
   };
 
   // New subtask draft state
@@ -73,19 +63,24 @@ export function TaskSubtasks({ taskId }: Readonly<TaskSubtasksProps>) {
   const inputRef = useRef<HTMLInputElement>(null);
 
   const handleCreateSubtask = async () => {
-    if (!draftName.trim() || isCreating) return;
+    if (!draftName.trim() || isCreating || !parentTask) return;
+    setIsCreating(true);
     try {
-      await createSubTask({
-        parentTaskId: taskId,
+      await taskMutations.create({
         name: draftName.trim(),
         priority: draftPriority,
         statusId: draftStatusId,
-      }).unwrap();
+        spaceId: parentTask.spaceId,
+        folderId: parentTask.folderId,
+        parentTaskId: taskId,
+      });
       setDraftName("");
       setDraftStatusId(undefined);
       setDraftPriority("Low");
     } catch (err) {
       console.error("Failed to create subtask", err);
+    } finally {
+      setIsCreating(false);
     }
   };
 
@@ -97,20 +92,15 @@ export function TaskSubtasks({ taskId }: Readonly<TaskSubtasksProps>) {
   };
 
   const handleStatusChange = (subtaskId: string, statusId: string) => {
-    updateSubtask({ subtaskId, patches: { statusId } });
+    updateSubtask(subtaskId, { statusId });
   };
 
   const handlePriorityChange = (subtaskId: string, priority: Priority) => {
-    updateSubtask({ subtaskId, patches: { priority } });
+    updateSubtask(subtaskId, { priority });
   };
 
   const handleDateChange = (subtaskId: string, field: "startDate" | "dueDate", date: Date | undefined) => {
-    updateSubtask({
-      subtaskId,
-      patches: date
-        ? { [field]: date.toISOString() }
-        : { [field === "startDate" ? "clearStartDate" : "clearDueDate"]: true },
-    });
+    updateSubtask(subtaskId, { [field]: date ? date.toISOString() : null });
   };
 
   const handleDeleteSubtask = (subtaskId: string) => {
@@ -119,7 +109,7 @@ export function TaskSubtasks({ taskId }: Readonly<TaskSubtasksProps>) {
 
   const confirmDelete = () => {
     if (deleteSubtaskId) {
-      deleteSubtask({ subtaskId: deleteSubtaskId });
+      deleteSubtask(deleteSubtaskId);
       setDeleteSubtaskId(null);
     }
   };
@@ -162,7 +152,7 @@ export function TaskSubtasks({ taskId }: Readonly<TaskSubtasksProps>) {
                 value={subtask.name}
                 onChange={(val) => {
                   if (val.trim() && val !== subtask.name) {
-                    updateSubtask({ subtaskId: subtask.id, patches: { name: val } });
+                    updateSubtask(subtask.id, { name: val });
                   }
                 }}
                 className="text-[11px] font-medium text-foreground bg-transparent border-none p-0 focus:outline-none focus:ring-0 flex-1 h-auto min-w-0 truncate"
@@ -200,10 +190,7 @@ export function TaskSubtasks({ taskId }: Readonly<TaskSubtasksProps>) {
                 onStartDateChange={(d) => handleDateChange(subtask.id, "startDate", d)}
                 onDueDateChange={(d) => handleDateChange(subtask.id, "dueDate", d)}
                 onClearDates={() => {
-                  updateSubtask({
-                    subtaskId: subtask.id,
-                    patches: { clearStartDate: true, clearDueDate: true }
-                  });
+                  updateSubtask(subtask.id, { startDate: null, dueDate: null });
                 }}
                 size="sm"
               />
@@ -288,4 +275,4 @@ export function TaskSubtasks({ taskId }: Readonly<TaskSubtasksProps>) {
       </AlertDialog>
     </div>
   );
-}
+});

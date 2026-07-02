@@ -3,7 +3,7 @@ import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { useWorkspaceRole } from "@/features/workspace/context/use-workspace-role";
 import { Priority } from "@/types/priority";
-import type { BoardItem } from "../space-api";
+import type { BoardItem } from "../space-board-types";
 import { cn } from "@/lib/utils";
 import { format, isBefore, startOfDay } from "date-fns";
 import { PrioritySelect } from "@/components/priority-select";
@@ -25,7 +25,7 @@ export interface BoardItemCardProps {
   onMaximizeClick?: () => void;
   onFolderClick?: () => void;
   onPriorityChange?: (priority: Priority) => void;
-  onDateChange?: (patches: { startDate?: string; dueDate?: string; clearStartDate?: boolean; clearDueDate?: boolean }) => void;
+  onDateChange?: (patches: { startDate?: string | null; dueDate?: string | null }) => void;
   isDragging?: boolean;
   style?: React.CSSProperties;
   dragRef?: (node: HTMLElement | null) => void;
@@ -160,9 +160,9 @@ export const BoardItemCard = React.memo(function BoardItemCard({
               <DateSelect
                 startDate={item.startDate}
                 dueDate={item.dueDate}
-                onStartDateChange={(date) => onDateChange?.(date ? { startDate: date.toISOString() } : { clearStartDate: true })}
-                onDueDateChange={(date) => onDateChange?.(date ? { dueDate: date.toISOString() } : { clearDueDate: true })}
-                onClearDates={() => onDateChange?.({ clearStartDate: true, clearDueDate: true })}
+                onStartDateChange={(date) => onDateChange?.({ startDate: date ? date.toISOString() : null })}
+                onDueDateChange={(date) => onDateChange?.({ dueDate: date ? date.toISOString() : null })}
+                onClearDates={() => onDateChange?.({ startDate: null, dueDate: null })}
                 size="sm"
                 align="start"
                 triggerClassName={cn(
@@ -212,7 +212,7 @@ export const SortableBoardItem = React.memo(function SortableBoardItem({
   isSelected?: boolean;
   onTaskClick: (id: string) => void;
   onPriorityChange: (id: string, priority: Priority) => void;
-  onDateChange: (id: string, patches: { startDate?: string; dueDate?: string; clearStartDate?: boolean; clearDueDate?: boolean }) => void;
+  onDateChange: (id: string, patches: { startDate?: string | null; dueDate?: string | null }) => void;
 }) {
   const { canCreateContent } = useWorkspaceRole();
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
@@ -251,7 +251,7 @@ export const SortableBoardItem = React.memo(function SortableBoardItem({
     onPriorityChange(item.id, p);
   }, [item.id, onPriorityChange]);
 
-  const handleDateSelect = React.useCallback((patches: { startDate?: string; dueDate?: string; clearStartDate?: boolean; clearDueDate?: boolean }) => {
+  const handleDateSelect = React.useCallback((patches: { startDate?: string | null; dueDate?: string | null }) => {
     onDateChange(item.id, patches);
   }, [item.id, onDateChange]);
 

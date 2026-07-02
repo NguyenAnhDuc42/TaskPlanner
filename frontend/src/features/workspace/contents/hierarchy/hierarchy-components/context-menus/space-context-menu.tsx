@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
+import { observer } from "mobx-react-lite";
 import {
   ContextMenu,
   ContextMenuContent,
@@ -20,12 +21,11 @@ import { DialogFormWrapper } from "@/components/dialog-form-wrapper";
 import { CreateTaskForm } from "@/features/workspace/components/forms/create-task-form";
 import { CreateFolderForm } from "@/features/workspace/components/forms/create-folder-form";
 import { CreateSpaceForm } from "@/features/workspace/components/forms/create-space-form";
-import { useDeleteSpaceMutation } from "../../hierarchy-api";
-import { useDispatch, useSelector } from "react-redux";
-import { spaceSlice, spaceSelectors } from "@/store/entityStore";
-import { useToggleFavoriteMutation } from "@/features/workspace/api";
+import { useStore } from "@/stores/root.store";
+import { useSyncEngine } from "@/sync/sync-provider";
+import { SpaceMutations } from "@/mutations/space.mutations";
+import { FavoriteMutations } from "@/mutations/favorite.mutations";
 import { EntityMenuContext, DeleteConfirmationDialog } from "./shared";
-import type { RootState } from "@/store";
 
 interface SpaceContextMenuProps {
   spaceId: string;
@@ -33,22 +33,23 @@ interface SpaceContextMenuProps {
   children: React.ReactNode;
 }
 
-export function SpaceContextMenu({
+export const SpaceContextMenu = observer(function SpaceContextMenu({
   spaceId,
   spaceName,
   children,
 }: SpaceContextMenuProps) {
   const { workspaceId } = useWorkspace();
   const { canCreateContent, canDeleteSpace, isAdmin } = useWorkspaceRole();
-  const [toggleFavorite] = useToggleFavoriteMutation();
-  const isFavorite = useSelector((state: RootState) => !!spaceSelectors.selectById(state, spaceId)?.isFavorite);
-  const dispatch = useDispatch();
+  const rootStore = useStore();
+  const syncEngine = useSyncEngine();
+  const spaceMutations = useMemo(() => new SpaceMutations(rootStore, syncEngine), [rootStore, syncEngine]);
+  const favoriteMutations = useMemo(() => new FavoriteMutations(rootStore), [rootStore]);
+  const isFavorite = !!rootStore.spaceStore.getById(spaceId)?.isFavorite;
   const [activeForm, setActiveForm] = useState<"task" | "folder" | "settings" | null>(null);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
-  const [deleteSpace] = useDeleteSpaceMutation();
 
   const handleDelete = () => {
-    deleteSpace({ workspaceId: workspaceId || "", spaceId });
+    spaceMutations.delete(spaceId).catch((err) => console.error("Failed to delete space", err));
     setIsDeleteOpen(false);
   };
 
@@ -76,7 +77,7 @@ export function SpaceContextMenu({
 
         <Item
           className="gap-2 cursor-pointer"
-          onSelect={() => workspaceId && toggleFavorite({ workspaceId, entityId: spaceId, entityLayerType: EntityLayerType.ProjectSpace })}
+          onSelect={() => favoriteMutations.toggle(spaceId, EntityLayerType.ProjectSpace).catch((err) => console.error("Failed to toggle favorite", err))}
         >
           <Star className={`h-3.5 w-3.5 ${isFavorite ? "fill-amber-400 text-amber-400" : ""}`} />
           <span>{isFavorite ? "Unfavorite" : "Favorite"}</span>
@@ -148,8 +149,6 @@ export function SpaceContextMenu({
           parentType={EntityLayerType.ProjectSpace}
           onSuccess={() => {
             setActiveForm(null);
-            // Direct relational database state sync in Redux
-            dispatch(spaceSlice.actions.upsert({ id: spaceId, hasTasks: true }));
           }}
           onCancel={() => setActiveForm(null)}
         />
@@ -161,11 +160,10 @@ export function SpaceContextMenu({
         title="Create New Folder"
         trigger={null}
       >
-        <CreateFolderForm 
+        <CreateFolderForm
           spaceId={spaceId}
           onSuccess={() => {
             setActiveForm(null);
-            dispatch(spaceSlice.actions.upsert({ id: spaceId, hasFolders: true }));
           }}
           onCancel={() => setActiveForm(null)}
         />
@@ -193,4 +191,4 @@ export function SpaceContextMenu({
       />
     </EntityMenuContext.Provider>
   );
-}
+});

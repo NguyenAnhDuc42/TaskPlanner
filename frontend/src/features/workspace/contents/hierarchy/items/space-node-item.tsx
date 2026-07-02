@@ -1,14 +1,12 @@
 import React from "react";
-import { ChevronRight, MoreVertical, Lock } from "lucide-react";
+import { observer } from "mobx-react-lite";
+import { ChevronRight, MoreVertical } from "lucide-react";
 import { DynamicIcon } from "@/components/dynamic-icon";
 import { useNavigate, useLocation, useRouter } from "@tanstack/react-router";
 import { useWorkspace } from "@/features/workspace/context/workspace-context";
 import { cn } from "@/lib/utils";
 import { Collapsible, CollapsibleContent } from "@/components/ui/collapsible";
-import { useSelector } from "react-redux";
-import { spaceSelectors } from "@/store/entityStore";
-import { hierarchyApi } from "../hierarchy-api";
-import type { RootState } from "@/store";
+import { useStore } from "@/stores/root.store";
 import { NodeTasksList } from "./task-node-list";
 import { EntityLayerType as EntityLayerConst } from "@/types/entity-layer-type";
 import { SortableItem } from "../dnd/sortable-item";
@@ -21,17 +19,17 @@ interface SpaceNodeItemProps {
   isForcedOpen?: boolean;
 }
 
-export const SpaceNodeItem = React.memo(function SpaceNodeItem({
+export const SpaceNodeItem = observer(function SpaceNodeItem({
   spaceId,
   isForcedOpen = false,
 }: SpaceNodeItemProps) {
   const { workspaceId } = useWorkspace();
-  
-  const space = useSelector((state: RootState) => spaceSelectors.selectById(state, spaceId));
-  const hasChildren = !!(space?.hasFolders || space?.hasTasks);
-  
-  const prefetchFolders = hierarchyApi.usePrefetch("getNodeFolders");
-  const prefetchTasks = hierarchyApi.usePrefetch("getNodeTasks");
+  const rootStore = useStore();
+
+  const space = rootStore.spaceStore.getById(spaceId);
+  const hasFolders = rootStore.folderStore.getBySpace(spaceId).length > 0;
+  const hasTasks = rootStore.taskStore.all.some((t) => t.spaceId === spaceId && !t.folderId && !t.parentTaskId);
+  const hasChildren = hasFolders || hasTasks;
 
   const navigate = useNavigate();
   const router = useRouter();
@@ -44,7 +42,7 @@ export const SpaceNodeItem = React.memo(function SpaceNodeItem({
   const isActive = location.pathname.includes(`/spaces/${space.id}`);
   const spaceColor = space.color || "var(--primary)";
 
-  const effectiveOpen = isForcedOpen || isOpen; 
+  const effectiveOpen = isForcedOpen || isOpen;
 
   return (
     <Collapsible
@@ -73,11 +71,6 @@ export const SpaceNodeItem = React.memo(function SpaceNodeItem({
             <button
               type="button"
               className="relative flex items-center justify-center w-5 h-5 shrink-0 cursor-pointer rounded-sm hover:bg-background/50 group/icon mr-1.5 transition-none"
-              onMouseEnter={() => {
-                if (effectiveOpen || !workspaceId) return;
-                if (space.hasFolders) prefetchFolders({ workspaceId, nodeId: space.id, cursor: null });
-                if (space.hasTasks) prefetchTasks({ workspaceId, nodeId: space.id, parentType: EntityLayerConst.ProjectSpace, cursor: null });
-              }}
               onClick={(e) => {
                 if (!hasChildren) return;
                 e.stopPropagation();
@@ -123,9 +116,6 @@ export const SpaceNodeItem = React.memo(function SpaceNodeItem({
             </button>
 
             <div className="flex items-center gap-0.5 ml-1 shrink-0">
-              {space.isPrivate && (
-                <Lock className="h-3 w-3 text-muted-foreground/40 shrink-0" />
-              )}
               <EntityMenuTrigger>
                 <button
                   type="button"

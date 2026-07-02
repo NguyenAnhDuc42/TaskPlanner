@@ -84,6 +84,48 @@ public class GetBootstrapHandler(TaskPlanDbContext db, WorkspaceContext workspac
             WHERE st.project_workspace_id = @WorkspaceId AND st.deleted_at IS NULL
               AND " + visibilityFilter + ";";
 
+        // Document has no direct space FK (see DocumentScopeResolver) — it's reachable via a
+        // Space's or Task's DefaultDocumentId. document_spaces resolves that so the same private-
+        // space visibility rule can apply. Freestanding documents reachable only through an
+        // EntityAssetLink aren't covered here (rare — attachments, not task/space docs) and stay
+        // on the legacy per-document fetch.
+        const string documentBlocksSql = @"
+            WITH document_spaces AS (
+                SELECT s.default_document_id AS document_id, s.id AS space_id
+                FROM project_spaces s
+                WHERE s.default_document_id IS NOT NULL AND s.deleted_at IS NULL AND s.project_workspace_id = @WorkspaceId
+                UNION ALL
+                SELECT t.default_document_id AS document_id, t.project_space_id AS space_id
+                FROM project_tasks t
+                WHERE t.default_document_id IS NOT NULL AND t.deleted_at IS NULL AND t.project_workspace_id = @WorkspaceId
+            )
+            SELECT
+                db.id AS Id, db.document_id AS DocumentId, db.type AS Type,
+                db.content AS Content, db.order_key AS OrderKey
+            FROM document_blocks db
+            INNER JOIN document_spaces ds ON ds.document_id = db.document_id
+            INNER JOIN project_spaces s ON s.id = ds.space_id AND s.deleted_at IS NULL
+            LEFT JOIN entity_access ea ON ea.project_space_id = s.id
+                AND ea.workspace_member_id = @MemberId
+                AND ea.deleted_at IS NULL
+            WHERE db.project_workspace_id = @WorkspaceId AND db.deleted_at IS NULL
+              AND " + visibilityFilter + ";";
+
+        // TaskAssignment isn't a TenantEntity (no direct workspace_id) — scoped via project_tasks,
+        // same join shape as DocumentBlock's document_spaces above. Assignees per task are few
+        // (unlike Comment, which stays a lazy per-task fetch), so bulk-loading is cheap.
+        const string assigneesSql = @"
+            SELECT
+                ta.id AS Id, ta.project_task_id AS TaskId, ta.workspace_member_id AS WorkspaceMemberId
+            FROM task_assignments ta
+            INNER JOIN project_tasks t ON t.id = ta.project_task_id AND t.deleted_at IS NULL
+            INNER JOIN project_spaces s ON s.id = t.project_space_id AND s.deleted_at IS NULL
+            LEFT JOIN entity_access ea ON ea.project_space_id = s.id
+                AND ea.workspace_member_id = @MemberId
+                AND ea.deleted_at IS NULL
+            WHERE t.project_workspace_id = @WorkspaceId AND ta.deleted_at IS NULL
+              AND " + visibilityFilter + ";";
+
         var parameters = new
         {
             WorkspaceId = request.WorkspaceId,
@@ -95,8 +137,10 @@ public class GetBootstrapHandler(TaskPlanDbContext db, WorkspaceContext workspac
         var spaces = (await connection.QueryAsync<SpaceRecord>(spacesSql, parameters)).AsList();
         var folders = (await connection.QueryAsync<FolderRecord>(foldersSql, parameters)).AsList();
         var statuses = (await connection.QueryAsync<StatusRecord>(statusesSql, parameters)).AsList();
+        var documentBlocks = (await connection.QueryAsync<DocumentBlockRecord>(documentBlocksSql, parameters)).AsList();
+        var assignees = (await connection.QueryAsync<AssigneeRecord>(assigneesSql, parameters)).AsList();
         var lastSyncId = await syncQueryService.GetLastSyncIdAsync(request.WorkspaceId, cancellationToken);
 
-        return Result<BootstrapResult>.Success(new BootstrapResult(lastSyncId, SyncQueryService.CurrentDatabaseVersion, tasks, spaces, folders, statuses));
+        return Result<BootstrapResult>.Success(new BootstrapResult(lastSyncId, SyncQueryService.CurrentDatabaseVersion, tasks, spaces, folders, statuses, documentBlocks, assignees));
     }
 }

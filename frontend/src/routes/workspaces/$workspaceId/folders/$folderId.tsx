@@ -1,21 +1,11 @@
 import { createFileRoute, useParams } from "@tanstack/react-router";
 import { FolderView } from "@/features/workspace/contents/views/folder/folder-view";
-import { ViewSkeleton } from "@/components/view-skeleton";
-import { store } from "@/store";
-import { folderApi } from "@/features/workspace/contents/views/folder/folder-api";
-
 import { NotFoundScreen } from "@/components/not-found-screen";
 
+// Folder/Task/Status are fully Bootstrap+Delta covered via MobX by the time this route
+// renders — no loader/prefetch needed (FolderView gates on useSyncReady() itself).
 export const Route = createFileRoute("/workspaces/$workspaceId/folders/$folderId")({
-  loader: async ({ params: {  folderId } }) => {
-    const [detail, tasks] = await Promise.all([
-      store.dispatch(folderApi.endpoints.getFolderDetail.initiate(folderId)).unwrap(),
-      store.dispatch(folderApi.endpoints.getFolderTasks.initiate({ folderId, cursor: null })).unwrap(),
-    ]);
-    return { detail, tasks };
-  },
   component: FolderContent,
-  pendingComponent: ViewSkeleton,
   errorComponent: () => <NotFoundScreen />,
   pendingMs: 0,
 });

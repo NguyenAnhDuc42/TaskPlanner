@@ -22,8 +22,6 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 import { Link } from "@tanstack/react-router";
-import { useSpaceDetail } from "../space/space-api";
-import { useFolderDetail } from "../folder/folder-api";
 import { DynamicIcon } from "@/components/dynamic-icon";
 import { DeleteConfirmationDialog } from "../../hierarchy/hierarchy-components/context-menus/shared";
 import { useState } from "react";
@@ -46,8 +44,8 @@ export const TaskView = observer(function TaskView({ taskId }: Readonly<TaskView
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const task = rootStore.taskStore.getById(taskId);
 
-  const space = useSpaceDetail(task?.spaceId ?? "");
-  const folder = useFolderDetail(task?.folderId ?? "");
+  const space = task?.spaceId ? rootStore.spaceStore.getById(task.spaceId) : undefined;
+  const folder = task?.folderId ? rootStore.folderStore.getById(task.folderId) : undefined;
   const parentTask = task?.parentTaskId ? rootStore.taskStore.getById(task.parentTaskId) : undefined;
 
   const handleDelete = async () => {

@@ -52,10 +52,12 @@ public class UpdateCommentHandler(
             var syncPayload = JsonSerializer.Serialize(new
             {
                 id = comment.Id,
-                projectTaskId = comment.ProjectTaskId,
+                taskId = comment.ProjectTaskId,
                 content = comment.Content,
                 isEdited = comment.IsEdited,
-                parentCommentId = comment.ParentCommentId
+                parentCommentId = comment.ParentCommentId,
+                creatorId = comment.CreatorId,
+                createdAt = comment.CreatedAt
             }, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
 
             syncEvent = new SyncEvent

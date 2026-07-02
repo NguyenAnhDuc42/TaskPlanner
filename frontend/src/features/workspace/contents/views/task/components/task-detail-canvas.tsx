@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef } from "react";
+import { useCallback, useLayoutEffect, useMemo, useRef } from "react";
 import { observer } from "mobx-react-lite";
 import { StatusSelect } from "@/components/status-select";
 import { PrioritySelect } from "@/components/priority-select";
@@ -9,7 +9,7 @@ import { BlockEditor } from "@/components/blockbase/block-editor";
 import { TaskViewSkeleton } from "./task-view-skeleton";
 import { DateSelect } from "@/components/date-select";
 import { DebouncedInput } from "@/components/debounced-input";
-import { useSpaceAccess } from "@/features/workspace/context/use-space-access";
+import { useWorkspaceRole } from "@/features/workspace/context/use-workspace-role";
 import { TaskAssignees } from "../task-components/task-assignees";
 import { TaskComments } from "../task-components/task-comments";
 import { TaskSubtasks } from "../task-components/task-subtasks";
@@ -17,38 +17,31 @@ import type { Priority } from "@/types/priority";
 import type { TaskRecord } from "@/types/projects/task-record";
 import { useStore } from "@/stores/root.store";
 import { useSyncEngine, useSyncReady } from "@/sync/sync-provider";
+import type { SyncEngine } from "@/sync/sync-engine";
+import { useDebouncedFlush } from "@/sync/use-debounced-flush";
 import { TaskMutations } from "@/mutations/task.mutations";
 
 interface TaskDetailCanvasProps {
   taskId?: string;
 }
 
-// Debounced wrapper around TaskMutations.update() — coalesces rapid field edits (typing,
-// picker changes) into one queued/sent mutation, same shape as the old useDebouncedTaskUpdate
-// but backed by the sync engine instead of RTK Query.
-function useDebouncedTaskUpdate(taskMutations: TaskMutations, taskId: string, delay = 1500) {
-  const pendingRef = useRef<Partial<TaskRecord>>({});
-  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+// Every field change writes to the store/IndexedDB/transaction queue immediately (all local,
+// cheap, and what gives instant optimistic UI) via taskMutations.updateLocal() — only the
+// network send is debounced (useDebouncedFlush → syncEngine.flushQueue(), which runs
+// TransactionQueue.squash() before sending, merging multiple pending updates for the same task
+// into one PUT). N rapid field edits become exactly one network call. (Previously this called
+// taskMutations.update(), which fires its own immediate API request every time — debouncing
+// when THAT fires just meant debouncing the optimistic UI update too, since update() bundles
+// both together.)
+function useDebouncedTaskUpdate(taskMutations: TaskMutations, syncEngine: SyncEngine, taskId: string) {
   const taskIdRef = useRef(taskId);
   useLayoutEffect(() => { taskIdRef.current = taskId; });
-
-  const flush = useCallback(() => {
-    if (timerRef.current) clearTimeout(timerRef.current);
-    const patches = { ...pendingRef.current };
-    pendingRef.current = {};
-    if (Object.keys(patches).length > 0) {
-      taskMutations.update(taskIdRef.current, patches).catch((err) => console.error("Failed to update task", err));
-    }
-  }, [taskMutations]);
-
-  // Flush on unmount OR when taskId changes (user switches to a different task)
-  useEffect(() => flush, [taskId, flush]);
+  const { scheduleFlush } = useDebouncedFlush(syncEngine);
 
   return useCallback((patches: Partial<TaskRecord>) => {
-    pendingRef.current = { ...pendingRef.current, ...patches };
-    if (timerRef.current) clearTimeout(timerRef.current);
-    timerRef.current = setTimeout(flush, delay);
-  }, [delay, flush]);
+    taskMutations.updateLocal(taskIdRef.current, patches).catch((err) => console.error("Failed to apply local task update", err));
+    scheduleFlush();
+  }, [taskMutations, scheduleFlush]);
 }
 
 export const TaskDetailCanvas = observer(function TaskDetailCanvas({ taskId }: TaskDetailCanvasProps) {
@@ -58,8 +51,8 @@ export const TaskDetailCanvas = observer(function TaskDetailCanvas({ taskId }: T
   const taskMutations = useMemo(() => new TaskMutations(rootStore, syncEngine), [rootStore, syncEngine]);
 
   const task = taskId ? rootStore.taskStore.getById(taskId) : undefined;
-  const updateTask = useDebouncedTaskUpdate(taskMutations, taskId || "");
-  const { canEdit } = useSpaceAccess(task?.spaceId ?? "");
+  const updateTask = useDebouncedTaskUpdate(taskMutations, syncEngine, taskId || "");
+  const { canCreateContent: canEdit } = useWorkspaceRole();
 
   if (!taskId) {
     return (
@@ -145,7 +138,7 @@ export const TaskDetailCanvas = observer(function TaskDetailCanvas({ taskId }: T
             {/* Row 1: Task State and Timing (Status, Priority, Dates) */}
             <div className="flex flex-wrap items-center gap-2.5">
               <StatusSelect
-                value={task.statusId}
+                value={task.statusId ?? undefined}
                 onChange={handleStatusChange}
                 spaceId={task.spaceId!}
               />
@@ -171,7 +164,7 @@ export const TaskDetailCanvas = observer(function TaskDetailCanvas({ taskId }: T
             </div>
 
             {/* Row 2: People (Assignees) */}
-            <TaskAssignees taskId={taskId} spaceId={task.spaceId} />
+            <TaskAssignees taskId={taskId} />
           </div>
 
           {/* Document Section */}

@@ -3,7 +3,6 @@ import type { TaskRecord, SpaceRecord, FolderRecord, CommentRecord, AssigneeReco
 import type { DocumentRecord } from "@/types/document";
 import type { DocumentBlockRecord } from "@/types/document/document-block-record";
 import type { Status } from "@/types/status";
-import type { EntityAccessRecord } from "@/types/workspace/entity-access-record";
 import type { WorkspaceRecord } from "@/types/workspace/workspace-record";
 import type { MemberRecord } from "@/types/workspace/member-record";
 import type { DeltaPayload, SyncEntityType } from "@/types/sync/delta";
@@ -94,14 +93,6 @@ function getEntityApplier(
         remove: (id) => rootStore.statusStore.remove(id),
         dbPut: (data) => rootStore.statusDB!.put(data as unknown as Status),
         dbDelete: (id) => rootStore.statusDB!.delete(id),
-      };
-
-    case "EntityAccess":
-      return {
-        upsert: (data) => rootStore.entityAccessStore.upsert(data as unknown as EntityAccessRecord),
-        remove: (id) => rootStore.entityAccessStore.remove(id),
-        dbPut: (data) => rootStore.entityAccessDB!.put(data as unknown as EntityAccessRecord),
-        dbDelete: (id) => rootStore.entityAccessDB!.delete(id),
       };
 
     case "Comment":

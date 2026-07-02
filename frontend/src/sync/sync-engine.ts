@@ -10,6 +10,8 @@ import { TransactionQueue } from './transaction-queue'
 import type { TaskRecord, SpaceRecord, FolderRecord } from '@/types/projects'
 import type { Status } from '@/types/status'
 import type { PendingTransaction } from '@/types/sync'
+import type { DocumentBlockRecord } from '@/types/document/document-block-record'
+import type { AssigneeRecord } from '@/types/projects'
 import { api } from '@/lib/api-client'
 import { devLog } from './dev-log'
 
@@ -20,6 +22,8 @@ interface BootstrapResponse {
   spaces: Record<string, unknown>[]
   folders: Record<string, unknown>[]
   statuses: Record<string, unknown>[]
+  documentBlocks: Record<string, unknown>[]
+  assignees: Record<string, unknown>[]
 }
 
 export class SyncEngine {
@@ -42,8 +46,8 @@ export class SyncEngine {
 
   async forceBootstrap(workspaceId: string): Promise<void> {
     // Hard reset to server ground truth — clears local state first
-    const { taskDB, spaceDB, folderDB, statusDB } = this.rootStore
-    await Promise.all([taskDB!.clear(), spaceDB!.clear(), folderDB!.clear(), statusDB!.clear()])
+    const { taskDB, spaceDB, folderDB, statusDB, documentBlockDB, assigneeDB } = this.rootStore
+    await Promise.all([taskDB!.clear(), spaceDB!.clear(), folderDB!.clear(), statusDB!.clear(), documentBlockDB!.clear(), assigneeDB!.clear()])
     await this.bootstrap(workspaceId)
   }
 
@@ -80,28 +84,34 @@ export class SyncEngine {
     const data: BootstrapResponse = res.data
 
     // Populate IndexedDB
-    const { taskDB, spaceDB, folderDB, statusDB, metadataDB } = this.rootStore
+    const { taskDB, spaceDB, folderDB, statusDB, documentBlockDB, assigneeDB, metadataDB } = this.rootStore
     await Promise.all([
       taskDB!.putMany(data.tasks as unknown as TaskRecord[]),
       spaceDB!.putMany(data.spaces as unknown as SpaceRecord[]),
       folderDB!.putMany(data.folders as unknown as FolderRecord[]),
       statusDB!.putMany(data.statuses as unknown as Status[]),
+      documentBlockDB!.putMany(data.documentBlocks as unknown as DocumentBlockRecord[]),
+      assigneeDB!.putMany(data.assignees as unknown as AssigneeRecord[]),
     ])
 
     // Set metadata
     await metadataDB!.setFullBootstrap(data.lastSyncId, data.databaseVersion)
 
     // Hydrate stores from what we just saved
-    const [tasks, spaces, folders, statuses] = await Promise.all([
+    const [tasks, spaces, folders, statuses, documentBlocks, assignees] = await Promise.all([
       taskDB!.getAll(),
       spaceDB!.getAll(),
       folderDB!.getAll(),
       statusDB!.getAll(),
+      documentBlockDB!.getAll(),
+      assigneeDB!.getAll(),
     ])
     this.rootStore.taskStore.hydrate(tasks)
     this.rootStore.spaceStore.hydrate(spaces)
     this.rootStore.folderStore.hydrate(folders)
     this.rootStore.statusStore.hydrate(statuses)
+    this.rootStore.documentBlockStore.hydrate(documentBlocks)
+    this.rootStore.assigneeStore.hydrate(assignees)
   }
 
   // ── SignalR connection ──

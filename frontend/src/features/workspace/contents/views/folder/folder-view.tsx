@@ -5,8 +5,8 @@ import { FavoriteButton } from "@/components/favorite-button";
 import { EntityLayerType } from "@/types/entity-layer-type";
 import { TaskDetailCanvas } from "../task/components/task-detail-canvas";
 import * as React from "react";
+import { observer } from "mobx-react-lite";
 import { useParams, Link, useNavigate } from "@tanstack/react-router";
-import { useSpaceDetail, useGetSpaceDetailQuery, useSpaceStatuses } from "../space/space-api";
 import { DynamicIcon } from "@/components/dynamic-icon";
 import {
   Breadcrumb,
@@ -18,13 +18,6 @@ import {
 } from "@/components/ui/breadcrumb";
 import { Button } from "@/components/ui/button";
 import { useWorkspaceRole } from "@/features/workspace/context/use-workspace-role";
-import { useSpaceAccess } from "@/features/workspace/context/use-space-access";
-import {
-  useGetFolderDetailQuery,
-  useFolderDetail,
-  useUpdateFolderFieldMutation,
-  useFolderTasksList,
-} from "./folder-api";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -34,43 +27,52 @@ import {
 import { DateSelect } from "@/components/date-select";
 import { FolderTaskBatchBar } from "./components/folder-task-batch-bar";
 import { UniversalPicker } from "@/components/universal-picker";
-import type { FolderRecord } from "@/types/projects/folder-record";
 import { cn } from "@/lib/utils";
-import { useDeleteFolderMutation } from "../../hierarchy/hierarchy-api";
 import { DeleteConfirmationDialog } from "../../hierarchy/hierarchy-components/context-menus/shared";
+import { useStore } from "@/stores/root.store";
+import { useSyncEngine, useSyncReady } from "@/sync/sync-provider";
+import { useDebouncedFlush } from "@/sync/use-debounced-flush";
+import { FolderMutations } from "@/mutations/folder.mutations";
+import { TaskMutations } from "@/mutations/task.mutations";
 
 interface FolderViewProps {
   folderId: string;
 }
 
-export function FolderView({ folderId }: Readonly<FolderViewProps>) {
+export const FolderView = observer(function FolderView({ folderId }: Readonly<FolderViewProps>) {
   const { workspaceId } = useParams({ strict: false }) as {
     workspaceId: string;
   };
 
   const { isAdmin } = useWorkspaceRole();
-  const folderForAccess = useFolderDetail(folderId);
-  const { canManage: canManageSpace } = useSpaceAccess(folderForAccess?.spaceId ?? "");
-  const [deleteFolder] = useDeleteFolderMutation();
+  const rootStore = useStore();
+  const syncEngine = useSyncEngine();
+  const { ready, error } = useSyncReady();
+  const folderMutations = React.useMemo(() => new FolderMutations(rootStore, syncEngine), [rootStore, syncEngine]);
+  const taskMutations = React.useMemo(() => new TaskMutations(rootStore, syncEngine), [rootStore, syncEngine]);
+  const { scheduleFlush } = useDebouncedFlush(syncEngine);
+
+  const folder = rootStore.folderStore.getById(folderId);
+  const canManageSpace = isAdmin;
   const [checkedTaskIds, setCheckedTaskIds] = React.useState<Set<string>>(new Set());
   const [isDeleteOpen, setIsDeleteOpen] = React.useState(false);
   const [selectedTaskIdState, setSelectedTaskIdState] = React.useState<string | undefined>(undefined);
 
-  const { isLoading } = useGetFolderDetailQuery(folderId);
+  // Plain read, not useMemo — this component is a mobx-react-lite `observer`, which tracks
+  // observable reads made directly during render. rootStore.taskStore is the same object
+  // instance for the life of the workspace (MobX mutates the map in place), so a useMemo keyed
+  // on that reference would never recompute when tasks inside it change — the exact bug that
+  // made this list go stale (edits from TaskDetailCanvas, status colors, reorder) until a
+  // refresh forced a full remount.
+  const tasks = rootStore.taskStore.getByFolder(folderId).filter((t) => !t.parentTaskId);
 
-  const folder = useFolderDetail(folderId);
-  const tasks = useFolderTasksList(folderId);
-
-  useGetSpaceDetailQuery(folder?.spaceId ?? "", { skip: !folder?.spaceId });
-  const parentSpace = useSpaceDetail(folder?.spaceId ?? "");
-
-  const [updateFolderField] = useUpdateFolderFieldMutation();
+  const parentSpace = folder?.spaceId ? rootStore.spaceStore.getById(folder.spaceId) : undefined;
 
   const selectedTaskId = React.useMemo(() => {
     if (tasks.length === 0) return undefined;
     const exists = tasks.some(t => t.id === selectedTaskIdState);
     if (selectedTaskIdState && exists) return selectedTaskIdState;
-    
+
     const lastVisited = localStorage.getItem(`lastVisitedTask_${folderId}`);
     const lastVisitedExists = lastVisited && tasks.some(t => t.id === lastVisited);
     return lastVisitedExists ? lastVisited : tasks[0].id;
@@ -84,14 +86,15 @@ export function FolderView({ folderId }: Readonly<FolderViewProps>) {
     }
   }, [selectedTaskId, folderId]);
 
-  const spaceStatuses = useSpaceStatuses(folder?.spaceId ?? "");
+  // Same reason as `tasks` above — plain read, not useMemo.
+  const taskStatuses = folder?.spaceId ? rootStore.statusStore.getBySpace(folder.spaceId) : [];
 
-  const taskStatuses = spaceStatuses;
-
-  const updateField = (patches: Partial<FolderRecord> & { clearStartDate?: boolean; clearDueDate?: boolean }) => {
-    updateFolderField({ folderId, patches });
+  // Instant local write (store/IndexedDB/queue) + debounced network flush — same pattern as
+  // TaskDetailCanvas's useDebouncedTaskUpdate.
+  const updateField = (patches: Parameters<FolderMutations["updateLocal"]>[1]) => {
+    folderMutations.updateLocal(folderId, patches).catch((err) => console.error("Failed to apply local folder update", err));
+    scheduleFlush();
   };
-
 
   const toggleCheck = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -109,7 +112,26 @@ export function FolderView({ folderId }: Readonly<FolderViewProps>) {
 
   const navigate = useNavigate();
 
-  if (isLoading) {
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center h-full text-destructive/80 space-y-2 p-8">
+        <DynamicIcon name="AlertTriangle" size={32} />
+        <span className="text-sm font-medium">Failed to load folder</span>
+      </div>
+    );
+  }
+
+  if (ready && !folder) {
+    return (
+      <div className="flex flex-col items-center justify-center h-full text-destructive/80 space-y-2 p-8">
+        <DynamicIcon name="AlertTriangle" size={32} />
+        <span className="text-sm font-medium">Folder Not Found</span>
+        <span className="text-xs text-muted-foreground">The folder may have been deleted by another user.</span>
+      </div>
+    );
+  }
+
+  if (!ready || !folder) {
     return <div className="p-8 text-sm text-muted-foreground animate-pulse">Loading folder...</div>;
   }
 
@@ -215,8 +237,8 @@ export function FolderView({ folderId }: Readonly<FolderViewProps>) {
             <DateSelect
               startDate={folder?.startDate}
               dueDate={folder?.dueDate}
-              onStartDateChange={(date) => updateField({ startDate: date?.toISOString(), clearStartDate: !date })}
-              onDueDateChange={(date) => updateField({ dueDate: date?.toISOString(), clearDueDate: !date })}
+              onStartDateChange={(date) => updateField({ startDate: date ? date.toISOString() : null })}
+              onDueDateChange={(date) => updateField({ dueDate: date ? date.toISOString() : null })}
               align="end"
               size="sm"
               triggerClassName="h-5 px-2 text-[10px] font-semibold rounded-md border border-border/10 bg-muted/40 hover:bg-muted/75 hover:text-foreground text-muted-foreground transition-all cursor-pointer shadow-sm"
@@ -233,6 +255,12 @@ export function FolderView({ folderId }: Readonly<FolderViewProps>) {
             selectedTaskId ? "w-70" : "flex-1 w-full"
           )}>
             <FolderTaskList
+              folderId={folderId}
+              tasks={tasks}
+              taskStatuses={taskStatuses}
+              spaceId={folder.spaceId}
+              taskMutations={taskMutations}
+              scheduleFlush={scheduleFlush}
               checkedTaskIds={checkedTaskIds}
               onToggleCheck={toggleCheck}
               selectedTaskId={selectedTaskId}
@@ -271,19 +299,19 @@ export function FolderView({ folderId }: Readonly<FolderViewProps>) {
         title="Delete Folder"
         description={`Are you sure you want to delete "${folder?.name}"? This will delete all tasks inside it and cannot be undone.`}
         onConfirm={() => {
-          deleteFolder({ workspaceId, folderId });
+          folderMutations.delete(folderId).catch((err) => console.error("Failed to delete folder", err));
           navigate({ to: "/workspaces/$workspaceId", params: { workspaceId } });
         }}
       />
 
       {checkedTaskIds.size > 0 && (
         <FolderTaskBatchBar
-          folderId={folderId}
           checkedTaskIds={checkedTaskIds}
           onClear={() => setCheckedTaskIds(new Set())}
           statuses={taskStatuses}
+          taskMutations={taskMutations}
         />
       )}
     </EntityViewFrame>
   );
-}
+});

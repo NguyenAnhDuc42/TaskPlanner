@@ -1,45 +1,51 @@
 import { Trash2, X } from "lucide-react";
-import { useBatchUpdateFolderTasks, type BatchUpdateFolderTaskValue } from "../folder-api";
 import { PriorityBadge } from "@/components/priority-badge";
 import { StatusBadge } from "@/components/status-badge";
 import { useState } from "react";
 import { StatusSelect } from "@/components/status-select";
 import { PrioritySelect } from "@/components/priority-select";
 import { DateSelect } from "@/components/date-select";
-
-
+import { useSyncEngine } from "@/sync/sync-provider";
+import { useDebouncedFlush } from "@/sync/use-debounced-flush";
+import type { TaskMutations } from "@/mutations/task.mutations";
+import type { TaskRecord } from "@/types/projects";
+import type { Priority } from "@/types/priority";
 import type { Status } from "@/types/status";
 
-type PendingUpdates = Pick<BatchUpdateFolderTaskValue, "statusId" | "priority" | "startDate" | "dueDate" | "clearStartDate" | "clearDueDate">;
+type PendingUpdates = Partial<Pick<TaskRecord, "statusId" | "priority" | "startDate" | "dueDate">>;
 
 interface FolderTaskBatchBarProps {
-  folderId: string;
   checkedTaskIds: Set<string>;
   onClear: () => void;
   statuses: Status[];
+  taskMutations: TaskMutations;
 }
 
-export function FolderTaskBatchBar({ folderId, checkedTaskIds, onClear, statuses }: FolderTaskBatchBarProps) {
-  const batchUpdate = useBatchUpdateFolderTasks(folderId);
+export function FolderTaskBatchBar({ checkedTaskIds, onClear, statuses, taskMutations }: FolderTaskBatchBarProps) {
+  const syncEngine = useSyncEngine();
+  const { flushNow } = useDebouncedFlush(syncEngine);
 
   const [pendingUpdates, setPendingUpdates] = useState<PendingUpdates>({});
 
+  // Each checked task becomes its own queued U/D transaction (local store + IndexedDB +
+  // enqueue), then one shared flushNow() sends everything in a single POST /api/sync/batch call
+  // — N tasks updated/deleted, one HTTP round trip.
   const handleDelete = () => {
-    batchUpdate.mutate(
-      Array.from(checkedTaskIds).map(id => ({ id, isDeleted: true }))
-    );
+    Promise.all(Array.from(checkedTaskIds).map((id) => taskMutations.deleteLocal(id)))
+      .then(() => flushNow())
+      .catch((err) => console.error("Failed to batch-delete tasks", err));
     onClear();
   };
 
-  const updateLocal = (updates: Partial<PendingUpdates>) => {
+  const updateLocalPending = (updates: Partial<PendingUpdates>) => {
     setPendingUpdates((prev) => ({ ...prev, ...updates }));
   };
 
   const applyChanges = () => {
     if (Object.keys(pendingUpdates).length === 0) return;
-    batchUpdate.mutate(
-      Array.from(checkedTaskIds).map(id => ({ id, ...pendingUpdates }))
-    );
+    Promise.all(Array.from(checkedTaskIds).map((id) => taskMutations.updateLocal(id, pendingUpdates)))
+      .then(() => flushNow())
+      .catch((err) => console.error("Failed to batch-update tasks", err));
     setPendingUpdates({});
     onClear();
   };
@@ -61,7 +67,7 @@ export function FolderTaskBatchBar({ folderId, checkedTaskIds, onClear, statuses
         {/* Status */}
         <StatusSelect
           value={pendingUpdates.statusId || undefined}
-          onChange={(statusId) => updateLocal({ statusId })}
+          onChange={(statusId) => updateLocalPending({ statusId })}
           statuses={statuses}
           align="center"
           trigger={
@@ -77,7 +83,7 @@ export function FolderTaskBatchBar({ folderId, checkedTaskIds, onClear, statuses
         {/* Priority */}
         <PrioritySelect
           value={pendingUpdates.priority ?? undefined}
-          onChange={(priority) => updateLocal({ priority })}
+          onChange={(priority: Priority) => updateLocalPending({ priority })}
           align="center"
           trigger={
             <button type="button" className="cursor-pointer hover:opacity-80 transition-opacity">
@@ -90,12 +96,12 @@ export function FolderTaskBatchBar({ folderId, checkedTaskIds, onClear, statuses
         <DateSelect
           startDate={pendingUpdates.startDate}
           dueDate={pendingUpdates.dueDate}
-          onStartDateChange={(date) => updateLocal({ startDate: date?.toISOString(), clearStartDate: !date })}
-          onDueDateChange={(date) => updateLocal({ dueDate: date?.toISOString(), clearDueDate: !date })}
+          onStartDateChange={(date) => updateLocalPending({ startDate: date ? date.toISOString() : null })}
+          onDueDateChange={(date) => updateLocalPending({ dueDate: date ? date.toISOString() : null })}
           align="center"
           size="sm"
           triggerClassName={`h-5 px-2 text-[10px] font-semibold rounded-md border transition-all cursor-pointer ${
-            pendingUpdates.startDate || pendingUpdates.dueDate || pendingUpdates.clearStartDate || pendingUpdates.clearDueDate
+            pendingUpdates.startDate || pendingUpdates.dueDate
               ? "border-border/40 bg-primary/10 text-primary hover:bg-primary/20"
               : "border-border/30 bg-muted/30 text-muted-foreground hover:bg-muted/60"
           }`}

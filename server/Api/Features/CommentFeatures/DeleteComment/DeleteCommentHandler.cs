@@ -6,7 +6,7 @@ namespace Api;
 public class DeleteCommentHandler(
     TaskPlanDbContext db,
     WorkspaceContext workspaceContext,
-    PermissionService permissionService,
+    SyncPermissionService syncPermission,
     RealtimeService realtimeService,
     IdempotencyService idempotencyService,
     ILogger<DeleteCommentHandler> logger
@@ -25,12 +25,7 @@ public class DeleteCommentHandler(
             select new
             {
                 Comment = c,
-                WorkspaceId = t.ProjectWorkspaceId,
-                TaskCreatorId = t.CreatorId,
-                SpaceIsPrivate = db.ProjectSpaces.Where(s => s.Id == t.ProjectSpaceId).Select(s => s.IsPrivate).FirstOrDefault(),
-                CallerAccess = db.EntityAccesses
-                    .Where(ea => ea.ProjectSpaceId == t.ProjectSpaceId && ea.WorkspaceMemberId == memberId && ea.DeletedAt == null)
-                    .Select(ea => (AccessLevel?)ea.AccessLevel).FirstOrDefault()
+                WorkspaceId = t.ProjectWorkspaceId
             }
         ).FirstOrDefaultAsync(cancellationToken);
 
@@ -41,16 +36,8 @@ public class DeleteCommentHandler(
             return Result<long>.Failure(CommentError.NotFound);
         }
 
-        // Author can always delete their own comment; otherwise requires Editor access on the task's space.
-        bool isAuthor = comment.CreatorId == memberId;
-        var hasAccess = isAuthor
-            || permissionService.Verify(Role.Member, commentData!.SpaceIsPrivate, commentData.CallerAccess, AccessLevel.Editor, commentData.TaskCreatorId);
-
-        if (!hasAccess)
-        {
-            logger.LogWarning("Access denied for user {UserId} to delete comment {CommentId}", memberId, comment.Id);
-            return Result<long>.Failure(MemberError.DontHavePermission);
-        }
+        // Author can always delete their own comment; otherwise requires Admin.
+        syncPermission.RequireCreatorOrAdmin(comment.CreatorId ?? Guid.Empty);
 
         SyncEvent? syncEvent = null;
 

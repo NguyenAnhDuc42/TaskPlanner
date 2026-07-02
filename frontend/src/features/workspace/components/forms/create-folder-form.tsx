@@ -1,11 +1,12 @@
-import { useReducer } from "react";
-import { useCreateFolderMutation } from "../../contents/hierarchy/hierarchy-api";
+import { useMemo, useReducer } from "react";
 import { extractErrorMessage } from "@/types/api-error";
 import { Button } from "@/components/ui/button";
-import { useWorkspace } from "../../context/workspace-context";
 import { toast } from "sonner";
 import { IconColorPicker } from "./form-elements";
 import { DateSelect } from "@/components/date-select";
+import { useStore } from "@/stores/root.store";
+import { useSyncEngine } from "@/sync/sync-provider";
+import { FolderMutations } from "@/mutations/folder.mutations";
 
 interface CreateFolderFormProps {
   readonly spaceId: string;
@@ -50,31 +51,33 @@ function folderFormReducer(state: FolderFormState, action: FolderFormAction): Fo
 }
 
 export function CreateFolderForm({ spaceId, onSuccess, onCancel }: Readonly<CreateFolderFormProps>) {
-  const { workspaceId } = useWorkspace();
-  const [createFolderMutation, { isLoading: isCreating }] = useCreateFolderMutation();
+  const rootStore = useStore();
+  const syncEngine = useSyncEngine();
+  const folderMutations = useMemo(() => new FolderMutations(rootStore, syncEngine), [rootStore, syncEngine]);
+  const [isCreating, setIsCreating] = useReducer((_: boolean, v: boolean) => v, false);
   const [state, dispatch] = useReducer(folderFormReducer, initialFolderState);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!state.name.trim()) return;
 
+    setIsCreating(true);
     try {
-      const { id: newId } = await createFolderMutation({
-        workspaceId,
-        body: {
-          spaceId,
-          name: state.name,
-          color: state.color,
-          icon: state.icon,
-          startDate: state.startDate?.toISOString(),
-          dueDate: state.dueDate?.toISOString(),
-        },
-      }).unwrap();
+      const record = await folderMutations.create({
+        spaceId,
+        name: state.name,
+        color: state.color,
+        icon: state.icon,
+        startDate: state.startDate?.toISOString(),
+        dueDate: state.dueDate?.toISOString(),
+      });
       toast.success("Folder created");
       dispatch({ type: "RESET" });
-      onSuccess?.(newId);
+      onSuccess?.(record.id);
     } catch (error) {
       toast.error(extractErrorMessage(error, "Failed to create folder"));
+    } finally {
+      setIsCreating(false);
     }
   };
 

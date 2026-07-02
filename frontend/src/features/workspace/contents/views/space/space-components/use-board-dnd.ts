@@ -10,15 +10,21 @@ import {
 } from "@dnd-kit/core";
 import { fractionalBetween } from "@/features/workspace/contents/hierarchy/utils/fractional-index";
 import { getPriorityWeight, WeightToPriority, type Priority } from "@/types/priority";
-import type { BatchUpdateSpaceItemValue, BoardItem } from "../space-api";
+import type { BoardItem } from "../space-board-types";
 import type { Status } from "@/types/status";
-import { EntityLayerType } from "@/types/entity-layer-type";
+
+interface BoardTaskUpdate {
+  id: string;
+  statusId?: string | null;
+  priority?: Priority;
+  orderKey?: string;
+}
 
 interface UseBoardDndProps {
   boardItems: BoardItem[];
   statuses: Status[];
   columns: Record<string, BoardItem[]>;
-  enqueue: (update: BatchUpdateSpaceItemValue) => void;
+  enqueue: (update: BoardTaskUpdate) => void;
 }
 
 interface PositionResult {
@@ -198,17 +204,15 @@ export function useBoardDnd({
 
   if (!position) return;
 
-  const { prevItemOfSamePriority, nextItemOfSamePriority, resolvedPriority, tempOrderKey } = position;
+  const { resolvedPriority, tempOrderKey } = position;
 
-
+  // orderKey is fully resolved client-side via fractionalBetween — no need for the server-side
+  // previous/next-neighbor hints the old batch endpoint used for its own conflict resolution.
   enqueue({
     id: rawActiveId,
-    type: EntityLayerType.ProjectTask,
     statusId: resolvedStatusId,
     priority: resolvedPriority,
     orderKey: tempOrderKey,
-    previousItemOrderKey: prevItemOfSamePriority?.orderKey ?? null,
-    nextItemOrderKey: nextItemOfSamePriority?.orderKey ?? null,
   });
 }
   return { sensors, draggedItem, handleDragStart, handleDragEnd };

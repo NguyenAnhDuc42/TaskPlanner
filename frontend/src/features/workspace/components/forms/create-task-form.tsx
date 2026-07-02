@@ -1,8 +1,7 @@
 import { useReducer, useMemo } from "react";
-import { useCreateTaskMutation } from "../../contents/hierarchy/hierarchy-api";
+import { observer } from "mobx-react-lite";
 import { extractErrorMessage } from "@/types/api-error";
 import { Button } from "@/components/ui/button";
-import { useWorkspace } from "../../context/workspace-context";
 import { EntityLayerType } from "@/types/entity-layer-type";
 import { Priority } from "@/types/priority";
 import { Circle, User } from "lucide-react";
@@ -16,14 +15,10 @@ import { StatusBadge } from "@/components/status-badge";
 import { PriorityBadge } from "@/components/priority-badge";
 import { StatusSelect } from "@/components/status-select";
 import { PrioritySelect } from "@/components/priority-select";
-
-import { useSelector } from "react-redux";
-
-import { useGetSpaceDetailQuery, useGetSpaceItemsQuery } from "../../contents/views/space/space-api";
-import { useGetFolderDetailQuery } from "../../contents/views/folder/folder-api";
-import { statusSelectors } from "@/store/entityStore";
+import { useStore } from "@/stores/root.store";
+import { useSyncEngine } from "@/sync/sync-provider";
+import { TaskMutations } from "@/mutations/task.mutations";
 import type { Status } from "@/types/status";
-import type { RootState } from "@/store";
 
 interface CreateTaskFormProps {
   readonly parentId: string;
@@ -88,15 +83,17 @@ function createTaskFormReducer(defaultStatusId?: string) {
   };
 }
 
-export function CreateTaskForm({
+export const CreateTaskForm = observer(function CreateTaskForm({
   parentId,
   parentType,
   defaultStatusId,
   onSuccess,
   onCancel,
 }: Readonly<CreateTaskFormProps>) {
-  const { workspaceId } = useWorkspace();
-  const [createTaskMutation, { isLoading: isCreating }] = useCreateTaskMutation();
+  const rootStore = useStore();
+  const syncEngine = useSyncEngine();
+  const taskMutations = useMemo(() => new TaskMutations(rootStore, syncEngine), [rootStore, syncEngine]);
+  const [isCreating, setIsCreating] = useReducer((_: boolean, v: boolean) => v, false);
   const [state, dispatch] = useReducer(
     createTaskFormReducer(defaultStatusId),
     {
@@ -110,49 +107,40 @@ export function CreateTaskForm({
     }
   );
 
-  // Dynamically resolve space ID depending on folder/space parentType
-  const folder = useSelector((state: RootState) => state.folders.entities[parentId]);
+  // Dynamically resolve space ID depending on folder/space parentType. Task/Folder/Status are
+  // all fully Bootstrap+Delta covered, so this reads straight from MobX — no lazy fetch needed.
+  const folder = parentType === "ProjectFolder" ? rootStore.folderStore.getById(parentId) : undefined;
   const spaceId = parentType === "ProjectSpace" ? parentId : folder?.spaceId;
 
-  // Lazy-load folder detail (populates statuses into Redux) when parent is a folder
-  useGetFolderDetailQuery(parentId, { skip: parentType !== "ProjectFolder" });
-
-  // Lazy-load space items (populates space statuses into Redux)
-  useGetSpaceDetailQuery(spaceId || "", { skip: !spaceId });
-  useGetSpaceItemsQuery({ spaceId: spaceId || "", cursor: null }, { skip: !spaceId });
-
   // Derive statuses from the space (all tasks in a folder now use space workflow)
-  const allStatuses = useSelector((state: RootState) => statusSelectors.selectAll(state));
-  const statuses = useMemo(() => {
-    return spaceId
-      ? allStatuses.filter((s: Status) => s.spaceId?.toLowerCase() === spaceId.toLowerCase())
-      : [];
-  }, [allStatuses, spaceId]);
+  const statuses = spaceId
+    ? rootStore.statusStore.getBySpace(spaceId) as Status[]
+    : [];
 
   const onSubmit = async (e?: React.FormEvent) => {
     e?.preventDefault();
     if (!state.name.trim()) return;
 
+    setIsCreating(true);
     try {
-      const { id: newId } = await createTaskMutation({
-        workspaceId: workspaceId || "",
-        body: {
-          parentId,
-          parentType,
-          name: state.name,
-          priority: state.priority.toString(),
-          icon: state.icon,
-          color: state.color,
-          statusId: state.selectedStatusId,
-          startDate: state.startDate?.toISOString(),
-          dueDate: state.dueDate?.toISOString(),
-        },
-      }).unwrap();
+      const record = await taskMutations.create({
+        name: state.name,
+        priority: state.priority,
+        icon: state.icon,
+        color: state.color,
+        statusId: state.selectedStatusId,
+        startDate: state.startDate?.toISOString(),
+        dueDate: state.dueDate?.toISOString(),
+        spaceId: spaceId ?? null,
+        folderId: parentType === "ProjectFolder" ? parentId : null,
+      });
       toast.success("Task created");
-      onSuccess?.(newId);
+      onSuccess?.(record.id);
     } catch (error) {
       console.error(error);
       toast.error(extractErrorMessage(error, "Failed to create task"));
+    } finally {
+      setIsCreating(false);
     }
   };
 
@@ -260,4 +248,4 @@ export function CreateTaskForm({
       </div>
     </form>
   );
-}
+});

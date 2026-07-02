@@ -4,7 +4,7 @@ import { useCallback } from "react";
 import { cn } from "@/lib/utils";
 import type { Status } from "@/types/status";
 import type { FolderRecord } from "@/types/projects";
-import type { SpaceBoardFilter } from "../space-api";
+import type { SpaceBoardFilter } from "../space-board-types";
 import { SpaceBoardFilterPopover } from "./space-board-filter-popover";
 
 interface SpaceFilterBarProps {

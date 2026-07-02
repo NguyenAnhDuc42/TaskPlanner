@@ -1,8 +1,10 @@
 import type { RootStore } from '@/stores/root.store'
 import type { SyncEngine } from '@/sync/sync-engine'
 import type { SpaceRecord } from '@/types/projects/space-record'
+import type { PendingTransaction } from '@/types/sync/transaction'
 import { api } from '@/lib/api-client'
 import { devError } from '@/sync/dev-log'
+import { fractionalAfter } from '@/features/workspace/contents/hierarchy/utils/fractional-index'
 import axios from 'axios'
 import { toJS } from 'mobx'
 
@@ -20,7 +22,17 @@ export class SpaceMutations {
     const id = crypto.randomUUID()
     const defaultDocumentId = crypto.randomUUID()
 
-    const record: SpaceRecord = { ...data, id, defaultDocumentId }
+    // Same reasoning as FolderMutations.create() — the backend recomputes its own authoritative
+    // orderKey server-side and the Delta will overwrite this, but the optimistic record needs a
+    // valid fractional-indexing key in the meantime or any reorder attempted before that Delta
+    // lands breaks immediately.
+    const maxSiblingKey = this.rootStore.spaceStore.all.reduce<string | null>(
+      (max, s) => (s.orderKey && (!max || s.orderKey > max) ? s.orderKey : max),
+      null,
+    )
+    const orderKey = data.orderKey ?? fractionalAfter(maxSiblingKey)
+
+    const record: SpaceRecord = { ...data, id, defaultDocumentId, orderKey }
 
     // 1. Optimistic
     this.rootStore.spaceStore.upsert(record)
@@ -75,8 +87,12 @@ export class SpaceMutations {
     return record
   }
 
-  // ── UPDATE ──
-  async update(spaceId: string, changes: Partial<SpaceRecord>): Promise<void> {
+  // ── UPDATE (local-only — store + IndexedDB + enqueue, no network call) ──
+  // Building block for update(). Call this on every rapid field edit and debounce a
+  // syncEngine.flushQueue() trigger instead of debouncing this call — TransactionQueue.squash()
+  // already merges multiple pending updates for the same space into one send. See
+  // TaskMutations.updateLocal() for the full rationale.
+  async updateLocal(spaceId: string, changes: Partial<SpaceRecord>): Promise<{ previous: SpaceRecord; tx: PendingTransaction }> {
     const stored = this.rootStore.spaceStore.getById(spaceId)
     if (!stored) throw new Error(`Space ${spaceId} not found`)
     const previous = toJS(stored)
@@ -94,7 +110,7 @@ export class SpaceMutations {
       throw new Error('Failed to persist update locally')
     }
 
-    // 3. Enqueue
+    // 3. Enqueue transaction — no network call here
     const tx = await this.syncEngine.transactionQueue.enqueue(
       'U',
       'Space',
@@ -102,6 +118,13 @@ export class SpaceMutations {
       merged as unknown as Record<string, unknown>,
       previous as unknown as Record<string, unknown>
     )
+
+    return { previous, tx }
+  }
+
+  // ── UPDATE (immediate — local write + queue + synchronous send) ──
+  async update(spaceId: string, changes: Partial<SpaceRecord>): Promise<void> {
+    const { previous, tx } = await this.updateLocal(spaceId, changes)
 
     // 4. Synchronous API call
     if (!this.rootStore.isOnline) {

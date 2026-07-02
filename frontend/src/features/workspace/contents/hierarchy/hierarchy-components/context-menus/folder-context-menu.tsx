@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
+import { observer } from "mobx-react-lite";
 import {
   ContextMenu,
   ContextMenuContent,
@@ -18,12 +19,11 @@ import { useWorkspace } from "@/features/workspace/context/workspace-context";
 import { useWorkspaceRole } from "@/features/workspace/context/use-workspace-role";
 import { DialogFormWrapper } from "@/components/dialog-form-wrapper";
 import { CreateTaskForm } from "@/features/workspace/components/forms/create-task-form";
-import { useDeleteFolderMutation } from "../../hierarchy-api";
-import { useDispatch, useSelector } from "react-redux";
-import { folderSlice, folderSelectors } from "@/store/entityStore";
-import { useToggleFavoriteMutation } from "@/features/workspace/api";
+import { useStore } from "@/stores/root.store";
+import { useSyncEngine } from "@/sync/sync-provider";
+import { FolderMutations } from "@/mutations/folder.mutations";
+import { FavoriteMutations } from "@/mutations/favorite.mutations";
 import { EntityMenuContext, DeleteConfirmationDialog } from "./shared";
-import type { RootState } from "@/store";
 
 interface FolderContextMenuProps {
   folderId: string;
@@ -31,22 +31,23 @@ interface FolderContextMenuProps {
   children: React.ReactNode;
 }
 
-export function FolderContextMenu({
+export const FolderContextMenu = observer(function FolderContextMenu({
   folderId,
   folderName,
   children,
 }: FolderContextMenuProps) {
   const { workspaceId } = useWorkspace();
   const { canCreateContent, isAdmin } = useWorkspaceRole();
-  const [toggleFavorite] = useToggleFavoriteMutation();
-  const isFavorite = useSelector((state: RootState) => !!folderSelectors.selectById(state, folderId)?.isFavorite);
-  const dispatch = useDispatch();
+  const rootStore = useStore();
+  const syncEngine = useSyncEngine();
+  const folderMutations = useMemo(() => new FolderMutations(rootStore, syncEngine), [rootStore, syncEngine]);
+  const favoriteMutations = useMemo(() => new FavoriteMutations(rootStore), [rootStore]);
+  const isFavorite = !!rootStore.folderStore.getById(folderId)?.isFavorite;
   const [activeForm, setActiveForm] = useState<"task" | null>(null);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
-  const [deleteFolder] = useDeleteFolderMutation();
 
   const handleDelete = () => {
-    deleteFolder({ workspaceId: workspaceId || "", folderId });
+    folderMutations.delete(folderId).catch((err) => console.error("Failed to delete folder", err));
     setIsDeleteOpen(false);
   };
 
@@ -67,7 +68,7 @@ export function FolderContextMenu({
 
         <Item
           className="gap-2 cursor-pointer"
-          onSelect={() => workspaceId && toggleFavorite({ workspaceId, entityId: folderId, entityLayerType: EntityLayerType.ProjectFolder })}
+          onSelect={() => favoriteMutations.toggle(folderId, EntityLayerType.ProjectFolder).catch((err) => console.error("Failed to toggle favorite", err))}
         >
           <Star className={`h-3.5 w-3.5 ${isFavorite ? "fill-amber-400 text-amber-400" : ""}`} />
           <span>{isFavorite ? "Unfavorite" : "Favorite"}</span>
@@ -124,12 +125,11 @@ export function FolderContextMenu({
         title="Create New Task"
         trigger={null}
       >
-        <CreateTaskForm 
+        <CreateTaskForm
           parentId={folderId}
           parentType={EntityLayerType.ProjectFolder}
           onSuccess={() => {
             setActiveForm(null);
-            dispatch(folderSlice.actions.upsert({ id: folderId, hasTasks: true }));
           }}
           onCancel={() => setActiveForm(null)}
         />
@@ -144,4 +144,4 @@ export function FolderContextMenu({
       />
     </EntityMenuContext.Provider>
   );
-}
+});

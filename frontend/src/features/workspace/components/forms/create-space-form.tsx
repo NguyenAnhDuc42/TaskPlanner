@@ -1,16 +1,17 @@
-import { useReducer } from "react";
-import { useCreateSpaceMutation } from "../../contents/hierarchy/hierarchy-api";
+import { useMemo, useReducer } from "react";
 import { extractErrorMessage } from "@/types/api-error";
 import { Button } from "@/components/ui/button";
-import { useWorkspace } from "../../context/workspace-context";
 import { toast } from "sonner";
-import { PrivacyToggle, IconColorPicker, AttributeButton } from "./form-elements";
+import { IconColorPicker, AttributeButton } from "./form-elements";
 import { User } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useUser } from "@/features/auth/auth-api";
 import { useSelector } from "react-redux";
 import { memberSelectors } from "@/store/entityStore";
 import type { MemberRecord } from "@/types/workspace";
+import { useStore } from "@/stores/root.store";
+import { useSyncEngine } from "@/sync/sync-provider";
+import { SpaceMutations } from "@/mutations/space.mutations";
 
 interface CreateSpaceFormProps {
   readonly onSuccess?: (id: string) => void;
@@ -19,7 +20,6 @@ interface CreateSpaceFormProps {
 
 interface SpaceFormState {
   readonly name: string;
-  readonly isPrivate: boolean;
   readonly icon: string;
   readonly color: string;
   readonly selectedMemberIds: readonly string[];
@@ -27,7 +27,6 @@ interface SpaceFormState {
 
 type SpaceFormAction =
   | { readonly type: "SET_NAME"; readonly payload: string }
-  | { readonly type: "SET_PRIVATE"; readonly payload: boolean }
   | { readonly type: "SET_ICON"; readonly payload: string }
   | { readonly type: "SET_COLOR"; readonly payload: string }
   | { readonly type: "TOGGLE_MEMBER"; readonly payload: string }
@@ -35,7 +34,6 @@ type SpaceFormAction =
 
 const initialSpaceState: SpaceFormState = {
   name: "",
-  isPrivate: false,
   icon: "LayoutGrid",
   color: "#6366f1",
   selectedMemberIds: [],
@@ -45,8 +43,6 @@ function spaceFormReducer(state: SpaceFormState, action: SpaceFormAction): Space
   switch (action.type) {
     case "SET_NAME":
       return { ...state, name: action.payload };
-    case "SET_PRIVATE":
-      return { ...state, isPrivate: action.payload };
     case "SET_ICON":
       return { ...state, icon: action.payload };
     case "SET_COLOR":
@@ -66,35 +62,36 @@ function spaceFormReducer(state: SpaceFormState, action: SpaceFormAction): Space
 }
 
 export function CreateSpaceForm({ onSuccess, onCancel }: Readonly<CreateSpaceFormProps>) {
-  const { workspaceId } = useWorkspace();
   const allMembers = useSelector(memberSelectors.selectAll);
   const { data: currentUser } = useUser();
-  const [createSpaceMutation, { isLoading: isCreating }] = useCreateSpaceMutation();
+  const rootStore = useStore();
+  const syncEngine = useSyncEngine();
+  const spaceMutations = useMemo(() => new SpaceMutations(rootStore, syncEngine), [rootStore, syncEngine]);
+  const [isCreating, setIsCreating] = useReducer((_: boolean, v: boolean) => v, false);
   const [state, dispatch] = useReducer(spaceFormReducer, initialSpaceState);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!state.name.trim()) return;
 
+    setIsCreating(true);
     try {
-      const { id: newId } = await createSpaceMutation({ 
-        workspaceId: workspaceId || "", 
-        body: { 
-          name: state.name, 
-          isPrivate: state.isPrivate, 
-          color: state.color, 
-          icon: state.icon, 
-          memberIdsToInvite: [...state.selectedMemberIds] 
-        },
-      }).unwrap();
+      const record = await spaceMutations.create({
+        name: state.name,
+        isPrivate: false,
+        color: state.color,
+        icon: state.icon,
+      });
       toast.success("Space created");
-      
+
       dispatch({ type: "RESET" });
 
-      onSuccess?.(newId);
+      onSuccess?.(record.id);
     } catch (error) {
       console.error(error);
       toast.error(extractErrorMessage(error, "Failed to create space"));
+    } finally {
+      setIsCreating(false);
     }
   };
 
@@ -124,11 +121,6 @@ export function CreateSpaceForm({ onSuccess, onCancel }: Readonly<CreateSpaceFor
 
       {/* Attribute Strip */}
       <div className="px-3 py-1.5 flex flex-nowrap items-center gap-1.5 border-t border-border/5 overflow-x-auto [&::-webkit-scrollbar]:hidden">
-        <PrivacyToggle 
-          isPrivate={state.isPrivate} 
-          onChange={(val) => dispatch({ type: "SET_PRIVATE", payload: val })} 
-        />
-        
         <Popover>
           <PopoverTrigger asChild>
             <AttributeButton icon={User} className="ml-auto" active={state.selectedMemberIds.length > 0}>

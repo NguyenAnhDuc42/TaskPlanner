@@ -8,13 +8,9 @@ import { DynamicIcon } from "@/components/dynamic-icon";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import type { TaskRecord } from "@/types/projects";
-import { useSelector } from "react-redux";
-import { statusSelectors, folderSelectors } from "@/store/entityStore";
-import type { RootState } from "@/store";
+import type { Status } from "@/types/status";
 import { StatusSelect } from "@/components/status-select";
 import { PrioritySelect } from "@/components/priority-select";
-import { useParams } from "@tanstack/react-router";
-import { useGetFolderDetailQuery, useDebouncedFolderBatch } from "../folder-api";
 
 export interface SortableTaskItemProps {
   task: TaskRecord;
@@ -22,32 +18,23 @@ export interface SortableTaskItemProps {
   isChecked: boolean;
   onSelect: () => void;
   onToggleCheck?: (taskId: string, e: React.MouseEvent) => void;
+  statuses: Status[];
+  spaceId?: string;
+  onUpdateTask?: (taskId: string, patch: Partial<TaskRecord>) => void;
 }
 
-export function SortableTaskItem({ 
-  task, 
-  isSelected, 
-  isChecked, 
-  onSelect, 
+export function SortableTaskItem({
+  task,
+  isSelected,
+  isChecked,
+  onSelect,
   onToggleCheck,
+  statuses,
+  spaceId,
+  onUpdateTask,
 }: Readonly<SortableTaskItemProps>) {
-  const statuses = useSelector(statusSelectors.selectAll);
-  const { folderId } = useParams({ strict: false }) as { folderId: string };
-  useGetFolderDetailQuery(folderId);
-  const enqueue = useDebouncedFolderBatch(folderId);
-
-  const folder = useSelector((state: RootState) => folderSelectors.selectById(state, folderId));
-
-  const taskStatuses = React.useMemo(() => {
-    const spaceId = folder?.spaceId;
-    if (!spaceId) return [];
-    return statuses
-      .filter(s => s.spaceId?.toLowerCase() === spaceId.toLowerCase())
-      .sort((a, b) => ((a.orderKey ?? "") < (b.orderKey ?? "") ? -1 : 1));
-  }, [folder?.spaceId, statuses]);
-
-  const onUpdateTaskField = (fields: Partial<TaskRecord> & { clearStartDate?: boolean; clearDueDate?: boolean }) => {
-    enqueue([{ id: task.id, ...fields }]);
+  const onUpdateTaskField = (fields: Partial<TaskRecord>) => {
+    onUpdateTask?.(task.id, fields);
   };
 
   const {
@@ -67,7 +54,7 @@ export function SortableTaskItem({
   };
 
   const itemColor = task.color || "#3b82f6";
-  
+
   return (
     <div
       ref={setNodeRef}
@@ -86,15 +73,15 @@ export function SortableTaskItem({
       className={cn(
         "w-full text-left flex items-start px-2.5 py-1.5 rounded-md transition-all group relative border shadow-sm outline-none cursor-pointer",
         isSelected
-          ? "bg-primary/5 border-primary/30" 
+          ? "bg-primary/5 border-primary/30"
           : "bg-transparent border-transparent hover:bg-muted/50 hover:border-border",
       )}
     >
       <div
         className={cn(
           "shrink-0 mt-0.5 cursor-pointer z-10 transition-all duration-200 flex items-center justify-center",
-          isChecked 
-            ? "w-3.5 mr-2 opacity-100" 
+          isChecked
+            ? "w-3.5 mr-2 opacity-100"
             : "w-0 mr-0 opacity-0 group-hover:w-3.5 group-hover:mr-2 group-hover:opacity-100 overflow-hidden"
         )}
         onClick={(e) => {
@@ -140,8 +127,8 @@ export function SortableTaskItem({
           <StatusSelect
             value={task.statusId || undefined}
             onChange={(statusId) => onUpdateTaskField({ statusId })}
-            spaceId={folder?.spaceId}
-            statuses={taskStatuses}
+            spaceId={spaceId}
+            statuses={statuses}
             trigger={
               <button
                 type="button"
@@ -175,9 +162,9 @@ export function SortableTaskItem({
             <DateSelect
               startDate={task.startDate}
               dueDate={task.dueDate}
-              onStartDateChange={(date) => onUpdateTaskField(date ? { startDate: date.toISOString() } : { clearStartDate: true })}
-              onDueDateChange={(date) => onUpdateTaskField(date ? { dueDate: date.toISOString() } : { clearDueDate: true })}
-              onClearDates={() => onUpdateTaskField({ clearStartDate: true, clearDueDate: true })}
+              onStartDateChange={(date) => onUpdateTaskField({ startDate: date ? date.toISOString() : null })}
+              onDueDateChange={(date) => onUpdateTaskField({ dueDate: date ? date.toISOString() : null })}
+              onClearDates={() => onUpdateTaskField({ startDate: null, dueDate: null })}
               size="sm"
               triggerClassName="h-5 px-1.5 text-[9px] font-bold border border-border/5 rounded-md"
             />

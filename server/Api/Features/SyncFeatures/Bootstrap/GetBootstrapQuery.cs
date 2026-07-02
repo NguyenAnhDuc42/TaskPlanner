@@ -8,5 +8,7 @@ public record BootstrapResult(
     List<TaskRecord> Tasks,
     List<SpaceRecord> Spaces,
     List<FolderRecord> Folders,
-    List<StatusRecord> Statuses
+    List<StatusRecord> Statuses,
+    List<DocumentBlockRecord> DocumentBlocks,
+    List<AssigneeRecord> Assignees
 );

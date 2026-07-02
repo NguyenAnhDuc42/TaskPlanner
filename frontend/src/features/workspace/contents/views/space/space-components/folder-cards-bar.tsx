@@ -1,7 +1,5 @@
-import { useState, useCallback, useRef } from "react";
-import { useDispatch } from "react-redux";
-import { folderSlice } from "@/store/entityStore";
-import type { AppDispatch } from "@/store";
+import { useState, useCallback, useRef, useMemo } from "react";
+import { observer } from "mobx-react-lite";
 import { createPortal } from "react-dom";
 import { useNavigate } from "@tanstack/react-router";
 import {
@@ -27,7 +25,10 @@ import { Plus, X } from "lucide-react";
 import { DynamicIcon } from "@/components/dynamic-icon";
 import { toast } from "sonner";
 import { extractErrorMessage } from "@/types/api-error";
-import { useCreateFolderMutation, useDeleteFolderMutation, useBatchMoveItemsMutation } from "@/features/workspace/contents/hierarchy/hierarchy-api";
+import { useStore } from "@/stores/root.store";
+import { useSyncEngine } from "@/sync/sync-provider";
+import { useDebouncedFlush } from "@/sync/use-debounced-flush";
+import { FolderMutations } from "@/mutations/folder.mutations";
 import type { FolderRecord } from "@/types/projects";
 
 // ── Single folder chip ──────────────────────────────────────────────────────
@@ -106,13 +107,13 @@ interface FolderCardsBarProps {
   folderTaskCounts: Record<string, number>;
 }
 
-export function FolderCardsBar({ spaceId, workspaceId, folders, folderTaskCounts }: FolderCardsBarProps) {
+export const FolderCardsBar = observer(function FolderCardsBar({ spaceId, workspaceId, folders, folderTaskCounts }: FolderCardsBarProps) {
   const navigate = useNavigate({ from: "/workspaces/$workspaceId/spaces/$spaceId" });
-  const [createFolder] = useCreateFolderMutation();
-  const [deleteFolder] = useDeleteFolderMutation();
-  const [batchMove] = useBatchMoveItemsMutation();
+  const rootStore = useStore();
+  const syncEngine = useSyncEngine();
+  const folderMutations = useMemo(() => new FolderMutations(rootStore, syncEngine), [rootStore, syncEngine]);
+  const { scheduleFlush } = useDebouncedFlush(syncEngine);
 
-  const dispatch = useDispatch<AppDispatch>();
   const [draggedId, setDraggedId] = useState<string | null>(null);
   const [isCreating, setIsCreating] = useState(false);
   const [newName, setNewName] = useState("");
@@ -131,21 +132,12 @@ export function FolderCardsBar({ spaceId, workspaceId, folders, folderTaskCounts
     const newIdx = folders.findIndex(f => f.id === over.id);
     if (oldIdx === -1 || newIdx === -1) return;
     const reordered = arrayMove(folders, oldIdx, newIdx);
-    // Optimistic: update order keys in store immediately so board re-renders at once
-    dispatch(folderSlice.actions.upsertMany(
-      reordered.map((f, idx) => ({ id: f.id, orderKey: String(idx + 1).padStart(8, "0") }))
-    ));
-    batchMove({
-      workspaceId,
-      command: {
-        folders: reordered.map((f, idx) => ({
-          itemId: f.id,
-          targetParentId: spaceId,
-          newOrderKey: String(idx + 1).padStart(8, "0"),
-        })),
-      },
-    });
-  }, [folders, workspaceId, spaceId, batchMove, dispatch]);
+    Promise.all(
+      reordered.map((f, idx) => folderMutations.updateLocal(f.id, { orderKey: String(idx + 1).padStart(8, "0") })),
+    )
+      .then(() => scheduleFlush())
+      .catch((err) => console.error("Failed to reorder folders", err));
+  }, [folders, folderMutations, scheduleFlush]);
 
   const handleCreate = useCallback(() => {
     if (submittedRef.current) return;
@@ -154,12 +146,11 @@ export function FolderCardsBar({ spaceId, workspaceId, folders, folderTaskCounts
     setIsCreating(false);
     setNewName("");
     if (name) {
-      createFolder({ workspaceId, body: { spaceId, name, color: "#6366f1", icon: "Folder" } })
-        .unwrap()
+      folderMutations.create({ spaceId, name, color: "#6366f1", icon: "Folder" })
         .catch(err => toast.error(extractErrorMessage(err, "Failed to create folder")));
     }
     setTimeout(() => { submittedRef.current = false; }, 300);
-  }, [newName, workspaceId, spaceId, createFolder]);
+  }, [newName, spaceId, folderMutations]);
 
   const draggedFolder = folders.find(f => f.id === draggedId);
 
@@ -185,8 +176,7 @@ export function FolderCardsBar({ spaceId, workspaceId, folders, folderTaskCounts
                   params: { workspaceId, folderId: folder.id },
                 })}
                 onDelete={() =>
-                  deleteFolder({ workspaceId, folderId: folder.id })
-                    .unwrap()
+                  folderMutations.delete(folder.id)
                     .catch(err => toast.error(extractErrorMessage(err, "Failed to delete folder")))
                 }
               />
@@ -241,4 +231,4 @@ export function FolderCardsBar({ spaceId, workspaceId, folders, folderTaskCounts
       )}
     </div>
   );
-}
+});

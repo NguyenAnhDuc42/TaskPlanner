@@ -2,23 +2,25 @@ import { arrayMove } from "@dnd-kit/sortable";
 import { EntityLayerType as EntityLayerConst } from "@/types/entity-layer-type";
 import { safeKey, fractionalBetween } from "../../utils/fractional-index";
 import type { DragItemData, DragTaskData } from "../drag-item-type";
-import { store } from "@/store";
-import { folderSlice, spaceSlice, taskSlice } from "@/store/entityStore";
+import type { RootStore } from "@/stores/root.store";
+import type { TaskMutations } from "@/mutations/task.mutations";
+import type { TaskRecord } from "@/types/projects";
 
 export function handleTaskMove(
+  rootStore: RootStore,
+  taskMutations: TaskMutations,
   activeData: DragTaskData,
   overData: DragItemData,
-  triggerBatchMove: (move: { kind: "task"; itemId: string; targetSpaceId: string; targetFolderId: string | null; newOrderKey: string }) => void
-) {
-  // Derive explicit targetSpaceId + optional targetFolderId
-  // Space is primary container; Folder is optional organizational layer
+): void {
+  // Derive explicit targetSpaceId + optional targetFolderId.
+  // Space is primary container; Folder is optional organizational layer.
   let targetSpaceId: string | undefined;
   let targetFolderId: string | null = null;
 
   if (overData?.type === EntityLayerConst.ProjectSpace) {
     targetSpaceId = overData.id;
   } else if (overData?.type === EntityLayerConst.ProjectFolder) {
-    targetSpaceId = overData.spaceId; // folder's parent space
+    targetSpaceId = overData.spaceId;
     targetFolderId = overData.id;
   } else if (overData?.type === EntityLayerConst.ProjectTask) {
     targetSpaceId = overData.spaceId;
@@ -27,36 +29,22 @@ export function handleTaskMove(
 
   if (!targetSpaceId) return;
 
-  const state = store.getState();
   const sourceContainerId = activeData.parentId;
   const isSourceFolder = activeData.parentType === EntityLayerConst.ProjectFolder;
   const targetContainerId = targetFolderId ?? targetSpaceId;
   const isTargetFolder = !!targetFolderId;
   const isSameContainer = sourceContainerId === targetContainerId;
 
-  // Retrieve and sort tasks for source container
-  const sourceTasks = Object.values(state.tasks.entities)
-    .filter((t): t is typeof t & { id: string } => {
-      if (!t) return false;
-      return isSourceFolder
-        ? (t.folderId === sourceContainerId)
-        : (t.spaceId === sourceContainerId && !t.folderId);
-    })
-    .sort((a, b) => ((a.orderKey ?? "") < (b.orderKey ?? "") ? -1 : 1))
-    .map(t => t.id);
+  const filterForContainer = (containerId: string, isFolder: boolean) =>
+    rootStore.taskStore.all
+      .filter((t) => !t.parentTaskId && (isFolder ? t.folderId === containerId : (t.spaceId === containerId && !t.folderId)))
+      .sort((a, b) => ((a.orderKey ?? "") < (b.orderKey ?? "") ? -1 : 1));
 
-  // Retrieve and sort tasks for target container
-  const targetTasks = isSameContainer
-    ? sourceTasks
-    : Object.values(state.tasks.entities)
-        .filter((t): t is typeof t & { id: string } => {
-          if (!t) return false;
-          return isTargetFolder
-            ? (t.folderId === targetContainerId)
-            : (t.spaceId === targetContainerId && !t.folderId);
-        })
-        .sort((a, b) => ((a.orderKey ?? "") < (b.orderKey ?? "") ? -1 : 1))
-        .map(t => t.id);
+  const sourceTasksList = filterForContainer(sourceContainerId, isSourceFolder);
+  const sourceTasks = sourceTasksList.map(t => t.id);
+
+  const targetTasksList = isSameContainer ? sourceTasksList : filterForContainer(targetContainerId, isTargetFolder);
+  const targetTasks = targetTasksList.map(t => t.id);
 
   // Guard: dropping onto itself or its current parent header
   if (activeData.id === overData.id || overData.id === activeData.parentId) {
@@ -73,65 +61,29 @@ export function handleTaskMove(
   }
 
   let newOrderKey: string;
+  const patch: { orderKey: string; spaceId?: string; folderId?: string | null } = { orderKey: "" };
 
   if (isSameContainer) {
     if (oldIndex === -1) return;
 
-    // Retrieve sorted task records to read neighbor order keys
-    const sortedTasks = sourceTasks.map(id => state.tasks.entities[id]).filter((t): t is typeof t & { orderKey?: string } => !!t);
-    const moved = arrayMove(sortedTasks, oldIndex, newIndex);
-
+    const moved = arrayMove(sourceTasksList, oldIndex, newIndex);
     const prevKey = safeKey(moved[newIndex - 1]?.orderKey);
     const nextKey = safeKey(moved[newIndex + 1]?.orderKey);
     newOrderKey = fractionalBetween(prevKey, nextKey);
-
-    // Optimistic: update only the dragged task
-    store.dispatch(taskSlice.actions.upsert({ id: activeData.id, orderKey: newOrderKey }));
+    patch.orderKey = newOrderKey;
   } else {
     // Cross-container move: insert at newIndex in target list
-    const newTargetTasks = [...targetTasks];
-    newTargetTasks.splice(newIndex, 0, activeData.id);
+    const newTargetTasks: (TaskRecord | undefined)[] = [...targetTasksList];
+    newTargetTasks.splice(newIndex, 0, sourceTasksList.find(t => t.id === activeData.id));
 
-    const prevKey = safeKey(newIndex > 0 ? state.tasks.entities[newTargetTasks[newIndex - 1]]?.orderKey : undefined);
-    const nextKey = safeKey(newIndex < newTargetTasks.length - 1 ? state.tasks.entities[newTargetTasks[newIndex + 1]]?.orderKey : undefined);
+    const prevKey = safeKey(newIndex > 0 ? newTargetTasks[newIndex - 1]?.orderKey : undefined);
+    const nextKey = safeKey(newIndex < newTargetTasks.length - 1 ? newTargetTasks[newIndex + 1]?.orderKey : undefined);
     newOrderKey = fractionalBetween(prevKey, nextKey);
 
-    // Optimistic: update only the dragged task
-    store.dispatch(taskSlice.actions.upsert({
-      id: activeData.id,
-      folderId: targetFolderId,
-      spaceId: targetSpaceId,
-      orderKey: newOrderKey
-    }));
+    patch.orderKey = newOrderKey;
+    patch.spaceId = targetSpaceId;
+    patch.folderId = targetFolderId;
   }
 
-  // Turn ON hasTasks for new container
-  if (isTargetFolder) {
-    store.dispatch(folderSlice.actions.upsert({ id: targetContainerId, hasTasks: true }));
-  } else {
-    store.dispatch(spaceSlice.actions.upsert({ id: targetContainerId, hasTasks: true }));
-  }
-
-  // Turn OFF hasTasks for old container if no tasks remain
-  if (!isSameContainer) {
-    const remainingTasks = sourceTasks.filter(id => id !== activeData.id);
-    if (remainingTasks.length === 0) {
-      if (isSourceFolder) {
-        const sourceFolder = state.folders.entities[sourceContainerId];
-        if (sourceFolder) store.dispatch(folderSlice.actions.upsert({ ...sourceFolder, hasTasks: false }));
-      } else {
-        const sourceSpace = state.spaces.entities[sourceContainerId];
-        if (sourceSpace) store.dispatch(spaceSlice.actions.upsert({ ...sourceSpace, hasTasks: false }));
-      }
-    }
-  }
-
-  // Trigger batch queue
-  triggerBatchMove({
-    kind: "task",
-    itemId: activeData.id,
-    targetSpaceId,
-    targetFolderId,
-    newOrderKey
-  });
+  taskMutations.updateLocal(activeData.id, patch).catch((err) => console.error("Failed to move task", err));
 }

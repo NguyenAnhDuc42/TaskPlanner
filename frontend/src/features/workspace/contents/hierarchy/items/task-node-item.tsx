@@ -1,11 +1,9 @@
-import React from "react";
+import { observer } from "mobx-react-lite";
 import { useLocation, useNavigate, useRouter } from "@tanstack/react-router";
 import { useWorkspace } from "@/features/workspace/context/workspace-context";
 import { cn } from "@/lib/utils";
 import { CheckSquare, MoreVertical } from "lucide-react";
-import { useSelector } from "react-redux";
-import { taskSelectors } from "@/store/entityStore";
-import type { RootState } from "@/store";
+import { useStore } from "@/stores/root.store";
 import { SortableItem } from "../dnd/sortable-item";
 import { EntityLayerType, EntityLayerType as EntityLayerConst,} from "@/types/entity-layer-type";
 import { DynamicIcon } from "@/components/dynamic-icon";
@@ -19,22 +17,22 @@ interface TaskNodeItemProps {
   spaceId: string;
 }
 
-export const TaskNodeItem = React.memo(function TaskNodeItem({
+export const TaskNodeItem = observer(function TaskNodeItem({
   taskId,
   parentId,
   parentType,
   spaceId,
 }: TaskNodeItemProps) {
-  // Select Task strictly from Redux
-  const task = useSelector((state: RootState) => taskSelectors.selectById(state, taskId));
-  
+  const rootStore = useStore();
+  const task = rootStore.taskStore.getById(taskId);
+
   const navigate = useNavigate();
   const router = useRouter();
   const { workspaceId } = useWorkspace();
   const location = useLocation();
-  
+
   if (!task) return null;
-  
+
   const isActive = location.pathname.includes(`/tasks/${task.id}`);
 
   return (
@@ -53,6 +51,7 @@ export const TaskNodeItem = React.memo(function TaskNodeItem({
         taskId={task.id}
         taskName={task.name}
         parentId={parentId}
+        spaceId={spaceId}
       >
         <div
           className={cn(
@@ -67,13 +66,13 @@ export const TaskNodeItem = React.memo(function TaskNodeItem({
             className="flex-1 text-left flex items-center outline-none select-none whitespace-nowrap"
             onMouseDown={() => {
               router.preloadRoute({
-                to: "/workspaces/$workspaceId/tasks/$taskId", 
-                params: { workspaceId, taskId: task.id } 
+                to: "/workspaces/$workspaceId/tasks/$taskId",
+                params: { workspaceId, taskId: task.id }
               });
             }}
             onClick={() => navigate({
-                to: "/workspaces/$workspaceId/tasks/$taskId", 
-                params: { workspaceId, taskId: task.id } 
+                to: "/workspaces/$workspaceId/tasks/$taskId",
+                params: { workspaceId, taskId: task.id }
               })}
           >
             <div className="w-1 h-1 rounded-full bg-muted-foreground/30 mr-1 shrink-0" />

@@ -1,8 +1,6 @@
 using FluentValidation;
 using Microsoft.AspNetCore.Mvc;
-using Domain;
 using Microsoft.EntityFrameworkCore;
-using Application;
 using System.Diagnostics;
 
 namespace Api;

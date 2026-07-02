@@ -4,7 +4,6 @@ import type { DocumentBlockRecord } from "@/types/document";
 import type { MemberRecord, WorkspaceSnippetRecord } from "@/types/workspace";
 import type { NotificationRecord } from "@/types/notification-record";
 import type { Status } from "@/types/status";
-import type { EntityAccessRecord } from "@/types/workspace";
 import type { RootState } from "./index";
 
 // ─── UTILITY: GRANULAR DEEP MERGE (LAST WRITE WINS) ───
@@ -45,7 +44,6 @@ export const adapters = {
   tasks:    createEntityAdapter<TaskRecord>(),
   members:  createEntityAdapter<MemberRecord>(),
   statuses: createEntityAdapter<Status>(),
-  entityAccess: createEntityAdapter<EntityAccessRecord>(),
   assignees: createEntityAdapter<AssigneeRecord>(),
   comments: createEntityAdapter<CommentRecord>(),
   workspaces: createEntityAdapter<WorkspaceSnippetRecord>(),
@@ -187,28 +185,6 @@ export const statusSlice = createSlice({
   }
 });
 
-export const entityAccessSlice = createSlice({
-  name: 'entityAccess',
-  initialState: adapters.entityAccess.getInitialState(),
-  reducers: {
-    upsert(state, action: PayloadAction<Partial<EntityAccessRecord> & { id: string }>) {
-      const existing = state.entities[action.payload.id];
-      const merged = safeMergeEntity(existing, action.payload);
-      adapters.entityAccess.upsertOne(state, merged);
-    },
-    upsertMany(state, action: PayloadAction<Partial<EntityAccessRecord>[]>) {
-      action.payload.forEach((item) => {
-        if (!item.id) return;
-        const existing = state.entities[item.id];
-        const merged = safeMergeEntity(existing, item);
-        adapters.entityAccess.upsertOne(state, merged);
-      });
-    },
-    remove: adapters.entityAccess.removeOne,
-    removeMany: adapters.entityAccess.removeMany,
-  }
-});
-
 export const assigneeSlice = createSlice({
   name: 'assignees',
   initialState: adapters.assignees.getInitialState(),
@@ -326,7 +302,6 @@ export const folderSelectors = adapters.folders.getSelectors((s: RootState) => s
 export const taskSelectors   = adapters.tasks.getSelectors((s: RootState) => s.tasks);
 export const memberSelectors = adapters.members.getSelectors((s: RootState) => s.members);
 export const statusSelectors = adapters.statuses.getSelectors((s: RootState) => s.statuses);
-export const entityAccessSelectors = adapters.entityAccess.getSelectors((s: RootState) => s.entityAccess);
 export const assigneeSelectors = adapters.assignees.getSelectors((s: RootState) => s.assignees);
 export const commentSelectors      = adapters.comments.getSelectors((s: RootState) => s.comments);
 export const workspaceSelectors    = adapters.workspaces.getSelectors((s: RootState) => s.workspaces);

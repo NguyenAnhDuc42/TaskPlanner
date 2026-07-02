@@ -6,8 +6,8 @@ export interface FolderRecord {
     spaceId?: string;
     name: string;
     createdAt: string;
-    startDate?: string;
-    dueDate?: string;
+    startDate?: string | null;
+    dueDate?: string | null;
     orderKey?: string;
     icon?: string;
     color?: string;

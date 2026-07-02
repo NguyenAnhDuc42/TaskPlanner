@@ -244,7 +244,8 @@ public class BatchFlushHandler(
             var slug = cmd.Name != null ? SlugHelper.GenerateSlug(cmd.Name) : null;
             task.Update(cmd.Name, slug, cmd.Color, cmd.Icon, cmd.StatusId, cmd.Priority,
                 cmd.StartDate, cmd.ClearStartDate, cmd.DueDate, cmd.ClearDueDate,
-                cmd.StoryPoints, cmd.TimeEstimateSeconds, cmd.OrderKey, cmd.ParentTaskId);
+                cmd.StoryPoints, cmd.TimeEstimateSeconds, cmd.OrderKey, cmd.ParentTaskId,
+                cmd.SpaceId, cmd.FolderId);
 
             events.Add(new SyncEvent {
                 ProjectWorkspaceId = task.ProjectWorkspaceId, EntityType = SyncEntityType.Task,
@@ -494,6 +495,7 @@ public class BatchFlushHandler(
         syncPermission.RequireCreatorOrAdmin(folder.CreatorId ?? Guid.Empty);
 
         var cmd = Deserialize<UpdateFolderCommand>(item.Data);
+        var oldSpaceId = folder.ProjectSpaceId;
         List<SyncEvent> events = [];
 
         var result = await db.ExecuteInTransactionAsync(async () =>
@@ -503,7 +505,8 @@ public class BatchFlushHandler(
             var slug = cmd.Name != null ? SlugHelper.GenerateSlug(cmd.Name) : null;
             folder.Update(name: cmd.Name, slug: slug, color: cmd.Color, icon: cmd.Icon,
                 startDate: cmd.StartDate, dueDate: cmd.DueDate, orderKey: cmd.OrderKey,
-                clearStartDate: cmd.ClearStartDate, clearDueDate: cmd.ClearDueDate);
+                clearStartDate: cmd.ClearStartDate, clearDueDate: cmd.ClearDueDate,
+                spaceId: cmd.SpaceId);
 
             events.Add(new SyncEvent {
                 ProjectWorkspaceId = folder.ProjectWorkspaceId, EntityType = SyncEntityType.Folder,
@@ -514,6 +517,35 @@ public class BatchFlushHandler(
                     orderKey = folder.OrderKey, startDate = folder.StartDate, dueDate = folder.DueDate
                 }, JsonOpts)
             });
+
+            // Cascade: same reasoning as UpdateFolderHandler — a folder moving to a different
+            // space takes its tasks with it, or they're silently invisible / wrongly cascade-
+            // deleted when the old space goes away.
+            if (oldSpaceId != folder.ProjectSpaceId)
+            {
+                var childTasks = await db.ProjectTasks
+                    .Where(t => t.ProjectFolderId == folder.Id && t.DeletedAt == null)
+                    .ToListAsync(ct);
+
+                foreach (var task in childTasks)
+                {
+                    task.Update(spaceId: folder.ProjectSpaceId);
+
+                    events.Add(new SyncEvent {
+                        ProjectWorkspaceId = task.ProjectWorkspaceId, EntityType = SyncEntityType.Task,
+                        EntityId = task.Id, Action = SyncAction.U, ClientTraceId = item.TraceId, AuthorUserId = memberId,
+                        Payload = JsonSerializer.Serialize(new {
+                            id = task.Id, workspaceId = task.ProjectWorkspaceId, spaceId = task.ProjectSpaceId,
+                            folderId = task.ProjectFolderId, name = task.Name, slug = task.Slug,
+                            defaultDocumentId = task.DefaultDocumentId, color = task.Color, icon = task.Icon,
+                            statusId = task.StatusId, priority = task.Priority, startDate = task.StartDate,
+                            dueDate = task.DueDate, storyPoints = task.StoryPoints, timeEstimateSeconds = task.TimeEstimateSeconds,
+                            orderKey = task.OrderKey, parentTaskId = task.ParentTaskId, isArchived = task.IsArchived
+                        }, JsonOpts)
+                    });
+                }
+            }
+
             db.SyncEvents.AddRange(events);
             idempotencyService.MarkAsProcessed(item.TraceId);
             return Result<int>.Success(0);
@@ -599,8 +631,9 @@ public class BatchFlushHandler(
                 ProjectWorkspaceId = workspaceContext.WorkspaceId, EntityType = SyncEntityType.Comment,
                 EntityId = comment.Id, Action = SyncAction.C, ClientTraceId = item.TraceId, AuthorUserId = creatorId,
                 Payload = JsonSerializer.Serialize(new {
-                    id = comment.Id, projectTaskId = comment.ProjectTaskId, content = comment.Content,
-                    isEdited = comment.IsEdited, parentCommentId = comment.ParentCommentId
+                    id = comment.Id, taskId = comment.ProjectTaskId, content = comment.Content,
+                    isEdited = comment.IsEdited, parentCommentId = comment.ParentCommentId,
+                    creatorId = comment.CreatorId, createdAt = comment.CreatedAt
                 }, JsonOpts)
             });
             db.SyncEvents.AddRange(events);
@@ -633,8 +666,9 @@ public class BatchFlushHandler(
                 ProjectWorkspaceId = workspaceContext.WorkspaceId, EntityType = SyncEntityType.Comment,
                 EntityId = comment.Id, Action = SyncAction.U, ClientTraceId = item.TraceId, AuthorUserId = memberId,
                 Payload = JsonSerializer.Serialize(new {
-                    id = comment.Id, projectTaskId = comment.ProjectTaskId, content = comment.Content,
-                    isEdited = comment.IsEdited, parentCommentId = comment.ParentCommentId
+                    id = comment.Id, taskId = comment.ProjectTaskId, content = comment.Content,
+                    isEdited = comment.IsEdited, parentCommentId = comment.ParentCommentId,
+                    creatorId = comment.CreatorId, createdAt = comment.CreatedAt
                 }, JsonOpts)
             });
             db.SyncEvents.AddRange(events);

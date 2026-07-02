@@ -1,4 +1,5 @@
 import { useRef, useMemo, useCallback, useState } from "react";
+import { observer } from "mobx-react-lite";
 import { useNavigate, useSearch } from "@tanstack/react-router";
 import { createPortal } from "react-dom";
 import {
@@ -7,28 +8,23 @@ import {
   closestCorners
 } from "@dnd-kit/core";
 import { Priority, prioritySort } from "@/types/priority";
-import {
-  useSpaceItemsFullLoad,
-  useSpaceBoardItems,
-  useSpaceStatuses,
-  useBatchUpdateSpaceItemsMutation,
-  type BoardItem,
-  type SpaceBoardFilter,
-} from "../space-api";
-import { useSelector } from "react-redux";
-import { folderSelectors } from "@/store/entityStore";
-import type { RootState } from "@/store";
+import type { BoardItem, SpaceBoardFilter } from "../space-board-types";
 import { useDebounce } from "@/hooks/use-debounce";
 import { BoardItemCard } from "./sortable-board-item";
 import { useBoardDnd } from "./use-board-dnd";
 import { BoardColumn } from "./board-column";
 import { useSmartWheelScroll } from "@/features/workspace/contents/views/space/utils/use-smart-wheel-scroll";
 import { useEdgeScroll } from "@/features/workspace/contents/views/space/utils/use-edge-scroll";
-import { useDebouncedSpaceBatch } from "@/features/workspace/contents/views/space/utils/use-debounced-space-batch";
 import { SpaceFilterBar } from "./space-filter-bar";
-import { EntityLayerType } from "@/types/entity-layer-type";
 import { useWorkspace } from "@/features/workspace/context/workspace-context";
 import { FolderCardsBar } from "./folder-cards-bar";
+import { useStore } from "@/stores/root.store";
+import { useSyncEngine, useSyncReady } from "@/sync/sync-provider";
+import { useDebouncedFlush } from "@/sync/use-debounced-flush";
+import { TaskMutations } from "@/mutations/task.mutations";
+import { StatusCategory } from "@/types/status-category";
+import type { Status } from "@/types/status";
+import { toLocalDay } from "@/lib/date-filter";
 
 
 interface SpaceBoardProps {
@@ -36,16 +32,48 @@ interface SpaceBoardProps {
   onWorkflowOpen?: () => void;
 }
 
-export function SpaceBoard({ spaceId, onWorkflowOpen }: Readonly<SpaceBoardProps>) {
+const statusCategoryWeight: Record<string, number> = {
+  [StatusCategory.NotStarted]: 0,
+  [StatusCategory.Active]: 1,
+  [StatusCategory.Done]: 2,
+  [StatusCategory.Closed]: 3,
+};
+
+function sortStatuses(statuses: Status[]): Status[] {
+  return [...statuses].sort((a, b) => {
+    const weightA = statusCategoryWeight[a.category] ?? 4;
+    const weightB = statusCategoryWeight[b.category] ?? 4;
+    if (weightA !== weightB) return weightA - weightB;
+    return ((a.orderKey ?? "") < (b.orderKey ?? "") ? -1 : 1);
+  });
+}
+
+export const SpaceBoard = observer(function SpaceBoard({ spaceId, onWorkflowOpen }: Readonly<SpaceBoardProps>) {
   const navigate = useNavigate({ from: "/workspaces/$workspaceId/spaces/$spaceId" });
   const search = useSearch({ strict: false }) as { contextPanel?: { type: string; id: string } };
   const selectedItemId = search.contextPanel?.id;
 
   const containerRef = useRef<HTMLDivElement | null>(null);
 
-  const { isLoading, isFullyLoaded } = useSpaceItemsFullLoad(spaceId);
-  const boardItems = useSpaceBoardItems(spaceId);
-  const statuses = useSpaceStatuses(spaceId);
+  const rootStore = useStore();
+  const syncEngine = useSyncEngine();
+  const { ready } = useSyncReady();
+  const taskMutations = useMemo(() => new TaskMutations(rootStore, syncEngine), [rootStore, syncEngine]);
+  const { scheduleFlush } = useDebouncedFlush(syncEngine);
+
+  // Tasks/statuses are already fully hydrated locally (Bootstrap + Delta) — plain reads, not
+  // useMemo. This component is a mobx-react-lite observer, which tracks observable reads made
+  // directly during render; a store read wrapped in useMemo (keyed on the store's object
+  // reference, which never changes) would silently freeze — see the folder-view.tsx fix.
+  const boardItems: BoardItem[] = rootStore.taskStore
+    .getBySpace(spaceId)
+    .filter((t) => !t.parentTaskId)
+    .map((t) => ({
+      ...t,
+      __type: "task" as const,
+      folderName: t.folderId ? rootStore.folderStore.getById(t.folderId)?.name : undefined,
+    }));
+  const statuses = sortStatuses(rootStore.statusStore.getBySpace(spaceId));
 
   const [hiddenStatusIds, setHiddenStatusIds] = useState<string[]>([]);
   const [hideUnclassified, setHideUnclassified] = useState(false);
@@ -55,11 +83,7 @@ export function SpaceBoard({ spaceId, onWorkflowOpen }: Readonly<SpaceBoardProps
 
   const { workspaceId } = useWorkspace();
 
-  const folders = useSelector((state: RootState) =>
-    folderSelectors.selectAll(state)
-      .filter(f => f.spaceId === spaceId)
-      .sort((a, b) => ((a.orderKey ?? "") < (b.orderKey ?? "") ? -1 : 1))
-  );
+  const folders = rootStore.folderStore.getBySpace(spaceId).sort((a, b) => ((a.orderKey ?? "") < (b.orderKey ?? "") ? -1 : 1));
 
   const folderTaskCounts = useMemo(() => {
     const counts: Record<string, number> = {};
@@ -77,14 +101,26 @@ export function SpaceBoard({ spaceId, onWorkflowOpen }: Readonly<SpaceBoardProps
         if (!filter.folderIds.includes(fid)) return false;
       }
       if (debouncedSearch && !item.name.toLowerCase().includes(debouncedSearch.toLowerCase())) return false;
-      if (filter.startDate && (!item.startDate || item.startDate < filter.startDate)) return false;
-      if (filter.dueDate && (!item.dueDate || item.dueDate > filter.dueDate)) return false;
+      if (filter.startDate) {
+        const day = toLocalDay(item.startDate);
+        if (!day || day < toLocalDay(filter.startDate)!) return false;
+      }
+      if (filter.dueDate) {
+        const day = toLocalDay(item.dueDate);
+        if (!day || day > toLocalDay(filter.dueDate)!) return false;
+      }
       return true;
     });
   }, [boardItems, filter, debouncedSearch]);
 
-  const [batchUpdateMutation] = useBatchUpdateSpaceItemsMutation();
-  const enqueue = useDebouncedSpaceBatch(batchUpdateMutation, spaceId);
+  // Each board mutation (drag-drop, priority change, date change) queues a single local update
+  // (store + IndexedDB + enqueue) then debounces the network flush — TransactionQueue.squash()
+  // merges rapid successive updates to the same task into one send.
+  const enqueue = useCallback((update: { id: string; statusId?: string | null; priority?: Priority; orderKey?: string; startDate?: string | null; dueDate?: string | null }) => {
+    const { id, ...patch } = update;
+    taskMutations.updateLocal(id, patch).catch((err) => console.error("Failed to apply local task update", err));
+    scheduleFlush();
+  }, [taskMutations, scheduleFlush]);
 
   const columns = useMemo(() => {
     const nextCols: Record<string, BoardItem[]> = {};
@@ -127,22 +163,22 @@ export function SpaceBoard({ spaceId, onWorkflowOpen }: Readonly<SpaceBoardProps
     });
   }, [navigate]);
 
-  const handleDateChange = useCallback((itemId: string, patches: { startDate?: string; dueDate?: string; clearStartDate?: boolean; clearDueDate?: boolean }) => {
-    enqueue({ id: itemId, type: EntityLayerType.ProjectTask, ...patches });
+  const handleDateChange = useCallback((itemId: string, patches: { startDate?: string | null; dueDate?: string | null }) => {
+    enqueue({ id: itemId, ...patches });
   }, [enqueue]);
 
   const handlePriorityChange = useCallback((itemId: string, priority: Priority) => {
-    enqueue({ id: itemId, type: EntityLayerType.ProjectTask, priority });
+    enqueue({ id: itemId, priority });
   }, [enqueue]);
 
   const emptyStatusIds = useMemo(
     () => statuses.filter(s => (columns[s.id]?.length ?? 0) === 0).map(s => s.id),
     [statuses, columns]
   );
-  const [prevIsFullyLoaded, setPrevIsFullyLoaded] = useState(isFullyLoaded);
-  if (isFullyLoaded !== prevIsFullyLoaded) {
-    setPrevIsFullyLoaded(isFullyLoaded);
-    if (isFullyLoaded && emptyStatusIds.length > 0) {
+  const [prevIsFullyLoaded, setPrevIsFullyLoaded] = useState(ready);
+  if (ready !== prevIsFullyLoaded) {
+    setPrevIsFullyLoaded(ready);
+    if (ready && emptyStatusIds.length > 0) {
       setHiddenStatusIds(prev => [...new Set([...prev, ...emptyStatusIds])]);
     }
   }
@@ -169,7 +205,7 @@ export function SpaceBoard({ spaceId, onWorkflowOpen }: Readonly<SpaceBoardProps
     return cols;
   }, [statuses, columns, hiddenStatusIds, hideUnclassified]);
 
-  if (isLoading && boardItems.length === 0) {
+  if (!ready && boardItems.length === 0) {
     return (
       <div className="flex-1 flex items-center justify-center text-xs text-muted-foreground">
         Loading board items...
@@ -189,7 +225,7 @@ export function SpaceBoard({ spaceId, onWorkflowOpen }: Readonly<SpaceBoardProps
         searchInput={searchInput}
         onSearchChange={setSearchInput}
         onWorkflowOpen={onWorkflowOpen}
-        isFullyLoaded={isFullyLoaded}
+        isFullyLoaded={ready}
         hideUnclassified={hideUnclassified}
         onToggleUnclassified={() => setHideUnclassified(v => !v)}
         hasEmptyStatuses={emptyStatusIds.length > 0}
@@ -236,7 +272,7 @@ export function SpaceBoard({ spaceId, onWorkflowOpen }: Readonly<SpaceBoardProps
           <DragOverlay dropAnimation={null}>
             {draggedItem ? (
               // Add layout-stable inline styles to prevent container shifting on mount
-              <div 
+              <div
                 className="rotate-3 scale-105 opacity-90 pointer-events-none w-67 contain-layout"
                 style={{ willChange: "transform" }}
               >
@@ -249,4 +285,4 @@ export function SpaceBoard({ spaceId, onWorkflowOpen }: Readonly<SpaceBoardProps
       </DndContext>
     </>
   );
-}
+});

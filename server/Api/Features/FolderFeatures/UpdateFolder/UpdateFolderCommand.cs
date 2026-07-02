@@ -10,7 +10,8 @@ public record UpdateFolderCommand(
     bool ClearStartDate,
     DateTimeOffset? DueDate,
     bool ClearDueDate,
-    string? OrderKey
+    string? OrderKey,
+    Guid? SpaceId
 ) : ICommandRequest<long>, IAuthorizedWorkspaceRequest
 {
     [JsonIgnore]

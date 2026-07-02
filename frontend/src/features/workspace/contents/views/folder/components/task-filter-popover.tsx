@@ -4,7 +4,7 @@ import { Priority } from "@/types/priority";
 import { PriorityBadge } from "@/components/priority-badge";
 import { StatusBadge } from "@/components/status-badge";
 import { Input } from "@/components/ui/input";
-import type { TaskFilter } from "../folder-api";
+import type { TaskFilter } from "./folder-task-list";
 import type { Status } from "@/types/status";
 import {
   DropdownMenu,

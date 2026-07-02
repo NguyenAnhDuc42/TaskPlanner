@@ -1,19 +1,32 @@
-import { Lock, Unlock } from "lucide-react";
-import { useSpaceDetail, useUpdateSpaceFieldMutation } from "../space-api";
-import { useSpaceAccess } from "@/features/workspace/context/use-space-access";
+import { useMemo } from "react";
+import { observer } from "mobx-react-lite";
+import { useWorkspaceRole } from "@/features/workspace/context/use-workspace-role";
 import { UniversalPicker } from "@/components/universal-picker";
 import { BlockEditor } from "@/components/blockbase/block-editor";
+import { useStore } from "@/stores/root.store";
+import { useSyncEngine } from "@/sync/sync-provider";
+import { useDebouncedFlush } from "@/sync/use-debounced-flush";
+import { SpaceMutations } from "@/mutations/space.mutations";
 
 interface SpaceDocumentsPanelProps {
   spaceId: string;
 }
 
-export function SpaceDocumentsPanel({ spaceId }: SpaceDocumentsPanelProps) {
-  const space = useSpaceDetail(spaceId);
-  const { canEdit, canManage } = useSpaceAccess(spaceId);
-  const [updateSpaceField] = useUpdateSpaceFieldMutation();
+export const SpaceDocumentsPanel = observer(function SpaceDocumentsPanel({ spaceId }: SpaceDocumentsPanelProps) {
+  const rootStore = useStore();
+  const syncEngine = useSyncEngine();
+  const spaceMutations = useMemo(() => new SpaceMutations(rootStore, syncEngine), [rootStore, syncEngine]);
+  const { scheduleFlush } = useDebouncedFlush(syncEngine);
+
+  const space = rootStore.spaceStore.getById(spaceId);
+  const { canCreateContent: canEdit, isAdmin: canManage } = useWorkspaceRole();
 
   if (!space) return null;
+
+  const updateField = (patches: Parameters<SpaceMutations["updateLocal"]>[1]) => {
+    spaceMutations.updateLocal(spaceId, patches).catch((err) => console.error("Failed to apply local space update", err));
+    scheduleFlush();
+  };
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
@@ -24,7 +37,7 @@ export function SpaceDocumentsPanel({ spaceId }: SpaceDocumentsPanelProps) {
           <UniversalPicker
             icon={space.icon || "LayoutGrid"}
             color={space.color || "#3b82f6"}
-            onSelect={(icon, color) => updateSpaceField({ spaceId, patches: { icon, color } })}
+            onSelect={(icon, color) => updateField({ icon, color })}
             size="lg"
           />
           <div className="min-w-0 flex-1">
@@ -35,21 +48,10 @@ export function SpaceDocumentsPanel({ spaceId }: SpaceDocumentsPanelProps) {
               readOnly={!canManage}
               onBlur={e => {
                 if (canManage && e.target.value.trim() && e.target.value !== space.name)
-                  updateSpaceField({ spaceId, patches: { name: e.target.value.trim() } });
+                  updateField({ name: e.target.value.trim() });
               }}
               onKeyDown={e => { if (e.key === "Enter") e.currentTarget.blur(); }}
             />
-            <div className="px-1 mt-0.5">
-              {space.isPrivate ? (
-                <span className="flex items-center gap-0.5 text-[9px] font-bold text-rose-400/70 uppercase tracking-wider">
-                  <Lock className="h-2.5 w-2.5" /> Private
-                </span>
-              ) : (
-                <span className="flex items-center gap-0.5 text-[9px] font-bold text-emerald-400/70 uppercase tracking-wider">
-                  <Unlock className="h-2.5 w-2.5" /> Public
-                </span>
-              )}
-            </div>
           </div>
         </div>
       </div>
@@ -67,4 +69,4 @@ export function SpaceDocumentsPanel({ spaceId }: SpaceDocumentsPanelProps) {
       </div>
     </div>
   );
-}
+});

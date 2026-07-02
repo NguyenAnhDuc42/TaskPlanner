@@ -1,23 +1,35 @@
 import * as React from "react";
 import { Plus, Search, X } from "lucide-react";
-import { useParams } from "@tanstack/react-router";
-import { useBatchUpdateFolderTasksMutation, type TaskFilter, useFolderStatuses, useFolderTasksFullLoad } from "../folder-api";
 import { DialogFormWrapper } from "@/components/dialog-form-wrapper";
 import { CreateTaskForm } from "@/features/workspace/components/forms/create-task-form";
 import { EntityLayerType } from "@/types/entity-layer-type";
 import { SortableTaskItem } from "./sortable-task-item";
-import { useSelector } from "react-redux";
-import { useSpaceAccess } from "@/features/workspace/context/use-space-access";
-import { useFolderDetail } from "../folder-api";
-import { taskSelectors } from "@/store/entityStore";
-import { createSelector } from "@reduxjs/toolkit";
+import { useWorkspaceRole } from "@/features/workspace/context/use-workspace-role";
 import { TaskFilterPopover } from "./task-filter-popover";
 import { useDebounce } from "@/hooks/use-debounce";
 import { SortableList } from "@/components/sortable-list";
 import type { TaskRecord } from "@/types/projects";
+import type { Status } from "@/types/status";
+import type { Priority } from "@/types/priority";
+import type { TaskMutations } from "@/mutations/task.mutations";
+import { toLocalDay } from "@/lib/date-filter";
+
+export interface TaskFilter {
+  statusIds?: string[];
+  priorities?: Priority[];
+  assigneeIds?: string[];
+  startDate?: string;
+  dueDate?: string;
+  search?: string;
+}
 
 type FolderTaskListProps = Readonly<{
-  folderIdProp?: string;
+  folderId: string;
+  tasks: TaskRecord[];
+  taskStatuses: Status[];
+  spaceId?: string;
+  taskMutations: TaskMutations;
+  scheduleFlush: () => void;
   onSelectTask?: (taskId: string) => void;
   selectedTaskId?: string;
   checkedTaskIds?: Set<string>;
@@ -25,19 +37,20 @@ type FolderTaskListProps = Readonly<{
 }>;
 
 export function FolderTaskList({
-  folderIdProp,
+  folderId,
+  tasks: allTasks,
+  taskStatuses,
+  spaceId,
+  taskMutations,
+  scheduleFlush,
   onSelectTask,
   selectedTaskId = "1",
   checkedTaskIds = new Set(),
   onToggleCheck,
 }: FolderTaskListProps) {
-  const params = useParams({ strict: false }) as { folderId?: string };
-  const folderId = folderIdProp || params.folderId || "";
-  
-  const folder = useFolderDetail(folderId);
-  const { canEdit: canCreateContent } = useSpaceAccess(folder?.spaceId ?? "");
+  const { canCreateContent } = useWorkspaceRole();
   const [createOpen, setCreateOpen] = React.useState(false);
-  
+
   const [filterState, setFilterState] = React.useState<TaskFilter>({});
   const [searchInput, setSearchInput] = React.useState("");
   const debouncedSearch = useDebounce(searchInput, 300);
@@ -46,38 +59,46 @@ export function FolderTaskList({
     ...filterState,
     search: debouncedSearch || undefined
   }), [filterState, debouncedSearch]);
-  
+
   const setFilter = setFilterState;
 
-  const folderStatuses = useFolderStatuses(folderId);
+  // Tasks are already fully hydrated locally (Bootstrap + Delta) — no pagination/fetch needed,
+  // just filter/sort what's already in the store.
+  const tasks = React.useMemo(
+    () => allTasks
+      .filter((t) => {
+        if (filter.statusIds?.length) {
+          const taskStatusId = t.statusId?.toLowerCase() ?? "";
+          if (!filter.statusIds.some((id) => id.toLowerCase() === taskStatusId)) return false;
+        }
+        if (filter.priorities?.length && !filter.priorities.includes(t.priority ?? "" as Priority)) return false;
+        if (debouncedSearch && !t.name.toLowerCase().includes(debouncedSearch.toLowerCase())) return false;
+        if (filter.startDate) {
+          const day = toLocalDay(t.startDate);
+          if (!day || day < toLocalDay(filter.startDate)!) return false;
+        }
+        if (filter.dueDate) {
+          const day = toLocalDay(t.dueDate);
+          if (!day || day > toLocalDay(filter.dueDate)!) return false;
+        }
+        return true;
+      })
+      .sort((a, b) => ((a.orderKey ?? "") < (b.orderKey ?? "") ? -1 : 1)),
+    [allTasks, filter, debouncedSearch],
+  );
 
-  const { isLoading } = useFolderTasksFullLoad(folderId);
-
-  const selectTasks = React.useMemo(() =>
-    createSelector(
-      [taskSelectors.selectAll],
-      (all) => all
-        .filter((t): t is TaskRecord => {
-          if (t.folderId !== folderId || !!t.parentTaskId) return false;
-          if (filter.statusIds?.length && !filter.statusIds.includes(t.statusId ?? "")) return false;
-          if (filter.priorities?.length && !filter.priorities.includes(t.priority ?? "")) return false;
-          if (debouncedSearch && !t.name.toLowerCase().includes(debouncedSearch.toLowerCase())) return false;
-          if (filter.startDate && (!t.startDate || t.startDate < filter.startDate)) return false;
-          if (filter.dueDate && (!t.dueDate || t.dueDate > filter.dueDate)) return false;
-          return true;
-        })
-        .sort((a, b) => ((a.orderKey ?? "") < (b.orderKey ?? "") ? -1 : 1))
-    ),
-  [folderId, filter, debouncedSearch]);
-
-  const tasks = useSelector(selectTasks);
-
-  const [batchUpdate] = useBatchUpdateFolderTasksMutation();
+  const onUpdateTask = React.useCallback((taskId: string, patch: Partial<TaskRecord>) => {
+    taskMutations.updateLocal(taskId, patch).catch((err) => console.error("Failed to apply local task update", err));
+    scheduleFlush();
+  }, [taskMutations, scheduleFlush]);
 
   const handleReorder = React.useCallback((newTasks: TaskRecord[]) => {
-    const updates = newTasks.map((t, idx) => ({ id: t.id, orderKey: String(idx).padStart(6, "0") }));
-    batchUpdate({ folderId, updates });
-  }, [folderId, batchUpdate]);
+    Promise.all(
+      newTasks.map((t, idx) => taskMutations.updateLocal(t.id, { orderKey: String(idx).padStart(6, "0") })),
+    )
+      .then(() => scheduleFlush())
+      .catch((err) => console.error("Failed to reorder tasks", err));
+  }, [taskMutations, scheduleFlush]);
 
   return (
     <div className="flex flex-col h-full w-full bg-transparent relative">
@@ -104,10 +125,10 @@ export function FolderTaskList({
         <TaskFilterPopover
           filter={filter}
           onChange={setFilter}
-          statuses={folderStatuses}
+          statuses={taskStatuses}
         />
         <div className="w-[1px] h-3.5 bg-border shrink-0" />
-        <button 
+        <button
           className="h-7 w-7 flex items-center justify-center rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition-colors shrink-0 shadow-sm"
           onClick={() => setCreateOpen(true)}
         >
@@ -117,10 +138,7 @@ export function FolderTaskList({
 
       {/* Task List */}
       <div className="flex-1 overflow-y-auto p-1 space-y-1 [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-thumb]:bg-muted-foreground/10 hover:[&::-webkit-scrollbar-thumb]:bg-muted-foreground/30 [&::-webkit-scrollbar-track]:bg-transparent">
-        {isLoading && tasks.length === 0 && (
-          <div className="p-4 text-xs text-muted-foreground text-center">Loading tasks...</div>
-        )}
-        {!isLoading && tasks.length === 0 && (
+        {tasks.length === 0 && (
           <div className="p-4 text-xs text-muted-foreground text-center">No tasks in this folder.</div>
         )}
 
@@ -133,7 +151,7 @@ export function FolderTaskList({
             const t = tasks.find(t => t.id === draggedId);
             return t ? (
               <div className="rotate-1 scale-[1.02] opacity-95 cursor-grabbing pointer-events-none shadow-2xl shadow-black/60">
-                <SortableTaskItem task={t} isSelected={false} isChecked={false} onSelect={() => {}} />
+                <SortableTaskItem task={t} isSelected={false} isChecked={false} onSelect={() => {}} statuses={taskStatuses} spaceId={spaceId} onUpdateTask={onUpdateTask} />
               </div>
             ) : null;
           }}
@@ -146,6 +164,9 @@ export function FolderTaskList({
               isChecked={checkedTaskIds.has(task.id)}
               onSelect={() => onSelectTask?.(task.id)}
               onToggleCheck={onToggleCheck}
+              statuses={taskStatuses}
+              spaceId={spaceId}
+              onUpdateTask={onUpdateTask}
             />
           ))}
         </SortableList>

@@ -2,14 +2,17 @@ import { arrayMove } from "@dnd-kit/sortable";
 import { EntityLayerType as EntityLayerConst } from "@/types/entity-layer-type";
 import { safeKey, fractionalBetween } from "../../utils/fractional-index";
 import type { DragItemData, DragFolderData } from "../drag-item-type";
-import { store } from "@/store";
-import { folderSlice, spaceSlice } from "@/store/entityStore";
+import type { RootStore } from "@/stores/root.store";
+import type { FolderMutations } from "@/mutations/folder.mutations";
+import type { TaskMutations } from "@/mutations/task.mutations";
 
 export function handleFolderMove(
+  rootStore: RootStore,
+  folderMutations: FolderMutations,
+  taskMutations: TaskMutations,
   activeData: DragFolderData,
   overData: DragItemData,
-  triggerBatchMove: (move: { kind: "folder"; itemId: string; targetParentId: string | null; newOrderKey: string }) => void
-) {
+): void {
   let targetSpaceId: string | undefined;
 
   if (overData?.type === EntityLayerConst.ProjectSpace) {
@@ -20,23 +23,15 @@ export function handleFolderMove(
 
   if (!targetSpaceId) return;
 
-  const state = store.getState();
   const sourceSpaceId = activeData.spaceId;
 
-  // Retrieve and sort current sibling folders under source space
-  const sourceFoldersList = Object.values(state.folders.entities)
-    .filter((f): f is typeof f & { id: string } => !!f && f.spaceId === sourceSpaceId)
+  const sourceFoldersList = rootStore.folderStore.getBySpace(sourceSpaceId)
     .sort((a, b) => ((a.orderKey ?? "") < (b.orderKey ?? "") ? -1 : 1));
-
   const sourceFolders = sourceFoldersList.map(f => f.id);
 
-  // Retrieve sibling folders under target space
   const targetFoldersList = sourceSpaceId === targetSpaceId
     ? sourceFoldersList
-    : Object.values(state.folders.entities)
-        .filter((f): f is typeof f & { id: string } => !!f && f.spaceId === targetSpaceId)
-        .sort((a, b) => ((a.orderKey ?? "") < (b.orderKey ?? "") ? -1 : 1));
-
+    : rootStore.folderStore.getBySpace(targetSpaceId).sort((a, b) => ((a.orderKey ?? "") < (b.orderKey ?? "") ? -1 : 1));
   const targetFolders = targetFoldersList.map(f => f.id);
 
   // Guard: dropping onto itself or its current parent space header
@@ -47,7 +42,7 @@ export function handleFolderMove(
   const oldIndex = sourceFolders.indexOf(activeData.id);
   let newIndex = targetFolders.indexOf(overData.id);
 
-  // Bug 2 Fix: If dropped on container space header, append to the end
+  // If dropped on container space header, append to the end
   if (newIndex === -1) newIndex = targetFolders.length;
 
   if (sourceSpaceId === targetSpaceId && oldIndex === newIndex) {
@@ -55,6 +50,7 @@ export function handleFolderMove(
   }
 
   let newOrderKey: string;
+  const patch: { orderKey: string; spaceId?: string } = { orderKey: "" };
 
   if (sourceSpaceId === targetSpaceId) {
     if (oldIndex === -1) return;
@@ -62,31 +58,26 @@ export function handleFolderMove(
     const prevKey = safeKey(moved[newIndex - 1]?.orderKey);
     const nextKey = safeKey(moved[newIndex + 1]?.orderKey);
     newOrderKey = fractionalBetween(prevKey, nextKey);
-
-    // Optimistic: update only the dragged folder
-    store.dispatch(folderSlice.actions.upsert({ id: activeData.id, orderKey: newOrderKey }));
+    patch.orderKey = newOrderKey;
   } else {
     // Cross-space move: insert at newIndex in target list
     const prevKey = safeKey(targetFoldersList[newIndex - 1]?.orderKey);
     const nextKey = safeKey(targetFoldersList[newIndex]?.orderKey);
     newOrderKey = fractionalBetween(prevKey, nextKey);
-
-    // Optimistic: update only the dragged folder
-    store.dispatch(folderSlice.actions.upsert({ id: activeData.id, spaceId: targetSpaceId, orderKey: newOrderKey }));
+    patch.orderKey = newOrderKey;
+    patch.spaceId = targetSpaceId;
   }
 
-  // Turn ON hasFolders for new target Space
-  store.dispatch(spaceSlice.actions.upsert({ id: targetSpaceId, hasFolders: true }));
+  folderMutations.updateLocal(activeData.id, patch).catch((err) => console.error("Failed to move folder", err));
 
-  // Turn OFF hasFolders for source Space if this was the last folder under it
-  const remainingFolders = sourceFolders.filter(id => id !== activeData.id);
-  if (remainingFolders.length === 0) {
-    const sourceSpace = state.spaces.entities[sourceSpaceId];
-    if (sourceSpace) {
-      store.dispatch(spaceSlice.actions.upsert({ ...sourceSpace, hasFolders: false }));
+  // Cascade: a folder moving to a different space takes its tasks with it — otherwise they
+  // silently keep referencing the old space (invisible on the new space's board, and wrongly
+  // swept up if the old space gets deleted later). Mirrors the backend's UpdateFolderHandler
+  // cascade for the same reason.
+  if (patch.spaceId) {
+    const childTasks = rootStore.taskStore.all.filter((t) => t.folderId === activeData.id);
+    for (const task of childTasks) {
+      taskMutations.updateLocal(task.id, { spaceId: patch.spaceId }).catch((err) => console.error("Failed to cascade folder move to task", err));
     }
   }
-
-  // Trigger batch queue
-  triggerBatchMove({ kind: "folder", itemId: activeData.id, targetParentId: targetSpaceId, newOrderKey });
 }

@@ -1,14 +1,12 @@
-import React, { useState } from "react";
+import { useState } from "react";
+import { observer } from "mobx-react-lite";
 import { ChevronRight, MoreVertical } from "lucide-react";
 import { DynamicIcon } from "@/components/dynamic-icon";
 import { useNavigate, useLocation, useRouter } from "@tanstack/react-router";
 import { useWorkspace } from "@/features/workspace/context/workspace-context";
 import { cn } from "@/lib/utils";
 import { Collapsible, CollapsibleContent } from "@/components/ui/collapsible";
-import { useSelector } from "react-redux";
-import { folderSelectors } from "@/store/entityStore";
-import { hierarchyApi } from "../hierarchy-api";
-import type { RootState } from "@/store";
+import { useStore } from "@/stores/root.store";
 import { SortableItem } from "../dnd/sortable-item";
 import { NodeTasksList } from "./task-node-list";
 import { EntityLayerType as EntityLayerConst } from "@/types/entity-layer-type";
@@ -20,16 +18,16 @@ interface FolderNodeItemProps {
   spaceId: string;
 }
 
-export const FolderNodeItem = React.memo(function FolderNodeItem({
+export const FolderNodeItem = observer(function FolderNodeItem({
   folderId,
   spaceId,
 }: FolderNodeItemProps) {
-  const folder = useSelector((state: RootState) => folderSelectors.selectById(state, folderId));
-  
-  const prefetchTasks = hierarchyApi.usePrefetch("getNodeTasks");
+  const rootStore = useStore();
+  const folder = rootStore.folderStore.getById(folderId);
+  const hasTasks = rootStore.taskStore.all.some((t) => t.folderId === folderId && !t.parentTaskId);
 
   const [isOpen, setIsOpen] = useState(false);
-  
+
   const location = useLocation();
   const navigate = useNavigate();
   const router = useRouter();
@@ -67,12 +65,8 @@ export const FolderNodeItem = React.memo(function FolderNodeItem({
             <button
               type="button"
               className="relative flex items-center justify-center w-5 h-5 shrink-0 cursor-pointer rounded-sm hover:bg-background/50 group/icon mr-1.5"
-              onMouseEnter={() => {
-                if (isOpen || !workspaceId || !folder.hasTasks) return;
-                prefetchTasks({ workspaceId, nodeId: folder.id, parentType: EntityLayerConst.ProjectFolder, cursor: null });
-              }}
               onClick={(e) => {
-                if (!folder.hasTasks) return;
+                if (!hasTasks) return;
                 e.stopPropagation();
                 setIsOpen(!isOpen);
               }}
@@ -83,12 +77,10 @@ export const FolderNodeItem = React.memo(function FolderNodeItem({
                 color={folder.color}
                 className={cn(
                   "absolute transition-none",
-                  folder.hasTasks && "group-hover/icon:opacity-0",
+                  hasTasks && "group-hover/icon:opacity-0",
                 )}
               />
-              {/* Chevron shows whenever hasTasks=true — including after optimistic dispatch.
-                  This is the fallback: if auto-expand doesn't fire, user clicks here. */}
-              {folder.hasTasks && (
+              {hasTasks && (
                 <ChevronRight
                   className={cn(
                     "h-4 w-4 absolute opacity-0 text-muted-foreground group-hover/icon:opacity-100 transition-none",
@@ -97,7 +89,7 @@ export const FolderNodeItem = React.memo(function FolderNodeItem({
                 />
               )}
             </button>
-            
+
             <button
               type="button"
               className="flex-1 text-left text-[11px] font-semibold outline-none select-none whitespace-nowrap"

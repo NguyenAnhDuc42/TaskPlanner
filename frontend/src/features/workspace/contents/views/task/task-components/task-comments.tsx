@@ -1,12 +1,18 @@
-import React, { useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { observer } from "mobx-react-lite";
 import { useSelector } from "react-redux";
 import { UserAvatar } from "@/components/user-avatar";
 import { Send, CornerDownRight, Trash2, X, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { MentionInput } from "@/components/mention-input";
-import { memberSelectors, commentSelectors } from "@/store/entityStore";
+import { memberSelectors } from "@/store/entityStore";
 import { toast } from "sonner";
-import { useTaskComments, useAddCommentMutation, useDeleteCommentMutation } from "../task-api";
+import { useStore } from "@/stores/root.store";
+import { useSyncEngine } from "@/sync/sync-provider";
+import { CommentMutations } from "@/mutations/comment.mutations";
+import { api } from "@/lib/api-client";
+import type { CommentRecord } from "@/types/projects";
+import type { PagedResult } from "@/types/paged-result";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -57,18 +63,67 @@ interface TaskCommentsProps {
   taskId: string;
 }
 
-export function TaskComments({ taskId }: Readonly<TaskCommentsProps>) {
+// Same bridge idea as TaskAssignees — no fetch endpoint on the new backend yet (Comment isn't
+// part of Bootstrap, and likely never will be given volume — a per-task paginated fetch makes
+// more sense than bulk-loading). Plain REST calls (no RTK/Redux) seed commentStore/DB; reads and
+// mutations after that go exclusively through the new system so live Deltas land in the same place.
+function useTaskComments(taskId: string) {
+  const [items, setItems] = useState<CommentRecord[]>([]);
+  const [nextCursor, setNextCursor] = useState<string | null>(null);
+  const [hasNextPage, setHasNextPage] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isFetchingNextPage, setIsFetchingNextPage] = useState(false);
+
+  useEffect(() => {
+    if (!taskId) return;
+    let cancelled = false;
+    setIsLoading(true);
+    api.get<PagedResult<CommentRecord>>(`/tasks/${taskId}/comments`)
+      .then(({ data }) => {
+        if (cancelled) return;
+        setItems(data.items);
+        setNextCursor(data.nextCursor);
+        setHasNextPage(data.hasNextPage);
+      })
+      .catch((err) => console.error(`Failed to fetch comments for task ${taskId}:`, err))
+      .finally(() => { if (!cancelled) setIsLoading(false); });
+    return () => { cancelled = true; };
+  }, [taskId]);
+
+  const fetchNextPage = useCallback(() => {
+    if (!nextCursor || isFetchingNextPage) return;
+    setIsFetchingNextPage(true);
+    api.get<PagedResult<CommentRecord>>(`/tasks/${taskId}/comments`, { params: { cursor: nextCursor } })
+      .then(({ data }) => {
+        setItems((prev) => [...prev, ...data.items]);
+        setNextCursor(data.nextCursor);
+        setHasNextPage(data.hasNextPage);
+      })
+      .catch((err) => console.error(`Failed to fetch more comments for task ${taskId}:`, err))
+      .finally(() => setIsFetchingNextPage(false));
+  }, [taskId, nextCursor, isFetchingNextPage]);
+
+  return { items, isLoading, isFetchingNextPage, hasNextPage, fetchNextPage };
+}
+
+export const TaskComments = observer(function TaskComments({ taskId }: Readonly<TaskCommentsProps>) {
   const allMembers = useSelector(memberSelectors.selectAll);
 
-  const { isLoading, isFetchingNextPage, hasNextPage, fetchNextPage } = useTaskComments(taskId);
+  const rootStore = useStore();
+  const syncEngine = useSyncEngine();
+  const commentMutations = useMemo(() => new CommentMutations(rootStore, syncEngine), [rootStore, syncEngine]);
 
-  const allComments = useSelector(commentSelectors.selectAll);
-  const comments = allComments
-    .filter(c => c.taskId === taskId)
-    .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+  const { items: fetchedComments, isLoading, isFetchingNextPage, hasNextPage, fetchNextPage } = useTaskComments(taskId);
+  useEffect(() => {
+    if (!fetchedComments) return;
+    for (const c of fetchedComments) {
+      rootStore.commentStore.upsert(c);
+    }
+    rootStore.commentDB?.putMany(fetchedComments).catch((err) => console.error("Failed to persist comments locally", err));
+  }, [fetchedComments, rootStore]);
 
-  const [addComment] = useAddCommentMutation();
-  const [deleteComment] = useDeleteCommentMutation();
+  const comments = rootStore.commentStore.getByTask(taskId);
+
   const [newCommentText, setNewCommentText] = useState("");
   const [replyingTo, setReplyingTo] = useState<{ id: string, name: string, content: string } | null>(null);
   const [deleteCommentId, setDeleteCommentId] = useState<string | null>(null);
@@ -77,7 +132,7 @@ export function TaskComments({ taskId }: Readonly<TaskCommentsProps>) {
     e?.preventDefault();
     if (!newCommentText.trim()) return;
     try {
-      await addComment({ taskId, content: newCommentText.trim(), parentCommentId: replyingTo?.id }).unwrap();
+      await commentMutations.create({ taskId, content: newCommentText.trim(), parentCommentId: replyingTo?.id });
       setNewCommentText("");
       setReplyingTo(null);
     } catch {
@@ -87,7 +142,7 @@ export function TaskComments({ taskId }: Readonly<TaskCommentsProps>) {
 
   const confirmDelete = () => {
     if (deleteCommentId) {
-      deleteComment({ taskId, commentId: deleteCommentId });
+      commentMutations.delete(deleteCommentId).catch((err) => console.error("Failed to delete comment", err));
       setDeleteCommentId(null);
     }
   };
@@ -123,10 +178,12 @@ export function TaskComments({ taskId }: Readonly<TaskCommentsProps>) {
           <p className="text-xs text-muted-foreground/50 italic py-2">No comments yet. Start the conversation!</p>
         ) : (
           comments.map((comment) => {
-            const creator = allMembers.find((m) => m.userId === comment.creatorId);
+            // creatorId is a WorkspaceMember.Id (matches Task/Folder/Space's CreatorId convention),
+            // not a User.Id — match against member.id, not member.userId.
+            const creator = allMembers.find((m) => m.id === comment.creatorId);
             const name = creator?.name || "Unknown User";
             const parentComment = comment.parentCommentId ? comments.find(c => c.id === comment.parentCommentId) : null;
-            const parentMember = parentComment ? allMembers.find(m => m.userId === parentComment.creatorId) : null;
+            const parentMember = parentComment ? allMembers.find(m => m.id === parentComment.creatorId) : null;
             const parentName = parentMember ? parentMember.name : "Unknown User";
 
             return (
@@ -232,4 +289,4 @@ export function TaskComments({ taskId }: Readonly<TaskCommentsProps>) {
       </AlertDialog>
     </div>
   );
-}
+});

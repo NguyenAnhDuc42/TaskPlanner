@@ -54,7 +54,9 @@ public class UpdateTaskHandler(
                 storyPoints: request.StoryPoints,
                 timeEstimateSeconds: request.TimeEstimateSeconds,
                 orderKey: request.OrderKey,
-                parentTaskId: request.ParentTaskId
+                parentTaskId: request.ParentTaskId,
+                spaceId: request.SpaceId,
+                folderId: request.FolderId
             );
 
             var syncPayload = JsonSerializer.Serialize(new

@@ -6,11 +6,11 @@ import { cn } from "@/lib/utils";
 import { Priority } from "@/types/priority";
 import { StatusGroup } from "./status-group";
 import { SortableBoardItem } from "./sortable-board-item";
-import type { BoardItem } from "../space-api";
+import type { BoardItem } from "../space-board-types";
 import { DialogFormWrapper } from "@/components/dialog-form-wrapper";
 import { CreateTaskForm } from "@/features/workspace/components/forms/create-task-form";
 import { EntityLayerType } from "@/types/entity-layer-type";
-import { useSpaceAccess } from "@/features/workspace/context/use-space-access";
+import { useWorkspaceRole } from "@/features/workspace/context/use-workspace-role";
 
 export const BoardColumn = React.memo(function BoardColumn({
   statusId,
@@ -34,7 +34,7 @@ export const BoardColumn = React.memo(function BoardColumn({
   selectedItemId?: string;
   onTaskClick: (id: string) => void;
   onPriorityChange: (id: string, priority: Priority) => void;
-  onDateChange: (id: string, patches: { startDate?: string; dueDate?: string; clearStartDate?: boolean; clearDueDate?: boolean }) => void;
+  onDateChange: (id: string, patches: { startDate?: string | null; dueDate?: string | null }) => void;
   onHide?: () => void;
 }) {
   const { setNodeRef, isOver } = useDroppable({ id: statusId });
@@ -43,7 +43,7 @@ export const BoardColumn = React.memo(function BoardColumn({
     [items]
   );
 
-  const { canEdit: canCreateContent } = useSpaceAccess(spaceId);
+  const { canCreateContent } = useWorkspaceRole();
   const [createOpen, setCreateOpen] = useState(false);
 
   return (

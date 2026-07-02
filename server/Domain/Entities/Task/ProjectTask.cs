@@ -145,7 +145,9 @@
             int? storyPoints = null,
             long? timeEstimateSeconds = null,
             string? orderKey = null,
-            Guid? parentTaskId = null)
+            Guid? parentTaskId = null,
+            Guid? spaceId = null,
+            Guid? folderId = null)
         {
             EnsureNotArchived();
             bool updated = false;
@@ -158,6 +160,16 @@
             {
                 var newStatus = statusId.Value == Guid.Empty ? null : (Guid?)statusId.Value;
                 if (StatusId != newStatus) { StatusId = newStatus; updated = true; }
+            }
+            // spaceId has no "clear" sentinel — a task always belongs to some space.
+            if (spaceId.HasValue && spaceId.Value != Guid.Empty && ProjectSpaceId != spaceId) { ProjectSpaceId = spaceId; updated = true; }
+            // folderId: Guid.Empty clears it (task moves directly under the space, no folder) —
+            // same sentinel convention as statusId above, since Guid? params can't distinguish
+            // "not touched" (null) from "explicitly cleared" any other way.
+            if (folderId.HasValue)
+            {
+                var newFolder = folderId.Value == Guid.Empty ? null : (Guid?)folderId.Value;
+                if (ProjectFolderId != newFolder) { ProjectFolderId = newFolder; updated = true; }
             }
             if (priority != null && Priority != priority) { Priority = priority.Value; updated = true; }
             if (clearStartDate && StartDate != null) { StartDate = null; updated = true; }

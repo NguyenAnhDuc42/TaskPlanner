@@ -1,6 +1,4 @@
-import { useWorkspace } from "@/features/workspace/context/workspace-context";
 import { useWorkspaceRole } from "@/features/workspace/context/use-workspace-role";
-import { useBatchMoveItemsMutation } from "./hierarchy-api";
 import {
   EntityLayerType as EntityLayerConst,
 } from "@/types/entity-layer-type";
@@ -26,7 +24,6 @@ import { CreateSpaceForm } from "../../components/forms/create-space-form";
 import { SpaceNodeList } from "./items/space-node-list";
 import { FavoriteNodeList } from "./items/favorite-node-list";
 export function HierarchySidebar() {
-  const { workspaceId } = useWorkspace();
   const [isHierarchyOpen, setIsHierarchyOpen] = useState(true);
   const [isFavoritesOpen, setIsFavoritesOpen] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
@@ -35,13 +32,8 @@ export function HierarchySidebar() {
   const [isInlineCreateOpen, setIsInlineCreateOpen] = useState(false);
   const { canCreateSpace } = useWorkspaceRole();
 
-  const [batchMoveItems] = useBatchMoveItemsMutation();
-
   const { sensors, handleDragStart, handleDragEnd, activeItem } =
-    useHierarchyDnd({
-      workspaceId: workspaceId || "",
-      batchMoveItems,
-    });
+    useHierarchyDnd();
 
   return (
     <div className="h-full flex flex-col bg-transparent overflow-hidden select-none">

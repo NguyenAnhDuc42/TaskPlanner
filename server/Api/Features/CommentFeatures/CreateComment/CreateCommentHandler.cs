@@ -6,7 +6,7 @@ namespace Api;
 public class CreateCommentHandler(
     TaskPlanDbContext db,
     WorkspaceContext workspaceContext,
-    PermissionService permissionService,
+    SyncPermissionService syncPermission,
     RealtimeService realtimeService,
     IdempotencyService idempotencyService,
     ILogger<CreateCommentHandler> logger
@@ -27,13 +27,7 @@ public class CreateCommentHandler(
             return Result<long>.Failure(TaskError.NotFound);
         }
 
-        // Commenting only requires Viewer access — mirrors legacy AddCommentHandler.
-        var hasAccess = await permissionService.VerifyAsync(Role.Member, spaceId: task.ProjectSpaceId, requiredAccess: AccessLevel.Viewer, cancellationToken: cancellationToken);
-        if (!hasAccess)
-        {
-            logger.LogWarning("Access denied for user to comment on Task {TaskId}", request.ProjectTaskId);
-            return Result<long>.Failure(MemberError.DontHavePermission);
-        }
+        syncPermission.RequireMember();
 
         var memberId = workspaceContext.CurrentMember?.Id ?? Guid.Empty;
         SyncEvent? syncEvent = null;
@@ -53,10 +47,12 @@ public class CreateCommentHandler(
             var syncPayload = JsonSerializer.Serialize(new
             {
                 id = comment.Id,
-                projectTaskId = comment.ProjectTaskId,
+                taskId = comment.ProjectTaskId,
                 content = comment.Content,
                 isEdited = comment.IsEdited,
-                parentCommentId = comment.ParentCommentId
+                parentCommentId = comment.ParentCommentId,
+                creatorId = comment.CreatorId,
+                createdAt = comment.CreatedAt
             }, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
 
             syncEvent = new SyncEvent

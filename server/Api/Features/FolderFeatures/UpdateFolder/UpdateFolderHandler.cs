@@ -27,7 +27,9 @@ public class UpdateFolderHandler(
 
         syncPermission.RequireCreatorOrAdmin(folder.CreatorId ?? Guid.Empty);
 
-        SyncEvent? syncEvent = null;
+        var memberId = workspaceContext.CurrentMember?.Id ?? Guid.Empty;
+        var oldSpaceId = folder.ProjectSpaceId;
+        List<SyncEvent> events = [];
 
         var result = await db.ExecuteInTransactionAsync(async () =>
         {
@@ -49,8 +51,11 @@ public class UpdateFolderHandler(
                 dueDate: request.DueDate,
                 orderKey: request.OrderKey,
                 clearStartDate: request.ClearStartDate,
-                clearDueDate: request.ClearDueDate
+                clearDueDate: request.ClearDueDate,
+                spaceId: request.SpaceId
             );
+
+            var jsonOptions = new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
 
             var syncPayload = JsonSerializer.Serialize(new
             {
@@ -64,9 +69,9 @@ public class UpdateFolderHandler(
                 orderKey = folder.OrderKey,
                 startDate = folder.StartDate,
                 dueDate = folder.DueDate
-            }, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
+            }, jsonOptions);
 
-            syncEvent = new SyncEvent
+            events.Add(new SyncEvent
             {
                 ProjectWorkspaceId = folder.ProjectWorkspaceId,
                 EntityType = SyncEntityType.Folder,
@@ -74,27 +79,73 @@ public class UpdateFolderHandler(
                 Action = SyncAction.U,
                 Payload = syncPayload,
                 ClientTraceId = request.TraceId,
-                AuthorUserId = workspaceContext.CurrentMember?.Id ?? Guid.Empty
-            };
+                AuthorUserId = memberId
+            });
 
-            db.SyncEvents.Add(syncEvent);
+            // Cascade: a folder moving to a different space takes its tasks with it. Without
+            // this, tasks silently kept referencing the old space — invisible on the new space's
+            // board, and wrongly swept up when the OLD space (or its statuses) got deleted later.
+            if (oldSpaceId != folder.ProjectSpaceId)
+            {
+                var childTasks = await db.ProjectTasks
+                    .Where(t => t.ProjectFolderId == folder.Id && t.DeletedAt == null)
+                    .ToListAsync(cancellationToken);
+
+                foreach (var task in childTasks)
+                {
+                    task.Update(spaceId: folder.ProjectSpaceId);
+
+                    events.Add(new SyncEvent
+                    {
+                        ProjectWorkspaceId = task.ProjectWorkspaceId,
+                        EntityType = SyncEntityType.Task,
+                        EntityId = task.Id,
+                        Action = SyncAction.U,
+                        Payload = JsonSerializer.Serialize(new
+                        {
+                            id = task.Id,
+                            workspaceId = task.ProjectWorkspaceId,
+                            spaceId = task.ProjectSpaceId,
+                            folderId = task.ProjectFolderId,
+                            name = task.Name,
+                            slug = task.Slug,
+                            defaultDocumentId = task.DefaultDocumentId,
+                            color = task.Color,
+                            icon = task.Icon,
+                            statusId = task.StatusId,
+                            priority = task.Priority,
+                            startDate = task.StartDate,
+                            dueDate = task.DueDate,
+                            storyPoints = task.StoryPoints,
+                            timeEstimateSeconds = task.TimeEstimateSeconds,
+                            orderKey = task.OrderKey,
+                            parentTaskId = task.ParentTaskId,
+                            isArchived = task.IsArchived
+                        }, jsonOptions),
+                        ClientTraceId = request.TraceId,
+                        AuthorUserId = memberId
+                    });
+                }
+            }
+
+            db.SyncEvents.AddRange(events);
             idempotencyService.MarkAsProcessed(request.TraceId);
 
-            logger.LogInformation("Successfully updated folder {FolderId} in database with SyncEvent", folder.Id);
+            logger.LogInformation("Successfully updated folder {FolderId} in database with {EventCount} SyncEvents", folder.Id, events.Count);
             return Result<long>.Success(0);
         }, cancellationToken);
 
-        if (result.IsSuccess && syncEvent != null)
+        if (result.IsSuccess && events.Count > 0)
         {
-            var payload = SyncQueryService.MapToPayload(syncEvent);
+            var payloads = events.Select(SyncQueryService.MapToPayload).ToArray();
 
             _ = realtimeService
-                .NotifySyncEventAsync(workspaceContext.WorkspaceId, payload, default)
+                .NotifySyncEventBatchAsync(workspaceContext.WorkspaceId, payloads, default)
                 .ContinueWith(t =>
-                    logger.LogError(t.Exception, "Failed to send real-time Delta for folder {FolderId}", folder.Id),
+                    logger.LogError(t.Exception, "Failed to send real-time DeltaBatch for folder {FolderId}", folder.Id),
                     TaskContinuationOptions.OnlyOnFaulted);
 
-            return Result<long>.Success(syncEvent.Id);
+            return Result<long>.Success(events[^1].Id);
         }
 
         return Result<long>.Failure(result.Error ?? Error.Failure("Transaction.Failed", "Unknown transaction failure"));

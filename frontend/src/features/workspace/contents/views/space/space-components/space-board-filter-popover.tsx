@@ -2,7 +2,7 @@ import { ListFilter, Folder } from "lucide-react";
 import { Priority } from "@/types/priority";
 import { PriorityBadge } from "@/components/priority-badge";
 import { DynamicIcon } from "@/components/dynamic-icon";
-import type { SpaceBoardFilter } from "../space-api";
+import type { SpaceBoardFilter } from "../space-board-types";
 import type { FolderRecord } from "@/types/projects";
 import {
   DropdownMenu,
