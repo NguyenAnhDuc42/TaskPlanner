@@ -1,6 +1,7 @@
 import {
   HubConnectionBuilder,
   HubConnectionState,
+  HttpTransportType,
   type HubConnection,
 } from '@microsoft/signalr'
 import type { RootStore } from '@/stores/root.store'
@@ -138,9 +139,15 @@ export class SyncEngine {
   private async connect(workspaceId: string): Promise<void> {
     const lastSyncId = await this.rootStore.metadataDB!.getLastSyncId()
 
+    const backendUrl = import.meta.env.VITE_API_URL ?? ''
     this.connection = new HubConnectionBuilder()
       .withUrl(
-        `${api.defaults.baseURL?.replace('/api', '')}/hubs/sync?workspaceId=${workspaceId}&lastSyncId=${lastSyncId}`
+        `${backendUrl}/hubs/sync?workspaceId=${workspaceId}&lastSyncId=${lastSyncId}`,
+        {
+          withCredentials: true,
+          transport: HttpTransportType.WebSockets,
+          skipNegotiation: true,
+        }
       )
       .withAutomaticReconnect({ nextRetryDelayInMilliseconds: () => 5000 })
       .build()
