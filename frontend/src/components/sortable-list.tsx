@@ -3,14 +3,17 @@
  * Use alongside SortableListItem for each draggable child.
  *
  * Supports vertical (default) and horizontal layouts.
- * onReorder receives the reordered array — caller handles the save mutation.
+ * onReorder receives the reordered array plus the id of the item that was actually dragged —
+ * caller handles the save mutation. The id is required, not optional: diffing old vs. new array
+ * to guess which item moved is unreliable (a front-to-back move shifts every index, so "first
+ * index that differs" always lands on index 0 — the item that slid INTO that slot, not the one
+ * that was actually dragged there).
  */
 import { useCallback } from "react";
 import {
   DndContext,
   DragOverlay,
   PointerSensor,
-  closestCenter,
   useSensor,
   useSensors,
   type DragEndEvent,
@@ -27,10 +30,11 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { restrictToVerticalAxis, restrictToHorizontalAxis } from "@dnd-kit/modifiers";
+import { pointerAwareCollisionDetection } from "@/lib/dnd-collision";
 
 interface SortableListProps<T extends { id: string }> {
   items: T[];
-  onReorder: (newItems: T[]) => void;
+  onReorder: (newItems: T[], draggedId: string) => void;
   direction?: "vertical" | "horizontal";
   activationDistance?: number;
   className?: string;
@@ -63,13 +67,13 @@ export function SortableList<T extends { id: string }>({
     if (!over || active.id === over.id) return;
     const oldIdx = items.findIndex(i => i.id === active.id);
     const newIdx = items.findIndex(i => i.id === over.id);
-    if (oldIdx !== -1 && newIdx !== -1) onReorder(arrayMove(items, oldIdx, newIdx));
+    if (oldIdx !== -1 && newIdx !== -1) onReorder(arrayMove(items, oldIdx, newIdx), active.id as string);
   }, [items, onReorder]);
 
   return (
     <DndContext
       sensors={sensors}
-      collisionDetection={closestCenter}
+      collisionDetection={pointerAwareCollisionDetection}
       modifiers={[direction === "vertical" ? restrictToVerticalAxis : restrictToHorizontalAxis]}
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}

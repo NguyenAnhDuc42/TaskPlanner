@@ -1,5 +1,7 @@
 import { useState, useRef, useCallback, useMemo, useEffect } from "react";
+import { observer } from "mobx-react-lite";
 import { Plus, Trash2, Check, GripVertical } from "lucide-react";
+import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import {
   DndContext,
@@ -27,13 +29,10 @@ import {
 } from "@/components/ui/dialog";
 import { StatusCategory } from "@/types/status-category";
 import type { Status } from "@/types/status";
-import { useWorkspace } from "@/features/workspace/context/workspace-context";
-import { useUpdateWorkflowStatuses } from "@/features/workspace/api";
+import { useStore } from "@/stores/root.store";
+import { StatusMutations, type StatusUpdateValue } from "@/mutations/status.mutations";
 import { RowAction } from "@/types/row-action";
-import type { StatusUpdatePayload } from "@/features/workspace/api";
 import { fractionalBetween } from "@/features/workspace/contents/hierarchy/utils/fractional-index";
-import { useSelector } from "react-redux";
-import { statusSelectors } from "@/store/entityStore";
 import { createPortal } from "react-dom";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -352,24 +351,21 @@ function CategoryColumn({
 
 // ─── Main: CreateStatusForm ───────────────────────────────────────────────────
 
-export function CreateStatusForm({
+export const CreateStatusForm = observer(function CreateStatusForm({
   isOpen,
   onClose,
   spaceId,
   currentStatuses,
   onApplyChanges,
 }: CreateStatusFormProps) {
-  const { workspaceId: currentWorkspaceId } = useWorkspace();
-  const { mutate: updateStatuses } = useUpdateWorkflowStatuses();
-  const allStatuses = useSelector(statusSelectors.selectAll);
+  const rootStore = useStore();
+  const statusMutations = useMemo(() => new StatusMutations(rootStore), [rootStore]);
 
-  const resolvedCurrentStatuses = useMemo(() => {
-    if (currentStatuses) return currentStatuses;
-    if (!spaceId) return [];
-    return allStatuses
-      .filter((s: Status) => s.spaceId?.toLowerCase() === spaceId.toLowerCase())
-      .sort((a, b) => ((a.orderKey ?? "") < (b.orderKey ?? "") ? -1 : 1));
-  }, [currentStatuses, allStatuses, spaceId]);
+  // Plain read, not useMemo — this is a mobx-react-lite observer, which tracks observable reads
+  // made directly during render (see FavoriteNodeList for the full rationale).
+  const resolvedCurrentStatuses = currentStatuses ?? (spaceId
+    ? rootStore.statusStore.getBySpace(spaceId).sort((a, b) => ((a.orderKey ?? "") < (b.orderKey ?? "") ? -1 : 1))
+    : []);
 
   const [localStatuses, setLocalStatuses] = useState<Status[]>(() => resolvedCurrentStatuses);
   const [draggingId, setDraggingId] = useState<string | null>(null);
@@ -430,18 +426,16 @@ export function CreateStatusForm({
 
   const handleSave = useCallback(() => {
     if (spaceId) {
-      const { payloads, clonedStatuses } = buildStatusUpdatePayloads(localStatuses, resolvedCurrentStatuses);
-      updateStatuses({
-        spaceId,
-        workspaceId: currentWorkspaceId,
-        statuses: payloads,
-        optimisticStatuses: clonedStatuses,
+      const payloads = buildStatusUpdatePayloads(localStatuses, resolvedCurrentStatuses);
+      statusMutations.updateBatch(spaceId, payloads).catch((err) => {
+        console.error("Failed to save workflow statuses", err);
+        toast.error("Failed to update statuses. Your changes have been reverted.");
       });
     } else {
       onApplyChanges?.(localStatuses);
     }
     onClose();
-  }, [spaceId, localStatuses, resolvedCurrentStatuses, updateStatuses, currentWorkspaceId, onApplyChanges, onClose]);
+  }, [spaceId, localStatuses, resolvedCurrentStatuses, statusMutations, onApplyChanges, onClose]);
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
@@ -531,17 +525,17 @@ export function CreateStatusForm({
       </DialogContent>
     </Dialog>
   );
-}
+});
 
-// ─── Build payloads (unchanged logic) ─────────────────────────────────────────
+// ─── Build payloads ────────────────────────────────────────────────────────────
 
 function buildStatusUpdatePayloads(
   localStatuses: Status[],
   resolvedCurrentStatuses: Status[]
-): { payloads: StatusUpdatePayload[]; clonedStatuses: Status[] } {
+): StatusUpdateValue[] {
   const originalStatuses = resolvedCurrentStatuses || [];
   const newIds = new Set(localStatuses.map((s) => s.id));
-  const payloads: StatusUpdatePayload[] = [];
+  const payloads: StatusUpdateValue[] = [];
 
   for (const s of originalStatuses) {
     if (!newIds.has(s.id)) {
@@ -550,41 +544,36 @@ function buildStatusUpdatePayloads(
         name: s.name,
         color: s.color,
         category: s.category,
-        previousOrderKey: null,
-        nextOrderKey: null,
+        orderKey: null,
         action: RowAction.Delete,
       });
     }
   }
 
-  const clonedStatuses = localStatuses.map((s) => ({ ...s }));
-
   const categoryGroups: Record<string, Status[]> = {};
-  for (const s of clonedStatuses) {
+  for (const s of localStatuses) {
     if (!categoryGroups[s.category]) categoryGroups[s.category] = [];
     categoryGroups[s.category].push(s);
   }
 
-  for (const s of clonedStatuses) {
+  for (const s of localStatuses) {
     const isNew = !originalStatuses.some((orig) => orig.id === s.id);
     const catGroup = categoryGroups[s.category] || [];
     const idx = catGroup.findIndex((item) => item.id === s.id);
 
     const prevKey = idx > 0 ? catGroup[idx - 1].orderKey || null : null;
     const nextKey = idx < catGroup.length - 1 ? catGroup[idx + 1].orderKey || null : null;
-
-    s.orderKey = fractionalBetween(prevKey, nextKey);
+    const orderKey = fractionalBetween(prevKey, nextKey);
 
     payloads.push({
       id: s.id,
       name: s.name,
       color: s.color,
       category: s.category,
-      previousOrderKey: prevKey,
-      nextOrderKey: nextKey,
+      orderKey,
       action: isNew ? RowAction.Create : RowAction.Update,
     });
   }
 
-  return { payloads, clonedStatuses };
+  return payloads;
 }

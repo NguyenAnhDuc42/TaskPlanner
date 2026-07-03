@@ -8,6 +8,7 @@ public class CreateCommentHandler(
     WorkspaceContext workspaceContext,
     SyncPermissionService syncPermission,
     RealtimeService realtimeService,
+    NotificationService notificationService,
     IdempotencyService idempotencyService,
     ILogger<CreateCommentHandler> logger
 ) : ICommandHandler<CreateCommentCommand, long>
@@ -18,7 +19,7 @@ public class CreateCommentHandler(
 
         var task = await db.ProjectTasks.AsNoTracking()
             .Where(t => t.Id == request.ProjectTaskId && t.DeletedAt == null)
-            .Select(t => new { t.ProjectSpaceId, t.ProjectWorkspaceId, t.CreatorId })
+            .Select(t => new { t.ProjectSpaceId, t.ProjectWorkspaceId, t.CreatorId, t.Name })
             .FirstOrDefaultAsync(cancellationToken);
 
         if (task is null)
@@ -84,9 +85,64 @@ public class CreateCommentHandler(
                     logger.LogError(t.Exception, "Failed to send real-time Delta for comment {CommentId}", request.Id),
                     TaskContinuationOptions.OnlyOnFaulted);
 
+            // Notify all assignees + task creator (excluding the commenter), plus anyone
+            // @mentioned — mirrors the legacy AddCommentHandler's behavior, which this
+            // Sync-engine handler otherwise fully replaces.
+            var actorUserId = workspaceContext.CurrentMember?.UserId ?? Guid.Empty;
+            var recipientUserIds = await db.TaskAssignments
+                .Where(a => a.ProjectTaskId == request.ProjectTaskId && a.DeletedAt == null)
+                .Select(a => a.WorkspaceMemberId)
+                .Join(db.WorkspaceMembers.Where(m => m.DeletedAt == null), id => id, m => m.Id, (_, m) => m.UserId)
+                .ToListAsync(cancellationToken);
+
+            if (task.CreatorId.HasValue)
+                recipientUserIds.Add(task.CreatorId.Value);
+
+            var actorName = await db.Users.AsNoTracking()
+                .Where(u => u.Id == actorUserId)
+                .Select(u => u.Name)
+                .FirstOrDefaultAsync(cancellationToken) ?? "Someone";
+
+            // Detect @[workspaceMemberId] tokens — ID-stable, no name matching needed
+            var mentionedMemberIds = MentionRegex.Matches(request.Content)
+                .Select(m => m.Groups[1].Value)
+                .Where(id => Guid.TryParse(id, out _))
+                .Select(Guid.Parse)
+                .Distinct()
+                .ToList();
+
+            var mentionedUserIds = new HashSet<Guid>();
+            if (mentionedMemberIds.Count > 0)
+            {
+                var matched = await db.WorkspaceMembers
+                    .Where(m => mentionedMemberIds.Contains(m.Id) && m.DeletedAt == null)
+                    .Select(m => m.UserId)
+                    .ToListAsync(cancellationToken);
+                mentionedUserIds = matched.ToHashSet();
+                recipientUserIds.AddRange(mentionedUserIds);
+            }
+
+            var snippet = request.Content.Length > 100 ? request.Content[..100] + "…" : request.Content;
+            foreach (var recipientId in recipientUserIds.Distinct().Where(id => id != actorUserId))
+            {
+                var isMention = mentionedUserIds.Contains(recipientId);
+                _ = notificationService.PushAsync(
+                    recipientId, actorUserId, task.ProjectWorkspaceId,
+                    isMention ? "mention" : "comment_added",
+                    "task", request.ProjectTaskId,
+                    isMention
+                        ? $"{actorName} mentioned you in \"{task.Name}\""
+                        : $"{actorName} commented on \"{task.Name}\"",
+                    snippet,
+                    cancellationToken);
+            }
+
             return Result<long>.Success(syncEvent.Id);
         }
 
         return Result<long>.Failure(result.Error ?? Error.Failure("Transaction.Failed", "Unknown transaction failure"));
     }
+
+    private static readonly System.Text.RegularExpressions.Regex MentionRegex =
+        new(@"@\[([a-f0-9\-]{36})\]", System.Text.RegularExpressions.RegexOptions.Compiled);
 }

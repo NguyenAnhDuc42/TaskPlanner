@@ -130,7 +130,7 @@ namespace Api
         [HttpPost("{id:guid}/members")]
         public async Task<IActionResult> AddMembers(
             Guid id,
-            [FromBody] AddMembersCommand command,
+            [FromBody] Application.AddMembersCommand command,
             CancellationToken cancellationToken)
         {
             var result = await _handler.SendAsync(command with { WorkspaceId = id }, cancellationToken);

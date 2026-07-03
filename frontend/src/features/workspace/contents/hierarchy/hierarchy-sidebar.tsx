@@ -5,8 +5,9 @@ import {
 import { DialogFormWrapper } from "@/components/dialog-form-wrapper";
 
 import { Plus, Search, ChevronDown } from "lucide-react";
-import { DndContext, closestCenter, DragOverlay } from "@dnd-kit/core";
+import { DndContext, DragOverlay } from "@dnd-kit/core";
 import { restrictToVerticalAxis } from "@dnd-kit/modifiers";
+import { pointerAwareCollisionDetection } from "@/lib/dnd-collision";
 import {
   Collapsible,
   CollapsibleContent,
@@ -112,7 +113,7 @@ export function HierarchySidebar() {
               <div className="px-1 pt-0.5 pb-2 flex flex-col min-w-fit">
                 <DndContext
                   sensors={sensors}
-                  collisionDetection={closestCenter}
+                  collisionDetection={pointerAwareCollisionDetection}
                   onDragStart={handleDragStart}
                   onDragEnd={handleDragEnd}
                   modifiers={[restrictToVerticalAxis]}

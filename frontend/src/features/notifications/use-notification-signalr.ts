@@ -1,8 +1,8 @@
 import { useEffect } from "react";
 import { useDispatch } from "react-redux";
 import { signalRService } from "@/lib/signalr-service";
-import { notificationSlice } from "@/store/entityStore";
 import { useUser } from "@/features/auth/auth-api";
+import { useStore } from "@/stores/root.store";
 import { workspaceApi } from "@/store/workspaceApi";
 import type { AppDispatch } from "@/store";
 import type { NotificationRecord } from "@/types/notification-record";
@@ -11,6 +11,7 @@ import type { NotificationRecord } from "@/types/notification-record";
 // Owns the user SignalR group + listens to the dedicated NewNotification event.
 export function useNotificationSignalR() {
   const dispatch = useDispatch<AppDispatch>();
+  const rootStore = useStore();
   const { data: currentUser } = useUser();
 
   useEffect(() => {
@@ -24,9 +25,14 @@ export function useNotificationSignalR() {
     setup().catch((err) => console.error("[NotificationSignalR]", err));
 
     const onNewNotification = (record: NotificationRecord) => {
-      dispatch(notificationSlice.actions.upsert(record));
+      rootStore.notificationStore.upsert(record);
+      rootStore.notificationDB?.put(record).catch((err) =>
+        console.error("Failed to persist notification", err),
+      );
     };
 
+    // Unrelated to notifications — piggybacks on the same SignalR connection to invalidate the
+    // (still Redux/RTK) workspace list cache when the user gets added to a new workspace.
     const onWorkspaceJoined = () => {
       dispatch(workspaceApi.util.invalidateTags(["Workspaces"]));
     };
@@ -38,5 +44,5 @@ export function useNotificationSignalR() {
       signalRService.off("NewNotification", onNewNotification);
       signalRService.off("WorkspaceJoined", onWorkspaceJoined);
     };
-  }, [currentUser?.id, dispatch]);
+  }, [currentUser?.id, dispatch, rootStore]);
 }

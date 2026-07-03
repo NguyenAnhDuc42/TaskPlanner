@@ -1,6 +1,6 @@
 import { useState, useRef, useCallback, useEffect } from "react";
-import { useSelector } from "react-redux";
-import { memberSelectors } from "@/store/entityStore";
+import { observer } from "mobx-react-lite";
+import { useStore } from "@/stores/root.store";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import type { MemberRecord } from "@/types/workspace";
@@ -16,7 +16,7 @@ interface MentionInputProps {
 // A mention record: what @Name appears in the display string and what ID it maps to
 interface MentionEntry { displayName: string; memberId: string; }
 
-export function MentionInput({ value, onChange, onSubmit, placeholder, className }: MentionInputProps) {
+export const MentionInput = observer(function MentionInput({ value, onChange, onSubmit, placeholder, className }: MentionInputProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [mentionQuery, setMentionQuery] = useState<string | null>(null);
   const [mentionStart, setMentionStart] = useState<number>(-1);
@@ -25,7 +25,12 @@ export function MentionInput({ value, onChange, onSubmit, placeholder, className
   // Track mention entries so we can serialize display text → @[id] tokens on submit
   const mentionMapRef = useRef<MentionEntry[]>([]);
 
-  const allMembers = useSelector(memberSelectors.selectAll);
+  // Plain read, not useSelector/useMemo — this is a mobx-react-lite observer, which tracks
+  // observable reads made directly during render. memberStore is already reliably hydrated by
+  // the sync engine before this ever renders, unlike the old Redux member selector, which
+  // depended on a separate in-flight network call and showed stale/empty data until it resolved.
+  const rootStore = useStore();
+  const allMembers = rootStore.memberStore.all;
   const filtered = mentionQuery !== null
     ? allMembers.filter(m => m.name.toLowerCase().includes(mentionQuery.toLowerCase())).slice(0, 6)
     : [];
@@ -54,7 +59,14 @@ export function MentionInput({ value, onChange, onSubmit, placeholder, className
 
     if (atIdx !== -1) {
       const query = before.slice(atIdx + 1);
-      if (!query.startsWith(" ")) {
+      // A mention word never contains whitespace — checking only the first character let any
+      // "@" earlier in the text (including one from an already-completed mention) keep matching
+      // forever as you kept typing past it, since the rest of the sentence just isn't a space
+      // at position 0. That left mentionQuery permanently non-null with no matching members
+      // (filtered.length === 0), which silently swallowed the Enter key — it didn't match the
+      // "insert mention" branch (needs filtered.length > 0) or the "submit" branch (needs
+      // mentionQuery === null).
+      if (!query.includes(" ") && !query.includes("\n")) {
         setMentionStart(atIdx);
         setMentionQuery(query);
         setSelectedIdx(0);
@@ -161,4 +173,4 @@ export function MentionInput({ value, onChange, onSubmit, placeholder, className
       )}
     </div>
   );
-}
+});

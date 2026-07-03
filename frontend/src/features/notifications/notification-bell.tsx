@@ -1,11 +1,11 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo } from "react";
+import { observer } from "mobx-react-lite";
 import { Bell } from "lucide-react";
-import { useSelector } from "react-redux";
 import { useNavigate } from "@tanstack/react-router";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { UserAvatar } from "@/components/user-avatar";
-import { notificationSelectors, memberSelectors } from "@/store/entityStore";
-import { useGetNotificationsQuery, useMarkNotificationsReadMutation } from "./notifications-api";
+import { useStore } from "@/stores/root.store";
+import { NotificationMutations } from "@/mutations/notification.mutations";
 import { cn } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";
 import type { NotificationRecord } from "@/types/notification-record";
@@ -18,31 +18,29 @@ function notificationPath(n: NotificationRecord): string | null {
   return `/workspaces/${n.workspaceId}`;
 }
 
-export function NotificationBell() {
+export const NotificationBell = observer(function NotificationBell() {
   const navigate = useNavigate();
+  const rootStore = useStore();
+  const notificationMutations = useMemo(() => new NotificationMutations(rootStore), [rootStore]);
   const [open, setOpen] = useState(false);
 
-  // Load first page on mount; subsequent pages can be loaded on scroll
-  const { data, isLoading } = useGetNotificationsQuery({ cursor: null });
-  const [markRead] = useMarkNotificationsReadMutation();
+  // Plain read, not useMemo — this is a mobx-react-lite observer, which tracks observable reads
+  // made directly during render (see FavoriteNodeList for the full rationale). notificationStore
+  // is fetched once (50 newest) on login in __root.tsx and kept live via SignalR after that — no
+  // loading/cursor state needed here.
+  const notifications = rootStore.notificationStore.all;
+  const unreadCount = rootStore.notificationStore.unreadCount;
 
-  const notifications = useSelector(notificationSelectors.selectAll)
-    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-
-  const memberEntities = useSelector(memberSelectors.selectEntities);
-
-  // Replace @[workspaceMemberId] tokens with @Name for display
+  // Replace @[workspaceMemberId] tokens with @Name for display. Only resolves within a workspace
+  // (memberStore is workspace-scoped) — on the home screen this falls back to "@someone", which
+  // is an acceptable degradation for a notification opened outside its own workspace context.
   const resolveBody = (body: string | undefined): string => {
     if (!body) return "";
     return body.replace(/@\[([a-f0-9-]{36})\]/g, (_, id) => {
-      const member = memberEntities[id];
+      const member = rootStore.memberStore.getById(id);
       return member ? `@${member.name}` : "@someone";
     });
   };
-
-  const unreadCount = notifications.filter(n => !n.isRead).length;
-  // Take the max so the count reflects both API-loaded and real-time SignalR arrivals
-  const displayCount = Math.max(data?.unreadCount ?? 0, unreadCount);
 
   const handleOpen = (isOpen: boolean) => {
     setOpen(isOpen);
@@ -50,15 +48,17 @@ export function NotificationBell() {
 
   const handleMarkAllRead = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
-    markRead({});
-  }, [markRead]);
+    notificationMutations.markRead().catch((err) => console.error("Failed to mark all notifications read", err));
+  }, [notificationMutations]);
 
   const handleClick = useCallback((n: NotificationRecord) => {
-    if (!n.isRead) markRead({ ids: [n.id] });
+    if (!n.isRead) {
+      notificationMutations.markRead([n.id]).catch((err) => console.error("Failed to mark notification read", err));
+    }
     const path = notificationPath(n);
     if (path) navigate({ to: path });
     setOpen(false);
-  }, [markRead, navigate]);
+  }, [notificationMutations, navigate]);
 
   return (
     <Popover open={open} onOpenChange={handleOpen}>
@@ -68,9 +68,9 @@ export function NotificationBell() {
           className="relative h-7 w-7 flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
         >
           <Bell className="h-4 w-4" />
-          {displayCount > 0 && (
+          {unreadCount > 0 && (
             <span className="absolute -top-0.5 -right-0.5 h-4 min-w-4 px-0.5 flex items-center justify-center rounded-md bg-primary text-[9px] font-black text-primary-foreground leading-none">
-              {displayCount > 99 ? "99+" : displayCount}
+              {unreadCount > 99 ? "99+" : unreadCount}
             </span>
           )}
         </button>
@@ -80,7 +80,7 @@ export function NotificationBell() {
         {/* Header */}
         <div className="flex items-center justify-between px-3 py-2 border-b border-border/50 bg-card/50">
           <span className="text-[11px] font-black uppercase tracking-wider text-foreground/70">Notifications</span>
-          {displayCount > 0 && (
+          {unreadCount > 0 && (
             <button
               onClick={handleMarkAllRead}
               className="text-[10px] text-primary/70 hover:text-primary font-semibold transition-colors cursor-pointer"
@@ -92,10 +92,7 @@ export function NotificationBell() {
 
         {/* List */}
         <div className="max-h-[400px] overflow-y-auto divide-y divide-border/20">
-          {isLoading && notifications.length === 0 && (
-            <div className="py-8 text-center text-[11px] text-muted-foreground/40 animate-pulse">Loading...</div>
-          )}
-          {!isLoading && notifications.length === 0 && (
+          {notifications.length === 0 && (
             <div className="py-10 text-center">
               <Bell className="h-7 w-7 mx-auto text-muted-foreground/20 mb-2" />
               <p className="text-[11px] text-muted-foreground/40">No notifications yet</p>
@@ -139,4 +136,4 @@ export function NotificationBell() {
       </PopoverContent>
     </Popover>
   );
-}
+});

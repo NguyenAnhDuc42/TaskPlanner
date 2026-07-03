@@ -1,7 +1,8 @@
-import { useSelector } from "react-redux";
+import { useSyncExternalStore } from "react";
+import { autorun } from "mobx";
 import { useWorkspace } from "./workspace-context";
 import { useUser } from "@/features/auth/auth-api";
-import { memberSelectors } from "@/store/entityStore";
+import { useStore } from "@/stores/root.store";
 import type { Role } from "@/types/role";
 
 export interface WorkspaceRole {
@@ -21,10 +22,16 @@ export interface WorkspaceRole {
 export function useWorkspaceRole(): WorkspaceRole {
   const { workspace } = useWorkspace();
   const { data: currentUser } = useUser();
+  const rootStore = useStore();
 
-  // Read role from memberSlice (gets real-time SignalR updates) — fall back to workspace cache
-  const allMembers = useSelector(memberSelectors.selectAll);
-  const myMember = allMembers.find(m => m.userId === currentUser?.id);
+  // Read role from the MobX memberStore (Bootstrap + real-time Delta) — fall back to workspace
+  // cache. useSyncExternalStore + autorun subscribes directly, independent of whether the calling
+  // component happens to be wrapped in mobx-react-lite's observer() — this hook is consumed by
+  // several plain (non-observer) components, so it can't rely on an ambient MobX render tracker.
+  const myMember = useSyncExternalStore(
+    (onStoreChange) => autorun(() => { rootStore.memberStore.all; onStoreChange(); }),
+    () => (currentUser?.id ? rootStore.memberStore.getByUserId(currentUser.id) : undefined),
+  );
   const role = (myMember?.role as Role | undefined) ?? workspace?.role;
 
   const isOwner  = workspace?.isOwned ?? role === "Owner";

@@ -1,12 +1,10 @@
 import { useMemo, useState } from "react";
 import { observer } from "mobx-react-lite";
 import { useWorkspaceRole } from "@/features/workspace/context/use-workspace-role";
-import { useSelector } from "react-redux";
 import { UserPlus, Check, X } from "lucide-react";
 import { UserAvatar } from "@/components/user-avatar";
 import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { memberSelectors } from "@/store/entityStore";
 import { cn } from "@/lib/utils";
 
 import { useStore } from "@/stores/root.store";
@@ -18,10 +16,8 @@ interface TaskAssigneesProps {
 }
 
 export const TaskAssignees = observer(function TaskAssignees({ taskId }: Readonly<TaskAssigneesProps>) {
-  const members = useSelector(memberSelectors.selectEntities);
-  const allMembers = useSelector(memberSelectors.selectAll);
-
   const rootStore = useStore();
+  const allMembers = rootStore.memberStore.all;
   const syncEngine = useSyncEngine();
   const assigneeMutations = useMemo(() => new AssigneeMutations(rootStore, syncEngine), [rootStore, syncEngine]);
 
@@ -55,7 +51,7 @@ export const TaskAssignees = observer(function TaskAssignees({ taskId }: Readonl
     <div className="flex flex-wrap items-center gap-1.5 min-h-7">
       {/* Assigned member chips */}
       {assignees.map((assignee) => {
-        const member = members[assignee.workspaceMemberId];
+        const member = rootStore.memberStore.getById(assignee.workspaceMemberId);
         if (!member) return null;
         return (
           <div

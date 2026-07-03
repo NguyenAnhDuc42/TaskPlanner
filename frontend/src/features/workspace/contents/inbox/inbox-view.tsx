@@ -1,13 +1,12 @@
-import { useState, useCallback, useRef, useEffect } from "react";
-import { useSelector, useDispatch } from "react-redux";
+import { useState, useCallback, useRef, useEffect, useMemo } from "react";
+import { observer } from "mobx-react-lite";
 import { useNavigate } from "@tanstack/react-router";
 import { Bell, Check, Inbox, Loader2 } from "lucide-react";
 import { UserAvatar } from "@/components/user-avatar";
 import { cn } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";
-import { notificationSelectors } from "@/store/entityStore";
-import { useGetNotificationsQuery, useMarkNotificationsReadMutation, notificationsApi } from "@/features/notifications/notifications-api";
-import type { AppDispatch } from "@/store";
+import { useStore } from "@/stores/root.store";
+import { NotificationMutations } from "@/mutations/notification.mutations";
 import type { NotificationRecord } from "@/types/notification-record";
 
 const TYPE_LABELS: Record<string, string> = {
@@ -28,46 +27,70 @@ function notificationPath(n: NotificationRecord): string | null {
 
 type Filter = "all" | "unread";
 
-export function InboxView() {
-  const dispatch = useDispatch<AppDispatch>();
+export const InboxView = observer(function InboxView() {
   const navigate = useNavigate();
+  const rootStore = useStore();
+  const notificationMutations = useMemo(() => new NotificationMutations(rootStore), [rootStore]);
   const [filter, setFilter] = useState<Filter>("all");
+  const [nextCursor, setNextCursor] = useState<string | null>(null);
+  const [hasNextPage, setHasNextPage] = useState(false);
+  const [isFetching, setIsFetching] = useState(false);
   const loadMoreRef = useRef<HTMLDivElement>(null);
 
-  const { isLoading, data, isFetching } = useGetNotificationsQuery({ cursor: null });
-  const [markRead] = useMarkNotificationsReadMutation();
+  // notificationStore already has its first 50 from __root.tsx's initial fetch by the time this
+  // mounts — this just captures that fetch's own pagination cursor so "load more" can continue
+  // from where it left off, without re-fetching the first page again.
+  useEffect(() => {
+    let cancelled = false;
+    notificationMutations.fetchPage(null, 50).then(({ nextCursor, hasNextPage }) => {
+      if (!cancelled) {
+        setNextCursor(nextCursor);
+        setHasNextPage(hasNextPage);
+      }
+    }).catch((err) => console.error("Failed to fetch notifications", err));
+    return () => { cancelled = true; };
+  }, [notificationMutations]);
+
+  const loadMore = useCallback(() => {
+    if (!hasNextPage || isFetching || !nextCursor) return;
+    setIsFetching(true);
+    notificationMutations.fetchPage(nextCursor, 50)
+      .then(({ nextCursor: next, hasNextPage: more }) => {
+        setNextCursor(next);
+        setHasNextPage(more);
+      })
+      .catch((err) => console.error("Failed to load more notifications", err))
+      .finally(() => setIsFetching(false));
+  }, [hasNextPage, isFetching, nextCursor, notificationMutations]);
 
   // Load more when bottom sentinel enters view
   useEffect(() => {
     const el = loadMoreRef.current;
     if (!el) return;
     const observer = new IntersectionObserver(([entry]) => {
-      if (entry.isIntersecting && data?.hasNextPage && !isFetching && data.nextCursor) {
-        dispatch(notificationsApi.endpoints.getNotifications.initiate(
-          { cursor: data.nextCursor },
-          { subscribe: false }
-        ));
-      }
+      if (entry.isIntersecting) loadMore();
     }, { threshold: 0.1 });
     observer.observe(el);
     return () => observer.unobserve(el);
-  }, [data?.hasNextPage, data?.nextCursor, isFetching, dispatch]);
+  }, [loadMore]);
 
-  const all = useSelector(notificationSelectors.selectAll)
-    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-
+  // Plain read, not useMemo — this is a mobx-react-lite observer, which tracks observable reads
+  // made directly during render (see FavoriteNodeList for the full rationale).
+  const all = rootStore.notificationStore.all;
   const displayed = filter === "unread" ? all.filter(n => !n.isRead) : all;
-  const unreadCount = all.filter(n => !n.isRead).length;
+  const unreadCount = rootStore.notificationStore.unreadCount;
 
   const handleClick = useCallback((n: NotificationRecord) => {
-    if (!n.isRead) markRead({ ids: [n.id] });
+    if (!n.isRead) {
+      notificationMutations.markRead([n.id]).catch((err) => console.error("Failed to mark notification read", err));
+    }
     const path = notificationPath(n);
     if (path) navigate({ to: path });
-  }, [markRead, navigate]);
+  }, [notificationMutations, navigate]);
 
   const handleMarkAllRead = useCallback(() => {
-    markRead({});
-  }, [markRead]);
+    notificationMutations.markRead().catch((err) => console.error("Failed to mark all notifications read", err));
+  }, [notificationMutations]);
 
   return (
     <div className="h-full flex flex-col bg-card/40 overflow-hidden">
@@ -118,11 +141,7 @@ export function InboxView() {
 
       {/* List */}
       <div className="flex-1 overflow-y-auto divide-y divide-border/15">
-        {isLoading && all.length === 0 && (
-          <div className="py-16 text-center text-sm text-muted-foreground/40 animate-pulse">Loading...</div>
-        )}
-
-        {!isLoading && displayed.length === 0 && (
+        {!isFetching && displayed.length === 0 && (
           <div className="flex flex-col items-center justify-center py-24 gap-3">
             <Bell className="h-10 w-10 text-muted-foreground/15" />
             <p className="text-sm font-medium text-muted-foreground/40">
@@ -202,4 +221,4 @@ export function InboxView() {
       </div>
     </div>
   );
-}
+});

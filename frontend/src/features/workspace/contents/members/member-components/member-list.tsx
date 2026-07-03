@@ -88,16 +88,21 @@ export function MemberList({ members = [], currentUserId, isSaving, onSave }: Pr
   const dirtyCount = pendingUpdates.size + pendingRemoves.size + pendingAdds.length;
 
   const filteredMembers = useMemo(() => {
-    if (!searchQuery) return members;
     const q = searchQuery.toLowerCase();
-    return members.filter(
-      (m) => m.name.toLowerCase().includes(q) || (m.email ?? "").toLowerCase().includes(q),
-    );
+    const matched = !searchQuery
+      ? members
+      : members.filter(
+          (m) => m.name.toLowerCase().includes(q) || (m.email ?? "").toLowerCase().includes(q),
+        );
+    // Owner always pinned to the top — stable sort, so relative order among everyone else
+    // is untouched.
+    return [...matched].sort((a, b) => (a.role === "Owner" ? -1 : b.role === "Owner" ? 1 : 0));
   }, [members, searchQuery]);
 
+  const selectableMembers = filteredMembers.filter((m) => m.role !== "Owner");
   const allVisibleSelected =
-    filteredMembers.length > 0 &&
-    filteredMembers.every((m) => selectedIds.has(m.id));
+    selectableMembers.length > 0 &&
+    selectableMembers.every((m) => selectedIds.has(m.id));
 
   // ─── Selection ────────────────────────────────────────────────────────────
 
@@ -114,7 +119,7 @@ export function MemberList({ members = [], currentUserId, isSaving, onSave }: Pr
     if (allVisibleSelected) {
       setSelectedIds(new Set());
     } else {
-      setSelectedIds(new Set(filteredMembers.map((m) => m.id)));
+      setSelectedIds(new Set(selectableMembers.map((m) => m.id)));
     }
   };
 
@@ -284,6 +289,7 @@ export function MemberList({ members = [], currentUserId, isSaving, onSave }: Pr
             const isDirty     = pendingUpdates.has(member.id);
             const isSelected  = selectedIds.has(member.id);
             const isSelf      = member.userId === currentUserId;
+            const isOwner     = member.role === "Owner";
             const patch       = pendingUpdates.get(member.id) ?? {};
             const displayRole = patch.role ?? member.role ?? "Guest";
             const displayStatus = patch.status ?? member.status ?? "Active";
@@ -305,7 +311,7 @@ export function MemberList({ members = [], currentUserId, isSaving, onSave }: Pr
                     className="rounded-md h-3.5 w-3.5"
                     checked={isSelected}
                     onCheckedChange={() => toggleSelect(member.id)}
-                    disabled={isRemoved}
+                    disabled={isRemoved || isOwner}
                   />
                 </div>
 
@@ -334,56 +340,64 @@ export function MemberList({ members = [], currentUserId, isSaving, onSave }: Pr
 
                 {/* Role */}
                 <div className="px-2 py-1.5">
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild disabled={isRemoved}>
-                      <button
-                        type="button"
-                        className="cursor-pointer focus:outline-none hover:opacity-80 transition-opacity disabled:opacity-50 disabled:cursor-default"
-                      >
-                        <RoleBadge role={displayRole} />
-                      </button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="start" className="w-32 rounded-md p-0 overflow-hidden" onClick={(e) => e.stopPropagation()}>
-                      <DropdownMenuRadioGroup value={displayRole} onValueChange={(val) => markUpdate(member.id, { role: val as Role })}>
-                        {ASSIGNABLE_ROLES.map((r) => (
-                          <DropdownMenuRadioItem
-                            key={r}
-                            value={r}
-                            className={cn("cursor-pointer", displayRole === r && "bg-muted shadow-sm")}
-                          >
-                            <RoleBadge role={r} className="w-full justify-start border-none bg-transparent hover:bg-transparent p-0 h-auto" />
-                          </DropdownMenuRadioItem>
-                        ))}
-                      </DropdownMenuRadioGroup>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
+                  {isOwner ? (
+                    <RoleBadge role={displayRole} />
+                  ) : (
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild disabled={isRemoved}>
+                        <button
+                          type="button"
+                          className="cursor-pointer focus:outline-none hover:opacity-80 transition-opacity disabled:opacity-50 disabled:cursor-default"
+                        >
+                          <RoleBadge role={displayRole} />
+                        </button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="start" className="w-32 rounded-md p-0 overflow-hidden" onClick={(e) => e.stopPropagation()}>
+                        <DropdownMenuRadioGroup value={displayRole} onValueChange={(val) => markUpdate(member.id, { role: val as Role })}>
+                          {ASSIGNABLE_ROLES.map((r) => (
+                            <DropdownMenuRadioItem
+                              key={r}
+                              value={r}
+                              className={cn("cursor-pointer", displayRole === r && "bg-muted shadow-sm")}
+                            >
+                              <RoleBadge role={r} className="w-full justify-start border-none bg-transparent hover:bg-transparent p-0 h-auto" />
+                            </DropdownMenuRadioItem>
+                          ))}
+                        </DropdownMenuRadioGroup>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  )}
                 </div>
 
                 {/* Status */}
                 <div className="px-2 py-1.5">
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild disabled={isRemoved}>
-                      <button
-                        type="button"
-                        className="cursor-pointer focus:outline-none hover:opacity-80 transition-opacity disabled:opacity-50 disabled:cursor-default"
-                      >
-                        <StatusPill status={displayStatus as MembershipStatus} />
-                      </button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="start" className="w-36 rounded-md p-0 overflow-hidden" onClick={(e) => e.stopPropagation()}>
-                      <DropdownMenuRadioGroup value={displayStatus} onValueChange={(val) => markUpdate(member.id, { status: val as MembershipStatus })}>
-                        {ASSIGNABLE_STATUSES.map((s) => (
-                          <DropdownMenuRadioItem
-                            key={s}
-                            value={s}
-                            className={cn("cursor-pointer", displayStatus === s && "bg-muted shadow-sm")}
-                          >
-                            <StatusPill status={s} className="w-full justify-start border-none bg-transparent hover:bg-transparent p-0 h-auto" />
-                          </DropdownMenuRadioItem>
-                        ))}
-                      </DropdownMenuRadioGroup>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
+                  {isOwner ? (
+                    <StatusPill status={displayStatus as MembershipStatus} />
+                  ) : (
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild disabled={isRemoved}>
+                        <button
+                          type="button"
+                          className="cursor-pointer focus:outline-none hover:opacity-80 transition-opacity disabled:opacity-50 disabled:cursor-default"
+                        >
+                          <StatusPill status={displayStatus as MembershipStatus} />
+                        </button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="start" className="w-36 rounded-md p-0 overflow-hidden" onClick={(e) => e.stopPropagation()}>
+                        <DropdownMenuRadioGroup value={displayStatus} onValueChange={(val) => markUpdate(member.id, { status: val as MembershipStatus })}>
+                          {ASSIGNABLE_STATUSES.map((s) => (
+                            <DropdownMenuRadioItem
+                              key={s}
+                              value={s}
+                              className={cn("cursor-pointer", displayStatus === s && "bg-muted shadow-sm")}
+                            >
+                              <StatusPill status={s} className="w-full justify-start border-none bg-transparent hover:bg-transparent p-0 h-auto" />
+                            </DropdownMenuRadioItem>
+                          ))}
+                        </DropdownMenuRadioGroup>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  )}
                 </div>
 
                 {/* Joined */}
@@ -393,9 +407,9 @@ export function MemberList({ members = [], currentUserId, isSaving, onSave }: Pr
                     : "Invited"}
                 </div>
 
-                {/* Delete / Undo — hidden for self */}
+                {/* Delete / Undo — hidden for self and the Owner */}
                 <div className="flex items-center justify-center">
-                  {!isSelf && (
+                  {!isSelf && !isOwner && (
                     <Button
                       variant="ghost"
                       size="sm"

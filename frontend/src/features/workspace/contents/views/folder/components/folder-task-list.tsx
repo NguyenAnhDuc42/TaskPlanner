@@ -190,7 +190,6 @@ export function FolderTaskList({
           <CreateTaskForm
             parentId={folderId}
             parentType={EntityLayerType.ProjectFolder}
-            onSuccess={() => setCreateOpen(false)}
             onCancel={() => setCreateOpen(false)}
           />
         </DialogFormWrapper>}

@@ -8,11 +8,11 @@ public static class FetchNotificationsEndpoint
     {
         // /sync suffix to coexist with the legacy GET /api/Notifications route.
         app.MapGet("/api/notifications/sync", async (
+            [FromServices] IHandler dispatcher,
+            CancellationToken cancellationToken,
             [FromQuery] string? cursor,
             [FromQuery] int limit,
-            [FromQuery] bool unreadOnly,
-            [FromServices] IHandler dispatcher,
-            CancellationToken cancellationToken) =>
+            [FromQuery] bool unreadOnly = false) =>
         {
             var query = new FetchNotificationsQuery(cursor, limit == 0 ? 20 : limit, unreadOnly);
             var result = await dispatcher.QueryAsync<FetchNotificationsQuery, FetchNotificationsResult>(query, cancellationToken);

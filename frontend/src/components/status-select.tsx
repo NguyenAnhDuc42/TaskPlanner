@@ -1,8 +1,8 @@
 import * as React from "react";
 import { useMemo } from "react";
+import { observer } from "mobx-react-lite";
 import { StatusBadge } from "@/components/status-badge";
-import { useSelector } from "react-redux";
-import { statusSelectors } from "@/store/entityStore";
+import { useStore } from "@/stores/root.store";
 import type { Status } from "@/types/status";
 import {
   DropdownMenu,
@@ -25,7 +25,7 @@ interface StatusSelectProps {
   trigger?: React.ReactNode;
 }
 
-export function StatusSelect({
+export const StatusSelect = observer(function StatusSelect({
   value,
   onChange,
   spaceId,
@@ -33,7 +33,8 @@ export function StatusSelect({
   align = "start",
   trigger,
 }: Readonly<StatusSelectProps>) {
-  const allStatuses = useSelector(statusSelectors.selectAll);
+  const rootStore = useStore();
+  const allStatuses = rootStore.statusStore.all;
 
   const statuses = useMemo(() => {
     if (customStatuses) return customStatuses;
@@ -100,4 +101,4 @@ export function StatusSelect({
       </DropdownMenuContent>
     </DropdownMenu>
   );
-}
+});

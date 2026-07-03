@@ -8,6 +8,7 @@ public class CreateAssigneeHandler(
     WorkspaceContext workspaceContext,
     SyncPermissionService syncPermission,
     RealtimeService realtimeService,
+    NotificationService notificationService,
     IdempotencyService idempotencyService,
     ILogger<CreateAssigneeHandler> logger
 ) : ICommandHandler<CreateAssigneeCommand, long>
@@ -16,7 +17,7 @@ public class CreateAssigneeHandler(
     {
         var task = await db.ProjectTasks.AsNoTracking()
             .Where(t => t.Id == request.TaskId && t.DeletedAt == null)
-            .Select(t => new { t.ProjectWorkspaceId })
+            .Select(t => new { t.ProjectWorkspaceId, t.Name })
             .FirstOrDefaultAsync(cancellationToken);
 
         if (task is null)
@@ -87,6 +88,28 @@ public class CreateAssigneeHandler(
                 .ContinueWith(t =>
                     logger.LogError(t.Exception, "Failed to send real-time Delta for assignee {AssigneeId}", request.Id),
                     TaskContinuationOptions.OnlyOnFaulted);
+
+            // Notify the assignee — mirrors the legacy UpdateTaskAssigneesHandler's behavior,
+            // which this Sync-engine handler otherwise fully replaces. Skipped for self-assignment.
+            var actorUserId = workspaceContext.CurrentMember?.UserId ?? Guid.Empty;
+            var recipientUserId = await db.WorkspaceMembers.AsNoTracking()
+                .Where(m => m.Id == request.MemberId)
+                .Select(m => m.UserId)
+                .FirstOrDefaultAsync(cancellationToken);
+
+            if (recipientUserId != Guid.Empty && recipientUserId != actorUserId)
+            {
+                var actorName = await db.Users.AsNoTracking()
+                    .Where(u => u.Id == actorUserId)
+                    .Select(u => u.Name)
+                    .FirstOrDefaultAsync(cancellationToken);
+
+                _ = notificationService.PushAsync(
+                    recipientUserId, actorUserId, task.ProjectWorkspaceId,
+                    "task_assigned", "task", request.TaskId,
+                    $"{actorName ?? "Someone"} assigned you to \"{task.Name}\"",
+                    cancellationToken: cancellationToken);
+            }
 
             return Result<long>.Success(syncEvent.Id);
         }

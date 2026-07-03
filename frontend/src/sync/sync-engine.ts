@@ -12,8 +12,15 @@ import type { Status } from '@/types/status'
 import type { PendingTransaction } from '@/types/sync'
 import type { DocumentBlockRecord } from '@/types/document/document-block-record'
 import type { AssigneeRecord, FavoriteRecord } from '@/types/projects'
+import type { MemberRecord } from '@/types/workspace/member-record'
 import { api } from '@/lib/api-client'
 import { devLog } from './dev-log'
+
+// Must track SyncQueryService.CurrentDatabaseVersion on the backend — bump both together
+// whenever Bootstrap's payload shape changes. A client whose last bootstrap predates this
+// gets force-rebootstrapped on init() instead of relying only on Delta catch-up, which can't
+// backfill a field/entity type that didn't exist in past SyncEvents.
+const EXPECTED_DATABASE_VERSION = 2
 
 interface BootstrapResponse {
   lastSyncId: number
@@ -25,6 +32,7 @@ interface BootstrapResponse {
   documentBlocks: Record<string, unknown>[]
   assignees: Record<string, unknown>[]
   favorites: Record<string, unknown>[]
+  members: Record<string, unknown>[]
 }
 
 export class SyncEngine {
@@ -47,8 +55,8 @@ export class SyncEngine {
 
   async forceBootstrap(workspaceId: string): Promise<void> {
     // Hard reset to server ground truth — clears local state first
-    const { taskDB, spaceDB, folderDB, statusDB, documentBlockDB, assigneeDB, favoriteDB } = this.rootStore
-    await Promise.all([taskDB!.clear(), spaceDB!.clear(), folderDB!.clear(), statusDB!.clear(), documentBlockDB!.clear(), assigneeDB!.clear(), favoriteDB!.clear()])
+    const { taskDB, spaceDB, folderDB, statusDB, documentBlockDB, assigneeDB, favoriteDB, memberDB } = this.rootStore
+    await Promise.all([taskDB!.clear(), spaceDB!.clear(), folderDB!.clear(), statusDB!.clear(), documentBlockDB!.clear(), assigneeDB!.clear(), favoriteDB!.clear(), memberDB!.clear()])
     await this.bootstrap(workspaceId)
   }
 
@@ -67,10 +75,14 @@ export class SyncEngine {
     await this.queue.recoverInFlight()
 
     // Check if we need full bootstrap or delta catch-up
-    const lastSyncId = await this.rootStore.metadataDB!.getLastSyncId()
+    const meta = await this.rootStore.metadataDB!.get()
+    const lastSyncId = meta?.lastSyncId ?? 0
+    const isStale = (meta?.databaseVersion ?? 0) < EXPECTED_DATABASE_VERSION
 
-    if (lastSyncId === 0) {
-      // First time — full bootstrap
+    if (lastSyncId === 0 || isStale) {
+      // First time, or this session's last bootstrap predates a Bootstrap shape change —
+      // full bootstrap either way, since Delta catch-up alone can't backfill fields/entity
+      // types that didn't exist when this session's earlier SyncEvents were recorded.
       await this.bootstrap(workspaceId)
     }
 
@@ -85,7 +97,7 @@ export class SyncEngine {
     const data: BootstrapResponse = res.data
 
     // Populate IndexedDB
-    const { taskDB, spaceDB, folderDB, statusDB, documentBlockDB, assigneeDB, favoriteDB, metadataDB } = this.rootStore
+    const { taskDB, spaceDB, folderDB, statusDB, documentBlockDB, assigneeDB, favoriteDB, memberDB, metadataDB } = this.rootStore
     await Promise.all([
       taskDB!.putMany(data.tasks as unknown as TaskRecord[]),
       spaceDB!.putMany(data.spaces as unknown as SpaceRecord[]),
@@ -94,13 +106,14 @@ export class SyncEngine {
       documentBlockDB!.putMany(data.documentBlocks as unknown as DocumentBlockRecord[]),
       assigneeDB!.putMany(data.assignees as unknown as AssigneeRecord[]),
       favoriteDB!.putMany(data.favorites as unknown as FavoriteRecord[]),
+      memberDB!.putMany(data.members as unknown as MemberRecord[]),
     ])
 
     // Set metadata
     await metadataDB!.setFullBootstrap(data.lastSyncId, data.databaseVersion)
 
     // Hydrate stores from what we just saved
-    const [tasks, spaces, folders, statuses, documentBlocks, assignees, favorites] = await Promise.all([
+    const [tasks, spaces, folders, statuses, documentBlocks, assignees, favorites, members] = await Promise.all([
       taskDB!.getAll(),
       spaceDB!.getAll(),
       folderDB!.getAll(),
@@ -108,6 +121,7 @@ export class SyncEngine {
       documentBlockDB!.getAll(),
       assigneeDB!.getAll(),
       favoriteDB!.getAll(),
+      memberDB!.getAll(),
     ])
     this.rootStore.taskStore.hydrate(tasks)
     this.rootStore.spaceStore.hydrate(spaces)
@@ -116,6 +130,7 @@ export class SyncEngine {
     this.rootStore.documentBlockStore.hydrate(documentBlocks)
     this.rootStore.assigneeStore.hydrate(assignees)
     this.rootStore.favoriteStore.hydrate(favorites)
+    this.rootStore.memberStore.hydrate(members)
   }
 
   // ── SignalR connection ──

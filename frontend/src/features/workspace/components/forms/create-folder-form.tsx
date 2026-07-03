@@ -1,4 +1,4 @@
-import { useMemo, useReducer } from "react";
+import { useMemo, useReducer, useRef } from "react";
 import { extractErrorMessage } from "@/types/api-error";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
@@ -56,6 +56,7 @@ export function CreateFolderForm({ spaceId, onSuccess, onCancel }: Readonly<Crea
   const folderMutations = useMemo(() => new FolderMutations(rootStore, syncEngine), [rootStore, syncEngine]);
   const [isCreating, setIsCreating] = useReducer((_: boolean, v: boolean) => v, false);
   const [state, dispatch] = useReducer(folderFormReducer, initialFolderState);
+  const nameInputRef = useRef<HTMLInputElement>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -72,7 +73,9 @@ export function CreateFolderForm({ spaceId, onSuccess, onCancel }: Readonly<Crea
         dueDate: state.dueDate?.toISOString(),
       });
       toast.success("Folder created");
+      // Stays open — reset for the next one instead of closing.
       dispatch({ type: "RESET" });
+      nameInputRef.current?.focus();
       onSuccess?.(record.id);
     } catch (error) {
       toast.error(extractErrorMessage(error, "Failed to create folder"));
@@ -94,6 +97,7 @@ export function CreateFolderForm({ spaceId, onSuccess, onCancel }: Readonly<Crea
             }}
           />
           <input
+            ref={nameInputRef}
             placeholder="Folder name"
             aria-label="Folder name"
             value={state.name}
@@ -126,7 +130,7 @@ export function CreateFolderForm({ spaceId, onSuccess, onCancel }: Readonly<Crea
           onClick={onCancel}
           className="h-7 px-2.5 text-[10px] font-medium text-muted-foreground hover:text-foreground"
         >
-          Cancel
+          Done
         </Button>
         <Button
           type="submit"

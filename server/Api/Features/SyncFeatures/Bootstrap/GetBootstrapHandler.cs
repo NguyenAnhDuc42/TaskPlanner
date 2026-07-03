@@ -1,13 +1,15 @@
 using Application;
 using Microsoft.EntityFrameworkCore;
 using Dapper;
+using System.Diagnostics;
 
 namespace Api;
 
-public class GetBootstrapHandler(TaskPlanDbContext db, WorkspaceContext workspaceContext, SyncQueryService syncQueryService) : IQueryHandler<GetBootstrapQuery, BootstrapResult>
+public class GetBootstrapHandler(TaskPlanDbContext db, WorkspaceContext workspaceContext, SyncQueryService syncQueryService, ILogger<GetBootstrapHandler> logger) : IQueryHandler<GetBootstrapQuery, BootstrapResult>
 {
     public async Task<Result<BootstrapResult>> Handle(GetBootstrapQuery request, CancellationToken cancellationToken)
     {
+        var totalStopwatch = Stopwatch.StartNew();
         var isOwner = workspaceContext.CurrentMember.Role == Role.Owner;
         var connection = db.Database.GetDbConnection();
 
@@ -132,6 +134,16 @@ public class GetBootstrapHandler(TaskPlanDbContext db, WorkspaceContext workspac
             WHERE fav.workspace_member_id = @MemberId AND fav.project_workspace_id = @WorkspaceId
               AND fav.deleted_at IS NULL;";
 
+        // Members are workspace-wide, not space-scoped — every member can see every other member,
+        // no entity_access visibility filter needed here (unlike the space-scoped queries above).
+        const string membersSql = @"
+            SELECT
+                wm.id AS Id, wm.user_id AS UserId, u.name AS Name, u.email AS Email,
+                wm.role AS Role, wm.status AS Status, wm.created_at AS CreatedAt, wm.joined_at AS JoinedAt
+            FROM workspace_members wm
+            INNER JOIN users u ON u.id = wm.user_id AND u.deleted_at IS NULL
+            WHERE wm.project_workspace_id = @WorkspaceId AND wm.deleted_at IS NULL;";
+
         var parameters = new
         {
             WorkspaceId = request.WorkspaceId,
@@ -139,15 +151,49 @@ public class GetBootstrapHandler(TaskPlanDbContext db, WorkspaceContext workspac
             IsOwner = isOwner
         };
 
-        var tasks = (await connection.QueryAsync<TaskRecord>(tasksSql, parameters)).AsList();
-        var spaces = (await connection.QueryAsync<SpaceRecord>(spacesSql, parameters)).AsList();
-        var folders = (await connection.QueryAsync<FolderRecord>(foldersSql, parameters)).AsList();
-        var statuses = (await connection.QueryAsync<StatusRecord>(statusesSql, parameters)).AsList();
-        var documentBlocks = (await connection.QueryAsync<DocumentBlockRecord>(documentBlocksSql, parameters)).AsList();
-        var assignees = (await connection.QueryAsync<AssigneeRecord>(assigneesSql, parameters)).AsList();
-        var favorites = (await connection.QueryAsync<FavoriteRecord>(favoritesSql, parameters)).AsList();
+        // All 8 queries used to run as 8 sequential round-trips to Postgres — with the DB in a
+        // different region from most clients, that's 8x the network latency alone, on top of
+        // actual query time. QueryMultipleAsync batches every statement into one command and
+        // reads the result sets back in order over a single round-trip. Same queries, same data,
+        // same visibilityFilter/parameters shared across all of them — just one trip instead of
+        // eight. Order here MUST match the order results are read below.
+        var combinedSql = string.Join("\n", tasksSql, spacesSql, foldersSql, statusesSql, documentBlocksSql, assigneesSql, favoritesSql, membersSql);
+
+        List<TaskRecord> tasks;
+        List<SpaceRecord> spaces;
+        List<FolderRecord> folders;
+        List<StatusRecord> statuses;
+        List<DocumentBlockRecord> documentBlocks;
+        List<AssigneeRecord> assignees;
+        List<FavoriteRecord> favorites;
+        List<MemberRecord> members;
+
+        // Timed separately from total handler time so a slow Bootstrap can be attributed to
+        // "the round-trip + query execution" vs. "everything else" (permission checks,
+        // GetLastSyncIdAsync, serialization) before deciding whether the parallel-connection
+        // split (hierarchy group vs. secondary group) is actually worth the added complexity.
+        var queryStopwatch = Stopwatch.StartNew();
+        await using (var multi = await connection.QueryMultipleAsync(combinedSql, parameters))
+        {
+            tasks = (await multi.ReadAsync<TaskRecord>()).AsList();
+            spaces = (await multi.ReadAsync<SpaceRecord>()).AsList();
+            folders = (await multi.ReadAsync<FolderRecord>()).AsList();
+            statuses = (await multi.ReadAsync<StatusRecord>()).AsList();
+            documentBlocks = (await multi.ReadAsync<DocumentBlockRecord>()).AsList();
+            assignees = (await multi.ReadAsync<AssigneeRecord>()).AsList();
+            favorites = (await multi.ReadAsync<FavoriteRecord>()).AsList();
+            members = (await multi.ReadAsync<MemberRecord>()).AsList();
+        }
+        queryStopwatch.Stop();
+
         var lastSyncId = await syncQueryService.GetLastSyncIdAsync(request.WorkspaceId, cancellationToken);
 
-        return Result<BootstrapResult>.Success(new BootstrapResult(lastSyncId, SyncQueryService.CurrentDatabaseVersion, tasks, spaces, folders, statuses, documentBlocks, assignees, favorites));
+        totalStopwatch.Stop();
+        logger.LogInformation(
+            "Bootstrap for workspace {WorkspaceId}: query={QueryMs}ms total={TotalMs}ms (tasks={TaskCount} spaces={SpaceCount} folders={FolderCount} statuses={StatusCount} blocks={BlockCount} assignees={AssigneeCount} favorites={FavoriteCount} members={MemberCount})",
+            request.WorkspaceId, queryStopwatch.ElapsedMilliseconds, totalStopwatch.ElapsedMilliseconds,
+            tasks.Count, spaces.Count, folders.Count, statuses.Count, documentBlocks.Count, assignees.Count, favorites.Count, members.Count);
+
+        return Result<BootstrapResult>.Success(new BootstrapResult(lastSyncId, SyncQueryService.CurrentDatabaseVersion, tasks, spaces, folders, statuses, documentBlocks, assignees, favorites, members));
     }
 }

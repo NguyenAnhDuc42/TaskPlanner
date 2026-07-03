@@ -101,7 +101,6 @@ export const BoardColumn = React.memo(function BoardColumn({
           parentId={spaceId}
           parentType={EntityLayerType.ProjectSpace}
           defaultStatusId={statusId === "unclassified" ? undefined : statusId}
-          onSuccess={() => setCreateOpen(false)}
           onCancel={() => setCreateOpen(false)}
         />
       </DialogFormWrapper>

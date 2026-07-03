@@ -1,27 +1,22 @@
 import { useEffect, useRef, useLayoutEffect } from "react";
 import { useDispatch } from "react-redux";
 import { useUser } from "@/features/auth/auth-api";
-import { store } from "@/store";
+import { useStore } from "@/stores/root.store";
 import { signalRService } from "@/lib/signalr-service";
-import {
-  spaceSlice,
-  folderSlice,
-  taskSlice,
-  memberSlice,
-  statusSlice,
-  assigneeSlice,
-  commentSlice,
-  workspaceSlice,
-  attachmentSlice,
-  documentBlockSlice,
-  memberSelectors,
-  taskSelectors,
-} from "@/store/entityStore";
 import { workspaceApi } from "@/store/workspaceApi";
+import { workspaceSlice } from "@/store/entityStore";
 import type { AppDispatch } from "@/store";
 
+// Space/Folder/Task/Status/Assignee/Member data now flows through the new SyncHub Delta/DeltaBatch
+// path into MobX (see sync-engine.ts) — this hook used to also dispatch that same data into the
+// legacy Redux entityStore, but nothing reads those slices anymore (confirmed: no component
+// subscribes to spaceSelectors/folderSelectors/taskSelectors/assigneeSelectors/memberSelectors/
+// statusSelectors/commentSelectors/attachmentSelectors/documentBlockSelectors outside this file
+// and entityStore.ts itself). What's left here is the one still-load-bearing side effect: telling
+// RTK Query to refetch the current user's own workspace permissions when their membership changes.
 export function useWorkspaceSignalR(workspaceId: string) {
   const dispatch = useDispatch<AppDispatch>();
+  const rootStore = useStore();
   const { data: currentUser } = useUser();
 
   // Ref so handlers always read a fresh value without re-registering on every render
@@ -43,81 +38,28 @@ export function useWorkspaceSignalR(workspaceId: string) {
     manageConnection();
 
     const onEntitiesUpdated = (payload: import("@/lib/signalr-service").EntityBatchUpdate) => {
-      console.log("[SignalR] EntitiesUpdated:", payload);
       const user = currentUserRef.current;
-      if (payload.spaces) {
-        dispatch(spaceSlice.actions.upsertMany(payload.spaces));
+      // Space/Folder/Task/Status/Assignee/Comment/Attachment/DocumentBlock updates are handled by
+      // the new SyncHub Delta path now — this channel only still matters for (a) the current
+      // user's own membership changing (forces a workspace-permissions refetch) and (b) the
+      // top-level Workspace record itself (home-screen list/switcher still read that via Redux).
+      if (payload.members && user?.id && payload.members.some(m => m.userId === user.id)) {
+        dispatch(workspaceApi.util.invalidateTags([{ type: "Workspaces", id: workspaceId }]));
       }
-      if (payload.folders) {
-        dispatch(folderSlice.actions.upsertMany(payload.folders));
-        payload.folders.forEach(f => {
-          if (f.spaceId) dispatch(spaceSlice.actions.upsert({ id: f.spaceId, hasFolders: true }));
-        });
-      }
-      if (payload.tasks) {
-        dispatch(taskSlice.actions.upsertMany(payload.tasks));
-        payload.tasks.forEach(t => {
-          if (t.folderId) {
-            dispatch(folderSlice.actions.upsert({ id: t.folderId, hasTasks: true }));
-          } else if (t.spaceId) {
-            dispatch(spaceSlice.actions.upsert({ id: t.spaceId, hasTasks: true }));
-          }
-        });
-      }
-      if (payload.members) {
-        dispatch(memberSlice.actions.upsertMany(payload.members));
-        if (user?.id && payload.members.some(m => m.userId === user.id)) {
-          dispatch(workspaceApi.util.invalidateTags([{ type: "Workspaces", id: workspaceId }]));
-        }
-      }
-      if (payload.assignees)      dispatch(assigneeSlice.actions.upsertMany(payload.assignees));
-      if (payload.statuses)       dispatch(statusSlice.actions.upsertMany(payload.statuses));
-      if (payload.comments)       dispatch(commentSlice.actions.upsertMany(payload.comments));
-      if (payload.workspaces)     dispatch(workspaceSlice.actions.upsertMany(payload.workspaces));
-      if (payload.attachments)    dispatch(attachmentSlice.actions.upsertMany(payload.attachments));
-      if (payload.documentBlocks) {
-        dispatch(documentBlockSlice.actions.upsertMany(payload.documentBlocks));
-        // Invalidate RTK cache so the open editor refetches fresh blocks
-        const docIds = [...new Set(payload.documentBlocks.map(b => b.documentId).filter(Boolean))];
-        docIds.forEach(docId => {
-          dispatch(workspaceApi.util.invalidateTags([{ type: "Documents" as const, id: `blocks-${docId}` }]));
-        });
-      }
+      if (payload.workspaces) dispatch(workspaceSlice.actions.upsertMany(payload.workspaces));
     };
 
     const onEntitiesDeleted = (payload: import("@/lib/signalr-service").EntityBatchDelete) => {
-      console.log("[SignalR] EntitiesDeleted:", payload);
       const user = currentUserRef.current;
-      if (payload.spaceIds)          dispatch(spaceSlice.actions.removeMany(payload.spaceIds));
-      if (payload.folderIds) {
-        const state = store.getState();
-
-        // Move tasks in deleted folders to space level so they stay visible
-        const orphaned = taskSelectors.selectAll(state)
-          .filter(t => t.folderId && payload.folderIds!.includes(t.folderId))
-          .map(t => ({ id: t.id, folderId: null }));
-        if (orphaned.length > 0) dispatch(taskSlice.actions.upsertMany(orphaned));
-
-        dispatch(folderSlice.actions.removeMany(payload.folderIds));
-      }
-      if (payload.taskIds)           dispatch(taskSlice.actions.removeMany(payload.taskIds));
       if (payload.memberIds) {
-        const currentMembers = memberSelectors.selectEntities(store.getState());
-        const isCurrentUserDeleted = payload.memberIds.some(id => {
-          const m = currentMembers[id];
-          return m && m.userId === user?.id;
-        });
-        dispatch(memberSlice.actions.removeMany(payload.memberIds));
+        const isCurrentUserDeleted = payload.memberIds.some(
+          (id) => rootStore.memberStore.getById(id)?.userId === user?.id,
+        );
         if (isCurrentUserDeleted) {
           dispatch(workspaceApi.util.invalidateTags([{ type: "Workspaces", id: workspaceId }]));
         }
       }
-      if (payload.assigneeIds)       dispatch(assigneeSlice.actions.removeMany(payload.assigneeIds));
-      if (payload.statusIds)         dispatch(statusSlice.actions.removeMany(payload.statusIds));
-      if (payload.commentIds)        dispatch(commentSlice.actions.removeMany(payload.commentIds));
-      if (payload.workspaceIds)      dispatch(workspaceSlice.actions.removeMany(payload.workspaceIds));
-      if (payload.attachmentIds)     dispatch(attachmentSlice.actions.removeMany(payload.attachmentIds));
-      if (payload.documentBlockIds)  dispatch(documentBlockSlice.actions.removeMany(payload.documentBlockIds));
+      if (payload.workspaceIds) dispatch(workspaceSlice.actions.removeMany(payload.workspaceIds));
     };
 
     const handleReconnect = () => {
@@ -125,7 +67,10 @@ export function useWorkspaceSignalR(workspaceId: string) {
       signalRService.invoke("JoinWorkspace", workspaceId).catch(() => {});
       const userId = currentUserRef.current?.id;
       if (userId) signalRService.invoke("JoinUser", userId).catch(() => {});
-      dispatch(workspaceApi.util.invalidateTags(['Workspaces', 'Spaces', 'Folders', 'Tasks', 'Members', 'User', 'UserPreference', 'EntityAccess', 'Workflows', 'Comments', 'Documents']));
+      // Only tags still actually provided by a live RTK Query endpoint — the rest (Spaces,
+      // Folders, Tasks, Members, EntityAccess, Workflows, Comments, Documents) belonged to
+      // endpoints now superseded by the sync engine and removed from features/workspace/api.ts.
+      dispatch(workspaceApi.util.invalidateTags(['Workspaces', 'User', 'UserPreference']));
     };
 
     signalRService.on("EntitiesUpdated", onEntitiesUpdated);

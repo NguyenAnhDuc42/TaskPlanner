@@ -1,10 +1,10 @@
-import { useReducer, useMemo } from "react";
+import { useReducer, useMemo, useRef, useState } from "react";
 import { observer } from "mobx-react-lite";
 import { extractErrorMessage } from "@/types/api-error";
 import { Button } from "@/components/ui/button";
 import { EntityLayerType } from "@/types/entity-layer-type";
 import { Priority } from "@/types/priority";
-import { Circle, User } from "lucide-react";
+import { Circle, User, Check } from "lucide-react";
 import { toast } from "sonner";
 import {
   AttributeButton,
@@ -15,9 +15,12 @@ import { StatusBadge } from "@/components/status-badge";
 import { PriorityBadge } from "@/components/priority-badge";
 import { StatusSelect } from "@/components/status-select";
 import { PrioritySelect } from "@/components/priority-select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { UserAvatar } from "@/components/user-avatar";
 import { useStore } from "@/stores/root.store";
 import { useSyncEngine } from "@/sync/sync-provider";
 import { TaskMutations } from "@/mutations/task.mutations";
+import { AssigneeMutations } from "@/mutations/assignee.mutations";
 import type { Status } from "@/types/status";
 
 interface CreateTaskFormProps {
@@ -36,6 +39,7 @@ interface TaskFormState {
   readonly selectedStatusId: string | undefined;
   readonly startDate: Date | undefined;
   readonly dueDate: Date | undefined;
+  readonly selectedAssigneeIds: readonly string[];
 }
 
 type TaskFormAction =
@@ -46,11 +50,10 @@ type TaskFormAction =
   | { readonly type: "SET_STATUS"; readonly payload: string | undefined }
   | { readonly type: "SET_START_DATE"; readonly payload: Date | undefined }
   | { readonly type: "SET_DUE_DATE"; readonly payload: Date | undefined }
+  | { readonly type: "TOGGLE_ASSIGNEE"; readonly payload: string }
   | { readonly type: "RESET"; readonly payload?: string };
 
 function createTaskFormReducer(defaultStatusId?: string) {
-
-
   return function (state: TaskFormState, action: TaskFormAction): TaskFormState {
     switch (action.type) {
       case "SET_NAME":
@@ -67,6 +70,13 @@ function createTaskFormReducer(defaultStatusId?: string) {
         return { ...state, startDate: action.payload };
       case "SET_DUE_DATE":
         return { ...state, dueDate: action.payload };
+      case "TOGGLE_ASSIGNEE":
+        return {
+          ...state,
+          selectedAssigneeIds: state.selectedAssigneeIds.includes(action.payload)
+            ? state.selectedAssigneeIds.filter((id) => id !== action.payload)
+            : [...state.selectedAssigneeIds, action.payload],
+        };
       case "RESET":
         return {
           name: "",
@@ -76,6 +86,7 @@ function createTaskFormReducer(defaultStatusId?: string) {
           selectedStatusId: action.payload || defaultStatusId,
           startDate: undefined,
           dueDate: undefined,
+          selectedAssigneeIds: [],
         };
       default:
         return state;
@@ -93,7 +104,9 @@ export const CreateTaskForm = observer(function CreateTaskForm({
   const rootStore = useStore();
   const syncEngine = useSyncEngine();
   const taskMutations = useMemo(() => new TaskMutations(rootStore, syncEngine), [rootStore, syncEngine]);
+  const assigneeMutations = useMemo(() => new AssigneeMutations(rootStore, syncEngine), [rootStore, syncEngine]);
   const [isCreating, setIsCreating] = useReducer((_: boolean, v: boolean) => v, false);
+  const [assigneeSearch, setAssigneeSearch] = useState("");
   const [state, dispatch] = useReducer(
     createTaskFormReducer(defaultStatusId),
     {
@@ -104,7 +117,16 @@ export const CreateTaskForm = observer(function CreateTaskForm({
       selectedStatusId: defaultStatusId,
       startDate: undefined,
       dueDate: undefined,
+      selectedAssigneeIds: [],
     }
+  );
+  const nameInputRef = useRef<HTMLTextAreaElement>(null);
+
+  const allMembers = rootStore.memberStore.all;
+  const filteredMembers = allMembers.filter(
+    (m) =>
+      m.name.toLowerCase().includes(assigneeSearch.toLowerCase()) ||
+      m.email?.toLowerCase().includes(assigneeSearch.toLowerCase()),
   );
 
   // Dynamically resolve space ID depending on folder/space parentType. Task/Folder/Status are
@@ -134,7 +156,24 @@ export const CreateTaskForm = observer(function CreateTaskForm({
         spaceId: spaceId ?? null,
         folderId: parentType === "ProjectFolder" ? parentId : null,
       });
+
+      if (state.selectedAssigneeIds.length > 0) {
+        await Promise.all(
+          state.selectedAssigneeIds.map((memberId) =>
+            assigneeMutations.create(record.id, memberId).catch((err) =>
+              console.error("Failed to assign member to new task", err),
+            ),
+          ),
+        );
+      }
+
       toast.success("Task created");
+
+      // Stays open — reset for the next one instead of closing.
+      dispatch({ type: "RESET" });
+      setAssigneeSearch("");
+      nameInputRef.current?.focus();
+
       onSuccess?.(record.id);
     } catch (error) {
       console.error(error);
@@ -158,6 +197,7 @@ export const CreateTaskForm = observer(function CreateTaskForm({
             }}
           />
           <textarea
+            ref={nameInputRef}
             placeholder="Task title"
             aria-label="Task title"
             value={state.name}
@@ -219,9 +259,55 @@ export const CreateTaskForm = observer(function CreateTaskForm({
           triggerClassName="h-6 px-2 text-[10px] font-medium rounded-md border border-transparent bg-muted/30 hover:bg-muted/50 text-muted-foreground transition-all cursor-pointer"
         />
 
-        <AttributeButton icon={User} className="ml-auto">
-          Assignee
-        </AttributeButton>
+        <Popover onOpenChange={(open) => { if (!open) setAssigneeSearch(""); }}>
+          <PopoverTrigger asChild>
+            <AttributeButton icon={User} className="ml-auto" active={state.selectedAssigneeIds.length > 0}>
+              {state.selectedAssigneeIds.length > 0 ? `Assignee (${state.selectedAssigneeIds.length})` : "Assignee"}
+            </AttributeButton>
+          </PopoverTrigger>
+          <PopoverContent
+            align="end"
+            className="w-52 p-0 gap-0 rounded-md border border-border shadow-md bg-background text-popover-foreground overflow-hidden"
+          >
+            <div className="p-0 border-b border-border">
+              <input
+                autoFocus
+                placeholder="Filter members..."
+                value={assigneeSearch}
+                onChange={(e) => setAssigneeSearch(e.target.value)}
+                className="h-8 w-full text-[11px] bg-transparent border-0 focus-visible:outline-none px-2"
+              />
+            </div>
+            <div className="max-h-50 overflow-y-auto [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:bg-muted-foreground/20">
+              {filteredMembers.length === 0 ? (
+                <p className="text-[11px] text-muted-foreground/50 text-center py-3">No members found</p>
+              ) : (
+                filteredMembers.map((member) => {
+                  const isAssigned = state.selectedAssigneeIds.includes(member.id);
+                  return (
+                    <button
+                      key={member.id}
+                      type="button"
+                      onClick={() => dispatch({ type: "TOGGLE_ASSIGNEE", payload: member.id })}
+                      className={`w-full flex items-center gap-2 px-2 py-1.5 text-[11px] font-semibold text-left transition-colors cursor-default outline-none select-none ${
+                        isAssigned ? "bg-muted text-foreground" : "hover:bg-accent hover:text-accent-foreground"
+                      }`}
+                    >
+                      <UserAvatar
+                        name={member.name}
+                        avatarUrl={member.avatarUrl}
+                        className="h-5 w-5 rounded-sm shrink-0"
+                        fallbackClassName="text-[8px] rounded-sm"
+                      />
+                      <span className="truncate font-medium flex-1">{member.name}</span>
+                      {isAssigned && <Check className="h-3.5 w-3.5 text-primary shrink-0" />}
+                    </button>
+                  );
+                })
+              )}
+            </div>
+          </PopoverContent>
+        </Popover>
       </div>
 
       {/* Footer Actions */}
@@ -234,7 +320,7 @@ export const CreateTaskForm = observer(function CreateTaskForm({
             onClick={onCancel}
             className="h-7 px-2.5 text-[10px] font-medium text-muted-foreground hover:text-foreground"
           >
-            Cancel
+            Done
           </Button>
           <Button
             type="submit"

@@ -46,7 +46,7 @@ function FavItemContent({
       onMouseDown={onMouseDown}
       onClick={onClick}
       className={cn(
-        "flex items-center px-1 py-0.5 rounded-md transition-colors mb-px border w-full text-left outline-none select-none cursor-grab active:cursor-grabbing",
+        "flex items-center px-1 py-0.5 rounded-md transition-colors mb-px border w-full text-left outline-none select-none cursor-pointer active:cursor-grabbing",
         isDragging ? "opacity-50" : "",
         isRouteActive
           ? "bg-primary/5 text-primary border-primary/25"
@@ -114,9 +114,15 @@ export const FavoriteNodeList = observer(function FavoriteNodeList() {
   // items' keys are never touched. The one case that used to slip through: no prev AND no next
   // (e.g. the whole list had no real keys yet), which fell back to an empty string — the backend
   // rejects an empty OrderKey, so that reorder silently failed. fractionalStart() replaces that.
-  const handleReorder = useCallback((reordered: FavItem[]) => {
+  //
+  // draggedId comes straight from dnd-kit's active.id, not from diffing old vs new order — diffing
+  // ("first index that differs") breaks for a front-to-back move: shifting the first item to last
+  // shifts every index, so the first differing index is always 0 — the item that slid INTO that
+  // slot, not the one actually dragged. That bug meant dragging the first favorite to the bottom
+  // silently reordered a DIFFERENT item instead, leaving the dragged one stuck in place forever.
+  const handleReorder = useCallback((reordered: FavItem[], draggedId: string) => {
     if (!workspaceId) return;
-    const draggedIdx = reordered.findIndex((f, i) => favorites[i]?.id !== f.id);
+    const draggedIdx = reordered.findIndex((f) => f.id === draggedId);
     const moved = reordered[draggedIdx];
     if (!moved) return;
     const prev = reordered[draggedIdx - 1]?.favoriteOrderKey ?? null;
@@ -128,7 +134,7 @@ export const FavoriteNodeList = observer(function FavoriteNodeList() {
       : fractionalStart();
     favoriteMutations.reorder(moved.id, moved.entityLayerType, prev, next, newOrderKey)
       .catch((err) => console.error("Failed to reorder favorite", err));
-  }, [favorites, workspaceId, favoriteMutations]);
+  }, [workspaceId, favoriteMutations]);
 
   const getIsActive = (id: string, type: EntityLayerType) => {
     if (type === EntityLayerType.ProjectSpace)  return location.pathname.includes(`/spaces/${id}`);

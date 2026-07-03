@@ -128,9 +128,6 @@ export const FolderContextMenu = observer(function FolderContextMenu({
         <CreateTaskForm
           parentId={folderId}
           parentType={EntityLayerType.ProjectFolder}
-          onSuccess={() => {
-            setActiveForm(null);
-          }}
           onCancel={() => setActiveForm(null)}
         />
       </DialogFormWrapper>

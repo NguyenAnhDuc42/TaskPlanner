@@ -20,7 +20,7 @@ import { useWorkspaceRole } from "@/features/workspace/context/use-workspace-rol
 import { DialogFormWrapper } from "@/components/dialog-form-wrapper";
 import { CreateTaskForm } from "@/features/workspace/components/forms/create-task-form";
 import { CreateFolderForm } from "@/features/workspace/components/forms/create-folder-form";
-import { CreateSpaceForm } from "@/features/workspace/components/forms/create-space-form";
+import { EditSpaceForm } from "@/features/workspace/components/forms/edit-space-form";
 import { useStore } from "@/stores/root.store";
 import { useSyncEngine } from "@/sync/sync-provider";
 import { SpaceMutations } from "@/mutations/space.mutations";
@@ -144,12 +144,9 @@ export const SpaceContextMenu = observer(function SpaceContextMenu({
         title="Create New Task"
         trigger={null}
       >
-        <CreateTaskForm 
+        <CreateTaskForm
           parentId={spaceId}
           parentType={EntityLayerType.ProjectSpace}
-          onSuccess={() => {
-            setActiveForm(null);
-          }}
           onCancel={() => setActiveForm(null)}
         />
       </DialogFormWrapper>
@@ -162,9 +159,6 @@ export const SpaceContextMenu = observer(function SpaceContextMenu({
       >
         <CreateFolderForm
           spaceId={spaceId}
-          onSuccess={() => {
-            setActiveForm(null);
-          }}
           onCancel={() => setActiveForm(null)}
         />
       </DialogFormWrapper>
@@ -174,9 +168,9 @@ export const SpaceContextMenu = observer(function SpaceContextMenu({
         onOpenChange={(open) => !open && setActiveForm(null)}
         title="Space Settings"
         trigger={null}
-        contentClassName="max-w-3xl p-0 overflow-hidden border-none shadow-2xl rounded-2xl bg-background outline-none ring-1 ring-border/50"
       >
-        <CreateSpaceForm 
+        <EditSpaceForm
+          spaceId={spaceId}
           onSuccess={() => setActiveForm(null)}
           onCancel={() => setActiveForm(null)}
         />

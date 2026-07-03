@@ -24,14 +24,8 @@ export const Route = createFileRoute("/workspaces/$workspaceId")({
   }),
   validateSearch: (search) => workspaceSearchSchema.parse(search),
   loader: ({ params: { workspaceId } }) => {
-    // Store before API calls so the axios interceptor can use it when URL hasn't updated yet
     sessionStorage.setItem("activeWorkspaceId", workspaceId);
-    store.dispatch(workspaceFeatureApi.endpoints.getFavorites.initiate({ workspaceId, cursor: null }));
-    return Promise.all([
-      store.dispatch(workspaceFeatureApi.endpoints.getWorkspaceDetail.initiate(workspaceId)),
-      store.dispatch(workspaceFeatureApi.endpoints.getWorkspaceMembers.initiate(workspaceId)),
-      store.dispatch(workspaceFeatureApi.endpoints.getWorkspaceStatuses.initiate()),
-    ]);
+    return store.dispatch(workspaceFeatureApi.endpoints.getWorkspaceDetail.initiate(workspaceId));
   },
   pendingComponent:ViewSkeleton,
   component: WorkspaceRoot,

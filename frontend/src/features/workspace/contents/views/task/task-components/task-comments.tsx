@@ -1,11 +1,9 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { observer } from "mobx-react-lite";
-import { useSelector } from "react-redux";
 import { UserAvatar } from "@/components/user-avatar";
 import { Send, CornerDownRight, Trash2, X, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { MentionInput } from "@/components/mention-input";
-import { memberSelectors } from "@/store/entityStore";
 import { toast } from "sonner";
 import { useStore } from "@/stores/root.store";
 import { useSyncEngine } from "@/sync/sync-provider";
@@ -25,8 +23,8 @@ import {
 } from "@/components/ui/alert-dialog";
 
 // Renders comment text — handles new @[workspaceMemberId] tokens and legacy @Name text.
-function CommentContent({ content }: { content: string }) {
-  const allMembers = useSelector(memberSelectors.selectEntities);
+const CommentContent = observer(function CommentContent({ content }: { content: string }) {
+  const rootStore = useStore();
 
   const idTokenRe  = /@\[([a-f0-9-]{36})\]/g;
   const nameTokenRe = /@((?:\w+)(?:\s(?!\s*@)\w+)*)/g;
@@ -35,7 +33,7 @@ function CommentContent({ content }: { content: string }) {
   let m: RegExpExecArray | null;
 
   while ((m = idTokenRe.exec(content)) !== null) {
-    const member = allMembers[m[1]];
+    const member = rootStore.memberStore.getById(m[1]);
     segments.push({ index: m.index, length: m[0].length, label: member?.name ?? `user` });
   }
   while ((m = nameTokenRe.exec(content)) !== null) {
@@ -57,7 +55,7 @@ function CommentContent({ content }: { content: string }) {
   }
   if (last < content.length) parts.push(content.slice(last));
   return <>{parts}</>;
-}
+});
 
 interface TaskCommentsProps {
   taskId: string;
@@ -107,9 +105,8 @@ function useTaskComments(taskId: string) {
 }
 
 export const TaskComments = observer(function TaskComments({ taskId }: Readonly<TaskCommentsProps>) {
-  const allMembers = useSelector(memberSelectors.selectAll);
-
   const rootStore = useStore();
+  const allMembers = rootStore.memberStore.all;
   const syncEngine = useSyncEngine();
   const commentMutations = useMemo(() => new CommentMutations(rootStore, syncEngine), [rootStore, syncEngine]);
 

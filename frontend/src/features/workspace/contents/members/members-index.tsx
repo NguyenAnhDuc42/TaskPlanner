@@ -1,73 +1,47 @@
 "use client";
 
-import {
-  useMembers,
-  useAddMembers,
-  useUpdateMembers,
-  useRemoveMembers,
-} from "./members-api";
+import { useMemo, useState } from "react";
+import { observer } from "mobx-react-lite";
 import { MemberList, type MemberSavePayload } from "./member-components/member-list";
-import { useMemo } from "react";
-import { useParams } from "@tanstack/react-router";
-import { useSelector } from "react-redux";
 import { useUser } from "@/features/auth/auth-api";
 import { useWorkspace } from "@/features/workspace/context/workspace-context";
-import { ViewSkeleton } from "@/components/view-skeleton";
-import { NotFoundScreen } from "@/components/not-found-screen";
-import { memberSelectors } from "@/store/entityStore";
-import type { RootState } from "@/store";
-import type { MemberRecord } from "@/types/workspace/member-record";
+import { useStore } from "@/stores/root.store";
+import { MemberMutations } from "@/mutations/member.mutations";
+import { extractErrorMessage } from "@/types/api-error";
 import { Copy, Link2 } from "lucide-react";
 import { toast } from "sonner";
 import { copyToClipboard } from "@/lib/copy-to-clipboard";
 
-export default function MembersIndex() {
-  const { workspaceId } = useParams({
-    from: "/workspaces/$workspaceId/members",
-  });
+export default observer(function MembersIndex() {
   const { data: currentUser } = useUser();
   const { workspace } = useWorkspace();
+  const rootStore = useStore();
+  const memberMutations = useMemo(() => new MemberMutations(rootStore), [rootStore]);
+  const [isSaving, setIsSaving] = useState(false);
 
-  const { data, isLoading, isError, fetchNextPage, hasNextPage, isFetchingNextPage } =
-    useMembers(workspaceId);
-
-  const { mutate: addMembers, isPending: isAdding } = useAddMembers(workspaceId);
-  const { mutate: updateMembers, isPending: isUpdating } = useUpdateMembers(workspaceId);
-  const { mutate: removeMembers, isPending: isRemoving } = useRemoveMembers(workspaceId);
-
-  const isSaving = isAdding || isUpdating || isRemoving;
-
-  const memberIds = useMemo(
-    () => data?.pages.flatMap((page) => page.items.map((i) => i.id)) ?? [],
-    [data],
-  );
-
-  const members = useSelector((state: RootState) =>
-    memberIds
-      .map((id) => memberSelectors.selectById(state, id))
-      .filter((r): r is MemberRecord => !!r),
-  );
+  // Plain read, not useMemo — this is a mobx-react-lite observer, which tracks observable reads
+  // made directly during render (see FavoriteNodeList for the full rationale). Members are fully
+  // hydrated locally by Bootstrap + Delta, unlike the old paginated fetch — no loading/cursor state
+  // needed.
+  const members = rootStore.memberStore.all;
 
   const handleSave = async (payload: MemberSavePayload) => {
-    const ops: Promise<unknown>[] = [];
+    setIsSaving(true);
+    try {
+      const ops: Promise<unknown>[] = [];
+      if (payload.adds.length > 0) ops.push(memberMutations.add(payload.adds));
+      if (payload.updates.length > 0) ops.push(memberMutations.update(payload.updates));
+      if (payload.removes.length > 0) ops.push(memberMutations.remove(payload.removes));
 
-    if (payload.adds.length > 0) {
-      ops.push(
-        addMembers({ members: payload.adds, enableEmail: false }),
-      );
+      await Promise.all(ops);
+      toast.success("Members updated successfully");
+    } catch (error) {
+      toast.error(extractErrorMessage(error, "Failed to update members"));
+      throw error;
+    } finally {
+      setIsSaving(false);
     }
-    if (payload.updates.length > 0) {
-      ops.push(updateMembers({ members: payload.updates }));
-    }
-    if (payload.removes.length > 0) {
-      ops.push(removeMembers(payload.removes));
-    }
-
-    await Promise.all(ops);
   };
-
-  if (isLoading && members.length === 0) return <ViewSkeleton />;
-  if (isError) return <NotFoundScreen title="Failed to load members" description="Something went wrong loading the member list. Try refreshing the page." />;
 
   const joinCode = workspace?.joinCode;
   const canSeeCode = workspace?.canInvite;
@@ -97,18 +71,6 @@ export default function MembersIndex() {
       )}
 
       <MemberList members={members} currentUserId={currentUser?.id} isSaving={isSaving} onSave={handleSave} />
-
-      {hasNextPage && (
-        <div className="flex justify-center p-4 border-t border-border">
-          <button
-            onClick={() => fetchNextPage()}
-            disabled={isFetchingNextPage}
-            className="text-[11px] text-primary hover:underline disabled:opacity-50 font-mono uppercase tracking-tight"
-          >
-            {isFetchingNextPage ? "Loading more..." : "Load more"}
-          </button>
-        </div>
-      )}
     </div>
   );
-}
+});

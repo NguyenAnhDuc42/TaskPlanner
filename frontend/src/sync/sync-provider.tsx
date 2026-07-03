@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
-import { RootStore, RootStoreProvider } from "@/stores/root.store";
+import { useStore } from "@/stores/root.store";
 import { SyncEngine } from "./sync-engine";
 import { devError, devLog } from "./dev-log";
 
@@ -31,13 +31,17 @@ interface SyncProviderProps {
   children: ReactNode;
 }
 
-// Mounts the offline-first sync engine (RootStore + SyncEngine) for the given workspace —
-// the real-app equivalent of what /dev/sync-test constructs standalone. Bootstraps/connects
-// once per workspaceId change. Children render immediately (Redux-backed content doesn't wait
-// on this at all) — components that read from `useStore()`/`useTaskStore()` etc. should check
-// `useSyncReady()` themselves before trusting the store has data.
+// Mounts the offline-first sync engine (SyncEngine) for the given workspace — the real-app
+// equivalent of what /dev/sync-test constructs standalone. Bootstraps/connects once per
+// workspaceId change. RootStore itself is NOT created here — it's provided once at the app root
+// (see __root.tsx) so user-level state (notificationStore, workspaceStore) survives navigating
+// in and out of workspace routes; this just calls switchWorkspace()/init() on that shared
+// instance for the workspace-scoped stores (task/space/folder/etc). Children render immediately
+// (Redux-backed content doesn't wait on this at all) — components that read from
+// `useStore()`/`useTaskStore()` etc. should check `useSyncReady()` themselves before trusting
+// the store has data.
 export function SyncProvider({ workspaceId, children }: Readonly<SyncProviderProps>) {
-  const rootStore = useMemo(() => new RootStore(), []);
+  const rootStore = useStore();
   const syncEngine = useMemo(() => new SyncEngine(rootStore), [rootStore]);
   const [ready, setReady] = useState(false);
   const [error, setError] = useState<Error | null>(null);
@@ -67,10 +71,8 @@ export function SyncProvider({ workspaceId, children }: Readonly<SyncProviderPro
   const contextValue = useMemo(() => ({ engine: syncEngine, ready, error }), [syncEngine, ready, error]);
 
   return (
-    <RootStoreProvider value={rootStore}>
-      <SyncEngineContext.Provider value={contextValue}>
-        {children}
-      </SyncEngineContext.Provider>
-    </RootStoreProvider>
+    <SyncEngineContext.Provider value={contextValue}>
+      {children}
+    </SyncEngineContext.Provider>
   );
 }

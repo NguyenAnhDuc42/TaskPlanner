@@ -1,4 +1,3 @@
-import React from "react";
 import { observer } from "mobx-react-lite";
 import { ChevronRight, MoreVertical } from "lucide-react";
 import { DynamicIcon } from "@/components/dynamic-icon";
@@ -7,6 +6,7 @@ import { useWorkspace } from "@/features/workspace/context/workspace-context";
 import { cn } from "@/lib/utils";
 import { Collapsible, CollapsibleContent } from "@/components/ui/collapsible";
 import { useStore } from "@/stores/root.store";
+import { useLocalStorage } from "@/hooks/use-local-storage";
 import { NodeTasksList } from "./task-node-list";
 import { EntityLayerType as EntityLayerConst } from "@/types/entity-layer-type";
 import { SortableItem } from "../dnd/sortable-item";
@@ -33,7 +33,7 @@ export const SpaceNodeItem = observer(function SpaceNodeItem({
 
   const navigate = useNavigate();
   const location = useLocation();
-  const [isOpen, setIsOpen] = React.useState(false);
+  const [isOpen, setIsOpen] = useLocalStorage(`sidebar-open:${workspaceId}:space:${spaceId}`, false);
 
 
   if (!space) return null;

@@ -1,4 +1,5 @@
-import { useMemo, useReducer, useRef } from "react";
+import { useMemo, useReducer } from "react";
+import { observer } from "mobx-react-lite";
 import { extractErrorMessage } from "@/types/api-error";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
@@ -7,83 +8,71 @@ import { useStore } from "@/stores/root.store";
 import { useSyncEngine } from "@/sync/sync-provider";
 import { SpaceMutations } from "@/mutations/space.mutations";
 
-interface CreateSpaceFormProps {
-  readonly onSuccess?: (id: string) => void;
+interface EditSpaceFormProps {
+  readonly spaceId: string;
+  readonly onSuccess?: () => void;
   readonly onCancel?: () => void;
 }
 
-interface SpaceFormState {
+interface SpaceEditState {
   readonly name: string;
   readonly icon: string;
   readonly color: string;
 }
 
-type SpaceFormAction =
+type SpaceEditAction =
   | { readonly type: "SET_NAME"; readonly payload: string }
   | { readonly type: "SET_ICON"; readonly payload: string }
-  | { readonly type: "SET_COLOR"; readonly payload: string }
-  | { readonly type: "RESET" };
+  | { readonly type: "SET_COLOR"; readonly payload: string };
 
-const initialSpaceState: SpaceFormState = {
-  name: "",
-  icon: "LayoutGrid",
-  color: "#6366f1",
-};
-
-function spaceFormReducer(state: SpaceFormState, action: SpaceFormAction): SpaceFormState {
+function spaceEditReducer(state: SpaceEditState, action: SpaceEditAction): SpaceEditState {
   switch (action.type) {
-    case "SET_NAME":
-      return { ...state, name: action.payload };
-    case "SET_ICON":
-      return { ...state, icon: action.payload };
-    case "SET_COLOR":
-      return { ...state, color: action.payload };
-    case "RESET":
-      return initialSpaceState;
-    default:
-      return state;
+    case "SET_NAME":  return { ...state, name: action.payload };
+    case "SET_ICON":  return { ...state, icon: action.payload };
+    case "SET_COLOR": return { ...state, color: action.payload };
+    default:          return state;
   }
 }
 
-export function CreateSpaceForm({ onSuccess, onCancel }: Readonly<CreateSpaceFormProps>) {
+// Edits the space itself (name/icon/color) — distinct from CreateSpaceForm, which only ever
+// creates a new space. The "Space Settings" menu item used to open CreateSpaceForm by mistake,
+// which meant "editing" a space actually created an unrelated new one.
+export const EditSpaceForm = observer(function EditSpaceForm({ spaceId, onSuccess, onCancel }: Readonly<EditSpaceFormProps>) {
   const rootStore = useStore();
   const syncEngine = useSyncEngine();
   const spaceMutations = useMemo(() => new SpaceMutations(rootStore, syncEngine), [rootStore, syncEngine]);
-  const [isCreating, setIsCreating] = useReducer((_: boolean, v: boolean) => v, false);
-  const [state, dispatch] = useReducer(spaceFormReducer, initialSpaceState);
-  const nameInputRef = useRef<HTMLInputElement>(null);
+  const space = rootStore.spaceStore.getById(spaceId);
+  const [isSaving, setIsSaving] = useReducer((_: boolean, v: boolean) => v, false);
+  const [state, dispatch] = useReducer(spaceEditReducer, {
+    name: space?.name ?? "",
+    icon: space?.icon ?? "LayoutGrid",
+    color: space?.color ?? "#6366f1",
+  });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!state.name.trim()) return;
+    if (!state.name.trim() || !space) return;
 
-    setIsCreating(true);
+    setIsSaving(true);
     try {
-      const record = await spaceMutations.create({
+      await spaceMutations.update(spaceId, {
         name: state.name,
-        isPrivate: false,
-        color: state.color,
         icon: state.icon,
+        color: state.color,
       });
-      toast.success("Space created");
-
-      // Stays open — reset for the next one instead of closing, so creating several spaces in a
-      // row doesn't mean reopening the dialog each time.
-      dispatch({ type: "RESET" });
-      nameInputRef.current?.focus();
-
-      onSuccess?.(record.id);
+      toast.success("Space updated");
+      onSuccess?.();
     } catch (error) {
-      console.error(error);
-      toast.error(extractErrorMessage(error, "Failed to create space"));
+      toast.error(extractErrorMessage(error, "Failed to update space"));
     } finally {
-      setIsCreating(false);
+      setIsSaving(false);
     }
   };
 
+  if (!space) return null;
+
   return (
     <form onSubmit={handleSubmit} className="flex flex-col w-full" onClick={(e) => e.stopPropagation()}>
-      {/* Main Header / Input Section */}
       <div className="px-3 pt-2.5 pb-2">
         <div className="flex items-center gap-3">
           <IconColorPicker
@@ -95,7 +84,6 @@ export function CreateSpaceForm({ onSuccess, onCancel }: Readonly<CreateSpaceFor
             }}
           />
           <input
-            ref={nameInputRef}
             placeholder="Space name"
             aria-label="Space name"
             onClick={e => e.stopPropagation()}
@@ -106,7 +94,6 @@ export function CreateSpaceForm({ onSuccess, onCancel }: Readonly<CreateSpaceFor
         </div>
       </div>
 
-      {/* Footer */}
       <div className="px-3 py-1.5 bg-background flex items-center justify-end gap-2 border-t border-border/10">
         <Button
           type="button"
@@ -115,17 +102,17 @@ export function CreateSpaceForm({ onSuccess, onCancel }: Readonly<CreateSpaceFor
           onClick={onCancel}
           className="h-7 px-2.5 text-[10px] font-medium text-muted-foreground hover:text-foreground"
         >
-          Done
+          Cancel
         </Button>
         <Button
           type="submit"
           size="sm"
-          disabled={!state.name.trim() || isCreating}
+          disabled={!state.name.trim() || isSaving}
           className="h-7 px-4 text-[10px] font-semibold bg-primary hover:bg-primary/90 text-primary-foreground shadow-sm rounded-md transition-all active:scale-95"
         >
-          {isCreating ? "Creating..." : "Create Space"}
+          {isSaving ? "Saving..." : "Save Changes"}
         </Button>
       </div>
     </form>
   );
-}
+});
