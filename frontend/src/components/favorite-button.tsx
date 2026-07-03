@@ -1,12 +1,10 @@
-import React from "react";
+import React, { useMemo, useState } from "react";
+import { observer } from "mobx-react-lite";
 import { Star } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { EntityLayerType } from "@/types/entity-layer-type";
-import { useToggleFavoriteMutation } from "@/features/workspace/api";
-import { useWorkspace } from "@/features/workspace/context/workspace-context";
-import { useSelector } from "react-redux";
-import { spaceSelectors, folderSelectors, taskSelectors } from "@/store/entityStore";
-import type { RootState } from "@/store";
+import { useStore } from "@/stores/root.store";
+import { FavoriteMutations } from "@/mutations/favorite.mutations";
 
 interface FavoriteButtonProps {
   entityId: string;
@@ -15,25 +13,17 @@ interface FavoriteButtonProps {
   iconSize?: number;
 }
 
-export const FavoriteButton = ({
+export const FavoriteButton = observer(function FavoriteButton({
   entityId,
   entityLayerType,
   className,
   iconSize = 12,
-}: FavoriteButtonProps) => {
-  const { workspaceId } = useWorkspace();
-  const [toggleFavorite, { isLoading }] = useToggleFavoriteMutation();
+}: FavoriteButtonProps) {
+  const rootStore = useStore();
+  const favoriteMutations = useMemo(() => new FavoriteMutations(rootStore), [rootStore]);
+  const [isLoading, setIsLoading] = useState(false);
 
-  // Read isFavorite directly from the entity's own record in the store
-  const isFavorite = useSelector((state: RootState) => {
-    if (entityLayerType === EntityLayerType.ProjectSpace)
-      return !!spaceSelectors.selectById(state, entityId)?.isFavorite;
-    if (entityLayerType === EntityLayerType.ProjectFolder)
-      return !!folderSelectors.selectById(state, entityId)?.isFavorite;
-    if (entityLayerType === EntityLayerType.ProjectTask)
-      return !!taskSelectors.selectById(state, entityId)?.isFavorite;
-    return false;
-  });
+  const isFavorite = rootStore.favoriteStore.isFavorite(entityId);
 
   // While the toggle is in-flight, show the opposite state for instant feedback
   const displayed = isLoading ? !isFavorite : isFavorite;
@@ -41,8 +31,12 @@ export const FavoriteButton = ({
   const handleToggle = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    if (!workspaceId || isLoading) return;
-    toggleFavorite({ workspaceId, entityId, entityLayerType });
+    if (isLoading) return;
+    setIsLoading(true);
+    favoriteMutations
+      .toggle(entityId, entityLayerType)
+      .catch((err) => console.error("Failed to toggle favorite", err))
+      .finally(() => setIsLoading(false));
   };
 
   return (
@@ -65,4 +59,4 @@ export const FavoriteButton = ({
       />
     </button>
   );
-};
+});

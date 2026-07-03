@@ -44,7 +44,7 @@ export const SpaceContextMenu = observer(function SpaceContextMenu({
   const syncEngine = useSyncEngine();
   const spaceMutations = useMemo(() => new SpaceMutations(rootStore, syncEngine), [rootStore, syncEngine]);
   const favoriteMutations = useMemo(() => new FavoriteMutations(rootStore), [rootStore]);
-  const isFavorite = !!rootStore.spaceStore.getById(spaceId)?.isFavorite;
+  const isFavorite = rootStore.favoriteStore.isFavorite(spaceId);
   const [activeForm, setActiveForm] = useState<"task" | "folder" | "settings" | null>(null);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
 

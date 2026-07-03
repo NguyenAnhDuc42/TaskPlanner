@@ -9,6 +9,7 @@ import {
   DocumentDB,
   DocumentBlockDB,
   AssigneeDB,
+  FavoriteDB,
   TransactionDB,
   type TaskPlanDB
 } from "@/db";
@@ -23,6 +24,7 @@ import { CommentStore } from "./comment.store";
 import { DocumentStore } from "./document.store";
 import { DocumentBlockStore } from "./document-block.store";
 import { AssigneeStore } from "./assignee.store";
+import { FavoriteStore } from "./favorite.store";
 
 import type { IDBPDatabase } from "idb";
 import { makeAutoObservable } from "mobx";
@@ -49,6 +51,7 @@ export class RootStore {
   documentStore = new DocumentStore();
   documentBlockStore = new DocumentBlockStore();
   assigneeStore = new AssigneeStore();
+  favoriteStore = new FavoriteStore();
 
   // DBs
   taskDB: TaskDB | null = null;
@@ -60,6 +63,7 @@ export class RootStore {
   documentDB: DocumentDB | null = null;
   documentBlockDB: DocumentBlockDB | null = null;
   assigneeDB: AssigneeDB | null = null;
+  favoriteDB: FavoriteDB | null = null;
   metadataDB: MetadataDB | null = null;
   transactionDB: TransactionDB | null = null;
   workspaceDB: WorkspaceDB | null = null;
@@ -125,6 +129,7 @@ export class RootStore {
     this.documentStore.clear();
     this.documentBlockStore.clear();
     this.assigneeStore.clear();
+    this.favoriteStore.clear();
 
     this.db = await openWorkspaceDB(workspaceId);
     this.currentWorkspaceId = workspaceId;
@@ -139,6 +144,7 @@ export class RootStore {
     this.documentDB = new DocumentDB(this.db);
     this.documentBlockDB = new DocumentBlockDB(this.db);
     this.assigneeDB = new AssigneeDB(this.db);
+    this.favoriteDB = new FavoriteDB(this.db);
     this.metadataDB = new MetadataDB(this.db, workspaceId);
     this.transactionDB = new TransactionDB(this.db);
 
@@ -149,7 +155,7 @@ export class RootStore {
     if (!this.db) return;
 
     // Fetch all records from IndexedDB in parallel for fast loading
-    const [tasks, spaces, folders, statuses, members, comments, documents, blocks, assignees] = await Promise.all([
+    const [tasks, spaces, folders, statuses, members, comments, documents, blocks, assignees, favorites] = await Promise.all([
       this.taskDB!.getAll(),
       this.spaceDB!.getAll(),
       this.folderDB!.getAll(),
@@ -159,6 +165,7 @@ export class RootStore {
       this.documentDB!.getAll(),
       this.documentBlockDB!.getAll(),
       this.assigneeDB!.getAll(),
+      this.favoriteDB!.getAll(),
     ]);
 
     // Populate MobX stores with initial data
@@ -171,6 +178,7 @@ export class RootStore {
     this.documentStore.hydrate(documents);
     this.documentBlockStore.hydrate(blocks);
     this.assigneeStore.hydrate(assignees);
+    this.favoriteStore.hydrate(favorites);
   }
 }
 
@@ -197,4 +205,5 @@ export function useCommentStore(): CommentStore { return useStore().commentStore
 export function useDocumentStore(): DocumentStore { return useStore().documentStore }
 export function useDocumentBlockStore(): DocumentBlockStore { return useStore().documentBlockStore }
 export function useAssigneeStore(): AssigneeStore { return useStore().assigneeStore }
+export function useFavoriteStore(): FavoriteStore { return useStore().favoriteStore }
 export function useIsOnline(): boolean { return useStore().isOnline }

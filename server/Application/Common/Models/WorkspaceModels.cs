@@ -105,8 +105,6 @@ public record SpaceRecord
     public bool? HasFolders { get; init; }
     public bool? HasTasks { get; init; }
     public AccessLevel? AccessLevel { get; init; }
-    public bool? IsFavorite { get; init; }
-    public string? FavoriteOrderKey { get; init; }
 
     public static SpaceRecord FromDomain(ProjectSpace s) => new()
     {
@@ -144,19 +142,3 @@ public record EntityAccessRecord
 }
 
 public record ToggleFavoriteResponse(bool IsFavorite, string? FavoriteOrderKey, Guid EntityId, EntityLayerType EntityLayerType);
-
-public record FavoriteRecord
-{
-    public Guid Id { get; init; }
-    public Guid EntityId { get; init; }
-    public EntityLayerType EntityLayerType { get; init; }
-    public string OrderKey { get; init; } = null!;
-    public Guid WorkspaceId { get; init; }
-
-    // Enriched entity details — populated by GetFavoritesHandler JOIN
-    public string? Name { get; init; }
-    public string? Icon { get; init; }
-    public string? Color { get; init; }
-    public Guid? SpaceId { get; init; }    // folders + tasks: which space they belong to
-    public Guid? FolderId { get; init; }   // tasks only: which folder they belong to
-}

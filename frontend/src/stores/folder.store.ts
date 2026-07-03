@@ -20,18 +20,12 @@ export class FolderStore {
     return this.all.filter((f) => f.spaceId === spaceId);
   }
 
-  getFavorites(): FolderRecord[] {
-    return this.all
-      .filter((f) => f.isFavorite)
-      .sort((a, b) => (a.favoriteOrderKey ?? "").localeCompare(b.favoriteOrderKey ?? ""));
-  }
-
   upsert(folder: FolderRecord): void {
     this.folders.set(folder.id, folder);
   }
 
   upsertMany(folders: FolderRecord[]): void {
-    for (const folder of folders) this.folders.set(folder.id, folder);
+    for (const folder of folders) this.upsert(folder);
   }
 
   update(id: string, changes: Partial<FolderRecord>): void {

@@ -3,9 +3,9 @@ import type { SyncEngine } from '@/sync/sync-engine'
 import type { SpaceRecord } from '@/types/projects/space-record'
 import type { PendingTransaction } from '@/types/sync/transaction'
 import { api } from '@/lib/api-client'
+import { isConnectivityError } from "@/lib/is-connectivity-error";
 import { devError } from '@/sync/dev-log'
 import { fractionalAfter } from '@/features/workspace/contents/hierarchy/utils/fractional-index'
-import axios from 'axios'
 import { toJS } from 'mobx'
 
 export class SpaceMutations {
@@ -73,7 +73,7 @@ export class SpaceMutations {
         }
       })
     } catch (err) {
-      if (axios.isAxiosError(err) && !err.response) {
+      if (isConnectivityError(err)) {
         console.warn('You are offline. Space will sync when connection is restored.')
         return record
       }
@@ -140,7 +140,7 @@ export class SpaceMutations {
         }
       })
     } catch (err) {
-      if (axios.isAxiosError(err) && !err.response) {
+      if (isConnectivityError(err)) {
         console.warn('You are offline. Update will sync when connection is restored.')
         return
       }
@@ -214,7 +214,7 @@ export class SpaceMutations {
         }
       })
     } catch (err) {
-      if (axios.isAxiosError(err) && !err.response) {
+      if (isConnectivityError(err)) {
         console.warn('You are offline. Deletion will sync when connection is restored.')
         return
       }

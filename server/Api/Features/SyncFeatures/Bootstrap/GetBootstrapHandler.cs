@@ -26,14 +26,12 @@ public class GetBootstrapHandler(TaskPlanDbContext db, WorkspaceContext workspac
                 t.status_id AS StatusId,
                 t.start_date AS StartDate, t.due_date AS DueDate, t.created_at AS CreatedAt,
                 t.parent_task_id AS ParentTaskId,
-                ea.access_level AS AccessLevel,
-                CAST(CASE WHEN fav.id IS NOT NULL THEN 1 ELSE 0 END AS BOOLEAN) AS IsFavorite
+                ea.access_level AS AccessLevel
             FROM project_tasks t
             INNER JOIN project_spaces s ON s.id = t.project_space_id AND s.deleted_at IS NULL
             LEFT JOIN entity_access ea ON ea.project_space_id = s.id
                 AND ea.workspace_member_id = @MemberId
                 AND ea.deleted_at IS NULL
-            LEFT JOIN favorites fav ON fav.entity_id = t.id AND fav.workspace_member_id = @MemberId
             WHERE t.project_workspace_id = @WorkspaceId AND t.deleted_at IS NULL
               AND " + visibilityFilter + ";";
 
@@ -44,14 +42,12 @@ public class GetBootstrapHandler(TaskPlanDbContext db, WorkspaceContext workspac
                 s.order_key AS OrderKey, s.default_document_id AS DefaultDocumentId,
                 s.created_at AS CreatedAt, s.creator_id AS CreatorId,
                 ea.access_level AS AccessLevel,
-                CAST(CASE WHEN fav.id IS NOT NULL THEN 1 ELSE 0 END AS BOOLEAN) AS IsFavorite,
                 EXISTS(SELECT 1 FROM project_folders f WHERE f.project_space_id = s.id AND f.deleted_at IS NULL) AS HasFolders,
                 EXISTS(SELECT 1 FROM project_tasks t WHERE t.project_space_id = s.id AND t.project_folder_id IS NULL AND t.deleted_at IS NULL) AS HasTasks
             FROM project_spaces s
             LEFT JOIN entity_access ea ON ea.project_space_id = s.id
                 AND ea.workspace_member_id = @MemberId
                 AND ea.deleted_at IS NULL
-            LEFT JOIN favorites fav ON fav.entity_id = s.id AND fav.workspace_member_id = @MemberId
             WHERE s.project_workspace_id = @WorkspaceId AND s.deleted_at IS NULL
               AND " + visibilityFilter + ";";
 
@@ -61,14 +57,12 @@ public class GetBootstrapHandler(TaskPlanDbContext db, WorkspaceContext workspac
                 f.name AS Name, f.created_at AS CreatedAt, f.start_date AS StartDate, f.due_date AS DueDate,
                 f.order_key AS OrderKey, f.custom_icon AS Icon, f.custom_color AS Color,
                 ea.access_level AS AccessLevel,
-                CAST(CASE WHEN fav.id IS NOT NULL THEN 1 ELSE 0 END AS BOOLEAN) AS IsFavorite,
                 EXISTS(SELECT 1 FROM project_tasks t WHERE t.project_folder_id = f.id AND t.deleted_at IS NULL) AS HasTasks
             FROM project_folders f
             INNER JOIN project_spaces s ON s.id = f.project_space_id AND s.deleted_at IS NULL
             LEFT JOIN entity_access ea ON ea.project_space_id = s.id
                 AND ea.workspace_member_id = @MemberId
                 AND ea.deleted_at IS NULL
-            LEFT JOIN favorites fav ON fav.entity_id = f.id AND fav.workspace_member_id = @MemberId
             WHERE f.project_workspace_id = @WorkspaceId AND f.deleted_at IS NULL
               AND " + visibilityFilter + ";";
 
@@ -126,6 +120,18 @@ public class GetBootstrapHandler(TaskPlanDbContext db, WorkspaceContext workspac
             WHERE t.project_workspace_id = @WorkspaceId AND ta.deleted_at IS NULL
               AND " + visibilityFilter + ";";
 
+        // Favorites are personal (per member) and never broadcast — a single flat list keyed by
+        // entityId, not joined onto Task/Folder/Space. No visibility filter needed beyond "this
+        // member's own rows in this workspace": a favorite pointing at an entity the member can no
+        // longer see is just a dangling reference the UI quietly ignores when it can't resolve it.
+        const string favoritesSql = @"
+            SELECT
+                fav.id AS Id, fav.entity_id AS EntityId, fav.entity_layer_type AS EntityLayerType,
+                fav.order_key AS OrderKey
+            FROM favorites fav
+            WHERE fav.workspace_member_id = @MemberId AND fav.project_workspace_id = @WorkspaceId
+              AND fav.deleted_at IS NULL;";
+
         var parameters = new
         {
             WorkspaceId = request.WorkspaceId,
@@ -139,8 +145,9 @@ public class GetBootstrapHandler(TaskPlanDbContext db, WorkspaceContext workspac
         var statuses = (await connection.QueryAsync<StatusRecord>(statusesSql, parameters)).AsList();
         var documentBlocks = (await connection.QueryAsync<DocumentBlockRecord>(documentBlocksSql, parameters)).AsList();
         var assignees = (await connection.QueryAsync<AssigneeRecord>(assigneesSql, parameters)).AsList();
+        var favorites = (await connection.QueryAsync<FavoriteRecord>(favoritesSql, parameters)).AsList();
         var lastSyncId = await syncQueryService.GetLastSyncIdAsync(request.WorkspaceId, cancellationToken);
 
-        return Result<BootstrapResult>.Success(new BootstrapResult(lastSyncId, SyncQueryService.CurrentDatabaseVersion, tasks, spaces, folders, statuses, documentBlocks, assignees));
+        return Result<BootstrapResult>.Success(new BootstrapResult(lastSyncId, SyncQueryService.CurrentDatabaseVersion, tasks, spaces, folders, statuses, documentBlocks, assignees, favorites));
     }
 }

@@ -50,7 +50,7 @@ export const TaskContextMenu = observer(function TaskContextMenu({
   const favoriteMutations = useMemo(() => new FavoriteMutations(rootStore), [rootStore]);
   const { scheduleFlush } = useDebouncedFlush(syncEngine);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
-  const isFavorite = !!rootStore.taskStore.getById(taskId)?.isFavorite;
+  const isFavorite = rootStore.favoriteStore.isFavorite(taskId);
   const task = rootStore.taskStore.getById(taskId);
   const spaceFolders = spaceId ? rootStore.folderStore.getBySpace(spaceId) : [];
 

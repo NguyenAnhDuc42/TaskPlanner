@@ -1,5 +1,5 @@
 import type { DocumentBlockRecord, DocumentRecord } from "@/types/document";
-import type { AssigneeRecord, CommentRecord, FolderRecord, SpaceRecord, TaskRecord } from "@/types/projects";
+import type { AssigneeRecord, CommentRecord, FavoriteRecord, FolderRecord, SpaceRecord, TaskRecord } from "@/types/projects";
 import type { Status } from "@/types/status";
 import type { PendingTransaction, WorkspaceMetadata } from "@/types/sync";
 import type { EntityAccessRecord, MemberRecord } from "@/types/workspace";
@@ -93,9 +93,14 @@ export interface TaskPlanDB extends DBSchema {
       'by-task': string
     }
   }
+
+  favorites: {
+    key: string; // entityId — one favorite per entity per member
+    value: FavoriteRecord
+  }
 }
 
-const DB_VERSION = 3;
+const DB_VERSION = 4;
 const dbCache = new Map<string, IDBPDatabase<TaskPlanDB>>()
 
 export async function openWorkspaceDB(workspaceId:string) : Promise<IDBPDatabase<TaskPlanDB>> {
@@ -162,6 +167,10 @@ export async function openWorkspaceDB(workspaceId:string) : Promise<IDBPDatabase
       if (!db.objectStoreNames.contains('assignees')) {
         const assignees = db.createObjectStore('assignees', {keyPath: 'id'})
         assignees.createIndex('by-task','taskId')
+      }
+
+      if (!db.objectStoreNames.contains('favorites')) {
+        db.createObjectStore('favorites', {keyPath: 'entityId'})
       }
     }
   })

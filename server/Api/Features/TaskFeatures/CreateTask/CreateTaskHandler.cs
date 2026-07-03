@@ -20,6 +20,7 @@ public class CreateTaskHandler(
         // never trust a client-supplied ProjectSpaceId that might not match the folder's real space
         // (would otherwise let permission checks run against the wrong space, and corrupt hierarchy queries).
         var effectiveSpaceId = request.ProjectSpaceId!.Value;
+        var effectiveFolderId = request.ProjectFolderId;
         if (request.ProjectFolderId.HasValue)
         {
             var folder = await db.ProjectFolders.AsNoTracking()
@@ -30,6 +31,22 @@ public class CreateTaskHandler(
                 return Result<long>.Failure(FolderError.NotFound);
             }
             effectiveSpaceId = folder.ProjectSpaceId;
+        }
+
+        // A subtask always lives in the exact same space/folder as its parent task — the parent
+        // is the most specific scope and overrides anything the client sent for space/folder
+        // (same "never trust the client for ancestor scope" reasoning as the folder case above).
+        if (request.ParentTaskId.HasValue)
+        {
+            var parentTask = await db.ProjectTasks.AsNoTracking()
+                .FirstOrDefaultAsync(t => t.Id == request.ParentTaskId.Value && t.DeletedAt == null, cancellationToken);
+            if (parentTask is null || !parentTask.ProjectSpaceId.HasValue)
+            {
+                logger.LogWarning("Parent task {ParentTaskId} not found or deleted", request.ParentTaskId);
+                return Result<long>.Failure(TaskError.NotFound);
+            }
+            effectiveSpaceId = parentTask.ProjectSpaceId.Value;
+            effectiveFolderId = parentTask.ProjectFolderId;
         }
 
         syncPermission.RequireMember();
@@ -61,7 +78,7 @@ public class CreateTaskHandler(
                 id: request.Id,
                 projectWorkspaceId: request.ProjectWorkspaceId,
                 projectSpaceId: effectiveSpaceId,
-                projectFolderId: request.ProjectFolderId,
+                projectFolderId: effectiveFolderId,
                 name: request.Name,
                 slug: request.Slug,
                 defaultDocumentId: document.Id,
@@ -82,7 +99,7 @@ public class CreateTaskHandler(
                 id = request.Id,
                 workspaceId = request.ProjectWorkspaceId,
                 spaceId = effectiveSpaceId,
-                folderId = request.ProjectFolderId,
+                folderId = effectiveFolderId,
                 name = request.Name,
                 slug = request.Slug,
                 defaultDocumentId = request.DefaultDocumentId,

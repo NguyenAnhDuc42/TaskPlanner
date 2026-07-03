@@ -30,14 +30,6 @@ export class TaskStore {
     return this.all.filter((task) => task.statusId === statusId);
   }
 
-  getFavorites(): TaskRecord[] {
-    return this.all
-      .filter((task) => task.isFavorite)
-      .sort((a, b) =>
-        (a.favoriteOrderKey ?? "").localeCompare(b.favoriteOrderKey ?? ""),
-      );
-  }
-
   add(task: TaskRecord): void {
     this.tasks.set(task.id, task);
   }
@@ -48,6 +40,7 @@ export class TaskStore {
       this.tasks.set(id, { ...existing, ...changes });
     }
   }
+
   upsert(task: TaskRecord): void {
     this.tasks.set(task.id, task);
   }
@@ -64,7 +57,7 @@ export class TaskStore {
   }
   upsertMany(tasks: TaskRecord[]): void {
     for (const task of tasks) {
-      this.tasks.set(task.id, task);
+      this.upsert(task);
     }
   }
 

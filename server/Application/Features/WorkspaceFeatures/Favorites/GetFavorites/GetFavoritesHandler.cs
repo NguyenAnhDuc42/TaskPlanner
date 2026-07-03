@@ -78,7 +78,7 @@ public class GetFavoritesHandler(
                   )",
                 new { Ids = spaceIds, IsAdmin = isAdmin, MemberId = memberId });
 
-            spaces = rows.Select(r => r with { IsFavorite = true, FavoriteOrderKey = orderKeyMap.GetValueOrDefault(r.Id) }).AsList();
+            spaces = rows.AsList();
         }
 
         if (folderIds.Length > 0)
@@ -102,7 +102,7 @@ public class GetFavoritesHandler(
                   )",
                 new { WorkspaceId = workspaceId, Ids = folderIds, IsAdmin = isAdmin, MemberId = memberId });
 
-            folders = rows.Select(r => r with { IsFavorite = true, FavoriteOrderKey = orderKeyMap.GetValueOrDefault(r.Id) }).AsList();
+            folders = rows.AsList();
         }
 
         if (taskIds.Length > 0)
@@ -128,7 +128,7 @@ public class GetFavoritesHandler(
                   )",
                 new { WorkspaceId = workspaceId, Ids = taskIds, IsAdmin = isAdmin, MemberId = memberId });
 
-            tasks = rows.Select(r => r with { IsFavorite = true, FavoriteOrderKey = orderKeyMap.GetValueOrDefault(r.Id) }).AsList();
+            tasks = rows.AsList();
         }
 
         string? nextCursor = null;

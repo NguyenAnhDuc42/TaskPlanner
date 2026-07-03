@@ -1,15 +1,23 @@
 import type { RootStore } from '@/stores/root.store'
+import type { FavoriteRecord } from '@/types/projects/favorite-record'
 import { EntityLayerType } from '@/types/entity-layer-type'
 import { api } from '@/lib/api-client'
 import { fractionalAfter } from '@/features/workspace/contents/hierarchy/utils/fractional-index'
+import { toJS } from 'mobx'
 
 // Favorites are deliberately NOT part of the sync engine — they're personal (per
 // WorkspaceMember), and the SyncHub group broadcasts to the whole workspace, so a Task/Comment-
 // style SyncEvent would leak "who favorited what" to every other member (see
-// ToggleFavoriteCommand.cs). That means no Bootstrap-after-first-load coverage and no Delta ever
-// corrects this client-side, so — unlike every other *Mutations class — this talks to its own
-// REST endpoints directly and patches the MobX store optimistically itself, with manual rollback
-// on failure, instead of going through TransactionQueue.
+// ToggleFavoriteCommand.cs). That means no Delta ever corrects this client-side, so — unlike
+// every other *Mutations class — this talks to its own REST endpoints directly and patches its
+// own store optimistically, with manual rollback on failure, instead of going through
+// TransactionQueue.
+//
+// A favorite lives in its own FavoriteStore/FavoriteDB, keyed by entityId — not as fields on
+// TaskRecord/FolderRecord/SpaceRecord. Putting it there used to mean every unrelated Task/Folder/
+// Space update (via Delta, from anyone) silently wiped favorite state, since those payloads never
+// carry isFavorite/favoriteOrderKey. Keeping it as its own record means nothing about the sync
+// engine's Task/Folder/Space path can touch it at all.
 export class FavoriteMutations {
   private rootStore: RootStore
 
@@ -17,66 +25,89 @@ export class FavoriteMutations {
     this.rootStore = rootStore
   }
 
-  private storeFor(entityLayerType: EntityLayerType) {
-    if (entityLayerType === EntityLayerType.ProjectSpace) return this.rootStore.spaceStore
-    if (entityLayerType === EntityLayerType.ProjectFolder) return this.rootStore.folderStore
-    return this.rootStore.taskStore
+  private async persist(record: FavoriteRecord): Promise<void> {
+    await this.rootStore.favoriteDB!.put(toJS(record))
   }
 
-  // OrderKey is only used server-side when this toggle ADDS a favorite (ignored on remove) —
-  // computed here as "after the last favorite across all three entity types", since the
-  // favorites list in the sidebar is one mixed-type ordering, not per-entity-type.
+  private async unpersist(entityId: string): Promise<void> {
+    await this.rootStore.favoriteDB!.delete(entityId)
+  }
+
   private nextFavoriteOrderKey(): string {
-    const allKeys = [
-      ...this.rootStore.spaceStore.getFavorites(),
-      ...this.rootStore.folderStore.getFavorites(),
-      ...this.rootStore.taskStore.getFavorites(),
-    ].map((f) => f.favoriteOrderKey).filter((k): k is string => !!k)
-    const max = allKeys.sort().at(-1)
+    const max = this.rootStore.favoriteStore.all
+      .map((f) => f.orderKey)
+      .filter((k): k is string => !!k)
+      .sort()
+      .at(-1)
     return fractionalAfter(max)
   }
 
   async toggle(entityId: string, entityLayerType: EntityLayerType): Promise<void> {
-    const store = this.storeFor(entityLayerType)
-    const previous = store.getById(entityId)
-    if (!previous) return
-    const wasFavorite = !!previous.isFavorite
-    const previousOrderKey = previous.favoriteOrderKey
+    const store = this.rootStore.favoriteStore
+    const previous = store.getByEntityId(entityId)
+    const wasFavorite = !!previous
     const orderKey = this.nextFavoriteOrderKey()
 
-    // 1. Optimistic flip
-    store.update(entityId, { isFavorite: !wasFavorite })
+    // 1. Optimistic — id is a client-side placeholder; the toggle response doesn't echo back the
+    // server's real favorite row id, and nothing on the frontend keys off it (the store keys by
+    // entityId), so it's never load-bearing.
+    const optimistic: FavoriteRecord = { id: crypto.randomUUID(), entityId, entityLayerType, orderKey }
+    if (wasFavorite) {
+      store.remove(entityId)
+      await this.unpersist(entityId)
+    } else {
+      store.upsert(optimistic)
+      await this.persist(optimistic)
+    }
 
     try {
       const { data } = await api.post<{ isFavorite: boolean; favoriteOrderKey: string | null }>(
-        `/workspaces/${this.rootStore.currentWorkspaceId}/favorites/toggle`,
+        `/favorites/toggle`,
         { entityId, entityLayerType, orderKey },
+        { headers: { 'X-Client-Trace-Id': crypto.randomUUID() } },
       )
       // 2. Confirm with server's authoritative state
-      store.update(entityId, { isFavorite: data.isFavorite, favoriteOrderKey: data.favoriteOrderKey ?? undefined })
+      if (data.isFavorite) {
+        const confirmed: FavoriteRecord = { ...optimistic, orderKey: data.favoriteOrderKey ?? orderKey }
+        store.upsert(confirmed)
+        await this.persist(confirmed)
+      } else {
+        store.remove(entityId)
+        await this.unpersist(entityId)
+      }
     } catch (err) {
       // 3. Rollback
-      store.update(entityId, { isFavorite: wasFavorite, favoriteOrderKey: previousOrderKey })
+      if (previous) {
+        store.upsert(previous)
+        await this.persist(previous)
+      } else {
+        store.remove(entityId)
+        await this.unpersist(entityId)
+      }
       throw err
     }
   }
 
   async reorder(entityId: string, entityLayerType: EntityLayerType, previousOrderKey: string | null, nextOrderKey: string | null, newOrderKey: string): Promise<void> {
-    const store = this.storeFor(entityLayerType)
-    const previous = store.getById(entityId)
+    const store = this.rootStore.favoriteStore
+    const previous = store.getByEntityId(entityId)
     if (!previous) return
-    const previousFavoriteOrderKey = previous.favoriteOrderKey
 
     // 1. Optimistic
-    store.update(entityId, { favoriteOrderKey: newOrderKey })
+    const updated: FavoriteRecord = { ...previous, orderKey: newOrderKey }
+    store.upsert(updated)
+    await this.persist(updated)
 
     try {
-      await api.put(`/workspaces/${this.rootStore.currentWorkspaceId}/favorites/reorder`, {
-        entityId, entityLayerType, previousOrderKey, nextOrderKey,
-      })
+      await api.put(
+        `/favorites/reorder`,
+        { entityId, entityLayerType, previousOrderKey, nextOrderKey, orderKey: newOrderKey },
+        { headers: { 'X-Client-Trace-Id': crypto.randomUUID() } },
+      )
     } catch (err) {
       // 2. Rollback
-      store.update(entityId, { favoriteOrderKey: previousFavoriteOrderKey })
+      store.upsert(previous)
+      await this.persist(previous)
       throw err
     }
   }

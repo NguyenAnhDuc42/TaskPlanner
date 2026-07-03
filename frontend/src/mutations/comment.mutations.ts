@@ -2,8 +2,8 @@ import type { RootStore } from '@/stores/root.store'
 import type { SyncEngine } from '@/sync/sync-engine'
 import type { CommentRecord } from '@/types/projects/comment-record'
 import { api } from '@/lib/api-client'
+import { isConnectivityError } from "@/lib/is-connectivity-error";
 import { devError } from '@/sync/dev-log'
-import axios from 'axios'
 import { toJS } from 'mobx'
 
 export class CommentMutations {
@@ -67,7 +67,7 @@ export class CommentMutations {
         }
       })
     } catch (err) {
-      if (axios.isAxiosError(err) && !err.response) {
+      if (isConnectivityError(err)) {
         console.warn('You are offline. Comment will sync when connection is restored.')
         return record
       }
@@ -124,7 +124,7 @@ export class CommentMutations {
         }
       })
     } catch (err) {
-      if (axios.isAxiosError(err) && !err.response) {
+      if (isConnectivityError(err)) {
         console.warn('You are offline. Update will sync when connection is restored.')
         return
       }
@@ -176,7 +176,7 @@ export class CommentMutations {
         }
       })
     } catch (err) {
-      if (axios.isAxiosError(err) && !err.response) {
+      if (isConnectivityError(err)) {
         console.warn('You are offline. Deletion will sync when connection is restored.')
         return
       }

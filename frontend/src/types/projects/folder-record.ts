@@ -13,6 +13,4 @@ export interface FolderRecord {
     color?: string;
     hasTasks?: boolean;
     accessLevel?: AccessLevel;
-    isFavorite?: boolean;
-    favoriteOrderKey?: string;
 }

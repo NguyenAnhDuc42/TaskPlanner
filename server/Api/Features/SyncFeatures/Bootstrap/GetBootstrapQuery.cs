@@ -10,5 +10,6 @@ public record BootstrapResult(
     List<FolderRecord> Folders,
     List<StatusRecord> Statuses,
     List<DocumentBlockRecord> DocumentBlocks,
-    List<AssigneeRecord> Assignees
+    List<AssigneeRecord> Assignees,
+    List<FavoriteRecord> Favorites
 );

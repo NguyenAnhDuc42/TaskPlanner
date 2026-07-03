@@ -16,19 +16,13 @@ export class SpaceStore {
     return this.spaces.get(id);
   }
 
-  getFavorites(): SpaceRecord[] {
-    return this.all
-      .filter((s) => s.isFavorite)
-      .sort((a, b) => (a.favoriteOrderKey ?? "").localeCompare(b.favoriteOrderKey ?? ""));
-  }
-
   upsert(space: SpaceRecord): void {
     this.spaces.set(space.id, space);
   }
 
   upsertMany(spaces: SpaceRecord[]): void {
     for (const space of spaces) {
-      this.spaces.set(space.id, space);
+      this.upsert(space);
     }
   }
 

@@ -1,9 +1,9 @@
 import { toJS } from 'mobx'
-import axios from 'axios'
 import type { RootStore } from '@/stores/root.store'
 import type { SyncEngine } from '@/sync/sync-engine'
 import type { WorkspaceRecord } from '@/types/workspace/workspace-record'
 import { api } from '@/lib/api-client'
+import { isConnectivityError } from '@/lib/is-connectivity-error'
 import { devError } from '@/sync/dev-log'
 
 export class WorkspaceMutations {
@@ -96,7 +96,7 @@ export class WorkspaceMutations {
         }
       })
     } catch (err) {
-      if (axios.isAxiosError(err) && !err.response) {
+      if (isConnectivityError(err)) {
         console.warn('You are offline. Workspace update will sync when connection is restored.')
         return
       }

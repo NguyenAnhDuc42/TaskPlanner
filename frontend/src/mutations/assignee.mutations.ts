@@ -2,8 +2,8 @@ import type { RootStore } from '@/stores/root.store'
 import type { SyncEngine } from '@/sync/sync-engine'
 import type { AssigneeRecord } from '@/types/projects/assignee-record'
 import { api } from '@/lib/api-client'
+import { isConnectivityError } from "@/lib/is-connectivity-error";
 import { devError } from '@/sync/dev-log'
-import axios from 'axios'
 import { toJS } from 'mobx'
 
 // No update() — assignment is a binary relationship (assigned or not), matching the
@@ -63,7 +63,7 @@ export class AssigneeMutations {
         }
       })
     } catch (err) {
-      if (axios.isAxiosError(err) && !err.response) {
+      if (isConnectivityError(err)) {
         console.warn('You are offline. Assignee will sync when connection is restored.')
         return record
       }
@@ -117,7 +117,7 @@ export class AssigneeMutations {
         }
       })
     } catch (err) {
-      if (axios.isAxiosError(err) && !err.response) {
+      if (isConnectivityError(err)) {
         console.warn('You are offline. Deletion will sync when connection is restored.')
         return
       }

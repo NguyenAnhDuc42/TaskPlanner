@@ -11,10 +11,10 @@ import { SpaceContextMenu } from "../hierarchy-components/context-menus/space-co
 import { FolderContextMenu } from "../hierarchy-components/context-menus/folder-context-menu";
 import { TaskContextMenu } from "../hierarchy-components/context-menus/task-context-menu";
 import { SortableList, SortableListItem } from "@/components/sortable-list";
-import { fractionalBetween, fractionalAfter, fractionalBefore } from "@/features/workspace/contents/hierarchy/utils/fractional-index";
+import { fractionalBetween, fractionalAfter, fractionalBefore, fractionalStart } from "@/features/workspace/contents/hierarchy/utils/fractional-index";
 
 type FavItem = {
-  id: string;
+  id: string; // entityId — used for navigation, context menus, and drag identity
   name?: string;
   icon?: string;
   color?: string;
@@ -34,8 +34,8 @@ function FavItemContent({
   isActive: boolean;
   onMouseDown: () => void;
   onClick: () => void;
-  dragHandleProps: Record<string, unknown>;
-  isDragging: boolean;
+  dragHandleProps?: Record<string, unknown>;
+  isDragging?: boolean;
 }) {
   const isTask = fav.entityLayerType === EntityLayerType.ProjectTask;
   const iconName = fav.icon ?? (isTask ? "CheckSquare" : fav.entityLayerType === EntityLayerType.ProjectFolder ? "Folder" : "LayoutGrid");
@@ -78,30 +78,42 @@ export const FavoriteNodeList = observer(function FavoriteNodeList() {
   const router = useRouter();
   const location = useLocation();
 
-  const favorites = useMemo<FavItem[]>(() => {
-    const items: FavItem[] = [
-      ...rootStore.spaceStore.getFavorites().map(s => ({
-        id: s.id, name: s.name, icon: s.icon, color: s.color,
-        entityLayerType: EntityLayerType.ProjectSpace,
-        favoriteOrderKey: s.favoriteOrderKey,
-      })),
-      ...rootStore.folderStore.getFavorites().map(f => ({
-        id: f.id, name: f.name, icon: f.icon, color: f.color,
-        entityLayerType: EntityLayerType.ProjectFolder,
-        favoriteOrderKey: f.favoriteOrderKey,
-      })),
-      ...rootStore.taskStore.getFavorites().map(t => ({
-        id: t.id, name: t.name, icon: t.icon, color: t.color,
-        entityLayerType: EntityLayerType.ProjectTask,
-        favoriteOrderKey: t.favoriteOrderKey,
-      })),
-    ];
-    return items.sort((a, b) =>
-      ((a.favoriteOrderKey ?? "") < (b.favoriteOrderKey ?? "") ? -1 : 1)
-    );
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [rootStore.spaceStore.all, rootStore.folderStore.all, rootStore.taskStore.all]);
+  // Plain read, not useMemo — this is a mobx-react-lite observer, which tracks observable reads
+  // made directly during render. `.all` returns a fresh array on every call, so a useMemo keyed on
+  // it never actually caches anything (deps always look changed) — it only guarantees a brand-new
+  // `favorites` array reference every render, which confuses dnd-kit's drag position tracking.
+  //
+  // Favorite membership/order comes from favoriteStore alone — name/icon/color are a display-only
+  // lookup into the entity's own store. A favorite pointing at an entity that's since been deleted
+  // (or not yet hydrated) is silently skipped rather than rendered with blank/broken content.
+  const lookupEntity = (entityId: string, type: EntityLayerType) => {
+    if (type === EntityLayerType.ProjectSpace) return rootStore.spaceStore.getById(entityId);
+    if (type === EntityLayerType.ProjectFolder) return rootStore.folderStore.getById(entityId);
+    return rootStore.taskStore.getById(entityId);
+  };
 
+  const favorites: FavItem[] = rootStore.favoriteStore.all
+    .map((f): FavItem | null => {
+      const entity = lookupEntity(f.entityId, f.entityLayerType);
+      if (!entity) return null;
+      return {
+        id: f.entityId,
+        name: entity.name,
+        icon: entity.icon,
+        color: entity.color,
+        entityLayerType: f.entityLayerType,
+        favoriteOrderKey: f.orderKey,
+      };
+    })
+    .filter((f): f is FavItem => f !== null)
+    .sort((a, b) => ((a.favoriteOrderKey ?? "") < (b.favoriteOrderKey ?? "") ? -1 : 1));
+
+  // Robust to any state the neighbors' keys are in — missing, equal, out of order, whatever.
+  // fractionalBetween/After/Before already tolerate garbage input via safeKey() (falls back to
+  // null rather than throwing), and only ever produce ONE new key for the MOVED item — the other
+  // items' keys are never touched. The one case that used to slip through: no prev AND no next
+  // (e.g. the whole list had no real keys yet), which fell back to an empty string — the backend
+  // rejects an empty OrderKey, so that reorder silently failed. fractionalStart() replaces that.
   const handleReorder = useCallback((reordered: FavItem[]) => {
     if (!workspaceId) return;
     const draggedIdx = reordered.findIndex((f, i) => favorites[i]?.id !== f.id);
@@ -113,7 +125,7 @@ export const FavoriteNodeList = observer(function FavoriteNodeList() {
       ? fractionalBetween(prev, next)
       : prev ? fractionalAfter(prev)
       : next ? fractionalBefore(next)
-      : moved.favoriteOrderKey ?? "";
+      : fractionalStart();
     favoriteMutations.reorder(moved.id, moved.entityLayerType, prev, next, newOrderKey)
       .catch((err) => console.error("Failed to reorder favorite", err));
   }, [favorites, workspaceId, favoriteMutations]);
@@ -150,7 +162,27 @@ export const FavoriteNodeList = observer(function FavoriteNodeList() {
   }
 
   return (
-    <SortableList items={favorites} onReorder={handleReorder} direction="vertical" className="flex flex-col" activationDistance={4}>
+    <SortableList
+      items={favorites}
+      onReorder={handleReorder}
+      direction="vertical"
+      className="flex flex-col"
+      activationDistance={4}
+      renderOverlay={(draggedId) => {
+        const fav = favorites.find(f => f.id === draggedId);
+        if (!fav) return null;
+        return (
+          <div className="w-52 rounded-md bg-popover border border-border/50 shadow-xl">
+            <FavItemContent
+              fav={fav}
+              isActive={false}
+              onMouseDown={() => {}}
+              onClick={() => {}}
+            />
+          </div>
+        );
+      }}
+    >
       {favorites.map(fav => (
         <SortableListItem key={fav.id} id={fav.id}>
           {({ dragHandleProps, isDragging }) => (

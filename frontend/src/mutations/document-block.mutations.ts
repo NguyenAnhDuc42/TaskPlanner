@@ -4,8 +4,8 @@ import type { DocumentBlockRecord } from '@/types/document/document-block-record
 import type { BlockType } from '@/types/block-type'
 import type { PendingTransaction } from '@/types/sync/transaction'
 import { api } from '@/lib/api-client'
+import { isConnectivityError } from "@/lib/is-connectivity-error";
 import { devError } from '@/sync/dev-log'
-import axios from 'axios'
 import { toJS } from 'mobx'
 
 // A single block-editor "save" can create, update, AND delete several blocks at once (typed in
@@ -81,7 +81,7 @@ export class DocumentBlockMutations {
         }
       })
     } catch (err) {
-      if (axios.isAxiosError(err) && !err.response) {
+      if (isConnectivityError(err)) {
         console.warn('You are offline. Block will sync when connection is restored.')
         return record
       }
@@ -143,7 +143,7 @@ export class DocumentBlockMutations {
         }
       })
     } catch (err) {
-      if (axios.isAxiosError(err) && !err.response) {
+      if (isConnectivityError(err)) {
         console.warn('You are offline. Update will sync when connection is restored.')
         return
       }
@@ -201,7 +201,7 @@ export class DocumentBlockMutations {
         }
       })
     } catch (err) {
-      if (axios.isAxiosError(err) && !err.response) {
+      if (isConnectivityError(err)) {
         console.warn('You are offline. Deletion will sync when connection is restored.')
         return
       }

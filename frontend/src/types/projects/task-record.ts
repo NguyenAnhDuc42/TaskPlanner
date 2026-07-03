@@ -23,8 +23,6 @@ export interface TaskRecord {
     timeEstimateSeconds?: number;
     parentType?: EntityLayerType;
     parentTaskId?: string;
-    isFavorite?: boolean;
-    favoriteOrderKey?: string;
     accessLevel?: AccessLevel;
 }
 

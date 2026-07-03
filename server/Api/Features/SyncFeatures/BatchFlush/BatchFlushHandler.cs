@@ -175,6 +175,7 @@ public class BatchFlushHandler(
         cmd.TraceId = item.TraceId;
 
         var effectiveSpaceId = cmd.ProjectSpaceId!.Value;
+        var effectiveFolderId = cmd.ProjectFolderId;
         if (cmd.ProjectFolderId.HasValue)
         {
             // Try pre-loaded dict first; fall back if folder was created earlier in this same batch
@@ -185,6 +186,20 @@ public class BatchFlushHandler(
             }
             if (folder is null) throw new InvalidOperationException(FolderError.NotFound.Code);
             effectiveSpaceId = folder.ProjectSpaceId;
+        }
+
+        // A subtask always lives in the exact same space/folder as its parent task — mirrors the
+        // online CreateTaskHandler's "never trust the client for ancestor scope" rule.
+        if (cmd.ParentTaskId.HasValue)
+        {
+            if (!ctx.Tasks.TryGetValue(cmd.ParentTaskId.Value, out var parentTask))
+            {
+                parentTask = await db.ProjectTasks.AsNoTracking()
+                    .FirstOrDefaultAsync(t => t.Id == cmd.ParentTaskId.Value && t.DeletedAt == null, ct);
+            }
+            if (parentTask is null || !parentTask.ProjectSpaceId.HasValue) throw new InvalidOperationException(TaskError.NotFound.Code);
+            effectiveSpaceId = parentTask.ProjectSpaceId.Value;
+            effectiveFolderId = parentTask.ProjectFolderId;
         }
 
         var creatorId = workspaceContext.CurrentMember?.Id ?? Guid.Empty;
@@ -199,7 +214,7 @@ public class BatchFlushHandler(
 
             var task = ProjectTask.Create(
                 id: cmd.Id, projectWorkspaceId: workspaceContext.WorkspaceId, projectSpaceId: effectiveSpaceId,
-                projectFolderId: cmd.ProjectFolderId, name: cmd.Name, slug: cmd.Slug,
+                projectFolderId: effectiveFolderId, name: cmd.Name, slug: cmd.Slug,
                 defaultDocumentId: document.Id, color: cmd.Color ?? "#FFFFFF", icon: cmd.Icon,
                 creatorId: creatorId, statusId: cmd.StatusId, priority: cmd.Priority,
                 orderKey: cmd.OrderKey, parentTaskId: cmd.ParentTaskId);

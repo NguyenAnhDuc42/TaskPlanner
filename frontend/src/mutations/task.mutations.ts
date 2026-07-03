@@ -4,9 +4,9 @@ import type { TaskRecord } from '@/types/projects/task-record'
 import type { PendingTransaction } from '@/types/sync/transaction'
 import { Priority } from '@/types/priority'
 import { api } from '@/lib/api-client'
+import { isConnectivityError } from "@/lib/is-connectivity-error";
 import { devError } from '@/sync/dev-log'
 import { fractionalAfter } from '@/features/workspace/contents/hierarchy/utils/fractional-index'
-import axios from 'axios'
 import { toJS } from 'mobx'
 
 // ProjectTask.Update() on the backend can't distinguish "not touched" (Guid? = null) from
@@ -110,7 +110,7 @@ export class TaskMutations {
 
       // Success: transaction stays in queue until SignalR confirms it via Delta
     } catch (err) {
-      if (axios.isAxiosError(err) && !err.response) {
+      if (isConnectivityError(err)) {
         // Network Error (Offline or Server Down)
         // DO NOT ROLLBACK! Keep it in the queue for the background sync.
         console.warn('You are offline. Task will sync when connection is restored.')
@@ -227,7 +227,7 @@ export class TaskMutations {
         }
       })
     } catch (err) {
-      if (axios.isAxiosError(err) && !err.response) {
+      if (isConnectivityError(err)) {
         // Network Error (Offline) -> Keep in queue
         console.warn('You are offline. Update will sync when connection is restored.')
         return
@@ -291,7 +291,7 @@ export class TaskMutations {
         }
       })
     } catch (err) {
-      if (axios.isAxiosError(err) && !err.response) {
+      if (isConnectivityError(err)) {
         // Network Error (Offline) -> Keep in queue
         console.warn('You are offline. Deletion will sync when connection is restored.')
         return

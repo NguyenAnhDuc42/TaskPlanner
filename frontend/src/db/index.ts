@@ -13,6 +13,7 @@ export * from "./operations/document.db";
 export * from "./operations/document-block.db";
 export * from "./operations/entity-access.db";
 export * from "./operations/assignee.db";
+export * from "./operations/favorite.db";
 export * from "./operations/transaction.db";
 export * from "./operations/workspace.db";
 export * from "./operations/notification.db";

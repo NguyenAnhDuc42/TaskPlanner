@@ -2,7 +2,7 @@ import { useState } from "react";
 import { observer } from "mobx-react-lite";
 import { ChevronRight, MoreVertical } from "lucide-react";
 import { DynamicIcon } from "@/components/dynamic-icon";
-import { useNavigate, useLocation, useRouter } from "@tanstack/react-router";
+import { useNavigate, useLocation } from "@tanstack/react-router";
 import { useWorkspace } from "@/features/workspace/context/workspace-context";
 import { cn } from "@/lib/utils";
 import { Collapsible, CollapsibleContent } from "@/components/ui/collapsible";
@@ -30,7 +30,6 @@ export const FolderNodeItem = observer(function FolderNodeItem({
 
   const location = useLocation();
   const navigate = useNavigate();
-  const router = useRouter();
   const { workspaceId } = useWorkspace();
 
 
@@ -93,14 +92,6 @@ export const FolderNodeItem = observer(function FolderNodeItem({
             <button
               type="button"
               className="flex-1 text-left text-[11px] font-semibold outline-none select-none whitespace-nowrap"
-              onMouseDown={() => {
-                if (workspaceId) {
-                  router.preloadRoute({
-                    to: "/workspaces/$workspaceId/folders/$folderId",
-                    params: { workspaceId, folderId: folder.id },
-                  });
-                }
-              }}
               onClick={() => navigate({
                   to: "/workspaces/$workspaceId/folders/$folderId",
                   params: { workspaceId, folderId: folder.id },

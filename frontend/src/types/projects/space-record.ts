@@ -19,6 +19,4 @@ export interface SpaceRecord {
     hasTasks?: boolean;
     creatorId?: string;
     accessLevel?: AccessLevel;
-    isFavorite?: boolean;
-    favoriteOrderKey?: string;
 }

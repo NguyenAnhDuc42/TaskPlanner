@@ -25,8 +25,6 @@ public record TaskRecord
     public long? TimeEstimateSeconds { get; init; }
     public string? ParentType { get; init; }
     public Guid? ParentTaskId { get; init; }
-    public bool? IsFavorite { get; init; }
-    public string? FavoriteOrderKey { get; init; }
     public AccessLevel? AccessLevel { get; init; }
 
     public static TaskRecord FromDomain(ProjectTask t) => new()
@@ -67,8 +65,6 @@ public record FolderRecord
     public string? Color { get; init; }
     public bool? HasTasks { get; init; }
     public AccessLevel? AccessLevel { get; init; }
-    public bool? IsFavorite { get; init; }
-    public string? FavoriteOrderKey { get; init; }
 
     public static FolderRecord FromDomain(ProjectFolder f) => new()
     {
@@ -97,3 +93,13 @@ public record DocumentBlockRecord
 }
 
 public record BreadcrumbInfo(string Name, string? Icon, string? Color);
+
+// One favorite lives in one place — its own record, not duplicated onto Task/Folder/Space —
+// scoped to the calling member only (see GetBootstrapHandler's favoritesSql), never broadcast.
+public record FavoriteRecord
+{
+    public Guid Id { get; init; }
+    public Guid EntityId { get; init; }
+    public string EntityLayerType { get; init; } = null!;
+    public string OrderKey { get; init; } = null!;
+}

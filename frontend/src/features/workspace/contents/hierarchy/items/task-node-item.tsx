@@ -1,5 +1,5 @@
 import { observer } from "mobx-react-lite";
-import { useLocation, useNavigate, useRouter } from "@tanstack/react-router";
+import { useLocation, useNavigate } from "@tanstack/react-router";
 import { useWorkspace } from "@/features/workspace/context/workspace-context";
 import { cn } from "@/lib/utils";
 import { CheckSquare, MoreVertical } from "lucide-react";
@@ -27,7 +27,6 @@ export const TaskNodeItem = observer(function TaskNodeItem({
   const task = rootStore.taskStore.getById(taskId);
 
   const navigate = useNavigate();
-  const router = useRouter();
   const { workspaceId } = useWorkspace();
   const location = useLocation();
 
@@ -64,12 +63,6 @@ export const TaskNodeItem = observer(function TaskNodeItem({
           <button
             type="button"
             className="flex-1 text-left flex items-center outline-none select-none whitespace-nowrap"
-            onMouseDown={() => {
-              router.preloadRoute({
-                to: "/workspaces/$workspaceId/tasks/$taskId",
-                params: { workspaceId, taskId: task.id }
-              });
-            }}
             onClick={() => navigate({
                 to: "/workspaces/$workspaceId/tasks/$taskId",
                 params: { workspaceId, taskId: task.id }

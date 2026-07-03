@@ -2,7 +2,7 @@ import React from "react";
 import { observer } from "mobx-react-lite";
 import { ChevronRight, MoreVertical } from "lucide-react";
 import { DynamicIcon } from "@/components/dynamic-icon";
-import { useNavigate, useLocation, useRouter } from "@tanstack/react-router";
+import { useNavigate, useLocation } from "@tanstack/react-router";
 import { useWorkspace } from "@/features/workspace/context/workspace-context";
 import { cn } from "@/lib/utils";
 import { Collapsible, CollapsibleContent } from "@/components/ui/collapsible";
@@ -32,7 +32,6 @@ export const SpaceNodeItem = observer(function SpaceNodeItem({
   const hasChildren = hasFolders || hasTasks;
 
   const navigate = useNavigate();
-  const router = useRouter();
   const location = useLocation();
   const [isOpen, setIsOpen] = React.useState(false);
 
@@ -99,14 +98,6 @@ export const SpaceNodeItem = observer(function SpaceNodeItem({
             <button
               type="button"
               className="flex-1 text-left text-[11px] font-bold outline-none select-none whitespace-nowrap"
-              onMouseDown={() => {
-                if (workspaceId) {
-                  router.preloadRoute({
-                    to: "/workspaces/$workspaceId/spaces/$spaceId",
-                    params: { workspaceId, spaceId: space.id },
-                  });
-                }
-              }}
               onClick={() => navigate({
                   to: "/workspaces/$workspaceId/spaces/$spaceId",
                   params: { workspaceId, spaceId: space.id },

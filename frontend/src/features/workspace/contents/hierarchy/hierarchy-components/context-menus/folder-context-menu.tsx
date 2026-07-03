@@ -42,7 +42,7 @@ export const FolderContextMenu = observer(function FolderContextMenu({
   const syncEngine = useSyncEngine();
   const folderMutations = useMemo(() => new FolderMutations(rootStore, syncEngine), [rootStore, syncEngine]);
   const favoriteMutations = useMemo(() => new FavoriteMutations(rootStore), [rootStore]);
-  const isFavorite = !!rootStore.folderStore.getById(folderId)?.isFavorite;
+  const isFavorite = rootStore.favoriteStore.isFavorite(folderId);
   const [activeForm, setActiveForm] = useState<"task" | null>(null);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
 

@@ -2,7 +2,7 @@ import type { RootStore } from '@/stores/root.store'
 import type { SyncEngine } from '@/sync/sync-engine'
 import type { DocumentRecord } from '@/types/document/document-record'
 import { api } from '@/lib/api-client'
-import axios from 'axios'
+import { isConnectivityError } from "@/lib/is-connectivity-error";
 import { toJS } from 'mobx'
 
 // No create() here — Document is only ever created as a side-effect of Task/Space
@@ -58,7 +58,7 @@ export class DocumentMutations {
         }
       })
     } catch (err) {
-      if (axios.isAxiosError(err) && !err.response) {
+      if (isConnectivityError(err)) {
         console.warn('You are offline. Update will sync when connection is restored.')
         return
       }
@@ -110,7 +110,7 @@ export class DocumentMutations {
         }
       })
     } catch (err) {
-      if (axios.isAxiosError(err) && !err.response) {
+      if (isConnectivityError(err)) {
         console.warn('You are offline. Deletion will sync when connection is restored.')
         return
       }
