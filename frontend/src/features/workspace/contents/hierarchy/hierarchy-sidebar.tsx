@@ -35,7 +35,7 @@ export function HierarchySidebar() {
     useHierarchyDnd();
 
   return (
-    <div className="h-full flex flex-col bg-background overflow-hidden select-none">
+    <div className="h-full flex flex-col bg-transparent overflow-hidden select-none">
       {/* NAVIGATION SECTION (PANE 1) */}
       <div
         className={cn(
