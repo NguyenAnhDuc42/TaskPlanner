@@ -6,7 +6,7 @@ TaskPlanner is a collaborative task management platform inspired by tools like C
 - Vertical Slice Architecture with CQRS feature organization
 - Hierarchical workspace model (Workspace → Space → Folder → List → Task)
 - Role-based authorization with entity-level permissions
-- Optimistic UI with Redux entity store + SignalR synchronization
+- Offline-first sync engine: MobX + IndexedDB local store, reconciled via SignalR Delta/DeltaBatch against a sequence-numbered event log
 - JWT + OAuth authentication
 
 <img width="1598" height="721" alt="Image" src="https://github.com/user-attachments/assets/c986c18a-07be-40f0-91a2-0d888c1289a4" />
@@ -55,7 +55,7 @@ TaskPlanner is a collaborative task management platform inspired by tools like C
 
 **Backend:** .NET 10, PostgreSQL, Entity Framework Core, SignalR, Hangfire, JWT Auth, OAuth (Google + GitHub)
 
-**Frontend:** React, TypeScript, Redux Toolkit, RTK Query, TanStack Router, Vite, Tailwind CSS
+**Frontend:** React, TypeScript, MobX + IndexedDB (offline-first sync store), TanStack Router, Vite, Tailwind CSS — Redux Toolkit/RTK Query remain for auth, user preferences, and the workspace list (account-level data, not yet migrated)
 
 **Infrastructure:** Railway (API + PostgreSQL), Vercel (Frontend), Docker
 
@@ -65,7 +65,7 @@ TaskPlanner is a collaborative task management platform inspired by tools like C
 
 The backend follows Vertical Slice Architecture, organizing each feature into isolated command/query handlers, validators, and endpoints. This keeps business logic localized and reduces coupling between features while remaining simple enough for a solo project.
 
-The frontend uses a Redux entity store for local state with RTK Query for server synchronization, sitting on top of a SignalR real-time layer.
+The frontend runs a hybrid local-first sync engine: optimistic writes land in MobX stores and IndexedDB immediately, get queued in a `TransactionQueue` (squashed before sending — multiple offline edits to the same entity collapse into one network call), and reconcile against the server's append-only `sync_events` log via SignalR `Delta`/`DeltaBatch` messages. A cold start or stale session pulls a full `Bootstrap` snapshot; a reconnect pulls only what changed since the last known sequence number, collapsed to one event per entity so a long-offline client doesn't replay every intermediate edit. Task, Space, Folder, Status, Member, Assignee, Favorite, and Notification all run on this now; Auth, user preferences, and the workspace list are still on Redux/RTK Query — a deliberate, not-yet-done next migration rather than legacy debt from this one.
 
 ---
 
@@ -75,7 +75,7 @@ The frontend uses a Redux entity store for local state with RTK Query for server
 
 **Real-time is hard to get right.** The SignalR implementation works but isn't reliable. SSE fallback through Vercel's proxy generates excessive requests. WebSocket connections drop and the reconnect logic creates request storms. The lesson: don't bolt real-time onto a request-based system — design for it from the start.
 
-**Two data sources fight each other.** The frontend maintains both a Redux entity store and RTK Query cache simultaneously. They conflict, causing redundant fetches and UI inconsistencies. It works, but it's heavier than it should be. The right approach is a persistent local store (IndexedDB) as the source of truth, with a reactive in-memory layer on top — not two competing remote-cache systems. RTK Query and the entity store fight because neither truly owns the data. The fix is giving ownership to one layer and making the other derived from it. A true single source is impossible on the frontend due to IndexedDB's async nature — the goal is a clear ownership hierarchy, not literal consolidation.
+**Two data sources fight each other.** The frontend used to maintain both a Redux entity store and an RTK Query cache simultaneously. They conflicted, causing redundant fetches and UI inconsistencies. The fix — since shipped, not just diagnosed — was giving ownership to one layer and making everything else derived from it: MobX stores are the reactive read layer, IndexedDB is the persistent layer beneath them, and the server is a sync target reconciled via a sequence-numbered event log, not a second cache fighting for the same data. A true single source is still impossible given IndexedDB's async nature — the goal was a clear ownership hierarchy, not literal consolidation, and that's what's running now for the entities that have been migrated.
 
 **Ship first, iterate after.** The biggest mistake was trying to get everything right before shipping. The correct approach: define a scope, finish it, deploy it, then improve from real usage.
 
@@ -92,10 +92,19 @@ The frontend uses a Redux entity store for local state with RTK Query for server
 - Notification system with real-time delivery
 - Invite by email and join by code
 
-### Planned — v0.2.0
+### v0.2.0 — Sync Engine `2026-07-03`
+- Sequence-numbered `sync_events` log + `Bootstrap`/`Delta`/`DeltaBatch` replacing reconnect-and-refetch
+- Frontend data layer rebuilt: MobX stores + IndexedDB as the local-first source of truth, `TransactionQueue` (with squash — offline edits to the same entity collapse to one send) reconciling against the server
+- Migrated off Redux: Task, Space, Folder, Status, Member, Assignee, Favorite, Notification, Comment — full CRUD, offline queueing, and live multi-client reconnect catch-up
+- Reconnect catch-up now collapses to the latest event per entity instead of replaying full history — a long-offline client no longer replays every intermediate edit to something that's since changed again (or been deleted)
+- Bootstrap's 8 sequential queries consolidated into a single round-trip
+- Stale-session detection (`databaseVersion`) — existing sessions force a fresh Bootstrap when its shape changes, instead of silently missing new fields/entities forever
+- Sidebar drag-and-drop fixes (collision detection, reorder-target tracking) and expand/collapse state persistence
+
+### Planned — v0.3.0
+- Migrate the remaining Redux/RTK Query surface (Auth, user preferences, workspace list) to the same MobX/IndexedDB pattern
+- `SyncHub` authentication — currently unguarded like the legacy hub, a pre-production gap
+- Batch flush (`POST /api/sync/batch`) end-to-end testing at scale, plus offline conflict-edge-case coverage (squash rules, out-of-order delta application)
+- Bootstrap parallel query batching (structural data vs. secondary data on separate connections) — deferred pending real latency numbers, not yet worth the added complexity
 - Custom domain — prerequisite for proper cookie security, OAuth, and CORS
-- Sync engine: sequence-numbered event log + delta endpoint replacing reconnect-and-refetch
 - Activity feed powered by the event log (same table, no extra work)
-- Frontend data layer: IndexedDB as persistent store, reactive in-memory layer on top, server as sync target — clear ownership hierarchy replacing the current competing caches
-- Modular backend architecture (Auth, Workspace, Hierarchy, Documents, Sync)
-- WebSocket stability — remove SSE fallback dependency
