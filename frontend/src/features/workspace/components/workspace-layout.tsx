@@ -9,8 +9,9 @@ import { useResize } from "@/hooks/use-resize";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { LoadingComponent } from "@/components/loading-component";
-import { ChevronLeft, X, Maximize2, LogOut, User, Search } from "lucide-react";
+import { ChevronLeft, X, Maximize2, LogOut, User } from "lucide-react";
 import { NotificationBell } from "@/features/notifications/notification-bell";
+import { GlobalSearch } from "./global-search";
 import { UserAvatar } from "@/components/user-avatar";
 import type { ContentPage } from "../type";
 import { useLogout, useGetMeQuery } from "@/features/auth/auth-api";
@@ -198,37 +199,7 @@ export function WorkspaceLayout() {
         </div>
 
         {/* Centered Search Bar */}
-        <div className="relative w-full max-w-md rounded-md group">
-          <span className="absolute inset-y-0 left-0 flex items-center pl-2.5 pointer-events-none z-10">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              className="h-3.5 w-3.5 text-muted-foreground/60"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2.5}
-                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-              />
-            </svg>
-          </span>
-          <input
-            type="text"
-            placeholder="Search tasks, docs, members... (⌘K)"
-            className="w-full h-7 bg-secondary/60 hover:bg-secondary/80 focus:bg-secondary/80 border border-transparent focus:border-primary/30 focus:ring-1 focus:ring-primary/20 rounded-md pl-8 pr-3 text-[11px] font-medium placeholder:text-muted-foreground/50 transition-all outline-none shadow-inner relative z-10"
-          />
-          {/* Coming Soon Dropdown */}
-          <div className="absolute top-[calc(100%+4px)] left-0 w-full bg-popover border border-border shadow-md rounded-md p-3 opacity-0 invisible group-focus-within:opacity-100 group-focus-within:visible transition-all z-50 translate-y-1 group-focus-within:translate-y-0">
-            <div className="flex flex-col items-center justify-center text-center py-6 text-muted-foreground">
-               <Search className="h-6 w-6 mb-2 opacity-20" />
-               <p className="text-xs font-semibold text-foreground/70">Elasticsearch Coming Soon</p>
-               <p className="text-[10px] mt-1 opacity-60">Global search is currently being wired up.</p>
-            </div>
-          </div>
-        </div>
+        <GlobalSearch />
 
         {/* Right Side Actions */}
         <div className="absolute right-1 flex items-center gap-1.5">

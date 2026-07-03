@@ -4,7 +4,7 @@ import {
 } from "@/types/entity-layer-type";
 import { DialogFormWrapper } from "@/components/dialog-form-wrapper";
 
-import { Plus, Search, ChevronDown } from "lucide-react";
+import { Plus, ChevronDown } from "lucide-react";
 import { DndContext, DragOverlay } from "@dnd-kit/core";
 import { restrictToVerticalAxis } from "@dnd-kit/modifiers";
 import { pointerAwareCollisionDetection } from "@/lib/dnd-collision";
@@ -14,7 +14,7 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import { cn } from "@/lib/utils";
-import { useState, useDeferredValue } from "react";
+import { useState } from "react";
 
 // Modularized Components & Hooks
 import { useHierarchyDnd } from "./dnd/use-hierarchy-dnd";
@@ -27,8 +27,6 @@ import { FavoriteNodeList } from "./items/favorite-node-list";
 export function HierarchySidebar() {
   const [isHierarchyOpen, setIsHierarchyOpen] = useState(true);
   const [isFavoritesOpen, setIsFavoritesOpen] = useState(true);
-  const [searchQuery, setSearchQuery] = useState("");
-  const deferredSearchQuery = useDeferredValue(searchQuery);
   const [isHeaderCreateOpen, setIsHeaderCreateOpen] = useState(false);
   const [isInlineCreateOpen, setIsInlineCreateOpen] = useState(false);
   const { canCreateSpace } = useWorkspaceRole();
@@ -37,36 +35,7 @@ export function HierarchySidebar() {
     useHierarchyDnd();
 
   return (
-    <div className="h-full flex flex-col bg-transparent overflow-hidden select-none">
-      {/* Search & Actions */}
-      <div className="h-8 px-1 flex items-center border-b border-border shrink-0">
-        <div className="flex items-center gap-2 px-2 h-6 rounded-md bg-secondary/60 border border-transparent focus-within:border-primary/30 focus-within:bg-secondary transition-all group flex-1 shadow-inner relative z-10">
-          <Search className="h-3 w-3 text-muted-foreground/40 group-focus-within:text-primary transition-colors shrink-0" />
-          <input
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search..."
-            className="flex-1 bg-transparent border-none outline-none text-[10px] font-medium text-foreground placeholder:text-muted-foreground/30 transition-all"
-          />
-          {searchQuery && (
-            <button
-              onClick={() => setSearchQuery("")}
-              className="text-[10px] text-muted-foreground/40 hover:text-foreground transition-colors"
-            >
-              ✕
-            </button>
-          )}
-          {/* Coming Soon Dropdown */}
-          <div className="absolute top-[calc(100%+4px)] left-0 w-full bg-popover border border-border shadow-md rounded-md p-2 opacity-0 invisible group-focus-within:opacity-100 group-focus-within:visible transition-all z-50 translate-y-1 group-focus-within:translate-y-0">
-            <div className="flex flex-col items-center justify-center text-center py-4 text-muted-foreground">
-               <Search className="h-4 w-4 mb-1.5 opacity-20" />
-               <p className="text-[10px] font-semibold text-foreground/70">Elasticsearch Coming Soon</p>
-               <p className="text-[9px] mt-0.5 opacity-60">Global search is being wired up.</p>
-            </div>
-          </div>
-        </div>
-      </div>
-
+    <div className="h-full flex flex-col bg-background overflow-hidden select-none">
       {/* NAVIGATION SECTION (PANE 1) */}
       <div
         className={cn(
@@ -118,9 +87,9 @@ export function HierarchySidebar() {
                   onDragEnd={handleDragEnd}
                   modifiers={[restrictToVerticalAxis]}
                 >
-                  <SpaceNodeList searchQuery={deferredSearchQuery} />
+                  <SpaceNodeList />
 
-                  {!searchQuery && canCreateSpace && (
+                  {canCreateSpace && (
                     <div className="mb-px">
                       <DialogFormWrapper
                         title="Create New Space"

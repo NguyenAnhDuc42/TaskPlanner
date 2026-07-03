@@ -21,6 +21,23 @@ The frontend uses a hybrid approach to balance zero-latency UI (optimistic updat
 ## 1a. Favorites — a cautionary tale on where personal data should live
 Favorites were originally built as `isFavorite`/`favoriteOrderKey` fields bolted onto `TaskRecord`/`FolderRecord`/`SpaceRecord` themselves. This was wrong, and cost a long chain of bugs: `delta-handler.ts` applies every incoming Task/Folder/Space Delta via a **full-replace** `upsert()`, and since favorite fields are deliberately never present in a Task/Folder/Space SyncEvent payload, *any* unrelated update to a favorited entity — by anyone, anywhere — silently wiped its favorite state. Fixed by giving favorites their own `FavoriteStore`/`FavoriteDB`, keyed by `entityId`, completely decoupled from the entities they point at. **Lesson for any future personal/per-member data**: never attach it as a field on a record the sync engine's Delta system owns — give it its own store.
 
+## 1b. Load strategies — three tiers, not one
+
+Not every entity should be fetched the same way. Bootstrapping *everything* up front doesn't scale (a workspace's comment history or document content is unbounded and mostly never looked at), but lazy-fetching *everything* would make the "instant, offline-first" pitch a lie for the data the UI needs simultaneously and constantly (the hierarchy tree). Three tiers, borrowed from how Linear's sync engine classifies this:
+
+| Tier | Behavior | Current entities | Notes |
+|---|---|---|---|
+| **`instant`** (always load) | Downloaded to IndexedDB during `Bootstrap`, unconditionally. | Task, Space, Folder, Status, Member, Assignee, Favorite | Bounded in practice and needed *all at once* (the sidebar tree renders the whole hierarchy simultaneously) — bootstrapping them is correct, not wasteful. |
+| **`lazy`** (load on demand, then persist) | Skipped at Bootstrap. Fetched from the server only when the user actually opens that context, then bridged into the MobX store + IndexedDB for offline use from then on. | Comment (✅ built — `useTaskComments`) | Unbounded and only ever needed one-context-at-a-time (one task's comment thread, one document's blocks) — bootstrapping these would mean shipping a growing, mostly-unread payload on every cold start. |
+| **`explicitlyRequested`** (load on demand, memory only) | Fetched on demand into MobX only — deliberately never written to IndexedDB. | *(none built yet)* | For data that's neither small-and-constant nor worth persisting offline — e.g. audit/activity history, anything read once and thrown away. Not needed yet; documented here so the next thing that fits this shape doesn't get bolted onto `instant` or `lazy` by default. |
+
+**`DocumentBlock` is currently misclassified as `instant`** — `GetBootstrapHandler`'s `documentBlocksSql` pulls every block of every document (every Space's and every Task's default document) for the whole workspace on every Bootstrap. This is the exact same unbounded-content problem Comment already solved correctly, just not yet fixed here. Planned move to `lazy`, mirroring the Comment pattern:
+- Remove `documentBlocksSql` from `GetBootstrapHandler`.
+- New `GET /api/documents/{documentId}/sync/blocks` endpoint (not the legacy `GetDocumentBlocksHandler` — a new `Api`-project slice, matching how Comment/Assignee's new endpoints were built).
+- `useBlockEditorSync` fetches on first mount for a given `documentId`, bridges into `documentBlockStore`/`documentBlockDB`, same shape as `useTaskComments`.
+
+**Every `lazy` entity needs a "have I already fully loaded this context" flag**, or every mount re-fetches over the network even though the data's already sitting in IndexedDB from last time (this exact bug caused the duplicate `GET .../comments` calls seen in production logs — `useTaskComments` has no such guard yet). Planned: a small new IndexedDB store, `__fetched_contexts` (bumps `DB_VERSION` 4→5), keyed by a string like `comments:{taskId}` or `document_blocks:{documentId}`, storing just "fetched at least once on this device." Before firing a `lazy` fetch, check it; skip the network call entirely if already marked. `forceBootstrap()` must also clear this store, so a hard reset re-fetches everything instead of trusting stale flags. Retrofit onto `useTaskComments` too once built, closing the duplicate-fetch gap.
+
 ## 2. Storage Layers
 - **IndexedDB (Persistence):** Uses `idb`. There are two databases:
   1. `UserDB` (`db/user-schema.ts`): Stores global entities (`workspaces`, `notifications`). Opens on `initUser()`.
