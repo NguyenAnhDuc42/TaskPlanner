@@ -19,7 +19,7 @@ public static class FetchNotificationsEndpoint
 
             return result.IsSuccess
                 ? Results.Ok(result.Value)
-                : Results.BadRequest(result.Error);
+                : MinimalResultExtensions.Problem(result.Error!);
         })
         .RequireAuthorization()
         .WithTags("NotificationsSync");

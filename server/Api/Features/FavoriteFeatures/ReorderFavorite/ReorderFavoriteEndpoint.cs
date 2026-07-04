@@ -15,7 +15,7 @@ public static class ReorderFavoriteEndpoint
 
             return result.IsSuccess
                 ? Results.Ok()
-                : Results.BadRequest(result.Error);
+                : MinimalResultExtensions.Problem(result.Error!);
         })
         .RequireAuthorization()
         .WithTags("FavoritesSync");

@@ -23,7 +23,7 @@ public static class AddMembersEndpoint
 
             return result.IsSuccess
                 ? Results.Ok(result.Value)
-                : Results.BadRequest(result.Error);
+                : MinimalResultExtensions.Problem(result.Error!);
         })
         .RequireAuthorization()
         .WithTags("MembersSync");

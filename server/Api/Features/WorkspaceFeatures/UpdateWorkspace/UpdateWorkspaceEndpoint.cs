@@ -25,7 +25,7 @@ public static class UpdateWorkspaceEndpoint
 
             return result.IsSuccess
                 ? Results.Ok(new { SyncEventId = result.Value })
-                : Results.BadRequest(result.Error);
+                : MinimalResultExtensions.Problem(result.Error!);
         })
         .RequireAuthorization()
         .WithTags("WorkspacesSync");

@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Hybrid;
 using System.Text.Json;
 
 namespace Api;
@@ -10,6 +11,7 @@ public class AddMembersHandler(
     RealtimeService realtimeService,
     NotificationService notificationService,
     IdempotencyService idempotencyService,
+    HybridCache cache,
     ILogger<AddMembersHandler> logger
 ) : ICommandHandler<AddMembersCommand, AddMembersResult>
 {
@@ -118,6 +120,8 @@ public class AddMembersHandler(
 
             foreach (var member in newMembers)
             {
+                await cache.RemoveByTagAsync(WorkspaceCacheKeys.WorkspaceListTag(member.UserId), cancellationToken);
+
                 var user = userLookup[member.UserId];
                 _ = notificationService.PushAsync(
                     recipientUserId: member.UserId,

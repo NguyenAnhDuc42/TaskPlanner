@@ -22,7 +22,7 @@ public static class CreateWorkspaceEndpoint
             var result = await dispatcher.SendAsync<CreateWorkspaceCommand, Guid>(request, cancellationToken);
 
             if (!result.IsSuccess)
-                return Results.BadRequest(result.Error);
+                return MinimalResultExtensions.Problem(result.Error!);
 
             return Results.Ok(new
             {

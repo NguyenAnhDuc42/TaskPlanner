@@ -16,7 +16,7 @@ public static class MarkNotificationsReadEndpoint
 
             return result.IsSuccess
                 ? Results.Ok()
-                : Results.BadRequest(result.Error);
+                : MinimalResultExtensions.Problem(result.Error!);
         })
         .RequireAuthorization()
         .WithTags("NotificationsSync");
