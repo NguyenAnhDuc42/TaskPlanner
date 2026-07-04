@@ -13,3 +13,12 @@ export function isConnectivityError(err: unknown): boolean {
   if (!err.response) return true;
   return [502, 503, 504].includes(err.response.status);
 }
+
+// A delete that 404s means the entity is already gone — the delete's own goal is already
+// satisfied. Mutations' delete() methods must NOT roll back (re-upsert the entity) on this
+// specific case the way they do for other failures: rolling back would resurrect an entity that's
+// correctly, permanently gone server-side, just because this client's delete request happened to
+// arrive after someone else's (or its own earlier retry) already succeeded.
+export function isNotFoundError(err: unknown): boolean {
+  return axios.isAxiosError(err) && err.response?.status === 404;
+}

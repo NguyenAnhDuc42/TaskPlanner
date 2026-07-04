@@ -132,22 +132,6 @@ public class AuthController(IHandler handler, IOptions<AppSettings> appOptions) 
         var result = await _handler.SendAsync(command, cancellationToken);
         return result.ToActionResult();
     }
-
-    // SignalR hub connections go directly to the backend's own origin (Vercel can't proxy a
-    // WebSocket upgrade), which is cross-domain from the frontend — the HttpOnly auth cookie is
-    // scoped to the frontend's domain (set via the Vercel proxy round-trip) and can never reach
-    // the backend domain directly. This endpoint is called the normal way (same-origin via the
-    // Vercel proxy, cookie works fine here), handing back the already-valid access token so the
-    // frontend can pass it as ?access_token=... on the hub URL instead. See DependencyInjection.cs
-    // OnMessageReceived, which only accepts this for /hubs paths.
-    [HttpGet("signalr-token")]
-    [Microsoft.AspNetCore.Authorization.Authorize]
-    public IActionResult GetSignalRToken([FromServices] CookieService cookieService)
-    {
-        var tokens = cookieService.GetAuthTokensFromCookies();
-        if (tokens is null) return Unauthorized();
-        return Ok(new { accessToken = tokens.AccessToken });
-    }
 }
 
 public record LoginRequest(string Email, string Password);

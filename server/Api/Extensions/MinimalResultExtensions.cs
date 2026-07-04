@@ -25,6 +25,14 @@ public static class MinimalResultExtensions
             _ => Results.StatusCode(500)
         };
 
+    // Exposed for endpoints that need the correct status-code-per-ErrorType mapping (404 for
+    // NotFound, 409 for Conflict, etc.) but keep a custom success response shape, so they can't
+    // just call ToMinimalResult() wholesale — e.g. DeleteTask/DeleteFolder/DeleteSpace return
+    // `{ SyncEventId }` on success. Without this, endpoints calling Results.BadRequest(result.Error)
+    // unconditionally return 400 for everything, including NotFound — which the frontend's
+    // mutation rollback logic can't distinguish from a real failure that needs undoing.
+    public static IResult Problem(Error error) => CreateProblem(error);
+
     private static IResult CreateProblem(Error error)
     {
         var statusCode = MapErrorTypeToStatusCode(error.Type);

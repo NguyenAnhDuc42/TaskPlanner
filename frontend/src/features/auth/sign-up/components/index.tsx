@@ -18,7 +18,7 @@ export function SignUpPage() {
                 <rect x="9" y="9" width="5" height="5" rx="1" opacity="0.4" />
               </svg>
             </div>
-            <span className="text-sm font-black text-foreground/90 tracking-tight">TaskPlanner</span>
+            <span className="text-sm font-black text-foreground/90 tracking-tight">Orpus</span>
           </div>
           <h2 className="text-2xl font-black text-foreground/90 leading-tight mb-3">
             A personal<br />task tracker.
@@ -55,7 +55,7 @@ export function SignUpPage() {
                 <rect x="9" y="9" width="5" height="5" rx="1" opacity="0.4" />
               </svg>
             </div>
-            <span className="text-sm font-black text-foreground/90">TaskPlanner</span>
+            <span className="text-sm font-black text-foreground/90">Orpus</span>
           </div>
 
           <div>

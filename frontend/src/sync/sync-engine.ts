@@ -14,7 +14,6 @@ import type { PendingTransaction } from '@/types/sync'
 import type { AssigneeRecord, FavoriteRecord } from '@/types/projects'
 import type { MemberRecord } from '@/types/workspace/member-record'
 import { api } from '@/lib/api-client'
-import { getSignalRToken } from '@/lib/get-signalr-token'
 import { devLog } from './dev-log'
 
 const EXPECTED_DATABASE_VERSION = 3
@@ -130,8 +129,6 @@ export class SyncEngine {
           withCredentials: true,
           transport: HttpTransportType.WebSockets,
           skipNegotiation: true,
-          
-          accessTokenFactory: async () => (await getSignalRToken()) ?? '',
         }
       )
       .withAutomaticReconnect({ nextRetryDelayInMilliseconds: () => 5000 })

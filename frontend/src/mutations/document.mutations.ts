@@ -2,7 +2,7 @@ import type { RootStore } from '@/stores/root.store'
 import type { SyncEngine } from '@/sync/sync-engine'
 import type { DocumentRecord } from '@/types/document/document-record'
 import { api } from '@/lib/api-client'
-import { isConnectivityError } from "@/lib/is-connectivity-error";
+import { isConnectivityError, isNotFoundError } from "@/lib/is-connectivity-error";
 import { toJS } from 'mobx'
 
 // No create() here — Document is only ever created as a side-effect of Task/Space
@@ -112,6 +112,13 @@ export class DocumentMutations {
     } catch (err) {
       if (isConnectivityError(err)) {
         console.warn('You are offline. Deletion will sync when connection is restored.')
+        return
+      }
+
+      if (isNotFoundError(err)) {
+        // Already deleted server-side (a retried/duplicate delete, or another client beat us to
+        // it) — the desired end state is already correct, don't resurrect it locally.
+        await this.syncEngine.transactionQueue.dequeue(tx.id)
         return
       }
 

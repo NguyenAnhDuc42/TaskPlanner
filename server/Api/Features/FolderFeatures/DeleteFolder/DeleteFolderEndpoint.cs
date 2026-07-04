@@ -23,7 +23,7 @@ public static class DeleteFolderEndpoint
 
             return result.IsSuccess
                 ? Results.Ok(new { SyncEventId = result.Value })
-                : Results.BadRequest(result.Error);
+                : MinimalResultExtensions.Problem(result.Error!);
         })
         .RequireAuthorization()
         .WithTags("FoldersSync");

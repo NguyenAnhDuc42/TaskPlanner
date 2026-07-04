@@ -4,7 +4,7 @@ import type { TaskRecord } from '@/types/projects/task-record'
 import type { PendingTransaction } from '@/types/sync/transaction'
 import { Priority } from '@/types/priority'
 import { api } from '@/lib/api-client'
-import { isConnectivityError } from "@/lib/is-connectivity-error";
+import { isConnectivityError, isNotFoundError } from "@/lib/is-connectivity-error";
 import { devError } from '@/sync/dev-log'
 import { fractionalAfter } from '@/features/workspace/contents/hierarchy/utils/fractional-index'
 import { toJS } from 'mobx'
@@ -294,6 +294,13 @@ export class TaskMutations {
       if (isConnectivityError(err)) {
         // Network Error (Offline) -> Keep in queue
         console.warn('You are offline. Deletion will sync when connection is restored.')
+        return
+      }
+
+      if (isNotFoundError(err)) {
+        // Already deleted server-side (a retried/duplicate delete, or another client beat us to
+        // it) — the desired end state is already correct, don't resurrect it locally.
+        await this.syncEngine.transactionQueue.dequeue(tx.id)
         return
       }
 
