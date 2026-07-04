@@ -193,8 +193,15 @@ class SignalRService {
       if (document.visibilityState !== "visible") return;
       const state = this.connection?.state;
       if (state === HubConnectionState.Connected || state === HubConnectionState.Connecting || state === HubConnectionState.Reconnecting) return;
+      // A failed .start() attempt reverts state to Disconnected while tryStart()'s 5s retry
+      // timer is still pending in the background — none of the three states above catch that
+      // window. Blowing away startPromise here used to rebuild a brand new HubConnection via
+      // buildConnection() while the OLD retry loop still held a reference to the previous one,
+      // so when its timer fired it called .start() on a stale/conflicting object — "Cannot start
+      // a HubConnection that is not in the 'Disconnected' state". If a start attempt (including
+      // a pending retry) is already in flight, just let it keep going instead of stomping on it.
+      if (this.startPromise) return;
       console.log("[SignalR] Tab visible, reconnecting...");
-      this.startPromise = null;
       this.startConnection();
     };
     document.addEventListener("visibilitychange", handler);
