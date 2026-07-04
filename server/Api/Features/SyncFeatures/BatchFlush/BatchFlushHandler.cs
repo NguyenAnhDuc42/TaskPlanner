@@ -401,7 +401,7 @@ public class BatchFlushHandler(
             if (await idempotencyService.HasProcessedAsync(item.TraceId, ct)) return Result<int>.Success(0);
 
             var slug = cmd.Name != null ? SlugHelper.GenerateSlug(cmd.Name) : null;
-            space.Update(cmd.Name, slug, cmd.Color, cmd.Icon, cmd.IsPrivate);
+            space.Update(cmd.Name, slug, cmd.Color, cmd.Icon, cmd.IsPrivate, cmd.OrderKey);
 
             events.Add(new SyncEvent {
                 ProjectWorkspaceId = space.ProjectWorkspaceId, EntityType = SyncEntityType.Space,

@@ -6,6 +6,7 @@ export * from "./operations/task.db";
 export * from "./operations/space.db";
 export * from "./operations/folder.db";
 export * from "./operations/metadata.db";
+export * from "./operations/fetched-context.db";
 export * from "./operations/status.db";
 export * from "./operations/member.db";
 export * from "./operations/comment.db";

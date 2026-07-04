@@ -10,6 +10,10 @@ export interface TaskPlanDB extends DBSchema {
     key:string;
     value: WorkspaceMetadata;
   };
+  __fetched_contexts: {
+    key: string;
+    value: { context: string; fetchedAt: string };
+  };
   __transactions: {
     key:string;
     value: PendingTransaction;
@@ -100,7 +104,7 @@ export interface TaskPlanDB extends DBSchema {
   }
 }
 
-const DB_VERSION = 4;
+const DB_VERSION = 5;
 const dbCache = new Map<string, IDBPDatabase<TaskPlanDB>>()
 
 export async function openWorkspaceDB(workspaceId:string) : Promise<IDBPDatabase<TaskPlanDB>> {
@@ -111,6 +115,10 @@ export async function openWorkspaceDB(workspaceId:string) : Promise<IDBPDatabase
     upgrade(db){
       if (!db.objectStoreNames.contains('__metadata')) {
         db.createObjectStore('__metadata')
+      }
+
+      if (!db.objectStoreNames.contains('__fetched_contexts')) {
+        db.createObjectStore('__fetched_contexts')
       }
 
       if (!db.objectStoreNames.contains('__transactions')) {

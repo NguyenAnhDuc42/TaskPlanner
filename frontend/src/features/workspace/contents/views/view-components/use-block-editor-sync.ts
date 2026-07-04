@@ -5,6 +5,8 @@ import { useStore } from "@/stores/root.store";
 import { useSyncEngine } from "@/sync/sync-provider";
 import { useDebouncedFlush } from "@/sync/use-debounced-flush";
 import { DocumentBlockMutations } from "@/mutations/document-block.mutations";
+import { api } from "@/lib/api-client";
+import type { DocumentBlockRecord } from "@/types/document/document-block-record";
 
 type AnyBlock = {
   id: string;
@@ -59,15 +61,13 @@ export function useBlockEditorSync(documentId: string) {
   const isSavingRef = useRef(false);
   const latestRef = useRef<AnyBlock[] | null>(null);
 
-  // DocumentBlock is now part of Bootstrap+Delta (like Task/Space/Folder), so
-  // documentBlockStore is the source of truth from the moment the workspace loads — no legacy
-  // fetch needed. A mobx reaction re-runs this whenever blocks for this document change,
-  // whether from our own saves or a Delta from another client/tab.
   useEffect(() => {
     isInitRef.current = false;
     snapshotRef.current = new Map();
 
     if (!documentId) return;
+
+    let cancelled = false;
 
     const syncFromStore = () => {
       const dbBlocks = rootStore.documentBlockStore.getByDocument(documentId);
@@ -110,20 +110,37 @@ export function useBlockEditorSync(documentId: string) {
 
     syncFromStore();
 
-    return reaction(
+    const dispose = reaction(
       () => rootStore.documentBlockStore
         .getByDocument(documentId)
         .map((b) => `${b.id}:${b.type}:${b.content}:${b.orderKey}`)
         .join("|"),
       syncFromStore,
     );
+    const context = `document_blocks:${documentId}`;
+    (async () => {
+      const alreadyFetched = await rootStore.fetchedContextDB!.hasFetched(context);
+      if (alreadyFetched || cancelled) return;
+
+      try {
+        const { data } = await api.get<DocumentBlockRecord[]>(`/documents/${documentId}/sync/blocks`);
+        if (cancelled) return;
+        for (const block of data) {
+          rootStore.documentBlockStore.upsert(block);
+        }
+        await rootStore.documentBlockDB!.putMany(data);
+        await rootStore.fetchedContextDB!.markFetched(context);
+      } catch (err) {
+        console.error(`Failed to fetch blocks for document ${documentId}:`, err);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+      dispose();
+    };
   }, [documentId, rootStore]);
 
-  // Diffing stays the same as before (new/changed/deleted/reordered via snapshot hashes) — only
-  // the destination changed. Each changed block becomes its own queued C/U/D transaction
-  // (createLocal/updateLocal/deleteLocal — local store + IndexedDB + enqueue, no network), then
-  // one shared debounced flush sends everything queued in a single POST /api/sync/batch call.
-  // N block edits = N SyncEvents, but always exactly one HTTP round trip.
   const performSave = useCallback(
     (blocks: AnyBlock[]) => {
       const prev = snapshotRef.current;
@@ -167,11 +184,6 @@ export function useBlockEditorSync(documentId: string) {
 
       snapshotRef.current = next;
       if (pendingOps.length === 0) return;
-
-      // Set before any store write so the reaction above sees isSavingRef=true and skips —
-      // otherwise our own optimistic upsert (which happens synchronously inside createLocal/
-      // updateLocal, before their first await) would immediately trigger a false "external
-      // update" re-init.
       isSavingRef.current = true;
       Promise.all(
         pendingOps.map((op) => {

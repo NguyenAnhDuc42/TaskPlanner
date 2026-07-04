@@ -9,7 +9,6 @@ public record BootstrapResult(
     List<SpaceRecord> Spaces,
     List<FolderRecord> Folders,
     List<StatusRecord> Statuses,
-    List<DocumentBlockRecord> DocumentBlocks,
     List<AssigneeRecord> Assignees,
     List<FavoriteRecord> Favorites,
     List<MemberRecord> Members

@@ -11,6 +11,7 @@ import {
   AssigneeDB,
   FavoriteDB,
   TransactionDB,
+  FetchedContextDB,
   type TaskPlanDB
 } from "@/db";
 import { TaskStore } from "./task.store";
@@ -66,6 +67,7 @@ export class RootStore {
   favoriteDB: FavoriteDB | null = null;
   metadataDB: MetadataDB | null = null;
   transactionDB: TransactionDB | null = null;
+  fetchedContextDB: FetchedContextDB | null = null;
   workspaceDB: WorkspaceDB | null = null;
   notificationDB: NotificationDB | null = null;
 
@@ -147,6 +149,7 @@ export class RootStore {
     this.favoriteDB = new FavoriteDB(this.db);
     this.metadataDB = new MetadataDB(this.db, workspaceId);
     this.transactionDB = new TransactionDB(this.db);
+    this.fetchedContextDB = new FetchedContextDB(this.db);
 
     await this.hydrateFromLocal();
   }

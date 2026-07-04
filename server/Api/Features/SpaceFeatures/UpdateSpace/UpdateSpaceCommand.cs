@@ -6,7 +6,8 @@ public record UpdateSpaceCommand(
     string? Name,
     string? Color,
     string? Icon,
-    bool? IsPrivate
+    bool? IsPrivate,
+    string? OrderKey
 ) : ICommandRequest<long>, IAuthorizedWorkspaceRequest
 {
     [JsonIgnore]

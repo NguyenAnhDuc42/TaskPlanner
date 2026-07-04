@@ -61,11 +61,8 @@ interface TaskCommentsProps {
   taskId: string;
 }
 
-// Same bridge idea as TaskAssignees — no fetch endpoint on the new backend yet (Comment isn't
-// part of Bootstrap, and likely never will be given volume — a per-task paginated fetch makes
-// more sense than bulk-loading). Plain REST calls (no RTK/Redux) seed commentStore/DB; reads and
-// mutations after that go exclusively through the new system so live Deltas land in the same place.
 function useTaskComments(taskId: string) {
+  const rootStore = useStore();
   const [items, setItems] = useState<CommentRecord[]>([]);
   const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [hasNextPage, setHasNextPage] = useState(false);
@@ -75,18 +72,35 @@ function useTaskComments(taskId: string) {
   useEffect(() => {
     if (!taskId) return;
     let cancelled = false;
-    setIsLoading(true);
-    api.get<PagedResult<CommentRecord>>(`/tasks/${taskId}/comments`)
-      .then(({ data }) => {
+    const context = `comments:${taskId}`;
+
+    (async () => {
+      setIsLoading(true);
+      const alreadyFetched = await rootStore.fetchedContextDB!.hasFetched(context);
+      if (alreadyFetched) {
+        if (!cancelled) {
+          setItems(rootStore.commentStore.getByTask(taskId));
+          setIsLoading(false);
+        }
+        return;
+      }
+
+      try {
+        const { data } = await api.get<PagedResult<CommentRecord>>(`/tasks/${taskId}/comments`);
         if (cancelled) return;
         setItems(data.items);
         setNextCursor(data.nextCursor);
         setHasNextPage(data.hasNextPage);
-      })
-      .catch((err) => console.error(`Failed to fetch comments for task ${taskId}:`, err))
-      .finally(() => { if (!cancelled) setIsLoading(false); });
+        await rootStore.fetchedContextDB!.markFetched(context);
+      } catch (err) {
+        console.error(`Failed to fetch comments for task ${taskId}:`, err);
+      } finally {
+        if (!cancelled) setIsLoading(false);
+      }
+    })();
+
     return () => { cancelled = true; };
-  }, [taskId]);
+  }, [taskId, rootStore]);
 
   const fetchNextPage = useCallback(() => {
     if (!nextCursor || isFetchingNextPage) return;
@@ -175,8 +189,6 @@ export const TaskComments = observer(function TaskComments({ taskId }: Readonly<
           <p className="text-xs text-muted-foreground/50 italic py-2">No comments yet. Start the conversation!</p>
         ) : (
           comments.map((comment) => {
-            // creatorId is a WorkspaceMember.Id (matches Task/Folder/Space's CreatorId convention),
-            // not a User.Id — match against member.id, not member.userId.
             const creator = allMembers.find((m) => m.id === comment.creatorId);
             const name = creator?.name || "Unknown User";
             const parentComment = comment.parentCommentId ? comments.find(c => c.id === comment.parentCommentId) : null;

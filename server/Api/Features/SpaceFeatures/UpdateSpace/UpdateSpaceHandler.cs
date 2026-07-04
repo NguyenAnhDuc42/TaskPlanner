@@ -32,7 +32,7 @@ public class UpdateSpaceHandler(
             if (hasProcessed) return Result<long>.Success(0);
 
             var slug = request.Name != null ? SlugHelper.GenerateSlug(request.Name) : null;
-            space.Update(request.Name, slug, request.Color, request.Icon, request.IsPrivate);
+            space.Update(request.Name, slug, request.Color, request.Icon, request.IsPrivate, request.OrderKey);
 
             syncEvent = new SyncEvent
             {

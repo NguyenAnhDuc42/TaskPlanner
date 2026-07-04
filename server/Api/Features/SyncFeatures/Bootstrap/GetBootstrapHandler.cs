@@ -80,32 +80,10 @@ public class GetBootstrapHandler(TaskPlanDbContext db, WorkspaceContext workspac
             WHERE st.project_workspace_id = @WorkspaceId AND st.deleted_at IS NULL
               AND " + visibilityFilter + ";";
 
-        // Document has no direct space FK (see DocumentScopeResolver) — it's reachable via a
-        // Space's or Task's DefaultDocumentId. document_spaces resolves that so the same private-
-        // space visibility rule can apply. Freestanding documents reachable only through an
-        // EntityAssetLink aren't covered here (rare — attachments, not task/space docs) and stay
-        // on the legacy per-document fetch.
-        const string documentBlocksSql = @"
-            WITH document_spaces AS (
-                SELECT s.default_document_id AS document_id, s.id AS space_id
-                FROM project_spaces s
-                WHERE s.default_document_id IS NOT NULL AND s.deleted_at IS NULL AND s.project_workspace_id = @WorkspaceId
-                UNION ALL
-                SELECT t.default_document_id AS document_id, t.project_space_id AS space_id
-                FROM project_tasks t
-                WHERE t.default_document_id IS NOT NULL AND t.deleted_at IS NULL AND t.project_workspace_id = @WorkspaceId
-            )
-            SELECT
-                db.id AS Id, db.document_id AS DocumentId, db.type AS Type,
-                db.content AS Content, db.order_key AS OrderKey
-            FROM document_blocks db
-            INNER JOIN document_spaces ds ON ds.document_id = db.document_id
-            INNER JOIN project_spaces s ON s.id = ds.space_id AND s.deleted_at IS NULL
-            LEFT JOIN entity_access ea ON ea.project_space_id = s.id
-                AND ea.workspace_member_id = @MemberId
-                AND ea.deleted_at IS NULL
-            WHERE db.project_workspace_id = @WorkspaceId AND db.deleted_at IS NULL
-              AND " + visibilityFilter + ";";
+        // DocumentBlock deliberately NOT bootstrapped — same unbounded-content shape as Comment
+        // (every block of every Space/Task document, workspace-wide, on every cold start). Moved
+        // to the `lazy` load tier: fetched per-document on first open via
+        // GET /api/documents/{documentId}/sync/blocks, see FRONTEND_SYNC_CONTEXT.md §1b.
 
         // TaskAssignment isn't a TenantEntity (no direct workspace_id) — scoped via project_tasks,
         // same join shape as DocumentBlock's document_spaces above. Assignees per task are few
@@ -157,13 +135,12 @@ public class GetBootstrapHandler(TaskPlanDbContext db, WorkspaceContext workspac
         // reads the result sets back in order over a single round-trip. Same queries, same data,
         // same visibilityFilter/parameters shared across all of them — just one trip instead of
         // eight. Order here MUST match the order results are read below.
-        var combinedSql = string.Join("\n", tasksSql, spacesSql, foldersSql, statusesSql, documentBlocksSql, assigneesSql, favoritesSql, membersSql);
+        var combinedSql = string.Join("\n", tasksSql, spacesSql, foldersSql, statusesSql, assigneesSql, favoritesSql, membersSql);
 
         List<TaskRecord> tasks;
         List<SpaceRecord> spaces;
         List<FolderRecord> folders;
         List<StatusRecord> statuses;
-        List<DocumentBlockRecord> documentBlocks;
         List<AssigneeRecord> assignees;
         List<FavoriteRecord> favorites;
         List<MemberRecord> members;
@@ -179,7 +156,6 @@ public class GetBootstrapHandler(TaskPlanDbContext db, WorkspaceContext workspac
             spaces = (await multi.ReadAsync<SpaceRecord>()).AsList();
             folders = (await multi.ReadAsync<FolderRecord>()).AsList();
             statuses = (await multi.ReadAsync<StatusRecord>()).AsList();
-            documentBlocks = (await multi.ReadAsync<DocumentBlockRecord>()).AsList();
             assignees = (await multi.ReadAsync<AssigneeRecord>()).AsList();
             favorites = (await multi.ReadAsync<FavoriteRecord>()).AsList();
             members = (await multi.ReadAsync<MemberRecord>()).AsList();
@@ -190,10 +166,10 @@ public class GetBootstrapHandler(TaskPlanDbContext db, WorkspaceContext workspac
 
         totalStopwatch.Stop();
         logger.LogInformation(
-            "Bootstrap for workspace {WorkspaceId}: query={QueryMs}ms total={TotalMs}ms (tasks={TaskCount} spaces={SpaceCount} folders={FolderCount} statuses={StatusCount} blocks={BlockCount} assignees={AssigneeCount} favorites={FavoriteCount} members={MemberCount})",
+            "Bootstrap for workspace {WorkspaceId}: query={QueryMs}ms total={TotalMs}ms (tasks={TaskCount} spaces={SpaceCount} folders={FolderCount} statuses={StatusCount} assignees={AssigneeCount} favorites={FavoriteCount} members={MemberCount})",
             request.WorkspaceId, queryStopwatch.ElapsedMilliseconds, totalStopwatch.ElapsedMilliseconds,
-            tasks.Count, spaces.Count, folders.Count, statuses.Count, documentBlocks.Count, assignees.Count, favorites.Count, members.Count);
+            tasks.Count, spaces.Count, folders.Count, statuses.Count, assignees.Count, favorites.Count, members.Count);
 
-        return Result<BootstrapResult>.Success(new BootstrapResult(lastSyncId, SyncQueryService.CurrentDatabaseVersion, tasks, spaces, folders, statuses, documentBlocks, assignees, favorites, members));
+        return Result<BootstrapResult>.Success(new BootstrapResult(lastSyncId, SyncQueryService.CurrentDatabaseVersion, tasks, spaces, folders, statuses, assignees, favorites, members));
     }
 }
