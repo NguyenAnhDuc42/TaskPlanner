@@ -6,7 +6,7 @@ import {
   LogLevel,
 } from "@microsoft/signalr";
 import type { SpaceRecord, FolderRecord, TaskRecord, AssigneeRecord, CommentRecord, AttachmentRecord } from "@/types/projects";
-import type { MemberRecord, WorkspaceRecord, EntityAccessRecord } from "@/types/workspace";
+import type { MemberRecord, WorkspaceRecord } from "@/types/workspace";
 import type { Status } from "@/types/status";
 import type { DocumentBlockRecord } from "@/types/document";
 import type { NotificationRecord } from "@/types/notification-record";
@@ -17,7 +17,6 @@ export interface EntityBatchUpdate {
   tasks?: (Partial<TaskRecord> & { id: string })[];
   members?: (Partial<MemberRecord> & { id: string })[];
   assignees?: (Partial<AssigneeRecord> & { id: string })[];
-  entityAccess?: (Partial<EntityAccessRecord> & { id: string })[];
   workspaces?: (Partial<WorkspaceRecord> & { id: string })[];
   statuses?: (Partial<Status> & { id: string })[];
   comments?: (Partial<CommentRecord> & { id: string })[];
@@ -32,7 +31,6 @@ export interface EntityBatchDelete {
   taskIds?: string[];
   memberIds?: string[];
   assigneeIds?: string[];
-  entityAccessIds?: string[];
   workspaceIds?: string[];
   statusIds?: string[];
   commentIds?: string[];
@@ -44,8 +42,6 @@ export interface SignalREvents {
   EntitiesUpdated: EntityBatchUpdate;
   EntitiesDeleted: EntityBatchDelete;
   NewNotification: NotificationRecord;
-  AccessRevoked: { spaceId?: string };
-  AccessGranted: { spaceId?: string };
   WorkspaceJoined: { workspaceId: string };
 }
 

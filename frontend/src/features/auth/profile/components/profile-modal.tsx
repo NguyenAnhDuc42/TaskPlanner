@@ -9,7 +9,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { useGetMeQuery, useUpdateProfile, useChangePassword } from "@/features/auth/auth-api";
+import { useUser, useUpdateProfile, useChangePassword } from "@/features/auth/auth-api";
 
 const PASSWORD_RULES = [
   { label: "At least 8 characters", test: (v: string) => v.length >= 8 },
@@ -23,7 +23,7 @@ interface Props {
 }
 
 function UpdateProfileForm() {
-  const { data: user } = useGetMeQuery();
+  const { data: user } = useUser();
   const { mutate: updateProfile } = useUpdateProfile();
   const [isPending, setIsPending] = useState(false);
 

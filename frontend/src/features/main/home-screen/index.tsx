@@ -1,4 +1,5 @@
 import { toast } from "sonner";
+import { observer } from "mobx-react-lite";
 import { NotificationBell } from "@/features/notifications/notification-bell";
 import { CreateWorkspaceForm } from "./components/create-workspace-form";
 import { JoinWorkspaceDialog } from "./components/join-workspace-dialog";
@@ -11,8 +12,8 @@ import { Pin, Plus, LogIn, ChevronRight, User, LogOut } from "lucide-react";
 import { cn } from "@/lib/utils";
 import React, { useState } from "react";
 import type { Role } from "@/types/role";
-import type { WorkspaceSnippetRecord } from "@/types/workspace";
-import { useLogout, useGetMeQuery } from "@/features/auth/auth-api";
+import type { WorkspaceRecord } from "@/types/workspace/workspace-record";
+import { useLogout, useUser } from "@/features/auth/auth-api";
 import { ProfileModal } from "@/features/auth/profile/components/profile-modal";
 import {
   DropdownMenu,
@@ -24,7 +25,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 function UserMenu({ onOpenProfile }: { onOpenProfile: () => void }) {
-  const { data: user } = useGetMeQuery();
+  const { data: user } = useUser();
   const { mutate: logout } = useLogout();
 
   const initials = user?.name
@@ -67,7 +68,7 @@ function UserMenu({ onOpenProfile }: { onOpenProfile: () => void }) {
   );
 }
 
-export function WorkspaceHomeScreen() {
+export const WorkspaceHomeScreen = observer(function WorkspaceHomeScreen() {
   const [profileOpen, setProfileOpen] = useState(false);
 
   const {
@@ -95,7 +96,7 @@ export function WorkspaceHomeScreen() {
     }
   };
 
-  const handleEnter = (ws: WorkspaceSnippetRecord) => {
+  const handleEnter = (ws: WorkspaceRecord) => {
     if (ws.membershipStatus === "Pending") {
       toast.info("Your membership is pending admin approval.");
       return;
@@ -104,7 +105,7 @@ export function WorkspaceHomeScreen() {
     navigate({ to: `/workspaces/${ws.id}` });
   };
 
-  const canPin = (ws: WorkspaceSnippetRecord) => !!ws.role;
+  const canPin = (ws: WorkspaceRecord) => !!ws.role;
 
   return (
     <div className="flex flex-col items-center justify-center h-screen bg-background overflow-hidden relative">
@@ -228,4 +229,4 @@ export function WorkspaceHomeScreen() {
       <ProfileModal open={profileOpen} onOpenChange={setProfileOpen} />
     </div>
   );
-}
+});

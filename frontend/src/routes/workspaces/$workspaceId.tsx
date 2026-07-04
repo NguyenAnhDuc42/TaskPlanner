@@ -5,8 +5,6 @@ import { WorkspaceLayout } from "@/features/workspace/components/workspace-layou
 import { SyncProvider } from "@/sync/sync-provider";
 import { z } from "zod";
 import { Loader2 } from "lucide-react";
-import { store } from "@/store";
-import { workspaceFeatureApi } from "@/features/workspace/api";
 import { getCookie } from "@/lib/cookie-utils";
 
 import { workspaceSearchSchema } from "./workspace-search-schema";
@@ -25,7 +23,6 @@ export const Route = createFileRoute("/workspaces/$workspaceId")({
   validateSearch: (search) => workspaceSearchSchema.parse(search),
   loader: ({ params: { workspaceId } }) => {
     sessionStorage.setItem("activeWorkspaceId", workspaceId);
-    return store.dispatch(workspaceFeatureApi.endpoints.getWorkspaceDetail.initiate(workspaceId));
   },
   pendingComponent:ViewSkeleton,
   component: WorkspaceRoot,

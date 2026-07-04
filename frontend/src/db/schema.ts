@@ -2,7 +2,7 @@ import type { DocumentBlockRecord, DocumentRecord } from "@/types/document";
 import type { AssigneeRecord, CommentRecord, FavoriteRecord, FolderRecord, SpaceRecord, TaskRecord } from "@/types/projects";
 import type { Status } from "@/types/status";
 import type { PendingTransaction, WorkspaceMetadata } from "@/types/sync";
-import type { EntityAccessRecord, MemberRecord } from "@/types/workspace";
+import type { MemberRecord } from "@/types/workspace";
 import { openDB, type DBSchema, type IDBPDatabase } from "idb";
 
 export interface TaskPlanDB extends DBSchema {
@@ -74,14 +74,6 @@ export interface TaskPlanDB extends DBSchema {
     value:DocumentBlockRecord
     indexes: {
       'by-document': string
-    }
-  }
-
-  entity_access:{
-    key:string;
-    value:EntityAccessRecord
-    indexes: {
-      'by-space': string
     }
   }
 
@@ -161,11 +153,6 @@ export async function openWorkspaceDB(workspaceId:string) : Promise<IDBPDatabase
       if (!db.objectStoreNames.contains('document_blocks')) {
         const document_blocks = db.createObjectStore('document_blocks',{keyPath: 'id'})
         document_blocks.createIndex('by-document','documentId')
-      }
-
-      if (!db.objectStoreNames.contains('entity_access')) {
-        const entity_access = db.createObjectStore('entity_access', {keyPath: 'id'})
-        entity_access.createIndex('by-space','spaceId')
       }
 
       if (!db.objectStoreNames.contains('members')) {

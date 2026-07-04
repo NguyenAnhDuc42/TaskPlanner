@@ -1,5 +1,4 @@
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Caching.Hybrid;
 using System.Text.Json;
 
 namespace Api;
@@ -10,7 +9,6 @@ public class RemoveMembersHandler(
     PermissionService permissionService,
     RealtimeService realtimeService,
     IdempotencyService idempotencyService,
-    HybridCache cache,
     ILogger<RemoveMembersHandler> logger
 ) : ICommandHandler<RemoveMembersCommand, long>
 {
@@ -90,11 +88,6 @@ public class RemoveMembersHandler(
                 .ContinueWith(t =>
                     logger.LogError(t.Exception, "Failed to send real-time DeltaBatch for member removals in workspace {WorkspaceId}", workspaceId),
                     TaskContinuationOptions.OnlyOnFaulted);
-
-            foreach (var target in targets)
-            {
-                await cache.RemoveByTagAsync(WorkspaceCacheKeys.WorkspaceListTag(target.UserId), cancellationToken);
-            }
         }
 
         return result;

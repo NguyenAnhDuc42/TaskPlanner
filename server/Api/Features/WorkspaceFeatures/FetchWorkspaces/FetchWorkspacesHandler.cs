@@ -1,6 +1,5 @@
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Caching.Hybrid;
 using Dapper;
 
 namespace Api;
@@ -23,8 +22,7 @@ public class FetchWorkspacesRow
 public class FetchWorkspacesHandler(
     TaskPlanDbContext db,
     CurrentUserService currentUserService,
-    CursorHelper cursorHelper,
-    HybridCache cache
+    CursorHelper cursorHelper
 ) : IQueryHandler<FetchWorkspacesQuery, PagedResult<WorkspaceSnippetRecord>>
 {
     public async Task<Result<PagedResult<WorkspaceSnippetRecord>>> Handle(FetchWorkspacesQuery request, CancellationToken cancellationToken)
@@ -33,9 +31,6 @@ public class FetchWorkspacesHandler(
         if (currentUserId == Guid.Empty)
             return Result<PagedResult<WorkspaceSnippetRecord>>.Failure(UserError.NotFound);
 
-        var cacheKey = BuildCacheKey(currentUserId, request);
-
-        var result = await cache.GetOrCreateAsync(cacheKey, async _ =>
         {
             var pageSize = request.Pagination.PageSize;
 
@@ -92,29 +87,9 @@ public class FetchWorkspacesHandler(
                 ? EncodeNextCursor(rows[^1])
                 : null;
 
-            return new PagedResult<WorkspaceSnippetRecord>(items, nextCursor, hasMore);
-        },
-        new HybridCacheEntryOptions { Expiration = TimeSpan.FromMinutes(5) },
-        new[] { WorkspaceCacheKeys.WorkspaceListTag(currentUserId) },
-        cancellationToken);
-
-        return Result<PagedResult<WorkspaceSnippetRecord>>.Success(result);
-    }
-
-    private static string BuildCacheKey(Guid userId, FetchWorkspacesQuery query)
-    {
-        var sb = new System.Text.StringBuilder();
-        sb.Append($"{WorkspaceCacheKeys.WorkspaceListTag(userId)}:list");
-        sb.Append($"?cursor={query.Pagination.Cursor}");
-        sb.Append($"&size={query.Pagination.PageSize}");
-        sb.Append($"&sort={query.Pagination.SortBy}");
-        sb.Append($"&dir={query.Pagination.Direction}");
-
-        if (!string.IsNullOrEmpty(query.Filter.Name)) sb.Append($"&name={query.Filter.Name}");
-        if (query.Filter.Owned is true) sb.Append("&owned=true");
-        if (query.Filter.isArchived is true) sb.Append("&archived=true");
-
-        return sb.ToString();
+            var result = new PagedResult<WorkspaceSnippetRecord>(items, nextCursor, hasMore);
+            return Result<PagedResult<WorkspaceSnippetRecord>>.Success(result);
+        }
     }
 
     private void DecodeCursor(string? cursor, out DateTimeOffset? ts, out Guid? id)

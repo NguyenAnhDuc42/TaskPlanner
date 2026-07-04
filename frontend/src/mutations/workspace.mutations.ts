@@ -2,9 +2,20 @@ import { toJS } from 'mobx'
 import type { RootStore } from '@/stores/root.store'
 import type { SyncEngine } from '@/sync/sync-engine'
 import type { WorkspaceRecord } from '@/types/workspace/workspace-record'
+import type { WorkspaceSnippetRecord } from '@/types/workspace/workspace-snippet-record'
+import type { PagedResult } from '@/types/paged-result'
 import { api } from '@/lib/api-client'
 import { isConnectivityError, isNotFoundError } from '@/lib/is-connectivity-error'
 import { devError } from '@/sync/dev-log'
+
+export interface WorkspaceListFilters {
+  name?: string
+  owned?: boolean
+  isArchived?: boolean
+  direction?: 'Ascending' | 'Descending'
+  cursor?: string | null
+  pageSize?: number
+}
 
 export class WorkspaceMutations {
   private rootStore: RootStore
@@ -15,11 +26,76 @@ export class WorkspaceMutations {
     this.syncEngine = syncEngine
   }
 
+  // ── FETCH DETAIL ──
+  // Per-workspace permissions (canEdit/canInvite/canManageMembers/joinCode etc) — a separate
+  // concern from synced entity data, not part of Bootstrap. No new-pattern endpoint needed
+  // (same reasoning as pin()): plain read, reuses the existing legacy REST route directly.
+  async fetchDetail(workspaceId: string): Promise<WorkspaceRecord> {
+    const { data } = await api.get<WorkspaceRecord>(`/workspaces/${workspaceId}/me/permissions`)
+    this.rootStore.workspaceStore.upsert(data)
+    await this.rootStore.workspaceDB?.put(data)
+    return data
+  }
+
+  // ── FETCH LIST ──
+  // Read-side query, not queued/offline — matches the backend's own "Workspace bypasses
+  // Bootstrap/Delta entirely" design (see SYNC_SCENARIOS.md). Upserts every returned row into
+  // the store + IndexedDB so the switcher/home screen reflect it immediately.
+  async fetchList(filters: WorkspaceListFilters = {}): Promise<PagedResult<WorkspaceSnippetRecord>> {
+    const { data } = await api.get<PagedResult<WorkspaceSnippetRecord>>('/workspaces/sync', {
+      params: {
+        cursor: filters.cursor ?? undefined,
+        name: filters.name,
+        owned: filters.owned,
+        isArchived: filters.isArchived,
+        direction: filters.direction ?? 'Ascending',
+        pageSize: filters.pageSize,
+      },
+    })
+
+    for (const item of data.items) {
+      const record = { ...item } as unknown as WorkspaceRecord
+      this.rootStore.workspaceStore.upsert(record)
+      await this.rootStore.workspaceDB?.put(record)
+    }
+
+    return data
+  }
+
+  // ── PIN ──
+  // Optimistic, no queue — a personal per-member flag, not a synced/shared entity, same
+  // reasoning as Favorite. No new-pattern endpoint exists for this yet; reuses the legacy
+  // per-workspace REST route directly since it's a trivial one-field update.
+  async pin(workspaceId: string, isPinned: boolean): Promise<void> {
+    const stored = this.rootStore.workspaceStore.getById(workspaceId)
+    const previous = stored ? toJS(stored) : undefined
+
+    if (stored) {
+      this.rootStore.workspaceStore.upsert({ ...previous, isPinned } as WorkspaceRecord)
+    }
+
+    try {
+      await api.put(`/workspaces/${workspaceId}/pin`, { isPinned })
+    } catch (err) {
+      if (previous) {
+        this.rootStore.workspaceStore.upsert(previous)
+        await this.rootStore.workspaceDB?.put(previous)
+      }
+      throw err
+    }
+  }
+
+  // ── JOIN BY CODE ──
+  async joinByCode(joinCode: string): Promise<{ workspaceId: string; membershipStatus: string; isNewMember: boolean }> {
+    const { data } = await api.post('/workspaces/sync/join', { joinCode })
+    return data
+  }
+
   // ── CREATE ──
   // Server-first: workspace initialization (statuses, folder, tasks) happens server-side,
   // so the client can't meaningfully create one offline without knowing those generated IDs.
   // Client provides the ID so it can store the record immediately after the call.
-  async create(data: { name: string; color?: string; icon?: string; description?: string }): Promise<WorkspaceRecord> {
+  async create(data: { name: string; color?: string; icon?: string; description?: string; strictJoin?: boolean; theme?: string }): Promise<WorkspaceRecord> {
     const id = crypto.randomUUID()
     const traceId = crypto.randomUUID()
 
@@ -29,13 +105,15 @@ export class WorkspaceMutations {
       color: data.color ?? null,
       icon: data.icon ?? null,
       description: data.description ?? null,
+      strictJoin: data.strictJoin ?? null,
+      theme: data.theme ?? null,
     }
 
     // Server-first: workspace initialization runs server-side (statuses, folder, tasks).
-    // Client constructs the snippet from what it sent — no need to wait for a full record back.
+    // No X-Workspace-Id here — this endpoint isn't workspace-scoped (there is no workspace
+    // yet), and CreateWorkspaceEndpoint only requires X-Client-Trace-Id.
     await api.post('/workspaces/sync', commandPayload, {
       headers: {
-        'X-Workspace-Id': this.rootStore.currentWorkspaceId!,
         'X-Client-Trace-Id': traceId,
       }
     })

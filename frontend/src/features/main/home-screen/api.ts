@@ -1,167 +1,99 @@
-import { z } from "zod";
-import type { createWorkspaceSchema } from "./type";
-import type { WorkspaceSnippetRecord } from "@/types/workspace";
-import { workspaceApi } from "@/store/workspaceApi";
-import { workspaceSlice, workspaceSelectors } from "@/store/entityStore";
-import type { RootState } from "@/store";
+import * as React from "react";
 import { toast } from "sonner";
-import type { PagedResult } from "@/types/paged-result";
-import { useNavigate, useSearch } from "@tanstack/react-router";
-import React from "react";
+import type { z } from "zod";
+import type { createWorkspaceSchema } from "./type";
+import { useStore } from "@/stores/root.store";
+import { useSyncEngine } from "@/sync/sync-provider";
+import { WorkspaceMutations } from "@/mutations/workspace.mutations";
 import { signalRService } from "@/lib/signalr-service";
-import { useSelector, useDispatch } from "react-redux";
 
 type CreateWorkspaceValues = z.infer<typeof createWorkspaceSchema>;
 
-export interface WorkspaceFilters {
-  name?: string;
-  owned?: boolean;
-  isArchived?: boolean;
-  variant?: string;
-  direction?: "Ascending" | "Descending";
-}
+export function useWorkspaceHome() {
+  const rootStore = useStore();
+  const syncEngine = useSyncEngine();
+  const workspaceMutations = React.useMemo(() => new WorkspaceMutations(rootStore, syncEngine), [rootStore, syncEngine]);
 
-export const homeWorkspaceApi = workspaceApi.injectEndpoints({
-  endpoints: (build) => ({
-    getWorkspaces: build.query<PagedResult<WorkspaceSnippetRecord>, WorkspaceFilters & { cursor?: string | null; }>({
-      query: (params) => ({ url: "/workspaces", method: "GET", params }),
-      serializeQueryArgs: ({ endpointName, queryArgs }) => {
-        const filters = { ...queryArgs };
-        delete filters.cursor;
-        return `${endpointName}_${JSON.stringify(filters)}`;
-      },
-      merge: (currentCache, newItems, { arg }) => {
-        if (!arg.cursor) {
-          return newItems;
-        }
-        currentCache.items.push(...newItems.items);
-        currentCache.nextCursor = newItems.nextCursor;
-        currentCache.hasNextPage = newItems.hasNextPage;
-      },
-      forceRefetch({ currentArg, previousArg }) {
-        return currentArg !== previousArg;
-      },
-      async onQueryStarted(_, { dispatch, queryFulfilled }) {
-        try {
-          const { data } = await queryFulfilled;
-          dispatch(workspaceSlice.actions.upsertMany(data.items));
-        } catch (error) {
-          console.error("[homeApi] Failed to sync workspaces to store:", error);
-        }
-      },
-      providesTags: ["Workspaces"],
-    }),
-    createWorkspace: build.mutation<WorkspaceSnippetRecord, CreateWorkspaceValues & { strictJoin?: boolean }>({
-      query: (values) => ({ url: "/workspaces", method: "POST", data: values }),
-      async onQueryStarted(_, { dispatch, queryFulfilled }) {
-        try {
-          const { data } = await queryFulfilled;
-          dispatch(workspaceSlice.actions.upsert(data));
-        } catch (error) {
-          console.error("[homeApi] Failed to sync created workspace to store:", error);
-        }
-      },
-    }),
-    setWorkspacePin: build.mutation<boolean, { workspaceId: string; isPinned: boolean }>({
-      query: (payload) => ({ url: `/workspaces/${payload.workspaceId}/pin`, method: "PUT", data: { isPinned: payload.isPinned } }),
-      async onQueryStarted({ workspaceId, isPinned }, { dispatch, queryFulfilled, getState }) {
-        const prev = workspaceSelectors.selectById(getState() as RootState, workspaceId);
-        dispatch(workspaceSlice.actions.upsert({ id: workspaceId, isPinned }));
-        try {
-          await queryFulfilled;
-        } catch {
-          if (prev) dispatch(workspaceSlice.actions.upsert(prev));
-        }
-      },
-    }),
-    joinWorkspace: build.mutation<{
-      workspaceId: string;
-      membershipStatus: string;
-      isNewMember: boolean;
-    }, string>({
-      query: (joinCode) => ({ url: "/workspaces/join", method: "POST", data: { joinCode } }),
-      invalidatesTags: ["Workspaces"],
-    }),
-  }),
-});
+  const [isWorkspacesLoading, setIsWorkspacesLoading] = React.useState(true);
+  const [isCreating, setIsCreating] = React.useState(false);
+  const [isCreateModalOpen, setIsCreateModalOpen] = React.useState(false);
+  const [isJoinModalOpen, setIsJoinModalOpen] = React.useState(false);
 
-export const {
-  useGetWorkspacesQuery,
-  useCreateWorkspaceMutation,
-  useSetWorkspacePinMutation,
-  useJoinWorkspaceMutation,
-} = homeWorkspaceApi;
+  const refetch = React.useCallback(() => {
+    return workspaceMutations.fetchList({ direction: "Ascending" });
+  }, [workspaceMutations]);
 
-export function useCreateWorkspace() {
-  const [createTrigger] = useCreateWorkspaceMutation();
-  return {
-    mutate: async (values: CreateWorkspaceValues & { strictJoin?: boolean }) => {
+  React.useEffect(() => {
+    setIsWorkspacesLoading(true);
+    refetch()
+      .catch((err) => console.error("Failed to fetch workspaces", err))
+      .finally(() => setIsWorkspacesLoading(false));
+  }, [refetch]);
+
+  React.useEffect(() => {
+    const onJoined = () => {
+      refetch().catch((err) => console.error("Failed to refresh workspaces", err));
+    };
+    signalRService.on("WorkspaceJoined", onJoined);
+    return () => signalRService.off("WorkspaceJoined", onJoined);
+  }, [refetch]);
+
+  const workspaces = rootStore.workspaceStore.all;
+
+  const handleCreateWorkspace = React.useCallback(
+    async (data: Omit<CreateWorkspaceValues, "theme">) => {
+      setIsCreating(true);
       try {
-        const result = await createTrigger(values).unwrap();
+        await workspaceMutations.create({ ...data, theme: "Dark" });
         toast.success("Workspace created successfully");
-        return result;
+        setIsCreateModalOpen(false);
       } catch (error: unknown) {
         const err = error as { message?: string; data?: { Description?: string } };
         toast.error(err.data?.Description || err.message || "Failed to create workspace");
-        throw error;
+      } finally {
+        setIsCreating(false);
       }
     },
-  };
-}
+    [workspaceMutations],
+  );
 
-export function useWorkspaces(filters: WorkspaceFilters) {
-  const [cursor, setCursor] = React.useState<string | null>(null);
-
-  const [prevFilters, setPrevFilters] = React.useState(filters);
-  if (JSON.stringify(prevFilters) !== JSON.stringify(filters)) {
-    setPrevFilters(filters);
-    setCursor(null);
-  }
-
-  const { data, isLoading, isFetching } = useGetWorkspacesQuery({ ...filters, cursor });
-
-  const fetchNextPage = React.useCallback(() => {
-    if (data?.nextCursor) {
-      setCursor(data.nextCursor);
-    }
-  }, [data]);
-
-  return {
-    data: data ? { pages: [data] } : undefined,
-    isLoading,
-    isFetchingNextPage: isFetching && cursor !== null,
-    hasNextPage: !!data?.nextCursor,
-    fetchNextPage,
-  };
-}
-
-export function useSetWorkspacePin() {
-  const [pinTrigger] = useSetWorkspacePinMutation();
-  return {
-    mutate: async (payload: { workspaceId: string; isPinned: boolean }) => {
-      try {
-        await pinTrigger(payload).unwrap();
-        toast.success("Workspace pin updated!");
-      } catch (error: unknown) {
+  const handlePinWorkspace = React.useCallback(
+    (workspaceId: string, isPinned: boolean) => {
+      workspaceMutations.pin(workspaceId, isPinned).catch((error: unknown) => {
         const err = error as { message?: string; data?: { Description?: string } };
         toast.error(err.data?.Description || err.message || "Failed to update pin");
-      }
+      });
     },
+    [workspaceMutations],
+  );
+
+  return {
+    workspaces,
+    isWorkspacesLoading,
+    isCreating,
+    isCreateModalOpen,
+    setIsCreateModalOpen,
+    isJoinModalOpen,
+    setIsJoinModalOpen,
+    handleCreateWorkspace,
+    handlePinWorkspace,
   };
 }
 
 export function useJoinWorkspaceByCode() {
-  const [joinTrigger] = useJoinWorkspaceMutation();
-  const dispatch = useDispatch();
+  const rootStore = useStore();
+  const syncEngine = useSyncEngine();
+  const workspaceMutations = React.useMemo(() => new WorkspaceMutations(rootStore, syncEngine), [rootStore, syncEngine]);
+
   return {
     mutate: async (joinCode: string) => {
       try {
-        const data = await joinTrigger(joinCode).unwrap();
+        const data = await workspaceMutations.joinByCode(joinCode);
         if (data.membershipStatus === "Pending") {
           toast.info("Join request sent. Waiting for approval.");
         } else {
           toast.success("Joined workspace successfully");
-          dispatch(workspaceApi.util.invalidateTags(["Workspaces"]));
+          await workspaceMutations.fetchList({ direction: "Ascending" });
         }
         return data;
       } catch (error: unknown) {
@@ -170,109 +102,5 @@ export function useJoinWorkspaceByCode() {
         throw error;
       }
     },
-  };
-}
-
-export function useWorkspaceHome() {
-  const search = useSearch({ from: "/" }) as WorkspaceFilters;
-  const navigate = useNavigate({ from: "/" });
-  const { refetch } = useGetWorkspacesQuery({ ...search });
-
-  const {
-    isLoading: isWorkspacesLoading,
-    fetchNextPage,
-    hasNextPage,
-    isFetchingNextPage,
-  } = useWorkspaces(search);
-
-  const allWorkspaces = useSelector(workspaceSelectors.selectAll);
-  const workspaces = React.useMemo(() => {
-    let filtered = allWorkspaces;
-    if (search.name) {
-      const lower = search.name.toLowerCase();
-      filtered = filtered.filter((ws) => ws.name.toLowerCase().includes(lower));
-    }
-    if (search.owned) {
-      filtered = filtered.filter((ws) => ws.role === "Owner");
-    }
-    return filtered;
-  }, [allWorkspaces, search.name, search.owned]);
-
-  const { mutate: createInternal } = useCreateWorkspace();
-  const { mutate: setWorkspacePin } = useSetWorkspacePin();
-
-  const [isCreateModalOpen, setIsCreateModalOpen] = React.useState(false);
-  const [isJoinModalOpen, setIsJoinModalOpen] = React.useState(false);
-
-  React.useEffect(() => {
-    signalRService.startConnection();
-
-    const onUpdate = () => {
-      refetch();
-    };
-
-    signalRService.on("EntitiesUpdated", onUpdate);
-    signalRService.on("EntitiesDeleted", onUpdate);
-
-    return () => {
-      signalRService.off("EntitiesUpdated", onUpdate);
-      signalRService.off("EntitiesDeleted", onUpdate);
-    };
-  }, [refetch]);
-
-  const handleCreateWorkspace = React.useCallback(
-    (data: Omit<CreateWorkspaceValues, "theme">) => {
-      createInternal({ ...data, theme: "Dark" });
-    },
-    [createInternal],
-  );
-
-  const handleJoinWorkspace = React.useCallback(() => {
-    setIsJoinModalOpen(true);
-  }, []);
-
-  const handlePinWorkspace = React.useCallback(
-    (workspaceId: string, isPinned: boolean) => {
-      setWorkspacePin({ workspaceId, isPinned });
-    },
-    [setWorkspacePin],
-  );
-
-  const handleSearchChange = React.useCallback(
-    (name: string) => {
-      navigate({
-        search: (prev: WorkspaceFilters) => ({ ...prev, name: name || undefined }),
-        replace: true,
-      });
-    },
-    [navigate],
-  );
-
-  const handleFilterChange = React.useCallback(
-    (newFilters: Partial<WorkspaceFilters>) => {
-      navigate({
-        search: (prev: WorkspaceFilters) => ({ ...prev, ...newFilters }),
-      });
-    },
-    [navigate],
-  );
-
-  return {
-    filters: search,
-    workspaces,
-    isWorkspacesLoading,
-    isCreating: false,
-    isCreateModalOpen,
-    setIsCreateModalOpen,
-    isJoinModalOpen,
-    setIsJoinModalOpen,
-    hasNextPage,
-    isFetchingNextPage,
-    fetchNextPage,
-    handleCreateWorkspace,
-    handleJoinWorkspace,
-    handlePinWorkspace,
-    handleSearchChange,
-    handleFilterChange,
   };
 }

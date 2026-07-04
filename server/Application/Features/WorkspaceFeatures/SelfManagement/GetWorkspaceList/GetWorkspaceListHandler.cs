@@ -1,6 +1,5 @@
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Caching.Hybrid;
 using Dapper;
 
 namespace Application;
@@ -23,19 +22,15 @@ public class WorkspaceRow
 public class GetWorkspaceListHandler(
     TaskPlanDbContext db,
     CurrentUserService currentUserService,
-    CursorHelper cursorHelper,
-    HybridCache cache
+    CursorHelper cursorHelper
 ) : IQueryHandler<GetWorksapceListQuery, PagedResult<WorkspaceSnippetRecord>>
 {
     public async Task<Result<PagedResult<WorkspaceSnippetRecord>>> Handle(GetWorksapceListQuery request, CancellationToken cancellationToken)
     {
         var currentUserId = currentUserService.CurrentUserId();
-        if (currentUserId == Guid.Empty) 
+        if (currentUserId == Guid.Empty)
             return Result<PagedResult<WorkspaceSnippetRecord>>.Failure(UserError.NotFound);
 
-        var cacheKey = WorkspaceCacheKeys.WorkspaceList(currentUserId, request);
-        
-        var result = await cache.GetOrCreateAsync(cacheKey, async token =>
         {
             var pageSize = request.Pagination.PageSize;
 
@@ -92,13 +87,9 @@ public class GetWorkspaceListHandler(
                 ? EncodeNextCursor(rows[^1])
                 : null;
 
-            return new PagedResult<WorkspaceSnippetRecord>(items, nextCursor, hasMore);
-        },
-        new HybridCacheEntryOptions { Expiration = TimeSpan.FromMinutes(5) },
-        new[] { $"user:{currentUserId}:workspaces" },
-        cancellationToken);
-
-        return Result<PagedResult<WorkspaceSnippetRecord>>.Success(result);
+            var result = new PagedResult<WorkspaceSnippetRecord>(items, nextCursor, hasMore);
+            return Result<PagedResult<WorkspaceSnippetRecord>>.Success(result);
+        }
     }
 
     private void DecodeCursor(string? cursor, out DateTimeOffset? ts, out Guid? id)

@@ -20,4 +20,5 @@ export interface WorkspaceRecord {
     isDashboardEnabled?: boolean;
     joinCode?: string;
     strictJoin?: boolean;
+    membershipStatus?: "Active" | "Pending" | "Suspended" | "Invited";
 }

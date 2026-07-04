@@ -9,7 +9,7 @@ import { format, isBefore, startOfDay } from "date-fns";
 import { PrioritySelect } from "@/components/priority-select";
 import { PriorityBadge } from "@/components/priority-badge";
 import { DynamicIcon } from "@/components/dynamic-icon";
-import { Maximize2, User } from "lucide-react";
+import { Maximize2 } from "lucide-react";
 import { DateSelect } from "@/components/date-select";
 import type { TaskRecord } from "@/types/projects";
 import { useRouter, useNavigate } from "@tanstack/react-router";
@@ -104,9 +104,9 @@ export const BoardItemCard = React.memo(function BoardItemCard({
               type="button"
               onClick={(e) => { e.stopPropagation(); onFolderClick?.(); }}
               onPointerDown={(e) => e.stopPropagation()}
-              className="text-[9px] font-semibold text-muted-foreground/40 hover:text-primary/70 transition-colors truncate text-left leading-none self-start"
+              className="text-[11px] font-semibold text-muted-foreground/40 hover:text-primary/70 transition-colors truncate text-left leading-none self-start"
             >
-              {item.folderName}
+              &gt;{item.folderName}
             </button>
           )}
           <div className="flex items-center justify-between">
@@ -185,17 +185,14 @@ export const BoardItemCard = React.memo(function BoardItemCard({
           </div>
         </div>
 
-        {/* Row 3: Assignee | Created */}
-        <div className="flex items-center justify-between text-[10px] font-medium leading-none mt-1 w-full gap-2">
-          <div className="h-4 w-4 rounded-full bg-muted/30 flex items-center justify-center border border-border/50">
-            <User className="h-2.5 w-2.5 opacity-30 group-hover:opacity-50 transition-opacity" />
-          </div>
-          {dateInfo.createdText && (
-            <span className="text-[9px] text-muted-foreground/45 font-medium shrink-0 select-none ml-auto">
+        {/* Row 3: Created */}
+        {dateInfo.createdText && (
+          <div className="flex items-center justify-end text-[10px] font-medium leading-none mt-1 w-full gap-2">
+            <span className="text-[9px] text-muted-foreground/45 font-medium shrink-0 select-none">
               {dateInfo.createdText}
             </span>
-          )}
-        </div>
+          </div>
+        )}
       </div>
     </div>
   );

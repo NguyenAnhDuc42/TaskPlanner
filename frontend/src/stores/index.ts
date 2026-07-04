@@ -1,6 +1,5 @@
 export * from "./comment.store";
 export * from "./document-block.store";
-export * from "./entity-access.store";
 export * from "./folder.store";
 export * from "./member.store";
 export * from "./notification.store";

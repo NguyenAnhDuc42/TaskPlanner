@@ -1,50 +1,71 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { observer } from "mobx-react-lite";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { ChevronDown, Check, Plus, Pin, LogIn } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useWorkspace } from "../context/workspace-context";
-import { useSelector } from "react-redux";
-import { workspaceSelectors } from "@/store/entityStore";
-import type { WorkspaceSnippetRecord } from "@/types/workspace";
+import { useStore } from "@/stores/root.store";
+import { useSyncEngine } from "@/sync/sync-provider";
+import { WorkspaceMutations } from "@/mutations/workspace.mutations";
+import type { WorkspaceRecord } from "@/types/workspace/workspace-record";
 import { DynamicIcon } from "@/components/dynamic-icon";
 import { useNavigate } from "@tanstack/react-router";
 import { CreateWorkspaceForm } from "@/features/main/home-screen/components/create-workspace-form";
-import { useSetWorkspacePin, useGetWorkspacesQuery, useCreateWorkspace, useJoinWorkspaceByCode } from "@/features/main/home-screen/api";
 import { JoinWorkspaceDialog } from "@/features/main/home-screen/components/join-workspace-dialog";
 import { RoleBadge } from "@/components/role-badge";
 import type { Role } from "@/types/role";
 import type { FormData } from "@/features/main/home-screen/components/create-workspace-form";
+import { signalRService } from "@/lib/signalr-service";
+import { toast } from "sonner";
 import React from "react";
 
-export function WorkspaceSwitcher() {
+export const WorkspaceSwitcher = observer(function WorkspaceSwitcher() {
   const [open, setOpen] = useState(false);
   const [showCreate, setShowCreate] = useState(false);
   const [showJoin, setShowJoin] = useState(false);
   const [isJoining, setIsJoining] = React.useState(false);
 
   const { workspaceId } = useWorkspace();
-  useGetWorkspacesQuery({ direction: "Ascending" });
+  const rootStore = useStore();
+  const syncEngine = useSyncEngine();
+  const workspaceMutations = React.useMemo(() => new WorkspaceMutations(rootStore, syncEngine), [rootStore, syncEngine]);
 
-  const workspaces = useSelector(workspaceSelectors.selectAll);
+  useEffect(() => {
+    workspaceMutations.fetchList({ direction: "Ascending" }).catch((err) => console.error("Failed to fetch workspaces", err));
+  }, [workspaceMutations]);
+
+  useEffect(() => {
+    const onJoined = () => {
+      workspaceMutations.fetchList({ direction: "Ascending" }).catch((err) => console.error("Failed to refresh workspaces", err));
+    };
+    signalRService.on("WorkspaceJoined", onJoined);
+    return () => signalRService.off("WorkspaceJoined", onJoined);
+  }, [workspaceMutations]);
+
+  const workspaces = rootStore.workspaceStore.all;
   const navigate = useNavigate();
-  const { mutate: setPin } = useSetWorkspacePin();
-  const { mutate: createWorkspace } = useCreateWorkspace();
-  const { mutate: joinByCode } = useJoinWorkspaceByCode();
   const [isCreating, setIsCreating] = React.useState(false);
+
+  const setPin = (payload: { workspaceId: string; isPinned: boolean }) => {
+    workspaceMutations.pin(payload.workspaceId, payload.isPinned).catch((err) => {
+      console.error("Failed to update pin", err);
+      toast.error("Failed to update pin");
+    });
+  };
 
   const handleCreateWorkspace = async (data: FormData) => {
     setIsCreating(true);
     try {
-      await createWorkspace({ ...data, theme: "Dark" });
+      await workspaceMutations.create({ ...data, theme: "Dark" });
       setShowCreate(false);
     } finally {
       setIsCreating(false);
     }
   };
 
-  const activeWorkspace = workspaces.find((ws: WorkspaceSnippetRecord) => ws.id === workspaceId);
+  const activeWorkspace = workspaces.find((ws: WorkspaceRecord) => ws.id === workspaceId);
 
-  const handleEnter = (ws: WorkspaceSnippetRecord) => {
+  const handleEnter = (ws: WorkspaceRecord) => {
     localStorage.setItem("lastWorkspaceId", ws.id);
     navigate({ to: `/workspaces/${ws.id}` });
     setOpen(false);
@@ -53,7 +74,16 @@ export function WorkspaceSwitcher() {
   const handleJoin = async (code: string) => {
     setIsJoining(true);
     try {
-      await joinByCode(code);
+      const result = await workspaceMutations.joinByCode(code);
+      if (result.membershipStatus === "Pending") {
+        toast.info("Join request sent. Waiting for approval.");
+      } else {
+        toast.success("Joined workspace successfully");
+        await workspaceMutations.fetchList({ direction: "Ascending" });
+      }
+    } catch (err: unknown) {
+      const error = err as { message?: string; data?: { Description?: string } };
+      toast.error(error.data?.Description || error.message || "Failed to join workspace");
     } finally {
       setIsJoining(false);
       setShowJoin(false);
@@ -93,7 +123,7 @@ export function WorkspaceSwitcher() {
           <div className="h-px w-full bg-border" />
 
           <div className="flex flex-col gap-px">
-            {workspaces.map((ws: WorkspaceSnippetRecord) => {
+            {workspaces.map((ws: WorkspaceRecord) => {
               const isActive = ws.id === workspaceId;
               const canPin = !!ws.role;
 
@@ -181,4 +211,4 @@ export function WorkspaceSwitcher() {
       />
     </>
   );
-}
+});

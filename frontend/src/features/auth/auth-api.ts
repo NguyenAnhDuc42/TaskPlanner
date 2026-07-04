@@ -1,5 +1,8 @@
-import { workspaceApi } from "@/store/workspaceApi";
+import { useEffect, useState, useSyncExternalStore } from "react";
+import { autorun } from "mobx";
+import { api } from "@/lib/api-client";
 import { getCookie } from "@/lib/cookie-utils";
+import { currentUserStore } from "./current-user.store";
 import type { User } from "./types";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -15,67 +18,30 @@ export interface RegisterRequest {
   password: string;
 }
 
-// ─── RTK Query Endpoints ──────────────────────────────────────────────────────
-
-export const authApi = workspaceApi.injectEndpoints({
-  endpoints: (build) => ({
-    getMe: build.query<User | null, void>({
-      query: () => ({ url: "/auth/me", method: "GET" }),
-      providesTags: ["User"],
-    }),
-    login: build.mutation<void, LoginRequest>({
-      query: (values) => ({ url: "/auth/login", method: "POST", data: values }),
-      invalidatesTags: ["User", "UserPreference"],
-    }),
-    register: build.mutation<void, RegisterRequest>({
-      query: (values) => ({
-        url: "/auth/register",
-        method: "POST",
-        data: { ...values, userName: values.name },
-      }),
-      invalidatesTags: ["UserPreference"],
-    }),
-    logout: build.mutation<void, void>({
-      query: () => ({ url: "/auth/logout", method: "POST" }),
-      invalidatesTags: ["User"],
-    }),
-    updateProfile: build.mutation<User, { name?: string; email?: string }>({
-      query: (payload) => ({ url: "/auth/profile", method: "PUT", data: payload }),
-      invalidatesTags: ["User"],
-    }),
-    changePassword: build.mutation<void, { currentPassword: string; newPassword: string }>({
-      query: (payload) => ({ url: "/auth/change-password", method: "POST", data: payload }),
-    }),
-    forgotPassword: build.mutation<void, { email: string }>({
-      query: (payload) => ({ url: "/auth/forgot-password", method: "POST", data: payload }),
-    }),
-    resetPassword: build.mutation<void, { token: string; newPassword: string }>({
-      query: (payload) => ({ url: "/auth/reset-password", method: "POST", data: payload }),
-    }),
-  }),
-});
-
-export const {
-  useGetMeQuery,
-  useLoginMutation,
-  useRegisterMutation,
-  useLogoutMutation,
-  useUpdateProfileMutation,
-  useChangePasswordMutation,
-  useForgotPasswordMutation,
-  useResetPasswordMutation,
-} = authApi;
-
 // ─── Hooks ────────────────────────────────────────────────────────────────────
 
 export function useUser() {
   const isLoggedIn = !!getCookie("is_logged_in");
-  const { data, isLoading, isFetching } = useGetMeQuery(undefined, {
-    skip: !isLoggedIn,
-  });
+
+  useEffect(() => {
+    if (isLoggedIn) currentUserStore.ensureLoaded();
+  }, [isLoggedIn]);
+
+  const data = useSyncExternalStore(
+    (onStoreChange) => autorun(() => { void currentUserStore.data; onStoreChange(); }),
+    () => currentUserStore.data,
+  );
+  const isFetching = useSyncExternalStore(
+    (onStoreChange) => autorun(() => { void currentUserStore.isFetching; onStoreChange(); }),
+    () => currentUserStore.isFetching,
+  );
+  const isLoading = useSyncExternalStore(
+    (onStoreChange) => autorun(() => { void currentUserStore.isLoading; onStoreChange(); }),
+    () => currentUserStore.isLoading,
+  );
 
   return {
-    data,
+    data: isLoggedIn ? (data ?? undefined) : undefined,
     isLoading,
     isFetching,
     status: !isLoggedIn
@@ -89,57 +55,90 @@ export function useUser() {
 }
 
 export function useLogin() {
-  const [trigger, { isLoading }] = useLoginMutation();
+  const [isPending, setIsPending] = useState(false);
   return {
-    mutate: (values: LoginRequest) => trigger(values).unwrap(),
-    isPending: isLoading,
+    mutate: async (values: LoginRequest) => {
+      setIsPending(true);
+      try {
+        await api.post("/auth/login", values);
+        await currentUserStore.refetch();
+      } finally {
+        setIsPending(false);
+      }
+    },
+    isPending,
   };
 }
 
 export function useRegister() {
-  const [trigger, { isLoading }] = useRegisterMutation();
+  const [isPending, setIsPending] = useState(false);
   return {
-    mutate: (values: RegisterRequest) => trigger(values).unwrap(),
-    isPending: isLoading,
+    mutate: async (values: RegisterRequest) => {
+      setIsPending(true);
+      try {
+        await api.post("/auth/register", { ...values, userName: values.name });
+      } finally {
+        setIsPending(false);
+      }
+    },
+    isPending,
   };
 }
 
 export function useLogout() {
-  const [trigger] = useLogoutMutation();
   return {
     mutate: async () => {
-      await trigger().unwrap();
+      await api.post("/auth/logout");
+      currentUserStore.clear();
       window.location.href = "/auth/sign-in";
     },
   };
 }
 
 export function useForgotPassword() {
-  const [trigger, { isLoading }] = useForgotPasswordMutation();
+  const [isPending, setIsPending] = useState(false);
   return {
-    mutate: (email: string) => trigger({ email }).unwrap(),
-    isPending: isLoading,
+    mutate: async (email: string) => {
+      setIsPending(true);
+      try {
+        await api.post("/auth/forgot-password", { email });
+      } finally {
+        setIsPending(false);
+      }
+    },
+    isPending,
   };
 }
 
 export function useResetPassword() {
-  const [trigger, { isLoading }] = useResetPasswordMutation();
+  const [isPending, setIsPending] = useState(false);
   return {
-    mutate: (token: string, newPassword: string) => trigger({ token, newPassword }).unwrap(),
-    isPending: isLoading,
+    mutate: async (token: string, newPassword: string) => {
+      setIsPending(true);
+      try {
+        await api.post("/auth/reset-password", { token, newPassword });
+      } finally {
+        setIsPending(false);
+      }
+    },
+    isPending,
   };
 }
 
 export function useUpdateProfile() {
-  const [trigger] = useUpdateProfileMutation();
   return {
-    mutate: (payload: { name?: string; email?: string }) => trigger(payload).unwrap(),
+    mutate: async (payload: { name?: string; email?: string }) => {
+      const { data } = await api.put<User>("/auth/profile", payload);
+      await currentUserStore.refetch();
+      return data;
+    },
   };
 }
 
 export function useChangePassword() {
-  const [trigger] = useChangePasswordMutation();
   return {
-    mutate: (payload: { currentPassword: string; newPassword: string }) => trigger(payload).unwrap(),
+    mutate: async (payload: { currentPassword: string; newPassword: string }) => {
+      await api.post("/auth/change-password", payload);
+    },
   };
 }

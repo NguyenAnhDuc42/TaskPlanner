@@ -14,7 +14,7 @@ import { NotificationBell } from "@/features/notifications/notification-bell";
 import { GlobalSearch } from "./global-search";
 import { UserAvatar } from "@/components/user-avatar";
 import type { ContentPage } from "../type";
-import { useLogout, useGetMeQuery } from "@/features/auth/auth-api";
+import { useLogout, useUser } from "@/features/auth/auth-api";
 import { ProfileModal } from "@/features/auth/profile/components/profile-modal";
 import {
   DropdownMenu,
@@ -26,7 +26,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 function UserMenu({ onOpenProfile }: { onOpenProfile: () => void }) {
-  const { data: user } = useGetMeQuery();
+  const { data: user } = useUser();
   const { mutate: logout } = useLogout()
 
   return (

@@ -2,10 +2,16 @@ import {
   useEffect,
   useCallback,
   useMemo,
+  useState,
+  useSyncExternalStore,
   type ReactNode,
 } from "react";
+import { autorun } from "mobx";
 import { useNavigate, useLocation } from "@tanstack/react-router";
-import { useGetWorkspaceDetailQuery } from "../api";
+import { useStore } from "@/stores/root.store";
+import { useSyncEngine } from "@/sync/sync-provider";
+import { WorkspaceMutations } from "@/mutations/workspace.mutations";
+import axios from "axios";
 import type { ContentPage } from "../type";
 import { WorkspaceContext } from "./workspace-context";
 import { useWorkspaceUIStore } from "./use-workspace-ui-store";
@@ -20,8 +26,33 @@ interface WorkspaceProviderProps {
 export function WorkspaceProvider({ workspaceId, children }: WorkspaceProviderProps) {
   const navigate  = useNavigate();
   const location  = useLocation();
+  const rootStore = useStore();
+  const syncEngine = useSyncEngine();
+  const workspaceMutations = useMemo(() => new WorkspaceMutations(rootStore, syncEngine), [rootStore, syncEngine]);
 
-  const { data: workspace, isLoading, error, isError } = useGetWorkspaceDetailQuery(workspaceId);
+  const workspace = useSyncExternalStore(
+    (onStoreChange) => autorun(() => { rootStore.workspaceStore.getById(workspaceId); onStoreChange(); }),
+    () => rootStore.workspaceStore.getById(workspaceId),
+  );
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<unknown>(null);
+  const isError = error != null;
+
+  useEffect(() => {
+    let cancelled = false;
+    setIsLoading(true);
+    setError(null);
+
+    workspaceMutations.fetchDetail(workspaceId)
+      .catch((err) => {
+        if (!cancelled) setError(err);
+      })
+      .finally(() => {
+        if (!cancelled) setIsLoading(false);
+      });
+
+    return () => { cancelled = true; };
+  }, [workspaceId, workspaceMutations]);
 
   const { sidebarWidth, contextWidth, isInnerSidebarOpen, updateSettings, hoveredIcon, setHoveredIcon } = useWorkspaceUIStore();
 
@@ -57,8 +88,7 @@ export function WorkspaceProvider({ workspaceId, children }: WorkspaceProviderPr
 
   useEffect(() => {
     if (isError && error) {
-      const err = error as { status?: number };
-      const status = err.status;
+      const status = axios.isAxiosError(error) ? error.response?.status : undefined;
       if (status === 403 || status === 404) {
         localStorage.removeItem("lastWorkspaceId");
         navigate({ to: "/" });
@@ -66,7 +96,7 @@ export function WorkspaceProvider({ workspaceId, children }: WorkspaceProviderPr
     }
   }, [isError, error, navigate]);
 
-  // Realtime — joins SignalR group, dispatches entity updates directly into Redux
+  // Realtime — joins the SignalR group for this workspace, keeps it alive across reconnects
   useWorkspaceSignalR(workspaceId);
 
   const value = useMemo(

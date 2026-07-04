@@ -45,22 +45,18 @@ if (!root) {
   window.__reactRoot = root;
 }
 
-import { Provider } from "react-redux";
-import { store } from "./store";
 import { apiEvents } from "./lib/api-client";
-import { workspaceApi } from "./store/workspaceApi";
+import { currentUserStore } from "./features/auth/current-user.store";
 
-// Wire up the token refresh invalidation for Redux
+// Refresh the cached current-user once a silent token refresh completes
 apiEvents.onTokenRefreshed.push(() => {
-  store.dispatch(workspaceApi.util.invalidateTags(["User"]));
+  currentUserStore.refetch();
 });
 
 root.render(
   <StrictMode>
-    <Provider store={store}>
-      <AuthProvider>
-        <InnerApp />
-      </AuthProvider>
-    </Provider>
+    <AuthProvider>
+      <InnerApp />
+    </AuthProvider>
   </StrictMode>
 );
