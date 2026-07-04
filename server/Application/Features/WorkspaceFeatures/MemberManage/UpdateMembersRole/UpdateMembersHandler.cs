@@ -51,6 +51,10 @@ public class UpdateMembersHandler(
         if (affected > 0)
         {
             await cache.RemoveByTagAsync(WorkspaceCacheKeys.WorkspaceMembersTag(request.WorkspaceId), cancellationToken);
+            foreach (var wm in workspaceMembers)
+            {
+                await cache.RemoveByTagAsync(WorkspaceCacheKeys.WorkspaceListTag(wm.UserId), cancellationToken);
+            }
 
             var records = workspaceMembers.Select(wm => MemberRecord.FromDomain(wm, wm.User)).ToList();
 

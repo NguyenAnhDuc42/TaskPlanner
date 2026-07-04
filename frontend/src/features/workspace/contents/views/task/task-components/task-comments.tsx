@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { observer } from "mobx-react-lite";
+import { toJS } from "mobx";
 import { UserAvatar } from "@/components/user-avatar";
 import { Send, CornerDownRight, Trash2, X, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -130,7 +131,7 @@ export const TaskComments = observer(function TaskComments({ taskId }: Readonly<
     for (const c of fetchedComments) {
       rootStore.commentStore.upsert(c);
     }
-    rootStore.commentDB?.putMany(fetchedComments).catch((err) => console.error("Failed to persist comments locally", err));
+    rootStore.commentDB?.putMany(toJS(fetchedComments)).catch((err) => console.error("Failed to persist comments locally", err));
   }, [fetchedComments, rootStore]);
 
   const comments = rootStore.commentStore.getByTask(taskId);

@@ -68,6 +68,10 @@ public class AddMembersHandler(
         if (affected > 0)
         {
             await cache.RemoveByTagAsync(WorkspaceCacheKeys.WorkspaceMembersTag(request.WorkspaceId), cancellationToken);
+            foreach (var member in newMembers)
+            {
+                await cache.RemoveByTagAsync(WorkspaceCacheKeys.WorkspaceListTag(member.UserId), cancellationToken);
+            }
 
             var userLookup = users.ToDictionary(u => u.Id);
             var records = newMembers

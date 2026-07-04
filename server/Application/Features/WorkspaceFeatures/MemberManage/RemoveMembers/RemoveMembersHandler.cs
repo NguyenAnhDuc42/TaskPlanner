@@ -34,6 +34,11 @@ public class RemoveMembersHandler(
         if (targetRoles.Any(r => r >= callerRole))
             return Result.Failure(Error.Forbidden("Member.CannotRemovePeerOrSuperior", "You can only remove members with a lower role than your own."));
 
+        var removedUserIds = await db.WorkspaceMembers
+            .Where(wm => request.MemberIds.Contains(wm.Id) && wm.DeletedAt == null)
+            .Select(wm => wm.UserId)
+            .ToListAsync(cancellationToken);
+
         var affected = await db.WorkspaceMembers
             .Where(wm => request.MemberIds.Contains(wm.Id) && wm.DeletedAt == null)
             .ExecuteUpdateAsync(u => u
@@ -44,6 +49,10 @@ public class RemoveMembersHandler(
         if (affected > 0)
         {
             await cache.RemoveByTagAsync(WorkspaceCacheKeys.WorkspaceMembersTag(request.WorkspaceId), cancellationToken);
+            foreach (var userId in removedUserIds)
+            {
+                await cache.RemoveByTagAsync(WorkspaceCacheKeys.WorkspaceListTag(userId), cancellationToken);
+            }
 
             _ = realtimeService
                 .NotifyEntitiesDeletedAsync(
