@@ -12,6 +12,7 @@ public class AuthController(IHandler handler, IOptions<AppSettings> appOptions) 
 {
     private readonly IHandler _handler = handler;
     private readonly string _frontendUrl = appOptions.Value.FrontendUrl;
+    private readonly string _backendUrl = appOptions.Value.BackendUrl;
 
     [HttpPost("login")]
     public async Task<IActionResult> Login([FromBody] LoginRequest request, CancellationToken cancellationToken)
@@ -67,7 +68,15 @@ public class AuthController(IHandler handler, IOptions<AppSettings> appOptions) 
             "github" => "GitHub",
             _ => provider
         };
-        var finishUrl = $"{_frontendUrl}/api/auth/oauth-finish/{provider}";
+        // Must stay on the backend's own domain — the OAuth handler's internal callback (Google
+        // → /signin-google) lands directly on Railway and sets a temporary "External" cookie
+        // there to carry the exchanged claims through to OAuthFinish. Redirecting this to the
+        // frontend domain (tried earlier) makes the browser hop to Vercel before OAuthFinish
+        // runs, so that External cookie never arrives — AuthenticateAsync("External") fails
+        // instantly. OAuthFinish itself still needs a proper fix for its OWN redirect to the
+        // frontend afterward (session cookies it sets are scoped to Railway, useless to Vercel) —
+        // tracked separately, not solved by this URL alone.
+        var finishUrl = $"{_backendUrl}/api/auth/oauth-finish/{provider}";
         var props = new AuthenticationProperties { RedirectUri = finishUrl };
         return Challenge(props, scheme);
     }
@@ -122,6 +131,22 @@ public class AuthController(IHandler handler, IOptions<AppSettings> appOptions) 
         var command = new UpdateProfileCommand(request.Name, request.Email);
         var result = await _handler.SendAsync(command, cancellationToken);
         return result.ToActionResult();
+    }
+
+    // SignalR hub connections go directly to the backend's own origin (Vercel can't proxy a
+    // WebSocket upgrade), which is cross-domain from the frontend — the HttpOnly auth cookie is
+    // scoped to the frontend's domain (set via the Vercel proxy round-trip) and can never reach
+    // the backend domain directly. This endpoint is called the normal way (same-origin via the
+    // Vercel proxy, cookie works fine here), handing back the already-valid access token so the
+    // frontend can pass it as ?access_token=... on the hub URL instead. See DependencyInjection.cs
+    // OnMessageReceived, which only accepts this for /hubs paths.
+    [HttpGet("signalr-token")]
+    [Microsoft.AspNetCore.Authorization.Authorize]
+    public IActionResult GetSignalRToken([FromServices] CookieService cookieService)
+    {
+        var tokens = cookieService.GetAuthTokensFromCookies();
+        if (tokens is null) return Unauthorized();
+        return Ok(new { accessToken = tokens.AccessToken });
     }
 }
 

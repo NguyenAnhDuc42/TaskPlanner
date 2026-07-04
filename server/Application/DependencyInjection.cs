@@ -161,6 +161,13 @@ public static class DependencyInjection
                 {
                     OnMessageReceived = context =>
                     {
+
+                        if (string.IsNullOrEmpty(context.Token) &&
+                            context.HttpContext.Request.Path.StartsWithSegments("/hubs"))
+                        {
+                            context.Token = context.Request.Query["access_token"];
+                        }
+
                         if (string.IsNullOrEmpty(context.Token))
                         {
                             var cookieService = context.HttpContext.RequestServices.GetRequiredService<CookieService>();

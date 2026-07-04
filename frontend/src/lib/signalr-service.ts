@@ -10,6 +10,7 @@ import type { MemberRecord, WorkspaceRecord, EntityAccessRecord } from "@/types/
 import type { Status } from "@/types/status";
 import type { DocumentBlockRecord } from "@/types/document";
 import type { NotificationRecord } from "@/types/notification-record";
+import { getSignalRToken } from "@/lib/get-signalr-token";
 
 export interface EntityBatchUpdate {
   spaces?: (Partial<SpaceRecord> & { id: string })[];
@@ -64,6 +65,10 @@ class SignalRService {
         withCredentials: true,
         transport: HttpTransportType.WebSockets,
         skipNegotiation: true,
+        // See get-signalr-token.ts — cross-domain WebSocket connection, auth cookie can't reach
+        // it. Re-invoked on every (re)connect attempt so a long-lived session surviving several
+        // reconnects always sends a fresh token, not one baked in once and left to go stale.
+        accessTokenFactory: async () => (await getSignalRToken()) ?? "",
       })
       .withAutomaticReconnect({
         nextRetryDelayInMilliseconds: () => 5000, // retry forever every 5s
