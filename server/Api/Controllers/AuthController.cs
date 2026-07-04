@@ -67,7 +67,7 @@ public class AuthController(IHandler handler, IOptions<AppSettings> appOptions) 
             "github" => "GitHub",
             _ => provider
         };
-        var finishUrl = Url.Action(nameof(OAuthFinish), "Auth", new { provider }, Request.Scheme);
+        var finishUrl = $"{_frontendUrl}/api/auth/oauth-finish/{provider}";
         var props = new AuthenticationProperties { RedirectUri = finishUrl };
         return Challenge(props, scheme);
     }

@@ -16,10 +16,6 @@ export function useSyncEngine(): SyncEngine {
   if (!ctx) throw new Error("useSyncEngine must be used within SyncProvider");
   return ctx.engine;
 }
-
-// True once bootstrap/connect has completed for the current workspace — task/space/folder/status
-// stores are safe to read. Components outside the sync-engine migration (Redux-backed) don't need
-// this at all; it only matters for code reading from `useStore()`.
 export function useSyncReady(): { ready: boolean; error: Error | null } {
   const ctx = useContext(SyncEngineContext);
   if (!ctx) return { ready: false, error: null };
@@ -31,35 +27,33 @@ interface SyncProviderProps {
   children: ReactNode;
 }
 
-// Mounts the offline-first sync engine (SyncEngine) for the given workspace — the real-app
-// equivalent of what /dev/sync-test constructs standalone. Bootstraps/connects once per
-// workspaceId change. RootStore itself is NOT created here — it's provided once at the app root
-// (see __root.tsx) so user-level state (notificationStore, workspaceStore) survives navigating
-// in and out of workspace routes; this just calls switchWorkspace()/init() on that shared
-// instance for the workspace-scoped stores (task/space/folder/etc). Children render immediately
-// (Redux-backed content doesn't wait on this at all) — components that read from
-// `useStore()`/`useTaskStore()` etc. should check `useSyncReady()` themselves before trusting
-// the store has data.
+
 export function SyncProvider({ workspaceId, children }: Readonly<SyncProviderProps>) {
   const rootStore = useStore();
   const syncEngine = useMemo(() => new SyncEngine(rootStore), [rootStore]);
-  const [ready, setReady] = useState(false);
-  const [error, setError] = useState<Error | null>(null);
+  const [state, setState] = useState<{ workspaceId: string; ready: boolean; error: Error | null }>(
+    () => ({ workspaceId, ready: false, error: null }),
+  );
+
+  if (state.workspaceId !== workspaceId) {
+    setState({ workspaceId, ready: false, error: null });
+  }
 
   useEffect(() => {
     let cancelled = false;
-    setReady(false);
-    setError(null);
 
     (async () => {
       try {
         devLog("[SyncProvider] switching to workspace", workspaceId);
         await rootStore.switchWorkspace(workspaceId);
         await syncEngine.init(workspaceId);
-        if (!cancelled) setReady(true);
+        if (!cancelled) setState((s) => ({ ...s, ready: true }));
       } catch (err) {
         devError("[SyncProvider] failed to initialize sync engine:", err);
-        if (!cancelled) setError(err instanceof Error ? err : new Error(String(err)));
+        if (!cancelled) {
+          const asError = err instanceof Error ? err : new Error(String(err));
+          setState((s) => ({ ...s, error: asError }));
+        }
       }
     })();
 
@@ -68,7 +62,10 @@ export function SyncProvider({ workspaceId, children }: Readonly<SyncProviderPro
     };
   }, [workspaceId, rootStore, syncEngine]);
 
-  const contextValue = useMemo(() => ({ engine: syncEngine, ready, error }), [syncEngine, ready, error]);
+  const contextValue = useMemo(
+    () => ({ engine: syncEngine, ready: state.ready, error: state.error }),
+    [syncEngine, state.ready, state.error],
+  );
 
   return (
     <SyncEngineContext.Provider value={contextValue}>

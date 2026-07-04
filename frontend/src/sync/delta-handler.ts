@@ -31,8 +31,6 @@ function getEntityApplier(
     case "Space":
       return {
         upsert: (data) => rootStore.spaceStore.upsert(data as unknown as SpaceRecord),
-        // Cascade: when a space is deleted, all its children are also gone.
-        // dbDelete runs first (awaited), stores still have the entities at that point.
         remove: (id) => {
           rootStore.folderStore.all.filter(f => f.spaceId === id).forEach(f => rootStore.folderStore.remove(f.id))
           rootStore.taskStore.all.filter(t => t.spaceId === id).forEach(t => rootStore.taskStore.remove(t.id))

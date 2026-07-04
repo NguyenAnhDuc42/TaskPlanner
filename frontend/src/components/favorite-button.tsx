@@ -23,10 +23,8 @@ export const FavoriteButton = observer(function FavoriteButton({
   const favoriteMutations = useMemo(() => new FavoriteMutations(rootStore), [rootStore]);
   const [isLoading, setIsLoading] = useState(false);
 
-  const isFavorite = rootStore.favoriteStore.isFavorite(entityId);
 
-  // While the toggle is in-flight, show the opposite state for instant feedback
-  const displayed = isLoading ? !isFavorite : isFavorite;
+  const displayed = rootStore.favoriteStore.isFavorite(entityId);
 
   const handleToggle = (e: React.MouseEvent) => {
     e.preventDefault();
