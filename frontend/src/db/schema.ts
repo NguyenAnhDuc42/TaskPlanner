@@ -181,3 +181,10 @@ export function closeWorkspaceDB(workspaceId:string): void{
     dbCache.delete(workspaceId)
   }
 }
+
+
+export async function deleteWorkspaceDB(workspaceId: string): Promise<void> {
+  closeWorkspaceDB(workspaceId)
+  const { deleteDB } = await import('idb')
+  await deleteDB(`taskplan_${workspaceId}`)
+}

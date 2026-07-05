@@ -44,7 +44,27 @@ function WorkspaceGate({ workspaceId }: { workspaceId: string }) {
   const navigate = useNavigate();
 
   const status = axios.isAxiosError(error) ? error.response?.status : undefined;
-  const isPermissionDenied = isError && (status === 403 || status === 404);
+  const isAccessRevoked = !!workspace?.accessRevoked;
+  const isPermissionDenied = isAccessRevoked || (isError && (status === 403 || status === 404));
+
+  // A live revocation wins over everything, including cached data — this isn't a connectivity
+  // blip, it's the server telling us this membership is gone.
+  if (isAccessRevoked) {
+    return (
+      <div className="h-screen w-full flex flex-col items-center justify-center gap-3 bg-background text-center px-6">
+        <ShieldAlert className="h-10 w-10 text-destructive/70" />
+        <h2 className="text-base font-bold text-foreground">You no longer have access to this workspace</h2>
+        <p className="text-sm text-muted-foreground max-w-xs">
+          Your membership was removed or suspended. Its local data on this device has been cleared.
+        </p>
+        <Button variant="outline" className="gap-1.5 mt-1" onClick={() => navigate({ to: "/" })}>
+          <ArrowLeft className="h-4 w-4" />
+          Go back
+        </Button>
+      </div>
+    );
+  }
+
   if (!isPermissionDenied && workspace) {
     return (
       <SyncProvider workspaceId={workspaceId}>

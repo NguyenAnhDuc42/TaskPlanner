@@ -21,4 +21,5 @@ export interface WorkspaceRecord {
     joinCode?: string;
     strictJoin?: boolean;
     membershipStatus?: "Active" | "Pending" | "Suspended" | "Invited";
+    accessRevoked?: boolean;
 }

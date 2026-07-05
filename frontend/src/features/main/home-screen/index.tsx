@@ -8,7 +8,7 @@ import { DynamicIcon } from "@/components/dynamic-icon";
 import { RoleBadge } from "@/components/role-badge";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "@tanstack/react-router";
-import { Pin, Plus, LogIn, ChevronRight, User, LogOut } from "lucide-react";
+import { Pin, Plus, LogIn, ChevronRight, User, LogOut, X, Ban } from "lucide-react";
 import { cn } from "@/lib/utils";
 import React, { useState } from "react";
 import type { Role } from "@/types/role";
@@ -81,6 +81,7 @@ export const WorkspaceHomeScreen = observer(function WorkspaceHomeScreen() {
     setIsJoinModalOpen,
     handleCreateWorkspace,
     handlePinWorkspace,
+    handleRemoveWorkspace,
   } = useWorkspaceHome();
 
   const [isJoining, setIsJoining] = React.useState(false);
@@ -97,6 +98,7 @@ export const WorkspaceHomeScreen = observer(function WorkspaceHomeScreen() {
   };
 
   const handleEnter = (ws: WorkspaceRecord) => {
+    if (ws.accessRevoked) return;
     if (ws.membershipStatus === "Pending") {
       toast.info("Your membership is pending admin approval.");
       return;
@@ -137,13 +139,19 @@ export const WorkspaceHomeScreen = observer(function WorkspaceHomeScreen() {
               <div
                 key={ws.id}
                 role="button"
-                tabIndex={0}
-                className="flex items-center gap-2.5 px-2 py-2 rounded-md border border-transparent hover:bg-muted/40 hover:border-border/30 cursor-pointer transition-colors group outline-none focus-visible:ring-1 focus-visible:ring-primary"
+                tabIndex={ws.accessRevoked ? -1 : 0}
+                aria-disabled={ws.accessRevoked}
+                className={cn(
+                  "flex items-center gap-2.5 px-2 py-2 rounded-md border border-transparent transition-colors group outline-none focus-visible:ring-1 focus-visible:ring-primary",
+                  ws.accessRevoked
+                    ? "opacity-40 grayscale cursor-not-allowed"
+                    : "hover:bg-muted/40 hover:border-border/30 cursor-pointer",
+                )}
                 onClick={() => handleEnter(ws)}
                 onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && handleEnter(ws)}
               >
                 {/* Pin */}
-                {canPin(ws) && (
+                {canPin(ws) && !ws.accessRevoked && (
                   <button
                     type="button"
                     className="shrink-0 h-5 w-5 flex items-center justify-center rounded hover:bg-muted-foreground/10 transition-colors"
@@ -170,7 +178,12 @@ export const WorkspaceHomeScreen = observer(function WorkspaceHomeScreen() {
                     <p className="text-[12px] font-semibold text-foreground/90 truncate group-hover:text-primary transition-colors">
                       {ws.name}
                     </p>
-                    {ws.membershipStatus === "Pending" && (
+                    {ws.accessRevoked ? (
+                      <span className="shrink-0 flex items-center gap-1 text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-sm bg-destructive/15 text-destructive border border-destructive/20">
+                        <Ban className="h-2.5 w-2.5" />
+                        No access
+                      </span>
+                    ) : ws.membershipStatus === "Pending" && (
                       <span className="shrink-0 text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-sm bg-amber-500/15 text-amber-400 border border-amber-500/20">
                         Pending
                       </span>
@@ -183,8 +196,24 @@ export const WorkspaceHomeScreen = observer(function WorkspaceHomeScreen() {
 
                 {/* Right */}
                 <div className="flex items-center gap-1.5 shrink-0">
-                  {ws.role && <RoleBadge role={ws.role as Role} />}
-                  <ChevronRight className="h-3 w-3 text-muted-foreground/30 group-hover:text-muted-foreground transition-colors" />
+                  {ws.accessRevoked ? (
+                    <button
+                      type="button"
+                      className="h-6 w-6 flex items-center justify-center rounded hover:bg-destructive/10 transition-colors"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleRemoveWorkspace?.(ws.id);
+                      }}
+                      title="Remove from list"
+                    >
+                      <X className="h-3.5 w-3.5 text-destructive/70" />
+                    </button>
+                  ) : (
+                    <>
+                      {ws.role && <RoleBadge role={ws.role as Role} />}
+                      <ChevronRight className="h-3 w-3 text-muted-foreground/30 group-hover:text-muted-foreground transition-colors" />
+                    </>
+                  )}
                 </div>
               </div>
             ))

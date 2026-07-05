@@ -29,8 +29,8 @@ import { FavoriteStore } from "./favorite.store";
 
 import type { IDBPDatabase } from "idb";
 import { makeAutoObservable } from "mobx";
-import { closeWorkspaceDB, openWorkspaceDB } from "@/db/schema";
-import { closeUserDB, openUserDB } from "@/db/user-schema";
+import { closeWorkspaceDB, deleteWorkspaceDB, openWorkspaceDB } from "@/db/schema";
+import { closeUserDB, deleteUserDB, openUserDB } from "@/db/user-schema";
 import { WorkspaceDB, NotificationDB, type UserDB } from "@/db";
 import { createContext, useContext } from "react";
 
@@ -113,6 +113,35 @@ export class RootStore {
 
     this.workspaceStore.hydrate(workspaces);
     this.notificationStore.hydrate(notifications);
+  }
+
+  // Wipes every local trace of the current user on this device — the user-level DB
+  // (workspaces/notifications) plus every workspace DB they'd cached — so logging out on a
+  // shared/public machine doesn't leave the previous session's data sitting in IndexedDB.
+  async clearAllLocalData(): Promise<void> {
+    const workspaceIds = this.workspaceStore.all.map((w) => w.id);
+    if (this.currentWorkspaceId) closeWorkspaceDB(this.currentWorkspaceId);
+    await Promise.all(workspaceIds.map((id) => deleteWorkspaceDB(id)));
+
+    if (this.currentUserId) await deleteUserDB(this.currentUserId);
+
+    this.taskStore.clear();
+    this.spaceStore.clear();
+    this.folderStore.clear();
+    this.memberStore.clear();
+    this.notificationStore.clear();
+    this.statusStore.clear();
+    this.workspaceStore.clear();
+    this.commentStore.clear();
+    this.documentStore.clear();
+    this.documentBlockStore.clear();
+    this.assigneeStore.clear();
+    this.favoriteStore.clear();
+
+    this.currentUserId = null;
+    this.currentWorkspaceId = null;
+    this.userDb = null;
+    this.db = null;
   }
 
   async switchWorkspace(workspaceId: string): Promise<void> {

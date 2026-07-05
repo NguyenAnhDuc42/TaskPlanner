@@ -100,6 +100,20 @@ export function setupInterceptors() {
       if (isAxiosErr && error.response?.status === 403) {
         const url = originalRequest?.url ?? "";
         const isWorkspaceRootAccess = /\/workspaces\/[a-f0-9-]+(\/me\/permissions)?\/?$/i.test(url);
+        const problemData = error.response?.data as { code?: string } | undefined;
+
+        if (problemData?.code === "workspace_access_denied") {
+          const revokedWorkspaceId =
+            (originalRequest?.headers?.["X-Workspace-Id"] as string | undefined) ??
+            sessionStorage.getItem("activeWorkspaceId") ??
+            undefined;
+          if (revokedWorkspaceId) {
+            apiEvents.onWorkspaceAccessRevoked.forEach((cb) => cb(revokedWorkspaceId));
+          }
+          toast.error("You no longer have access to this workspace.");
+          throw new ApiError(error as AxiosError<ProblemDetails>);
+        }
+
         if (isWorkspaceRootAccess) {
           toast.error("You do not have access to this workspace.");
           throw new ApiError(error as AxiosError<ProblemDetails>);

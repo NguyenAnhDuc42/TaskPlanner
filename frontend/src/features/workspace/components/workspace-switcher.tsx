@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { observer } from "mobx-react-lite";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { ChevronDown, Check, Plus, Pin, LogIn } from "lucide-react";
+import { ChevronDown, Check, Plus, Pin, LogIn, X, Ban } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useWorkspace } from "../context/workspace-context";
 import { useStore } from "@/stores/root.store";
@@ -53,9 +53,16 @@ export const WorkspaceSwitcher = observer(function WorkspaceSwitcher() {
   const activeWorkspace = workspaces.find((ws: WorkspaceRecord) => ws.id === workspaceId);
 
   const handleEnter = (ws: WorkspaceRecord) => {
+    if (ws.accessRevoked) return;
     localStorage.setItem("lastWorkspaceId", ws.id);
     navigate({ to: `/workspaces/${ws.id}` });
     setOpen(false);
+  };
+
+  const handleRemove = (workspaceId: string) => {
+    workspaceMutations.removeFromList(workspaceId).catch((err) => {
+      console.error("Failed to remove workspace from list", err);
+    });
   };
 
   const handleJoin = async (code: string) => {
@@ -112,7 +119,32 @@ export const WorkspaceSwitcher = observer(function WorkspaceSwitcher() {
           <div className="flex flex-col gap-px">
             {workspaces.map((ws: WorkspaceRecord) => {
               const isActive = ws.id === workspaceId;
-              const canPin = !!ws.role;
+              const canPin = !!ws.role && !ws.accessRevoked;
+
+              if (ws.accessRevoked) {
+                return (
+                  <div key={ws.id} className="flex items-center gap-1 rounded-none opacity-40 grayscale">
+                    <div className="flex-1 flex items-center gap-2 px-2 py-1.5 min-w-0">
+                      <div
+                        className="h-5 w-5 rounded flex items-center justify-center shrink-0"
+                        style={{ backgroundColor: ws.color || "#6366f1" }}
+                      >
+                        <DynamicIcon name={ws.icon || "LayoutGrid"} size={10} className="text-white" />
+                      </div>
+                      <span className="flex-1 text-[11px] font-semibold truncate text-muted-foreground">{ws.name}</span>
+                      <Ban className="h-3 w-3 text-destructive/70 shrink-0" />
+                    </div>
+                    <button
+                      type="button"
+                      className="shrink-0 h-7 w-6 flex items-center justify-center rounded-md hover:bg-destructive/10 transition-colors mr-0.5"
+                      onClick={() => handleRemove(ws.id)}
+                      title="Remove from list"
+                    >
+                      <X className="h-3 w-3 text-destructive/70" />
+                    </button>
+                  </div>
+                );
+              }
 
               return (
                   <div

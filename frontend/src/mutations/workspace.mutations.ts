@@ -84,6 +84,11 @@ export class WorkspaceMutations {
     }
   }
 
+  async removeFromList(workspaceId: string): Promise<void> {
+    this.rootStore.workspaceStore.remove(workspaceId)
+    await this.rootStore.workspaceDB?.delete(workspaceId)
+  }
+
   // ── JOIN BY CODE ──
   async joinByCode(joinCode: string): Promise<{ workspaceId: string; membershipStatus: string; isNewMember: boolean }> {
     const { data } = await api.post('/workspaces/sync/join', { joinCode })

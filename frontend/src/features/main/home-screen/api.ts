@@ -9,9 +9,6 @@ import { signalRService } from "@/lib/signalr-service";
 
 type CreateWorkspaceValues = z.infer<typeof createWorkspaceSchema>;
 
-// No useSyncEngine() here on purpose — this hook backs the pre-workspace home screen, which
-// isn't wrapped in a SyncProvider (that only mounts inside /workspaces/$workspaceId). None of
-// fetchList/create/pin/joinByCode need a SyncEngine (only update()/delete() do).
 export function useWorkspaceHome() {
   const rootStore = useStore();
   const { data: currentUser } = useUser();
@@ -78,6 +75,15 @@ export function useWorkspaceHome() {
     [workspaceMutations],
   );
 
+  const handleRemoveWorkspace = React.useCallback(
+    (workspaceId: string) => {
+      workspaceMutations.removeFromList(workspaceId).catch((error: unknown) => {
+        console.error("Failed to remove workspace from list", error);
+      });
+    },
+    [workspaceMutations],
+  );
+
   return {
     workspaces,
     isWorkspacesLoading,
@@ -88,6 +94,7 @@ export function useWorkspaceHome() {
     setIsJoinModalOpen,
     handleCreateWorkspace,
     handlePinWorkspace,
+    handleRemoveWorkspace,
   };
 }
 

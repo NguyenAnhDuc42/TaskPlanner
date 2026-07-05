@@ -10,6 +10,8 @@ import { autorun } from "mobx";
 import { useLocation } from "@tanstack/react-router";
 import { useStore } from "@/stores/root.store";
 import { WorkspaceMutations } from "@/mutations/workspace.mutations";
+import { apiEvents } from "@/lib/api-client";
+import { deleteWorkspaceDB } from "@/db/schema";
 import axios from "axios";
 import type { ContentPage } from "../type";
 import { WorkspaceContext } from "./workspace-context";
@@ -97,6 +99,19 @@ export function WorkspaceProvider({ workspaceId, children }: WorkspaceProviderPr
       }
     }
   }, [isError, error]);
+
+  useEffect(() => {
+    const onRevoked = (revokedId: string) => {
+      if (revokedId !== workspaceId) return;
+      rootStore.workspaceStore.markAccessRevoked(revokedId);
+      localStorage.removeItem("lastWorkspaceId");
+      void deleteWorkspaceDB(revokedId);
+    };
+    apiEvents.onWorkspaceAccessRevoked.push(onRevoked);
+    return () => {
+      apiEvents.onWorkspaceAccessRevoked = apiEvents.onWorkspaceAccessRevoked.filter((cb) => cb !== onRevoked);
+    };
+  }, [workspaceId, rootStore]);
 
   // Realtime — joins the SignalR group for this workspace, keeps it alive across reconnects
   useWorkspaceSignalR(workspaceId);

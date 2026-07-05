@@ -28,6 +28,9 @@ public static class PermissionDecorator
         if (member.Status == MembershipStatus.Pending)
             return Result.Failure(Error.Forbidden("Member.PendingApproval", "Your membership is pending admin approval."));
 
+        if (member.Status == MembershipStatus.Invited)
+            return Result.Failure(Error.Forbidden("Member.InviteNotAccepted", "You haven't accepted your invitation to this workspace yet."));
+
         if (member.Status == MembershipStatus.Suspended)
             return Result.Failure(Error.Forbidden("Member.Suspended", "Your membership has been suspended."));
 

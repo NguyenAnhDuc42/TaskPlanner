@@ -40,15 +40,25 @@ public class WorkspaceContextMiddleware
                 return;
             }
 
-            if (member.Status == MembershipStatus.Suspended)
+            if (member.Status != MembershipStatus.Active)
             {
-                await WriteForbidden(context, "Your membership has been suspended.");
+                var detail = member.Status switch
+                {
+                    MembershipStatus.Suspended => "Your membership has been suspended.",
+                    MembershipStatus.Pending => "Your membership is pending admin approval.",
+                    MembershipStatus.Invited => "You haven't accepted your invitation to this workspace yet.",
+                    _ => "You do not have active access to this workspace."
+                };
+                await WriteForbidden(context, detail);
                 return;
             }
         }
 
         await _next(context);
     }
+
+  
+    private const string AccessDeniedCode = "workspace_access_denied";
 
     private static Task WriteForbidden(HttpContext context, string detail)
     {
@@ -59,7 +69,8 @@ public class WorkspaceContextMiddleware
             type = "https://httpstatuses.com/403",
             title = "Forbidden",
             detail,
-            status = StatusCodes.Status403Forbidden
+            status = StatusCodes.Status403Forbidden,
+            code = AccessDeniedCode
         });
     }
 

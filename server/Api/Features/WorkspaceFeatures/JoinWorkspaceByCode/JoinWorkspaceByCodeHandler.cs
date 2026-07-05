@@ -1,11 +1,13 @@
 using Microsoft.EntityFrameworkCore;
+using System.Text.Json;
 
 namespace Api;
 
 public class JoinWorkspaceByCodeHandler(
     TaskPlanDbContext db,
     CurrentUserService currentUserService,
-    RealtimeService realtime
+    RealtimeService realtime,
+    ILogger<JoinWorkspaceByCodeHandler> logger
 ) : ICommandHandler<JoinWorkspaceByCodeCommand, JoinWorkspaceByCodeResult>
 {
     public async Task<Result<JoinWorkspaceByCodeResult>> Handle(JoinWorkspaceByCodeCommand request, CancellationToken cancellationToken)
@@ -28,25 +30,58 @@ public class JoinWorkspaceByCodeHandler(
             .FirstOrDefaultAsync(m => m.UserId == currentUserId && m.ProjectWorkspaceId == workspace.Id, cancellationToken);
 
         JoinWorkspaceByCodeResult dataResult;
+        SyncAction memberSyncAction;
         if (existingMember is null)
         {
             workspace.AddMemberByCode(currentUserId, currentUserId);
             var status = workspace.StrictJoin ? MembershipStatus.Pending : MembershipStatus.Active;
             dataResult = new JoinWorkspaceByCodeResult(workspace.Id, status.ToString(), true);
+            memberSyncAction = SyncAction.C;
         }
         else if (existingMember.DeletedAt != null)
         {
             existingMember.RestoreForJoinByCode(workspace.StrictJoin);
             dataResult = new JoinWorkspaceByCodeResult(workspace.Id, existingMember.Status.ToString(), false);
+            memberSyncAction = SyncAction.C; // was soft-deleted — other clients no longer have this row at all
         }
         else
         {
             existingMember.JoinByCode(workspace.StrictJoin);
             dataResult = new JoinWorkspaceByCodeResult(workspace.Id, existingMember.Status.ToString(), false);
+            memberSyncAction = SyncAction.U;
         }
+
+        var member = existingMember ?? workspace.Members.First(m => m.UserId == currentUserId);
+        var user = await db.Users.AsNoTracking().FirstAsync(u => u.Id == currentUserId, cancellationToken);
+
+        var syncEvent = new SyncEvent
+        {
+            ProjectWorkspaceId = workspace.Id,
+            EntityType = SyncEntityType.Member,
+            EntityId = member.Id,
+            Action = memberSyncAction,
+            Payload = JsonSerializer.Serialize(new
+            {
+                id = member.Id,
+                userId = member.UserId,
+                name = user.Name,
+                email = user.Email,
+                avatarUrl = (string?)null,
+                role = member.Role,
+                status = member.Status,
+                joinedAt = member.JoinedAt
+            }, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase }),
+            ClientTraceId = Guid.NewGuid().ToString(),
+            AuthorUserId = currentUserId
+        };
+        db.SyncEvents.Add(syncEvent);
 
         await db.SaveChangesAsync(cancellationToken);
 
+        var payload = SyncQueryService.MapToPayload(syncEvent);
+        _ = realtime
+            .NotifySyncEventAsync(workspace.Id, payload, cancellationToken)
+            .ContinueWith(t => logger.LogError(t.Exception, "Failed to send real-time Delta for member join in workspace {WorkspaceId}", workspace.Id), TaskContinuationOptions.OnlyOnFaulted);
         _ = realtime.NotifyUserAsync(currentUserId, "WorkspaceJoined", new { WorkspaceId = workspace.Id }, cancellationToken);
 
         return Result<JoinWorkspaceByCodeResult>.Success(dataResult);

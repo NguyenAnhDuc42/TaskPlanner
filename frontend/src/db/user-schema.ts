@@ -44,3 +44,11 @@ export function closeUserDB(userId: string): void {
     dbCache.delete(userId);
   }
 }
+
+// Wipes this user's local IndexedDB (workspaces list, notifications) — used on logout so
+// stale data isn't left readable via devtools on a shared/public machine.
+export async function deleteUserDB(userId: string): Promise<void> {
+  closeUserDB(userId);
+  const { deleteDB } = await import("idb");
+  await deleteDB(`user_${userId}`);
+}

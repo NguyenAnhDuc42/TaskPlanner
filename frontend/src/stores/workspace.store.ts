@@ -24,6 +24,11 @@ export class WorkspaceStore {
     this.workspaces.delete(id);
   }
 
+  markAccessRevoked(id: string): void {
+    const existing = this.workspaces.get(id);
+    if (existing) this.workspaces.set(id, { ...existing, accessRevoked: true });
+  }
+
   hydrate(workspaces: WorkspaceRecord[]): void {
     this.workspaces.clear();
     for (const w of workspaces) {

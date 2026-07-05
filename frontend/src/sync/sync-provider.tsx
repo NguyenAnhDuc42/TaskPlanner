@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import { useStore } from "@/stores/root.store";
+import { apiEvents } from "@/lib/api-client";
 import { SyncEngine } from "./sync-engine";
 import { devError, devLog } from "./dev-log";
 
@@ -62,6 +63,17 @@ export function SyncProvider({ workspaceId, children }: Readonly<SyncProviderPro
       void syncEngine.disconnect();
     };
   }, [workspaceId, rootStore, syncEngine]);
+
+  useEffect(() => {
+    const onRevoked = (revokedId: string) => {
+      if (revokedId !== workspaceId) return;
+      void syncEngine.disconnect();
+    };
+    apiEvents.onWorkspaceAccessRevoked.push(onRevoked);
+    return () => {
+      apiEvents.onWorkspaceAccessRevoked = apiEvents.onWorkspaceAccessRevoked.filter((cb) => cb !== onRevoked);
+    };
+  }, [workspaceId, syncEngine]);
 
   const contextValue = useMemo(
     () => ({ engine: syncEngine, ready: state.ready, error: state.error }),
