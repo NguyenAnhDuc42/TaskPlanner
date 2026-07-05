@@ -86,15 +86,15 @@ export function WorkspaceProvider({ workspaceId, children }: WorkspaceProviderPr
     if (workspace && !isError) localStorage.setItem("lastWorkspaceId", workspaceId);
   }, [workspaceId, workspace, isError]);
 
+  
   useEffect(() => {
     if (isError && error) {
       const status = axios.isAxiosError(error) ? error.response?.status : undefined;
       if (status === 403 || status === 404) {
         localStorage.removeItem("lastWorkspaceId");
-        navigate({ to: "/" });
       }
     }
-  }, [isError, error, navigate]);
+  }, [isError, error]);
 
   // Realtime — joins the SignalR group for this workspace, keeps it alive across reconnects
   useWorkspaceSignalR(workspaceId);
