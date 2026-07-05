@@ -36,9 +36,11 @@ export class WorkspaceMutations {
     const { data } = await api.get<WorkspaceRecord>(`/workspaces/${workspaceId}/me/permissions`, {
       headers: { 'X-Workspace-Id': workspaceId },
     })
-    this.rootStore.workspaceStore.upsert(data)
-    await this.rootStore.workspaceDB?.put(data)
-    return data
+    const existing = this.rootStore.workspaceStore.getById(workspaceId)
+    const merged = existing ? { ...toJS(existing), ...data } : data
+    this.rootStore.workspaceStore.upsert(merged)
+    await this.rootStore.workspaceDB?.put(merged)
+    return merged
   }
 
   async fetchList(filters: WorkspaceListFilters = {}): Promise<PagedResult<WorkspaceSnippetRecord>> {
