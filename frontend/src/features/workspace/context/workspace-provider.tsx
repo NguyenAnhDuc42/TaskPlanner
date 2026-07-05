@@ -9,7 +9,6 @@ import {
 import { autorun } from "mobx";
 import { useLocation } from "@tanstack/react-router";
 import { useStore } from "@/stores/root.store";
-import { useSyncEngine } from "@/sync/sync-provider";
 import { WorkspaceMutations } from "@/mutations/workspace.mutations";
 import axios from "axios";
 import type { ContentPage } from "../type";
@@ -26,8 +25,7 @@ interface WorkspaceProviderProps {
 export function WorkspaceProvider({ workspaceId, children }: WorkspaceProviderProps) {
   const location  = useLocation();
   const rootStore = useStore();
-  const syncEngine = useSyncEngine();
-  const workspaceMutations = useMemo(() => new WorkspaceMutations(rootStore, syncEngine), [rootStore, syncEngine]);
+  const workspaceMutations = useMemo(() => new WorkspaceMutations(rootStore), [rootStore]);
 
   const workspace = useSyncExternalStore(
     (onStoreChange) => autorun(() => { rootStore.workspaceStore.getById(workspaceId); onStoreChange(); }),

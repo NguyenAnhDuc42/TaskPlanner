@@ -31,18 +31,27 @@ export const Route = createFileRoute("/workspaces/$workspaceId")({
 function WorkspaceRoot() {
   const { workspaceId } = Route.useParams();
 
+
   return (
-    <SyncProvider workspaceId={workspaceId}>
-      <WorkspaceProvider workspaceId={workspaceId}>
-        <WorkspaceContent />
-      </WorkspaceProvider>
-    </SyncProvider>
+    <WorkspaceProvider workspaceId={workspaceId}>
+      <WorkspaceGate workspaceId={workspaceId} />
+    </WorkspaceProvider>
   );
 }
 
-function WorkspaceContent() {
-  const { isLoading, isError, error } = useWorkspace();
+function WorkspaceGate({ workspaceId }: { workspaceId: string }) {
+  const { isLoading, isError, error, workspace } = useWorkspace();
   const navigate = useNavigate();
+
+  const status = axios.isAxiosError(error) ? error.response?.status : undefined;
+  const isPermissionDenied = isError && (status === 403 || status === 404);
+  if (!isPermissionDenied && workspace) {
+    return (
+      <SyncProvider workspaceId={workspaceId}>
+        <WorkspaceLayout />
+      </SyncProvider>
+    );
+  }
 
   if (isLoading) {
     return (
@@ -53,8 +62,6 @@ function WorkspaceContent() {
   }
 
   if (isError) {
-    const status = axios.isAxiosError(error) ? error.response?.status : undefined;
-    const isPermissionDenied = status === 403 || status === 404;
     return (
       <div className="h-screen w-full flex flex-col items-center justify-center gap-3 bg-background text-center px-6">
         <ShieldAlert className="h-10 w-10 text-destructive/70" />
@@ -74,5 +81,9 @@ function WorkspaceContent() {
     );
   }
 
-  return <WorkspaceLayout />;
+  return (
+    <SyncProvider workspaceId={workspaceId}>
+      <WorkspaceLayout />
+    </SyncProvider>
+  );
 }

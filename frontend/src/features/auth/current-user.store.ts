@@ -1,14 +1,31 @@
 import { makeAutoObservable, runInAction } from "mobx";
 import { api } from "@/lib/api-client";
+import { isConnectivityError } from "@/lib/is-connectivity-error";
 import type { User } from "./types";
 
-// Module-level singleton, not tied to RootStore — this needs to be readable from
-// AuthProvider/useAuth, which sits in main.tsx OUTSIDE the router (and thus outside
-// RootStoreProvider, which only exists once __root.tsx's AppShell mounts). Every useUser()
-// caller (there are ~10 across the app) shares this one instance/fetch instead of each firing
-// its own /auth/me request, mirroring the dedup RTK Query used to give for free.
+const CACHE_KEY = "cached-user";
+
+function readCache(): User | null {
+  try {
+    const raw = localStorage.getItem(CACHE_KEY);
+    return raw ? (JSON.parse(raw) as User) : null;
+  } catch {
+    return null;
+  }
+}
+
+function writeCache(user: User | null): void {
+  try {
+    if (user) localStorage.setItem(CACHE_KEY, JSON.stringify(user));
+    else localStorage.removeItem(CACHE_KEY);
+  } catch {
+    // localStorage unavailable (private browsing, quota) — not fatal, just no offline identity cache
+  }
+}
+
+
 class CurrentUserStore {
-  data: User | null = null;
+  data: User | null = readCache();
   isFetching = false;
   hasFetchedOnce = false;
   private inFlight: Promise<void> | null = null;
@@ -18,7 +35,7 @@ class CurrentUserStore {
   }
 
   get isLoading(): boolean {
-    return this.isFetching && !this.hasFetchedOnce;
+    return this.isFetching && !this.hasFetchedOnce && !this.data;
   }
 
   ensureLoaded(): void {
@@ -32,8 +49,17 @@ class CurrentUserStore {
     runInAction(() => { this.isFetching = true; });
 
     const promise = api.get<User>("/auth/me")
-      .then(({ data }) => runInAction(() => { this.data = data; }))
-      .catch(() => runInAction(() => { this.data = null; }))
+      .then(({ data }) => runInAction(() => {
+        this.data = data;
+        writeCache(data);
+      }))
+      .catch((err) => {
+        if (isConnectivityError(err)) return; // keep whatever identity we already had
+        runInAction(() => {
+          this.data = null;
+          writeCache(null);
+        });
+      })
       .finally(() => runInAction(() => {
         this.isFetching = false;
         this.hasFetchedOnce = true;
@@ -47,6 +73,7 @@ class CurrentUserStore {
   clear(): void {
     this.data = null;
     this.hasFetchedOnce = false;
+    writeCache(null);
   }
 }
 

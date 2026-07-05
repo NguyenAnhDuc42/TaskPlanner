@@ -6,6 +6,7 @@ import { ApiError, type ProblemDetails } from "@/types/api-error";
 import { deleteCookie, getCookie } from "../cookie-utils";
 import { toast } from "sonner";
 import { signalRService } from "../signalr-service";
+import { isConnectivityError } from "../is-connectivity-error";
 
 let isRefreshing = false;
 let isRedirecting = false;
@@ -80,14 +81,16 @@ export function setupInterceptors() {
           return await api(originalRequest);
         } catch (refreshError) {
           processQueue(refreshError);
-          deleteCookie("is_logged_in");
-          deleteCookie("atexp");
+          if (!isConnectivityError(refreshError)) {
+            deleteCookie("is_logged_in");
+            deleteCookie("atexp");
 
-          if (!globalThis.location.pathname.startsWith("/auth/")) {
-            isRedirecting = true;
-            globalThis.location.href = "/auth/sign-in";
+            if (!globalThis.location.pathname.startsWith("/auth/")) {
+              isRedirecting = true;
+              globalThis.location.href = "/auth/sign-in";
+            }
           }
-          
+
           throw isAxiosErr ? new ApiError(error as AxiosError<ProblemDetails>) : error;
         } finally {
           isRefreshing = false;

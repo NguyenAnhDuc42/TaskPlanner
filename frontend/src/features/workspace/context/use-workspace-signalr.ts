@@ -1,15 +1,13 @@
 import { useEffect, useRef, useMemo, useLayoutEffect } from "react";
 import { useUser } from "@/features/auth/auth-api";
 import { useStore } from "@/stores/root.store";
-import { useSyncEngine } from "@/sync/sync-provider";
 import { WorkspaceMutations } from "@/mutations/workspace.mutations";
 import { signalRService } from "@/lib/signalr-service";
 
 
 export function useWorkspaceSignalR(workspaceId: string) {
   const rootStore = useStore();
-  const syncEngine = useSyncEngine();
-  const workspaceMutations = useMemo(() => new WorkspaceMutations(rootStore, syncEngine), [rootStore, syncEngine]);
+  const workspaceMutations = useMemo(() => new WorkspaceMutations(rootStore), [rootStore]);
   const { data: currentUser } = useUser();
 
   // Ref so handlers always read a fresh value without re-registering on every render

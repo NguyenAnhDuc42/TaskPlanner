@@ -59,6 +59,7 @@ export function SyncProvider({ workspaceId, children }: Readonly<SyncProviderPro
 
     return () => {
       cancelled = true;
+      void syncEngine.disconnect();
     };
   }, [workspaceId, rootStore, syncEngine]);
 

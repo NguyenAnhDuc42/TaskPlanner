@@ -1,9 +1,11 @@
 import { api, apiEvents } from "@/lib/api-client";
 import { getCookie, deleteCookie } from "@/lib/cookie-utils";
+import { isConnectivityError } from "@/lib/is-connectivity-error";
 
 class AuthSessionManager {
   private timeoutId: number | null = null;
   private readonly REFRESH_BUFFER = 1000 * 60; // 1 minute before expiry
+  private readonly OFFLINE_RETRY_DELAY = 1000 * 30; // retry sooner if it was just connectivity
 
   public start() {
     this.scheduleNextCheck();
@@ -39,11 +41,18 @@ class AuthSessionManager {
       apiEvents.onTokenRefreshed.forEach(cb => cb());
       this.scheduleNextCheck();
     } catch (error) {
+     
+      if (isConnectivityError(error)) {
+        console.warn("Token refresh failed (offline) — retrying shortly, session kept intact");
+        this.timeoutId = window.setTimeout(() => this.checkAndRefresh(), this.OFFLINE_RETRY_DELAY);
+        return;
+      }
+
       console.error("Token refresh failed", error);
       this.stop();
       deleteCookie("is_logged_in");
       deleteCookie("atexp");
-      
+
       if (!window.location.pathname.startsWith("/auth/")) {
         window.location.href = "/auth/sign-in";
       }

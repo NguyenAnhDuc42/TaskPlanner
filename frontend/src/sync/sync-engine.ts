@@ -77,14 +77,43 @@ export class SyncEngine {
     this.connectWithRetry(workspaceId, generation)
   }
 
+  private static readonly RETRY_BASE_MS = 5000
+  private static readonly RETRY_MAX_MS = 60000
+
   private connectWithRetry(workspaceId: string, generation: number): void {
+    let attemptCount = 0
+    let onlineListener: (() => void) | null = null
+
+    const clearOnlineListener = () => {
+      if (onlineListener) {
+        window.removeEventListener('online', onlineListener)
+        onlineListener = null
+      }
+    }
+
     const attempt = async () => {
       if (generation !== this.connectGeneration) return // superseded by a later init()
+      if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+        clearOnlineListener()
+        onlineListener = () => {
+          clearOnlineListener()
+          void attempt()
+        }
+        window.addEventListener('online', onlineListener, { once: true })
+        return
+      }
+
       try {
         await this.connect(workspaceId)
+        attemptCount = 0 // reset backoff on success
       } catch (err) {
-        devError('[SyncEngine] Connect failed, retrying in 5s:', err)
-        setTimeout(() => { void attempt() }, 5000)
+        const delay = Math.min(
+          SyncEngine.RETRY_BASE_MS * 2 ** attemptCount,
+          SyncEngine.RETRY_MAX_MS,
+        )
+        attemptCount++
+        devError(`[SyncEngine] Connect failed, retrying in ${delay / 1000}s:`, err)
+        setTimeout(() => { void attempt() }, delay)
       }
     }
     void attempt()
@@ -173,7 +202,7 @@ export class SyncEngine {
     await this.queue.flush((txs) => this.sendBatch(txs))
   }
 
-  private async disconnect(): Promise<void> {
+  async disconnect(): Promise<void> {
     this.connectGeneration++ // stop any in-flight retry loop from a previous connect attempt
     if (
       this.connection &&
