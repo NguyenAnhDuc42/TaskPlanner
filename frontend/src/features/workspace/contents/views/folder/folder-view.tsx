@@ -112,26 +112,26 @@ export const FolderView = observer(function FolderView({ folderId }: Readonly<Fo
 
   const navigate = useNavigate();
 
-  if (error) {
-    return (
-      <div className="flex flex-col items-center justify-center h-full text-destructive/80 space-y-2 p-8">
-        <DynamicIcon name="AlertTriangle" size={32} />
-        <span className="text-sm font-medium">Failed to load folder</span>
-      </div>
-    );
-  }
+  if (!folder) {
+    if (error) {
+      return (
+        <div className="flex flex-col items-center justify-center h-full text-destructive/80 space-y-2 p-8">
+          <DynamicIcon name="AlertTriangle" size={32} />
+          <span className="text-sm font-medium">Failed to load folder</span>
+        </div>
+      );
+    }
 
-  if (ready && !folder) {
-    return (
-      <div className="flex flex-col items-center justify-center h-full text-destructive/80 space-y-2 p-8">
-        <DynamicIcon name="AlertTriangle" size={32} />
-        <span className="text-sm font-medium">Folder Not Found</span>
-        <span className="text-xs text-muted-foreground">The folder may have been deleted by another user.</span>
-      </div>
-    );
-  }
+    if (ready) {
+      return (
+        <div className="flex flex-col items-center justify-center h-full text-destructive/80 space-y-2 p-8">
+          <DynamicIcon name="AlertTriangle" size={32} />
+          <span className="text-sm font-medium">Folder Not Found</span>
+          <span className="text-xs text-muted-foreground">The folder may have been deleted by another user.</span>
+        </div>
+      );
+    }
 
-  if (!ready || !folder) {
     return <div className="p-8 text-sm text-muted-foreground animate-pulse">Loading folder...</div>;
   }
 

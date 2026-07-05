@@ -59,26 +59,26 @@ export const SpaceView = observer(function SpaceView({ spaceId }: Readonly<Space
     }
   };
 
-  if (error) {
-    return (
-      <div className="flex flex-col items-center justify-center h-full text-destructive/80 space-y-2 p-8">
-        <DynamicIcon name="AlertTriangle" size={32} />
-        <span className="text-sm font-medium">Failed to load space</span>
-      </div>
-    );
-  }
+  if (!space) {
+    if (error) {
+      return (
+        <div className="flex flex-col items-center justify-center h-full text-destructive/80 space-y-2 p-8">
+          <DynamicIcon name="AlertTriangle" size={32} />
+          <span className="text-sm font-medium">Failed to load space</span>
+        </div>
+      );
+    }
 
-  if (ready && !space) {
-    return (
-      <div className="flex flex-col items-center justify-center h-full text-destructive/80 space-y-2 p-8">
-        <DynamicIcon name="AlertTriangle" size={32} />
-        <span className="text-sm font-medium">Space Not Found</span>
-        <span className="text-xs text-muted-foreground">The space may have been deleted by another user.</span>
-      </div>
-    );
-  }
+    if (ready) {
+      return (
+        <div className="flex flex-col items-center justify-center h-full text-destructive/80 space-y-2 p-8">
+          <DynamicIcon name="AlertTriangle" size={32} />
+          <span className="text-sm font-medium">Space Not Found</span>
+          <span className="text-xs text-muted-foreground">The space may have been deleted by another user.</span>
+        </div>
+      );
+    }
 
-  if (!ready || !space) {
     return <div className="p-8 text-sm text-muted-foreground animate-pulse">Loading space...</div>;
   }
 

@@ -14,7 +14,7 @@ import type { PendingTransaction } from '@/types/sync'
 import type { AssigneeRecord, FavoriteRecord } from '@/types/projects'
 import type { MemberRecord } from '@/types/workspace/member-record'
 import { api } from '@/lib/api-client'
-import { devLog } from './dev-log'
+import { devLog, devError } from './dev-log'
 
 const EXPECTED_DATABASE_VERSION = 3
 
@@ -34,6 +34,7 @@ export class SyncEngine {
   private rootStore: RootStore
   private connection: HubConnection | null = null
   private queue: TransactionQueue
+  private connectGeneration = 0
 
   constructor(rootStore: RootStore) {
     this.rootStore = rootStore
@@ -72,8 +73,21 @@ export class SyncEngine {
       await this.bootstrap(workspaceId)
     }
 
-    // Connect SignalR — handshake triggers catch-up
-    await this.connect(workspaceId)
+    const generation = ++this.connectGeneration
+    this.connectWithRetry(workspaceId, generation)
+  }
+
+  private connectWithRetry(workspaceId: string, generation: number): void {
+    const attempt = async () => {
+      if (generation !== this.connectGeneration) return // superseded by a later init()
+      try {
+        await this.connect(workspaceId)
+      } catch (err) {
+        devError('[SyncEngine] Connect failed, retrying in 5s:', err)
+        setTimeout(() => { void attempt() }, 5000)
+      }
+    }
+    void attempt()
   }
 
   // ── Bootstrap (first time only) ──
@@ -160,6 +174,7 @@ export class SyncEngine {
   }
 
   private async disconnect(): Promise<void> {
+    this.connectGeneration++ // stop any in-flight retry loop from a previous connect attempt
     if (
       this.connection &&
       this.connection.state !== HubConnectionState.Disconnected
