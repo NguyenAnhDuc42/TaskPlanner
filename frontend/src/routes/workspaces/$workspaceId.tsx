@@ -1,11 +1,12 @@
-import { createFileRoute, redirect } from "@tanstack/react-router";
+import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
 import { WorkspaceProvider } from "@/features/workspace/context/workspace-provider";
 import { useWorkspace } from "@/features/workspace/context/workspace-context";
 import { WorkspaceLayout } from "@/features/workspace/components/workspace-layout";
 import { SyncProvider } from "@/sync/sync-provider";
 import { z } from "zod";
-import { Loader2, ShieldAlert } from "lucide-react";
+import { Loader2, ShieldAlert, ArrowLeft } from "lucide-react";
 import axios from "axios";
+import { Button } from "@/components/ui/button";
 import { getCookie } from "@/lib/cookie-utils";
 
 import { workspaceSearchSchema } from "./workspace-search-schema";
@@ -43,6 +44,7 @@ function WorkspaceRoot() {
 
 function WorkspaceContent() {
   const { isLoading, isError, error } = useWorkspace();
+  const navigate = useNavigate();
 
   if (isLoading) {
     return (
@@ -66,6 +68,10 @@ function WorkspaceContent() {
             ? "You're no longer a member of this workspace, or your access has been suspended."
             : "We couldn't load this workspace. Please try again."}
         </p>
+        <Button variant="outline" className="gap-1.5 mt-1" onClick={() => navigate({ to: "/" })}>
+          <ArrowLeft className="h-4 w-4" />
+          Go back
+        </Button>
       </div>
     );
   }

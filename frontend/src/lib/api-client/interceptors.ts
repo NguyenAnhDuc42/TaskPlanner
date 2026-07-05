@@ -96,14 +96,9 @@ export function setupInterceptors() {
 
       if (isAxiosErr && error.response?.status === 403) {
         const url = originalRequest?.url ?? "";
-        // Only redirect to home when the user is being denied access to the workspace itself.
-        // Sub-resource operations (pin, members, spaces, etc.) should just show a toast.
         const isWorkspaceRootAccess = /\/workspaces\/[a-f0-9-]+(\/me\/permissions)?\/?$/i.test(url);
         if (isWorkspaceRootAccess) {
           toast.error("You do not have access to this workspace.");
-          localStorage.removeItem("lastWorkspaceId");
-          isRedirecting = true;
-          globalThis.location.href = "/";
           throw new ApiError(error as AxiosError<ProblemDetails>);
         }
         toast.error("You don't have permission to do that.");

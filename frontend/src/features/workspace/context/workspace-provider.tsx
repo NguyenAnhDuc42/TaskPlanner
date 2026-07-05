@@ -7,7 +7,7 @@ import {
   type ReactNode,
 } from "react";
 import { autorun } from "mobx";
-import { useNavigate, useLocation } from "@tanstack/react-router";
+import { useLocation } from "@tanstack/react-router";
 import { useStore } from "@/stores/root.store";
 import { useSyncEngine } from "@/sync/sync-provider";
 import { WorkspaceMutations } from "@/mutations/workspace.mutations";
@@ -24,7 +24,6 @@ interface WorkspaceProviderProps {
 }
 
 export function WorkspaceProvider({ workspaceId, children }: WorkspaceProviderProps) {
-  const navigate  = useNavigate();
   const location  = useLocation();
   const rootStore = useStore();
   const syncEngine = useSyncEngine();
@@ -38,10 +37,15 @@ export function WorkspaceProvider({ workspaceId, children }: WorkspaceProviderPr
   const [error, setError] = useState<unknown>(null);
   const isError = error != null;
 
-  useEffect(() => {
-    let cancelled = false;
+  const [prevWorkspaceId, setPrevWorkspaceId] = useState(workspaceId);
+  if (workspaceId !== prevWorkspaceId) {
+    setPrevWorkspaceId(workspaceId);
     setIsLoading(true);
     setError(null);
+  }
+
+  useEffect(() => {
+    let cancelled = false;
 
     workspaceMutations.fetchDetail(workspaceId)
       .catch((err) => {
