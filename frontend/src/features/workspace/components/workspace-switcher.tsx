@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { observer } from "mobx-react-lite";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { ChevronDown, Check, Plus, Pin, LogIn } from "lucide-react";
@@ -15,7 +15,6 @@ import { JoinWorkspaceDialog } from "@/features/main/home-screen/components/join
 import { RoleBadge } from "@/components/role-badge";
 import type { Role } from "@/types/role";
 import type { FormData } from "@/features/main/home-screen/components/create-workspace-form";
-import { signalRService } from "@/lib/signalr-service";
 import { toast } from "sonner";
 import React from "react";
 
@@ -29,18 +28,6 @@ export const WorkspaceSwitcher = observer(function WorkspaceSwitcher() {
   const rootStore = useStore();
   const syncEngine = useSyncEngine();
   const workspaceMutations = React.useMemo(() => new WorkspaceMutations(rootStore, syncEngine), [rootStore, syncEngine]);
-
-  useEffect(() => {
-    workspaceMutations.fetchList({ direction: "Ascending" }).catch((err) => console.error("Failed to fetch workspaces", err));
-  }, [workspaceMutations]);
-
-  useEffect(() => {
-    const onJoined = () => {
-      workspaceMutations.fetchList({ direction: "Ascending" }).catch((err) => console.error("Failed to refresh workspaces", err));
-    };
-    signalRService.on("WorkspaceJoined", onJoined);
-    return () => signalRService.off("WorkspaceJoined", onJoined);
-  }, [workspaceMutations]);
 
   const workspaces = rootStore.workspaceStore.all;
   const navigate = useNavigate();
