@@ -14,6 +14,7 @@ import { useNotificationSignalR } from "@/features/notifications/use-notificatio
 import { useUser } from "@/features/auth/auth-api";
 import { RootStore, RootStoreProvider } from "@/stores/root.store";
 import { NotificationMutations } from "@/mutations/notification.mutations";
+import { apiEvents } from "@/lib/api-client";
 import { devError } from "@/sync/dev-log";
 
 interface RouterContext {
@@ -46,6 +47,14 @@ function AppShell() {
       cancelled = true;
     };
   }, [currentUser?.id, rootStore]);
+
+  useEffect(() => {
+    const onLogout = () => rootStore.clearAllLocalData();
+    apiEvents.onLogout.push(onLogout);
+    return () => {
+      apiEvents.onLogout = apiEvents.onLogout.filter((cb) => cb !== onLogout);
+    };
+  }, [rootStore]);
 
   return (
     <RootStoreProvider value={rootStore}>

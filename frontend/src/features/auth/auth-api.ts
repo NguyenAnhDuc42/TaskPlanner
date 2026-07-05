@@ -1,8 +1,7 @@
 import { useEffect, useState, useSyncExternalStore } from "react";
 import { autorun } from "mobx";
-import { api } from "@/lib/api-client";
+import { api, apiEvents } from "@/lib/api-client";
 import { getCookie } from "@/lib/cookie-utils";
-import { useStore } from "@/stores/root.store";
 import { currentUserStore } from "./current-user.store";
 import type { User } from "./types";
 
@@ -87,16 +86,13 @@ export function useRegister() {
 }
 
 export function useLogout() {
-  const rootStore = useStore();
   return {
     mutate: async () => {
       try {
         await api.post("/auth/logout");
       } finally {
-        // Wipe local data regardless of whether the server call succeeded — logout is a
-        // device-hygiene action the user expects to work even if the network request fails.
         currentUserStore.clear();
-        await rootStore.clearAllLocalData();
+        await Promise.all(apiEvents.onLogout.map((cb) => cb()));
         localStorage.removeItem("lastWorkspaceId");
         sessionStorage.removeItem("activeWorkspaceId");
         window.location.href = "/auth/sign-in";
