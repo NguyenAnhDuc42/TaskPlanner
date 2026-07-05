@@ -41,19 +41,6 @@ export function setupInterceptors() {
       }
       throw new axios.Cancel("API request cancelled: no active session");
     }
-
-    const isAuthEndpoint = config.url?.includes("/auth/");
-    if (!isAuthEndpoint && !config.headers["X-Workspace-Id"]) {
-      const workspaceIdMatch = new RegExp(/\/workspaces\/([a-f\d-]+)/i).exec(globalThis.location.href);
-      if (workspaceIdMatch) {
-        config.headers["X-Workspace-Id"] = workspaceIdMatch[1];
-      } else {
-        // Fallback: loader sets this before API calls fire during navigation
-        const stored = sessionStorage.getItem("activeWorkspaceId");
-        if (stored) config.headers["X-Workspace-Id"] = stored;
-      }
-    }
-
     const connectionId = signalRService.getConnectionId();
     if (connectionId) {
       config.headers["X-Connection-Id"] = connectionId;
