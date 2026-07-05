@@ -42,7 +42,8 @@ export function setupInterceptors() {
       throw new axios.Cancel("API request cancelled: no active session");
     }
 
-    if (!config.headers["X-Workspace-Id"]) {
+    const isAuthEndpoint = config.url?.includes("/auth/");
+    if (!isAuthEndpoint && !config.headers["X-Workspace-Id"]) {
       const workspaceIdMatch = new RegExp(/\/workspaces\/([a-f\d-]+)/i).exec(globalThis.location.href);
       if (workspaceIdMatch) {
         config.headers["X-Workspace-Id"] = workspaceIdMatch[1];
