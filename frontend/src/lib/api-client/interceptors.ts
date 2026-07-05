@@ -101,6 +101,7 @@ export function setupInterceptors() {
         const isWorkspaceRootAccess = /\/workspaces\/[a-f0-9-]+(\/me\/permissions)?\/?$/i.test(url);
         if (isWorkspaceRootAccess) {
           toast.error("You do not have access to this workspace.");
+          localStorage.removeItem("lastWorkspaceId");
           isRedirecting = true;
           globalThis.location.href = "/";
           throw new ApiError(error as AxiosError<ProblemDetails>);
