@@ -1,12 +1,10 @@
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Caching.Hybrid;
 
 namespace Api;
 
 public class JoinWorkspaceByCodeHandler(
     TaskPlanDbContext db,
     CurrentUserService currentUserService,
-    HybridCache cache,
     RealtimeService realtime
 ) : ICommandHandler<JoinWorkspaceByCodeCommand, JoinWorkspaceByCodeResult>
 {
@@ -48,8 +46,6 @@ public class JoinWorkspaceByCodeHandler(
         }
 
         await db.SaveChangesAsync(cancellationToken);
-
-        await cache.RemoveByTagAsync(WorkspaceCacheKeys.WorkspaceListTag(currentUserId), cancellationToken);
 
         _ = realtime.NotifyUserAsync(currentUserId, "WorkspaceJoined", new { WorkspaceId = workspace.Id }, cancellationToken);
 

@@ -1,12 +1,10 @@
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Caching.Hybrid;
 namespace Application;
 
 public class SetWorkspacePinHandler(
     TaskPlanDbContext db,
     WorkspaceContext context,
-    CurrentUserService currentUserService,
-    HybridCache cache
+    CurrentUserService currentUserService
 ) : ICommandHandler<SetWorkspacePinCommand, bool>
 {
     public async Task<Result<bool>> Handle(SetWorkspacePinCommand request, CancellationToken cancellationToken)
@@ -34,8 +32,6 @@ public class SetWorkspacePinHandler(
 
         memberEntity.SetPinned(request.IsPinned);
         await db.SaveChangesAsync(cancellationToken);
-
-        await cache.RemoveByTagAsync(WorkspaceCacheKeys.WorkspaceListTag(currentUserId), cancellationToken);
 
         return Result<bool>.Success(request.IsPinned);
     }

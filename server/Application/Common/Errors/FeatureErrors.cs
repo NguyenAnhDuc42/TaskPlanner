@@ -33,6 +33,7 @@ public static class AuthError
 {
     public static readonly Error InvalidCredentials = Error.Unauthorized("Auth.InvalidCredentials", "The email or password provided is incorrect.");
     public static readonly Error InvalidSession = Error.Unauthorized("Auth.InvalidSession", "Invalid or expired session.");
+    public static readonly Error OAuthOnlyAccount = Error.Unauthorized("Auth.OAuthOnlyAccount", "This account signs in with Google or GitHub — use that instead of a password.");
 }
 
 

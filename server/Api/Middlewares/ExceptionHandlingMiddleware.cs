@@ -9,10 +9,12 @@ public class ExceptionHandlingMiddleware
 {
     private readonly RequestDelegate _next;
     private readonly ILogger<ExceptionHandlingMiddleware> _logger;
-    public ExceptionHandlingMiddleware(RequestDelegate next, ILogger<ExceptionHandlingMiddleware> logger)
+    private readonly IHostEnvironment _env;
+    public ExceptionHandlingMiddleware(RequestDelegate next, ILogger<ExceptionHandlingMiddleware> logger, IHostEnvironment env)
     {
         _next = next ?? throw new ArgumentNullException(nameof(next));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        _env = env ?? throw new ArgumentNullException(nameof(env));
     }
 
     public async Task Invoke(HttpContext context)
@@ -25,11 +27,11 @@ public class ExceptionHandlingMiddleware
         {
             var traceId = Activity.Current?.Id ?? context.TraceIdentifier;
             _logger.LogError(ex, "Unhandled exception on {RequestPath} [TraceId: {TraceId}]: {Message}", context.Request.Path, traceId, ex.Message);
-            await HandleExceptionAsync(context, ex, traceId);
+            await HandleExceptionAsync(context, ex, traceId, _env.IsDevelopment());
         }
     }
 
-    private static Task HandleExceptionAsync(HttpContext context, Exception ex, string traceId)
+    private static Task HandleExceptionAsync(HttpContext context, Exception ex, string traceId, bool isDevelopment)
     {
         ProblemDetails problem;
         switch (ex)
@@ -100,7 +102,9 @@ public class ExceptionHandlingMiddleware
                 problem = new ProblemDetails
                 {
                     Title = "Internal Server Error",
-                    Detail = $"{ex.Message}\n\n{ex.StackTrace}",
+                    Detail = isDevelopment
+                        ? $"{ex.Message}\n\n{ex.StackTrace}"
+                        : "Something went wrong on our end. If this keeps happening, contact support with the trace ID below.",
                     Status = StatusCodes.Status500InternalServerError,
                     Extensions = { ["traceId"] = traceId }
                 };

@@ -29,7 +29,13 @@ export class WorkspaceMutations {
 
 
   async fetchDetail(workspaceId: string): Promise<WorkspaceRecord> {
-    const { data } = await api.get<WorkspaceRecord>(`/workspaces/${workspaceId}/me/permissions`)
+    // X-Workspace-Id is required here — this endpoint's route param is named "id", not
+    // "workspaceId", so WorkspaceContextMiddleware's route-value fallback never resolves it.
+    // Without this header every call 400s with "Workspace ID not found in context", for every
+    // user, not just invited ones — the underlying cause of the "not authorized" bug report.
+    const { data } = await api.get<WorkspaceRecord>(`/workspaces/${workspaceId}/me/permissions`, {
+      headers: { 'X-Workspace-Id': workspaceId },
+    })
     this.rootStore.workspaceStore.upsert(data)
     await this.rootStore.workspaceDB?.put(data)
     return data

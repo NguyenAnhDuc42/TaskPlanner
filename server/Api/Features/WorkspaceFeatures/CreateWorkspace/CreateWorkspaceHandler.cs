@@ -3,7 +3,6 @@ namespace Api;
 public class CreateWorkspaceHandler(
     TaskPlanDbContext db,
     CurrentUserService currentUserService,
-    WorkspaceService workspaceService,
     IdempotencyService idempotencyService,
     ILogger<CreateWorkspaceHandler> logger
 ) : ICommandHandler<CreateWorkspaceCommand, Guid>
@@ -46,11 +45,6 @@ public class CreateWorkspaceHandler(
 
             return Result<Guid>.Success(workspace.Id);
         }, cancellationToken);
-
-        if (result.IsSuccess && workspace != null)
-        {
-            workspaceService.InitializeInBackground(workspace.Id, creatorUserId);
-        }
 
         logger.LogInformation("Created workspace {WorkspaceId}", result.Value);
         return result;

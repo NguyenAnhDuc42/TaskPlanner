@@ -6,7 +6,6 @@ import { Lock, Globe } from "lucide-react";
 
 export type FormData = {
   name: string;
-  description: string;
   color: string;
   icon: string;
   strictJoin: boolean;
@@ -27,7 +26,6 @@ export function CreateWorkspaceForm({
 }: Props) {
   const [data, setData] = React.useState<FormData>({
     name: "",
-    description: "",
     color: "#4f46e5",
     icon: "AppWindow",
     strictJoin: false,
@@ -42,7 +40,6 @@ export function CreateWorkspaceForm({
     // Reset state
     setData({
       name: "",
-      description: "",
       color: "#4f46e5",
       icon: "AppWindow",
       strictJoin: false,
@@ -78,17 +75,6 @@ export function CreateWorkspaceForm({
                   handleSubmit(e);
                 }
               }}
-            />
-          </div>
-
-          {/* Description Underneath with distinct boundary */}
-          <div className="bg-muted/20 p-3 rounded-md border border-border/10">
-            <textarea
-              placeholder="Description (Optional)"
-              value={data.description}
-              onChange={(e) => setData({ ...data, description: e.target.value })}
-              className="w-full bg-transparent border-none focus:ring-0 text-xs text-muted-foreground placeholder:text-muted-foreground/30 py-0 outline-none resize-none min-h-[60px]"
-              rows={3}
             />
           </div>
 

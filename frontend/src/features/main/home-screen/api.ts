@@ -3,6 +3,7 @@ import { toast } from "sonner";
 import type { z } from "zod";
 import type { createWorkspaceSchema } from "./type";
 import { useStore } from "@/stores/root.store";
+import { useUser } from "@/features/auth/auth-api";
 import { WorkspaceMutations } from "@/mutations/workspace.mutations";
 import { signalRService } from "@/lib/signalr-service";
 
@@ -13,6 +14,7 @@ type CreateWorkspaceValues = z.infer<typeof createWorkspaceSchema>;
 // fetchList/create/pin/joinByCode need a SyncEngine (only update()/delete() do).
 export function useWorkspaceHome() {
   const rootStore = useStore();
+  const { data: currentUser } = useUser();
   const workspaceMutations = React.useMemo(() => new WorkspaceMutations(rootStore), [rootStore]);
 
   const [isWorkspacesLoading, setIsWorkspacesLoading] = React.useState(true);
@@ -24,12 +26,20 @@ export function useWorkspaceHome() {
     return workspaceMutations.fetchList({ direction: "Ascending" });
   }, [workspaceMutations]);
 
+  const userReady = !!currentUser?.id && rootStore.currentUserId === currentUser.id;
+
+  const [prevUserReady, setPrevUserReady] = React.useState(userReady);
+  if (userReady !== prevUserReady) {
+    setPrevUserReady(userReady);
+    if (userReady) setIsWorkspacesLoading(true);
+  }
+
   React.useEffect(() => {
-    setIsWorkspacesLoading(true);
+    if (!userReady) return;
     refetch()
       .catch((err) => console.error("Failed to fetch workspaces", err))
       .finally(() => setIsWorkspacesLoading(false));
-  }, [refetch]);
+  }, [refetch, userReady]);
 
   React.useEffect(() => {
     const onJoined = () => {

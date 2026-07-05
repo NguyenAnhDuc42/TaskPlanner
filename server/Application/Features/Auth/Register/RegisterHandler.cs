@@ -7,6 +7,7 @@ public class RegisterHandler(
     TaskPlanDbContext db,
     TokenService tokenService,
     CookieService cookieService,
+    WorkspaceService workspaceService,
     IHttpContextAccessor httpContextAccessor
 ) : ICommandHandler<RegisterCommand, RegisterResponse>
 {
@@ -15,14 +16,18 @@ public class RegisterHandler(
         var exists = await db.Users.AsNoTracking().AnyAsync(u => u.Email == request.email, cancellationToken);
         if (exists) return Result<RegisterResponse>.Failure(UserError.DuplicateEmail);
 
+        User? createdUser = null;
+        ProjectWorkspace? defaultWorkspace = null;
+
         var result = await db.ExecuteInTransactionAsync(async () =>
         {
             var passwordHash = PasswordService.HashPassword(request.password);
             var user = User.Create(request.username, request.email, passwordHash);
+            createdUser = user;
 
             await db.Users.AddAsync(user, cancellationToken);
 
-            var defaultWorkspace = ProjectWorkspace.Create(
+            defaultWorkspace = ProjectWorkspace.Create(
                 name: $"{user.Name}'s Workspace",
                 slug: $"{user.Name.ToLower().Replace(" ", "-")}-{Guid.NewGuid().ToString("N")[..4]}",
                 description: "Your personal default workspace.",
@@ -43,6 +48,12 @@ public class RegisterHandler(
             cookieService.SetAuthCookies(tokens);
             return Result<RegisterResponse>.Success(new RegisterResponse(user.Id, user.Name, user.Email));
         }, cancellationToken);
+
+        if (result.IsSuccess && defaultWorkspace != null && createdUser != null)
+        {
+            workspaceService.InitializeInBackground(defaultWorkspace.Id, createdUser.Id);
+        }
+
         return result;
     }
 }

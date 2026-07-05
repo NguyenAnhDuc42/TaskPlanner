@@ -26,9 +26,14 @@ public class LoginHandler(
         }
 
         var user = await db.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Email == request.email, cancellationToken);
-        
+
+        if (user is not null && string.IsNullOrEmpty(user.PasswordHash))
+        {
+            return Result<LoginResponse>.Failure(AuthError.OAuthOnlyAccount);
+        }
+
         // 2. Validate Credentials & Track Attempts
-        if (user is null || !PasswordService.VerifyPassword(request.password, user.PasswordHash!)) 
+        if (user is null || !PasswordService.VerifyPassword(request.password, user.PasswordHash!))
         {
             var attempts = cache.GetOrCreate(lockoutKey, entry =>
             {

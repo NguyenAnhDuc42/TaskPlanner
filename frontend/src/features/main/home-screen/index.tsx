@@ -126,8 +126,9 @@ export const WorkspaceHomeScreen = observer(function WorkspaceHomeScreen() {
         </div>
 
         {/* List */}
+
         <div className="flex flex-col gap-0.5 max-h-[55vh] overflow-y-auto">
-          {isWorkspacesLoading ? (
+          {isWorkspacesLoading && workspaces.length === 0 ? (
             <div className="py-8 text-center text-xs text-muted-foreground/40">Loading...</div>
           ) : workspaces.length === 0 ? (
             <div className="py-8 text-center text-xs text-muted-foreground/40">No workspaces yet.</div>
