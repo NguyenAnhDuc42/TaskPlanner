@@ -3,16 +3,17 @@ import { toast } from "sonner";
 import type { z } from "zod";
 import type { createWorkspaceSchema } from "./type";
 import { useStore } from "@/stores/root.store";
-import { useSyncEngine } from "@/sync/sync-provider";
 import { WorkspaceMutations } from "@/mutations/workspace.mutations";
 import { signalRService } from "@/lib/signalr-service";
 
 type CreateWorkspaceValues = z.infer<typeof createWorkspaceSchema>;
 
+// No useSyncEngine() here on purpose — this hook backs the pre-workspace home screen, which
+// isn't wrapped in a SyncProvider (that only mounts inside /workspaces/$workspaceId). None of
+// fetchList/create/pin/joinByCode need a SyncEngine (only update()/delete() do).
 export function useWorkspaceHome() {
   const rootStore = useStore();
-  const syncEngine = useSyncEngine();
-  const workspaceMutations = React.useMemo(() => new WorkspaceMutations(rootStore, syncEngine), [rootStore, syncEngine]);
+  const workspaceMutations = React.useMemo(() => new WorkspaceMutations(rootStore), [rootStore]);
 
   const [isWorkspacesLoading, setIsWorkspacesLoading] = React.useState(true);
   const [isCreating, setIsCreating] = React.useState(false);
@@ -82,8 +83,7 @@ export function useWorkspaceHome() {
 
 export function useJoinWorkspaceByCode() {
   const rootStore = useStore();
-  const syncEngine = useSyncEngine();
-  const workspaceMutations = React.useMemo(() => new WorkspaceMutations(rootStore, syncEngine), [rootStore, syncEngine]);
+  const workspaceMutations = React.useMemo(() => new WorkspaceMutations(rootStore), [rootStore]);
 
   return {
     mutate: async (joinCode: string) => {

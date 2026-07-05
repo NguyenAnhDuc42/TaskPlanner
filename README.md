@@ -21,7 +21,7 @@ TaskPlanner is a collaborative task management platform inspired by tools like C
 ## Features
 
 **Workspace & Hierarchy**
-- 5-level hierarchy: Workspace → Space → Folder → List → Task
+- 5-level hierarchy: Workspace → Space → Folder → Task → SubTask
 - Drag-and-drop reordering and cross-space item movement
 - Role-based access control (Owner, Admin, Member) with entity-level privacy settings
 
@@ -33,7 +33,6 @@ TaskPlanner is a collaborative task management platform inspired by tools like C
 **Tasks**
 - Subtasks, assignees, priority, status, due dates
 - Batch operations (update status/priority/dates across multiple tasks)
-- Cursor-based pagination for large task lists
 
 **Content**
 - Block-based document editor per task and space
@@ -46,7 +45,6 @@ TaskPlanner is a collaborative task management platform inspired by tools like C
 
 **Infrastructure**
 - Background job processing with Hangfire
-- Hybrid in-memory + distributed caching
 - Rate limiting per user
 
 ---
@@ -55,7 +53,7 @@ TaskPlanner is a collaborative task management platform inspired by tools like C
 
 **Backend:** .NET 10, PostgreSQL, Entity Framework Core, SignalR, Hangfire, JWT Auth, OAuth (Google + GitHub)
 
-**Frontend:** React, TypeScript, MobX + IndexedDB (offline-first sync store), TanStack Router, Vite, Tailwind CSS — Redux Toolkit/RTK Query remain for auth, user preferences, and the workspace list (account-level data, not yet migrated)
+**Frontend:** React, TypeScript, MobX + IndexedDB (offline-first sync store), TanStack Router, Vite, Tailwind CSS
 
 **Infrastructure:** Railway (API + PostgreSQL), Vercel (Frontend), Docker
 
@@ -65,13 +63,13 @@ TaskPlanner is a collaborative task management platform inspired by tools like C
 
 The backend follows Vertical Slice Architecture, organizing each feature into isolated command/query handlers, validators, and endpoints. This keeps business logic localized and reduces coupling between features while remaining simple enough for a solo project.
 
-The frontend runs a hybrid local-first sync engine: optimistic writes land in MobX stores and IndexedDB immediately, get queued in a `TransactionQueue` (squashed before sending — multiple offline edits to the same entity collapse into one network call), and reconcile against the server's append-only `sync_events` log via SignalR `Delta`/`DeltaBatch` messages. A cold start or stale session pulls a full `Bootstrap` snapshot; a reconnect pulls only what changed since the last known sequence number, collapsed to one event per entity so a long-offline client doesn't replay every intermediate edit. Task, Space, Folder, Status, Member, Assignee, Favorite, and Notification all run on this now; Auth, user preferences, and the workspace list are still on Redux/RTK Query — a deliberate, not-yet-done next migration rather than legacy debt from this one.
+The frontend runs a local-first sync engine: optimistic writes land in MobX stores and IndexedDB immediately, get queued in a `TransactionQueue` (squashed before sending — multiple offline edits to the same entity collapse into one network call), and reconcile against the server's append-only `sync_events` log via SignalR `Delta`/`DeltaBatch` messages. A cold start or stale session pulls a full `Bootstrap` snapshot; a reconnect pulls only what changed since the last known sequence number, collapsed to one event per entity so a long-offline client doesn't replay every intermediate edit. Redux/RTK Query has been fully removed — Task, Space, Folder, Status, Member, Assignee, Favorite, Notification, Workspace, and Auth all run on MobX + IndexedDB now.
 
 ---
 
 ## What I learned the hard way
 
-**Scope creep kills timelines.** The feature set doesn't justify the development time. I kept learning new things and incorporating them mid-build — SignalR, CRDT concepts, cursor-based pagination, hybrid caching — without finishing what was already started.
+**Scope creep kills timelines.** The feature set doesn't justify the development time. I kept re-architecting instead of finishing: rebuilt the entire data layer more than once, stood up a caching layer and then tore it back out once it caused more bugs than it solved, half-built features and abandoned them, migrated the same subsystem off Redux in pieces over multiple passes instead of committing to one clean cut. Every rewrite taught me something real, but the sum of all of them is a project that took far longer to reach "done" than the feature set alone would ever justify.
 
 **Real-time is hard to get right.** The SignalR implementation works but isn't reliable. SSE fallback through Vercel's proxy generates excessive requests. WebSocket connections drop and the reconnect logic creates request storms. The lesson: don't bolt real-time onto a request-based system — design for it from the start.
 
@@ -101,10 +99,14 @@ The frontend runs a hybrid local-first sync engine: optimistic writes land in Mo
 - Stale-session detection (`databaseVersion`) — existing sessions force a fresh Bootstrap when its shape changes, instead of silently missing new fields/entities forever
 - Sidebar drag-and-drop fixes (collision detection, reorder-target tracking) and expand/collapse state persistence
 
-### Planned — v0.3.0
-- Migrate the remaining Redux/RTK Query surface (Auth, user preferences, workspace list) to the same MobX/IndexedDB pattern
-- `SyncHub` authentication — currently unguarded like the legacy hub, a pre-production gap
+### v0.3.0 — Redux Removal & Custom Domain `2026-07-05`
+- Migrated the remaining Redux/RTK Query surface (Auth, user preferences, workspace list/detail) to MobX/IndexedDB — Redux fully removed from the frontend
+- Custom domain live (`orpus.app` / `api.orpus.app`) — cookies, SignalR, and OAuth all run same-parent-domain now; the cross-domain JWT-query-string workaround was ripped out
+- `SyncHub`/`WorkspaceHub` authentication — both hubs now validate the caller and workspace membership before joining groups (previously unguarded)
+- Local-first resilience: cached IndexedDB data now renders immediately regardless of SignalR connection state; a failed/slow reconnect (e.g. resuming an AFK tab) retries in the background instead of blocking the UI with a false "failed to load"
+
+### Planned — v0.4.0
 - Batch flush (`POST /api/sync/batch`) end-to-end testing at scale, plus offline conflict-edge-case coverage (squash rules, out-of-order delta application)
 - Bootstrap parallel query batching (structural data vs. secondary data on separate connections) — deferred pending real latency numbers, not yet worth the added complexity
-- Custom domain — prerequisite for proper cookie security, OAuth, and CORS
 - Activity feed powered by the event log (same table, no extra work)
+- Document block editor rewrite on Yjs (CRDT-based collaborative editing) — separate initiative, not started

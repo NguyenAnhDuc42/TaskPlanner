@@ -63,3 +63,11 @@ yarn-error.log*
 # === Production ===
 /build
 GEMINI.md
+
+# === Internal dev/AI-assistant docs — not for public repo ===
+CLAUDE.md
+ARCHITECTURE.md
+SYNC_ENGINE.md
+SYNC_SCENARIOS.md
+BACKEND_SYNC_CONTEXT.md
+FRONTEND_SYNC_CONTEXT.md

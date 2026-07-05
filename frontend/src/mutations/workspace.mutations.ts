@@ -19,17 +19,15 @@ export interface WorkspaceListFilters {
 
 export class WorkspaceMutations {
   private rootStore: RootStore
-  private syncEngine: SyncEngine
 
-  constructor(rootStore: RootStore, syncEngine: SyncEngine) {
+  private syncEngine: SyncEngine | undefined
+
+  constructor(rootStore: RootStore, syncEngine?: SyncEngine) {
     this.rootStore = rootStore
     this.syncEngine = syncEngine
   }
 
-  // ── FETCH DETAIL ──
-  // Per-workspace permissions (canEdit/canInvite/canManageMembers/joinCode etc) — a separate
-  // concern from synced entity data, not part of Bootstrap. No new-pattern endpoint needed
-  // (same reasoning as pin()): plain read, reuses the existing legacy REST route directly.
+
   async fetchDetail(workspaceId: string): Promise<WorkspaceRecord> {
     const { data } = await api.get<WorkspaceRecord>(`/workspaces/${workspaceId}/me/permissions`)
     this.rootStore.workspaceStore.upsert(data)
@@ -37,10 +35,6 @@ export class WorkspaceMutations {
     return data
   }
 
-  // ── FETCH LIST ──
-  // Read-side query, not queued/offline — matches the backend's own "Workspace bypasses
-  // Bootstrap/Delta entirely" design (see SYNC_SCENARIOS.md). Upserts every returned row into
-  // the store + IndexedDB so the switcher/home screen reflect it immediately.
   async fetchList(filters: WorkspaceListFilters = {}): Promise<PagedResult<WorkspaceSnippetRecord>> {
     const { data } = await api.get<PagedResult<WorkspaceSnippetRecord>>('/workspaces/sync', {
       params: {
@@ -62,10 +56,7 @@ export class WorkspaceMutations {
     return data
   }
 
-  // ── PIN ──
-  // Optimistic, no queue — a personal per-member flag, not a synced/shared entity, same
-  // reasoning as Favorite. No new-pattern endpoint exists for this yet; reuses the legacy
-  // per-workspace REST route directly since it's a trivial one-field update.
+
   async pin(workspaceId: string, isPinned: boolean): Promise<void> {
     const stored = this.rootStore.workspaceStore.getById(workspaceId)
     const previous = stored ? toJS(stored) : undefined
@@ -91,10 +82,7 @@ export class WorkspaceMutations {
     return data
   }
 
-  // ── CREATE ──
-  // Server-first: workspace initialization (statuses, folder, tasks) happens server-side,
-  // so the client can't meaningfully create one offline without knowing those generated IDs.
-  // Client provides the ID so it can store the record immediately after the call.
+ 
   async create(data: { name: string; color?: string; icon?: string; description?: string; strictJoin?: boolean; theme?: string }): Promise<WorkspaceRecord> {
     const id = crypto.randomUUID()
     const traceId = crypto.randomUUID()
@@ -109,9 +97,6 @@ export class WorkspaceMutations {
       theme: data.theme ?? null,
     }
 
-    // Server-first: workspace initialization runs server-side (statuses, folder, tasks).
-    // No X-Workspace-Id here — this endpoint isn't workspace-scoped (there is no workspace
-    // yet), and CreateWorkspaceEndpoint only requires X-Client-Trace-Id.
     await api.post('/workspaces/sync', commandPayload, {
       headers: {
         'X-Client-Trace-Id': traceId,
@@ -126,11 +111,8 @@ export class WorkspaceMutations {
     return record
   }
 
-  // ── UPDATE ──
-  // Optimistic + queued: updates locally first, enqueues for server sync.
-  // Workspace context switches require a live connection anyway, so offline
-  // queuing here covers brief disconnects rather than full offline sessions.
   async update(workspaceId: string, changes: Partial<WorkspaceRecord>): Promise<void> {
+    if (!this.syncEngine) throw new Error('WorkspaceMutations.update() requires a SyncEngine — only callable from within a workspace')
     const stored = this.rootStore.workspaceStore.getById(workspaceId)
     if (!stored) throw new Error(`Workspace ${workspaceId} not found`)
     const previous = toJS(stored)

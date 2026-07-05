@@ -24,10 +24,6 @@ export function useWorkspaceRole(): WorkspaceRole {
   const { data: currentUser } = useUser();
   const rootStore = useStore();
 
-  // Read role from the MobX memberStore (Bootstrap + real-time Delta) — fall back to workspace
-  // cache. useSyncExternalStore + autorun subscribes directly, independent of whether the calling
-  // component happens to be wrapped in mobx-react-lite's observer() — this hook is consumed by
-  // several plain (non-observer) components, so it can't rely on an ambient MobX render tracker.
   const myMember = useSyncExternalStore(
     (onStoreChange) => autorun(() => { rootStore.memberStore.all; onStoreChange(); }),
     () => (currentUser?.id ? rootStore.memberStore.getByUserId(currentUser.id) : undefined),
