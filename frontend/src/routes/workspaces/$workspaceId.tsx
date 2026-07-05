@@ -10,7 +10,6 @@ import { Button } from "@/components/ui/button";
 import { getCookie } from "@/lib/cookie-utils";
 
 import { workspaceSearchSchema } from "./workspace-search-schema";
-import { ViewSkeleton } from "@/components/view-skeleton";
 
 export const Route = createFileRoute("/workspaces/$workspaceId")({
   beforeLoad: async () => {
@@ -26,7 +25,6 @@ export const Route = createFileRoute("/workspaces/$workspaceId")({
   loader: ({ params: { workspaceId } }) => {
     sessionStorage.setItem("activeWorkspaceId", workspaceId);
   },
-  pendingComponent:ViewSkeleton,
   component: WorkspaceRoot,
 });
 
