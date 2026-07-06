@@ -1,3 +1,9 @@
-global using Application;
 global using Domain;
 global using Api;
+global using FluentValidation;
+global using Microsoft.EntityFrameworkCore;
+global using Microsoft.Extensions.Caching.Hybrid;
+global using Microsoft.AspNetCore.Authentication.JwtBearer;
+global using Microsoft.AspNetCore.Authentication.OAuth;
+global using Microsoft.IdentityModel.Tokens;
+global using System.IdentityModel.Tokens.Jwt;

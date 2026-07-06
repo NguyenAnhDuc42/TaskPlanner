@@ -70,7 +70,7 @@ public class FetchWorkspacesHandler(
                 CurrentUserId = currentUserId,
                 name = request.Filter.Name,
                 owned = request.Filter.Owned,
-                isArchived = request.Filter.isArchived,
+                isArchived = request.Filter.IsArchived,
                 cursorTimestamp = cursorTs,
                 cursorId = cursorId,
                 PageSizePlusOne = pageSize + 1

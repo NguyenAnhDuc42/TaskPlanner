@@ -1,11 +1,7 @@
-
-using System.Text.Json.Serialization;
 using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.HttpOverrides;
-using Microsoft.EntityFrameworkCore;
 using Scalar.AspNetCore;
 using Serilog;
-
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Services.Configure<ForwardedHeadersOptions>(options =>
@@ -27,12 +23,6 @@ builder.Host.UseSerilog((context, loggerConfig) =>
 // --- 1. Aspire Defaults ---
 builder.AddServiceDefaults();
 builder.Services.AddOpenApi();
-builder.Services.AddControllers()
-    .AddJsonOptions(options =>
-    {
-        options.JsonSerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull;
-        options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
-    });
 builder.Services.AddHttpContextAccessor();
 
 const string CorsPolicy = "AllowFrontend";
@@ -192,7 +182,6 @@ app.UseMiddleware<IdempotencyMiddleware>();
 
 app.MapHub<WorkspaceHub>("/hubs/workspace").RequireCors("AllowSignalR");
 app.MapHub<SyncHub>("/hubs/sync").RequireCors("AllowSignalR");
-app.MapControllers();
 app.MapAllEndpoints(typeof(Program).Assembly);
 
 // Apply pending EF Core migrations on startup

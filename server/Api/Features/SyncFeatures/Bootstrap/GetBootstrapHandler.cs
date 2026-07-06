@@ -1,4 +1,3 @@
-using Application;
 using Microsoft.EntityFrameworkCore;
 using Dapper;
 using System.Diagnostics;
@@ -62,14 +61,6 @@ public class GetBootstrapHandler(TaskPlanDbContext db, WorkspaceContext workspac
             WHERE st.project_workspace_id = @WorkspaceId AND st.deleted_at IS NULL
               AND " + visibilityFilter + ";";
 
-        // DocumentBlock deliberately NOT bootstrapped — same unbounded-content shape as Comment
-        // (every block of every Space/Task document, workspace-wide, on every cold start). Moved
-        // to the `lazy` load tier: fetched per-document on first open via
-        // GET /api/documents/{documentId}/sync/blocks, see FRONTEND_SYNC_CONTEXT.md §1b.
-
-        // TaskAssignment isn't a TenantEntity (no direct workspace_id) — scoped via project_tasks,
-        // same join shape as DocumentBlock's document_spaces above. Assignees per task are few
-        // (unlike Comment, which stays a lazy per-task fetch), so bulk-loading is cheap.
         const string assigneesSql = @"
             SELECT
                 ta.id AS Id, ta.project_task_id AS TaskId, ta.workspace_member_id AS WorkspaceMemberId
@@ -79,10 +70,6 @@ public class GetBootstrapHandler(TaskPlanDbContext db, WorkspaceContext workspac
             WHERE t.project_workspace_id = @WorkspaceId AND ta.deleted_at IS NULL
               AND " + visibilityFilter + ";";
 
-        // Favorites are personal (per member) and never broadcast — a single flat list keyed by
-        // entityId, not joined onto Task/Folder/Space. No visibility filter needed beyond "this
-        // member's own rows in this workspace": a favorite pointing at an entity the member can no
-        // longer see is just a dangling reference the UI quietly ignores when it can't resolve it.
         const string favoritesSql = @"
             SELECT
                 fav.id AS Id, fav.entity_id AS EntityId, fav.entity_layer_type AS EntityLayerType,
@@ -91,7 +78,6 @@ public class GetBootstrapHandler(TaskPlanDbContext db, WorkspaceContext workspac
             WHERE fav.workspace_member_id = @MemberId AND fav.project_workspace_id = @WorkspaceId
               AND fav.deleted_at IS NULL;";
 
-        // Members are workspace-wide, not space-scoped — every member can see every other member.
         const string membersSql = @"
             SELECT
                 wm.id AS Id, wm.user_id AS UserId, u.name AS Name, u.email AS Email,
@@ -107,12 +93,6 @@ public class GetBootstrapHandler(TaskPlanDbContext db, WorkspaceContext workspac
             IsOwner = isOwner
         };
 
-        // All 8 queries used to run as 8 sequential round-trips to Postgres — with the DB in a
-        // different region from most clients, that's 8x the network latency alone, on top of
-        // actual query time. QueryMultipleAsync batches every statement into one command and
-        // reads the result sets back in order over a single round-trip. Same queries, same data,
-        // same visibilityFilter/parameters shared across all of them — just one trip instead of
-        // eight. Order here MUST match the order results are read below.
         var combinedSql = string.Join("\n", tasksSql, spacesSql, foldersSql, statusesSql, assigneesSql, favoritesSql, membersSql);
 
         List<TaskRecord> tasks;
@@ -123,10 +103,6 @@ public class GetBootstrapHandler(TaskPlanDbContext db, WorkspaceContext workspac
         List<FavoriteRecord> favorites;
         List<MemberRecord> members;
 
-        // Timed separately from total handler time so a slow Bootstrap can be attributed to
-        // "the round-trip + query execution" vs. "everything else" (permission checks,
-        // GetLastSyncIdAsync, serialization) before deciding whether the parallel-connection
-        // split (hierarchy group vs. secondary group) is actually worth the added complexity.
         var queryStopwatch = Stopwatch.StartNew();
         await using (var multi = await connection.QueryMultipleAsync(combinedSql, parameters))
         {

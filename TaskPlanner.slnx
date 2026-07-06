@@ -6,7 +6,6 @@
   </Configurations>
   <Folder Name="/server/">
     <Project Path="server/Api/Api.csproj" />
-    <Project Path="server/Application/Application.csproj" />
     <Project Path="server/Domain/Domain.csproj" />
   </Folder>
   <Folder Name="/solution items/">
