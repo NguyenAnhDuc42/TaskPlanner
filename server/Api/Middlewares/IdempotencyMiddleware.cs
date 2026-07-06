@@ -26,7 +26,7 @@ public class IdempotencyMiddleware(RequestDelegate next, IMemoryCache cache)
 
         var idempotencyKey = keyValues.ToString();
         
-        var workspaceId = context.Items["WorkspaceId"]?.ToString() ?? "global";
+        var workspaceId = context.Items[Application.HttpContextItemKeys.WorkspaceId]?.ToString() ?? "global";
         var userId = context.User.Claims.FirstOrDefault(c => c.Type == "sub")?.Value ?? "anonymous";
         var cacheKey = $"Idempotency_{workspaceId}_{userId}_{idempotencyKey}";
 

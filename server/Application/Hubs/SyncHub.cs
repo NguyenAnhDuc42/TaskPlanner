@@ -1,13 +1,12 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
 namespace Application;
 
 [Authorize]
-public class SyncHub(TaskPlanDbContext db, SyncQueryService syncQueryService, ILogger<SyncHub> logger) : Hub
+public class SyncHub(WorkspaceMembershipResolver membershipResolver, SyncQueryService syncQueryService, ILogger<SyncHub> logger) : Hub
 {
     public override async Task OnConnectedAsync()
     {
@@ -30,17 +29,10 @@ public class SyncHub(TaskPlanDbContext db, SyncQueryService syncQueryService, IL
             return;
         }
 
-        // Without this, any authenticated user could pass an arbitrary workspaceId and receive
-        // that workspace's entire live Delta/DeltaBatch stream — every task, comment, member
-        // change — regardless of whether they actually belong to it. [Authorize] alone only
-        // proves "logged in as someone", not "allowed to see this workspace".
-        var isMember = await db.WorkspaceMembers.AsNoTracking().AnyAsync(m =>
-            m.ProjectWorkspaceId == workspaceId &&
-            m.UserId == userId &&
-            m.DeletedAt == null &&
-            m.Status == MembershipStatus.Active);
 
-        if (!isMember)
+        var activeMember = await membershipResolver.ResolveActiveMemberAsync(workspaceId, userId);
+
+        if (activeMember is null)
         {
             logger.LogWarning("SyncHub connection rejected — user {UserId} is not an active member of workspace {WorkspaceId}", userId, workspaceId);
             Context.Abort();

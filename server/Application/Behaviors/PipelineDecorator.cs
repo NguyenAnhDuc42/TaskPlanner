@@ -1,7 +1,6 @@
 using FluentValidation;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 using Serilog.Context;
 using System.Diagnostics;
@@ -46,13 +45,11 @@ public static class PipelineDecorator
                         if (failures.Count > 0) return Result<TResponse>.Failure(Error.Validation("Request.ValidationFailed", string.Join(" | ", failures.Select(f => f.ErrorMessage))));
                     }
 
-                    // 3. Lazy Authorization with Caching
+                    // 3. Authorization
                     if (command is IAuthorizedWorkspaceRequest)
                     {
-                        var authDb = serviceProvider.GetRequiredService<TaskPlanDbContext>();
-                        var cache = serviceProvider.GetRequiredService<IMemoryCache>();
-                        var authResult = await AuthorizeInternalAsync(workspaceContext, userId, workspaceId, authDb, cache, cancellationToken);
-                        if (authResult is not null) 
+                        var authResult = AuthorizeInternal(workspaceContext, workspaceId);
+                        if (authResult is not null)
                         {
                             logger.LogWarning("Command {RequestName} failed authorization: {Error}", requestName, authResult.Error);
                             return Result<TResponse>.Failure(authResult.Error!);
@@ -124,10 +121,8 @@ public static class PipelineDecorator
 
                     if (command is IAuthorizedWorkspaceRequest)
                     {
-                        var authDb = serviceProvider.GetRequiredService<TaskPlanDbContext>();
-                        var cache = serviceProvider.GetRequiredService<IMemoryCache>();
-                        var authResult = await AuthorizeInternalAsync(workspaceContext, userId, workspaceId, authDb, cache, cancellationToken);
-                        if (authResult is not null) 
+                        var authResult = AuthorizeInternal(workspaceContext, workspaceId);
+                        if (authResult is not null)
                         {
                             logger.LogWarning("Command {RequestName} failed authorization: {Error}", requestName, authResult.Error);
                             return authResult;
@@ -198,9 +193,7 @@ public static class PipelineDecorator
 
                     if (query is IAuthorizedWorkspaceRequest)
                     {
-                        var authDb = serviceProvider.GetRequiredService<TaskPlanDbContext>();
-                        var cache = serviceProvider.GetRequiredService<IMemoryCache>();
-                        var authResult = await AuthorizeInternalAsync(workspaceContext, userId, workspaceId, authDb, cache, cancellationToken);
+                        var authResult = AuthorizeInternal(workspaceContext, workspaceId);
                         if (authResult is not null) return Result<TResponse>.Failure(authResult.Error!);
                     }
 
@@ -224,30 +217,11 @@ public static class PipelineDecorator
         }
     }
 
-    private static async Task<Result?> AuthorizeInternalAsync(WorkspaceContext workspaceContext, Guid userId, Guid? workspaceId, TaskPlanDbContext db, IMemoryCache cache, CancellationToken cancellationToken)
+    private static Result? AuthorizeInternal(WorkspaceContext workspaceContext, Guid? workspaceId)
     {
-        if (!workspaceId.HasValue) 
+        if (!workspaceId.HasValue || !workspaceContext.HasCurrentMember)
             return Result.Failure(Error.Validation("Workspace.Required", "Workspace context is required for this request."));
 
-        if (workspaceContext.CurrentMember != null && workspaceContext.CurrentMember.UserId == userId)
-            return null;
-
-        var cacheKey = $"Auth_Member_{workspaceId.Value}_{userId}";
-        
-        var member = await cache.GetOrCreateAsync(cacheKey, async entry => 
-        {
-            entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(5);
-            entry.Size = 1;
-            return await db.WorkspaceMembers
-                .AsNoTracking()
-                .Where(m => m.ProjectWorkspaceId == workspaceId.Value && m.UserId == userId && m.DeletedAt == null)
-                .FirstOrDefaultAsync(cancellationToken);
-        });
-
-        if (member == null)
-            return Result.Failure(MemberError.DontHavePermission);
-
-        workspaceContext.CurrentMember = member;
         return null;
     }
 }

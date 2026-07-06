@@ -31,31 +31,22 @@ public static class ResultExtensions
     {
         if (error == null) throw new ArgumentNullException(nameof(error));
 
-        var statusCode = MapErrorTypeToStatusCode(error.Type);
-        
+        var statusCode = ErrorResponseShape.MapErrorTypeToStatusCode(error.Type);
+
         var problemDetails = new ProblemDetails
         {
             Type = $"https://httpstatuses.com/{statusCode}",
-            Title = error.Code,
+            Title = ErrorResponseShape.TitleForStatusCode(statusCode),
             Detail = error.Description,
             Status = statusCode
         };
+        problemDetails.Extensions[ErrorResponseShape.CodeExtensionKey] = error.Code;
 
         return new ObjectResult(problemDetails)
         {
             StatusCode = statusCode
         };
     }
-
-    private static int MapErrorTypeToStatusCode(ErrorType type) => type switch
-    {
-        ErrorType.NotFound => StatusCodes.Status404NotFound,
-        ErrorType.Conflict => StatusCodes.Status409Conflict,
-        ErrorType.Unauthorized => StatusCodes.Status401Unauthorized,
-        ErrorType.Forbidden => StatusCodes.Status403Forbidden,
-        ErrorType.Validation => StatusCodes.Status400BadRequest,
-        _ => StatusCodes.Status400BadRequest
-    };
 }
 
 

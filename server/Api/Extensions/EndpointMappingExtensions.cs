@@ -4,11 +4,6 @@ namespace Api;
 
 public static class EndpointMappingExtensions
 {
-    /// <summary>
-    /// Scans the given assembly for static classes exposing a public static
-    /// `MapEndpoint(IEndpointRouteBuilder)` method (minimal-API slice convention)
-    /// and invokes each one, so new endpoints are wired up automatically.
-    /// </summary>
     public static void MapAllEndpoints(this IEndpointRouteBuilder app, Assembly assembly)
     {
         var endpointTypes = assembly.GetTypes()

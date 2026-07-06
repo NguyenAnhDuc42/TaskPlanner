@@ -1,12 +1,11 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
-using Microsoft.EntityFrameworkCore;
 
 namespace Application;
 
 [Authorize]
-public class WorkspaceHub(TaskPlanDbContext db) : Hub
+public class WorkspaceHub(WorkspaceMembershipResolver membershipResolver) : Hub
 {
     private Guid? CurrentUserId()
     {
@@ -21,13 +20,8 @@ public class WorkspaceHub(TaskPlanDbContext db) : Hub
         var userId = CurrentUserId();
         if (userId is null) return;
 
-        var isMember = await db.WorkspaceMembers.AsNoTracking().AnyAsync(m =>
-            m.ProjectWorkspaceId == workspaceId &&
-            m.UserId == userId &&
-            m.DeletedAt == null &&
-            m.Status == MembershipStatus.Active);
-
-        if (!isMember) return;
+        var activeMember = await membershipResolver.ResolveActiveMemberAsync(workspaceId, userId.Value);
+        if (activeMember is null) return;
 
         await Groups.AddToGroupAsync(Context.ConnectionId, $"workspace:{workspaceId}");
     }
@@ -47,12 +41,7 @@ public class WorkspaceHub(TaskPlanDbContext db) : Hub
         await Groups.RemoveFromGroupAsync(Context.ConnectionId, $"dashboard:{dashboardId}");
     }
 
-    // Previously accepted any userId with no check — any client could join another user's
-    // personal notification group and receive their private notifications just by passing their
-    // id. Now only ever joins the CALLER's own group, regardless of what userId is passed in —
-    // kept the parameter so the frontend's existing invoke("JoinUser", userId) call doesn't need
-    // to change, it just no longer has any effect beyond the caller's own identity.
-    public Task JoinUser(Guid userId)
+       public Task JoinUser(Guid userId)
     {
         var callerId = CurrentUserId();
         if (callerId is null || callerId != userId) return Task.CompletedTask;

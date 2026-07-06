@@ -363,19 +363,6 @@ public class BatchFlushHandler(
                 });
             }
 
-            var creatorAccess = EntityAccess.Create(projectWorkspaceId: workspaceContext.WorkspaceId,
-                workspaceMemberId: creatorId, projectSpaceId: space.Id, projectFolderId: null,
-                projectTaskId: null, accessLevel: AccessLevel.Manager, creatorId: creatorId);
-            db.EntityAccesses.Add(creatorAccess);
-            events.Add(new SyncEvent {
-                ProjectWorkspaceId = workspaceContext.WorkspaceId, EntityType = SyncEntityType.EntityAccess,
-                EntityId = creatorAccess.Id, Action = SyncAction.C, ClientTraceId = item.TraceId, AuthorUserId = creatorId,
-                Payload = JsonSerializer.Serialize(new {
-                    id = creatorAccess.Id, workspaceMemberId = creatorAccess.WorkspaceMemberId,
-                    spaceId = creatorAccess.ProjectSpaceId, accessLevel = creatorAccess.AccessLevel.ToString(), haveAccess = true
-                }, JsonOpts)
-            });
-
             db.SyncEvents.AddRange(events);
             idempotencyService.MarkAsProcessed(item.TraceId);
             return Result<int>.Success(0);

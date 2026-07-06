@@ -74,7 +74,12 @@ export class WorkspaceMutations {
     }
 
     try {
-      await api.put(`/workspaces/${workspaceId}/pin`, { isPinned })
+      // Explicit header, not left to the interceptor's sessionStorage-active-workspace fallback —
+      // pin can target any workspace in the list (from the switcher/home screen), not necessarily
+      // the one currently active, so a guessed header would check membership in the wrong one.
+      await api.put(`/workspaces/${workspaceId}/pin`, { isPinned }, {
+        headers: { 'X-Workspace-Id': workspaceId },
+      })
     } catch (err) {
       if (previous) {
         this.rootStore.workspaceStore.upsert(previous)

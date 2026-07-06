@@ -47,6 +47,17 @@ export function setupInterceptors() {
       config.headers["X-Connection-Id"] = connectionId;
     }
 
+ 
+    const isWorkspaceAgnostic =
+      (config.url?.includes("/auth/") ?? false) ||
+      (config.url?.includes("/notifications/") ?? false) ||
+      config.url === "/workspaces/sync" ||
+      config.url === "/workspaces/sync/join";
+    if (!isWorkspaceAgnostic && !config.headers["X-Workspace-Id"]) {
+      const activeWorkspaceId = sessionStorage.getItem("activeWorkspaceId");
+      if (activeWorkspaceId) config.headers["X-Workspace-Id"] = activeWorkspaceId;
+    }
+
     const isMutating = ["post", "put", "delete", "patch"].includes(config.method?.toLowerCase() || "");
     if (isMutating && !config.headers["X-Idempotency-Key"]) {
   

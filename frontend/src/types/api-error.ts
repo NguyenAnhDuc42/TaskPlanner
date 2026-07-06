@@ -9,6 +9,11 @@ export interface ProblemDetails {
   status?: number;
   detail?: string;
   instance?: string;
+  // Machine-readable error code, always present now that every backend error producer
+  // (Result-based endpoints, legacy controllers, WorkspaceContextMiddleware,
+  // ExceptionHandlingMiddleware) writes to this same field — title is a human category,
+  // never the code, on any of them anymore.
+  code?: string;
   [key: string]: unknown;
 }
 
@@ -35,12 +40,14 @@ export class ApiError extends Error {
 
     this.name = "ApiError";
     this.status = error.response?.status || 500;
-    this.code = data?.title || "UNKNOWN_ERROR";
-    
+    // `code` is the machine-readable identifier now — every backend producer sets it. Falling
+    // back to `title` only covers a response that somehow didn't go through the shared shape.
+    this.code = data?.code || data?.title || "UNKNOWN_ERROR";
+
     // 2. Extract remaining metadata into 'details', removing duplicates
     if (data) {
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const { title, status, detail, ...rest } = data;
+      const { title, status, detail, code, ...rest } = data;
       this.details = Object.keys(rest).length > 0 ? rest : null;
     } else {
       this.details = null;

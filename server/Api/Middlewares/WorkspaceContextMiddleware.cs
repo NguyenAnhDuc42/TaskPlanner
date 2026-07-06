@@ -1,6 +1,5 @@
 using System;
 using System.Security.Claims;
-using Microsoft.EntityFrameworkCore;
 
 namespace Api;
 
@@ -12,7 +11,7 @@ public class WorkspaceContextMiddleware
         _next = next;
     }
 
-    public async Task InvokeAsync(HttpContext context, TaskPlanDbContext db)
+    public async Task InvokeAsync(HttpContext context, WorkspaceMembershipResolver membershipResolver, WorkspaceContext workspaceContext)
     {
         var workspaceId = ExtractWorkspaceId(context);
         if (!workspaceId.HasValue)
@@ -21,18 +20,14 @@ public class WorkspaceContextMiddleware
             return;
         }
 
-        context.Items["WorkspaceId"] = workspaceId.Value;
+        context.Items[HttpContextItemKeys.WorkspaceId] = workspaceId.Value;
 
         var userIdClaim = context.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value
                         ?? context.User?.FindFirst("sub")?.Value;
 
         if (Guid.TryParse(userIdClaim, out var userId))
         {
-            var member = await db.WorkspaceMembers
-                .AsNoTracking()
-                .Where(m => m.ProjectWorkspaceId == workspaceId.Value && m.UserId == userId && m.DeletedAt == null)
-                .Select(m => new { m.Status })
-                .FirstOrDefaultAsync();
+            var member = await membershipResolver.ResolveMemberAsync(workspaceId.Value, userId);
 
             if (member == null)
             {
@@ -52,24 +47,26 @@ public class WorkspaceContextMiddleware
                 await WriteForbidden(context, detail);
                 return;
             }
+
+            workspaceContext.SetCurrentMember(member);
         }
 
         await _next(context);
     }
 
-  
     private const string AccessDeniedCode = "workspace_access_denied";
 
     private static Task WriteForbidden(HttpContext context, string detail)
     {
-        context.Response.StatusCode = StatusCodes.Status403Forbidden;
+        const int status = StatusCodes.Status403Forbidden;
+        context.Response.StatusCode = status;
         context.Response.ContentType = "application/problem+json";
         return context.Response.WriteAsJsonAsync(new
         {
-            type = "https://httpstatuses.com/403",
-            title = "Forbidden",
+            type = $"https://httpstatuses.com/{status}",
+            title = ErrorResponseShape.TitleForStatusCode(status),
             detail,
-            status = StatusCodes.Status403Forbidden,
+            status,
             code = AccessDeniedCode
         });
     }
@@ -83,4 +80,3 @@ public class WorkspaceContextMiddleware
     }
 
 }
-

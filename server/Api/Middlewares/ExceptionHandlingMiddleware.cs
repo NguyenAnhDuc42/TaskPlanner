@@ -34,6 +34,7 @@ public class ExceptionHandlingMiddleware
     private static Task HandleExceptionAsync(HttpContext context, Exception ex, string traceId, bool isDevelopment)
     {
         ProblemDetails problem;
+        string code;
         switch (ex)
         {
             case ValidationException validationEx:
@@ -48,6 +49,7 @@ public class ExceptionHandlingMiddleware
                             .Select(e => new { e.PropertyName, e.ErrorMessage })
                     }
                 };
+                code = "Validation.Failed";
                 break;
             case UnauthorizedAccessException unAuth:
                 problem = new ProblemDetails
@@ -57,6 +59,7 @@ public class ExceptionHandlingMiddleware
                     Status = StatusCodes.Status401Unauthorized
 
                 };
+                code = "Auth.Unauthorized";
                 break;
             case InvalidTokenException invalidTokenEx:
                 problem = new ProblemDetails
@@ -65,6 +68,7 @@ public class ExceptionHandlingMiddleware
                     Detail = invalidTokenEx.Message,
                     Status = StatusCodes.Status400BadRequest
                 };
+                code = "Request.InvalidToken";
                 break;
             case BusinessRuleException businessEx:
                 problem = new ProblemDetails
@@ -73,6 +77,7 @@ public class ExceptionHandlingMiddleware
                     Detail = businessEx.Message,
                     Status = StatusCodes.Status400BadRequest
                 };
+                code = "BusinessRule.Violation";
                 break;
             case KeyNotFoundException keyNotFoundEx:
                 problem = new ProblemDetails
@@ -81,6 +86,7 @@ public class ExceptionHandlingMiddleware
                     Detail = keyNotFoundEx.Message,
                     Status = StatusCodes.Status404NotFound
                 };
+                code = "Entity.NotFound";
                 break;
             case DbUpdateConcurrencyException:
                 problem = new ProblemDetails
@@ -89,6 +95,7 @@ public class ExceptionHandlingMiddleware
                     Detail = "The resource was modified by another user. Please refresh and try again.",
                     Status = StatusCodes.Status409Conflict
                 };
+                code = "Concurrency.Conflict";
                 break;
             case OperationCanceledException:
                 problem = new ProblemDetails
@@ -97,6 +104,7 @@ public class ExceptionHandlingMiddleware
                     Detail = "The request was canceled by the client.",
                     Status = 499 // Client Closed Request
                 };
+                code = "Request.Canceled";
                 break;
             default:
                 problem = new ProblemDetails
@@ -108,8 +116,12 @@ public class ExceptionHandlingMiddleware
                     Status = StatusCodes.Status500InternalServerError,
                     Extensions = { ["traceId"] = traceId }
                 };
+                code = "Internal.ServerError";
                 break;
         }
+
+        problem.Type = $"https://httpstatuses.com/{problem.Status}";
+        problem.Extensions[ErrorResponseShape.CodeExtensionKey] = code;
 
         context.Response.ContentType = "application/problem+json";
         context.Response.StatusCode = problem.Status ?? StatusCodes.Status500InternalServerError;

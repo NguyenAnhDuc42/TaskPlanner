@@ -13,10 +13,7 @@ public class GetBootstrapHandler(TaskPlanDbContext db, WorkspaceContext workspac
         var isOwner = workspaceContext.CurrentMember.Role == Role.Owner;
         var connection = db.Database.GetDbConnection();
 
-        // Shared visibility rule across every space-scoped query below:
-        // a private space is visible only if the caller has an explicit
-        // entity_access grant on it (or is the workspace Owner).
-        const string visibilityFilter = "(s.is_private = false OR (ea.id IS NOT NULL AND ea.access_level IN ('Viewer', 'Editor', 'Manager')) OR @IsOwner = true)";
+        const string visibilityFilter = "(s.is_private = false OR @IsOwner = true)";
 
         const string tasksSql = @"
             SELECT
@@ -27,13 +24,9 @@ public class GetBootstrapHandler(TaskPlanDbContext db, WorkspaceContext workspac
                 t.story_points AS StoryPoints, t.time_estimate_seconds AS TimeEstimateSeconds,
                 t.status_id AS StatusId,
                 t.start_date AS StartDate, t.due_date AS DueDate, t.created_at AS CreatedAt,
-                t.parent_task_id AS ParentTaskId,
-                ea.access_level AS AccessLevel
+                t.parent_task_id AS ParentTaskId
             FROM project_tasks t
             INNER JOIN project_spaces s ON s.id = t.project_space_id AND s.deleted_at IS NULL
-            LEFT JOIN entity_access ea ON ea.project_space_id = s.id
-                AND ea.workspace_member_id = @MemberId
-                AND ea.deleted_at IS NULL
             WHERE t.project_workspace_id = @WorkspaceId AND t.deleted_at IS NULL
               AND " + visibilityFilter + ";";
 
@@ -43,13 +36,9 @@ public class GetBootstrapHandler(TaskPlanDbContext db, WorkspaceContext workspac
                 s.custom_color AS Color, s.custom_icon AS Icon, s.is_private AS IsPrivate,
                 s.order_key AS OrderKey, s.default_document_id AS DefaultDocumentId,
                 s.created_at AS CreatedAt, s.creator_id AS CreatorId,
-                ea.access_level AS AccessLevel,
                 EXISTS(SELECT 1 FROM project_folders f WHERE f.project_space_id = s.id AND f.deleted_at IS NULL) AS HasFolders,
                 EXISTS(SELECT 1 FROM project_tasks t WHERE t.project_space_id = s.id AND t.project_folder_id IS NULL AND t.deleted_at IS NULL) AS HasTasks
             FROM project_spaces s
-            LEFT JOIN entity_access ea ON ea.project_space_id = s.id
-                AND ea.workspace_member_id = @MemberId
-                AND ea.deleted_at IS NULL
             WHERE s.project_workspace_id = @WorkspaceId AND s.deleted_at IS NULL
               AND " + visibilityFilter + ";";
 
@@ -58,13 +47,9 @@ public class GetBootstrapHandler(TaskPlanDbContext db, WorkspaceContext workspac
                 f.id AS Id, f.project_workspace_id AS WorkspaceId, f.project_space_id AS SpaceId,
                 f.name AS Name, f.created_at AS CreatedAt, f.start_date AS StartDate, f.due_date AS DueDate,
                 f.order_key AS OrderKey, f.custom_icon AS Icon, f.custom_color AS Color,
-                ea.access_level AS AccessLevel,
                 EXISTS(SELECT 1 FROM project_tasks t WHERE t.project_folder_id = f.id AND t.deleted_at IS NULL) AS HasTasks
             FROM project_folders f
             INNER JOIN project_spaces s ON s.id = f.project_space_id AND s.deleted_at IS NULL
-            LEFT JOIN entity_access ea ON ea.project_space_id = s.id
-                AND ea.workspace_member_id = @MemberId
-                AND ea.deleted_at IS NULL
             WHERE f.project_workspace_id = @WorkspaceId AND f.deleted_at IS NULL
               AND " + visibilityFilter + ";";
 
@@ -74,9 +59,6 @@ public class GetBootstrapHandler(TaskPlanDbContext db, WorkspaceContext workspac
                 st.color AS Color, st.category AS Category, st.order_key AS OrderKey
             FROM statuses st
             INNER JOIN project_spaces s ON s.id = st.project_space_id AND s.deleted_at IS NULL
-            LEFT JOIN entity_access ea ON ea.project_space_id = s.id
-                AND ea.workspace_member_id = @MemberId
-                AND ea.deleted_at IS NULL
             WHERE st.project_workspace_id = @WorkspaceId AND st.deleted_at IS NULL
               AND " + visibilityFilter + ";";
 
@@ -94,9 +76,6 @@ public class GetBootstrapHandler(TaskPlanDbContext db, WorkspaceContext workspac
             FROM task_assignments ta
             INNER JOIN project_tasks t ON t.id = ta.project_task_id AND t.deleted_at IS NULL
             INNER JOIN project_spaces s ON s.id = t.project_space_id AND s.deleted_at IS NULL
-            LEFT JOIN entity_access ea ON ea.project_space_id = s.id
-                AND ea.workspace_member_id = @MemberId
-                AND ea.deleted_at IS NULL
             WHERE t.project_workspace_id = @WorkspaceId AND ta.deleted_at IS NULL
               AND " + visibilityFilter + ";";
 
@@ -112,8 +91,7 @@ public class GetBootstrapHandler(TaskPlanDbContext db, WorkspaceContext workspac
             WHERE fav.workspace_member_id = @MemberId AND fav.project_workspace_id = @WorkspaceId
               AND fav.deleted_at IS NULL;";
 
-        // Members are workspace-wide, not space-scoped — every member can see every other member,
-        // no entity_access visibility filter needed here (unlike the space-scoped queries above).
+        // Members are workspace-wide, not space-scoped — every member can see every other member.
         const string membersSql = @"
             SELECT
                 wm.id AS Id, wm.user_id AS UserId, u.name AS Name, u.email AS Email,

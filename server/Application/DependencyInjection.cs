@@ -62,6 +62,7 @@ public static class DependencyInjection
         #region Services & Contexts
         services.AddScoped<WorkspaceContext>();
         services.AddScoped<WorkspaceService>();
+        services.AddScoped<WorkspaceMembershipResolver>();
         #endregion
 
         #region Database & Caching
