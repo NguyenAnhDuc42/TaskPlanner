@@ -33,10 +33,10 @@
 		<PackageReference Include="Serilog" />
 		<PackageReference Include="Serilog.AspNetCore" />
 		<PackageReference Include="BCrypt.Net-Next" />
-		<PackageReference Include="CloudinaryDotNet" />
 		<PackageReference Include="MailKit" />
 		<PackageReference Include="Aspire.Npgsql.EntityFrameworkCore.PostgreSQL" />
 		<PackageReference Include="Aspire.StackExchange.Redis" />
+		<PackageReference Include="AWSSDK.S3" />
 		<PackageReference Include="MimeKit" />
 		<PackageReference Include="Scalar.AspNetCore" />
   </ItemGroup>

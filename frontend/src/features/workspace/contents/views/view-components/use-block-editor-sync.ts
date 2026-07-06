@@ -30,6 +30,14 @@ function getBlockType(
       return BlockType.OrderedList;
     case "checkListItem":
       return BlockType.TaskItem;
+    case "codeBlock":
+      return BlockType.CodeBlock;
+    case "image":
+      return BlockType.Image;
+    case "video":
+      return BlockType.Video;
+    case "file":
+      return BlockType.File;
     default:
       return BlockType.Paragraph;
   }

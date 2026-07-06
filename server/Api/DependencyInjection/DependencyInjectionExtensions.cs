@@ -11,6 +11,7 @@ public static class DependencyInjectionExtensions
         services.AddDatabaseAndCaching(config);
         services.AddCoreServices(config);
         services.AddEmail(config);
+        services.AddObjectStorage(config);
         services.AddSignalR();
         services.AddAppAuthentication(config);
 

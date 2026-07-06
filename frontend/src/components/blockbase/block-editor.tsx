@@ -4,8 +4,10 @@ import { filterSuggestionItems, type PartialBlock, type Block } from "@blocknote
 import { useCreateBlockNote, SuggestionMenuController, getDefaultReactSlashMenuItems } from "@blocknote/react";
 import { BlockNoteView } from "@blocknote/mantine";
 import { useBlockEditorSync } from "@/features/workspace/contents/views/view-components/use-block-editor-sync";
+import { useWorkspaceRootStore } from "@/stores/workspace-root.store";
+import { api } from "@/lib/api-client";
 
-const BLOCKED_SLASH_ITEMS = new Set(["Image", "Video", "Audio", "File", "Code Block"]);
+const BLOCKED_SLASH_ITEMS = new Set(["Audio"]);
 
 interface BlockEditorProps {
   documentId: string;
@@ -17,8 +19,18 @@ function EditorView({ initialContent, onUpdate, editable = true }: {
   onUpdate: (blocks: Block[]) => void;
   editable?: boolean;
 }) {
+  const { workspaceId } = useWorkspaceRootStore();
+
   const editor = useCreateBlockNote({
     initialContent: initialContent as never,
+    uploadFile: async (file: File) => {
+      const formData = new FormData();
+      formData.append("file", file);
+      const { data } = await api.post<{ url: string }>("/attachments/sync/upload", formData, {
+        headers: { "X-Workspace-Id": workspaceId },
+      });
+      return data.url;
+    },
   });
 
   const isDark = document.documentElement.classList.contains("dark");
