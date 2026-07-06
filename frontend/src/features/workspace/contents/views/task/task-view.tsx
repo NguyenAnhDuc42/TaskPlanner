@@ -26,7 +26,7 @@ import { DynamicIcon } from "@/components/dynamic-icon";
 import { DeleteConfirmationDialog } from "../../hierarchy/hierarchy-components/context-menus/shared";
 import { useState } from "react";
 import { useWorkspaceRole } from "@/features/workspace/context/use-workspace-role";
-import { useStore } from "@/stores/root.store";
+import { useWorkspaceRootStore } from "@/stores/workspace-root.store";
 import { useSyncEngine } from "@/sync/sync-provider";
 import { TaskMutations } from "@/mutations/task.mutations";
 
@@ -38,7 +38,7 @@ export const TaskView = observer(function TaskView({ taskId }: Readonly<TaskView
   const { workspaceId } = useParams({ strict: false }) as { workspaceId: string };
   const navigate = useNavigate();
   const { canCreateContent } = useWorkspaceRole();
-  const rootStore = useStore();
+  const rootStore = useWorkspaceRootStore();
   const syncEngine = useSyncEngine();
   const taskMutations = useMemo(() => new TaskMutations(rootStore, syncEngine), [rootStore, syncEngine]);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);

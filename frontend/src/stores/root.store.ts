@@ -1,77 +1,28 @@
-import {
-  MetadataDB,
-  TaskDB,
-  SpaceDB,
-  FolderDB,
-  StatusDB,
-  MemberDB,
-  CommentDB,
-  DocumentDB,
-  DocumentBlockDB,
-  AssigneeDB,
-  FavoriteDB,
-  TransactionDB,
-  FetchedContextDB,
-  type TaskPlanDB
-} from "@/db";
-import { TaskStore } from "./task.store";
-import { SpaceStore } from "./space.store";
-import { FolderStore } from "./folder.store";
-import { MemberStore } from "./member.store";
 import { NotificationStore } from "./notification.store";
-import { StatusStore } from "./status.store";
 import { WorkspaceStore } from "./workspace.store";
-import { CommentStore } from "./comment.store";
-import { DocumentStore } from "./document.store";
-import { DocumentBlockStore } from "./document-block.store";
-import { AssigneeStore } from "./assignee.store";
-import { FavoriteStore } from "./favorite.store";
 
-import type { IDBPDatabase } from "idb";
 import { makeAutoObservable } from "mobx";
-import { closeWorkspaceDB, deleteWorkspaceDB, openWorkspaceDB } from "@/db/schema";
+import { deleteWorkspaceDB } from "@/db/schema";
 import { closeUserDB, deleteUserDB, openUserDB } from "@/db/user-schema";
 import { WorkspaceDB, NotificationDB, type UserDB } from "@/db";
+import type { IDBPDatabase } from "idb";
 import { createContext, useContext } from "react";
 
+// User-scope only — persists for the whole app session regardless of which workspace (if any)
+// is open. Workspace-scope state (tasks/spaces/folders/etc.) lives on WorkspaceRootStore
+// (workspace-root.store.ts) instead, constructed fresh per workspace visit rather than mutated
+// in place on this long-lived instance.
 export class RootStore {
-  currentWorkspaceId: string | null = null;
   isOnline: boolean = typeof navigator !== 'undefined' ? navigator.onLine : true;
 
   currentUserId: string | null = null;
 
-  // Stores
-  taskStore = new TaskStore();
-  spaceStore = new SpaceStore();
-  folderStore = new FolderStore();
-  memberStore = new MemberStore();
-  notificationStore = new NotificationStore();
-  statusStore = new StatusStore();
   workspaceStore = new WorkspaceStore();
-  commentStore = new CommentStore();
-  documentStore = new DocumentStore();
-  documentBlockStore = new DocumentBlockStore();
-  assigneeStore = new AssigneeStore();
-  favoriteStore = new FavoriteStore();
+  notificationStore = new NotificationStore();
 
-  // DBs
-  taskDB: TaskDB | null = null;
-  spaceDB: SpaceDB | null = null;
-  folderDB: FolderDB | null = null;
-  statusDB: StatusDB | null = null;
-  memberDB: MemberDB | null = null;
-  commentDB: CommentDB | null = null;
-  documentDB: DocumentDB | null = null;
-  documentBlockDB: DocumentBlockDB | null = null;
-  assigneeDB: AssigneeDB | null = null;
-  favoriteDB: FavoriteDB | null = null;
-  metadataDB: MetadataDB | null = null;
-  transactionDB: TransactionDB | null = null;
-  fetchedContextDB: FetchedContextDB | null = null;
   workspaceDB: WorkspaceDB | null = null;
   notificationDB: NotificationDB | null = null;
 
-  private db: IDBPDatabase<TaskPlanDB> | null = null;
   private userDb: IDBPDatabase<UserDB> | null = null;
 
   constructor() {
@@ -94,18 +45,15 @@ export class RootStore {
       closeUserDB(this.currentUserId);
     }
 
-    // Clear user-level stores
     this.workspaceStore.clear();
     this.notificationStore.clear();
 
     this.userDb = await openUserDB(userId);
     this.currentUserId = userId;
 
-    // Init User-level DB wrappers
     this.workspaceDB = new WorkspaceDB(this.userDb);
     this.notificationDB = new NotificationDB(this.userDb);
 
-    // Hydrate User-level stores
     const [workspaces, notifications] = await Promise.all([
       this.workspaceDB.getAll(),
       this.notificationDB.getAll()
@@ -118,99 +66,19 @@ export class RootStore {
   // Wipes every local trace of the current user on this device — the user-level DB
   // (workspaces/notifications) plus every workspace DB they'd cached — so logging out on a
   // shared/public machine doesn't leave the previous session's data sitting in IndexedDB.
+  // deleteWorkspaceDB takes just an id, not a live WorkspaceRootStore instance, so this works
+  // regardless of whether a workspace happens to be open right now.
   async clearAllLocalData(): Promise<void> {
     const workspaceIds = this.workspaceStore.all.map((w) => w.id);
-    if (this.currentWorkspaceId) closeWorkspaceDB(this.currentWorkspaceId);
     await Promise.all(workspaceIds.map((id) => deleteWorkspaceDB(id)));
 
     if (this.currentUserId) await deleteUserDB(this.currentUserId);
 
-    this.taskStore.clear();
-    this.spaceStore.clear();
-    this.folderStore.clear();
-    this.memberStore.clear();
-    this.notificationStore.clear();
-    this.statusStore.clear();
     this.workspaceStore.clear();
-    this.commentStore.clear();
-    this.documentStore.clear();
-    this.documentBlockStore.clear();
-    this.assigneeStore.clear();
-    this.favoriteStore.clear();
+    this.notificationStore.clear();
 
     this.currentUserId = null;
-    this.currentWorkspaceId = null;
     this.userDb = null;
-    this.db = null;
-  }
-
-  async switchWorkspace(workspaceId: string): Promise<void> {
-    if (this.currentWorkspaceId) {
-      closeWorkspaceDB(this.currentWorkspaceId);
-    }
-
-    // Clear all in-memory stores before switching
-    this.taskStore.clear();
-    this.spaceStore.clear();
-    this.folderStore.clear();
-    this.memberStore.clear();
-    // Do not clear notificationStore here, as it belongs to the User, not a specific workspace.
-    this.statusStore.clear();
-    this.commentStore.clear();
-    this.documentStore.clear();
-    this.documentBlockStore.clear();
-    this.assigneeStore.clear();
-    this.favoriteStore.clear();
-
-    this.db = await openWorkspaceDB(workspaceId);
-    this.currentWorkspaceId = workspaceId;
-
-    // Initialize DB operations
-    this.taskDB = new TaskDB(this.db);
-    this.spaceDB = new SpaceDB(this.db);
-    this.folderDB = new FolderDB(this.db);
-    this.statusDB = new StatusDB(this.db);
-    this.memberDB = new MemberDB(this.db);
-    this.commentDB = new CommentDB(this.db);
-    this.documentDB = new DocumentDB(this.db);
-    this.documentBlockDB = new DocumentBlockDB(this.db);
-    this.assigneeDB = new AssigneeDB(this.db);
-    this.favoriteDB = new FavoriteDB(this.db);
-    this.metadataDB = new MetadataDB(this.db, workspaceId);
-    this.transactionDB = new TransactionDB(this.db);
-    this.fetchedContextDB = new FetchedContextDB(this.db);
-
-    await this.hydrateFromLocal();
-  }
-
-  private async hydrateFromLocal(): Promise<void> {
-    if (!this.db) return;
-
-    // Fetch all records from IndexedDB in parallel for fast loading
-    const [tasks, spaces, folders, statuses, members, comments, documents, blocks, assignees, favorites] = await Promise.all([
-      this.taskDB!.getAll(),
-      this.spaceDB!.getAll(),
-      this.folderDB!.getAll(),
-      this.statusDB!.getAll(),
-      this.memberDB!.getAll(),
-      this.commentDB!.getAll(),
-      this.documentDB!.getAll(),
-      this.documentBlockDB!.getAll(),
-      this.assigneeDB!.getAll(),
-      this.favoriteDB!.getAll(),
-    ]);
-
-    // Populate MobX stores with initial data
-    this.taskStore.hydrate(tasks);
-    this.spaceStore.hydrate(spaces);
-    this.folderStore.hydrate(folders);
-    this.statusStore.hydrate(statuses);
-    this.memberStore.hydrate(members);
-    this.commentStore.hydrate(comments);
-    this.documentStore.hydrate(documents);
-    this.documentBlockStore.hydrate(blocks);
-    this.assigneeStore.hydrate(assignees);
-    this.favoriteStore.hydrate(favorites);
   }
 }
 
@@ -225,17 +93,13 @@ export function useStore(): RootStore {
   return store
 }
 
-// Convenience hooks
-export function useTaskStore(): TaskStore { return useStore().taskStore }
-export function useSpaceStore(): SpaceStore { return useStore().spaceStore }
-export function useFolderStore(): FolderStore { return useStore().folderStore }
-export function useMemberStore(): MemberStore { return useStore().memberStore }
-export function useNotificationStore(): NotificationStore { return useStore().notificationStore }
-export function useStatusStore(): StatusStore { return useStore().statusStore }
-export function useWorkspaceStore(): WorkspaceStore { return useStore().workspaceStore }
-export function useCommentStore(): CommentStore { return useStore().commentStore }
-export function useDocumentStore(): DocumentStore { return useStore().documentStore }
-export function useDocumentBlockStore(): DocumentBlockStore { return useStore().documentBlockStore }
-export function useAssigneeStore(): AssigneeStore { return useStore().assigneeStore }
-export function useFavoriteStore(): FavoriteStore { return useStore().favoriteStore }
-export function useIsOnline(): boolean { return useStore().isOnline }
+// Module-level reference to the one RootStore instance, set once by AppShell — lets plain
+// modules that can't use React context (lib/api-client/interceptors.ts, sync/delta-handler.ts)
+// reach the user-scope store without it being threaded through every constructor.
+let activeRootStore: RootStore | null = null;
+export function setActiveRootStore(store: RootStore | null): void {
+  activeRootStore = store;
+}
+export function getActiveRootStore(): RootStore | null {
+  return activeRootStore;
+}

@@ -1,4 +1,5 @@
-import type { RootStore } from '@/stores/root.store'
+import type { WorkspaceRootStore } from '@/stores/workspace-root.store'
+import { getActiveRootStore } from '@/stores/root.store'
 import type { SyncEngine } from '@/sync/sync-engine'
 import type { DocumentBlockRecord } from '@/types/document/document-block-record'
 import type { BlockType } from '@/types/block-type'
@@ -17,10 +18,10 @@ import { toJS } from 'mobx'
 // transactions that share the same entityId, so N different blocks stay as N separate items).
 // The non-Local methods keep the old immediate-send behavior for single standalone block actions.
 export class DocumentBlockMutations {
-  private rootStore: RootStore
+  private rootStore: WorkspaceRootStore
   private syncEngine: SyncEngine
 
-  constructor(rootStore: RootStore, syncEngine: SyncEngine) {
+  constructor(rootStore: WorkspaceRootStore, syncEngine: SyncEngine) {
     this.rootStore = rootStore
     this.syncEngine = syncEngine
   }
@@ -68,7 +69,7 @@ export class DocumentBlockMutations {
   async create(data: { documentId: string; type: BlockType; content: string; orderKey: string }): Promise<DocumentBlockRecord> {
     const { record, tx } = await this.createLocal(data)
 
-    if (!this.rootStore.isOnline) {
+    if (!(getActiveRootStore()?.isOnline ?? true)) {
       console.warn('App is offline. Skipping API request. Will sync later.')
       return record
     }
@@ -76,7 +77,7 @@ export class DocumentBlockMutations {
     try {
       await api.post('/document-blocks/sync', tx.data, {
         headers: {
-          'X-Workspace-Id': this.rootStore.currentWorkspaceId!,
+          'X-Workspace-Id': this.rootStore.workspaceId,
           'X-Client-Trace-Id': tx.id,
         }
       })
@@ -130,7 +131,7 @@ export class DocumentBlockMutations {
   async update(blockId: string, changes: Partial<Pick<DocumentBlockRecord, 'content' | 'orderKey' | 'type'>>): Promise<void> {
     const { previous, tx } = await this.updateLocal(blockId, changes)
 
-    if (!this.rootStore.isOnline) {
+    if (!(getActiveRootStore()?.isOnline ?? true)) {
       console.warn('App is offline. Skipping API request. Will sync later.')
       return
     }
@@ -138,7 +139,7 @@ export class DocumentBlockMutations {
     try {
       await api.put(`/document-blocks/sync/${blockId}`, tx.data, {
         headers: {
-          'X-Workspace-Id': this.rootStore.currentWorkspaceId!,
+          'X-Workspace-Id': this.rootStore.workspaceId,
           'X-Client-Trace-Id': tx.id,
         }
       })
@@ -188,7 +189,7 @@ export class DocumentBlockMutations {
   async delete(blockId: string): Promise<void> {
     const { previous, tx } = await this.deleteLocal(blockId)
 
-    if (!this.rootStore.isOnline) {
+    if (!(getActiveRootStore()?.isOnline ?? true)) {
       console.warn('App is offline. Skipping API request. Will sync later.')
       return
     }
@@ -196,7 +197,7 @@ export class DocumentBlockMutations {
     try {
       await api.delete(`/document-blocks/sync/${blockId}`, {
         headers: {
-          'X-Workspace-Id': this.rootStore.currentWorkspaceId!,
+          'X-Workspace-Id': this.rootStore.workspaceId,
           'X-Client-Trace-Id': tx.id,
         }
       })

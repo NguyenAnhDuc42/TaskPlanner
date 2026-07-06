@@ -4,7 +4,7 @@ import {
   HttpTransportType,
   type HubConnection,
 } from '@microsoft/signalr'
-import type { RootStore } from '@/stores/root.store'
+import type { WorkspaceRootStore } from '@/stores/workspace-root.store'
 import type { DeltaPayload, DeltaBatchPayload } from '@/types/sync/delta'
 import { applyDelta, applyDeltaBatch } from './delta-handler'
 import { TransactionQueue } from './transaction-queue'
@@ -31,12 +31,12 @@ interface BootstrapResponse {
 }
 
 export class SyncEngine {
-  private rootStore: RootStore
+  private rootStore: WorkspaceRootStore
   private connection: HubConnection | null = null
   private queue: TransactionQueue
   private connectGeneration = 0
 
-  constructor(rootStore: RootStore) {
+  constructor(rootStore: WorkspaceRootStore) {
     this.rootStore = rootStore
     this.queue = new TransactionQueue(rootStore)
   }
@@ -216,7 +216,7 @@ export class SyncEngine {
   // ── Send mutations to server ──
 
   private async sendBatch(txs: PendingTransaction[]): Promise<{ traceId: string; success: boolean; error?: string | null }[]> {
-    const workspaceId = this.rootStore.currentWorkspaceId
+    const workspaceId = this.rootStore.workspaceId
     const response = await api.post('/sync/batch', {
       items: txs.map(tx => ({
         traceId: tx.id,
@@ -226,7 +226,7 @@ export class SyncEngine {
         data: tx.action === 'D' ? null : tx.data,
       })),
     }, {
-      headers: { 'X-Workspace-Id': workspaceId! },
+      headers: { 'X-Workspace-Id': workspaceId },
     })
     return response.data.results
   }

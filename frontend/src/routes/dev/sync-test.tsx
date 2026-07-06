@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState, useMemo } from "react";
 import { observer } from "mobx-react-lite";
 import { RootStore } from "@/stores/root.store";
+import { WorkspaceRootStore } from "@/stores/workspace-root.store";
 import { SyncEngine } from "@/sync/sync-engine";
 import { TaskMutations } from "@/mutations/task.mutations";
 import { SpaceMutations } from "@/mutations/space.mutations";
@@ -28,11 +29,14 @@ const section: React.CSSProperties = {
 
 const SyncTestPage = observer(function SyncTestPage() {
   const rootStore = useMemo(() => new RootStore(), []);
-  const syncEngine = useMemo(() => new SyncEngine(rootStore), [rootStore]);
-  const taskMutations = useMemo(() => new TaskMutations(rootStore, syncEngine), [rootStore, syncEngine]);
-  const spaceMutations = useMemo(() => new SpaceMutations(rootStore, syncEngine), [rootStore, syncEngine]);
-  const folderMutations = useMemo(() => new FolderMutations(rootStore, syncEngine), [rootStore, syncEngine]);
-  const workspaceMutations = useMemo(() => new WorkspaceMutations(rootStore, syncEngine), [rootStore, syncEngine]);
+  const workspaceMutations = useMemo(() => new WorkspaceMutations(rootStore), [rootStore]);
+
+  // Workspace-scope store — a fresh instance per connect/switch, not a mutated shared one.
+  const [workspaceRootStore, setWorkspaceRootStore] = useState<WorkspaceRootStore | null>(null);
+  const syncEngine = useMemo(() => (workspaceRootStore ? new SyncEngine(workspaceRootStore) : null), [workspaceRootStore]);
+  const taskMutations = useMemo(() => (workspaceRootStore && syncEngine ? new TaskMutations(workspaceRootStore, syncEngine) : null), [workspaceRootStore, syncEngine]);
+  const spaceMutations = useMemo(() => (workspaceRootStore && syncEngine ? new SpaceMutations(workspaceRootStore, syncEngine) : null), [workspaceRootStore, syncEngine]);
+  const folderMutations = useMemo(() => (workspaceRootStore && syncEngine ? new FolderMutations(workspaceRootStore, syncEngine) : null), [workspaceRootStore, syncEngine]);
 
   const [workspaceId, setWorkspaceId] = useState("9cb7f2f3-41e6-4dce-bb16-a126f3a0b908");
   const [activeWorkspaceId, setActiveWorkspaceId] = useState("9cb7f2f3-41e6-4dce-bb16-a126f3a0b908");
@@ -54,18 +58,27 @@ const SyncTestPage = observer(function SyncTestPage() {
   const setEdit = (id: string, val: string) => setEditValues((prev) => ({ ...prev, [id]: val }));
 
   // ── Connection ──
+  const enterWorkspace = async (id: string): Promise<{ wrs: WorkspaceRootStore; engine: SyncEngine }> => {
+    workspaceRootStore?.dispose();
+    const wrs = new WorkspaceRootStore(id);
+    await wrs.hydrate();
+    const engine = new SyncEngine(wrs);
+    await engine.init(id);
+    setWorkspaceRootStore(wrs);
+    return { wrs, engine };
+  };
+
   const handleConnect = async () => {
     if (!workspaceId) return;
     try {
       addLog(`Switching to workspace ${workspaceId}...`);
-      await rootStore.switchWorkspace(workspaceId);
-      addLog("IndexedDB hydrated. Connecting sync engine...");
-      await syncEngine.init(workspaceId);
+      const { wrs } = await enterWorkspace(workspaceId);
+      addLog("IndexedDB hydrated. Sync engine connected.");
       setConnected(true);
       setActiveWorkspaceId(workspaceId);
-      addLog("Connected. lastSyncId in metadata: " + (await rootStore.metadataDB?.getLastSyncId()));
+      addLog("lastSyncId in metadata: " + (await wrs.metadataDB?.getLastSyncId()));
       addLog(
-        `Bootstrap counts — tasks: ${rootStore.taskStore.all.length}, spaces: ${rootStore.spaceStore.all.length}, folders: ${rootStore.folderStore.all.length}, statuses: ${rootStore.statusStore.all.length}`
+        `Bootstrap counts — tasks: ${wrs.taskStore.all.length}, spaces: ${wrs.spaceStore.all.length}, folders: ${wrs.folderStore.all.length}, statuses: ${wrs.statusStore.all.length}`
       );
       const wsRes = await api.get("/workspaces?pageSize=50");
       const items: WorkspaceRecord[] = wsRes.data?.items ?? [];
@@ -78,17 +91,19 @@ const SyncTestPage = observer(function SyncTestPage() {
   };
 
   const handleFlushQueue = async () => {
+    if (!syncEngine) return;
     addLog("Flushing pending transaction queue...");
     await syncEngine.flushQueue();
     addLog("Flush complete.");
   };
 
   const handleForceBootstrap = async () => {
+    if (!syncEngine || !workspaceRootStore) return;
     try {
       addLog("Force re-bootstrap (resetting lastSyncId → 0)...");
       await syncEngine.forceBootstrap(activeWorkspaceId);
       addLog(
-        `Re-bootstrap done — tasks: ${rootStore.taskStore.all.length}, spaces: ${rootStore.spaceStore.all.length}, folders: ${rootStore.folderStore.all.length}, statuses: ${rootStore.statusStore.all.length}`
+        `Re-bootstrap done — tasks: ${workspaceRootStore.taskStore.all.length}, spaces: ${workspaceRootStore.spaceStore.all.length}, folders: ${workspaceRootStore.folderStore.all.length}, statuses: ${workspaceRootStore.statusStore.all.length}`
       );
     } catch (err) {
       addLog("ERROR: " + (err instanceof Error ? err.message : String(err)));
@@ -100,13 +115,12 @@ const SyncTestPage = observer(function SyncTestPage() {
     if (newId === activeWorkspaceId) return;
     try {
       addLog(`Switching to workspace ${newId}...`);
-      await rootStore.switchWorkspace(newId);
-      await syncEngine.init(newId);
+      const { wrs } = await enterWorkspace(newId);
       setActiveWorkspaceId(newId);
       setWorkspaceId(newId);
-      addLog("Connected. lastSyncId: " + (await rootStore.metadataDB?.getLastSyncId()));
+      addLog("Connected. lastSyncId: " + (await wrs.metadataDB?.getLastSyncId()));
       addLog(
-        `Bootstrap — tasks: ${rootStore.taskStore.all.length}, spaces: ${rootStore.spaceStore.all.length}, folders: ${rootStore.folderStore.all.length}, statuses: ${rootStore.statusStore.all.length}`
+        `Bootstrap — tasks: ${wrs.taskStore.all.length}, spaces: ${wrs.spaceStore.all.length}, folders: ${wrs.folderStore.all.length}, statuses: ${wrs.statusStore.all.length}`
       );
     } catch (err) {
       addLog("ERROR: " + (err instanceof Error ? err.message : String(err)));
@@ -143,14 +157,14 @@ const SyncTestPage = observer(function SyncTestPage() {
 
   // ── Spaces ──
   const handleCreateSpace = async () => {
-    if (!spaceName) return;
+    if (!spaceName || !spaceMutations) return;
     try {
       const wasOnline = rootStore.isOnline;
       addLog(`Creating space "${spaceName}" (isOnline=${wasOnline})...`);
       const record = await spaceMutations.create({ name: spaceName, isPrivate: false });
       addLog(
         wasOnline
-          ? `Space created locally with id ${record.id}. Waiting for DeltaBatch confirmation (Space + 4 Statuses + EntityAccess)...`
+          ? `Space created locally with id ${record.id}. Waiting for DeltaBatch confirmation (Space + 4 Statuses)...`
           : `Space created locally with id ${record.id}. Queued — will send when back online.`
       );
       setSpaceName("");
@@ -161,7 +175,7 @@ const SyncTestPage = observer(function SyncTestPage() {
 
   const handleUpdateSpace = async (id: string) => {
     const newName = editValues[id];
-    if (!newName) return;
+    if (!newName || !spaceMutations) return;
     try {
       const wasOnline = rootStore.isOnline;
       addLog(`Updating space ${id} → name="${newName}" (isOnline=${wasOnline})...`);
@@ -174,6 +188,7 @@ const SyncTestPage = observer(function SyncTestPage() {
   };
 
   const handleDeleteSpace = async (id: string) => {
+    if (!spaceMutations) return;
     try {
       const wasOnline = rootStore.isOnline;
       addLog(`Deleting space ${id} (isOnline=${wasOnline})...`);
@@ -186,7 +201,7 @@ const SyncTestPage = observer(function SyncTestPage() {
 
   // ── Folders ──
   const handleCreateFolder = async () => {
-    if (!folderName || !folderSpaceId) return;
+    if (!folderName || !folderSpaceId || !folderMutations) return;
     try {
       const wasOnline = rootStore.isOnline;
       addLog(`Creating folder "${folderName}" in space ${folderSpaceId} (isOnline=${wasOnline})...`);
@@ -204,7 +219,7 @@ const SyncTestPage = observer(function SyncTestPage() {
 
   const handleUpdateFolder = async (id: string) => {
     const newName = editValues[id];
-    if (!newName) return;
+    if (!newName || !folderMutations) return;
     try {
       const wasOnline = rootStore.isOnline;
       addLog(`Updating folder ${id} → name="${newName}" (isOnline=${wasOnline})...`);
@@ -217,6 +232,7 @@ const SyncTestPage = observer(function SyncTestPage() {
   };
 
   const handleDeleteFolder = async (id: string) => {
+    if (!folderMutations) return;
     try {
       const wasOnline = rootStore.isOnline;
       addLog(`Deleting folder ${id} (isOnline=${wasOnline})...`);
@@ -229,7 +245,7 @@ const SyncTestPage = observer(function SyncTestPage() {
 
   // ── Tasks ──
   const handleCreateTask = async () => {
-    if (!taskName) return;
+    if (!taskName || !taskMutations) return;
     try {
       const wasOnline = rootStore.isOnline;
       addLog(`Creating task "${taskName}" (isOnline=${wasOnline})...`);
@@ -247,7 +263,7 @@ const SyncTestPage = observer(function SyncTestPage() {
 
   const handleUpdateTask = async (id: string) => {
     const newName = editValues[id];
-    if (!newName) return;
+    if (!newName || !taskMutations) return;
     try {
       const wasOnline = rootStore.isOnline;
       addLog(`Updating task ${id} → name="${newName}" (isOnline=${wasOnline})...`);
@@ -260,6 +276,7 @@ const SyncTestPage = observer(function SyncTestPage() {
   };
 
   const handleDeleteTask = async (id: string) => {
+    if (!taskMutations) return;
     try {
       const wasOnline = rootStore.isOnline;
       addLog(`Deleting task ${id} (isOnline=${wasOnline})...`);
@@ -355,9 +372,9 @@ const SyncTestPage = observer(function SyncTestPage() {
       </div>
 
       {/* ── SPACES ── */}
-      {connected && (
+      {connected && workspaceRootStore && (
         <div style={section}>
-          <h3>Spaces ({rootStore.spaceStore.all.length})</h3>
+          <h3>Spaces ({workspaceRootStore.spaceStore.all.length})</h3>
 
           <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
             <input
@@ -370,7 +387,7 @@ const SyncTestPage = observer(function SyncTestPage() {
           </div>
 
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-            {rootStore.spaceStore.all.map((s) => (
+            {workspaceRootStore.spaceStore.all.map((s) => (
               <div key={s.id} style={row}>
                 <span style={{ minWidth: 140 }}>{s.name}</span>
                 <code style={{ fontSize: 11, opacity: 0.6 }}>{s.id}</code>
@@ -387,16 +404,16 @@ const SyncTestPage = observer(function SyncTestPage() {
           </div>
 
           <div style={{ marginTop: 8, fontSize: 11, opacity: 0.5 }}>
-            Statuses ({rootStore.statusStore.all.length}):&nbsp;
-            {rootStore.statusStore.all.map((st) => `${st.name}(${st.category})`).join(", ")}
+            Statuses ({workspaceRootStore.statusStore.all.length}):&nbsp;
+            {workspaceRootStore.statusStore.all.map((st) => `${st.name}(${st.category})`).join(", ")}
           </div>
         </div>
       )}
 
       {/* ── FOLDERS ── */}
-      {connected && (
+      {connected && workspaceRootStore && (
         <div style={section}>
-          <h3>Folders ({rootStore.folderStore.all.length})</h3>
+          <h3>Folders ({workspaceRootStore.folderStore.all.length})</h3>
 
           <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
             <input
@@ -407,7 +424,7 @@ const SyncTestPage = observer(function SyncTestPage() {
             />
             <select value={folderSpaceId} onChange={(e) => setFolderSpaceId(e.target.value)} style={{ width: 260 }}>
               <option value="">— pick a space —</option>
-              {rootStore.spaceStore.all.map((s) => (
+              {workspaceRootStore.spaceStore.all.map((s) => (
                 <option key={s.id} value={s.id}>{s.name} ({s.id.slice(0, 8)})</option>
               ))}
             </select>
@@ -415,7 +432,7 @@ const SyncTestPage = observer(function SyncTestPage() {
           </div>
 
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-            {rootStore.folderStore.all.map((f) => (
+            {workspaceRootStore.folderStore.all.map((f) => (
               <div key={f.id} style={row}>
                 <span style={{ minWidth: 140 }}>{f.name}</span>
                 <code style={{ fontSize: 11, opacity: 0.6 }}>{f.id}</code>
@@ -435,9 +452,9 @@ const SyncTestPage = observer(function SyncTestPage() {
       )}
 
       {/* ── TASKS ── */}
-      {connected && (
+      {connected && workspaceRootStore && (
         <div style={section}>
-          <h3>Tasks ({rootStore.taskStore.all.length})</h3>
+          <h3>Tasks ({workspaceRootStore.taskStore.all.length})</h3>
 
           <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
             <input
@@ -448,13 +465,13 @@ const SyncTestPage = observer(function SyncTestPage() {
             />
             <select value={taskSpaceId} onChange={(e) => { setTaskSpaceId(e.target.value); setTaskFolderId(""); }} style={{ width: 200 }}>
               <option value="">— space —</option>
-              {rootStore.spaceStore.all.map((s) => (
+              {workspaceRootStore.spaceStore.all.map((s) => (
                 <option key={s.id} value={s.id}>{s.name} ({s.id.slice(0, 8)})</option>
               ))}
             </select>
             <select value={taskFolderId} onChange={(e) => setTaskFolderId(e.target.value)} style={{ width: 200 }}>
               <option value="">— folder (optional) —</option>
-              {rootStore.folderStore.all
+              {workspaceRootStore.folderStore.all
                 .filter((f) => !taskSpaceId || f.spaceId === taskSpaceId)
                 .map((f) => (
                   <option key={f.id} value={f.id}>{f.name} ({f.id.slice(0, 8)})</option>
@@ -464,7 +481,7 @@ const SyncTestPage = observer(function SyncTestPage() {
           </div>
 
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-            {rootStore.taskStore.all.map((t) => (
+            {workspaceRootStore.taskStore.all.map((t) => (
               <div key={t.id} style={row}>
                 <span style={{ minWidth: 140 }}>{t.name}</span>
                 <code style={{ fontSize: 11, opacity: 0.6 }}>{t.id}</code>

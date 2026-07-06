@@ -19,7 +19,7 @@ import { useWorkspace } from "@/features/workspace/context/workspace-context";
 import { useWorkspaceRole } from "@/features/workspace/context/use-workspace-role";
 import { DialogFormWrapper } from "@/components/dialog-form-wrapper";
 import { CreateTaskForm } from "@/features/workspace/components/forms/create-task-form";
-import { useStore } from "@/stores/root.store";
+import { useWorkspaceRootStore } from "@/stores/workspace-root.store";
 import { useSyncEngine } from "@/sync/sync-provider";
 import { FolderMutations } from "@/mutations/folder.mutations";
 import { FavoriteMutations } from "@/mutations/favorite.mutations";
@@ -38,7 +38,7 @@ export const FolderContextMenu = observer(function FolderContextMenu({
 }: FolderContextMenuProps) {
   const { workspaceId } = useWorkspace();
   const { canCreateContent, isAdmin } = useWorkspaceRole();
-  const rootStore = useStore();
+  const rootStore = useWorkspaceRootStore();
   const syncEngine = useSyncEngine();
   const folderMutations = useMemo(() => new FolderMutations(rootStore, syncEngine), [rootStore, syncEngine]);
   const favoriteMutations = useMemo(() => new FavoriteMutations(rootStore), [rootStore]);

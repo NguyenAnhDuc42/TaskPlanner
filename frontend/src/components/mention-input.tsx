@@ -1,6 +1,6 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import { observer } from "mobx-react-lite";
-import { useStore } from "@/stores/root.store";
+import { useWorkspaceRootStore } from "@/stores/workspace-root.store";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import type { MemberRecord } from "@/types/workspace";
@@ -29,7 +29,7 @@ export const MentionInput = observer(function MentionInput({ value, onChange, on
   // observable reads made directly during render. memberStore is already reliably hydrated by
   // the sync engine before this ever renders, unlike the old Redux member selector, which
   // depended on a separate in-flight network call and showed stale/empty data until it resolved.
-  const rootStore = useStore();
+  const rootStore = useWorkspaceRootStore();
   const allMembers = rootStore.memberStore.all;
   const filtered = mentionQuery !== null
     ? allMembers.filter(m => m.name.toLowerCase().includes(mentionQuery.toLowerCase())).slice(0, 6)

@@ -3,7 +3,7 @@ import { observer } from "mobx-react-lite";
 import { useWorkspaceRole } from "@/features/workspace/context/use-workspace-role";
 import { UniversalPicker } from "@/components/universal-picker";
 import { BlockEditor } from "@/components/blockbase/block-editor";
-import { useStore } from "@/stores/root.store";
+import { useWorkspaceRootStore } from "@/stores/workspace-root.store";
 import { useSyncEngine } from "@/sync/sync-provider";
 import { useDebouncedFlush } from "@/sync/use-debounced-flush";
 import { SpaceMutations } from "@/mutations/space.mutations";
@@ -13,7 +13,7 @@ interface SpaceDocumentsPanelProps {
 }
 
 export const SpaceDocumentsPanel = observer(function SpaceDocumentsPanel({ spaceId }: SpaceDocumentsPanelProps) {
-  const rootStore = useStore();
+  const rootStore = useWorkspaceRootStore();
   const syncEngine = useSyncEngine();
   const spaceMutations = useMemo(() => new SpaceMutations(rootStore, syncEngine), [rootStore, syncEngine]);
   const { scheduleFlush } = useDebouncedFlush(syncEngine);

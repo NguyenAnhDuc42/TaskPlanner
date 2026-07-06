@@ -29,7 +29,7 @@ import { FolderTaskBatchBar } from "./components/folder-task-batch-bar";
 import { UniversalPicker } from "@/components/universal-picker";
 import { cn } from "@/lib/utils";
 import { DeleteConfirmationDialog } from "../../hierarchy/hierarchy-components/context-menus/shared";
-import { useStore } from "@/stores/root.store";
+import { useWorkspaceRootStore } from "@/stores/workspace-root.store";
 import { useSyncEngine, useSyncReady } from "@/sync/sync-provider";
 import { useDebouncedFlush } from "@/sync/use-debounced-flush";
 import { FolderMutations } from "@/mutations/folder.mutations";
@@ -45,7 +45,7 @@ export const FolderView = observer(function FolderView({ folderId }: Readonly<Fo
   };
 
   const { isAdmin } = useWorkspaceRole();
-  const rootStore = useStore();
+  const rootStore = useWorkspaceRootStore();
   const syncEngine = useSyncEngine();
   const { ready, error } = useSyncReady();
   const folderMutations = React.useMemo(() => new FolderMutations(rootStore, syncEngine), [rootStore, syncEngine]);

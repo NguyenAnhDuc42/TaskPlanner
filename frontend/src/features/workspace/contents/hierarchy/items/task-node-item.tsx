@@ -3,7 +3,7 @@ import { useLocation, useNavigate } from "@tanstack/react-router";
 import { useWorkspace } from "@/features/workspace/context/workspace-context";
 import { cn } from "@/lib/utils";
 import { CheckSquare, MoreVertical } from "lucide-react";
-import { useStore } from "@/stores/root.store";
+import { useWorkspaceRootStore } from "@/stores/workspace-root.store";
 import { SortableItem } from "../dnd/sortable-item";
 import { EntityLayerType, EntityLayerType as EntityLayerConst,} from "@/types/entity-layer-type";
 import { DynamicIcon } from "@/components/dynamic-icon";
@@ -23,7 +23,7 @@ export const TaskNodeItem = observer(function TaskNodeItem({
   parentType,
   spaceId,
 }: TaskNodeItemProps) {
-  const rootStore = useStore();
+  const rootStore = useWorkspaceRootStore();
   const task = rootStore.taskStore.getById(taskId);
 
   const navigate = useNavigate();

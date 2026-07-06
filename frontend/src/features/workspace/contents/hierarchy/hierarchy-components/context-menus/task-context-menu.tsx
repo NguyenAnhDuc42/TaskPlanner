@@ -20,7 +20,7 @@ import { copyToClipboard } from "@/lib/copy-to-clipboard";
 import { EntityLayerType } from "@/types/entity-layer-type";
 import { useWorkspace } from "@/features/workspace/context/workspace-context";
 import { useWorkspaceRole } from "@/features/workspace/context/use-workspace-role";
-import { useStore } from "@/stores/root.store";
+import { useWorkspaceRootStore } from "@/stores/workspace-root.store";
 import { useSyncEngine } from "@/sync/sync-provider";
 import { useDebouncedFlush } from "@/sync/use-debounced-flush";
 import { TaskMutations } from "@/mutations/task.mutations";
@@ -44,7 +44,7 @@ export const TaskContextMenu = observer(function TaskContextMenu({
 }: TaskContextMenuProps) {
   const { workspaceId } = useWorkspace();
   const { canCreateContent } = useWorkspaceRole();
-  const rootStore = useStore();
+  const rootStore = useWorkspaceRootStore();
   const syncEngine = useSyncEngine();
   const taskMutations = useMemo(() => new TaskMutations(rootStore, syncEngine), [rootStore, syncEngine]);
   const favoriteMutations = useMemo(() => new FavoriteMutations(rootStore), [rootStore]);

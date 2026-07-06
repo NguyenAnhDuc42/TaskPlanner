@@ -5,7 +5,7 @@ import { useNavigate, useLocation } from "@tanstack/react-router";
 import { useWorkspace } from "@/features/workspace/context/workspace-context";
 import { cn } from "@/lib/utils";
 import { Collapsible, CollapsibleContent } from "@/components/ui/collapsible";
-import { useStore } from "@/stores/root.store";
+import { useWorkspaceRootStore } from "@/stores/workspace-root.store";
 import { useLocalStorage } from "@/hooks/use-local-storage";
 import { SortableItem } from "../dnd/sortable-item";
 import { NodeTasksList } from "./task-node-list";
@@ -22,7 +22,7 @@ export const FolderNodeItem = observer(function FolderNodeItem({
   folderId,
   spaceId,
 }: FolderNodeItemProps) {
-  const rootStore = useStore();
+  const rootStore = useWorkspaceRootStore();
   const folder = rootStore.folderStore.getById(folderId);
   const hasTasks = rootStore.taskStore.all.some((t) => t.folderId === folderId && !t.parentTaskId);
 

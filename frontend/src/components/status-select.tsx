@@ -2,7 +2,7 @@ import * as React from "react";
 import { useMemo } from "react";
 import { observer } from "mobx-react-lite";
 import { StatusBadge } from "@/components/status-badge";
-import { useStore } from "@/stores/root.store";
+import { useWorkspaceRootStore } from "@/stores/workspace-root.store";
 import type { Status } from "@/types/status";
 import {
   DropdownMenu,
@@ -33,7 +33,7 @@ export const StatusSelect = observer(function StatusSelect({
   align = "start",
   trigger,
 }: Readonly<StatusSelectProps>) {
-  const rootStore = useStore();
+  const rootStore = useWorkspaceRootStore();
   const allStatuses = rootStore.statusStore.all;
 
   const statuses = useMemo(() => {

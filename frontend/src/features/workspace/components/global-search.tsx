@@ -3,7 +3,7 @@ import { observer } from "mobx-react-lite";
 import { useNavigate } from "@tanstack/react-router";
 import { Search } from "lucide-react";
 import { DynamicIcon } from "@/components/dynamic-icon";
-import { useStore } from "@/stores/root.store";
+import { useWorkspaceRootStore } from "@/stores/workspace-root.store";
 import { useWorkspace } from "@/features/workspace/context/workspace-context";
 import { EntityLayerType } from "@/types/entity-layer-type";
 
@@ -23,7 +23,7 @@ const MAX_RESULTS_PER_SECTION = 5;
 // locally (Bootstrap + Delta), no server round-trip. Picking a result navigates straight to it.
 export const GlobalSearch = observer(function GlobalSearch() {
   const { workspaceId } = useWorkspace();
-  const rootStore = useStore();
+  const rootStore = useWorkspaceRootStore();
   const navigate = useNavigate();
   const [query, setQuery] = useState("");
   const [isFocused, setIsFocused] = useState(false);

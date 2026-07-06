@@ -1,5 +1,5 @@
 import { observer } from "mobx-react-lite";
-import { useStore } from "@/stores/root.store";
+import { useWorkspaceRootStore } from "@/stores/workspace-root.store";
 import { FolderNodeItem } from "@/features/workspace/contents/hierarchy/items/folder-node-item";
 import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
 
@@ -10,7 +10,7 @@ export const NodeFoldersList = observer(function NodeFoldersList({
   spaceId: string;
   isExpanded: boolean;
 }) {
-  const rootStore = useStore();
+  const rootStore = useWorkspaceRootStore();
 
   if (!isExpanded) return null;
 

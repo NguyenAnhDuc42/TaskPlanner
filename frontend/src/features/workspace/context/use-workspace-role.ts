@@ -2,7 +2,7 @@ import { useSyncExternalStore } from "react";
 import { autorun } from "mobx";
 import { useWorkspace } from "./workspace-context";
 import { useUser } from "@/features/auth/auth-api";
-import { useStore } from "@/stores/root.store";
+import { useWorkspaceRootStore } from "@/stores/workspace-root.store";
 import type { Role } from "@/types/role";
 
 export interface WorkspaceRole {
@@ -22,7 +22,7 @@ export interface WorkspaceRole {
 export function useWorkspaceRole(): WorkspaceRole {
   const { workspace } = useWorkspace();
   const { data: currentUser } = useUser();
-  const rootStore = useStore();
+  const rootStore = useWorkspaceRootStore();
 
   const myMember = useSyncExternalStore(
     (onStoreChange) => autorun(() => { rootStore.memberStore.all; onStoreChange(); }),

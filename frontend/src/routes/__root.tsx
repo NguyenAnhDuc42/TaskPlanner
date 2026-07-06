@@ -12,7 +12,7 @@ import "../index.css";
 import { Toaster } from "@/components/ui/sonner";
 import { useNotificationSignalR } from "@/features/notifications/use-notification-signalr";
 import { useUser } from "@/features/auth/auth-api";
-import { RootStore, RootStoreProvider } from "@/stores/root.store";
+import { RootStore, RootStoreProvider, setActiveRootStore } from "@/stores/root.store";
 import { NotificationMutations } from "@/mutations/notification.mutations";
 import { apiEvents } from "@/lib/api-client";
 import { devError } from "@/sync/dev-log";
@@ -21,13 +21,14 @@ interface RouterContext {
   auth: AuthContextType;
 }
 
-// RootStore lives here, above all routing — not inside SyncProvider (workspace-scoped) — because
-// user-level state (notificationStore, workspaceStore) needs to exist both inside a workspace and
-// on the pre-workspace home screen. SyncProvider now calls switchWorkspace()/init() on this same
-// shared instance instead of constructing its own.
 function AppShell() {
   const rootStore = useMemo(() => new RootStore(), []);
   const { data: currentUser } = useUser();
+
+  useEffect(() => {
+    setActiveRootStore(rootStore);
+    return () => setActiveRootStore(null);
+  }, [rootStore]);
 
   useEffect(() => {
     if (!currentUser?.id) return;

@@ -15,7 +15,7 @@ import { TaskComments } from "../task-components/task-comments";
 import { TaskSubtasks } from "../task-components/task-subtasks";
 import type { Priority } from "@/types/priority";
 import type { TaskRecord } from "@/types/projects/task-record";
-import { useStore } from "@/stores/root.store";
+import { useWorkspaceRootStore } from "@/stores/workspace-root.store";
 import { useSyncEngine, useSyncReady } from "@/sync/sync-provider";
 import type { SyncEngine } from "@/sync/sync-engine";
 import { useDebouncedFlush } from "@/sync/use-debounced-flush";
@@ -45,7 +45,7 @@ function useDebouncedTaskUpdate(taskMutations: TaskMutations, syncEngine: SyncEn
 }
 
 export const TaskDetailCanvas = observer(function TaskDetailCanvas({ taskId }: TaskDetailCanvasProps) {
-  const rootStore = useStore();
+  const rootStore = useWorkspaceRootStore();
   const syncEngine = useSyncEngine();
   const { ready, error } = useSyncReady();
   const taskMutations = useMemo(() => new TaskMutations(rootStore, syncEngine), [rootStore, syncEngine]);

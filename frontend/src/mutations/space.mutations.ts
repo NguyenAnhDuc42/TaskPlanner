@@ -1,4 +1,5 @@
-import type { RootStore } from '@/stores/root.store'
+import type { WorkspaceRootStore } from '@/stores/workspace-root.store'
+import { getActiveRootStore } from '@/stores/root.store'
 import type { SyncEngine } from '@/sync/sync-engine'
 import type { SpaceRecord } from '@/types/projects/space-record'
 import type { PendingTransaction } from '@/types/sync/transaction'
@@ -9,10 +10,10 @@ import { fractionalAfter } from '@/features/workspace/contents/hierarchy/utils/f
 import { toJS } from 'mobx'
 
 export class SpaceMutations {
-  private rootStore: RootStore
+  private rootStore: WorkspaceRootStore
   private syncEngine: SyncEngine
 
-  constructor(rootStore: RootStore, syncEngine: SyncEngine) {
+  constructor(rootStore: WorkspaceRootStore, syncEngine: SyncEngine) {
     this.rootStore = rootStore
     this.syncEngine = syncEngine
   }
@@ -60,7 +61,7 @@ export class SpaceMutations {
     const tx = await this.syncEngine.transactionQueue.enqueue('C', 'Space', record.id, commandPayload, null)
 
     // 4. Synchronous API call
-    if (!this.rootStore.isOnline) {
+    if (!(getActiveRootStore()?.isOnline ?? true)) {
       console.warn('App is offline. Skipping API request. Will sync later.')
       return record
     }
@@ -68,7 +69,7 @@ export class SpaceMutations {
     try {
       await api.post('/spaces/sync', commandPayload, {
         headers: {
-          'X-Workspace-Id': this.rootStore.currentWorkspaceId!,
+          'X-Workspace-Id': this.rootStore.workspaceId,
           'X-Client-Trace-Id': tx.id,
         }
       })
@@ -127,7 +128,7 @@ export class SpaceMutations {
     const { previous, tx } = await this.updateLocal(spaceId, changes)
 
     // 4. Synchronous API call
-    if (!this.rootStore.isOnline) {
+    if (!(getActiveRootStore()?.isOnline ?? true)) {
       console.warn('App is offline. Skipping API request. Will sync later.')
       return
     }
@@ -135,7 +136,7 @@ export class SpaceMutations {
     try {
       await api.put(`/spaces/sync/${spaceId}`, changes, {
         headers: {
-          'X-Workspace-Id': this.rootStore.currentWorkspaceId!,
+          'X-Workspace-Id': this.rootStore.workspaceId,
           'X-Client-Trace-Id': tx.id,
         }
       })
@@ -201,7 +202,7 @@ export class SpaceMutations {
     )
 
     // 4. Synchronous API call
-    if (!this.rootStore.isOnline) {
+    if (!(getActiveRootStore()?.isOnline ?? true)) {
       console.warn('App is offline. Skipping API request. Will sync later.')
       return
     }
@@ -209,7 +210,7 @@ export class SpaceMutations {
     try {
       await api.delete(`/spaces/sync/${spaceId}`, {
         headers: {
-          'X-Workspace-Id': this.rootStore.currentWorkspaceId!,
+          'X-Workspace-Id': this.rootStore.workspaceId,
           'X-Client-Trace-Id': tx.id,
         }
       })

@@ -14,7 +14,7 @@ import { handleFolderMove } from "./handlers/handle-folder-move";
 import { handleTaskMove } from "./handlers/handle-task-move";
 import type { DragItemData } from "./drag-item-type";
 import { useWorkspaceRole } from "@/features/workspace/context/use-workspace-role";
-import { useStore } from "@/stores/root.store";
+import { useWorkspaceRootStore } from "@/stores/workspace-root.store";
 import { useSyncEngine } from "@/sync/sync-provider";
 import { useDebouncedFlush } from "@/sync/use-debounced-flush";
 import { SpaceMutations } from "@/mutations/space.mutations";
@@ -26,7 +26,7 @@ export function useHierarchyDnd() {
   const { canCreateContent } = useWorkspaceRole();
   const [activeItem, setActiveItem] = useState<DragItemData | null>(null);
 
-  const rootStore = useStore();
+  const rootStore = useWorkspaceRootStore();
   const syncEngine = useSyncEngine();
   const spaceMutations = useMemo(() => new SpaceMutations(rootStore, syncEngine), [rootStore, syncEngine]);
   const folderMutations = useMemo(() => new FolderMutations(rootStore, syncEngine), [rootStore, syncEngine]);

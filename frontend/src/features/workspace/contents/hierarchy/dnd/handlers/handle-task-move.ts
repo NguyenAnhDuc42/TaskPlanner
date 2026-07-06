@@ -2,12 +2,12 @@ import { arrayMove } from "@dnd-kit/sortable";
 import { EntityLayerType as EntityLayerConst } from "@/types/entity-layer-type";
 import { safeKey, fractionalBetween } from "../../utils/fractional-index";
 import type { DragItemData, DragTaskData } from "../drag-item-type";
-import type { RootStore } from "@/stores/root.store";
+import type { WorkspaceRootStore } from "@/stores/workspace-root.store";
 import type { TaskMutations } from "@/mutations/task.mutations";
 import type { TaskRecord } from "@/types/projects";
 
 export function handleTaskMove(
-  rootStore: RootStore,
+  rootStore: WorkspaceRootStore,
   taskMutations: TaskMutations,
   activeData: DragTaskData,
   overData: DragItemData,

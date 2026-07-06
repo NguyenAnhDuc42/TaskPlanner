@@ -25,7 +25,7 @@ import { Plus, X } from "lucide-react";
 import { DynamicIcon } from "@/components/dynamic-icon";
 import { toast } from "sonner";
 import { extractErrorMessage } from "@/types/api-error";
-import { useStore } from "@/stores/root.store";
+import { useWorkspaceRootStore } from "@/stores/workspace-root.store";
 import { useSyncEngine } from "@/sync/sync-provider";
 import { useDebouncedFlush } from "@/sync/use-debounced-flush";
 import { FolderMutations } from "@/mutations/folder.mutations";
@@ -109,7 +109,7 @@ interface FolderCardsBarProps {
 
 export const FolderCardsBar = observer(function FolderCardsBar({ spaceId, workspaceId, folders, folderTaskCounts }: FolderCardsBarProps) {
   const navigate = useNavigate({ from: "/workspaces/$workspaceId/spaces/$spaceId" });
-  const rootStore = useStore();
+  const rootStore = useWorkspaceRootStore();
   const syncEngine = useSyncEngine();
   const folderMutations = useMemo(() => new FolderMutations(rootStore, syncEngine), [rootStore, syncEngine]);
   const { scheduleFlush } = useDebouncedFlush(syncEngine);

@@ -3,7 +3,7 @@ import { extractErrorMessage } from "@/types/api-error";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { IconColorPicker } from "./form-elements";
-import { useStore } from "@/stores/root.store";
+import { useWorkspaceRootStore } from "@/stores/workspace-root.store";
 import { useSyncEngine } from "@/sync/sync-provider";
 import { SpaceMutations } from "@/mutations/space.mutations";
 
@@ -46,7 +46,7 @@ function spaceFormReducer(state: SpaceFormState, action: SpaceFormAction): Space
 }
 
 export function CreateSpaceForm({ onSuccess, onCancel }: Readonly<CreateSpaceFormProps>) {
-  const rootStore = useStore();
+  const rootStore = useWorkspaceRootStore();
   const syncEngine = useSyncEngine();
   const spaceMutations = useMemo(() => new SpaceMutations(rootStore, syncEngine), [rootStore, syncEngine]);
   const [isCreating, setIsCreating] = useReducer((_: boolean, v: boolean) => v, false);

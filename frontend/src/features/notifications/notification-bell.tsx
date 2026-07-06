@@ -5,6 +5,7 @@ import { useNavigate } from "@tanstack/react-router";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { UserAvatar } from "@/components/user-avatar";
 import { useStore } from "@/stores/root.store";
+import { useOptionalWorkspaceRootStore } from "@/stores/workspace-root.store";
 import { NotificationMutations } from "@/mutations/notification.mutations";
 import { cn } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";
@@ -21,6 +22,7 @@ function notificationPath(n: NotificationRecord): string | null {
 export const NotificationBell = observer(function NotificationBell() {
   const navigate = useNavigate();
   const rootStore = useStore();
+  const workspaceRootStore = useOptionalWorkspaceRootStore();
   const notificationMutations = useMemo(() => new NotificationMutations(rootStore), [rootStore]);
   const [open, setOpen] = useState(false);
 
@@ -37,7 +39,7 @@ export const NotificationBell = observer(function NotificationBell() {
   const resolveBody = (body: string | undefined): string => {
     if (!body) return "";
     return body.replace(/@\[([a-f0-9-]{36})\]/g, (_, id) => {
-      const member = rootStore.memberStore.getById(id);
+      const member = workspaceRootStore?.memberStore.getById(id);
       return member ? `@${member.name}` : "@someone";
     });
   };

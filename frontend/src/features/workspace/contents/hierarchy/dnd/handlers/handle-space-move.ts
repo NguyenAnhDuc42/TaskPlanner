@@ -2,11 +2,11 @@ import { arrayMove } from "@dnd-kit/sortable";
 import { EntityLayerType as EntityLayerConst } from "@/types/entity-layer-type";
 import type { DragItemData, DragSpaceData } from "../drag-item-type";
 import { safeKey, fractionalBetween } from "../../utils/fractional-index";
-import type { RootStore } from "@/stores/root.store";
+import type { WorkspaceRootStore } from "@/stores/workspace-root.store";
 import type { SpaceMutations } from "@/mutations/space.mutations";
 
 export function handleSpaceMove(
-  rootStore: RootStore,
+  rootStore: WorkspaceRootStore,
   spaceMutations: SpaceMutations,
   activeData: DragSpaceData,
   overData: DragItemData,

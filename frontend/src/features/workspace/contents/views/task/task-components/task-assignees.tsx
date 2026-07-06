@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 
-import { useStore } from "@/stores/root.store";
+import { useWorkspaceRootStore } from "@/stores/workspace-root.store";
 import { useSyncEngine } from "@/sync/sync-provider";
 import { AssigneeMutations } from "@/mutations/assignee.mutations";
 
@@ -16,7 +16,7 @@ interface TaskAssigneesProps {
 }
 
 export const TaskAssignees = observer(function TaskAssignees({ taskId }: Readonly<TaskAssigneesProps>) {
-  const rootStore = useStore();
+  const rootStore = useWorkspaceRootStore();
   const allMembers = rootStore.memberStore.all;
   const syncEngine = useSyncEngine();
   const assigneeMutations = useMemo(() => new AssigneeMutations(rootStore, syncEngine), [rootStore, syncEngine]);

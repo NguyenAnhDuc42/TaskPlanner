@@ -1,4 +1,4 @@
-import type { RootStore } from '@/stores/root.store'
+import type { WorkspaceRootStore } from '@/stores/workspace-root.store'
 import type { MemberRecord } from '@/types/workspace/member-record'
 import type { Role } from '@/types/role'
 import type { MembershipStatus } from '@/types/membership-status'
@@ -12,15 +12,15 @@ import { toJS } from 'mobx'
 // shape as Workspace/Favorite/Status mutations: apply optimistically, one call, roll back on
 // failure. Add is the odd one out even among these — see add()'s comment.
 export class MemberMutations {
-  private rootStore: RootStore
+  private rootStore: WorkspaceRootStore
 
-  constructor(rootStore: RootStore) {
+  constructor(rootStore: WorkspaceRootStore) {
     this.rootStore = rootStore
   }
 
   private headers() {
     return {
-      'X-Workspace-Id': this.rootStore.currentWorkspaceId!,
+      'X-Workspace-Id': this.rootStore.workspaceId,
       'X-Client-Trace-Id': crypto.randomUUID(),
     }
   }

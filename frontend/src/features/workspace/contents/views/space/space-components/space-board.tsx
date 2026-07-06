@@ -18,7 +18,7 @@ import { useEdgeScroll } from "@/features/workspace/contents/views/space/utils/u
 import { SpaceFilterBar } from "./space-filter-bar";
 import { useWorkspace } from "@/features/workspace/context/workspace-context";
 import { FolderCardsBar } from "./folder-cards-bar";
-import { useStore } from "@/stores/root.store";
+import { useWorkspaceRootStore } from "@/stores/workspace-root.store";
 import { useSyncEngine, useSyncReady } from "@/sync/sync-provider";
 import { useDebouncedFlush } from "@/sync/use-debounced-flush";
 import { TaskMutations } from "@/mutations/task.mutations";
@@ -55,7 +55,7 @@ export const SpaceBoard = observer(function SpaceBoard({ spaceId, onWorkflowOpen
 
   const containerRef = useRef<HTMLDivElement | null>(null);
 
-  const rootStore = useStore();
+  const rootStore = useWorkspaceRootStore();
   const syncEngine = useSyncEngine();
   const { ready } = useSyncReady();
   const taskMutations = useMemo(() => new TaskMutations(rootStore, syncEngine), [rootStore, syncEngine]);

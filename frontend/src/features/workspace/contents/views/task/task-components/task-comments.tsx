@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { MentionInput } from "@/components/mention-input";
 import { toast } from "sonner";
 import { useStore } from "@/stores/root.store";
+import { useWorkspaceRootStore } from "@/stores/workspace-root.store";
 import { useSyncEngine } from "@/sync/sync-provider";
 import { CommentMutations } from "@/mutations/comment.mutations";
 import { api } from "@/lib/api-client";
@@ -25,7 +26,7 @@ import {
 
 // Renders comment text — handles new @[workspaceMemberId] tokens and legacy @Name text.
 const CommentContent = observer(function CommentContent({ content }: { content: string }) {
-  const rootStore = useStore();
+  const rootStore = useWorkspaceRootStore();
 
   const idTokenRe  = /@\[([a-f0-9-]{36})\]/g;
   const nameTokenRe = /@((?:\w+)(?:\s(?!\s*@)\w+)*)/g;
@@ -63,7 +64,7 @@ interface TaskCommentsProps {
 }
 
 function useTaskComments(taskId: string) {
-  const rootStore = useStore();
+  const rootStore = useWorkspaceRootStore();
   const [items, setItems] = useState<CommentRecord[]>([]);
   const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [hasNextPage, setHasNextPage] = useState(false);
@@ -120,10 +121,14 @@ function useTaskComments(taskId: string) {
 }
 
 export const TaskComments = observer(function TaskComments({ taskId }: Readonly<TaskCommentsProps>) {
-  const rootStore = useStore();
+  const rootStore = useWorkspaceRootStore();
+  const currentUserId = useStore().currentUserId;
   const allMembers = rootStore.memberStore.all;
   const syncEngine = useSyncEngine();
-  const commentMutations = useMemo(() => new CommentMutations(rootStore, syncEngine), [rootStore, syncEngine]);
+  const commentMutations = useMemo(
+    () => new CommentMutations(rootStore, syncEngine, currentUserId),
+    [rootStore, syncEngine, currentUserId],
+  );
 
   const { items: fetchedComments, isLoading, isFetchingNextPage, hasNextPage, fetchNextPage } = useTaskComments(taskId);
   useEffect(() => {

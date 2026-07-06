@@ -1,4 +1,4 @@
-import type { RootStore } from '@/stores/root.store'
+import type { WorkspaceRootStore } from '@/stores/workspace-root.store'
 import type { Status } from '@/types/status'
 import type { StatusCategory } from '@/types/status-category'
 import { RowAction } from '@/types/row-action'
@@ -20,9 +20,9 @@ export interface StatusUpdateValue {
 // mutations: apply optimistically, one PUT to /statuses/sync/batch, full rollback on any failure
 // (network or rejection alike — there's nowhere to leave a "pending" batch waiting for retry).
 export class StatusMutations {
-  private rootStore: RootStore
+  private rootStore: WorkspaceRootStore
 
-  constructor(rootStore: RootStore) {
+  constructor(rootStore: WorkspaceRootStore) {
     this.rootStore = rootStore
   }
 
@@ -59,7 +59,7 @@ export class StatusMutations {
         { spaceId, statuses },
         {
           headers: {
-            'X-Workspace-Id': this.rootStore.currentWorkspaceId!,
+            'X-Workspace-Id': this.rootStore.workspaceId,
             'X-Client-Trace-Id': crypto.randomUUID(),
           },
         },

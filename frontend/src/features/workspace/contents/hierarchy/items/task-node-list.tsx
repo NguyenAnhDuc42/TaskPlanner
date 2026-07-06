@@ -1,5 +1,5 @@
 import { observer } from "mobx-react-lite";
-import { useStore } from "@/stores/root.store";
+import { useWorkspaceRootStore } from "@/stores/workspace-root.store";
 import { EntityLayerType } from "@/types/entity-layer-type";
 import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { TaskNodeItem } from "./task-node-item";
@@ -15,7 +15,7 @@ export const NodeTasksList = observer(function NodeTasksList({
   isExpanded: boolean;
   spaceId: string;
 }) {
-  const rootStore = useStore();
+  const rootStore = useWorkspaceRootStore();
 
   if (!isExpanded) return null;
 

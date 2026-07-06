@@ -3,7 +3,7 @@ import { observer } from "mobx-react-lite";
 import { DynamicIcon } from "@/components/dynamic-icon";
 import { useNavigate, useLocation, useRouter } from "@tanstack/react-router";
 import { useWorkspace } from "@/features/workspace/context/workspace-context";
-import { useStore } from "@/stores/root.store";
+import { useWorkspaceRootStore } from "@/stores/workspace-root.store";
 import { FavoriteMutations } from "@/mutations/favorite.mutations";
 import { EntityLayerType } from "@/types/entity-layer-type";
 import { cn } from "@/lib/utils";
@@ -72,7 +72,7 @@ function FavItemContent({
 
 export const FavoriteNodeList = observer(function FavoriteNodeList() {
   const { workspaceId } = useWorkspace();
-  const rootStore = useStore();
+  const rootStore = useWorkspaceRootStore();
   const favoriteMutations = useMemo(() => new FavoriteMutations(rootStore), [rootStore]);
   const navigate = useNavigate();
   const router = useRouter();

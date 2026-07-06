@@ -1,4 +1,5 @@
-import type { RootStore } from "@/stores/root.store";
+import type { WorkspaceRootStore } from "@/stores/workspace-root.store";
+import { getActiveRootStore } from "@/stores/root.store";
 import type { TaskRecord, SpaceRecord, FolderRecord, CommentRecord, AssigneeRecord } from "@/types/projects";
 import type { DocumentRecord } from "@/types/document";
 import type { DocumentBlockRecord } from "@/types/document/document-block-record";
@@ -15,17 +16,17 @@ type EntityApplier = {
 };
 
 function getEntityApplier(
-  rootStore: RootStore,
+  rootStore: WorkspaceRootStore,
   entityType: SyncEntityType,
   cancelByEntityId?: (id: string) => Promise<void>,
 ): EntityApplier | null {
   switch (entityType) {
     case "Workspace":
       return {
-        upsert: (data) => rootStore.workspaceStore.upsert(data as unknown as WorkspaceRecord),
-        remove: (id) => rootStore.workspaceStore.remove(id),
-        dbPut: (data) => rootStore.workspaceDB?.put(data as unknown as WorkspaceRecord) ?? Promise.resolve(),
-        dbDelete: (id) => rootStore.workspaceDB?.delete(id) ?? Promise.resolve(),
+        upsert: (data) => getActiveRootStore()?.workspaceStore.upsert(data as unknown as WorkspaceRecord),
+        remove: (id) => getActiveRootStore()?.workspaceStore.remove(id),
+        dbPut: (data) => getActiveRootStore()?.workspaceDB?.put(data as unknown as WorkspaceRecord) ?? Promise.resolve(),
+        dbDelete: (id) => getActiveRootStore()?.workspaceDB?.delete(id) ?? Promise.resolve(),
       };
 
     case "Space":
@@ -124,7 +125,7 @@ function getEntityApplier(
 }
 
 export async function applyDelta(
-  rootStore: RootStore,
+  rootStore: WorkspaceRootStore,
   delta: DeltaPayload,
   cancelByEntityId?: (id: string) => Promise<void>,
 ): Promise<void> {
@@ -173,7 +174,7 @@ export async function applyDelta(
 }
 
 export async function applyDeltaBatch(
-  rootStore: RootStore,
+  rootStore: WorkspaceRootStore,
   deltas: DeltaPayload[],
   cancelByEntityId?: (id: string) => Promise<void>,
 ): Promise<void> {

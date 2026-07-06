@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { reaction } from "mobx";
 import { BlockType } from "@/types/block-type";
-import { useStore } from "@/stores/root.store";
+import { useWorkspaceRootStore } from "@/stores/workspace-root.store";
 import { useSyncEngine } from "@/sync/sync-provider";
 import { useDebouncedFlush } from "@/sync/use-debounced-flush";
 import { DocumentBlockMutations } from "@/mutations/document-block.mutations";
@@ -42,7 +42,7 @@ function hashBlock(block: AnyBlock): string {
 }
 
 export function useBlockEditorSync(documentId: string) {
-  const rootStore = useStore();
+  const rootStore = useWorkspaceRootStore();
   const syncEngine = useSyncEngine();
   const documentBlockMutations = useMemo(
     () => new DocumentBlockMutations(rootStore, syncEngine),

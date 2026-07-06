@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { IconColorPicker } from "./form-elements";
 import { DateSelect } from "@/components/date-select";
-import { useStore } from "@/stores/root.store";
+import { useWorkspaceRootStore } from "@/stores/workspace-root.store";
 import { useSyncEngine } from "@/sync/sync-provider";
 import { FolderMutations } from "@/mutations/folder.mutations";
 
@@ -51,7 +51,7 @@ function folderFormReducer(state: FolderFormState, action: FolderFormAction): Fo
 }
 
 export function CreateFolderForm({ spaceId, onSuccess, onCancel }: Readonly<CreateFolderFormProps>) {
-  const rootStore = useStore();
+  const rootStore = useWorkspaceRootStore();
   const syncEngine = useSyncEngine();
   const folderMutations = useMemo(() => new FolderMutations(rootStore, syncEngine), [rootStore, syncEngine]);
   const [isCreating, setIsCreating] = useReducer((_: boolean, v: boolean) => v, false);

@@ -11,7 +11,7 @@ import { useWorkspaceRole } from "@/features/workspace/context/use-workspace-rol
 import type { Priority } from "@/types/priority";
 import type { TaskRecord } from "@/types/projects/task-record";
 import { useNavigate, useLocation } from "@tanstack/react-router";
-import { useStore } from "@/stores/root.store";
+import { useWorkspaceRootStore } from "@/stores/workspace-root.store";
 import { useSyncEngine } from "@/sync/sync-provider";
 import { useDebouncedFlush } from "@/sync/use-debounced-flush";
 import { TaskMutations } from "@/mutations/task.mutations";
@@ -33,7 +33,7 @@ interface TaskSubtasksProps {
 export const TaskSubtasks = observer(function TaskSubtasks({ taskId }: Readonly<TaskSubtasksProps>) {
   const { canCreateContent } = useWorkspaceRole();
   const navigate = useNavigate();
-  const rootStore = useStore();
+  const rootStore = useWorkspaceRootStore();
   const syncEngine = useSyncEngine();
   const taskMutations = useMemo(() => new TaskMutations(rootStore, syncEngine), [rootStore, syncEngine]);
   const { scheduleFlush } = useDebouncedFlush(syncEngine);

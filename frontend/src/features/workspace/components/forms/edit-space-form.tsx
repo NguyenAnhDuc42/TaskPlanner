@@ -4,7 +4,7 @@ import { extractErrorMessage } from "@/types/api-error";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { IconColorPicker } from "./form-elements";
-import { useStore } from "@/stores/root.store";
+import { useWorkspaceRootStore } from "@/stores/workspace-root.store";
 import { useSyncEngine } from "@/sync/sync-provider";
 import { SpaceMutations } from "@/mutations/space.mutations";
 
@@ -38,7 +38,7 @@ function spaceEditReducer(state: SpaceEditState, action: SpaceEditAction): Space
 // creates a new space. The "Space Settings" menu item used to open CreateSpaceForm by mistake,
 // which meant "editing" a space actually created an unrelated new one.
 export const EditSpaceForm = observer(function EditSpaceForm({ spaceId, onSuccess, onCancel }: Readonly<EditSpaceFormProps>) {
-  const rootStore = useStore();
+  const rootStore = useWorkspaceRootStore();
   const syncEngine = useSyncEngine();
   const spaceMutations = useMemo(() => new SpaceMutations(rootStore, syncEngine), [rootStore, syncEngine]);
   const space = rootStore.spaceStore.getById(spaceId);

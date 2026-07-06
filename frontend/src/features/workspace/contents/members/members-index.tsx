@@ -5,7 +5,7 @@ import { observer } from "mobx-react-lite";
 import { MemberList, type MemberSavePayload } from "./member-components/member-list";
 import { useUser } from "@/features/auth/auth-api";
 import { useWorkspace } from "@/features/workspace/context/workspace-context";
-import { useStore } from "@/stores/root.store";
+import { useWorkspaceRootStore } from "@/stores/workspace-root.store";
 import { MemberMutations } from "@/mutations/member.mutations";
 import { extractErrorMessage } from "@/types/api-error";
 import { Copy, Link2 } from "lucide-react";
@@ -15,7 +15,7 @@ import { copyToClipboard } from "@/lib/copy-to-clipboard";
 export default observer(function MembersIndex() {
   const { data: currentUser } = useUser();
   const { workspace } = useWorkspace();
-  const rootStore = useStore();
+  const rootStore = useWorkspaceRootStore();
   const memberMutations = useMemo(() => new MemberMutations(rootStore), [rootStore]);
   const [isSaving, setIsSaving] = useState(false);
 

@@ -29,7 +29,7 @@ import {
 } from "@/components/ui/dialog";
 import { StatusCategory } from "@/types/status-category";
 import type { Status } from "@/types/status";
-import { useStore } from "@/stores/root.store";
+import { useWorkspaceRootStore } from "@/stores/workspace-root.store";
 import { StatusMutations, type StatusUpdateValue } from "@/mutations/status.mutations";
 import { RowAction } from "@/types/row-action";
 import { fractionalBetween } from "@/features/workspace/contents/hierarchy/utils/fractional-index";
@@ -358,7 +358,7 @@ export const CreateStatusForm = observer(function CreateStatusForm({
   currentStatuses,
   onApplyChanges,
 }: CreateStatusFormProps) {
-  const rootStore = useStore();
+  const rootStore = useWorkspaceRootStore();
   const statusMutations = useMemo(() => new StatusMutations(rootStore), [rootStore]);
 
   // Plain read, not useMemo — this is a mobx-react-lite observer, which tracks observable reads

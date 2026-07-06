@@ -1,4 +1,5 @@
-import type { RootStore } from '@/stores/root.store'
+import type { WorkspaceRootStore } from '@/stores/workspace-root.store'
+import { getActiveRootStore } from '@/stores/root.store'
 import type { SyncEngine } from '@/sync/sync-engine'
 import type { DocumentRecord } from '@/types/document/document-record'
 import { api } from '@/lib/api-client'
@@ -8,10 +9,10 @@ import { toJS } from 'mobx'
 // No create() here — Document is only ever created as a side-effect of Task/Space
 // creation (see CreateTaskHandler/CreateSpaceHandler on the backend), never standalone.
 export class DocumentMutations {
-  private rootStore: RootStore
+  private rootStore: WorkspaceRootStore
   private syncEngine: SyncEngine
 
-  constructor(rootStore: RootStore, syncEngine: SyncEngine) {
+  constructor(rootStore: WorkspaceRootStore, syncEngine: SyncEngine) {
     this.rootStore = rootStore
     this.syncEngine = syncEngine
   }
@@ -45,7 +46,7 @@ export class DocumentMutations {
     )
 
     // 4. Synchronous API call
-    if (!this.rootStore.isOnline) {
+    if (!(getActiveRootStore()?.isOnline ?? true)) {
       console.warn('App is offline. Skipping API request. Will sync later.')
       return
     }
@@ -53,7 +54,7 @@ export class DocumentMutations {
     try {
       await api.put(`/documents/sync/${documentId}`, { name }, {
         headers: {
-          'X-Workspace-Id': this.rootStore.currentWorkspaceId!,
+          'X-Workspace-Id': this.rootStore.workspaceId,
           'X-Client-Trace-Id': tx.id,
         }
       })
@@ -97,7 +98,7 @@ export class DocumentMutations {
     )
 
     // 4. Synchronous API call
-    if (!this.rootStore.isOnline) {
+    if (!(getActiveRootStore()?.isOnline ?? true)) {
       console.warn('App is offline. Skipping API request. Will sync later.')
       return
     }
@@ -105,7 +106,7 @@ export class DocumentMutations {
     try {
       await api.delete(`/documents/sync/${documentId}`, {
         headers: {
-          'X-Workspace-Id': this.rootStore.currentWorkspaceId!,
+          'X-Workspace-Id': this.rootStore.workspaceId,
           'X-Client-Trace-Id': tx.id,
         }
       })

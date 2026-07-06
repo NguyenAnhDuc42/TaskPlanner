@@ -3,7 +3,7 @@ import { observer } from "mobx-react-lite";
 import { TaskDetailCanvas } from "@/features/workspace/contents/views/task/components/task-detail-canvas";
 import { FolderTaskList } from "@/features/workspace/contents/views/folder/components/folder-task-list";
 import { useNavigate, useLocation } from "@tanstack/react-router";
-import { useStore } from "@/stores/root.store";
+import { useWorkspaceRootStore } from "@/stores/workspace-root.store";
 import { useSyncEngine } from "@/sync/sync-provider";
 import { useDebouncedFlush } from "@/sync/use-debounced-flush";
 import { TaskMutations } from "@/mutations/task.mutations";
@@ -18,7 +18,7 @@ interface ContextPanelRendererProps {
 export const ContextPanelRenderer = observer(function ContextPanelRenderer({ data }: ContextPanelRendererProps) {
   const navigate = useNavigate({ from: "/workspaces/$workspaceId" });
   const location = useLocation();
-  const rootStore = useStore();
+  const rootStore = useWorkspaceRootStore();
   const syncEngine = useSyncEngine();
   const taskMutations = useMemo(() => new TaskMutations(rootStore, syncEngine), [rootStore, syncEngine]);
   const { scheduleFlush } = useDebouncedFlush(syncEngine);

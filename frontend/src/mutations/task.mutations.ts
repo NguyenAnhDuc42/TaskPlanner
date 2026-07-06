@@ -1,4 +1,5 @@
-import type { RootStore } from '@/stores/root.store'
+import type { WorkspaceRootStore } from '@/stores/workspace-root.store'
+import { getActiveRootStore } from '@/stores/root.store'
 import type { SyncEngine } from '@/sync/sync-engine'
 import type { TaskRecord } from '@/types/projects/task-record'
 import type { PendingTransaction } from '@/types/sync/transaction'
@@ -15,10 +16,10 @@ import { toJS } from 'mobx'
 const EMPTY_GUID = '00000000-0000-0000-0000-000000000000'
 
 export class TaskMutations {
-  private rootStore : RootStore
+  private rootStore: WorkspaceRootStore
   private syncEngine : SyncEngine
   
-  constructor(rootStore: RootStore, syncEngine: SyncEngine) {
+  constructor(rootStore: WorkspaceRootStore, syncEngine: SyncEngine) {
     this.rootStore = rootStore
     this.syncEngine = syncEngine
   }
@@ -72,7 +73,7 @@ export class TaskMutations {
     const commandPayload = {
       id,
       defaultDocumentId,
-      projectWorkspaceId: this.rootStore.currentWorkspaceId,
+      projectWorkspaceId: this.rootStore.workspaceId,
       projectSpaceId: data.spaceId ?? null,
       projectFolderId: data.folderId ?? null,
       name: data.name,
@@ -95,7 +96,7 @@ export class TaskMutations {
     )
 
     // 4. Synchronous API call (Hybrid Approach)
-    if (!this.rootStore.isOnline) {
+    if (!(getActiveRootStore()?.isOnline ?? true)) {
       console.warn('App is offline. Skipping API request. Will sync later.')
       return record
     }
@@ -103,7 +104,7 @@ export class TaskMutations {
     try {
       await api.post('/tasks/sync', commandPayload, {
         headers: {
-          'X-Workspace-Id': this.rootStore.currentWorkspaceId!,
+          'X-Workspace-Id': this.rootStore.workspaceId,
           'X-Client-Trace-Id': tx.id,
         }
       })
@@ -214,7 +215,7 @@ export class TaskMutations {
   async update(taskId: string, changes: Partial<TaskRecord>): Promise<void> {
     const { previous, tx } = await this.updateLocal(taskId, changes)
 
-    if (!this.rootStore.isOnline) {
+    if (!(getActiveRootStore()?.isOnline ?? true)) {
       console.warn('App is offline. Skipping API request. Will sync later.')
       return
     }
@@ -222,7 +223,7 @@ export class TaskMutations {
     try {
       await api.put(`/tasks/sync/${taskId}`, tx.data, {
         headers: {
-          'X-Workspace-Id': this.rootStore.currentWorkspaceId!,
+          'X-Workspace-Id': this.rootStore.workspaceId,
           'X-Client-Trace-Id': tx.id,
         }
       })
@@ -278,7 +279,7 @@ export class TaskMutations {
     const { previous, tx } = await this.deleteLocal(taskId)
 
     // 4. Synchronous API call
-    if (!this.rootStore.isOnline) {
+    if (!(getActiveRootStore()?.isOnline ?? true)) {
       console.warn('App is offline. Skipping API request. Will sync later.')
       return
     }
@@ -286,7 +287,7 @@ export class TaskMutations {
     try {
       await api.delete(`/tasks/sync/${taskId}`, {
         headers: {
-          'X-Workspace-Id': this.rootStore.currentWorkspaceId!,
+          'X-Workspace-Id': this.rootStore.workspaceId,
           'X-Client-Trace-Id': tx.id,
         }
       })

@@ -20,7 +20,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { SpaceDetail } from "./space-components/space-detail";
 import { DeleteConfirmationDialog } from "../../hierarchy/hierarchy-components/context-menus/shared";
-import { useStore } from "@/stores/root.store";
+import { useWorkspaceRootStore } from "@/stores/workspace-root.store";
 import { useSyncEngine, useSyncReady } from "@/sync/sync-provider";
 import { SpaceMutations } from "@/mutations/space.mutations";
 
@@ -42,7 +42,7 @@ export const SpaceView = observer(function SpaceView({ spaceId }: Readonly<Space
   };
   const { isAdmin: canManage } = useWorkspaceRole();
   const navigate = useNavigate();
-  const rootStore = useStore();
+  const rootStore = useWorkspaceRootStore();
   const syncEngine = useSyncEngine();
   const { ready, error } = useSyncReady();
   const spaceMutations = React.useMemo(() => new SpaceMutations(rootStore, syncEngine), [rootStore, syncEngine]);

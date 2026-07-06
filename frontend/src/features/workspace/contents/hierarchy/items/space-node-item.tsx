@@ -5,7 +5,7 @@ import { useNavigate, useLocation } from "@tanstack/react-router";
 import { useWorkspace } from "@/features/workspace/context/workspace-context";
 import { cn } from "@/lib/utils";
 import { Collapsible, CollapsibleContent } from "@/components/ui/collapsible";
-import { useStore } from "@/stores/root.store";
+import { useWorkspaceRootStore } from "@/stores/workspace-root.store";
 import { useLocalStorage } from "@/hooks/use-local-storage";
 import { NodeTasksList } from "./task-node-list";
 import { EntityLayerType as EntityLayerConst } from "@/types/entity-layer-type";
@@ -24,7 +24,7 @@ export const SpaceNodeItem = observer(function SpaceNodeItem({
   isForcedOpen = false,
 }: SpaceNodeItemProps) {
   const { workspaceId } = useWorkspace();
-  const rootStore = useStore();
+  const rootStore = useWorkspaceRootStore();
 
   const space = rootStore.spaceStore.getById(spaceId);
   const hasFolders = rootStore.folderStore.getBySpace(spaceId).length > 0;

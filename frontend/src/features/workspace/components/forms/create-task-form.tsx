@@ -17,7 +17,7 @@ import { StatusSelect } from "@/components/status-select";
 import { PrioritySelect } from "@/components/priority-select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { UserAvatar } from "@/components/user-avatar";
-import { useStore } from "@/stores/root.store";
+import { useWorkspaceRootStore } from "@/stores/workspace-root.store";
 import { useSyncEngine } from "@/sync/sync-provider";
 import { TaskMutations } from "@/mutations/task.mutations";
 import { AssigneeMutations } from "@/mutations/assignee.mutations";
@@ -101,7 +101,7 @@ export const CreateTaskForm = observer(function CreateTaskForm({
   onSuccess,
   onCancel,
 }: Readonly<CreateTaskFormProps>) {
-  const rootStore = useStore();
+  const rootStore = useWorkspaceRootStore();
   const syncEngine = useSyncEngine();
   const taskMutations = useMemo(() => new TaskMutations(rootStore, syncEngine), [rootStore, syncEngine]);
   const assigneeMutations = useMemo(() => new AssigneeMutations(rootStore, syncEngine), [rootStore, syncEngine]);

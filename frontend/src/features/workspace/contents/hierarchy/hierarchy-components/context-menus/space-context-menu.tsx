@@ -21,7 +21,7 @@ import { DialogFormWrapper } from "@/components/dialog-form-wrapper";
 import { CreateTaskForm } from "@/features/workspace/components/forms/create-task-form";
 import { CreateFolderForm } from "@/features/workspace/components/forms/create-folder-form";
 import { EditSpaceForm } from "@/features/workspace/components/forms/edit-space-form";
-import { useStore } from "@/stores/root.store";
+import { useWorkspaceRootStore } from "@/stores/workspace-root.store";
 import { useSyncEngine } from "@/sync/sync-provider";
 import { SpaceMutations } from "@/mutations/space.mutations";
 import { FavoriteMutations } from "@/mutations/favorite.mutations";
@@ -40,7 +40,7 @@ export const SpaceContextMenu = observer(function SpaceContextMenu({
 }: SpaceContextMenuProps) {
   const { workspaceId } = useWorkspace();
   const { canCreateContent, canDeleteSpace, isAdmin } = useWorkspaceRole();
-  const rootStore = useStore();
+  const rootStore = useWorkspaceRootStore();
   const syncEngine = useSyncEngine();
   const spaceMutations = useMemo(() => new SpaceMutations(rootStore, syncEngine), [rootStore, syncEngine]);
   const favoriteMutations = useMemo(() => new FavoriteMutations(rootStore), [rootStore]);

@@ -3,7 +3,7 @@ import { observer } from "mobx-react-lite";
 import { Star } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { EntityLayerType } from "@/types/entity-layer-type";
-import { useStore } from "@/stores/root.store";
+import { useWorkspaceRootStore } from "@/stores/workspace-root.store";
 import { FavoriteMutations } from "@/mutations/favorite.mutations";
 
 interface FavoriteButtonProps {
@@ -19,7 +19,7 @@ export const FavoriteButton = observer(function FavoriteButton({
   className,
   iconSize = 12,
 }: FavoriteButtonProps) {
-  const rootStore = useStore();
+  const rootStore = useWorkspaceRootStore();
   const favoriteMutations = useMemo(() => new FavoriteMutations(rootStore), [rootStore]);
   const [isLoading, setIsLoading] = useState(false);
 

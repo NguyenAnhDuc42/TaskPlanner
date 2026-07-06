@@ -1,12 +1,12 @@
 import type { SyncEntityType, SyncAction } from '@/types/sync/delta'
 import type { PendingTransaction } from '@/types/sync/transaction'
-import type { RootStore } from '@/stores/root.store'
+import type { WorkspaceRootStore } from '@/stores/workspace-root.store'
 
 export class TransactionQueue {
-  private rootStore: RootStore
+  private rootStore: WorkspaceRootStore
   private flushing = false
 
-  constructor(rootStore: RootStore) {
+  constructor(rootStore: WorkspaceRootStore) {
     this.rootStore = rootStore
   }
 

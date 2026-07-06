@@ -1,10 +1,10 @@
 import { observer } from "mobx-react-lite";
-import { useStore } from "@/stores/root.store";
+import { useWorkspaceRootStore } from "@/stores/workspace-root.store";
 import { SpaceNodeItem } from "./space-node-item";
 import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
 
 export const SpaceNodeList = observer(function SpaceNodeList() {
-  const rootStore = useStore();
+  const rootStore = useWorkspaceRootStore();
 
   // Spaces are already fully hydrated locally (Bootstrap + Delta) — no pagination needed.
   const spaces = rootStore.spaceStore.all.sort((a, b) => ((a.orderKey ?? "") < (b.orderKey ?? "") ? -1 : 1));

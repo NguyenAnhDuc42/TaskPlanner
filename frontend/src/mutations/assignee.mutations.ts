@@ -1,4 +1,5 @@
-import type { RootStore } from '@/stores/root.store'
+import type { WorkspaceRootStore } from '@/stores/workspace-root.store'
+import { getActiveRootStore } from '@/stores/root.store'
 import type { SyncEngine } from '@/sync/sync-engine'
 import type { AssigneeRecord } from '@/types/projects/assignee-record'
 import { api } from '@/lib/api-client'
@@ -9,10 +10,10 @@ import { toJS } from 'mobx'
 // No update() — assignment is a binary relationship (assigned or not), matching the
 // backend's single-entity Create/Delete-only slices (no legacy diff/changeset endpoint).
 export class AssigneeMutations {
-  private rootStore: RootStore
+  private rootStore: WorkspaceRootStore
   private syncEngine: SyncEngine
 
-  constructor(rootStore: RootStore, syncEngine: SyncEngine) {
+  constructor(rootStore: WorkspaceRootStore, syncEngine: SyncEngine) {
     this.rootStore = rootStore
     this.syncEngine = syncEngine
   }
@@ -50,7 +51,7 @@ export class AssigneeMutations {
     const tx = await this.syncEngine.transactionQueue.enqueue('C', 'Assignee', record.id, commandPayload, null)
 
     // 4. Synchronous API call
-    if (!this.rootStore.isOnline) {
+    if (!(getActiveRootStore()?.isOnline ?? true)) {
       console.warn('App is offline. Skipping API request. Will sync later.')
       return record
     }
@@ -58,7 +59,7 @@ export class AssigneeMutations {
     try {
       await api.post('/assignees/sync', commandPayload, {
         headers: {
-          'X-Workspace-Id': this.rootStore.currentWorkspaceId!,
+          'X-Workspace-Id': this.rootStore.workspaceId,
           'X-Client-Trace-Id': tx.id,
         }
       })
@@ -104,7 +105,7 @@ export class AssigneeMutations {
     )
 
     // 4. Synchronous API call
-    if (!this.rootStore.isOnline) {
+    if (!(getActiveRootStore()?.isOnline ?? true)) {
       console.warn('App is offline. Skipping API request. Will sync later.')
       return
     }
@@ -112,7 +113,7 @@ export class AssigneeMutations {
     try {
       await api.delete(`/assignees/sync/${assigneeId}`, {
         headers: {
-          'X-Workspace-Id': this.rootStore.currentWorkspaceId!,
+          'X-Workspace-Id': this.rootStore.workspaceId,
           'X-Client-Trace-Id': tx.id,
         }
       })

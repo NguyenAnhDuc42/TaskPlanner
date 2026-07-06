@@ -1,5 +1,5 @@
 import { observer } from "mobx-react-lite";
-import { useStore } from "@/stores/root.store";
+import { useWorkspaceRootStore } from "@/stores/workspace-root.store";
 import { SpaceDocumentsPanel } from "./space-documents-panel";
 
 interface SpaceDetailProps {
@@ -7,7 +7,7 @@ interface SpaceDetailProps {
 }
 
 export const SpaceDetail = observer(function SpaceDetail({ spaceId }: SpaceDetailProps) {
-  const rootStore = useStore();
+  const rootStore = useWorkspaceRootStore();
   const space = rootStore.spaceStore.getById(spaceId);
 
   if (!space) return null;

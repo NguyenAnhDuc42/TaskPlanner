@@ -1,4 +1,4 @@
-import type { RootStore } from '@/stores/root.store'
+import type { WorkspaceRootStore } from '@/stores/workspace-root.store'
 import type { FavoriteRecord } from '@/types/projects/favorite-record'
 import { EntityLayerType } from '@/types/entity-layer-type'
 import { api } from '@/lib/api-client'
@@ -19,9 +19,9 @@ import { toJS } from 'mobx'
 // carry isFavorite/favoriteOrderKey. Keeping it as its own record means nothing about the sync
 // engine's Task/Folder/Space path can touch it at all.
 export class FavoriteMutations {
-  private rootStore: RootStore
+  private rootStore: WorkspaceRootStore
 
-  constructor(rootStore: RootStore) {
+  constructor(rootStore: WorkspaceRootStore) {
     this.rootStore = rootStore
   }
 
