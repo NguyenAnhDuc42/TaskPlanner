@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { signalRService } from "@/lib/signalr-service";
 import { useUser } from "@/features/auth/auth-api";
 import { useStore } from "@/stores/root.store";
+import { apiEvents } from "@/lib/api-client";
 import type { NotificationRecord } from "@/types/notification-record";
 
 // Global — called from root layout, works on / and everywhere.
@@ -29,8 +30,14 @@ export function useNotificationSignalR() {
 
     signalRService.on("NewNotification", onNewNotification);
 
+    const onWorkspaceAccessRevoked = ({ workspaceId }: { workspaceId: string }) => {
+      apiEvents.onWorkspaceAccessRevoked.forEach((cb) => cb(workspaceId));
+    };
+    signalRService.on("WorkspaceAccessRevoked", onWorkspaceAccessRevoked);
+
     return () => {
       signalRService.off("NewNotification", onNewNotification);
+      signalRService.off("WorkspaceAccessRevoked", onWorkspaceAccessRevoked);
     };
   }, [currentUser?.id, rootStore]);
 }

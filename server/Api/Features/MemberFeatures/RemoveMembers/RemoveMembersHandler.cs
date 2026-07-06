@@ -88,6 +88,11 @@ public class RemoveMembersHandler(
                 .ContinueWith(t =>
                     logger.LogError(t.Exception, "Failed to send real-time DeltaBatch for member removals in workspace {WorkspaceId}", workspaceId),
                     TaskContinuationOptions.OnlyOnFaulted);
+
+            foreach (var target in targets)
+            {
+                _ = realtimeService.NotifyUserAsync(target.UserId, "WorkspaceAccessRevoked", new { WorkspaceId = workspaceId }, cancellationToken);
+            }
         }
 
         return result;

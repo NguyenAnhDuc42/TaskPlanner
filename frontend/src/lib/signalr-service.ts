@@ -43,6 +43,7 @@ export interface SignalREvents {
   EntitiesDeleted: EntityBatchDelete;
   NewNotification: NotificationRecord;
   WorkspaceJoined: { workspaceId: string };
+  WorkspaceAccessRevoked: { workspaceId: string };
 }
 
 type AnySignalRListener = { eventName: string; callback: (data: unknown) => void };

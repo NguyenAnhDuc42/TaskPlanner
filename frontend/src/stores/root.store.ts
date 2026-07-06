@@ -63,6 +63,12 @@ export class RootStore {
     this.notificationStore.hydrate(notifications);
   }
 
+  async markWorkspaceAccessRevoked(id: string): Promise<void> {
+    this.workspaceStore.markAccessRevoked(id);
+    const updated = this.workspaceStore.getById(id);
+    if (updated) await this.workspaceDB?.put(updated);
+  }
+
   // Wipes every local trace of the current user on this device — the user-level DB
   // (workspaces/notifications) plus every workspace DB they'd cached — so logging out on a
   // shared/public machine doesn't leave the previous session's data sitting in IndexedDB.

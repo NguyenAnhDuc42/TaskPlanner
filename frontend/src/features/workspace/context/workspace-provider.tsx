@@ -58,6 +58,26 @@ export function WorkspaceProvider({ workspaceId, children }: WorkspaceProviderPr
     return () => { cancelled = true; };
   }, [workspaceId, workspaceMutations]);
 
+  useEffect(() => {
+    let unmounted = false;
+    const handleOnline = () => {
+      setIsLoading(true);
+      setError(null);
+      workspaceMutations.fetchDetail(workspaceId)
+        .catch((err) => {
+          if (!unmounted) setError(err);
+        })
+        .finally(() => {
+          if (!unmounted) setIsLoading(false);
+        });
+    };
+    window.addEventListener("online", handleOnline);
+    return () => {
+      unmounted = true;
+      window.removeEventListener("online", handleOnline);
+    };
+  }, [workspaceId, workspaceMutations]);
+
   const { sidebarWidth, contextWidth, isInnerSidebarOpen, updateSettings, hoveredIcon, setHoveredIcon } = useWorkspaceUIStore();
 
   const activeIcon = useMemo(() => {
@@ -103,7 +123,7 @@ export function WorkspaceProvider({ workspaceId, children }: WorkspaceProviderPr
   useEffect(() => {
     const onRevoked = (revokedId: string) => {
       if (revokedId !== workspaceId) return;
-      rootStore.workspaceStore.markAccessRevoked(revokedId);
+      void rootStore.markWorkspaceAccessRevoked(revokedId);
       localStorage.removeItem("lastWorkspaceId");
       void deleteWorkspaceDB(revokedId);
     };

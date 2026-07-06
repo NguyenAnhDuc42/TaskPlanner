@@ -3,6 +3,7 @@ import { WorkspaceProvider } from "@/features/workspace/context/workspace-provid
 import { useWorkspace } from "@/features/workspace/context/workspace-context";
 import { WorkspaceLayout } from "@/features/workspace/components/workspace-layout";
 import { SyncProvider } from "@/sync/sync-provider";
+import { useStore } from "@/stores/root.store";
 import { z } from "zod";
 import { Loader2, ShieldAlert, ArrowLeft } from "lucide-react";
 import axios from "axios";
@@ -41,14 +42,14 @@ function WorkspaceRoot() {
 
 function WorkspaceGate({ workspaceId }: { workspaceId: string }) {
   const { isLoading, isError, error, workspace } = useWorkspace();
+  const { isOnline } = useStore();
   const navigate = useNavigate();
 
   const status = axios.isAxiosError(error) ? error.response?.status : undefined;
   const isAccessRevoked = !!workspace?.accessRevoked;
   const isPermissionDenied = isAccessRevoked || (isError && (status === 403 || status === 404));
 
-  // A live revocation wins over everything, including cached data — this isn't a connectivity
-  // blip, it's the server telling us this membership is gone.
+ 
   if (isAccessRevoked) {
     return (
       <div className="h-screen w-full flex flex-col items-center justify-center gap-3 bg-background text-center px-6">
@@ -61,6 +62,14 @@ function WorkspaceGate({ workspaceId }: { workspaceId: string }) {
           <ArrowLeft className="h-4 w-4" />
           Go back
         </Button>
+      </div>
+    );
+  }
+
+  if (isOnline && isLoading) {
+    return (
+      <div className="h-screen w-full flex items-center justify-center bg-background text-primary">
+        <Loader2 className="h-8 w-8 animate-spin" />
       </div>
     );
   }

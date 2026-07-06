@@ -108,6 +108,14 @@ public class UpdateMembersHandler(
                 .ContinueWith(t =>
                     logger.LogError(t.Exception, "Failed to send real-time DeltaBatch for member updates in workspace {WorkspaceId}", workspaceId),
                     TaskContinuationOptions.OnlyOnFaulted);
+
+            foreach (var update in request.Members)
+            {
+                if (!targets.TryGetValue(update.MemberId, out var target)) continue;
+                if (target.Status == MembershipStatus.Active) continue;
+
+                _ = realtimeService.NotifyUserAsync(target.UserId, "WorkspaceAccessRevoked", new { WorkspaceId = workspaceId }, cancellationToken);
+            }
         }
 
         return result;
