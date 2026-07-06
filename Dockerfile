@@ -4,7 +4,6 @@ WORKDIR /src
 COPY Directory.Build.props Directory.Packages.props ./
 COPY ServiceDefaults/ ServiceDefaults/
 COPY server/Domain/ server/Domain/
-COPY server/Application/ server/Application/
 COPY server/Api/ server/Api/
 
 RUN dotnet publish server/Api/Api.csproj -c Release -o /app/publish --no-self-contained
