@@ -27,7 +27,8 @@ function EditorView({ initialContent, onUpdate, editable = true }: {
       const formData = new FormData();
       formData.append("file", file);
       const { data } = await api.post<{ url: string }>("/attachments/sync/upload", formData, {
-        headers: { "X-Workspace-Id": workspaceId },
+
+        headers: { "X-Workspace-Id": workspaceId, "Content-Type": undefined },
       });
       return data.url;
     },

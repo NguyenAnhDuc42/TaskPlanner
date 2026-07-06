@@ -88,7 +88,9 @@ function useTaskComments(taskId: string) {
       }
 
       try {
-        const { data } = await api.get<PagedResult<CommentRecord>>(`/tasks/${taskId}/comments`);
+        const { data } = await api.get<PagedResult<CommentRecord>>(`/tasks/${taskId}/comments`, {
+          headers: { "X-Workspace-Id": rootStore.workspaceId },
+        });
         if (cancelled) return;
         setItems(data.items);
         setNextCursor(data.nextCursor);
@@ -107,7 +109,10 @@ function useTaskComments(taskId: string) {
   const fetchNextPage = useCallback(() => {
     if (!nextCursor || isFetchingNextPage) return;
     setIsFetchingNextPage(true);
-    api.get<PagedResult<CommentRecord>>(`/tasks/${taskId}/comments`, { params: { cursor: nextCursor } })
+    api.get<PagedResult<CommentRecord>>(`/tasks/${taskId}/comments`, {
+      params: { cursor: nextCursor },
+      headers: { "X-Workspace-Id": rootStore.workspaceId },
+    })
       .then(({ data }) => {
         setItems((prev) => [...prev, ...data.items]);
         setNextCursor(data.nextCursor);
@@ -115,7 +120,7 @@ function useTaskComments(taskId: string) {
       })
       .catch((err) => console.error(`Failed to fetch more comments for task ${taskId}:`, err))
       .finally(() => setIsFetchingNextPage(false));
-  }, [taskId, nextCursor, isFetchingNextPage]);
+  }, [taskId, nextCursor, isFetchingNextPage, rootStore]);
 
   return { items, isLoading, isFetchingNextPage, hasNextPage, fetchNextPage };
 }

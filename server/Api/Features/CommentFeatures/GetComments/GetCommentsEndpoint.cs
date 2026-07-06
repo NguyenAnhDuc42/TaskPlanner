@@ -10,12 +10,12 @@ public static class GetCommentsEndpoint
         // calls this exact path directly (bypassing comment.mutations.ts), no frontend change needed.
         app.MapGet("/api/tasks/{id:guid}/comments", async (
             Guid id,
-            [FromQuery] string? cursor,
-            [FromQuery] int pageSize,
             IHandler dispatcher,
-            CancellationToken cancellationToken) =>
+            CancellationToken cancellationToken,
+            [FromQuery] string? cursor = null,
+            [FromQuery] int pageSize = 15) =>
         {
-            var pagination = new CursorPaginationRequest(cursor, pageSize == 0 ? 15 : pageSize);
+            var pagination = new CursorPaginationRequest(cursor, pageSize);
             var result = await dispatcher.QueryAsync<GetCommentsQuery, PagedResult<CommentRecord>>(new GetCommentsQuery(id, pagination), cancellationToken);
             return result.ToMinimalResult();
         })
