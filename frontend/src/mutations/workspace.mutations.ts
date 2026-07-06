@@ -55,10 +55,14 @@ export class WorkspaceMutations {
       },
     })
 
+ 
+    // flash its blocked state then flip back to looking normal.
     for (const item of data.items) {
-      const record = { ...item } as unknown as WorkspaceRecord
-      this.rootStore.workspaceStore.upsert(record)
-      await this.rootStore.workspaceDB?.put(record)
+      const incoming = { ...item } as unknown as WorkspaceRecord
+      const existing = this.rootStore.workspaceStore.getById(incoming.id)
+      const merged = existing ? { ...toJS(existing), ...incoming } : incoming
+      this.rootStore.workspaceStore.upsert(merged)
+      await this.rootStore.workspaceDB?.put(merged)
     }
 
     return data
