@@ -127,6 +127,19 @@ export function useBlockEditorSync(documentId: string) {
     );
     const context = `document_blocks:${documentId}`;
     (async () => {
+      // Local-first hydration: read straight from IndexedDB before deciding whether a network
+      // fetch is even needed. The in-memory store alone doesn't carry this across a fresh page
+      // load — DocumentBlocks are intentionally excluded from Bootstrap (lazy per-document tier
+      // only, see FRONTEND_SYNC_CONTEXT.md §1b), so without this the editor always waited on a
+      // network round-trip even when the data was already cached locally.
+      const cached = await rootStore.documentBlockDB!.getAllByDocument(documentId);
+      if (cancelled) return;
+      if (cached.length > 0) {
+        for (const block of cached) {
+          rootStore.documentBlockStore.upsert(block);
+        }
+      }
+
       const alreadyFetched = await rootStore.fetchedContextDB!.hasFetched(context);
       if (alreadyFetched || cancelled) return;
 

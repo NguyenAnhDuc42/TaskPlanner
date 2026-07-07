@@ -1,0 +1,10 @@
+/* Media blocks (image/video/audio/file) get a distracting blue 4px outline from BlockNote's
+   default ProseMirror-selectednode styling when clicked as a whole node. Text blocks don't have
+   this problem (clicking them places a cursor instead of selecting the node), so this is scoped
+   to just the block types that trigger node-selection. */
+.bn-block-content[data-content-type="image"].ProseMirror-selectednode > *,
+.bn-block-content[data-content-type="video"].ProseMirror-selectednode > *,
+.bn-block-content[data-content-type="audio"].ProseMirror-selectednode > *,
+.bn-block-content[data-content-type="file"].ProseMirror-selectednode > * {
+  outline: none !important;
+}
