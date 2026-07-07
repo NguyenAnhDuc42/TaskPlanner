@@ -56,7 +56,7 @@ public class UpdateWorkspaceHandler(
                 color = workspace.Color,
                 icon = workspace.Icon,
                 strictJoin = workspace.StrictJoin
-            }, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
+            }, SyncJson.Options);
 
             syncEvent = new SyncEvent
             {

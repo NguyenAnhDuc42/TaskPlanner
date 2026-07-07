@@ -30,8 +30,8 @@ export function useWorkspaceRole(): WorkspaceRole {
   );
   const role = (myMember?.role as Role | undefined) ?? workspace?.role;
 
-  const isOwner  = workspace?.isOwned ?? role === "Owner";
-  const isAdmin  = isOwner || workspace?.canEdit === true || role === "Admin";
+  const isOwner  = role === "Owner";
+  const isAdmin  = isOwner || role === "Admin";
   const isMember = isAdmin || role === "Member";
   const isGuest  = !isMember && !!role;
 

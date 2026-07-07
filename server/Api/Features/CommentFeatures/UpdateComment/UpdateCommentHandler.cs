@@ -58,7 +58,7 @@ public class UpdateCommentHandler(
                 parentCommentId = comment.ParentCommentId,
                 creatorId = comment.CreatorId,
                 createdAt = comment.CreatedAt
-            }, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
+            }, SyncJson.Options);
 
             syncEvent = new SyncEvent
             {

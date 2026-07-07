@@ -72,7 +72,7 @@ public class UpdateSpaceStatusesHandler(
                 }
 
                 var syncPayload = action == SyncAction.D
-                    ? JsonSerializer.Serialize(new { id = status.Id }, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase })
+                    ? JsonSerializer.Serialize(new { id = status.Id }, SyncJson.Options)
                     : JsonSerializer.Serialize(new
                     {
                         id = status.Id,
@@ -81,7 +81,7 @@ public class UpdateSpaceStatusesHandler(
                         color = status.Color,
                         category = status.Category,
                         orderKey = status.OrderKey
-                    }, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
+                    }, SyncJson.Options);
 
                 syncEvents.Add(new SyncEvent
                 {

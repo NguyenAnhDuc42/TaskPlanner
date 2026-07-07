@@ -78,7 +78,7 @@ public class UpdateMembersHandler(
                     role = target.Role,
                     status = target.Status,
                     joinedAt = target.JoinedAt
-                }, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
+                }, SyncJson.Options);
 
                 syncEvents.Add(new SyncEvent
                 {

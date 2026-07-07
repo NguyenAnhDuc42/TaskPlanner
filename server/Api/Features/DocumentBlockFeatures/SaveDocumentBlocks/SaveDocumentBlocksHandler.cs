@@ -12,7 +12,6 @@ public class SaveDocumentBlocksHandler(
     ILogger<SaveDocumentBlocksHandler> logger
 ) : ICommandHandler<SaveDocumentBlocksCommand, long>
 {
-    private static readonly JsonSerializerOptions JsonOpts = new() { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
 
     public async Task<Result<long>> Handle(SaveDocumentBlocksCommand request, CancellationToken cancellationToken)
     {
@@ -66,7 +65,7 @@ public class SaveDocumentBlocksHandler(
                     events.Add(new SyncEvent {
                         ProjectWorkspaceId = workspaceId.Value, EntityType = SyncEntityType.DocumentBlock,
                         EntityId = block.Id, Action = SyncAction.D, ClientTraceId = request.TraceId, AuthorUserId = memberId,
-                        Payload = JsonSerializer.Serialize(new { id = block.Id }, JsonOpts)
+                        Payload = JsonSerializer.Serialize(new { id = block.Id }, SyncJson.Options)
                     });
                 }
                 else if (existingBlocks.TryGetValue(item.Id, out var block))
@@ -81,7 +80,7 @@ public class SaveDocumentBlocksHandler(
                         Payload = JsonSerializer.Serialize(new {
                             id = block.Id, documentId = request.DocumentId, workspaceId = workspaceId.Value,
                             type = block.Type, content = block.Content, orderKey = block.OrderKey
-                        }, JsonOpts)
+                        }, SyncJson.Options)
                     });
                 }
                 else
@@ -95,7 +94,7 @@ public class SaveDocumentBlocksHandler(
                         Payload = JsonSerializer.Serialize(new {
                             id = newBlock.Id, documentId = request.DocumentId, workspaceId = workspaceId.Value,
                             type = newBlock.Type, content = newBlock.Content, orderKey = newBlock.OrderKey
-                        }, JsonOpts)
+                        }, SyncJson.Options)
                     });
                 }
             }

@@ -79,7 +79,7 @@ public class UpdateTaskHandler(
                 orderKey = task.OrderKey,
                 parentTaskId = task.ParentTaskId,
                 isArchived = task.IsArchived
-            }, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
+            }, SyncJson.Options);
 
             syncEvent = new SyncEvent
             {

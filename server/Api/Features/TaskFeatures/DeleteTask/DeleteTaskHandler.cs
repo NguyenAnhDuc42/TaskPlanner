@@ -42,7 +42,7 @@ public class DeleteTaskHandler(
             task.SoftDelete();
 
             var syncPayload = JsonSerializer.Serialize(new { id = task.Id },
-                new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
+                SyncJson.Options);
 
             syncEvent = new SyncEvent
             {

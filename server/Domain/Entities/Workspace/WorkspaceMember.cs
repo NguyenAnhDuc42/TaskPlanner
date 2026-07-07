@@ -113,6 +113,7 @@ public class WorkspaceMember : Entity
     public void RestoreForJoinByCode(bool strictJoin)
     {
         DeletedAt = null;
+        Role = Role.Member;
         JoinByCode(strictJoin);
     }
 

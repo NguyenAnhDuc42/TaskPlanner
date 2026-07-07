@@ -21,7 +21,7 @@ public static class FetchWorkspacesEndpoint
             var filter = new WorkspaceFilter(name, owned, isArchived);
             var query = new FetchWorkspacesQuery(pagination, filter);
 
-            var result = await dispatcher.QueryAsync<FetchWorkspacesQuery, PagedResult<WorkspaceSnippetRecord>>(query, cancellationToken);
+            var result = await dispatcher.QueryAsync<FetchWorkspacesQuery, PagedResult<WorkspaceRecord>>(query, cancellationToken);
 
             return result.IsSuccess
                 ? Results.Ok(result.Value)

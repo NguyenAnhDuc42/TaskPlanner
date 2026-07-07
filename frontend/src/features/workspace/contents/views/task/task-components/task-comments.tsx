@@ -78,6 +78,14 @@ function useTaskComments(taskId: string) {
 
     (async () => {
       setIsLoading(true);
+      const cached = await rootStore.commentDB!.getAllByTask(taskId);
+      if (cancelled) return;
+      if (cached.length > 0) {
+        for (const comment of cached) {
+          rootStore.commentStore.upsert(comment);
+        }
+      }
+
       const alreadyFetched = await rootStore.fetchedContextDB!.hasFetched(context);
       if (alreadyFetched) {
         if (!cancelled) {
@@ -92,7 +100,11 @@ function useTaskComments(taskId: string) {
           headers: { "X-Workspace-Id": rootStore.workspaceId },
         });
         if (cancelled) return;
-        setItems(data.items);
+        for (const comment of data.items) {
+          rootStore.commentStore.upsert(comment);
+        }
+        await rootStore.commentDB!.putMany(data.items);
+        setItems(rootStore.commentStore.getByTask(taskId));
         setNextCursor(data.nextCursor);
         setHasNextPage(data.hasNextPage);
         await rootStore.fetchedContextDB!.markFetched(context);
@@ -113,7 +125,11 @@ function useTaskComments(taskId: string) {
       params: { cursor: nextCursor },
       headers: { "X-Workspace-Id": rootStore.workspaceId },
     })
-      .then(({ data }) => {
+      .then(async ({ data }) => {
+        for (const comment of data.items) {
+          rootStore.commentStore.upsert(comment);
+        }
+        await rootStore.commentDB!.putMany(data.items);
         setItems((prev) => [...prev, ...data.items]);
         setNextCursor(data.nextCursor);
         setHasNextPage(data.hasNextPage);

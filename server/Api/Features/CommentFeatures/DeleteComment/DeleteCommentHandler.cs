@@ -53,7 +53,7 @@ public class DeleteCommentHandler(
             comment.SoftDelete();
 
             var syncPayload = JsonSerializer.Serialize(new { id = comment.Id },
-                new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
+                SyncJson.Options);
 
             syncEvent = new SyncEvent
             {

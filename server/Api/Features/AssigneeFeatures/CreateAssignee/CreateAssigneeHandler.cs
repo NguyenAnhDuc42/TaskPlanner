@@ -1,4 +1,3 @@
-using Microsoft.EntityFrameworkCore;
 using System.Text.Json;
 
 namespace Api;
@@ -58,7 +57,7 @@ public class CreateAssigneeHandler(
                 id = assignment.Id,
                 taskId = assignment.ProjectTaskId,
                 workspaceMemberId = assignment.WorkspaceMemberId
-            }, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
+            }, SyncJson.Options);
 
             syncEvent = new SyncEvent
             {

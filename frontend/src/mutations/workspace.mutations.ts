@@ -2,7 +2,6 @@ import { toJS } from 'mobx'
 import type { RootStore } from '@/stores/root.store'
 import type { SyncEngine } from '@/sync/sync-engine'
 import type { WorkspaceRecord } from '@/types/workspace/workspace-record'
-import type { WorkspaceSnippetRecord } from '@/types/workspace/workspace-snippet-record'
 import type { PagedResult } from '@/types/paged-result'
 import { api } from '@/lib/api-client'
 import { isConnectivityError, isNotFoundError } from '@/lib/is-connectivity-error'
@@ -43,8 +42,8 @@ export class WorkspaceMutations {
     return merged
   }
 
-  async fetchList(filters: WorkspaceListFilters = {}): Promise<PagedResult<WorkspaceSnippetRecord>> {
-    const { data } = await api.get<PagedResult<WorkspaceSnippetRecord>>('/workspaces/sync', {
+  async fetchList(filters: WorkspaceListFilters = {}): Promise<PagedResult<WorkspaceRecord>> {
+    const { data } = await api.get<PagedResult<WorkspaceRecord>>('/workspaces/sync', {
       params: {
         cursor: filters.cursor ?? undefined,
         name: filters.name,

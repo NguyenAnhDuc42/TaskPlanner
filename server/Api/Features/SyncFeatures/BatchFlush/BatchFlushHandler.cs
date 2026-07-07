@@ -12,7 +12,6 @@ public class BatchFlushHandler(
     ILogger<BatchFlushHandler> logger
 ) : ICommandHandler<BatchFlushCommand, BatchFlushResult>
 {
-    private static readonly JsonSerializerOptions JsonOpts = new() { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
 
     // Pre-loaded entities shared across all items in the batch.
     // Bulk-loaded upfront to avoid N×entity queries.
@@ -162,7 +161,7 @@ public class BatchFlushHandler(
     private T Deserialize<T>(JsonElement? raw) where T : class =>
         raw is null
             ? throw new InvalidOperationException("Data payload is required")
-            : JsonSerializer.Deserialize<T>(raw.Value.GetRawText(), JsonOpts)
+            : JsonSerializer.Deserialize<T>(raw.Value.GetRawText(), SyncJson.Options)
               ?? throw new InvalidOperationException($"Failed to deserialize {typeof(T).Name}");
 
     // ── Task ──────────────────────────────────────────────────────────────────
@@ -229,7 +228,7 @@ public class BatchFlushHandler(
                         folderId = task.ProjectFolderId, name = task.Name, slug = task.Slug,
                         defaultDocumentId = task.DefaultDocumentId, color = task.Color, icon = task.Icon,
                         statusId = task.StatusId, priority = task.Priority, orderKey = task.OrderKey, parentTaskId = task.ParentTaskId
-                    }, JsonOpts)
+                    }, SyncJson.Options)
                 }
             ]);
             db.SyncEvents.AddRange(events);
@@ -272,7 +271,7 @@ public class BatchFlushHandler(
                     statusId = task.StatusId, priority = task.Priority, startDate = task.StartDate,
                     dueDate = task.DueDate, storyPoints = task.StoryPoints, timeEstimateSeconds = task.TimeEstimateSeconds,
                     orderKey = task.OrderKey, parentTaskId = task.ParentTaskId, isArchived = task.IsArchived
-                }, JsonOpts)
+                }, SyncJson.Options)
             });
             db.SyncEvents.AddRange(events);
             idempotencyService.MarkAsProcessed(item.TraceId);
@@ -301,7 +300,7 @@ public class BatchFlushHandler(
             events.Add(new SyncEvent {
                 ProjectWorkspaceId = task.ProjectWorkspaceId, EntityType = SyncEntityType.Task,
                 EntityId = task.Id, Action = SyncAction.D, ClientTraceId = item.TraceId, AuthorUserId = memberId,
-                Payload = JsonSerializer.Serialize(new { id = task.Id }, JsonOpts)
+                Payload = JsonSerializer.Serialize(new { id = task.Id }, SyncJson.Options)
             });
             db.SyncEvents.AddRange(events);
             idempotencyService.MarkAsProcessed(item.TraceId);
@@ -346,7 +345,7 @@ public class BatchFlushHandler(
                     id = space.Id, workspaceId = workspaceContext.WorkspaceId, name = space.Name, slug = space.Slug,
                     color = space.Color, icon = space.Icon, isPrivate = space.IsPrivate,
                     orderKey = space.OrderKey, defaultDocumentId = space.DefaultDocumentId
-                }, JsonOpts)
+                }, SyncJson.Options)
             });
 
             var statuses = Status.CreateSpaceStarterSet(workspaceContext.WorkspaceId, space.Id, creatorId);
@@ -359,7 +358,7 @@ public class BatchFlushHandler(
                     Payload = JsonSerializer.Serialize(new {
                         id = status.Id, spaceId = status.ProjectSpaceId, name = status.Name,
                         color = status.Color, category = status.Category.ToString(), orderKey = status.OrderKey
-                    }, JsonOpts)
+                    }, SyncJson.Options)
                 });
             }
 
@@ -397,7 +396,7 @@ public class BatchFlushHandler(
                     id = space.Id, workspaceId = space.ProjectWorkspaceId, name = space.Name, slug = space.Slug,
                     color = space.Color, icon = space.Icon, isPrivate = space.IsPrivate,
                     orderKey = space.OrderKey, defaultDocumentId = space.DefaultDocumentId, isArchived = space.IsArchived
-                }, JsonOpts)
+                }, SyncJson.Options)
             });
             db.SyncEvents.AddRange(events);
             idempotencyService.MarkAsProcessed(item.TraceId);
@@ -434,7 +433,7 @@ public class BatchFlushHandler(
             events.Add(new SyncEvent {
                 ProjectWorkspaceId = space.ProjectWorkspaceId, EntityType = SyncEntityType.Space,
                 EntityId = space.Id, Action = SyncAction.D, ClientTraceId = item.TraceId, AuthorUserId = memberId,
-                Payload = JsonSerializer.Serialize(new { id = space.Id }, JsonOpts)
+                Payload = JsonSerializer.Serialize(new { id = space.Id }, SyncJson.Options)
             });
             db.SyncEvents.AddRange(events);
             idempotencyService.MarkAsProcessed(item.TraceId);
@@ -477,7 +476,7 @@ public class BatchFlushHandler(
                     id = folder.Id, workspaceId = workspaceContext.WorkspaceId, spaceId = folder.ProjectSpaceId,
                     name = folder.Name, slug = folder.Slug, color = folder.Color, icon = folder.Icon,
                     orderKey = folder.OrderKey, startDate = folder.StartDate, dueDate = folder.DueDate
-                }, JsonOpts)
+                }, SyncJson.Options)
             });
             db.SyncEvents.AddRange(events);
             idempotencyService.MarkAsProcessed(item.TraceId);
@@ -517,7 +516,7 @@ public class BatchFlushHandler(
                     id = folder.Id, workspaceId = folder.ProjectWorkspaceId, spaceId = folder.ProjectSpaceId,
                     name = folder.Name, slug = folder.Slug, color = folder.Color, icon = folder.Icon,
                     orderKey = folder.OrderKey, startDate = folder.StartDate, dueDate = folder.DueDate
-                }, JsonOpts)
+                }, SyncJson.Options)
             });
 
             // Cascade: same reasoning as UpdateFolderHandler — a folder moving to a different
@@ -543,7 +542,7 @@ public class BatchFlushHandler(
                             statusId = task.StatusId, priority = task.Priority, startDate = task.StartDate,
                             dueDate = task.DueDate, storyPoints = task.StoryPoints, timeEstimateSeconds = task.TimeEstimateSeconds,
                             orderKey = task.OrderKey, parentTaskId = task.ParentTaskId, isArchived = task.IsArchived
-                        }, JsonOpts)
+                        }, SyncJson.Options)
                     });
                 }
             }
@@ -589,7 +588,7 @@ public class BatchFlushHandler(
                         defaultDocumentId = task.DefaultDocumentId, color = task.Color, icon = task.Icon,
                         statusId = task.StatusId, priority = task.Priority, orderKey = task.OrderKey,
                         parentTaskId = task.ParentTaskId, isArchived = task.IsArchived
-                    }, JsonOpts)
+                    }, SyncJson.Options)
                 });
             }
 
@@ -597,7 +596,7 @@ public class BatchFlushHandler(
             events.Add(new SyncEvent {
                 ProjectWorkspaceId = workspaceContext.WorkspaceId, EntityType = SyncEntityType.Folder,
                 EntityId = folder.Id, Action = SyncAction.D, ClientTraceId = item.TraceId, AuthorUserId = memberId,
-                Payload = JsonSerializer.Serialize(new { id = folder.Id }, JsonOpts)
+                Payload = JsonSerializer.Serialize(new { id = folder.Id }, SyncJson.Options)
             });
 
             db.SyncEvents.AddRange(events);
@@ -636,7 +635,7 @@ public class BatchFlushHandler(
                     id = comment.Id, taskId = comment.ProjectTaskId, content = comment.Content,
                     isEdited = comment.IsEdited, parentCommentId = comment.ParentCommentId,
                     creatorId = comment.CreatorId, createdAt = comment.CreatedAt
-                }, JsonOpts)
+                }, SyncJson.Options)
             });
             db.SyncEvents.AddRange(events);
             idempotencyService.MarkAsProcessed(item.TraceId);
@@ -671,7 +670,7 @@ public class BatchFlushHandler(
                     id = comment.Id, taskId = comment.ProjectTaskId, content = comment.Content,
                     isEdited = comment.IsEdited, parentCommentId = comment.ParentCommentId,
                     creatorId = comment.CreatorId, createdAt = comment.CreatedAt
-                }, JsonOpts)
+                }, SyncJson.Options)
             });
             db.SyncEvents.AddRange(events);
             idempotencyService.MarkAsProcessed(item.TraceId);
@@ -700,7 +699,7 @@ public class BatchFlushHandler(
             events.Add(new SyncEvent {
                 ProjectWorkspaceId = workspaceContext.WorkspaceId, EntityType = SyncEntityType.Comment,
                 EntityId = comment.Id, Action = SyncAction.D, ClientTraceId = item.TraceId, AuthorUserId = memberId,
-                Payload = JsonSerializer.Serialize(new { id = comment.Id }, JsonOpts)
+                Payload = JsonSerializer.Serialize(new { id = comment.Id }, SyncJson.Options)
             });
             db.SyncEvents.AddRange(events);
             idempotencyService.MarkAsProcessed(item.TraceId);
@@ -732,7 +731,7 @@ public class BatchFlushHandler(
             events.Add(new SyncEvent {
                 ProjectWorkspaceId = document.ProjectWorkspaceId, EntityType = SyncEntityType.Document,
                 EntityId = document.Id, Action = SyncAction.U, ClientTraceId = item.TraceId, AuthorUserId = memberId,
-                Payload = JsonSerializer.Serialize(new { id = document.Id, workspaceId = document.ProjectWorkspaceId, name = document.Name }, JsonOpts)
+                Payload = JsonSerializer.Serialize(new { id = document.Id, workspaceId = document.ProjectWorkspaceId, name = document.Name }, SyncJson.Options)
             });
             db.SyncEvents.AddRange(events);
             idempotencyService.MarkAsProcessed(item.TraceId);
@@ -761,7 +760,7 @@ public class BatchFlushHandler(
             events.Add(new SyncEvent {
                 ProjectWorkspaceId = document.ProjectWorkspaceId, EntityType = SyncEntityType.Document,
                 EntityId = document.Id, Action = SyncAction.D, ClientTraceId = item.TraceId, AuthorUserId = memberId,
-                Payload = JsonSerializer.Serialize(new { id = document.Id }, JsonOpts)
+                Payload = JsonSerializer.Serialize(new { id = document.Id }, SyncJson.Options)
             });
             db.SyncEvents.AddRange(events);
             idempotencyService.MarkAsProcessed(item.TraceId);
@@ -798,7 +797,7 @@ public class BatchFlushHandler(
                 Payload = JsonSerializer.Serialize(new {
                     id = block.Id, documentId = block.DocumentId, workspaceId = block.ProjectWorkspaceId,
                     type = block.Type, content = block.Content, orderKey = block.OrderKey
-                }, JsonOpts)
+                }, SyncJson.Options)
             });
             db.SyncEvents.AddRange(events);
             idempotencyService.MarkAsProcessed(item.TraceId);
@@ -834,7 +833,7 @@ public class BatchFlushHandler(
                 Payload = JsonSerializer.Serialize(new {
                     id = block.Id, documentId = block.DocumentId, workspaceId = block.ProjectWorkspaceId,
                     type = block.Type, content = block.Content, orderKey = block.OrderKey
-                }, JsonOpts)
+                }, SyncJson.Options)
             });
             db.SyncEvents.AddRange(events);
             idempotencyService.MarkAsProcessed(item.TraceId);
@@ -863,7 +862,7 @@ public class BatchFlushHandler(
             events.Add(new SyncEvent {
                 ProjectWorkspaceId = block.ProjectWorkspaceId, EntityType = SyncEntityType.DocumentBlock,
                 EntityId = block.Id, Action = SyncAction.D, ClientTraceId = item.TraceId, AuthorUserId = memberId,
-                Payload = JsonSerializer.Serialize(new { id = block.Id }, JsonOpts)
+                Payload = JsonSerializer.Serialize(new { id = block.Id }, SyncJson.Options)
             });
             db.SyncEvents.AddRange(events);
             idempotencyService.MarkAsProcessed(item.TraceId);
@@ -903,7 +902,7 @@ public class BatchFlushHandler(
                 EntityId = assignment.Id, Action = SyncAction.C, ClientTraceId = item.TraceId, AuthorUserId = creatorId,
                 Payload = JsonSerializer.Serialize(new {
                     id = assignment.Id, taskId = assignment.ProjectTaskId, workspaceMemberId = assignment.WorkspaceMemberId
-                }, JsonOpts)
+                }, SyncJson.Options)
             });
             db.SyncEvents.AddRange(events);
             idempotencyService.MarkAsProcessed(item.TraceId);
@@ -932,7 +931,7 @@ public class BatchFlushHandler(
             events.Add(new SyncEvent {
                 ProjectWorkspaceId = workspaceContext.WorkspaceId, EntityType = SyncEntityType.Assignee,
                 EntityId = assignment.Id, Action = SyncAction.D, ClientTraceId = item.TraceId, AuthorUserId = memberId,
-                Payload = JsonSerializer.Serialize(new { id = assignment.Id }, JsonOpts)
+                Payload = JsonSerializer.Serialize(new { id = assignment.Id }, SyncJson.Options)
             });
             db.SyncEvents.AddRange(events);
             idempotencyService.MarkAsProcessed(item.TraceId);
@@ -973,7 +972,7 @@ public class BatchFlushHandler(
                 Payload = JsonSerializer.Serialize(new {
                     id = workspace.Id, name = workspace.Name, description = workspace.Description,
                     color = workspace.Color, icon = workspace.Icon, strictJoin = workspace.StrictJoin
-                }, JsonOpts)
+                }, SyncJson.Options)
             });
             db.SyncEvents.AddRange(events);
             idempotencyService.MarkAsProcessed(item.TraceId);

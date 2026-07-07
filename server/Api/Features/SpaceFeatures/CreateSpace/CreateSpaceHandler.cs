@@ -38,7 +38,7 @@ public class CreateSpaceHandler(
 
             var orderKey = FractionalIndex.SafeAfter(maxKey);
             var slug = SlugHelper.GenerateSlug(request.Name);
-            var jsonOptions = new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
+            var jsonOptions = SyncJson.Options;
 
             var document = Document.Create(
                 id: request.DefaultDocumentId,

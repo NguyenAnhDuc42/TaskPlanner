@@ -55,7 +55,7 @@ public class UpdateFolderHandler(
                 spaceId: request.SpaceId
             );
 
-            var jsonOptions = new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
+            var jsonOptions = SyncJson.Options;
 
             var syncPayload = JsonSerializer.Serialize(new
             {

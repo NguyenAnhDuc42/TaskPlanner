@@ -9,6 +9,7 @@ import type { MemberRecord } from "@/types/workspace/member-record";
 import type { DeltaPayload, SyncEntityType } from "@/types/sync/delta";
 
 type EntityApplier = {
+  getExisting: (id: string) => Record<string, unknown> | undefined;
   upsert: (data: Record<string, unknown>) => void;
   remove: (id: string) => void;
   dbPut: (data: Record<string, unknown>) => Promise<void>;
@@ -23,6 +24,7 @@ function getEntityApplier(
   switch (entityType) {
     case "Workspace":
       return {
+        getExisting: (id) => getActiveRootStore()?.workspaceStore.getById(id) as Record<string, unknown> | undefined,
         upsert: (data) => getActiveRootStore()?.workspaceStore.upsert(data as unknown as WorkspaceRecord),
         remove: (id) => getActiveRootStore()?.workspaceStore.remove(id),
         dbPut: (data) => getActiveRootStore()?.workspaceDB?.put(data as unknown as WorkspaceRecord) ?? Promise.resolve(),
@@ -31,6 +33,7 @@ function getEntityApplier(
 
     case "Space":
       return {
+        getExisting: (id) => rootStore.spaceStore.getById(id) as Record<string, unknown> | undefined,
         upsert: (data) => rootStore.spaceStore.upsert(data as unknown as SpaceRecord),
         remove: (id) => {
           rootStore.folderStore.all.filter(f => f.spaceId === id).forEach(f => rootStore.folderStore.remove(f.id))
@@ -56,6 +59,7 @@ function getEntityApplier(
 
     case "Folder":
       return {
+        getExisting: (id) => rootStore.folderStore.getById(id) as Record<string, unknown> | undefined,
         upsert: (data) => rootStore.folderStore.upsert(data as unknown as FolderRecord),
         remove: (id) => rootStore.folderStore.remove(id),
         dbPut: (data) => rootStore.folderDB!.put(data as unknown as FolderRecord),
@@ -64,6 +68,7 @@ function getEntityApplier(
 
     case "Task":
       return {
+        getExisting: (id) => rootStore.taskStore.getById(id) as Record<string, unknown> | undefined,
         upsert: (data) => rootStore.taskStore.upsert(data as unknown as TaskRecord),
         remove: (id) => rootStore.taskStore.remove(id),
         dbPut: (data) => rootStore.taskDB!.put(data as unknown as TaskRecord),
@@ -72,6 +77,7 @@ function getEntityApplier(
 
     case "Document":
       return {
+        getExisting: (id) => rootStore.documentStore.getById(id) as Record<string, unknown> | undefined,
         upsert: (data) => rootStore.documentStore.upsert(data as unknown as DocumentRecord),
         remove: (id) => rootStore.documentStore.remove(id),
         dbPut: (data) => rootStore.documentDB!.put(data as unknown as DocumentRecord),
@@ -80,6 +86,7 @@ function getEntityApplier(
 
     case "DocumentBlock":
       return {
+        getExisting: (id) => rootStore.documentBlockStore.getById(id) as Record<string, unknown> | undefined,
         upsert: (data) => rootStore.documentBlockStore.upsert(data as unknown as DocumentBlockRecord),
         remove: (id) => rootStore.documentBlockStore.remove(id),
         dbPut: (data) => rootStore.documentBlockDB!.put(data as unknown as DocumentBlockRecord),
@@ -88,6 +95,7 @@ function getEntityApplier(
 
     case "Status":
       return {
+        getExisting: (id) => rootStore.statusStore.getById(id) as Record<string, unknown> | undefined,
         upsert: (data) => rootStore.statusStore.upsert(data as unknown as Status),
         remove: (id) => rootStore.statusStore.remove(id),
         dbPut: (data) => rootStore.statusDB!.put(data as unknown as Status),
@@ -96,6 +104,7 @@ function getEntityApplier(
 
     case "Comment":
       return {
+        getExisting: (id) => rootStore.commentStore.getById(id) as Record<string, unknown> | undefined,
         upsert: (data) => rootStore.commentStore.upsert(data as unknown as CommentRecord),
         remove: (id) => rootStore.commentStore.remove(id),
         dbPut: (data) => rootStore.commentDB!.put(data as unknown as CommentRecord),
@@ -104,6 +113,7 @@ function getEntityApplier(
 
     case "Assignee":
       return {
+        getExisting: (id) => rootStore.assigneeStore.getById(id) as Record<string, unknown> | undefined,
         upsert: (data) => rootStore.assigneeStore.upsert(data as unknown as AssigneeRecord),
         remove: (id) => rootStore.assigneeStore.remove(id),
         dbPut: (data) => rootStore.assigneeDB!.put(data as unknown as AssigneeRecord),
@@ -112,6 +122,7 @@ function getEntityApplier(
 
     case "Member":
       return {
+        getExisting: (id) => rootStore.memberStore.getById(id) as Record<string, unknown> | undefined,
         upsert: (data) => rootStore.memberStore.upsert(data as unknown as MemberRecord),
         remove: (id) => rootStore.memberStore.remove(id),
         dbPut: (data) => rootStore.memberDB!.put(data as unknown as MemberRecord),
@@ -145,8 +156,10 @@ export async function applyDelta(
           break
         }
       }
-      await applier.dbPut(delta.data);
-      applier.upsert(delta.data);
+      const existing = applier.getExisting(delta.entityId);
+      const merged = existing ? { ...existing, ...delta.data } : delta.data;
+      await applier.dbPut(merged);
+      applier.upsert(merged);
       break;
     }
     case "D":

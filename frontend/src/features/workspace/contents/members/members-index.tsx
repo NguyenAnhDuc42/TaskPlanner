@@ -5,6 +5,7 @@ import { observer } from "mobx-react-lite";
 import { MemberList, type MemberSavePayload } from "./member-components/member-list";
 import { useUser } from "@/features/auth/auth-api";
 import { useWorkspace } from "@/features/workspace/context/workspace-context";
+import { useWorkspaceRole } from "@/features/workspace/context/use-workspace-role";
 import { useWorkspaceRootStore } from "@/stores/workspace-root.store";
 import { MemberMutations } from "@/mutations/member.mutations";
 import { extractErrorMessage } from "@/types/api-error";
@@ -15,6 +16,7 @@ import { copyToClipboard } from "@/lib/copy-to-clipboard";
 export default observer(function MembersIndex() {
   const { data: currentUser } = useUser();
   const { workspace } = useWorkspace();
+  const { canInviteMembers } = useWorkspaceRole();
   const rootStore = useWorkspaceRootStore();
   const memberMutations = useMemo(() => new MemberMutations(rootStore), [rootStore]);
   const [isSaving, setIsSaving] = useState(false);
@@ -44,7 +46,7 @@ export default observer(function MembersIndex() {
   };
 
   const joinCode = workspace?.joinCode;
-  const canSeeCode = workspace?.canInvite;
+  const canSeeCode = canInviteMembers;
 
   return (
     <div className="h-full flex flex-col">

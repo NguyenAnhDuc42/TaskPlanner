@@ -40,7 +40,7 @@ public class DeleteAssigneeHandler(
             assignment.SoftDelete();
 
             var syncPayload = JsonSerializer.Serialize(new { id = assignment.Id },
-                new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
+                SyncJson.Options);
 
             syncEvent = new SyncEvent
             {

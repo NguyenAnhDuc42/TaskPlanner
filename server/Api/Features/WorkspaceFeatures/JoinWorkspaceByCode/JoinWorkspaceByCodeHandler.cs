@@ -70,7 +70,7 @@ public class JoinWorkspaceByCodeHandler(
                 role = member.Role,
                 status = member.Status,
                 joinedAt = member.JoinedAt
-            }, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase }),
+            }, SyncJson.Options),
             ClientTraceId = Guid.NewGuid().ToString(),
             AuthorUserId = currentUserId
         };

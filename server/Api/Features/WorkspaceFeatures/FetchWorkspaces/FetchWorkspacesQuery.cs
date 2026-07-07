@@ -7,4 +7,4 @@ namespace Api;
 public record FetchWorkspacesQuery(
     CursorPaginationRequest Pagination,
     WorkspaceFilter Filter
-) : IQueryRequest<PagedResult<WorkspaceSnippetRecord>>;
+) : IQueryRequest<PagedResult<WorkspaceRecord>>;

@@ -77,7 +77,7 @@ public class CreateFolderHandler(
                 orderKey = folder.OrderKey,
                 startDate = folder.StartDate,
                 dueDate = folder.DueDate
-            }, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
+            }, SyncJson.Options);
 
             syncEvent = new SyncEvent
             {

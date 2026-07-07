@@ -1,9 +1,19 @@
+using System.Text.Json.Serialization;
 using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.HttpOverrides;
 using Scalar.AspNetCore;
 using Serilog;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Unset DTO fields must be OMITTED from the JSON, not serialized as explicit nulls — the
+// frontend's { ...existing, ...incoming } merge only stays safe if a field the handler didn't
+// populate is simply absent from the payload, not present-and-null (an explicit null clobbers
+// the cached value on merge; an omitted key does not).
+builder.Services.ConfigureHttpJsonOptions(options =>
+{
+    options.SerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull;
+});
 builder.Services.Configure<ForwardedHeadersOptions>(options =>
 {
     options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;

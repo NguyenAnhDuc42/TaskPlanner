@@ -189,9 +189,6 @@ export const WorkspaceHomeScreen = observer(function WorkspaceHomeScreen() {
                       </span>
                     )}
                   </div>
-                  {ws.memberCount != null && (
-                    <p className="text-[10px] text-muted-foreground/50">{ws.memberCount} members</p>
-                  )}
                 </div>
 
                 {/* Right */}

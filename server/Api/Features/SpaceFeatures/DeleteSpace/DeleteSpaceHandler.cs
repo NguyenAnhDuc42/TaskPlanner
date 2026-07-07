@@ -3,11 +3,6 @@ using System.Text.Json;
 
 namespace Api;
 
-file static class DeleteSpaceSerializerOptions
-{
-    internal static readonly JsonSerializerOptions CamelCase = new() { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
-}
-
 public class DeleteSpaceHandler(
     TaskPlanDbContext db,
     WorkspaceContext workspaceContext,
@@ -68,7 +63,7 @@ public class DeleteSpaceHandler(
 
             space.Delete();
 
-            var syncPayload = JsonSerializer.Serialize(new { id = space.Id }, DeleteSpaceSerializerOptions.CamelCase);
+            var syncPayload = JsonSerializer.Serialize(new { id = space.Id }, SyncJson.Options);
 
             syncEvent = new SyncEvent
             {

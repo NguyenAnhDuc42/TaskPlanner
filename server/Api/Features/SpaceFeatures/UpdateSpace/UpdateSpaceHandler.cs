@@ -52,7 +52,7 @@ public class UpdateSpaceHandler(
                     orderKey = space.OrderKey,
                     defaultDocumentId = space.DefaultDocumentId,
                     isArchived = space.IsArchived
-                }, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase }),
+                }, SyncJson.Options),
                 ClientTraceId = request.TraceId,
                 AuthorUserId = workspaceContext.CurrentMember?.Id ?? Guid.Empty
             };

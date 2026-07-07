@@ -42,7 +42,7 @@ public class DeleteDocumentBlockHandler(
             block.SoftDelete();
 
             var syncPayload = JsonSerializer.Serialize(new { id = block.Id },
-                new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
+                SyncJson.Options);
 
             syncEvent = new SyncEvent
             {

@@ -109,7 +109,7 @@ public class CreateTaskHandler(
                 priority = request.Priority,
                 orderKey = request.OrderKey,
                 parentTaskId = request.ParentTaskId
-            }, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
+            }, SyncJson.Options);
 
             syncEvent = new SyncEvent 
             {

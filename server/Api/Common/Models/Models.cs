@@ -107,18 +107,6 @@ public record StatusRecord
     public string? OrderKey { get; init; }
 }
 
-public record WorkspaceSnippetRecord
-{
-    public Guid Id { get; init; }
-    public string Name { get; init; } = null!;
-    public string? Icon { get; init; }
-    public string? Color { get; init; }
-    public Role? Role { get; init; }
-    public bool? IsPinned { get; init; }
-    public int? MemberCount { get; init; }
-    public MembershipStatus MembershipStatus { get; init; } = MembershipStatus.Active;
-}
-
 public record WorkspaceRecord
 {
     public Guid Id { get; init; }
@@ -127,22 +115,10 @@ public record WorkspaceRecord
     public string? Color { get; init; }
     public string? Description { get; init; }
 
-    // Member specific context (current user)
     public Role? Role { get; init; }
-    public Theme? Theme { get; init; }
     public bool? IsPinned { get; init; }
-    public bool? IsOwned { get; init; }
-
-    // Security flags
-    public bool? CanEdit { get; init; }
-    public bool? CanInvite { get; init; }
-    public bool? CanManageMembers { get; init; }
-    public bool? CanPinWorkspace { get; init; }
-
-    // General Stats
-    public int? MemberCount { get; init; }
     public bool? IsArchived { get; init; }
-    public bool? IsDashboardEnabled { get; init; }
+    public MembershipStatus MembershipStatus { get; init; } = MembershipStatus.Active;
 
     // Invite — only populated for Admin/Owner
     public string? JoinCode { get; init; }

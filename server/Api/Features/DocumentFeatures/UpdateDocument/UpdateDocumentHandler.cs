@@ -46,7 +46,7 @@ public class UpdateDocumentHandler(
                 id = document.Id,
                 workspaceId = document.ProjectWorkspaceId,
                 name = document.Name
-            }, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
+            }, SyncJson.Options);
 
             syncEvent = new SyncEvent
             {

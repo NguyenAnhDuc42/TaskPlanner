@@ -14,22 +14,23 @@ public class FetchWorkspacesRow
     public string Description { get; init; } = null!;
     public Role Role { get; init; }
     public MembershipStatus MembershipStatus { get; init; }
-    public int MemberCount { get; init; }
     public bool IsArchived { get; init; }
     public bool IsPinned { get; init; }
+    public string? JoinCode { get; init; }
+    public bool StrictJoin { get; init; }
 }
 
 public class FetchWorkspacesHandler(
     TaskPlanDbContext db,
     CurrentUserService currentUserService,
     CursorHelper cursorHelper
-) : IQueryHandler<FetchWorkspacesQuery, PagedResult<WorkspaceSnippetRecord>>
+) : IQueryHandler<FetchWorkspacesQuery, PagedResult<WorkspaceRecord>>
 {
-    public async Task<Result<PagedResult<WorkspaceSnippetRecord>>> Handle(FetchWorkspacesQuery request, CancellationToken cancellationToken)
+    public async Task<Result<PagedResult<WorkspaceRecord>>> Handle(FetchWorkspacesQuery request, CancellationToken cancellationToken)
     {
         var currentUserId = currentUserService.CurrentUserId();
         if (currentUserId == Guid.Empty)
-            return Result<PagedResult<WorkspaceSnippetRecord>>.Failure(UserError.NotFound);
+            return Result<PagedResult<WorkspaceRecord>>.Failure(UserError.NotFound);
 
         {
             var pageSize = request.Pagination.PageSize;
@@ -40,7 +41,7 @@ public class FetchWorkspacesHandler(
                 ? @"
                 SELECT w.id AS Id, w.updated_at AS UpdatedAt, w.name AS Name, w.custom_icon AS Icon, w.custom_color AS Color,
                        w.description AS Description, w.is_archived AS IsArchived, wm.role AS Role, wm.status AS MembershipStatus, wm.is_pinned AS IsPinned,
-                       (SELECT COUNT(*) FROM workspace_members WHERE project_workspace_id = w.id AND deleted_at IS NULL) AS MemberCount
+                       w.join_code AS JoinCode, w.strict_join AS StrictJoin
                 FROM project_workspaces w
                 JOIN workspace_members wm ON wm.project_workspace_id = w.id AND wm.user_id = @CurrentUserId AND wm.deleted_at IS NULL
                 WHERE w.deleted_at IS NULL AND
@@ -53,7 +54,7 @@ public class FetchWorkspacesHandler(
                 : @"
                 SELECT w.id AS Id, w.updated_at AS UpdatedAt, w.name AS Name, w.custom_icon AS Icon, w.custom_color AS Color,
                        w.description AS Description, w.is_archived AS IsArchived, wm.role AS Role, wm.status AS MembershipStatus, wm.is_pinned AS IsPinned,
-                       (SELECT COUNT(*) FROM workspace_members WHERE project_workspace_id = w.id AND deleted_at IS NULL) AS MemberCount
+                       w.join_code AS JoinCode, w.strict_join AS StrictJoin
                 FROM project_workspaces w
                 JOIN workspace_members wm ON wm.project_workspace_id = w.id AND wm.user_id = @CurrentUserId AND wm.deleted_at IS NULL
                 WHERE w.deleted_at IS NULL AND
@@ -87,8 +88,8 @@ public class FetchWorkspacesHandler(
                 ? EncodeNextCursor(rows[^1])
                 : null;
 
-            var result = new PagedResult<WorkspaceSnippetRecord>(items, nextCursor, hasMore);
-            return Result<PagedResult<WorkspaceSnippetRecord>>.Success(result);
+            var result = new PagedResult<WorkspaceRecord>(items, nextCursor, hasMore);
+            return Result<PagedResult<WorkspaceRecord>>.Success(result);
         }
     }
 
@@ -115,18 +116,21 @@ public class FetchWorkspacesHandler(
         }
     }
 
-    private static List<WorkspaceSnippetRecord> Map(List<FetchWorkspacesRow> rows)
+    private static List<WorkspaceRecord> Map(List<FetchWorkspacesRow> rows)
     {
-        return rows.Select(x => new WorkspaceSnippetRecord
+        return rows.Select(x => new WorkspaceRecord
         {
             Id = x.Id,
             Name = x.Name,
             Icon = x.Icon,
             Color = x.Color,
+            Description = x.Description,
+            IsArchived = x.IsArchived,
             Role = x.Role,
-            MemberCount = x.MemberCount,
             IsPinned = x.IsPinned,
             MembershipStatus = x.MembershipStatus,
+            JoinCode = (x.Role == Role.Owner || x.Role == Role.Admin) ? x.JoinCode : null,
+            StrictJoin = x.StrictJoin,
         }).ToList();
     }
 

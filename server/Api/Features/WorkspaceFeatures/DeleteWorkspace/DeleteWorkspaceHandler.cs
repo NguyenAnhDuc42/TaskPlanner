@@ -30,7 +30,7 @@ public class DeleteWorkspaceHandler(
         workspace.Delete();
 
         var syncPayload = JsonSerializer.Serialize(new { id = workspace.Id },
-            new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
+            SyncJson.Options);
 
         var syncEvent = new SyncEvent
         {

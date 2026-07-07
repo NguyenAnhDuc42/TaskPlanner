@@ -52,7 +52,7 @@ public class CreateDocumentBlockHandler(
                 type = block.Type,
                 content = block.Content,
                 orderKey = block.OrderKey
-            }, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
+            }, SyncJson.Options);
 
             syncEvent = new SyncEvent
             {

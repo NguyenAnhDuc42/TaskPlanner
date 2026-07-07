@@ -39,7 +39,7 @@ public class DeleteFolderHandler(
                 return Result<long>.Success(0);
             }
 
-            var jsonOptions = new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
+            var jsonOptions = SyncJson.Options;
 
             // Tasks in this folder get moved to space level — otherwise they become invisible in the hierarchy
             var orphanedTasks = await db.ProjectTasks

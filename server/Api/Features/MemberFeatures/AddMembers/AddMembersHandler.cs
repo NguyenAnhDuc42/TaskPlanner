@@ -68,7 +68,7 @@ public class AddMembersHandler(
             db.WorkspaceMembers.AddRange(newMembers);
 
             var syncEvents = new List<SyncEvent>();
-            var jsonOptions = new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
+            var jsonOptions = SyncJson.Options;
 
             foreach (var member in newMembers)
             {

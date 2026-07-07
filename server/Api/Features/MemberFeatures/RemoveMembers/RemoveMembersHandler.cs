@@ -58,7 +58,7 @@ public class RemoveMembersHandler(
                 target.SoftDelete();
 
                 var syncPayload = JsonSerializer.Serialize(new { id = target.Id },
-                    new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
+                    SyncJson.Options);
 
                 syncEvents.Add(new SyncEvent
                 {
