@@ -1,7 +1,9 @@
 import "@blocknote/mantine/style.css";
 import "./block-editor.css";
 import { useRef } from "react";
-import { filterSuggestionItems, type PartialBlock, type Block } from "@blocknote/core";
+import { BlockNoteSchema, defaultBlockSpecs, filterSuggestionItems, type PartialBlock, type Block } from "@blocknote/core";
+import { createCodeBlockSpec } from "@blocknote/core/blocks";
+import { codeBlockOptions } from "@blocknote/code-block";
 import { useCreateBlockNote, SuggestionMenuController, getDefaultReactSlashMenuItems } from "@blocknote/react";
 import { BlockNoteView } from "@blocknote/mantine";
 import { useBlockEditorSync } from "@/features/workspace/contents/views/view-components/use-block-editor-sync";
@@ -10,6 +12,13 @@ import { api } from "@/lib/api-client";
 
 const BLOCKED_SLASH_ITEMS = new Set(["Audio"]);
 const MEDIA_BLOCK_TYPES = new Set(["image", "video", "file"]);
+
+const schema = BlockNoteSchema.create({
+  blockSpecs: {
+    ...defaultBlockSpecs,
+    codeBlock: createCodeBlockSpec(codeBlockOptions),
+  },
+});
 
 type AnyBlock = { id: string; type: string; props?: Record<string, unknown>; children?: AnyBlock[] };
 
@@ -42,6 +51,7 @@ function EditorView({ initialContent, onUpdate, editable = true }: {
   const { workspaceId } = useWorkspaceRootStore();
 
   const editor = useCreateBlockNote({
+    schema,
     initialContent: initialContent as never,
     uploadFile: async (file: File) => {
       const formData = new FormData();
