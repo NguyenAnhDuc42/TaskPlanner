@@ -3,6 +3,7 @@ import { apiEvents } from "@/lib/api-client";
 import { WorkspaceRootStore, WorkspaceRootStoreProvider } from "@/stores/workspace-root.store";
 import { SyncEngine } from "./sync-engine";
 import { devError, devLog } from "./dev-log";
+import { LoadingScreen } from "@/components/loading-screen";
 
 interface SyncEngineContextValue {
   engine: SyncEngine;
@@ -103,11 +104,7 @@ export function SyncProvider({ workspaceId, children }: Readonly<SyncProviderPro
   }
 
   if (!state.ready || !state.workspaceRootStore || !contextValue) {
-    return (
-      <div className="h-screen w-full flex items-center justify-center bg-background text-primary">
-        <div className="animate-pulse text-sm text-muted-foreground">Loading workspace…</div>
-      </div>
-    );
+    return <LoadingScreen fullScreen label="Loading workspace" />;
   }
 
   return (

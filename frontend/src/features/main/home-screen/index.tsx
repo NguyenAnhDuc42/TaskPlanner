@@ -1,6 +1,7 @@
 import { toast } from "sonner";
 import { observer } from "mobx-react-lite";
 import { NotificationBell } from "@/features/notifications/notification-bell";
+import { LoadingScreen } from "@/components/loading-screen";
 import { CreateWorkspaceForm } from "./components/create-workspace-form";
 import { JoinWorkspaceDialog } from "./components/join-workspace-dialog";
 import { useWorkspaceHome, useJoinWorkspaceByCode } from "./api";
@@ -131,7 +132,7 @@ export const WorkspaceHomeScreen = observer(function WorkspaceHomeScreen() {
 
         <div className="flex flex-col gap-0.5 max-h-[55vh] overflow-y-auto">
           {isWorkspacesLoading && workspaces.length === 0 ? (
-            <div className="py-8 text-center text-xs text-muted-foreground/40">Loading...</div>
+            <LoadingScreen className="min-h-0 py-8" />
           ) : workspaces.length === 0 ? (
             <div className="py-8 text-center text-xs text-muted-foreground/40">No workspaces yet.</div>
           ) : (

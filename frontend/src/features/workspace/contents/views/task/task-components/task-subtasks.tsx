@@ -126,7 +126,7 @@ export const TaskSubtasks = observer(function TaskSubtasks({ taskId }: Readonly<
   };
 
   return (
-    <div className="space-y-3 pt-5 border-t border-border/30">
+    <div className="space-y-3 pt-3 border-t border-border/30">
       <h3 className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground/70">
         Subtasks
       </h3>

@@ -30,7 +30,7 @@ public class UploadAttachmentHandler(
         try
         {
             using var stream = new MemoryStream(request.Content);
-            url = await storage.UploadAsync(stream, key, request.ContentType, cancellationToken);
+            url = await storage.UploadAsync(stream, key, request.ContentType, isMedia ? null : request.FileName, cancellationToken);
         }
         catch (Exception ex)
         {

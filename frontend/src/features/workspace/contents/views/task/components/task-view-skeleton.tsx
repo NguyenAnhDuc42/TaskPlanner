@@ -12,7 +12,7 @@ export function TaskViewSkeleton() {
           </div>
 
           {/* Properties Area */}
-          <div className="flex flex-col gap-3.5 pb-6 border-b border-border/30">
+          <div className="flex flex-col gap-3.5 pb-3 border-b border-border/30">
             <div className="flex flex-wrap items-center gap-2.5">
               <Skeleton className="h-7 w-24 rounded-md" />
               <Skeleton className="h-7 w-24 rounded-md" />

@@ -8,6 +8,7 @@ import * as React from "react";
 import { observer } from "mobx-react-lite";
 import { useParams, Link, useNavigate } from "@tanstack/react-router";
 import { DynamicIcon } from "@/components/dynamic-icon";
+import { LoadingScreen } from "@/components/loading-screen";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -132,7 +133,7 @@ export const FolderView = observer(function FolderView({ folderId }: Readonly<Fo
       );
     }
 
-    return <div className="p-8 text-sm text-muted-foreground animate-pulse">Loading folder...</div>;
+    return <LoadingScreen />;
   }
 
   return (

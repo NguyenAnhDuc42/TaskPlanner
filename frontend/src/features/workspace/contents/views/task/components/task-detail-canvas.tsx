@@ -134,7 +134,7 @@ export const TaskDetailCanvas = observer(function TaskDetailCanvas({ taskId }: T
           </div>
 
           {/* Properties Area */}
-          <div className="flex flex-col gap-3.5 pb-6 border-b border-border/30">
+          <div className="flex flex-col gap-3.5 pb-3 border-b border-border/30">
             {/* Row 1: Task State and Timing (Status, Priority, Dates) */}
             <div className="flex flex-wrap items-center gap-2.5">
               <StatusSelect

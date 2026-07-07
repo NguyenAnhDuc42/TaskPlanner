@@ -1,9 +1,9 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { ComingSoon } from '@/components/coming-soon'
-import { ViewSkeleton } from '@/components/view-skeleton'
+import { LoadingScreen } from '@/components/loading-screen'
 
 export const Route = createFileRoute('/workspaces/$workspaceId/settings')({
-  pendingComponent: ViewSkeleton,
+  pendingComponent: LoadingScreen,
   component: () => (
     <ComingSoon 
       title="Settings" 

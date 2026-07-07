@@ -28,7 +28,7 @@ public class ObjectStorageService
         });
     }
 
-    public async Task<string> UploadAsync(Stream content, string key, string contentType, CancellationToken cancellationToken = default)
+    public async Task<string> UploadAsync(Stream content, string key, string contentType, string? downloadFileName = null, CancellationToken cancellationToken = default)
     {
         var client = GetClient();
 
@@ -41,6 +41,14 @@ public class ObjectStorageService
             AutoCloseStream = false,
             UseChunkEncoding = false,
         };
+
+        // Media (image/video) is rendered inline by the block editor via <img>/<video src> — it
+        // must NOT be forced to download. Everything else (the file block's "Download" button
+        // just does window.open(url)) needs Content-Disposition: attachment or the browser
+        // renders it in-tab instead of saving it, for any type the browser knows how to display
+        // (PDF, text, etc).
+        if (downloadFileName != null)
+            request.Headers.ContentDisposition = $"attachment; filename=\"{downloadFileName}\"";
 
         await client.PutObjectAsync(request, cancellationToken);
 

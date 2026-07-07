@@ -5,10 +5,11 @@ import { WorkspaceLayout } from "@/features/workspace/components/workspace-layou
 import { SyncProvider } from "@/sync/sync-provider";
 import { useStore } from "@/stores/root.store";
 import { z } from "zod";
-import { Loader2, ShieldAlert, ArrowLeft } from "lucide-react";
+import { ShieldAlert, ArrowLeft } from "lucide-react";
 import axios from "axios";
 import { Button } from "@/components/ui/button";
 import { getCookie } from "@/lib/cookie-utils";
+import { LoadingScreen } from "@/components/loading-screen";
 
 import { workspaceSearchSchema } from "./workspace-search-schema";
 
@@ -67,11 +68,7 @@ function WorkspaceGate({ workspaceId }: { workspaceId: string }) {
   }
 
   if (isOnline && isLoading) {
-    return (
-      <div className="h-screen w-full flex items-center justify-center bg-background text-primary">
-        <Loader2 className="h-8 w-8 animate-spin" />
-      </div>
-    );
+    return <LoadingScreen fullScreen />;
   }
 
   if (!isPermissionDenied && workspace) {
@@ -83,11 +80,7 @@ function WorkspaceGate({ workspaceId }: { workspaceId: string }) {
   }
 
   if (isLoading) {
-    return (
-      <div className="h-screen w-full flex items-center justify-center bg-background text-primary">
-        <Loader2 className="h-8 w-8 animate-spin" />
-      </div>
-    );
+    return <LoadingScreen fullScreen />;
   }
 
   if (isError) {

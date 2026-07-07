@@ -186,7 +186,7 @@ export const TaskComments = observer(function TaskComments({ taskId }: Readonly<
   };
 
   return (
-    <div className="space-y-4 pt-6 border-t border-border/30">
+    <div className="space-y-4 pt-3 border-t border-border/30">
       <h3 className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground/70">
         Comments
       </h3>

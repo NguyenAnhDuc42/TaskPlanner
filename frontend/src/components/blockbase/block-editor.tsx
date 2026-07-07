@@ -9,6 +9,7 @@ import { BlockNoteView } from "@blocknote/mantine";
 import { useBlockEditorSync } from "@/features/workspace/contents/views/view-components/use-block-editor-sync";
 import { useWorkspaceRootStore } from "@/stores/workspace-root.store";
 import { api } from "@/lib/api-client";
+import { LoadingScreen } from "@/components/loading-screen";
 
 const BLOCKED_SLASH_ITEMS = new Set(["Audio"]);
 const MEDIA_BLOCK_TYPES = new Set(["image", "video", "file"]);
@@ -116,7 +117,7 @@ export function BlockEditor({ documentId, editable = true }: Readonly<BlockEdito
   const { initialContent, handleUpdate, isReady, version } = useBlockEditorSync(documentId);
 
   if (!isReady) {
-    return <div className="py-2 text-xs text-muted-foreground/50 animate-pulse">Loading…</div>;
+    return <LoadingScreen className="min-h-0 py-6" />;
   }
 
   return (

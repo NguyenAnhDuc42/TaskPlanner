@@ -8,7 +8,7 @@ import { WorkspaceSwitcher } from "./workspace-switcher";
 import { useResize } from "@/hooks/use-resize";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { LoadingComponent } from "@/components/loading-component";
+import { LoadingScreen } from "@/components/loading-screen";
 import { ChevronLeft, X, Maximize2, LogOut, User } from "lucide-react";
 import { NotificationBell } from "@/features/notifications/notification-bell";
 import { GlobalSearch } from "./global-search";
@@ -314,7 +314,7 @@ export function WorkspaceLayout() {
             COLUMN 3: Main Canvas
         ═══════════════════════════════════════════════════ */}
         <div className="flex-1 min-w-0 h-full flex flex-col relative bg-card border border-border rounded-md shadow-sm overflow-hidden">
-          <Suspense fallback={<LoadingComponent />}>
+          <Suspense fallback={<LoadingScreen label="Loading" />}>
             <Outlet key={location.pathname} />
           </Suspense>
         </div>

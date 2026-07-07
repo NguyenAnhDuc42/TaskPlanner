@@ -9,6 +9,7 @@ import { DynamicIcon } from "@/components/dynamic-icon";
 import { EntityLayerType } from "@/types/entity-layer-type";
 import { CreateStatusForm } from "@/features/workspace/components/forms/workflow-management-form";
 import { cn } from "@/lib/utils";
+import { LoadingScreen } from "@/components/loading-screen";
 
 import { useNavigate } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
@@ -79,7 +80,7 @@ export const SpaceView = observer(function SpaceView({ spaceId }: Readonly<Space
       );
     }
 
-    return <div className="p-8 text-sm text-muted-foreground animate-pulse">Loading space...</div>;
+    return <LoadingScreen />;
   }
 
   return (
