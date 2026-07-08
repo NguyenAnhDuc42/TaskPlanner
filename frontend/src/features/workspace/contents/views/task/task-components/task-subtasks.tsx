@@ -57,7 +57,7 @@ export const TaskSubtasks = observer(function TaskSubtasks({ taskId }: Readonly<
 
   // New subtask draft state
   const [draftName, setDraftName] = useState("");
-  const [draftStatusId, setDraftStatusId] = useState<string | undefined>(undefined);
+  const [draftStatusId, setDraftStatusId] = useState<string | null | undefined>(undefined);
   const [draftPriority, setDraftPriority] = useState<Priority>("Low");
   const [deleteSubtaskId, setDeleteSubtaskId] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -91,7 +91,7 @@ export const TaskSubtasks = observer(function TaskSubtasks({ taskId }: Readonly<
     }
   };
 
-  const handleStatusChange = (subtaskId: string, statusId: string) => {
+  const handleStatusChange = (subtaskId: string, statusId: string | null) => {
     updateSubtask(subtaskId, { statusId });
   };
 

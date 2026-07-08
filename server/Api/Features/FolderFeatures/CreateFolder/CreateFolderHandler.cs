@@ -76,7 +76,8 @@ public class CreateFolderHandler(
                 icon = folder.Icon,
                 orderKey = folder.OrderKey,
                 startDate = folder.StartDate,
-                dueDate = folder.DueDate
+                dueDate = folder.DueDate,
+                createdAt = folder.CreatedAt
             }, SyncJson.Options);
 
             syncEvent = new SyncEvent

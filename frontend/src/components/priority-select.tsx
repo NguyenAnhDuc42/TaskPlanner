@@ -28,8 +28,10 @@ const getPriorityColorClasses = (p: Priority) => {
     case Priority.Normal:
       return "text-blue-600 dark:text-blue-400 focus:bg-blue-500/10 dark:focus:bg-blue-500/20 focus:text-blue-600 dark:focus:text-blue-400";
     case Priority.Low:
-    default:
       return "text-muted-foreground focus:bg-muted focus:text-muted-foreground dark:focus:text-muted-foreground";
+    case Priority.None:
+    default:
+      return "text-muted-foreground/50 focus:bg-muted focus:text-muted-foreground/70 dark:focus:text-muted-foreground/70";
   }
 };
 
@@ -54,6 +56,7 @@ export function PrioritySelect({
         <DropdownMenuSeparator />
         <DropdownMenuRadioGroup value={value} onValueChange={(val) => onChange(val as Priority)}>
           {[
+            Priority.None,
             Priority.Low,
             Priority.Normal,
             Priority.High,
@@ -67,8 +70,8 @@ export function PrioritySelect({
                 getPriorityColorClasses(p)
               )}
             >
-              <Flag className="h-3.5 w-3.5" />
-              <span>{p}</span>
+              <Flag className={cn("h-3.5 w-3.5", p === Priority.None && "opacity-40")} />
+              <span>{p === Priority.None ? "No priority" : p}</span>
             </DropdownMenuRadioItem>
           ))}
         </DropdownMenuRadioGroup>

@@ -1,4 +1,5 @@
 export const Priority = {
+  None: "None",
   Low: "Low",
   Normal: "Normal",
   High: "High",
@@ -8,24 +9,26 @@ export const Priority = {
 export type Priority = (typeof Priority)[keyof typeof Priority];
 
 export const PriorityWeight: Record<Priority, number> = {
-  [Priority.Urgent]: 3,
-  [Priority.High]: 2,
-  [Priority.Normal]: 1,
-  [Priority.Low]: 0,
+  [Priority.Urgent]: 4,
+  [Priority.High]: 3,
+  [Priority.Normal]: 2,
+  [Priority.Low]: 1,
+  [Priority.None]: 0,
 };
 
 export const WeightToPriority: Record<number, Priority> = {
-  3: Priority.Urgent,
-  2: Priority.High,
-  1: Priority.Normal,
-  0: Priority.Low,
+  4: Priority.Urgent,
+  3: Priority.High,
+  2: Priority.Normal,
+  1: Priority.Low,
+  0: Priority.None,
 };
 
 export function getPriorityWeight(item: { priority?: string; orderKey?: string } | null | undefined): number {
-  if (!item || item.priority === "no-priority") {
-    return 1; // Default Normal weight (1)
+  if (!item || !item.priority) {
+    return 0; // No priority set — sorts last
   }
-  return PriorityWeight[item.priority as Priority] ?? 1;
+  return PriorityWeight[item.priority as Priority] ?? 0;
 }
 
 export const prioritySort = (a: { priority?: string; orderKey?: string }, b: { priority?: string; orderKey?: string }) => {

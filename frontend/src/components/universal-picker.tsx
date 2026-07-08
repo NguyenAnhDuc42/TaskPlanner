@@ -144,7 +144,19 @@ function PickerPanel({
           ))}
         </div>
         <div className="flex items-center gap-1 shrink-0">
-          <div className="w-4 h-4 rounded-full ring-1 ring-border shrink-0" style={{ backgroundColor: localColor }} />
+          <label
+            title="Custom color"
+            className="relative w-4 h-4 rounded-full ring-1 ring-border shrink-0 cursor-pointer overflow-hidden"
+            style={{ backgroundColor: localColor }}
+          >
+            <input
+              type="color"
+              value={/^#[0-9a-fA-F]{6}$/.test(localColor) ? localColor : "#000000"}
+              onChange={(e) => selectColor(e.target.value)}
+              onPointerDown={(e) => e.stopPropagation()}
+              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+            />
+          </label>
           <input
             type="text"
             value={hexInput}

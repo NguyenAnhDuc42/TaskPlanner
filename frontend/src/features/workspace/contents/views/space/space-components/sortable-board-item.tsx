@@ -104,9 +104,9 @@ export const BoardItemCard = React.memo(function BoardItemCard({
               type="button"
               onClick={(e) => { e.stopPropagation(); onFolderClick?.(); }}
               onPointerDown={(e) => e.stopPropagation()}
-              className="text-[11px] font-semibold text-muted-foreground/40 hover:text-primary/70 transition-colors truncate text-left leading-none self-start"
+              className="pl-5.25 text-[9px] font-bold uppercase tracking-wide text-muted-foreground/40 hover:text-primary/70 transition-colors truncate text-left leading-none self-start"
             >
-              &gt;{item.folderName}
+              {item.folderName}
             </button>
           )}
           <div className="flex items-center justify-between">

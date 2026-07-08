@@ -56,7 +56,8 @@ export function useBlockEditorSync(documentId: string) {
     () => new DocumentBlockMutations(rootStore, syncEngine),
     [rootStore, syncEngine],
   );
-  const { scheduleFlush } = useDebouncedFlush(syncEngine);
+
+  const { scheduleFlush } = useDebouncedFlush(syncEngine, 4000);
 
   const [ready, setReady] = useState<{
     content: AnyBlock[] | undefined;
@@ -231,7 +232,7 @@ export function useBlockEditorSync(documentId: string) {
       saveTimerRef.current = setTimeout(() => {
         performSave(blocks);
         saveTimerRef.current = null;
-      }, 2000);
+      }, 600);
     },
     [performSave],
   );

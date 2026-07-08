@@ -86,7 +86,7 @@ export const TaskDetailCanvas = observer(function TaskDetailCanvas({ taskId }: T
     return <TaskViewSkeleton />;
   }
 
-  const handleStatusChange = (statusId: string) => {
+  const handleStatusChange = (statusId: string | null) => {
     updateTask({ statusId });
   };
 

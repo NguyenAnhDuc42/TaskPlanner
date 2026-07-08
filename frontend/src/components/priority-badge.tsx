@@ -31,20 +31,26 @@ const getStyle = (p?: Priority) => {
         icon: "fill-white/90 dark:fill-blue-500/50"
       };
     case Priority.Low:
-    default:
       return {
         bg: "bg-muted-foreground hover:bg-muted-foreground/90 border-2 border-muted-foreground dark:bg-muted/50 dark:hover:bg-muted/80 dark:border dark:border-transparent",
         text: "text-white font-bold dark:text-muted-foreground dark:font-semibold",
         icon: "opacity-90 dark:opacity-70"
+      };
+    case Priority.None:
+    default:
+      return {
+        bg: "bg-transparent hover:bg-muted/50 border-2 border-dashed border-muted-foreground/25",
+        text: "text-muted-foreground/50 font-semibold",
+        icon: "opacity-40"
       };
   }
 };
 
 export function PriorityBadge({ priority, className, onClick, showText = true, showIcon = true }: Readonly<PriorityBadgeProps>) {
   const style = getStyle(priority);
-  
+
   return (
-    <div 
+    <div
       onClick={(e) => {
         if (onClick) {
           e.stopPropagation();
@@ -68,7 +74,7 @@ export function PriorityBadge({ priority, className, onClick, showText = true, s
       )}
     >
       {showIcon && <Flag className={cn("h-3 w-3", style.icon)} />}
-      {showText && <span>{priority || "Normal"}</span>}
+      {showText && <span>{priority && priority !== Priority.None ? priority : "No priority"}</span>}
     </div>
   );
 }

@@ -108,7 +108,8 @@ public class CreateTaskHandler(
                 statusId = request.StatusId,
                 priority = request.Priority,
                 orderKey = request.OrderKey,
-                parentTaskId = request.ParentTaskId
+                parentTaskId = request.ParentTaskId,
+                createdAt = task.CreatedAt
             }, SyncJson.Options);
 
             syncEvent = new SyncEvent 

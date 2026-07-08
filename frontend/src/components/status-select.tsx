@@ -18,7 +18,7 @@ import { cn } from "@/lib/utils";
 
 interface StatusSelectProps {
   value?: string;
-  onChange: (statusId: string) => void;
+  onChange: (statusId: string | null) => void;
   spaceId?: string;
   statuses?: Status[];
   align?: "start" | "end" | "center";
@@ -75,6 +75,13 @@ export const StatusSelect = observer(function StatusSelect({
         onPointerDown={(e) => e.stopPropagation()}
       >
         <DropdownMenuLabel>Status</DropdownMenuLabel>
+        <DropdownMenuItem
+          onSelect={() => { if (value) onChange(null); }}
+          className={cn("gap-2 text-muted-foreground/70", !value && "bg-muted shadow-sm")}
+        >
+          <StatusBadge status={null} variant="outline" className="w-full justify-start pointer-events-none" />
+          {!value && <IconCheck className="ml-auto size-4" />}
+        </DropdownMenuItem>
 
         {Object.entries(statusesByCategory).map(([category, cats]) => (
           <React.Fragment key={category}>

@@ -36,7 +36,7 @@ interface TaskFormState {
   readonly priority: Priority;
   readonly icon: string;
   readonly color: string;
-  readonly selectedStatusId: string | undefined;
+  readonly selectedStatusId: string | null | undefined;
   readonly startDate: Date | undefined;
   readonly dueDate: Date | undefined;
   readonly selectedAssigneeIds: readonly string[];
@@ -47,7 +47,7 @@ type TaskFormAction =
   | { readonly type: "SET_PRIORITY"; readonly payload: Priority }
   | { readonly type: "SET_ICON"; readonly payload: string }
   | { readonly type: "SET_COLOR"; readonly payload: string }
-  | { readonly type: "SET_STATUS"; readonly payload: string | undefined }
+  | { readonly type: "SET_STATUS"; readonly payload: string | null | undefined }
   | { readonly type: "SET_START_DATE"; readonly payload: Date | undefined }
   | { readonly type: "SET_DUE_DATE"; readonly payload: Date | undefined }
   | { readonly type: "TOGGLE_ASSIGNEE"; readonly payload: string }

@@ -10,5 +10,9 @@ public enum Priority
     Normal,
     Low,
     Medium = Normal,
+    // Appended at the end deliberately — Priority has no [HasConversion<string>()] in
+    // ProjectTaskConfiguration, so EF Core persists it by ordinal. Inserting a new member
+    // anywhere but the end would silently reinterpret every already-stored priority value.
+    None,
 }
 
