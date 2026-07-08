@@ -25,14 +25,6 @@ interface TaskDetailCanvasProps {
   taskId?: string;
 }
 
-// Every field change writes to the store/IndexedDB/transaction queue immediately (all local,
-// cheap, and what gives instant optimistic UI) via taskMutations.updateLocal() — only the
-// network send is debounced (useDebouncedFlush → syncEngine.flushQueue(), which runs
-// TransactionQueue.squash() before sending, merging multiple pending updates for the same task
-// into one PUT). N rapid field edits become exactly one network call. (Previously this called
-// taskMutations.update(), which fires its own immediate API request every time — debouncing
-// when THAT fires just meant debouncing the optimistic UI update too, since update() bundles
-// both together.)
 function useDebouncedTaskUpdate(taskMutations: TaskMutations, syncEngine: SyncEngine, taskId: string) {
   const taskIdRef = useRef(taskId);
   useLayoutEffect(() => { taskIdRef.current = taskId; });
@@ -134,7 +126,7 @@ export const TaskDetailCanvas = observer(function TaskDetailCanvas({ taskId }: T
           </div>
 
           {/* Properties Area */}
-          <div className="flex flex-col gap-3.5 pb-3 border-b border-border/30">
+          <div className="flex flex-col gap-3.5 pb-1 border-b border-border/30">
             {/* Row 1: Task State and Timing (Status, Priority, Dates) */}
             <div className="flex flex-wrap items-center gap-2.5">
               <StatusSelect

@@ -45,7 +45,7 @@ export function DateSelect({
               />
             ) : (
               <div className={cn(
-                "flex items-center gap-1.5 px-2 rounded-sm text-muted-foreground/50 transition-colors cursor-pointer select-none border-2 border-dashed border-muted-foreground/25",
+                "flex items-center gap-1.5 px-2 rounded-sm text-muted-foreground/50 transition-colors cursor-pointer select-none border border-dashed border-muted-foreground/25",
                 isSm
                   ? "h-5 text-[9px] font-bold hover:bg-muted/30"
                   : "h-6 text-[10px] font-semibold hover:bg-muted/40"
