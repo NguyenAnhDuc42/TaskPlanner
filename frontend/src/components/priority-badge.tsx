@@ -39,7 +39,7 @@ const getStyle = (p?: Priority) => {
     case Priority.None:
     default:
       return {
-        bg: "bg-transparent hover:bg-muted/50 border-2 border-dashed border-muted-foreground/25",
+        bg: "bg-transparent hover:bg-muted/50 border border-dashed border-muted-foreground/25",
         text: "text-muted-foreground/50 font-semibold",
         icon: "opacity-40"
       };

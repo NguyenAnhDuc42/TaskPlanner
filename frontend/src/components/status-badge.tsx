@@ -39,8 +39,11 @@ interface StatusBadgeProps {
 export function StatusBadge({ status, className, showIcon = true, variant = "text" }: StatusBadgeProps) {
   if (!status) {
     return (
-      <div className={cn("flex items-center gap-1 text-[10px] text-muted-foreground font-medium", className)}>
-        {showIcon && <CircleDashed className="h-3 w-3 opacity-50" />}
+      <div className={cn(
+        "flex items-center h-5 gap-1.5 px-2 rounded-sm text-[10px] font-medium text-muted-foreground/50 border border-dashed border-muted-foreground/25",
+        className
+      )}>
+        {showIcon && <CircleDashed className="h-3 w-3 opacity-40" />}
         <span>No Status</span>
       </div>
     );

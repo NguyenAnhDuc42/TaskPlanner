@@ -45,10 +45,10 @@ export function DateSelect({
               />
             ) : (
               <div className={cn(
-                "flex items-center gap-1.5 px-2 rounded-sm bg-muted/30 text-muted-foreground/50 transition-colors cursor-pointer select-none border border-border/5",
-                isSm 
-                  ? "h-5 text-[9px] font-bold hover:bg-muted/50" 
-                  : "h-6 text-[10px] font-semibold hover:bg-muted/60"
+                "flex items-center gap-1.5 px-2 rounded-sm text-muted-foreground/50 transition-colors cursor-pointer select-none border-2 border-dashed border-muted-foreground/25",
+                isSm
+                  ? "h-5 text-[9px] font-bold hover:bg-muted/30"
+                  : "h-6 text-[10px] font-semibold hover:bg-muted/40"
               )}>
                 <Calendar className={isSm ? "h-2.5 w-2.5 opacity-70" : "h-3 w-3 opacity-60"} />
                 <span>No Date</span>

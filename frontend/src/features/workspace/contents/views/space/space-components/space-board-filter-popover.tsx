@@ -2,6 +2,7 @@ import { ListFilter, Folder } from "lucide-react";
 import { Priority } from "@/types/priority";
 import { PriorityBadge } from "@/components/priority-badge";
 import { DynamicIcon } from "@/components/dynamic-icon";
+import { DateFilterField } from "@/components/date-filter-field";
 import type { SpaceBoardFilter } from "../space-board-types";
 import type { FolderRecord } from "@/types/projects";
 import {
@@ -129,26 +130,16 @@ export function SpaceBoardFilterPopover({ filter, onChange, folders }: SpaceBoar
         <DropdownMenuSeparator />
         <DropdownMenuLabel>Dates</DropdownMenuLabel>
         <div className="px-2 py-1.5 space-y-2">
-          <div className="flex flex-col gap-1">
-            <span className="text-[10px] text-muted-foreground">Start Date (From)</span>
-            <input
-              type="date"
-              className="h-6 text-[10px] px-1.5 rounded border border-border/40 bg-muted/30 outline-none w-full"
-              value={filter.startDate ? filter.startDate.split("T")[0] : ""}
-              onChange={(e) => onChange({ ...filter, startDate: e.target.value ? new Date(e.target.value).toISOString() : undefined })}
-              onClick={(e) => e.stopPropagation()}
-            />
-          </div>
-          <div className="flex flex-col gap-1">
-            <span className="text-[10px] text-muted-foreground">Due Date (Until)</span>
-            <input
-              type="date"
-              className="h-6 text-[10px] px-1.5 rounded border border-border/40 bg-muted/30 outline-none w-full"
-              value={filter.dueDate ? filter.dueDate.split("T")[0] : ""}
-              onChange={(e) => onChange({ ...filter, dueDate: e.target.value ? new Date(e.target.value).toISOString() : undefined })}
-              onClick={(e) => e.stopPropagation()}
-            />
-          </div>
+          <DateFilterField
+            label="Start Date (From)"
+            value={filter.startDate}
+            onChange={(startDate) => onChange({ ...filter, startDate })}
+          />
+          <DateFilterField
+            label="Due Date (Until)"
+            value={filter.dueDate}
+            onChange={(dueDate) => onChange({ ...filter, dueDate })}
+          />
         </div>
       </DropdownMenuContent>
     </DropdownMenu>
