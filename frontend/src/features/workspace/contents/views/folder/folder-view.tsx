@@ -244,7 +244,6 @@ export const FolderView = observer(function FolderView({ folderId }: Readonly<Fo
               size="sm"
               triggerClassName="h-5 px-2 text-[10px] font-semibold rounded-md border border-border/10 bg-muted/40 hover:bg-muted/75 hover:text-foreground text-muted-foreground transition-all cursor-pointer shadow-sm"
             />
-
           </div>
         </div>
 

@@ -1,4 +1,3 @@
-import * as React from "react";
 import { Calendar as CalendarIcon } from "lucide-react";
 import { Calendar as ShadcnCalendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
@@ -7,10 +6,11 @@ interface DateFilterFieldProps {
   readonly label: string;
   readonly value?: string;
   readonly onChange: (iso: string | undefined) => void;
+  readonly open: boolean;
+  readonly onOpenChange: (open: boolean) => void;
 }
 
-export function DateFilterField({ label, value, onChange }: DateFilterFieldProps) {
-  const [open, setOpen] = React.useState(false);
+export function DateFilterField({ label, value, onChange, open, onOpenChange }: DateFilterFieldProps) {
   const selected = value ? new Date(value) : undefined;
 
   return (
@@ -18,7 +18,7 @@ export function DateFilterField({ label, value, onChange }: DateFilterFieldProps
       <span className="text-[10px] text-muted-foreground">{label}</span>
       <button
         type="button"
-        onClick={(e) => { e.stopPropagation(); setOpen((o) => !o); }}
+        onClick={(e) => { e.stopPropagation(); onOpenChange(!open); }}
         className="h-6 w-full flex items-center gap-1.5 px-1.5 rounded border border-border/40 bg-muted/30 hover:bg-muted/50 transition-colors text-left"
       >
         <CalendarIcon className="h-3 w-3 opacity-60 shrink-0" />
@@ -36,7 +36,7 @@ export function DateFilterField({ label, value, onChange }: DateFilterFieldProps
             selected={selected}
             onSelect={(date) => {
               onChange(date ? date.toISOString() : undefined);
-              setOpen(false);
+              onOpenChange(false);
             }}
           />
         </div>

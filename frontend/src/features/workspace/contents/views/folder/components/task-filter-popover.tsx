@@ -1,4 +1,5 @@
 
+import { useState } from "react";
 import { ListFilter } from "lucide-react";
 import { Priority } from "@/types/priority";
 import { PriorityBadge } from "@/components/priority-badge";
@@ -25,6 +26,7 @@ interface TaskFilterPopoverProps {
 }
 
 export function TaskFilterPopover({ filter, onChange, statuses }: TaskFilterPopoverProps) {
+  const [openDateField, setOpenDateField] = useState<"start" | "due" | null>(null);
   const activeFilterCount =
     (filter.statusIds?.length || 0) +
     (filter.priorities?.length || 0) +
@@ -50,7 +52,7 @@ export function TaskFilterPopover({ filter, onChange, statuses }: TaskFilterPopo
   };
 
   return (
-    <DropdownMenu>
+    <DropdownMenu onOpenChange={(o) => { if (!o) setOpenDateField(null); }}>
       <DropdownMenuTrigger asChild>
         <button className={`h-7 px-2 flex items-center justify-center gap-1.5 rounded-md transition-colors shrink-0 relative ${activeFilterCount > 0 ? "bg-primary/10 text-primary hover:bg-primary/20" : "hover:bg-muted/50 text-muted-foreground"}`}>
           <ListFilter className="h-3.5 w-3.5" />
@@ -60,7 +62,7 @@ export function TaskFilterPopover({ filter, onChange, statuses }: TaskFilterPopo
         </button>
       </DropdownMenuTrigger>
       
-      <DropdownMenuContent align="start" className="w-48">
+      <DropdownMenuContent align="start" className="w-60">
         <DropdownMenuLabel className="flex items-center justify-between">
           <span>Filters</span>
           {activeFilterCount > 0 && (
@@ -129,11 +131,15 @@ export function TaskFilterPopover({ filter, onChange, statuses }: TaskFilterPopo
             label="Start Date (From)"
             value={filter.startDate}
             onChange={(startDate) => onChange({ ...filter, startDate })}
+            open={openDateField === "start"}
+            onOpenChange={(o) => setOpenDateField(o ? "start" : null)}
           />
           <DateFilterField
             label="Due Date (Until)"
             value={filter.dueDate}
             onChange={(dueDate) => onChange({ ...filter, dueDate })}
+            open={openDateField === "due"}
+            onOpenChange={(o) => setOpenDateField(o ? "due" : null)}
           />
         </div>
 

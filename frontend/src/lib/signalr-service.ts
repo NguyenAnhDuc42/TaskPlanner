@@ -10,6 +10,7 @@ import type { MemberRecord, WorkspaceRecord } from "@/types/workspace";
 import type { Status } from "@/types/status";
 import type { DocumentBlockRecord } from "@/types/document";
 import type { NotificationRecord } from "@/types/notification-record";
+import { refreshSession, isRedirectingToSignIn } from "./api-client/refresh-session";
 
 export interface EntityBatchUpdate {
   spaces?: (Partial<SpaceRecord> & { id: string })[];
@@ -101,7 +102,21 @@ class SignalRService {
           this.startPromise = null;
           resolve();
         } catch (err) {
-          console.error("[SignalR] Error starting connection, retrying in 5s: " + err);
+          console.error("[SignalR] Error starting connection: " + err);
+          try {
+            await refreshSession();
+          } catch {
+            // Swallow — either a connectivity blip (keep retrying below) or a real session
+            // failure (already redirecting, checked next).
+          }
+
+          if (isRedirectingToSignIn()) {
+            this.startPromise = null;
+            reject(err);
+            return;
+          }
+
+          console.log("[SignalR] Retrying in 5s");
           setTimeout(() => tryStart(), 5000);
         }
       };

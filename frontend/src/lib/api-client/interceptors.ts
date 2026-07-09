@@ -3,25 +3,12 @@ import axios from "axios";
 import { api } from "./client";
 import { apiEvents } from "./events";
 import { ApiError, type ProblemDetails } from "@/types/api-error";
-import { deleteCookie, getCookie } from "../cookie-utils";
+import { getCookie } from "../cookie-utils";
 import { toast } from "sonner";
 import { signalRService } from "../signalr-service";
-import { isConnectivityError } from "../is-connectivity-error";
+import { refreshSession, isRedirectingToSignIn } from "./refresh-session";
 
-let isRefreshing = false;
 let isRedirecting = false;
-let failedQueue: Array<{
-  resolve: (value: unknown) => void;
-  reject: (reason?: unknown) => void;
-}> = [];
-
-const processQueue = (error: unknown, token: unknown = null) => {
-  failedQueue.forEach((prom) => {
-    if (error) prom.reject(error);
-    else prom.resolve(token);
-  });
-  failedQueue = [];
-};
 
 // Define an extended interface for retry logic
 interface ExtendedAxiosRequestConfig extends InternalAxiosRequestConfig {
@@ -30,7 +17,7 @@ interface ExtendedAxiosRequestConfig extends InternalAxiosRequestConfig {
 
 export function setupInterceptors() {
   api.interceptors.request.use(async (config) => {
-    if (isRedirecting) {
+    if (isRedirecting || isRedirectingToSignIn()) {
       throw new axios.Cancel("API request cancelled: redirecting user");
     }
 
@@ -76,35 +63,13 @@ export function setupInterceptors() {
                            !originalRequest?.url?.includes("/auth/me");
 
       if (isAxiosErr && originalRequest && error.response?.status === 401 && !originalRequest._retry && !isAuthRequest) {
-        if (isRefreshing) {
-          return new Promise((resolve, reject) => {
-            failedQueue.push({ resolve, reject });
-          }).then(() => api(originalRequest)).catch((err) => { throw err; });
-        }
-
         originalRequest._retry = true;
-        isRefreshing = true;
 
         try {
-          await api.post("/auth/refresh");
-          apiEvents.onTokenRefreshed.forEach(cb => cb());
-          processQueue(null);
+          await refreshSession();
           return await api(originalRequest);
-        } catch (refreshError) {
-          processQueue(refreshError);
-          if (!isConnectivityError(refreshError)) {
-            deleteCookie("is_logged_in");
-            deleteCookie("atexp");
-
-            if (!globalThis.location.pathname.startsWith("/auth/")) {
-              isRedirecting = true;
-              globalThis.location.href = "/auth/sign-in";
-            }
-          }
-
+        } catch {
           throw isAxiosErr ? new ApiError(error as AxiosError<ProblemDetails>) : error;
-        } finally {
-          isRefreshing = false;
         }
       }
 

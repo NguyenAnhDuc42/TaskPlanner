@@ -14,6 +14,7 @@ import type { PendingTransaction } from '@/types/sync'
 import type { AssigneeRecord, FavoriteRecord } from '@/types/projects'
 import type { MemberRecord } from '@/types/workspace/member-record'
 import { api } from '@/lib/api-client'
+import { refreshSession, isRedirectingToSignIn } from '@/lib/api-client/refresh-session'
 import { devLog, devError } from './dev-log'
 
 const EXPECTED_DATABASE_VERSION = 3
@@ -107,6 +108,14 @@ export class SyncEngine {
         await this.connect(workspaceId)
         attemptCount = 0 // reset backoff on success
       } catch (err) {
+        try {
+          await refreshSession()
+        } catch {
+          // connectivity blip or real session failure — checked next either way
+        }
+
+        if (isRedirectingToSignIn()) return
+
         const delay = Math.min(
           SyncEngine.RETRY_BASE_MS * 2 ** attemptCount,
           SyncEngine.RETRY_MAX_MS,

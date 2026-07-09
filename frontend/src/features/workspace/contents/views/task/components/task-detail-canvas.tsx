@@ -1,4 +1,4 @@
-import { useCallback, useLayoutEffect, useMemo, useRef } from "react";
+import { useCallback, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { observer } from "mobx-react-lite";
 import { StatusSelect } from "@/components/status-select";
 import { PrioritySelect } from "@/components/priority-select";
@@ -20,6 +20,33 @@ import { useSyncEngine, useSyncReady } from "@/sync/sync-provider";
 import type { SyncEngine } from "@/sync/sync-engine";
 import { useDebouncedFlush } from "@/sync/use-debounced-flush";
 import { TaskMutations } from "@/mutations/task.mutations";
+import { FileText, MessageSquare, Plus, Users, X } from "lucide-react";
+import { cn } from "@/lib/utils";
+
+// TEMP — Files rail spike, mock content only. Delete FilesPanelMock once the shape is
+// confirmed and the real Attachments feature (AttachmentLink.ProjectTaskId) gets wired in.
+function FilesPanelMock() {
+  return (
+    <div className="p-2 flex flex-col gap-1.5">
+      {["brief.pdf", "mockup.png", "notes.docx"].map((name) => (
+        <div
+          key={name}
+          className="flex items-center gap-2 p-1.5 rounded-md border border-border/40 bg-muted/20 hover:bg-muted/40 transition-colors cursor-pointer"
+        >
+          <FileText className="h-3.5 w-3.5 text-muted-foreground/60 shrink-0" />
+          <span className="text-[10px] text-muted-foreground truncate">{name}</span>
+        </div>
+      ))}
+      <button
+        type="button"
+        className="flex items-center justify-center gap-1 p-1.5 rounded-md border border-dashed border-border/40 text-muted-foreground/50 hover:text-muted-foreground hover:border-border transition-colors"
+      >
+        <Plus className="h-3.5 w-3.5" />
+        <span className="text-[10px]">Upload</span>
+      </button>
+    </div>
+  );
+}
 
 interface TaskDetailCanvasProps {
   taskId?: string;
@@ -45,6 +72,7 @@ export const TaskDetailCanvas = observer(function TaskDetailCanvas({ taskId }: T
   const task = taskId ? rootStore.taskStore.getById(taskId) : undefined;
   const updateTask = useDebouncedTaskUpdate(taskMutations, syncEngine, taskId || "");
   const { canCreateContent: canEdit } = useWorkspaceRole();
+  const [railPanel, setRailPanel] = useState<"files" | "comments" | "assignees" | null>(null); // TEMP — rail spike
 
   if (!taskId) {
     return (
@@ -98,8 +126,17 @@ export const TaskDetailCanvas = observer(function TaskDetailCanvas({ taskId }: T
     updateTask({ startDate: null, dueDate: null });
   };
 
+  const isSubtask = !!task.parentTaskId;
+
+  const railTabs: { key: "files" | "comments" | "assignees"; Icon: typeof FileText; label: string }[] = [
+    { key: "files", Icon: FileText, label: "Files" },
+    { key: "comments", Icon: MessageSquare, label: "Comments" },
+    { key: "assignees", Icon: Users, label: "Assignees" },
+  ];
+
   return (
-    <div className="flex flex-col h-full w-full bg-card overflow-hidden">
+    <div className="relative flex h-full w-full bg-card overflow-hidden">
+      <div className={cn("flex-1 flex flex-col overflow-hidden min-w-0", !isSubtask && "pr-8")}>
       {/* Task Content Scroll Area */}
       <div className="flex-1 overflow-y-auto [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:bg-muted-foreground/20 hover:[&::-webkit-scrollbar-thumb]:bg-muted-foreground/45 [&::-webkit-scrollbar-track]:bg-transparent">
         <div className="w-full p-4 md:p-8 space-y-6">
@@ -154,9 +191,6 @@ export const TaskDetailCanvas = observer(function TaskDetailCanvas({ taskId }: T
                 size="sm"
               />
             </div>
-
-            {/* Row 2: People (Assignees) */}
-            <TaskAssignees taskId={taskId} />
           </div>
 
           {/* Document Section */}
@@ -164,13 +198,54 @@ export const TaskDetailCanvas = observer(function TaskDetailCanvas({ taskId }: T
             <BlockEditor key={task.defaultDocumentId} documentId={task.defaultDocumentId} editable={canEdit} />
           )}
 
-          {/* Subtasks Section (Only for top-level tasks) */}
-          {!task.parentTaskId && <TaskSubtasks taskId={taskId} />}
+          {/* Subtasks Section — back inline at task detail, not in the rail (only top-level
+              tasks have subtasks; a subtask can't have its own subtasks) */}
+          {!isSubtask && <TaskSubtasks taskId={taskId} />}
 
-          {/* Comments Section */}
-          <TaskComments taskId={taskId} />
+          {/* Subtasks stay simple — Comments inline, no rail (see isSubtask comment above) */}
+          {isSubtask && <TaskComments taskId={taskId} />}
         </div>
       </div>
+      </div>
+
+      {!isSubtask && (
+        <>
+          {/* Floating overlay, not a layout sibling — the main content always keeps its full
+              width. Fixed side-by-side columns starved the content down to nothing when this
+              renders inside the narrower context-panel column (opened from Space board etc). */}
+          {railPanel && (
+            <div className="absolute top-0 right-8 h-full w-72 max-w-[calc(100%-2rem)] border-l border-border/40 bg-card shadow-xl flex flex-col overflow-hidden z-20">
+              <div className="flex items-center justify-between px-2 py-1.5 border-b border-border/40 shrink-0">
+                <span className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground">{railPanel}</span>
+                <button type="button" onClick={() => setRailPanel(null)} className="text-muted-foreground hover:text-foreground">
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              </div>
+              <div className="flex-1 overflow-y-auto p-2">
+                {railPanel === "files" && <FilesPanelMock />}
+                {railPanel === "comments" && <TaskComments taskId={taskId} hideHeading />}
+                {railPanel === "assignees" && <TaskAssignees taskId={taskId} />}
+              </div>
+            </div>
+          )}
+          <div className="absolute top-0 right-0 h-full w-8 border-l border-border/40 bg-card flex flex-col items-center py-2 gap-2 z-10">
+            {railTabs.map(({ key, Icon, label }) => (
+              <button
+                key={key}
+                type="button"
+                onClick={() => setRailPanel((p) => (p === key ? null : key))}
+                className={cn(
+                  "p-1.5 rounded transition-colors",
+                  railPanel === key ? "bg-primary/10 text-primary" : "text-muted-foreground/50 hover:text-muted-foreground"
+                )}
+                title={label}
+              >
+                <Icon className="h-4 w-4" />
+              </button>
+            ))}
+          </div>
+        </>
+      )}
     </div>
   );
 });

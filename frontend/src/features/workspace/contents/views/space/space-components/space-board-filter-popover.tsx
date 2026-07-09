@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { ListFilter, Folder } from "lucide-react";
 import { Priority } from "@/types/priority";
 import { PriorityBadge } from "@/components/priority-badge";
@@ -26,6 +27,7 @@ interface SpaceBoardFilterPopoverProps {
 }
 
 export function SpaceBoardFilterPopover({ filter, onChange, folders }: SpaceBoardFilterPopoverProps) {
+  const [openDateField, setOpenDateField] = useState<"start" | "due" | null>(null);
   const activeCount =
     (filter.priorities?.length ?? 0) +
     (filter.folderIds?.length ?? 0) +
@@ -39,7 +41,7 @@ export function SpaceBoardFilterPopover({ filter, onChange, folders }: SpaceBoar
   };
 
   return (
-    <DropdownMenu>
+    <DropdownMenu onOpenChange={(o) => { if (!o) setOpenDateField(null); }}>
       <DropdownMenuTrigger asChild>
         <button
           className={`h-7 px-2 flex items-center justify-center gap-1.5 rounded-md transition-colors shrink-0 ${
@@ -53,7 +55,7 @@ export function SpaceBoardFilterPopover({ filter, onChange, folders }: SpaceBoar
         </button>
       </DropdownMenuTrigger>
 
-      <DropdownMenuContent align="end" className="w-48">
+      <DropdownMenuContent align="end" className="w-60">
         <DropdownMenuLabel className="flex items-center justify-between">
           <span>Filters</span>
           {activeCount > 0 && (
@@ -134,11 +136,15 @@ export function SpaceBoardFilterPopover({ filter, onChange, folders }: SpaceBoar
             label="Start Date (From)"
             value={filter.startDate}
             onChange={(startDate) => onChange({ ...filter, startDate })}
+            open={openDateField === "start"}
+            onOpenChange={(o) => setOpenDateField(o ? "start" : null)}
           />
           <DateFilterField
             label="Due Date (Until)"
             value={filter.dueDate}
             onChange={(dueDate) => onChange({ ...filter, dueDate })}
+            open={openDateField === "due"}
+            onOpenChange={(o) => setOpenDateField(o ? "due" : null)}
           />
         </div>
       </DropdownMenuContent>
