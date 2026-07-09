@@ -6,7 +6,6 @@ import { Send, CornerDownRight, Trash2, X, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { MentionInput } from "@/components/mention-input";
 import { toast } from "sonner";
-import { cn } from "@/lib/utils";
 import { useStore } from "@/stores/root.store";
 import { useWorkspaceRootStore } from "@/stores/workspace-root.store";
 import { useSyncEngine } from "@/sync/sync-provider";
@@ -62,10 +61,6 @@ const CommentContent = observer(function CommentContent({ content }: { content: 
 
 interface TaskCommentsProps {
   taskId: string;
-  // Hide the internal "Comments" heading/divider when this is embedded somewhere that already
-  // shows its own title for it (e.g. the rail panel header in TaskDetailCanvas) — otherwise the
-  // label shows up twice, once on the rail tab/panel header and once again in here.
-  hideHeading?: boolean;
 }
 
 function useTaskComments(taskId: string) {
@@ -146,7 +141,7 @@ function useTaskComments(taskId: string) {
   return { items, isLoading, isFetchingNextPage, hasNextPage, fetchNextPage };
 }
 
-export const TaskComments = observer(function TaskComments({ taskId, hideHeading }: Readonly<TaskCommentsProps>) {
+export const TaskComments = observer(function TaskComments({ taskId }: Readonly<TaskCommentsProps>) {
   const rootStore = useWorkspaceRootStore();
   const currentUserId = useStore().currentUserId;
   const allMembers = rootStore.memberStore.all;
@@ -191,21 +186,19 @@ export const TaskComments = observer(function TaskComments({ taskId, hideHeading
   };
 
   return (
-    <div className={cn("space-y-2", !hideHeading && "pt-3 border-t border-border/30")}>
-      {!hideHeading && (
-        <h3 className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground/70">
-          Comments
-        </h3>
-      )}
+    <div className="space-y-4 pt-3 border-t border-border/30">
+      <h3 className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground/70">
+        Comments
+      </h3>
 
-      <div className="space-y-2 max-h-75 overflow-y-auto pr-1 [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-thumb]:bg-muted-foreground/20 hover:[&::-webkit-scrollbar-thumb]:bg-muted-foreground/45 [&::-webkit-scrollbar-track]:bg-transparent">
+      <div className="space-y-4 max-h-75 overflow-y-auto pr-2 [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-thumb]:bg-muted-foreground/20 hover:[&::-webkit-scrollbar-thumb]:bg-muted-foreground/45 [&::-webkit-scrollbar-track]:bg-transparent">
         {/* Load more — top, since oldest-first order */}
         {hasNextPage && (
           <button
             type="button"
             onClick={fetchNextPage}
             disabled={isFetchingNextPage}
-            className="w-full flex items-center justify-center gap-1.5 py-1 text-[9px] font-semibold text-muted-foreground/60 hover:text-foreground transition-colors"
+            className="w-full flex items-center justify-center gap-1.5 py-1.5 text-[10px] font-semibold text-muted-foreground/60 hover:text-foreground transition-colors"
           >
             {isFetchingNextPage ? (
               <Loader2 className="h-3 w-3 animate-spin" />
@@ -220,7 +213,7 @@ export const TaskComments = observer(function TaskComments({ taskId, hideHeading
             <Loader2 className="h-4 w-4 animate-spin text-muted-foreground/40" />
           </div>
         ) : comments.length === 0 ? (
-          <p className="text-[11px] text-muted-foreground/50 italic py-2">No comments yet. Start the conversation!</p>
+          <p className="text-xs text-muted-foreground/50 italic py-2">No comments yet. Start the conversation!</p>
         ) : (
           comments.map((comment) => {
             const creator = allMembers.find((m) => m.id === comment.creatorId);
@@ -230,50 +223,48 @@ export const TaskComments = observer(function TaskComments({ taskId, hideHeading
             const parentName = parentMember ? parentMember.name : "Unknown User";
 
             return (
-              <div key={comment.id} className="flex gap-1.5 group">
+              <div key={comment.id} className="flex gap-3 group">
                 <UserAvatar
                   name={name}
                   avatarUrl={creator?.avatarUrl || null}
-                  className="h-5 w-5 mt-0.5 shrink-0 rounded-sm"
-                  fallbackClassName="text-[8px] font-bold rounded-sm"
+                  className="h-7 w-7 mt-0.5 shrink-0 rounded-md"
+                  fallbackClassName="text-[10px] font-bold rounded-md"
                 />
-                <div className="flex flex-col gap-0.5 min-w-0 flex-1">
-                  <div className="flex items-center gap-1.5">
-                    <span className="font-semibold text-foreground text-[10px]">{name}</span>
-                    <span className="text-[9px] text-muted-foreground/60 font-medium">
+                <div className="flex flex-col gap-1 min-w-0 flex-1">
+                  <div className="flex items-center gap-2">
+                    <span className="font-semibold text-foreground text-xs">{name}</span>
+                    <span className="text-[10px] text-muted-foreground/60 font-medium">
                       {new Date(comment.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                     </span>
-                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity ml-auto shrink-0">
-                      <button
-                        type="button"
-                        onClick={() => setReplyingTo({ id: comment.id, name, content: comment.content })}
-                        className="text-muted-foreground hover:text-foreground transition-colors"
-                        title="Reply"
-                      >
-                        <CornerDownRight className="h-2.5 w-2.5" />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setDeleteCommentId(comment.id)}
-                        className="text-muted-foreground hover:text-destructive transition-colors"
-                        title="Delete"
-                      >
-                        <Trash2 className="h-2.5 w-2.5" />
-                      </button>
-                    </div>
                   </div>
 
                   {parentComment && (
-                    <div className="flex flex-col gap-0.5 pl-2 py-1 border-l-2 border-primary/30 bg-muted/20 rounded-r-md">
-                      <span className="text-[8px] font-bold text-primary/80 flex items-center gap-1">
-                        <CornerDownRight className="h-2 w-2" /> {parentName}
+                    <div className="flex flex-col gap-0.5 pl-2.5 py-1.5 border-l-2 border-primary/30 bg-muted/20 rounded-r-md mt-0.5 mb-1.5">
+                      <span className="text-[9px] font-bold text-primary/80 flex items-center gap-1">
+                        <CornerDownRight className="h-2 w-2" /> Replying to {parentName}
                       </span>
-                      <span className="text-[9px] text-muted-foreground truncate opacity-80 italic line-clamp-1 whitespace-normal">{parentComment.content}</span>
+                      <span className="text-[10px] text-muted-foreground truncate opacity-80 italic line-clamp-2 whitespace-normal">{parentComment.content}</span>
                     </div>
                   )}
 
-                  <div className="bg-muted/30 rounded-md px-2 py-1 text-[11px] text-foreground/90 leading-snug border border-border/5">
+                  <div className="bg-muted/30 rounded-md px-3 py-2 text-xs text-foreground/90 leading-relaxed border border-border/5">
                     <CommentContent content={comment.content} />
+                  </div>
+                  <div className="flex items-center gap-3 pt-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button
+                      type="button"
+                      onClick={() => setReplyingTo({ id: comment.id, name, content: comment.content })}
+                      className="text-[10px] font-semibold text-muted-foreground hover:text-foreground flex items-center gap-1 transition-colors"
+                    >
+                      <CornerDownRight className="h-3 w-3" /> Reply
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setDeleteCommentId(comment.id)}
+                      className="text-[10px] font-semibold text-muted-foreground hover:text-destructive flex items-center gap-1 transition-colors"
+                    >
+                      <Trash2 className="h-3 w-3" /> Delete
+                    </button>
                   </div>
                 </div>
               </div>
@@ -282,12 +273,12 @@ export const TaskComments = observer(function TaskComments({ taskId, hideHeading
         )}
       </div>
 
-      <div className="mt-1 relative bg-muted/10 rounded-md border border-border/40 p-1 flex flex-col gap-1 shadow-sm" style={{ position: "relative" }}>
+      <div className="mt-2 relative bg-muted/10 rounded-md border border-border/40 p-1 flex flex-col gap-1 shadow-sm" style={{ position: "relative" }}>
         {replyingTo && (
-          <div className="flex items-center justify-between px-1.5 py-1 bg-muted/40 rounded-md border border-border/20 mx-0.5 mt-0.5">
+          <div className="flex items-center justify-between px-2 py-1.5 bg-muted/40 rounded-md border border-border/20 mx-1 mt-1">
             <div className="flex flex-col gap-0.5 overflow-hidden">
               <span className="text-[9px] font-bold text-primary flex items-center gap-1"><CornerDownRight className="h-2.5 w-2.5"/> Replying to {replyingTo.name}</span>
-              <span className="text-[9px] text-muted-foreground truncate">{replyingTo.content}</span>
+              <span className="text-[10px] text-muted-foreground truncate">{replyingTo.content}</span>
             </div>
             <button type="button" onClick={() => setReplyingTo(null)} className="text-muted-foreground hover:text-foreground p-0.5 shrink-0"><X className="h-3 w-3"/></button>
           </div>
@@ -298,17 +289,17 @@ export const TaskComments = observer(function TaskComments({ taskId, hideHeading
             onChange={setNewCommentText}
             onSubmit={handleSendComment}
             placeholder="Write a comment... (@mention)"
-            className="min-h-8 py-1.5 pr-10 text-[11px]"
+            className="min-h-9 py-2 pr-10"
           />
           <Button
             type="button"
             size="icon"
             variant="ghost"
             onClick={handleSendComment}
-            className="absolute right-1 bottom-1 h-6 w-6 text-primary hover:bg-primary/10 hover:text-primary transition-colors rounded-md"
+            className="absolute right-1 bottom-1 h-7 w-7 text-primary hover:bg-primary/10 hover:text-primary transition-colors rounded-md"
             disabled={!newCommentText.trim()}
           >
-            <Send className="h-3 w-3" />
+            <Send className="h-3.5 w-3.5" />
           </Button>
         </div>
       </div>

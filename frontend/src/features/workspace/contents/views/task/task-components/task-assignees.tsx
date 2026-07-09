@@ -48,35 +48,30 @@ export const TaskAssignees = observer(function TaskAssignees({ taskId }: Readonl
   );
 
   return (
-    <div className="flex flex-col gap-1">
-      {/* Assigned members — one row each */}
+    <div className="flex flex-wrap items-center gap-1.5 min-h-7">
+      {/* Assigned member chips */}
       {assignees.map((assignee) => {
         const member = rootStore.memberStore.getById(assignee.workspaceMemberId);
         if (!member) return null;
         return (
           <div
             key={assignee.workspaceMemberId}
-            className="group flex items-center gap-2 px-2 py-1.5 rounded-md border border-border/40 bg-muted/10 hover:bg-muted/20 transition-colors select-none"
+            className="flex items-center gap-1 bg-transparent hover:bg-muted/50 rounded-md pl-1 pr-2 py-0 h-5 text-[10px] font-semibold select-none transition-colors duration-300"
           >
             <UserAvatar
               name={member.name}
               avatarUrl={member.avatarUrl}
-              className="h-6 w-6 rounded-sm shrink-0"
-              fallbackClassName="text-[9px] rounded-sm"
+              className="h-3.5 w-3.5 rounded-sm"
+              fallbackClassName="text-[7px] leading-none rounded-sm"
             />
-            <div className="flex-1 min-w-0">
-              <p className="text-[11px] font-semibold text-foreground truncate">{member.name}</p>
-              {member.email && (
-                <p className="text-[9px] text-muted-foreground/60 truncate">{member.email}</p>
-              )}
-            </div>
+            <span className="max-w-20 truncate font-medium">{member.name}</span>
             {canCreateContent && (
               <button
                 type="button"
                 onClick={() => handleToggle(assignee.workspaceMemberId)}
-                className="h-5 w-5 flex items-center justify-center shrink-0 rounded text-muted-foreground/40 hover:text-destructive hover:bg-destructive/10 opacity-0 group-hover:opacity-100 transition-all"
+                className="text-muted-foreground hover:text-foreground ml-0.5 transition-colors"
               >
-                <X className="h-3 w-3" />
+                <X className="h-2.5 w-2.5" />
               </button>
             )}
           </div>
@@ -88,10 +83,10 @@ export const TaskAssignees = observer(function TaskAssignees({ taskId }: Readonl
         <PopoverTrigger asChild>
           <button
             type="button"
-            className="h-7 px-2 flex items-center gap-1.5 text-[11px] font-medium text-muted-foreground hover:text-foreground border border-dashed border-border/50 hover:border-border hover:bg-muted/40 rounded-md transition-colors"
+            className="h-5.5 px-1.5 flex items-center gap-1 text-[10px] font-medium text-muted-foreground hover:text-foreground border border-dashed border-border/50 hover:border-border hover:bg-muted/40 rounded-md transition-colors"
           >
-            <UserPlus className="h-3 w-3" />
-            Add assignee
+            <UserPlus className="h-2.5 w-2.5" />
+            Add
           </button>
         </PopoverTrigger>
 

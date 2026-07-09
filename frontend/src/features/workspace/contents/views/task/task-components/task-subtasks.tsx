@@ -1,8 +1,7 @@
 import { useRef, useState, useMemo } from "react";
 import { observer } from "mobx-react-lite";
-import { Trash2, Maximize2, FileText } from "lucide-react";
+import { Trash2, Maximize2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { DynamicIcon } from "@/components/dynamic-icon";
 import { StatusSelect } from "@/components/status-select";
 import { PrioritySelect } from "@/components/priority-select";
 import { PriorityBadge } from "@/components/priority-badge";
@@ -151,15 +150,17 @@ export const TaskSubtasks = observer(function TaskSubtasks({ taskId }: Readonly<
           <div
             key={subtask.id}
             onDoubleClick={() => handleOpenSubtask(subtask.id)}
-            className="group flex flex-col gap-1 px-2 py-1.5 rounded-md border border-border/40 hover:border-border/70 bg-muted/10 hover:bg-muted/20 transition-all select-none"
+            className="group flex items-center justify-between gap-2 px-2 py-1 rounded-md border border-border/40 hover:border-border/70 bg-muted/10 hover:bg-muted/20 transition-all select-none"
           >
-            {/* Row 1: Icon + Name + Expand/Delete */}
-            <div className="flex items-center gap-2">
-              {subtask.icon ? (
-                <DynamicIcon name={subtask.icon} size={13} className="shrink-0" color={subtask.color || "#3b82f6"} />
-              ) : (
-                <FileText className="h-3.5 w-3.5 opacity-50 shrink-0" style={{ color: subtask.color || "#3b82f6" }} />
-              )}
+            {/* Left: Status + Name */}
+            <div className="flex items-center gap-2 flex-1 min-w-0">
+              <div className="shrink-0">
+                <StatusSelect
+                  value={subtask.statusId || ""}
+                  onChange={(statusId) => handleStatusChange(subtask.id, statusId)}
+                  spaceId={parentTask?.spaceId ?? undefined}
+                />
+              </div>
               <DebouncedInput
                 value={subtask.name}
                 onChange={(val) => {
@@ -169,39 +170,23 @@ export const TaskSubtasks = observer(function TaskSubtasks({ taskId }: Readonly<
                 }}
                 className="text-[11px] font-medium text-foreground bg-transparent border-none p-0 focus:outline-none focus:ring-0 flex-1 h-auto min-w-0 truncate"
               />
-              <div className="flex items-center gap-0.5 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleOpenSubtask(subtask.id);
-                  }}
-                  className="h-5 w-5 text-muted-foreground/40 hover:text-foreground hover:bg-muted/50 rounded shrink-0"
-                  title="Open subtask"
-                >
-                  <Maximize2 className="h-3 w-3" />
-                </Button>
-                {canCreateContent && (
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => handleDeleteSubtask(subtask.id)}
-                    className="h-5 w-5 text-muted-foreground/40 hover:text-destructive hover:bg-destructive/10 rounded shrink-0"
-                  >
-                    <Trash2 className="h-3 w-3" />
-                  </Button>
-                )}
-              </div>
             </div>
 
-            {/* Row 2: Status + Priority + Date */}
-            <div className="flex items-center gap-1.5 pl-5.25">
-              <StatusSelect
-                value={subtask.statusId || ""}
-                onChange={(statusId) => handleStatusChange(subtask.id, statusId)}
-                spaceId={parentTask?.spaceId ?? undefined}
-              />
+            {/* Right: Expand + Priority + Date + Delete */}
+            <div className="flex items-center gap-1.5 shrink-0">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleOpenSubtask(subtask.id);
+                }}
+                className="h-5 w-5 text-muted-foreground/40 hover:text-foreground hover:bg-muted/50 rounded shrink-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                title="Open subtask"
+              >
+                <Maximize2 className="h-3 w-3" />
+              </Button>
+
               <PrioritySelect
                 value={subtask.priority || "Low"}
                 onChange={(priority) => handlePriorityChange(subtask.id, priority)}
@@ -211,6 +196,7 @@ export const TaskSubtasks = observer(function TaskSubtasks({ taskId }: Readonly<
                   </button>
                 }
               />
+
               <DateSelect
                 startDate={subtask.startDate}
                 dueDate={subtask.dueDate}
@@ -221,38 +207,48 @@ export const TaskSubtasks = observer(function TaskSubtasks({ taskId }: Readonly<
                 }}
                 size="sm"
               />
+
+              {canCreateContent && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => handleDeleteSubtask(subtask.id)}
+                  className="h-5 w-5 text-muted-foreground/40 hover:text-destructive hover:bg-destructive/10 rounded shrink-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                >
+                  <Trash2 className="h-3 w-3" />
+                </Button>
+              )}
             </div>
           </div>
         ))}
 
         {canCreateContent && <div
-          className="flex flex-col gap-1 px-2 py-1.5 rounded-md border border-dashed border-border/40 hover:border-border/70 hover:bg-muted/10 transition-all cursor-text"
+          className="flex items-center gap-2 px-2 py-1 rounded-md border border-dashed border-border/40 hover:border-border/70 hover:bg-muted/10 transition-all cursor-text"
           onClick={() => inputRef.current?.focus()}
         >
-          {/* Row 1: Name */}
-          <div className="flex items-center gap-2">
-            <input
-              ref={inputRef}
-              type="text"
-              placeholder="Add a subtask..."
-              value={draftName}
-              onChange={(e) => setDraftName(e.target.value)}
-              onKeyDown={handleKeyDown}
-              onBlur={handleCreateSubtask}
-              className="flex-1 min-w-0 text-[11px] bg-transparent border-none outline-none text-foreground placeholder:text-muted-foreground/40"
-            />
-            {draftName.trim() && (
-              <span className="text-[9px] text-muted-foreground/50 shrink-0">↵ to add</span>
-            )}
-          </div>
-
-          {/* Row 2: Status + Priority */}
-          <div className="flex items-center gap-1.5">
+          {/* Status picker for draft */}
+          <div className="shrink-0">
             <StatusSelect
               value={draftStatusId || ""}
               onChange={setDraftStatusId}
               spaceId={parentTask?.spaceId ?? undefined}
             />
+          </div>
+
+          {/* Name input */}
+          <input
+            ref={inputRef}
+            type="text"
+            placeholder="Add a subtask..."
+            value={draftName}
+            onChange={(e) => setDraftName(e.target.value)}
+            onKeyDown={handleKeyDown}
+            onBlur={handleCreateSubtask}
+            className="flex-1 min-w-0 text-[11px] bg-transparent border-none outline-none text-foreground placeholder:text-muted-foreground/40"
+          />
+
+          {/* Priority picker for draft */}
+          <div className="shrink-0">
             <PrioritySelect
               value={draftPriority}
               onChange={setDraftPriority}
@@ -263,6 +259,11 @@ export const TaskSubtasks = observer(function TaskSubtasks({ taskId }: Readonly<
               }
             />
           </div>
+
+          {/* Submit hint */}
+          {draftName.trim() && (
+            <span className="text-[9px] text-muted-foreground/50 shrink-0">↵ to add</span>
+          )}
         </div>}
       </div>
 
