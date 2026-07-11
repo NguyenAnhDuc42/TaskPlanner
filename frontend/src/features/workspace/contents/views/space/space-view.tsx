@@ -15,7 +15,6 @@ import {
 } from "./space-components/space-rail-tabs";
 import { useLocalStorage } from "@/hooks/use-local-storage";
 import { MoreVertical, Trash2, PanelRight, X } from "lucide-react";
-import { cn } from "@/lib/utils";
 import { FavoriteButton } from "@/components/favorite-button";
 import { DynamicIcon } from "@/components/dynamic-icon";
 import { EntityLayerType } from "@/types/entity-layer-type";
@@ -80,12 +79,10 @@ export const SpaceView = observer(function SpaceView({ spaceId }: Readonly<Space
     localStorage.setItem(`global-space-tab`, tab);
   };
   const handlePinTab = (tab: SpaceRailTabKey | null) => {
-    setRawPinnedTabs((prev) => {
-      const next = { ...prev };
-      if (tab) next[spaceId] = tab;
-      else delete next[spaceId];
-      return next;
-    });
+    const next = { ...rawPinnedTabs };
+    if (tab) next[spaceId] = tab;
+    else delete next[spaceId];
+    setRawPinnedTabs(next);
   };
   const [rawTabOrder, setRawTabOrder] = useLocalStorage<SpaceRailTabKey[]>(
     "space-rail-tab-order",
