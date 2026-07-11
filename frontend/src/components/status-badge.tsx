@@ -1,31 +1,13 @@
 import { cn } from "@/lib/utils";
 import { type Status } from "@/types/status";
-import { StatusCategory } from "@/types/status-category";
-import { CircleDashed, CheckCircle2, AlertCircle } from "lucide-react";
+import { CircleDashed } from "lucide-react";
 
-// Custom icon: a dashed circle with a larger filled dot in the center
-function ActiveCircleDot(props: React.SVGProps<SVGSVGElement>) {
+function StatusDot({ color, className }: { color: string; className?: string }) {
   return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      {...props}
-    >
-      <path d="M10.1 2.18a9.93 9.93 0 0 1 3.8 0" />
-      <path d="M17.6 3.81a9.93 9.93 0 0 1 2.59 2.59" />
-      <path d="M21.8 10.1a9.93 9.93 0 0 1 0 3.8" />
-      <path d="M20.2 17.6a9.93 9.93 0 0 1-2.59 2.59" />
-      <path d="M13.9 21.8a9.93 9.93 0 0 1-3.8 0" />
-      <path d="M6.39 20.2a9.93 9.93 0 0 1-2.59-2.59" />
-      <path d="M2.18 13.9a9.93 9.93 0 0 1 0-3.8" />
-      <path d="M3.81 6.39a9.93 9.93 0 0 1 2.59-2.59" />
-      <circle cx="12" cy="12" r="5" fill="currentColor" stroke="none" />
-    </svg>
+    <span
+      className={cn("inline-block h-2 w-2 rounded-full shrink-0", className)}
+      style={{ backgroundColor: color }}
+    />
   );
 }
 
@@ -50,24 +32,16 @@ export function StatusBadge({ status, className, showIcon = true, variant = "tex
   }
 
   const statusColor = status.color || "currentColor";
-  
-  const Icon = status.category === StatusCategory.NotStarted ? CircleDashed
-    : status.category === StatusCategory.Active ? ActiveCircleDot
-    : status.category === StatusCategory.Done ? CheckCircle2
-    : status.category === StatusCategory.Closed ? AlertCircle
-    : CircleDashed;
 
   if (variant === "outline") {
     return (
-      <div 
+      <div
         className={cn("theme-adaptive-badge flex items-center h-5 gap-1.5 px-2 rounded-sm text-[10px] transition-all duration-300", className)}
-        style={{ 
+        style={{
           "--status-color": statusColor,
         } as React.CSSProperties}
       >
-        {showIcon && (
-          <Icon className="h-3 w-3" />
-        )}
+        {showIcon && <StatusDot color={statusColor} />}
         <span>{status.name}</span>
       </div>
     );
@@ -75,29 +49,25 @@ export function StatusBadge({ status, className, showIcon = true, variant = "tex
 
   if (variant === "pill") {
     return (
-      <div 
+      <div
         className={cn("flex items-center gap-1.5 h-5 px-2 rounded-sm text-[10px] font-semibold transition-all duration-300", className)}
-        style={{ 
+        style={{
           color: statusColor,
           backgroundColor: `${statusColor}1a`
         }}
       >
-        {showIcon && (
-          <Icon className="h-3 w-3" />
-        )}
+        {showIcon && <StatusDot color={statusColor} />}
         <span>{status.name}</span>
       </div>
     );
   }
 
   return (
-    <div 
+    <div
       className={cn("flex items-center gap-1 text-[10px] font-medium transition-colors duration-300", className)}
       style={{ color: statusColor }}
     >
-      {showIcon && (
-        <Icon className="h-3 w-3" />
-      )}
+      {showIcon && <StatusDot color={statusColor} />}
       <span>{status.name}</span>
     </div>
   );

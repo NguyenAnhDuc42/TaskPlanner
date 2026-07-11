@@ -15,7 +15,7 @@ function notificationPath(n: NotificationRecord): string | null {
   if (!n.workspaceId || !n.entityId) return null;
   if (n.entityType === "task")   return `/workspaces/${n.workspaceId}/tasks/${n.entityId}`;
   if (n.entityType === "space")  return `/workspaces/${n.workspaceId}/spaces/${n.entityId}`;
-  if (n.entityType === "folder") return `/workspaces/${n.workspaceId}/folders/${n.entityId}`;
+  if (n.entityType === "folder") return null;
   return `/workspaces/${n.workspaceId}`;
 }
 
@@ -25,17 +25,9 @@ export const NotificationBell = observer(function NotificationBell() {
   const workspaceRootStore = useOptionalWorkspaceRootStore();
   const notificationMutations = useMemo(() => new NotificationMutations(rootStore), [rootStore]);
   const [open, setOpen] = useState(false);
-
-  // Plain read, not useMemo — this is a mobx-react-lite observer, which tracks observable reads
-  // made directly during render (see FavoriteNodeList for the full rationale). notificationStore
-  // is fetched once (50 newest) on login in __root.tsx and kept live via SignalR after that — no
-  // loading/cursor state needed here.
   const notifications = rootStore.notificationStore.all;
   const unreadCount = rootStore.notificationStore.unreadCount;
 
-  // Replace @[workspaceMemberId] tokens with @Name for display. Only resolves within a workspace
-  // (memberStore is workspace-scoped) — on the home screen this falls back to "@someone", which
-  // is an acceptable degradation for a notification opened outside its own workspace context.
   const resolveBody = (body: string | undefined): string => {
     if (!body) return "";
     return body.replace(/@\[([a-f0-9-]{36})\]/g, (_, id) => {

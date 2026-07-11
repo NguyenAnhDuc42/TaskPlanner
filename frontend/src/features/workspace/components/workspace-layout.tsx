@@ -115,12 +115,6 @@ export function WorkspaceLayout() {
         params: { workspaceId, taskId: contextData.id },
         search: searchUpdater,
       });
-    } else if (contextData.type === "folder" && contextData.id) {
-      navigate({
-        to: `/workspaces/$workspaceId/folders/$folderId`,
-        params: { workspaceId, folderId: contextData.id },
-        search: searchUpdater,
-      });
     }
   };
 

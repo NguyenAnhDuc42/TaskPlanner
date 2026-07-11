@@ -3,24 +3,18 @@ using System.Text.Json;
 
 namespace Api;
 
-public class UpdateSpaceStatusesHandler(
+public class UpdateWorkspaceStatusesHandler(
     TaskPlanDbContext db,
     WorkspaceContext workspaceContext,
     SyncPermissionService syncPermission,
     RealtimeService realtimeService,
     IdempotencyService idempotencyService,
-    ILogger<UpdateSpaceStatusesHandler> logger
-) : ICommandHandler<UpdateSpaceStatusesCommand, long>
+    ILogger<UpdateWorkspaceStatusesHandler> logger
+) : ICommandHandler<UpdateWorkspaceStatusesCommand, long>
 {
-    public async Task<Result<long>> Handle(UpdateSpaceStatusesCommand request, CancellationToken cancellationToken)
+    public async Task<Result<long>> Handle(UpdateWorkspaceStatusesCommand request, CancellationToken cancellationToken)
     {
         var memberId = workspaceContext.CurrentMember?.Id ?? Guid.Empty;
-
-        var spaceExists = await db.ProjectSpaces.AsNoTracking()
-            .AnyAsync(s => s.Id == request.SpaceId && s.DeletedAt == null, cancellationToken);
-
-        if (!spaceExists)
-            return Result<long>.Failure(SpaceError.NotFound);
 
         syncPermission.RequireAdmin();
 
@@ -37,7 +31,7 @@ public class UpdateSpaceStatusesHandler(
             }
 
             var existingStatuses = await db.Statuses
-                .Where(s => s.ProjectSpaceId == request.SpaceId && s.DeletedAt == null)
+                .Where(s => s.ProjectWorkspaceId == workspaceId && s.DeletedAt == null)
                 .ToDictionaryAsync(s => s.Id, cancellationToken);
 
             var syncEvents = new List<SyncEvent>();
@@ -50,14 +44,14 @@ public class UpdateSpaceStatusesHandler(
                 switch (dto.Action)
                 {
                     case RowAction.Create:
-                        status = Status.Create(workspaceId, request.SpaceId, dto.Name, dto.Color, dto.Category, memberId, dto.OrderKey, dto.Id);
+                        status = Status.Create(workspaceId, dto.SpaceId, dto.Name, dto.Color, memberId, dto.OrderKey, dto.Id);
                         db.Statuses.Add(status);
                         action = SyncAction.C;
                         break;
 
                     case RowAction.Update:
                         if (dto.Id is null || !existingStatuses.TryGetValue(dto.Id.Value, out status)) continue;
-                        status.Update(dto.Name, dto.Color, dto.Category, dto.OrderKey);
+                        status.Update(dto.Name, dto.Color, dto.OrderKey);
                         action = SyncAction.U;
                         break;
 
@@ -79,7 +73,6 @@ public class UpdateSpaceStatusesHandler(
                         spaceId = status.ProjectSpaceId,
                         name = status.Name,
                         color = status.Color,
-                        category = status.Category,
                         orderKey = status.OrderKey
                     }, SyncJson.Options);
 
@@ -100,7 +93,7 @@ public class UpdateSpaceStatusesHandler(
 
             broadcastPayloads = syncEvents.Select(SyncQueryService.MapToPayload).ToList();
 
-            logger.LogInformation("Successfully updated {Count} statuses for Space {SpaceId} with SyncEvents", syncEvents.Count, request.SpaceId);
+            logger.LogInformation("Successfully updated {Count} statuses for Workspace {WorkspaceId} with SyncEvents", syncEvents.Count, workspaceId);
             return Result<long>.Success(syncEvents.Count > 0 ? syncEvents[^1].Id : 0);
         }, cancellationToken);
 
@@ -109,7 +102,7 @@ public class UpdateSpaceStatusesHandler(
             _ = realtimeService
                 .NotifySyncEventBatchAsync(workspaceId, broadcastPayloads, default)
                 .ContinueWith(t =>
-                    logger.LogError(t.Exception, "Failed to send real-time DeltaBatch for statuses on Space {SpaceId}", request.SpaceId),
+                    logger.LogError(t.Exception, "Failed to send real-time DeltaBatch for statuses on Workspace {WorkspaceId}", workspaceId),
                     TaskContinuationOptions.OnlyOnFaulted);
         }
 

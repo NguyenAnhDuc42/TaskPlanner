@@ -13,6 +13,7 @@ import { useWorkspaceRole } from "@/features/workspace/context/use-workspace-rol
 import { TaskAssignees } from "../task-components/task-assignees";
 import { TaskComments } from "../task-components/task-comments";
 import { TaskSubtasks } from "../task-components/task-subtasks";
+import { ExpandableSection } from "@/components/expandable-section";
 import type { Priority } from "@/types/priority";
 import type { TaskRecord } from "@/types/projects/task-record";
 import { useWorkspaceRootStore } from "@/stores/workspace-root.store";
@@ -25,7 +26,7 @@ interface TaskDetailCanvasProps {
   taskId?: string;
 }
 
-function useDebouncedTaskUpdate(taskMutations: TaskMutations, syncEngine: SyncEngine, taskId: string) {
+export function useDebouncedTaskUpdate(taskMutations: TaskMutations, syncEngine: SyncEngine, taskId: string) {
   const taskIdRef = useRef(taskId);
   useLayoutEffect(() => { taskIdRef.current = taskId; });
   const { scheduleFlush } = useDebouncedFlush(syncEngine);
@@ -165,10 +166,16 @@ export const TaskDetailCanvas = observer(function TaskDetailCanvas({ taskId }: T
           )}
 
           {/* Subtasks Section (Only for top-level tasks) */}
-          {!task.parentTaskId && <TaskSubtasks taskId={taskId} />}
+          {!task.parentTaskId && (
+            <ExpandableSection title="Subtasks">
+              <TaskSubtasks taskId={taskId} />
+            </ExpandableSection>
+          )}
 
           {/* Comments Section */}
-          <TaskComments taskId={taskId} />
+          <ExpandableSection title="Comments">
+            <TaskComments taskId={taskId} />
+          </ExpandableSection>
         </div>
       </div>
     </div>

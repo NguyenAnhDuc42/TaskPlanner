@@ -23,10 +23,6 @@ export class SpaceMutations {
     const id = crypto.randomUUID()
     const defaultDocumentId = crypto.randomUUID()
 
-    // Same reasoning as FolderMutations.create() — the backend recomputes its own authoritative
-    // orderKey server-side and the Delta will overwrite this, but the optimistic record needs a
-    // valid fractional-indexing key in the meantime or any reorder attempted before that Delta
-    // lands breaks immediately.
     const maxSiblingKey = this.rootStore.spaceStore.all.reduce<string | null>(
       (max, s) => (s.orderKey && (!max || s.orderKey > max) ? s.orderKey : max),
       null,
@@ -88,11 +84,6 @@ export class SpaceMutations {
     return record
   }
 
-  // ── UPDATE (local-only — store + IndexedDB + enqueue, no network call) ──
-  // Building block for update(). Call this on every rapid field edit and debounce a
-  // syncEngine.flushQueue() trigger instead of debouncing this call — TransactionQueue.squash()
-  // already merges multiple pending updates for the same space into one send. See
-  // TaskMutations.updateLocal() for the full rationale.
   async updateLocal(spaceId: string, changes: Partial<SpaceRecord>): Promise<{ previous: SpaceRecord; tx: PendingTransaction }> {
     const stored = this.rootStore.spaceStore.getById(spaceId)
     if (!stored) throw new Error(`Space ${spaceId} not found`)
@@ -177,7 +168,7 @@ export class SpaceMutations {
       this.rootStore.taskStore.remove(t.id)
       await this.rootStore.taskDB!.delete(t.id)
     }
-    for (const s of this.rootStore.statusStore.all.filter((s: { spaceId: string }) => s.spaceId === spaceId)) {
+    for (const s of this.rootStore.statusStore.all.filter((s) => s.spaceId === spaceId)) {
       this.rootStore.statusStore.remove(s.id)
     }
 

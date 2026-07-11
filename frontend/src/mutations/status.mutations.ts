@@ -1,6 +1,5 @@
 import type { WorkspaceRootStore } from '@/stores/workspace-root.store'
 import type { Status } from '@/types/status'
-import type { StatusCategory } from '@/types/status-category'
 import { RowAction } from '@/types/row-action'
 import { api } from '@/lib/api-client'
 import { toJS } from 'mobx'
@@ -9,16 +8,11 @@ export interface StatusUpdateValue {
   id: string | null
   name: string
   color: string
-  category: StatusCategory
   orderKey: string | null
+  spaceId?: string | null
   action: RowAction
 }
 
-// No BatchFlushHandler counterpart exists for Status on the backend — unlike Task/Folder/Space,
-// a Status batch can't be queued and replayed offline through TransactionQueue. This is a single
-// backend-first "save the whole batch or roll it all back" call, same shape as Workspace/Favorite
-// mutations: apply optimistically, one PUT to /statuses/sync/batch, full rollback on any failure
-// (network or rejection alike — there's nowhere to leave a "pending" batch waiting for retry).
 export class StatusMutations {
   private rootStore: WorkspaceRootStore
 
@@ -26,10 +20,10 @@ export class StatusMutations {
     this.rootStore = rootStore
   }
 
-  async updateBatch(spaceId: string, statuses: StatusUpdateValue[]): Promise<void> {
+  async updateBatch(statuses: StatusUpdateValue[]): Promise<void> {
     const store = this.rootStore.statusStore
     const db = this.rootStore.statusDB!
-    const previous = store.getBySpace(spaceId).map((s) => toJS(s))
+    const previous = store.all.map((s) => toJS(s))
 
     // 1. Optimistic — apply every row's local effect before sending
     for (const dto of statuses) {
@@ -43,10 +37,9 @@ export class StatusMutations {
       if (!dto.id) continue // Create/Update always carry a client-generated id
       const record: Status = {
         id: dto.id,
-        spaceId,
+        spaceId: dto.spaceId ?? undefined,
         name: dto.name,
         color: dto.color,
-        category: dto.category,
         orderKey: dto.orderKey ?? '',
       }
       store.upsert(record)
@@ -56,7 +49,7 @@ export class StatusMutations {
     try {
       await api.put(
         '/statuses/sync/batch',
-        { spaceId, statuses },
+        { statuses },
         {
           headers: {
             'X-Workspace-Id': this.rootStore.workspaceId,

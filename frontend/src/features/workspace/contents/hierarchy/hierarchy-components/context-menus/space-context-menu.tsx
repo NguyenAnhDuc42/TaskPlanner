@@ -18,25 +18,27 @@ import { EntityLayerType } from "@/types/entity-layer-type";
 import { useWorkspace } from "@/features/workspace/context/workspace-context";
 import { useWorkspaceRole } from "@/features/workspace/context/use-workspace-role";
 import { DialogFormWrapper } from "@/components/dialog-form-wrapper";
-import { CreateTaskForm } from "@/features/workspace/components/forms/create-task-form";
-import { CreateFolderForm } from "@/features/workspace/components/forms/create-folder-form";
 import { EditSpaceForm } from "@/features/workspace/components/forms/edit-space-form";
 import { useWorkspaceRootStore } from "@/stores/workspace-root.store";
 import { useSyncEngine } from "@/sync/sync-provider";
 import { SpaceMutations } from "@/mutations/space.mutations";
 import { FavoriteMutations } from "@/mutations/favorite.mutations";
-import { EntityMenuContext, DeleteConfirmationDialog } from "./shared";
+import { EntityMenuContext, DeleteConfirmationDialog, EditFieldsSubmenu } from "./shared";
 
 interface SpaceContextMenuProps {
   spaceId: string;
   spaceName: string;
   children: React.ReactNode;
+  onCreateFolder?: () => void;
+  onCreateTask?: () => void;
 }
 
 export const SpaceContextMenu = observer(function SpaceContextMenu({
   spaceId,
   spaceName,
   children,
+  onCreateFolder,
+  onCreateTask,
 }: SpaceContextMenuProps) {
   const { workspaceId } = useWorkspace();
   const { canCreateContent, canDeleteSpace, isAdmin } = useWorkspaceRole();
@@ -45,7 +47,8 @@ export const SpaceContextMenu = observer(function SpaceContextMenu({
   const spaceMutations = useMemo(() => new SpaceMutations(rootStore, syncEngine), [rootStore, syncEngine]);
   const favoriteMutations = useMemo(() => new FavoriteMutations(rootStore), [rootStore]);
   const isFavorite = rootStore.favoriteStore.isFavorite(spaceId);
-  const [activeForm, setActiveForm] = useState<"task" | "folder" | "settings" | null>(null);
+  const space = rootStore.spaceStore.getById(spaceId);
+  const [activeForm, setActiveForm] = useState<"settings" | null>(null);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
 
   const handleDelete = () => {
@@ -60,17 +63,28 @@ export const SpaceContextMenu = observer(function SpaceContextMenu({
     return (
       <>
         {canCreateContent && (
-          <Item className="gap-2 cursor-pointer" onSelect={() => setActiveForm("task")}>
+          <Item className="gap-2 cursor-pointer" onSelect={() => onCreateTask?.()}>
             <Plus className="h-3.5 w-3.5" />
             <span>Create Task</span>
           </Item>
         )}
 
         {canCreateContent && (
-          <Item className="gap-2 cursor-pointer" onSelect={() => setActiveForm("folder")}>
+          <Item className="gap-2 cursor-pointer" onSelect={() => onCreateFolder?.()}>
             <FolderPlus className="h-3.5 w-3.5" />
             <span>Create Folder</span>
           </Item>
+        )}
+
+        {canCreateContent && space && (
+          <EditFieldsSubmenu
+            isContext={isContext}
+            name={space.name}
+            icon={space.icon || "LayoutGrid"}
+            color={space.color || "#6366f1"}
+            onRename={(name) => { if (name.trim()) spaceMutations.update(spaceId, { name: name.trim() }).catch((err) => console.error("Failed to rename space", err)); }}
+            onIconColorChange={(icon, color) => spaceMutations.update(spaceId, { icon, color }).catch((err) => console.error("Failed to update space icon/color", err))}
+          />
         )}
 
         {canCreateContent && <Separator className="bg-border/50" />}
@@ -137,31 +151,6 @@ export const SpaceContextMenu = observer(function SpaceContextMenu({
           {renderMenuItems(true)}
         </ContextMenuContent>
       </ContextMenu>
-
-      <DialogFormWrapper
-        open={activeForm === "task"}
-        onOpenChange={(open) => !open && setActiveForm(null)}
-        title="Create New Task"
-        trigger={null}
-      >
-        <CreateTaskForm
-          parentId={spaceId}
-          parentType={EntityLayerType.ProjectSpace}
-          onCancel={() => setActiveForm(null)}
-        />
-      </DialogFormWrapper>
-
-      <DialogFormWrapper
-        open={activeForm === "folder"}
-        onOpenChange={(open) => !open && setActiveForm(null)}
-        title="Create New Folder"
-        trigger={null}
-      >
-        <CreateFolderForm
-          spaceId={spaceId}
-          onCancel={() => setActiveForm(null)}
-        />
-      </DialogFormWrapper>
 
       <DialogFormWrapper
         open={activeForm === "settings"}

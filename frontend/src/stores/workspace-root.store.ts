@@ -6,7 +6,6 @@ import {
   StatusDB,
   MemberDB,
   CommentDB,
-  DocumentDB,
   DocumentBlockDB,
   AssigneeDB,
   FavoriteDB,
@@ -20,7 +19,6 @@ import { FolderStore } from "./folder.store";
 import { MemberStore } from "./member.store";
 import { StatusStore } from "./status.store";
 import { CommentStore } from "./comment.store";
-import { DocumentStore } from "./document.store";
 import { DocumentBlockStore } from "./document-block.store";
 import { AssigneeStore } from "./assignee.store";
 import { FavoriteStore } from "./favorite.store";
@@ -48,7 +46,6 @@ export class WorkspaceRootStore {
   memberStore = new MemberStore();
   statusStore = new StatusStore();
   commentStore = new CommentStore();
-  documentStore = new DocumentStore();
   documentBlockStore = new DocumentBlockStore();
   assigneeStore = new AssigneeStore();
   favoriteStore = new FavoriteStore();
@@ -60,7 +57,6 @@ export class WorkspaceRootStore {
   statusDB: StatusDB | null = null;
   memberDB: MemberDB | null = null;
   commentDB: CommentDB | null = null;
-  documentDB: DocumentDB | null = null;
   documentBlockDB: DocumentBlockDB | null = null;
   assigneeDB: AssigneeDB | null = null;
   favoriteDB: FavoriteDB | null = null;
@@ -86,7 +82,6 @@ export class WorkspaceRootStore {
     this.statusDB = new StatusDB(this.db);
     this.memberDB = new MemberDB(this.db);
     this.commentDB = new CommentDB(this.db);
-    this.documentDB = new DocumentDB(this.db);
     this.documentBlockDB = new DocumentBlockDB(this.db);
     this.assigneeDB = new AssigneeDB(this.db);
     this.favoriteDB = new FavoriteDB(this.db);
@@ -94,14 +89,13 @@ export class WorkspaceRootStore {
     this.transactionDB = new TransactionDB(this.db);
     this.fetchedContextDB = new FetchedContextDB(this.db);
 
-    const [tasks, spaces, folders, statuses, members, comments, documents, blocks, assignees, favorites] = await Promise.all([
+    const [tasks, spaces, folders, statuses, members, comments, blocks, assignees, favorites] = await Promise.all([
       this.taskDB.getAll(),
       this.spaceDB.getAll(),
       this.folderDB.getAll(),
       this.statusDB.getAll(),
       this.memberDB.getAll(),
       this.commentDB.getAll(),
-      this.documentDB.getAll(),
       this.documentBlockDB.getAll(),
       this.assigneeDB.getAll(),
       this.favoriteDB.getAll(),
@@ -113,7 +107,6 @@ export class WorkspaceRootStore {
     this.statusStore.hydrate(statuses);
     this.memberStore.hydrate(members);
     this.commentStore.hydrate(comments);
-    this.documentStore.hydrate(documents);
     this.documentBlockStore.hydrate(blocks);
     this.assigneeStore.hydrate(assignees);
     this.favoriteStore.hydrate(favorites);

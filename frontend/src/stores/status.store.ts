@@ -20,6 +20,10 @@ export class StatusStore {
     return this.all.filter((s) => s.spaceId === spaceId);
   }
 
+  getVisibleForSpace(spaceId: string): Status[] {
+    return this.all.filter((s) => !s.spaceId || s.spaceId === spaceId);
+  }
+
   upsert(status: Status): void {
     this.statuses.set(status.id, status);
   }

@@ -234,11 +234,6 @@ export const SortableBoardItem = React.memo(function SortableBoardItem({
     navigate({ to: "/workspaces/$workspaceId/tasks/$taskId", params: { workspaceId, taskId: item.id } });
   }, [item.id, workspaceId, navigate]);
 
-  const handleFolderClick = React.useCallback(() => {
-    if (!workspaceId || !item.folderId) return;
-    navigate({ to: "/workspaces/$workspaceId/folders/$folderId", params: { workspaceId, folderId: item.folderId } });
-  }, [item.folderId, workspaceId, navigate]);
-
   const handleMouseDown = React.useCallback(() => {
     if (!workspaceId) return;
     router.preloadRoute({ to: "/workspaces/$workspaceId/tasks/$taskId", params: { workspaceId, taskId: item.id } });
@@ -262,7 +257,6 @@ export const SortableBoardItem = React.memo(function SortableBoardItem({
           onDoubleClick={handleOpenPage}
           onMouseDown={handleMouseDown}
           onMaximizeClick={handleOpenPage}
-          onFolderClick={item.folderId ? handleFolderClick : undefined}
           onPriorityChange={handlePrioritySelect}
           onDateChange={handleDateSelect}
           isDragging={isDragging}

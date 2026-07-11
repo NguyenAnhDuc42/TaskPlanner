@@ -2,12 +2,12 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Api;
 
-public static class DeleteDocumentEndpoint
+public static class UpdateWorkspaceStatusesEndpoint
 {
     public static void MapEndpoint(IEndpointRouteBuilder app)
     {
-        app.MapDelete("/api/documents/sync/{id:guid}", async (
-            Guid id,
+        app.MapPut("/api/statuses/sync/batch", async (
+            [FromBody] UpdateWorkspaceStatusesCommand request,
             [FromHeader(Name = "X-Client-Trace-Id")] string? traceId,
             [FromServices] IHandler dispatcher,
             CancellationToken cancellationToken) =>
@@ -17,15 +17,15 @@ public static class DeleteDocumentEndpoint
                 return Results.BadRequest(new { Error = "X-Client-Trace-Id header is required for offline sync." });
             }
 
-            var request = new DeleteDocumentCommand { DocumentId = id, TraceId = traceId };
+            request.TraceId = traceId;
 
-            var result = await dispatcher.SendAsync<DeleteDocumentCommand, long>(request, cancellationToken);
+            var result = await dispatcher.SendAsync<UpdateWorkspaceStatusesCommand, long>(request, cancellationToken);
 
             return result.IsSuccess
                 ? Results.Ok(new { SyncEventId = result.Value })
                 : MinimalResultExtensions.Problem(result.Error!);
         })
         .RequireAuthorization()
-        .WithTags("DocumentsSync");
+        .WithTags("StatusesSync");
     }
 }

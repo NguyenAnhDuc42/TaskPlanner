@@ -17,10 +17,6 @@ type SearchResult = {
 
 const MAX_RESULTS_PER_SECTION = 5;
 
-// Lives in the workspace header, not the hierarchy sidebar — one real search box instead of two
-// near-identical ones (the sidebar used to have its own filter input, and this bar was a permanent
-// "Elasticsearch Coming Soon" stub). Matches Space/Folder/Task names against data already hydrated
-// locally (Bootstrap + Delta), no server round-trip. Picking a result navigates straight to it.
 export const GlobalSearch = observer(function GlobalSearch() {
   const { workspaceId } = useWorkspace();
   const rootStore = useWorkspaceRootStore();
@@ -62,7 +58,7 @@ export const GlobalSearch = observer(function GlobalSearch() {
     if (result.type === EntityLayerType.ProjectSpace) {
       navigate({ to: "/workspaces/$workspaceId/spaces/$spaceId", params: { workspaceId, spaceId: result.id } });
     } else if (result.type === EntityLayerType.ProjectFolder) {
-      navigate({ to: "/workspaces/$workspaceId/folders/$folderId", params: { workspaceId, folderId: result.id } });
+      return; 
     } else if (result.type === EntityLayerType.ProjectTask) {
       navigate({ to: "/workspaces/$workspaceId/tasks/$taskId", params: { workspaceId, taskId: result.id } });
     }

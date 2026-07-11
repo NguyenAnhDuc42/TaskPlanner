@@ -28,7 +28,7 @@ export function DateSelect({
   const isSm = size === "sm";
 
   return (
-    <div className="inline-flex items-center gap-1 group">
+    <div className="inline-flex items-center group">
       <Popover>
         <PopoverTrigger asChild>
           <button 
@@ -84,7 +84,7 @@ export function DateSelect({
         <div
           role="button"
           tabIndex={0}
-          className="opacity-0 group-hover:opacity-100 p-0.5 rounded-full bg-muted hover:bg-destructive hover:text-destructive-foreground transition-all cursor-pointer border border-border/20 shrink-0"
+          className="w-0 group-hover:w-4 ml-0 group-hover:ml-1 opacity-0 group-hover:opacity-100 overflow-hidden flex items-center justify-center p-0.5 rounded-full bg-muted hover:bg-destructive hover:text-destructive-foreground transition-all duration-150 cursor-pointer border border-border/20 shrink-0"
           onClick={(e) => {
             e.stopPropagation();
             e.preventDefault();
@@ -97,7 +97,7 @@ export function DateSelect({
           }}
           onPointerDown={(e) => e.stopPropagation()}
         >
-          <X className="h-3 w-3" />
+          <X className="h-3 w-3 shrink-0" />
         </div>
       )}
     </div>

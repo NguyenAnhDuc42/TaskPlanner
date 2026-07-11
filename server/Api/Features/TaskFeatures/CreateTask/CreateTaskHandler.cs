@@ -64,16 +64,8 @@ public class CreateTaskHandler(
                 return Result<long>.Success(0);
             }
 
-            // Create Document automatically
-            var document = Document.Create(
-                id: request.DefaultDocumentId,
-                workspaceId: request.ProjectWorkspaceId,
-                name: request.Name,
-                creatorId: workspaceContext.CurrentMember?.Id ?? Guid.Empty
-            );
-            db.Documents.Add(document);
-
-            // Create Task
+            // Create Task — defaultDocumentId is just a grouping key for the task's
+            // DocumentBlocks now (see Document entity removal); no Document row backs it.
             task = ProjectTask.Create(
                 id: request.Id,
                 projectWorkspaceId: request.ProjectWorkspaceId,
@@ -81,7 +73,7 @@ public class CreateTaskHandler(
                 projectFolderId: effectiveFolderId,
                 name: request.Name,
                 slug: request.Slug,
-                defaultDocumentId: document.Id,
+                defaultDocumentId: request.DefaultDocumentId,
                 color: request.Color ?? "#FFFFFF",
                 icon: request.Icon,
                 creatorId: workspaceContext.CurrentMember?.Id ?? Guid.Empty, // Wait, if WorkspaceContext is not populated, this fails. Let's assume it is.

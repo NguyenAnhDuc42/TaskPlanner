@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { observer } from "mobx-react-lite";
 import { ChevronRight, MoreVertical } from "lucide-react";
 import { DynamicIcon } from "@/components/dynamic-icon";
@@ -34,6 +35,8 @@ export const SpaceNodeItem = observer(function SpaceNodeItem({
   const navigate = useNavigate();
   const location = useLocation();
   const [isOpen, setIsOpen] = useLocalStorage(`sidebar-open:${workspaceId}:space:${spaceId}`, false);
+  const [isCreatingFolder, setIsCreatingFolder] = useState(false);
+  const [isCreatingTask, setIsCreatingTask] = useState(false);
 
 
   if (!space) return null;
@@ -58,7 +61,12 @@ export const SpaceNodeItem = observer(function SpaceNodeItem({
           orderKey: space.orderKey,
         }}
       >
-        <SpaceContextMenu spaceId={space.id} spaceName={space.name}>
+        <SpaceContextMenu
+          spaceId={space.id}
+          spaceName={space.name}
+          onCreateFolder={() => { setIsOpen(true); setIsCreatingFolder(true); }}
+          onCreateTask={() => { setIsOpen(true); setIsCreatingTask(true); }}
+        >
           <div
             className={cn(
               "flex items-center px-1 py-0.5 rounded-md transition-colors mb-px group border",
@@ -126,12 +134,16 @@ export const SpaceNodeItem = observer(function SpaceNodeItem({
           <NodeFoldersList
             spaceId={space.id}
             isExpanded={effectiveOpen}
+            isCreating={isCreatingFolder}
+            onCreatingChange={setIsCreatingFolder}
           />
           <NodeTasksList
             nodeId={space.id}
             parentType={EntityLayerConst.ProjectSpace}
             isExpanded={effectiveOpen}
             spaceId={space.id}
+            isCreating={isCreatingTask}
+            onCreatingChange={setIsCreatingTask}
           />
         </div>
       </CollapsibleContent>

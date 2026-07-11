@@ -116,10 +116,7 @@ export class SyncEngine {
 
         if (isRedirectingToSignIn()) return
 
-        const delay = Math.min(
-          SyncEngine.RETRY_BASE_MS * 2 ** attemptCount,
-          SyncEngine.RETRY_MAX_MS,
-        )
+        const delay = Math.min( SyncEngine.RETRY_BASE_MS * 2 ** attemptCount, SyncEngine.RETRY_MAX_MS,)
         attemptCount++
         devError(`[SyncEngine] Connect failed, retrying in ${delay / 1000}s:`, err)
         setTimeout(() => { void attempt() }, delay)

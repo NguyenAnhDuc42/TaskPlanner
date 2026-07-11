@@ -3,9 +3,10 @@ using System.Text.Json.Serialization;
 namespace Api;
 
 // Batch-shaped like CreateSpace's multi-entity fan-out: one call can create/update/delete
-// several statuses for a space in one round-trip, each row tagged with its own RowAction.
-public record UpdateSpaceStatusesCommand(
-    Guid SpaceId,
+// several statuses in one round-trip, each row tagged with its own RowAction. Scope is the
+// workspace (from IAuthorizedWorkspaceRequest), not a single space — status is workspace-visible
+// everywhere; SpaceId per row is an optional "ancestor" tag, not a scoping parameter.
+public record UpdateWorkspaceStatusesCommand(
     List<StatusUpdateValue> Statuses
 ) : ICommandRequest<long>, IAuthorizedWorkspaceRequest
 {
@@ -17,7 +18,7 @@ public record StatusUpdateValue(
     Guid? Id,
     string Name,
     string Color,
-    StatusCategory Category,
     string? OrderKey,
+    Guid? SpaceId,
     RowAction Action
 );

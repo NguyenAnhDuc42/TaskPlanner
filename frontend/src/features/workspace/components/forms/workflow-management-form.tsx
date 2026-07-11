@@ -1,11 +1,10 @@
 import { useState, useRef, useCallback, useMemo, useEffect } from "react";
 import { observer } from "mobx-react-lite";
-import { Plus, Trash2, Check, GripVertical } from "lucide-react";
+import { Plus, Trash2, Check, GripVertical, X } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import {
   DndContext,
-  closestCenter,
   PointerSensor,
   useSensor,
   useSensors,
@@ -21,13 +20,13 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { restrictToVerticalAxis } from "@dnd-kit/modifiers";
+import { pointerAwareCollisionDetection } from "@/lib/dnd-collision";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { StatusCategory } from "@/types/status-category";
 import type { Status } from "@/types/status";
 import { useWorkspaceRootStore } from "@/stores/workspace-root.store";
 import { StatusMutations, type StatusUpdateValue } from "@/mutations/status.mutations";
@@ -51,40 +50,6 @@ const PRESET_COLORS = [
   "#ef4444", "#f97316", "#f59e0b", "#eab308",
   "#22c55e", "#10b981", "#06b6d4", "#3b82f6",
   "#6366f1", "#8b5cf6", "#ec4899", "#64748b",
-];
-
-const CATEGORY_CONFIG: Record<StatusCategory, { label: string; accent: string; glow: string; dot: string }> = {
-  [StatusCategory.NotStarted]: {
-    label: "Not Started",
-    accent: "border-zinc-700/60 bg-zinc-800/40",
-    glow: "shadow-zinc-900/60",
-    dot: "bg-zinc-500",
-  },
-  [StatusCategory.Active]: {
-    label: "Active",
-    accent: "border-blue-500/30 bg-blue-950/20",
-    glow: "shadow-blue-950/60",
-    dot: "bg-blue-400",
-  },
-  [StatusCategory.Done]: {
-    label: "Done",
-    accent: "border-emerald-500/30 bg-emerald-950/20",
-    glow: "shadow-emerald-950/60",
-    dot: "bg-emerald-400",
-  },
-  [StatusCategory.Closed]: {
-    label: "Closed",
-    accent: "border-rose-500/20 bg-rose-950/10",
-    glow: "shadow-rose-950/60",
-    dot: "bg-rose-400/70",
-  },
-};
-
-const CATEGORY_ORDER: StatusCategory[] = [
-  StatusCategory.NotStarted,
-  StatusCategory.Active,
-  StatusCategory.Done,
-  StatusCategory.Closed,
 ];
 
 // ─── Color Picker ─────────────────────────────────────────────────────────────
@@ -181,7 +146,7 @@ function StatusCard({
       ref={overlay ? undefined : setNodeRef}
       style={style}
       className={cn(
-        "group relative flex items-center gap-2 h-8 px-2 rounded-md border bg-card/60 hover:bg-card/90 border-border/30 hover:border-border/60 transition-all duration-150 select-none",
+        "group relative flex items-center gap-2 h-8 px-2 rounded-md border bg-card/60 hover:bg-card/90 border-border/30 hover:border-border/60 transition-colors duration-150 select-none",
         isDragging && !overlay && "opacity-0",
         overlay && "shadow-2xl rotate-1 scale-105 opacity-90 bg-card border-border/60"
       )}
@@ -235,120 +200,6 @@ function StatusCard({
   );
 }
 
-// ─── Category Column ──────────────────────────────────────────────────────────
-
-function CategoryColumn({
-  category,
-  statuses,
-  onUpdateName,
-  onUpdateColor,
-  onDelete,
-  onAdd,
-}: {
-  category: StatusCategory;
-  statuses: Status[];
-  onUpdateName: (id: string, name: string) => void;
-  onUpdateColor: (id: string, color: string) => void;
-  onDelete: (id: string) => void;
-  onAdd: (category: StatusCategory, name: string) => void;
-}) {
-  const cfg = CATEGORY_CONFIG[category];
-  const [adding, setAdding] = useState(false);
-  const [newName, setNewName] = useState("");
-  const inputRef = useRef<HTMLInputElement>(null);
-
-  const commitAdd = useCallback(() => {
-    const trimmed = newName.trim();
-    if (trimmed) onAdd(category, trimmed);
-    setNewName("");
-    setAdding(false);
-  }, [newName, category, onAdd]);
-
-  useEffect(() => {
-    if (adding) inputRef.current?.focus();
-  }, [adding]);
-
-  return (
-    <div
-      className={cn(
-        "flex flex-col gap-2 rounded-xl border p-3 min-w-55 flex-1 shadow-sm",
-        cfg.accent,
-        cfg.glow
-      )}
-    >
-      {/* Column header */}
-      <div className="flex items-center justify-between mb-1 shrink-0">
-        <div className="flex items-center gap-1.5">
-          <span className={cn("h-2 w-2 rounded-full shrink-0", cfg.dot)} />
-          <span className="text-[10px] font-black uppercase tracking-[0.12em] text-foreground/60">
-            {cfg.label}
-          </span>
-          <span className="text-[9px] font-bold text-muted-foreground/35 font-mono">
-            {statuses.length}
-          </span>
-        </div>
-        <button
-          type="button"
-          className="h-4 w-4 flex items-center justify-center rounded text-muted-foreground/30 hover:text-foreground hover:bg-white/6 transition-all"
-          onClick={() => { setAdding(true); setNewName(""); }}
-        >
-          <Plus className="h-3 w-3" />
-        </button>
-      </div>
-
-      {/* Sortable status list */}
-      <SortableContext items={statuses.map((s) => s.id)} strategy={verticalListSortingStrategy}>
-        <div className="flex flex-col gap-1.5 flex-1">
-          {statuses.map((s) => (
-            <StatusCard
-              key={s.id}
-              status={s}
-              onUpdateName={onUpdateName}
-              onUpdateColor={onUpdateColor}
-              onDelete={onDelete}
-            />
-          ))}
-        </div>
-      </SortableContext>
-
-      {/* Add status row */}
-      {adding ? (
-        <div className="flex items-center gap-1.5 h-8 px-2 rounded-md border border-border/50 bg-card/80 shrink-0">
-          <div className="h-2.5 w-2.5 rounded-full shrink-0 bg-muted-foreground/25" />
-          <input
-            ref={inputRef}
-            value={newName}
-            onChange={(e) => setNewName(e.target.value)}
-            placeholder="Status name…"
-            className="flex-1 text-[11px] font-semibold bg-transparent border-none outline-none text-foreground/90 placeholder:text-muted-foreground/30 min-w-0"
-            onKeyDown={(e) => {
-              if (e.key === "Enter") commitAdd();
-              if (e.key === "Escape") { setAdding(false); setNewName(""); }
-            }}
-            onBlur={commitAdd}
-          />
-          <button
-            type="button"
-            className="text-emerald-400/70 hover:text-emerald-400 transition-colors shrink-0"
-            onMouseDown={(e) => { e.preventDefault(); commitAdd(); }}
-          >
-            <Check className="h-3 w-3" />
-          </button>
-        </div>
-      ) : (
-        <button
-          type="button"
-          className="flex items-center gap-1.5 h-8 px-2 rounded-md border border-dashed border-border/25 text-muted-foreground/30 hover:text-muted-foreground/70 hover:border-border/50 hover:bg-white/2 transition-all shrink-0"
-          onClick={() => { setAdding(true); setNewName(""); }}
-        >
-          <Plus className="h-3 w-3" />
-          <span className="text-[10px] font-semibold">Add status</span>
-        </button>
-      )}
-    </div>
-  );
-}
-
 // ─── Main: CreateStatusForm ───────────────────────────────────────────────────
 
 export const CreateStatusForm = observer(function CreateStatusForm({
@@ -361,27 +212,34 @@ export const CreateStatusForm = observer(function CreateStatusForm({
   const rootStore = useWorkspaceRootStore();
   const statusMutations = useMemo(() => new StatusMutations(rootStore), [rootStore]);
 
+  // "combined" (default) — shared workspace-level statuses + this space's own tagged ones, same
+  // filter the board and task pickers use. "space" — just this space's own tagged statuses,
+  // narrower, for when you only want to touch what's specific to this space.
+  const [scope, setScope] = useState<"combined" | "space">("combined");
+
   // Plain read, not useMemo — this is a mobx-react-lite observer, which tracks observable reads
   // made directly during render (see FavoriteNodeList for the full rationale).
-  const resolvedCurrentStatuses = currentStatuses ?? (spaceId
-    ? rootStore.statusStore.getBySpace(spaceId).sort((a, b) => ((a.orderKey ?? "") < (b.orderKey ?? "") ? -1 : 1))
-    : []);
+  const scopedStatuses = spaceId
+    ? (scope === "space" ? rootStore.statusStore.getBySpace(spaceId) : rootStore.statusStore.getVisibleForSpace(spaceId))
+    : rootStore.statusStore.all;
+  const resolvedCurrentStatuses = currentStatuses ?? [...scopedStatuses]
+    .sort((a, b) => ((a.orderKey ?? "") < (b.orderKey ?? "") ? -1 : 1));
 
   const [localStatuses, setLocalStatuses] = useState<Status[]>(() => resolvedCurrentStatuses);
+  // Re-seed the working copy when the scope toggle changes — switching scope mid-edit is treated
+  // as starting fresh on that narrower/wider view, same as reopening the dialog would.
+  useEffect(() => {
+    setLocalStatuses(resolvedCurrentStatuses);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [scope]);
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const draggingItem = localStatuses.find((s) => s.id === draggingId) ?? null;
+  const [adding, setAdding] = useState(false);
+  const [newName, setNewName] = useState("");
+  const addInputRef = useRef<HTMLInputElement>(null);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 4 } })
-  );
-
-  const grouped = useMemo(
-    () =>
-      CATEGORY_ORDER.reduce<Record<StatusCategory, Status[]>>((acc, cat) => {
-        acc[cat] = localStatuses.filter((s) => s.category === cat);
-        return acc;
-      }, {} as Record<StatusCategory, Status[]>),
-    [localStatuses]
   );
 
   const handleUpdateName = useCallback((id: string, name: string) => {
@@ -396,17 +254,25 @@ export const CreateStatusForm = observer(function CreateStatusForm({
     setLocalStatuses((prev) => prev.filter((s) => s.id !== id));
   }, []);
 
-  const handleAdd = useCallback((category: StatusCategory, name: string) => {
-    const newStatus: Status = {
-      id: crypto.randomUUID(),
-      spaceId: spaceId ?? "",
-      name,
-      color: PRESET_COLORS[Math.floor(Math.random() * 8)],
-      category,
-      orderKey: "",
-    };
-    setLocalStatuses((prev) => [...prev, newStatus]);
-  }, [spaceId]);
+  const commitAdd = useCallback(() => {
+    const trimmed = newName.trim();
+    if (trimmed) {
+      const newStatus: Status = {
+        id: crypto.randomUUID(),
+        spaceId,
+        name: trimmed,
+        color: PRESET_COLORS[Math.floor(Math.random() * PRESET_COLORS.length)],
+        orderKey: "",
+      };
+      setLocalStatuses((prev) => [...prev, newStatus]);
+    }
+    setNewName("");
+    setAdding(false);
+  }, [newName, spaceId]);
+
+  useEffect(() => {
+    if (adding) addInputRef.current?.focus();
+  }, [adding]);
 
   const handleDragStart = useCallback((e: DragStartEvent) => {
     setDraggingId(String(e.active.id));
@@ -425,23 +291,25 @@ export const CreateStatusForm = observer(function CreateStatusForm({
   }, []);
 
   const handleSave = useCallback(() => {
-    if (spaceId) {
+    if (onApplyChanges) {
+      // Local-preview mode — caller owns persistence (e.g. a template picker previewing a
+      // starter set before the entity it belongs to even exists yet).
+      onApplyChanges(localStatuses);
+    } else {
       const payloads = buildStatusUpdatePayloads(localStatuses, resolvedCurrentStatuses);
-      statusMutations.updateBatch(spaceId, payloads).catch((err) => {
+      statusMutations.updateBatch(payloads).catch((err) => {
         console.error("Failed to save workflow statuses", err);
         toast.error("Failed to update statuses. Your changes have been reverted.");
       });
-    } else {
-      onApplyChanges?.(localStatuses);
     }
     onClose();
-  }, [spaceId, localStatuses, resolvedCurrentStatuses, statusMutations, onApplyChanges, onClose]);
+  }, [localStatuses, resolvedCurrentStatuses, statusMutations, onApplyChanges, onClose]);
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
       <DialogContent
         key={isOpen ? "open" : "closed"}
-        className="max-w-240 w-full bg-background border border-border/30 text-foreground p-0 rounded-xl overflow-hidden shadow-2xl"
+        className="max-w-120 w-full bg-background border border-border/30 text-foreground p-0 rounded-xl overflow-hidden shadow-2xl"
         showCloseButton={false}
       >
         {/* Header */}
@@ -451,39 +319,100 @@ export const CreateStatusForm = observer(function CreateStatusForm({
               Workflow Manager
             </DialogTitle>
             <p className="text-[10px] text-muted-foreground/50 font-medium mt-0.5">
-              Drag to reorder · Click color to change · Changes save on close
+              Drag to reorder · Click color to change
             </p>
           </div>
           <button
             type="button"
-            onClick={handleSave}
-            className="flex items-center gap-1.5 h-7 px-3 rounded-md bg-primary/90 hover:bg-primary text-primary-foreground text-[11px] font-bold transition-all active:scale-95 shadow-sm"
+            onClick={onClose}
+            title="Close"
+            className="h-6 w-6 flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors cursor-pointer shrink-0"
           >
-            <Check className="h-3 w-3" />
-            Save
+            <X className="h-3.5 w-3.5" />
           </button>
         </DialogHeader>
 
-        {/* Horizontal columns */}
+        {/* Scope toggle — only meaningful with a space context */}
+        {spaceId && (
+          <div className="flex items-center gap-1 mx-4 mt-3 rounded-md border border-border/30 bg-card/60 p-1 shrink-0">
+            <button
+              type="button"
+              onClick={() => setScope("combined")}
+              className={cn(
+                "flex-1 h-6 rounded text-[10px] font-semibold transition-colors cursor-pointer",
+                scope === "combined" ? "bg-primary/10 text-primary" : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
+              )}
+            >
+              Workspace + This Space
+            </button>
+            <button
+              type="button"
+              onClick={() => setScope("space")}
+              className={cn(
+                "flex-1 h-6 rounded text-[10px] font-semibold transition-colors cursor-pointer",
+                scope === "space" ? "bg-primary/10 text-primary" : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
+              )}
+            >
+              This Space Only
+            </button>
+          </div>
+        )}
+
+        {/* Flat, ordered status list */}
         <DndContext
           sensors={sensors}
-          collisionDetection={closestCenter}
+          collisionDetection={pointerAwareCollisionDetection}
           modifiers={[restrictToVerticalAxis]}
           onDragStart={handleDragStart}
           onDragEnd={handleDragEnd}
         >
-          <div className="flex gap-3 p-4 overflow-x-auto [&::-webkit-scrollbar]:h-1.5 [&::-webkit-scrollbar-thumb]:bg-white/6 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-white/12 [&::-webkit-scrollbar-track]:bg-transparent">
-            {CATEGORY_ORDER.map((cat) => (
-              <CategoryColumn
-                key={cat}
-                category={cat}
-                statuses={grouped[cat]}
-                onUpdateName={handleUpdateName}
-                onUpdateColor={handleUpdateColor}
-                onDelete={handleDelete}
-                onAdd={handleAdd}
-              />
-            ))}
+          <div className="flex flex-col gap-1.5 p-4 max-h-100 overflow-y-auto [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:bg-white/6 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-white/12 [&::-webkit-scrollbar-track]:bg-transparent">
+            <SortableContext items={localStatuses.map((s) => s.id)} strategy={verticalListSortingStrategy}>
+              {localStatuses.map((s) => (
+                <StatusCard
+                  key={s.id}
+                  status={s}
+                  onUpdateName={handleUpdateName}
+                  onUpdateColor={handleUpdateColor}
+                  onDelete={handleDelete}
+                />
+              ))}
+            </SortableContext>
+
+            {/* Add status row */}
+            {adding ? (
+              <div className="flex items-center gap-1.5 h-8 px-2 rounded-md border border-border/50 bg-card/80 shrink-0">
+                <div className="h-2.5 w-2.5 rounded-full shrink-0 bg-muted-foreground/25" />
+                <input
+                  ref={addInputRef}
+                  value={newName}
+                  onChange={(e) => setNewName(e.target.value)}
+                  placeholder="Status name…"
+                  className="flex-1 text-[11px] font-semibold bg-transparent border-none outline-none text-foreground/90 placeholder:text-muted-foreground/30 min-w-0"
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") commitAdd();
+                    if (e.key === "Escape") { setAdding(false); setNewName(""); }
+                  }}
+                  onBlur={commitAdd}
+                />
+                <button
+                  type="button"
+                  className="text-emerald-400/70 hover:text-emerald-400 transition-colors shrink-0"
+                  onMouseDown={(e) => { e.preventDefault(); commitAdd(); }}
+                >
+                  <Check className="h-3 w-3" />
+                </button>
+              </div>
+            ) : (
+              <button
+                type="button"
+                className="flex items-center gap-1.5 h-8 px-2 rounded-md border border-dashed border-border/25 text-muted-foreground/30 hover:text-muted-foreground/70 hover:border-border/50 hover:bg-white/2 transition-all shrink-0"
+                onClick={() => { setAdding(true); setNewName(""); }}
+              >
+                <Plus className="h-3 w-3" />
+                <span className="text-[10px] font-semibold">Add status</span>
+              </button>
+            )}
           </div>
 
           {createPortal(
@@ -502,25 +431,19 @@ export const CreateStatusForm = observer(function CreateStatusForm({
           )}
         </DndContext>
 
-        {/* Footer legend */}
-        <div className="flex items-center gap-4 px-5 py-2.5 border-t border-border/15 bg-card/20 backdrop-blur-sm shrink-0">
-          {CATEGORY_ORDER.map((cat) => {
-            const cfg = CATEGORY_CONFIG[cat];
-            return (
-              <div key={cat} className="flex items-center gap-1.5">
-                <span className={cn("h-1.5 w-1.5 rounded-full", cfg.dot)} />
-                <span className="text-[9px] font-semibold text-muted-foreground/40 uppercase tracking-wide">
-                  {cfg.label}
-                </span>
-                <span className="text-[8px] font-mono text-muted-foreground/25">
-                  {grouped[cat].length}
-                </span>
-              </div>
-            );
-          })}
-          <span className="ml-auto text-[9px] text-muted-foreground/25 font-medium">
+        {/* Footer */}
+        <div className="flex items-center justify-between px-5 py-2.5 border-t border-border/15 bg-card/20 backdrop-blur-sm shrink-0">
+          <span className="text-[9px] text-muted-foreground/25 font-medium">
             {localStatuses.length} total statuses
           </span>
+          <button
+            type="button"
+            onClick={handleSave}
+            className="flex items-center gap-1.5 h-7 px-3 rounded-md bg-primary/90 hover:bg-primary text-primary-foreground text-[11px] font-bold transition-all active:scale-95 shadow-sm"
+          >
+            <Check className="h-3 w-3" />
+            Save
+          </button>
         </div>
       </DialogContent>
     </Dialog>
@@ -543,34 +466,26 @@ function buildStatusUpdatePayloads(
         id: s.id,
         name: s.name,
         color: s.color,
-        category: s.category,
         orderKey: null,
         action: RowAction.Delete,
       });
     }
   }
 
-  const categoryGroups: Record<string, Status[]> = {};
-  for (const s of localStatuses) {
-    if (!categoryGroups[s.category]) categoryGroups[s.category] = [];
-    categoryGroups[s.category].push(s);
-  }
-
-  for (const s of localStatuses) {
+  for (let idx = 0; idx < localStatuses.length; idx++) {
+    const s = localStatuses[idx];
     const isNew = !originalStatuses.some((orig) => orig.id === s.id);
-    const catGroup = categoryGroups[s.category] || [];
-    const idx = catGroup.findIndex((item) => item.id === s.id);
 
-    const prevKey = idx > 0 ? catGroup[idx - 1].orderKey || null : null;
-    const nextKey = idx < catGroup.length - 1 ? catGroup[idx + 1].orderKey || null : null;
+    const prevKey = idx > 0 ? localStatuses[idx - 1].orderKey || null : null;
+    const nextKey = idx < localStatuses.length - 1 ? localStatuses[idx + 1].orderKey || null : null;
     const orderKey = fractionalBetween(prevKey, nextKey);
 
     payloads.push({
       id: s.id,
       name: s.name,
       color: s.color,
-      category: s.category,
       orderKey,
+      spaceId: s.spaceId ?? null,
       action: isNew ? RowAction.Create : RowAction.Update,
     });
   }

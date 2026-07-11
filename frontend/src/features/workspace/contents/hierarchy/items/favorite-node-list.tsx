@@ -138,7 +138,6 @@ export const FavoriteNodeList = observer(function FavoriteNodeList() {
 
   const getIsActive = (id: string, type: EntityLayerType) => {
     if (type === EntityLayerType.ProjectSpace)  return location.pathname.includes(`/spaces/${id}`);
-    if (type === EntityLayerType.ProjectFolder) return location.pathname.includes(`/folders/${id}`);
     if (type === EntityLayerType.ProjectTask)   return location.pathname.includes(`/tasks/${id}`);
     return false;
   };
@@ -147,8 +146,6 @@ export const FavoriteNodeList = observer(function FavoriteNodeList() {
     if (!workspaceId) return;
     if (type === EntityLayerType.ProjectSpace)
       router.preloadRoute({ to: "/workspaces/$workspaceId/spaces/$spaceId", params: { workspaceId, spaceId: id } });
-    else if (type === EntityLayerType.ProjectFolder)
-      router.preloadRoute({ to: "/workspaces/$workspaceId/folders/$folderId", params: { workspaceId, folderId: id } });
     else if (type === EntityLayerType.ProjectTask)
       router.preloadRoute({ to: "/workspaces/$workspaceId/tasks/$taskId", params: { workspaceId, taskId: id } });
   };
@@ -157,8 +154,6 @@ export const FavoriteNodeList = observer(function FavoriteNodeList() {
     if (!workspaceId) return;
     if (type === EntityLayerType.ProjectSpace)
       navigate({ to: "/workspaces/$workspaceId/spaces/$spaceId", params: { workspaceId, spaceId: id } });
-    else if (type === EntityLayerType.ProjectFolder)
-      navigate({ to: "/workspaces/$workspaceId/folders/$folderId", params: { workspaceId, folderId: id } });
     else if (type === EntityLayerType.ProjectTask)
       navigate({ to: "/workspaces/$workspaceId/tasks/$taskId", params: { workspaceId, taskId: id } });
   };

@@ -11,7 +11,6 @@ public enum SyncEntityType
     Task,
     Status,
     Comment,
-    Document,
     DocumentBlock,
     Member,
     EntityAccess,

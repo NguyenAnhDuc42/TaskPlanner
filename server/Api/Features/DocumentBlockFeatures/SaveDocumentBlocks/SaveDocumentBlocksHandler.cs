@@ -17,22 +17,12 @@ public class SaveDocumentBlocksHandler(
     {
         logger.LogInformation("Saving {Count} block changes for document {DocumentId}", request.Blocks.Count, request.DocumentId);
 
-        var workspaceId = await db.Documents.AsNoTracking()
-            .Where(d => d.Id == request.DocumentId && d.DeletedAt == null)
-            .Select(d => (Guid?)d.ProjectWorkspaceId)
-            .FirstOrDefaultAsync(cancellationToken);
-
-        if (workspaceId is null)
-        {
-            logger.LogWarning("Document {DocumentId} not found or deleted", request.DocumentId);
-            return Result<long>.Failure(DocumentError.NotFound);
-        }
-
         syncPermission.RequireMember();
 
         if (request.Blocks.Count == 0)
             return Result<long>.Success(0);
 
+        var workspaceId = workspaceContext.WorkspaceId;
         var memberId = workspaceContext.CurrentMember?.Id ?? Guid.Empty;
         List<SyncEvent> events = [];
 
@@ -63,7 +53,7 @@ public class SaveDocumentBlocksHandler(
                     if (!existingBlocks.TryGetValue(item.Id, out var block)) continue;
                     block.SoftDelete();
                     events.Add(new SyncEvent {
-                        ProjectWorkspaceId = workspaceId.Value, EntityType = SyncEntityType.DocumentBlock,
+                        ProjectWorkspaceId = workspaceId, EntityType = SyncEntityType.DocumentBlock,
                         EntityId = block.Id, Action = SyncAction.D, ClientTraceId = request.TraceId, AuthorUserId = memberId,
                         Payload = JsonSerializer.Serialize(new { id = block.Id }, SyncJson.Options)
                     });
@@ -75,10 +65,10 @@ public class SaveDocumentBlocksHandler(
                     block.UpdateOrderKey(item.OrderKey);
                     block.UpdateType(item.Type);
                     events.Add(new SyncEvent {
-                        ProjectWorkspaceId = workspaceId.Value, EntityType = SyncEntityType.DocumentBlock,
+                        ProjectWorkspaceId = workspaceId, EntityType = SyncEntityType.DocumentBlock,
                         EntityId = block.Id, Action = SyncAction.U, ClientTraceId = request.TraceId, AuthorUserId = memberId,
                         Payload = JsonSerializer.Serialize(new {
-                            id = block.Id, documentId = request.DocumentId, workspaceId = workspaceId.Value,
+                            id = block.Id, documentId = request.DocumentId, workspaceId = workspaceId,
                             type = block.Type, content = block.Content, orderKey = block.OrderKey
                         }, SyncJson.Options)
                     });
@@ -86,13 +76,13 @@ public class SaveDocumentBlocksHandler(
                 else
                 {
                     // Create
-                    var newBlock = DocumentBlock.CreateWithId(item.Id, workspaceId.Value, request.DocumentId, item.Type, item.Content, item.OrderKey, memberId);
+                    var newBlock = DocumentBlock.CreateWithId(item.Id, workspaceId, request.DocumentId, item.Type, item.Content, item.OrderKey, memberId);
                     db.DocumentBlocks.Add(newBlock);
                     events.Add(new SyncEvent {
-                        ProjectWorkspaceId = workspaceId.Value, EntityType = SyncEntityType.DocumentBlock,
+                        ProjectWorkspaceId = workspaceId, EntityType = SyncEntityType.DocumentBlock,
                         EntityId = newBlock.Id, Action = SyncAction.C, ClientTraceId = request.TraceId, AuthorUserId = memberId,
                         Payload = JsonSerializer.Serialize(new {
-                            id = newBlock.Id, documentId = request.DocumentId, workspaceId = workspaceId.Value,
+                            id = newBlock.Id, documentId = request.DocumentId, workspaceId = workspaceId,
                             type = newBlock.Type, content = newBlock.Content, orderKey = newBlock.OrderKey
                         }, SyncJson.Options)
                     });
@@ -110,7 +100,7 @@ public class SaveDocumentBlocksHandler(
         {
             var payloads = events.Select(SyncQueryService.MapToPayload).ToArray();
             _ = realtimeService
-                .NotifySyncEventBatchAsync(workspaceId.Value, payloads, default)
+                .NotifySyncEventBatchAsync(workspaceId, payloads, default)
                 .ContinueWith(t =>
                     logger.LogError(t.Exception, "Failed to broadcast block changes for document {DocumentId}", request.DocumentId),
                     TaskContinuationOptions.OnlyOnFaulted);

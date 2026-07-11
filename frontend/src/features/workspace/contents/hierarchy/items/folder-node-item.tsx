@@ -1,7 +1,7 @@
+import { useState } from "react";
 import { observer } from "mobx-react-lite";
 import { ChevronRight, MoreVertical } from "lucide-react";
 import { DynamicIcon } from "@/components/dynamic-icon";
-import { useNavigate, useLocation } from "@tanstack/react-router";
 import { useWorkspace } from "@/features/workspace/context/workspace-context";
 import { cn } from "@/lib/utils";
 import { Collapsible, CollapsibleContent } from "@/components/ui/collapsible";
@@ -26,15 +26,12 @@ export const FolderNodeItem = observer(function FolderNodeItem({
   const folder = rootStore.folderStore.getById(folderId);
   const hasTasks = rootStore.taskStore.all.some((t) => t.folderId === folderId && !t.parentTaskId);
 
-  const location = useLocation();
-  const navigate = useNavigate();
   const { workspaceId } = useWorkspace();
   const [isOpen, setIsOpen] = useLocalStorage(`sidebar-open:${workspaceId}:folder:${folderId}`, false);
+  const [isCreatingTask, setIsCreatingTask] = useState(false);
 
 
   if (!folder) return null;
-
-  const isActive = location.pathname.includes(`/folders/${folder.id}`);
 
   return (
     <Collapsible open={isOpen} onOpenChange={setIsOpen} className="w-full">
@@ -51,14 +48,10 @@ export const FolderNodeItem = observer(function FolderNodeItem({
         <FolderContextMenu
           folderId={folder.id}
           folderName={folder.name}
+          onCreateTask={() => { setIsOpen(true); setIsCreatingTask(true); }}
         >
           <div
-            className={cn(
-              "flex items-center px-1 py-0.5 rounded-md transition-colors mb-px group border",
-              isActive
-                ? "bg-primary/5 text-primary border-primary/25"
-                : "text-muted-foreground border-transparent hover:bg-muted/50 hover:text-foreground hover:border-border/30",
-            )}
+            className="flex items-center px-1 py-0.5 rounded-md transition-colors mb-px group border text-muted-foreground border-transparent hover:bg-muted/50 hover:text-foreground hover:border-border/30"
           >
             <button
               type="button"
@@ -91,11 +84,7 @@ export const FolderNodeItem = observer(function FolderNodeItem({
             <button
               type="button"
               className="flex-1 text-left text-[11px] font-semibold outline-none select-none whitespace-nowrap"
-              onClick={() => navigate({
-                  to: "/workspaces/$workspaceId/folders/$folderId",
-                  params: { workspaceId, folderId: folder.id },
-                })
-              }
+              onClick={() => { if (hasTasks) setIsOpen(!isOpen); }}
             >
               {folder.name}
             </button>
@@ -122,6 +111,8 @@ export const FolderNodeItem = observer(function FolderNodeItem({
             parentType={EntityLayerConst.ProjectFolder}
             isExpanded={isOpen}
             spaceId={spaceId}
+            isCreating={isCreatingTask}
+            onCreatingChange={setIsCreatingTask}
           />
         </div>
       </CollapsibleContent>

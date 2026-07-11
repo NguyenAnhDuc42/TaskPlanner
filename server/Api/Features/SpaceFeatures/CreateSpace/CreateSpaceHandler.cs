@@ -40,20 +40,12 @@ public class CreateSpaceHandler(
             var slug = SlugHelper.GenerateSlug(request.Name);
             var jsonOptions = SyncJson.Options;
 
-            var document = Document.Create(
-                id: request.DefaultDocumentId,
-                workspaceId: workspaceContext.WorkspaceId,
-                name: request.Name,
-                creatorId: creatorId
-            );
-            db.Documents.Add(document);
-
             space = ProjectSpace.Create(
                 id: request.Id,
                 projectWorkspaceId: workspaceContext.WorkspaceId,
                 name: request.Name,
                 slug: slug,
-                defaultDocumentId: document.Id,
+                defaultDocumentId: request.DefaultDocumentId,
                 color: request.Color,
                 icon: request.Icon,
                 isPrivate: request.IsPrivate,
@@ -83,30 +75,8 @@ public class CreateSpaceHandler(
                 AuthorUserId = creatorId
             });
 
-            var statuses = Status.CreateSpaceStarterSet(workspaceContext.WorkspaceId, space.Id, creatorId);
-            db.Statuses.AddRange(statuses);
-            foreach (var status in statuses)
-            {
-                events.Add(new SyncEvent
-                {
-                    ProjectWorkspaceId = workspaceContext.WorkspaceId,
-                    EntityType = SyncEntityType.Status,
-                    EntityId = status.Id,
-                    Action = SyncAction.C,
-                    Payload = JsonSerializer.Serialize(new
-                    {
-                        id = status.Id,
-                        spaceId = status.ProjectSpaceId,
-                        name = status.Name,
-                        color = status.Color,
-                        category = status.Category.ToString(),
-                        orderKey = status.OrderKey
-                    }, jsonOptions),
-                    ClientTraceId = request.TraceId,
-                    AuthorUserId = creatorId
-                });
-            }
-
+            // No starter statuses seeded here — Status is workspace-visible everywhere, so a new
+            // space just uses whatever statuses the workspace already has (see Status.cs).
             db.SyncEvents.AddRange(events);
             idempotencyService.MarkAsProcessed(request.TraceId);
 

@@ -16,17 +16,6 @@ public class CreateDocumentBlockHandler(
     {
         logger.LogInformation("Attempting to create block on Document {DocumentId}", request.DocumentId);
 
-        var document = await db.Documents.AsNoTracking()
-            .Where(d => d.Id == request.DocumentId && d.DeletedAt == null)
-            .Select(d => new { d.ProjectWorkspaceId })
-            .FirstOrDefaultAsync(cancellationToken);
-
-        if (document is null)
-        {
-            logger.LogWarning("Document {DocumentId} not found or deleted", request.DocumentId);
-            return Result<long>.Failure(DocumentError.NotFound);
-        }
-
         syncPermission.RequireMember();
 
         var memberId = workspaceContext.CurrentMember?.Id ?? Guid.Empty;
@@ -41,7 +30,7 @@ public class CreateDocumentBlockHandler(
                 return Result<long>.Success(0);
             }
 
-            var block = DocumentBlock.CreateWithId(request.Id, document.ProjectWorkspaceId, request.DocumentId, request.Type, request.Content ?? string.Empty, request.OrderKey, memberId);
+            var block = DocumentBlock.CreateWithId(request.Id, workspaceContext.WorkspaceId, request.DocumentId, request.Type, request.Content ?? string.Empty, request.OrderKey, memberId);
             db.DocumentBlocks.Add(block);
 
             var syncPayload = JsonSerializer.Serialize(new
@@ -56,7 +45,7 @@ public class CreateDocumentBlockHandler(
 
             syncEvent = new SyncEvent
             {
-                ProjectWorkspaceId = document.ProjectWorkspaceId,
+                ProjectWorkspaceId = workspaceContext.WorkspaceId,
                 EntityType = SyncEntityType.DocumentBlock,
                 EntityId = block.Id,
                 Action = SyncAction.C,
@@ -78,7 +67,7 @@ public class CreateDocumentBlockHandler(
             var payload = SyncQueryService.MapToPayload(syncEvent);
 
             _ = realtimeService
-                .NotifySyncEventAsync(document.ProjectWorkspaceId, payload, default)
+                .NotifySyncEventAsync(workspaceContext.WorkspaceId, payload, default)
                 .ContinueWith(t =>
                     logger.LogError(t.Exception, "Failed to send real-time Delta for document block {BlockId}", request.Id),
                     TaskContinuationOptions.OnlyOnFaulted);

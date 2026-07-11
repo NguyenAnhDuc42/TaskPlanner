@@ -1,12 +1,14 @@
-import { useRef, useMemo, useCallback, useState } from "react";
+import { useRef, useMemo, useCallback, useState, useEffect } from "react";
 import { observer } from "mobx-react-lite";
 import { useNavigate, useSearch } from "@tanstack/react-router";
 import { createPortal } from "react-dom";
 import {
   DndContext,
   DragOverlay,
-  closestCorners
+  type CollisionDetection,
 } from "@dnd-kit/core";
+import { SortableContext, horizontalListSortingStrategy } from "@dnd-kit/sortable";
+import { pointerAwareCollisionDetection } from "@/lib/dnd-collision";
 import { Priority, prioritySort } from "@/types/priority";
 import type { BoardItem, SpaceBoardFilter } from "../space-board-types";
 import { useDebounce } from "@/hooks/use-debounce";
@@ -16,15 +18,16 @@ import { BoardColumn } from "./board-column";
 import { useSmartWheelScroll } from "@/features/workspace/contents/views/space/utils/use-smart-wheel-scroll";
 import { useEdgeScroll } from "@/features/workspace/contents/views/space/utils/use-edge-scroll";
 import { SpaceFilterBar } from "./space-filter-bar";
-import { useWorkspace } from "@/features/workspace/context/workspace-context";
-import { FolderCardsBar } from "./folder-cards-bar";
 import { useWorkspaceRootStore } from "@/stores/workspace-root.store";
 import { useSyncEngine, useSyncReady } from "@/sync/sync-provider";
 import { useDebouncedFlush } from "@/sync/use-debounced-flush";
 import { TaskMutations } from "@/mutations/task.mutations";
-import { StatusCategory } from "@/types/status-category";
+import { StatusMutations } from "@/mutations/status.mutations";
+import { RowAction } from "@/types/row-action";
 import type { Status } from "@/types/status";
 import { toLocalDay } from "@/lib/date-filter";
+import { useLocalStorage } from "@/hooks/use-local-storage";
+import { HIDE_EMPTY_DEFAULT_KEY } from "./space-settings-dialog";
 
 
 interface SpaceBoardProps {
@@ -32,21 +35,19 @@ interface SpaceBoardProps {
   onWorkflowOpen?: () => void;
 }
 
-const statusCategoryWeight: Record<string, number> = {
-  [StatusCategory.NotStarted]: 0,
-  [StatusCategory.Active]: 1,
-  [StatusCategory.Done]: 2,
-  [StatusCategory.Closed]: 3,
-};
-
 function sortStatuses(statuses: Status[]): Status[] {
-  return [...statuses].sort((a, b) => {
-    const weightA = statusCategoryWeight[a.category] ?? 4;
-    const weightB = statusCategoryWeight[b.category] ?? 4;
-    if (weightA !== weightB) return weightA - weightB;
-    return ((a.orderKey ?? "") < (b.orderKey ?? "") ? -1 : 1);
-  });
+  return [...statuses].sort((a, b) => ((a.orderKey ?? "") < (b.orderKey ?? "") ? -1 : 1));
 }
+
+const collisionDetectionStrategy: CollisionDetection = (args) => {
+  if (args.active.data.current?.type === "column") {
+    const columnContainers = args.droppableContainers.filter(
+      (container) => container.data.current?.type === "column"
+    );
+    return pointerAwareCollisionDetection({ ...args, droppableContainers: columnContainers });
+  }
+  return pointerAwareCollisionDetection(args);
+};
 
 export const SpaceBoard = observer(function SpaceBoard({ spaceId, onWorkflowOpen }: Readonly<SpaceBoardProps>) {
   const navigate = useNavigate({ from: "/workspaces/$workspaceId/spaces/$spaceId" });
@@ -59,12 +60,9 @@ export const SpaceBoard = observer(function SpaceBoard({ spaceId, onWorkflowOpen
   const syncEngine = useSyncEngine();
   const { ready } = useSyncReady();
   const taskMutations = useMemo(() => new TaskMutations(rootStore, syncEngine), [rootStore, syncEngine]);
+  const statusMutations = useMemo(() => new StatusMutations(rootStore), [rootStore]);
   const { scheduleFlush } = useDebouncedFlush(syncEngine);
 
-  // Tasks/statuses are already fully hydrated locally (Bootstrap + Delta) — plain reads, not
-  // useMemo. This component is a mobx-react-lite observer, which tracks observable reads made
-  // directly during render; a store read wrapped in useMemo (keyed on the store's object
-  // reference, which never changes) would silently freeze — see the folder-view.tsx fix.
   const boardItems: BoardItem[] = rootStore.taskStore
     .getBySpace(spaceId)
     .filter((t) => !t.parentTaskId)
@@ -73,7 +71,6 @@ export const SpaceBoard = observer(function SpaceBoard({ spaceId, onWorkflowOpen
       __type: "task" as const,
       folderName: t.folderId ? rootStore.folderStore.getById(t.folderId)?.name : undefined,
     }));
-  const statuses = sortStatuses(rootStore.statusStore.getBySpace(spaceId));
 
   const [hiddenStatusIds, setHiddenStatusIds] = useState<string[]>([]);
   const [hideUnclassified, setHideUnclassified] = useState(false);
@@ -81,17 +78,16 @@ export const SpaceBoard = observer(function SpaceBoard({ spaceId, onWorkflowOpen
   const [searchInput, setSearchInput] = useState("");
   const debouncedSearch = useDebounce(searchInput, 300);
 
-  const { workspaceId } = useWorkspace();
+  // Default: untagged (shared workspace-level) statuses + this space's own tagged ones —
+  // excludes statuses tagged to other spaces, so each space still has a distinct board. "space"
+  // narrows further to just this space's own tagged statuses (opt-in), dropping the shared ones.
+  const statuses = sortStatuses(
+    filter.statusScope === "space"
+      ? rootStore.statusStore.getBySpace(spaceId)
+      : rootStore.statusStore.getVisibleForSpace(spaceId)
+  );
 
   const folders = rootStore.folderStore.getBySpace(spaceId).sort((a, b) => ((a.orderKey ?? "") < (b.orderKey ?? "") ? -1 : 1));
-
-  const folderTaskCounts = useMemo(() => {
-    const counts: Record<string, number> = {};
-    boardItems.forEach(item => {
-      if (item.folderId) counts[item.folderId] = (counts[item.folderId] || 0) + 1;
-    });
-    return counts;
-  }, [boardItems]);
 
   const filteredItems = useMemo(() => {
     return boardItems.filter(item => {
@@ -113,14 +109,21 @@ export const SpaceBoard = observer(function SpaceBoard({ spaceId, onWorkflowOpen
     });
   }, [boardItems, filter, debouncedSearch]);
 
-  // Each board mutation (drag-drop, priority change, date change) queues a single local update
-  // (store + IndexedDB + enqueue) then debounces the network flush — TransactionQueue.squash()
-  // merges rapid successive updates to the same task into one send.
   const enqueue = useCallback((update: { id: string; statusId?: string | null; priority?: Priority; orderKey?: string; startDate?: string | null; dueDate?: string | null }) => {
     const { id, ...patch } = update;
     taskMutations.updateLocal(id, patch).catch((err) => console.error("Failed to apply local task update", err));
     scheduleFlush();
   }, [taskMutations, scheduleFlush]);
+
+  // Column reorder — reuses the same batch mutation the Workflow Manager dialog uses (optimistic
+  // apply + IDB write + rollback-on-failure already built in), invoked with a single-row Update.
+  const onColumnReorder = useCallback((statusId: string, orderKey: string) => {
+    const status = statuses.find((s) => s.id === statusId);
+    if (!status) return;
+    statusMutations.updateBatch([
+      { id: status.id, name: status.name, color: status.color, orderKey, spaceId: status.spaceId ?? null, action: RowAction.Update },
+    ]).catch((err) => console.error("Failed to reorder status column", err));
+  }, [statuses, statusMutations]);
 
   const columns = useMemo(() => {
     const nextCols: Record<string, BoardItem[]> = {};
@@ -145,6 +148,7 @@ export const SpaceBoard = observer(function SpaceBoard({ spaceId, onWorkflowOpen
     statuses,
     columns,
     enqueue,
+    onColumnReorder,
   });
 
   const isDragging = draggedItem !== null;
@@ -175,13 +179,22 @@ export const SpaceBoard = observer(function SpaceBoard({ spaceId, onWorkflowOpen
     () => statuses.filter(s => (columns[s.id]?.length ?? 0) === 0).map(s => s.id),
     [statuses, columns]
   );
-  const [prevIsFullyLoaded, setPrevIsFullyLoaded] = useState(ready);
-  if (ready !== prevIsFullyLoaded) {
-    setPrevIsFullyLoaded(ready);
-    if (ready && emptyStatusIds.length > 0) {
+
+  // Hide-empty is the default state (configurable in Space Settings), applied once as soon as
+  // the board's data is fully loaded — a ref (not a ready/prevReady state comparison) so it
+  // still fires even when `ready` is already true on mount, not just on a false→true transition.
+  const [hideEmptyDefault] = useLocalStorage(HIDE_EMPTY_DEFAULT_KEY, true);
+  const didAutoHideEmpty = useRef(false);
+  useEffect(() => {
+    if (!ready || didAutoHideEmpty.current || !hideEmptyDefault) return;
+    didAutoHideEmpty.current = true;
+    if (emptyStatusIds.length > 0) {
       setHiddenStatusIds(prev => [...new Set([...prev, ...emptyStatusIds])]);
     }
-  }
+    if ((columns["unclassified"]?.length ?? 0) === 0) {
+      setHideUnclassified(true);
+    }
+  }, [ready, emptyStatusIds, columns, hideEmptyDefault]);
 
   const allEmptyHidden = emptyStatusIds.length > 0 && emptyStatusIds.every(id => hiddenStatusIds.includes(id));
 
@@ -196,14 +209,19 @@ export const SpaceBoard = observer(function SpaceBoard({ spaceId, onWorkflowOpen
   const columnsToRender = useMemo(() => {
     const cols = statuses
       .filter(s => !hiddenStatusIds.includes(s.id))
-      .map(s => ({ id: s.id, name: s.name, color: s.color, category: s.category, items: columns[s.id] || [] }));
+      .map(s => ({ id: s.id, name: s.name, color: s.color, items: columns[s.id] || [] }));
 
     if (!hideUnclassified) {
-      cols.push({ id: "unclassified", name: "Unclassified", color: "#6b7280", category: "NotStarted", items: columns["unclassified"] || [] });
+      cols.push({ id: "unclassified", name: "Unclassified", color: "#6b7280", items: columns["unclassified"] || [] });
     }
 
     return cols;
   }, [statuses, columns, hiddenStatusIds, hideUnclassified]);
+
+  const draggableColumnIds = useMemo(
+    () => columnsToRender.filter(c => c.id !== "unclassified").map(c => c.id),
+    [columnsToRender]
+  );
 
   if (!ready && boardItems.length === 0) {
     return (
@@ -233,39 +251,34 @@ export const SpaceBoard = observer(function SpaceBoard({ spaceId, onWorkflowOpen
         onToggleHideEmpty={handleToggleHideEmpty}
       />
 
-      <FolderCardsBar
-        spaceId={spaceId}
-        workspaceId={workspaceId}
-        folders={folders}
-        folderTaskCounts={folderTaskCounts}
-      />
-
       <DndContext
         sensors={sensors}
-        collisionDetection={closestCorners}
+        collisionDetection={collisionDetectionStrategy}
         onDragStart={handleDragStart}
         onDragEnd={handleDragEnd}
       >
         <div
           ref={containerRef}
-          className="flex-1 flex  gap-2 px-2 overflow-x-auto overflow-y-hidden select-none [&::-webkit-scrollbar]:h-1.5 [&::-webkit-scrollbar-thumb]:bg-white/5 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-white/15 [&::-webkit-scrollbar-track]:bg-transparent"
+          className="flex-1 flex gap-2 px-2 overflow-x-auto overflow-y-hidden select-none [&::-webkit-scrollbar]:h-1.5 [&::-webkit-scrollbar-thumb]:bg-white/5 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-white/15 [&::-webkit-scrollbar-track]:bg-transparent"
         >
-          {columnsToRender.map((col) => (
-            <BoardColumn
-              key={col.id}
-              statusId={col.id}
-              name={col.name}
-              color={col.color}
-              category={col.category}
-              items={col.items}
-              spaceId={spaceId}
-              selectedItemId={selectedItemId}
-              onTaskClick={handleTaskClick}
-              onPriorityChange={handlePriorityChange}
-              onDateChange={handleDateChange}
-              onHide={col.id === "unclassified" ? () => setHideUnclassified(true) : undefined}
-            />
-          ))}
+          <SortableContext items={draggableColumnIds} strategy={horizontalListSortingStrategy}>
+            {columnsToRender.map((col) => (
+              <BoardColumn
+                key={col.id}
+                statusId={col.id}
+                name={col.name}
+                color={col.color}
+                items={col.items}
+                spaceId={spaceId}
+                selectedItemId={selectedItemId}
+                onTaskClick={handleTaskClick}
+                onPriorityChange={handlePriorityChange}
+                onDateChange={handleDateChange}
+                onHide={col.id === "unclassified" ? () => setHideUnclassified(true) : undefined}
+                draggable={col.id !== "unclassified"}
+              />
+            ))}
+          </SortableContext>
         </div>
 
         {createPortal(

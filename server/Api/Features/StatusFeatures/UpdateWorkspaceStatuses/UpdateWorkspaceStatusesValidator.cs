@@ -2,11 +2,10 @@ using FluentValidation;
 
 namespace Api;
 
-public class UpdateSpaceStatusesValidator : AbstractValidator<UpdateSpaceStatusesCommand>
+public class UpdateWorkspaceStatusesValidator : AbstractValidator<UpdateWorkspaceStatusesCommand>
 {
-    public UpdateSpaceStatusesValidator()
+    public UpdateWorkspaceStatusesValidator()
     {
-        RuleFor(x => x.SpaceId).NotEmpty().WithMessage("Space ID is required.");
         RuleForEach(x => x.Statuses).ChildRules(status =>
         {
             status.RuleFor(s => s.Name).NotEmpty().WithMessage("Status name is required.");

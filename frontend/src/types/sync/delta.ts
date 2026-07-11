@@ -24,7 +24,6 @@ export type SyncEntityType =
 'Task'|
 'Status'|
 'Comment'|
-'Document'|
 'DocumentBlock'|
 'Member'|
 'Assignee'

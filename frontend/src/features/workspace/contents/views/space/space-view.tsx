@@ -3,12 +3,23 @@ import { observer } from "mobx-react-lite";
 import { useWorkspaceRole } from "@/features/workspace/context/use-workspace-role";
 import { EntityViewFrame } from "../entity-view-frame";
 import { SpaceBoard } from "./space-components/space-board";
-import { Layout, FileText, GitMerge, MoreVertical, Trash2 } from "lucide-react";
+import { SpaceViewRail } from "./space-components/space-view-rail";
+import { SpaceCommsPlaceholder } from "./space-components/space-comms-placeholder";
+import { SpacePropertiesPanel } from "./space-components/space-properties-panel";
+import { SpaceSettingsDialog } from "./space-components/space-settings-dialog";
+import {
+  DEFAULT_SPACE_RAIL_TAB_ORDER,
+  isSpaceRailTabKey,
+  normalizeTabOrder,
+  type SpaceRailTabKey,
+} from "./space-components/space-rail-tabs";
+import { useLocalStorage } from "@/hooks/use-local-storage";
+import { MoreVertical, Trash2, PanelRight, X } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { FavoriteButton } from "@/components/favorite-button";
 import { DynamicIcon } from "@/components/dynamic-icon";
 import { EntityLayerType } from "@/types/entity-layer-type";
 import { CreateStatusForm } from "@/features/workspace/components/forms/workflow-management-form";
-import { cn } from "@/lib/utils";
 import { LoadingScreen } from "@/components/loading-screen";
 
 import { useNavigate } from "@tanstack/react-router";
@@ -33,14 +44,54 @@ interface SpaceViewProps {
 export const SpaceView = observer(function SpaceView({ spaceId }: Readonly<SpaceViewProps>) {
   const [isWorkflowOpen, setIsWorkflowOpen] = React.useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = React.useState(false);
-  const [activeTab, setActiveTab] = React.useState<"detail" | "items">(() => {
+  const [isSettingsOpen, setIsSettingsOpen] = React.useState(false);
+  const [isPropertiesOpen, setIsPropertiesOpen] = React.useState(false);
+  // Tracks whether Workflow Manager was launched from inside Settings, so closing it returns to
+  // Settings instead of just exiting the whole flow — Workflow is a sub-step of Settings, not a
+  // fully separate top-level dialog, when opened that way.
+  const [workflowReturnsToSettings, setWorkflowReturnsToSettings] = React.useState(false);
+
+  // Per-space pinned default tab (Settings) takes priority over the last-used-anywhere fallback.
+  const [rawPinnedTabs, setRawPinnedTabs] = useLocalStorage<Record<string, SpaceRailTabKey>>(
+    "space-pinned-tabs",
+    {}
+  );
+  const pinnedTab = rawPinnedTabs[spaceId];
+
+  const resolveInitialTab = React.useCallback((): SpaceRailTabKey => {
+    if (pinnedTab && isSpaceRailTabKey(pinnedTab)) return pinnedTab;
     const saved = localStorage.getItem(`global-space-tab`);
-    return saved === "items" ? "items" : "detail";
-  });
-  const handleTabChange = (tab: "detail" | "items") => {
+    return isSpaceRailTabKey(saved) ? saved : "detail";
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pinnedTab]);
+
+  const [activeTab, setActiveTab] = React.useState<SpaceRailTabKey>(resolveInitialTab);
+
+  // Re-resolve on space switch — SpaceView doesn't necessarily remount when navigating between
+  // spaces (same route pattern, different param), so the initial useState lazy-init alone
+  // wouldn't fire again.
+  React.useEffect(() => {
+    setActiveTab(resolveInitialTab());
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [spaceId]);
+
+  const handleTabChange = (tab: SpaceRailTabKey) => {
     setActiveTab(tab);
     localStorage.setItem(`global-space-tab`, tab);
   };
+  const handlePinTab = (tab: SpaceRailTabKey | null) => {
+    setRawPinnedTabs((prev) => {
+      const next = { ...prev };
+      if (tab) next[spaceId] = tab;
+      else delete next[spaceId];
+      return next;
+    });
+  };
+  const [rawTabOrder, setRawTabOrder] = useLocalStorage<SpaceRailTabKey[]>(
+    "space-rail-tab-order",
+    DEFAULT_SPACE_RAIL_TAB_ORDER
+  );
+  const tabOrder = normalizeTabOrder(rawTabOrder);
   const { isAdmin: canManage } = useWorkspaceRole();
   const navigate = useNavigate();
   const rootStore = useWorkspaceRootStore();
@@ -128,61 +179,98 @@ export const SpaceView = observer(function SpaceView({ spaceId }: Readonly<Space
         </div>
       }
     >
-      <div className="h-full w-full flex flex-col bg-card p-1 gap-1 overflow-hidden relative">
-        {/* Controls toolbar */}
-        <div className="flex items-center justify-end px-2 py-1 rounded-md border border-border bg-card shadow-sm shrink-0">
-          <div className="flex items-center gap-2.5">
-            {/* Workflow — manager+ only */}
-            {canManage && (
-              <button
-                className="flex items-center h-5 gap-1.5 px-2.5 rounded-md bg-muted/45 text-[10px] text-muted-foreground font-semibold hover:bg-muted hover:text-foreground transition-all cursor-pointer border border-border/10 shadow-sm"
-                onClick={() => setIsWorkflowOpen(true)}
-              >
-                <GitMerge className="h-3 w-3 opacity-80" />
-                <span>Workflow</span>
-              </button>
-            )}
+      <div className="h-full w-full flex overflow-hidden relative">
+        <SpaceViewRail
+          tabOrder={tabOrder}
+          activeTab={activeTab}
+          onTabChange={handleTabChange}
+          onOpenSettings={() => setIsSettingsOpen(true)}
+        />
 
-            {/* View tabs */}
-            <div className="flex items-center bg-secondary/50 border border-transparent rounded-md p-0.5 shadow-inner">
-              <button
-                onClick={() => handleTabChange("detail")}
-                className={cn(
-                  "flex items-center gap-1 h-5 px-2 rounded-md text-[10px] font-semibold transition-all cursor-pointer",
-                  activeTab === "detail" ? "bg-background text-foreground shadow-sm animate-in fade-in duration-200" : "text-muted-foreground hover:text-foreground"
-                )}
-              >
-                <FileText className="h-2.5 w-2.5" />
-                <span>Board</span>
-              </button>
-              <button
-                onClick={() => handleTabChange("items")}
-                className={cn(
-                  "flex items-center gap-1 h-5 px-2 rounded-md text-[10px] font-semibold transition-all cursor-pointer",
-                  activeTab === "items" ? "bg-background text-foreground shadow-sm animate-in fade-in duration-200" : "text-muted-foreground hover:text-foreground"
-                )}
-              >
-                <Layout className="h-2.5 w-2.5" />
-                <span>Tasks</span>
-              </button>
-            </div>
-          </div>
-        </div>
+        {/* Content area — top bar (search/filter/columns) lives inside SpaceBoard itself */}
+        <div className="flex-1 overflow-hidden flex flex-col relative">
+          {activeTab === "items" && (
+            <SpaceBoard
+              spaceId={spaceId}
+              onWorkflowOpen={canManage ? () => {
+                setWorkflowReturnsToSettings(false);
+                setIsWorkflowOpen(true);
+              } : undefined}
+            />
+          )}
+          {activeTab === "detail" && <SpaceDetail spaceId={spaceId} />}
+          {activeTab === "comms" && <SpaceCommsPlaceholder />}
 
-        {/* Content area */}
-        <div className="flex-1 rounded-md border border-border bg-card shadow-sm overflow-hidden flex flex-col relative">
-          {activeTab === "items" ? (
-            <SpaceBoard spaceId={spaceId} onWorkflowOpen={canManage ? () => setIsWorkflowOpen(true) : undefined} />
-          ) : (
-            <SpaceDetail spaceId={spaceId} />
+          {/* Document-only — task stats/status-breakdown and the changes feed read as "about this
+              project" metadata, which belongs next to the plan (Document), not the live working
+              surface (Tasks board). Pinned over the content pane itself, not the app-chrome header
+              — matches where Linear's issue-view expand button actually lives. */}
+          {activeTab === "detail" && !isPropertiesOpen && (
+            <button
+              type="button"
+              onClick={() => setIsPropertiesOpen(true)}
+              title="Open properties panel"
+              className="absolute top-3 right-3 z-10 h-7 w-7 flex items-center justify-center rounded-md border border-border/30 shadow-sm transition-colors cursor-pointer bg-card/80 backdrop-blur-sm text-muted-foreground hover:text-foreground hover:bg-muted/60"
+            >
+              <PanelRight className="h-3.5 w-3.5" />
+            </button>
           )}
         </div>
+
+        {activeTab === "detail" && isPropertiesOpen && (
+          <div className="w-64 shrink-0 border-l border-border overflow-hidden flex flex-col">
+            <div className="h-9 flex items-center justify-end px-2 border-b border-border/30 shrink-0">
+              <button
+                type="button"
+                onClick={() => setIsPropertiesOpen(false)}
+                title="Close properties panel"
+                className="h-6 w-6 flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors cursor-pointer"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            </div>
+            <SpacePropertiesPanel spaceId={spaceId} />
+          </div>
+        )}
       </div>
 
       <CreateStatusForm
         isOpen={isWorkflowOpen}
-        onClose={() => setIsWorkflowOpen(false)}
+        onClose={() => {
+          setIsWorkflowOpen(false);
+          if (workflowReturnsToSettings) {
+            setIsSettingsOpen(true);
+            setWorkflowReturnsToSettings(false);
+          }
+        }}
         spaceId={space?.id}
+      />
+
+      <SpaceSettingsDialog
+        isOpen={isSettingsOpen}
+        onClose={() => setIsSettingsOpen(false)}
+        tabOrder={tabOrder}
+        onTabOrderChange={setRawTabOrder}
+        spaceName={space.name}
+        onSpaceNameChange={(name) => {
+          spaceMutations.update(spaceId, { name }).catch((err) => console.error("Failed to rename space", err));
+        }}
+        spaceIcon={space.icon ?? "LayoutGrid"}
+        spaceColor={space.color ?? "#3b82f6"}
+        onSpaceIconChange={(icon, color) => {
+          spaceMutations.update(spaceId, { icon, color }).catch((err) => console.error("Failed to update space icon", err));
+        }}
+        pinnedTab={pinnedTab ?? null}
+        onPinTabChange={handlePinTab}
+        onOpenWorkflow={canManage ? () => {
+          setIsSettingsOpen(false);
+          setWorkflowReturnsToSettings(true);
+          setIsWorkflowOpen(true);
+        } : undefined}
+        onDeleteSpace={canManage ? () => {
+          setIsSettingsOpen(false);
+          setIsDeleteOpen(true);
+        } : undefined}
       />
 
       <DeleteConfirmationDialog

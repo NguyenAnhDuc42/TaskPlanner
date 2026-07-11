@@ -11,39 +11,35 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
-import { Plus, Trash2, Copy, ExternalLink, Star } from "lucide-react";
-import { toast } from "sonner";
-import { copyToClipboard } from "@/lib/copy-to-clipboard";
+import { Plus, Trash2, Star } from "lucide-react";
 import { EntityLayerType } from "@/types/entity-layer-type";
-import { useWorkspace } from "@/features/workspace/context/workspace-context";
 import { useWorkspaceRole } from "@/features/workspace/context/use-workspace-role";
-import { DialogFormWrapper } from "@/components/dialog-form-wrapper";
-import { CreateTaskForm } from "@/features/workspace/components/forms/create-task-form";
 import { useWorkspaceRootStore } from "@/stores/workspace-root.store";
 import { useSyncEngine } from "@/sync/sync-provider";
 import { FolderMutations } from "@/mutations/folder.mutations";
 import { FavoriteMutations } from "@/mutations/favorite.mutations";
-import { EntityMenuContext, DeleteConfirmationDialog } from "./shared";
+import { EntityMenuContext, DeleteConfirmationDialog, EditFieldsSubmenu } from "./shared";
 
 interface FolderContextMenuProps {
   folderId: string;
   folderName: string;
   children: React.ReactNode;
+  onCreateTask?: () => void;
 }
 
 export const FolderContextMenu = observer(function FolderContextMenu({
   folderId,
   folderName,
   children,
+  onCreateTask,
 }: FolderContextMenuProps) {
-  const { workspaceId } = useWorkspace();
   const { canCreateContent, isAdmin } = useWorkspaceRole();
   const rootStore = useWorkspaceRootStore();
   const syncEngine = useSyncEngine();
   const folderMutations = useMemo(() => new FolderMutations(rootStore, syncEngine), [rootStore, syncEngine]);
   const favoriteMutations = useMemo(() => new FavoriteMutations(rootStore), [rootStore]);
   const isFavorite = rootStore.favoriteStore.isFavorite(folderId);
-  const [activeForm, setActiveForm] = useState<"task" | null>(null);
+  const folder = rootStore.folderStore.getById(folderId);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
 
   const handleDelete = () => {
@@ -58,10 +54,21 @@ export const FolderContextMenu = observer(function FolderContextMenu({
     return (
       <>
         {canCreateContent && (
-          <Item className="gap-2 cursor-pointer" onSelect={() => setActiveForm("task")}>
+          <Item className="gap-2 cursor-pointer" onSelect={() => onCreateTask?.()}>
             <Plus className="h-3.5 w-3.5" />
             <span>Create Task</span>
           </Item>
+        )}
+
+        {canCreateContent && folder && (
+          <EditFieldsSubmenu
+            isContext={isContext}
+            name={folder.name}
+            icon={folder.icon || "Folder"}
+            color={folder.color || "#6366f1"}
+            onRename={(name) => { if (name.trim()) folderMutations.update(folderId, { name: name.trim() }).catch((err) => console.error("Failed to rename folder", err)); }}
+            onIconColorChange={(icon, color) => folderMutations.update(folderId, { icon, color }).catch((err) => console.error("Failed to update folder icon/color", err))}
+          />
         )}
 
         {canCreateContent && <Separator className="bg-border/50" />}
@@ -72,24 +79,6 @@ export const FolderContextMenu = observer(function FolderContextMenu({
         >
           <Star className={`h-3.5 w-3.5 ${isFavorite ? "fill-amber-400 text-amber-400" : ""}`} />
           <span>{isFavorite ? "Unfavorite" : "Favorite"}</span>
-        </Item>
-
-        <Separator className="bg-border/50" />
-
-        <Item className="gap-2 cursor-pointer" onSelect={() => {
-          const url = `${window.location.origin}/workspaces/${workspaceId}/folders/${folderId}`;
-          copyToClipboard(url);
-          toast.success("Link copied");
-        }}>
-          <Copy className="h-3.5 w-3.5" />
-          <span>Copy Link</span>
-        </Item>
-
-        <Item className="gap-2 cursor-pointer" onSelect={() => {
-          window.open(`/workspaces/${workspaceId}/folders/${folderId}`, "_blank");
-        }}>
-          <ExternalLink className="h-3.5 w-3.5" />
-          <span>Open in New Tab</span>
         </Item>
 
         {isAdmin && (
@@ -118,19 +107,6 @@ export const FolderContextMenu = observer(function FolderContextMenu({
           {renderMenuItems(true)}
         </ContextMenuContent>
       </ContextMenu>
-
-      <DialogFormWrapper
-        open={activeForm === "task"}
-        onOpenChange={(open) => !open && setActiveForm(null)}
-        title="Create New Task"
-        trigger={null}
-      >
-        <CreateTaskForm
-          parentId={folderId}
-          parentType={EntityLayerType.ProjectFolder}
-          onCancel={() => setActiveForm(null)}
-        />
-      </DialogFormWrapper>
 
       <DeleteConfirmationDialog
         open={isDeleteOpen}

@@ -1,7 +1,8 @@
 import { useMemo } from "react";
 import { observer } from "mobx-react-lite";
 import { EntityViewFrame } from "../entity-view-frame";
-import { TaskDetailCanvas } from "./components/task-detail-canvas";
+import { TaskDetailCanvas, useDebouncedTaskUpdate } from "./components/task-detail-canvas";
+import { TaskPropertiesPanel } from "./components/task-properties-panel";
 import { useNavigate, useParams } from "@tanstack/react-router";
 import {
   DropdownMenu,
@@ -10,7 +11,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
-import { MoreVertical, Trash2 } from "lucide-react";
+import { MoreVertical, Trash2, PanelRight, X } from "lucide-react";
+import type { Priority } from "@/types/priority";
 import { FavoriteButton } from "@/components/favorite-button";
 import { EntityLayerType } from "@/types/entity-layer-type";
 import {
@@ -42,10 +44,11 @@ export const TaskView = observer(function TaskView({ taskId }: Readonly<TaskView
   const syncEngine = useSyncEngine();
   const taskMutations = useMemo(() => new TaskMutations(rootStore, syncEngine), [rootStore, syncEngine]);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
+  const [isPropertiesOpen, setIsPropertiesOpen] = useState(false);
   const task = rootStore.taskStore.getById(taskId);
+  const updateTask = useDebouncedTaskUpdate(taskMutations, syncEngine, taskId);
 
   const space = task?.spaceId ? rootStore.spaceStore.getById(task.spaceId) : undefined;
-  const folder = task?.folderId ? rootStore.folderStore.getById(task.folderId) : undefined;
   const parentTask = task?.parentTaskId ? rootStore.taskStore.getById(task.parentTaskId) : undefined;
 
   const handleDelete = async () => {
@@ -79,28 +82,6 @@ export const TaskView = observer(function TaskView({ taskId }: Readonly<TaskView
                           className="stroke-[2.5] shrink-0"
                         />
                         <span>{space.name}</span>
-                      </Link>
-                    </BreadcrumbLink>
-                  </BreadcrumbItem>
-                  <BreadcrumbSeparator className="[&>svg]:w-3 [&>svg]:h-3" />
-                </>
-              )}
-              {folder && (
-                <>
-                  <BreadcrumbItem>
-                    <BreadcrumbLink asChild>
-                      <Link
-                        to="/workspaces/$workspaceId/folders/$folderId"
-                        params={{ workspaceId, folderId: folder.id }}
-                        className="flex items-center gap-1.5 text-muted-foreground hover:text-foreground transition-colors"
-                      >
-                        <DynamicIcon
-                          name={folder.icon || "Folder"}
-                          size={15}
-                          color={folder.color || "#6366f1"}
-                          className="stroke-[2.5] shrink-0"
-                        />
-                        <span>{folder.name}</span>
                       </Link>
                     </BreadcrumbLink>
                   </BreadcrumbItem>
@@ -172,8 +153,47 @@ export const TaskView = observer(function TaskView({ taskId }: Readonly<TaskView
         </div>
       }
     >
-      <div className="h-full w-full flex flex-col bg-card overflow-hidden relative">
-        <TaskDetailCanvas taskId={taskId} />
+      <div className="h-full w-full flex bg-card overflow-hidden relative">
+        <div className="flex-1 flex flex-col overflow-hidden relative">
+          <TaskDetailCanvas taskId={taskId} />
+
+          {/* Pinned over the content pane itself, not the app-chrome header — matches where
+              Linear's issue-view expand button actually lives. Hidden while the panel is open —
+              the panel's own close button takes over from there. */}
+          {!isPropertiesOpen && (
+            <button
+              type="button"
+              onClick={() => setIsPropertiesOpen(true)}
+              title="Open properties panel"
+              className="absolute top-3 right-3 z-10 h-7 w-7 flex items-center justify-center rounded-md border border-border/30 shadow-sm transition-colors cursor-pointer bg-card/80 backdrop-blur-sm text-muted-foreground hover:text-foreground hover:bg-muted/60"
+            >
+              <PanelRight className="h-3.5 w-3.5" />
+            </button>
+          )}
+        </div>
+
+        {isPropertiesOpen && task && (
+          <div className="w-64 shrink-0 border-l border-border overflow-hidden flex flex-col">
+            <div className="h-9 flex items-center justify-end px-2 border-b border-border/30 shrink-0">
+              <button
+                type="button"
+                onClick={() => setIsPropertiesOpen(false)}
+                title="Close properties panel"
+                className="h-6 w-6 flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors cursor-pointer"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            </div>
+            <TaskPropertiesPanel
+              task={task}
+              onStatusChange={(statusId) => updateTask({ statusId })}
+              onPriorityChange={(priority: Priority) => updateTask({ priority })}
+              onStartDateChange={(date) => updateTask({ startDate: date ? date.toISOString() : null })}
+              onDueDateChange={(date) => updateTask({ dueDate: date ? date.toISOString() : null })}
+              onClearDates={() => updateTask({ startDate: null, dueDate: null })}
+            />
+          </div>
+        )}
       </div>
 
       <DeleteConfirmationDialog

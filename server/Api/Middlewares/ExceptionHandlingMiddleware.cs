@@ -61,6 +61,15 @@ public class ExceptionHandlingMiddleware
                 };
                 code = "Auth.Unauthorized";
                 break;
+            case ForbiddenAccessException forbidden:
+                problem = new ProblemDetails
+                {
+                    Title = "Forbidden",
+                    Detail = forbidden.Message,
+                    Status = StatusCodes.Status403Forbidden
+                };
+                code = "Member.DontHavePermission";
+                break;
             case InvalidTokenException invalidTokenEx:
                 problem = new ProblemDetails
                 {

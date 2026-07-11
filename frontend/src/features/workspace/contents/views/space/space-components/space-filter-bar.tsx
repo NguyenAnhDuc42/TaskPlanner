@@ -1,11 +1,18 @@
-import { Plus, EyeOff, Eye, Search, X } from "lucide-react";
-import { StatusBadge } from "@/components/status-badge";
+import { Plus, Search, X, SlidersHorizontal } from "lucide-react";
 import { useCallback } from "react";
 import { cn } from "@/lib/utils";
 import type { Status } from "@/types/status";
 import type { FolderRecord } from "@/types/projects";
 import type { SpaceBoardFilter } from "../space-board-types";
 import { SpaceBoardFilterPopover } from "./space-board-filter-popover";
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuCheckboxItem,
+  DropdownMenuSeparator,
+  DropdownMenuLabel,
+} from "@/components/ui/dropdown-menu";
 
 interface SpaceFilterBarProps {
   statuses: Status[];
@@ -43,8 +50,7 @@ export function SpaceFilterBar({
   onToggleHideEmpty,
 }: Readonly<SpaceFilterBarProps>) {
   const toggleStatusVisibility = useCallback(
-    (statusId: string, e: React.MouseEvent) => {
-      e.stopPropagation();
+    (statusId: string) => {
       setHiddenStatusIds((prev) =>
         prev.includes(statusId) ? prev.filter((id) => id !== statusId) : [...prev, statusId],
       );
@@ -63,62 +69,74 @@ export function SpaceFilterBar({
     [statuses, setHiddenStatusIds],
   );
 
+  const hiddenCount = hiddenStatusIds.length + (hideUnclassified ? 1 : 0) + (allEmptyHidden ? 1 : 0);
+
   return (
-    <div className="px-2 py-1 flex items-center shrink-0 select-none gap-2 bg-card border-b border-border shadow-sm z-10">
-      {/* Status column toggles */}
-      <div className="flex items-center gap-1 overflow-x-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] h-7 max-w-[40vw] shrink-0">
-        {statuses.map((status) => {
-          const isHidden = hiddenStatusIds.includes(status.id!);
-          return (
-            <div
-              key={status.id}
-              onClick={(e) => toggleStatusVisibility(status.id!, e)}
-              onDoubleClick={() => isolateStatus(status.id!)}
-              className={cn(
-                "group flex items-center cursor-pointer shrink-0 transition-all duration-200 border border-transparent hover:bg-white/3 rounded-full",
-                isHidden && "opacity-30 saturate-[0.2]",
-              )}
-            >
-              <StatusBadge status={status} variant="outline" className="h-6 flex items-center pointer-events-none" />
-            </div>
-          );
-        })}
-
-        {/* Unclassified chip */}
-        <div
-          onClick={onToggleUnclassified}
-          className={cn(
-            "group flex items-center cursor-pointer shrink-0 transition-all duration-200 border border-transparent hover:bg-white/3 rounded-full",
-            hideUnclassified && "opacity-30 saturate-[0.2]",
-          )}
-        >
-          <span className="h-6 flex items-center px-2.5 text-[10px] font-semibold text-muted-foreground/70 border border-border/30 rounded-full pointer-events-none">
-            Unclassified
-          </span>
+    <div className="px-2 py-1 flex items-center shrink-0 select-none gap-2 bg-card z-10">
+      {/* Columns — show/hide/isolate statuses, one dropdown instead of a chip per status */}
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
           <button
-            onClick={(e) => { e.stopPropagation(); onToggleUnclassified(); }}
-            className="w-0 opacity-0 group-hover:w-6 group-hover:opacity-100 flex items-center justify-center hover:bg-white/10 hover:text-foreground text-muted-foreground transition-all overflow-hidden h-6 rounded-r-full"
-            title={hideUnclassified ? "Show unclassified" : "Hide unclassified"}
+            className={cn(
+              "h-7 px-2 flex items-center justify-center gap-1.5 rounded-md transition-colors shrink-0",
+              hiddenCount > 0
+                ? "bg-primary/10 text-primary hover:bg-primary/20"
+                : "hover:bg-muted/50 text-muted-foreground"
+            )}
           >
-            {hideUnclassified ? <Eye className="h-3 w-3 shrink-0" /> : <EyeOff className="h-3 w-3 shrink-0" />}
+            <SlidersHorizontal className="h-3.5 w-3.5" />
+            <span className="text-[10px] font-semibold">Columns</span>
+            {hiddenCount > 0 && <span className="text-[10px] font-bold">{hiddenCount}</span>}
           </button>
-        </div>
-      </div>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="start" className="w-56">
+          <DropdownMenuLabel>Columns</DropdownMenuLabel>
+          {statuses.map((status) => (
+            <DropdownMenuCheckboxItem
+              key={status.id}
+              checked={!hiddenStatusIds.includes(status.id!)}
+              onCheckedChange={() => toggleStatusVisibility(status.id!)}
+              onSelect={(e) => e.preventDefault()}
+              className="group justify-between"
+            >
+              <span className="flex items-center gap-2 overflow-hidden">
+                <span className="h-2 w-2 rounded-full shrink-0" style={{ backgroundColor: status.color }} />
+                <span className="truncate">{status.name}</span>
+              </span>
+              <button
+                onClick={(e) => { e.stopPropagation(); isolateStatus(status.id!); }}
+                className="opacity-0 group-hover:opacity-100 text-[9px] font-semibold text-muted-foreground hover:text-foreground transition-opacity shrink-0"
+              >
+                Only
+              </button>
+            </DropdownMenuCheckboxItem>
+          ))}
 
-      {hasEmptyStatuses && (
-        <button
-          onClick={onToggleHideEmpty}
-          className={cn(
-            "flex items-center justify-center h-6 w-6 rounded-full border transition-all cursor-pointer shrink-0",
-            allEmptyHidden
-              ? "bg-primary/10 text-primary border-primary/30 hover:bg-primary/20"
-              : "bg-muted/40 text-muted-foreground border-border/30 hover:bg-muted/80 hover:text-foreground"
+          <DropdownMenuCheckboxItem
+            checked={!hideUnclassified}
+            onCheckedChange={() => onToggleUnclassified()}
+            onSelect={(e) => e.preventDefault()}
+          >
+            <span className="flex items-center gap-2">
+              <span className="h-2 w-2 rounded-full shrink-0 bg-muted-foreground/40" />
+              Unclassified
+            </span>
+          </DropdownMenuCheckboxItem>
+
+          {hasEmptyStatuses && (
+            <>
+              <DropdownMenuSeparator />
+              <DropdownMenuCheckboxItem
+                checked={allEmptyHidden}
+                onCheckedChange={() => onToggleHideEmpty()}
+                onSelect={(e) => e.preventDefault()}
+              >
+                Hide empty columns
+              </DropdownMenuCheckboxItem>
+            </>
           )}
-          title={allEmptyHidden ? "Show empty columns" : "Hide empty columns"}
-        >
-          {allEmptyHidden ? <Eye className="h-3 w-3" /> : <EyeOff className="h-3 w-3" />}
-        </button>
-      )}
+        </DropdownMenuContent>
+      </DropdownMenu>
 
       {onWorkflowOpen && (
         <button

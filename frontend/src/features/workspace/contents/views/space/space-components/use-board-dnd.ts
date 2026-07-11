@@ -25,6 +25,7 @@ interface UseBoardDndProps {
   statuses: Status[];
   columns: Record<string, BoardItem[]>;
   enqueue: (update: BoardTaskUpdate) => void;
+  onColumnReorder?: (statusId: string, orderKey: string) => void;
 }
 
 interface PositionResult {
@@ -48,9 +49,12 @@ function resolveTargetColumn(
   statuses: Status[],
   snapshotCols: Record<string, BoardItem[]>
 ): string | undefined {
-  const isDirectColumnDrop = statuses.some((s) => s.id === overId) || overId === "unclassified";
+  // Card drop zones are registered under `zone:${statusId}` (distinct from the column-header
+  // sortable's bare statusId, see board-column.tsx/status-group.tsx) — unwrap before matching.
+  const unwrappedOverId = overId.startsWith("zone:") ? overId.substring(5) : overId;
+  const isDirectColumnDrop = statuses.some((s) => s.id === unwrappedOverId) || unwrappedOverId === "unclassified";
 
-  if (isDirectColumnDrop) return overId;
+  if (isDirectColumnDrop) return unwrappedOverId;
 
   return (
     Object.keys(snapshotCols).find((key) =>
@@ -154,6 +158,7 @@ export function useBoardDnd({
   statuses,
   columns,
   enqueue,
+  onColumnReorder,
 }: UseBoardDndProps) {
   const { canCreateContent } = useWorkspaceRole();
 
@@ -178,6 +183,25 @@ export function useBoardDnd({
   setDraggedItem(null);
 
   if (!canCreateContent || !over) return;
+
+  if (active.data.current?.type === "column") {
+    if (active.id === over.id || !onColumnReorder) return;
+    const orderedIds = statuses.map((s) => s.id);
+    const oldIdx = orderedIds.indexOf(String(active.id));
+    const newIdx = orderedIds.indexOf(String(over.id));
+    if (oldIdx === -1 || newIdx === -1) return;
+
+    const reordered = [...statuses];
+    const [moved] = reordered.splice(oldIdx, 1);
+    reordered.splice(newIdx, 0, moved);
+
+    const finalIndex = reordered.findIndex((s) => s.id === moved.id);
+    const prevKey = reordered[finalIndex - 1]?.orderKey ?? null;
+    const nextKey = reordered[finalIndex + 1]?.orderKey ?? null;
+
+    onColumnReorder(moved.id, fractionalBetween(prevKey, nextKey));
+    return;
+  }
 
   const rawActiveId = parseDndId(active.id);
   const overId = over.id as string;

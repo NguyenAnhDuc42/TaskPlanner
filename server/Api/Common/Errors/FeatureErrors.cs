@@ -62,11 +62,6 @@ public static class CommentError
     public static readonly Error NotFound = Error.NotFound("Comment.NotFound", "The comment with the specified identifier was not found.");
 }
 
-public static class DocumentError
-{
-    public static readonly Error NotFound = Error.NotFound("Document.NotFound", "The document with the specified identifier was not found.");
-}
-
 public static class DocumentBlockError
 {
     public static readonly Error NotFound = Error.NotFound("DocumentBlock.NotFound", "The document block with the specified identifier was not found.");

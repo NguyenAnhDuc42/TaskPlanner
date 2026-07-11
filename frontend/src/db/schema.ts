@@ -1,4 +1,4 @@
-import type { DocumentBlockRecord, DocumentRecord } from "@/types/document";
+import type { DocumentBlockRecord } from "@/types/document";
 import type { AssigneeRecord, CommentRecord, FavoriteRecord, FolderRecord, SpaceRecord, TaskRecord } from "@/types/projects";
 import type { Status } from "@/types/status";
 import type { PendingTransaction, WorkspaceMetadata } from "@/types/sync";
@@ -62,11 +62,6 @@ export interface TaskPlanDB extends DBSchema {
     indexes: {
       'by-space': string
     }
-  }
-
-  documents:{
-    key:string;
-    value:DocumentRecord
   }
 
   document_blocks:{
@@ -144,10 +139,6 @@ export async function openWorkspaceDB(workspaceId:string) : Promise<IDBPDatabase
       if (!db.objectStoreNames.contains('statuses')) {
         const statuses = db.createObjectStore('statuses', {keyPath : 'id'})
         statuses.createIndex('by-space','spaceId')
-      }
-
-      if (!db.objectStoreNames.contains('documents')) {
-        db.createObjectStore('documents',{keyPath: 'id'})
       }
 
       if (!db.objectStoreNames.contains('document_blocks')) {

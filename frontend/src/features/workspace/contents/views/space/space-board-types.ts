@@ -6,6 +6,7 @@ export interface SpaceBoardFilter {
   search?: string;
   startDate?: string;
   dueDate?: string;
+  statusScope?: "all" | "space";
 }
 
 export type BoardItem = TaskRecord & { __type: "task"; folderName?: string };

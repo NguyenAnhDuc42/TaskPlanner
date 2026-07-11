@@ -1,6 +1,6 @@
 import { useRef, useState, useMemo } from "react";
 import { observer } from "mobx-react-lite";
-import { Trash2, Maximize2 } from "lucide-react";
+import { Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { StatusSelect } from "@/components/status-select";
 import { PrioritySelect } from "@/components/priority-select";
@@ -43,9 +43,6 @@ export const TaskSubtasks = observer(function TaskSubtasks({ taskId }: Readonly<
 
   const [isCreating, setIsCreating] = useState(false);
 
-  // Instant local write (store/IndexedDB/queue) + debounced network flush — same pattern as
-  // TaskDetailCanvas. squash() merges multiple pending updates for the same subtask into one
-  // send, so quick successive edits to one row still cost one network call.
   const updateSubtask = (subtaskId: string, patches: Partial<TaskRecord>) => {
     taskMutations.updateLocal(subtaskId, patches).catch((err) => console.error("Failed to apply local subtask update", err));
     scheduleFlush();
@@ -116,10 +113,6 @@ export const TaskSubtasks = observer(function TaskSubtasks({ taskId }: Readonly<
 
   const location = useLocation();
   const handleOpenSubtask = (subtaskId: string) => {
-    // Already on the subtask's own full task page (not embedded in a folder/context-panel
-    // view) — navigate directly to it instead of layering a second TaskDetailCanvas (with its
-    // own rail) on top via the contextPanel overlay. That combination is what made opening a
-    // subtask from the full task page look like a second nested task view.
     const fullTaskPageMatch = /^\/workspaces\/([^/]+)\/tasks\/[^/]+$/.exec(location.pathname);
     if (fullTaskPageMatch) {
       navigate({
@@ -139,11 +132,7 @@ export const TaskSubtasks = observer(function TaskSubtasks({ taskId }: Readonly<
   };
 
   return (
-    <div className="space-y-3 pt-3 border-t border-border/30">
-      <h3 className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground/70">
-        Subtasks
-      </h3>
-
+    <div className="space-y-3">
       <div className="space-y-1">
         {/* Existing subtasks */}
         {subtasks.map((subtask) => (
@@ -168,25 +157,12 @@ export const TaskSubtasks = observer(function TaskSubtasks({ taskId }: Readonly<
                     updateSubtask(subtask.id, { name: val });
                   }
                 }}
-                className="text-[11px] font-medium text-foreground bg-transparent border-none p-0 focus:outline-none focus:ring-0 flex-1 h-auto min-w-0 truncate"
+                className="text-[11px] font-medium text-foreground bg-transparent border-none p-0 focus:outline-none focus:ring-0 flex-1 h-5 leading-5 min-w-0 truncate"
               />
             </div>
 
-            {/* Right: Expand + Priority + Date + Delete */}
+            {/* Right: Priority + Date + Delete */}
             <div className="flex items-center gap-1.5 shrink-0">
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleOpenSubtask(subtask.id);
-                }}
-                className="h-5 w-5 text-muted-foreground/40 hover:text-foreground hover:bg-muted/50 rounded shrink-0 opacity-0 group-hover:opacity-100 transition-opacity"
-                title="Open subtask"
-              >
-                <Maximize2 className="h-3 w-3" />
-              </Button>
-
               <PrioritySelect
                 value={subtask.priority || "Low"}
                 onChange={(priority) => handlePriorityChange(subtask.id, priority)}
@@ -244,7 +220,7 @@ export const TaskSubtasks = observer(function TaskSubtasks({ taskId }: Readonly<
             onChange={(e) => setDraftName(e.target.value)}
             onKeyDown={handleKeyDown}
             onBlur={handleCreateSubtask}
-            className="flex-1 min-w-0 text-[11px] bg-transparent border-none outline-none text-foreground placeholder:text-muted-foreground/40"
+            className="flex-1 min-w-0 h-5 leading-5 text-[11px] bg-transparent border-none outline-none text-foreground placeholder:text-muted-foreground/40"
           />
 
           {/* Priority picker for draft */}

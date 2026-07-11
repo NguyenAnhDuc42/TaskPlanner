@@ -30,7 +30,10 @@ export const ContextPanelRenderer = observer(function ContextPanelRenderer({ dat
   if (data.type === "folder" && data.id) {
     const folder = rootStore.folderStore.getById(data.id);
     const tasks = rootStore.taskStore.getByFolder(data.id).filter((t) => !t.parentTaskId);
-    const taskStatuses = folder?.spaceId ? rootStore.statusStore.getBySpace(folder.spaceId) : [];
+    // Shared workspace-level statuses + this folder's own space's tagged statuses.
+    const taskStatuses = folder?.spaceId
+      ? rootStore.statusStore.getVisibleForSpace(folder.spaceId)
+      : rootStore.statusStore.all;
 
     return (
       <div className="flex flex-col h-full bg-card rounded-md shadow-sm border border-border/40 overflow-hidden">

@@ -24,7 +24,6 @@ public class TaskPlanDbContext : DbContext
     public DbSet<ProjectSpace> ProjectSpaces { get; set; }
     public DbSet<ProjectFolder> ProjectFolders { get; set; }
     public DbSet<ProjectTask> ProjectTasks { get; set; }
-    public DbSet<Document> Documents { get; set; }
     public DbSet<DocumentBlock> DocumentBlocks { get; set; }
 
     // Relationship Entities

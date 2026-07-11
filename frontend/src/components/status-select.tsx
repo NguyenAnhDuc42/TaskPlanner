@@ -1,4 +1,3 @@
-import * as React from "react";
 import { useMemo } from "react";
 import { observer } from "mobx-react-lite";
 import { StatusBadge } from "@/components/status-badge";
@@ -9,8 +8,6 @@ import {
   DropdownMenuContent,
   DropdownMenuTrigger,
   DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuGroup,
   DropdownMenuItem,
 } from "@/components/ui/dropdown-menu";
 import { IconCheck } from "@tabler/icons-react";
@@ -35,29 +32,16 @@ export const StatusSelect = observer(function StatusSelect({
 }: Readonly<StatusSelectProps>) {
   const rootStore = useWorkspaceRootStore();
   const allStatuses = rootStore.statusStore.all;
+  const visibleStatuses = spaceId ? rootStore.statusStore.getVisibleForSpace(spaceId) : allStatuses;
 
   const statuses = useMemo(() => {
-    if (customStatuses) return customStatuses;
-    if (spaceId) {
-      const filtered = allStatuses.filter((s: Status) => s.spaceId?.toLowerCase() === spaceId.toLowerCase());
-      if (filtered.length > 0) return filtered;
-    }
-    return allStatuses;
-  }, [customStatuses, spaceId, allStatuses]);
+    const base = customStatuses ?? visibleStatuses;
+    return [...base].sort((a, b) => ((a.orderKey ?? "") < (b.orderKey ?? "") ? -1 : 1));
+  }, [customStatuses, visibleStatuses]);
 
   const currentStatus = useMemo(() => {
     return allStatuses.find((s: Status) => s.id?.toLowerCase() === value?.toLowerCase()) || null;
   }, [value, allStatuses]);
-
-  const statusesByCategory = useMemo(() => {
-    const grouped: Record<string, Status[]> = {};
-    statuses.forEach((status: Status) => {
-      const cat = status.category || "Other";
-      if (!grouped[cat]) grouped[cat] = [];
-      grouped[cat].push(status);
-    });
-    return grouped;
-  }, [statuses]);
 
   return (
     <DropdownMenu>
@@ -83,28 +67,20 @@ export const StatusSelect = observer(function StatusSelect({
           {!value && <IconCheck className="ml-auto size-4" />}
         </DropdownMenuItem>
 
-        {Object.entries(statusesByCategory).map(([category, cats]) => (
-          <React.Fragment key={category}>
-            <DropdownMenuSeparator />
-            <DropdownMenuGroup>
-              <DropdownMenuLabel className="text-[9px] text-muted-foreground/60">{category}</DropdownMenuLabel>
-              {cats.map((status: Status) => {
-                const statusId = status.id;
-                const isSelected = value?.toLowerCase() === statusId?.toLowerCase();
-                return (
-                  <DropdownMenuItem
-                    key={statusId}
-                    onSelect={() => { if (!isSelected) onChange(statusId); }}
-                    className={cn("gap-2", isSelected && "bg-muted shadow-sm")}
-                  >
-                    <StatusBadge variant="outline" status={status} className="w-full justify-start pointer-events-none" />
-                    {isSelected && <IconCheck className="ml-auto size-4" />}
-                  </DropdownMenuItem>
-                );
-              })}
-            </DropdownMenuGroup>
-          </React.Fragment>
-        ))}
+        {statuses.map((status: Status) => {
+          const statusId = status.id;
+          const isSelected = value?.toLowerCase() === statusId?.toLowerCase();
+          return (
+            <DropdownMenuItem
+              key={statusId}
+              onSelect={() => { if (!isSelected) onChange(statusId); }}
+              className={cn("gap-2", isSelected && "bg-muted shadow-sm")}
+            >
+              <StatusBadge variant="outline" status={status} className="w-full justify-start pointer-events-none" />
+              {isSelected && <IconCheck className="ml-auto size-4" />}
+            </DropdownMenuItem>
+          );
+        })}
       </DropdownMenuContent>
     </DropdownMenu>
   );

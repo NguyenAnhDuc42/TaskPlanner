@@ -11,8 +11,7 @@ public class StatusConfiguration : TenantEntityConfiguration<Status>
         builder.ToTable("statuses");
 
         builder.Property(s => s.ProjectSpaceId)
-            .HasColumnName("project_space_id")
-            .IsRequired();
+            .HasColumnName("project_space_id");
 
         builder.Property(x => x.Name)
             .HasColumnName("name")
@@ -22,12 +21,6 @@ public class StatusConfiguration : TenantEntityConfiguration<Status>
         builder.Property(x => x.Color)
             .HasColumnName("color")
             .HasMaxLength(32)
-            .IsRequired();
-
-        builder.Property(x => x.Category)
-            .HasColumnName("category")
-            .HasConversion<string>()
-            .HasMaxLength(50)
             .IsRequired();
 
         builder.Property(s => s.OrderKey)

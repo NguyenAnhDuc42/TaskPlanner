@@ -26,33 +26,24 @@ public class WorkspaceService(
                 if (workspace == null || workspace.IsInitialized)
                     return;
 
-                // 2. Create Default Space
-                var spaceDoc = Document.Create(workspace.Id, "Personal Space", creatorId);
-                await db.Documents.AddAsync(spaceDoc);
-
-                var space = ProjectSpace.CreateDefault(workspace.Id, spaceDoc.Id, creatorId);
+                // 2. Create Default Space — defaultDocumentId is just a grouping key for the
+                // space's DocumentBlocks now (see Document entity removal); no Document row backs it.
+                var space = ProjectSpace.CreateDefault(workspace.Id, Guid.NewGuid(), creatorId);
                 await db.ProjectSpaces.AddAsync(space);
-                
+
                 var spaceStatuses = Status.CreateSpaceStarterSet(workspace.Id, space.Id, creatorId);
                 await db.Statuses.AddRangeAsync(spaceStatuses);
 
 
                 // 3. Create Default Folder
-                var folderDoc = Document.Create(workspace.Id, "Getting Started", creatorId);
-                await db.Documents.AddAsync(folderDoc);
-
                 var folder = ProjectFolder.CreateDefault(workspace.Id, space.Id, creatorId);
                 await db.ProjectFolders.AddAsync(folder);
-                
+
 
                 // 4. Create Starter Tasks
-                var firstStatus = spaceStatuses.First(s => s.Category == StatusCategory.NotStarted);
-                
-                var exploreDoc = Document.Create(workspace.Id, "Explore the hierarchy", creatorId);
-                var standaloneDoc = Document.Create(workspace.Id, "Standalone Task", creatorId);
-                await db.Documents.AddRangeAsync(exploreDoc, standaloneDoc);
+                var firstStatus = spaceStatuses.First();
 
-                var tasks = ProjectTask.CreateDefaults(workspace.Id, space.Id, folder.Id, firstStatus.Id, creatorId, exploreDoc.Id, standaloneDoc.Id);
+                var tasks = ProjectTask.CreateDefaults(workspace.Id, space.Id, folder.Id, firstStatus.Id, creatorId, Guid.NewGuid(), Guid.NewGuid());
                 await db.ProjectTasks.AddRangeAsync(tasks);
 
                 // 5. Finalize

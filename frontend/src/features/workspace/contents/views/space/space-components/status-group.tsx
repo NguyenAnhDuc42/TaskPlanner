@@ -1,5 +1,7 @@
-import { Plus, EyeOff } from "lucide-react";
+import { Plus, EyeOff, GripVertical } from "lucide-react";
 import type { ReactNode } from "react";
+import { useSortable } from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import { cn } from "@/lib/utils";
 import { StatusBadge } from "@/components/status-badge";
 import type { Status } from "@/types/status";
@@ -14,39 +16,60 @@ interface StatusGroupProps {
   id: string;
   statusName: string;
   color: string;
-  category: string;
   totalCount: number;
   children: ReactNode;
   className?: string;
   onCreateTask?: () => void;
   onCreateFolder?: () => void;
   onHide?: () => void;
+  draggable?: boolean;
 }
 
 export function StatusGroup({
+  id,
   statusName,
   color,
-  category,
   totalCount,
   children,
   className,
   onCreateTask,
   onCreateFolder,
   onHide,
+  draggable = false,
 }: Readonly<StatusGroupProps>) {
   const hasCreate = onCreateTask || onCreateFolder;
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id,
+    data: { type: "column" },
+    disabled: !draggable,
+  });
+
+  const style = { transform: CSS.Transform.toString(transform), transition };
 
   return (
     <div
+      ref={setNodeRef}
+      style={style}
       className={cn(
-        "shrink-0 flex flex-col bg-black/5 dark:bg-muted/20 rounded-lg border border-border/50 shadow-sm overflow-hidden transition-all duration-300",
+        "shrink-0 flex flex-col bg-black/5 dark:bg-muted/20 rounded-lg border border-border/50 shadow-sm overflow-hidden transition-colors duration-300",
+        isDragging && "opacity-40",
         className,
       )}
     >
       {/* Column Header */}
       <div className="flex items-center justify-between px-3 py-2 group/header border-b border-border bg-muted/10">
-        <div className="flex items-center gap-3">
-          <StatusBadge status={{ name: statusName, color: color, category } as Status} variant="outline" />
+        <div className="flex items-center gap-2">
+          {draggable && (
+            <button
+              type="button"
+              className="text-muted-foreground/20 hover:text-muted-foreground/60 cursor-grab active:cursor-grabbing shrink-0 touch-none transition-colors"
+              {...attributes}
+              {...listeners}
+            >
+              <GripVertical className="h-3.5 w-3.5" />
+            </button>
+          )}
+          <StatusBadge status={{ name: statusName, color: color } as Status} variant="outline" />
           <span className="text-[9px] font-black text-muted-foreground/40 px-2 py-0.5 rounded-md bg-white/2 border border-white/3">
             {totalCount}
           </span>

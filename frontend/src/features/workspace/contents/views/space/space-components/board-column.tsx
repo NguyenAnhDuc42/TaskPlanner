@@ -16,7 +16,6 @@ export const BoardColumn = React.memo(function BoardColumn({
   statusId,
   name,
   color,
-  category,
   items,
   spaceId,
   selectedItemId,
@@ -24,11 +23,11 @@ export const BoardColumn = React.memo(function BoardColumn({
   onPriorityChange,
   onDateChange,
   onHide,
+  draggable,
 }: {
   statusId: string;
   name: string;
   color: string;
-  category: string;
   items: BoardItem[];
   spaceId: string;
   selectedItemId?: string;
@@ -36,8 +35,9 @@ export const BoardColumn = React.memo(function BoardColumn({
   onPriorityChange: (id: string, priority: Priority) => void;
   onDateChange: (id: string, patches: { startDate?: string | null; dueDate?: string | null }) => void;
   onHide?: () => void;
+  draggable?: boolean;
 }) {
-  const { setNodeRef, isOver } = useDroppable({ id: statusId });
+  const { setNodeRef, isOver } = useDroppable({ id: `zone:${statusId}`, data: { type: "card-zone" } });
   const itemIds = useMemo(() =>
     items.filter((i) => i?.id).map((i) => `task-${i.id}`),
     [items]
@@ -51,11 +51,11 @@ export const BoardColumn = React.memo(function BoardColumn({
       id={statusId}
       statusName={name}
       color={color}
-      category={category}
       totalCount={items.length}
       className="w-[280px] min-h-[400px] shrink-0 flex flex-col"
       onCreateTask={canCreateContent ? () => setCreateOpen(true) : undefined}
       onHide={onHide}
+      draggable={draggable}
     >
       <div
         ref={setNodeRef}

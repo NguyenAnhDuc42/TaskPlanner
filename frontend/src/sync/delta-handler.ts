@@ -1,7 +1,6 @@
 import type { WorkspaceRootStore } from "@/stores/workspace-root.store";
 import { getActiveRootStore } from "@/stores/root.store";
 import type { TaskRecord, SpaceRecord, FolderRecord, CommentRecord, AssigneeRecord } from "@/types/projects";
-import type { DocumentRecord } from "@/types/document";
 import type { DocumentBlockRecord } from "@/types/document/document-block-record";
 import type { Status } from "@/types/status";
 import type { WorkspaceRecord } from "@/types/workspace/workspace-record";
@@ -73,15 +72,6 @@ function getEntityApplier(
         remove: (id) => rootStore.taskStore.remove(id),
         dbPut: (data) => rootStore.taskDB!.put(data as unknown as TaskRecord),
         dbDelete: (id) => rootStore.taskDB!.delete(id),
-      };
-
-    case "Document":
-      return {
-        getExisting: (id) => rootStore.documentStore.getById(id) as Record<string, unknown> | undefined,
-        upsert: (data) => rootStore.documentStore.upsert(data as unknown as DocumentRecord),
-        remove: (id) => rootStore.documentStore.remove(id),
-        dbPut: (data) => rootStore.documentDB!.put(data as unknown as DocumentRecord),
-        dbDelete: (id) => rootStore.documentDB!.delete(id),
       };
 
     case "DocumentBlock":

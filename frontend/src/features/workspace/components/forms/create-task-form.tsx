@@ -128,16 +128,9 @@ export const CreateTaskForm = observer(function CreateTaskForm({
       m.name.toLowerCase().includes(assigneeSearch.toLowerCase()) ||
       m.email?.toLowerCase().includes(assigneeSearch.toLowerCase()),
   );
-
-  // Dynamically resolve space ID depending on folder/space parentType. Task/Folder/Status are
-  // all fully Bootstrap+Delta covered, so this reads straight from MobX — no lazy fetch needed.
   const folder = parentType === "ProjectFolder" ? rootStore.folderStore.getById(parentId) : undefined;
   const spaceId = parentType === "ProjectSpace" ? parentId : folder?.spaceId;
-
-  // Derive statuses from the space (all tasks in a folder now use space workflow)
-  const statuses = spaceId
-    ? rootStore.statusStore.getBySpace(spaceId) as Status[]
-    : [];
+  const statuses = (spaceId ? rootStore.statusStore.getVisibleForSpace(spaceId) : rootStore.statusStore.all) as Status[];
 
   const onSubmit = async (e?: React.FormEvent) => {
     e?.preventDefault();

@@ -186,11 +186,7 @@ export const TaskComments = observer(function TaskComments({ taskId }: Readonly<
   };
 
   return (
-    <div className="space-y-4 pt-3 border-t border-border/30">
-      <h3 className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground/70">
-        Comments
-      </h3>
-
+    <div className="space-y-4">
       <div className="space-y-4 max-h-75 overflow-y-auto pr-2 [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-thumb]:bg-muted-foreground/20 hover:[&::-webkit-scrollbar-thumb]:bg-muted-foreground/45 [&::-webkit-scrollbar-track]:bg-transparent">
         {/* Load more — top, since oldest-first order */}
         {hasNextPage && (

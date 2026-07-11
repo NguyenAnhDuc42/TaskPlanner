@@ -25,7 +25,7 @@ import { useSyncEngine } from "@/sync/sync-provider";
 import { useDebouncedFlush } from "@/sync/use-debounced-flush";
 import { TaskMutations } from "@/mutations/task.mutations";
 import { FavoriteMutations } from "@/mutations/favorite.mutations";
-import { EntityMenuContext, DeleteConfirmationDialog } from "./shared";
+import { EntityMenuContext, DeleteConfirmationDialog, EditFieldsSubmenu } from "./shared";
 import { DynamicIcon } from "@/components/dynamic-icon";
 
 interface TaskContextMenuProps {
@@ -71,6 +71,26 @@ export const TaskContextMenu = observer(function TaskContextMenu({
 
     return (
       <>
+        {canCreateContent && task && (
+          <EditFieldsSubmenu
+            isContext={isContext}
+            name={task.name}
+            icon={task.icon || "CheckSquare"}
+            color={task.color || "#6366f1"}
+            onRename={(name) => {
+              if (!name.trim()) return;
+              taskMutations.updateLocal(taskId, { name: name.trim() }).catch((err) => console.error("Failed to rename task", err));
+              scheduleFlush();
+            }}
+            onIconColorChange={(icon, color) => {
+              taskMutations.updateLocal(taskId, { icon, color }).catch((err) => console.error("Failed to update task icon/color", err));
+              scheduleFlush();
+            }}
+          />
+        )}
+
+        {canCreateContent && <Separator className="bg-border/50" />}
+
         <Item
           className="gap-2 cursor-pointer"
           onSelect={() => favoriteMutations.toggle(taskId, EntityLayerType.ProjectTask).catch((err) => console.error("Failed to toggle favorite", err))}

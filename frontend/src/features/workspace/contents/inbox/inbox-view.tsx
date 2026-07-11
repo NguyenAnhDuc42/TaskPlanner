@@ -21,7 +21,7 @@ function notificationPath(n: NotificationRecord): string | null {
   if (!n.workspaceId || !n.entityId) return null;
   if (n.entityType === "task")   return `/workspaces/${n.workspaceId}/tasks/${n.entityId}`;
   if (n.entityType === "space")  return `/workspaces/${n.workspaceId}/spaces/${n.entityId}`;
-  if (n.entityType === "folder") return `/workspaces/${n.workspaceId}/folders/${n.entityId}`;
+  if (n.entityType === "folder") return null; // Folder no longer has its own page — no navigation target
   return `/workspaces/${n.workspaceId}`;
 }
 

@@ -20,7 +20,6 @@ public class BatchFlushHandler(
         Dictionary<Guid, ProjectFolder> Folders,
         Dictionary<Guid, ProjectSpace> Spaces,
         Dictionary<Guid, Comment> Comments,
-        Dictionary<Guid, Document> Documents,
         Dictionary<Guid, DocumentBlock> DocumentBlocks,
         Dictionary<Guid, TaskAssignment> Assignments,
         Dictionary<Guid, ProjectWorkspace> Workspaces
@@ -72,7 +71,6 @@ public class BatchFlushHandler(
         var folderUDIds = items.Where(i => i.EntityType == SyncEntityType.Folder && i.Action != SyncAction.C).Select(i => i.EntityId).ToHashSet();
         var spaceUDIds = items.Where(i => i.EntityType == SyncEntityType.Space && i.Action != SyncAction.C).Select(i => i.EntityId).ToHashSet();
         var commentUDIds = items.Where(i => i.EntityType == SyncEntityType.Comment && i.Action != SyncAction.C).Select(i => i.EntityId).ToHashSet();
-        var documentUDIds = items.Where(i => i.EntityType == SyncEntityType.Document && i.Action != SyncAction.C).Select(i => i.EntityId).ToHashSet();
         var blockUDIds = items.Where(i => i.EntityType == SyncEntityType.DocumentBlock && i.Action != SyncAction.C).Select(i => i.EntityId).ToHashSet();
         var assignmentDIds = items.Where(i => i.EntityType == SyncEntityType.Assignee && i.Action == SyncAction.D).Select(i => i.EntityId).ToHashSet();
         var workspaceUIds = items.Where(i => i.EntityType == SyncEntityType.Workspace && i.Action == SyncAction.U).Select(i => i.EntityId).ToHashSet();
@@ -96,13 +94,6 @@ public class BatchFlushHandler(
         var allTaskIds = taskUDIds.Union(commentCreateTaskIds).Union(assigneeCreateTaskIds).ToHashSet();
         var allFolderIds = folderUDIds.Union(taskCreateFolderIds).ToHashSet();
 
-        // Documents referenced by DocumentBlock Creates
-        var blockCreateDocumentIds = items
-            .Where(i => i.EntityType == SyncEntityType.DocumentBlock && i.Action == SyncAction.C)
-            .Select(i => GetGuidProp(i.Data, "documentId"))
-            .Where(id => id.HasValue).Select(id => id!.Value).ToHashSet();
-        var allDocumentIds = documentUDIds.Union(blockCreateDocumentIds).ToHashSet();
-
         // Bulk load entities
         var taskDict = allTaskIds.Count > 0
             ? await db.ProjectTasks.Where(t => allTaskIds.Contains(t.Id) && t.DeletedAt == null).ToDictionaryAsync(t => t.Id, ct)
@@ -116,9 +107,6 @@ public class BatchFlushHandler(
         var commentDict = commentUDIds.Count > 0
             ? await db.Comments.Where(c => commentUDIds.Contains(c.Id) && c.DeletedAt == null).ToDictionaryAsync(c => c.Id, ct)
             : [];
-        var documentDict = allDocumentIds.Count > 0
-            ? await db.Documents.Where(d => allDocumentIds.Contains(d.Id) && d.DeletedAt == null).ToDictionaryAsync(d => d.Id, ct)
-            : [];
         var blockDict = blockUDIds.Count > 0
             ? await db.DocumentBlocks.Where(b => blockUDIds.Contains(b.Id) && b.DeletedAt == null).ToDictionaryAsync(b => b.Id, ct)
             : [];
@@ -129,7 +117,7 @@ public class BatchFlushHandler(
             ? await db.ProjectWorkspaces.Where(w => workspaceUIds.Contains(w.Id) && w.DeletedAt == null).ToDictionaryAsync(w => w.Id, ct)
             : [];
 
-        return new BatchContext(taskDict, folderDict, spaceDict, commentDict, documentDict, blockDict, assignmentDict, workspaceDict);
+        return new BatchContext(taskDict, folderDict, spaceDict, commentDict, blockDict, assignmentDict, workspaceDict);
     }
 
     private Task<List<SyncEvent>> ProcessItemAsync(BatchFlushItem item, BatchContext ctx, CancellationToken ct) =>
@@ -147,8 +135,6 @@ public class BatchFlushHandler(
             (SyncEntityType.Comment, SyncAction.C) => CreateCommentAsync(item, ctx, ct),
             (SyncEntityType.Comment, SyncAction.U) => UpdateCommentAsync(item, ctx, ct),
             (SyncEntityType.Comment, SyncAction.D) => DeleteCommentAsync(item, ctx, ct),
-            (SyncEntityType.Document, SyncAction.U) => UpdateDocumentAsync(item, ctx, ct),
-            (SyncEntityType.Document, SyncAction.D) => DeleteDocumentAsync(item, ctx, ct),
             (SyncEntityType.DocumentBlock, SyncAction.C) => CreateDocumentBlockAsync(item, ctx, ct),
             (SyncEntityType.DocumentBlock, SyncAction.U) => UpdateDocumentBlockAsync(item, ctx, ct),
             (SyncEntityType.DocumentBlock, SyncAction.D) => DeleteDocumentBlockAsync(item, ctx, ct),
@@ -208,13 +194,10 @@ public class BatchFlushHandler(
         {
             if (await idempotencyService.HasProcessedAsync(item.TraceId, ct)) return Result<int>.Success(0);
 
-            var document = Document.Create(id: cmd.DefaultDocumentId, workspaceId: workspaceContext.WorkspaceId, name: cmd.Name, creatorId: creatorId);
-            db.Documents.Add(document);
-
             var task = ProjectTask.Create(
                 id: cmd.Id, projectWorkspaceId: workspaceContext.WorkspaceId, projectSpaceId: effectiveSpaceId,
                 projectFolderId: effectiveFolderId, name: cmd.Name, slug: cmd.Slug,
-                defaultDocumentId: document.Id, color: cmd.Color ?? "#FFFFFF", icon: cmd.Icon,
+                defaultDocumentId: cmd.DefaultDocumentId, color: cmd.Color ?? "#FFFFFF", icon: cmd.Icon,
                 creatorId: creatorId, statusId: cmd.StatusId, priority: cmd.Priority,
                 orderKey: cmd.OrderKey, parentTaskId: cmd.ParentTaskId);
             db.ProjectTasks.Add(task);
@@ -331,11 +314,8 @@ public class BatchFlushHandler(
             var orderKey = FractionalIndex.SafeAfter(maxKey);
             var slug = SlugHelper.GenerateSlug(cmd.Name);
 
-            var document = Document.Create(id: cmd.DefaultDocumentId, workspaceId: workspaceContext.WorkspaceId, name: cmd.Name, creatorId: creatorId);
-            db.Documents.Add(document);
-
             var space = ProjectSpace.Create(id: cmd.Id, projectWorkspaceId: workspaceContext.WorkspaceId,
-                name: cmd.Name, slug: slug, defaultDocumentId: document.Id, color: cmd.Color,
+                name: cmd.Name, slug: slug, defaultDocumentId: cmd.DefaultDocumentId, color: cmd.Color,
                 icon: cmd.Icon, isPrivate: cmd.IsPrivate, creatorId: creatorId, orderKey: orderKey);
             db.ProjectSpaces.Add(space);
             events.Add(new SyncEvent {
@@ -348,20 +328,8 @@ public class BatchFlushHandler(
                 }, SyncJson.Options)
             });
 
-            var statuses = Status.CreateSpaceStarterSet(workspaceContext.WorkspaceId, space.Id, creatorId);
-            db.Statuses.AddRange(statuses);
-            foreach (var status in statuses)
-            {
-                events.Add(new SyncEvent {
-                    ProjectWorkspaceId = workspaceContext.WorkspaceId, EntityType = SyncEntityType.Status,
-                    EntityId = status.Id, Action = SyncAction.C, ClientTraceId = item.TraceId, AuthorUserId = creatorId,
-                    Payload = JsonSerializer.Serialize(new {
-                        id = status.Id, spaceId = status.ProjectSpaceId, name = status.Name,
-                        color = status.Color, category = status.Category.ToString(), orderKey = status.OrderKey
-                    }, SyncJson.Options)
-                });
-            }
-
+            // No starter statuses seeded here — Status is workspace-visible everywhere, so a new
+            // space just uses whatever statuses the workspace already has (see Status.cs).
             db.SyncEvents.AddRange(events);
             idempotencyService.MarkAsProcessed(item.TraceId);
             return Result<int>.Success(0);
@@ -710,74 +678,11 @@ public class BatchFlushHandler(
         return events;
     }
 
-    // ── Document ──────────────────────────────────────────────────────────────
-
-    private async Task<List<SyncEvent>> UpdateDocumentAsync(BatchFlushItem item, BatchContext ctx, CancellationToken ct)
-    {
-        var memberId = workspaceContext.CurrentMember?.Id ?? Guid.Empty;
-        if (!ctx.Documents.TryGetValue(item.EntityId, out var document))
-            throw new InvalidOperationException(DocumentError.NotFound.Code);
-
-        syncPermission.RequireMember();
-
-        var cmd = Deserialize<UpdateDocumentCommand>(item.Data);
-        List<SyncEvent> events = [];
-
-        var result = await db.ExecuteInTransactionAsync(async () =>
-        {
-            if (await idempotencyService.HasProcessedAsync(item.TraceId, ct)) return Result<int>.Success(0);
-
-            document.UpdateName(cmd.Name);
-            events.Add(new SyncEvent {
-                ProjectWorkspaceId = document.ProjectWorkspaceId, EntityType = SyncEntityType.Document,
-                EntityId = document.Id, Action = SyncAction.U, ClientTraceId = item.TraceId, AuthorUserId = memberId,
-                Payload = JsonSerializer.Serialize(new { id = document.Id, workspaceId = document.ProjectWorkspaceId, name = document.Name }, SyncJson.Options)
-            });
-            db.SyncEvents.AddRange(events);
-            idempotencyService.MarkAsProcessed(item.TraceId);
-            return Result<int>.Success(0);
-        }, ct);
-
-        if (!result.IsSuccess) throw new InvalidOperationException(result.Error?.Description ?? "Transaction failed");
-        return events;
-    }
-
-    private async Task<List<SyncEvent>> DeleteDocumentAsync(BatchFlushItem item, BatchContext ctx, CancellationToken ct)
-    {
-        var memberId = workspaceContext.CurrentMember?.Id ?? Guid.Empty;
-        if (!ctx.Documents.TryGetValue(item.EntityId, out var document))
-            throw new InvalidOperationException(DocumentError.NotFound.Code);
-
-        syncPermission.RequireMember();
-
-        List<SyncEvent> events = [];
-
-        var result = await db.ExecuteInTransactionAsync(async () =>
-        {
-            if (await idempotencyService.HasProcessedAsync(item.TraceId, ct)) return Result<int>.Success(0);
-
-            document.SoftDelete();
-            events.Add(new SyncEvent {
-                ProjectWorkspaceId = document.ProjectWorkspaceId, EntityType = SyncEntityType.Document,
-                EntityId = document.Id, Action = SyncAction.D, ClientTraceId = item.TraceId, AuthorUserId = memberId,
-                Payload = JsonSerializer.Serialize(new { id = document.Id }, SyncJson.Options)
-            });
-            db.SyncEvents.AddRange(events);
-            idempotencyService.MarkAsProcessed(item.TraceId);
-            return Result<int>.Success(0);
-        }, ct);
-
-        if (!result.IsSuccess) throw new InvalidOperationException(result.Error?.Description ?? "Transaction failed");
-        return events;
-    }
-
     // ── DocumentBlock ─────────────────────────────────────────────────────────
 
     private async Task<List<SyncEvent>> CreateDocumentBlockAsync(BatchFlushItem item, BatchContext ctx, CancellationToken ct)
     {
         var cmd = Deserialize<CreateDocumentBlockCommand>(item.Data);
-        if (!ctx.Documents.ContainsKey(cmd.DocumentId))
-            throw new InvalidOperationException(DocumentError.NotFound.Code);
 
         syncPermission.RequireMember();
 
@@ -953,7 +858,7 @@ public class BatchFlushHandler(
         // User's Id (audit field predates workspace membership existing), not a WorkspaceMember.Id
         // like every other entity's CreatorId. Comparing it against member.Id would always fail.
         if (workspace.CreatorId != workspaceContext.CurrentMember?.UserId)
-            throw new UnauthorizedAccessException(MemberError.DontHavePermission.Code);
+            throw new ForbiddenAccessException(MemberError.DontHavePermission.Code);
 
         var memberId = workspaceContext.CurrentMember?.Id ?? Guid.Empty;
         var cmd = Deserialize<UpdateWorkspaceCommand>(item.Data);

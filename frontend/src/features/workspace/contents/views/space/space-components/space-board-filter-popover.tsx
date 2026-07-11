@@ -32,7 +32,8 @@ export function SpaceBoardFilterPopover({ filter, onChange, folders }: SpaceBoar
     (filter.priorities?.length ?? 0) +
     (filter.folderIds?.length ?? 0) +
     (filter.startDate ? 1 : 0) +
-    (filter.dueDate ? 1 : 0);
+    (filter.dueDate ? 1 : 0) +
+    (filter.statusScope === "space" ? 1 : 0);
 
   const toggle = <K extends "priorities" | "folderIds">(key: K, value: string) => {
     const current = (filter[key] ?? []) as string[];
@@ -127,6 +128,16 @@ export function SpaceBoardFilterPopover({ filter, onChange, folders }: SpaceBoar
             ))}
           </DropdownMenuSubContent>
         </DropdownMenuSub>
+
+        {/* Status scope — Status is workspace-visible everywhere by default; this narrows the
+            board to just this space's own tagged statuses (opt-in, not the default). */}
+        <DropdownMenuCheckboxItem
+          checked={filter.statusScope === "space"}
+          onCheckedChange={(checked) => onChange({ ...filter, statusScope: checked ? "space" : undefined })}
+          onSelect={(e) => e.preventDefault()}
+        >
+          This space&apos;s statuses only
+        </DropdownMenuCheckboxItem>
 
         {/* Dates */}
         <DropdownMenuSeparator />

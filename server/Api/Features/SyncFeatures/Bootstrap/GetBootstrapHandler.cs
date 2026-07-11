@@ -52,14 +52,14 @@ public class GetBootstrapHandler(TaskPlanDbContext db, WorkspaceContext workspac
             WHERE f.project_workspace_id = @WorkspaceId AND f.deleted_at IS NULL
               AND " + visibilityFilter + ";";
 
+        // Status is workspace-visible everywhere, not gated by space visibility — every member
+        // gets every workspace status regardless of its optional space "ancestor" tag.
         const string statusesSql = @"
             SELECT
                 st.id AS Id, st.project_space_id AS SpaceId, st.name AS Name,
-                st.color AS Color, st.category AS Category, st.order_key AS OrderKey
+                st.color AS Color, st.order_key AS OrderKey
             FROM statuses st
-            INNER JOIN project_spaces s ON s.id = st.project_space_id AND s.deleted_at IS NULL
-            WHERE st.project_workspace_id = @WorkspaceId AND st.deleted_at IS NULL
-              AND " + visibilityFilter + ";";
+            WHERE st.project_workspace_id = @WorkspaceId AND st.deleted_at IS NULL;";
 
         const string assigneesSql = @"
             SELECT

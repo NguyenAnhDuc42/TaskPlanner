@@ -100,10 +100,9 @@ public record AssigneeRecord
 public record StatusRecord
 {
     public Guid Id { get; init; }
-    public Guid SpaceId { get; init; }
+    public Guid? SpaceId { get; init; }
     public string Name { get; init; } = null!;
     public string? Color { get; init; }
-    public StatusCategory Category { get; init; }
     public string? OrderKey { get; init; }
 }
 

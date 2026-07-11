@@ -405,7 +405,7 @@ const SyncTestPage = observer(function SyncTestPage() {
 
           <div style={{ marginTop: 8, fontSize: 11, opacity: 0.5 }}>
             Statuses ({workspaceRootStore.statusStore.all.length}):&nbsp;
-            {workspaceRootStore.statusStore.all.map((st) => `${st.name}(${st.category})`).join(", ")}
+            {workspaceRootStore.statusStore.all.map((st) => st.name).join(", ")}
           </div>
         </div>
       )}

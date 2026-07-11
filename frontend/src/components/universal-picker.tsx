@@ -93,7 +93,7 @@ const ColorSwatch = React.memo(function ColorSwatch({
   )
 })
 
-function PickerPanel({
+export function PickerPanel({
   icon, color, colors, onSelect,
 }: {
   icon: string

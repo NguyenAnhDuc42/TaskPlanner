@@ -10,7 +10,6 @@ export * from "./operations/fetched-context.db";
 export * from "./operations/status.db";
 export * from "./operations/member.db";
 export * from "./operations/comment.db";
-export * from "./operations/document.db";
 export * from "./operations/document-block.db";
 export * from "./operations/assignee.db";
 export * from "./operations/favorite.db";
