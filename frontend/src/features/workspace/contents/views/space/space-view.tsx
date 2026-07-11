@@ -6,7 +6,7 @@ import { SpaceBoard } from "./space-components/space-board";
 import { SpaceViewRail } from "./space-components/space-view-rail";
 import { SpaceCommsPlaceholder } from "./space-components/space-comms-placeholder";
 import { SpacePropertiesPanel } from "./space-components/space-properties-panel";
-import { SpaceSettingsDialog } from "./space-components/space-settings-dialog";
+import { SpaceSettingsFlow, type SpaceSettingsFlowHandle } from "./space-components/space-settings-flow";
 import {
   DEFAULT_SPACE_RAIL_TAB_ORDER,
   isSpaceRailTabKey,
@@ -41,20 +41,16 @@ interface SpaceViewProps {
 }
 
 export const SpaceView = observer(function SpaceView({ spaceId }: Readonly<SpaceViewProps>) {
+  // Board-toolbar-triggered Workflow and topHeader-menu-triggered Delete stay directly wired here
+  // — SpaceSettingsFlow owns its own separate instances of both for the Settings-launched case.
   const [isWorkflowOpen, setIsWorkflowOpen] = React.useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = React.useState(false);
-  const [isSettingsOpen, setIsSettingsOpen] = React.useState(false);
   const [isPropertiesOpen, setIsPropertiesOpen] = React.useState(false);
-  // Tracks whether Workflow Manager was launched from inside Settings, so closing it returns to
-  // Settings instead of just exiting the whole flow — Workflow is a sub-step of Settings, not a
-  // fully separate top-level dialog, when opened that way.
-  const [workflowReturnsToSettings, setWorkflowReturnsToSettings] = React.useState(false);
+  const settingsFlowRef = React.useRef<SpaceSettingsFlowHandle>(null);
 
-  // Per-space pinned default tab (Settings) takes priority over the last-used-anywhere fallback.
-  const [rawPinnedTabs, setRawPinnedTabs] = useLocalStorage<Record<string, SpaceRailTabKey>>(
-    "space-pinned-tabs",
-    {}
-  );
+  // Per-space pinned default tab (set via Settings) takes priority over the last-used-anywhere
+  // fallback — read-only here, the write side lives in SpaceSettingsFlow.
+  const [rawPinnedTabs] = useLocalStorage<Record<string, SpaceRailTabKey>>("space-pinned-tabs", {});
   const pinnedTab = rawPinnedTabs[spaceId];
 
   const resolveInitialTab = React.useCallback((): SpaceRailTabKey => {
@@ -78,13 +74,7 @@ export const SpaceView = observer(function SpaceView({ spaceId }: Readonly<Space
     setActiveTab(tab);
     localStorage.setItem(`global-space-tab`, tab);
   };
-  const handlePinTab = (tab: SpaceRailTabKey | null) => {
-    const next = { ...rawPinnedTabs };
-    if (tab) next[spaceId] = tab;
-    else delete next[spaceId];
-    setRawPinnedTabs(next);
-  };
-  const [rawTabOrder, setRawTabOrder] = useLocalStorage<SpaceRailTabKey[]>(
+  const [rawTabOrder] = useLocalStorage<SpaceRailTabKey[]>(
     "space-rail-tab-order",
     DEFAULT_SPACE_RAIL_TAB_ORDER
   );
@@ -181,7 +171,7 @@ export const SpaceView = observer(function SpaceView({ spaceId }: Readonly<Space
           tabOrder={tabOrder}
           activeTab={activeTab}
           onTabChange={handleTabChange}
-          onOpenSettings={() => setIsSettingsOpen(true)}
+          onOpenSettings={() => settingsFlowRef.current?.open()}
         />
 
         {/* Content area — top bar (search/filter/columns) lives inside SpaceBoard itself */}
@@ -189,10 +179,7 @@ export const SpaceView = observer(function SpaceView({ spaceId }: Readonly<Space
           {activeTab === "items" && (
             <SpaceBoard
               spaceId={spaceId}
-              onWorkflowOpen={canManage ? () => {
-                setWorkflowReturnsToSettings(false);
-                setIsWorkflowOpen(true);
-              } : undefined}
+              onWorkflowOpen={canManage ? () => setIsWorkflowOpen(true) : undefined}
             />
           )}
           {activeTab === "detail" && <SpaceDetail spaceId={spaceId} />}
@@ -233,42 +220,11 @@ export const SpaceView = observer(function SpaceView({ spaceId }: Readonly<Space
 
       <CreateStatusForm
         isOpen={isWorkflowOpen}
-        onClose={() => {
-          setIsWorkflowOpen(false);
-          if (workflowReturnsToSettings) {
-            setIsSettingsOpen(true);
-            setWorkflowReturnsToSettings(false);
-          }
-        }}
+        onClose={() => setIsWorkflowOpen(false)}
         spaceId={space?.id}
       />
 
-      <SpaceSettingsDialog
-        isOpen={isSettingsOpen}
-        onClose={() => setIsSettingsOpen(false)}
-        tabOrder={tabOrder}
-        onTabOrderChange={setRawTabOrder}
-        spaceName={space.name}
-        onSpaceNameChange={(name) => {
-          spaceMutations.update(spaceId, { name }).catch((err) => console.error("Failed to rename space", err));
-        }}
-        spaceIcon={space.icon ?? "LayoutGrid"}
-        spaceColor={space.color ?? "#3b82f6"}
-        onSpaceIconChange={(icon, color) => {
-          spaceMutations.update(spaceId, { icon, color }).catch((err) => console.error("Failed to update space icon", err));
-        }}
-        pinnedTab={pinnedTab ?? null}
-        onPinTabChange={handlePinTab}
-        onOpenWorkflow={canManage ? () => {
-          setIsSettingsOpen(false);
-          setWorkflowReturnsToSettings(true);
-          setIsWorkflowOpen(true);
-        } : undefined}
-        onDeleteSpace={canManage ? () => {
-          setIsSettingsOpen(false);
-          setIsDeleteOpen(true);
-        } : undefined}
-      />
+      <SpaceSettingsFlow ref={settingsFlowRef} spaceId={spaceId} />
 
       <DeleteConfirmationDialog
         open={isDeleteOpen}

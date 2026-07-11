@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useRef, useState } from "react";
 import { observer } from "mobx-react-lite";
 import {
   ContextMenu,
@@ -17,8 +17,7 @@ import { copyToClipboard } from "@/lib/copy-to-clipboard";
 import { EntityLayerType } from "@/types/entity-layer-type";
 import { useWorkspace } from "@/features/workspace/context/workspace-context";
 import { useWorkspaceRole } from "@/features/workspace/context/use-workspace-role";
-import { DialogFormWrapper } from "@/components/dialog-form-wrapper";
-import { EditSpaceForm } from "@/features/workspace/components/forms/edit-space-form";
+import { SpaceSettingsFlow, type SpaceSettingsFlowHandle } from "@/features/workspace/contents/views/space/space-components/space-settings-flow";
 import { useWorkspaceRootStore } from "@/stores/workspace-root.store";
 import { useSyncEngine } from "@/sync/sync-provider";
 import { SpaceMutations } from "@/mutations/space.mutations";
@@ -48,8 +47,8 @@ export const SpaceContextMenu = observer(function SpaceContextMenu({
   const favoriteMutations = useMemo(() => new FavoriteMutations(rootStore), [rootStore]);
   const isFavorite = rootStore.favoriteStore.isFavorite(spaceId);
   const space = rootStore.spaceStore.getById(spaceId);
-  const [activeForm, setActiveForm] = useState<"settings" | null>(null);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
+  const settingsFlowRef = useRef<SpaceSettingsFlowHandle>(null);
 
   const handleDelete = () => {
     spaceMutations.delete(spaceId).catch((err) => console.error("Failed to delete space", err));
@@ -118,7 +117,7 @@ export const SpaceContextMenu = observer(function SpaceContextMenu({
         {isAdmin && (
           <>
             <Separator className="bg-border/50" />
-            <Item className="gap-2 cursor-pointer" onSelect={() => setActiveForm("settings")}>
+            <Item className="gap-2 cursor-pointer" onSelect={() => settingsFlowRef.current?.open()}>
               <Settings className="h-3.5 w-3.5" />
               <span>Space Settings</span>
             </Item>
@@ -152,18 +151,7 @@ export const SpaceContextMenu = observer(function SpaceContextMenu({
         </ContextMenuContent>
       </ContextMenu>
 
-      <DialogFormWrapper
-        open={activeForm === "settings"}
-        onOpenChange={(open) => !open && setActiveForm(null)}
-        title="Space Settings"
-        trigger={null}
-      >
-        <EditSpaceForm
-          spaceId={spaceId}
-          onSuccess={() => setActiveForm(null)}
-          onCancel={() => setActiveForm(null)}
-        />
-      </DialogFormWrapper>
+      <SpaceSettingsFlow ref={settingsFlowRef} spaceId={spaceId} />
 
       <DeleteConfirmationDialog
         open={isDeleteOpen}

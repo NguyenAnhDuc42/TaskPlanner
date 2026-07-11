@@ -1,11 +1,14 @@
 import { useState } from "react";
+import { createPortal } from "react-dom";
 import { GripVertical, Workflow, Trash2 } from "lucide-react";
 import {
   DndContext,
+  DragOverlay,
   PointerSensor,
   useSensor,
   useSensors,
   type DragEndEvent,
+  type DragStartEvent,
 } from "@dnd-kit/core";
 import {
   SortableContext,
@@ -55,25 +58,27 @@ function SettingsSection({ title, children }: { title: string; children: React.R
   );
 }
 
-function TabRow({ tabKey }: { tabKey: SpaceRailTabKey }) {
+function TabRow({ tabKey, overlay = false }: { tabKey: SpaceRailTabKey; overlay?: boolean }) {
   const tab = SPACE_RAIL_TABS[tabKey];
   const Icon = tab.icon;
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: tabKey });
 
+  const style = overlay ? {} : { transform: CSS.Transform.toString(transform), transition };
+
   return (
     <div
-      ref={setNodeRef}
-      style={{ transform: CSS.Transform.toString(transform), transition }}
+      ref={overlay ? undefined : setNodeRef}
+      style={style}
       className={cn(
         "group relative flex items-center gap-2 h-8 px-2 rounded-md border bg-card/60 hover:bg-card/90 border-border/30 hover:border-border/60 transition-colors duration-150 select-none",
-        isDragging && "opacity-0"
+        isDragging && !overlay && "opacity-0",
+        overlay && "shadow-2xl rotate-1 scale-105 opacity-90 bg-card border-border/60"
       )}
     >
       <button
         type="button"
         className="text-muted-foreground/20 hover:text-muted-foreground/60 cursor-grab active:cursor-grabbing shrink-0 touch-none transition-colors"
-        {...attributes}
-        {...listeners}
+        {...(overlay ? {} : { ...attributes, ...listeners })}
       >
         <GripVertical className="h-3 w-3" />
       </button>
@@ -83,19 +88,22 @@ function TabRow({ tabKey }: { tabKey: SpaceRailTabKey }) {
   );
 }
 
-function Toggle({ checked, onChange }: { checked: boolean; onChange: () => void }) {
+// Purely visual — no onClick of its own. The one place this is used already wraps it in a
+// button that toggles on click; giving this its own onClick too double-fires on every click
+// (bubbles up to the parent button as well), which visually looked like the switch didn't
+// respond, since the two toggles cancelled each other out.
+function Toggle({ checked }: { checked: boolean }) {
   return (
     <span
       className={cn(
-        "relative h-4.5 w-8 rounded-full transition-colors shrink-0",
+        "relative inline-block h-4.5 w-8 rounded-full transition-colors shrink-0",
         checked ? "bg-primary" : "bg-muted-foreground/25"
       )}
-      onClick={onChange}
     >
       <span
         className={cn(
-          "absolute top-0.5 h-3.5 w-3.5 rounded-full bg-background transition-transform",
-          checked ? "translate-x-4" : "translate-x-0.5"
+          "absolute top-0.5 left-0.5 h-3.5 w-3.5 rounded-full bg-background transition-transform",
+          checked ? "translate-x-3.5" : "translate-x-0"
         )}
       />
     </span>
@@ -194,7 +202,7 @@ export function SpaceSettingsDialog({
               sensors={sensors}
               collisionDetection={pointerAwareCollisionDetection}
               modifiers={[restrictToVerticalAxis]}
-              onDragStart={(e) => setDraggingKey(e.active.id as SpaceRailTabKey)}
+              onDragStart={(e: DragStartEvent) => setDraggingKey(e.active.id as SpaceRailTabKey)}
               onDragEnd={handleDragEnd}
             >
               <SortableContext items={tabOrder} strategy={verticalListSortingStrategy}>
@@ -204,6 +212,13 @@ export function SpaceSettingsDialog({
                   ))}
                 </div>
               </SortableContext>
+
+              {createPortal(
+                <DragOverlay dropAnimation={null}>
+                  {draggingKey ? <TabRow tabKey={draggingKey} overlay /> : null}
+                </DragOverlay>,
+                document.body
+              )}
             </DndContext>
             {draggingKey && (
               <p className="text-[9px] text-muted-foreground/40">Drag to reorder</p>
@@ -218,7 +233,7 @@ export function SpaceSettingsDialog({
               className="flex items-center justify-between h-8 px-2.5 rounded-md border border-border/30 bg-card/60 hover:bg-card/90 transition-colors"
             >
               <span className="text-[11px] font-semibold text-foreground/90">Hide empty columns by default</span>
-              <Toggle checked={hideEmptyDefault} onChange={() => setHideEmptyDefault(!hideEmptyDefault)} />
+              <Toggle checked={hideEmptyDefault} />
             </button>
           </SettingsSection>
 
