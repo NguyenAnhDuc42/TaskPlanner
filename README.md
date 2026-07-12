@@ -4,7 +4,7 @@ TaskPlanner is a collaborative task management platform inspired by tools like C
 
 ## Technical Highlights
 - Vertical Slice Architecture with CQRS feature organization
-- Hierarchical workspace model (Workspace → Space → Folder → List → Task)
+- Hierarchical workspace model (Workspace → Space → Task → SubTask, Folder as a sidebar-only organizer)
 - Role-based authorization with entity-level permissions
 - Offline-first sync engine: MobX + IndexedDB local store, reconciled via SignalR Delta/DeltaBatch against a sequence-numbered event log
 - JWT + OAuth authentication
@@ -21,9 +21,11 @@ TaskPlanner is a collaborative task management platform inspired by tools like C
 ## Features
 
 **Workspace & Hierarchy**
-- 5-level hierarchy: Workspace → Space → Folder → Task → SubTask
+- Workspace → Space → Task → SubTask. Folder still exists as a plain sidebar organizer but was
+  demoted out of boards/filters/task cards — it wasn't earning its place as a first-class layer
 - Drag-and-drop reordering and cross-space item movement
-- Role-based access control (Owner, Admin, Member) with entity-level privacy settings
+- Role-based access control (Owner, Admin, Member, Guest) with entity-level privacy settings;
+  Guests get clean read-only 403s instead of being bounced through a false "session expired" retry
 
 **Collaboration**
 - Real-time updates via SignalR — changes broadcast instantly to all connected users
@@ -37,6 +39,11 @@ TaskPlanner is a collaborative task management platform inspired by tools like C
 **Content**
 - Block-based document editor per task and space
 - Rich text with headings, lists, checkboxes, and inline formatting
+- Per-entity activity feed showing who did what, when
+
+**Workspace**
+- Flat, single-page settings (name/icon, danger zone) — no fake tabs for features that don't exist
+- Cross-space "My Tasks" list — every task assigned to you, grouped by space
 
 **Auth**
 - JWT authentication with refresh token rotation
@@ -73,6 +80,8 @@ The frontend runs a local-first sync engine: optimistic writes land in MobX stor
 
 **Real-time is hard to get right.** The SignalR implementation works but isn't reliable. SSE fallback through Vercel's proxy generates excessive requests. WebSocket connections drop and the reconnect logic creates request storms. The lesson: don't bolt real-time onto a request-based system — design for it from the start.
 
+**Feature creep, not feature count, is what kills a solo project.** Too much time went into planning half-formed ideas before they were real, which meant parts of the app got redesigned too many times chasing a "final" version instead of committing to one and moving on. The fix was ruthless cutting: anything that wasn't fully wired up got removed rather than left half-built, so the app is smaller now but everything in it actually works.
+
 **Two data sources fight each other.** The frontend used to maintain both a Redux entity store and an RTK Query cache simultaneously. They conflicted, causing redundant fetches and UI inconsistencies. The fix — since shipped, not just diagnosed — was giving ownership to one layer and making everything else derived from it: MobX stores are the reactive read layer, IndexedDB is the persistent layer beneath them, and the server is a sync target reconciled via a sequence-numbered event log, not a second cache fighting for the same data. A true single source is still impossible given IndexedDB's async nature — the goal was a clear ownership hierarchy, not literal consolidation, and that's what's running now for the entities that have been migrated.
 
 **Ship first, iterate after.** The biggest mistake was trying to get everything right before shipping. The correct approach: define a scope, finish it, deploy it, then improve from real usage.
@@ -105,8 +114,18 @@ The frontend runs a local-first sync engine: optimistic writes land in MobX stor
 - `SyncHub`/`WorkspaceHub` authentication — both hubs now validate the caller and workspace membership before joining groups (previously unguarded)
 - Local-first resilience: cached IndexedDB data now renders immediately regardless of SignalR connection state; a failed/slow reconnect (e.g. resuming an AFK tab) retries in the background instead of blocking the UI with a false "failed to load"
 
-### Planned — v0.4.0
+### v0.4.0 — Simplification Pass `2026-07-12`
+- Fixed a permission bug that blocked Guests from viewing tasks they had read access to
+- Cut several half-built surfaces (a placeholder dashboard, an empty settings page) in favor of
+  a smaller set of pages that are fully functional
+- Simplified the hierarchy — Folder is now a lightweight sidebar organizer instead of a full
+  filterable layer, matching how it's actually used
+- Added a per-entity activity feed and a cross-space "My Tasks" view
+
+### Planned — v0.5.0
+- Rename "Status" — it's really a workspace-wide board column/stage now, not a per-item status
+  field, and the name stopped matching what it models once it became shared across spaces
+- Field-level activity diffs ("moved from Todo to In Progress") instead of action-level only
 - Batch flush (`POST /api/sync/batch`) end-to-end testing at scale, plus offline conflict-edge-case coverage (squash rules, out-of-order delta application)
 - Bootstrap parallel query batching (structural data vs. secondary data on separate connections) — deferred pending real latency numbers, not yet worth the added complexity
-- Activity feed powered by the event log (same table, no extra work)
 - Document block editor rewrite on Yjs (CRDT-based collaborative editing) — separate initiative, not started
