@@ -3,7 +3,9 @@ import {
   EntityLayerType as EntityLayerConst,
 } from "@/types/entity-layer-type";
 
-import { Plus, ChevronDown, LayoutGrid } from "lucide-react";
+import { Plus, ChevronDown, LayoutGrid, ListTodo } from "lucide-react";
+import { useNavigate } from "@tanstack/react-router";
+import { useWorkspace } from "@/features/workspace/context/workspace-context";
 import { DndContext, DragOverlay } from "@dnd-kit/core";
 import { restrictToVerticalAxis } from "@dnd-kit/modifiers";
 import { pointerAwareCollisionDetection } from "@/lib/dnd-collision";
@@ -43,6 +45,8 @@ export function HierarchySidebar() {
   const { canCreateSpace } = useWorkspaceRole();
   const rootStore = useWorkspaceRootStore();
   const syncEngine = useSyncEngine();
+  const navigate = useNavigate();
+  const { workspaceId } = useWorkspace();
   const spaceMutations = useMemo(() => new SpaceMutations(rootStore, syncEngine), [rootStore, syncEngine]);
 
   useEffect(() => {
@@ -75,6 +79,16 @@ export function HierarchySidebar() {
 
   return (
     <div className="h-full flex flex-col bg-transparent overflow-hidden select-none">
+      {/* MY TASKS — navigates away entirely, not an expandable section */}
+      <button
+        type="button"
+        onClick={() => navigate({ to: "/workspaces/$workspaceId/my-tasks", params: { workspaceId } })}
+        className="w-full h-7 flex items-center gap-2 px-1.5 flex-none border-b border-border/40 text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors cursor-pointer"
+      >
+        <ListTodo className="h-3.5 w-3.5" />
+        <span className="text-[10px] font-bold uppercase tracking-wider">My Tasks</span>
+      </button>
+
       {/* NAVIGATION SECTION (PANE 1) */}
       <div
         className={cn(

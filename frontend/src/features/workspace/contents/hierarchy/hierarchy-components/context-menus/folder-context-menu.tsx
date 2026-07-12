@@ -11,13 +11,11 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
-import { Plus, Trash2, Star } from "lucide-react";
-import { EntityLayerType } from "@/types/entity-layer-type";
+import { Plus, Trash2 } from "lucide-react";
 import { useWorkspaceRole } from "@/features/workspace/context/use-workspace-role";
 import { useWorkspaceRootStore } from "@/stores/workspace-root.store";
 import { useSyncEngine } from "@/sync/sync-provider";
 import { FolderMutations } from "@/mutations/folder.mutations";
-import { FavoriteMutations } from "@/mutations/favorite.mutations";
 import { EntityMenuContext, DeleteConfirmationDialog, EditFieldsSubmenu } from "./shared";
 
 interface FolderContextMenuProps {
@@ -37,8 +35,6 @@ export const FolderContextMenu = observer(function FolderContextMenu({
   const rootStore = useWorkspaceRootStore();
   const syncEngine = useSyncEngine();
   const folderMutations = useMemo(() => new FolderMutations(rootStore, syncEngine), [rootStore, syncEngine]);
-  const favoriteMutations = useMemo(() => new FavoriteMutations(rootStore), [rootStore]);
-  const isFavorite = rootStore.favoriteStore.isFavorite(folderId);
   const folder = rootStore.folderStore.getById(folderId);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
 
@@ -71,19 +67,9 @@ export const FolderContextMenu = observer(function FolderContextMenu({
           />
         )}
 
-        {canCreateContent && <Separator className="bg-border/50" />}
-
-        <Item
-          className="gap-2 cursor-pointer"
-          onSelect={() => favoriteMutations.toggle(folderId, EntityLayerType.ProjectFolder).catch((err) => console.error("Failed to toggle favorite", err))}
-        >
-          <Star className={`h-3.5 w-3.5 ${isFavorite ? "fill-amber-400 text-amber-400" : ""}`} />
-          <span>{isFavorite ? "Unfavorite" : "Favorite"}</span>
-        </Item>
-
         {isAdmin && (
           <>
-            <Separator className="bg-border/50" />
+            {canCreateContent && <Separator className="bg-border/50" />}
             <Item variant="destructive" className="gap-2 cursor-pointer" onSelect={() => setIsDeleteOpen(true)}>
               <Trash2 className="h-3.5 w-3.5" />
               <span>Delete Folder</span>

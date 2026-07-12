@@ -8,7 +8,6 @@ export type ContentPage =
   | "calendar"
   | "members"
   | "settings"
-  | "command-center"
   | "inbox";
 
 export interface NavItem {

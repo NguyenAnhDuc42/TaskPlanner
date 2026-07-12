@@ -1,7 +1,6 @@
+import { Loader2 } from "lucide-react";
 import { UserAvatar } from "@/components/user-avatar";
 
-// Mocked — no backend change-log exists yet (this is the frontend "mock phase" placeholder for
-// what will eventually be a real per-entity audit trail; the backend side is still plan-phase).
 export interface ChangeEntry {
   id: string;
   authorName: string;
@@ -11,9 +10,18 @@ export interface ChangeEntry {
 
 interface ChangesFeedProps {
   entries: ChangeEntry[];
+  isLoading?: boolean;
 }
 
-export function ChangesFeed({ entries }: Readonly<ChangesFeedProps>) {
+export function ChangesFeed({ entries, isLoading }: Readonly<ChangesFeedProps>) {
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-3">
+        <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground/40" />
+      </div>
+    );
+  }
+
   if (entries.length === 0) {
     return (
       <p className="text-[10px] text-muted-foreground/40 italic py-2">No changes yet.</p>

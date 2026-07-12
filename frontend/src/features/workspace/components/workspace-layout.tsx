@@ -13,6 +13,7 @@ import { ChevronLeft, X, Maximize2, LogOut, User } from "lucide-react";
 import { NotificationBell } from "@/features/notifications/notification-bell";
 import { GlobalSearch } from "./global-search";
 import { UserAvatar } from "@/components/user-avatar";
+import { useWorkspaceRootStore } from "@/stores/workspace-root.store";
 import type { ContentPage } from "../type";
 import { useLogout, useUser } from "@/features/auth/auth-api";
 import { ProfileModal } from "@/features/auth/profile/components/profile-modal";
@@ -73,6 +74,7 @@ export function WorkspaceLayout() {
   const navigate = useNavigate({ from: "/workspaces/$workspaceId" });
   const location = useLocation();
   const { workspaceId, ui, actions } = useWorkspace();
+  const rootStore = useWorkspaceRootStore();
   const hoverTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // ─── Context Panel (from router search) ──────────────
@@ -81,6 +83,23 @@ export function WorkspaceLayout() {
 
   // ─── Navigation Handlers ────────────────────────────
   const handleSelectIcon = (icon: ContentPage) => {
+    if (icon === "projects") {
+      const spaces = rootStore.spaceStore.all;
+      if (spaces.length > 0) {
+        const lastSpaceId = localStorage.getItem(`lastSpaceId:${workspaceId}`);
+        const targetSpaceId = lastSpaceId && spaces.some((s) => s.id === lastSpaceId)
+          ? lastSpaceId
+          : [...spaces].sort((a, b) => ((a.orderKey ?? "") < (b.orderKey ?? "") ? -1 : 1))[0].id;
+
+        navigate({
+          to: "/workspaces/$workspaceId/spaces/$spaceId",
+          params: { workspaceId, spaceId: targetSpaceId },
+          search: {},
+        });
+        return;
+      }
+    }
+
     const targetRoute = icon === "projects" ? "" : icon;
     navigate({
       to: `/workspaces/$workspaceId/${targetRoute}`,
@@ -174,13 +193,6 @@ export function WorkspaceLayout() {
     },
   });
 
-  const handleCommandCenter = () => {
-    navigate({
-      to: "/workspaces/$workspaceId",
-      params: { workspaceId },
-    });
-  };
-
   return (
     <div className="flex h-screen w-full flex-col p-1 gap-1 bg-background font-sans overflow-hidden">
       {/* ═══════════════════════════════════════════════════
@@ -219,7 +231,7 @@ export function WorkspaceLayout() {
           {/* ═══════════════════════════════════════════════════
               COLUMN 1: Icon Rail
           ═══════════════════════════════════════════════════ */}
-          <IconRail onSelectIcon={handleSelectIcon} onCommandCenter={handleCommandCenter} />
+          <IconRail onSelectIcon={handleSelectIcon} />
 
           {/* ─── Hover Peek Frame ───────────────────────────── */}
           {ui.hoveredIcon && SidebarRegistry({ page: ui.hoveredIcon }) !== null &&

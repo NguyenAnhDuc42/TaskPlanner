@@ -8,7 +8,6 @@ import { FavoriteMutations } from "@/mutations/favorite.mutations";
 import { EntityLayerType } from "@/types/entity-layer-type";
 import { cn } from "@/lib/utils";
 import { SpaceContextMenu } from "../hierarchy-components/context-menus/space-context-menu";
-import { FolderContextMenu } from "../hierarchy-components/context-menus/folder-context-menu";
 import { TaskContextMenu } from "../hierarchy-components/context-menus/task-context-menu";
 import { SortableList, SortableListItem } from "@/components/sortable-list";
 import { fractionalBetween, fractionalAfter, fractionalBefore, fractionalStart } from "@/features/workspace/contents/hierarchy/utils/fractional-index";
@@ -38,7 +37,7 @@ function FavItemContent({
   isDragging?: boolean;
 }) {
   const isTask = fav.entityLayerType === EntityLayerType.ProjectTask;
-  const iconName = fav.icon ?? (isTask ? "CheckSquare" : fav.entityLayerType === EntityLayerType.ProjectFolder ? "Folder" : "LayoutGrid");
+  const iconName = fav.icon ?? (isTask ? "CheckSquare" : "LayoutGrid");
 
   const button = (
     <button
@@ -65,8 +64,6 @@ function FavItemContent({
 
   if (fav.entityLayerType === EntityLayerType.ProjectSpace)
     return <SpaceContextMenu key={fav.id} spaceId={fav.id} spaceName={fav.name ?? ""}>{button}</SpaceContextMenu>;
-  if (fav.entityLayerType === EntityLayerType.ProjectFolder)
-    return <FolderContextMenu key={fav.id} folderId={fav.id} folderName={fav.name ?? ""}>{button}</FolderContextMenu>;
   return <TaskContextMenu key={fav.id} taskId={fav.id} taskName={fav.name ?? ""} parentId="">{button}</TaskContextMenu>;
 }
 
@@ -78,22 +75,14 @@ export const FavoriteNodeList = observer(function FavoriteNodeList() {
   const router = useRouter();
   const location = useLocation();
 
-  // Plain read, not useMemo — this is a mobx-react-lite observer, which tracks observable reads
-  // made directly during render. `.all` returns a fresh array on every call, so a useMemo keyed on
-  // it never actually caches anything (deps always look changed) — it only guarantees a brand-new
-  // `favorites` array reference every render, which confuses dnd-kit's drag position tracking.
-  //
-  // Favorite membership/order comes from favoriteStore alone — name/icon/color are a display-only
-  // lookup into the entity's own store. A favorite pointing at an entity that's since been deleted
-  // (or not yet hydrated) is silently skipped rather than rendered with blank/broken content.
   const lookupEntity = (entityId: string, type: EntityLayerType) => {
     if (type === EntityLayerType.ProjectSpace) return rootStore.spaceStore.getById(entityId);
-    if (type === EntityLayerType.ProjectFolder) return rootStore.folderStore.getById(entityId);
     return rootStore.taskStore.getById(entityId);
   };
 
   const favorites: FavItem[] = rootStore.favoriteStore.all
     .map((f): FavItem | null => {
+      if (f.entityLayerType === EntityLayerType.ProjectFolder) return null;
       const entity = lookupEntity(f.entityId, f.entityLayerType);
       if (!entity) return null;
       return {
@@ -108,18 +97,6 @@ export const FavoriteNodeList = observer(function FavoriteNodeList() {
     .filter((f): f is FavItem => f !== null)
     .sort((a, b) => ((a.favoriteOrderKey ?? "") < (b.favoriteOrderKey ?? "") ? -1 : 1));
 
-  // Robust to any state the neighbors' keys are in — missing, equal, out of order, whatever.
-  // fractionalBetween/After/Before already tolerate garbage input via safeKey() (falls back to
-  // null rather than throwing), and only ever produce ONE new key for the MOVED item — the other
-  // items' keys are never touched. The one case that used to slip through: no prev AND no next
-  // (e.g. the whole list had no real keys yet), which fell back to an empty string — the backend
-  // rejects an empty OrderKey, so that reorder silently failed. fractionalStart() replaces that.
-  //
-  // draggedId comes straight from dnd-kit's active.id, not from diffing old vs new order — diffing
-  // ("first index that differs") breaks for a front-to-back move: shifting the first item to last
-  // shifts every index, so the first differing index is always 0 — the item that slid INTO that
-  // slot, not the one actually dragged. That bug meant dragging the first favorite to the bottom
-  // silently reordered a DIFFERENT item instead, leaving the dragged one stuck in place forever.
   const handleReorder = useCallback((reordered: FavItem[], draggedId: string) => {
     if (!workspaceId) return;
     const draggedIdx = reordered.findIndex((f) => f.id === draggedId);

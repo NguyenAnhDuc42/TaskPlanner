@@ -3,7 +3,8 @@ import { PrioritySelect } from "@/components/priority-select";
 import { PriorityBadge } from "@/components/priority-badge";
 import { DateSelect } from "@/components/date-select";
 import { TaskAssignees } from "../task-components/task-assignees";
-import { ChangesFeed, type ChangeEntry } from "@/features/workspace/components/changes-feed";
+import { ChangesFeed } from "@/features/workspace/components/changes-feed";
+import { useEntityChanges } from "@/features/workspace/components/use-entity-changes";
 import { ExpandableSection } from "@/components/expandable-section";
 import type { TaskRecord } from "@/types/projects/task-record";
 import type { Priority } from "@/types/priority";
@@ -16,11 +17,6 @@ interface TaskPropertiesPanelProps {
   onDueDateChange: (date: Date | undefined) => void;
   onClearDates: () => void;
 }
-
-// Mocked until the backend change-log lands — see ChangesFeed.
-const MOCK_CHANGES: ChangeEntry[] = [
-  { id: "1", authorName: "You", message: "created this task", timestamp: "just now" },
-];
 
 function PropertyRow({ label, children }: { label: string; children: React.ReactNode }) {
   return (
@@ -39,6 +35,8 @@ export function TaskPropertiesPanel({
   onDueDateChange,
   onClearDates,
 }: Readonly<TaskPropertiesPanelProps>) {
+  const { entries: changes, isLoading: isChangesLoading } = useEntityChanges(task.id, "Task");
+
   return (
     <div className="flex flex-col flex-1 min-h-0 overflow-y-auto px-3 pb-3 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:bg-muted-foreground/20">
       <ExpandableSection title="Properties" defaultOpen>
@@ -76,7 +74,7 @@ export function TaskPropertiesPanel({
       </ExpandableSection>
 
       <ExpandableSection title="Changes">
-        <ChangesFeed entries={MOCK_CHANGES} />
+        <ChangesFeed entries={changes} isLoading={isChangesLoading} />
       </ExpandableSection>
     </div>
   );

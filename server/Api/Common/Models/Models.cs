@@ -97,6 +97,15 @@ public record AssigneeRecord
     public Guid WorkspaceMemberId { get; init; }
 }
 
+public record ChangeEntryRecord
+{
+    public long Id { get; init; }
+    public string EntityType { get; init; } = null!;
+    public string Action { get; init; } = null!;
+    public Guid AuthorMemberId { get; init; }
+    public DateTimeOffset CreatedAt { get; init; }
+}
+
 public record StatusRecord
 {
     public Guid Id { get; init; }

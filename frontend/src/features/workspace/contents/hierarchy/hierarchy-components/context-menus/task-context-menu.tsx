@@ -5,16 +5,13 @@ import {
   ContextMenuContent,
   ContextMenuItem,
   ContextMenuSeparator,
-  ContextMenuSub,
-  ContextMenuSubContent,
-  ContextMenuSubTrigger,
   ContextMenuTrigger,
 } from "@/components/ui/context-menu";
 import {
   DropdownMenuItem,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
-import { Trash2, Copy, ExternalLink, Star, FolderInput, Folder } from "lucide-react";
+import { Trash2, Copy, ExternalLink, Star } from "lucide-react";
 import { toast } from "sonner";
 import { copyToClipboard } from "@/lib/copy-to-clipboard";
 import { EntityLayerType } from "@/types/entity-layer-type";
@@ -26,13 +23,11 @@ import { useDebouncedFlush } from "@/sync/use-debounced-flush";
 import { TaskMutations } from "@/mutations/task.mutations";
 import { FavoriteMutations } from "@/mutations/favorite.mutations";
 import { EntityMenuContext, DeleteConfirmationDialog, EditFieldsSubmenu } from "./shared";
-import { DynamicIcon } from "@/components/dynamic-icon";
 
 interface TaskContextMenuProps {
   taskId: string;
   taskName: string;
   parentId: string;
-  spaceId?: string;
   children: React.ReactNode;
 }
 
@@ -40,7 +35,6 @@ export const TaskContextMenu = observer(function TaskContextMenu({
   taskId,
   children,
   taskName,
-  spaceId,
 }: TaskContextMenuProps) {
   const { workspaceId } = useWorkspace();
   const { canCreateContent } = useWorkspaceRole();
@@ -52,13 +46,6 @@ export const TaskContextMenu = observer(function TaskContextMenu({
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const isFavorite = rootStore.favoriteStore.isFavorite(taskId);
   const task = rootStore.taskStore.getById(taskId);
-  const spaceFolders = spaceId ? rootStore.folderStore.getBySpace(spaceId) : [];
-
-  const handleMoveToFolder = (targetFolderId: string | null) => {
-    if (!task?.spaceId) return;
-    taskMutations.updateLocal(taskId, { folderId: targetFolderId }).catch((err) => console.error("Failed to move task", err));
-    scheduleFlush();
-  };
 
   const handleDelete = () => {
     taskMutations.delete(taskId).catch((err) => console.error("Failed to delete task", err));
@@ -116,32 +103,6 @@ export const TaskContextMenu = observer(function TaskContextMenu({
           <ExternalLink className="h-3.5 w-3.5" />
           <span>Open in New Tab</span>
         </Item>
-
-        {canCreateContent && spaceFolders.length > 0 && isContext && (
-          <>
-            <Separator className="bg-border/50" />
-            <ContextMenuSub>
-              <ContextMenuSubTrigger className="gap-2 cursor-pointer">
-                <FolderInput className="h-3.5 w-3.5" />
-                <span>Move to</span>
-              </ContextMenuSubTrigger>
-              <ContextMenuSubContent className="w-44 bg-popover border-border/50 shadow-2xl rounded-xl p-1.5">
-                {task?.folderId && (
-                  <ContextMenuItem className="gap-2 cursor-pointer text-xs" onSelect={() => handleMoveToFolder(null)}>
-                    <Folder className="h-3 w-3 text-muted-foreground" />
-                    <span>Space level</span>
-                  </ContextMenuItem>
-                )}
-                {spaceFolders.filter(f => f.id !== task?.folderId).map(folder => (
-                  <ContextMenuItem key={folder.id} className="gap-2 cursor-pointer text-xs" onSelect={() => handleMoveToFolder(folder.id)}>
-                    <DynamicIcon name={folder.icon || "Folder"} size={12} color={folder.color || "#6366f1"} />
-                    <span className="truncate">{folder.name}</span>
-                  </ContextMenuItem>
-                ))}
-              </ContextMenuSubContent>
-            </ContextMenuSub>
-          </>
-        )}
 
         {canCreateContent && (
           <>

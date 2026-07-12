@@ -69,8 +69,9 @@ function EditorView({ initialContent, onUpdate, editable = true }: {
   const seenBlockIdsRef = useRef<Set<string> | null>(null);
 
   return (
-    // max ~150 blocks worth of height then scroll within editor
-    <div className="max-h-900 overflow-y-auto [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-thumb]:bg-muted-foreground/20 hover:[&::-webkit-scrollbar-thumb]:bg-muted-foreground/40 [&::-webkit-scrollbar-track]:bg-transparent">
+    // Scrolling is owned by the outer panel (space-documents-panel.tsx / task-detail-canvas.tsx),
+    // not here — an inner scroll region here would double up with the outer one.
+    <div>
       <BlockNoteView
         editor={editor}
         theme={isDark ? "dark" : "light"}

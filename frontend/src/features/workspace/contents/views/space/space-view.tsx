@@ -5,7 +5,6 @@ import { EntityViewFrame } from "../entity-view-frame";
 import { SpaceBoard } from "./space-components/space-board";
 import { SpaceViewRail } from "./space-components/space-view-rail";
 import { SpaceCommsPlaceholder } from "./space-components/space-comms-placeholder";
-import { SpacePropertiesPanel } from "./space-components/space-properties-panel";
 import { SpaceSettingsFlow, type SpaceSettingsFlowHandle } from "./space-components/space-settings-flow";
 import {
   DEFAULT_SPACE_RAIL_TAB_ORDER,
@@ -14,7 +13,7 @@ import {
   type SpaceRailTabKey,
 } from "./space-components/space-rail-tabs";
 import { useLocalStorage } from "@/hooks/use-local-storage";
-import { MoreVertical, Trash2, PanelRight, X } from "lucide-react";
+import { MoreVertical, Trash2 } from "lucide-react";
 import { FavoriteButton } from "@/components/favorite-button";
 import { DynamicIcon } from "@/components/dynamic-icon";
 import { EntityLayerType } from "@/types/entity-layer-type";
@@ -41,11 +40,8 @@ interface SpaceViewProps {
 }
 
 export const SpaceView = observer(function SpaceView({ spaceId }: Readonly<SpaceViewProps>) {
-  // Board-toolbar-triggered Workflow and topHeader-menu-triggered Delete stay directly wired here
-  // — SpaceSettingsFlow owns its own separate instances of both for the Settings-launched case.
   const [isWorkflowOpen, setIsWorkflowOpen] = React.useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = React.useState(false);
-  const [isPropertiesOpen, setIsPropertiesOpen] = React.useState(false);
   const settingsFlowRef = React.useRef<SpaceSettingsFlowHandle>(null);
 
   // Per-space pinned default tab (set via Settings) takes priority over the last-used-anywhere
@@ -179,43 +175,12 @@ export const SpaceView = observer(function SpaceView({ spaceId }: Readonly<Space
           {activeTab === "items" && (
             <SpaceBoard
               spaceId={spaceId}
-              onWorkflowOpen={canManage ? () => setIsWorkflowOpen(true) : undefined}
+              onOpenWorkflow={canManage ? () => setIsWorkflowOpen(true) : undefined}
             />
           )}
           {activeTab === "detail" && <SpaceDetail spaceId={spaceId} />}
           {activeTab === "comms" && <SpaceCommsPlaceholder />}
-
-          {/* Document-only — task stats/status-breakdown and the changes feed read as "about this
-              project" metadata, which belongs next to the plan (Document), not the live working
-              surface (Tasks board). Pinned over the content pane itself, not the app-chrome header
-              — matches where Linear's issue-view expand button actually lives. */}
-          {activeTab === "detail" && !isPropertiesOpen && (
-            <button
-              type="button"
-              onClick={() => setIsPropertiesOpen(true)}
-              title="Open properties panel"
-              className="absolute top-3 right-3 z-10 h-7 w-7 flex items-center justify-center rounded-md border border-border/30 shadow-sm transition-colors cursor-pointer bg-card/80 backdrop-blur-sm text-muted-foreground hover:text-foreground hover:bg-muted/60"
-            >
-              <PanelRight className="h-3.5 w-3.5" />
-            </button>
-          )}
         </div>
-
-        {activeTab === "detail" && isPropertiesOpen && (
-          <div className="w-64 shrink-0 border-l border-border overflow-hidden flex flex-col">
-            <div className="h-9 flex items-center justify-end px-2 border-b border-border/30 shrink-0">
-              <button
-                type="button"
-                onClick={() => setIsPropertiesOpen(false)}
-                title="Close properties panel"
-                className="h-6 w-6 flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors cursor-pointer"
-              >
-                <X className="h-3.5 w-3.5" />
-              </button>
-            </div>
-            <SpacePropertiesPanel spaceId={spaceId} />
-          </div>
-        )}
       </div>
 
       <CreateStatusForm

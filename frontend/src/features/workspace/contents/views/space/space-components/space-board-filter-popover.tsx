@@ -1,11 +1,10 @@
 import { useState } from "react";
-import { ListFilter, Folder } from "lucide-react";
+import { ListFilter } from "lucide-react";
 import { Priority } from "@/types/priority";
 import { PriorityBadge } from "@/components/priority-badge";
-import { DynamicIcon } from "@/components/dynamic-icon";
 import { DateFilterField } from "@/components/date-filter-field";
 import type { SpaceBoardFilter } from "../space-board-types";
-import type { FolderRecord } from "@/types/projects";
+import type { Status } from "@/types/status";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -18,27 +17,30 @@ import {
   DropdownMenuLabel,
 } from "@/components/ui/dropdown-menu";
 
-const NO_FOLDER_ID = "__none__";
-
 interface SpaceBoardFilterPopoverProps {
   filter: SpaceBoardFilter;
   onChange: (filter: SpaceBoardFilter) => void;
-  folders: FolderRecord[];
+  statuses: Status[];
 }
 
-export function SpaceBoardFilterPopover({ filter, onChange, folders }: SpaceBoardFilterPopoverProps) {
+export function SpaceBoardFilterPopover({ filter, onChange, statuses }: SpaceBoardFilterPopoverProps) {
   const [openDateField, setOpenDateField] = useState<"start" | "due" | null>(null);
   const activeCount =
     (filter.priorities?.length ?? 0) +
-    (filter.folderIds?.length ?? 0) +
+    (filter.statusIds?.length ?? 0) +
     (filter.startDate ? 1 : 0) +
-    (filter.dueDate ? 1 : 0) +
-    (filter.statusScope === "space" ? 1 : 0);
+    (filter.dueDate ? 1 : 0);
 
-  const toggle = <K extends "priorities" | "folderIds">(key: K, value: string) => {
-    const current = (filter[key] ?? []) as string[];
+  const togglePriority = (value: Priority) => {
+    const current = filter.priorities ?? [];
     const next = current.includes(value) ? current.filter(x => x !== value) : [...current, value];
-    onChange({ ...filter, [key]: next.length > 0 ? next : undefined });
+    onChange({ ...filter, priorities: next.length > 0 ? next : undefined });
+  };
+
+  const toggleStatus = (value: string) => {
+    const current = filter.statusIds ?? [];
+    const next = current.includes(value) ? current.filter(x => x !== value) : [...current, value];
+    onChange({ ...filter, statusIds: next.length > 0 ? next : undefined });
   };
 
   return (
@@ -52,6 +54,7 @@ export function SpaceBoardFilterPopover({ filter, onChange, folders }: SpaceBoar
           }`}
         >
           <ListFilter className="h-3.5 w-3.5" />
+          <span className="text-[10px] font-semibold">Filter</span>
           {activeCount > 0 && <span className="text-[10px] font-bold">{activeCount}</span>}
         </button>
       </DropdownMenuTrigger>
@@ -84,7 +87,7 @@ export function SpaceBoardFilterPopover({ filter, onChange, folders }: SpaceBoar
               <DropdownMenuCheckboxItem
                 key={p}
                 checked={filter.priorities?.includes(p) ?? false}
-                onCheckedChange={() => toggle("priorities", p)}
+                onCheckedChange={() => togglePriority(p)}
                 onSelect={(e) => e.preventDefault()}
               >
                 <PriorityBadge priority={p} />
@@ -93,51 +96,31 @@ export function SpaceBoardFilterPopover({ filter, onChange, folders }: SpaceBoar
           </DropdownMenuSubContent>
         </DropdownMenuSub>
 
-        {/* Folder */}
+        {/* Status — filters which tasks show, independent of which columns are rendered
+            (that's the Columns dropdown's job, not this one). */}
         <DropdownMenuSub>
           <DropdownMenuSubTrigger>
-            Folder
-            {filter.folderIds?.length ? (
-              <span className="ml-1 text-[10px] text-muted-foreground bg-muted px-1.5 rounded-full">{filter.folderIds.length}</span>
+            Status
+            {filter.statusIds?.length ? (
+              <span className="ml-1 text-[10px] text-muted-foreground bg-muted px-1.5 rounded-full">{filter.statusIds.length}</span>
             ) : null}
           </DropdownMenuSubTrigger>
-          <DropdownMenuSubContent className="w-52">
-            <DropdownMenuCheckboxItem
-              checked={filter.folderIds?.includes(NO_FOLDER_ID) ?? false}
-              onCheckedChange={() => toggle("folderIds", NO_FOLDER_ID)}
-              onSelect={(e) => e.preventDefault()}
-            >
-              <div className="flex items-center gap-2">
-                <Folder className="h-3.5 w-3.5 text-muted-foreground" />
-                <span className="text-xs italic text-muted-foreground">No folder</span>
-              </div>
-            </DropdownMenuCheckboxItem>
-            {folders.length > 0 && <DropdownMenuSeparator />}
-            {folders.map(f => (
+          <DropdownMenuSubContent className="w-48">
+            {statuses.map(s => (
               <DropdownMenuCheckboxItem
-                key={f.id}
-                checked={filter.folderIds?.includes(f.id) ?? false}
-                onCheckedChange={() => toggle("folderIds", f.id)}
+                key={s.id}
+                checked={filter.statusIds?.includes(s.id!) ?? false}
+                onCheckedChange={() => toggleStatus(s.id!)}
                 onSelect={(e) => e.preventDefault()}
               >
-                <div className="flex items-center gap-2 overflow-hidden">
-                  <DynamicIcon name={f.icon || "Folder"} size={12} color={f.color || undefined} />
-                  <span className="text-xs truncate">{f.name}</span>
-                </div>
+                <span className="flex items-center gap-2 overflow-hidden">
+                  <span className="h-2 w-2 rounded-full shrink-0" style={{ backgroundColor: s.color }} />
+                  <span className="truncate">{s.name}</span>
+                </span>
               </DropdownMenuCheckboxItem>
             ))}
           </DropdownMenuSubContent>
         </DropdownMenuSub>
-
-        {/* Status scope — Status is workspace-visible everywhere by default; this narrows the
-            board to just this space's own tagged statuses (opt-in, not the default). */}
-        <DropdownMenuCheckboxItem
-          checked={filter.statusScope === "space"}
-          onCheckedChange={(checked) => onChange({ ...filter, statusScope: checked ? "space" : undefined })}
-          onSelect={(e) => e.preventDefault()}
-        >
-          This space&apos;s statuses only
-        </DropdownMenuCheckboxItem>
 
         {/* Dates */}
         <DropdownMenuSeparator />

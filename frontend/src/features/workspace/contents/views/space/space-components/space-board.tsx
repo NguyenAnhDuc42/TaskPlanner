@@ -9,8 +9,9 @@ import {
 } from "@dnd-kit/core";
 import { SortableContext, horizontalListSortingStrategy } from "@dnd-kit/sortable";
 import { pointerAwareCollisionDetection } from "@/lib/dnd-collision";
-import { Priority, prioritySort } from "@/types/priority";
-import type { BoardItem, SpaceBoardFilter } from "../space-board-types";
+import { Priority } from "@/types/priority";
+import type { BoardItem, SpaceBoardFilter, SpaceBoardSortBy } from "../space-board-types";
+import { getBoardSortComparator } from "../space-board-types";
 import { useDebounce } from "@/hooks/use-debounce";
 import { BoardItemCard } from "./sortable-board-item";
 import { useBoardDnd } from "./use-board-dnd";
@@ -32,7 +33,7 @@ import { HIDE_EMPTY_DEFAULT_KEY } from "./space-settings-dialog";
 
 interface SpaceBoardProps {
   spaceId: string;
-  onWorkflowOpen?: () => void;
+  onOpenWorkflow?: () => void;
 }
 
 function sortStatuses(statuses: Status[]): Status[] {
@@ -49,7 +50,7 @@ const collisionDetectionStrategy: CollisionDetection = (args) => {
   return pointerAwareCollisionDetection(args);
 };
 
-export const SpaceBoard = observer(function SpaceBoard({ spaceId, onWorkflowOpen }: Readonly<SpaceBoardProps>) {
+export const SpaceBoard = observer(function SpaceBoard({ spaceId, onOpenWorkflow }: Readonly<SpaceBoardProps>) {
   const navigate = useNavigate({ from: "/workspaces/$workspaceId/spaces/$spaceId" });
   const search = useSearch({ strict: false }) as { contextPanel?: { type: string; id: string } };
   const selectedItemId = search.contextPanel?.id;
@@ -66,36 +67,21 @@ export const SpaceBoard = observer(function SpaceBoard({ spaceId, onWorkflowOpen
   const boardItems: BoardItem[] = rootStore.taskStore
     .getBySpace(spaceId)
     .filter((t) => !t.parentTaskId)
-    .map((t) => ({
-      ...t,
-      __type: "task" as const,
-      folderName: t.folderId ? rootStore.folderStore.getById(t.folderId)?.name : undefined,
-    }));
+    .map((t) => ({ ...t, __type: "task" as const }));
 
   const [hiddenStatusIds, setHiddenStatusIds] = useState<string[]>([]);
   const [hideUnclassified, setHideUnclassified] = useState(false);
   const [filter, setFilter] = useState<SpaceBoardFilter>({});
+  const [sortBy, setSortBy] = useState<SpaceBoardSortBy>("priority");
   const [searchInput, setSearchInput] = useState("");
   const debouncedSearch = useDebounce(searchInput, 300);
 
-  // Default: untagged (shared workspace-level) statuses + this space's own tagged ones —
-  // excludes statuses tagged to other spaces, so each space still has a distinct board. "space"
-  // narrows further to just this space's own tagged statuses (opt-in), dropping the shared ones.
-  const statuses = sortStatuses(
-    filter.statusScope === "space"
-      ? rootStore.statusStore.getBySpace(spaceId)
-      : rootStore.statusStore.getVisibleForSpace(spaceId)
-  );
-
-  const folders = rootStore.folderStore.getBySpace(spaceId).sort((a, b) => ((a.orderKey ?? "") < (b.orderKey ?? "") ? -1 : 1));
+  const statuses = sortStatuses(rootStore.statusStore.getVisibleForSpace(spaceId));
 
   const filteredItems = useMemo(() => {
     return boardItems.filter(item => {
       if (filter.priorities?.length && !filter.priorities.includes(item.priority ?? "")) return false;
-      if (filter.folderIds?.length) {
-        const fid = item.folderId ?? "__none__";
-        if (!filter.folderIds.includes(fid)) return false;
-      }
+      if (filter.statusIds?.length && !filter.statusIds.includes(item.statusId ?? "")) return false;
       if (debouncedSearch && !item.name.toLowerCase().includes(debouncedSearch.toLowerCase())) return false;
       if (filter.startDate) {
         const day = toLocalDay(item.startDate);
@@ -136,12 +122,13 @@ export const SpaceBoard = observer(function SpaceBoard({ spaceId, onWorkflowOpen
       nextCols[colId].push(item);
     });
 
+    const comparator = getBoardSortComparator(sortBy);
     Object.keys(nextCols).forEach((colId) => {
-      nextCols[colId].sort(prioritySort);
+      nextCols[colId].sort(comparator);
     });
 
     return nextCols;
-  }, [filteredItems, statuses]);
+  }, [filteredItems, statuses, sortBy]);
 
   const { sensors, draggedItem, handleDragStart, handleDragEnd } = useBoardDnd({
     boardItems: filteredItems,
@@ -196,16 +183,6 @@ export const SpaceBoard = observer(function SpaceBoard({ spaceId, onWorkflowOpen
     }
   }, [ready, emptyStatusIds, columns, hideEmptyDefault]);
 
-  const allEmptyHidden = emptyStatusIds.length > 0 && emptyStatusIds.every(id => hiddenStatusIds.includes(id));
-
-  const handleToggleHideEmpty = useCallback(() => {
-    setHiddenStatusIds(prev =>
-      allEmptyHidden
-        ? prev.filter(id => !emptyStatusIds.includes(id))
-        : [...new Set([...prev, ...emptyStatusIds])]
-    );
-  }, [allEmptyHidden, emptyStatusIds]);
-
   const columnsToRender = useMemo(() => {
     const cols = statuses
       .filter(s => !hiddenStatusIds.includes(s.id))
@@ -237,18 +214,16 @@ export const SpaceBoard = observer(function SpaceBoard({ spaceId, onWorkflowOpen
         statuses={statuses}
         hiddenStatusIds={hiddenStatusIds}
         setHiddenStatusIds={setHiddenStatusIds}
-        folders={folders}
         filter={filter}
         onFilterChange={setFilter}
         searchInput={searchInput}
         onSearchChange={setSearchInput}
-        onWorkflowOpen={onWorkflowOpen}
         isFullyLoaded={ready}
         hideUnclassified={hideUnclassified}
         onToggleUnclassified={() => setHideUnclassified(v => !v)}
-        hasEmptyStatuses={emptyStatusIds.length > 0}
-        allEmptyHidden={allEmptyHidden}
-        onToggleHideEmpty={handleToggleHideEmpty}
+        onOpenWorkflow={onOpenWorkflow}
+        sortBy={sortBy}
+        onSortByChange={setSortBy}
       />
 
       <DndContext

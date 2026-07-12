@@ -1,7 +1,6 @@
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import {
-  LayoutGrid,
   Inbox,
   Folder,
   FolderOpen,
@@ -26,10 +25,9 @@ const NAV_ICONS: {
 
 interface IconRailProps {
   readonly onSelectIcon: (icon: ContentPage) => void;
-  readonly onCommandCenter: () => void;
 }
 
-export function IconRail({ onSelectIcon, onCommandCenter }: Readonly<IconRailProps>) {
+export function IconRail({ onSelectIcon }: Readonly<IconRailProps>) {
   const navigate = useNavigate();
   const { state, actions } = useWorkspaceSession();
 
@@ -51,22 +49,6 @@ export function IconRail({ onSelectIcon, onCommandCenter }: Readonly<IconRailPro
             <div className="w-4 h-px bg-border/60 my-0.5" />
           </>
         )}
-
-        {/* Command Center */}
-        <Button
-          variant="ghost"
-          size="icon"
-          className={cn(
-            "w-7 h-7 rounded-md transition-all duration-200",
-            state.activeIcon === "command-center"
-              ? "bg-primary/10 text-primary"
-              : "text-[var(--theme-text-normal)] hover:bg-[var(--theme-item-hover)] hover:text-[var(--theme-text-hover)]",
-          )}
-          onClick={onCommandCenter}
-          onMouseEnter={() => actions.setHoveredIcon("command-center")}
-        >
-          <LayoutGrid className="h-[18px] w-[18px]" />
-        </Button>
 
         {/* Projects, Members, Inbox */}
         {NAV_ICONS.map((item) => {

@@ -20,6 +20,10 @@ export class AssigneeStore {
     return this.all.filter((a) => a.taskId === taskId);
   }
 
+  getByMember(workspaceMemberId: string): AssigneeRecord[] {
+    return this.all.filter((a) => a.workspaceMemberId === workspaceMemberId);
+  }
+
   upsert(assignee: AssigneeRecord): void {
     this.assignees.set(assignee.id, assignee);
   }

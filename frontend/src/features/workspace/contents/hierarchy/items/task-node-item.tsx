@@ -50,7 +50,6 @@ export const TaskNodeItem = observer(function TaskNodeItem({
         taskId={task.id}
         taskName={task.name}
         parentId={parentId}
-        spaceId={spaceId}
       >
         <div
           className={cn(

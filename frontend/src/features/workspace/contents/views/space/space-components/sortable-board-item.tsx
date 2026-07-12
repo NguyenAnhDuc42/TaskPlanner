@@ -23,7 +23,6 @@ export interface BoardItemCardProps {
   onDoubleClick?: () => void;
   onMouseDown?: () => void;
   onMaximizeClick?: () => void;
-  onFolderClick?: () => void;
   onPriorityChange?: (priority: Priority) => void;
   onDateChange?: (patches: { startDate?: string | null; dueDate?: string | null }) => void;
   isDragging?: boolean;
@@ -40,7 +39,6 @@ export const BoardItemCard = React.memo(function BoardItemCard({
   onDoubleClick,
   onMouseDown,
   onMaximizeClick,
-  onFolderClick,
   onPriorityChange,
   onDateChange,
   isDragging,
@@ -99,16 +97,6 @@ export const BoardItemCard = React.memo(function BoardItemCard({
       <div className="flex flex-col gap-1.5 w-full h-full">
         {/* Row 1: Icon, Name | Expand */}
         <div className="flex flex-col gap-0.5 mt-0.5">
-          {item.folderName && (
-            <button
-              type="button"
-              onClick={(e) => { e.stopPropagation(); onFolderClick?.(); }}
-              onPointerDown={(e) => e.stopPropagation()}
-              className="pl-5.25 text-[9px] font-bold uppercase tracking-wide text-muted-foreground/40 hover:text-primary/70 transition-colors truncate text-left leading-none self-start"
-            >
-              {item.folderName}
-            </button>
-          )}
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2 min-w-0 flex-1">
               <div className="shrink-0" style={{ color: itemColor }}>
@@ -248,7 +236,7 @@ export const SortableBoardItem = React.memo(function SortableBoardItem({
   }, [item.id, onDateChange]);
 
   return (
-    <TaskContextMenu taskId={item.id} taskName={item.name} parentId="" spaceId={item.spaceId ?? undefined}>
+    <TaskContextMenu taskId={item.id} taskName={item.name} parentId="">
       <div>
         <BoardItemCard
           item={item}
