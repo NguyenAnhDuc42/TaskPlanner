@@ -8,15 +8,8 @@ import { api } from '@/lib/api-client'
 import { isConnectivityError, isNotFoundError } from "@/lib/is-connectivity-error";
 import { devError } from '@/sync/dev-log'
 import { toJS } from 'mobx'
+import { toast } from 'sonner'
 
-// A single block-editor "save" can create, update, AND delete several blocks at once (typed in
-// block 3, added block 7, removed block 2). Each block is its own entity — that's 3 separate
-// SyncEvents, not one merged event — but they should all reach the server in ONE HTTP call.
-// The *Local() methods below do only the local part (store/IndexedDB/enqueue, no network) so a
-// caller can queue up N block changes, then trigger a single shared flush (TransactionQueue
-// already sends everything pending in one POST /api/sync/batch call — squash() only merges
-// transactions that share the same entityId, so N different blocks stay as N separate items).
-// The non-Local methods keep the old immediate-send behavior for single standalone block actions.
 export class DocumentBlockMutations {
   private rootStore: WorkspaceRootStore
   private syncEngine: SyncEngine
@@ -26,7 +19,6 @@ export class DocumentBlockMutations {
     this.syncEngine = syncEngine
   }
 
-  // ── CREATE (local-only) ──
   async createLocal(data: { id?: string; documentId: string; type: BlockType; content: string; orderKey: string }): Promise<{ record: DocumentBlockRecord; tx: PendingTransaction }> {
     const id = data.id ?? crypto.randomUUID()
 
@@ -38,20 +30,18 @@ export class DocumentBlockMutations {
       orderKey: data.orderKey,
     }
 
-    // 1. Optimistic
     this.rootStore.documentBlockStore.upsert(record)
 
-    // 2. Persist
     try {
       await this.rootStore.documentBlockDB!.put(record)
     } catch (err) {
       this.rootStore.documentBlockStore.remove(record.id)
       devError('[DocumentBlockMutations] documentBlockDB.put failed:', err)
+      toast.error('Failed to save block locally. Please try again.')
       throw new Error(`Failed to persist document block locally: ${err instanceof Error ? err.message : String(err)}`)
     }
 
-    // CreateDocumentBlockCommand wire shape
-    const commandPayload = {
+    const payload = {
       id,
       documentId: data.documentId,
       type: data.type,
@@ -59,13 +49,11 @@ export class DocumentBlockMutations {
       orderKey: data.orderKey,
     }
 
-    // 3. Enqueue transaction — no network call here
-    const tx = await this.syncEngine.transactionQueue.enqueue('C', 'DocumentBlock', record.id, commandPayload, null)
+    const tx = await this.syncEngine.transactionQueue.enqueue('C', 'DocumentBlock', record.id, payload, null)
 
     return { record, tx }
   }
 
-  // ── CREATE (immediate) ──
   async create(data: { documentId: string; type: BlockType; content: string; orderKey: string }): Promise<DocumentBlockRecord> {
     const { record, tx } = await this.createLocal(data)
 
@@ -96,7 +84,6 @@ export class DocumentBlockMutations {
     return record
   }
 
-  // ── UPDATE (local-only) ──
   async updateLocal(blockId: string, changes: Partial<Pick<DocumentBlockRecord, 'content' | 'orderKey' | 'type'>>): Promise<{ previous: DocumentBlockRecord; tx: PendingTransaction }> {
     const stored = this.rootStore.documentBlockStore.getById(blockId)
     if (!stored) throw new Error(`Document block ${blockId} not found`)
@@ -104,18 +91,16 @@ export class DocumentBlockMutations {
 
     const merged = { ...previous, ...changes }
 
-    // 1. Optimistic
     this.rootStore.documentBlockStore.upsert(merged)
 
-    // 2. Persist
     try {
       await this.rootStore.documentBlockDB!.put(merged)
     } catch {
       this.rootStore.documentBlockStore.upsert(previous)
+      toast.error('Failed to save block locally. Please try again.')
       throw new Error('Failed to persist update locally')
     }
 
-    // 3. Enqueue — no network call here
     const tx = await this.syncEngine.transactionQueue.enqueue(
       'U',
       'DocumentBlock',
@@ -127,7 +112,6 @@ export class DocumentBlockMutations {
     return { previous, tx }
   }
 
-  // ── UPDATE (immediate) ──
   async update(blockId: string, changes: Partial<Pick<DocumentBlockRecord, 'content' | 'orderKey' | 'type'>>): Promise<void> {
     const { previous, tx } = await this.updateLocal(blockId, changes)
 
@@ -156,24 +140,21 @@ export class DocumentBlockMutations {
     }
   }
 
-  // ── DELETE (local-only) ──
   async deleteLocal(blockId: string): Promise<{ previous: DocumentBlockRecord; tx: PendingTransaction }> {
     const stored = this.rootStore.documentBlockStore.getById(blockId)
     if (!stored) throw new Error(`Document block ${blockId} not found`)
     const previous = toJS(stored)
 
-    // 1. Eager local removal
     this.rootStore.documentBlockStore.remove(blockId)
 
-    // 2. Persist
     try {
       await this.rootStore.documentBlockDB!.delete(blockId)
     } catch {
       this.rootStore.documentBlockStore.upsert(previous)
+      toast.error('Failed to delete block locally. Please try again.')
       throw new Error('Failed to persist delete locally')
     }
 
-    // 3. Enqueue — no network call here
     const tx = await this.syncEngine.transactionQueue.enqueue(
       'D',
       'DocumentBlock',
@@ -185,7 +166,6 @@ export class DocumentBlockMutations {
     return { previous, tx }
   }
 
-  // ── DELETE (immediate) ──
   async delete(blockId: string): Promise<void> {
     const { previous, tx } = await this.deleteLocal(blockId)
 
@@ -208,8 +188,6 @@ export class DocumentBlockMutations {
       }
 
       if (isNotFoundError(err)) {
-        // Already deleted server-side (a retried/duplicate delete, or another client beat us to
-        // it) — the desired end state is already correct, don't resurrect it locally.
         await this.syncEngine.transactionQueue.dequeue(tx.id)
         return
       }

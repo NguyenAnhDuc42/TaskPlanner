@@ -8,6 +8,7 @@ import { isConnectivityError, isNotFoundError } from "@/lib/is-connectivity-erro
 import { devError } from "@/sync/dev-log";
 import { fractionalAfter } from "@/features/workspace/contents/hierarchy/utils/fractional-index";
 import { toJS } from "mobx";
+import { toast } from "sonner";
 
 export class FolderMutations {
   private rootStore: WorkspaceRootStore;
@@ -18,17 +19,10 @@ export class FolderMutations {
     this.syncEngine = syncEngine;
   }
 
-  // ── CREATE ──
   async create(
     data: Omit<FolderRecord, "id" | "createdAt"> & { spaceId: string },
   ): Promise<FolderRecord> {
     const id = crypto.randomUUID();
-
-    // The backend recomputes its own authoritative orderKey server-side on create
-    // (FractionalIndex.SafeAfter) and the Delta will overwrite this, but until that round-trip
-    // lands, the optimistic record needs a *valid* fractional-indexing key of its own — leaving
-    // orderKey undefined broke any reorder attempted in that window (sorts as "" and can't be
-    // used as a "between" boundary for other items).
     const siblings = this.rootStore.folderStore.getBySpace(data.spaceId);
     const maxSiblingKey = siblings.reduce<string | null>(
       (max, f) => (f.orderKey && (!max || f.orderKey > max) ? f.orderKey : max),
@@ -43,22 +37,20 @@ export class FolderMutations {
       createdAt: new Date().toISOString(),
     };
 
-    // 1. Optimistic
     this.rootStore.folderStore.upsert(record);
 
-    // 2. Persist
     try {
       await this.rootStore.folderDB!.put(record);
     } catch (err) {
       this.rootStore.folderStore.remove(record.id);
       devError("[FolderMutations] folderDB.put failed:", err);
+      toast.error("Failed to save folder locally. Please try again.");
       throw new Error(
         `Failed to persist folder locally: ${err instanceof Error ? err.message : String(err)}`,
       );
     }
 
-    // CreateFolderCommand wire shape
-    const commandPayload = {
+    const payload = {
       id,
       spaceId: data.spaceId,
       name: data.name,
@@ -68,23 +60,21 @@ export class FolderMutations {
       dueDate: data.dueDate ?? null,
     };
 
-    // 3. Enqueue transaction
     const tx = await this.syncEngine.transactionQueue.enqueue(
       "C",
       "Folder",
       record.id,
-      commandPayload,
+      payload,
       null,
     );
 
-    // 4. Synchronous API call
     if (!(getActiveRootStore()?.isOnline ?? true)) {
       console.warn("App is offline. Skipping API request. Will sync later.");
       return record;
     }
 
     try {
-      await api.post("/folders/sync", commandPayload, {
+      await api.post("/folders/sync", payload, {
         headers: {
           "X-Workspace-Id": this.rootStore.workspaceId,
           "X-Client-Trace-Id": tx.id,
@@ -107,11 +97,6 @@ export class FolderMutations {
     return record;
   }
 
-  // ── UPDATE (local-only — store + IndexedDB + enqueue, no network call) ──
-  // Building block for update(). Call this on every rapid field edit and debounce a
-  // syncEngine.flushQueue() trigger instead of debouncing this call — TransactionQueue.squash()
-  // already merges multiple pending updates for the same folder into one send. See
-  // TaskMutations.updateLocal() for the full rationale.
   async updateLocal(
     folderId: string,
     changes: Partial<FolderRecord>,
@@ -119,63 +104,50 @@ export class FolderMutations {
     const stored = this.rootStore.folderStore.getById(folderId);
     if (!stored) throw new Error(`Folder ${folderId} not found`);
     const previous = toJS(stored);
-
-    // startDate/dueDate === null means "explicitly clear"; undefined means "not touched" —
-    // same convention and same backend requirement as TaskMutations (ProjectFolder.Update()
-    // only clears on the boolean flag, ignores a bare null).
     const clearingStartDate = changes.startDate === null;
     const clearingDueDate = changes.dueDate === null;
 
     const merged = { ...previous, ...changes };
 
-    // 1. Optimistic
     this.rootStore.folderStore.upsert(merged);
 
-    // 2. Persist
     try {
       await this.rootStore.folderDB!.put(merged);
     } catch {
       this.rootStore.folderStore.upsert(previous);
+      toast.error("Failed to save folder locally. Please try again.");
       throw new Error("Failed to persist update locally");
     }
 
-    // UpdateFolderCommand wire shape — only keys the caller actually touched (see
-    // TaskMutations.updateLocal for why: squash()'s U+U merge would otherwise clobber an
-    // earlier queued update's real change to an untouched field).
-    const commandPayload: Record<string, unknown> = {};
-    if ("name" in changes) commandPayload.name = changes.name;
-    if ("color" in changes) commandPayload.color = changes.color;
-    if ("icon" in changes) commandPayload.icon = changes.icon;
-    if ("orderKey" in changes) commandPayload.orderKey = changes.orderKey;
-    if (clearingStartDate) commandPayload.clearStartDate = true;
+    const payload: Record<string, unknown> = {};
+    if ("name" in changes) payload.name = changes.name;
+    if ("color" in changes) payload.color = changes.color;
+    if ("icon" in changes) payload.icon = changes.icon;
+    if ("orderKey" in changes) payload.orderKey = changes.orderKey;
+    if (clearingStartDate) payload.clearStartDate = true;
     else if ("startDate" in changes)
-      commandPayload.startDate = changes.startDate;
-    if (clearingDueDate) commandPayload.clearDueDate = true;
-    else if ("dueDate" in changes) commandPayload.dueDate = changes.dueDate;
-    // Reparenting to a different space (drag-and-drop in the hierarchy sidebar) — no "clear"
-    // sentinel needed, a folder always belongs to some space.
-    if ("spaceId" in changes) commandPayload.spaceId = changes.spaceId;
+      payload.startDate = changes.startDate;
+    if (clearingDueDate) payload.clearDueDate = true;
+    else if ("dueDate" in changes) payload.dueDate = changes.dueDate;
+    if ("spaceId" in changes) payload.spaceId = changes.spaceId;
 
-    // 3. Enqueue transaction — no network call here
     const tx = await this.syncEngine.transactionQueue.enqueue(
       "U",
       "Folder",
       folderId,
-      commandPayload,
+      payload,
       previous as unknown as Record<string, unknown>,
     );
 
     return { previous, tx };
   }
 
-  // ── UPDATE (immediate — local write + queue + synchronous send) ──
   async update(
     folderId: string,
     changes: Partial<FolderRecord>,
   ): Promise<void> {
     const { previous, tx } = await this.updateLocal(folderId, changes);
 
-    // 4. Synchronous API call
     if (!(getActiveRootStore()?.isOnline ?? true)) {
       console.warn("App is offline. Skipping API request. Will sync later.");
       return;
@@ -203,13 +175,11 @@ export class FolderMutations {
     }
   }
 
-  // ── DELETE ──
   async delete(folderId: string): Promise<void> {
     const stored = this.rootStore.folderStore.getById(folderId);
     if (!stored) throw new Error(`Folder ${folderId} not found`);
     const previous = toJS(stored);
 
-    // Reparent tasks in this folder to space level — mirrors what the backend does
     for (const task of this.rootStore.taskStore.all.filter(
       (t) => t.folderId === folderId,
     )) {
@@ -218,18 +188,16 @@ export class FolderMutations {
       await this.rootStore.taskDB!.put(reparented);
     }
 
-    // 1. Eager local removal of folder
     this.rootStore.folderStore.remove(folderId);
 
-    // 2. Persist
     try {
       await this.rootStore.folderDB!.delete(folderId);
     } catch {
       this.rootStore.folderStore.upsert(previous);
+      toast.error("Failed to delete folder locally. Please try again.");
       throw new Error("Failed to persist delete locally");
     }
 
-    // 3. Enqueue
     const tx = await this.syncEngine.transactionQueue.enqueue(
       "D",
       "Folder",
@@ -238,7 +206,6 @@ export class FolderMutations {
       previous as unknown as Record<string, unknown>,
     );
 
-    // 4. Synchronous API call
     if (!(getActiveRootStore()?.isOnline ?? true)) {
       console.warn("App is offline. Skipping API request. Will sync later.");
       return;
@@ -260,8 +227,6 @@ export class FolderMutations {
       }
 
       if (isNotFoundError(err)) {
-        // Already deleted server-side (a retried/duplicate delete, or another client beat us to
-        // it) — the desired end state is already correct, don't resurrect it locally.
         await this.syncEngine.transactionQueue.dequeue(tx.id);
         return;
       }

@@ -20,6 +20,7 @@ import { useLogout, useUser } from "@/features/auth/auth-api";
 import { ProfileModal } from "@/features/auth/profile/components/profile-modal";
 import { MobileTabBar } from "./mobile/mobile-tab-bar";
 import { MobileSidebarDrawer } from "./mobile/mobile-sidebar-drawer";
+import { OfflineBanner } from "./offline-banner";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -201,6 +202,7 @@ export function WorkspaceLayout() {
   if (isMobile) {
     return (
       <div className="flex h-screen w-full flex-col p-1 gap-1 bg-background font-sans overflow-hidden">
+        <OfflineBanner />
         <header className="h-9 w-full shrink-0 flex items-center justify-between px-2 bg-card border border-border rounded-md shadow-sm">
           <WorkspaceSwitcher />
           <div className="flex items-center gap-1.5">
@@ -226,6 +228,7 @@ export function WorkspaceLayout() {
 
   return (
     <div className="flex h-screen w-full flex-col p-1 gap-1 bg-background font-sans overflow-hidden">
+      <OfflineBanner />
       {/* ═══════════════════════════════════════════════════
           HEADER BAR: Search & Global Actions
       ═══════════════════════════════════════════════════ */}

@@ -6,9 +6,8 @@ import { api } from '@/lib/api-client'
 import { isConnectivityError, isNotFoundError } from "@/lib/is-connectivity-error";
 import { devError } from '@/sync/dev-log'
 import { toJS } from 'mobx'
+import { toast } from 'sonner'
 
-// No update() — assignment is a binary relationship (assigned or not), matching the
-// backend's single-entity Create/Delete-only slices (no legacy diff/changeset endpoint).
 export class AssigneeMutations {
   private rootStore: WorkspaceRootStore
   private syncEngine: SyncEngine
@@ -18,7 +17,6 @@ export class AssigneeMutations {
     this.syncEngine = syncEngine
   }
 
-  // ── CREATE ──
   async create(taskId: string, memberId: string): Promise<AssigneeRecord> {
     const id = crypto.randomUUID()
 
@@ -28,36 +26,32 @@ export class AssigneeMutations {
       workspaceMemberId: memberId,
     }
 
-    // 1. Optimistic
     this.rootStore.assigneeStore.upsert(record)
 
-    // 2. Persist
     try {
       await this.rootStore.assigneeDB!.put(record)
     } catch (err) {
       this.rootStore.assigneeStore.remove(record.id)
       devError('[AssigneeMutations] assigneeDB.put failed:', err)
+      toast.error('Failed to save assignee locally. Please try again.')
       throw new Error(`Failed to persist assignee locally: ${err instanceof Error ? err.message : String(err)}`)
     }
 
-    // CreateAssigneeCommand wire shape
-    const commandPayload = {
+    const payload = {
       id,
       taskId,
       memberId,
     }
 
-    // 3. Enqueue transaction
-    const tx = await this.syncEngine.transactionQueue.enqueue('C', 'Assignee', record.id, commandPayload, null)
+    const tx = await this.syncEngine.transactionQueue.enqueue('C', 'Assignee', record.id, payload, null)
 
-    // 4. Synchronous API call
     if (!(getActiveRootStore()?.isOnline ?? true)) {
       console.warn('App is offline. Skipping API request. Will sync later.')
       return record
     }
 
     try {
-      await api.post('/assignees/sync', commandPayload, {
+      await api.post('/assignees/sync', payload, {
         headers: {
           'X-Workspace-Id': this.rootStore.workspaceId,
           'X-Client-Trace-Id': tx.id,
@@ -78,24 +72,21 @@ export class AssigneeMutations {
     return record
   }
 
-  // ── DELETE ──
   async delete(assigneeId: string): Promise<void> {
     const stored = this.rootStore.assigneeStore.getById(assigneeId)
     if (!stored) throw new Error(`Assignee ${assigneeId} not found`)
     const previous = toJS(stored)
 
-    // 1. Eager local removal
     this.rootStore.assigneeStore.remove(assigneeId)
 
-    // 2. Persist
     try {
       await this.rootStore.assigneeDB!.delete(assigneeId)
     } catch {
       this.rootStore.assigneeStore.upsert(previous)
+      toast.error('Failed to delete assignee locally. Please try again.')
       throw new Error('Failed to persist delete locally')
     }
 
-    // 3. Enqueue
     const tx = await this.syncEngine.transactionQueue.enqueue(
       'D',
       'Assignee',
@@ -104,7 +95,6 @@ export class AssigneeMutations {
       previous as unknown as Record<string, unknown>
     )
 
-    // 4. Synchronous API call
     if (!(getActiveRootStore()?.isOnline ?? true)) {
       console.warn('App is offline. Skipping API request. Will sync later.')
       return
@@ -124,8 +114,6 @@ export class AssigneeMutations {
       }
 
       if (isNotFoundError(err)) {
-        // Already deleted server-side (a retried/duplicate delete, or another client beat us to
-        // it) — the desired end state is already correct, don't resurrect it locally.
         await this.syncEngine.transactionQueue.dequeue(tx.id)
         return
       }

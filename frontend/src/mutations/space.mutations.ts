@@ -8,6 +8,7 @@ import { isConnectivityError, isNotFoundError } from "@/lib/is-connectivity-erro
 import { devError } from '@/sync/dev-log'
 import { fractionalAfter } from '@/features/workspace/contents/hierarchy/utils/fractional-index'
 import { toJS } from 'mobx'
+import { toast } from 'sonner'
 
 export class SpaceMutations {
   private rootStore: WorkspaceRootStore
@@ -18,7 +19,6 @@ export class SpaceMutations {
     this.syncEngine = syncEngine
   }
 
-  // ── CREATE ──
   async create(data: Omit<SpaceRecord, 'id' | 'defaultDocumentId'> & { isPrivate: boolean }): Promise<SpaceRecord> {
     const id = crypto.randomUUID()
     const defaultDocumentId = crypto.randomUUID()
@@ -31,20 +31,18 @@ export class SpaceMutations {
 
     const record: SpaceRecord = { ...data, id, defaultDocumentId, orderKey }
 
-    // 1. Optimistic
     this.rootStore.spaceStore.upsert(record)
 
-    // 2. Persist
     try {
       await this.rootStore.spaceDB!.put(record)
     } catch (err) {
       this.rootStore.spaceStore.remove(record.id)
       devError('[SpaceMutations] spaceDB.put failed:', err)
+      toast.error('Failed to save space locally. Please try again.')
       throw new Error(`Failed to persist space locally: ${err instanceof Error ? err.message : String(err)}`)
     }
 
-    // CreateSpaceCommand wire shape — built before enqueue, same as TaskMutations.create
-    const commandPayload = {
+    const payload = {
       id,
       defaultDocumentId,
       name: data.name,
@@ -53,17 +51,15 @@ export class SpaceMutations {
       isPrivate: data.isPrivate,
     }
 
-    // 3. Enqueue transaction
-    const tx = await this.syncEngine.transactionQueue.enqueue('C', 'Space', record.id, commandPayload, null)
+    const tx = await this.syncEngine.transactionQueue.enqueue('C', 'Space', record.id, payload, null)
 
-    // 4. Synchronous API call
     if (!(getActiveRootStore()?.isOnline ?? true)) {
       console.warn('App is offline. Skipping API request. Will sync later.')
       return record
     }
 
     try {
-      await api.post('/spaces/sync', commandPayload, {
+      await api.post('/spaces/sync', payload, {
         headers: {
           'X-Workspace-Id': this.rootStore.workspaceId,
           'X-Client-Trace-Id': tx.id,
@@ -91,18 +87,16 @@ export class SpaceMutations {
 
     const merged = { ...previous, ...changes }
 
-    // 1. Optimistic
     this.rootStore.spaceStore.upsert(merged)
 
-    // 2. Persist
     try {
       await this.rootStore.spaceDB!.put(merged)
     } catch {
       this.rootStore.spaceStore.upsert(previous)
+      toast.error('Failed to save space locally. Please try again.')
       throw new Error('Failed to persist update locally')
     }
 
-    // 3. Enqueue transaction — no network call here
     const tx = await this.syncEngine.transactionQueue.enqueue(
       'U',
       'Space',
@@ -114,11 +108,9 @@ export class SpaceMutations {
     return { previous, tx }
   }
 
-  // ── UPDATE (immediate — local write + queue + synchronous send) ──
   async update(spaceId: string, changes: Partial<SpaceRecord>): Promise<void> {
     const { previous, tx } = await this.updateLocal(spaceId, changes)
 
-    // 4. Synchronous API call
     if (!(getActiveRootStore()?.isOnline ?? true)) {
       console.warn('App is offline. Skipping API request. Will sync later.')
       return
@@ -144,13 +136,11 @@ export class SpaceMutations {
     }
   }
 
-  // ── DELETE ──
   async delete(spaceId: string): Promise<void> {
     const stored = this.rootStore.spaceStore.getById(spaceId)
     if (!stored) throw new Error(`Space ${spaceId} not found`)
     const previous = toJS(stored)
 
-    // Cancel pending transactions for all children first — they're now invalid
     const childIds = [
       ...this.rootStore.folderStore.all.filter(f => f.spaceId === spaceId).map(f => f.id),
       ...this.rootStore.taskStore.all.filter(t => t.spaceId === spaceId).map(t => t.id),
@@ -159,7 +149,6 @@ export class SpaceMutations {
       await this.syncEngine.transactionQueue.cancelByEntityId(id)
     }
 
-    // Cascade eager removal of children
     for (const f of this.rootStore.folderStore.all.filter(f => f.spaceId === spaceId)) {
       this.rootStore.folderStore.remove(f.id)
       await this.rootStore.folderDB!.delete(f.id)
@@ -172,18 +161,16 @@ export class SpaceMutations {
       this.rootStore.statusStore.remove(s.id)
     }
 
-    // 1. Eager local removal of space itself
     this.rootStore.spaceStore.remove(spaceId)
 
-    // 2. Persist
     try {
       await this.rootStore.spaceDB!.delete(spaceId)
     } catch {
       this.rootStore.spaceStore.upsert(previous)
+      toast.error('Failed to delete space locally. Please try again.')
       throw new Error('Failed to persist delete locally')
     }
 
-    // 3. Enqueue
     const tx = await this.syncEngine.transactionQueue.enqueue(
       'D',
       'Space',
@@ -192,7 +179,6 @@ export class SpaceMutations {
       previous as unknown as Record<string, unknown>
     )
 
-    // 4. Synchronous API call
     if (!(getActiveRootStore()?.isOnline ?? true)) {
       console.warn('App is offline. Skipping API request. Will sync later.')
       return
@@ -212,8 +198,6 @@ export class SpaceMutations {
       }
 
       if (isNotFoundError(err)) {
-        // Already deleted server-side (a retried/duplicate delete, or another client beat us to
-        // it) — the desired end state is already correct, don't resurrect it locally.
         await this.syncEngine.transactionQueue.dequeue(tx.id)
         return
       }

@@ -10,6 +10,7 @@ import { useStore } from "@/stores/root.store";
 import { useWorkspaceRootStore } from "@/stores/workspace-root.store";
 import { useSyncEngine } from "@/sync/sync-provider";
 import { CommentMutations } from "@/mutations/comment.mutations";
+import { extractErrorMessage } from "@/types/api-error";
 import { api } from "@/lib/api-client";
 import type { CommentRecord } from "@/types/projects";
 import type { PagedResult } from "@/types/paged-result";
@@ -180,7 +181,10 @@ export const TaskComments = observer(function TaskComments({ taskId }: Readonly<
 
   const confirmDelete = () => {
     if (deleteCommentId) {
-      commentMutations.delete(deleteCommentId).catch((err) => console.error("Failed to delete comment", err));
+      commentMutations.delete(deleteCommentId).catch((err) => {
+        console.error("Failed to delete comment", err);
+        toast.error(extractErrorMessage(err, "Failed to delete comment"));
+      });
       setDeleteCommentId(null);
     }
   };

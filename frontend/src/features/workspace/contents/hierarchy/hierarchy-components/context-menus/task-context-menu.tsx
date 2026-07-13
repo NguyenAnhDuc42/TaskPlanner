@@ -14,6 +14,7 @@ import {
 import { Trash2, Copy, ExternalLink, Star } from "lucide-react";
 import { toast } from "sonner";
 import { copyToClipboard } from "@/lib/copy-to-clipboard";
+import { extractErrorMessage } from "@/types/api-error";
 import { EntityLayerType } from "@/types/entity-layer-type";
 import { useWorkspace } from "@/features/workspace/context/workspace-context";
 import { useWorkspaceRole } from "@/features/workspace/context/use-workspace-role";
@@ -48,7 +49,10 @@ export const TaskContextMenu = observer(function TaskContextMenu({
   const task = rootStore.taskStore.getById(taskId);
 
   const handleDelete = () => {
-    taskMutations.delete(taskId).catch((err) => console.error("Failed to delete task", err));
+    taskMutations.delete(taskId).catch((err) => {
+      console.error("Failed to delete task", err);
+      toast.error(extractErrorMessage(err, "Failed to delete task"));
+    });
     setIsDeleteOpen(false);
   };
 

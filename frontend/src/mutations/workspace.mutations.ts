@@ -6,6 +6,7 @@ import type { PagedResult } from '@/types/paged-result'
 import { api } from '@/lib/api-client'
 import { isConnectivityError, isNotFoundError } from '@/lib/is-connectivity-error'
 import { devError } from '@/sync/dev-log'
+import { toast } from 'sonner'
 
 export interface WorkspaceListFilters {
   name?: string
@@ -26,12 +27,7 @@ export class WorkspaceMutations {
     this.syncEngine = syncEngine
   }
 
-
   async fetchDetail(workspaceId: string): Promise<WorkspaceRecord> {
-    // X-Workspace-Id is required here — this endpoint's route param is named "id", not
-    // "workspaceId", so WorkspaceContextMiddleware's route-value fallback never resolves it.
-    // Without this header every call 400s with "Workspace ID not found in context", for every
-    // user, not just invited ones — the underlying cause of the "not authorized" bug report.
     const { data } = await api.get<WorkspaceRecord>(`/workspaces/${workspaceId}/me/permissions`, {
       headers: { 'X-Workspace-Id': workspaceId },
     })
@@ -54,8 +50,6 @@ export class WorkspaceMutations {
       },
     })
 
- 
-    // flash its blocked state then flip back to looking normal.
     for (const item of data.items) {
       const incoming = { ...item } as unknown as WorkspaceRecord
       const existing = this.rootStore.workspaceStore.getById(incoming.id)
@@ -67,7 +61,6 @@ export class WorkspaceMutations {
     return data
   }
 
-
   async pin(workspaceId: string, isPinned: boolean): Promise<void> {
     const stored = this.rootStore.workspaceStore.getById(workspaceId)
     const previous = stored ? toJS(stored) : undefined
@@ -77,9 +70,6 @@ export class WorkspaceMutations {
     }
 
     try {
-      // Explicit header, not left to the interceptor's sessionStorage-active-workspace fallback —
-      // pin can target any workspace in the list (from the switcher/home screen), not necessarily
-      // the one currently active, so a guessed header would check membership in the wrong one.
       await api.put(`/workspaces/${workspaceId}/pin`, { isPinned }, {
         headers: { 'X-Workspace-Id': workspaceId },
       })
@@ -97,18 +87,16 @@ export class WorkspaceMutations {
     await this.rootStore.workspaceDB?.delete(workspaceId)
   }
 
-  // ── JOIN BY CODE ──
   async joinByCode(joinCode: string): Promise<{ workspaceId: string; membershipStatus: string; isNewMember: boolean }> {
     const { data } = await api.post('/workspaces/sync/join', { joinCode })
     return data
   }
 
- 
   async create(data: { name: string; color?: string; icon?: string; description?: string; strictJoin?: boolean; theme?: string }): Promise<WorkspaceRecord> {
     const id = crypto.randomUUID()
     const traceId = crypto.randomUUID()
 
-    const commandPayload = {
+    const payload = {
       id,
       name: data.name,
       color: data.color ?? null,
@@ -118,7 +106,7 @@ export class WorkspaceMutations {
       theme: data.theme ?? null,
     }
 
-    await api.post('/workspaces/sync', commandPayload, {
+    await api.post('/workspaces/sync', payload, {
       headers: {
         'X-Client-Trace-Id': traceId,
       }
@@ -146,10 +134,11 @@ export class WorkspaceMutations {
     } catch (err) {
       this.rootStore.workspaceStore.upsert(previous)
       devError('[WorkspaceMutations] workspaceDB.put failed:', err)
+      toast.error('Failed to save workspace locally. Please try again.')
       throw new Error(`Failed to persist workspace update locally: ${err instanceof Error ? err.message : String(err)}`)
     }
 
-    const commandPayload = {
+    const payload = {
       name: changes.name ?? null,
       description: changes.description ?? null,
       color: changes.color ?? null,
@@ -170,7 +159,7 @@ export class WorkspaceMutations {
     }
 
     try {
-      await api.put(`/workspaces/sync/${workspaceId}`, commandPayload, {
+      await api.put(`/workspaces/sync/${workspaceId}`, payload, {
         headers: {
           'X-Workspace-Id': workspaceId,
           'X-Client-Trace-Id': tx.id,
@@ -189,7 +178,6 @@ export class WorkspaceMutations {
     }
   }
 
-  // ── DELETE ──
   async delete(workspaceId: string): Promise<void> {
     const stored = this.rootStore.workspaceStore.getById(workspaceId)
     if (!stored) throw new Error(`Workspace ${workspaceId} not found`)
@@ -204,8 +192,6 @@ export class WorkspaceMutations {
       })
     } catch (err) {
       if (isNotFoundError(err)) {
-        // Already deleted server-side (a retried/duplicate delete, or another client beat us to
-        // it) — the desired end state is already correct, don't resurrect it locally.
         return
       }
 

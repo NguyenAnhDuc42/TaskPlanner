@@ -6,12 +6,11 @@ import { api } from '@/lib/api-client'
 import { isConnectivityError, isNotFoundError } from "@/lib/is-connectivity-error";
 import { devError } from '@/sync/dev-log'
 import { toJS } from 'mobx'
+import { toast } from 'sonner'
 
 export class CommentMutations {
   private rootStore: WorkspaceRootStore
   private syncEngine: SyncEngine
-  // A scalar, not a second store reference — the only user-scope value this class needs (to
-  // resolve the caller's own memberId for a new comment's creatorId).
   private currentUserId: string | null
 
   constructor(rootStore: WorkspaceRootStore, syncEngine: SyncEngine, currentUserId: string | null) {
@@ -20,7 +19,6 @@ export class CommentMutations {
     this.currentUserId = currentUserId
   }
 
-  // ── CREATE ──
   async create(data: { taskId: string; content: string; parentCommentId?: string | null }): Promise<CommentRecord> {
     const id = crypto.randomUUID()
     const creatorId = this.rootStore.memberStore.getByUserId(this.currentUserId ?? '')?.id ?? ''
@@ -35,37 +33,33 @@ export class CommentMutations {
       createdAt: new Date().toISOString(),
     }
 
-    // 1. Optimistic
     this.rootStore.commentStore.upsert(record)
 
-    // 2. Persist
     try {
       await this.rootStore.commentDB!.put(record)
     } catch (err) {
       this.rootStore.commentStore.remove(record.id)
       devError('[CommentMutations] commentDB.put failed:', err)
+      toast.error('Failed to save comment locally. Please try again.')
       throw new Error(`Failed to persist comment locally: ${err instanceof Error ? err.message : String(err)}`)
     }
 
-    // CreateCommentCommand wire shape
-    const commandPayload = {
+    const payload = {
       id,
       projectTaskId: data.taskId,
       content: data.content,
       parentCommentId: data.parentCommentId ?? null,
     }
 
-    // 3. Enqueue transaction
-    const tx = await this.syncEngine.transactionQueue.enqueue('C', 'Comment', record.id, commandPayload, null)
+    const tx = await this.syncEngine.transactionQueue.enqueue('C', 'Comment', record.id, payload, null)
 
-    // 4. Synchronous API call
     if (!(getActiveRootStore()?.isOnline ?? true)) {
       console.warn('App is offline. Skipping API request. Will sync later.')
       return record
     }
 
     try {
-      await api.post('/comments/sync', commandPayload, {
+      await api.post('/comments/sync', payload, {
         headers: {
           'X-Workspace-Id': this.rootStore.workspaceId,
           'X-Client-Trace-Id': tx.id,
@@ -86,8 +80,6 @@ export class CommentMutations {
     return record
   }
 
-  // ── UPDATE ──
-  // Content only — matches UpdateCommentCommand, which is creator-only on the backend.
   async update(commentId: string, content: string): Promise<void> {
     const stored = this.rootStore.commentStore.getById(commentId)
     if (!stored) throw new Error(`Comment ${commentId} not found`)
@@ -95,18 +87,16 @@ export class CommentMutations {
 
     const merged: CommentRecord = { ...previous, content, isEdited: true }
 
-    // 1. Optimistic
     this.rootStore.commentStore.upsert(merged)
 
-    // 2. Persist
     try {
       await this.rootStore.commentDB!.put(merged)
     } catch {
       this.rootStore.commentStore.upsert(previous)
+      toast.error('Failed to save comment locally. Please try again.')
       throw new Error('Failed to persist update locally')
     }
 
-    // 3. Enqueue
     const tx = await this.syncEngine.transactionQueue.enqueue(
       'U',
       'Comment',
@@ -115,7 +105,6 @@ export class CommentMutations {
       previous as unknown as Record<string, unknown>
     )
 
-    // 4. Synchronous API call
     if (!(getActiveRootStore()?.isOnline ?? true)) {
       console.warn('App is offline. Skipping API request. Will sync later.')
       return
@@ -141,24 +130,21 @@ export class CommentMutations {
     }
   }
 
-  // ── DELETE ──
   async delete(commentId: string): Promise<void> {
     const stored = this.rootStore.commentStore.getById(commentId)
     if (!stored) throw new Error(`Comment ${commentId} not found`)
     const previous = toJS(stored)
 
-    // 1. Eager local removal
     this.rootStore.commentStore.remove(commentId)
 
-    // 2. Persist
     try {
       await this.rootStore.commentDB!.delete(commentId)
     } catch {
       this.rootStore.commentStore.upsert(previous)
+      toast.error('Failed to delete comment locally. Please try again.')
       throw new Error('Failed to persist delete locally')
     }
 
-    // 3. Enqueue
     const tx = await this.syncEngine.transactionQueue.enqueue(
       'D',
       'Comment',
@@ -167,7 +153,6 @@ export class CommentMutations {
       previous as unknown as Record<string, unknown>
     )
 
-    // 4. Synchronous API call
     if (!(getActiveRootStore()?.isOnline ?? true)) {
       console.warn('App is offline. Skipping API request. Will sync later.')
       return
@@ -187,8 +172,6 @@ export class CommentMutations {
       }
 
       if (isNotFoundError(err)) {
-        // Already deleted server-side (a retried/duplicate delete, or another client beat us to
-        // it) — the desired end state is already correct, don't resurrect it locally.
         await this.syncEngine.transactionQueue.dequeue(tx.id)
         return
       }

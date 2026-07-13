@@ -102,6 +102,16 @@ export function setupInterceptors() {
         toast.error("A server error occurred. Please try again later.");
       }
 
+      // Safety net for everything else that got a real response from the server (400/404/409/422,
+      // etc.) — previously these fell through with zero UI feedback unless the specific call site
+      // happened to catch and toast it itself, which about half of them didn't. Requests with no
+      // response at all (network drop/timeout) are deliberately excluded — those are handled by
+      // each mutation's own isConnectivityError path (keep queued, retry), not a failure toast.
+      if (isAxiosErr && error.response && !isAuthRequest && error.response.status !== 401 && error.response.status !== 403) {
+        const data = error.response.data as ProblemDetails | undefined;
+        toast.error(data?.detail || data?.title || "Something went wrong. Please try again.");
+      }
+
       throw isAxiosErr ? new ApiError(error as AxiosError<ProblemDetails>) : error;
     }
   );

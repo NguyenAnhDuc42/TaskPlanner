@@ -1,6 +1,8 @@
 import { forwardRef, useImperativeHandle, useMemo, useState } from "react";
 import { observer } from "mobx-react-lite";
 import { useNavigate } from "@tanstack/react-router";
+import { toast } from "sonner";
+import { extractErrorMessage } from "@/types/api-error";
 import { useWorkspaceRootStore } from "@/stores/workspace-root.store";
 import { useSyncEngine } from "@/sync/sync-provider";
 import { useWorkspaceRole } from "@/features/workspace/context/use-workspace-role";
@@ -65,6 +67,7 @@ export const SpaceSettingsFlow = observer(forwardRef<SpaceSettingsFlowHandle, Sp
         navigate({ to: "/workspaces/$workspaceId", params: { workspaceId: space.workspaceId ?? "" } });
       } catch (err) {
         console.error("Failed to delete space", err);
+        toast.error(extractErrorMessage(err, "Failed to delete space"));
       }
     };
 
@@ -79,12 +82,18 @@ export const SpaceSettingsFlow = observer(forwardRef<SpaceSettingsFlowHandle, Sp
           onTabOrderChange={setRawTabOrder}
           spaceName={space.name}
           onSpaceNameChange={(name) => {
-            spaceMutations.update(spaceId, { name }).catch((err) => console.error("Failed to rename space", err));
+            spaceMutations.update(spaceId, { name }).catch((err) => {
+              console.error("Failed to rename space", err);
+              toast.error(extractErrorMessage(err, "Failed to rename space"));
+            });
           }}
           spaceIcon={space.icon ?? "LayoutGrid"}
           spaceColor={space.color ?? "#3b82f6"}
           onSpaceIconChange={(icon, color) => {
-            spaceMutations.update(spaceId, { icon, color }).catch((err) => console.error("Failed to update space icon", err));
+            spaceMutations.update(spaceId, { icon, color }).catch((err) => {
+              console.error("Failed to update space icon", err);
+              toast.error(extractErrorMessage(err, "Failed to update space icon"));
+            });
           }}
           pinnedTab={pinnedTab ?? null}
           onPinTabChange={handlePinTab}

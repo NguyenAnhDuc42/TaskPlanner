@@ -14,6 +14,7 @@ import {
 import { Plus, FolderPlus, Settings, Trash2, Copy, ExternalLink, Star } from "lucide-react";
 import { toast } from "sonner";
 import { copyToClipboard } from "@/lib/copy-to-clipboard";
+import { extractErrorMessage } from "@/types/api-error";
 import { EntityLayerType } from "@/types/entity-layer-type";
 import { useWorkspace } from "@/features/workspace/context/workspace-context";
 import { useWorkspaceRole } from "@/features/workspace/context/use-workspace-role";
@@ -51,7 +52,10 @@ export const SpaceContextMenu = observer(function SpaceContextMenu({
   const settingsFlowRef = useRef<SpaceSettingsFlowHandle>(null);
 
   const handleDelete = () => {
-    spaceMutations.delete(spaceId).catch((err) => console.error("Failed to delete space", err));
+    spaceMutations.delete(spaceId).catch((err) => {
+      console.error("Failed to delete space", err);
+      toast.error(extractErrorMessage(err, "Failed to delete space"));
+    });
     setIsDeleteOpen(false);
   };
 
@@ -81,8 +85,17 @@ export const SpaceContextMenu = observer(function SpaceContextMenu({
             name={space.name}
             icon={space.icon || "LayoutGrid"}
             color={space.color || "#6366f1"}
-            onRename={(name) => { if (name.trim()) spaceMutations.update(spaceId, { name: name.trim() }).catch((err) => console.error("Failed to rename space", err)); }}
-            onIconColorChange={(icon, color) => spaceMutations.update(spaceId, { icon, color }).catch((err) => console.error("Failed to update space icon/color", err))}
+            onRename={(name) => {
+              if (!name.trim()) return;
+              spaceMutations.update(spaceId, { name: name.trim() }).catch((err) => {
+                console.error("Failed to rename space", err);
+                toast.error(extractErrorMessage(err, "Failed to rename space"));
+              });
+            }}
+            onIconColorChange={(icon, color) => spaceMutations.update(spaceId, { icon, color }).catch((err) => {
+              console.error("Failed to update space icon/color", err);
+              toast.error(extractErrorMessage(err, "Failed to update space icon/color"));
+            })}
           />
         )}
 

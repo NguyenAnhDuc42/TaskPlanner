@@ -12,10 +12,12 @@ import {
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 import { Plus, Trash2 } from "lucide-react";
+import { toast } from "sonner";
 import { useWorkspaceRole } from "@/features/workspace/context/use-workspace-role";
 import { useWorkspaceRootStore } from "@/stores/workspace-root.store";
 import { useSyncEngine } from "@/sync/sync-provider";
 import { FolderMutations } from "@/mutations/folder.mutations";
+import { extractErrorMessage } from "@/types/api-error";
 import { EntityMenuContext, DeleteConfirmationDialog, EditFieldsSubmenu } from "./shared";
 
 interface FolderContextMenuProps {
@@ -39,7 +41,10 @@ export const FolderContextMenu = observer(function FolderContextMenu({
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
 
   const handleDelete = () => {
-    folderMutations.delete(folderId).catch((err) => console.error("Failed to delete folder", err));
+    folderMutations.delete(folderId).catch((err) => {
+      console.error("Failed to delete folder", err);
+      toast.error(extractErrorMessage(err, "Failed to delete folder"));
+    });
     setIsDeleteOpen(false);
   };
 
@@ -62,8 +67,17 @@ export const FolderContextMenu = observer(function FolderContextMenu({
             name={folder.name}
             icon={folder.icon || "Folder"}
             color={folder.color || "#6366f1"}
-            onRename={(name) => { if (name.trim()) folderMutations.update(folderId, { name: name.trim() }).catch((err) => console.error("Failed to rename folder", err)); }}
-            onIconColorChange={(icon, color) => folderMutations.update(folderId, { icon, color }).catch((err) => console.error("Failed to update folder icon/color", err))}
+            onRename={(name) => {
+              if (!name.trim()) return;
+              folderMutations.update(folderId, { name: name.trim() }).catch((err) => {
+                console.error("Failed to rename folder", err);
+                toast.error(extractErrorMessage(err, "Failed to rename folder"));
+              });
+            }}
+            onIconColorChange={(icon, color) => folderMutations.update(folderId, { icon, color }).catch((err) => {
+              console.error("Failed to update folder icon/color", err);
+              toast.error(extractErrorMessage(err, "Failed to update folder icon/color"));
+            })}
           />
         )}
 

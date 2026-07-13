@@ -1,5 +1,6 @@
 import { useRef, useState, useMemo } from "react";
 import { observer } from "mobx-react-lite";
+import { toast } from "sonner";
 import { Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { StatusSelect } from "@/components/status-select";
@@ -16,6 +17,7 @@ import { useWorkspaceRootStore } from "@/stores/workspace-root.store";
 import { useSyncEngine } from "@/sync/sync-provider";
 import { useDebouncedFlush } from "@/sync/use-debounced-flush";
 import { TaskMutations } from "@/mutations/task.mutations";
+import { extractErrorMessage } from "@/types/api-error";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -48,7 +50,10 @@ export const TaskSubtasks = observer(function TaskSubtasks({ taskId }: Readonly<
   };
 
   const deleteSubtask = (subtaskId: string) => {
-    taskMutations.delete(subtaskId).catch((err) => console.error("Failed to delete subtask", err));
+    taskMutations.delete(subtaskId).catch((err) => {
+      console.error("Failed to delete subtask", err);
+      toast.error(extractErrorMessage(err, "Failed to delete subtask"));
+    });
   };
 
   // New subtask draft state
