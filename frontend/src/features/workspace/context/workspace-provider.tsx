@@ -8,7 +8,7 @@ import {
 } from "react";
 import { autorun } from "mobx";
 import { useLocation } from "@tanstack/react-router";
-import { useStore } from "@/stores/root.store";
+import { useStore, type RootStore } from "@/stores/root.store";
 import { WorkspaceMutations } from "@/mutations/workspace.mutations";
 import { apiEvents } from "@/lib/api-client";
 import { deleteWorkspaceDB } from "@/db/schema";
@@ -24,15 +24,24 @@ interface WorkspaceProviderProps {
   children: ReactNode;
 }
 
+function subscribeToWorkspaceRecord(rootStore: RootStore, workspaceId: string, onStoreChange: () => void) {
+  return autorun(() => { void rootStore.workspaceStore.getById(workspaceId); onStoreChange(); });
+}
+
 export function WorkspaceProvider({ workspaceId, children }: WorkspaceProviderProps) {
   const location  = useLocation();
   const rootStore = useStore();
   const workspaceMutations = useMemo(() => new WorkspaceMutations(rootStore), [rootStore]);
 
-  const workspace = useSyncExternalStore(
-    (onStoreChange) => autorun(() => { rootStore.workspaceStore.getById(workspaceId); onStoreChange(); }),
-    () => rootStore.workspaceStore.getById(workspaceId),
+  const subscribeToWorkspace = useCallback(
+    (onStoreChange: () => void) => subscribeToWorkspaceRecord(rootStore, workspaceId, onStoreChange),
+    [rootStore, workspaceId],
   );
+  const getWorkspaceSnapshot = useCallback(
+    () => rootStore.workspaceStore.getById(workspaceId),
+    [rootStore, workspaceId],
+  );
+  const workspace = useSyncExternalStore(subscribeToWorkspace, getWorkspaceSnapshot);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<unknown>(null);
   const isError = error != null;

@@ -20,6 +20,18 @@ export interface RegisterRequest {
 
 // ─── Hooks ────────────────────────────────────────────────────────────────────
 
+// currentUserStore is a module-level singleton — these subscribe functions never need to change
+// identity across renders, so they're defined once here rather than via useCallback per render.
+function subscribeToUserData(onStoreChange: () => void) {
+  return autorun(() => { void currentUserStore.data; onStoreChange(); });
+}
+function subscribeToUserFetching(onStoreChange: () => void) {
+  return autorun(() => { void currentUserStore.isFetching; onStoreChange(); });
+}
+function subscribeToUserLoading(onStoreChange: () => void) {
+  return autorun(() => { void currentUserStore.isLoading; onStoreChange(); });
+}
+
 export function useUser() {
   const isLoggedIn = !!getCookie("is_logged_in");
 
@@ -27,18 +39,9 @@ export function useUser() {
     if (isLoggedIn) currentUserStore.ensureLoaded();
   }, [isLoggedIn]);
 
-  const data = useSyncExternalStore(
-    (onStoreChange) => autorun(() => { void currentUserStore.data; onStoreChange(); }),
-    () => currentUserStore.data,
-  );
-  const isFetching = useSyncExternalStore(
-    (onStoreChange) => autorun(() => { void currentUserStore.isFetching; onStoreChange(); }),
-    () => currentUserStore.isFetching,
-  );
-  const isLoading = useSyncExternalStore(
-    (onStoreChange) => autorun(() => { void currentUserStore.isLoading; onStoreChange(); }),
-    () => currentUserStore.isLoading,
-  );
+  const data = useSyncExternalStore(subscribeToUserData, () => currentUserStore.data);
+  const isFetching = useSyncExternalStore(subscribeToUserFetching, () => currentUserStore.isFetching);
+  const isLoading = useSyncExternalStore(subscribeToUserLoading, () => currentUserStore.isLoading);
 
   return {
     data: isLoggedIn ? (data ?? undefined) : undefined,
