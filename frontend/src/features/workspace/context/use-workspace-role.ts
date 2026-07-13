@@ -1,8 +1,9 @@
-import { useSyncExternalStore } from "react";
+import { useCallback, useSyncExternalStore } from "react";
 import { autorun } from "mobx";
 import { useWorkspace } from "./workspace-context";
 import { useUser } from "@/features/auth/auth-api";
 import { useWorkspaceRootStore } from "@/stores/workspace-root.store";
+import type { WorkspaceRootStore } from "@/stores/workspace-root.store";
 import type { Role } from "@/types/role";
 
 export interface WorkspaceRole {
@@ -19,15 +20,25 @@ export interface WorkspaceRole {
   canCreateContent: boolean;
 }
 
+function subscribeToMembers(rootStore: WorkspaceRootStore, onStoreChange: () => void) {
+  return autorun(() => { void rootStore.memberStore.all; onStoreChange(); });
+}
+
 export function useWorkspaceRole(): WorkspaceRole {
   const { workspace } = useWorkspace();
   const { data: currentUser } = useUser();
   const rootStore = useWorkspaceRootStore();
 
-  const myMember = useSyncExternalStore(
-    (onStoreChange) => autorun(() => { rootStore.memberStore.all; onStoreChange(); }),
-    () => (currentUser?.id ? rootStore.memberStore.getByUserId(currentUser.id) : undefined),
+  const subscribe = useCallback(
+    (onStoreChange: () => void) => subscribeToMembers(rootStore, onStoreChange),
+    [rootStore],
   );
+  const getSnapshot = useCallback(
+    () => (currentUser?.id ? rootStore.memberStore.getByUserId(currentUser.id) : undefined),
+    [rootStore, currentUser],
+  );
+
+  const myMember = useSyncExternalStore(subscribe, getSnapshot);
   const role = (myMember?.role as Role | undefined) ?? workspace?.role;
 
   const isOwner  = role === "Owner";
