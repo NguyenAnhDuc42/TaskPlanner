@@ -8,7 +8,7 @@ import { PriorityBadge } from "@/components/priority-badge";
 import { DateSelect } from "@/components/date-select";
 import { DebouncedInput } from "@/components/debounced-input";
 import { useWorkspaceRole } from "@/features/workspace/context/use-workspace-role";
-import type { Priority } from "@/types/priority";
+import { Priority } from "@/types/priority";
 import type { TaskRecord } from "@/types/projects/task-record";
 import { useNavigate, useLocation } from "@tanstack/react-router";
 import { useWorkspaceRootStore } from "@/stores/workspace-root.store";
@@ -41,8 +41,6 @@ export const TaskSubtasks = observer(function TaskSubtasks({ taskId }: Readonly<
   const subtasks = rootStore.taskStore.getSubTask(taskId);
   const parentTask = rootStore.taskStore.getById(taskId);
 
-  const [isCreating, setIsCreating] = useState(false);
-
   const updateSubtask = (subtaskId: string, patches: Partial<TaskRecord>) => {
     taskMutations.updateLocal(subtaskId, patches).catch((err) => console.error("Failed to apply local subtask update", err));
     scheduleFlush();
@@ -59,26 +57,25 @@ export const TaskSubtasks = observer(function TaskSubtasks({ taskId }: Readonly<
   const [deleteSubtaskId, setDeleteSubtaskId] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const handleCreateSubtask = async () => {
-    if (!draftName.trim() || isCreating || !parentTask) return;
-    setIsCreating(true);
-    try {
-      await taskMutations.create({
-        name: draftName.trim(),
-        priority: draftPriority,
-        statusId: draftStatusId,
-        spaceId: parentTask.spaceId,
-        folderId: parentTask.folderId,
-        parentTaskId: taskId,
-      });
-      setDraftName("");
-      setDraftStatusId(undefined);
-      setDraftPriority("Low");
-    } catch (err) {
-      console.error("Failed to create subtask", err);
-    } finally {
-      setIsCreating(false);
-    }
+  const handleCreateSubtask = () => {
+    if (!draftName.trim() || !parentTask) return;
+    const name = draftName.trim();
+    const priority = draftPriority;
+    const statusId = draftStatusId;
+
+   
+    setDraftName("");
+    setDraftStatusId(undefined);
+    setDraftPriority(Priority.None);
+
+    taskMutations.create({
+      name,
+      priority,
+      statusId,
+      spaceId: parentTask.spaceId,
+      folderId: parentTask.folderId,
+      parentTaskId: taskId,
+    }).catch((err) => console.error("Failed to create subtask", err));
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {

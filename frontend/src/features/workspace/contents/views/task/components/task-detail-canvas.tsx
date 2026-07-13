@@ -1,20 +1,14 @@
 import { useCallback, useLayoutEffect, useMemo, useRef } from "react";
 import { observer } from "mobx-react-lite";
-import { StatusSelect } from "@/components/status-select";
-import { PrioritySelect } from "@/components/priority-select";
-import { PriorityBadge } from "@/components/priority-badge";
 import { UniversalPicker } from "@/components/universal-picker";
 import { DynamicIcon } from "@/components/dynamic-icon";
 import { BlockEditor } from "@/components/blockbase/block-editor";
 import { TaskViewSkeleton } from "./task-view-skeleton";
-import { DateSelect } from "@/components/date-select";
 import { DebouncedInput } from "@/components/debounced-input";
 import { useWorkspaceRole } from "@/features/workspace/context/use-workspace-role";
-import { TaskAssignees } from "../task-components/task-assignees";
 import { TaskComments } from "../task-components/task-comments";
 import { TaskSubtasks } from "../task-components/task-subtasks";
 import { ExpandableSection } from "@/components/expandable-section";
-import type { Priority } from "@/types/priority";
 import type { TaskRecord } from "@/types/projects/task-record";
 import { useWorkspaceRootStore } from "@/stores/workspace-root.store";
 import { useSyncEngine, useSyncReady } from "@/sync/sync-provider";
@@ -79,26 +73,6 @@ export const TaskDetailCanvas = observer(function TaskDetailCanvas({ taskId }: T
     return <TaskViewSkeleton />;
   }
 
-  const handleStatusChange = (statusId: string | null) => {
-    updateTask({ statusId });
-  };
-
-  const handlePriorityChange = (priority: Priority) => {
-    updateTask({ priority });
-  };
-
-  const handleStartDateChange = (date: Date | undefined) => {
-    updateTask({ startDate: date ? date.toISOString() : null });
-  };
-
-  const handleDueDateChange = (date: Date | undefined) => {
-    updateTask({ dueDate: date ? date.toISOString() : null });
-  };
-
-  const handleClearDates = () => {
-    updateTask({ startDate: null, dueDate: null });
-  };
-
   return (
     <div className="flex flex-col h-full w-full bg-card overflow-hidden">
       {/* Task Content Scroll Area */}
@@ -124,40 +98,6 @@ export const TaskDetailCanvas = observer(function TaskDetailCanvas({ taskId }: T
               placeholder="Untitled Task"
               className="text-2xl font-black text-foreground border-none p-0 focus-visible:ring-0 bg-transparent h-auto outline-none w-full"
             />
-          </div>
-
-          {/* Properties Area */}
-          <div className="flex flex-col gap-3.5 pb-1 border-b border-border/30">
-            {/* Row 1: Task State and Timing (Status, Priority, Dates) */}
-            <div className="flex flex-wrap items-center gap-2.5">
-              <StatusSelect
-                value={task.statusId ?? undefined}
-                onChange={handleStatusChange}
-                spaceId={task.spaceId!}
-              />
-
-              <PrioritySelect
-                value={task.priority}
-                onChange={handlePriorityChange}
-                trigger={
-                  <button type="button" className="cursor-pointer focus:outline-none bg-transparent border-none p-0">
-                    <PriorityBadge priority={task.priority} />
-                  </button>
-                }
-              />
-
-              <DateSelect
-                startDate={task.startDate}
-                dueDate={task.dueDate}
-                onStartDateChange={handleStartDateChange}
-                onDueDateChange={handleDueDateChange}
-                onClearDates={handleClearDates}
-                size="sm"
-              />
-            </div>
-
-            {/* Row 2: People (Assignees) */}
-            <TaskAssignees taskId={taskId} />
           </div>
 
           {/* Document Section */}
