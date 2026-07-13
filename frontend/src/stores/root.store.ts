@@ -2,7 +2,7 @@ import { NotificationStore } from "./notification.store";
 import { WorkspaceStore } from "./workspace.store";
 
 import { makeAutoObservable } from "mobx";
-import { deleteWorkspaceDB } from "@/db/schema";
+import { closeWorkspaceDB, deleteWorkspaceDB } from "@/db/schema";
 import { closeUserDB, deleteUserDB, openUserDB } from "@/db/user-schema";
 import { WorkspaceDB, NotificationDB, type UserDB } from "@/db";
 import type { IDBPDatabase } from "idb";
@@ -69,16 +69,22 @@ export class RootStore {
     if (updated) await this.workspaceDB?.put(updated);
   }
 
-  // Wipes every local trace of the current user on this device — the user-level DB
-  // (workspaces/notifications) plus every workspace DB they'd cached — so logging out on a
-  // shared/public machine doesn't leave the previous session's data sitting in IndexedDB.
-  // deleteWorkspaceDB takes just an id, not a live WorkspaceRootStore instance, so this works
-  // regardless of whether a workspace happens to be open right now.
   async clearAllLocalData(): Promise<void> {
+    for (const w of this.workspaceStore.all) closeWorkspaceDB(w.id);
+    if (this.currentUserId) closeUserDB(this.currentUserId);
+
     const workspaceIds = this.workspaceStore.all.map((w) => w.id);
     await Promise.all(workspaceIds.map((id) => deleteWorkspaceDB(id)));
-
     if (this.currentUserId) await deleteUserDB(this.currentUserId);
+
+    if (typeof indexedDB.databases === "function") {
+      const { deleteDB } = await import("idb");
+      const allDbs = await indexedDB.databases();
+      const staleDbs = allDbs.filter(
+        (d) => d.name && (d.name.startsWith("taskplan_") || d.name.startsWith("user_")),
+      );
+      await Promise.all(staleDbs.map((d) => deleteDB(d.name!)));
+    }
 
     this.workspaceStore.clear();
     this.notificationStore.clear();

@@ -1,6 +1,8 @@
 import { useRef, useMemo, useCallback, useState, useEffect } from "react";
 import { observer } from "mobx-react-lite";
-import { useNavigate, useSearch } from "@tanstack/react-router";
+import { useNavigate, useParams, useSearch } from "@tanstack/react-router";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { cn } from "@/lib/utils";
 import { createPortal } from "react-dom";
 import {
   DndContext,
@@ -52,6 +54,8 @@ const collisionDetectionStrategy: CollisionDetection = (args) => {
 
 export const SpaceBoard = observer(function SpaceBoard({ spaceId, onOpenWorkflow }: Readonly<SpaceBoardProps>) {
   const navigate = useNavigate({ from: "/workspaces/$workspaceId/spaces/$spaceId" });
+  const { workspaceId } = useParams({ from: "/workspaces/$workspaceId/spaces/$spaceId" });
+  const isMobile = useIsMobile();
   const search = useSearch({ strict: false }) as { contextPanel?: { type: string; id: string } };
   const selectedItemId = search.contextPanel?.id;
 
@@ -75,6 +79,12 @@ export const SpaceBoard = observer(function SpaceBoard({ spaceId, onOpenWorkflow
   const [sortBy, setSortBy] = useState<SpaceBoardSortBy>("priority");
   const [searchInput, setSearchInput] = useState("");
   const debouncedSearch = useDebounce(searchInput, 300);
+  const [activeColumnIndex, setActiveColumnIndex] = useState(0);
+  const handleBoardScroll = useCallback((e: React.UIEvent<HTMLDivElement>) => {
+    const el = e.currentTarget;
+    if (el.clientWidth === 0) return;
+    setActiveColumnIndex(Math.round(el.scrollLeft / el.clientWidth));
+  }, []);
 
   const statuses = sortStatuses(rootStore.statusStore.getVisibleForSpace(spaceId));
 
@@ -143,6 +153,12 @@ export const SpaceBoard = observer(function SpaceBoard({ spaceId, onOpenWorkflow
   useEdgeScroll(containerRef, isDragging);
 
   const handleTaskClick = useCallback((id: string) => {
+    // Mobile has no side context-panel to open — go straight to the task's full page instead.
+    if (isMobile) {
+      navigate({ to: "/workspaces/$workspaceId/tasks/$taskId", params: { workspaceId, taskId: id } });
+      return;
+    }
+
     navigate({
       search: (prev) => {
         const searchParams = prev as Record<string, unknown>;
@@ -152,7 +168,7 @@ export const SpaceBoard = observer(function SpaceBoard({ spaceId, onOpenWorkflow
         };
       }
     });
-  }, [navigate]);
+  }, [navigate, isMobile, workspaceId]);
 
   const handleDateChange = useCallback((itemId: string, patches: { startDate?: string | null; dueDate?: string | null }) => {
     enqueue({ id: itemId, ...patches });
@@ -226,6 +242,30 @@ export const SpaceBoard = observer(function SpaceBoard({ spaceId, onOpenWorkflow
         onSortByChange={setSortBy}
       />
 
+      {isMobile && columnsToRender.length > 1 && (
+        <div className="flex gap-1 px-2 pb-1.5 overflow-x-auto shrink-0 [&::-webkit-scrollbar]:hidden">
+          {columnsToRender.map((col, index) => (
+            <button
+              key={col.id}
+              type="button"
+              onClick={() => {
+                const el = containerRef.current;
+                if (!el) return;
+                el.scrollTo({ left: index * el.clientWidth, behavior: "smooth" });
+              }}
+              className={cn(
+                "shrink-0 h-6 px-2.5 rounded-full text-[10px] font-semibold border transition-colors",
+                index === activeColumnIndex
+                  ? "bg-primary/10 text-primary border-primary/30"
+                  : "text-muted-foreground border-border/40",
+              )}
+            >
+              {col.name} · {col.items.length}
+            </button>
+          ))}
+        </div>
+      )}
+
       <DndContext
         sensors={sensors}
         collisionDetection={collisionDetectionStrategy}
@@ -234,7 +274,11 @@ export const SpaceBoard = observer(function SpaceBoard({ spaceId, onOpenWorkflow
       >
         <div
           ref={containerRef}
-          className="flex-1 flex gap-2 px-2 overflow-x-auto overflow-y-hidden select-none [&::-webkit-scrollbar]:h-1.5 [&::-webkit-scrollbar-thumb]:bg-white/5 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-white/15 [&::-webkit-scrollbar-track]:bg-transparent"
+          onScroll={isMobile ? handleBoardScroll : undefined}
+          className={cn(
+            "flex-1 flex gap-2 px-2 overflow-x-auto overflow-y-hidden select-none [&::-webkit-scrollbar]:h-1.5 [&::-webkit-scrollbar-thumb]:bg-white/5 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-white/15 [&::-webkit-scrollbar-track]:bg-transparent",
+            isMobile && "snap-x snap-mandatory",
+          )}
         >
           <SortableContext items={draggableColumnIds} strategy={horizontalListSortingStrategy}>
             {columnsToRender.map((col) => (
@@ -251,6 +295,7 @@ export const SpaceBoard = observer(function SpaceBoard({ spaceId, onOpenWorkflow
                 onDateChange={handleDateChange}
                 onHide={col.id === "unclassified" ? () => setHideUnclassified(true) : undefined}
                 draggable={col.id !== "unclassified"}
+                fullWidth={isMobile}
               />
             ))}
           </SortableContext>
@@ -264,7 +309,7 @@ export const SpaceBoard = observer(function SpaceBoard({ spaceId, onOpenWorkflow
                 className="rotate-3 scale-105 opacity-90 pointer-events-none w-67 contain-layout"
                 style={{ willChange: "transform" }}
               >
-                <BoardItemCard item={draggedItem} isDragging={false} />
+                <BoardItemCard item={draggedItem} isDragging={false} showActions={false} />
               </div>
             ) : null}
           </DragOverlay>,

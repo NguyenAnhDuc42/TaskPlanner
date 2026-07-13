@@ -6,6 +6,7 @@ import { IconRail } from "./icon-rail";
 import { ContextPanelRenderer } from "./context-panel-renderer";
 import { WorkspaceSwitcher } from "./workspace-switcher";
 import { useResize } from "@/hooks/use-resize";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { LoadingScreen } from "@/components/loading-screen";
@@ -17,6 +18,8 @@ import { useWorkspaceRootStore } from "@/stores/workspace-root.store";
 import type { ContentPage } from "../type";
 import { useLogout, useUser } from "@/features/auth/auth-api";
 import { ProfileModal } from "@/features/auth/profile/components/profile-modal";
+import { MobileTabBar } from "./mobile/mobile-tab-bar";
+import { MobileSidebarDrawer } from "./mobile/mobile-sidebar-drawer";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -70,6 +73,8 @@ function UserMenu({ onOpenProfile }: { onOpenProfile: () => void }) {
 
 export function WorkspaceLayout() {
   const [profileOpen, setProfileOpen] = useState(false);
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const isMobile = useIsMobile();
 
   const navigate = useNavigate({ from: "/workspaces/$workspaceId" });
   const location = useLocation();
@@ -192,6 +197,32 @@ export function WorkspaceLayout() {
       }
     },
   });
+
+  if (isMobile) {
+    return (
+      <div className="flex h-screen w-full flex-col p-1 gap-1 bg-background font-sans overflow-hidden">
+        <header className="h-9 w-full shrink-0 flex items-center justify-between px-2 bg-card border border-border rounded-md shadow-sm">
+          <WorkspaceSwitcher />
+          <div className="flex items-center gap-1.5">
+            <NotificationBell />
+            <div className="h-6 w-px bg-border/50 mx-1" />
+            <UserMenu onOpenProfile={() => setProfileOpen(true)} />
+          </div>
+        </header>
+
+        <div className="flex-1 min-h-0 flex flex-col relative bg-card border border-border rounded-md shadow-sm overflow-hidden">
+          <Suspense fallback={<LoadingScreen label="Loading" />}>
+            <Outlet key={location.pathname} />
+          </Suspense>
+        </div>
+
+        <MobileTabBar onSelectIcon={handleSelectIcon} onOpenDrawer={() => setIsDrawerOpen(true)} />
+        <MobileSidebarDrawer open={isDrawerOpen} onOpenChange={setIsDrawerOpen} />
+
+        <ProfileModal open={profileOpen} onOpenChange={setProfileOpen} />
+      </div>
+    );
+  }
 
   return (
     <div className="flex h-screen w-full flex-col p-1 gap-1 bg-background font-sans overflow-hidden">

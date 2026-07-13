@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { observer } from "mobx-react-lite";
 import { useNavigate } from "@tanstack/react-router";
 import { UniversalPicker } from "@/components/universal-picker";
@@ -6,6 +6,7 @@ import { DeleteConfirmationDialog } from "../hierarchy/hierarchy-components/cont
 import { useWorkspace } from "@/features/workspace/context/workspace-context";
 import { useWorkspaceRole } from "@/features/workspace/context/use-workspace-role";
 import { useStore } from "@/stores/root.store";
+import { useSyncEngine } from "@/sync/sync-provider";
 import { WorkspaceMutations } from "@/mutations/workspace.mutations";
 import { toast } from "sonner";
 
@@ -13,8 +14,9 @@ export const WorkspaceSettingsPage = observer(function WorkspaceSettingsPage() {
   const { workspaceId, workspace } = useWorkspace();
   const { isOwner, canEditWorkspace } = useWorkspaceRole();
   const rootStore = useStore();
+  const syncEngine = useSyncEngine();
   const navigate = useNavigate();
-  const workspaceMutations = new WorkspaceMutations(rootStore);
+  const workspaceMutations = useMemo(() => new WorkspaceMutations(rootStore, syncEngine), [rootStore, syncEngine]);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
 
   if (!workspace) return null;

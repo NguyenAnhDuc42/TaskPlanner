@@ -11,6 +11,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
+import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { MoreVertical, Trash2, PanelRight, X } from "lucide-react";
 import type { Priority } from "@/types/priority";
 import { FavoriteButton } from "@/components/favorite-button";
@@ -39,6 +41,7 @@ interface TaskViewProps {
 export const TaskView = observer(function TaskView({ taskId }: Readonly<TaskViewProps>) {
   const { workspaceId } = useParams({ strict: false }) as { workspaceId: string };
   const navigate = useNavigate();
+  const isMobile = useIsMobile();
   const { canCreateContent } = useWorkspaceRole();
   const rootStore = useWorkspaceRootStore();
   const syncEngine = useSyncEngine();
@@ -172,7 +175,7 @@ export const TaskView = observer(function TaskView({ taskId }: Readonly<TaskView
           )}
         </div>
 
-        {isPropertiesOpen && task && (
+        {isPropertiesOpen && task && !isMobile && (
           <div className="w-64 shrink-0 border-l border-border overflow-hidden flex flex-col">
             <div className="h-9 flex items-center justify-end px-2 border-b border-border/30 shrink-0">
               <button
@@ -195,6 +198,23 @@ export const TaskView = observer(function TaskView({ taskId }: Readonly<TaskView
           </div>
         )}
       </div>
+
+      {isMobile && task && (
+        <Sheet open={isPropertiesOpen} onOpenChange={setIsPropertiesOpen}>
+          <SheetContent side="right" className="w-full sm:max-w-sm p-0 flex flex-col">
+            <SheetTitle className="sr-only">Task Properties</SheetTitle>
+            <div className="h-9 shrink-0" />
+            <TaskPropertiesPanel
+              task={task}
+              onStatusChange={(statusId) => updateTask({ statusId })}
+              onPriorityChange={(priority: Priority) => updateTask({ priority })}
+              onStartDateChange={(date) => updateTask({ startDate: date ? date.toISOString() : null })}
+              onDueDateChange={(date) => updateTask({ dueDate: date ? date.toISOString() : null })}
+              onClearDates={() => updateTask({ startDate: null, dueDate: null })}
+            />
+          </SheetContent>
+        </Sheet>
+      )}
 
       <DeleteConfirmationDialog
         open={isDeleteOpen}

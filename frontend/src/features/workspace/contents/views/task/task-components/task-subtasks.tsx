@@ -10,7 +10,8 @@ import { DebouncedInput } from "@/components/debounced-input";
 import { useWorkspaceRole } from "@/features/workspace/context/use-workspace-role";
 import { Priority } from "@/types/priority";
 import type { TaskRecord } from "@/types/projects/task-record";
-import { useNavigate, useLocation } from "@tanstack/react-router";
+import { useNavigate, useLocation, useParams } from "@tanstack/react-router";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { useWorkspaceRootStore } from "@/stores/workspace-root.store";
 import { useSyncEngine } from "@/sync/sync-provider";
 import { useDebouncedFlush } from "@/sync/use-debounced-flush";
@@ -109,12 +110,15 @@ export const TaskSubtasks = observer(function TaskSubtasks({ taskId }: Readonly<
   };
 
   const location = useLocation();
+  const { workspaceId } = useParams({ strict: false }) as { workspaceId?: string };
+  const isMobile = useIsMobile();
   const handleOpenSubtask = (subtaskId: string) => {
     const fullTaskPageMatch = /^\/workspaces\/([^/]+)\/tasks\/[^/]+$/.exec(location.pathname);
-    if (fullTaskPageMatch) {
+    // Mobile has no side context-panel to open — always go straight to the subtask's full page.
+    if (fullTaskPageMatch || (isMobile && workspaceId)) {
       navigate({
         to: "/workspaces/$workspaceId/tasks/$taskId",
-        params: { workspaceId: fullTaskPageMatch[1], taskId: subtaskId },
+        params: { workspaceId: fullTaskPageMatch?.[1] ?? workspaceId!, taskId: subtaskId },
       });
       return;
     }

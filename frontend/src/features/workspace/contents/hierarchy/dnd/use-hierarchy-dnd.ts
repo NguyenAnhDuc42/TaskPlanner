@@ -2,6 +2,7 @@ import {
   useSensor,
   useSensors,
   PointerSensor,
+  TouchSensor,
   KeyboardSensor,
   type DragEndEvent,
   type DragStartEvent
@@ -34,8 +35,11 @@ export function useHierarchyDnd() {
   const { scheduleFlush } = useDebouncedFlush(syncEngine);
 
   const pointerSensor = useSensor(PointerSensor, { activationConstraint: { distance: 8 } });
+  // Mirrors the Board's DnD sensor config (use-board-dnd.ts) — without this, reordering in the
+  // mobile sidebar drawer only worked via mouse pointer events, never touch.
+  const touchSensor = useSensor(TouchSensor, { activationConstraint: { delay: 150, tolerance: 5 } });
   const keyboardSensor = useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates });
-  const sensors = useSensors(pointerSensor, keyboardSensor);
+  const sensors = useSensors(pointerSensor, touchSensor, keyboardSensor);
 
   const handleDragStart = (event: DragStartEvent) => {
     if (!canCreateContent) return;

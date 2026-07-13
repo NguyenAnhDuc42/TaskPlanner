@@ -9,12 +9,13 @@ import { format, isBefore, startOfDay } from "date-fns";
 import { PrioritySelect } from "@/components/priority-select";
 import { PriorityBadge } from "@/components/priority-badge";
 import { DynamicIcon } from "@/components/dynamic-icon";
-import { Maximize2 } from "lucide-react";
+import { Maximize2, MoreVertical } from "lucide-react";
 import { DateSelect } from "@/components/date-select";
 import type { TaskRecord } from "@/types/projects";
 import { useRouter, useNavigate } from "@tanstack/react-router";
 import { useWorkspace } from "@/features/workspace/context/workspace-context";
 import { TaskContextMenu } from "@/features/workspace/contents/hierarchy/hierarchy-components/context-menus/task-context-menu";
+import { EntityMenuTrigger } from "@/features/workspace/contents/hierarchy/hierarchy-components/context-menus/shared";
 
 export interface BoardItemCardProps {
   item: BoardItem;
@@ -30,6 +31,9 @@ export interface BoardItemCardProps {
   dragRef?: (node: HTMLElement | null) => void;
   dragProps?: Record<string, unknown>;
   canCreateContent?: boolean;
+  // False for the floating DragOverlay preview — it's not wrapped in a TaskContextMenu, so the
+  // kebab trigger (which needs that context) can't render there.
+  showActions?: boolean;
 }
 
 export const BoardItemCard = React.memo(function BoardItemCard({
@@ -46,6 +50,7 @@ export const BoardItemCard = React.memo(function BoardItemCard({
   dragRef,
   dragProps,
   canCreateContent,
+  showActions = true,
 }: BoardItemCardProps) {
   const itemColor = item.color || "#6b7280";
   const isOverdue = React.useMemo(() => {
@@ -109,15 +114,29 @@ export const BoardItemCard = React.memo(function BoardItemCard({
                 {item.name}
               </h4>
             </div>
-            <div className="flex items-center shrink-0 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity">
-              <button
-                type="button"
-                className="p-0.5 hover:bg-muted/50 rounded-md hover:text-foreground transition-colors"
-                onClick={(e) => { e.stopPropagation(); onMaximizeClick?.(); }}
-              >
-                <Maximize2 className="h-3 w-3" />
-              </button>
-            </div>
+            {showActions && (
+              <div className="flex items-center gap-0.5 shrink-0 text-muted-foreground opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
+                {/* Hover-only on desktop (revealed via group-hover); always visible below md so
+                    touch users — who have no hover state — can still reach these actions. */}
+                <EntityMenuTrigger>
+                  <button
+                    type="button"
+                    className="p-0.5 hover:bg-muted/50 rounded-md hover:text-foreground transition-colors"
+                    onClick={(e) => e.stopPropagation()}
+                    onPointerDown={(e) => e.stopPropagation()}
+                  >
+                    <MoreVertical className="h-3 w-3" />
+                  </button>
+                </EntityMenuTrigger>
+                <button
+                  type="button"
+                  className="p-0.5 hover:bg-muted/50 rounded-md hover:text-foreground transition-colors"
+                  onClick={(e) => { e.stopPropagation(); onMaximizeClick?.(); }}
+                >
+                  <Maximize2 className="h-3 w-3" />
+                </button>
+              </div>
+            )}
           </div>
         </div>
 
