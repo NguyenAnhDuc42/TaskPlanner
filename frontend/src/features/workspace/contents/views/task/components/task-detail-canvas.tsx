@@ -1,34 +1,22 @@
-import { useCallback, useLayoutEffect, useMemo, useRef } from "react";
+import { Suspense, useMemo } from "react";
 import { observer } from "mobx-react-lite";
 import { UniversalPicker } from "@/components/universal-picker";
 import { DynamicIcon } from "@/components/dynamic-icon";
-import { BlockEditor } from "@/components/blockbase/block-editor";
+import { LoadingScreen } from "@/components/loading-screen";
 import { TaskViewSkeleton } from "./task-view-skeleton";
+import { useDebouncedTaskUpdate } from "./use-debounced-task-update";
 import { DebouncedInput } from "@/components/debounced-input";
 import { useWorkspaceRole } from "@/features/workspace/context/use-workspace-role";
 import { TaskComments } from "../task-components/task-comments";
 import { TaskSubtasks } from "../task-components/task-subtasks";
 import { ExpandableSection } from "@/components/expandable-section";
-import type { TaskRecord } from "@/types/projects/task-record";
 import { useWorkspaceRootStore } from "@/stores/workspace-root.store";
 import { useSyncEngine, useSyncReady } from "@/sync/sync-provider";
-import type { SyncEngine } from "@/sync/sync-engine";
-import { useDebouncedFlush } from "@/sync/use-debounced-flush";
 import { TaskMutations } from "@/mutations/task.mutations";
+import { LazyBlockEditor as BlockEditor } from "@/components/blockbase/lazy-block-editor";
 
 interface TaskDetailCanvasProps {
   taskId?: string;
-}
-
-export function useDebouncedTaskUpdate(taskMutations: TaskMutations, syncEngine: SyncEngine, taskId: string) {
-  const taskIdRef = useRef(taskId);
-  useLayoutEffect(() => { taskIdRef.current = taskId; });
-  const { scheduleFlush } = useDebouncedFlush(syncEngine);
-
-  return useCallback((patches: Partial<TaskRecord>) => {
-    taskMutations.updateLocal(taskIdRef.current, patches).catch((err) => console.error("Failed to apply local task update", err));
-    scheduleFlush();
-  }, [taskMutations, scheduleFlush]);
 }
 
 export const TaskDetailCanvas = observer(function TaskDetailCanvas({ taskId }: TaskDetailCanvasProps) {
@@ -102,7 +90,9 @@ export const TaskDetailCanvas = observer(function TaskDetailCanvas({ taskId }: T
 
           {/* Document Section */}
           {task.defaultDocumentId && (
-            <BlockEditor key={task.defaultDocumentId} documentId={task.defaultDocumentId} editable={canEdit} />
+            <Suspense fallback={<LoadingScreen className="min-h-0 py-6" />}>
+              <BlockEditor key={task.defaultDocumentId} documentId={task.defaultDocumentId} editable={canEdit} />
+            </Suspense>
           )}
 
           {/* Subtasks Section (Only for top-level tasks) */}

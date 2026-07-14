@@ -1,4 +1,5 @@
 import { toJS } from 'mobx'
+import { getActiveRootStore } from '@/stores/root.store'
 import type { RootStore } from '@/stores/root.store'
 import type { SyncEngine } from '@/sync/sync-engine'
 import type { WorkspaceRecord } from '@/types/workspace/workspace-record'
@@ -153,7 +154,7 @@ export class WorkspaceMutations {
       previous as unknown as Record<string, unknown>
     )
 
-    if (!this.rootStore.isOnline) {
+    if (!(getActiveRootStore()?.isOnline ?? true)) {
       console.warn('App is offline. Workspace update will sync when connection is restored.')
       return
     }

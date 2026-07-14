@@ -1,7 +1,8 @@
 import { useMemo } from "react";
 import { observer } from "mobx-react-lite";
 import { EntityViewFrame } from "../entity-view-frame";
-import { TaskDetailCanvas, useDebouncedTaskUpdate } from "./components/task-detail-canvas";
+import { TaskDetailCanvas } from "./components/task-detail-canvas";
+import { useDebouncedTaskUpdate } from "./components/use-debounced-task-update";
 import { TaskPropertiesPanel } from "./components/task-properties-panel";
 import { useNavigate, useParams } from "@tanstack/react-router";
 import {

@@ -67,23 +67,7 @@ function WorkspaceGate({ workspaceId }: { workspaceId: string }) {
     );
   }
 
-  if (isOnline && isLoading) {
-    return <LoadingScreen fullScreen />;
-  }
-
-  if (!isPermissionDenied && workspace) {
-    return (
-      <SyncProvider workspaceId={workspaceId}>
-        <WorkspaceLayout />
-      </SyncProvider>
-    );
-  }
-
-  if (isLoading) {
-    return <LoadingScreen fullScreen />;
-  }
-
-  if (isError) {
+  if (isPermissionDenied || isError) {
     return (
       <div className="h-screen w-full flex flex-col items-center justify-center gap-3 bg-background text-center px-6">
         <ShieldAlert className="h-10 w-10 text-destructive/70" />
@@ -105,7 +89,7 @@ function WorkspaceGate({ workspaceId }: { workspaceId: string }) {
 
   return (
     <SyncProvider workspaceId={workspaceId}>
-      <WorkspaceLayout />
+      {isOnline && isLoading ? <LoadingScreen fullScreen /> : <WorkspaceLayout />}
     </SyncProvider>
   );
 }
