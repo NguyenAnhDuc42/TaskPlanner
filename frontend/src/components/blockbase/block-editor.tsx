@@ -13,11 +13,21 @@ import { LoadingScreen } from "@/components/loading-screen";
 
 const BLOCKED_SLASH_ITEMS = new Set(["Audio"]);
 const MEDIA_BLOCK_TYPES = new Set(["image", "video", "file"]);
+const SUPPORTED_LANGUAGE_IDS = [
+  "text", "javascript", "typescript", "jsx", "tsx", "python", "csharp",
+  "sql", "json", "html", "css", "shellscript", "markdown", "yaml",
+] as const;
+const trimmedCodeBlockOptions = {
+  ...codeBlockOptions,
+  supportedLanguages: Object.fromEntries(
+    SUPPORTED_LANGUAGE_IDS.map((id) => [id, codeBlockOptions.supportedLanguages[id]]),
+  ) as typeof codeBlockOptions.supportedLanguages,
+};
 
 const schema = BlockNoteSchema.create({
   blockSpecs: {
     ...defaultBlockSpecs,
-    codeBlock: createCodeBlockSpec(codeBlockOptions),
+    codeBlock: createCodeBlockSpec(trimmedCodeBlockOptions),
   },
 });
 
