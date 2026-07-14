@@ -7,7 +7,7 @@ export const SpaceNodeList = observer(function SpaceNodeList() {
   const rootStore = useWorkspaceRootStore();
 
   // Spaces are already fully hydrated locally (Bootstrap + Delta) — no pagination needed.
-  const spaces = rootStore.spaceStore.all.sort((a, b) => ((a.orderKey ?? "") < (b.orderKey ?? "") ? -1 : 1));
+  const spaces = rootStore.spaceStore.allSorted;
 
   return (
     <div className="flex flex-col">

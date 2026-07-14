@@ -40,7 +40,7 @@ export const NodeFoldersList = observer(function NodeFoldersList({
 
   if (!isExpanded) return null;
 
-  const folders = rootStore.folderStore.getBySpace(spaceId).sort((a, b) => ((a.orderKey ?? "") < (b.orderKey ?? "") ? -1 : 1));
+  const folders = rootStore.folderStore.getBySpace(spaceId);
 
   const handleCreate = () => {
     if (submittedRef.current) return;

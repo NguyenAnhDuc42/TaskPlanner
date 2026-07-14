@@ -34,7 +34,7 @@ export const SpaceNodeItem = observer(function SpaceNodeItem({
   const hasChildren = hasFolders || hasTasks;
 
   const navigate = useNavigate();
-  const location = useLocation();
+  const pathname = useLocation({ select: (l) => l.pathname });
   const [isOpen, setIsOpen] = useLocalStorage(`sidebar-open:${workspaceId}:space:${spaceId}`, false);
   const [isCreatingFolder, setIsCreatingFolder] = useState(false);
   const [isCreatingTask, setIsCreatingTask] = useState(false);
@@ -42,7 +42,7 @@ export const SpaceNodeItem = observer(function SpaceNodeItem({
 
   if (!space) return null;
 
-  const isActive = location.pathname.includes(`/spaces/${space.id}`);
+  const isActive = pathname.includes(`/spaces/${space.id}`);
   const spaceColor = space.color || "var(--primary)";
 
   const effectiveOpen = isForcedOpen || isOpen;

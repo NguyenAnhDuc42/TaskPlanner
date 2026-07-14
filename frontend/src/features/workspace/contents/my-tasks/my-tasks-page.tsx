@@ -1,4 +1,3 @@
-import { useMemo } from "react";
 import { observer } from "mobx-react-lite";
 import { useNavigate } from "@tanstack/react-router";
 import { format, isBefore, startOfDay } from "date-fns";
@@ -22,7 +21,7 @@ export const MyTasksPage = observer(function MyTasksPage() {
 
   const myMember = currentUser?.id ? rootStore.memberStore.getByUserId(currentUser.id) : undefined;
 
-  const groups = useMemo(() => {
+  const groups = (() => {
     if (!myMember) return [];
 
     const assignedTaskIds = new Set(rootStore.assigneeStore.getByMember(myMember.id).map((a) => a.taskId));
@@ -45,7 +44,7 @@ export const MyTasksPage = observer(function MyTasksPage() {
         tasks: tasks.sort(comparator),
       }))
       .sort((a, b) => (a.space?.name ?? "").localeCompare(b.space?.name ?? ""));
-  }, [myMember, rootStore]);
+  })();
 
   const handleOpenTask = (taskId: string) => {
     navigate({ to: "/workspaces/$workspaceId/tasks/$taskId", params: { workspaceId, taskId } });

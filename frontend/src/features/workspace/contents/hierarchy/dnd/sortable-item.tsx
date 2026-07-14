@@ -4,7 +4,8 @@ import { CSS } from "@dnd-kit/utilities";
 import { useWorkspaceRole } from "@/features/workspace/context/use-workspace-role";
 
 export function SortableItem({ id, data, children }: Readonly<{ id: string; data: Record<string, unknown>; children: React.ReactNode }>) {
-  const { canCreateContent } = useWorkspaceRole();
+  // Cheap: useWorkspaceRole is a context read (computed once in WorkspaceRoleProvider).
+  const { canCreateContent: canDrag } = useWorkspaceRole();
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id, data });
 
   const style = {
@@ -17,7 +18,7 @@ export function SortableItem({ id, data, children }: Readonly<{ id: string; data
   };
 
   return (
-    <div ref={setNodeRef} style={style} {...attributes} {...(canCreateContent ? listeners : {})}>
+    <div ref={setNodeRef} style={style} {...attributes} {...(canDrag ? listeners : {})}>
       {children}
     </div>
   );

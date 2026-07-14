@@ -1,7 +1,4 @@
 import { useWorkspaceRole } from "@/features/workspace/context/use-workspace-role";
-import {
-  EntityLayerType as EntityLayerConst,
-} from "@/types/entity-layer-type";
 
 import { Plus, ChevronDown, LayoutGrid, ListTodo } from "lucide-react";
 import { useNavigate } from "@tanstack/react-router";
@@ -30,9 +27,7 @@ import { SpaceMutations } from "@/mutations/space.mutations";
 
 // Modularized Components & Hooks
 import { useHierarchyDnd } from "./dnd/use-hierarchy-dnd";
-import { SpaceNodeItem } from "./items/space-node-item";
-import { FolderNodeItem } from "./items/folder-node-item";
-import { TaskNodeItem } from "./items/task-node-item";
+import { DragOverlayRow } from "./dnd/drag-overlay-row";
 import { SpaceNodeList } from "./items/space-node-list";
 import { FavoriteNodeList } from "./items/favorite-node-list";
 export function HierarchySidebar() {
@@ -179,26 +174,7 @@ export function HierarchySidebar() {
                   <DragOverlay adjustScale={false} zIndex={1000}>
                     {activeItem ? (
                       <div className="opacity-80 scale-105 transition-transform pointer-events-none shadow-2xl rounded-sm overflow-hidden ring-1 ring-primary/20">
-                        {activeItem.type === EntityLayerConst.ProjectSpace && (
-                          <SpaceNodeItem
-                            spaceId={activeItem.id}
-                            isForcedOpen={false}
-                          />
-                        )}
-                        {activeItem.type === EntityLayerConst.ProjectFolder && (
-                          <FolderNodeItem
-                            folderId={activeItem.id}
-                            spaceId={activeItem.spaceId}
-                          />
-                        )}
-                        {activeItem.type === EntityLayerConst.ProjectTask && (
-                          <TaskNodeItem
-                            taskId={activeItem.id}
-                            parentId={activeItem.parentId}
-                            parentType={activeItem.parentType}
-                            spaceId={activeItem.spaceId}
-                          />
-                        )}
+                        <DragOverlayRow item={activeItem} />
                       </div>
                     ) : null}
                   </DragOverlay>

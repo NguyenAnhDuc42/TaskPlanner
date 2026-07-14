@@ -27,15 +27,26 @@ export class RootStore {
 
   constructor() {
     makeAutoObservable(this, {}, { autoBind: true });
-
-    if (typeof window !== 'undefined') {
-      window.addEventListener('online', () => this.setOnline(true));
-      window.addEventListener('offline', () => this.setOnline(false));
-    }
   }
 
   setOnline(status: boolean) {
     this.isOnline = status;
+  }
+
+  // Not attached in the constructor: window listeners hold `this`, so a constructor-attached
+  // instance can never be GC'd — under StrictMode's double-render, AppShell's useMemo constructs
+  // a second, discarded RootStore that would be pinned forever. AppShell attaches in an effect
+  // (which only runs for the committed instance) and detaches via the returned disposer.
+  attachNetworkListeners(): () => void {
+    if (typeof window === 'undefined') return () => {};
+    const onOnline = () => this.setOnline(true);
+    const onOffline = () => this.setOnline(false);
+    window.addEventListener('online', onOnline);
+    window.addEventListener('offline', onOffline);
+    return () => {
+      window.removeEventListener('online', onOnline);
+      window.removeEventListener('offline', onOffline);
+    };
   }
 
   async initUser(userId: string): Promise<void> {

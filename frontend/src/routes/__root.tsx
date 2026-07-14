@@ -30,6 +30,8 @@ function AppShell() {
     return () => setActiveRootStore(null);
   }, [rootStore]);
 
+  useEffect(() => rootStore.attachNetworkListeners(), [rootStore]);
+
   useEffect(() => {
     if (!currentUser?.id) return;
     let cancelled = false;

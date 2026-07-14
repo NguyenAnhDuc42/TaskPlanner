@@ -11,10 +11,6 @@ import { useWorkspaceRole } from "@/features/workspace/context/use-workspace-rol
 import { SpaceMutations } from "@/mutations/space.mutations";
 import { extractErrorMessage } from "@/types/api-error";
 
-// No real "hub" page exists yet — land on the last-visited space (or the first one), same
-// resolution IconRail's "Projects" button already uses (workspace-layout.tsx's handleSelectIcon).
-// If the workspace has no spaces at all, offer to create the first one right here instead of
-// just saying "go use the sidebar."
 const WorkspaceIndexRedirect = observer(function WorkspaceIndexRedirect() {
   const { workspaceId } = useParams({ from: "/workspaces/$workspaceId/" });
   const navigate = useNavigate();
@@ -23,7 +19,7 @@ const WorkspaceIndexRedirect = observer(function WorkspaceIndexRedirect() {
   const { ready } = useSyncReady();
   const { canCreateSpace } = useWorkspaceRole();
   const spaceMutations = useMemo(() => new SpaceMutations(rootStore, syncEngine), [rootStore, syncEngine]);
-  const spaces = rootStore.spaceStore.all;
+  const spaces = rootStore.spaceStore.allSorted;
 
   const [isCreating, setIsCreating] = useState(false);
   const [name, setName] = useState("");
@@ -35,7 +31,7 @@ const WorkspaceIndexRedirect = observer(function WorkspaceIndexRedirect() {
     const lastSpaceId = localStorage.getItem(`lastSpaceId:${workspaceId}`);
     const targetSpaceId = lastSpaceId && spaces.some((s) => s.id === lastSpaceId)
       ? lastSpaceId
-      : [...spaces].sort((a, b) => ((a.orderKey ?? "") < (b.orderKey ?? "") ? -1 : 1))[0].id;
+      : spaces[0].id;
 
     navigate({
       to: "/workspaces/$workspaceId/spaces/$spaceId",

@@ -27,7 +27,6 @@ import { useDebouncedFlush } from "@/sync/use-debounced-flush";
 import { TaskMutations } from "@/mutations/task.mutations";
 import { StatusMutations } from "@/mutations/status.mutations";
 import { RowAction } from "@/types/row-action";
-import type { Status } from "@/types/status";
 import { toLocalDay } from "@/lib/date-filter";
 import { useLocalStorage } from "@/hooks/use-local-storage";
 import { HIDE_EMPTY_DEFAULT_KEY } from "./space-settings-dialog";
@@ -36,10 +35,6 @@ import { HIDE_EMPTY_DEFAULT_KEY } from "./space-settings-dialog";
 interface SpaceBoardProps {
   spaceId: string;
   onOpenWorkflow?: () => void;
-}
-
-function sortStatuses(statuses: Status[]): Status[] {
-  return [...statuses].sort((a, b) => ((a.orderKey ?? "") < (b.orderKey ?? "") ? -1 : 1));
 }
 
 const collisionDetectionStrategy: CollisionDetection = (args) => {
@@ -87,7 +82,7 @@ export const SpaceBoard = observer(function SpaceBoard({ spaceId, onOpenWorkflow
     setActiveColumnIndex(Math.round(el.scrollLeft / el.clientWidth));
   }, []);
 
-  const statuses = sortStatuses(rootStore.statusStore.getVisibleForSpace(spaceId));
+  const statuses = rootStore.statusStore.getVisibleForSpace(spaceId);
 
   const filteredItems = useMemo(() => {
     return boardItems.filter(item => {

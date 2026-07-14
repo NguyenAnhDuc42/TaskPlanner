@@ -36,6 +36,11 @@ export class SyncEngine {
   private connection: HubConnection | null = null
   private queue: TransactionQueue
   private connectGeneration = 0
+  // Instance-level (not closure-local in connectWithRetry) so disconnect() can clear them —
+  // otherwise a pending retry timer / 'online' listener keeps the whole engine + store graph
+  // alive after the workspace unmounts.
+  private retryTimer: ReturnType<typeof setTimeout> | null = null
+  private onlineRetryListener: (() => void) | null = null
 
   constructor(rootStore: WorkspaceRootStore) {
     this.rootStore = rootStore
@@ -81,26 +86,29 @@ export class SyncEngine {
   private static readonly RETRY_BASE_MS = 5000
   private static readonly RETRY_MAX_MS = 60000
 
+  private clearRetryScheduling(): void {
+    if (this.retryTimer) {
+      clearTimeout(this.retryTimer)
+      this.retryTimer = null
+    }
+    if (this.onlineRetryListener) {
+      window.removeEventListener('online', this.onlineRetryListener)
+      this.onlineRetryListener = null
+    }
+  }
+
   private connectWithRetry(workspaceId: string, generation: number): void {
     let attemptCount = 0
-    let onlineListener: (() => void) | null = null
-
-    const clearOnlineListener = () => {
-      if (onlineListener) {
-        window.removeEventListener('online', onlineListener)
-        onlineListener = null
-      }
-    }
 
     const attempt = async () => {
       if (generation !== this.connectGeneration) return // superseded by a later init()
       if (typeof navigator !== 'undefined' && navigator.onLine === false) {
-        clearOnlineListener()
-        onlineListener = () => {
-          clearOnlineListener()
+        this.clearRetryScheduling()
+        this.onlineRetryListener = () => {
+          this.onlineRetryListener = null
           void attempt()
         }
-        window.addEventListener('online', onlineListener, { once: true })
+        window.addEventListener('online', this.onlineRetryListener, { once: true })
         return
       }
 
@@ -119,7 +127,7 @@ export class SyncEngine {
         const delay = Math.min( SyncEngine.RETRY_BASE_MS * 2 ** attemptCount, SyncEngine.RETRY_MAX_MS,)
         attemptCount++
         devError(`[SyncEngine] Connect failed, retrying in ${delay / 1000}s:`, err)
-        setTimeout(() => { void attempt() }, delay)
+        this.retryTimer = setTimeout(() => { this.retryTimer = null; void attempt() }, delay)
       }
     }
     void attempt()
@@ -186,13 +194,13 @@ export class SyncEngine {
     // Live deltas
     this.connection.on('Delta', (delta: DeltaPayload) => {
       devLog('[SyncEngine] Delta received:', delta.entityType, delta.action, delta.syncId)
-      applyDelta(this.rootStore, delta, (id) => this.queue.cancelByEntityId(id))
+      applyDelta(this.rootStore, delta, (ids) => this.queue.cancelByEntityIds(ids))
     })
 
     // Batch deltas (catch-up on connect/reconnect)
     this.connection.on('DeltaBatch', (payload: DeltaBatchPayload) => {
       devLog('[SyncEngine] DeltaBatch received:', payload.actions.length, 'events, latestSyncId:', payload.latestSyncId)
-      applyDeltaBatch(this.rootStore, payload.actions, (id) => this.queue.cancelByEntityId(id))
+      applyDeltaBatch(this.rootStore, payload.actions, (ids) => this.queue.cancelByEntityIds(ids))
     })
 
     // On reconnect, server sends catch-up automatically
@@ -210,6 +218,7 @@ export class SyncEngine {
 
   async disconnect(): Promise<void> {
     this.connectGeneration++ // stop any in-flight retry loop from a previous connect attempt
+    this.clearRetryScheduling()
     if (
       this.connection &&
       this.connection.state !== HubConnectionState.Disconnected

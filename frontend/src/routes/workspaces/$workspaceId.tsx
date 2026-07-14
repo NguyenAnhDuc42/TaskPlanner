@@ -1,5 +1,6 @@
 import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
 import { WorkspaceProvider } from "@/features/workspace/context/workspace-provider";
+import { WorkspaceRoleProvider } from "@/features/workspace/context/workspace-role-provider";
 import { useWorkspace } from "@/features/workspace/context/workspace-context";
 import { WorkspaceLayout } from "@/features/workspace/components/workspace-layout";
 import { SyncProvider } from "@/sync/sync-provider";
@@ -89,7 +90,11 @@ function WorkspaceGate({ workspaceId }: { workspaceId: string }) {
 
   return (
     <SyncProvider workspaceId={workspaceId}>
-      {isOnline && isLoading ? <LoadingScreen fullScreen /> : <WorkspaceLayout />}
+      {/* Role derives from memberStore, so this must sit below SyncProvider's
+          WorkspaceRootStoreProvider (and below WorkspaceProvider for the workspace record). */}
+      <WorkspaceRoleProvider>
+        {isOnline && isLoading ? <LoadingScreen fullScreen /> : <WorkspaceLayout />}
+      </WorkspaceRoleProvider>
     </SyncProvider>
   );
 }

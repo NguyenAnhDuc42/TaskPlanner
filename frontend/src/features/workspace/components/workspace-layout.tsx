@@ -146,7 +146,7 @@ function WorkspaceLayoutInner() {
         const lastSpaceId = localStorage.getItem(`lastSpaceId:${workspaceId}`);
         const targetSpaceId = lastSpaceId && spaces.some((s) => s.id === lastSpaceId)
           ? lastSpaceId
-          : [...spaces].sort((a, b) => ((a.orderKey ?? "") < (b.orderKey ?? "") ? -1 : 1))[0].id;
+          : rootStore.spaceStore.allSorted[0].id;
 
         navigate({
           to: "/workspaces/$workspaceId/spaces/$spaceId",

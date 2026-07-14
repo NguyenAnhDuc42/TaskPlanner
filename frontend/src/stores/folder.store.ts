@@ -1,6 +1,10 @@
 import type { FolderRecord } from "@/types/projects";
 import { makeAutoObservable, observable } from "mobx";
 
+const EMPTY_FOLDERS: FolderRecord[] = [];
+
+const byOrderKey = (a: FolderRecord, b: FolderRecord) => ((a.orderKey ?? "") < (b.orderKey ?? "") ? -1 : 1);
+
 export class FolderStore {
   // deep: false — records replaced wholesale, never mutated in place. See DocumentBlockStore.
   folders = observable.map<string, FolderRecord>({}, { deep: false });
@@ -13,12 +17,24 @@ export class FolderStore {
     return Array.from(this.folders.values());
   }
 
+  private get bySpaceIndex(): Map<string, FolderRecord[]> {
+    const index = new Map<string, FolderRecord[]>();
+    for (const folder of this.folders.values()) {
+      if (!folder.spaceId) continue;
+      const list = index.get(folder.spaceId);
+      if (list) list.push(folder);
+      else index.set(folder.spaceId, [folder]);
+    }
+    for (const list of index.values()) list.sort(byOrderKey);
+    return index;
+  }
+
   getById(id: string): FolderRecord | undefined {
     return this.folders.get(id);
   }
 
   getBySpace(spaceId: string): FolderRecord[] {
-    return this.all.filter((f) => f.spaceId === spaceId);
+    return this.bySpaceIndex.get(spaceId) ?? EMPTY_FOLDERS;
   }
 
   upsert(folder: FolderRecord): void {

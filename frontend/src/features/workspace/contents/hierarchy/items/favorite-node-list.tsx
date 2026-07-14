@@ -73,7 +73,9 @@ export const FavoriteNodeList = observer(function FavoriteNodeList() {
   const favoriteMutations = useMemo(() => new FavoriteMutations(rootStore), [rootStore]);
   const navigate = useNavigate();
   const router = useRouter();
-  const location = useLocation();
+  // select: pathname only — see TaskNodeItem for why a bare useLocation() is a per-click
+  // whole-sidebar re-render.
+  const pathname = useLocation({ select: (l) => l.pathname });
 
   const lookupEntity = (entityId: string, type: EntityLayerType) => {
     if (type === EntityLayerType.ProjectSpace) return rootStore.spaceStore.getById(entityId);
@@ -114,8 +116,8 @@ export const FavoriteNodeList = observer(function FavoriteNodeList() {
   }, [workspaceId, favoriteMutations]);
 
   const getIsActive = (id: string, type: EntityLayerType) => {
-    if (type === EntityLayerType.ProjectSpace)  return location.pathname.includes(`/spaces/${id}`);
-    if (type === EntityLayerType.ProjectTask)   return location.pathname.includes(`/tasks/${id}`);
+    if (type === EntityLayerType.ProjectSpace)  return pathname.includes(`/spaces/${id}`);
+    if (type === EntityLayerType.ProjectTask)   return pathname.includes(`/tasks/${id}`);
     return false;
   };
 

@@ -25,13 +25,13 @@ export function handleFolderMove(
 
   const sourceSpaceId = activeData.spaceId;
 
-  const sourceFoldersList = rootStore.folderStore.getBySpace(sourceSpaceId)
-    .sort((a, b) => ((a.orderKey ?? "") < (b.orderKey ?? "") ? -1 : 1));
+  // getBySpace is already orderKey-sorted (cached computed index — do not sort in place).
+  const sourceFoldersList = rootStore.folderStore.getBySpace(sourceSpaceId);
   const sourceFolders = sourceFoldersList.map(f => f.id);
 
   const targetFoldersList = sourceSpaceId === targetSpaceId
     ? sourceFoldersList
-    : rootStore.folderStore.getBySpace(targetSpaceId).sort((a, b) => ((a.orderKey ?? "") < (b.orderKey ?? "") ? -1 : 1));
+    : rootStore.folderStore.getBySpace(targetSpaceId);
   const targetFolders = targetFoldersList.map(f => f.id);
 
   // Guard: dropping onto itself or its current parent space header
@@ -70,12 +70,9 @@ export function handleFolderMove(
 
   folderMutations.updateLocal(activeData.id, patch).catch((err) => console.error("Failed to move folder", err));
 
-  // Cascade: a folder moving to a different space takes its tasks with it — otherwise they
-  // silently keep referencing the old space (invisible on the new space's board, and wrongly
-  // swept up if the old space gets deleted later). Mirrors the backend's UpdateFolderHandler
   // cascade for the same reason.
   if (patch.spaceId) {
-    const childTasks = rootStore.taskStore.all.filter((t) => t.folderId === activeData.id);
+    const childTasks = [...rootStore.taskStore.getByFolder(activeData.id)];
     for (const task of childTasks) {
       taskMutations.updateLocal(task.id, { spaceId: patch.spaceId }).catch((err) => console.error("Failed to cascade folder move to task", err));
     }

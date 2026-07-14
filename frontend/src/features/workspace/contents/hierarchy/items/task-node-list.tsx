@@ -51,9 +51,9 @@ export const NodeTasksList = observer(function NodeTasksList({
 
   const isFolder = parentType === EntityLayerType.ProjectFolder;
 
+  // getByFolder/getBySpace are already orderKey-sorted (cached computed index).
   const tasks = (isFolder ? rootStore.taskStore.getByFolder(nodeId) : rootStore.taskStore.getBySpace(nodeId))
-    .filter((t) => !t.parentTaskId && (isFolder || !t.folderId))
-    .sort((a, b) => ((a.orderKey ?? "") < (b.orderKey ?? "") ? -1 : 1));
+    .filter((t) => !t.parentTaskId && (isFolder || !t.folderId));
 
   const handleCreate = () => {
     if (submittedRef.current) return;

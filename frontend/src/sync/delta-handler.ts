@@ -18,7 +18,7 @@ type EntityApplier = {
 function getEntityApplier(
   rootStore: WorkspaceRootStore,
   entityType: SyncEntityType,
-  cancelByEntityId?: (id: string) => Promise<void>,
+  cancelByEntityIds?: (ids: string[]) => Promise<void>,
 ): EntityApplier | null {
   switch (entityType) {
     case "Workspace":
@@ -35,18 +35,18 @@ function getEntityApplier(
         getExisting: (id) => rootStore.spaceStore.getById(id) as Record<string, unknown> | undefined,
         upsert: (data) => rootStore.spaceStore.upsert(data as unknown as SpaceRecord),
         remove: (id) => {
-          rootStore.folderStore.all.filter(f => f.spaceId === id).forEach(f => rootStore.folderStore.remove(f.id))
-          rootStore.taskStore.all.filter(t => t.spaceId === id).forEach(t => rootStore.taskStore.remove(t.id))
-          rootStore.statusStore.all.filter((s: Status) => s.spaceId === id).forEach((s: Status) => rootStore.statusStore.remove(s.id))
+          rootStore.folderStore.getBySpace(id).map(f => f.id).forEach(fid => rootStore.folderStore.remove(fid))
+          rootStore.taskStore.getBySpace(id).map(t => t.id).forEach(tid => rootStore.taskStore.remove(tid))
+          rootStore.statusStore.getBySpace(id).map((s: Status) => s.id).forEach(sid => rootStore.statusStore.remove(sid))
           rootStore.spaceStore.remove(id)
         },
         dbPut: (data) => rootStore.spaceDB!.put(data as unknown as SpaceRecord),
         dbDelete: async (id) => {
-          const folderIds = rootStore.folderStore.all.filter(f => f.spaceId === id).map(f => f.id)
-          const taskIds = rootStore.taskStore.all.filter(t => t.spaceId === id).map(t => t.id)
-          const statusIds = rootStore.statusStore.all.filter((s: Status) => s.spaceId === id).map((s: Status) => s.id)
+          const folderIds = rootStore.folderStore.getBySpace(id).map(f => f.id)
+          const taskIds = rootStore.taskStore.getBySpace(id).map(t => t.id)
+          const statusIds = rootStore.statusStore.getBySpace(id).map((s: Status) => s.id)
           // Cancel any queued ops for children — prevents queue from jamming on 404s after another user deletes this space
-          if (cancelByEntityId) await Promise.all([...folderIds, ...taskIds].map(cid => cancelByEntityId(cid)))
+          if (cancelByEntityIds) await cancelByEntityIds([...folderIds, ...taskIds])
           await Promise.all([
             rootStore.spaceDB!.delete(id),
             ...folderIds.map(fid => rootStore.folderDB!.delete(fid)),
@@ -128,9 +128,18 @@ function getEntityApplier(
 export async function applyDelta(
   rootStore: WorkspaceRootStore,
   delta: DeltaPayload,
-  cancelByEntityId?: (id: string) => Promise<void>,
+  cancelByEntityIds?: (ids: string[]) => Promise<void>,
 ): Promise<void> {
-  const applier = getEntityApplier(rootStore, delta.entityType, cancelByEntityId);
+  await applyDeltaCore(rootStore, delta, cancelByEntityIds);
+  await rootStore.metadataDB!.setLastSyncId(delta.syncId);
+}
+
+async function applyDeltaCore(
+  rootStore: WorkspaceRootStore,
+  delta: DeltaPayload,
+  cancelByEntityIds?: (ids: string[]) => Promise<void>,
+): Promise<void> {
+  const applier = getEntityApplier(rootStore, delta.entityType, cancelByEntityIds);
   if (!applier) return;
 
   switch (delta.action) {
@@ -153,7 +162,7 @@ export async function applyDelta(
       break;
     }
     case "D":
-      await cancelByEntityId?.(delta.entityId);
+      await cancelByEntityIds?.([delta.entityId]);
       await applier.dbDelete(delta.entityId);
       applier.remove(delta.entityId);
       break;
@@ -172,17 +181,18 @@ export async function applyDelta(
       }
     }
   }
-
-  await rootStore.metadataDB!.setLastSyncId(delta.syncId);
 }
 
 export async function applyDeltaBatch(
   rootStore: WorkspaceRootStore,
   deltas: DeltaPayload[],
-  cancelByEntityId?: (id: string) => Promise<void>,
+  cancelByEntityIds?: (ids: string[]) => Promise<void>,
 ): Promise<void> {
+  if (deltas.length === 0) return;
   const sorted = [...deltas].sort((a, b) => a.syncId - b.syncId);
   for (const delta of sorted) {
-    await applyDelta(rootStore, delta, cancelByEntityId);
+    await applyDeltaCore(rootStore, delta, cancelByEntityIds);
   }
+  // One lastSyncId write for the whole batch — see applyDeltaCore.
+  await rootStore.metadataDB!.setLastSyncId(sorted[sorted.length - 1].syncId);
 }

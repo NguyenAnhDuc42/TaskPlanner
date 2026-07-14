@@ -28,11 +28,11 @@ export const TaskNodeItem = observer(function TaskNodeItem({
 
   const navigate = useNavigate();
   const { workspaceId } = useWorkspace();
-  const location = useLocation();
+  const pathname = useLocation({ select: (l) => l.pathname });
 
   if (!task) return null;
 
-  const isActive = location.pathname.includes(`/tasks/${task.id}`);
+  const isActive = pathname.includes(`/tasks/${task.id}`);
 
   return (
     <SortableItem

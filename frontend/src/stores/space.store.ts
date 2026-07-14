@@ -13,6 +13,10 @@ export class SpaceStore {
     return Array.from(this.spaces.values());
   }
 
+  get allSorted(): SpaceRecord[] {
+    return [...this.all].sort((a, b) => ((a.orderKey ?? "") < (b.orderKey ?? "") ? -1 : 1));
+  }
+
   getById(id: string): SpaceRecord | undefined {
     return this.spaces.get(id);
   }

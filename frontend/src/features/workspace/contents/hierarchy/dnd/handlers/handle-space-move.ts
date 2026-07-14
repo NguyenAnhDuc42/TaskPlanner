@@ -13,8 +13,7 @@ export function handleSpaceMove(
 ): void {
   if (overData?.type !== EntityLayerConst.ProjectSpace) return;
 
-  const spacesList = rootStore.spaceStore.all
-    .sort((a, b) => ((a.orderKey ?? "") < (b.orderKey ?? "") ? -1 : 1));
+  const spacesList = rootStore.spaceStore.allSorted;
 
   const oldIndex = spacesList.findIndex(s => s.id === activeData.id);
   const newIndex = spacesList.findIndex(s => s.id === overData.id);

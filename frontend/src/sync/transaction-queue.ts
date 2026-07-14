@@ -41,11 +41,19 @@ export class TransactionQueue {
   // In-flight txs can't be un-sent but dequeuing prevents them from being retried,
   // and the applyDelta parent-space guard prevents their echo from re-adding the entity.
   async cancelByEntityId(entityId: string): Promise<void> {
+    await this.cancelByEntityIds([entityId])
+  }
+
+  // Bulk variant for cascade deletes: one pending+inFlight read for the whole id set, instead of
+  // two IDB getAll's per child entity (a space with N children used to cost 2N reads).
+  async cancelByEntityIds(entityIds: string[]): Promise<void> {
+    if (entityIds.length === 0) return
+    const ids = new Set(entityIds)
     const [pending, inFlight] = await Promise.all([
       this.rootStore.transactionDB!.getPending(),
       this.rootStore.transactionDB!.getInFlight(),
     ])
-    for (const tx of [...pending, ...inFlight].filter(t => t.entityId === entityId)) {
+    for (const tx of [...pending, ...inFlight].filter(t => ids.has(t.entityId))) {
       await this.rootStore.transactionDB!.dequeue(tx.id)
     }
   }

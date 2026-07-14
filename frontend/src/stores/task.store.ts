@@ -5,6 +5,8 @@ import { makeAutoObservable, observable } from "mobx";
 // array every call.
 const EMPTY_TASKS: TaskRecord[] = [];
 
+const byOrderKey = (a: TaskRecord, b: TaskRecord) => ((a.orderKey ?? "") < (b.orderKey ?? "") ? -1 : 1);
+
 export class TaskStore {
   // deep: false — records replaced wholesale, never mutated in place. See DocumentBlockStore.
   tasks = observable.map<string, TaskRecord>({}, { deep: false });
@@ -16,10 +18,6 @@ export class TaskStore {
     return Array.from(this.tasks.values());
   }
 
-  // Computed group-by indexes (makeAutoObservable turns getters into cached computeds): one O(N)
-  // pass shared by every caller, invalidated only when the map changes — instead of each sidebar
-  // row / board / view re-scanning the whole store on every render. Returned arrays are shared —
-  // callers must copy before mutating (e.g. [...arr].sort()).
   private get bySpaceIndex(): Map<string, TaskRecord[]> {
     const index = new Map<string, TaskRecord[]>();
     for (const task of this.tasks.values()) {
@@ -28,6 +26,7 @@ export class TaskStore {
       if (list) list.push(task);
       else index.set(task.spaceId, [task]);
     }
+    for (const list of index.values()) list.sort(byOrderKey);
     return index;
   }
 
@@ -39,6 +38,7 @@ export class TaskStore {
       if (list) list.push(task);
       else index.set(task.folderId, [task]);
     }
+    for (const list of index.values()) list.sort(byOrderKey);
     return index;
   }
 
@@ -50,6 +50,7 @@ export class TaskStore {
       if (list) list.push(task);
       else index.set(task.parentTaskId, [task]);
     }
+    for (const list of index.values()) list.sort(byOrderKey);
     return index;
   }
 
@@ -66,10 +67,6 @@ export class TaskStore {
 
   getSubTask(parentTaskId: string): TaskRecord[] {
     return this.byParentIndex.get(parentTaskId) ?? EMPTY_TASKS;
-  }
-
-  getByStatus(statusId: string): TaskRecord[] {
-    return this.all.filter((task) => task.statusId === statusId);
   }
 
   add(task: TaskRecord): void {

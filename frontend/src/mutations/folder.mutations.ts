@@ -180,9 +180,7 @@ export class FolderMutations {
     if (!stored) throw new Error(`Folder ${folderId} not found`);
     const previous = toJS(stored);
 
-    for (const task of this.rootStore.taskStore.all.filter(
-      (t) => t.folderId === folderId,
-    )) {
+    for (const task of [...this.rootStore.taskStore.getByFolder(folderId)]) {
       const reparented = { ...toJS(task), folderId: null };
       this.rootStore.taskStore.upsert(reparented);
       await this.rootStore.taskDB!.put(reparented);

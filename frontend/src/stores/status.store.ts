@@ -1,6 +1,10 @@
 import type { Status } from "@/types/status";
 import { makeAutoObservable, observable } from "mobx";
 
+const EMPTY_STATUSES: Status[] = [];
+
+const byOrderKey = (a: Status, b: Status) => ((a.orderKey ?? "") < (b.orderKey ?? "") ? -1 : 1);
+
 export class StatusStore {
   // deep: false — records replaced wholesale, never mutated in place. See DocumentBlockStore.
   statuses = observable.map<string, Status>({}, { deep: false });
@@ -13,16 +17,41 @@ export class StatusStore {
     return Array.from(this.statuses.values());
   }
 
+  private get globalStatuses(): Status[] {
+    return this.all.filter((s) => !s.spaceId).sort(byOrderKey);
+  }
+
+  private get bySpaceIndex(): Map<string, Status[]> {
+    const index = new Map<string, Status[]>();
+    for (const status of this.statuses.values()) {
+      if (!status.spaceId) continue;
+      const list = index.get(status.spaceId);
+      if (list) list.push(status);
+      else index.set(status.spaceId, [status]);
+    }
+    for (const list of index.values()) list.sort(byOrderKey);
+    return index;
+  }
+
+  // Visible = shared workspace-level statuses + the space's own tagged ones, merged + sorted.
+  private get visibleBySpaceIndex(): Map<string, Status[]> {
+    const index = new Map<string, Status[]>();
+    for (const [spaceId, own] of this.bySpaceIndex) {
+      index.set(spaceId, [...this.globalStatuses, ...own].sort(byOrderKey));
+    }
+    return index;
+  }
+
   getById(id: string): Status | undefined {
     return this.statuses.get(id);
   }
 
   getBySpace(spaceId: string): Status[] {
-    return this.all.filter((s) => s.spaceId === spaceId);
+    return this.bySpaceIndex.get(spaceId) ?? EMPTY_STATUSES;
   }
 
   getVisibleForSpace(spaceId: string): Status[] {
-    return this.all.filter((s) => !s.spaceId || s.spaceId === spaceId);
+    return this.visibleBySpaceIndex.get(spaceId) ?? this.globalStatuses;
   }
 
   upsert(status: Status): void {

@@ -35,10 +35,10 @@ export function handleTaskMove(
   const isTargetFolder = !!targetFolderId;
   const isSameContainer = sourceContainerId === targetContainerId;
 
+  // getByFolder/getBySpace are already orderKey-sorted (cached computed index).
   const filterForContainer = (containerId: string, isFolder: boolean) =>
-    rootStore.taskStore.all
-      .filter((t) => !t.parentTaskId && (isFolder ? t.folderId === containerId : (t.spaceId === containerId && !t.folderId)))
-      .sort((a, b) => ((a.orderKey ?? "") < (b.orderKey ?? "") ? -1 : 1));
+    (isFolder ? rootStore.taskStore.getByFolder(containerId) : rootStore.taskStore.getBySpace(containerId))
+      .filter((t) => !t.parentTaskId && (isFolder || !t.folderId));
 
   const sourceTasksList = filterForContainer(sourceContainerId, isSourceFolder);
   const sourceTasks = sourceTasksList.map(t => t.id);

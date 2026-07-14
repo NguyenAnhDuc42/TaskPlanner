@@ -141,24 +141,22 @@ export class SpaceMutations {
     if (!stored) throw new Error(`Space ${spaceId} not found`)
     const previous = toJS(stored)
 
-    const childIds = [
-      ...this.rootStore.folderStore.all.filter(f => f.spaceId === spaceId).map(f => f.id),
-      ...this.rootStore.taskStore.all.filter(t => t.spaceId === spaceId).map(t => t.id),
-    ]
-    for (const id of childIds) {
-      await this.syncEngine.transactionQueue.cancelByEntityId(id)
-    }
+    const folderIds = this.rootStore.folderStore.getBySpace(spaceId).map(f => f.id)
+    const taskIds = this.rootStore.taskStore.getBySpace(spaceId).map(t => t.id)
+    const statusIds = this.rootStore.statusStore.getBySpace(spaceId).map(s => s.id)
 
-    for (const f of this.rootStore.folderStore.all.filter(f => f.spaceId === spaceId)) {
-      this.rootStore.folderStore.remove(f.id)
-      await this.rootStore.folderDB!.delete(f.id)
+    await this.syncEngine.transactionQueue.cancelByEntityIds([...folderIds, ...taskIds])
+
+    for (const fid of folderIds) {
+      this.rootStore.folderStore.remove(fid)
+      await this.rootStore.folderDB!.delete(fid)
     }
-    for (const t of this.rootStore.taskStore.all.filter(t => t.spaceId === spaceId)) {
-      this.rootStore.taskStore.remove(t.id)
-      await this.rootStore.taskDB!.delete(t.id)
+    for (const tid of taskIds) {
+      this.rootStore.taskStore.remove(tid)
+      await this.rootStore.taskDB!.delete(tid)
     }
-    for (const s of this.rootStore.statusStore.all.filter((s) => s.spaceId === spaceId)) {
-      this.rootStore.statusStore.remove(s.id)
+    for (const sid of statusIds) {
+      this.rootStore.statusStore.remove(sid)
     }
 
     this.rootStore.spaceStore.remove(spaceId)
