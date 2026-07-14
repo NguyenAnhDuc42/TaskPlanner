@@ -1,6 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { observer } from "mobx-react-lite";
-import { toJS } from "mobx";
 import { UserAvatar } from "@/components/user-avatar";
 import { Send, CornerDownRight, Trash2, X, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -82,9 +81,7 @@ function useTaskComments(taskId: string) {
       const cached = await rootStore.commentDB!.getAllByTask(taskId);
       if (cancelled) return;
       if (cached.length > 0) {
-        for (const comment of cached) {
-          rootStore.commentStore.upsert(comment);
-        }
+        rootStore.commentStore.upsertMany(cached);
       }
 
       const alreadyFetched = await rootStore.fetchedContextDB!.hasFetched(context);
@@ -101,9 +98,7 @@ function useTaskComments(taskId: string) {
           headers: { "X-Workspace-Id": rootStore.workspaceId },
         });
         if (cancelled) return;
-        for (const comment of data.items) {
-          rootStore.commentStore.upsert(comment);
-        }
+        rootStore.commentStore.upsertMany(data.items);
         await rootStore.commentDB!.putMany(data.items);
         setItems(rootStore.commentStore.getByTask(taskId));
         setNextCursor(data.nextCursor);
@@ -127,9 +122,7 @@ function useTaskComments(taskId: string) {
       headers: { "X-Workspace-Id": rootStore.workspaceId },
     })
       .then(async ({ data }) => {
-        for (const comment of data.items) {
-          rootStore.commentStore.upsert(comment);
-        }
+        rootStore.commentStore.upsertMany(data.items);
         await rootStore.commentDB!.putMany(data.items);
         setItems((prev) => [...prev, ...data.items]);
         setNextCursor(data.nextCursor);
@@ -152,14 +145,7 @@ export const TaskComments = observer(function TaskComments({ taskId }: Readonly<
     [rootStore, syncEngine, currentUserId],
   );
 
-  const { items: fetchedComments, isLoading, isFetchingNextPage, hasNextPage, fetchNextPage } = useTaskComments(taskId);
-  useEffect(() => {
-    if (!fetchedComments) return;
-    for (const c of fetchedComments) {
-      rootStore.commentStore.upsert(c);
-    }
-    rootStore.commentDB?.putMany(toJS(fetchedComments)).catch((err) => console.error("Failed to persist comments locally", err));
-  }, [fetchedComments, rootStore]);
+  const { isLoading, isFetchingNextPage, hasNextPage, fetchNextPage } = useTaskComments(taskId);
 
   const comments = rootStore.commentStore.getByTask(taskId);
 

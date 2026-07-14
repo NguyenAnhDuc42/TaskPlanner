@@ -2,7 +2,8 @@ import { makeAutoObservable, observable } from "mobx";
 import type { AssigneeRecord } from "@/types/projects/assignee-record";
 
 export class AssigneeStore {
-  assignees = observable.map<string, AssigneeRecord>();
+  // deep: false — records replaced wholesale, never mutated in place. See DocumentBlockStore.
+  assignees = observable.map<string, AssigneeRecord>({}, { deep: false });
 
   constructor() {
     makeAutoObservable(this);

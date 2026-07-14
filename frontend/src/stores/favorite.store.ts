@@ -1,13 +1,9 @@
 import type { FavoriteRecord } from "@/types/projects/favorite-record";
 import { makeAutoObservable, observable } from "mobx";
 
-// One favorite lives in one place — keyed by entityId, not duplicated onto TaskRecord/
-// FolderRecord/SpaceRecord. Mirrors the backend's own `favorites` table shape (see
-// GetBootstrapHandler.favoritesSql). This is what fixed the whole class of bugs where an
-// unrelated Task/Folder/Space update silently wiped favorite state: it's no longer a field on
-// those records at all, so nothing about their sync path can touch it.
 export class FavoriteStore {
-  favorites = observable.map<string, FavoriteRecord>();
+  // deep: false — records replaced wholesale, never mutated in place. See DocumentBlockStore.
+  favorites = observable.map<string, FavoriteRecord>({}, { deep: false });
 
   constructor() {
     makeAutoObservable(this);

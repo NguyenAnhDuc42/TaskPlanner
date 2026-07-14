@@ -2,7 +2,8 @@ import type { NotificationRecord } from "@/types/notification-record";
 import { makeAutoObservable, observable } from "mobx";
 
 export class NotificationStore {
-  notifications = observable.map<string, NotificationRecord>();
+  // deep: false — records replaced wholesale, never mutated in place. See DocumentBlockStore.
+  notifications = observable.map<string, NotificationRecord>({}, { deep: false });
 
   constructor() {
     makeAutoObservable(this);

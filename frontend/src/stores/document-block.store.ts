@@ -2,7 +2,10 @@ import { makeAutoObservable, observable } from "mobx";
 import type { DocumentBlockRecord } from "@/types/document";
 
 export class DocumentBlockStore {
-  blocks = observable.map<string, DocumentBlockRecord>();
+  // deep: false — records are always replaced wholesale (set with a new object), never mutated
+  // field-by-field, so wrapping every record in a deep observable (one atom per property) is
+  // pure memory overhead. Shallow maps still react to set/delete/get like before.
+  blocks = observable.map<string, DocumentBlockRecord>({}, { deep: false });
 
   constructor() {
     makeAutoObservable(this);
@@ -22,6 +25,15 @@ export class DocumentBlockStore {
 
   upsert(block: DocumentBlockRecord): void {
     this.blocks.set(block.id, block);
+  }
+
+  // Single MobX action = single transaction: observers and reactions tracking the map fire once
+  // for the whole batch instead of once per block. Loading a document's blocks via a plain
+  // per-item upsert loop re-runs every tracking reaction N times, each doing a full-map scan.
+  upsertMany(blocks: DocumentBlockRecord[]): void {
+    for (const b of blocks) {
+      this.blocks.set(b.id, b);
+    }
   }
 
   remove(id: string): void {

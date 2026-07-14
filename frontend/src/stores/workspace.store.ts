@@ -2,7 +2,8 @@ import type { WorkspaceRecord } from "@/types/workspace";
 import { makeAutoObservable, observable } from "mobx";
 
 export class WorkspaceStore {
-  workspaces = observable.map<string, WorkspaceRecord>();
+  // deep: false — records replaced wholesale, never mutated in place. See DocumentBlockStore.
+  workspaces = observable.map<string, WorkspaceRecord>({}, { deep: false });
 
   constructor() {
     makeAutoObservable(this);

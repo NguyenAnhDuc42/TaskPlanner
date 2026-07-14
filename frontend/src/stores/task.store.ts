@@ -2,7 +2,8 @@ import type { TaskRecord } from "@/types/projects";
 import { makeAutoObservable, observable } from "mobx";
 
 export class TaskStore {
-  tasks = observable.map<string, TaskRecord>();
+  // deep: false — records replaced wholesale, never mutated in place. See DocumentBlockStore.
+  tasks = observable.map<string, TaskRecord>({}, { deep: false });
   constructor() {
     makeAutoObservable(this);
   }

@@ -1,4 +1,4 @@
-import { Suspense, useEffect, useRef, useState } from "react";
+import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate, Outlet } from "@tanstack/react-router";
 import { useWorkspace } from "../context/workspace-context";
 import { HierarchySidebar } from "../contents/hierarchy/hierarchy-sidebar";
@@ -21,6 +21,7 @@ import { ProfileModal } from "@/features/auth/profile/components/profile-modal";
 import { MobileTabBar } from "./mobile/mobile-tab-bar";
 import { MobileSidebarDrawer } from "./mobile/mobile-sidebar-drawer";
 import { OfflineBanner } from "./offline-banner";
+import { DocumentEditorProvider } from "../context/document-editor-context";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -32,6 +33,10 @@ import {
 
 const HIERARCHY_PAGES = new Set<ContentPage>(["projects", "spaces", "folders", "tasks"]);
 const ICON_RAIL_WIDTH = 55;
+
+const DocumentEditorHost = lazy(() =>
+  import("@/components/blockbase/document-editor-host").then((m) => ({ default: m.DocumentEditorHost })),
+);
 
 function useWindowWidth() {
   const [width, setWidth] = useState(() => globalThis.innerWidth ?? 1350);
@@ -92,6 +97,20 @@ function UserMenu({ onOpenProfile }: { onOpenProfile: () => void }) {
 }
 
 export function WorkspaceLayout() {
+  return (
+    <DocumentEditorProvider>
+      <WorkspaceLayoutInner />
+      {/* Rendered once, outside the Outlet's per-route remount boundary, so the editor's
+          DOM/ProseMirror instance survives navigation instead of being torn down and rebuilt
+          on every task/space switch. */}
+      <Suspense fallback={null}>
+        <DocumentEditorHost />
+      </Suspense>
+    </DocumentEditorProvider>
+  );
+}
+
+function WorkspaceLayoutInner() {
   const [profileOpen, setProfileOpen] = useState(false);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const isMobile = useIsMobile();

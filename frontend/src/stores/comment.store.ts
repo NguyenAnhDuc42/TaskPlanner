@@ -2,7 +2,8 @@ import { makeAutoObservable, observable } from "mobx";
 import type { CommentRecord } from "@/types/projects/comment-record";
 
 export class CommentStore {
-  comments = observable.map<string, CommentRecord>();
+  // deep: false — records replaced wholesale, never mutated in place. See DocumentBlockStore.
+  comments = observable.map<string, CommentRecord>({}, { deep: false });
 
   constructor() {
     makeAutoObservable(this);
@@ -22,6 +23,13 @@ export class CommentStore {
 
   upsert(comment: CommentRecord): void {
     this.comments.set(comment.id, comment);
+  }
+
+  // Single MobX action = single transaction — see DocumentBlockStore.upsertMany.
+  upsertMany(comments: CommentRecord[]): void {
+    for (const c of comments) {
+      this.comments.set(c.id, c);
+    }
   }
 
   remove(id: string): void {

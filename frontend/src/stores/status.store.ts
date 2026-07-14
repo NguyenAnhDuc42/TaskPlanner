@@ -2,7 +2,8 @@ import type { Status } from "@/types/status";
 import { makeAutoObservable, observable } from "mobx";
 
 export class StatusStore {
-  statuses = observable.map<string, Status>();
+  // deep: false — records replaced wholesale, never mutated in place. See DocumentBlockStore.
+  statuses = observable.map<string, Status>({}, { deep: false });
 
   constructor() {
     makeAutoObservable(this);

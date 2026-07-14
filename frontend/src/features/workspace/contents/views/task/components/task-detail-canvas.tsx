@@ -1,19 +1,18 @@
-import { Suspense, useMemo } from "react";
+import { useMemo } from "react";
 import { observer } from "mobx-react-lite";
 import { UniversalPicker } from "@/components/universal-picker";
 import { DynamicIcon } from "@/components/dynamic-icon";
-import { LoadingScreen } from "@/components/loading-screen";
 import { TaskViewSkeleton } from "./task-view-skeleton";
 import { useDebouncedTaskUpdate } from "./use-debounced-task-update";
 import { DebouncedInput } from "@/components/debounced-input";
 import { useWorkspaceRole } from "@/features/workspace/context/use-workspace-role";
+import { useDocumentEditorSlot } from "@/features/workspace/context/document-editor-context";
 import { TaskComments } from "../task-components/task-comments";
 import { TaskSubtasks } from "../task-components/task-subtasks";
 import { ExpandableSection } from "@/components/expandable-section";
 import { useWorkspaceRootStore } from "@/stores/workspace-root.store";
 import { useSyncEngine, useSyncReady } from "@/sync/sync-provider";
 import { TaskMutations } from "@/mutations/task.mutations";
-import { LazyBlockEditor as BlockEditor } from "@/components/blockbase/lazy-block-editor";
 
 interface TaskDetailCanvasProps {
   taskId?: string;
@@ -28,6 +27,7 @@ export const TaskDetailCanvas = observer(function TaskDetailCanvas({ taskId }: T
   const task = taskId ? rootStore.taskStore.getById(taskId) : undefined;
   const updateTask = useDebouncedTaskUpdate(taskMutations, syncEngine, taskId || "");
   const { canCreateContent: canEdit } = useWorkspaceRole();
+  const documentSlotRef = useDocumentEditorSlot(task?.defaultDocumentId, canEdit);
 
   if (!taskId) {
     return (
@@ -89,11 +89,7 @@ export const TaskDetailCanvas = observer(function TaskDetailCanvas({ taskId }: T
           </div>
 
           {/* Document Section */}
-          {task.defaultDocumentId && (
-            <Suspense fallback={<LoadingScreen className="min-h-0 py-6" />}>
-              <BlockEditor key={task.defaultDocumentId} documentId={task.defaultDocumentId} editable={canEdit} />
-            </Suspense>
-          )}
+          {task.defaultDocumentId && <div ref={documentSlotRef} />}
 
           {/* Subtasks Section (Only for top-level tasks) */}
           {!task.parentTaskId && (

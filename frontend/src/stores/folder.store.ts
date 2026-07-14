@@ -2,7 +2,8 @@ import type { FolderRecord } from "@/types/projects";
 import { makeAutoObservable, observable } from "mobx";
 
 export class FolderStore {
-  folders = observable.map<string, FolderRecord>();
+  // deep: false — records replaced wholesale, never mutated in place. See DocumentBlockStore.
+  folders = observable.map<string, FolderRecord>({}, { deep: false });
 
   constructor() {
     makeAutoObservable(this);

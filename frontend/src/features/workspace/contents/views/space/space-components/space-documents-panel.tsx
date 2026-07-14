@@ -1,9 +1,8 @@
-import { Suspense, useMemo } from "react";
+import { useMemo } from "react";
 import { observer } from "mobx-react-lite";
 import { useWorkspaceRole } from "@/features/workspace/context/use-workspace-role";
 import { UniversalPicker } from "@/components/universal-picker";
-import { LoadingScreen } from "@/components/loading-screen";
-import { LazyBlockEditor as BlockEditor } from "@/components/blockbase/lazy-block-editor";
+import { useDocumentEditorSlot } from "@/features/workspace/context/document-editor-context";
 import { useWorkspaceRootStore } from "@/stores/workspace-root.store";
 import { useSyncEngine } from "@/sync/sync-provider";
 import { useDebouncedFlush } from "@/sync/use-debounced-flush";
@@ -21,6 +20,7 @@ export const SpaceDocumentsPanel = observer(function SpaceDocumentsPanel({ space
 
   const space = rootStore.spaceStore.getById(spaceId);
   const { canCreateContent: canEdit, isAdmin: canManage } = useWorkspaceRole();
+  const documentSlotRef = useDocumentEditorSlot(space?.defaultDocumentId, canEdit);
 
   if (!space) return null;
 
@@ -63,9 +63,7 @@ export const SpaceDocumentsPanel = observer(function SpaceDocumentsPanel({ space
       {/* Document — fills remaining space */}
       <div className="flex-1 overflow-y-auto px-8 py-4 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:bg-muted-foreground/20 hover:[&::-webkit-scrollbar-thumb]:bg-muted-foreground/40 [&::-webkit-scrollbar-track]:bg-transparent">
         {space.defaultDocumentId ? (
-          <Suspense fallback={<LoadingScreen className="min-h-0 py-6" />}>
-            <BlockEditor key={space.defaultDocumentId} documentId={space.defaultDocumentId} editable={canEdit} />
-          </Suspense>
+          <div ref={documentSlotRef} />
         ) : (
           <p className="text-xs text-muted-foreground/40 px-1 mt-2">No document for this space yet.</p>
         )}

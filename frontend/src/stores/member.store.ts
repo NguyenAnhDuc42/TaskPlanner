@@ -2,7 +2,8 @@ import type { MemberRecord } from "@/types/workspace";
 import { makeAutoObservable, observable } from "mobx";
 
 export class MemberStore {
-  members = observable.map<string, MemberRecord>();
+  // deep: false — records replaced wholesale, never mutated in place. See DocumentBlockStore.
+  members = observable.map<string, MemberRecord>({}, { deep: false });
 
   constructor() {
     makeAutoObservable(this);

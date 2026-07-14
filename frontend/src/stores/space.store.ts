@@ -2,7 +2,8 @@ import type { SpaceRecord } from "@/types/projects";
 import { makeAutoObservable, observable } from "mobx";
 
 export class SpaceStore {
-  spaces = observable.map<string, SpaceRecord>();
+  // deep: false — records replaced wholesale, never mutated in place. See DocumentBlockStore.
+  spaces = observable.map<string, SpaceRecord>({}, { deep: false });
 
   constructor() {
     makeAutoObservable(this);

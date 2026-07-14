@@ -60,6 +60,7 @@ export function useBlockEditorSync(documentId: string) {
   const { scheduleFlush } = useDebouncedFlush(syncEngine, 4000);
 
   const [ready, setReady] = useState<{
+    documentId: string;
     content: AnyBlock[] | undefined;
     version: number;
   } | null>(null);
@@ -101,18 +102,16 @@ export function useBlockEditorSync(documentId: string) {
       if (!isInitRef.current) {
         isInitRef.current = true;
         snapshotRef.current = snapshot;
-        setReady({ content: blocks.length > 0 ? blocks : undefined, version: 0 });
+        setReady({ documentId, content: blocks.length > 0 ? blocks : undefined, version: 0 });
         return;
       }
 
-      // Skip while a local save is in flight — that's this hook's own writes echoing back
-      // through the store, not an external update, and we don't want to yank the editor's
-      // content (and remount it via the `version` key) out from under an in-progress edit.
       if (saveTimerRef.current === null && !isSavingRef.current) {
         snapshotRef.current = snapshot;
         setReady(prev => ({
+          documentId,
           content: blocks.length > 0 ? blocks : undefined,
-          version: (prev?.version ?? 0) + 1,
+          version: (prev?.documentId === documentId ? prev.version : 0) + 1,
         }));
       }
     };
@@ -128,17 +127,10 @@ export function useBlockEditorSync(documentId: string) {
     );
     const context = `document_blocks:${documentId}`;
     (async () => {
-      // Local-first hydration: read straight from IndexedDB before deciding whether a network
-      // fetch is even needed. The in-memory store alone doesn't carry this across a fresh page
-      // load — DocumentBlocks are intentionally excluded from Bootstrap (lazy per-document tier
-      // only, see FRONTEND_SYNC_CONTEXT.md §1b), so without this the editor always waited on a
-      // network round-trip even when the data was already cached locally.
       const cached = await rootStore.documentBlockDB!.getAllByDocument(documentId);
       if (cancelled) return;
       if (cached.length > 0) {
-        for (const block of cached) {
-          rootStore.documentBlockStore.upsert(block);
-        }
+        rootStore.documentBlockStore.upsertMany(cached);
       }
 
       const alreadyFetched = await rootStore.fetchedContextDB!.hasFetched(context);
@@ -147,9 +139,7 @@ export function useBlockEditorSync(documentId: string) {
       try {
         const { data } = await api.get<DocumentBlockRecord[]>(`/documents/${documentId}/sync/blocks`);
         if (cancelled) return;
-        for (const block of data) {
-          rootStore.documentBlockStore.upsert(block);
-        }
+        rootStore.documentBlockStore.upsertMany(data);
         await rootStore.documentBlockDB!.putMany(data);
         await rootStore.fetchedContextDB!.markFetched(context);
       } catch (err) {
@@ -247,10 +237,16 @@ export function useBlockEditorSync(documentId: string) {
     [performSave],
   );
 
+  // Gated on ready.documentId matching the CURRENTLY requested documentId — not just "is ready
+  // non-null". Without this gate, a consumer reading these on the first render after documentId
+  // changes (before this hook's own effect has caught up) sees stale, truthy state that looks
+  // valid but actually belongs to the previous document. See the comment on the ready state above.
+  const readyForCurrentDocument = ready?.documentId === documentId ? ready : null;
+
   return {
-    initialContent: ready?.content,
+    initialContent: readyForCurrentDocument?.content,
     handleUpdate,
-    isReady: ready !== null,
-    version: ready?.version ?? 0,
+    isReady: readyForCurrentDocument !== null,
+    version: readyForCurrentDocument?.version ?? 0,
   };
 }
