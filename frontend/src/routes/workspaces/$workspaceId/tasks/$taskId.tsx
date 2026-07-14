@@ -10,5 +10,5 @@ export const Route = createFileRoute("/workspaces/$workspaceId/tasks/$taskId")({
 
 function TaskContent() {
   const { taskId } = useParams({ from: "/workspaces/$workspaceId/tasks/$taskId" });
-  return <TaskView key={taskId} taskId={taskId} />;
+  return <TaskView taskId={taskId} />;
 }
