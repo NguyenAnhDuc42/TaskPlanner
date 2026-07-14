@@ -15,5 +15,5 @@ function SpaceContent() {
     localStorage.setItem(`lastSpaceId:${workspaceId}`, spaceId);
   }, [workspaceId, spaceId]);
 
-  return <SpaceView spaceId={spaceId} />;
+  return <SpaceView key={spaceId} spaceId={spaceId} />;
 }
