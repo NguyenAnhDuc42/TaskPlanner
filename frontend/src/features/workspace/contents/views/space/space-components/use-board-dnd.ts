@@ -9,6 +9,7 @@ import {
   type DragEndEvent,
 } from "@dnd-kit/core";
 import { fractionalBetween } from "@/features/workspace/contents/hierarchy/utils/fractional-index";
+import { rescueSwallowedClick } from "@/lib/dnd-click-rescue";
 import { getPriorityWeight, WeightToPriority, type Priority } from "@/types/priority";
 import type { BoardItem } from "../space-board-types";
 import type { Status } from "@/types/status";
@@ -182,7 +183,13 @@ export function useBoardDnd({
 
   setDraggedItem(null);
 
-  if (!canCreateContent || !over) return;
+  if (!canCreateContent) return;
+
+  // Flick-clicks (≥8px between press and release) activate a drag that instantly ends on its
+  // own card, and dnd-kit swallows the native click — re-dispatch it so the card still opens.
+  rescueSwallowedClick(event);
+
+  if (!over) return;
 
   if (active.data.current?.type === "column") {
     if (active.id === over.id || !onColumnReorder) return;

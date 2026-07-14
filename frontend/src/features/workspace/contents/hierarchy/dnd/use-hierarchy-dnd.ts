@@ -14,6 +14,7 @@ import { handleSpaceMove } from "./handlers/handle-space-move";
 import { handleFolderMove } from "./handlers/handle-folder-move";
 import { handleTaskMove } from "./handlers/handle-task-move";
 import type { DragItemData } from "./drag-item-type";
+import { rescueSwallowedClick } from "@/lib/dnd-click-rescue";
 import { useWorkspaceRole } from "@/features/workspace/context/use-workspace-role";
 import { useWorkspaceRootStore } from "@/stores/workspace-root.store";
 import { useSyncEngine } from "@/sync/sync-provider";
@@ -35,8 +36,6 @@ export function useHierarchyDnd() {
   const { scheduleFlush } = useDebouncedFlush(syncEngine);
 
   const pointerSensor = useSensor(PointerSensor, { activationConstraint: { distance: 8 } });
-  // Mirrors the Board's DnD sensor config (use-board-dnd.ts) — without this, reordering in the
-  // mobile sidebar drawer only worked via mouse pointer events, never touch.
   const touchSensor = useSensor(TouchSensor, { activationConstraint: { delay: 150, tolerance: 5 } });
   const keyboardSensor = useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates });
   const sensors = useSensors(pointerSensor, touchSensor, keyboardSensor);
@@ -52,6 +51,8 @@ export function useHierarchyDnd() {
     if (!canCreateContent) { setActiveItem(null); return; }
     const { active, over } = event;
 
+    rescueSwallowedClick(event);
+
     if (over && active.id !== over.id) {
       const activeData = active.data.current as DragItemData | undefined;
       const overData = over.data.current as DragItemData | undefined;
@@ -64,9 +65,6 @@ export function useHierarchyDnd() {
         } else if (activeData.type === EntityLayerConst.ProjectTask) {
           handleTaskMove(rootStore, taskMutations, activeData, overData);
         }
-        // Each handler queues a local update (store + IndexedDB + enqueue) via *Mutations
-        // .updateLocal() — one shared debounced flush sends everything in one network call,
-        // same "N local writes, one flush" pattern used everywhere else in the sync engine.
         scheduleFlush();
       }
     }

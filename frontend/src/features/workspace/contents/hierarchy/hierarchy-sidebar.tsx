@@ -171,7 +171,9 @@ export function HierarchySidebar() {
                     </div>
                   )}
 
-                  <DragOverlay adjustScale={false} zIndex={1000}>
+                  {/* dropAnimation null (like the board): the default 250ms drop animation keeps
+                      the overlay floating over the rows and can eat the next click. */}
+                  <DragOverlay adjustScale={false} zIndex={1000} dropAnimation={null}>
                     {activeItem ? (
                       <div className="opacity-80 scale-105 transition-transform pointer-events-none shadow-2xl rounded-sm overflow-hidden ring-1 ring-primary/20">
                         <DragOverlayRow item={activeItem} />
