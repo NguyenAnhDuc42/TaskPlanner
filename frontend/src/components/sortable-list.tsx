@@ -47,7 +47,7 @@ export function SortableList<T extends { id: string }>({
   items,
   onReorder,
   direction = "vertical",
-  activationDistance = 5,
+  activationDistance = 8,
   className,
   children,
   renderOverlay,

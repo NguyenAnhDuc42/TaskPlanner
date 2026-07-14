@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { observer } from "mobx-react-lite";
 import { ChevronRight, MoreVertical } from "lucide-react";
 import { DynamicIcon } from "@/components/dynamic-icon";
@@ -24,10 +24,8 @@ export const FolderNodeItem = observer(function FolderNodeItem({
 }: FolderNodeItemProps) {
   const rootStore = useWorkspaceRootStore();
   const folder = rootStore.folderStore.getById(folderId);
-  const hasTasks = useMemo(
-    () => rootStore.taskStore.all.some((t) => t.folderId === folderId && !t.parentTaskId),
-    [rootStore.taskStore.all, folderId],
-  );
+
+  const hasTasks = rootStore.taskStore.getByFolder(folderId).some((t) => !t.parentTaskId);
 
   const { workspaceId } = useWorkspace();
   const [isOpen, setIsOpen] = useLocalStorage(`sidebar-open:${workspaceId}:folder:${folderId}`, false);

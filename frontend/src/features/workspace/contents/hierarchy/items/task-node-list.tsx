@@ -50,8 +50,9 @@ export const NodeTasksList = observer(function NodeTasksList({
   if (!isExpanded) return null;
 
   const isFolder = parentType === EntityLayerType.ProjectFolder;
-  const tasks = rootStore.taskStore.all
-    .filter((t) => !t.parentTaskId && (isFolder ? t.folderId === nodeId : (t.spaceId === nodeId && !t.folderId)))
+
+  const tasks = (isFolder ? rootStore.taskStore.getByFolder(nodeId) : rootStore.taskStore.getBySpace(nodeId))
+    .filter((t) => !t.parentTaskId && (isFolder || !t.folderId))
     .sort((a, b) => ((a.orderKey ?? "") < (b.orderKey ?? "") ? -1 : 1));
 
   const handleCreate = () => {

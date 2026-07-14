@@ -1,10 +1,9 @@
 import { makeAutoObservable, observable } from "mobx";
 import type { DocumentBlockRecord } from "@/types/document";
 
+const EMPTY_BLOCKS: DocumentBlockRecord[] = [];
+
 export class DocumentBlockStore {
-  // deep: false — records are always replaced wholesale (set with a new object), never mutated
-  // field-by-field, so wrapping every record in a deep observable (one atom per property) is
-  // pure memory overhead. Shallow maps still react to set/delete/get like before.
   blocks = observable.map<string, DocumentBlockRecord>({}, { deep: false });
 
   constructor() {
@@ -15,12 +14,25 @@ export class DocumentBlockStore {
     return Array.from(this.blocks.values());
   }
 
+  private get byDocumentIndex(): Map<string, DocumentBlockRecord[]> {
+    const index = new Map<string, DocumentBlockRecord[]>();
+    for (const block of this.blocks.values()) {
+      const list = index.get(block.documentId);
+      if (list) list.push(block);
+      else index.set(block.documentId, [block]);
+    }
+    for (const list of index.values()) {
+      list.sort((a, b) => a.orderKey.localeCompare(b.orderKey));
+    }
+    return index;
+  }
+
   getById(id: string): DocumentBlockRecord | undefined {
     return this.blocks.get(id);
   }
 
   getByDocument(documentId: string): DocumentBlockRecord[] {
-    return this.all.filter((b) => b.documentId === documentId).sort((a, b) => a.orderKey.localeCompare(b.orderKey));
+    return this.byDocumentIndex.get(documentId) ?? EMPTY_BLOCKS;
   }
 
   upsert(block: DocumentBlockRecord): void {

@@ -68,10 +68,11 @@ export const SpaceBoard = observer(function SpaceBoard({ spaceId, onOpenWorkflow
   const statusMutations = useMemo(() => new StatusMutations(rootStore), [rootStore]);
   const { scheduleFlush } = useDebouncedFlush(syncEngine);
 
-  const boardItems: BoardItem[] = rootStore.taskStore
-    .getBySpace(spaceId)
-    .filter((t) => !t.parentTaskId)
-    .map((t) => ({ ...t, __type: "task" as const }));
+  const spaceTasks = rootStore.taskStore.getBySpace(spaceId);
+  const boardItems: BoardItem[] = useMemo(
+    () => spaceTasks.filter((t) => !t.parentTaskId).map((t) => ({ ...t, __type: "task" as const })),
+    [spaceTasks],
+  );
 
   const [hiddenStatusIds, setHiddenStatusIds] = useState<string[]>([]);
   const [hideUnclassified, setHideUnclassified] = useState(false);

@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { observer } from "mobx-react-lite";
 import { ChevronRight, MoreVertical } from "lucide-react";
 import { DynamicIcon } from "@/components/dynamic-icon";
@@ -28,14 +28,9 @@ export const SpaceNodeItem = observer(function SpaceNodeItem({
   const rootStore = useWorkspaceRootStore();
 
   const space = rootStore.spaceStore.getById(spaceId);
-  const hasFolders = useMemo(
-    () => rootStore.folderStore.all.some((f) => f.spaceId === spaceId),
-    [rootStore.folderStore.all, spaceId],
-  );
-  const hasTasks = useMemo(
-    () => rootStore.taskStore.all.some((t) => t.spaceId === spaceId && !t.folderId && !t.parentTaskId),
-    [rootStore.taskStore.all, spaceId],
-  );
+
+  const hasFolders = rootStore.folderStore.getBySpace(spaceId).length > 0;
+  const hasTasks = rootStore.taskStore.getBySpace(spaceId).some((t) => !t.folderId && !t.parentTaskId);
   const hasChildren = hasFolders || hasTasks;
 
   const navigate = useNavigate();
