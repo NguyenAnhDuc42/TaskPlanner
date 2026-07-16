@@ -1,6 +1,8 @@
-# TaskPlanner
+# Orpus
 
-TaskPlanner is a collaborative task management platform inspired by tools like ClickUp and Notion. It began as a personal solution for organizing development work and evolved into a full-stack application exploring real-time collaboration, hierarchical workspaces, and scalable backend architecture
+**Live at [orpus.app](https://orpus.app)**
+
+Orpus is a collaborative task management platform inspired by tools like ClickUp and Notion. It began as a personal solution for organizing development work and evolved into a full-stack application exploring real-time collaboration, hierarchical workspaces, and scalable backend architecture
 
 ## Technical Highlights
 - Vertical Slice Architecture with CQRS feature organization
@@ -122,10 +124,26 @@ The frontend runs a local-first sync engine: optimistic writes land in MobX stor
   filterable layer, matching how it's actually used
 - Added a per-entity activity feed and a cross-space "My Tasks" view
 
-### Planned — v0.5.0
+### v0.5.0 — Sync Hardening & Performance `2026-07-16`
+- Batch flush rebuilt: one DB transaction per batch with a savepoint per item — identical per-item
+  failure isolation at ~4× fewer round trips — plus idempotent creates and change-tracker isolation
+  so one bad item can no longer poison the rest of the batch
+- Client queue hardening: duplicate-create squashing, bounded retries with poison-transaction
+  eviction, chunked uploads with 429 backoff, chunked SignalR echo broadcasts
+- Document durability: batched atomic IndexedDB writes (2 transactions per save instead of 2 per
+  block), force-save on tab hide, persistent-storage request, and self-healing reloads when local
+  data is lost — a huge paste now survives a laptop shutdown
+- Document editor performance: fractional order keys (an insert no longer rewrites every block
+  below it), digest-based change detection replacing retained JSON copies, and per-document LRU
+  caching instead of hydrating every block at workspace open
+- Navigation: persistent entity shell via a pathless layout route — task ↔ space switches
+  reconcile in place instead of tearing down shared chrome, and the shared document editor's DOM
+  moves between views without remounting ProseMirror
+
+### Planned — v0.6.0
 - Rename "Status" — it's really a workspace-wide board column/stage now, not a per-item status
   field, and the name stopped matching what it models once it became shared across spaces
 - Field-level activity diffs ("moved from Todo to In Progress") instead of action-level only
-- Batch flush (`POST /api/sync/batch`) end-to-end testing at scale, plus offline conflict-edge-case coverage (squash rules, out-of-order delta application)
+- Offline conflict-edge-case coverage at scale (squash rules, out-of-order delta application)
 - Bootstrap parallel query batching (structural data vs. secondary data on separate connections) — deferred pending real latency numbers, not yet worth the added complexity
 - Document block editor rewrite on Yjs (CRDT-based collaborative editing) — separate initiative, not started

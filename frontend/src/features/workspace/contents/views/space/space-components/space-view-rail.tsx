@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { Settings } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { SPACE_RAIL_TABS, type SpaceRailTabKey } from "./space-rail-tabs";
@@ -8,12 +9,20 @@ interface SpaceViewRailProps {
   onTabChange: (tab: SpaceRailTabKey) => void;
   onOpenSettings: () => void;
   orientation?: "side" | "top";
+  leading?: ReactNode;
+  trailing?: ReactNode;
 }
 
-export function SpaceViewRail({ tabOrder, activeTab, onTabChange, onOpenSettings, orientation = "side" }: Readonly<SpaceViewRailProps>) {
+export function SpaceViewRail({ tabOrder, activeTab, onTabChange, onOpenSettings, orientation = "side", leading, trailing }: Readonly<SpaceViewRailProps>) {
   if (orientation === "top") {
     return (
       <div className="flex items-center gap-1 h-9 px-2 border-b border-border bg-card shrink-0">
+        {leading && (
+          <>
+            {leading}
+            <div className="h-4 w-px bg-border/60 mx-1.5 shrink-0" />
+          </>
+        )}
         {tabOrder.map((key) => {
           const tab = SPACE_RAIL_TABS[key];
           const Icon = tab.icon;
@@ -33,14 +42,7 @@ export function SpaceViewRail({ tabOrder, activeTab, onTabChange, onOpenSettings
             </button>
           );
         })}
-        <button
-          type="button"
-          onClick={onOpenSettings}
-          title="Space Settings"
-          className="ml-auto flex items-center gap-1.5 h-7 px-2 rounded-md text-muted-foreground hover:bg-muted/50 hover:text-foreground transition-colors cursor-pointer"
-        >
-          <Settings className="h-3.5 w-3.5 shrink-0" />
-        </button>
+        <div className="ml-auto flex items-center">{trailing}</div>
       </div>
     );
   }

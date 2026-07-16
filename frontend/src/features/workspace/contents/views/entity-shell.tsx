@@ -1,15 +1,8 @@
 import { createContext, useContext, useMemo, useState } from "react";
 import { observer } from "mobx-react-lite";
 import { Link, Outlet, useNavigate, useParams } from "@tanstack/react-router";
+import { ChevronRight } from "lucide-react";
 import { EntityViewFrame } from "./entity-view-frame";
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -28,7 +21,6 @@ import { DocumentOutlineRail } from "@/components/document-outline-rail";
 import { useWorkspaceRootStore } from "@/stores/workspace-root.store";
 import { useSyncEngine } from "@/sync/sync-provider";
 import { TaskMutations } from "@/mutations/task.mutations";
-import { SpaceMutations } from "@/mutations/space.mutations";
 
 const EntityShellUiContext = createContext<{ setRightPanelOpen: (open: boolean) => void } | null>(null);
 
@@ -46,7 +38,7 @@ export const EntityShell = observer(function EntityShell() {
   const rootStore = useWorkspaceRootStore();
   const syncEngine = useSyncEngine();
   const navigate = useNavigate();
-  const { canCreateContent, isAdmin } = useWorkspaceRole();
+  const { canCreateContent } = useWorkspaceRole();
 
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [rightPanelOpen, setRightPanelOpen] = useState(false);
@@ -56,149 +48,85 @@ export const EntityShell = observer(function EntityShell() {
   const task = taskId ? rootStore.taskStore.getById(taskId) : undefined;
   const space = spaceId ? rootStore.spaceStore.getById(spaceId) : undefined;
   const taskSpace = task?.spaceId ? rootStore.spaceStore.getById(task.spaceId) : undefined;
-  const parentTask = task?.parentTaskId ? rootStore.taskStore.getById(task.parentTaskId) : undefined;
 
   const documentId = entityType === "task" ? task?.defaultDocumentId : space?.defaultDocumentId;
   const { outline, navigate: navigateToHeading } = useDocumentOutline(documentId);
 
   const taskMutations = useMemo(() => new TaskMutations(rootStore, syncEngine), [rootStore, syncEngine]);
-  const spaceMutations = useMemo(() => new SpaceMutations(rootStore, syncEngine), [rootStore, syncEngine]);
-
-  const canDelete = entityType === "task" ? canCreateContent : isAdmin;
-  const entityName = entityType === "task" ? task?.name : space?.name;
 
   const handleDelete = async () => {
+    if (!taskId) return;
     try {
-      if (entityType === "task" && taskId) {
-        await taskMutations.delete(taskId);
-      } else if (spaceId) {
-        await spaceMutations.delete(spaceId);
-      }
+      await taskMutations.delete(taskId);
       navigate({ to: "/workspaces/$workspaceId", params: { workspaceId: workspaceId || "" } });
     } catch (err) {
-      console.error(`Failed to delete ${entityType}`, err);
+      console.error("Failed to delete task", err);
     }
   };
 
   const taskHeader = (
-    <Breadcrumb className="text-xs">
-      <BreadcrumbList className="text-xs sm:gap-1.5">
+    <div className="flex items-center justify-between w-full">
+      <div className="flex items-center gap-1.5 text-xs min-w-0">
         {taskSpace && (
           <>
-            <BreadcrumbItem>
-              <BreadcrumbLink asChild>
-                <Link
-                  to="/workspaces/$workspaceId/spaces/$spaceId"
-                  params={{ workspaceId, spaceId: taskSpace.id }}
-                  className="flex items-center gap-1.5 text-muted-foreground hover:text-foreground transition-colors"
-                >
-                  <DynamicIcon
-                    name={taskSpace.icon || "Layout"}
-                    size={15}
-                    color={taskSpace.color || "#3b82f6"}
-                    className="stroke-[2.5] shrink-0"
-                  />
-                  <span>{taskSpace.name}</span>
-                </Link>
-              </BreadcrumbLink>
-            </BreadcrumbItem>
-            <BreadcrumbSeparator className="[&>svg]:w-3 [&>svg]:h-3" />
-          </>
-        )}
-        {parentTask && (
-          <>
-            <BreadcrumbItem>
-              <BreadcrumbLink asChild>
-                <Link
-                  to="/workspaces/$workspaceId/tasks/$taskId"
-                  params={{ workspaceId, taskId: parentTask.id }}
-                  className="flex items-center gap-1.5 text-muted-foreground hover:text-foreground transition-colors"
-                >
-                  <DynamicIcon
-                    name={parentTask.icon || "CheckSquare"}
-                    size={15}
-                    color={parentTask.color || "#6366f1"}
-                    className="stroke-[2.5] shrink-0"
-                  />
-                  <span>{parentTask.name}</span>
-                </Link>
-              </BreadcrumbLink>
-            </BreadcrumbItem>
-            <BreadcrumbSeparator className="[&>svg]:w-3 [&>svg]:h-3" />
-          </>
-        )}
-        <BreadcrumbItem>
-          <BreadcrumbPage className="font-medium text-foreground flex items-center gap-1.5">
-            <DynamicIcon
-              name={task?.icon || "CheckSquare"}
-              size={15}
-              color={task?.color || "#6366f1"}
-              className="stroke-[2.5] shrink-0"
-            />
-            {task?.name ?? "Task Detail"}
-            {task && (
-              <FavoriteButton
-                entityId={task.id}
-                entityLayerType={EntityLayerType.ProjectTask}
-                iconSize={13}
-                className="opacity-100"
+            <Link
+              to="/workspaces/$workspaceId/spaces/$spaceId"
+              params={{ workspaceId, spaceId: taskSpace.id }}
+              className="flex items-center gap-1.5 min-w-0 text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <DynamicIcon
+                name={taskSpace.icon || "LayoutGrid"}
+                size={14}
+                color={taskSpace.color || "#3b82f6"}
+                className="shrink-0"
               />
-            )}
-          </BreadcrumbPage>
-        </BreadcrumbItem>
-      </BreadcrumbList>
-    </Breadcrumb>
-  );
-
-  const spaceHeader = (
-    <div className="flex items-center gap-1.5 text-xs min-w-0">
-      <DynamicIcon
-        name={space?.icon ?? "LayoutGrid"}
-        size={14}
-        color={space?.color ?? "#3b82f6"}
-        className="shrink-0"
-      />
-      <span className="font-semibold text-foreground/80 truncate">
-        {space?.name ?? "Space"}
-      </span>
-      {space && spaceId && (
-        <FavoriteButton
-          entityId={spaceId}
-          entityLayerType={EntityLayerType.ProjectSpace}
-          iconSize={13}
-          className="opacity-100 shrink-0"
+              <span className="truncate">{taskSpace.name}</span>
+            </Link>
+            <ChevronRight className="h-3 w-3 text-muted-foreground/50 shrink-0" />
+          </>
+        )}
+        <DynamicIcon
+          name={task?.icon || "CheckSquare"}
+          size={14}
+          color={task?.color || "#6366f1"}
+          className="shrink-0"
         />
-      )}
+        <span className="font-semibold text-foreground/80 truncate">
+          {task?.name ?? "Task"}
+        </span>
+        {task && taskId && (
+          <FavoriteButton
+            entityId={taskId}
+            entityLayerType={EntityLayerType.ProjectTask}
+            iconSize={13}
+            className="opacity-100 shrink-0"
+          />
+        )}
+      </div>
+
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground">
+            <MoreVertical className="h-4 w-4" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end">
+          {canCreateContent && (
+            <DropdownMenuItem
+              onClick={() => setIsDeleteOpen(true)}
+              className="text-destructive focus:text-destructive focus:bg-destructive/10 cursor-pointer"
+            >
+              <Trash2 className="h-4 w-4 mr-2" />
+              Delete Task
+            </DropdownMenuItem>
+          )}
+        </DropdownMenuContent>
+      </DropdownMenu>
     </div>
   );
 
   return (
-    <EntityViewFrame
-      topHeader={
-        <div className="flex items-center justify-between w-full">
-          {entityType === "task" ? taskHeader : spaceHeader}
-
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground">
-                <MoreVertical className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              {canDelete && (
-                <DropdownMenuItem
-                  onClick={() => setIsDeleteOpen(true)}
-                  className="text-destructive focus:text-destructive focus:bg-destructive/10 cursor-pointer"
-                >
-                  <Trash2 className="h-4 w-4 mr-2" />
-                  Delete {entityType === "task" ? "Task" : "Space"}
-                </DropdownMenuItem>
-              )}
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
-      }
-    >
+    <EntityViewFrame topHeader={entityType === "task" ? taskHeader : undefined}>
       <EntityShellUiContext.Provider value={uiValue}>
         <div className="h-full w-full relative overflow-hidden">
           <Outlet />
@@ -216,12 +144,8 @@ export const EntityShell = observer(function EntityShell() {
       <DeleteConfirmationDialog
         open={isDeleteOpen}
         onOpenChange={setIsDeleteOpen}
-        title={entityType === "task" ? "Delete Task" : "Delete Space"}
-        description={
-          entityType === "task"
-            ? `Are you sure you want to delete "${entityName}"? This action cannot be undone.`
-            : `Are you sure you want to delete "${entityName}"? This will delete all folders and tasks inside it and cannot be undone.`
-        }
+        title="Delete Task"
+        description={`Are you sure you want to delete "${task?.name}"? This action cannot be undone.`}
         onConfirm={handleDelete}
       />
     </EntityViewFrame>

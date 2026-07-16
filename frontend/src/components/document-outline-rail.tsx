@@ -9,27 +9,33 @@ export function DocumentOutlineRail({ outline, onNavigate }: Readonly<{ outline:
   const height = Math.min(outline.length * ITEM_HEIGHT_PX, MAX_HEIGHT_PX);
 
   return (
-    <div className="relative w-4" style={{ height }}>
+    <div className="group relative w-4" style={{ height }}>
       {outline.map((h, i) => (
-        <button
+        <span
           key={h.id}
-          type="button"
-          onClick={() => onNavigate(h.id)}
-          title={h.text.trim() || "Untitled"}
-          className="group/mark absolute -left-40 right-0 flex items-center justify-end h-3 -translate-y-1/2 cursor-pointer"
+          className="absolute right-0 h-0.5 w-3 rounded-full bg-muted-foreground/35 -translate-y-1/2 group-hover:bg-muted-foreground/60 transition-colors"
           style={{ top: `${outline.length === 1 ? 50 : (i / (outline.length - 1)) * 100}%` }}
-        >
-          <span className="max-w-0 opacity-0 overflow-hidden whitespace-nowrap text-[11px] leading-4 text-muted-foreground group-hover/mark:max-w-36 group-hover/mark:opacity-100 group-hover/mark:mr-1.5 transition-all duration-150">
-            {h.text.trim() || "Untitled"}
-          </span>
-          <span
-            className={cn(
-              "rounded-full shrink-0 bg-muted-foreground/35 group-hover/mark:bg-muted-foreground/70 transition-colors",
-              h.level === 1 ? "w-3 h-0.75" : "w-2 h-0.75",
-            )}
-          />
-        </button>
+        />
       ))}
+
+      <div className="absolute right-full top-1/2 -translate-y-1/2 pr-2 hidden group-hover:block">
+        <div className="w-56 max-h-72 overflow-y-auto rounded-lg border border-border/60 bg-popover shadow-xl p-1 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:bg-muted-foreground/20">
+          {outline.map((h) => (
+            <button
+              key={h.id}
+              type="button"
+              onClick={() => onNavigate(h.id)}
+              className={cn(
+                "w-full text-left text-[11px] px-2 py-1 rounded-md text-muted-foreground hover:bg-muted/60 hover:text-foreground truncate block cursor-pointer",
+                h.level === 2 && "pl-4",
+                h.level === 3 && "pl-6",
+              )}
+            >
+              {h.text.trim() || "Untitled"}
+            </button>
+          ))}
+        </div>
+      </div>
     </div>
   );
 }
