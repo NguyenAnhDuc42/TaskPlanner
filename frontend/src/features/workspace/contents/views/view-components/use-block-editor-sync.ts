@@ -1,10 +1,11 @@
-import { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import { useState, useEffect, useLayoutEffect, useRef, useCallback, useMemo } from "react";
 import { reaction } from "mobx";
 import { BlockType } from "@/types/block-type";
 import { useWorkspaceRootStore } from "@/stores/workspace-root.store";
 import { useSyncEngine } from "@/sync/sync-provider";
 import { useDebouncedFlush } from "@/sync/use-debounced-flush";
-import { DocumentBlockMutations } from "@/mutations/document-block.mutations";
+import { DocumentBlockMutations, type DocumentBlockBatchOp } from "@/mutations/document-block.mutations";
+import { fractionalBetweenN, safeKey } from "@/features/workspace/contents/hierarchy/utils/fractional-index";
 import { api } from "@/lib/api-client";
 import type { DocumentBlockRecord } from "@/types/document/document-block-record";
 
@@ -43,10 +44,22 @@ function getBlockType(
   }
 }
 
+function fnv1aMix(h: number, str: string): number {
+  for (let i = 0; i < str.length; i++) {
+    h ^= str.charCodeAt(i);
+    h = Math.imul(h, 0x01000193);
+  }
+  return h;
+}
+
+export function hashJson(json: string): string {
+  return (fnv1aMix(0x811c9dc5, json) >>> 0).toString(36);
+}
+
 function hashBlock(block: AnyBlock): string {
   const { id: _id, ...rest } = block;
   void _id;
-  return JSON.stringify(rest);
+  return hashJson(JSON.stringify(rest));
 }
 
 export function useBlockEditorSync(documentId: string) {
@@ -70,8 +83,10 @@ export function useBlockEditorSync(documentId: string) {
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isSavingRef = useRef(false);
   const latestRef = useRef<AnyBlock[] | null>(null);
+  const pendingStoreSyncRef = useRef(false);
+  const syncFromStoreRef = useRef<(() => void) | null>(null);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     isInitRef.current = false;
     snapshotRef.current = new Map();
 
@@ -106,50 +121,85 @@ export function useBlockEditorSync(documentId: string) {
         return;
       }
 
-      if (saveTimerRef.current === null && !isSavingRef.current) {
-        snapshotRef.current = snapshot;
-        setReady(prev => ({
-          documentId,
-          content: blocks.length > 0 ? blocks : undefined,
-          version: (prev?.documentId === documentId ? prev.version : 0) + 1,
-        }));
+      if (saveTimerRef.current !== null || isSavingRef.current) {
+        pendingStoreSyncRef.current = true;
+        return;
       }
-    };
 
-    syncFromStore();
+      const prevSnapshot = snapshotRef.current;
+      const prevIds = Array.from(prevSnapshot.keys());
+      const nextIds = Array.from(snapshot.keys());
+      const identical =
+        prevIds.length === nextIds.length &&
+        nextIds.every((id, i) => prevIds[i] === id && prevSnapshot.get(id) === snapshot.get(id));
+      if (identical) return;
+
+      snapshotRef.current = snapshot;
+      setReady(prev => ({
+        documentId,
+        content: blocks.length > 0 ? blocks : undefined,
+        version: (prev?.documentId === documentId ? prev.version : 0) + 1,
+      }));
+    };
+    syncFromStoreRef.current = syncFromStore;
 
     const dispose = reaction(
-      () => rootStore.documentBlockStore
-        .getByDocument(documentId)
-        .map((b) => `${b.id}:${b.type}:${b.content}:${b.orderKey}`)
-        .join("|"),
+      () => {
+        const list = rootStore.documentBlockStore.getByDocument(documentId);
+        let h = 0x811c9dc5;
+        for (const b of list) {
+          h = fnv1aMix(h, b.id);
+          h = fnv1aMix(h, b.type);
+          h = fnv1aMix(h, b.content);
+          h = fnv1aMix(h, b.orderKey);
+          h = Math.imul(h ^ 0x1f, 0x01000193);
+        }
+        return `${list.length}:${(h >>> 0).toString(36)}`;
+      },
       syncFromStore,
     );
     const context = `document_blocks:${documentId}`;
+
+    if (rootStore.documentBlockStore.getByDocument(documentId).length > 0) {
+      syncFromStore();
+    }
+
     (async () => {
       const cached = await rootStore.documentBlockDB!.getAllByDocument(documentId);
       if (cancelled) return;
       if (cached.length > 0) {
         rootStore.documentBlockStore.upsertMany(cached);
+        syncFromStore(); // idempotent — isInitRef guards
       }
 
       const alreadyFetched = await rootStore.fetchedContextDB!.hasFetched(context);
-      if (alreadyFetched || cancelled) return;
+      if ((alreadyFetched && cached.length > 0) || cancelled) return;
 
-      try {
-        const { data } = await api.get<DocumentBlockRecord[]>(`/documents/${documentId}/sync/blocks`);
-        if (cancelled) return;
-        rootStore.documentBlockStore.upsertMany(data);
-        await rootStore.documentBlockDB!.putMany(data);
-        await rootStore.fetchedContextDB!.markFetched(context);
-      } catch (err) {
-        console.error(`Failed to fetch blocks for document ${documentId}:`, err);
+      for (let attempt = 1; attempt <= 3 && !cancelled; attempt++) {
+        try {
+          const { data } = await api.get<DocumentBlockRecord[]>(`/documents/${documentId}/sync/blocks`);
+          if (cancelled) return;
+          rootStore.documentBlockStore.upsertMany(data);
+          await rootStore.documentBlockDB!.putMany(data);
+          await rootStore.fetchedContextDB!.markFetched(context);
+          break;
+        } catch (err) {
+          if (attempt === 3) {
+            console.error(`Failed to fetch blocks for document ${documentId} after ${attempt} attempts:`, err);
+            break;
+          }
+          await new Promise((resolve) => setTimeout(resolve, 1000 * attempt));
+        }
       }
+
+      if (!cancelled) syncFromStore();
     })();
 
     return () => {
       cancelled = true;
       dispose();
+      syncFromStoreRef.current = null;
+      pendingStoreSyncRef.current = false;
     };
   }, [documentId, rootStore]);
 
@@ -157,32 +207,58 @@ export function useBlockEditorSync(documentId: string) {
     (blocks: AnyBlock[]) => {
       const prev = snapshotRef.current;
       const next = new Map<string, string>();
-      const prevOrder = Array.from(prev.keys());
 
-      type BlockOp =
-        | { kind: "create"; id: string; type: BlockType; content: string; orderKey: string }
-        | { kind: "update"; id: string; type: BlockType; content: string; orderKey: string }
-        | { kind: "delete"; id: string };
+      const existingKeys = new Map(
+        rootStore.documentBlockStore.getByDocument(documentId).map((b) => [b.id, b.orderKey]),
+      );
+      const hasLegacyKeys = Array.from(existingKeys.values()).some((k) => safeKey(k) === null);
 
-      const pendingOps: BlockOp[] = [];
+      const assignedKeys: (string | null)[] = new Array(blocks.length).fill(null);
+      if (hasLegacyKeys) {
+        const fresh = fractionalBetweenN(null, null, blocks.length);
+        for (let i = 0; i < blocks.length; i++) assignedKeys[i] = fresh[i];
+      } else {
+        let lastKept: string | null = null;
+        for (let i = 0; i < blocks.length; i++) {
+          const k = existingKeys.get(blocks[i].id) ?? null;
+          if (k !== null && (lastKept === null || k > lastKept)) {
+            assignedKeys[i] = k;
+            lastKept = k;
+          }
+        }
+        let i = 0;
+        while (i < blocks.length) {
+          if (assignedKeys[i] !== null) { i++; continue; }
+          let runEnd = i;
+          while (runEnd < blocks.length && assignedKeys[runEnd] === null) runEnd++;
+          const prevKey = i > 0 ? assignedKeys[i - 1] : null;
+          const nextKey = runEnd < blocks.length ? assignedKeys[runEnd] : null;
+          const generated = fractionalBetweenN(prevKey, nextKey, runEnd - i);
+          for (let j = i; j < runEnd; j++) assignedKeys[j] = generated[j - i];
+          i = runEnd;
+        }
+      }
+
+      const pendingOps: DocumentBlockBatchOp[] = [];
 
       blocks.forEach((block, index) => {
-        const hash = hashBlock(block);
-        const orderKey = String(index + 1).padStart(8, "0");
+        const { id: _id, ...rest } = block;
+        void _id;
+        const json = JSON.stringify(rest);
+        const hash = hashJson(json);
         next.set(block.id, hash);
 
+        const orderKey = assignedKeys[index]!;
         const isNew = !prev.has(block.id);
-        const changed = prev.get(block.id) !== hash;
-        const reordered = prevOrder.indexOf(block.id) !== index;
+        const contentChanged = prev.get(block.id) !== hash;
+        const keyChanged = existingKeys.get(block.id) !== orderKey;
 
-        if (isNew || changed || reordered) {
-          const { id: _id, ...rest } = block;
-          void _id;
+        if (isNew || contentChanged || keyChanged) {
           pendingOps.push({
             kind: isNew ? "create" : "update",
             id: block.id,
             type: getBlockType(block.type, block.props),
-            content: JSON.stringify(rest),
+            content: json,
             orderKey,
           });
         }
@@ -197,22 +273,22 @@ export function useBlockEditorSync(documentId: string) {
       snapshotRef.current = next;
       if (pendingOps.length === 0) return;
       isSavingRef.current = true;
-      Promise.all(
-        pendingOps.map((op) => {
-          if (op.kind === "create") {
-            return documentBlockMutations.createLocal({ id: op.id, documentId, type: op.type, content: op.content, orderKey: op.orderKey });
-          }
-          if (op.kind === "update") {
-            return documentBlockMutations.updateLocal(op.id, { type: op.type, content: op.content, orderKey: op.orderKey });
-          }
-          return documentBlockMutations.deleteLocal(op.id);
-        }),
-      )
+      documentBlockMutations
+        .applyLocalBatch(documentId, pendingOps)
         .then(() => scheduleFlush())
-        .catch((err) => console.error("Failed to queue document block changes", err))
-        .finally(() => { isSavingRef.current = false; });
+        .catch((err) => {
+          console.error("Failed to queue document block changes", err);
+          if (snapshotRef.current === next) snapshotRef.current = prev;
+        })
+        .finally(() => {
+          isSavingRef.current = false;
+          if (pendingStoreSyncRef.current) {
+            pendingStoreSyncRef.current = false;
+            syncFromStoreRef.current?.();
+          }
+        });
     },
-    [documentId, documentBlockMutations, scheduleFlush],
+    [documentId, documentBlockMutations, scheduleFlush, rootStore.documentBlockStore],
   );
 
   const handleUpdate = useCallback(
@@ -222,7 +298,7 @@ export function useBlockEditorSync(documentId: string) {
       saveTimerRef.current = setTimeout(() => {
         performSave(blocks);
         saveTimerRef.current = null;
-      }, 600);
+      }, 200);
     },
     [performSave],
   );
@@ -237,10 +313,30 @@ export function useBlockEditorSync(documentId: string) {
     [performSave],
   );
 
-  // Gated on ready.documentId matching the CURRENTLY requested documentId — not just "is ready
-  // non-null". Without this gate, a consumer reading these on the first render after documentId
-  // changes (before this hook's own effect has caught up) sees stale, truthy state that looks
-  // valid but actually belongs to the previous document. See the comment on the ready state above.
+  useEffect(() => {
+    const onHidden = () => {
+      if (document.visibilityState !== "hidden") return;
+      if (saveTimerRef.current && latestRef.current) {
+        clearTimeout(saveTimerRef.current);
+        saveTimerRef.current = null;
+        performSave(latestRef.current);
+      }
+      syncEngine.flushQueue().catch(() => {});
+    };
+    document.addEventListener("visibilitychange", onHidden);
+    window.addEventListener("pagehide", onHidden);
+    return () => {
+      document.removeEventListener("visibilitychange", onHidden);
+      window.removeEventListener("pagehide", onHidden);
+    };
+  }, [performSave, syncEngine]);
+
+  useEffect(() => {
+    if (!documentId) return;
+    rootStore.documentBlockStore.retainDocument(documentId);
+    return () => rootStore.documentBlockStore.releaseDocument(documentId);
+  }, [documentId, rootStore.documentBlockStore]);
+
   const readyForCurrentDocument = ready?.documentId === documentId ? ready : null;
 
   return {

@@ -34,17 +34,12 @@ const NO_ROLE: WorkspaceRole = {
   canCreateContent: false,
 };
 
-// Provided once by WorkspaceRoleProvider (inside WorkspaceProvider). Consumers read the shared
-// value via context — the role used to be recomputed per call site, which meant every sidebar
-// row / board card paid for its own useUser() query observer + MobX autorun over memberStore.
 export const WorkspaceRoleContext = createContext<WorkspaceRole>(NO_ROLE);
 
 function subscribeToMembers(rootStore: WorkspaceRootStore, onStoreChange: () => void) {
   return autorun(() => { void rootStore.memberStore.all; onStoreChange(); });
 }
 
-// Internal — computes the role from the member record / workspace. Only WorkspaceRoleProvider
-// should call this; everything else goes through useWorkspaceRole().
 export function useComputeWorkspaceRole(): WorkspaceRole {
   const { workspace } = useWorkspace();
   const { data: currentUser } = useUser();
@@ -62,8 +57,6 @@ export function useComputeWorkspaceRole(): WorkspaceRole {
   const myMember = useSyncExternalStore(subscribe, getSnapshot);
   const role = (myMember?.role as Role | undefined) ?? workspace?.role;
 
-  // Every flag derives from role alone — memo on it so member-store churn that doesn't change
-  // the role keeps the object identity stable and context consumers skip re-rendering.
   return useMemo(() => {
     const isOwner  = role === "Owner";
     const isAdmin  = isOwner || role === "Admin";

@@ -8,10 +8,6 @@ import { WorkspaceDB, NotificationDB, type UserDB } from "@/db";
 import type { IDBPDatabase } from "idb";
 import { createContext, useContext } from "react";
 
-// User-scope only — persists for the whole app session regardless of which workspace (if any)
-// is open. Workspace-scope state (tasks/spaces/folders/etc.) lives on WorkspaceRootStore
-// (workspace-root.store.ts) instead, constructed fresh per workspace visit rather than mutated
-// in place on this long-lived instance.
 export class RootStore {
   isOnline: boolean = typeof navigator !== 'undefined' ? navigator.onLine : true;
 
@@ -33,10 +29,6 @@ export class RootStore {
     this.isOnline = status;
   }
 
-  // Not attached in the constructor: window listeners hold `this`, so a constructor-attached
-  // instance can never be GC'd — under StrictMode's double-render, AppShell's useMemo constructs
-  // a second, discarded RootStore that would be pinned forever. AppShell attaches in an effect
-  // (which only runs for the committed instance) and detaches via the returned disposer.
   attachNetworkListeners(): () => void {
     if (typeof window === 'undefined') return () => {};
     const onOnline = () => this.setOnline(true);
@@ -116,9 +108,6 @@ export function useStore(): RootStore {
   return store
 }
 
-// Module-level reference to the one RootStore instance, set once by AppShell — lets plain
-// modules that can't use React context (lib/api-client/interceptors.ts, sync/delta-handler.ts)
-// reach the user-scope store without it being threaded through every constructor.
 let activeRootStore: RootStore | null = null;
 export function setActiveRootStore(store: RootStore | null): void {
   activeRootStore = store;

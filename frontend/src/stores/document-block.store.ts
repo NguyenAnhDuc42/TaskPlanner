@@ -22,7 +22,7 @@ export class DocumentBlockStore {
       else index.set(block.documentId, [block]);
     }
     for (const list of index.values()) {
-      list.sort((a, b) => a.orderKey.localeCompare(b.orderKey));
+      list.sort((a, b) => (a.orderKey !== b.orderKey ? (a.orderKey < b.orderKey ? -1 : 1) : a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
     }
     return index;
   }
@@ -39,9 +39,6 @@ export class DocumentBlockStore {
     this.blocks.set(block.id, block);
   }
 
-  // Single MobX action = single transaction: observers and reactions tracking the map fire once
-  // for the whole batch instead of once per block. Loading a document's blocks via a plain
-  // per-item upsert loop re-runs every tracking reaction N times, each doing a full-map scan.
   upsertMany(blocks: DocumentBlockRecord[]): void {
     for (const b of blocks) {
       this.blocks.set(b.id, b);
@@ -50,6 +47,28 @@ export class DocumentBlockStore {
 
   remove(id: string): void {
     this.blocks.delete(id);
+  }
+
+  removeByDocument(documentId: string): void {
+    for (const block of this.blocks.values()) {
+      if (block.documentId === documentId) this.blocks.delete(block.id);
+    }
+  }
+
+  private static readonly MAX_RELEASED_DOCUMENTS = 8;
+  private releasedOrder: string[] = [];
+
+  retainDocument(documentId: string): void {
+    this.releasedOrder = this.releasedOrder.filter((id) => id !== documentId);
+  }
+
+  releaseDocument(documentId: string): void {
+    const next = this.releasedOrder.filter((id) => id !== documentId);
+    next.push(documentId);
+    while (next.length > DocumentBlockStore.MAX_RELEASED_DOCUMENTS) {
+      this.removeByDocument(next.shift()!);
+    }
+    this.releasedOrder = next;
   }
 
   hydrate(blocks: DocumentBlockRecord[]): void {

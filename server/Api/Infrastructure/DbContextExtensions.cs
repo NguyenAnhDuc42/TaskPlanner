@@ -8,6 +8,13 @@ public static class DbContextExtensions
 {
     public static async Task<T> ExecuteInTransactionAsync<T>(this DbContext context, Func<Task<T>> action, CancellationToken cancellationToken = default)
     {
+        if (context.Database.CurrentTransaction != null)
+        {
+            var inlineResult = await action();
+            await context.SaveChangesAsync(cancellationToken);
+            return inlineResult;
+        }
+
         var strategy = context.Database.CreateExecutionStrategy();
         return await strategy.ExecuteAsync(async () =>
         {

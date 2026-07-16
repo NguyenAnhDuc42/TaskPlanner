@@ -100,9 +100,6 @@ export function WorkspaceLayout() {
   return (
     <DocumentEditorProvider>
       <WorkspaceLayoutInner />
-      {/* Rendered once, outside the Outlet's per-route remount boundary, so the editor's
-          DOM/ProseMirror instance survives navigation instead of being torn down and rebuilt
-          on every task/space switch. */}
       <Suspense fallback={null}>
         <DocumentEditorHost />
       </Suspense>
@@ -249,7 +246,7 @@ function WorkspaceLayoutInner() {
 
         <div className="flex-1 min-h-0 flex flex-col relative bg-card border border-border rounded-md shadow-sm overflow-hidden">
           <Suspense fallback={<LoadingScreen label="Loading" />}>
-            <Outlet key={location.pathname} />
+            <Outlet />
           </Suspense>
         </div>
 
@@ -334,9 +331,6 @@ function WorkspaceLayoutInner() {
             </div>
 
             <div className="flex-1 min-h-0 overflow-hidden">
-              {/* Kept permanently mounted (never conditionally unmounted per page) so that
-                  navigating away from and back to a hierarchy page doesn't pay the cost of
-                  rebuilding the whole sidebar tree — only the width/opacity above changes. */}
               <HierarchySidebar />
             </div>
           </div>
@@ -347,7 +341,7 @@ function WorkspaceLayoutInner() {
         ═══════════════════════════════════════════════════ */}
         <div className="flex-1 min-w-0 h-full flex flex-col relative bg-card border border-border rounded-md shadow-sm overflow-hidden">
           <Suspense fallback={<LoadingScreen label="Loading" />}>
-            <Outlet key={location.pathname} />
+            <Outlet />
           </Suspense>
         </div>
 

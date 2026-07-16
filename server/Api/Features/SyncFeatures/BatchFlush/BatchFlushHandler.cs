@@ -32,20 +32,39 @@ public class BatchFlushHandler(
         var results = new List<BatchFlushItemResult>();
         var allEvents = new List<SyncEvent>();
 
-        foreach (var item in request.Items)
+        var strategy = db.Database.CreateExecutionStrategy();
+        await strategy.ExecuteAsync(async () =>
         {
-            try
+            results.Clear();
+            allEvents.Clear();
+
+            await using var transaction = await db.Database.BeginTransactionAsync(System.Data.IsolationLevel.ReadCommitted, ct);
+
+            var itemIndex = 0;
+            foreach (var item in request.Items)
             {
-                var events = await ProcessItemAsync(item, ctx, ct);
-                allEvents.AddRange(events);
-                results.Add(new BatchFlushItemResult(item.TraceId, true, null));
+                var savepoint = $"item_{itemIndex++}";
+                await transaction.CreateSavepointAsync(savepoint, ct);
+                try
+                {
+                    var events = await ProcessItemAsync(item, ctx, ct);
+                    allEvents.AddRange(events);
+                    results.Add(new BatchFlushItemResult(item.TraceId, true, null));
+                }
+                catch (Exception ex)
+                {
+                    logger.LogWarning(ex, "Batch item {TraceId} ({EntityType}/{Action}) failed", item.TraceId, item.EntityType, item.Action);
+                    results.Add(new BatchFlushItemResult(item.TraceId, false, ex.Message));
+                    
+                    await transaction.RollbackToSavepointAsync(savepoint, ct);
+
+                    foreach (var entry in db.ChangeTracker.Entries().Where(e => e.State == EntityState.Added).ToList())
+                        entry.State = EntityState.Detached;
+                }
             }
-            catch (Exception ex)
-            {
-                logger.LogWarning(ex, "Batch item {TraceId} ({EntityType}/{Action}) failed", item.TraceId, item.EntityType, item.Action);
-                results.Add(new BatchFlushItemResult(item.TraceId, false, ex.Message));
-            }
-        }
+
+            await transaction.CommitAsync(ct);
+        });
 
         if (allEvents.Count > 0)
         {
@@ -685,6 +704,9 @@ public class BatchFlushHandler(
         var cmd = Deserialize<CreateDocumentBlockCommand>(item.Data);
 
         syncPermission.RequireMember();
+
+        if (await db.DocumentBlocks.AsNoTracking().AnyAsync(b => b.Id == cmd.Id, ct))
+            return [];
 
         var creatorId = workspaceContext.CurrentMember?.Id ?? Guid.Empty;
         List<SyncEvent> events = [];

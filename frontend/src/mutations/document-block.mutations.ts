@@ -10,6 +10,11 @@ import { devError } from '@/sync/dev-log'
 import { toJS } from 'mobx'
 import { toast } from 'sonner'
 
+export type DocumentBlockBatchOp =
+  | { kind: 'create'; id: string; type: BlockType; content: string; orderKey: string }
+  | { kind: 'update'; id: string; type: BlockType; content: string; orderKey: string }
+  | { kind: 'delete'; id: string }
+
 export class DocumentBlockMutations {
   private rootStore: WorkspaceRootStore
   private syncEngine: SyncEngine
@@ -17,6 +22,61 @@ export class DocumentBlockMutations {
   constructor(rootStore: WorkspaceRootStore, syncEngine: SyncEngine) {
     this.rootStore = rootStore
     this.syncEngine = syncEngine
+  }
+
+  async applyLocalBatch(documentId: string, ops: DocumentBlockBatchOp[]): Promise<void> {
+    if (ops.length === 0) return
+
+    const rollback: { restore?: DocumentBlockRecord; removeId?: string }[] = []
+    const puts: DocumentBlockRecord[] = []
+    const deleteIds: string[] = []
+    const queueItems: Parameters<SyncEngine['transactionQueue']['enqueueMany']>[0] = []
+
+    for (const op of ops) {
+      if (op.kind === 'create') {
+        const record: DocumentBlockRecord = { id: op.id, documentId, type: op.type, content: op.content, orderKey: op.orderKey }
+        rollback.push({ removeId: op.id })
+        puts.push(record)
+        queueItems.push({ type: 'C', entityType: 'DocumentBlock', entityId: op.id, data: { ...record }, previousData: null })
+      } else if (op.kind === 'update') {
+        const stored = this.rootStore.documentBlockStore.getById(op.id)
+        if (!stored) continue
+        const previous = toJS(stored)
+        const merged = { ...previous, type: op.type, content: op.content, orderKey: op.orderKey }
+        rollback.push({ restore: previous })
+        puts.push(merged)
+        queueItems.push({ type: 'U', entityType: 'DocumentBlock', entityId: op.id, data: { type: op.type, content: op.content, orderKey: op.orderKey }, previousData: previous as unknown as Record<string, unknown> })
+      } else {
+        const stored = this.rootStore.documentBlockStore.getById(op.id)
+        if (!stored) continue
+        const previous = toJS(stored)
+        rollback.push({ restore: previous })
+        deleteIds.push(op.id)
+        queueItems.push({ type: 'D', entityType: 'DocumentBlock', entityId: op.id, data: { id: op.id }, previousData: previous as unknown as Record<string, unknown> })
+      }
+    }
+
+    for (const record of puts) this.rootStore.documentBlockStore.upsert(record)
+    for (const id of deleteIds) this.rootStore.documentBlockStore.remove(id)
+
+    try {
+      await this.rootStore.documentBlockDB!.applyBatch(puts, deleteIds)
+    } catch (err) {
+      for (const rb of rollback) {
+        if (rb.restore) this.rootStore.documentBlockStore.upsert(rb.restore)
+        else if (rb.removeId) this.rootStore.documentBlockStore.remove(rb.removeId)
+      }
+      devError('[DocumentBlockMutations] applyLocalBatch persist failed:', err)
+      toast.error('Failed to save document changes locally. Please try again.')
+      throw new Error(`Failed to persist document block batch locally: ${err instanceof Error ? err.message : String(err)}`)
+    }
+
+    try {
+      await this.syncEngine.transactionQueue.enqueueMany(queueItems)
+    } catch (err) {
+      devError('[DocumentBlockMutations] applyLocalBatch enqueue failed:', err)
+      throw new Error(`Failed to queue document block batch for sync: ${err instanceof Error ? err.message : String(err)}`)
+    }
   }
 
   async createLocal(data: { id?: string; documentId: string; type: BlockType; content: string; orderKey: string }): Promise<{ record: DocumentBlockRecord; tx: PendingTransaction }> {

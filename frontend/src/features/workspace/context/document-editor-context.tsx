@@ -7,20 +7,31 @@ interface DocumentEditorClaim {
   editable: boolean;
 }
 
+export interface DocumentOutlineEntry {
+  id: string;
+  text: string;
+  level: number;
+}
+
+interface DocumentOutlineState {
+  documentId: string;
+  outline: DocumentOutlineEntry[];
+}
+
 interface DocumentEditorContextValue {
-  /** The active claim — top of the stack, or null when nothing claims the editor. */
   claim: DocumentEditorClaim | null;
   pushClaim: (claim: DocumentEditorClaim) => void;
   removeClaim: (token: object) => void;
+  outlineState: DocumentOutlineState | null;
+  setOutlineState: (state: DocumentOutlineState | null) => void;
+  scrollToBlock: (blockId: string) => void;
 }
 
 const DocumentEditorContext = createContext<DocumentEditorContextValue | null>(null);
 
 export function DocumentEditorProvider({ children }: { children: ReactNode }) {
-  // A stack, not a single slot: two slots CAN be mounted at once — e.g. a space's documents view
-  // plus a task opened in the context panel. The newest claim wins the editor; when it releases
-  // (panel closes), the editor falls back to the previous claimant instead of going blank.
   const [claims, setClaims] = useState<DocumentEditorClaim[]>([]);
+  const [outlineState, setOutlineState] = useState<DocumentOutlineState | null>(null);
 
   const pushClaim = useCallback((claim: DocumentEditorClaim) => {
     setClaims((prev) => [...prev.filter((c) => c.token !== claim.token), claim]);
@@ -30,13 +41,23 @@ export function DocumentEditorProvider({ children }: { children: ReactNode }) {
     setClaims((prev) => prev.filter((c) => c.token !== token));
   }, []);
 
+  const claim = claims.length > 0 ? claims[claims.length - 1] : null;
+
+  const scrollToBlock = useCallback((blockId: string) => {
+    const root: ParentNode = claim?.element ?? document;
+    root.querySelector(`[data-id="${blockId}"]`)?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, [claim]);
+
   const value = useMemo(
     () => ({
-      claim: claims.length > 0 ? claims[claims.length - 1] : null,
+      claim,
       pushClaim,
       removeClaim,
+      outlineState,
+      setOutlineState,
+      scrollToBlock,
     }),
-    [claims, pushClaim, removeClaim],
+    [claim, pushClaim, removeClaim, outlineState, scrollToBlock],
   );
 
   return (
@@ -52,12 +73,6 @@ export function useDocumentEditorClaim() {
   return ctx;
 }
 
-/**
- * Claims the shared document editor for a plain <div> placeholder rendered at the exact spot the
- * editor should visually appear. The editor itself lives outside the per-route remount boundary
- * (see DocumentEditorHost) — this hook just tells it "render into this element, showing this
- * document" for as long as the caller stays mounted.
- */
 export function useDocumentEditorSlot(documentId: string | undefined, editable: boolean): RefCallback<HTMLDivElement> {
   const { pushClaim, removeClaim } = useDocumentEditorClaim();
   const tokenRef = useRef<object>({});
@@ -67,11 +82,15 @@ export function useDocumentEditorSlot(documentId: string | undefined, editable: 
       if (el && documentId) {
         pushClaim({ token: tokenRef.current, element: el, documentId, editable });
       } else {
-        // Removal is by own token only, so during a key-based remount it doesn't matter whether
-        // the old slot's cleanup or the new slot's mount fires first — the new claim survives.
         removeClaim(tokenRef.current);
       }
     },
     [documentId, editable, pushClaim, removeClaim],
   );
+}
+
+export function useDocumentOutline(documentId: string | undefined): { outline: DocumentOutlineEntry[]; navigate: (blockId: string) => void } {
+  const { outlineState, scrollToBlock } = useDocumentEditorClaim();
+  const outline = documentId && outlineState?.documentId === documentId ? outlineState.outline : [];
+  return { outline, navigate: scrollToBlock };
 }

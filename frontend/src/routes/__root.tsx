@@ -15,7 +15,7 @@ import { useUser } from "@/features/auth/auth-api";
 import { RootStore, RootStoreProvider, setActiveRootStore } from "@/stores/root.store";
 import { NotificationMutations } from "@/mutations/notification.mutations";
 import { apiEvents } from "@/lib/api-client";
-import { devError } from "@/sync/dev-log";
+import { devError, devLog } from "@/sync/dev-log";
 
 interface RouterContext {
   auth: AuthContextType;
@@ -29,6 +29,12 @@ function AppShell() {
     setActiveRootStore(rootStore);
     return () => setActiveRootStore(null);
   }, [rootStore]);
+
+  useEffect(() => {
+    navigator.storage?.persist?.()
+      .then((granted) => devLog("[AppShell] persistent storage granted:", granted))
+      .catch(() => { /* unsupported browser — nothing to do */ });
+  }, []);
 
   useEffect(() => rootStore.attachNetworkListeners(), [rootStore]);
 
@@ -70,8 +76,6 @@ function AppShell() {
   );
 }
 
-// Split out so useNotificationSignalR() (which reads rootStore via useStore()) runs inside the
-// RootStoreProvider tree above.
 function NotificationBridge() {
   useNotificationSignalR();
   return null;

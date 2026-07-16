@@ -1,14 +1,16 @@
 import type { TaskRecord } from "@/types/projects";
 import { makeAutoObservable, observable } from "mobx";
 
-// Stable identity for empty lookups so observer re-renders and useMemo deps don't see a "new"
-// array every call.
 const EMPTY_TASKS: TaskRecord[] = [];
 
-const byOrderKey = (a: TaskRecord, b: TaskRecord) => ((a.orderKey ?? "") < (b.orderKey ?? "") ? -1 : 1);
+const byOrderKey = (a: TaskRecord, b: TaskRecord) => {
+  const ka = a.orderKey ?? "";
+  const kb = b.orderKey ?? "";
+  if (ka !== kb) return ka < kb ? -1 : 1;
+  return a.id < b.id ? -1 : a.id > b.id ? 1 : 0;
+};
 
 export class TaskStore {
-  // deep: false — records replaced wholesale, never mutated in place. See DocumentBlockStore.
   tasks = observable.map<string, TaskRecord>({}, { deep: false });
   constructor() {
     makeAutoObservable(this);

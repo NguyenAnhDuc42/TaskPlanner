@@ -71,3 +71,7 @@ SYNC_ENGINE.md
 SYNC_SCENARIOS.md
 BACKEND_SYNC_CONTEXT.md
 FRONTEND_SYNC_CONTEXT.md
+
+# === AI/working context docs (local only, not for the repo) ===
+/*.md
+!/README.md

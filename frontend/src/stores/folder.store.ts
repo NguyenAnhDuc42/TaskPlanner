@@ -3,10 +3,14 @@ import { makeAutoObservable, observable } from "mobx";
 
 const EMPTY_FOLDERS: FolderRecord[] = [];
 
-const byOrderKey = (a: FolderRecord, b: FolderRecord) => ((a.orderKey ?? "") < (b.orderKey ?? "") ? -1 : 1);
+const byOrderKey = (a: FolderRecord, b: FolderRecord) => {
+  const ka = a.orderKey ?? "";
+  const kb = b.orderKey ?? "";
+  if (ka !== kb) return ka < kb ? -1 : 1;
+  return a.id < b.id ? -1 : a.id > b.id ? 1 : 0;
+};
 
 export class FolderStore {
-  // deep: false — records replaced wholesale, never mutated in place. See DocumentBlockStore.
   folders = observable.map<string, FolderRecord>({}, { deep: false });
 
   constructor() {

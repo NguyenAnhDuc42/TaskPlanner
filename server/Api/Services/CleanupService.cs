@@ -36,38 +36,30 @@ public class CleanupService(IServiceScopeFactory scopeFactory, ILogger<CleanupSe
 
         var cutoff = DateTimeOffset.UtcNow - RetentionPeriod;
 
-        var tables = new[]
-        {
-            "entity_access",
-            "workspace_members",
-            "project_spaces",
-            "project_folders",
-            "project_tasks",
-            "comments",
-            "favorites",
-            "statuses",
-            "documents",
-            "document_blocks",
-            "notifications",
-        };
+        var targets = db.Model.GetEntityTypes()
+            .Select(et => new { Table = et.GetTableName(), DeletedAt = et.FindProperty("DeletedAt") })
+            .Where(t => t.Table != null && t.DeletedAt != null)
+            .Select(t => new { Table = t.Table!, Column = t.DeletedAt!.GetColumnName() })
+            .Distinct()
+            .ToList();
 
         var totalDeleted = 0;
-        foreach (var table in tables)
+        foreach (var target in targets)
         {
             try
             {
                 var deleted = await conn.ExecuteAsync(
-                    $"DELETE FROM {table} WHERE deleted_at IS NOT NULL AND deleted_at < @Cutoff",
+                    $"DELETE FROM {target.Table} WHERE {target.Column} IS NOT NULL AND {target.Column} < @Cutoff",
                     new { Cutoff = cutoff });
                 if (deleted > 0)
                 {
-                    logger.LogInformation("[Cleanup] Hard-deleted {Count} rows from {Table}", deleted, table);
+                    logger.LogInformation("[Cleanup] Hard-deleted {Count} rows from {Table}", deleted, target.Table);
                     totalDeleted += deleted;
                 }
             }
             catch (Exception ex)
             {
-                logger.LogWarning(ex, "[Cleanup] Failed to clean table {Table}", table);
+                logger.LogWarning(ex, "[Cleanup] Failed to clean table {Table}", target.Table);
             }
         }
 

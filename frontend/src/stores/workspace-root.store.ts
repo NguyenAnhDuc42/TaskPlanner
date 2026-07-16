@@ -28,18 +28,9 @@ import { makeAutoObservable } from "mobx";
 import { closeWorkspaceDB, openWorkspaceDB } from "@/db/schema";
 import { createContext, useContext } from "react";
 
-// Everything scoped to exactly one workspace, for exactly as long as that workspace is open —
-// unlike RootStore (app-session lifetime), a fresh WorkspaceRootStore is constructed per
-// workspace visit (see SyncProvider) and discarded on leaving, never mutated in place. workspaceId
-// is immutable for the instance's whole life — there is no `switchWorkspace()`; switching
-// workspaces means constructing a new instance, not reassigning fields on a shared one. This is
-// what makes the earlier `currentWorkspaceId` async-hydration race structurally impossible: a
-// component can't read a not-yet-hydrated WorkspaceRootStore, because the provider supplying it
-// doesn't render until hydration is done.
 export class WorkspaceRootStore {
   readonly workspaceId: string;
 
-  // Stores
   taskStore = new TaskStore();
   spaceStore = new SpaceStore();
   folderStore = new FolderStore();
@@ -50,7 +41,6 @@ export class WorkspaceRootStore {
   assigneeStore = new AssigneeStore();
   favoriteStore = new FavoriteStore();
 
-  // DBs
   taskDB: TaskDB | null = null;
   spaceDB: SpaceDB | null = null;
   folderDB: FolderDB | null = null;
@@ -71,8 +61,6 @@ export class WorkspaceRootStore {
     makeAutoObservable(this, {}, { autoBind: true });
   }
 
-  // Opens the workspace's IndexedDB, wires up DB wrappers, and hydrates every store from local
-  // data. Await this before rendering anything that reads from the instance.
   async hydrate(): Promise<void> {
     this.db = await openWorkspaceDB(this.workspaceId);
 
@@ -89,14 +77,13 @@ export class WorkspaceRootStore {
     this.transactionDB = new TransactionDB(this.db);
     this.fetchedContextDB = new FetchedContextDB(this.db);
 
-    const [tasks, spaces, folders, statuses, members, comments, blocks, assignees, favorites] = await Promise.all([
+    const [tasks, spaces, folders, statuses, members, comments, assignees, favorites] = await Promise.all([
       this.taskDB.getAll(),
       this.spaceDB.getAll(),
       this.folderDB.getAll(),
       this.statusDB.getAll(),
       this.memberDB.getAll(),
       this.commentDB.getAll(),
-      this.documentBlockDB.getAll(),
       this.assigneeDB.getAll(),
       this.favoriteDB.getAll(),
     ]);
@@ -107,13 +94,10 @@ export class WorkspaceRootStore {
     this.statusStore.hydrate(statuses);
     this.memberStore.hydrate(members);
     this.commentStore.hydrate(comments);
-    this.documentBlockStore.hydrate(blocks);
     this.assigneeStore.hydrate(assignees);
     this.favoriteStore.hydrate(favorites);
   }
 
-  // Closes the raw IDB handle. Call on unmount/workspace switch — the instance itself is then
-  // just discarded (garbage collected), no in-place clearing needed since nothing else holds it.
   dispose(): void {
     closeWorkspaceDB(this.workspaceId);
   }
@@ -130,9 +114,6 @@ export function useWorkspaceRootStore(): WorkspaceRootStore {
   return store;
 }
 
-// Non-throwing variant for the handful of components that render both with and without a
-// workspace open (e.g. the notification bell, which resolves @mention names when inside a
-// workspace and falls back to a placeholder outside one).
 export function useOptionalWorkspaceRootStore(): WorkspaceRootStore | null {
   return useContext(WorkspaceRootStoreContext);
 }

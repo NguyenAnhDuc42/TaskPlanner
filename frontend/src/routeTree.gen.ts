@@ -24,8 +24,9 @@ import { Route as WorkspacesWorkspaceIdSettingsRouteImport } from './routes/work
 import { Route as WorkspacesWorkspaceIdMyTasksRouteImport } from './routes/workspaces/$workspaceId/my-tasks'
 import { Route as WorkspacesWorkspaceIdMembersRouteImport } from './routes/workspaces/$workspaceId/members'
 import { Route as WorkspacesWorkspaceIdInboxRouteImport } from './routes/workspaces/$workspaceId/inbox'
-import { Route as WorkspacesWorkspaceIdTasksTaskIdRouteImport } from './routes/workspaces/$workspaceId/tasks/$taskId'
-import { Route as WorkspacesWorkspaceIdSpacesSpaceIdRouteImport } from './routes/workspaces/$workspaceId/spaces/$spaceId'
+import { Route as WorkspacesWorkspaceIdEntityRouteImport } from './routes/workspaces/$workspaceId/_entity'
+import { Route as WorkspacesWorkspaceIdEntityTasksTaskIdRouteImport } from './routes/workspaces/$workspaceId/_entity/tasks/$taskId'
+import { Route as WorkspacesWorkspaceIdEntitySpacesSpaceIdRouteImport } from './routes/workspaces/$workspaceId/_entity/spaces/$spaceId'
 
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
@@ -107,17 +108,22 @@ const WorkspacesWorkspaceIdInboxRoute =
     path: '/inbox',
     getParentRoute: () => WorkspacesWorkspaceIdRoute,
   } as any)
-const WorkspacesWorkspaceIdTasksTaskIdRoute =
-  WorkspacesWorkspaceIdTasksTaskIdRouteImport.update({
-    id: '/tasks/$taskId',
-    path: '/tasks/$taskId',
+const WorkspacesWorkspaceIdEntityRoute =
+  WorkspacesWorkspaceIdEntityRouteImport.update({
+    id: '/_entity',
     getParentRoute: () => WorkspacesWorkspaceIdRoute,
   } as any)
-const WorkspacesWorkspaceIdSpacesSpaceIdRoute =
-  WorkspacesWorkspaceIdSpacesSpaceIdRouteImport.update({
+const WorkspacesWorkspaceIdEntityTasksTaskIdRoute =
+  WorkspacesWorkspaceIdEntityTasksTaskIdRouteImport.update({
+    id: '/tasks/$taskId',
+    path: '/tasks/$taskId',
+    getParentRoute: () => WorkspacesWorkspaceIdEntityRoute,
+  } as any)
+const WorkspacesWorkspaceIdEntitySpacesSpaceIdRoute =
+  WorkspacesWorkspaceIdEntitySpacesSpaceIdRouteImport.update({
     id: '/spaces/$spaceId',
     path: '/spaces/$spaceId',
-    getParentRoute: () => WorkspacesWorkspaceIdRoute,
+    getParentRoute: () => WorkspacesWorkspaceIdEntityRoute,
   } as any)
 
 export interface FileRoutesByFullPath {
@@ -136,8 +142,8 @@ export interface FileRoutesByFullPath {
   '/workspaces/$workspaceId/my-tasks': typeof WorkspacesWorkspaceIdMyTasksRoute
   '/workspaces/$workspaceId/settings': typeof WorkspacesWorkspaceIdSettingsRoute
   '/workspaces/$workspaceId/': typeof WorkspacesWorkspaceIdIndexRoute
-  '/workspaces/$workspaceId/spaces/$spaceId': typeof WorkspacesWorkspaceIdSpacesSpaceIdRoute
-  '/workspaces/$workspaceId/tasks/$taskId': typeof WorkspacesWorkspaceIdTasksTaskIdRoute
+  '/workspaces/$workspaceId/spaces/$spaceId': typeof WorkspacesWorkspaceIdEntitySpacesSpaceIdRoute
+  '/workspaces/$workspaceId/tasks/$taskId': typeof WorkspacesWorkspaceIdEntityTasksTaskIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -148,13 +154,13 @@ export interface FileRoutesByTo {
   '/auth/sign-up': typeof AuthSignUpRoute
   '/dev/sync-test': typeof DevSyncTestRoute
   '/auth': typeof AuthIndexRoute
+  '/workspaces/$workspaceId': typeof WorkspacesWorkspaceIdIndexRoute
   '/workspaces/$workspaceId/inbox': typeof WorkspacesWorkspaceIdInboxRoute
   '/workspaces/$workspaceId/members': typeof WorkspacesWorkspaceIdMembersRoute
   '/workspaces/$workspaceId/my-tasks': typeof WorkspacesWorkspaceIdMyTasksRoute
   '/workspaces/$workspaceId/settings': typeof WorkspacesWorkspaceIdSettingsRoute
-  '/workspaces/$workspaceId': typeof WorkspacesWorkspaceIdIndexRoute
-  '/workspaces/$workspaceId/spaces/$spaceId': typeof WorkspacesWorkspaceIdSpacesSpaceIdRoute
-  '/workspaces/$workspaceId/tasks/$taskId': typeof WorkspacesWorkspaceIdTasksTaskIdRoute
+  '/workspaces/$workspaceId/spaces/$spaceId': typeof WorkspacesWorkspaceIdEntitySpacesSpaceIdRoute
+  '/workspaces/$workspaceId/tasks/$taskId': typeof WorkspacesWorkspaceIdEntityTasksTaskIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -168,13 +174,14 @@ export interface FileRoutesById {
   '/dev/sync-test': typeof DevSyncTestRoute
   '/workspaces/$workspaceId': typeof WorkspacesWorkspaceIdRouteWithChildren
   '/auth/': typeof AuthIndexRoute
+  '/workspaces/$workspaceId/_entity': typeof WorkspacesWorkspaceIdEntityRouteWithChildren
   '/workspaces/$workspaceId/inbox': typeof WorkspacesWorkspaceIdInboxRoute
   '/workspaces/$workspaceId/members': typeof WorkspacesWorkspaceIdMembersRoute
   '/workspaces/$workspaceId/my-tasks': typeof WorkspacesWorkspaceIdMyTasksRoute
   '/workspaces/$workspaceId/settings': typeof WorkspacesWorkspaceIdSettingsRoute
   '/workspaces/$workspaceId/': typeof WorkspacesWorkspaceIdIndexRoute
-  '/workspaces/$workspaceId/spaces/$spaceId': typeof WorkspacesWorkspaceIdSpacesSpaceIdRoute
-  '/workspaces/$workspaceId/tasks/$taskId': typeof WorkspacesWorkspaceIdTasksTaskIdRoute
+  '/workspaces/$workspaceId/_entity/spaces/$spaceId': typeof WorkspacesWorkspaceIdEntitySpacesSpaceIdRoute
+  '/workspaces/$workspaceId/_entity/tasks/$taskId': typeof WorkspacesWorkspaceIdEntityTasksTaskIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -206,11 +213,11 @@ export interface FileRouteTypes {
     | '/auth/sign-up'
     | '/dev/sync-test'
     | '/auth'
+    | '/workspaces/$workspaceId'
     | '/workspaces/$workspaceId/inbox'
     | '/workspaces/$workspaceId/members'
     | '/workspaces/$workspaceId/my-tasks'
     | '/workspaces/$workspaceId/settings'
-    | '/workspaces/$workspaceId'
     | '/workspaces/$workspaceId/spaces/$spaceId'
     | '/workspaces/$workspaceId/tasks/$taskId'
   id:
@@ -225,13 +232,14 @@ export interface FileRouteTypes {
     | '/dev/sync-test'
     | '/workspaces/$workspaceId'
     | '/auth/'
+    | '/workspaces/$workspaceId/_entity'
     | '/workspaces/$workspaceId/inbox'
     | '/workspaces/$workspaceId/members'
     | '/workspaces/$workspaceId/my-tasks'
     | '/workspaces/$workspaceId/settings'
     | '/workspaces/$workspaceId/'
-    | '/workspaces/$workspaceId/spaces/$spaceId'
-    | '/workspaces/$workspaceId/tasks/$taskId'
+    | '/workspaces/$workspaceId/_entity/spaces/$spaceId'
+    | '/workspaces/$workspaceId/_entity/tasks/$taskId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -349,19 +357,26 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof WorkspacesWorkspaceIdInboxRouteImport
       parentRoute: typeof WorkspacesWorkspaceIdRoute
     }
-    '/workspaces/$workspaceId/tasks/$taskId': {
-      id: '/workspaces/$workspaceId/tasks/$taskId'
-      path: '/tasks/$taskId'
-      fullPath: '/workspaces/$workspaceId/tasks/$taskId'
-      preLoaderRoute: typeof WorkspacesWorkspaceIdTasksTaskIdRouteImport
+    '/workspaces/$workspaceId/_entity': {
+      id: '/workspaces/$workspaceId/_entity'
+      path: ''
+      fullPath: '/workspaces/$workspaceId'
+      preLoaderRoute: typeof WorkspacesWorkspaceIdEntityRouteImport
       parentRoute: typeof WorkspacesWorkspaceIdRoute
     }
-    '/workspaces/$workspaceId/spaces/$spaceId': {
-      id: '/workspaces/$workspaceId/spaces/$spaceId'
+    '/workspaces/$workspaceId/_entity/tasks/$taskId': {
+      id: '/workspaces/$workspaceId/_entity/tasks/$taskId'
+      path: '/tasks/$taskId'
+      fullPath: '/workspaces/$workspaceId/tasks/$taskId'
+      preLoaderRoute: typeof WorkspacesWorkspaceIdEntityTasksTaskIdRouteImport
+      parentRoute: typeof WorkspacesWorkspaceIdEntityRoute
+    }
+    '/workspaces/$workspaceId/_entity/spaces/$spaceId': {
+      id: '/workspaces/$workspaceId/_entity/spaces/$spaceId'
       path: '/spaces/$spaceId'
       fullPath: '/workspaces/$workspaceId/spaces/$spaceId'
-      preLoaderRoute: typeof WorkspacesWorkspaceIdSpacesSpaceIdRouteImport
-      parentRoute: typeof WorkspacesWorkspaceIdRoute
+      preLoaderRoute: typeof WorkspacesWorkspaceIdEntitySpacesSpaceIdRouteImport
+      parentRoute: typeof WorkspacesWorkspaceIdEntityRoute
     }
   }
 }
@@ -384,25 +399,41 @@ const AuthRouteChildren: AuthRouteChildren = {
 
 const AuthRouteWithChildren = AuthRoute._addFileChildren(AuthRouteChildren)
 
+interface WorkspacesWorkspaceIdEntityRouteChildren {
+  WorkspacesWorkspaceIdEntitySpacesSpaceIdRoute: typeof WorkspacesWorkspaceIdEntitySpacesSpaceIdRoute
+  WorkspacesWorkspaceIdEntityTasksTaskIdRoute: typeof WorkspacesWorkspaceIdEntityTasksTaskIdRoute
+}
+
+const WorkspacesWorkspaceIdEntityRouteChildren: WorkspacesWorkspaceIdEntityRouteChildren =
+  {
+    WorkspacesWorkspaceIdEntitySpacesSpaceIdRoute:
+      WorkspacesWorkspaceIdEntitySpacesSpaceIdRoute,
+    WorkspacesWorkspaceIdEntityTasksTaskIdRoute:
+      WorkspacesWorkspaceIdEntityTasksTaskIdRoute,
+  }
+
+const WorkspacesWorkspaceIdEntityRouteWithChildren =
+  WorkspacesWorkspaceIdEntityRoute._addFileChildren(
+    WorkspacesWorkspaceIdEntityRouteChildren,
+  )
+
 interface WorkspacesWorkspaceIdRouteChildren {
+  WorkspacesWorkspaceIdEntityRoute: typeof WorkspacesWorkspaceIdEntityRouteWithChildren
   WorkspacesWorkspaceIdInboxRoute: typeof WorkspacesWorkspaceIdInboxRoute
   WorkspacesWorkspaceIdMembersRoute: typeof WorkspacesWorkspaceIdMembersRoute
   WorkspacesWorkspaceIdMyTasksRoute: typeof WorkspacesWorkspaceIdMyTasksRoute
   WorkspacesWorkspaceIdSettingsRoute: typeof WorkspacesWorkspaceIdSettingsRoute
   WorkspacesWorkspaceIdIndexRoute: typeof WorkspacesWorkspaceIdIndexRoute
-  WorkspacesWorkspaceIdSpacesSpaceIdRoute: typeof WorkspacesWorkspaceIdSpacesSpaceIdRoute
-  WorkspacesWorkspaceIdTasksTaskIdRoute: typeof WorkspacesWorkspaceIdTasksTaskIdRoute
 }
 
 const WorkspacesWorkspaceIdRouteChildren: WorkspacesWorkspaceIdRouteChildren = {
+  WorkspacesWorkspaceIdEntityRoute:
+    WorkspacesWorkspaceIdEntityRouteWithChildren,
   WorkspacesWorkspaceIdInboxRoute: WorkspacesWorkspaceIdInboxRoute,
   WorkspacesWorkspaceIdMembersRoute: WorkspacesWorkspaceIdMembersRoute,
   WorkspacesWorkspaceIdMyTasksRoute: WorkspacesWorkspaceIdMyTasksRoute,
   WorkspacesWorkspaceIdSettingsRoute: WorkspacesWorkspaceIdSettingsRoute,
   WorkspacesWorkspaceIdIndexRoute: WorkspacesWorkspaceIdIndexRoute,
-  WorkspacesWorkspaceIdSpacesSpaceIdRoute:
-    WorkspacesWorkspaceIdSpacesSpaceIdRoute,
-  WorkspacesWorkspaceIdTasksTaskIdRoute: WorkspacesWorkspaceIdTasksTaskIdRoute,
 }
 
 const WorkspacesWorkspaceIdRouteWithChildren =

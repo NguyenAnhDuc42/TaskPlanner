@@ -59,13 +59,8 @@ export function SyncProvider({ workspaceId, children }: Readonly<SyncProviderPro
       try {
         devLog("[SyncProvider] entering workspace", workspaceId);
         await workspaceRootStore.hydrate();
-        // Cleanup may have already run (StrictMode double-mount, fast workspace switch) while we
-        // were awaiting. Its disconnect() is useless against work that hasn't started yet — and
-        // init() bumps connectGeneration itself, which would supersede cleanup's bump and let a
-        // zombie engine bootstrap + hold a live SignalR connection forever. Bail out here...
         if (cancelled) return;
         await syncEngine.init(workspaceId);
-        // ...and if cancellation raced init() itself, tear down the connection it just opened.
         if (cancelled) { void syncEngine.disconnect(); return; }
         setState({ workspaceId, workspaceRootStore, syncEngine, ready: true, error: null });
       } catch (err) {

@@ -13,6 +13,7 @@ import type { Status } from '@/types/status'
 import type { PendingTransaction } from '@/types/sync'
 import type { AssigneeRecord, FavoriteRecord } from '@/types/projects'
 import type { MemberRecord } from '@/types/workspace/member-record'
+import axios from 'axios'
 import { api } from '@/lib/api-client'
 import { refreshSession, isRedirectingToSignIn } from '@/lib/api-client/refresh-session'
 import { devLog, devError } from './dev-log'
@@ -36,9 +37,6 @@ export class SyncEngine {
   private connection: HubConnection | null = null
   private queue: TransactionQueue
   private connectGeneration = 0
-  // Instance-level (not closure-local in connectWithRetry) so disconnect() can clear them —
-  // otherwise a pending retry timer / 'online' listener keeps the whole engine + store graph
-  // alive after the workspace unmounts.
   private retryTimer: ReturnType<typeof setTimeout> | null = null
   private onlineRetryListener: (() => void) | null = null
 
@@ -64,13 +62,10 @@ export class SyncEngine {
   }
 
   async init(workspaceId: string): Promise<void> {
-    // Disconnect previous workspace
     await this.disconnect()
 
-    // Recover interrupted transactions from previous session
     await this.queue.recoverInFlight()
 
-    // Check if we need full bootstrap or delta catch-up
     const meta = await this.rootStore.metadataDB!.get()
     const lastSyncId = meta?.lastSyncId ?? 0
     const isStale = (meta?.databaseVersion ?? 0) < EXPECTED_DATABASE_VERSION
@@ -118,9 +113,7 @@ export class SyncEngine {
       } catch (err) {
         try {
           await refreshSession()
-        } catch {
-          // connectivity blip or real session failure — checked next either way
-        }
+        } catch { /* ignored */ }
 
         if (isRedirectingToSignIn()) return
 
@@ -133,13 +126,11 @@ export class SyncEngine {
     void attempt()
   }
 
-  // ── Bootstrap (first time only) ──
 
   private async bootstrap(workspaceId: string): Promise<void> {
     const res = await api.get(`/workspaces/${workspaceId}/sync/bootstrap`)
     const data: BootstrapResponse = res.data
 
-    // Populate IndexedDB
     const { taskDB, spaceDB, folderDB, statusDB, assigneeDB, favoriteDB, memberDB, metadataDB } = this.rootStore
     await Promise.all([
       taskDB!.putMany(data.tasks as unknown as TaskRecord[]),
@@ -151,10 +142,8 @@ export class SyncEngine {
       memberDB!.putMany(data.members as unknown as MemberRecord[]),
     ])
 
-    // Set metadata
     await metadataDB!.setFullBootstrap(data.lastSyncId, data.databaseVersion)
 
-    // Hydrate stores from what we just saved
     const [tasks, spaces, folders, statuses, assignees, favorites, members] = await Promise.all([
       taskDB!.getAll(),
       spaceDB!.getAll(),
@@ -173,7 +162,6 @@ export class SyncEngine {
     this.rootStore.memberStore.hydrate(members)
   }
 
-  // ── SignalR connection ──
 
   private async connect(workspaceId: string): Promise<void> {
     const lastSyncId = await this.rootStore.metadataDB!.getLastSyncId()
@@ -191,20 +179,16 @@ export class SyncEngine {
       .withAutomaticReconnect({ nextRetryDelayInMilliseconds: () => 5000 })
       .build()
 
-    // Live deltas
     this.connection.on('Delta', (delta: DeltaPayload) => {
       devLog('[SyncEngine] Delta received:', delta.entityType, delta.action, delta.syncId)
       applyDelta(this.rootStore, delta, (ids) => this.queue.cancelByEntityIds(ids))
     })
 
-    // Batch deltas (catch-up on connect/reconnect)
     this.connection.on('DeltaBatch', (payload: DeltaBatchPayload) => {
       devLog('[SyncEngine] DeltaBatch received:', payload.actions.length, 'events, latestSyncId:', payload.latestSyncId)
       applyDeltaBatch(this.rootStore, payload.actions, (ids) => this.queue.cancelByEntityIds(ids))
     })
 
-    // On reconnect, server sends catch-up automatically
-    // but we also flush pending transactions
     this.connection.onreconnected(async () => {
       devLog('[SyncEngine] Reconnected — server will push DeltaBatch catch-up automatically')
       await this.queue.flush((txs) => this.sendBatch(txs))
@@ -212,7 +196,6 @@ export class SyncEngine {
 
     await this.connection.start()
 
-    // Flush any pending transactions from previous session
     await this.queue.flush((txs) => this.sendBatch(txs))
   }
 
@@ -228,21 +211,47 @@ export class SyncEngine {
     }
   }
 
-  // ── Send mutations to server ──
+
+  private static readonly FLUSH_CHUNK_SIZE = 100
 
   private async sendBatch(txs: PendingTransaction[]): Promise<{ traceId: string; success: boolean; error?: string | null }[]> {
     const workspaceId = this.rootStore.workspaceId
-    const response = await api.post('/sync/batch', {
-      items: txs.map(tx => ({
-        traceId: tx.id,
-        entityType: tx.entityType,
-        action: tx.action,
-        entityId: tx.entityId,
-        data: tx.action === 'D' ? null : tx.data,
-      })),
-    }, {
-      headers: { 'X-Workspace-Id': workspaceId },
-    })
-    return response.data.results
+    const results: { traceId: string; success: boolean; error?: string | null }[] = []
+
+    for (let i = 0; i < txs.length; i += SyncEngine.FLUSH_CHUNK_SIZE) {
+      const chunk = txs.slice(i, i + SyncEngine.FLUSH_CHUNK_SIZE)
+      const body = {
+        items: chunk.map(tx => ({
+          traceId: tx.id,
+          entityType: tx.entityType,
+          action: tx.action,
+          entityId: tx.entityId,
+          data: tx.action === 'D' ? null : tx.data,
+        })),
+      }
+
+      let attempt = 0
+      for (;;) {
+        try {
+          const response = await api.post('/sync/batch', body, {
+            headers: { 'X-Workspace-Id': workspaceId },
+          })
+          results.push(...response.data.results)
+          break
+        } catch (err) {
+          const status = axios.isAxiosError(err) ? err.response?.status : undefined
+          if (status === 429 && attempt < 3) {
+            const retryAfterHeader = axios.isAxiosError(err) ? Number(err.response?.headers?.['retry-after']) : NaN
+            const delayMs = (Number.isFinite(retryAfterHeader) && retryAfterHeader > 0 ? retryAfterHeader : 2 * (attempt + 1)) * 1000
+            attempt++
+            await new Promise((resolve) => setTimeout(resolve, delayMs))
+            continue
+          }
+          throw err
+        }
+      }
+    }
+
+    return results
   }
 }

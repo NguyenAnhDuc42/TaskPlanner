@@ -33,6 +33,16 @@ export class DocumentBlockDB {
     ])
   }
 
+  async applyBatch(puts: DocumentBlockRecord[], deleteIds: string[]): Promise<void> {
+    if (puts.length === 0 && deleteIds.length === 0) return
+    const tx = this.db.transaction('document_blocks', 'readwrite')
+    await Promise.all([
+      ...puts.map((b) => tx.store.put(b)),
+      ...deleteIds.map((id) => tx.store.delete(id)),
+      tx.done,
+    ])
+  }
+
   async delete(id: string): Promise<void> {
     await this.db.delete('document_blocks', id)
   }

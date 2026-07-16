@@ -100,6 +100,8 @@ public class RealtimeService(
         }
     }
 
+    private const int DeltaBatchChunkSize = 100;
+
     public async Task NotifySyncEventBatchAsync(Guid workspaceId, IReadOnlyList<SyncEventPayload> payloads, CancellationToken cancellationToken = default)
     {
         if (payloads.Count == 0) return;
@@ -109,29 +111,34 @@ public class RealtimeService(
             return;
         }
 
-        var batch = new SyncDeltaBatch(
-            Actions: [.. payloads],
-            DatabaseVersion: SyncQueryService.CurrentDatabaseVersion,
-            LatestSyncId: payloads[^1].SyncId
-        );
-
         var sw = System.Diagnostics.Stopwatch.StartNew();
         try
         {
             var senderConnectionId = GetSenderConnectionId();
-            if (!string.IsNullOrEmpty(senderConnectionId))
+
+            for (var offset = 0; offset < payloads.Count; offset += DeltaBatchChunkSize)
             {
-                await SyncHubContext.Clients
-                    .GroupExcept($"workspace:{workspaceId}", new[] { senderConnectionId })
-                    .SendAsync("DeltaBatch", batch, cancellationToken);
+                var chunk = payloads.Skip(offset).Take(DeltaBatchChunkSize).ToArray();
+                var batch = new SyncDeltaBatch(
+                    Actions: [.. chunk],
+                    DatabaseVersion: SyncQueryService.CurrentDatabaseVersion,
+                    LatestSyncId: chunk[^1].SyncId
+                );
+
+                if (!string.IsNullOrEmpty(senderConnectionId))
+                {
+                    await SyncHubContext.Clients
+                        .GroupExcept($"workspace:{workspaceId}", new[] { senderConnectionId })
+                        .SendAsync("DeltaBatch", batch, cancellationToken);
+                }
+                else
+                {
+                    await SyncHubContext.Clients
+                        .Group($"workspace:{workspaceId}")
+                        .SendAsync("DeltaBatch", batch, cancellationToken);
+                }
             }
-            else
-            {
-                await SyncHubContext.Clients
-                    .Group($"workspace:{workspaceId}")
-                    .SendAsync("DeltaBatch", batch, cancellationToken);
-            }
-            Logger.LogInformation("[REALTIME] Broadcasted sync DeltaBatch ({Count} events) to workspace {WorkspaceId} in {ElapsedMs}ms", payloads.Count, workspaceId, sw.ElapsedMilliseconds);
+            Logger.LogInformation("[REALTIME] Broadcasted sync DeltaBatch ({Count} events, {Chunks} chunk(s)) to workspace {WorkspaceId} in {ElapsedMs}ms", payloads.Count, (payloads.Count + DeltaBatchChunkSize - 1) / DeltaBatchChunkSize, workspaceId, sw.ElapsedMilliseconds);
         }
         catch (Exception ex)
         {

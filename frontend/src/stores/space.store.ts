@@ -2,7 +2,6 @@ import type { SpaceRecord } from "@/types/projects";
 import { makeAutoObservable, observable } from "mobx";
 
 export class SpaceStore {
-  // deep: false — records replaced wholesale, never mutated in place. See DocumentBlockStore.
   spaces = observable.map<string, SpaceRecord>({}, { deep: false });
 
   constructor() {
@@ -14,7 +13,12 @@ export class SpaceStore {
   }
 
   get allSorted(): SpaceRecord[] {
-    return [...this.all].sort((a, b) => ((a.orderKey ?? "") < (b.orderKey ?? "") ? -1 : 1));
+    return [...this.all].sort((a, b) => {
+      const ka = a.orderKey ?? "";
+      const kb = b.orderKey ?? "";
+      if (ka !== kb) return ka < kb ? -1 : 1;
+      return a.id < b.id ? -1 : a.id > b.id ? 1 : 0;
+    });
   }
 
   getById(id: string): SpaceRecord | undefined {

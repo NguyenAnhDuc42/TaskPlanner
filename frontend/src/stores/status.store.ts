@@ -3,10 +3,14 @@ import { makeAutoObservable, observable } from "mobx";
 
 const EMPTY_STATUSES: Status[] = [];
 
-const byOrderKey = (a: Status, b: Status) => ((a.orderKey ?? "") < (b.orderKey ?? "") ? -1 : 1);
+const byOrderKey = (a: Status, b: Status) => {
+  const ka = a.orderKey ?? "";
+  const kb = b.orderKey ?? "";
+  if (ka !== kb) return ka < kb ? -1 : 1;
+  return a.id < b.id ? -1 : a.id > b.id ? 1 : 0;
+};
 
 export class StatusStore {
-  // deep: false — records replaced wholesale, never mutated in place. See DocumentBlockStore.
   statuses = observable.map<string, Status>({}, { deep: false });
 
   constructor() {
@@ -33,7 +37,6 @@ export class StatusStore {
     return index;
   }
 
-  // Visible = shared workspace-level statuses + the space's own tagged ones, merged + sorted.
   private get visibleBySpaceIndex(): Map<string, Status[]> {
     const index = new Map<string, Status[]>();
     for (const [spaceId, own] of this.bySpaceIndex) {

@@ -1,8 +1,11 @@
 import type { SyncEntityType, SyncAction } from '@/types/sync/delta'
 import type { PendingTransaction } from '@/types/sync/transaction'
 import type { WorkspaceRootStore } from '@/stores/workspace-root.store'
+import { devError } from './dev-log'
 
 export class TransactionQueue {
+  private static readonly MAX_SERVER_REJECTIONS = 5
+
   private rootStore: WorkspaceRootStore
   private flushing = false
 
@@ -33,19 +36,39 @@ export class TransactionQueue {
     return tx
   }
 
+  async enqueueMany(
+    items: {
+      type: SyncAction
+      entityType: SyncEntityType
+      entityId: string
+      data: Record<string, unknown>
+      previousData: Record<string, unknown> | null
+    }[],
+  ): Promise<PendingTransaction[]> {
+    const txs: PendingTransaction[] = items.map((item) => ({
+      id: crypto.randomUUID(),
+      action: item.type,
+      entityType: item.entityType,
+      entityId: item.entityId,
+      data: item.data,
+      previousData: item.previousData,
+      createdAt: Date.now(),
+      status: 'pending',
+      retryCount: 0,
+    }))
+
+    await this.rootStore.transactionDB!.enqueueMany(txs)
+    return txs
+  }
+
   async dequeue(txId: string): Promise<void> {
     await this.rootStore.transactionDB!.dequeue(txId)
   }
 
-  // Cancel all pending AND in-flight transactions for a given entity.
-  // In-flight txs can't be un-sent but dequeuing prevents them from being retried,
-  // and the applyDelta parent-space guard prevents their echo from re-adding the entity.
   async cancelByEntityId(entityId: string): Promise<void> {
     await this.cancelByEntityIds([entityId])
   }
 
-  // Bulk variant for cascade deletes: one pending+inFlight read for the whole id set, instead of
-  // two IDB getAll's per child entity (a space with N children used to cost 2N reads).
   async cancelByEntityIds(entityIds: string[]): Promise<void> {
     if (entityIds.length === 0) return
     const ids = new Set(entityIds)
@@ -58,12 +81,6 @@ export class TransactionQueue {
     }
   }
 
-  // Collapse redundant transactions for the same entity before sending.
-  // Rules (applied per-entityId group, oldest-first):
-  //   C+D  → cancel both (never reached server)
-  //   D    → cancel all preceding Us, keep D
-  //   C+U(s) → merge Us into C, send one C
-  //   U+U(s) → merge into one U (last-write-wins per field)
   private squash(sorted: PendingTransaction[]): { toSend: PendingTransaction[]; toCancel: string[] } {
     const groups = new Map<string, PendingTransaction[]>()
     const groupFirstTime = new Map<string, number>()
@@ -85,19 +102,20 @@ export class TransactionQueue {
       const updates = txs.filter(t => t.action === 'U')
 
       if (create && del) {
-        // C+D: entity never reached server → cancel everything
         toCancel.push(...txs.map(t => t.id))
       } else if (del) {
-        // D beats all pending Us
         toCancel.push(...updates.map(t => t.id))
         toSend.push(del)
-      } else if (create && updates.length > 0) {
-        // C+U(s): merge all updates into the create payload
-        const mergedData = updates.reduce((acc, u) => ({ ...acc, ...u.data }), { ...create.data })
-        toCancel.push(...updates.map(t => t.id))
-        toSend.push({ ...create, data: mergedData })
-      } else if (!create && updates.length > 1) {
-        // U+U(s): merge into one U
+      } else if (create) {
+        const laterTxs = txs.filter(t => t !== create)
+        if (laterTxs.length === 0) {
+          toSend.push(create)
+        } else {
+          const mergedData = laterTxs.reduce((acc, t) => ({ ...acc, ...t.data }), { ...create.data })
+          toCancel.push(...laterTxs.map(t => t.id))
+          toSend.push({ ...create, data: mergedData })
+        }
+      } else if (updates.length > 1) {
         const mergedData = updates.reduce((acc, u) => ({ ...acc, ...u.data }), {} as Record<string, unknown>)
         toCancel.push(...updates.slice(0, -1).map(t => t.id))
         toSend.push({ ...updates[updates.length - 1], data: mergedData })
@@ -106,7 +124,6 @@ export class TransactionQueue {
       }
     }
 
-    // Preserve causal order by first-occurrence time of each entity group
     toSend.sort((a, b) => (groupFirstTime.get(a.entityId) ?? 0) - (groupFirstTime.get(b.entityId) ?? 0))
 
     return { toSend, toCancel }
@@ -135,15 +152,19 @@ export class TransactionQueue {
 
       try {
         const results = await sendBatch(toSend)
-        // Mark failed items back to pending so they retry next flush.
-        // Successful items are dequeued by the SignalR DeltaBatch (clientTraceId matching).
         for (const r of results) {
           if (!r.success) {
-            await this.rootStore.transactionDB!.markPending(r.traceId)
+            const tx = toSend.find(t => t.id === r.traceId)
+            const rejections = (tx?.retryCount ?? 0) + 1
+            if (rejections >= TransactionQueue.MAX_SERVER_REJECTIONS) {
+              devError(`[TransactionQueue] dropping poison transaction ${r.traceId} (${tx?.entityType}/${tx?.action}) after ${rejections} server rejections:`, r.error)
+              await this.rootStore.transactionDB!.dequeue(r.traceId)
+            } else {
+              await this.rootStore.transactionDB!.markPending(r.traceId, rejections)
+            }
           }
         }
       } catch {
-        // Network error — mark all back to pending
         for (const tx of toSend) {
           await this.rootStore.transactionDB!.markPending(tx.id)
         }
