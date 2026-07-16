@@ -49,7 +49,7 @@ const collisionDetectionStrategy: CollisionDetection = (args) => {
 
 export const SpaceBoard = observer(function SpaceBoard({ spaceId, onOpenWorkflow }: Readonly<SpaceBoardProps>) {
   const navigate = useNavigate({ from: "/workspaces/$workspaceId/spaces/$spaceId" });
-  const { workspaceId } = useParams({ from: "/workspaces/$workspaceId/spaces/$spaceId" });
+  const { workspaceId } = useParams({ from: "/workspaces/$workspaceId/_entity/spaces/$spaceId" });
   const isMobile = useIsMobile();
   const search = useSearch({ strict: false }) as { contextPanel?: { type: string; id: string } };
   const selectedItemId = search.contextPanel?.id;
