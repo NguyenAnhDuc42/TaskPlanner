@@ -69,8 +69,8 @@ export const TaskDetailCanvas = observer(function TaskDetailCanvas({ taskId }: T
           {/* Header Title Area */}
           <div className="flex items-start gap-3">
             <UniversalPicker
-              icon={task.icon || "CheckSquare"}
-              color={task.color || "#6366f1"}
+              icon={task.icon || "Circle"}
+              color={task.color || "#ffffff"}
               onSelect={(icon, color) => updateTask({ icon, color })}
               size="lg"
             />

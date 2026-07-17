@@ -34,11 +34,6 @@ export const GlobalSearch = observer(function GlobalSearch() {
       .map((s) => ({ id: s.id, name: s.name, icon: s.icon, color: s.color, type: EntityLayerType.ProjectSpace }))
       .slice(0, MAX_RESULTS_PER_SECTION);
 
-    const folders: SearchResult[] = rootStore.folderStore.all
-      .filter((f) => f.name.toLowerCase().includes(q))
-      .map((f) => ({ id: f.id, name: f.name, icon: f.icon, color: f.color, type: EntityLayerType.ProjectFolder }))
-      .slice(0, MAX_RESULTS_PER_SECTION);
-
     const tasks: SearchResult[] = rootStore.taskStore.all
       .filter((t) => t.name.toLowerCase().includes(q))
       .map((t) => ({ id: t.id, name: t.name, icon: t.icon, color: t.color, type: EntityLayerType.ProjectTask }))
@@ -46,10 +41,9 @@ export const GlobalSearch = observer(function GlobalSearch() {
 
     return [
       { label: "Spaces", results: spaces },
-      { label: "Folders", results: folders },
       { label: "Tasks", results: tasks },
     ].filter((section) => section.results.length > 0);
-  }, [deferredQuery, rootStore.spaceStore.all, rootStore.folderStore.all, rootStore.taskStore.all]);
+  }, [deferredQuery, rootStore.spaceStore.all, rootStore.taskStore.all]);
 
   const hasResults = sections.length > 0;
 
@@ -57,8 +51,6 @@ export const GlobalSearch = observer(function GlobalSearch() {
     if (!workspaceId) return;
     if (result.type === EntityLayerType.ProjectSpace) {
       navigate({ to: "/workspaces/$workspaceId/spaces/$spaceId", params: { workspaceId, spaceId: result.id } });
-    } else if (result.type === EntityLayerType.ProjectFolder) {
-      return; 
     } else if (result.type === EntityLayerType.ProjectTask) {
       navigate({ to: "/workspaces/$workspaceId/tasks/$taskId", params: { workspaceId, taskId: result.id } });
     }
@@ -67,7 +59,7 @@ export const GlobalSearch = observer(function GlobalSearch() {
   };
 
   const defaultIcon = (type: EntityLayerType) =>
-    type === EntityLayerType.ProjectTask ? "CheckSquare" : type === EntityLayerType.ProjectFolder ? "Folder" : "LayoutGrid";
+    type === EntityLayerType.ProjectTask ? "Circle" : "Orbit";
 
   return (
     <div className="relative w-full max-w-md rounded-md group">
@@ -80,7 +72,7 @@ export const GlobalSearch = observer(function GlobalSearch() {
         onChange={(e) => setQuery(e.target.value)}
         onFocus={() => setIsFocused(true)}
         onBlur={() => setTimeout(() => setIsFocused(false), 150)}
-        placeholder="Search spaces, folders, tasks... (⌘K)"
+        placeholder="Search spaces, tasks... (⌘K)"
         className="w-full h-7 bg-secondary/60 hover:bg-secondary/80 focus:bg-secondary/80 border border-transparent focus:border-primary/30 focus:ring-1 focus:ring-primary/20 rounded-md pl-8 pr-3 text-[11px] font-medium placeholder:text-muted-foreground/50 transition-all outline-none shadow-inner relative z-10"
       />
 
@@ -108,7 +100,7 @@ export const GlobalSearch = observer(function GlobalSearch() {
                     <DynamicIcon
                       name={result.icon ?? defaultIcon(result.type)}
                       size={14}
-                      color={result.color || undefined}
+                      color={result.color || "#ffffff"}
                       className="shrink-0"
                     />
                     <span className="text-[12px] font-medium truncate">{result.name}</span>

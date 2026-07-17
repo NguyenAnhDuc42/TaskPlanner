@@ -1,6 +1,6 @@
 import { useWorkspaceRole } from "@/features/workspace/context/use-workspace-role";
 
-import { Plus, ChevronDown, LayoutGrid, ListTodo } from "lucide-react";
+import { Plus, ChevronDown, Orbit, ListTodo } from "lucide-react";
 import { useNavigate } from "@tanstack/react-router";
 import { useWorkspace } from "@/features/workspace/context/workspace-context";
 import { DndContext, DragOverlay } from "@dnd-kit/core";
@@ -63,7 +63,7 @@ export function HierarchySidebar() {
     setIsCreatingSpace(false);
     setNewSpaceName("");
     if (name) {
-      spaceMutations.create({ name, isPrivate: false, color: "#6366f1", icon: "LayoutGrid" })
+      spaceMutations.create({ name, isPrivate: false, color: "#ffffff", icon: "Orbit" })
         .catch((err) => toast.error(extractErrorMessage(err, "Failed to create space")));
     }
     setTimeout(() => { submittedRef.current = false; }, 300);
@@ -139,7 +139,7 @@ export function HierarchySidebar() {
                       {isCreatingSpace ? (
                         <div className="flex items-center gap-1.5 px-1 py-0.5 rounded-md border border-primary/40 bg-primary/5">
                           <div className="w-5 h-5 flex items-center justify-center shrink-0">
-                            <LayoutGrid className="h-3.5 w-3.5" color="#6366f1" />
+                            <Orbit className="h-3.5 w-3.5" color="#ffffff" />
                           </div>
                           <input
                             ref={spaceInputRef}

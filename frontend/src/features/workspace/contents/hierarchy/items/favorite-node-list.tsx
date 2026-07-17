@@ -37,7 +37,7 @@ function FavItemContent({
   isDragging?: boolean;
 }) {
   const isTask = fav.entityLayerType === EntityLayerType.ProjectTask;
-  const iconName = fav.icon ?? (isTask ? "CheckSquare" : "LayoutGrid");
+  const iconName = fav.icon ?? (isTask ? "Circle" : "Orbit");
 
   const button = (
     <button
@@ -54,7 +54,7 @@ function FavItemContent({
       {...dragHandleProps}
     >
       <div className="w-5 h-5 flex items-center justify-center shrink-0 mr-1.5">
-        <DynamicIcon name={iconName} size={14} color={fav.color || undefined} className="transition-none" />
+        <DynamicIcon name={iconName} size={14} color={fav.color || "#ffffff"} className="transition-none" />
       </div>
       <span className="text-[11px] font-semibold leading-tight truncate whitespace-nowrap">
         {fav.name ?? "—"}

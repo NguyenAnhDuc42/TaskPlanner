@@ -66,7 +66,7 @@ export const FolderNodeItem = observer(function FolderNodeItem({
               <DynamicIcon
                 name={folder.icon || "Folder"}
                 size={14}
-                color={folder.color}
+                color={folder.color || "#ffffff"}
                 className={cn(
                   "absolute transition-none",
                   hasTasks && "group-hover/icon:opacity-0",

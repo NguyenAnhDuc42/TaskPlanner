@@ -26,8 +26,8 @@ type SpaceFormAction =
 
 const initialSpaceState: SpaceFormState = {
   name: "",
-  icon: "LayoutGrid",
-  color: "#6366f1",
+  icon: "Orbit",
+  color: "#ffffff",
 };
 
 function spaceFormReducer(state: SpaceFormState, action: SpaceFormAction): SpaceFormState {

@@ -114,9 +114,9 @@ export const SpaceViewBody = observer(function SpaceViewBody({ spaceId }: Readon
           leading={
             <div className="flex items-center gap-1.5 text-xs min-w-0">
               <DynamicIcon
-                name={space.icon ?? "LayoutGrid"}
+                name={space.icon ?? "Orbit"}
                 size={14}
-                color={space.color ?? "#3b82f6"}
+                color={space.color ?? "#ffffff"}
                 className="shrink-0"
               />
               <span className="font-semibold text-foreground/80 truncate max-w-48">{space.name}</span>

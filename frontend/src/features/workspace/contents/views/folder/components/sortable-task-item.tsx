@@ -53,7 +53,7 @@ export function SortableTaskItem({
     pointerEvents: isDragging ? "none" as const : undefined,
   };
 
-  const itemColor = task.color || "#3b82f6";
+  const itemColor = task.color || "#ffffff";
 
   return (
     <div

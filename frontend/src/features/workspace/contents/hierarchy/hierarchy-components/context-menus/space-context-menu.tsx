@@ -83,8 +83,8 @@ export const SpaceContextMenu = observer(function SpaceContextMenu({
           <EditFieldsSubmenu
             isContext={isContext}
             name={space.name}
-            icon={space.icon || "LayoutGrid"}
-            color={space.color || "#6366f1"}
+            icon={space.icon || "Orbit"}
+            color={space.color || "#ffffff"}
             onRename={(name) => {
               if (!name.trim()) return;
               spaceMutations.update(spaceId, { name: name.trim() }).catch((err) => {

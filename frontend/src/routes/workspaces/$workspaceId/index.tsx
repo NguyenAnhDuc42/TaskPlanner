@@ -51,7 +51,7 @@ const WorkspaceIndexRedirect = observer(function WorkspaceIndexRedirect() {
     setIsCreating(false);
     setName("");
     if (trimmed) {
-      spaceMutations.create({ name: trimmed, isPrivate: false, color: "#6366f1", icon: "LayoutGrid" })
+      spaceMutations.create({ name: trimmed, isPrivate: false, color: "#ffffff", icon: "Orbit" })
         .catch((err) => toast.error(extractErrorMessage(err, "Failed to create space")));
     }
     setTimeout(() => { submittedRef.current = false; }, 300);

@@ -66,7 +66,7 @@ export const FolderContextMenu = observer(function FolderContextMenu({
             isContext={isContext}
             name={folder.name}
             icon={folder.icon || "Folder"}
-            color={folder.color || "#6366f1"}
+            color={folder.color || "#ffffff"}
             onRename={(name) => {
               if (!name.trim()) return;
               folderMutations.update(folderId, { name: name.trim() }).catch((err) => {

@@ -2,7 +2,7 @@ import { observer } from "mobx-react-lite";
 import { useLocation, useNavigate } from "@tanstack/react-router";
 import { useWorkspace } from "@/features/workspace/context/workspace-context";
 import { cn } from "@/lib/utils";
-import { CheckSquare, MoreVertical } from "lucide-react";
+import { Circle, MoreVertical } from "lucide-react";
 import { useWorkspaceRootStore } from "@/stores/workspace-root.store";
 import { SortableItem } from "../dnd/sortable-item";
 import { EntityLayerType, EntityLayerType as EntityLayerConst,} from "@/types/entity-layer-type";
@@ -72,7 +72,7 @@ export const TaskNodeItem = observer(function TaskNodeItem({
               {task.icon ? (
                 <DynamicIcon name={task.icon} color={task.color} size={14} />
               ) : (
-                <CheckSquare className="h-3.5 w-3.5 opacity-60" />
+                <Circle className="h-3.5 w-3.5 text-white" />
               )}
             </div>
             <span className="text-[11px] font-semibold leading-tight">

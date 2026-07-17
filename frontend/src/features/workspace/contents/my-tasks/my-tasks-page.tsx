@@ -78,7 +78,7 @@ export const MyTasksPage = observer(function MyTasksPage() {
             {groups.map(({ space, tasks }) => (
               <div key={space?.id ?? "unknown"} className="flex flex-col">
                 <div className="flex items-center gap-1.5 px-1 py-1.5 border-b border-border/30">
-                  <DynamicIcon name={space?.icon ?? "LayoutGrid"} size={13} color={space?.color ?? "#6b7280"} />
+                  <DynamicIcon name={space?.icon ?? "Orbit"} size={13} color={space?.color ?? "#ffffff"} />
                   <span className="text-[11px] font-bold text-foreground/70">{space?.name ?? "Unknown Space"}</span>
                   <span className="text-[10px] font-semibold text-muted-foreground/40">{tasks.length}</span>
                 </div>

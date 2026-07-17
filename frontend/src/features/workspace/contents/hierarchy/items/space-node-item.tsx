@@ -43,7 +43,7 @@ export const SpaceNodeItem = observer(function SpaceNodeItem({
   if (!space) return null;
 
   const isActive = pathname.includes(`/spaces/${space.id}`);
-  const spaceColor = space.color || "var(--primary)";
+  const spaceColor = space.color || "#ffffff";
 
   const effectiveOpen = isForcedOpen || isOpen;
 
@@ -86,7 +86,7 @@ export const SpaceNodeItem = observer(function SpaceNodeItem({
               }}
             >
               <DynamicIcon
-                name={space.icon || "LayoutGrid"}
+                name={space.icon || "Orbit"}
                 size={14}
                 color={spaceColor}
                 className={cn(

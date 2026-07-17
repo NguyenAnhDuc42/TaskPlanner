@@ -75,9 +75,9 @@ export const EntityShell = observer(function EntityShell() {
               className="flex items-center gap-1.5 min-w-0 text-muted-foreground hover:text-foreground transition-colors"
             >
               <DynamicIcon
-                name={taskSpace.icon || "LayoutGrid"}
+                name={taskSpace.icon || "Orbit"}
                 size={14}
-                color={taskSpace.color || "#3b82f6"}
+                color={taskSpace.color || "#ffffff"}
                 className="shrink-0"
               />
               <span className="truncate">{taskSpace.name}</span>
@@ -86,9 +86,9 @@ export const EntityShell = observer(function EntityShell() {
           </>
         )}
         <DynamicIcon
-          name={task?.icon || "CheckSquare"}
+          name={task?.icon || "Circle"}
           size={14}
-          color={task?.color || "#6366f1"}
+          color={task?.color || "#ffffff"}
           className="shrink-0"
         />
         <span className="font-semibold text-foreground/80 truncate">

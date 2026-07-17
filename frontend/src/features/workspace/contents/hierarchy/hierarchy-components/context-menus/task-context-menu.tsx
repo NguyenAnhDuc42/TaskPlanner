@@ -66,8 +66,8 @@ export const TaskContextMenu = observer(function TaskContextMenu({
           <EditFieldsSubmenu
             isContext={isContext}
             name={task.name}
-            icon={task.icon || "CheckSquare"}
-            color={task.color || "#6366f1"}
+            icon={task.icon || "Circle"}
+            color={task.color || "#ffffff"}
             onRename={(name) => {
               if (!name.trim()) return;
               taskMutations.updateLocal(taskId, { name: name.trim() }).catch((err) => console.error("Failed to rename task", err));

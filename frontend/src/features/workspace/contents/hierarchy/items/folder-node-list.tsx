@@ -49,7 +49,7 @@ export const NodeFoldersList = observer(function NodeFoldersList({
     onCreatingChange?.(false);
     setNewName("");
     if (name) {
-      folderMutations.create({ spaceId, name, color: "#6366f1", icon: "Folder" })
+      folderMutations.create({ spaceId, name, color: "#ffffff", icon: "Folder" })
         .catch((err) => toast.error(extractErrorMessage(err, "Failed to create folder")));
     }
     setTimeout(() => { submittedRef.current = false; }, 300);
@@ -68,7 +68,7 @@ export const NodeFoldersList = observer(function NodeFoldersList({
         {isCreating && (
           <div className="flex items-center gap-1.5 px-1 py-0.5 rounded-md border border-primary/40 bg-primary/5 mb-px">
             <div className="w-5 h-5 flex items-center justify-center shrink-0">
-              <FolderIcon className="h-3.5 w-3.5" color="#6366f1" />
+              <FolderIcon className="h-3.5 w-3.5" color="#ffffff" />
             </div>
             <input
               ref={inputRef}

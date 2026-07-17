@@ -1,4 +1,4 @@
-import { CheckSquare } from "lucide-react";
+import { Circle } from "lucide-react";
 import { DynamicIcon } from "@/components/dynamic-icon";
 import { cn } from "@/lib/utils";
 import { EntityLayerType as EntityLayerConst } from "@/types/entity-layer-type";
@@ -12,19 +12,19 @@ import type { DragItemData } from "./drag-item-type";
 export function DragOverlayRow({ item }: Readonly<{ item: DragItemData }>) {
   const isSpace = item.type === EntityLayerConst.ProjectSpace;
   const isTask = item.type === EntityLayerConst.ProjectTask;
-  const fallbackIcon = isSpace ? "LayoutGrid" : "Folder";
+  const fallbackIcon = isSpace ? "Orbit" : "Folder";
 
   return (
     <div className="flex items-center px-1 py-0.5 rounded-md mb-px border bg-background text-muted-foreground border-transparent">
       {isTask && <div className="w-1 h-1 rounded-full bg-muted-foreground/30 mr-1 shrink-0" />}
       <div className="w-5 h-5 flex items-center justify-center shrink-0 mr-1.5">
         {isTask && !item.icon ? (
-          <CheckSquare className="h-3.5 w-3.5 opacity-60" />
+          <Circle className="h-3.5 w-3.5 text-white" />
         ) : (
           <DynamicIcon
             name={item.icon || fallbackIcon}
             size={14}
-            color={item.color || (isSpace ? "var(--primary)" : undefined)}
+            color={item.color || "#ffffff"}
           />
         )}
       </div>

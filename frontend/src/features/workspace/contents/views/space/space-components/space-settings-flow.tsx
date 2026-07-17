@@ -87,8 +87,8 @@ export const SpaceSettingsFlow = observer(forwardRef<SpaceSettingsFlowHandle, Sp
               toast.error(extractErrorMessage(err, "Failed to rename space"));
             });
           }}
-          spaceIcon={space.icon ?? "LayoutGrid"}
-          spaceColor={space.color ?? "#3b82f6"}
+          spaceIcon={space.icon ?? "Orbit"}
+          spaceColor={space.color ?? "#ffffff"}
           onSpaceIconChange={(icon, color) => {
             spaceMutations.update(spaceId, { icon, color }).catch((err) => {
               console.error("Failed to update space icon", err);

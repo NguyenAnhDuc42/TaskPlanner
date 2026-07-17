@@ -37,8 +37,8 @@ export const SpaceDocumentsPanel = observer(function SpaceDocumentsPanel({ space
         <div className="px-8 pt-8 pb-4">
           <div className="flex items-center gap-3">
             <UniversalPicker
-              icon={space.icon || "LayoutGrid"}
-              color={space.color || "#3b82f6"}
+              icon={space.icon || "Orbit"}
+              color={space.color || "#ffffff"}
               onSelect={(icon, color) => updateField({ icon, color })}
               size="lg"
             />
