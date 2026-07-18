@@ -13,14 +13,13 @@ public class BatchFlushHandler(
 ) : ICommandHandler<BatchFlushCommand, BatchFlushResult>
 {
 
-    // Pre-loaded entities shared across all items in the batch.
-    // Bulk-loaded upfront to avoid N×entity queries.
     private record BatchContext(
         Dictionary<Guid, ProjectTask> Tasks,
         Dictionary<Guid, ProjectFolder> Folders,
         Dictionary<Guid, ProjectSpace> Spaces,
         Dictionary<Guid, Comment> Comments,
         Dictionary<Guid, DocumentBlock> DocumentBlocks,
+        Dictionary<Guid, Document> Documents,
         Dictionary<Guid, TaskAssignment> Assignments,
         Dictionary<Guid, ProjectWorkspace> Workspaces
     );
@@ -91,6 +90,7 @@ public class BatchFlushHandler(
         var spaceUDIds = items.Where(i => i.EntityType == SyncEntityType.Space && i.Action != SyncAction.C).Select(i => i.EntityId).ToHashSet();
         var commentUDIds = items.Where(i => i.EntityType == SyncEntityType.Comment && i.Action != SyncAction.C).Select(i => i.EntityId).ToHashSet();
         var blockUDIds = items.Where(i => i.EntityType == SyncEntityType.DocumentBlock && i.Action != SyncAction.C).Select(i => i.EntityId).ToHashSet();
+        var documentUDIds = items.Where(i => i.EntityType == SyncEntityType.Document && i.Action != SyncAction.C).Select(i => i.EntityId).ToHashSet();
         var assignmentDIds = items.Where(i => i.EntityType == SyncEntityType.Assignee && i.Action == SyncAction.D).Select(i => i.EntityId).ToHashSet();
         var workspaceUIds = items.Where(i => i.EntityType == SyncEntityType.Workspace && i.Action == SyncAction.U).Select(i => i.EntityId).ToHashSet();
 
@@ -110,8 +110,16 @@ public class BatchFlushHandler(
             .Select(i => GetGuidProp(i.Data, "taskId"))
             .Where(id => id.HasValue).Select(id => id!.Value).ToHashSet();
 
+        // Parent documents referenced by Document Creates (needed for the same-space validation
+        // CreateDocumentHandler does online).
+        var documentCreateParentIds = items
+            .Where(i => i.EntityType == SyncEntityType.Document && i.Action == SyncAction.C)
+            .Select(i => GetGuidProp(i.Data, "parentDocumentId"))
+            .Where(id => id.HasValue).Select(id => id!.Value).ToHashSet();
+
         var allTaskIds = taskUDIds.Union(commentCreateTaskIds).Union(assigneeCreateTaskIds).ToHashSet();
         var allFolderIds = folderUDIds.Union(taskCreateFolderIds).ToHashSet();
+        var allDocumentIds = documentUDIds.Union(documentCreateParentIds).ToHashSet();
 
         // Bulk load entities
         var taskDict = allTaskIds.Count > 0
@@ -129,6 +137,9 @@ public class BatchFlushHandler(
         var blockDict = blockUDIds.Count > 0
             ? await db.DocumentBlocks.Where(b => blockUDIds.Contains(b.Id) && b.DeletedAt == null).ToDictionaryAsync(b => b.Id, ct)
             : [];
+        var documentDict = allDocumentIds.Count > 0
+            ? await db.Documents.Where(d => allDocumentIds.Contains(d.Id) && d.DeletedAt == null).ToDictionaryAsync(d => d.Id, ct)
+            : [];
         var assignmentDict = assignmentDIds.Count > 0
             ? await db.TaskAssignments.Where(a => assignmentDIds.Contains(a.Id) && a.DeletedAt == null).ToDictionaryAsync(a => a.Id, ct)
             : [];
@@ -136,7 +147,7 @@ public class BatchFlushHandler(
             ? await db.ProjectWorkspaces.Where(w => workspaceUIds.Contains(w.Id) && w.DeletedAt == null).ToDictionaryAsync(w => w.Id, ct)
             : [];
 
-        return new BatchContext(taskDict, folderDict, spaceDict, commentDict, blockDict, assignmentDict, workspaceDict);
+        return new BatchContext(taskDict, folderDict, spaceDict, commentDict, blockDict, documentDict, assignmentDict, workspaceDict);
     }
 
     private Task<List<SyncEvent>> ProcessItemAsync(BatchFlushItem item, BatchContext ctx, CancellationToken ct) =>
@@ -157,6 +168,9 @@ public class BatchFlushHandler(
             (SyncEntityType.DocumentBlock, SyncAction.C) => CreateDocumentBlockAsync(item, ctx, ct),
             (SyncEntityType.DocumentBlock, SyncAction.U) => UpdateDocumentBlockAsync(item, ctx, ct),
             (SyncEntityType.DocumentBlock, SyncAction.D) => DeleteDocumentBlockAsync(item, ctx, ct),
+            (SyncEntityType.Document, SyncAction.C) => CreateDocumentAsync(item, ctx, ct),
+            (SyncEntityType.Document, SyncAction.U) => UpdateDocumentAsync(item, ctx, ct),
+            (SyncEntityType.Document, SyncAction.D) => DeleteDocumentAsync(item, ctx, ct),
             (SyncEntityType.Assignee, SyncAction.C) => CreateAssigneeAsync(item, ctx, ct),
             (SyncEntityType.Assignee, SyncAction.D) => DeleteAssigneeAsync(item, ctx, ct),
             (SyncEntityType.Workspace, SyncAction.U) => UpdateWorkspaceAsync(item, ctx, ct),
@@ -347,6 +361,24 @@ public class BatchFlushHandler(
                 }, SyncJson.Options)
             });
 
+            if (space.DefaultDocumentId != Guid.Empty)
+            {
+                var rootDocument = Document.Create(
+                    id: space.DefaultDocumentId, projectWorkspaceId: workspaceContext.WorkspaceId,
+                    projectSpaceId: space.Id, name: space.Name, orderKey: FractionalIndex.Start(), creatorId: creatorId);
+                db.Documents.Add(rootDocument);
+                events.Add(new SyncEvent {
+                    ProjectWorkspaceId = workspaceContext.WorkspaceId, EntityType = SyncEntityType.Document,
+                    EntityId = rootDocument.Id, Action = SyncAction.C, ClientTraceId = item.TraceId, AuthorUserId = creatorId,
+                    Payload = JsonSerializer.Serialize(new {
+                        id = rootDocument.Id, workspaceId = workspaceContext.WorkspaceId, spaceId = rootDocument.ProjectSpaceId,
+                        parentDocumentId = rootDocument.ParentDocumentId, name = rootDocument.Name,
+                        orderKey = rootDocument.OrderKey, icon = rootDocument.Icon, color = rootDocument.Color,
+                        createdAt = rootDocument.CreatedAt
+                    }, SyncJson.Options)
+                });
+            }
+
             // No starter statuses seeded here — Status is workspace-visible everywhere, so a new
             // space just uses whatever statuses the workspace already has (see Status.cs).
             db.SyncEvents.AddRange(events);
@@ -415,6 +447,11 @@ public class BatchFlushHandler(
                 .ExecuteUpdateAsync(s => s.SetProperty(f => f.DeletedAt, now).SetProperty(f => f.UpdatedAt, now), ct);
             await db.Statuses.Where(st => st.ProjectSpaceId == space.Id && st.DeletedAt == null)
                 .ExecuteUpdateAsync(s => s.SetProperty(st => st.DeletedAt, now).SetProperty(st => st.UpdatedAt, now), ct);
+
+            var spaceDocumentIds = await db.Documents.AsNoTracking()
+                .Where(d => d.ProjectSpaceId == space.Id && d.DeletedAt == null)
+                .Select(d => d.Id).ToListAsync(ct);
+            await DocumentCascadeHelper.CascadeDeleteAsync(db, spaceDocumentIds, ct);
 
             space.Delete();
             events.Add(new SyncEvent {
@@ -790,6 +827,143 @@ public class BatchFlushHandler(
                 ProjectWorkspaceId = block.ProjectWorkspaceId, EntityType = SyncEntityType.DocumentBlock,
                 EntityId = block.Id, Action = SyncAction.D, ClientTraceId = item.TraceId, AuthorUserId = memberId,
                 Payload = JsonSerializer.Serialize(new { id = block.Id }, SyncJson.Options)
+            });
+            db.SyncEvents.AddRange(events);
+            idempotencyService.MarkAsProcessed(item.TraceId);
+            return Result<int>.Success(0);
+        }, ct);
+
+        if (!result.IsSuccess) throw new InvalidOperationException(result.Error?.Description ?? "Transaction failed");
+        return events;
+    }
+
+    // ── Document ──────────────────────────────────────────────────────────────
+
+    private async Task<List<SyncEvent>> CreateDocumentAsync(BatchFlushItem item, BatchContext ctx, CancellationToken ct)
+    {
+        var cmd = Deserialize<CreateDocumentCommand>(item.Data);
+
+        if (cmd.ParentDocumentId.HasValue)
+        {
+            if (!ctx.Documents.TryGetValue(cmd.ParentDocumentId.Value, out var parent))
+                parent = await db.Documents.AsNoTracking().FirstOrDefaultAsync(d => d.Id == cmd.ParentDocumentId.Value && d.DeletedAt == null, ct);
+            if (parent is null || parent.ProjectSpaceId != cmd.SpaceId)
+                throw new InvalidOperationException(DocumentError.NotFound.Code);
+        }
+
+        syncPermission.RequireMember();
+
+        var creatorId = workspaceContext.CurrentMember?.Id ?? Guid.Empty;
+        List<SyncEvent> events = [];
+
+        var result = await db.ExecuteInTransactionAsync(async () =>
+        {
+            if (await idempotencyService.HasProcessedAsync(item.TraceId, ct)) return Result<int>.Success(0);
+
+            var maxKey = await db.Documents.AsNoTracking()
+                .Where(d => d.ProjectSpaceId == cmd.SpaceId && d.ParentDocumentId == cmd.ParentDocumentId && d.DeletedAt == null)
+                .Select(d => (string?)d.OrderKey).OrderByDescending(k => k).FirstOrDefaultAsync(ct);
+            var orderKey = FractionalIndex.SafeAfter(maxKey);
+
+            var document = Document.Create(id: cmd.Id, projectWorkspaceId: workspaceContext.WorkspaceId,
+                projectSpaceId: cmd.SpaceId, name: cmd.Name, orderKey: orderKey, creatorId: creatorId,
+                parentDocumentId: cmd.ParentDocumentId, icon: cmd.Icon, color: cmd.Color);
+            db.Documents.Add(document);
+
+            events.Add(new SyncEvent {
+                ProjectWorkspaceId = workspaceContext.WorkspaceId, EntityType = SyncEntityType.Document,
+                EntityId = document.Id, Action = SyncAction.C, ClientTraceId = item.TraceId, AuthorUserId = creatorId,
+                Payload = JsonSerializer.Serialize(new {
+                    id = document.Id, workspaceId = workspaceContext.WorkspaceId, spaceId = document.ProjectSpaceId,
+                    parentDocumentId = document.ParentDocumentId, name = document.Name, orderKey = document.OrderKey,
+                    icon = document.Icon, color = document.Color, createdAt = document.CreatedAt
+                }, SyncJson.Options)
+            });
+            db.SyncEvents.AddRange(events);
+            idempotencyService.MarkAsProcessed(item.TraceId);
+            return Result<int>.Success(0);
+        }, ct);
+
+        if (!result.IsSuccess) throw new InvalidOperationException(result.Error?.Description ?? "Transaction failed");
+        return events;
+    }
+
+    private async Task<List<SyncEvent>> UpdateDocumentAsync(BatchFlushItem item, BatchContext ctx, CancellationToken ct)
+    {
+        var memberId = workspaceContext.CurrentMember?.Id ?? Guid.Empty;
+        if (!ctx.Documents.TryGetValue(item.EntityId, out var document))
+            throw new InvalidOperationException(DocumentError.NotFound.Code);
+
+        syncPermission.RequireCreatorOrAdmin(document.CreatorId ?? Guid.Empty);
+
+        var cmd = Deserialize<UpdateDocumentCommand>(item.Data);
+
+        // Same cycle guard as UpdateDocumentHandler's online path.
+        if (!cmd.ClearParent && cmd.ParentDocumentId.HasValue)
+        {
+            var currentId = cmd.ParentDocumentId.Value;
+            var guard = 0;
+            while (currentId != Guid.Empty && guard++ < 1000)
+            {
+                if (currentId == document.Id) throw new InvalidOperationException(DocumentError.CircularReference.Code);
+
+                Document? parent = null;
+                if (ctx.Documents.TryGetValue(currentId, out var ctxParent)) parent = ctxParent;
+                else parent = await db.Documents.AsNoTracking().FirstOrDefaultAsync(d => d.Id == currentId && d.DeletedAt == null, ct);
+
+                if (parent is null) break;
+                if (parent.ProjectSpaceId != document.ProjectSpaceId) throw new InvalidOperationException(DocumentError.NotFound.Code);
+                currentId = parent.ParentDocumentId ?? Guid.Empty;
+            }
+        }
+
+        List<SyncEvent> events = [];
+
+        var result = await db.ExecuteInTransactionAsync(async () =>
+        {
+            if (await idempotencyService.HasProcessedAsync(item.TraceId, ct)) return Result<int>.Success(0);
+
+            document.Update(name: cmd.Name, parentDocumentId: cmd.ParentDocumentId, clearParent: cmd.ClearParent, orderKey: cmd.OrderKey, icon: cmd.Icon, color: cmd.Color);
+
+            events.Add(new SyncEvent {
+                ProjectWorkspaceId = document.ProjectWorkspaceId, EntityType = SyncEntityType.Document,
+                EntityId = document.Id, Action = SyncAction.U, ClientTraceId = item.TraceId, AuthorUserId = memberId,
+                Payload = JsonSerializer.Serialize(new {
+                    id = document.Id, workspaceId = document.ProjectWorkspaceId, spaceId = document.ProjectSpaceId,
+                    parentDocumentId = document.ParentDocumentId, name = document.Name, orderKey = document.OrderKey,
+                    icon = document.Icon, color = document.Color
+                }, SyncJson.Options)
+            });
+            db.SyncEvents.AddRange(events);
+            idempotencyService.MarkAsProcessed(item.TraceId);
+            return Result<int>.Success(0);
+        }, ct);
+
+        if (!result.IsSuccess) throw new InvalidOperationException(result.Error?.Description ?? "Transaction failed");
+        return events;
+    }
+
+    private async Task<List<SyncEvent>> DeleteDocumentAsync(BatchFlushItem item, BatchContext ctx, CancellationToken ct)
+    {
+        var memberId = workspaceContext.CurrentMember?.Id ?? Guid.Empty;
+        if (!ctx.Documents.TryGetValue(item.EntityId, out var document))
+            throw new InvalidOperationException(DocumentError.NotFound.Code);
+
+        syncPermission.RequireCreatorOrAdmin(document.CreatorId ?? Guid.Empty);
+
+        List<SyncEvent> events = [];
+
+        var result = await db.ExecuteInTransactionAsync(async () =>
+        {
+            if (await idempotencyService.HasProcessedAsync(item.TraceId, ct)) return Result<int>.Success(0);
+
+            var descendantIds = await DocumentCascadeHelper.GetDescendantIdsAsync(db, document.Id, ct);
+            await DocumentCascadeHelper.CascadeDeleteAsync(db, descendantIds, ct);
+
+            events.Add(new SyncEvent {
+                ProjectWorkspaceId = document.ProjectWorkspaceId, EntityType = SyncEntityType.Document,
+                EntityId = document.Id, Action = SyncAction.D, ClientTraceId = item.TraceId, AuthorUserId = memberId,
+                Payload = JsonSerializer.Serialize(new { id = document.Id }, SyncJson.Options)
             });
             db.SyncEvents.AddRange(events);
             idempotencyService.MarkAsProcessed(item.TraceId);

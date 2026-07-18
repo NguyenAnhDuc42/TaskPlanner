@@ -61,6 +61,19 @@ public record SpaceRecord
     public AccessLevel? AccessLevel { get; init; }
 }
 
+public record DocumentRecord
+{
+    public Guid Id { get; init; }
+    public Guid? WorkspaceId { get; init; }
+    public Guid SpaceId { get; init; }
+    public Guid? ParentDocumentId { get; init; }
+    public string Name { get; init; } = null!;
+    public string? OrderKey { get; init; }
+    public string? Icon { get; init; }
+    public string? Color { get; init; }
+    public DateTimeOffset? CreatedAt { get; init; }
+}
+
 public record DocumentBlockRecord
 {
     public Guid Id { get; init; }

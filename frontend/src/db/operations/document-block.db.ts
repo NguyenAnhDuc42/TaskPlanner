@@ -47,6 +47,24 @@ export class DocumentBlockDB {
     await this.db.delete('document_blocks', id)
   }
 
+  // Cascade cleanup when a Document (or a whole subtree of them) is deleted — purges every block
+  // belonging to any of the given document ids that happens to be cached locally.
+  async deleteByDocumentIds(documentIds: string[]): Promise<void> {
+    if (documentIds.length === 0) return
+    const tx = this.db.transaction('document_blocks', 'readwrite')
+    const index = tx.store.index('by-document')
+    await Promise.all(
+      documentIds.map(async (documentId) => {
+        let cursor = await index.openCursor(IDBKeyRange.only(documentId))
+        while (cursor) {
+          await cursor.delete()
+          cursor = await cursor.continue()
+        }
+      }),
+    )
+    await tx.done
+  }
+
   async clear(): Promise<void> {
     await this.db.clear('document_blocks')
   }

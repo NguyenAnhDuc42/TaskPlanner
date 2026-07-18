@@ -16,33 +16,32 @@ interface SpaceViewRailProps {
 export function SpaceViewRail({ tabOrder, activeTab, onTabChange, onOpenSettings, orientation = "side", leading, trailing }: Readonly<SpaceViewRailProps>) {
   if (orientation === "top") {
     return (
-      <div className="flex items-center gap-1 h-9 px-2 border-b border-border bg-card shrink-0">
-        {leading && (
-          <>
-            {leading}
-            <div className="h-4 w-px bg-border/60 mx-1.5 shrink-0" />
-          </>
-        )}
-        {tabOrder.map((key) => {
-          const tab = SPACE_RAIL_TABS[key];
-          const Icon = tab.icon;
-          return (
-            <button
-              key={key}
-              type="button"
-              onClick={() => onTabChange(key)}
-              title={tab.label}
-              className={cn(
-                "flex items-center gap-1.5 h-7 px-2 rounded-md transition-colors cursor-pointer",
-                activeTab === key ? "bg-primary/10 text-primary" : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
-              )}
-            >
-              <Icon className="h-3.5 w-3.5 shrink-0" />
-              <span className="text-[10px] font-semibold whitespace-nowrap">{tab.label}</span>
-            </button>
-          );
-        })}
-        <div className="ml-auto flex items-center">{trailing}</div>
+      <div className="flex flex-col shrink-0">
+        <div className="flex items-center gap-1 h-8 px-2 border-b border-border/40 bg-card">
+          {leading}
+          <div className="ml-auto flex items-center">{trailing}</div>
+        </div>
+        <div className="flex items-center gap-1 h-8 px-2 border-b border-border bg-card">
+          {tabOrder.map((key) => {
+            const tab = SPACE_RAIL_TABS[key];
+            const Icon = tab.icon;
+            return (
+              <button
+                key={key}
+                type="button"
+                onClick={() => onTabChange(key)}
+                title={tab.label}
+                className={cn(
+                  "flex items-center gap-1.5 h-7 px-2 rounded-md transition-colors cursor-pointer",
+                  activeTab === key ? "bg-primary/10 text-primary" : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
+                )}
+              >
+                <Icon className="h-3.5 w-3.5 shrink-0" />
+                <span className="text-[10px] font-semibold whitespace-nowrap">{tab.label}</span>
+              </button>
+            );
+          })}
+        </div>
       </div>
     );
   }

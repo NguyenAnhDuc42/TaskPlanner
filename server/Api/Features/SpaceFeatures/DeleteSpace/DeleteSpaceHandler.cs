@@ -61,6 +61,16 @@ public class DeleteSpaceHandler(
                     .SetProperty(st => st.DeletedAt, now)
                     .SetProperty(st => st.UpdatedAt, now), cancellationToken);
 
+            // Every Document row (at any tree depth) already carries this Space's id directly,
+            // so no recursive walk is needed here — unlike DeleteDocumentHandler's single-subtree
+            // cascade, this wipes the whole per-space tree in one shot, plus their DocumentBlocks.
+            var spaceDocumentIds = await db.Documents
+                .AsNoTracking()
+                .Where(d => d.ProjectSpaceId == space.Id && d.DeletedAt == null)
+                .Select(d => d.Id)
+                .ToListAsync(cancellationToken);
+            await DocumentCascadeHelper.CascadeDeleteAsync(db, spaceDocumentIds, cancellationToken);
+
             space.Delete();
 
             var syncPayload = JsonSerializer.Serialize(new { id = space.Id }, SyncJson.Options);

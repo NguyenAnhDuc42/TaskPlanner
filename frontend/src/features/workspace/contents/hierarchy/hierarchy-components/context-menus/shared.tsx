@@ -136,8 +136,13 @@ export function EditFieldsSubmenu({
             navigation (Enter activates the focused item, Space/printable keys drive typeahead
             search) — without stopping propagation here, typing in the name field or the picker's
             hex/search inputs below gets swallowed by that navigation instead of reaching the
-            input (Enter "selecting" a menu item, Space never actually typing a space). */}
-        <div className="flex flex-col" onKeyDown={(e) => e.stopPropagation()}>
+            input (Enter "selecting" a menu item, Space never actually typing a space).
+
+            Also stop pointerdown: this content is portaled, but React re-simulates bubbling
+            through the *component* tree regardless of where the portal renders in the DOM — so a
+            pointerdown on an icon/color swatch here still reaches the draggable row's
+            useSortable() listeners several parents up, arming a drag mid-click. */}
+        <div className="flex flex-col" onKeyDown={(e) => e.stopPropagation()} onPointerDown={(e) => e.stopPropagation()}>
           <div className="w-80 p-2 bg-popover border border-border border-b-0 shadow-md rounded-t-md">
             <DebouncedInput
               value={name}

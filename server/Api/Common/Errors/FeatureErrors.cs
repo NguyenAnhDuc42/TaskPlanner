@@ -67,6 +67,12 @@ public static class DocumentBlockError
     public static readonly Error NotFound = Error.NotFound("DocumentBlock.NotFound", "The document block with the specified identifier was not found.");
 }
 
+public static class DocumentError
+{
+    public static readonly Error NotFound = Error.NotFound("Document.NotFound", "The document with the specified identifier was not found.");
+    public static readonly Error CircularReference = Error.Failure("Document.CircularReference", "Cannot move a document under itself or one of its own descendants.");
+}
+
 public static class EntityAccessError
 {
     public static readonly Error NotFound = Error.NotFound("Access.NotFound", "One or more of the specified access rows were not found.");

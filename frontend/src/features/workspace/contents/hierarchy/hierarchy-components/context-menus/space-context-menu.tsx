@@ -65,15 +65,15 @@ export const SpaceContextMenu = observer(function SpaceContextMenu({
 
     return (
       <>
-        {canCreateContent && (
-          <Item className="gap-2 cursor-pointer" onSelect={() => onCreateTask?.()}>
+        {canCreateContent && onCreateTask && (
+          <Item className="gap-2 cursor-pointer" onSelect={() => onCreateTask()}>
             <Plus className="h-3.5 w-3.5" />
             <span>Create Task</span>
           </Item>
         )}
 
-        {canCreateContent && (
-          <Item className="gap-2 cursor-pointer" onSelect={() => onCreateFolder?.()}>
+        {canCreateContent && onCreateFolder && (
+          <Item className="gap-2 cursor-pointer" onSelect={() => onCreateFolder()}>
             <FolderPlus className="h-3.5 w-3.5" />
             <span>Create Folder</span>
           </Item>

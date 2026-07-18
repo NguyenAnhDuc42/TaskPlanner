@@ -15,8 +15,6 @@ const TABS: { id: ContentPage; icon: React.ElementType; label: string }[] = [
   { id: "settings", icon: Settings, label: "Settings" },
 ];
 
-// Mirrors icon-rail.tsx's destinations exactly, laid out horizontally at the bottom of the
-// screen instead of a vertical rail — same navigation targets, mobile-native placement.
 export function MobileTabBar({ onSelectIcon, onOpenDrawer }: MobileTabBarProps) {
   const { state } = useWorkspaceSession();
 

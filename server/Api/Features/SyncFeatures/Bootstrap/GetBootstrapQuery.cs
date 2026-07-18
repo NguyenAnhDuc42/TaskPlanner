@@ -11,5 +11,6 @@ public record BootstrapResult(
     List<StatusRecord> Statuses,
     List<AssigneeRecord> Assignees,
     List<FavoriteRecord> Favorites,
-    List<MemberRecord> Members
+    List<MemberRecord> Members,
+    List<DocumentRecord> Documents
 );

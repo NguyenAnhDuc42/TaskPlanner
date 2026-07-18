@@ -227,6 +227,75 @@ namespace Api
                     b.ToTable("comments", (string)null);
                 });
 
+            modelBuilder.Entity("Domain.Document", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("Color")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)")
+                        .HasColumnName("color");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid?>("CreatorId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("creator_id");
+
+                    b.Property<DateTimeOffset?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("deleted_at");
+
+                    b.Property<string>("Icon")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("icon");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("name");
+
+                    b.Property<string>("OrderKey")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("order_key");
+
+                    b.Property<Guid?>("ParentDocumentId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("parent_document_id");
+
+                    b.Property<Guid>("ProjectSpaceId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("project_space_id");
+
+                    b.Property<Guid>("ProjectWorkspaceId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("project_workspace_id");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ParentDocumentId");
+
+                    b.HasIndex("ProjectWorkspaceId");
+
+                    b.HasIndex("ProjectSpaceId", "ParentDocumentId", "OrderKey", "Id")
+                        .HasFilter("\"deleted_at\" IS NULL");
+
+                    b.ToTable("documents", (string)null);
+                });
+
             modelBuilder.Entity("Domain.DocumentBlock", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1378,6 +1447,26 @@ namespace Api
 
             modelBuilder.Entity("Domain.Attachment", b =>
                 {
+                    b.HasOne("Domain.ProjectWorkspace", null)
+                        .WithMany()
+                        .HasForeignKey("ProjectWorkspaceId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Domain.Document", b =>
+                {
+                    b.HasOne("Domain.Document", null)
+                        .WithMany()
+                        .HasForeignKey("ParentDocumentId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Domain.ProjectSpace", null)
+                        .WithMany()
+                        .HasForeignKey("ProjectSpaceId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
                     b.HasOne("Domain.ProjectWorkspace", null)
                         .WithMany()
                         .HasForeignKey("ProjectWorkspaceId")

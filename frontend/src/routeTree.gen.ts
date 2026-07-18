@@ -15,6 +15,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthIndexRouteImport } from './routes/auth/index'
 import { Route as WorkspacesWorkspaceIdRouteImport } from './routes/workspaces/$workspaceId'
 import { Route as DevSyncTestRouteImport } from './routes/dev/sync-test'
+import { Route as DevRedesignMockRouteImport } from './routes/dev/redesign-mock'
 import { Route as AuthSignUpRouteImport } from './routes/auth/sign-up'
 import { Route as AuthSignInRouteImport } from './routes/auth/sign-in'
 import { Route as AuthResetPasswordRouteImport } from './routes/auth/reset-password'
@@ -56,6 +57,11 @@ const WorkspacesWorkspaceIdRoute = WorkspacesWorkspaceIdRouteImport.update({
 const DevSyncTestRoute = DevSyncTestRouteImport.update({
   id: '/dev/sync-test',
   path: '/dev/sync-test',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DevRedesignMockRoute = DevRedesignMockRouteImport.update({
+  id: '/dev/redesign-mock',
+  path: '/dev/redesign-mock',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthSignUpRoute = AuthSignUpRouteImport.update({
@@ -134,6 +140,7 @@ export interface FileRoutesByFullPath {
   '/auth/reset-password': typeof AuthResetPasswordRoute
   '/auth/sign-in': typeof AuthSignInRoute
   '/auth/sign-up': typeof AuthSignUpRoute
+  '/dev/redesign-mock': typeof DevRedesignMockRoute
   '/dev/sync-test': typeof DevSyncTestRoute
   '/workspaces/$workspaceId': typeof WorkspacesWorkspaceIdRouteWithChildren
   '/auth/': typeof AuthIndexRoute
@@ -152,6 +159,7 @@ export interface FileRoutesByTo {
   '/auth/reset-password': typeof AuthResetPasswordRoute
   '/auth/sign-in': typeof AuthSignInRoute
   '/auth/sign-up': typeof AuthSignUpRoute
+  '/dev/redesign-mock': typeof DevRedesignMockRoute
   '/dev/sync-test': typeof DevSyncTestRoute
   '/auth': typeof AuthIndexRoute
   '/workspaces/$workspaceId': typeof WorkspacesWorkspaceIdIndexRoute
@@ -171,6 +179,7 @@ export interface FileRoutesById {
   '/auth/reset-password': typeof AuthResetPasswordRoute
   '/auth/sign-in': typeof AuthSignInRoute
   '/auth/sign-up': typeof AuthSignUpRoute
+  '/dev/redesign-mock': typeof DevRedesignMockRoute
   '/dev/sync-test': typeof DevSyncTestRoute
   '/workspaces/$workspaceId': typeof WorkspacesWorkspaceIdRouteWithChildren
   '/auth/': typeof AuthIndexRoute
@@ -193,6 +202,7 @@ export interface FileRouteTypes {
     | '/auth/reset-password'
     | '/auth/sign-in'
     | '/auth/sign-up'
+    | '/dev/redesign-mock'
     | '/dev/sync-test'
     | '/workspaces/$workspaceId'
     | '/auth/'
@@ -211,6 +221,7 @@ export interface FileRouteTypes {
     | '/auth/reset-password'
     | '/auth/sign-in'
     | '/auth/sign-up'
+    | '/dev/redesign-mock'
     | '/dev/sync-test'
     | '/auth'
     | '/workspaces/$workspaceId'
@@ -229,6 +240,7 @@ export interface FileRouteTypes {
     | '/auth/reset-password'
     | '/auth/sign-in'
     | '/auth/sign-up'
+    | '/dev/redesign-mock'
     | '/dev/sync-test'
     | '/workspaces/$workspaceId'
     | '/auth/'
@@ -246,6 +258,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AboutRoute: typeof AboutRoute
   AuthRoute: typeof AuthRouteWithChildren
+  DevRedesignMockRoute: typeof DevRedesignMockRoute
   DevSyncTestRoute: typeof DevSyncTestRoute
   WorkspacesWorkspaceIdRoute: typeof WorkspacesWorkspaceIdRouteWithChildren
 }
@@ -292,6 +305,13 @@ declare module '@tanstack/react-router' {
       path: '/dev/sync-test'
       fullPath: '/dev/sync-test'
       preLoaderRoute: typeof DevSyncTestRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/dev/redesign-mock': {
+      id: '/dev/redesign-mock'
+      path: '/dev/redesign-mock'
+      fullPath: '/dev/redesign-mock'
+      preLoaderRoute: typeof DevRedesignMockRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/auth/sign-up': {
@@ -445,6 +465,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AboutRoute: AboutRoute,
   AuthRoute: AuthRouteWithChildren,
+  DevRedesignMockRoute: DevRedesignMockRoute,
   DevSyncTestRoute: DevSyncTestRoute,
   WorkspacesWorkspaceIdRoute: WorkspacesWorkspaceIdRouteWithChildren,
 }

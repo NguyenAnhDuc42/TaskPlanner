@@ -12,7 +12,8 @@ import type { DragItemData } from "./drag-item-type";
 export function DragOverlayRow({ item }: Readonly<{ item: DragItemData }>) {
   const isSpace = item.type === EntityLayerConst.ProjectSpace;
   const isTask = item.type === EntityLayerConst.ProjectTask;
-  const fallbackIcon = isSpace ? "Orbit" : "Folder";
+  const isDocument = item.type === EntityLayerConst.ProjectDocument;
+  const fallbackIcon = isSpace ? "Orbit" : isDocument ? "FileText" : "Folder";
 
   return (
     <div className="flex items-center px-1 py-0.5 rounded-md mb-px border bg-background text-muted-foreground border-transparent">

@@ -75,6 +75,43 @@ public class CreateSpaceHandler(
                 AuthorUserId = creatorId
             });
 
+            // Every Space gets a root Document node reusing DefaultDocumentId — so its page tree
+            // always has at least one root page, matching the backfill applied to pre-existing
+            // Spaces (see AddDocumentsTree migration).
+            if (space.DefaultDocumentId != Guid.Empty)
+            {
+                var rootDocument = Document.Create(
+                    id: space.DefaultDocumentId,
+                    projectWorkspaceId: workspaceContext.WorkspaceId,
+                    projectSpaceId: space.Id,
+                    name: space.Name,
+                    orderKey: FractionalIndex.Start(),
+                    creatorId: creatorId
+                );
+                db.Documents.Add(rootDocument);
+                events.Add(new SyncEvent
+                {
+                    ProjectWorkspaceId = workspaceContext.WorkspaceId,
+                    EntityType = SyncEntityType.Document,
+                    EntityId = rootDocument.Id,
+                    Action = SyncAction.C,
+                    Payload = JsonSerializer.Serialize(new
+                    {
+                        id = rootDocument.Id,
+                        workspaceId = workspaceContext.WorkspaceId,
+                        spaceId = rootDocument.ProjectSpaceId,
+                        parentDocumentId = rootDocument.ParentDocumentId,
+                        name = rootDocument.Name,
+                        orderKey = rootDocument.OrderKey,
+                        icon = rootDocument.Icon,
+                        color = rootDocument.Color,
+                        createdAt = rootDocument.CreatedAt
+                    }, jsonOptions),
+                    ClientTraceId = request.TraceId,
+                    AuthorUserId = creatorId
+                });
+            }
+
             // No starter statuses seeded here — Status is workspace-visible everywhere, so a new
             // space just uses whatever statuses the workspace already has (see Status.cs).
             db.SyncEvents.AddRange(events);

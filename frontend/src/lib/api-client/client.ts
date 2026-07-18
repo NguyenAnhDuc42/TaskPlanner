@@ -3,6 +3,10 @@ import axios from "axios";
 export const api = axios.create({
   baseURL: "/api",
   withCredentials: true,
+  // Without this, a request that hangs (backend restarting mid-request, dead connection) never
+  // rejects — TransactionQueue.flush()'s `flushing` reentrancy guard then never resets in its
+  // `finally`, silently wedging every future flush for the rest of the page session.
+  timeout: 30000,
   paramsSerializer: {
     serialize: (params) => {
       const sp = new URLSearchParams();

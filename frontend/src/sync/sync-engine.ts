@@ -8,7 +8,7 @@ import type { WorkspaceRootStore } from '@/stores/workspace-root.store'
 import type { DeltaPayload, DeltaBatchPayload } from '@/types/sync/delta'
 import { applyDelta, applyDeltaBatch } from './delta-handler'
 import { TransactionQueue } from './transaction-queue'
-import type { TaskRecord, SpaceRecord, FolderRecord } from '@/types/projects'
+import type { TaskRecord, SpaceRecord, FolderRecord, DocumentRecord } from '@/types/projects'
 import type { Status } from '@/types/status'
 import type { PendingTransaction } from '@/types/sync'
 import type { AssigneeRecord, FavoriteRecord } from '@/types/projects'
@@ -18,7 +18,7 @@ import { api } from '@/lib/api-client'
 import { refreshSession, isRedirectingToSignIn } from '@/lib/api-client/refresh-session'
 import { devLog, devError } from './dev-log'
 
-const EXPECTED_DATABASE_VERSION = 3
+const EXPECTED_DATABASE_VERSION = 4
 
 interface BootstrapResponse {
   lastSyncId: number
@@ -30,6 +30,7 @@ interface BootstrapResponse {
   assignees: Record<string, unknown>[]
   favorites: Record<string, unknown>[]
   members: Record<string, unknown>[]
+  documents: Record<string, unknown>[]
 }
 
 export class SyncEngine {
@@ -55,8 +56,9 @@ export class SyncEngine {
 
   async forceBootstrap(workspaceId: string): Promise<void> {
   
-    const { taskDB, spaceDB, folderDB, statusDB, documentBlockDB, assigneeDB, favoriteDB, memberDB, fetchedContextDB } = this.rootStore
-    await Promise.all([taskDB!.clear(), spaceDB!.clear(), folderDB!.clear(), statusDB!.clear(), documentBlockDB!.clear(), assigneeDB!.clear(), favoriteDB!.clear(), memberDB!.clear(), fetchedContextDB!.clear()])
+    const { taskDB, spaceDB, folderDB, statusDB, documentDB, documentBlockDB, assigneeDB, favoriteDB, memberDB, fetchedContextDB } = this.rootStore
+    await Promise.all([taskDB!.clear(), spaceDB!.clear(), folderDB!.clear(), statusDB!.clear(), documentDB!.clear(), documentBlockDB!.clear(), assigneeDB!.clear(), favoriteDB!.clear(), memberDB!.clear(), fetchedContextDB!.clear()])
+    this.rootStore.documentStore.clear()
     this.rootStore.documentBlockStore.clear()
     await this.bootstrap(workspaceId)
   }
@@ -131,7 +133,7 @@ export class SyncEngine {
     const res = await api.get(`/workspaces/${workspaceId}/sync/bootstrap`)
     const data: BootstrapResponse = res.data
 
-    const { taskDB, spaceDB, folderDB, statusDB, assigneeDB, favoriteDB, memberDB, metadataDB } = this.rootStore
+    const { taskDB, spaceDB, folderDB, statusDB, assigneeDB, favoriteDB, memberDB, documentDB, metadataDB } = this.rootStore
     await Promise.all([
       taskDB!.putMany(data.tasks as unknown as TaskRecord[]),
       spaceDB!.putMany(data.spaces as unknown as SpaceRecord[]),
@@ -140,11 +142,12 @@ export class SyncEngine {
       assigneeDB!.putMany(data.assignees as unknown as AssigneeRecord[]),
       favoriteDB!.putMany(data.favorites as unknown as FavoriteRecord[]),
       memberDB!.putMany(data.members as unknown as MemberRecord[]),
+      documentDB!.putMany(data.documents as unknown as DocumentRecord[]),
     ])
 
     await metadataDB!.setFullBootstrap(data.lastSyncId, data.databaseVersion)
 
-    const [tasks, spaces, folders, statuses, assignees, favorites, members] = await Promise.all([
+    const [tasks, spaces, folders, statuses, assignees, favorites, members, documents] = await Promise.all([
       taskDB!.getAll(),
       spaceDB!.getAll(),
       folderDB!.getAll(),
@@ -152,6 +155,7 @@ export class SyncEngine {
       assigneeDB!.getAll(),
       favoriteDB!.getAll(),
       memberDB!.getAll(),
+      documentDB!.getAll(),
     ])
     this.rootStore.taskStore.hydrate(tasks)
     this.rootStore.spaceStore.hydrate(spaces)
@@ -160,6 +164,7 @@ export class SyncEngine {
     this.rootStore.assigneeStore.hydrate(assignees)
     this.rootStore.favoriteStore.hydrate(favorites)
     this.rootStore.memberStore.hydrate(members)
+    this.rootStore.documentStore.hydrate(documents)
   }
 
 

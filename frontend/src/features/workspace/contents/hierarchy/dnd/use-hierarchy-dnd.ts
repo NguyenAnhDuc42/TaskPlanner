@@ -13,6 +13,7 @@ import { useState } from "react";
 import { handleSpaceMove } from "./handlers/handle-space-move";
 import { handleFolderMove } from "./handlers/handle-folder-move";
 import { handleTaskMove } from "./handlers/handle-task-move";
+import { handleDocumentMove } from "./handlers/handle-document-move";
 import type { DragItemData } from "./drag-item-type";
 import { rescueSwallowedClick } from "@/lib/dnd-click-rescue";
 import { useWorkspaceRole } from "@/features/workspace/context/use-workspace-role";
@@ -22,6 +23,7 @@ import { useDebouncedFlush } from "@/sync/use-debounced-flush";
 import { SpaceMutations } from "@/mutations/space.mutations";
 import { FolderMutations } from "@/mutations/folder.mutations";
 import { TaskMutations } from "@/mutations/task.mutations";
+import { DocumentMutations } from "@/mutations/document.mutations";
 import { useMemo } from "react";
 
 export function useHierarchyDnd() {
@@ -33,6 +35,7 @@ export function useHierarchyDnd() {
   const spaceMutations = useMemo(() => new SpaceMutations(rootStore, syncEngine), [rootStore, syncEngine]);
   const folderMutations = useMemo(() => new FolderMutations(rootStore, syncEngine), [rootStore, syncEngine]);
   const taskMutations = useMemo(() => new TaskMutations(rootStore, syncEngine), [rootStore, syncEngine]);
+  const documentMutations = useMemo(() => new DocumentMutations(rootStore, syncEngine), [rootStore, syncEngine]);
   const { scheduleFlush } = useDebouncedFlush(syncEngine);
 
   const pointerSensor = useSensor(PointerSensor, { activationConstraint: { distance: 8 } });
@@ -64,6 +67,8 @@ export function useHierarchyDnd() {
           handleFolderMove(rootStore, folderMutations, taskMutations, activeData, overData);
         } else if (activeData.type === EntityLayerConst.ProjectTask) {
           handleTaskMove(rootStore, taskMutations, activeData, overData);
+        } else if (activeData.type === EntityLayerConst.ProjectDocument) {
+          handleDocumentMove(rootStore, documentMutations, activeData, overData);
         }
         scheduleFlush();
       }

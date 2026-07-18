@@ -140,9 +140,10 @@ export const BoardItemCard = React.memo(function BoardItemCard({
           </div>
         </div>
 
-        {/* Row 2: Priority, Date */}
-        <div className="flex items-center text-[10px] font-medium leading-none mt-1 w-full gap-2">
-          <div className="flex items-center gap-1.5 flex-wrap">
+        {/* Row 2: Priority, Date — flat/minimal (icon + plain text), matching the mock rather
+            than the old boxed-badge treatment. Always visible, not gated on selection. */}
+        <div className="flex items-center text-[9px] font-semibold leading-none mt-1 w-full gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             {canCreateContent ? (
               <PrioritySelect
                 value={(item as TaskRecord).priority as Priority}
@@ -151,16 +152,16 @@ export const BoardItemCard = React.memo(function BoardItemCard({
                 trigger={
                   <button
                     type="button"
-                    className="cursor-pointer focus:outline-none bg-transparent border-none p-0 hover:opacity-80 transition-opacity"
+                    className="cursor-pointer focus:outline-none bg-transparent border-none p-0 hover:opacity-80 transition-opacity flex items-center"
                     onClick={(e) => e.stopPropagation()}
                     onPointerDown={(e) => e.stopPropagation()}
                   >
-                    <PriorityBadge priority={(item as TaskRecord).priority as Priority} />
+                    <PriorityBadge priority={(item as TaskRecord).priority as Priority} showText={false} className="h-auto! p-0! bg-transparent!" />
                   </button>
                 }
               />
             ) : (
-              <PriorityBadge priority={(item as TaskRecord).priority as Priority} />
+              <PriorityBadge priority={(item as TaskRecord).priority as Priority} showText={false} className="h-auto! p-0! bg-transparent!" />
             )}
 
             {canCreateContent ? (
@@ -173,33 +174,23 @@ export const BoardItemCard = React.memo(function BoardItemCard({
                 size="sm"
                 align="start"
                 triggerClassName={cn(
-                  "h-5 px-1.5 text-[8px] font-black uppercase tracking-wider border border-border/5 rounded w-fit leading-none",
-                  isOverdue
-                    ? "bg-destructive/10 text-destructive border-destructive/20 hover:bg-destructive/20"
-                    : "bg-muted/30 text-muted-foreground border-border/50 hover:bg-muted/60"
+                  "h-auto p-0 bg-transparent border-none text-[9px] font-semibold leading-none w-fit",
+                  isOverdue ? "text-destructive" : "text-muted-foreground/50"
                 )}
               />
             ) : dateInfo.show ? (
-              <span className={cn(
-                "h-5 px-1.5 text-[8px] font-black uppercase tracking-wider border border-border/5 rounded w-fit leading-none flex items-center",
-                isOverdue
-                  ? "bg-destructive/10 text-destructive border-destructive/20"
-                  : "bg-muted/30 text-muted-foreground border-border/50"
-              )}>
+              <span className={cn("text-[9px] font-semibold leading-none", isOverdue ? "text-destructive" : "text-muted-foreground/50")}>
                 {dateInfo.text}
               </span>
             ) : null}
+
+            {dateInfo.createdText && (
+              <span className="text-[9px] text-muted-foreground/45 font-medium shrink-0 select-none ml-auto">
+                {dateInfo.createdText}
+              </span>
+            )}
           </div>
         </div>
-
-        {/* Row 3: Created */}
-        {dateInfo.createdText && (
-          <div className="flex items-center justify-end text-[10px] font-medium leading-none mt-1 w-full gap-2">
-            <span className="text-[9px] text-muted-foreground/45 font-medium shrink-0 select-none">
-              {dateInfo.createdText}
-            </span>
-          </div>
-        )}
       </div>
     </div>
   );

@@ -18,7 +18,11 @@ import type { FormData } from "@/features/main/home-screen/components/create-wor
 import { toast } from "sonner";
 import React from "react";
 
-export const WorkspaceSwitcher = observer(function WorkspaceSwitcher() {
+interface WorkspaceSwitcherProps {
+  readonly collapsed?: boolean;
+}
+
+export const WorkspaceSwitcher = observer(function WorkspaceSwitcher({ collapsed = false }: WorkspaceSwitcherProps) {
   const [open, setOpen] = useState(false);
   const [showCreate, setShowCreate] = useState(false);
   const [showJoin, setShowJoin] = useState(false);
@@ -92,7 +96,11 @@ export const WorkspaceSwitcher = observer(function WorkspaceSwitcher() {
         <PopoverTrigger asChild>
           <button
             type="button"
-            className="flex items-center gap-1.5 px-1.5 py-1 rounded-md hover:bg-muted/50 transition-colors cursor-pointer group outline-none"
+            title={collapsed ? activeWorkspace.name : undefined}
+            className={cn(
+              "flex items-center gap-1.5 rounded-md hover:bg-muted/50 transition-colors cursor-pointer group outline-none",
+              collapsed ? "justify-center h-7 w-7 mx-auto" : "px-1.5 py-1",
+            )}
           >
             <div
               className="h-4 w-4 rounded flex items-center justify-center shrink-0"
@@ -100,10 +108,14 @@ export const WorkspaceSwitcher = observer(function WorkspaceSwitcher() {
             >
               <DynamicIcon name={activeWorkspace.icon || "LayoutGrid"} size={10} className="text-white" />
             </div>
-            <span className="text-[11px] font-bold text-foreground/80 group-hover:text-foreground transition-colors max-w-[120px] truncate">
-              {activeWorkspace.name}
-            </span>
-            <ChevronDown className={cn("h-3 w-3 text-muted-foreground/50 transition-transform shrink-0", open && "rotate-180")} />
+            {!collapsed && (
+              <>
+                <span className="text-[11px] font-bold text-foreground/80 group-hover:text-foreground transition-colors max-w-30 truncate">
+                  {activeWorkspace.name}
+                </span>
+                <ChevronDown className={cn("h-3 w-3 text-muted-foreground/50 transition-transform shrink-0", open && "rotate-180")} />
+              </>
+            )}
           </button>
         </PopoverTrigger>
 

@@ -144,8 +144,9 @@ export class SpaceMutations {
     const folderIds = this.rootStore.folderStore.getBySpace(spaceId).map(f => f.id)
     const taskIds = this.rootStore.taskStore.getBySpace(spaceId).map(t => t.id)
     const statusIds = this.rootStore.statusStore.getBySpace(spaceId).map(s => s.id)
+    const documentIds = this.rootStore.documentStore.all.filter(d => d.spaceId === spaceId).map(d => d.id)
 
-    await this.syncEngine.transactionQueue.cancelByEntityIds([...folderIds, ...taskIds])
+    await this.syncEngine.transactionQueue.cancelByEntityIds([...folderIds, ...taskIds, ...documentIds])
 
     for (const fid of folderIds) {
       this.rootStore.folderStore.remove(fid)
@@ -158,6 +159,10 @@ export class SpaceMutations {
     for (const sid of statusIds) {
       this.rootStore.statusStore.remove(sid)
     }
+    this.rootStore.documentStore.removeMany(documentIds)
+    for (const did of documentIds) this.rootStore.documentBlockStore.removeByDocument(did)
+    await this.rootStore.documentDB!.deleteMany(documentIds)
+    await this.rootStore.documentBlockDB!.deleteByDocumentIds(documentIds)
 
     this.rootStore.spaceStore.remove(spaceId)
 

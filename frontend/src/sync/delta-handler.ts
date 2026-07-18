@@ -1,6 +1,6 @@
 import type { WorkspaceRootStore } from "@/stores/workspace-root.store";
 import { getActiveRootStore } from "@/stores/root.store";
-import type { TaskRecord, SpaceRecord, FolderRecord, CommentRecord, AssigneeRecord } from "@/types/projects";
+import type { TaskRecord, SpaceRecord, FolderRecord, CommentRecord, AssigneeRecord, DocumentRecord } from "@/types/projects";
 import type { DocumentBlockRecord } from "@/types/document/document-block-record";
 import type { Status } from "@/types/status";
 import type { WorkspaceRecord } from "@/types/workspace/workspace-record";
@@ -38,6 +38,9 @@ function getEntityApplier(
           rootStore.folderStore.getBySpace(id).map(f => f.id).forEach(fid => rootStore.folderStore.remove(fid))
           rootStore.taskStore.getBySpace(id).map(t => t.id).forEach(tid => rootStore.taskStore.remove(tid))
           rootStore.statusStore.getBySpace(id).map((s: Status) => s.id).forEach(sid => rootStore.statusStore.remove(sid))
+          const documentIds = rootStore.documentStore.all.filter(d => d.spaceId === id).map(d => d.id)
+          documentIds.forEach(did => rootStore.documentStore.remove(did))
+          documentIds.forEach(did => rootStore.documentBlockStore.removeByDocument(did))
           rootStore.spaceStore.remove(id)
         },
         dbPut: (data) => rootStore.spaceDB!.put(data as unknown as SpaceRecord),
@@ -45,13 +48,16 @@ function getEntityApplier(
           const folderIds = rootStore.folderStore.getBySpace(id).map(f => f.id)
           const taskIds = rootStore.taskStore.getBySpace(id).map(t => t.id)
           const statusIds = rootStore.statusStore.getBySpace(id).map((s: Status) => s.id)
+          const documentIds = rootStore.documentStore.all.filter(d => d.spaceId === id).map(d => d.id)
           // Cancel any queued ops for children — prevents queue from jamming on 404s after another user deletes this space
-          if (cancelByEntityIds) await cancelByEntityIds([...folderIds, ...taskIds])
+          if (cancelByEntityIds) await cancelByEntityIds([...folderIds, ...taskIds, ...documentIds])
           await Promise.all([
             rootStore.spaceDB!.delete(id),
             ...folderIds.map(fid => rootStore.folderDB!.delete(fid)),
             ...taskIds.map(tid => rootStore.taskDB!.delete(tid)),
             ...statusIds.map(sid => rootStore.statusDB!.delete(sid)),
+            rootStore.documentDB!.deleteMany(documentIds),
+            rootStore.documentBlockDB!.deleteByDocumentIds(documentIds),
           ])
         },
       };
@@ -63,6 +69,30 @@ function getEntityApplier(
         remove: (id) => rootStore.folderStore.remove(id),
         dbPut: (data) => rootStore.folderDB!.put(data as unknown as FolderRecord),
         dbDelete: (id) => rootStore.folderDB!.delete(id),
+      };
+
+    case "Document":
+      return {
+        getExisting: (id) => rootStore.documentStore.getById(id) as Record<string, unknown> | undefined,
+        upsert: (data) => rootStore.documentStore.upsert(data as unknown as DocumentRecord),
+        // A Document delete cascades its whole subtree — unlike Folder, which only ever touches
+        // a single row. The client already has the full descendant list locally (the tree is
+        // fully hydrated), so it can cascade a delta arriving from another client the same way
+        // DocumentMutations.delete cascades a locally-initiated one.
+        remove: (id) => {
+          const descendantIds = rootStore.documentStore.getDescendantIds(id)
+          rootStore.documentStore.removeMany(descendantIds)
+          descendantIds.forEach(did => rootStore.documentBlockStore.removeByDocument(did))
+        },
+        dbPut: (data) => rootStore.documentDB!.put(data as unknown as DocumentRecord),
+        dbDelete: async (id) => {
+          const descendantIds = rootStore.documentStore.getDescendantIds(id)
+          if (cancelByEntityIds) await cancelByEntityIds(descendantIds)
+          await Promise.all([
+            rootStore.documentDB!.deleteMany(descendantIds),
+            rootStore.documentBlockDB!.deleteByDocumentIds(descendantIds),
+          ])
+        },
       };
 
     case "Task":

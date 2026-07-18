@@ -1,8 +1,7 @@
-import { lazy, Suspense, useEffect, useRef, useState } from "react";
+import { lazy, Suspense, useEffect, useState } from "react";
 import { useLocation, useNavigate, Outlet } from "@tanstack/react-router";
 import { useWorkspace } from "../context/workspace-context";
-import { HierarchySidebar } from "../contents/hierarchy/hierarchy-sidebar";
-import { IconRail } from "./icon-rail";
+import { AppSidebar } from "./app-sidebar";
 import { ContextPanelRenderer } from "./context-panel-renderer";
 import { ResizablePanel } from "./resizable-panel";
 import { WorkspaceSwitcher } from "./workspace-switcher";
@@ -10,29 +9,23 @@ import { useResize } from "@/hooks/use-resize";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Button } from "@/components/ui/button";
 import { LoadingScreen } from "@/components/loading-screen";
-import { ChevronLeft, X, Maximize2, LogOut, User } from "lucide-react";
+import { ChevronLeft, X, Maximize2 } from "lucide-react";
 import { NotificationBell } from "@/features/notifications/notification-bell";
-import { GlobalSearch } from "./global-search";
-import { UserAvatar } from "@/components/user-avatar";
-import { useWorkspaceRootStore } from "@/stores/workspace-root.store";
 import type { ContentPage } from "../type";
-import { useLogout, useUser } from "@/features/auth/auth-api";
 import { ProfileModal } from "@/features/auth/profile/components/profile-modal";
 import { MobileTabBar } from "./mobile/mobile-tab-bar";
 import { MobileSidebarDrawer } from "./mobile/mobile-sidebar-drawer";
 import { OfflineBanner } from "./offline-banner";
 import { DocumentEditorProvider } from "../context/document-editor-context";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { UserMenu } from "./user-menu";
+import { useWorkspaceRootStore } from "@/stores/workspace-root.store";
+import { cn } from "@/lib/utils";
 
-const HIERARCHY_PAGES = new Set<ContentPage>(["projects", "spaces", "folders", "tasks"]);
-const ICON_RAIL_WIDTH = 55;
+// Below this width the sidebar renders its collapsed icon-only variant instead of shrinking labels.
+const SIDEBAR_COLLAPSE_BREAKPOINT = 160;
+const SIDEBAR_MIN_WIDTH = 40;
+const SIDEBAR_MAX_WIDTH = 360;
+const SIDEBAR_DEFAULT_WIDTH = 260;
 
 const DocumentEditorHost = lazy(() =>
   import("@/components/blockbase/document-editor-host").then((m) => ({ default: m.DocumentEditorHost })),
@@ -52,48 +45,6 @@ function closeContextPanelSearch(prev: Record<string, unknown>) {
   const next = { ...prev };
   delete next.contextPanel;
   return next;
-}
-
-function UserMenu({ onOpenProfile }: { onOpenProfile: () => void }) {
-  const { data: user } = useUser();
-  const { mutate: logout } = useLogout()
-
-  return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <button type="button" className="outline-none cursor-pointer hover:opacity-80 transition-opacity">
-          <UserAvatar
-            name={user?.name || "User"}
-            avatarUrl={null}
-            className="h-7 w-7 rounded-md"
-            fallbackClassName="text-[10px] rounded-md shadow-sm"
-          />
-        </button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-52 p-0 overflow-hidden">
-        <DropdownMenuLabel className="px-2 py-1.5">
-          <p className="text-xs font-bold text-foreground/90 truncate">{user?.name ?? "User"}</p>
-          <p className="text-[10px] text-muted-foreground/50 font-medium truncate">{user?.email ?? ""}</p>
-        </DropdownMenuLabel>
-        <DropdownMenuSeparator className="bg-border m-0" />
-        <DropdownMenuItem
-          className="flex items-center gap-2 px-3 py-2 text-xs font-medium text-muted-foreground/70 hover:text-foreground cursor-pointer rounded-none"
-          onClick={onOpenProfile}
-        >
-          <User className="h-3.5 w-3.5" />
-          Profile
-        </DropdownMenuItem>
-        <DropdownMenuSeparator className="bg-border m-0" />
-        <DropdownMenuItem
-          className="flex items-center gap-2 px-3 py-2 text-xs font-medium text-destructive/80 hover:text-destructive hover:bg-destructive/10 cursor-pointer rounded-none"
-          onClick={() => logout()}
-        >
-          <LogOut className="h-3.5 w-3.5" />
-          Sign out
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
-  );
 }
 
 export function WorkspaceLayout() {
@@ -116,26 +67,13 @@ function WorkspaceLayoutInner() {
   const location = useLocation();
   const { workspaceId, ui, actions } = useWorkspace();
   const rootStore = useWorkspaceRootStore();
-  const hoverTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const windowWidth = useWindowWidth();
 
   const contextData = location.search?.contextPanel;
   const isContextOpen = !!contextData;
-  const hasSidebarContent = HIERARCHY_PAGES.has(ui.activeIcon as ContentPage);
 
-  const [prevHasSidebarContent, setPrevHasSidebarContent] = useState(hasSidebarContent);
-  const isRouteDrivenSidebarChange = hasSidebarContent !== prevHasSidebarContent;
-  if (isRouteDrivenSidebarChange) {
-    setPrevHasSidebarContent(hasSidebarContent);
-  }
-
-  const clearHoverTimeout = () => {
-    if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current);
-  };
-  const scheduleHoverClear = () => {
-    hoverTimeoutRef.current = setTimeout(() => actions.setHoveredIcon(null), 300);
-  };
-
+  // Mobile tab bar still switches between top-level "pages" (projects/my-tasks/inbox/...) —
+  // the desktop sidebar replaced this concept with persistent nav, but mobile keeps the old paging.
   const handleSelectIcon = (icon: ContentPage) => {
     if (icon === "projects") {
       const spaces = rootStore.spaceStore.all;
@@ -183,23 +121,18 @@ function WorkspaceLayoutInner() {
     startResizing: startResizingSidebar,
   } = useResize({
     initialWidth: ui.sidebarWidth,
-    minWidth: 10,
-    maxWidth: 500,
+    minWidth: SIDEBAR_MIN_WIDTH,
+    maxWidth: SIDEBAR_MAX_WIDTH,
     direction: "left",
-    onResize: (newWidth) => {
-      if (newWidth === 0 && ui.isInnerSidebarOpen) {
-        actions.setSidebarOpenLocal(false);
-      } else if (newWidth > 0 && !ui.isInnerSidebarOpen) {
-        actions.setSidebarOpenLocal(true);
-      }
-    },
-    onResizeEnd: (newWidth) => {
-      actions.updateSidebarWidth(newWidth);
-    },
+    onResizeEnd: (newWidth) => actions.updateSidebarWidth(newWidth),
   });
 
-  const currentSidebarWidth = ui.isInnerSidebarOpen ? ui.sidebarWidth : 0;
-  const availableWidth = windowWidth - ICON_RAIL_WIDTH - currentSidebarWidth;
+  const rawSidebarWidth = isResizingSidebar ? sidebarWidth : ui.sidebarWidth;
+  const sidebarCollapsed = rawSidebarWidth < SIDEBAR_COLLAPSE_BREAKPOINT;
+  const sidebarDisplayWidth = sidebarCollapsed ? SIDEBAR_MIN_WIDTH : rawSidebarWidth;
+  const handleExpandSidebar = () => actions.updateSidebarWidth(SIDEBAR_DEFAULT_WIDTH);
+
+  const availableWidth = windowWidth - sidebarDisplayWidth;
   const maxContextWidth = availableWidth - 10; // Exactly 10px left for the main area
   const expandThreshold = maxContextWidth - 10;
 
@@ -258,86 +191,44 @@ function WorkspaceLayoutInner() {
     );
   }
 
-  const shouldShowSidebar = ui.isInnerSidebarOpen && hasSidebarContent;
-  const sidebarDisplayWidth = isResizingSidebar ? sidebarWidth : ui.sidebarWidth;
-
   return (
-    <div className="flex h-screen w-full flex-col p-1 gap-1 bg-background font-sans overflow-hidden">
+    <div className="flex h-screen w-full flex-col pl-1 pr-2 py-2 gap-1 bg-background font-sans overflow-hidden">
       <OfflineBanner />
-      {/* ═══════════════════════════════════════════════════
-          HEADER BAR: Search & Global Actions
-      ═══════════════════════════════════════════════════ */}
-      <header className="h-9 w-full shrink-0 flex items-center justify-center relative px-1 bg-card border border-border rounded-md shadow-sm">
-        <div className="absolute left-1 flex items-center gap-2">
-          <WorkspaceSwitcher />
-        </div>
-
-        <GlobalSearch />
-
-        <div className="absolute right-1 flex items-center gap-1.5">
-          <NotificationBell />
-          <div className="h-6 w-px bg-border/50 mx-1" />
-          <UserMenu onOpenProfile={() => setProfileOpen(true)} />
-        </div>
-      </header>
 
       <div className="flex-1 flex gap-1 min-h-0 relative">
-        {/* Wrap Rail and Peek Frame to maintain hover state with timeout */}
-        <div className="relative h-full" onMouseEnter={clearHoverTimeout} onMouseLeave={scheduleHoverClear}>
-          {/* ═══════════════════════════════════════════════════
-              COLUMN 1: Icon Rail
-          ═══════════════════════════════════════════════════ */}
-          <IconRail onSelectIcon={handleSelectIcon} />
-
-          {/* ─── Hover Peek Frame ───────────────────────────── */}
-          {ui.hoveredIcon && HIERARCHY_PAGES.has(ui.hoveredIcon) && !shouldShowSidebar && (
+        {/* ═══════════════════════════════════════════════════
+            COLUMN 1: Sidebar — workspace switcher, search, inbox,
+            my tasks, favorites, project list, user menu. Flush against
+            the page background (no card chrome) so it reads as the
+            frame the main canvas floats inside, not a sibling panel.
+        ═══════════════════════════════════════════════════ */}
+        <div
+          className={cn("relative h-full shrink-0", !isResizingSidebar && "transition-all duration-200 ease-in-out")}
+          style={{ width: sidebarDisplayWidth }}
+        >
+          <AppSidebar
+            onOpenProfile={() => setProfileOpen(true)}
+            collapsed={sidebarCollapsed}
+            onExpand={handleExpandSidebar}
+          />
+          <div
+            onMouseDown={startResizingSidebar}
+            className={cn(
+              "absolute top-0 -right-[3px] w-[6px] h-full cursor-col-resize z-50 group touch-none",
+              isResizingSidebar && "z-[100]",
+            )}
+          >
             <div
-              className="absolute top-0 left-[44px] h-full w-64 z-50 animate-in fade-in slide-in-from-left-1 duration-200"
-              onMouseEnter={clearHoverTimeout}
-              onMouseLeave={scheduleHoverClear}
-            >
-              <div className="h-full w-full bg-card border border-border rounded-md shadow-xl overflow-hidden">
-                <HierarchySidebar />
-              </div>
-            </div>
-          )}
+              className={cn(
+                "h-full w-[1.5px] mx-auto transition-colors duration-200",
+                isResizingSidebar ? "bg-primary" : "group-hover:bg-primary/50 bg-transparent",
+              )}
+            />
+          </div>
         </div>
 
         {/* ═══════════════════════════════════════════════════
-            COLUMN 2: Inner Sidebar (resizable)
-        ═══════════════════════════════════════════════════ */}
-        <ResizablePanel
-          width={sidebarDisplayWidth}
-          isResizing={isResizingSidebar}
-          onResizeStart={startResizingSidebar}
-          handleSide="right"
-          collapsed={!shouldShowSidebar}
-          animate={!isRouteDrivenSidebarChange}
-        >
-          {/* Inner wrapper forces fixed width so content doesn't squish during animation */}
-          <div style={{ width: ui.sidebarWidth }} className="h-full flex flex-col flex-none">
-            <div className="h-8 flex items-center justify-between pl-3 pr-1 shrink-0 border-b border-border bg-muted/10">
-              <h2 className="font-black text-[10px] uppercase tracking-[0.15em] text-foreground/70">
-                {hasSidebarContent ? "PROJECTS" : ui.activeIcon}
-              </h2>
-              <Button
-                size="icon"
-                variant="ghost"
-                onClick={actions.toggleInnerSidebar}
-                className="h-6 w-6 text-muted-foreground hover:text-foreground hover:bg-muted rounded-md transition-colors"
-              >
-                <ChevronLeft className="h-3.5 w-3.5" />
-              </Button>
-            </div>
-
-            <div className="flex-1 min-h-0 overflow-hidden">
-              <HierarchySidebar />
-            </div>
-          </div>
-        </ResizablePanel>
-
-        {/* ═══════════════════════════════════════════════════
-            COLUMN 3: Main Canvas
+            COLUMN 2: Main Canvas
         ═══════════════════════════════════════════════════ */}
         <div className="flex-1 min-w-0 h-full flex flex-col relative bg-card border border-border rounded-md shadow-sm overflow-hidden">
           <Suspense fallback={<LoadingScreen label="Loading" />}>
@@ -346,7 +237,7 @@ function WorkspaceLayoutInner() {
         </div>
 
         {/* ═══════════════════════════════════════════════════
-            COLUMN 4: Context Panel (resizable)
+            COLUMN 3: Context Panel (resizable)
         ═══════════════════════════════════════════════════ */}
         {isContextOpen && (
           <ResizablePanel

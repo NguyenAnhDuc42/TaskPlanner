@@ -86,6 +86,16 @@ public class GetBootstrapHandler(TaskPlanDbContext db, WorkspaceContext workspac
             INNER JOIN users u ON u.id = wm.user_id AND u.deleted_at IS NULL
             WHERE wm.project_workspace_id = @WorkspaceId AND wm.deleted_at IS NULL;";
 
+        const string documentsSql = @"
+            SELECT
+                d.id AS Id, d.project_workspace_id AS WorkspaceId, d.project_space_id AS SpaceId,
+                d.parent_document_id AS ParentDocumentId, d.name AS Name, d.order_key AS OrderKey,
+                d.icon AS Icon, d.color AS Color, d.created_at AS CreatedAt
+            FROM documents d
+            INNER JOIN project_spaces s ON s.id = d.project_space_id AND s.deleted_at IS NULL
+            WHERE d.project_workspace_id = @WorkspaceId AND d.deleted_at IS NULL
+              AND " + visibilityFilter + ";";
+
         var parameters = new
         {
             WorkspaceId = request.WorkspaceId,
@@ -93,7 +103,7 @@ public class GetBootstrapHandler(TaskPlanDbContext db, WorkspaceContext workspac
             IsOwner = isOwner
         };
 
-        var combinedSql = string.Join("\n", tasksSql, spacesSql, foldersSql, statusesSql, assigneesSql, favoritesSql, membersSql);
+        var combinedSql = string.Join("\n", tasksSql, spacesSql, foldersSql, statusesSql, assigneesSql, favoritesSql, membersSql, documentsSql);
 
         List<TaskRecord> tasks;
         List<SpaceRecord> spaces;
@@ -102,6 +112,7 @@ public class GetBootstrapHandler(TaskPlanDbContext db, WorkspaceContext workspac
         List<AssigneeRecord> assignees;
         List<FavoriteRecord> favorites;
         List<MemberRecord> members;
+        List<DocumentRecord> documents;
 
         var queryStopwatch = Stopwatch.StartNew();
         await using (var multi = await connection.QueryMultipleAsync(combinedSql, parameters))
@@ -113,6 +124,7 @@ public class GetBootstrapHandler(TaskPlanDbContext db, WorkspaceContext workspac
             assignees = (await multi.ReadAsync<AssigneeRecord>()).AsList();
             favorites = (await multi.ReadAsync<FavoriteRecord>()).AsList();
             members = (await multi.ReadAsync<MemberRecord>()).AsList();
+            documents = (await multi.ReadAsync<DocumentRecord>()).AsList();
         }
         queryStopwatch.Stop();
 
@@ -120,10 +132,10 @@ public class GetBootstrapHandler(TaskPlanDbContext db, WorkspaceContext workspac
 
         totalStopwatch.Stop();
         logger.LogInformation(
-            "Bootstrap for workspace {WorkspaceId}: query={QueryMs}ms total={TotalMs}ms (tasks={TaskCount} spaces={SpaceCount} folders={FolderCount} statuses={StatusCount} assignees={AssigneeCount} favorites={FavoriteCount} members={MemberCount})",
+            "Bootstrap for workspace {WorkspaceId}: query={QueryMs}ms total={TotalMs}ms (tasks={TaskCount} spaces={SpaceCount} folders={FolderCount} statuses={StatusCount} assignees={AssigneeCount} favorites={FavoriteCount} members={MemberCount} documents={DocumentCount})",
             request.WorkspaceId, queryStopwatch.ElapsedMilliseconds, totalStopwatch.ElapsedMilliseconds,
-            tasks.Count, spaces.Count, folders.Count, statuses.Count, assignees.Count, favorites.Count, members.Count);
+            tasks.Count, spaces.Count, folders.Count, statuses.Count, assignees.Count, favorites.Count, members.Count, documents.Count);
 
-        return Result<BootstrapResult>.Success(new BootstrapResult(lastSyncId, SyncQueryService.CurrentDatabaseVersion, tasks, spaces, folders, statuses, assignees, favorites, members));
+        return Result<BootstrapResult>.Success(new BootstrapResult(lastSyncId, SyncQueryService.CurrentDatabaseVersion, tasks, spaces, folders, statuses, assignees, favorites, members, documents));
     }
 }

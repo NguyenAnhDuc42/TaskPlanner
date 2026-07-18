@@ -1,5 +1,5 @@
 import type { DocumentBlockRecord } from "@/types/document";
-import type { AssigneeRecord, CommentRecord, FavoriteRecord, FolderRecord, SpaceRecord, TaskRecord } from "@/types/projects";
+import type { AssigneeRecord, CommentRecord, DocumentRecord, FavoriteRecord, FolderRecord, SpaceRecord, TaskRecord } from "@/types/projects";
 import type { Status } from "@/types/status";
 import type { PendingTransaction, WorkspaceMetadata } from "@/types/sync";
 import type { MemberRecord } from "@/types/workspace";
@@ -64,6 +64,15 @@ export interface TaskPlanDB extends DBSchema {
     }
   }
 
+  documents: {
+    key: string;
+    value: DocumentRecord;
+    indexes: {
+      'by-space': string
+      'by-parent': string
+    }
+  }
+
   document_blocks:{
     key:string;
     value:DocumentBlockRecord
@@ -91,7 +100,7 @@ export interface TaskPlanDB extends DBSchema {
   }
 }
 
-const DB_VERSION = 5;
+const DB_VERSION = 6;
 const dbCache = new Map<string, IDBPDatabase<TaskPlanDB>>()
 
 export async function openWorkspaceDB(workspaceId:string) : Promise<IDBPDatabase<TaskPlanDB>> {
@@ -139,6 +148,12 @@ export async function openWorkspaceDB(workspaceId:string) : Promise<IDBPDatabase
       if (!db.objectStoreNames.contains('statuses')) {
         const statuses = db.createObjectStore('statuses', {keyPath : 'id'})
         statuses.createIndex('by-space','spaceId')
+      }
+
+      if (!db.objectStoreNames.contains('documents')) {
+        const documents = db.createObjectStore('documents', {keyPath: 'id'})
+        documents.createIndex('by-space','spaceId')
+        documents.createIndex('by-parent','parentDocumentId')
       }
 
       if (!db.objectStoreNames.contains('document_blocks')) {
