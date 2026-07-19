@@ -128,7 +128,7 @@ export function SpaceSettingsDialog({
   const [draggingKey, setDraggingKey] = useState<SpaceRailTabKey | null>(null);
   const [hideEmptyDefault, setHideEmptyDefault] = useLocalStorage(HIDE_EMPTY_DEFAULT_KEY, true);
 
-  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 4 } }));
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
 
   const handleDragEnd = (event: DragEndEvent) => {
     setDraggingKey(null);

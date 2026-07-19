@@ -1,4 +1,4 @@
-import { makeAutoObservable, observable } from "mobx";
+import { makeAutoObservable, observable, computed } from "mobx";
 import type { DocumentBlockRecord } from "@/types/document";
 
 const EMPTY_BLOCKS: DocumentBlockRecord[] = [];
@@ -7,7 +7,10 @@ export class DocumentBlockStore {
   blocks = observable.map<string, DocumentBlockRecord>({}, { deep: false });
 
   constructor() {
-    makeAutoObservable(this);
+    // keepAlive — see TaskStore constructor for why.
+    makeAutoObservable<DocumentBlockStore, "byDocumentIndex">(this, {
+      byDocumentIndex: computed({ keepAlive: true }),
+    });
   }
 
   get all(): DocumentBlockRecord[] {

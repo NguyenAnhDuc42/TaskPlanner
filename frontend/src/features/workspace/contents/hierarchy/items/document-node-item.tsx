@@ -2,8 +2,6 @@ import { useMemo, useState } from "react";
 import { observer } from "mobx-react-lite";
 import { ChevronRight, MoreVertical, Plus, Trash2, FilePlus } from "lucide-react";
 import { DynamicIcon } from "@/components/dynamic-icon";
-import { Collapsible, CollapsibleContent } from "@/components/ui/collapsible";
-import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import {
   ContextMenu,
   ContextMenuContent,
@@ -19,44 +17,47 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
-import { useLocalStorage } from "@/hooks/use-local-storage";
 import { useWorkspaceRootStore } from "@/stores/workspace-root.store";
 import { useSyncEngine } from "@/sync/sync-provider";
-import { useWorkspace } from "@/features/workspace/context/workspace-context";
 import { DocumentMutations } from "@/mutations/document.mutations";
 import { EntityLayerType as EntityLayerConst } from "@/types/entity-layer-type";
 import { SortableItem } from "../dnd/sortable-item";
 import { DeleteConfirmationDialog, EditFieldsSubmenu } from "../hierarchy-components/context-menus/shared";
-import { DocumentGhostRow } from "./document-ghost-row";
 import { toast } from "sonner";
 import { extractErrorMessage } from "@/types/api-error";
 
 interface DocumentNodeItemProps {
   documentId: string;
+  depth: number;
+  hasChildren: boolean;
+  isOpen: boolean;
   activeDocumentId: string;
   onSelect: (documentId: string) => void;
+  onToggleOpen: (documentId: string) => void;
   onRequestSiblingCreate: () => void;
-  depth?: number;
+  onRequestChildCreate: () => void;
 }
 
+// A single flat row — the tree's expand/collapse state, child recursion, and ghost-row placement
+// all live in DocumentNodeList now (see its header comment for why: virtualizing a fully
+// recursive component tree isn't practical, so the list flattens rows and this component only
+// ever renders one of them).
 export const DocumentNodeItem = observer(function DocumentNodeItem({
   documentId,
+  depth,
+  hasChildren,
+  isOpen,
   activeDocumentId,
   onSelect,
+  onToggleOpen,
   onRequestSiblingCreate,
-  depth = 0,
+  onRequestChildCreate,
 }: DocumentNodeItemProps) {
-  const { workspaceId } = useWorkspace();
   const rootStore = useWorkspaceRootStore();
   const syncEngine = useSyncEngine();
   const documentMutations = useMemo(() => new DocumentMutations(rootStore, syncEngine), [rootStore, syncEngine]);
 
   const document = rootStore.documentStore.getById(documentId);
-  const children = rootStore.documentStore.getChildren(documentId);
-  const hasChildren = children.length > 0;
-
-  const [isOpen, setIsOpen] = useLocalStorage(`doc-tree-open:${workspaceId}:${documentId}`, false);
-  const [isCreatingChild, setIsCreatingChild] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
 
   if (!document) return null;
@@ -64,19 +65,6 @@ export const DocumentNodeItem = observer(function DocumentNodeItem({
   const isActive = documentId === activeDocumentId;
   const icon = document.icon || "FileText";
   const color = document.color || "#ffffff";
-
-  const handleCreateSubPage = () => {
-    setIsOpen(true);
-    setIsCreatingChild(true);
-  };
-
-  const commitCreateChild = (name: string) => {
-    setIsCreatingChild(false);
-    documentMutations
-      .create({ spaceId: document.spaceId, name, parentDocumentId: document.id })
-      .then((created) => onSelect(created.id))
-      .catch((err) => toast.error(extractErrorMessage(err, "Failed to create document")));
-  };
 
   const handleDelete = () => {
     documentMutations
@@ -94,7 +82,7 @@ export const DocumentNodeItem = observer(function DocumentNodeItem({
         <Item onSelect={() => onRequestSiblingCreate()} className="gap-2 cursor-pointer">
           <Plus className="h-3.5 w-3.5" /> New page
         </Item>
-        <Item onSelect={handleCreateSubPage} className="gap-2 cursor-pointer">
+        <Item onSelect={() => onRequestChildCreate()} className="gap-2 cursor-pointer">
           <FilePlus className="h-3.5 w-3.5" /> New sub-page
         </Item>
         <EditFieldsSubmenu
@@ -123,7 +111,7 @@ export const DocumentNodeItem = observer(function DocumentNodeItem({
   };
 
   return (
-    <Collapsible open={isOpen} onOpenChange={setIsOpen} className="w-full">
+    <>
       <SortableItem
         id={`document-${document.id}`}
         data={{
@@ -152,7 +140,7 @@ export const DocumentNodeItem = observer(function DocumentNodeItem({
                 onClick={(e) => {
                   if (!hasChildren) return;
                   e.stopPropagation();
-                  setIsOpen(!isOpen);
+                  onToggleOpen(documentId);
                 }}
               >
                 <DynamicIcon
@@ -201,30 +189,6 @@ export const DocumentNodeItem = observer(function DocumentNodeItem({
         </ContextMenu>
       </SortableItem>
 
-      {(hasChildren || isCreatingChild) && (
-        <CollapsibleContent className="overflow-hidden">
-          <SortableContext items={children.map((c) => `document-${c.id}`)} strategy={verticalListSortingStrategy}>
-            {children.map((child) => (
-              <DocumentNodeItem
-                key={child.id}
-                documentId={child.id}
-                activeDocumentId={activeDocumentId}
-                onSelect={onSelect}
-                onRequestSiblingCreate={() => setIsCreatingChild(true)}
-                depth={depth + 1}
-              />
-            ))}
-          </SortableContext>
-          {isCreatingChild && (
-            <DocumentGhostRow
-              depth={depth + 1}
-              onCommit={commitCreateChild}
-              onCancel={() => setIsCreatingChild(false)}
-            />
-          )}
-        </CollapsibleContent>
-      )}
-
       <DeleteConfirmationDialog
         open={isDeleteOpen}
         onOpenChange={setIsDeleteOpen}
@@ -232,6 +196,6 @@ export const DocumentNodeItem = observer(function DocumentNodeItem({
         description={`Are you sure you want to delete "${document.name}"? This will also delete all of its sub-pages and cannot be undone.`}
         onConfirm={handleDelete}
       />
-    </Collapsible>
+    </>
   );
 });

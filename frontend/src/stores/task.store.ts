@@ -1,5 +1,5 @@
 import type { TaskRecord } from "@/types/projects";
-import { makeAutoObservable, observable } from "mobx";
+import { makeAutoObservable, observable, computed } from "mobx";
 
 const EMPTY_TASKS: TaskRecord[] = [];
 
@@ -13,7 +13,16 @@ const byOrderKey = (a: TaskRecord, b: TaskRecord) => {
 export class TaskStore {
   tasks = observable.map<string, TaskRecord>({}, { deep: false });
   constructor() {
-    makeAutoObservable(this);
+    // keepAlive: these group-by indexes are read from plain (non-observer) call sites too —
+    // mutation classes, the sync delta-handler, DnD handlers — where a plain MobX computed
+    // provides no caching at all (it only memoizes while an active observer, e.g. a rendering
+    // React component, is watching it; otherwise every read recomputes from scratch). keepAlive
+    // pins them so they stay cached and incrementally-invalidated regardless of who's reading.
+    makeAutoObservable<TaskStore, "bySpaceIndex" | "byFolderIndex" | "byParentIndex">(this, {
+      bySpaceIndex: computed({ keepAlive: true }),
+      byFolderIndex: computed({ keepAlive: true }),
+      byParentIndex: computed({ keepAlive: true }),
+    });
   }
 
   get all(): TaskRecord[] {

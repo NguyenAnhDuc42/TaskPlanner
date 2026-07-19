@@ -8,11 +8,7 @@ import {
   type DragStartEvent
 } from "@dnd-kit/core";
 import { sortableKeyboardCoordinates } from "@dnd-kit/sortable";
-import { EntityLayerType as EntityLayerConst } from "@/types/entity-layer-type";
 import { useState } from "react";
-import { handleSpaceMove } from "./handlers/handle-space-move";
-import { handleFolderMove } from "./handlers/handle-folder-move";
-import { handleTaskMove } from "./handlers/handle-task-move";
 import { handleDocumentMove } from "./handlers/handle-document-move";
 import type { DragItemData } from "./drag-item-type";
 import { rescueSwallowedClick } from "@/lib/dnd-click-rescue";
@@ -20,9 +16,6 @@ import { useWorkspaceRole } from "@/features/workspace/context/use-workspace-rol
 import { useWorkspaceRootStore } from "@/stores/workspace-root.store";
 import { useSyncEngine } from "@/sync/sync-provider";
 import { useDebouncedFlush } from "@/sync/use-debounced-flush";
-import { SpaceMutations } from "@/mutations/space.mutations";
-import { FolderMutations } from "@/mutations/folder.mutations";
-import { TaskMutations } from "@/mutations/task.mutations";
 import { DocumentMutations } from "@/mutations/document.mutations";
 import { useMemo } from "react";
 
@@ -32,9 +25,6 @@ export function useHierarchyDnd() {
 
   const rootStore = useWorkspaceRootStore();
   const syncEngine = useSyncEngine();
-  const spaceMutations = useMemo(() => new SpaceMutations(rootStore, syncEngine), [rootStore, syncEngine]);
-  const folderMutations = useMemo(() => new FolderMutations(rootStore, syncEngine), [rootStore, syncEngine]);
-  const taskMutations = useMemo(() => new TaskMutations(rootStore, syncEngine), [rootStore, syncEngine]);
   const documentMutations = useMemo(() => new DocumentMutations(rootStore, syncEngine), [rootStore, syncEngine]);
   const { scheduleFlush } = useDebouncedFlush(syncEngine);
 
@@ -61,15 +51,7 @@ export function useHierarchyDnd() {
       const overData = over.data.current as DragItemData | undefined;
 
       if (activeData && overData) {
-        if (activeData.type === EntityLayerConst.ProjectSpace) {
-          handleSpaceMove(rootStore, spaceMutations, activeData, overData);
-        } else if (activeData.type === EntityLayerConst.ProjectFolder) {
-          handleFolderMove(rootStore, folderMutations, taskMutations, activeData, overData);
-        } else if (activeData.type === EntityLayerConst.ProjectTask) {
-          handleTaskMove(rootStore, taskMutations, activeData, overData);
-        } else if (activeData.type === EntityLayerConst.ProjectDocument) {
-          handleDocumentMove(rootStore, documentMutations, activeData, overData);
-        }
+        handleDocumentMove(rootStore, documentMutations, activeData, overData);
         scheduleFlush();
       }
     }

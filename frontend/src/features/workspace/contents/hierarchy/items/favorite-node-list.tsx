@@ -147,7 +147,6 @@ export const FavoriteNodeList = observer(function FavoriteNodeList() {
       onReorder={handleReorder}
       direction="vertical"
       className="flex flex-col"
-      activationDistance={4}
       renderOverlay={(draggedId) => {
         const fav = favorites.find(f => f.id === draggedId);
         if (!fav) return null;

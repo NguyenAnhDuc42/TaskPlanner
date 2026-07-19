@@ -1,5 +1,5 @@
 import type { Status } from "@/types/status";
-import { makeAutoObservable, observable } from "mobx";
+import { makeAutoObservable, observable, computed } from "mobx";
 
 const EMPTY_STATUSES: Status[] = [];
 
@@ -14,7 +14,13 @@ export class StatusStore {
   statuses = observable.map<string, Status>({}, { deep: false });
 
   constructor() {
-    makeAutoObservable(this);
+    // keepAlive — see TaskStore constructor for why. All three chained here (delta-handler.ts
+    // reads getBySpace directly from plain code, bypassing the visibleBySpaceIndex layer).
+    makeAutoObservable<StatusStore, "globalStatuses" | "bySpaceIndex" | "visibleBySpaceIndex">(this, {
+      globalStatuses: computed({ keepAlive: true }),
+      bySpaceIndex: computed({ keepAlive: true }),
+      visibleBySpaceIndex: computed({ keepAlive: true }),
+    });
   }
 
   get all(): Status[] {

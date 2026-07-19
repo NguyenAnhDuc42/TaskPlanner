@@ -239,7 +239,7 @@ export const CreateStatusForm = observer(function CreateStatusForm({
   const addInputRef = useRef<HTMLInputElement>(null);
 
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 4 } })
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
   );
 
   const handleUpdateName = useCallback((id: string, name: string) => {

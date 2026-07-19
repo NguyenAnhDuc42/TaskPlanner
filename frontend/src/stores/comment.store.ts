@@ -1,4 +1,4 @@
-import { makeAutoObservable, observable } from "mobx";
+import { makeAutoObservable, observable, computed } from "mobx";
 import type { CommentRecord } from "@/types/projects/comment-record";
 
 const EMPTY_COMMENTS: CommentRecord[] = [];
@@ -8,7 +8,10 @@ export class CommentStore {
   comments = observable.map<string, CommentRecord>({}, { deep: false });
 
   constructor() {
-    makeAutoObservable(this);
+    // keepAlive — see TaskStore constructor for why.
+    makeAutoObservable<CommentStore, "byTaskIndex">(this, {
+      byTaskIndex: computed({ keepAlive: true }),
+    });
   }
 
   get all(): CommentRecord[] {

@@ -47,15 +47,19 @@ export function SpaceBoardFilterPopover({ filter, onChange, statuses }: SpaceBoa
     <DropdownMenu onOpenChange={(o) => { if (!o) setOpenDateField(null); }}>
       <DropdownMenuTrigger asChild>
         <button
-          className={`h-7 px-2 flex items-center justify-center gap-1.5 rounded-md transition-colors shrink-0 ${
+          title="Filter"
+          className={`relative h-7 w-7 flex items-center justify-center rounded-md transition-colors shrink-0 ${
             activeCount > 0
               ? "bg-primary/10 text-primary hover:bg-primary/20"
               : "hover:bg-muted/50 text-muted-foreground"
           }`}
         >
           <ListFilter className="h-3.5 w-3.5" />
-          <span className="text-[10px] font-semibold">Filter</span>
-          {activeCount > 0 && <span className="text-[10px] font-bold">{activeCount}</span>}
+          {activeCount > 0 && (
+            <span className="absolute -top-0.5 -right-0.5 h-3.5 min-w-3.5 px-0.5 rounded-full bg-primary text-primary-foreground text-[8px] font-bold flex items-center justify-center">
+              {activeCount}
+            </span>
+          )}
         </button>
       </DropdownMenuTrigger>
 

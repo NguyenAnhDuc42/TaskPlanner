@@ -1,5 +1,5 @@
 import type { DocumentRecord } from "@/types/projects";
-import { makeAutoObservable, observable } from "mobx";
+import { makeAutoObservable, observable, computed } from "mobx";
 
 const EMPTY_DOCUMENTS: DocumentRecord[] = [];
 const ROOT_KEY = "__root__";
@@ -15,7 +15,13 @@ export class DocumentStore {
   documents = observable.map<string, DocumentRecord>({}, { deep: false });
 
   constructor() {
-    makeAutoObservable(this);
+    // keepAlive — see TaskStore constructor for why. Especially load-bearing here: getDescendantIds
+    // BFS-calls getChildren once per node, and document.mutations.ts/delta-handler.ts/
+    // handle-document-move.ts all read these indexes from plain (non-observer) code.
+    makeAutoObservable<DocumentStore, "rootsBySpaceIndex" | "byParentIndex">(this, {
+      rootsBySpaceIndex: computed({ keepAlive: true }),
+      byParentIndex: computed({ keepAlive: true }),
+    });
   }
 
   get all(): DocumentRecord[] {

@@ -59,7 +59,7 @@ export function SpaceFilterBar({
   const hiddenCount = hiddenStatusIds.length + (hideUnclassified ? 1 : 0);
 
   return (
-    <div className="px-2 py-1 flex items-center shrink-0 select-none gap-2 bg-card z-10">
+    <>
       {/* Columns — a plain list of statuses, click a row to show/hide it as a column. No
           checkboxes, no per-row extras — just the list, plus Manage Statuses at the bottom to
           open the Workflow Manager form. */}
@@ -114,59 +114,59 @@ export function SpaceFilterBar({
         </DropdownMenuContent>
       </DropdownMenu>
 
-      {/* Sort — how tasks order within each column. */}
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
+      {!isFullyLoaded && (
+        <span className="text-[9px] text-muted-foreground/40 animate-pulse font-medium shrink-0">
+          loading…
+        </span>
+      )}
+      <div className="flex items-center gap-2 px-2 h-7 w-36 focus-within:w-48 rounded-md bg-secondary/60 border border-transparent focus-within:border-primary/30 focus-within:bg-secondary transition-all group shadow-inner">
+        <Search className="h-3 w-3 text-muted-foreground/40 group-focus-within:text-primary transition-colors shrink-0" />
+        <input
+          value={searchInput}
+          onChange={(e) => onSearchChange(e.target.value)}
+          placeholder="Search..."
+          className="flex-1 bg-transparent border-none outline-none text-[11px] font-medium text-foreground placeholder:text-muted-foreground/40 transition-all min-w-0"
+        />
+        {searchInput && (
           <button
-            className={cn(
-              "h-7 px-2 flex items-center justify-center gap-1.5 rounded-md transition-colors shrink-0",
-              sortBy !== "priority"
-                ? "bg-primary/10 text-primary hover:bg-primary/20"
-                : "hover:bg-muted/50 text-muted-foreground"
-            )}
+            onClick={() => onSearchChange("")}
+            className="text-muted-foreground/40 hover:text-foreground transition-colors shrink-0"
           >
-            <ArrowUpDown className="h-3.5 w-3.5" />
-            <span className="text-[10px] font-semibold">Sort</span>
+            <X className="h-3 w-3" />
           </button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="start" className="w-48">
-          <DropdownMenuLabel>Sort by</DropdownMenuLabel>
-          <DropdownMenuRadioGroup value={sortBy} onValueChange={(v) => onSortByChange(v as SpaceBoardSortBy)}>
-            {SORT_OPTIONS.map((opt) => (
-              <DropdownMenuRadioItem key={opt.value} value={opt.value}>
-                {opt.label}
-              </DropdownMenuRadioItem>
-            ))}
-          </DropdownMenuRadioGroup>
-        </DropdownMenuContent>
-      </DropdownMenu>
-
-      {/* Search + Filter — right side */}
-      <div className="ml-auto flex items-center gap-1.5 shrink-0">
-        {!isFullyLoaded && (
-          <span className="text-[9px] text-muted-foreground/40 animate-pulse font-medium shrink-0">
-            loading…
-          </span>
         )}
-        <div className="flex items-center gap-2 px-2 h-7 w-36 focus-within:w-48 rounded-md bg-secondary/60 border border-transparent focus-within:border-primary/30 focus-within:bg-secondary transition-all group shadow-inner">
-          <Search className="h-3 w-3 text-muted-foreground/40 group-focus-within:text-primary transition-colors shrink-0" />
-          <input
-            value={searchInput}
-            onChange={(e) => onSearchChange(e.target.value)}
-            placeholder="Search..."
-            className="flex-1 bg-transparent border-none outline-none text-[11px] font-medium text-foreground placeholder:text-muted-foreground/40 transition-all min-w-0"
-          />
-          {searchInput && (
+      </div>
+
+      {/* Sort + Filter — icon-only, grouped together as the two "how tasks are arranged" controls. */}
+      <div className="flex items-center gap-0.5">
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
             <button
-              onClick={() => onSearchChange("")}
-              className="text-muted-foreground/40 hover:text-foreground transition-colors shrink-0"
+              title="Sort"
+              className={cn(
+                "h-7 w-7 flex items-center justify-center rounded-md transition-colors shrink-0",
+                sortBy !== "priority"
+                  ? "bg-primary/10 text-primary hover:bg-primary/20"
+                  : "hover:bg-muted/50 text-muted-foreground"
+              )}
             >
-              <X className="h-3 w-3" />
+              <ArrowUpDown className="h-3.5 w-3.5" />
             </button>
-          )}
-        </div>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-48">
+            <DropdownMenuLabel>Sort by</DropdownMenuLabel>
+            <DropdownMenuRadioGroup value={sortBy} onValueChange={(v) => onSortByChange(v as SpaceBoardSortBy)}>
+              {SORT_OPTIONS.map((opt) => (
+                <DropdownMenuRadioItem key={opt.value} value={opt.value}>
+                  {opt.label}
+                </DropdownMenuRadioItem>
+              ))}
+            </DropdownMenuRadioGroup>
+          </DropdownMenuContent>
+        </DropdownMenu>
+
         <SpaceBoardFilterPopover filter={filter} onChange={onFilterChange} statuses={statuses} />
       </div>
-    </div>
+    </>
   );
 }

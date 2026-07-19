@@ -11,9 +11,14 @@ interface SpaceViewRailProps {
   orientation?: "side" | "top";
   leading?: ReactNode;
   trailing?: ReactNode;
+  // Right-aligned content in the tabs row itself (e.g. the Board's Columns/Sort/Search/Filter
+  // controls) — lets a tab-specific toolbar share the tabs row instead of stacking its own
+  // separate row underneath, which was three persistent rows of chrome before the content even
+  // starts.
+  tabsTrailing?: ReactNode;
 }
 
-export function SpaceViewRail({ tabOrder, activeTab, onTabChange, onOpenSettings, orientation = "side", leading, trailing }: Readonly<SpaceViewRailProps>) {
+export function SpaceViewRail({ tabOrder, activeTab, onTabChange, onOpenSettings, orientation = "side", leading, trailing, tabsTrailing }: Readonly<SpaceViewRailProps>) {
   if (orientation === "top") {
     return (
       <div className="flex flex-col shrink-0">
@@ -41,6 +46,7 @@ export function SpaceViewRail({ tabOrder, activeTab, onTabChange, onOpenSettings
               </button>
             );
           })}
+          {tabsTrailing && <div className="ml-auto flex items-center gap-1.5">{tabsTrailing}</div>}
         </div>
       </div>
     );

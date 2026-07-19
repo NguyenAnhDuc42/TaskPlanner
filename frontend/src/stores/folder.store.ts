@@ -1,5 +1,5 @@
 import type { FolderRecord } from "@/types/projects";
-import { makeAutoObservable, observable } from "mobx";
+import { makeAutoObservable, observable, computed } from "mobx";
 
 const EMPTY_FOLDERS: FolderRecord[] = [];
 
@@ -14,7 +14,10 @@ export class FolderStore {
   folders = observable.map<string, FolderRecord>({}, { deep: false });
 
   constructor() {
-    makeAutoObservable(this);
+    // keepAlive — see TaskStore constructor for why.
+    makeAutoObservable<FolderStore, "bySpaceIndex">(this, {
+      bySpaceIndex: computed({ keepAlive: true }),
+    });
   }
 
   get all(): FolderRecord[] {

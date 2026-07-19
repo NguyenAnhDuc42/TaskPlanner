@@ -9,7 +9,7 @@ import { codeBlockOptions } from "@blocknote/code-block";
 import { useCreateBlockNote, SuggestionMenuController, getDefaultReactSlashMenuItems } from "@blocknote/react";
 import { BlockNoteView } from "@blocknote/mantine";
 import { useDocumentEditorClaim, type DocumentOutlineEntry } from "@/features/workspace/context/document-editor-context";
-import { useBlockEditorSync, hashJson } from "@/features/workspace/contents/views/view-components/use-block-editor-sync";
+import { useBlockEditorSync } from "@/features/workspace/contents/views/view-components/use-block-editor-sync";
 import { useWorkspaceRootStore } from "@/stores/workspace-root.store";
 import { api } from "@/lib/api-client";
 
@@ -160,7 +160,18 @@ function DocumentEditorHostInner() {
   useEffect(() => () => setOutlineState(null), [documentId, setOutlineState]);
 
   const seenBlockIdsRef = useRef<Set<string> | null>(null);
-  const lastAppliedDigestRef = useRef<string | null>(null);
+  // BlockNote's onChange fires synchronously inside editor.transact (wired straight to Tiptap's
+  // "update" event, which ProseMirror dispatches synchronously) — so it always fires *during*
+  // the replaceBlocks call below, never after. A digest recorded after transact() returns is
+  // therefore always one step too late to recognize the very echo it's meant to suppress: the
+  // hash comparison in onChange would compare the freshly-applied content against whatever
+  // digest was left over from the previous apply (or null), never match, and — because it was
+  // only ever cleared on a match — stay armed forever, paying a full JSON.stringify(doc) on
+  // every subsequent keystroke for the rest of the session for a comparison that can never
+  // succeed again. A synchronous boolean flag sidesteps the ordering issue entirely: it only
+  // needs to be true for the exact duration of the transact() call, which is exactly when the
+  // echo's onChange fires.
+  const isApplyingRef = useRef(false);
   const appliedRef = useRef<{ documentId: string; version: number } | null>(null);
 
   useLayoutEffect(() => {
@@ -172,12 +183,13 @@ function DocumentEditorHostInner() {
     appliedRef.current = { documentId, version };
     seenBlockIdsRef.current = null;
     const contentToApply = (initialContent as PartialBlock[] | undefined) ?? EMPTY_DOCUMENT;
+    isApplyingRef.current = true;
     editor.transact((tr) => {
       tr.setMeta("addToHistory", false);
       editor.replaceBlocks(editor.document, contentToApply);
     });
+    isApplyingRef.current = false;
     clearUndoHistory(editor);
-    lastAppliedDigestRef.current = hashJson(JSON.stringify(editor.document));
     recomputeOutline();
   }, [documentId, isReady, version, initialContent, editor, recomputeOutline]);
 
@@ -213,13 +225,9 @@ function DocumentEditorHostInner() {
         editable={editable}
         onChange={() => {
           const doc = editor.document as unknown as AnyBlock[];
-          if (lastAppliedDigestRef.current !== null) {
-            const isOwnEcho = hashJson(JSON.stringify(doc)) === lastAppliedDigestRef.current;
-            if (isOwnEcho) {
-              lastAppliedDigestRef.current = null;
-              seenBlockIdsRef.current = collectBlockIds(doc);
-              return;
-            }
+          if (isApplyingRef.current) {
+            seenBlockIdsRef.current = collectBlockIds(doc);
+            return;
           }
 
           if (seenBlockIdsRef.current) {

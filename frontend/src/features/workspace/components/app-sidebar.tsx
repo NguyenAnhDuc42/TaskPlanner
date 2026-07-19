@@ -1,15 +1,13 @@
-import { useState } from "react";
 import { observer } from "mobx-react-lite";
 import { useNavigate, useLocation } from "@tanstack/react-router";
-import { ChevronDown, Inbox as InboxIcon, ListTodo, Search, Settings, Users } from "lucide-react";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Inbox as InboxIcon, ListTodo, Search, Settings, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useWorkspace } from "../context/workspace-context";
 import { useStore } from "@/stores/root.store";
 import { WorkspaceSwitcher } from "./workspace-switcher";
 import { GlobalSearch } from "./global-search";
-import { FavoriteNodeList } from "../contents/hierarchy/items/favorite-node-list";
 import { ProjectNodeList } from "../contents/hierarchy/items/project-node-list";
+import { FavoritesProjectsNav } from "./favorites-projects-nav";
 import { UserMenu } from "./user-menu";
 
 interface AppSidebarProps {
@@ -24,9 +22,6 @@ export const AppSidebar = observer(function AppSidebar({ onOpenProfile, collapse
   const navigate = useNavigate();
   const pathname = useLocation({ select: (l) => l.pathname });
   const unreadCount = rootStore.notificationStore.unreadCount;
-
-  const [isFavoritesOpen, setIsFavoritesOpen] = useState(true);
-  const [isProjectsOpen, setIsProjectsOpen] = useState(true);
 
   const isInbox = pathname.endsWith("/inbox");
   const isMyTasks = pathname.endsWith("/my-tasks");
@@ -157,29 +152,7 @@ export const AppSidebar = observer(function AppSidebar({ onOpenProfile, collapse
       </nav>
 
       <div className="flex-1 min-h-0 flex flex-col mt-2">
-        <div className="px-2 shrink-0">
-          <Collapsible open={isFavoritesOpen} onOpenChange={setIsFavoritesOpen}>
-            <CollapsibleTrigger className="flex items-center gap-1.5 w-full px-2 py-1 rounded-md hover:bg-muted/40 transition-colors">
-              <ChevronDown className={cn("h-3 w-3 text-muted-foreground/50 transition-transform", !isFavoritesOpen && "-rotate-90")} />
-              <span className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground/40">Favorites</span>
-            </CollapsibleTrigger>
-            <CollapsibleContent className="px-0.5 pt-0.5 pb-1 max-h-40 overflow-y-auto [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-thumb]:bg-muted-foreground/20">
-              <FavoriteNodeList />
-            </CollapsibleContent>
-          </Collapsible>
-        </div>
-
-        <div className="flex-1 min-h-0 flex flex-col px-2 pb-2">
-          <Collapsible open={isProjectsOpen} onOpenChange={setIsProjectsOpen} className="flex-1 min-h-0 flex flex-col">
-            <CollapsibleTrigger className="flex items-center gap-1.5 w-full px-2 py-1 rounded-md hover:bg-muted/40 transition-colors shrink-0">
-              <ChevronDown className={cn("h-3 w-3 text-muted-foreground/50 transition-transform", !isProjectsOpen && "-rotate-90")} />
-              <span className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground/40">Projects</span>
-            </CollapsibleTrigger>
-            <CollapsibleContent className="flex-1 min-h-0 overflow-y-auto px-0.5 pt-0.5 [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-thumb]:bg-muted-foreground/20">
-              <ProjectNodeList />
-            </CollapsibleContent>
-          </Collapsible>
-        </div>
+        <FavoritesProjectsNav />
       </div>
 
       <div className="flex items-center justify-between gap-1 px-2 py-2 shrink-0 border-t border-border/40">

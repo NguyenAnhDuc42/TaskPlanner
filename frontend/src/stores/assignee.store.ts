@@ -1,4 +1,4 @@
-import { makeAutoObservable, observable } from "mobx";
+import { makeAutoObservable, observable, computed } from "mobx";
 import type { AssigneeRecord } from "@/types/projects/assignee-record";
 
 const EMPTY_ASSIGNEES: AssigneeRecord[] = [];
@@ -8,7 +8,10 @@ export class AssigneeStore {
   assignees = observable.map<string, AssigneeRecord>({}, { deep: false });
 
   constructor() {
-    makeAutoObservable(this);
+    // keepAlive — see TaskStore constructor for why.
+    makeAutoObservable<AssigneeStore, "byTaskIndex">(this, {
+      byTaskIndex: computed({ keepAlive: true }),
+    });
   }
 
   get all(): AssigneeRecord[] {

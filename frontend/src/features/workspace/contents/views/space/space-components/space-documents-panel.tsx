@@ -57,7 +57,7 @@ export const SpaceDocumentsPanel = observer(function SpaceDocumentsPanel({ space
         <div className="px-3 pt-3 pb-1.5 shrink-0">
           <p className="px-0.5 text-[9px] font-bold uppercase tracking-wider text-muted-foreground/40">Pages</p>
         </div>
-        <div className="flex-1 overflow-y-auto px-1.5 pb-3 [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-thumb]:bg-muted-foreground/20">
+        <div className="flex-1 min-h-0">
           <DocumentNodeList spaceId={spaceId} activeDocumentId={activeDocumentId ?? ""} onSelect={setPinnedActiveId} />
         </div>
       </div>

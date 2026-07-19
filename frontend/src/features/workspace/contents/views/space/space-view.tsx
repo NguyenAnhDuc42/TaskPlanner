@@ -4,6 +4,8 @@ import { useWorkspaceRole } from "@/features/workspace/context/use-workspace-rol
 import { SpaceBoard } from "./space-components/space-board";
 import { SpaceViewRail } from "./space-components/space-view-rail";
 import { SpaceActivity } from "./space-components/space-activity";
+import { SpaceFilterBar } from "./space-components/space-filter-bar";
+import type { SpaceBoardFilter, SpaceBoardSortBy } from "./space-board-types";
 import { SpaceSettingsFlow, type SpaceSettingsFlowHandle } from "./space-components/space-settings-flow";
 import {
   DEFAULT_SPACE_RAIL_TAB_ORDER,
@@ -67,6 +69,16 @@ export const SpaceViewBody = observer(function SpaceViewBody({ spaceId }: Readon
   const [isDeleteOpen, setIsDeleteOpen] = React.useState(false);
   const spaceMutations = React.useMemo(() => new SpaceMutations(rootStore, syncEngine), [rootStore, syncEngine]);
 
+  // Board filter/sort/search state — lifted up from SpaceBoard so the tabs row can render these
+  // controls itself (see SpaceViewRail's tabsTrailing) instead of the Board owning a whole
+  // separate toolbar row underneath.
+  const [hiddenStatusIds, setHiddenStatusIds] = React.useState<string[]>([]);
+  const [hideUnclassified, setHideUnclassified] = React.useState(false);
+  const [boardFilter, setBoardFilter] = React.useState<SpaceBoardFilter>({});
+  const [sortBy, setSortBy] = React.useState<SpaceBoardSortBy>("priority");
+  const [searchInput, setSearchInput] = React.useState("");
+  const boardStatuses = rootStore.statusStore.getVisibleForSpace(spaceId);
+
   const space = rootStore.spaceStore.getById(spaceId);
 
   const handleDelete = async () => {
@@ -128,6 +140,25 @@ export const SpaceViewBody = observer(function SpaceViewBody({ spaceId }: Readon
               />
             </div>
           }
+          tabsTrailing={
+            activeTab === "items" ? (
+              <SpaceFilterBar
+                statuses={boardStatuses}
+                hiddenStatusIds={hiddenStatusIds}
+                setHiddenStatusIds={setHiddenStatusIds}
+                filter={boardFilter}
+                onFilterChange={setBoardFilter}
+                searchInput={searchInput}
+                onSearchChange={setSearchInput}
+                isFullyLoaded={ready}
+                hideUnclassified={hideUnclassified}
+                onToggleUnclassified={() => setHideUnclassified((v) => !v)}
+                onOpenWorkflow={canManage ? () => setIsWorkflowOpen(true) : undefined}
+                sortBy={sortBy}
+                onSortByChange={setSortBy}
+              />
+            ) : undefined
+          }
           trailing={
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -164,7 +195,13 @@ export const SpaceViewBody = observer(function SpaceViewBody({ spaceId }: Readon
           {activeTab === "items" && (
             <SpaceBoard
               spaceId={spaceId}
-              onOpenWorkflow={canManage ? () => setIsWorkflowOpen(true) : undefined}
+              filter={boardFilter}
+              sortBy={sortBy}
+              searchInput={searchInput}
+              hiddenStatusIds={hiddenStatusIds}
+              setHiddenStatusIds={setHiddenStatusIds}
+              hideUnclassified={hideUnclassified}
+              setHideUnclassified={setHideUnclassified}
             />
           )}
           {activeTab === "detail" && <SpaceDetail spaceId={spaceId} />}

@@ -76,9 +76,8 @@ export class TransactionQueue {
       this.rootStore.transactionDB!.getPending(),
       this.rootStore.transactionDB!.getInFlight(),
     ])
-    for (const tx of [...pending, ...inFlight].filter(t => ids.has(t.entityId))) {
-      await this.rootStore.transactionDB!.dequeue(tx.id)
-    }
+    const toCancel = [...pending, ...inFlight].filter(t => ids.has(t.entityId)).map(t => t.id)
+    await this.rootStore.transactionDB!.dequeueMany(toCancel)
   }
 
   private squash(sorted: PendingTransaction[]): { toSend: PendingTransaction[]; toCancel: string[] } {
@@ -140,34 +139,32 @@ export class TransactionQueue {
       const sorted = pending.sort((a, b) => a.createdAt - b.createdAt)
       const { toSend, toCancel } = this.squash(sorted)
 
-      for (const id of toCancel) {
-        await this.rootStore.transactionDB!.dequeue(id)
-      }
+      await this.rootStore.transactionDB!.dequeueMany(toCancel)
 
       if (toSend.length === 0) return
 
-      for (const tx of toSend) {
-        await this.rootStore.transactionDB!.markInFlight(tx.id)
-      }
+      await this.rootStore.transactionDB!.markInFlightMany(toSend.map(tx => tx.id))
 
       try {
         const results = await sendBatch(toSend)
+        const toDrop: string[] = []
+        const toRetry: { id: string; retryCount: number }[] = []
         for (const r of results) {
           if (!r.success) {
             const tx = toSend.find(t => t.id === r.traceId)
             const rejections = (tx?.retryCount ?? 0) + 1
             if (rejections >= TransactionQueue.MAX_SERVER_REJECTIONS) {
               devError(`[TransactionQueue] dropping poison transaction ${r.traceId} (${tx?.entityType}/${tx?.action}) after ${rejections} server rejections:`, r.error)
-              await this.rootStore.transactionDB!.dequeue(r.traceId)
+              toDrop.push(r.traceId)
             } else {
-              await this.rootStore.transactionDB!.markPending(r.traceId, rejections)
+              toRetry.push({ id: r.traceId, retryCount: rejections })
             }
           }
         }
+        await this.rootStore.transactionDB!.dequeueMany(toDrop)
+        await this.rootStore.transactionDB!.markPendingMany(toRetry)
       } catch {
-        for (const tx of toSend) {
-          await this.rootStore.transactionDB!.markPending(tx.id)
-        }
+        await this.rootStore.transactionDB!.markPendingMany(toSend.map(tx => ({ id: tx.id })))
       }
     } finally {
       this.flushing = false
@@ -176,8 +173,6 @@ export class TransactionQueue {
 
   async recoverInFlight(): Promise<void> {
     const inFlight = await this.rootStore.transactionDB!.getInFlight()
-    for (const tx of inFlight) {
-      await this.rootStore.transactionDB!.markPending(tx.id)
-    }
+    await this.rootStore.transactionDB!.markPendingMany(inFlight.map(tx => ({ id: tx.id })))
   }
 }

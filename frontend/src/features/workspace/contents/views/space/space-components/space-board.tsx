@@ -20,7 +20,6 @@ import { useBoardDnd } from "./use-board-dnd";
 import { BoardColumn } from "./board-column";
 import { useSmartWheelScroll } from "@/features/workspace/contents/views/space/utils/use-smart-wheel-scroll";
 import { useEdgeScroll } from "@/features/workspace/contents/views/space/utils/use-edge-scroll";
-import { SpaceFilterBar } from "./space-filter-bar";
 import { useWorkspaceRootStore } from "@/stores/workspace-root.store";
 import { useSyncEngine, useSyncReady } from "@/sync/sync-provider";
 import { useDebouncedFlush } from "@/sync/use-debounced-flush";
@@ -34,7 +33,13 @@ import { HIDE_EMPTY_DEFAULT_KEY } from "./space-settings-dialog";
 
 interface SpaceBoardProps {
   spaceId: string;
-  onOpenWorkflow?: () => void;
+  filter: SpaceBoardFilter;
+  sortBy: SpaceBoardSortBy;
+  searchInput: string;
+  hiddenStatusIds: string[];
+  setHiddenStatusIds: React.Dispatch<React.SetStateAction<string[]>>;
+  hideUnclassified: boolean;
+  setHideUnclassified: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
 const collisionDetectionStrategy: CollisionDetection = (args) => {
@@ -47,7 +52,16 @@ const collisionDetectionStrategy: CollisionDetection = (args) => {
   return pointerAwareCollisionDetection(args);
 };
 
-export const SpaceBoard = observer(function SpaceBoard({ spaceId, onOpenWorkflow }: Readonly<SpaceBoardProps>) {
+export const SpaceBoard = observer(function SpaceBoard({
+  spaceId,
+  filter,
+  sortBy,
+  searchInput,
+  hiddenStatusIds,
+  setHiddenStatusIds,
+  hideUnclassified,
+  setHideUnclassified,
+}: Readonly<SpaceBoardProps>) {
   const navigate = useNavigate({ from: "/workspaces/$workspaceId/spaces/$spaceId" });
   const { workspaceId } = useParams({ from: "/workspaces/$workspaceId/_entity/spaces/$spaceId" });
   const isMobile = useIsMobile();
@@ -69,11 +83,6 @@ export const SpaceBoard = observer(function SpaceBoard({ spaceId, onOpenWorkflow
     [spaceTasks],
   );
 
-  const [hiddenStatusIds, setHiddenStatusIds] = useState<string[]>([]);
-  const [hideUnclassified, setHideUnclassified] = useState(false);
-  const [filter, setFilter] = useState<SpaceBoardFilter>({});
-  const [sortBy, setSortBy] = useState<SpaceBoardSortBy>("priority");
-  const [searchInput, setSearchInput] = useState("");
   const debouncedSearch = useDebounce(searchInput, 300);
   const [activeColumnIndex, setActiveColumnIndex] = useState(0);
   const handleBoardScroll = useCallback((e: React.UIEvent<HTMLDivElement>) => {
@@ -190,10 +199,15 @@ export const SpaceBoard = observer(function SpaceBoard({ spaceId, onOpenWorkflow
     if (emptyStatusIds.length > 0) {
       setHiddenStatusIds(prev => [...new Set([...prev, ...emptyStatusIds])]);
     }
-    if ((columns["unclassified"]?.length ?? 0) === 0) {
+    const unclassifiedEmpty = (columns["unclassified"]?.length ?? 0) === 0;
+    // Never hide every column — an empty space (no tasks anywhere yet) would otherwise end up
+    // with zero columns rendered at all, and with it the "Create Task" button that lives inside
+    // each column, leaving no way to create the first task.
+    const wouldHideEverything = unclassifiedEmpty && emptyStatusIds.length === statuses.length;
+    if (unclassifiedEmpty && !wouldHideEverything) {
       setHideUnclassified(true);
     }
-  }, [ready, emptyStatusIds, columns, hideEmptyDefault]);
+  }, [ready, emptyStatusIds, columns, statuses, hideEmptyDefault, setHiddenStatusIds, setHideUnclassified]);
 
   const columnsToRender = useMemo(() => {
     const cols = statuses
@@ -222,22 +236,6 @@ export const SpaceBoard = observer(function SpaceBoard({ spaceId, onOpenWorkflow
 
   return (
     <>
-      <SpaceFilterBar
-        statuses={statuses}
-        hiddenStatusIds={hiddenStatusIds}
-        setHiddenStatusIds={setHiddenStatusIds}
-        filter={filter}
-        onFilterChange={setFilter}
-        searchInput={searchInput}
-        onSearchChange={setSearchInput}
-        isFullyLoaded={ready}
-        hideUnclassified={hideUnclassified}
-        onToggleUnclassified={() => setHideUnclassified(v => !v)}
-        onOpenWorkflow={onOpenWorkflow}
-        sortBy={sortBy}
-        onSortByChange={setSortBy}
-      />
-
       {isMobile && columnsToRender.length > 1 && (
         <div className="flex gap-1 px-2 pb-1.5 overflow-x-auto shrink-0 [&::-webkit-scrollbar]:hidden">
           {columnsToRender.map((col, index) => (

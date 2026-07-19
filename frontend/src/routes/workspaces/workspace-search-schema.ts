@@ -2,7 +2,7 @@ import { z } from "zod";
 
 export const workspaceSearchSchema = z.object({
   contextPanel: z.object({
-    type: z.enum(["task", "folder", "space", "project"]),
+    type: z.enum(["task", "space", "project"]),
     id: z.string(),
   }).optional(),
 });
