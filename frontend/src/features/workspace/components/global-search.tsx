@@ -1,65 +1,26 @@
-import { useDeferredValue, useMemo, useState } from "react";
+import { useState } from "react";
 import { observer } from "mobx-react-lite";
-import { useNavigate } from "@tanstack/react-router";
 import { Search } from "lucide-react";
 import { DynamicIcon } from "@/components/dynamic-icon";
-import { useWorkspaceRootStore } from "@/stores/workspace-root.store";
-import { useWorkspace } from "@/features/workspace/context/workspace-context";
 import { EntityLayerType } from "@/types/entity-layer-type";
-
-type SearchResult = {
-  id: string;
-  name: string;
-  icon?: string;
-  color?: string;
-  type: EntityLayerType;
-};
-
-const MAX_RESULTS_PER_SECTION = 5;
+import { useWorkspaceSearch, type WorkspaceSearchResult } from "./use-workspace-search";
 
 export const GlobalSearch = observer(function GlobalSearch() {
-  const { workspaceId } = useWorkspace();
-  const rootStore = useWorkspaceRootStore();
-  const navigate = useNavigate();
   const [query, setQuery] = useState("");
   const [isFocused, setIsFocused] = useState(false);
-  const deferredQuery = useDeferredValue(query);
+  const { sections, hasResults, navigateToResult } = useWorkspaceSearch(query);
 
-  const sections = useMemo((): { label: string; results: SearchResult[] }[] => {
-    const q = deferredQuery.trim().toLowerCase();
-    if (!q) return [];
-
-    const spaces: SearchResult[] = rootStore.spaceStore.all
-      .filter((s) => s.name.toLowerCase().includes(q))
-      .map((s) => ({ id: s.id, name: s.name, icon: s.icon, color: s.color, type: EntityLayerType.ProjectSpace }))
-      .slice(0, MAX_RESULTS_PER_SECTION);
-
-    const tasks: SearchResult[] = rootStore.taskStore.all
-      .filter((t) => t.name.toLowerCase().includes(q))
-      .map((t) => ({ id: t.id, name: t.name, icon: t.icon, color: t.color, type: EntityLayerType.ProjectTask }))
-      .slice(0, MAX_RESULTS_PER_SECTION);
-
-    return [
-      { label: "Spaces", results: spaces },
-      { label: "Tasks", results: tasks },
-    ].filter((section) => section.results.length > 0);
-  }, [deferredQuery, rootStore.spaceStore.all, rootStore.taskStore.all]);
-
-  const hasResults = sections.length > 0;
-
-  const handleSelect = (result: SearchResult) => {
-    if (!workspaceId) return;
-    if (result.type === EntityLayerType.ProjectSpace) {
-      navigate({ to: "/workspaces/$workspaceId/spaces/$spaceId", params: { workspaceId, spaceId: result.id } });
-    } else if (result.type === EntityLayerType.ProjectTask) {
-      navigate({ to: "/workspaces/$workspaceId/tasks/$taskId", params: { workspaceId, taskId: result.id } });
-    }
+  const handleSelect = (result: WorkspaceSearchResult) => {
+    navigateToResult(result);
     setQuery("");
     setIsFocused(false);
   };
 
-  const defaultIcon = (type: EntityLayerType) =>
-    type === EntityLayerType.ProjectTask ? "Circle" : "Orbit";
+  const defaultIcon = (type: EntityLayerType) => {
+    if (type === EntityLayerType.ProjectTask) return "Circle";
+    if (type === EntityLayerType.ProjectDocument) return "FileText";
+    return "Orbit";
+  };
 
   return (
     <div className="relative w-full max-w-md rounded-md group">
@@ -72,7 +33,7 @@ export const GlobalSearch = observer(function GlobalSearch() {
         onChange={(e) => setQuery(e.target.value)}
         onFocus={() => setIsFocused(true)}
         onBlur={() => setTimeout(() => setIsFocused(false), 150)}
-        placeholder="Search spaces, tasks... (⌘K)"
+        placeholder="Search spaces, tasks, docs... (⌘K)"
         className="w-full h-7 bg-secondary/60 hover:bg-secondary/80 focus:bg-secondary/80 border border-transparent focus:border-primary/30 focus:ring-1 focus:ring-primary/20 rounded-md pl-8 pr-3 text-[11px] font-medium placeholder:text-muted-foreground/50 transition-all outline-none shadow-inner relative z-10"
       />
 

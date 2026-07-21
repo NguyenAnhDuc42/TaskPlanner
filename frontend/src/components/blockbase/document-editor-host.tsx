@@ -188,8 +188,10 @@ function DocumentEditorHostInner() {
       tr.setMeta("addToHistory", false);
       editor.replaceBlocks(editor.document, contentToApply);
     });
-    isApplyingRef.current = false;
+    // clearUndoHistory calls view.updateState() directly, which also triggers onChange — stay
+    // "applying" through that call too, or that second echo gets misread as a real edit.
     clearUndoHistory(editor);
+    isApplyingRef.current = false;
     recomputeOutline();
   }, [documentId, isReady, version, initialContent, editor, recomputeOutline]);
 
@@ -222,7 +224,7 @@ function DocumentEditorHostInner() {
       <BlockNoteView
         editor={editor}
         theme={isDark ? "dark" : "light"}
-        editable={editable}
+        editable={editable && isReady}
         onChange={() => {
           const doc = editor.document as unknown as AnyBlock[];
           if (isApplyingRef.current) {

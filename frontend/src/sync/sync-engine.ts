@@ -31,6 +31,9 @@ interface BootstrapResponse {
   favorites: Record<string, unknown>[]
   members: Record<string, unknown>[]
   documents: Record<string, unknown>[]
+  hasMoreTasks: boolean
+  nextTaskCursorCreatedAt: string | null
+  nextTaskCursorId: string | null
 }
 
 export class SyncEngine {
@@ -130,22 +133,53 @@ export class SyncEngine {
 
 
   private async bootstrap(workspaceId: string): Promise<void> {
-    const res = await api.get(`/workspaces/${workspaceId}/sync/bootstrap`)
-    const data: BootstrapResponse = res.data
-
     const { taskDB, spaceDB, folderDB, statusDB, assigneeDB, favoriteDB, memberDB, documentDB, metadataDB } = this.rootStore
-    await Promise.all([
-      taskDB!.putMany(data.tasks as unknown as TaskRecord[]),
-      spaceDB!.putMany(data.spaces as unknown as SpaceRecord[]),
-      folderDB!.putMany(data.folders as unknown as FolderRecord[]),
-      statusDB!.putMany(data.statuses as unknown as Status[]),
-      assigneeDB!.putMany(data.assignees as unknown as AssigneeRecord[]),
-      favoriteDB!.putMany(data.favorites as unknown as FavoriteRecord[]),
-      memberDB!.putMany(data.members as unknown as MemberRecord[]),
-      documentDB!.putMany(data.documents as unknown as DocumentRecord[]),
-    ])
 
-    await metadataDB!.setFullBootstrap(data.lastSyncId, data.databaseVersion)
+    // Tasks page in from the server (see GetBootstrapHandler's TaskPageSize) since they're the one
+    // entity that can grow unboundedly over a workspace's lifetime — everything else comes back
+    // whole on the first page. Loop until the server says there's no more, writing each page to
+    // IDB as it arrives so peak memory stays bounded to one page's worth of rows, not the whole
+    // workspace's task history at once.
+    let cursorCreatedAt: string | null = null
+    let cursorId: string | null = null
+    let lastSyncId = 0
+    let databaseVersion = 0
+    let pageCount = 0
+
+    for (;;) {
+      const params: Record<string, string> = {}
+      if (cursorCreatedAt && cursorId) {
+        params.afterCreatedAt = cursorCreatedAt
+        params.afterTaskId = cursorId
+      }
+      const res = await api.get(`/workspaces/${workspaceId}/sync/bootstrap`, { params })
+      const data: BootstrapResponse = res.data
+      pageCount++
+
+      const writes: Promise<unknown>[] = [
+        taskDB!.putMany(data.tasks as unknown as TaskRecord[]),
+        assigneeDB!.putMany(data.assignees as unknown as AssigneeRecord[]),
+      ]
+      if (pageCount === 1) {
+        lastSyncId = data.lastSyncId
+        databaseVersion = data.databaseVersion
+        writes.push(
+          spaceDB!.putMany(data.spaces as unknown as SpaceRecord[]),
+          folderDB!.putMany(data.folders as unknown as FolderRecord[]),
+          statusDB!.putMany(data.statuses as unknown as Status[]),
+          favoriteDB!.putMany(data.favorites as unknown as FavoriteRecord[]),
+          memberDB!.putMany(data.members as unknown as MemberRecord[]),
+          documentDB!.putMany(data.documents as unknown as DocumentRecord[]),
+        )
+      }
+      await Promise.all(writes)
+
+      if (!data.hasMoreTasks) break
+      cursorCreatedAt = data.nextTaskCursorCreatedAt
+      cursorId = data.nextTaskCursorId
+    }
+
+    await metadataDB!.setFullBootstrap(lastSyncId, databaseVersion)
 
     const [tasks, spaces, folders, statuses, assignees, favorites, members, documents] = await Promise.all([
       taskDB!.getAll(),

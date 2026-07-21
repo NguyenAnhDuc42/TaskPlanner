@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import { observer } from "mobx-react-lite";
+import { formatDistanceToNow } from "date-fns";
 import { useWorkspaceRole } from "@/features/workspace/context/use-workspace-role";
 import { useDocumentEditorSlot, useDocumentOutline } from "@/features/workspace/context/document-editor-context";
 import { DocumentOutlineRail } from "@/components/document-outline-rail";
@@ -82,6 +83,11 @@ export const SpaceDocumentsPanel = observer(function SpaceDocumentsPanel({ space
                     onBlur={(e) => commitTitleChange(e.target.value)}
                     onKeyDown={(e) => { if (e.key === "Enter") e.currentTarget.blur(); }}
                   />
+                  {activeDocument.lastEditedAt && (
+                    <p className="px-1 mt-1 text-[10px] font-medium text-muted-foreground/40">
+                      Edited {formatDistanceToNow(new Date(activeDocument.lastEditedAt), { addSuffix: true })}
+                    </p>
+                  )}
                 </div>
               </div>
             </div>

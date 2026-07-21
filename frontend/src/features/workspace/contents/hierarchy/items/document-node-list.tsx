@@ -96,7 +96,7 @@ export const DocumentNodeList = observer(function DocumentNodeList({ spaceId, ac
   const { canCreateContent } = useWorkspaceRole();
   const documentMutations = useMemo(() => new DocumentMutations(rootStore, syncEngine), [rootStore, syncEngine]);
 
-  const { sensors, handleDragStart, handleDragEnd, activeItem } = useHierarchyDnd();
+  const { sensors, handleDragStart, handleDragMove, handleDragEnd, activeItem, dropTarget } = useHierarchyDnd();
 
   const storageKey = `doc-tree-expanded:${workspaceId}:${spaceId}`;
   const [expandedIds, setExpandedIds] = useState<Set<string>>(() => readExpandedIds(storageKey));
@@ -213,6 +213,7 @@ export const DocumentNodeList = observer(function DocumentNodeList({ spaceId, ac
       sensors={sensors}
       collisionDetection={pointerAwareCollisionDetection}
       onDragStart={handleDragStart}
+      onDragMove={handleDragMove}
       onDragEnd={handleDragEnd}
       modifiers={[restrictToVerticalAxis]}
     >
@@ -248,6 +249,7 @@ export const DocumentNodeList = observer(function DocumentNodeList({ spaceId, ac
                       onToggleOpen={toggleOpen}
                       onRequestSiblingCreate={() => requestSiblingCreate(row.parentId)}
                       onRequestChildCreate={() => requestChildCreate(row.documentId)}
+                      dropZone={dropTarget?.id === `document-${row.documentId}` ? dropTarget.zone : null}
                     />
                   )}
                 </div>

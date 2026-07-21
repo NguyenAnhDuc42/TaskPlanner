@@ -20,6 +20,7 @@ import { DocumentEditorProvider } from "../context/document-editor-context";
 import { UserMenu } from "./user-menu";
 import { useWorkspaceRootStore } from "@/stores/workspace-root.store";
 import { cn } from "@/lib/utils";
+import { CommandPalette } from "./command-palette";
 
 // Below this width the sidebar renders its collapsed icon-only variant instead of shrinking labels.
 const SIDEBAR_COLLAPSE_BREAKPOINT = 160;
@@ -54,6 +55,7 @@ export function WorkspaceLayout() {
       <Suspense fallback={null}>
         <DocumentEditorHost />
       </Suspense>
+      <CommandPalette />
     </DocumentEditorProvider>
   );
 }

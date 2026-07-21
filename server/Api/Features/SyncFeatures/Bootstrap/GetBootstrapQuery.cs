@@ -1,6 +1,10 @@
 namespace Api;
 
-public record GetBootstrapQuery(Guid WorkspaceId) : IQueryRequest<BootstrapResult>, IAuthorizedWorkspaceRequest;
+public record GetBootstrapQuery(
+    Guid WorkspaceId,
+    DateTimeOffset? AfterCreatedAt = null,
+    Guid? AfterTaskId = null
+) : IQueryRequest<BootstrapResult>, IAuthorizedWorkspaceRequest;
 
 public record BootstrapResult(
     long LastSyncId,
@@ -12,5 +16,8 @@ public record BootstrapResult(
     List<AssigneeRecord> Assignees,
     List<FavoriteRecord> Favorites,
     List<MemberRecord> Members,
-    List<DocumentRecord> Documents
+    List<DocumentRecord> Documents,
+    bool HasMoreTasks,
+    DateTimeOffset? NextTaskCursorCreatedAt,
+    Guid? NextTaskCursorId
 );

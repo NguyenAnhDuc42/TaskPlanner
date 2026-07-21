@@ -5,7 +5,14 @@ import { useCallback, useEffect, useState } from "react";
 // each get their own isolated copy seeded once at mount. One updates its copy + localStorage; the
 // other never hears about it until it remounts (a refresh). This event is how same-window
 // instances of the same key notify each other.
-const LOCAL_STORAGE_EVENT = "local-storage-change";
+// Exported so callers that must write localStorage directly (e.g. setting a key before a route
+// navigation, outside any component's state) can still notify other same-window instances.
+export const LOCAL_STORAGE_EVENT = "local-storage-change";
+
+export function broadcastLocalStorageChange(key: string) {
+  if (globalThis.window === undefined) return;
+  globalThis.window.dispatchEvent(new CustomEvent(LOCAL_STORAGE_EVENT, { detail: { key } }));
+}
 
 function readValue<T>(key: string, initialValue: T): T {
   if (globalThis.window === undefined) {

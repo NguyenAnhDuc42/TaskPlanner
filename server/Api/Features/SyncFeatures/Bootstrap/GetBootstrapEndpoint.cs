@@ -8,10 +8,12 @@ public static class GetBootstrapEndpoint
     {
         app.MapGet("/api/workspaces/{workspaceId:guid}/sync/bootstrap", async (
             [FromRoute] Guid workspaceId,
+            [FromQuery] DateTimeOffset? afterCreatedAt,
+            [FromQuery] Guid? afterTaskId,
             [FromServices] IHandler dispatcher,
             CancellationToken cancellationToken) =>
         {
-            var query = new GetBootstrapQuery(workspaceId);
+            var query = new GetBootstrapQuery(workspaceId, afterCreatedAt, afterTaskId);
             var result = await dispatcher.QueryAsync<GetBootstrapQuery, BootstrapResult>(query, cancellationToken);
             return result.ToMinimalResult();
         })

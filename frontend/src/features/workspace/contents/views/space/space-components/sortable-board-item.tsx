@@ -9,7 +9,7 @@ import { format, isBefore, startOfDay } from "date-fns";
 import { PrioritySelect } from "@/components/priority-select";
 import { PriorityBadge } from "@/components/priority-badge";
 import { DynamicIcon } from "@/components/dynamic-icon";
-import { Maximize2, MoreVertical } from "lucide-react";
+import { Check, Maximize2, MoreVertical } from "lucide-react";
 import { DateSelect } from "@/components/date-select";
 import type { TaskRecord } from "@/types/projects";
 import { useRouter, useNavigate } from "@tanstack/react-router";
@@ -34,6 +34,11 @@ export interface BoardItemCardProps {
   // False for the floating DragOverlay preview — it's not wrapped in a TaskContextMenu, so the
   // kebab trigger (which needs that context) can't render there.
   showActions?: boolean;
+  isChecked?: boolean;
+  // Whether ANY card on the board is currently checked — once true, every card's checkbox stays
+  // visible (not just on hover) so picking a second/third card doesn't require re-hovering each one.
+  isSelectionMode?: boolean;
+  onToggleCheck?: () => void;
 }
 
 export const BoardItemCard = React.memo(function BoardItemCard({
@@ -51,6 +56,9 @@ export const BoardItemCard = React.memo(function BoardItemCard({
   dragProps,
   canCreateContent,
   showActions = true,
+  isChecked = false,
+  isSelectionMode = false,
+  onToggleCheck,
 }: BoardItemCardProps) {
   const itemColor = item.color || "#6b7280";
   const isOverdue = React.useMemo(() => {
@@ -104,6 +112,24 @@ export const BoardItemCard = React.memo(function BoardItemCard({
         <div className="flex flex-col gap-0.5 mt-0.5">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2 min-w-0 flex-1">
+              {onToggleCheck && (
+                <button
+                  type="button"
+                  onClick={(e) => { e.stopPropagation(); onToggleCheck(); }}
+                  onPointerDown={(e) => e.stopPropagation()}
+                  className={cn(
+                    "shrink-0 h-3.5 w-3.5 rounded-sm border flex items-center justify-center transition-colors",
+                    isChecked
+                      ? "bg-primary border-primary opacity-100"
+                      : cn(
+                          "border-border/50 bg-background/50",
+                          isSelectionMode ? "opacity-100" : "opacity-0 md:group-hover:opacity-100",
+                        ),
+                  )}
+                >
+                  {isChecked && <Check className="h-2.5 w-2.5 text-primary-foreground stroke-3" />}
+                </button>
+              )}
               <div className="shrink-0" style={{ color: itemColor }}>
                 <DynamicIcon name={item.icon || "Circle"} size={13} color={itemColor} className="stroke-[2.5]" />
               </div>
@@ -202,12 +228,18 @@ export const SortableBoardItem = React.memo(function SortableBoardItem({
   onTaskClick,
   onPriorityChange,
   onDateChange,
+  isChecked,
+  isSelectionMode,
+  onToggleCheck,
 }: {
   item: BoardItem;
   isSelected?: boolean;
   onTaskClick: (id: string) => void;
   onPriorityChange: (id: string, priority: Priority) => void;
   onDateChange: (id: string, patches: { startDate?: string | null; dueDate?: string | null }) => void;
+  isChecked?: boolean;
+  isSelectionMode?: boolean;
+  onToggleCheck?: (id: string) => void;
 }) {
   const { canCreateContent } = useWorkspaceRole();
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
@@ -245,6 +277,10 @@ export const SortableBoardItem = React.memo(function SortableBoardItem({
     onDateChange(item.id, patches);
   }, [item.id, onDateChange]);
 
+  const handleToggleCheck = React.useCallback(() => {
+    onToggleCheck?.(item.id);
+  }, [item.id, onToggleCheck]);
+
   return (
     <TaskContextMenu taskId={item.id} taskName={item.name} parentId="">
       <div>
@@ -257,6 +293,9 @@ export const SortableBoardItem = React.memo(function SortableBoardItem({
           onMaximizeClick={handleOpenPage}
           onPriorityChange={handlePrioritySelect}
           onDateChange={handleDateSelect}
+          isChecked={isChecked}
+          isSelectionMode={isSelectionMode}
+          onToggleCheck={onToggleCheck ? handleToggleCheck : undefined}
           isDragging={isDragging}
           style={style}
           dragRef={setNodeRef}

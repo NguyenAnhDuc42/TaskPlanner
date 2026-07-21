@@ -72,6 +72,7 @@ public record DocumentRecord
     public string? Icon { get; init; }
     public string? Color { get; init; }
     public DateTimeOffset? CreatedAt { get; init; }
+    public DateTimeOffset? LastEditedAt { get; init; }
 }
 
 public record DocumentBlockRecord

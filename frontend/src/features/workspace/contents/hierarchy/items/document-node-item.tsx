@@ -25,6 +25,7 @@ import { SortableItem } from "../dnd/sortable-item";
 import { DeleteConfirmationDialog, EditFieldsSubmenu } from "../hierarchy-components/context-menus/shared";
 import { toast } from "sonner";
 import { extractErrorMessage } from "@/types/api-error";
+import type { DropZone } from "../dnd/handlers/handle-document-move";
 
 interface DocumentNodeItemProps {
   documentId: string;
@@ -36,6 +37,7 @@ interface DocumentNodeItemProps {
   onToggleOpen: (documentId: string) => void;
   onRequestSiblingCreate: () => void;
   onRequestChildCreate: () => void;
+  dropZone: DropZone | null;
 }
 
 // A single flat row — the tree's expand/collapse state, child recursion, and ghost-row placement
@@ -52,6 +54,7 @@ export const DocumentNodeItem = observer(function DocumentNodeItem({
   onToggleOpen,
   onRequestSiblingCreate,
   onRequestChildCreate,
+  dropZone,
 }: DocumentNodeItemProps) {
   const rootStore = useWorkspaceRootStore();
   const syncEngine = useSyncEngine();
@@ -127,13 +130,20 @@ export const DocumentNodeItem = observer(function DocumentNodeItem({
           <ContextMenuTrigger asChild>
             <div
               className={cn(
-                "group flex items-center px-1 py-0.5 rounded-md mb-px border",
+                "group relative flex items-center px-1 py-0.5 rounded-md mb-px border",
                 isActive
                   ? "bg-primary/10 text-primary border-primary/25"
                   : "text-muted-foreground border-transparent hover:bg-muted/50 hover:text-foreground hover:border-border/30",
+                dropZone === "nest" && "bg-primary/10 border-primary/40 ring-1 ring-primary/40",
               )}
               style={{ paddingLeft: 4 + depth * 14 }}
             >
+              {dropZone === "before" && (
+                <div className="absolute left-1 right-1 -top-px h-0.5 rounded-full bg-primary pointer-events-none" />
+              )}
+              {dropZone === "after" && (
+                <div className="absolute left-1 right-1 -bottom-px h-0.5 rounded-full bg-primary pointer-events-none" />
+              )}
               <button
                 type="button"
                 className="relative flex items-center justify-center w-5 h-5 shrink-0 cursor-pointer rounded-sm hover:bg-background/50 group/icon mr-1 transition-none"

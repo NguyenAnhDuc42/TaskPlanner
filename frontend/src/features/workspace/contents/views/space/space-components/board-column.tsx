@@ -25,6 +25,9 @@ export const BoardColumn = React.memo(function BoardColumn({
   onHide,
   draggable,
   fullWidth,
+  checkedTaskIds,
+  isSelectionMode,
+  onToggleCheck,
 }: {
   statusId: string;
   name: string;
@@ -38,6 +41,9 @@ export const BoardColumn = React.memo(function BoardColumn({
   onHide?: () => void;
   draggable?: boolean;
   fullWidth?: boolean;
+  checkedTaskIds?: Set<string>;
+  isSelectionMode?: boolean;
+  onToggleCheck?: (id: string) => void;
 }) {
   const { setNodeRef, isOver } = useDroppable({ id: `zone:${statusId}`, data: { type: "card-zone" } });
   const itemIds = useMemo(() =>
@@ -76,6 +82,9 @@ export const BoardColumn = React.memo(function BoardColumn({
               onTaskClick={onTaskClick}
               onPriorityChange={onPriorityChange}
               onDateChange={onDateChange}
+              isChecked={checkedTaskIds?.has(item.id)}
+              isSelectionMode={isSelectionMode}
+              onToggleCheck={onToggleCheck}
             />
           ))}
         </SortableContext>

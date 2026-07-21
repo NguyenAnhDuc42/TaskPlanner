@@ -29,6 +29,7 @@ import { RowAction } from "@/types/row-action";
 import { toLocalDay } from "@/lib/date-filter";
 import { useLocalStorage } from "@/hooks/use-local-storage";
 import { HIDE_EMPTY_DEFAULT_KEY } from "./space-settings-dialog";
+import { TaskBatchBar } from "./task-batch-bar";
 
 
 interface SpaceBoardProps {
@@ -85,6 +86,18 @@ export const SpaceBoard = observer(function SpaceBoard({
 
   const debouncedSearch = useDebounce(searchInput, 300);
   const [activeColumnIndex, setActiveColumnIndex] = useState(0);
+
+  const [checkedTaskIds, setCheckedTaskIds] = useState<Set<string>>(new Set());
+  const isSelectionMode = checkedTaskIds.size > 0;
+  const handleToggleCheck = useCallback((id: string) => {
+    setCheckedTaskIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }, []);
+  const clearSelection = useCallback(() => setCheckedTaskIds(new Set()), []);
   const handleBoardScroll = useCallback((e: React.UIEvent<HTMLDivElement>) => {
     const el = e.currentTarget;
     if (el.clientWidth === 0) return;
@@ -290,6 +303,9 @@ export const SpaceBoard = observer(function SpaceBoard({
                 onHide={col.id === "unclassified" ? () => setHideUnclassified(true) : undefined}
                 draggable={col.id !== "unclassified"}
                 fullWidth={isMobile}
+                checkedTaskIds={checkedTaskIds}
+                isSelectionMode={isSelectionMode}
+                onToggleCheck={handleToggleCheck}
               />
             ))}
           </SortableContext>
@@ -310,6 +326,15 @@ export const SpaceBoard = observer(function SpaceBoard({
           document.body
         )}
       </DndContext>
+
+      {isSelectionMode && (
+        <TaskBatchBar
+          checkedTaskIds={checkedTaskIds}
+          onClear={clearSelection}
+          statuses={statuses}
+          taskMutations={taskMutations}
+        />
+      )}
     </>
   );
 });

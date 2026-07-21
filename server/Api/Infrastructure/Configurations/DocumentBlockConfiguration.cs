@@ -14,6 +14,8 @@ public class DocumentBlockConfiguration : TenantEntityConfiguration<DocumentBloc
             .HasColumnName("document_id")
             .IsRequired();
 
+        builder.HasIndex(x => x.DocumentId);
+
         builder.Property(x => x.Type)
             .HasConversion<string>()
             .HasColumnName("type")

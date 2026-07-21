@@ -27,6 +27,7 @@ public class BatchFlushHandler(
     public async Task<Result<BatchFlushResult>> Handle(BatchFlushCommand request, CancellationToken ct)
     {
         var ctx = await PreloadAsync(request.Items, ct);
+        await idempotencyService.PreloadAsync(request.Items.Select(i => i.TraceId), ct);
 
         var results = new List<BatchFlushItemResult>();
         var allEvents = new List<SyncEvent>();
