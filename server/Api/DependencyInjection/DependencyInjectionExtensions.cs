@@ -1,3 +1,5 @@
+using StackExchange.Redis;
+
 namespace Api;
 
 public static class DependencyInjectionExtensions
@@ -11,11 +13,17 @@ public static class DependencyInjectionExtensions
         services.AddEmail(config);
         services.AddObjectStorage(config);
 
-        // Redis backplane temporarily reverted — was crashing every hub connection in production
-        // (Redis unreachable on Railway, taking down OnConnectedAsync with it). Re-add once the
-        // Railway Redis connectivity issue is root-caused; single-instance prod loses nothing by
-        // running in-memory in the meantime.
-        services.AddSignalR();
+        // AbortOnConnectFail defaults to true, which means: if the very first connection attempt
+        // fails (e.g. Redis/private networking isn't fully up yet the instant this container
+        // starts — a real race we hit on Railway), the multiplexer gives up permanently instead of
+        // retrying. false lets it keep retrying in the background until Redis becomes reachable,
+        // instead of taking every hub connection down with it forever.
+        services.AddSignalR()
+            .AddStackExchangeRedis(config.GetConnectionString("Redis")!, options =>
+            {
+                options.Configuration.AbortOnConnectFail = false;
+                options.Configuration.ChannelPrefix = RedisChannel.Literal("taskplanner-signalr");
+            });
 
         services.AddAppAuthentication(config);
 

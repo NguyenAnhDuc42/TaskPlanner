@@ -16,10 +16,9 @@ public static class ConfigurationValidationExtensions
         if (string.IsNullOrWhiteSpace(connStr))
             errors.Add($"  • ConnectionStrings:DefaultConnection — database connection string is missing.\n    Run: dotnet user-secrets set \"ConnectionStrings:DefaultConnection\" \"<postgres connection string>\"");
 
-        // Redis is not a hard requirement right now — the SignalR backplane that needed it was
-        // reverted (see DependencyInjectionExtensions.cs) after it took down every hub connection
-        // in production when Redis was unreachable. AddRedisClient still registers a health check
-        // against it, but nothing crashes if it's absent or unreachable until the backplane returns.
+        var cacheConnStr = config.GetConnectionString("Redis");
+        if (string.IsNullOrWhiteSpace(cacheConnStr))
+            errors.Add($"  • ConnectionStrings:Redis — Redis connection string is missing (required for the SignalR backplane).\n    Run: dotnet user-secrets set \"ConnectionStrings:Redis\" \"<redis connection string>\"");
 
         var cursorKey = config[$"{CursorEncryptionOptions.SectionName}:Key"];
         if (string.IsNullOrWhiteSpace(cursorKey))
