@@ -194,7 +194,8 @@ app.MapHub<SyncHub>("/hubs/sync").RequireCors("AllowSignalR");
 app.MapAllEndpoints(typeof(Program).Assembly);
 
 // TEMPORARY — isolated Redis connectivity check, no SignalR involved. Delete once the backplane
-// reconnection issue is confirmed fixed. Auth-gated so it's not a public info-leak endpoint.
+// reconnection issue is confirmed fixed. Not auth-gated (doesn't leak the password, just
+// connectivity status against a private-network-only host) so it's testable via a raw browser hit.
 app.MapGet("/diagnostics/redis-check", async (IConfiguration config) =>
 {
     var connStr = config.GetConnectionString("Redis");
@@ -215,7 +216,7 @@ app.MapGet("/diagnostics/redis-check", async (IConfiguration config) =>
     {
         return Results.Text($"FAILED: {ex.GetType().FullName}: {ex.Message}\n\n{ex}", statusCode: 500);
     }
-}).RequireAuthorization();
+});
 
 // Apply pending EF Core migrations on startup
 using (var scope = app.Services.CreateScope())
