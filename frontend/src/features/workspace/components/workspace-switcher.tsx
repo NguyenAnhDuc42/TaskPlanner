@@ -99,7 +99,7 @@ export const WorkspaceSwitcher = observer(function WorkspaceSwitcher({ collapsed
             title={collapsed ? activeWorkspace.name : undefined}
             className={cn(
               "flex items-center gap-1.5 rounded-md hover:bg-muted/50 transition-colors cursor-pointer group outline-none",
-              collapsed ? "justify-center h-7 w-7 mx-auto" : "px-1.5 py-1",
+              collapsed ? "justify-center h-7 w-7" : "px-1.5 py-1",
             )}
           >
             <div

@@ -1,6 +1,6 @@
 import { observer } from "mobx-react-lite";
 import { useNavigate, useLocation } from "@tanstack/react-router";
-import { Inbox as InboxIcon, ListTodo, Search, Settings, Users } from "lucide-react";
+import { Inbox as InboxIcon, ListTodo, PanelLeftClose, PanelLeftOpen, Search, Settings, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useWorkspace } from "../context/workspace-context";
 import { useStore } from "@/stores/root.store";
@@ -14,9 +14,10 @@ interface AppSidebarProps {
   onOpenProfile: () => void;
   collapsed?: boolean;
   onExpand?: () => void;
+  onCollapse?: () => void;
 }
 
-export const AppSidebar = observer(function AppSidebar({ onOpenProfile, collapsed = false, onExpand }: Readonly<AppSidebarProps>) {
+export const AppSidebar = observer(function AppSidebar({ onOpenProfile, collapsed = false, onExpand, onCollapse }: Readonly<AppSidebarProps>) {
   const { workspaceId } = useWorkspace();
   const rootStore = useStore();
   const navigate = useNavigate();
@@ -29,8 +30,16 @@ export const AppSidebar = observer(function AppSidebar({ onOpenProfile, collapse
 
   if (collapsed) {
     return (
-      <div className="h-full w-full flex flex-col items-center overflow-hidden">
-        <div className="flex flex-col items-center gap-0.5 pt-2 pb-2 shrink-0 w-full border-b border-border/30">
+      <div className="h-full w-full flex flex-col items-start overflow-hidden">
+        <div className="flex flex-col items-start gap-0.5 pt-2 pb-2 px-1.5 shrink-0 w-full border-b border-border/30">
+          <button
+            type="button"
+            onClick={onExpand}
+            title="Expand sidebar"
+            className="h-7 w-7 flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors cursor-pointer"
+          >
+            <PanelLeftOpen className="h-3.5 w-3.5" />
+          </button>
           <WorkspaceSwitcher collapsed />
           <button
             type="button"
@@ -42,7 +51,7 @@ export const AppSidebar = observer(function AppSidebar({ onOpenProfile, collapse
           </button>
         </div>
 
-        <div className="flex flex-col items-center gap-0.5 py-2 shrink-0 w-full border-b border-border/30">
+        <div className="flex flex-col items-start gap-0.5 py-2 px-1.5 shrink-0 w-full border-b border-border/30">
           <button
             type="button"
             onClick={() => navigate({ to: "/workspaces/$workspaceId/inbox", params: { workspaceId } })}
@@ -81,11 +90,11 @@ export const AppSidebar = observer(function AppSidebar({ onOpenProfile, collapse
           </button>
         </div>
 
-        <div className="flex-1 min-h-0 w-full overflow-y-auto py-2 [&::-webkit-scrollbar]:w-0">
+        <div className="flex-1 min-h-0 w-full overflow-y-auto py-2 px-1.5 [&::-webkit-scrollbar]:w-0">
           <ProjectNodeList collapsed />
         </div>
 
-        <div className="flex flex-col items-center gap-0.5 py-2 shrink-0 w-full border-t border-border/30">
+        <div className="flex flex-col items-start gap-0.5 py-2 px-1.5 shrink-0 w-full border-t border-border/30">
           <button
             type="button"
             onClick={() => navigate({ to: "/workspaces/$workspaceId/settings", params: { workspaceId } })}
@@ -102,8 +111,18 @@ export const AppSidebar = observer(function AppSidebar({ onOpenProfile, collapse
 
   return (
     <div className="h-full w-full flex flex-col overflow-hidden">
-      <div className="flex items-center px-1.5 h-10 shrink-0 border-b border-border/40">
+      <div className="flex items-center justify-between px-1.5 h-10 shrink-0 border-b border-border/40">
         <WorkspaceSwitcher />
+        {onCollapse && (
+          <button
+            type="button"
+            onClick={onCollapse}
+            title="Collapse sidebar"
+            className="h-6 w-6 flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors cursor-pointer shrink-0"
+          >
+            <PanelLeftClose className="h-3.5 w-3.5" />
+          </button>
+        )}
       </div>
 
       <div className="px-2 pt-2 shrink-0">

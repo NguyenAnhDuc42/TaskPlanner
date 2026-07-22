@@ -5,8 +5,6 @@ namespace Api;
 
 public class PermissionService(TaskPlanDbContext db, WorkspaceContext context, ILogger<PermissionService> logger)
 {
-    // Used by Create* handlers that haven't pre-loaded the space entity.
-    // Queries ProjectSpaces + EntityAccesses in one round-trip.
     public async Task<bool> VerifyAsync(
         Role requiredRole,
         Guid? spaceId = null,
@@ -61,8 +59,8 @@ public class PermissionService(TaskPlanDbContext db, WorkspaceContext context, I
     {
         var currentMember = context.CurrentMember;
         if (!isPrivate) return true;
-        if (callerAccessLevel is null) return false;
         if (creatorId.HasValue && currentMember.Id == creatorId.Value) return true;
+        if (callerAccessLevel is null) return false;
         return requiredAccess.HasValue && callerAccessLevel.Value.IsAtLeast(requiredAccess.Value);
     }
 }

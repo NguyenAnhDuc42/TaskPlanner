@@ -133,6 +133,7 @@ function WorkspaceLayoutInner() {
   const sidebarCollapsed = rawSidebarWidth < SIDEBAR_COLLAPSE_BREAKPOINT;
   const sidebarDisplayWidth = sidebarCollapsed ? SIDEBAR_MIN_WIDTH : rawSidebarWidth;
   const handleExpandSidebar = () => actions.updateSidebarWidth(SIDEBAR_DEFAULT_WIDTH);
+  const handleCollapseSidebar = () => actions.updateSidebarWidth(SIDEBAR_MIN_WIDTH);
 
   const availableWidth = windowWidth - sidebarDisplayWidth;
   const maxContextWidth = availableWidth - 10; // Exactly 10px left for the main area
@@ -212,6 +213,7 @@ function WorkspaceLayoutInner() {
             onOpenProfile={() => setProfileOpen(true)}
             collapsed={sidebarCollapsed}
             onExpand={handleExpandSidebar}
+            onCollapse={handleCollapseSidebar}
           />
           <div
             onMouseDown={startResizingSidebar}

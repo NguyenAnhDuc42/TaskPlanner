@@ -36,7 +36,7 @@ function ProjectNodeItem({ spaceId, collapsed }: { spaceId: string; collapsed?: 
             navigate({ to: "/workspaces/$workspaceId/spaces/$spaceId", params: { workspaceId, spaceId: space.id } })
           }
           className={cn(
-            "flex items-center justify-center h-7 w-7 mx-auto rounded-md transition-colors cursor-pointer",
+            "flex items-center justify-center h-7 w-7 rounded-md transition-colors cursor-pointer",
             isActive ? "bg-primary/10" : "hover:bg-muted/50",
           )}
         >
@@ -121,7 +121,7 @@ export const ProjectNodeList = observer(function ProjectNodeList({ collapsed }: 
             onClick={() => spaceMutations
               .create({ name: "New Project", isPrivate: false, color: "#ffffff", icon: "Orbit" })
               .catch((err) => toast.error(extractErrorMessage(err, "Failed to create project")))}
-            className="flex items-center justify-center h-7 w-7 mx-auto rounded-md text-muted-foreground/50 hover:text-foreground hover:bg-muted/50 transition-colors cursor-pointer"
+            className="flex items-center justify-center h-7 w-7 rounded-md text-muted-foreground/50 hover:text-foreground hover:bg-muted/50 transition-colors cursor-pointer"
           >
             <Plus className="h-3.5 w-3.5" />
           </button>

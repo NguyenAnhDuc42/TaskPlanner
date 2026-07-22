@@ -41,8 +41,8 @@ public class TaskPlanDbContext : DbContext
     public DbSet<Status> Statuses { get; set; }
     public DbSet<Notification> Notifications { get; set; }
     // Sync Architecture Entities
-    public DbSet<Domain.SyncEvent> SyncEvents { get; set; }
-    public DbSet<Domain.ProcessedTrace> ProcessedTraces { get; set; }
+    public DbSet<SyncEvent> SyncEvents { get; set; }
+    public DbSet<ProcessedTrace> ProcessedTraces { get; set; }
     
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
