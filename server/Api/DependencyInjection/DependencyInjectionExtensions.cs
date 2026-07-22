@@ -11,13 +11,22 @@ public static class DependencyInjectionExtensions
         services.AddEmail(config);
         services.AddObjectStorage(config);
 
-        // Redis backplane reverted AGAIN — AbortOnConnectFail=false didn't fix it, meaning Redis is
-        // genuinely unreachable from this container (not just a startup race). Do not re-add until
-        // reachability is confirmed independently of a live hub connection (e.g. a throwaway
-        // endpoint or Railway shell that actually pings redis.railway.internal:6379), not by
-        // shipping it straight to production again. Single-instance prod loses nothing by staying
-        // in-memory in the meantime.
-        services.AddSignalR();
+        // Root cause found via an isolated diagnostic endpoint: StackExchange.Redis 2.13.1's
+        // ConfigurationOptions.Parse() mishandles our "redis://user:pass@host:port" string,
+        // resolving to a duplicated-port endpoint that can never connect. Using the
+        // configure-delegate-only overload here and building ConfigurationOptions ourselves via
+        // RedisConnectionHelper (System.Uri parsing) bypasses that buggy string parser entirely -
+        // confirmed working (Connected: True, clean single-port endpoint) before wiring this back in.
+        var redisConnStr = config.GetConnectionString("Redis")
+            ?? throw new InvalidOperationException("ConnectionStrings:Redis is required for the SignalR backplane.");
+
+        services.AddSignalR()
+            .AddStackExchangeRedis(options =>
+            {
+                options.Configuration = RedisConnectionHelper.ParseRedisUrl(redisConnStr);
+                options.Configuration.AbortOnConnectFail = false;
+                options.Configuration.ChannelPrefix = StackExchange.Redis.RedisChannel.Literal("taskplanner-signalr");
+            });
 
         services.AddAppAuthentication(config);
 
