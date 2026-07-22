@@ -193,6 +193,30 @@ app.MapHub<WorkspaceHub>("/hubs/workspace").RequireCors("AllowSignalR");
 app.MapHub<SyncHub>("/hubs/sync").RequireCors("AllowSignalR");
 app.MapAllEndpoints(typeof(Program).Assembly);
 
+// TEMPORARY — isolated Redis connectivity check, no SignalR involved. Delete once the backplane
+// reconnection issue is confirmed fixed. Auth-gated so it's not a public info-leak endpoint.
+app.MapGet("/diagnostics/redis-check", async (IConfiguration config) =>
+{
+    var connStr = config.GetConnectionString("Redis");
+    if (string.IsNullOrWhiteSpace(connStr))
+        return Results.Text("ConnectionStrings:Redis is not set.", statusCode: 500);
+
+    try
+    {
+        var options = StackExchange.Redis.ConfigurationOptions.Parse(connStr);
+        options.AbortOnConnectFail = false;
+        options.ConnectTimeout = 5000;
+        await using var mux = await StackExchange.Redis.ConnectionMultiplexer.ConnectAsync(options);
+        var endpoints = mux.GetEndPoints().Select(e => e.ToString());
+        var pong = await mux.GetDatabase().PingAsync();
+        return Results.Text($"Connected: {mux.IsConnected}\nResolved endpoints: {string.Join(", ", endpoints)}\nPing: {pong.TotalMilliseconds}ms");
+    }
+    catch (Exception ex)
+    {
+        return Results.Text($"FAILED: {ex.GetType().FullName}: {ex.Message}\n\n{ex}", statusCode: 500);
+    }
+}).RequireAuthorization();
+
 // Apply pending EF Core migrations on startup
 using (var scope = app.Services.CreateScope())
 {
