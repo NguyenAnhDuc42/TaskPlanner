@@ -204,7 +204,7 @@ app.MapGet("/diagnostics/redis-check", async (IConfiguration config) =>
 
     try
     {
-        var options = StackExchange.Redis.ConfigurationOptions.Parse(connStr);
+        var options = RedisConnectionHelper.ParseRedisUrl(connStr);
         options.AbortOnConnectFail = false;
         options.ConnectTimeout = 5000;
         await using var mux = await StackExchange.Redis.ConnectionMultiplexer.ConnectAsync(options);
