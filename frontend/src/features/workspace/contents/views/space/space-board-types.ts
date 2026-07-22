@@ -7,9 +7,11 @@ export interface SpaceBoardFilter {
   search?: string;
   startDate?: string;
   dueDate?: string;
+  assigneeIds?: string[];
+  hideArchived?: boolean;
 }
 
-export type BoardItem = TaskRecord & { __type: "task" };
+export type BoardItem = TaskRecord & { __type: "task"; parentTaskName?: string };
 
 export type SpaceBoardSortBy = "priority" | "manual" | "createdNewest" | "createdOldest" | "dueDate" | "name";
 
@@ -43,4 +45,28 @@ export function getBoardSortComparator(sortBy: SpaceBoardSortBy) {
     default:
       return prioritySort;
   }
+}
+
+
+export function groupSubtasksAfterParent(items: BoardItem[]): BoardItem[] {
+  const idsInColumn = new Set(items.map((it) => it.id));
+  const consumed = new Set<string>();
+  const result: BoardItem[] = [];
+
+  for (const item of items) {
+    if (consumed.has(item.id)) continue;
+    if (item.parentTaskId && idsInColumn.has(item.parentTaskId) && !consumed.has(item.parentTaskId)) continue;
+
+    result.push(item);
+    consumed.add(item.id);
+
+    for (const child of items) {
+      if (child.parentTaskId === item.id && !consumed.has(child.id)) {
+        result.push(child);
+        consumed.add(child.id);
+      }
+    }
+  }
+
+  return result;
 }

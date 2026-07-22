@@ -3,7 +3,8 @@ import { toast } from "sonner";
 import { useForm } from "@tanstack/react-form";
 import { useLogin } from "../../auth-api";
 import { useNavigate, Link } from "@tanstack/react-router";
-import { Eye, EyeOff, Loader2, Github, Chrome, ArrowRight } from "lucide-react";
+import { Eye, EyeOff, Loader2, ArrowRight } from "lucide-react";
+import { IconBrandGithub, IconBrandGoogle } from "@tabler/icons-react";
 import { cn } from "@/lib/utils";
 
 export default function SignInForm() {
@@ -36,7 +37,7 @@ export default function SignInForm() {
           onClick={() => (window.location.href = `${import.meta.env.VITE_API_URL ?? ""}/api/auth/external-login/google`)}
           className="flex items-center justify-center gap-3 h-11 px-4 rounded-xl border border-border/80 bg-secondary hover:bg-muted shadow-sm hover:shadow-md text-sm font-bold text-foreground transition-all active:scale-[0.98] disabled:opacity-40 disabled:pointer-events-none"
         >
-          <Chrome className="h-5 w-5" />
+          <IconBrandGoogle className="h-5 w-5" />
           Continue with Google
         </button>
         <button
@@ -45,7 +46,7 @@ export default function SignInForm() {
           onClick={() => (window.location.href = `${import.meta.env.VITE_API_URL ?? ""}/api/auth/external-login/github`)}
           className="flex items-center justify-center gap-3 h-11 px-4 rounded-xl border border-border/80 bg-secondary hover:bg-muted shadow-sm hover:shadow-md text-sm font-bold text-foreground transition-all active:scale-[0.98] disabled:opacity-40 disabled:pointer-events-none"
         >
-          <Github className="h-5 w-5" />
+          <IconBrandGithub className="h-5 w-5" />
           Continue with GitHub
         </button>
       </div>

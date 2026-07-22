@@ -69,14 +69,12 @@ export const SpaceViewBody = observer(function SpaceViewBody({ spaceId }: Readon
   const [isDeleteOpen, setIsDeleteOpen] = React.useState(false);
   const spaceMutations = React.useMemo(() => new SpaceMutations(rootStore, syncEngine), [rootStore, syncEngine]);
 
-  // Board filter/sort/search state — lifted up from SpaceBoard so the tabs row can render these
-  // controls itself (see SpaceViewRail's tabsTrailing) instead of the Board owning a whole
-  // separate toolbar row underneath.
   const [hiddenStatusIds, setHiddenStatusIds] = React.useState<string[]>([]);
   const [hideUnclassified, setHideUnclassified] = React.useState(false);
   const [boardFilter, setBoardFilter] = React.useState<SpaceBoardFilter>({});
   const [sortBy, setSortBy] = React.useState<SpaceBoardSortBy>("priority");
   const [searchInput, setSearchInput] = React.useState("");
+  const [showSubtasks, setShowSubtasks] = React.useState(false);
   const boardStatuses = rootStore.statusStore.getVisibleForSpace(spaceId);
 
   const space = rootStore.spaceStore.getById(spaceId);
@@ -156,6 +154,9 @@ export const SpaceViewBody = observer(function SpaceViewBody({ spaceId }: Readon
                 onOpenWorkflow={canManage ? () => setIsWorkflowOpen(true) : undefined}
                 sortBy={sortBy}
                 onSortByChange={setSortBy}
+                members={rootStore.memberStore.all}
+                showSubtasks={showSubtasks}
+                onToggleSubtasks={() => setShowSubtasks((v) => !v)}
               />
             ) : undefined
           }
@@ -202,6 +203,7 @@ export const SpaceViewBody = observer(function SpaceViewBody({ spaceId }: Readon
               setHiddenStatusIds={setHiddenStatusIds}
               hideUnclassified={hideUnclassified}
               setHideUnclassified={setHideUnclassified}
+              showSubtasks={showSubtasks}
             />
           )}
           {activeTab === "detail" && <SpaceDetail spaceId={spaceId} />}

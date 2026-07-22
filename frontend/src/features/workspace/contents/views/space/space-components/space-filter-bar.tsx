@@ -1,7 +1,8 @@
-import { Search, X, SlidersHorizontal, Workflow, ArrowUpDown } from "lucide-react";
+import { Search, X, SlidersHorizontal, Workflow, ArrowUpDown, ListTree } from "lucide-react";
 import { useCallback } from "react";
 import { cn } from "@/lib/utils";
 import type { Status } from "@/types/status";
+import type { MemberRecord } from "@/types/workspace/member-record";
 import type { SpaceBoardFilter, SpaceBoardSortBy } from "../space-board-types";
 import { SORT_OPTIONS } from "../space-board-types";
 import { SpaceBoardFilterPopover } from "./space-board-filter-popover";
@@ -30,6 +31,9 @@ interface SpaceFilterBarProps {
   onOpenWorkflow?: () => void;
   sortBy: SpaceBoardSortBy;
   onSortByChange: (sortBy: SpaceBoardSortBy) => void;
+  members: MemberRecord[];
+  showSubtasks: boolean;
+  onToggleSubtasks: () => void;
 }
 
 export function SpaceFilterBar({
@@ -46,6 +50,9 @@ export function SpaceFilterBar({
   onOpenWorkflow,
   sortBy,
   onSortByChange,
+  members,
+  showSubtasks,
+  onToggleSubtasks,
 }: Readonly<SpaceFilterBarProps>) {
   const toggleStatusVisibility = useCallback(
     (statusId: string) => {
@@ -137,7 +144,8 @@ export function SpaceFilterBar({
         )}
       </div>
 
-      {/* Sort + Filter — icon-only, grouped together as the two "how tasks are arranged" controls. */}
+      {/* Sort + Subtasks + Filter — icon-only, grouped together as the "how tasks are arranged"
+          controls. */}
       <div className="flex items-center gap-0.5">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
@@ -165,7 +173,21 @@ export function SpaceFilterBar({
           </DropdownMenuContent>
         </DropdownMenu>
 
-        <SpaceBoardFilterPopover filter={filter} onChange={onFilterChange} statuses={statuses} />
+        <button
+          type="button"
+          title={showSubtasks ? "Hide subtasks" : "Show subtasks"}
+          onClick={onToggleSubtasks}
+          className={cn(
+            "h-7 w-7 flex items-center justify-center rounded-md transition-colors shrink-0",
+            showSubtasks
+              ? "bg-primary/10 text-primary hover:bg-primary/20"
+              : "hover:bg-muted/50 text-muted-foreground"
+          )}
+        >
+          <ListTree className="h-3.5 w-3.5" />
+        </button>
+
+        <SpaceBoardFilterPopover filter={filter} onChange={onFilterChange} statuses={statuses} members={members} />
       </div>
     </>
   );

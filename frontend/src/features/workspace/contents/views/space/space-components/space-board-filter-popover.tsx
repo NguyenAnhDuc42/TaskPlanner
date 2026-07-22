@@ -5,6 +5,7 @@ import { PriorityBadge } from "@/components/priority-badge";
 import { DateFilterField } from "@/components/date-filter-field";
 import type { SpaceBoardFilter } from "../space-board-types";
 import type { Status } from "@/types/status";
+import type { MemberRecord } from "@/types/workspace/member-record";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -21,15 +22,18 @@ interface SpaceBoardFilterPopoverProps {
   filter: SpaceBoardFilter;
   onChange: (filter: SpaceBoardFilter) => void;
   statuses: Status[];
+  members: MemberRecord[];
 }
 
-export function SpaceBoardFilterPopover({ filter, onChange, statuses }: SpaceBoardFilterPopoverProps) {
+export function SpaceBoardFilterPopover({ filter, onChange, statuses, members }: SpaceBoardFilterPopoverProps) {
   const [openDateField, setOpenDateField] = useState<"start" | "due" | null>(null);
   const activeCount =
     (filter.priorities?.length ?? 0) +
     (filter.statusIds?.length ?? 0) +
+    (filter.assigneeIds?.length ?? 0) +
     (filter.startDate ? 1 : 0) +
-    (filter.dueDate ? 1 : 0);
+    (filter.dueDate ? 1 : 0) +
+    (filter.hideArchived ? 1 : 0);
 
   const togglePriority = (value: Priority) => {
     const current = filter.priorities ?? [];
@@ -41,6 +45,12 @@ export function SpaceBoardFilterPopover({ filter, onChange, statuses }: SpaceBoa
     const current = filter.statusIds ?? [];
     const next = current.includes(value) ? current.filter(x => x !== value) : [...current, value];
     onChange({ ...filter, statusIds: next.length > 0 ? next : undefined });
+  };
+
+  const toggleAssignee = (value: string) => {
+    const current = filter.assigneeIds ?? [];
+    const next = current.includes(value) ? current.filter(x => x !== value) : [...current, value];
+    onChange({ ...filter, assigneeIds: next.length > 0 ? next : undefined });
   };
 
   return (
@@ -125,6 +135,39 @@ export function SpaceBoardFilterPopover({ filter, onChange, statuses }: SpaceBoa
             ))}
           </DropdownMenuSubContent>
         </DropdownMenuSub>
+
+        {/* Assignee */}
+        {members.length > 0 && (
+          <DropdownMenuSub>
+            <DropdownMenuSubTrigger>
+              Assignee
+              {filter.assigneeIds?.length ? (
+                <span className="ml-1 text-[10px] text-muted-foreground bg-muted px-1.5 rounded-full">{filter.assigneeIds.length}</span>
+              ) : null}
+            </DropdownMenuSubTrigger>
+            <DropdownMenuSubContent className="w-48 max-h-72 overflow-y-auto">
+              {members.map(m => (
+                <DropdownMenuCheckboxItem
+                  key={m.id}
+                  checked={filter.assigneeIds?.includes(m.id) ?? false}
+                  onCheckedChange={() => toggleAssignee(m.id)}
+                  onSelect={(e) => e.preventDefault()}
+                >
+                  <span className="truncate">{m.name}</span>
+                </DropdownMenuCheckboxItem>
+              ))}
+            </DropdownMenuSubContent>
+          </DropdownMenuSub>
+        )}
+
+        <DropdownMenuSeparator />
+        <DropdownMenuCheckboxItem
+          checked={filter.hideArchived ?? false}
+          onCheckedChange={(checked) => onChange({ ...filter, hideArchived: checked ? true : undefined })}
+          onSelect={(e) => e.preventDefault()}
+        >
+          Hide archived
+        </DropdownMenuCheckboxItem>
 
         {/* Dates */}
         <DropdownMenuSeparator />

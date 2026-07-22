@@ -10,7 +10,7 @@ var builder = DistributedApplication.CreateBuilder(args);
 var postgres = builder.AddConnectionString("DefaultConnection");
 
 // Redis (Still container, as it's lightweight and easy)
-var redis = builder.AddRedis("cache");
+var redis = builder.AddRedis("Redis");
 
 
 

@@ -9,7 +9,7 @@ import { format, isBefore, startOfDay } from "date-fns";
 import { PrioritySelect } from "@/components/priority-select";
 import { PriorityBadge } from "@/components/priority-badge";
 import { DynamicIcon } from "@/components/dynamic-icon";
-import { Check, Maximize2, MoreVertical } from "lucide-react";
+import { Check, CornerDownRight, Maximize2, MoreVertical } from "lucide-react";
 import { DateSelect } from "@/components/date-select";
 import type { TaskRecord } from "@/types/projects";
 import { useRouter, useNavigate } from "@tanstack/react-router";
@@ -164,6 +164,12 @@ export const BoardItemCard = React.memo(function BoardItemCard({
               </div>
             )}
           </div>
+          {item.parentTaskName && (
+            <div className="flex items-center gap-1 pl-0.5 text-[9px] font-medium text-muted-foreground/45 min-w-0">
+              <CornerDownRight className="h-2.5 w-2.5 shrink-0" />
+              <span className="truncate">Subtask of {item.parentTaskName}</span>
+            </div>
+          )}
         </div>
 
         {/* Row 2: Priority, Date — flat/minimal (icon + plain text), matching the mock rather

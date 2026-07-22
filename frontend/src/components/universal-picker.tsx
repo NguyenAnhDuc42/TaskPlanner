@@ -107,8 +107,17 @@ export function PickerPanel({
   const [tab, setTab] = React.useState<"icons" | "emojis">("icons")
   const [hexInput, setHexInput] = React.useState(color)
 
-  React.useEffect(() => { setLocalIcon(icon) }, [icon])
-  React.useEffect(() => { setLocalColor(color); setHexInput(color) }, [color])
+  const [prevIcon, setPrevIcon] = React.useState(icon)
+  if (icon !== prevIcon) {
+    setPrevIcon(icon)
+    setLocalIcon(icon)
+  }
+  const [prevColor, setPrevColor] = React.useState(color)
+  if (color !== prevColor) {
+    setPrevColor(color)
+    setLocalColor(color)
+    setHexInput(color)
+  }
 
   const filteredIcons = React.useMemo(() => {
     if (!search.trim()) return AVAILABLE_ICONS

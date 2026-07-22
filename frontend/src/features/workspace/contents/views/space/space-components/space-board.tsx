@@ -13,7 +13,7 @@ import { SortableContext, horizontalListSortingStrategy } from "@dnd-kit/sortabl
 import { pointerAwareCollisionDetection } from "@/lib/dnd-collision";
 import { Priority } from "@/types/priority";
 import type { BoardItem, SpaceBoardFilter, SpaceBoardSortBy } from "../space-board-types";
-import { getBoardSortComparator } from "../space-board-types";
+import { getBoardSortComparator, groupSubtasksAfterParent } from "../space-board-types";
 import { useDebounce } from "@/hooks/use-debounce";
 import { BoardItemCard } from "./sortable-board-item";
 import { useBoardDnd } from "./use-board-dnd";
@@ -41,6 +41,7 @@ interface SpaceBoardProps {
   setHiddenStatusIds: React.Dispatch<React.SetStateAction<string[]>>;
   hideUnclassified: boolean;
   setHideUnclassified: React.Dispatch<React.SetStateAction<boolean>>;
+  showSubtasks: boolean;
 }
 
 const collisionDetectionStrategy: CollisionDetection = (args) => {
@@ -62,6 +63,7 @@ export const SpaceBoard = observer(function SpaceBoard({
   setHiddenStatusIds,
   hideUnclassified,
   setHideUnclassified,
+  showSubtasks,
 }: Readonly<SpaceBoardProps>) {
   const navigate = useNavigate({ from: "/workspaces/$workspaceId/spaces/$spaceId" });
   const { workspaceId } = useParams({ from: "/workspaces/$workspaceId/_entity/spaces/$spaceId" });
@@ -79,10 +81,16 @@ export const SpaceBoard = observer(function SpaceBoard({
   const { scheduleFlush } = useDebouncedFlush(syncEngine);
 
   const spaceTasks = rootStore.taskStore.getBySpace(spaceId);
-  const boardItems: BoardItem[] = useMemo(
-    () => spaceTasks.filter((t) => !t.parentTaskId).map((t) => ({ ...t, __type: "task" as const })),
-    [spaceTasks],
-  );
+  const boardItems: BoardItem[] = useMemo(() => {
+    const tasks = showSubtasks ? spaceTasks : spaceTasks.filter((t) => !t.parentTaskId);
+    return tasks.map((t) => ({
+      ...t,
+      __type: "task" as const,
+      parentTaskName: showSubtasks && t.parentTaskId
+        ? rootStore.taskStore.getById(t.parentTaskId)?.name
+        : undefined,
+    }));
+  }, [spaceTasks, showSubtasks, rootStore.taskStore]);
 
   const debouncedSearch = useDebounce(searchInput, 300);
   const [activeColumnIndex, setActiveColumnIndex] = useState(0);
@@ -110,6 +118,11 @@ export const SpaceBoard = observer(function SpaceBoard({
     return boardItems.filter(item => {
       if (filter.priorities?.length && !filter.priorities.includes(item.priority ?? "")) return false;
       if (filter.statusIds?.length && !filter.statusIds.includes(item.statusId ?? "")) return false;
+      if (filter.hideArchived && item.isArchived) return false;
+      if (filter.assigneeIds?.length) {
+        const taskAssigneeIds = rootStore.assigneeStore.getByTask(item.id).map((a) => a.workspaceMemberId);
+        if (!taskAssigneeIds.some((id) => filter.assigneeIds!.includes(id))) return false;
+      }
       if (debouncedSearch && !item.name.toLowerCase().includes(debouncedSearch.toLowerCase())) return false;
       if (filter.startDate) {
         const day = toLocalDay(item.startDate);
@@ -121,7 +134,7 @@ export const SpaceBoard = observer(function SpaceBoard({
       }
       return true;
     });
-  }, [boardItems, filter, debouncedSearch]);
+  }, [boardItems, filter, debouncedSearch, rootStore.assigneeStore]);
 
   const enqueue = useCallback((update: { id: string; statusId?: string | null; priority?: Priority; orderKey?: string; startDate?: string | null; dueDate?: string | null }) => {
     const { id, ...patch } = update;
@@ -153,10 +166,11 @@ export const SpaceBoard = observer(function SpaceBoard({
     const comparator = getBoardSortComparator(sortBy);
     Object.keys(nextCols).forEach((colId) => {
       nextCols[colId].sort(comparator);
+      if (showSubtasks && sortBy !== "manual") nextCols[colId] = groupSubtasksAfterParent(nextCols[colId]);
     });
 
     return nextCols;
-  }, [filteredItems, statuses, sortBy]);
+  }, [filteredItems, statuses, sortBy, showSubtasks]);
 
   const { sensors, draggedItem, handleDragStart, handleDragEnd } = useBoardDnd({
     boardItems: filteredItems,
