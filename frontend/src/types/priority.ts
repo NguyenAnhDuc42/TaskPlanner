@@ -31,7 +31,7 @@ export function getPriorityWeight(item: { priority?: string; orderKey?: string }
   return PriorityWeight[item.priority as Priority] ?? 0;
 }
 
-export const prioritySort = (a: { priority?: string; orderKey?: string }, b: { priority?: string; orderKey?: string }) => {
+export const prioritySort = (a: { id?: string; priority?: string; orderKey?: string }, b: { id?: string; priority?: string; orderKey?: string }) => {
   const pA = getPriorityWeight(a);
   const pB = getPriorityWeight(b);
   if (pA !== pB) {
@@ -39,5 +39,9 @@ export const prioritySort = (a: { priority?: string; orderKey?: string }, b: { p
   }
   const ak = a.orderKey ?? "";
   const bk = b.orderKey ?? "";
-  return ak < bk ? -1 : ak > bk ? 1 : 0;
+  if (ak !== bk) return ak < bk ? -1 : 1;
+
+  const aId = a.id ?? "";
+  const bId = b.id ?? "";
+  return aId < bId ? -1 : aId > bId ? 1 : 0;
 };

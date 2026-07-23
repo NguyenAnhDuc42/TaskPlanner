@@ -24,23 +24,37 @@ export const SORT_OPTIONS: { value: SpaceBoardSortBy; label: string }[] = [
   { value: "name", label: "Name (A–Z)" },
 ];
 
+// Stable tiebreaker for whenever a comparator's primary key collides (same orderKey, same
+// createdAt millisecond, same name, etc.) — id is unique and never ties, so every comparator
+// below terminates on a real, consistent answer instead of an arbitrary/inconsistent one. This is
+// what actually keeps the board from misbehaving on an orderKey collision: a comparator that
+// returns a nonzero result for two elements it considers equal breaks Array.sort's basic contract
+// (if a>b then b<a must hold) and can make items jump around unpredictably between renders.
+const byId = (a: BoardItem, b: BoardItem) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0);
+
 export function getBoardSortComparator(sortBy: SpaceBoardSortBy) {
   switch (sortBy) {
     case "manual":
-      return (a: BoardItem, b: BoardItem) => ((a.orderKey ?? "") < (b.orderKey ?? "") ? -1 : 1);
+      return (a: BoardItem, b: BoardItem) => {
+        const ak = a.orderKey ?? "";
+        const bk = b.orderKey ?? "";
+        if (ak < bk) return -1;
+        if (ak > bk) return 1;
+        return byId(a, b);
+      };
     case "createdNewest":
-      return (a: BoardItem, b: BoardItem) => (b.createdAt ?? "").localeCompare(a.createdAt ?? "");
+      return (a: BoardItem, b: BoardItem) => (b.createdAt ?? "").localeCompare(a.createdAt ?? "") || byId(a, b);
     case "createdOldest":
-      return (a: BoardItem, b: BoardItem) => (a.createdAt ?? "").localeCompare(b.createdAt ?? "");
+      return (a: BoardItem, b: BoardItem) => (a.createdAt ?? "").localeCompare(b.createdAt ?? "") || byId(a, b);
     case "dueDate":
       return (a: BoardItem, b: BoardItem) => {
-        if (!a.dueDate && !b.dueDate) return 0;
+        if (!a.dueDate && !b.dueDate) return byId(a, b);
         if (!a.dueDate) return 1;
         if (!b.dueDate) return -1;
-        return a.dueDate.localeCompare(b.dueDate);
+        return a.dueDate.localeCompare(b.dueDate) || byId(a, b);
       };
     case "name":
-      return (a: BoardItem, b: BoardItem) => a.name.localeCompare(b.name);
+      return (a: BoardItem, b: BoardItem) => a.name.localeCompare(b.name) || byId(a, b);
     case "priority":
     default:
       return prioritySort;
