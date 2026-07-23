@@ -43,6 +43,14 @@ export class SyncEngine {
   private connectGeneration = 0
   private retryTimer: ReturnType<typeof setTimeout> | null = null
   private onlineRetryListener: (() => void) | null = null
+  // SignalR invokes 'Delta'/'DeltaBatch' handlers per-message, independent of whether the previous
+  // handler's async work finished — without this chain, two deltas arriving close together (e.g.
+  // two different clients each editing a different item) run applyDelta concurrently instead of in
+  // receipt order. That let a later delta's lastSyncId write finish before an earlier delta's,
+  // regressing the stored lastSyncId and corrupting reconnect catch-up — plus generally applying
+  // updates out of order relative to when the server actually emitted them. Chaining every delta
+  // onto one promise forces strict in-order, one-at-a-time processing regardless of arrival timing.
+  private deltaQueue: Promise<void> = Promise.resolve()
 
   constructor(rootStore: WorkspaceRootStore) {
     this.rootStore = rootStore
@@ -51,6 +59,13 @@ export class SyncEngine {
 
   get transactionQueue(): TransactionQueue {
     return this.queue
+  }
+
+  // Serializes delta processing — see deltaQueue's own comment for why this matters. The .catch
+  // here is required: without it, one delta throwing would reject the chain permanently, silently
+  // dropping every delta received after it for the rest of the session.
+  private enqueueDeltaWork(work: () => Promise<void>): void {
+    this.deltaQueue = this.deltaQueue.then(work).catch((err) => devError('[SyncEngine] Delta processing failed:', err))
   }
 
   async flushQueue(): Promise<void> {
@@ -220,12 +235,12 @@ export class SyncEngine {
 
     this.connection.on('Delta', (delta: DeltaPayload) => {
       devLog('[SyncEngine] Delta received:', delta.entityType, delta.action, delta.syncId)
-      applyDelta(this.rootStore, delta, (ids) => this.queue.cancelByEntityIds(ids))
+      this.enqueueDeltaWork(() => applyDelta(this.rootStore, delta, (ids) => this.queue.cancelByEntityIds(ids)))
     })
 
     this.connection.on('DeltaBatch', (payload: DeltaBatchPayload) => {
       devLog('[SyncEngine] DeltaBatch received:', payload.actions.length, 'events, latestSyncId:', payload.latestSyncId)
-      applyDeltaBatch(this.rootStore, payload.actions, (ids) => this.queue.cancelByEntityIds(ids))
+      this.enqueueDeltaWork(() => applyDeltaBatch(this.rootStore, payload.actions, (ids) => this.queue.cancelByEntityIds(ids)))
     })
 
     this.connection.onreconnected(async () => {
